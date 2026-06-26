@@ -856,9 +856,10 @@ Rispondi con il testo diretto, no JSON.`,
       if (pranzoMatch) set("sw-pranzo", pranzoMatch[1].trim());
       if (cenaMatch)   set("sw-cena", cenaMatch[1].trim());
     }
-    // Usa cover dal profilo pubblico se non c'è foto cover nel config
-    if (profilo?.cover_url && !conf?.foto_cover && !fotoSel.cover) {
-      fotoSel.cover = profilo.cover_url;
+    // Usa cover dalla sede se non c'è foto cover nel config
+    if (!conf?.foto_cover && !fotoSel.cover) {
+      if (sedeSelezionata?.cover_url) fotoSel.cover = sedeSelezionata.cover_url;
+      else if (profilo?.cover_url) fotoSel.cover = profilo.cover_url;
     }
 
     // Carica config sito salvata
@@ -962,8 +963,14 @@ Rispondi con il testo diretto, no JSON.`,
   async function generaHTML(conf) {
     const sedeIdCorrente = sedeSelezionata?.id || null;
 
-    const { data: identita } = await sc.from("azienda_identita")
-      .select("logo_url,colore_brand,gc_why").eq("azienda_id", aziendaId).maybeSingle();
+    const [{ data: identita }, { data: az2 }] = await Promise.all([
+      sc.from("azienda_identita")
+        .select("gc_why,gc_how,gc_what,tone_of_voice,posizionamento")
+        .eq("azienda_id", aziendaId).maybeSingle(),
+      sc.from("aziende")
+        .select("logo_url,colore_brand")
+        .eq("id", aziendaId).maybeSingle(),
+    ]);
 
     // Booking form — cerca per sede specifica
     let formId = null;
@@ -983,19 +990,17 @@ Rispondi con il testo diretto, no JSON.`,
 
     // Dati sede — priorità: config form > sede > profilo pubblico
     const { data: sedeDati } = sedeIdCorrente
-      ? await sc.from("sedi").select("nome,telefono,indirizzo,citta,email,logo_url").eq("id", sedeIdCorrente).maybeSingle()
+      ? await sc.from("sedi").select("nome,telefono,indirizzo,citta,logo_url,cover_url,lat,lng,orari_apertura,descrizione").eq("id", sedeIdCorrente).maybeSingle()
       : { data: null };
 
     const { data: profiloPub } = await sc.from("azienda_profilo_pubblico")
       .select("indirizzo,citta,telefono,email,google_maps_url,lat,lng,cover_url")
       .eq("azienda_id", aziendaId).maybeSingle();
 
-    const telefono  = conf.telefono  || sedeDati?.telefono  || profiloPub?.telefono  || "";
-    const email     = conf.email     || sedeDati?.email     || profiloPub?.email     || "";
-    const indirizzo = conf.indirizzo || [sedeDati?.indirizzo || profiloPub?.indirizzo, sedeDati?.citta || profiloPub?.citta].filter(Boolean).join(", ") || "";
-    const mapsUrl   = profiloPub?.google_maps_url || `https://maps.google.com/?q=${encodeURIComponent(indirizzo)}`;
-    const lat       = profiloPub?.lat || 42.4597;
-    const lng       = profiloPub?.lng || 12.3857;
+    const gen_telefono  = conf.telefono  || sedeDati?.telefono  || profiloPub?.telefono  || "";
+    const gen_email     = conf.email     || profiloPub?.email   || "";
+    const gen_indirizzo = conf.indirizzo || [sedeDati?.indirizzo || profiloPub?.indirizzo, sedeDati?.citta || profiloPub?.citta].filter(Boolean).join(", ") || "";
+    const mapsUrl       = profiloPub?.google_maps_url || `https://maps.google.com/?q=${encodeURIComponent(gen_indirizzo)}`;
 
     // Menu filtrato per sede
     let menuCats = [], menuVoci = [];
@@ -1025,8 +1030,10 @@ Rispondi con il testo diretto, no JSON.`,
       menuVoci = voci || [];
     }
 
-    const logo   = sedeDati?.logo_url || identita?.logo_url || "";
-    const colore = identita?.colore_brand || "#B8892A";
+    const logo   = sedeDati?.logo_url || az2?.logo_url || "";
+    const colore = az2?.colore_brand || "#B8892A";
+    const lat    = sedeDati?.lat || profiloPub?.lat || 42.4597;
+    const lng    = sedeDati?.lng || profiloPub?.lng || 12.3857;
     const esc = v => String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     const nome = conf.nome || sedeSelezionata?.nome || "Ristorante";
     const ctaTesto = conf.hero_cta || "Prenota un tavolo";
@@ -1151,7 +1158,7 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 
     const ctaBar = `<div class="cta-bar">
   <a class="cta-prenota" href="${esc(formUrl)}">🗓 ${esc(ctaTesto)}</a>
-  ${telefono ? `<a class="cta-chiama" href="tel:${esc(telefono)}">📞 Chiama</a>` : ""}
+  ${telefono ? `<a class="cta-chiama" href="tel:${esc(gen_telefono)}">📞 Chiama</a>` : ""}
   <a class="cta-menu-link" href="menu.html">📋 Menu</a>
 </div>`;
 
@@ -1202,7 +1209,7 @@ ${nav}
     <h1 class="h2" style="color:#fff;font-size:clamp(38px,8vw,72px);margin-bottom:16px;">${esc(conf.hero_titolo||nome)}</h1>
     ${conf.hero_sub ? `<p style="font-size:14px;color:rgba(255,255,255,.75);margin-bottom:28px;line-height:1.6;max-width:420px;margin-left:auto;margin-right:auto;">${esc(conf.hero_sub)}</p>` : ""}
     <a class="cta-inline" href="${esc(formUrl)}" style="font-size:16px;padding:16px 36px;">🗓 ${esc(ctaTesto)}</a>
-    ${telefono ? `<a class="cta-inline-ghost" href="tel:${esc(telefono)}">📞 Chiama</a>` : ""}
+    ${telefono ? `<a class="cta-inline-ghost" href="tel:${esc(gen_telefono)}">📞 Chiama</a>` : ""}
   </div>
 </div>
 
@@ -1292,14 +1299,14 @@ ${sezioniState.mappa ? `
     <h2 class="h2" style="color:#fff;">A pochi minuti<br><em>dall'autostrada</em></h2>
     <iframe style="width:100%;height:200px;border-radius:12px;border:none;margin:20px 0;opacity:.8" src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed" allowfullscreen loading="lazy"></iframe>
     <div class="map-infos">
-      ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(indirizzo)}</div></div>` : ""}
+      ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(gen_indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
-      ${telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(telefono)}">${esc(telefono)}</a></div></div>` : ""}
-      ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(email)}">${esc(email)}</a></div></div>` : ""}
+      ${telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(gen_telefono)}">${esc(gen_telefono)}</a></div></div>` : ""}
+      ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(gen_email)}">${esc(gen_email)}</a></div></div>` : ""}
     </div>
     <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap;">
       <a class="cta-inline" href="${esc(formUrl)}" style="flex:1;min-width:180px;text-align:center;">🗓 ${esc(ctaTesto)}</a>
-      ${telefono ? `<a style="flex:1;min-width:180px;display:inline-block;border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:600;font-size:14px;padding:13px 20px;border-radius:8px;text-align:center;margin-top:0;" href="tel:${esc(telefono)}">📞 Chiama ora</a>` : ""}
+      ${telefono ? `<a style="flex:1;min-width:180px;display:inline-block;border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:600;font-size:14px;padding:13px 20px;border-radius:8px;text-align:center;margin-top:0;" href="tel:${esc(gen_telefono)}">📞 Chiama ora</a>` : ""}
     </div>
   </div>
 </div>` : ""}
@@ -1368,10 +1375,10 @@ ${nav}
     <h1 class="h2" style="color:#fff;">Come<br><em>raggiungerci</em></h1>
     <iframe style="width:100%;height:220px;border-radius:12px;border:none;margin:24px 0;opacity:.8" src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed" allowfullscreen loading="lazy"></iframe>
     <div class="map-infos">
-      ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(indirizzo)}</div></div>` : ""}
+      ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(gen_indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
-      ${telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(telefono)}">${esc(telefono)}</a></div></div>` : ""}
-      ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(email)}">${esc(email)}</a></div></div>` : ""}
+      ${telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(gen_telefono)}">${esc(gen_telefono)}</a></div></div>` : ""}
+      ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(gen_email)}">${esc(gen_email)}</a></div></div>` : ""}
     </div>
     <a class="cta-inline" href="${esc(formUrl)}" style="margin-top:28px;">🗓 ${esc(ctaTesto)}</a>
   </div>
@@ -1486,7 +1493,7 @@ ${footer}
       { label:"Slug URL",     ok:!!conf.slug },
       { label:"Titolo hero",  ok:!!conf.hero_titolo },
       { label:"Chi siamo",    ok:!!conf.chisiamo_1 },
-      { label:"Telefono",     ok:!!telefono },
+      { label:"Telefono",     ok:!!gen_telefono },
       { label:"Foto cover",   ok:!!conf.foto_cover },
       { label:"Orari",        ok:!!(conf.orari_pranzo||conf.orari_cena) },
     ];
