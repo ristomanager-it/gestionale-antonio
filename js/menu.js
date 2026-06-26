@@ -1,351 +1,822 @@
-// ============================================================
-//  bo-media.js — Media Manager Ristoflow
-//  Carica, organizza e usa foto/video per sito, menu, promo
-// ============================================================
+export function initMenu() {
 
-const STORAGE_BUCKET = "media-aziende";
-const SUPABASE_URL   = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-const ANON_KEY       = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  const menu = document.getElementById("global-menu");
+  const toggle = document.getElementById("menu-toggle");
+  const headerRight = document.getElementById("header-right");
 
-const TAGS = ["Tutti","Piatti","Mare","Terra","Locale","Antipasti","Dolci","Vini","Eventi","Altro"];
-const ACCEPT_TYPES = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm";
+  if (!menu || !toggle) return;
 
-export async function render(container) {
-  const sc = window.supabaseClient || window.supabase?.createClient(SUPABASE_URL, ANON_KEY);
-  const aziendaId = window.state?.azienda?.id || window.state?.aziendaId;
-  const sedeId    = window.state?.sedeAttiva?.id || null;
-
-  // ── CSS ────────────────────────────────────────────────────
-  const style = document.createElement("style");
-  style.textContent = `
-    .media-wrap { padding: 16px; max-width: 1000px; }
-    .media-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
-    .media-title { font-size:18px; font-weight:800; color:#111827; }
-    .media-upload-btn { background:#0E5A7A; color:white; border:none; border-radius:10px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; }
-    .media-upload-btn:hover { background:#0a4a64; }
-    .media-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
-    .media-tag { padding:6px 14px; border-radius:20px; border:1.5px solid #e5e7eb; background:white; font-size:12px; color:#374151; cursor:pointer; transition:all .15s; }
-    .media-tag.active { background:#0E5A7A; border-color:#0E5A7A; color:white; font-weight:600; }
-    .media-search { width:100%; padding:10px 14px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:13px; margin-bottom:16px; outline:none; }
-    .media-search:focus { border-color:#0E5A7A; }
-    .media-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
-    .media-card { position:relative; border-radius:12px; overflow:hidden; background:#f1f5f9; aspect-ratio:1; cursor:pointer; group; }
-    .media-card img, .media-card video { width:100%; height:100%; object-fit:cover; display:block; transition:transform .2s; }
-    .media-card:hover img, .media-card:hover video { transform:scale(1.04); }
-    .media-card-overlay { position:absolute; inset:0; background:rgba(0,0,0,0); transition:background .2s; display:flex; flex-direction:column; justify-content:space-between; padding:8px; }
-    .media-card:hover .media-card-overlay { background:rgba(0,0,0,0.45); }
-    .media-card-actions { display:flex; gap:6px; justify-content:flex-end; opacity:0; transition:opacity .2s; }
-    .media-card:hover .media-card-actions { opacity:1; }
-    .media-card-btn { background:rgba(255,255,255,.9); border:none; border-radius:6px; padding:5px 8px; font-size:11px; cursor:pointer; font-weight:600; color:#111827; }
-    .media-card-btn:hover { background:white; }
-    .media-card-tag { align-self:flex-start; background:rgba(0,0,0,.5); color:white; font-size:10px; padding:3px 8px; border-radius:10px; opacity:0; transition:opacity .2s; }
-    .media-card:hover .media-card-tag { opacity:1; }
-    .media-card-type { position:absolute; top:8px; left:8px; background:rgba(0,0,0,.5); color:white; font-size:10px; padding:3px 6px; border-radius:6px; }
-    .media-empty { text-align:center; padding:60px 20px; color:#94a3b8; font-size:14px; grid-column:1/-1; }
-    .media-empty .empty-icon { font-size:48px; margin-bottom:12px; }
-    .media-drop-zone { border:2px dashed #e5e7eb; border-radius:16px; padding:40px 20px; text-align:center; margin-bottom:20px; transition:all .2s; cursor:pointer; background:white; }
-    .media-drop-zone.drag-over { border-color:#0E5A7A; background:#f0f9ff; }
-    .media-drop-zone .drop-icon { font-size:40px; margin-bottom:12px; }
-    .media-drop-zone .drop-title { font-size:15px; font-weight:700; color:#374151; margin-bottom:6px; }
-    .media-drop-zone .drop-sub { font-size:12px; color:#94a3b8; }
-    .media-modal { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px; }
-    .media-modal-inner { background:white; border-radius:16px; max-width:400px; width:100%; }
-    .media-modal-header { padding:14px 16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    .media-modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; flex-shrink:0; }
-    .media-modal-body { padding:16px; }
-    .media-modal-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
-    .media-modal-btn { flex:1; padding:10px; border-radius:10px; border:none; font-size:13px; font-weight:600; cursor:pointer; }
-    .media-modal-btn.copy { background:#0E5A7A; color:white; }
-    .media-modal-btn.copy:hover { background:#0a4a64; }
-    .media-modal-btn.delete { background:#fef2f2; color:#dc2626; }
-    .media-modal-btn.delete:hover { background:#fee2e2; }
-    .media-progress { margin-top:10px; }
-    .media-progress-bar { height:4px; background:#e5e7eb; border-radius:4px; overflow:hidden; }
-    .media-progress-fill { height:100%; background:#0E5A7A; border-radius:4px; transition:width .3s; }
-    .media-tag-select { width:100%; padding:10px 14px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:13px; margin-bottom:12px; outline:none; }
-    .media-count { font-size:12px; color:#94a3b8; margin-bottom:12px; }
-    @media(max-width:500px) { .media-grid { grid-template-columns:repeat(2,1fr); } }
-  `;
-  document.head.appendChild(style);
-
-  // ── HTML ────────────────────────────────────────────────────
-  container.innerHTML = `
-    <div class="media-wrap">
-      <div class="media-header">
-        <div class="media-title">🖼️ Media Library</div>
-        <button class="media-upload-btn" id="btn-upload-media">
-          ➕ Aggiungi foto/video
-        </button>
-      </div>
-
-      <!-- Drop zone -->
-      <div class="media-drop-zone" id="drop-zone">
-        <div class="drop-icon">📸</div>
-        <div class="drop-title">Trascina qui le tue foto e video</div>
-        <div class="drop-sub">JPG, PNG, WEBP, MP4 · Max 50MB per file<br>Oppure clicca per sfogliare dal telefono o dal computer</div>
-      </div>
-      <input type="file" id="file-input" multiple accept="${ACCEPT_TYPES}" style="display:none">
-
-      <!-- Filtri -->
-      <input class="media-search" id="media-search" placeholder="🔍 Cerca per nome…" oninput="filterMedia()">
-      <div class="media-tags" id="media-tags"></div>
-      <div class="media-count" id="media-count"></div>
-
-      <!-- Griglia -->
-      <div class="media-grid" id="media-grid">
-        <div class="media-empty"><div class="empty-icon">🖼️</div>Caricamento…</div>
-      </div>
-    </div>
-
-    <!-- Modal dettaglio -->
-    <div class="media-modal" id="media-modal" style="display:none;">
-      <div class="media-modal-inner">
-        <div class="media-modal-header">
-          <input id="modal-nome-input" style="flex:1;border:none;font-size:14px;font-weight:700;color:#111827;outline:none;background:transparent;" placeholder="Nome file">
-          <button class="media-modal-close" onclick="chiudiModal()">✕</button>
-        </div>
-        <div class="media-modal-body">
-          <div style="margin-bottom:12px;">
-            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Tag</label>
-            <select class="media-tag-select" id="modal-tag-select" onchange="salvaTag()">
-              ${TAGS.filter(t=>t!=="Tutti").map(t=>`<option value="${t}">${t}</option>`).join("")}
-            </select>
-          </div>
-          <div class="media-modal-actions">
-            <button class="media-modal-btn copy" onclick="copiaUrl()">📋 Copia URL</button>
-            <button class="media-modal-btn" onclick="salvaNome()" style="background:#f0fdf4;color:#15803d;">💾 Salva nome</button>
-            <button class="media-modal-btn delete" onclick="eliminaMedia()">🗑️ Elimina</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // ── STATO ───────────────────────────────────────────────────
-  let allMedia = [];
-  let tagAttivo = "Tutti";
-  let mediaSelezionato = null;
-
-  // ── TAGS ────────────────────────────────────────────────────
-  const tagsEl = document.getElementById("media-tags");
-  TAGS.forEach(tag => {
-    const btn = document.createElement("button");
-    btn.className = "media-tag" + (tag === "Tutti" ? " active" : "");
-    btn.textContent = tag;
-    btn.onclick = () => {
-      tagAttivo = tag;
-      document.querySelectorAll(".media-tag").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      renderGriglia();
-    };
-    tagsEl.appendChild(btn);
-  });
-
-  // ── CARICA MEDIA ─────────────────────────────────────────────
-  async function caricaMedia() {
-    if (!aziendaId) { document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">⚠️</div>Azienda non trovata.</div>`; return; }
-
-    if (!sedeId) {
-      document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">🏠</div>Seleziona una sede per vedere i media.</div>`;
-      allMedia = [];
-      return;
+  if (headerRight && !document.getElementById("notif-bell")) {
+    // ── ICONA WHATSAPP ───────────────────────────────────────────────────
+    if (!document.getElementById("wa-btn-header")) {
+      const waBtn = document.createElement("div");
+      waBtn.id = "wa-btn-header";
+      waBtn.title = "WhatsApp Inbox";
+      waBtn.style.cssText = `
+        position: relative;
+        cursor: pointer;
+        margin-left: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #f0f7ff;
+      `;
+      waBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.964-1.418A9.954 9.954 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.946 7.946 0 01-4.073-1.115l-.292-.173-3.024.865.852-3.114-.19-.302A7.96 7.96 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8zm4.406-5.884c-.241-.121-1.428-.704-1.649-.785-.221-.08-.382-.12-.543.12-.16.242-.622.786-.763.947-.14.162-.281.182-.522.061-.241-.121-1.018-.375-1.939-1.197-.716-.64-1.2-1.43-1.341-1.671-.14-.242-.015-.372.106-.493.108-.108.241-.282.362-.422.12-.141.16-.242.241-.403.08-.161.04-.302-.02-.423-.06-.12-.543-1.309-.744-1.792-.196-.47-.395-.406-.543-.414l-.463-.008a.888.888 0 00-.643.302c-.221.242-.844.824-.844 2.01 0 1.186.864 2.332.984 2.493.121.16 1.7 2.596 4.12 3.641.576.248 1.025.396 1.374.507.577.184 1.103.158 1.518.096.463-.069 1.428-.584 1.629-1.148.2-.563.2-1.046.14-1.147-.06-.1-.221-.16-.462-.282z"/>
+        </svg>
+        <div id="wa-badge" style="
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: #ef4444;
+          color: white;
+          border-radius: 50%;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 5px;
+          display: none;
+          min-width: 16px;
+          text-align: center;
+        ">0</div>
+      `;
+      waBtn.onclick = () => {
+        window.location.hash = "#/bo-whatsapp";
+        closeMenu();
+      };
+      headerRight.appendChild(waBtn);
     }
 
-    let q = sc.from("media_library")
-      .select("*")
-      .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId)
-      .order("created_at", { ascending: false });
+    // ── POLLING BADGE WA ─────────────────────────────────────────────────
+    window.updateWaBadge = (count) => {
+      const badge = document.getElementById("wa-badge");
+      if (!badge) return;
+      badge.textContent = count;
+      badge.style.display = count > 0 ? "block" : "none";
+    };
 
-    const { data, error } = await q;
+    async function pollWaBadge() {
+      const aziendaId = window.state?.azienda?.id;
+      if (!aziendaId) return;
+      try {
+        const { count } = await (window.supabaseClient || window.supabase)
+          .from("whatsapp_messaggi")
+          .select("id", { count: "exact", head: true })
+          .eq("azienda_id", aziendaId)
+          .eq("letto", false);
+        window.updateWaBadge(count || 0);
+      } catch {}
+    }
 
-    if (error) {
-      document.getElementById("media-grid").innerHTML = `<div class="media-empty"><div class="empty-icon">🔧</div>Prima configurazione: carica il tuo primo file!</div>`;
-      allMedia = [];
-    } else {
-      allMedia = data || [];
-      renderGriglia();
+    setTimeout(() => { pollWaBadge(); setInterval(pollWaBadge, 30000); }, 3000);
+
+    // ── PULSANTE TONY AI — in header ─────────────────────────────────────
+    if (!document.getElementById("tony-btn-header")) {
+      const tonyBtn = document.createElement("div");
+      tonyBtn.id = "tony-btn-header";
+      tonyBtn.title = "Tony AI";
+      tonyBtn.style.cssText = `
+        cursor: pointer;
+        margin-left: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        gap: 3px;
+      `;
+      tonyBtn.innerHTML = `
+        <img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
+          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" />
+        <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Tony.AI</span>
+      `;
+      tonyBtn.onclick = () => {
+        window.location.hash = "#/ai";
+        closeMenu();
+      };
+      headerRight.appendChild(tonyBtn);
+    }
+
+    // ── PULSANTE RISTOFLOWBOOK — in header ──────────────────────────────
+    if (!document.getElementById("rfbook-btn-header")) {
+      const rfbBtn = document.createElement("div");
+      rfbBtn.id = "rfbook-btn-header";
+      rfbBtn.title = "RistoflowBook";
+      rfbBtn.style.cssText = `
+        cursor: pointer;
+        margin-left: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        gap: 3px;
+      `;
+      rfbBtn.innerHTML = `
+        <div style="
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #0E5A7A 0%, #22c55e 50%, #f97316 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        ">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5"/>
+            <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Social</span>
+      `;
+      rfbBtn.onclick = () => {
+        window.open("https://social.ristoflow-ai.com", "_blank");
+      };
+      headerRight.appendChild(rfbBtn);
+    }
+
+    // Tasting rimosso dall'header — disponibile nel menu laterale
+
+  }
+
+  let overlay = document.querySelector(".menu-overlay");
+
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "menu-overlay";
+    document.body.appendChild(overlay);
+  }
+
+  function getRuoloAttivo() {
+    const raw = window.state?.viewAs || window.state?.ruolo;
+    return window.normalizeRuolo ? window.normalizeRuolo(raw) : raw;
+  }
+
+  function isSuperadmin() {
+    return !window.state?.viewAs && (
+      window.state?.isSuperadmin === true ||
+      getRuoloAttivo() === "superadmin"
+    );
+  }
+
+  function isAziendaRole() {
+    const r = getRuoloAttivo();
+    return ["admin", "manager", "operatore"].includes(r);
+  }
+
+  function can(route) {
+    if (!route) return true;
+    const cleanRoute = String(route).split("?")[0];
+
+    if (window.hasPermission) {
+      return window.hasPermission(cleanRoute);
+    }
+
+    if (isSuperadmin()) return true;
+    return isAziendaRole();
+  }
+
+  function go(route) {
+
+    if (!can(route)) return;
+    window.location.hash = "#/" + route;
+    closeMenu();
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function getProfiloUtente() {
+
+    const user = window.state?.user || {};
+    const meta = user.user_metadata || {};
+
+    const profile =
+      window.state?.userProfile ||
+      window.state?.profilo ||
+      window.state?.dipendente ||
+      {};
+
+    const nome =
+      profile.nome ||
+      meta.nome ||
+      meta.first_name ||
+      "";
+
+    const cognome =
+      profile.cognome ||
+      meta.cognome ||
+      meta.last_name ||
+      "";
+
+    const displayName =
+      [nome, cognome]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || "Utente";
+
+    const foto =
+      profile.foto_url ||
+      profile.avatar_url ||
+      meta.foto_url ||
+      meta.avatar_url ||
+      "";
+
+    const ruolo =
+      getRuoloAttivo() || "";
+
+    return {
+      nome,
+      cognome,
+      displayName,
+      foto,
+      ruolo
+    };
+  }
+
+  async function loadMenuUserProfile() {
+
+    const user =
+      window.state?.user;
+
+    const aziendaId =
+      window.state?.azienda?.id;
+
+    if (
+      !user?.id ||
+      !aziendaId ||
+      window.state?.userProfile?.__loadedFor === user.id
+    ) return;
+
+    try {
+
+      const { data } =
+        await window.supabaseClient
+          .from("dipendenti")
+          .select(`
+            nome,
+            cognome,
+            telefono,
+            email,
+            foto_url,
+            avatar_url,
+            ruolo
+          `)
+          .eq("user_id", user.id)
+          .eq("azienda_id", aziendaId)
+          .maybeSingle();
+
+      if (data) {
+
+        window.state.userProfile = {
+          ...data,
+          __loadedFor: user.id
+        };
+
+      }
+
+    } catch (e) {
+
+      console.warn(
+        "Profilo menu non caricato:",
+        e
+      );
+
     }
   }
 
-  // ── RENDER GRIGLIA ───────────────────────────────────────────
-  function renderGriglia() {
-    const search = (document.getElementById("media-search")?.value || "").toLowerCase();
-    const grid   = document.getElementById("media-grid");
-    const count  = document.getElementById("media-count");
+  function renderMenuHeader() {
 
-    let filtered = allMedia.filter(m => {
-      if (tagAttivo !== "Tutti" && m.tag !== tagAttivo) return false;
-      if (search && !m.nome.toLowerCase().includes(search)) return false;
-      return true;
+    const azienda =
+      window.state?.azienda;
+
+    const sede =
+      window.state?.sedeAttiva;
+
+    const profilo =
+      getProfiloUtente();
+
+    const avatar =
+      profilo.foto ||
+      (
+        "https://ui-avatars.com/api/?name=" +
+        encodeURIComponent(profilo.displayName)
+      );
+
+    const header =
+      document.createElement("div");
+
+    header.className =
+      "menu-user-header";
+
+    header.innerHTML = `
+      <div class="menu-company-name">
+        ${escapeHtml(azienda?.nome || "Ristoflow")}
+      </div>
+
+      <div class="menu-company-site">
+        ${escapeHtml(sede?.nome || "Nessuna sede attiva")}
+      </div>
+
+      <div class="menu-user-row">
+
+        <img
+          class="menu-user-avatar"
+          src="${escapeHtml(avatar)}"
+          alt="Foto profilo"
+        />
+
+        <div class="menu-user-info">
+
+          <div class="menu-user-name">
+            ${escapeHtml(profilo.displayName)}
+          </div>
+
+          <div class="menu-user-role">
+            ${escapeHtml(profilo.ruolo)}
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    return header;
+  }
+
+  function getMenu() {
+    const sections = [];
+    const ruolo = getRuoloAttivo();
+
+    // ── PIATTAFORMA (solo superadmin) — visibile anche con viewAs attivo ──
+    const isSa = window.state?.isSuperadmin === true
+      || window.state?.ruolo === "superadmin"
+      || window.state?.ruoloRaw === "superadmin"
+      || (window.state?.aziende || []).some(a => a.ruolo === "superadmin");
+    if (isSa) {
+      sections.push({
+        title: "PIATTAFORMA",
+        items: [
+          { label: "🖥️ Dashboard SaaS",    route: "homePiattaforma" },
+          { label: "🏢 Gestione Aziende",  route: "gestioneAziende" },
+          { label: "➕ Crea Azienda",      route: "creaAzienda"     },
+          { label: "💳 Piani Abbonamento", route: "gestionePiani"   },
+        ]
+      });
+    }
+
+    // ── OPERATIVO ──
+    sections.push({
+      title: "OPERATIVO",
+      items: [
+        { label: "🏠 Home",             route: "home"                },
+        { label: "🪑 Comande",          route: "bo-comande"          },
+        { label: "📅 Prenotazioni",     route: "prenotazioni"        },
+        { label: "🗓️ Tavoli",          route: "prenotazioni-tavoli" },
+        { label: "📑 Preventivi",       route: "preventivi"          },
+        { label: "👨‍🍳 Display Cucina", route: "display-cucina"      },
+        { label: "📦 Magazzino",        route: "magazzino"           },
+        { label: "🕒 Timbratura",       route: "timbrature"          },
+      ]
     });
 
-    count.textContent = `${filtered.length} file`;
+    // ── CUCINA ──
+    sections.push({
+      title: "CUCINA",
+      items: [
+        { label: "📖 Ricettario",         route: "ricettario"         },
+        { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
+        { label: "🏭 Produzione",          route: "produzione"         },
+        { label: "🧪 Preparazioni",        route: "preparazioni"       },
+        { label: "📋 Planning",            route: "planner-produzione" },
+        { label: "🔌 Dispositivi",         route: "bo-dispositivi"     },
+      ]
+    });
 
-    if (!filtered.length) {
-      grid.innerHTML = `<div class="media-empty"><div class="empty-icon">🔍</div>${allMedia.length ? "Nessun risultato" : "Nessun file ancora — carica la tua prima foto!"}</div>`;
-      return;
-    }
-
-    grid.innerHTML = filtered.map(m => {
-      const isVideo = m.tipo === "video";
-      const tag = m.tag || "Altro";
-      return `
-        <div class="media-card" onclick="apriModal('${m.id}')">
-          ${isVideo
-            ? `<video src="${escHtml(m.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`
-            : `<img src="${escHtml(m.url)}" alt="${escHtml(m.nome)}" loading="lazy">`
-          }
-          <div class="media-card-type">${isVideo ? "🎬" : "🖼️"}</div>
-          <div class="media-card-overlay">
-            <div class="media-card-tag">${escHtml(tag)}</div>
-            <div class="media-card-actions">
-              <button class="media-card-btn" onclick="event.stopPropagation();copiaDiretto('${escHtml(m.url)}')">📋</button>
-            </div>
-          </div>
-        </div>`;
-    }).join("");
-  }
-
-  window.filterMedia = renderGriglia;
-
-  // ── UPLOAD ───────────────────────────────────────────────────
-  const dropZone  = document.getElementById("drop-zone");
-  const fileInput = document.getElementById("file-input");
-
-  dropZone.onclick = () => fileInput.click();
-  document.getElementById("btn-upload-media").onclick = () => fileInput.click();
-
-  fileInput.addEventListener("change", e => gestisciFiles(Array.from(e.target.files)));
-
-  dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
-  dropZone.addEventListener("drop", e => {
-    e.preventDefault();
-    dropZone.classList.remove("drag-over");
-    gestisciFiles(Array.from(e.dataTransfer.files));
-  });
-
-  async function gestisciFiles(files) {
-    if (!aziendaId) { alert("Seleziona prima un'azienda."); return; }
-
-    // Crea la progress bar
-    const progressHtml = `<div class="media-progress" id="upload-progress"><div style="font-size:13px;font-weight:600;margin-bottom:6px;" id="upload-label">Caricamento…</div><div class="media-progress-bar"><div class="media-progress-fill" id="upload-fill" style="width:0%"></div></div></div>`;
-    dropZone.insertAdjacentHTML("afterend", progressHtml);
-
-    let completati = 0;
-    for (const file of files) {
-      if (file.size > 100 * 1024 * 1024) { alert(`${file.name} è troppo grande (max 100MB)`); completati++; continue; }
-
-      const isVideo = file.type.startsWith("video/");
-      const ext     = file.name.split(".").pop().toLowerCase();
-      const nome    = file.name.replace(/\.[^.]+$/, "");
-      const path    = `${aziendaId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-      document.getElementById("upload-label").textContent = `Caricamento ${file.name}…`;
-      document.getElementById("upload-fill").style.width = `${(completati / files.length) * 100}%`;
-
-      const { error: uploadError } = await sc.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
-
-      if (uploadError) { console.error("Upload error:", uploadError); completati++; continue; }
-
-      const { data: { publicUrl } } = sc.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-
-      // Salva in media_library
-      await sc.from("media_library").insert({
-        azienda_id: aziendaId,
-        sede_id: sedeId || null,
-        nome,
-        url: publicUrl,
-        path,
-        tipo: isVideo ? "video" : "immagine",
-        tag: "Altro",
-        dimensione: file.size,
-        created_at: new Date().toISOString()
+    // ── GESTIONE ──
+    if (isAziendaRole() || isSuperadmin()) {
+      sections.push({
+        title: "GESTIONE",
+        items: [
+          { label: "📊 Dashboard",        route: "bo-dashboard"      },
+          { label: "📈 Bilancio live",     route: "bo-bilancio"       },
+          { label: "🛒 Acquisti",         route: "acquisti"          },
+          { label: "💰 Venduto",          route: "venduto"           },
+          { label: "📈 Margini",          route: "margini"           },
+        ]
       });
 
-      completati++;
+      sections.push({
+        title: "MENU & PRODOTTI",
+        items: [
+          { label: "📋 Menu Builder",     route: "bo-menu"           },
+          { label: "🧺 Prodotti",         route: "bo-prodotti"       },
+          { label: "📂 Categorie",        route: "bo-categorie"      },
+          { label: "🍳 Ricette BO",       route: "bo-ricette"        },
+          { label: "📦 Magazzino BO",     route: "bo-magazzino"      },
+          { label: "👨‍🍳 Produzione BO",  route: "bo-produzione"     },
+        ]
+      });
+
+      sections.push({
+        title: "MARKETING & CRM",
+        items: [
+          { label: "🏷️ Tag & LTV",       route: "bo-tag"            },
+          { label: "💬 Template WhatsApp",route: "bo-template"       },
+          { label: "📣 Campagne",         route: "bo-marketing"      },
+          { label: "🎁 Promo",             route: "bo-promo"          },
+          { label: "🎫 Fidelity & Network", route: "bo-fidelity"       },
+          { label: "🔗 Catenarie",          route: "bo-catenarie"      },
+          { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
+          { label: "🤖 Chatbot",             route: "bo-chatbot"        },
+          { label: "🖼️ Media Library",       route: "bo-media"          },
+          { label: "🌐 Sito Web",              route: "bo-sito"           },
+        ]
+      });
+
+      sections.push({
+        title: "PERSONALE",
+        items: [
+          { label: "👥 Candidature",      route: "bo-candidature"    },
+          { label: "💬 Survey team",       route: "bo-survey"         },
+          { label: "👨‍💼 Dipendenti",     route: "dipendenti"        },
+          { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
+          { label: "🔐 Permessi",         route: "permessi-operatore"},
+          { label: "📆 Gestione ferie",   route: "hr-admin"          },
+          { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
+          { label: "📁 Documenti HR",      route: "hr-documenti"      },
+          { label: "📘 Manuale",          route: "manuale"           },
+        ]
+      });
+
+      sections.push({
+        title: "CONFIGURAZIONE",
+        items: [
+          { label: "⚙️ Impostazioni",     route: "bo-configurazione" },
+          { label: "🖼️ Media Library",       route: "bo-media"          },
+          { label: "🔗 Accessi Consulenti", route: "bo-consulenti"   },
+        ]
+      });
+
+      // ── HOTEL ──
+      sections.push({
+        title: "🏨 HOTEL",
+        items: [
+          { label: "🏨 Vai a Ristoflow Hotel", url: "https://hotel.ristoflow-ai.com", external: true },
+        ]
+      });
     }
 
-    document.getElementById("upload-fill").style.width = "100%";
-    document.getElementById("upload-label").textContent = `✅ ${completati} file caricati!`;
-    setTimeout(() => document.getElementById("upload-progress")?.remove(), 2000);
-    fileInput.value = "";
-    await caricaMedia();
+    // ── TASTING — sempre visibile ──
+    sections.push({
+      title: "🍷 TASTING",
+      items: [
+        { label: "🍷 Vai a Tasting", url: "https://tasting.ristoflow-ai.com", external: true },
+      ]
+    });
+
+    // ── CONSULENTE DEL LAVORO ──
+    if (ruolo === "consulente_lavoro") {
+      sections.length = 0; // svuota tutto
+      sections.push({
+        title: "DIPENDENTI",
+        items: [
+          { label: "👨‍💼 Dipendenti",       route: "dipendenti"      },
+          { label: "➕ Nuovo dipendente",  route: "crea-dipendente" },
+          { label: "🕒 Timbrature",        route: "timbrature"      },
+          { label: "📆 Gestione ferie",    route: "hr-admin"        },
+          { label: "👤 Fascicolo HR",       route: "hr-fascicolo"    },
+          { label: "📁 Documenti HR",       route: "hr-documenti"    },
+        ]
+      });
+      sections.push({
+        title: "IL MIO PROFILO",
+        items: [
+          { label: "👤 Profilo", route: "completa-profilo" },
+        ]
+      });
+      return sections;
+    }
+
+    // ── COMMERCIALISTA ──
+    if (ruolo === "commercialista") {
+      sections.length = 0; // svuota tutto
+      sections.push({
+        title: "CONTABILITÀ",
+        items: [
+          { label: "📈 Bilancio live", route: "bo-bilancio" },
+          { label: "🛒 Acquisti",      route: "acquisti"    },
+        ]
+      });
+      sections.push({
+        title: "IL MIO PROFILO",
+        items: [
+          { label: "👤 Profilo", route: "completa-profilo" },
+        ]
+      });
+      return sections;
+    }
+
+    // ── SEDI ──
+    sections.push({
+      title: "SEDI",
+      items: (() => {
+        if (["manager","operatore"].includes(ruolo)) {
+          return [{ label: "🔄 Cambia sede", route: "gestione-sedi" }];
+        }
+        return [
+          { label: "🔄 Cambia sede",   route: "gestione-sedi"              },
+          { label: "➕ Crea sede",     route: "gestione-sedi?mode=first"   },
+          { label: "⚙️ Gestisci sedi", route: "gestione-sedi?mode=manage" },
+        ];
+      })()
+    });
+
+    // ── PERSONALE ──
+    sections.push({
+      title: "IL MIO PROFILO",
+      items: [
+        { label: "👤 Profilo",            route: "completa-profilo" },
+        { label: "🕒 Timbratura",         route: "timbrature"       },
+        { label: "📆 Richiedi ferie",     route: "hr-richieste"     },
+        { label: "📁 I miei documenti",   route: "hr-documenti-me"  },
+
+      ]
+    });
+
+    return sections;
   }
 
-  // ── MODAL ────────────────────────────────────────────────────
-  window.apriModal = function(id) {
-    mediaSelezionato = allMedia.find(m => m.id === id);
-    if (!mediaSelezionato) return;
-    const m = mediaSelezionato;
-    document.getElementById("modal-nome-input").value = m.nome;
-    document.getElementById("modal-tag-select").value = m.tag || "Altro";
-    document.getElementById("media-modal").style.display = "flex";
-    setTimeout(() => document.getElementById("modal-nome-input").focus(), 100);
+  function renderMenu() {
+
+    menu.innerHTML = "";
+
+    menu.appendChild(
+      renderMenuHeader()
+    );
+
+    const struttura =
+      getMenu();
+
+    struttura.forEach(section => {
+
+      const items =
+        section.items.filter(
+          i => can(i.route)
+        );
+
+      if (items.length === 0) return;
+
+      const sectionBox =
+        document.createElement("div");
+
+      sectionBox.className =
+        "menu-section";
+
+      const title =
+        document.createElement("div");
+
+      title.className =
+        "menu-category";
+
+      title.innerHTML = `
+        <span>${section.title}</span>
+        <span class="menu-arrow">›</span>
+      `;
+
+      const itemsBox =
+        document.createElement("div");
+
+      itemsBox.className =
+        "menu-subitems";
+
+      items.forEach(item => {
+
+        const row =
+          document.createElement("div");
+
+        row.className =
+          "menu-subitem";
+
+        if (item.badge === "wa") {
+          const badgeCount = document.getElementById("wa-badge")?.textContent || "0";
+          const badgeVisible = document.getElementById("wa-badge")?.style.display !== "none";
+          row.innerHTML = `
+            <span>${item.label}</span>
+            <span id="wa-menu-badge" style="
+              background:#ef4444;
+              color:white;
+              border-radius:50%;
+              font-size:10px;
+              font-weight:700;
+              padding:2px 6px;
+              min-width:16px;
+              text-align:center;
+              display:${badgeVisible ? "inline-block" : "none"};
+            ">${badgeCount}</span>
+          `;
+          row.style.display = "flex";
+          row.style.justifyContent = "space-between";
+          row.style.alignItems = "center";
+        } else {
+          row.innerText = item.label;
+        }
+
+        row.onclick = () => {
+          if (item.url) {
+            // SSO: passa il token Supabase all'app hotel
+            if (item.url && (item.url.includes("hotel.ristoflow-ai.com") || item.url.includes("tasting.ristoflow-ai.com"))) {
+              (async () => {
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                if (session?.access_token) {
+                  const url = item.url + "#access_token=" + session.access_token + "&refresh_token=" + session.refresh_token + "&type=sso";
+                  window.open(url, "_blank");
+                } else {
+                  window.open(item.url, "_blank");
+                }
+              })();
+            } else {
+              window.open(item.url, "_blank");
+            }
+          } else {
+            go(item.route);
+          }
+        };
+
+        itemsBox.appendChild(row);
+
+      });
+
+      title.onclick = () => {
+
+        const isOpen =
+          itemsBox.classList.contains("open");
+
+        document
+          .querySelectorAll(".menu-subitems")
+          .forEach(el => {
+            el.classList.remove("open");
+          });
+
+        document
+          .querySelectorAll(".menu-arrow")
+          .forEach(el => {
+            el.style.transform =
+              "rotate(0deg)";
+          });
+
+        if (!isOpen) {
+
+          itemsBox.classList.add("open");
+
+          title.querySelector(
+            ".menu-arrow"
+          ).style.transform =
+            "rotate(90deg)";
+
+        }
+
+      };
+
+      sectionBox.appendChild(title);
+      sectionBox.appendChild(itemsBox);
+
+      menu.appendChild(sectionBox);
+
+    });
+
+    // Pulisci cache
+    const cacheBtn = document.createElement("div");
+    cacheBtn.className = "menu-logout";
+    cacheBtn.style.cssText = "background:#f3f4f6;color:#374151;margin-bottom:4px;font-size:12px;";
+    cacheBtn.innerText = "🔄 Aggiorna app";
+    cacheBtn.onclick = async () => {
+      try {
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch(e) {}
+      window.location.reload(true);
+    };
+    menu.appendChild(cacheBtn);
+
+    // Manuale prima del logout
+    const manualeBtn = document.createElement("div");
+    manualeBtn.className = "menu-logout";
+    manualeBtn.style.cssText = "background:#e8f4f8;color:#0E5A7A;margin-bottom:4px;";
+    manualeBtn.innerText = "📘 Manuale d'uso";
+    manualeBtn.onclick = () => {
+      window.location.hash = "#/manuale";
+      closeMenu();
+    };
+    menu.appendChild(manualeBtn);
+
+    // ── RISTOFLOWBOOK BUTTON ──────────────────────────────────────────────
+    const rfbMenuBtn = document.createElement("div");
+    rfbMenuBtn.className = "menu-logout";
+    rfbMenuBtn.style.cssText = `
+      background: linear-gradient(135deg, #0E5A7A 0%, #22c55e 50%, #f97316 100%);
+      color: white;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    `;
+    rfbMenuBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5"/>
+        <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      🌐 RistoflowBook
+    `;
+    rfbMenuBtn.onclick = () => {
+      window.open("https://social.ristoflow-ai.com", "_blank");
+      closeMenu();
+    };
+    menu.appendChild(rfbMenuBtn);
+
+    const logout =
+      document.createElement("div");
+
+    logout.className =
+      "menu-logout";
+
+    logout.innerText =
+      "Logout";
+
+    logout.onclick = () => {
+
+      if (window.router?.logout) {
+        window.router.logout();
+      }
+
+      closeMenu();
+
+    };
+
+    menu.appendChild(logout);
+  }
+
+  async function openMenu() {
+
+    await loadMenuUserProfile();
+
+    renderMenu();
+
+    menu.classList.add("open");
+    overlay.classList.add("open");
+  }
+
+  function closeMenu() {
+
+    menu.classList.remove("open");
+    overlay.classList.remove("open");
+
+  }
+
+  toggle.onclick = () => {
+
+    if (menu.classList.contains("open")) {
+
+      closeMenu();
+
+    } else {
+
+      openMenu();
+
+    }
+
   };
 
-  window.salvaNome = async function() {
-    if (!mediaSelezionato) return;
-    const nuovoNome = document.getElementById("modal-nome-input").value.trim();
-    if (!nuovoNome) return;
-    await sc.from("media_library").update({ nome: nuovoNome }).eq("id", mediaSelezionato.id);
-    mediaSelezionato.nome = nuovoNome;
-    const idx = allMedia.findIndex(m => m.id === mediaSelezionato.id);
-    if (idx >= 0) allMedia[idx].nome = nuovoNome;
-    chiudiModal();
-    renderGriglia();
+  overlay.onclick = closeMenu;
+
+  window.menuController = {
+
+    refresh: renderMenu,
+
+    open: openMenu,
+
+    close: closeMenu
+
   };
-
-  // Salva nome anche con Invio
-  document.getElementById("modal-nome-input")?.addEventListener("keydown", e => {
-    if (e.key === "Enter") window.salvaNome();
-  });
-
-  window.chiudiModal = function() {
-    document.getElementById("media-modal").style.display = "none";
-    mediaSelezionato = null;
-  };
-
-  document.getElementById("media-modal").onclick = function(e) {
-    if (e.target === this) chiudiModal();
-  };
-
-  window.copiaUrl = function() {
-    if (!mediaSelezionato) return;
-    navigator.clipboard.writeText(mediaSelezionato.url)
-      .then(() => { const btn = document.querySelector(".media-modal-btn.copy"); btn.textContent = "✅ Copiato!"; setTimeout(() => btn.textContent = "📋 Copia URL", 2000); })
-      .catch(() => { alert("URL: " + mediaSelezionato.url); });
-  };
-
-  window.copiaDiretto = function(url) {
-    navigator.clipboard.writeText(url)
-      .then(() => { /* toast */ })
-      .catch(() => alert("URL: " + url));
-  };
-
-  window.salvaTag = async function() {
-    if (!mediaSelezionato) return;
-    const tag = document.getElementById("modal-tag-select").value;
-    await sc.from("media_library").update({ tag }).eq("id", mediaSelezionato.id);
-    mediaSelezionato.tag = tag;
-    const idx = allMedia.findIndex(m => m.id === mediaSelezionato.id);
-    if (idx >= 0) allMedia[idx].tag = tag;
-    renderGriglia();
-  };
-
-  window.eliminaMedia = async function() {
-    if (!mediaSelezionato) return;
-    if (!confirm(`Eliminare "${mediaSelezionato.nome}"? L'operazione è irreversibile.`)) return;
-    await sc.storage.from(STORAGE_BUCKET).remove([mediaSelezionato.path]);
-    await sc.from("media_library").delete().eq("id", mediaSelezionato.id);
-    allMedia = allMedia.filter(m => m.id !== mediaSelezionato.id);
-    chiudiModal();
-    renderGriglia();
-  };
-
-  function escHtml(v) { return String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-
-  // ── INIT ─────────────────────────────────────────────────────
-  await caricaMedia();
 }
