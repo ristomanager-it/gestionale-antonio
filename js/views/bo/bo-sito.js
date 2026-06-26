@@ -1299,10 +1299,10 @@ ${sezioniState.mappa ? `
     <h2 class="h2" style="color:#fff;">A pochi minuti<br><em>dall'autostrada</em></h2>
     <iframe style="width:100%;height:200px;border-radius:12px;border:none;margin:20px 0;opacity:.8" src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed" allowfullscreen loading="lazy"></iframe>
     <div class="map-infos">
-      ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(gen_indirizzo)}</div></div>` : ""}
+      ${gen_indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(gen_indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
       ${gen_telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(gen_telefono)}">${esc(gen_telefono)}</a></div></div>` : ""}
-      ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(gen_email)}">${esc(gen_email)}</a></div></div>` : ""}
+      ${gen_email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(gen_email)}">${esc(gen_email)}</a></div></div>` : ""}
     </div>
     <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap;">
       <a class="cta-inline" href="${esc(formUrl)}" style="flex:1;min-width:180px;text-align:center;">🗓 ${esc(ctaTesto)}</a>
@@ -1375,10 +1375,10 @@ ${nav}
     <h1 class="h2" style="color:#fff;">Come<br><em>raggiungerci</em></h1>
     <iframe style="width:100%;height:220px;border-radius:12px;border:none;margin:24px 0;opacity:.8" src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed" allowfullscreen loading="lazy"></iframe>
     <div class="map-infos">
-      ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(gen_indirizzo)}</div></div>` : ""}
+      ${gen_indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(gen_indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
       ${gen_telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(gen_telefono)}">${esc(gen_telefono)}</a></div></div>` : ""}
-      ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(gen_email)}">${esc(gen_email)}</a></div></div>` : ""}
+      ${gen_email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(gen_email)}">${esc(gen_email)}</a></div></div>` : ""}
     </div>
     <a class="cta-inline" href="${esc(formUrl)}" style="margin-top:28px;">🗓 ${esc(ctaTesto)}</a>
   </div>
