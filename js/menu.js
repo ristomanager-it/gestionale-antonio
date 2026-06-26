@@ -442,6 +442,7 @@ export function initMenu() {
           { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
           { label: "🤖 Chatbot",             route: "bo-chatbot"        },
           { label: "🖼️ Media Library",       route: "bo-media"          },
+          { label: "🌐 Sito Web",              route: "bo-sito"           },
         ]
       });
 
