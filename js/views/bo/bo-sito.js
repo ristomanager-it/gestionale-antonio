@@ -220,7 +220,13 @@ export async function render(container) {
       </div>
 
       <div class="sw-card">
-        <div class="sw-card-title">📍 Contatti</div>
+        <div class="sw-card-title">🗓️ Form prenotazione</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:12px;">Seleziona il form da collegare al pulsante "Prenota" del sito.</div>
+        <select id="sw-form-id" class="sw-input" style="margin-bottom:8px;">
+          <option value="">— Caricamento form... —</option>
+        </select>
+        <div id="sw-form-preview" style="font-size:12px;color:#0E5A7A;margin-top:4px;"></div>
+      </div>
         <div class="sw-field-row">
           <div class="sw-field">
             <label class="sw-label">Telefono</label>
@@ -391,7 +397,31 @@ export async function render(container) {
     await caricaConfig();
   }
 
-  // ── TABS ────────────────────────────────────────────────────
+  // ── CARICA FORM PRENOTAZIONE ────────────────────────────────
+  async function caricaFormDisponibili() {
+    if (!aziendaId) return;
+    const { data: forms } = await sc.from("booking_forms")
+      .select("id,nome,sede_id,attivo")
+      .eq("azienda_id", aziendaId)
+      .eq("attivo", true)
+      .order("nome");
+    const sel = document.getElementById("sw-form-id");
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Nessun form selezionato —</option>' +
+      (forms || []).map(f => `<option value="${f.id}">${f.nome}${f.sede_id ? ' 📍' : ''}</option>`).join("");
+    // Preseleziona se salvato in config
+    const { data: conf } = await sc.from("sito_config")
+      .select("form_id").eq("azienda_id", aziendaId)
+      .eq("sede_id", sedeSelezionata?.id || null).maybeSingle()
+      .catch(() => ({ data: null }));
+    if (conf?.form_id) sel.value = conf.form_id;
+    sel.onchange = () => {
+      const preview = document.getElementById("sw-form-preview");
+      if (preview && sel.value) preview.textContent = `URL: https://app.ristoflow-ai.com/prenotazione-online.html?form_id=${sel.value}`;
+      else if (preview) preview.textContent = "";
+    };
+    sel.dispatchEvent(new Event("change"));
+  }
   container.querySelectorAll(".sw-tab").forEach(btn => {
     btn.onclick = () => {
       container.querySelectorAll(".sw-tab").forEach(b => b.classList.remove("active"));
@@ -789,7 +819,7 @@ Rispondi con il testo diretto, no JSON.`,
   function leggiForm() {
     const g = id => document.getElementById(id)?.value?.trim() || "";
     return {
-      nome:        g("sw-nome"),
+      form_id:       document.getElementById("sw-form-id")?.value || null,
       slug:        g("sw-slug"),
       dominio:     g("sw-dominio") || null,
       hero_titolo: g("sw-hero-titolo"),
@@ -903,6 +933,7 @@ Rispondi con il testo diretto, no JSON.`,
       slug: conf.slug,
       nome: conf.nome,
       dominio: conf.dominio,
+      form_id: conf.form_id || null,
       hero_titolo: conf.hero_titolo,
       hero_sub: conf.hero_sub,
       hero_cta: conf.hero_cta,
@@ -972,9 +1003,9 @@ Rispondi con il testo diretto, no JSON.`,
         .eq("id", aziendaId).maybeSingle(),
     ]);
 
-    // Booking form — cerca per sede specifica
-    let formId = null;
-    if (sedeIdCorrente) {
+    // Booking form — usa quello scelto nel pannello (priorità), poi cerca per sede
+    let formId = conf.form_id || null;
+    if (!formId && sedeIdCorrente) {
       const { data: formSede } = await sc.from("booking_forms")
         .select("id").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente).eq("attivo", true).limit(1).maybeSingle();
       formId = formSede?.id;
@@ -990,7 +1021,7 @@ Rispondi con il testo diretto, no JSON.`,
 
     // Dati sede — priorità: config form > sede > profilo pubblico
     const { data: sedeDati } = sedeIdCorrente
-      ? await sc.from("sedi").select("nome,telefono,indirizzo,citta,logo_url,cover_url,lat,lng,orari_apertura,descrizione").eq("id", sedeIdCorrente).maybeSingle()
+      ? await sc.from("sedi").select("nome,telefono,indirizzo,citta,logo_url,cover_url,lat,lng,orari_apertura,descrizione,colore_brand,colore_secondario").eq("id", sedeIdCorrente).maybeSingle()
       : { data: null };
 
     const { data: profiloPub } = await sc.from("azienda_profilo_pubblico")
@@ -1030,23 +1061,30 @@ Rispondi con il testo diretto, no JSON.`,
       menuVoci = voci || [];
     }
 
-    const logo   = sedeDati?.logo_url || az2?.logo_url || "";
-    const colore = az2?.colore_brand || "#B8892A";
-    const lat    = sedeDati?.lat || profiloPub?.lat || 42.4597;
-    const lng    = sedeDati?.lng || profiloPub?.lng || 12.3857;
+    const logo        = sedeDati?.logo_url || az2?.logo_url || "";
+    const colore      = sedeDati?.colore_brand      || az2?.colore_brand      || "#794d01";
+    const coloreLight = sedeDati?.colore_secondario || az2?.colore_brand      || "#c4892a";
+    const lat         = sedeDati?.lat || profiloPub?.lat || 42.4597;
+    const lng         = sedeDati?.lng || profiloPub?.lng || 12.3857;
     const esc = v => String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     const nome = conf.nome || sedeSelezionata?.nome || "Ristorante";
     const ctaTesto = conf.hero_cta || "Prenota un tavolo";
     const slug = conf.slug || "sito";
 
-    // ── CSS condiviso ─────────────────────────────────────────
     const cssBase = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--oro:${colore};--scuro:#1A1209;--caldo:#F5EFE4;--grigio:#6B5E4E;--bianco:#fff}
+:root{
+  --oro:${coloreLight};
+  --oro-btn:${colore};
+  --oro-btn-hover:${colore}dd;
+  --scuro:#1A1209;
+  --caldo:#F5EFE4;
+  --grigio:#6B5E4E;
+  --bianco:#fff
+}
 html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:var(--scuro);overflow-x:hidden}
 a{color:inherit;text-decoration:none}
-/* NAV */
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(26,18,9,.9);backdrop-filter:blur(12px)}
 .nav-logo{display:flex;align-items:center;gap:8px}
 .nav-logo img{width:30px;height:30px;border-radius:50%;object-fit:cover}
@@ -1054,17 +1092,15 @@ a{color:inherit;text-decoration:none}
 .nav-links{display:flex;gap:18px}
 .nav-links a{font-size:12px;color:rgba(255,255,255,.7);letter-spacing:.4px;transition:color .2s}
 .nav-links a:hover{color:var(--oro)}
-.nav-cta{background:var(--oro);color:var(--scuro);font-size:12px;font-weight:800;padding:8px 16px;border-radius:6px;letter-spacing:.3px;transition:opacity .2s}
+.nav-cta{background:var(--oro-btn);color:#fff;font-size:12px;font-weight:800;padding:8px 16px;border-radius:6px;letter-spacing:.3px;transition:opacity .2s}
 .nav-cta:hover{opacity:.9}
 @media(max-width:600px){.nav-links{display:none}}
-/* CTA BAR STICKY */
-.cta-bar{position:sticky;bottom:0;z-index:90;display:flex;background:var(--scuro);border-top:1px solid rgba(184,137,42,.3)}
+.cta-bar{position:sticky;bottom:0;z-index:90;display:flex;background:var(--scuro);border-top:1px solid rgba(196,137,42,.3)}
 .cta-bar a{flex:1;padding:14px 8px;text-align:center;font-size:13px;font-weight:700;letter-spacing:.4px;transition:background .2s}
-.cta-prenota{background:var(--oro);color:var(--scuro)}
-.cta-prenota:hover{background:#c99830}
+.cta-prenota{background:var(--oro-btn);color:#fff}
+.cta-prenota:hover{background:var(--oro-btn-hover)}
 .cta-chiama{background:#1e3a14;color:#7ed370}
 .cta-menu-link{background:#1e1e1e;color:rgba(255,255,255,.8)}
-/* SEZIONI */
 .section{padding:72px 20px;max-width:700px;margin:0 auto}
 .section-full{padding:72px 0;max-width:100%}
 .eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--oro);margin-bottom:10px;font-weight:600}
@@ -1072,17 +1108,14 @@ a{color:inherit;text-decoration:none}
 .h2 em{font-style:italic;color:var(--oro)}
 .body-text{font-size:14px;color:var(--grigio);line-height:1.85}
 .body-text p+p{margin-top:12px}
-/* CTA INLINE */
-.cta-inline{display:inline-block;background:var(--oro);color:var(--scuro);font-weight:800;font-size:14px;padding:13px 28px;border-radius:8px;letter-spacing:.3px;margin-top:20px;transition:opacity .2s}
+.cta-inline{display:inline-block;background:var(--oro-btn);color:#fff;font-weight:800;font-size:14px;padding:13px 28px;border-radius:8px;letter-spacing:.3px;margin-top:20px;transition:opacity .2s}
 .cta-inline:hover{opacity:.9}
-.cta-inline-ghost{display:inline-block;border:1.5px solid var(--oro);color:var(--oro);font-size:14px;font-weight:600;padding:13px 24px;border-radius:8px;margin-top:20px;margin-left:10px}
-/* HIGHLIGHTS */
+.cta-inline-ghost{display:inline-block;border:1.5px solid var(--oro-btn);color:var(--oro-btn);font-size:14px;font-weight:600;padding:13px 24px;border-radius:8px;margin-top:20px;margin-left:10px}
 .hl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:24px}
 .hl-card{background:#f8fafc;border-radius:14px;padding:20px;text-align:center}
 .hl-icon{font-size:32px;margin-bottom:10px}
 .hl-titolo{font-size:14px;font-weight:800;color:#111827;margin-bottom:4px}
 .hl-testo{font-size:12px;color:var(--grigio);line-height:1.5}
-/* REEL */
 .reel-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
 @media(max-width:500px){.reel-grid{grid-template-columns:1fr}}
 .reel-item{position:relative;aspect-ratio:9/16;overflow:hidden;background:var(--scuro)}
@@ -1090,30 +1123,25 @@ a{color:inherit;text-decoration:none}
 .reel-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(26,18,9,.75) 0%,transparent 50%);display:flex;flex-direction:column;justify-content:flex-end;padding:18px}
 .reel-label{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:#fff;margin-bottom:3px}
 .reel-sub{font-size:10px;letter-spacing:2px;color:var(--oro);text-transform:uppercase}
-/* MARE */
 .mare-section{background:var(--scuro);color:#fff;padding:72px 20px}
 .mare-inner{max-width:700px;margin:0 auto}
 .mare-quote{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,4vw,34px);font-style:italic;line-height:1.4;margin-bottom:24px;border-left:2px solid var(--oro);padding-left:20px}
 .mare-body{font-size:14px;color:rgba(255,255,255,.65);line-height:1.9}
-/* MENU */
 .menu-section{background:var(--caldo);padding:72px 20px}
 .menu-inner{max-width:700px;margin:0 auto}
 .menu-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
 .menu-cat-btn{padding:6px 14px;border-radius:20px;border:1.5px solid #c9b89a;background:transparent;font-size:12px;color:var(--grigio);cursor:pointer;font-family:inherit;transition:all .15s}
-.menu-cat-btn.active{background:var(--oro);border-color:var(--oro);color:var(--scuro);font-weight:700}
+.menu-cat-btn.active{background:var(--oro-btn);border-color:var(--oro-btn);color:#fff;font-weight:700}
 .menu-item{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid #d8ccba;gap:12px}
 .menu-item:last-child{border-bottom:none}
 .menu-item-nome{font-size:14px;font-weight:500}
 .menu-item-desc{font-size:11px;color:var(--grigio);margin-top:2px;line-height:1.4}
 .menu-item-prezzo{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--oro);font-weight:600;white-space:nowrap}
-/* LOCALE */
 .locale-img{width:100%;height:280px;object-fit:cover;display:block}
-/* RECENSIONI */
 .reviews-bg{background:var(--caldo);padding:72px 20px}
 .review-card{background:#fff;border-radius:12px;padding:20px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 .review-text{font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;line-height:1.6;margin-bottom:10px}
 .stars{color:var(--oro);letter-spacing:2px;font-size:13px;margin-bottom:6px}
-/* MAPPA */
 .map-section{background:var(--scuro);padding:72px 20px}
 .map-inner{max-width:700px;margin:0 auto;color:#fff}
 .map-infos{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
@@ -1121,7 +1149,6 @@ a{color:inherit;text-decoration:none}
 .map-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--oro);margin-bottom:3px}
 .map-val{font-size:13px;color:rgba(255,255,255,.8);line-height:1.5}
 .map-val a{color:var(--oro)}
-/* FOOTER */
 footer{background:#0e0a04;padding:36px 20px;text-align:center}
 .footer-logo{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--oro);margin-bottom:10px;font-style:italic}
 .footer-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
@@ -1504,4 +1531,5 @@ ${footer}
 
   // ── INIT ─────────────────────────────────────────────────────
   await caricaSedi();
+  await caricaFormDisponibili();
 }
