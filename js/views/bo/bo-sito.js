@@ -884,18 +884,53 @@ Rispondi con il testo diretto, no JSON.`,
     }
   }
 
-  // ── SALVA CONFIG ─────────────────────────────────────────────
   async function salvaConfig() {
     if (!aziendaId) return;
     const conf = leggiForm();
     const sedeIdCorrente = sedeSelezionata?.id || null;
-    await sc.from("sito_config").upsert({
+    if (!sedeIdCorrente) { alert("Seleziona una sede prima di salvare."); return; }
+
+    const payload = {
       azienda_id: aziendaId,
       sede_id: sedeIdCorrente,
-      ...conf,
-      hl1: conf.hl1, hl2: conf.hl2, hl3: conf.hl3,
+      slug: conf.slug,
+      nome: conf.nome,
+      dominio: conf.dominio,
+      hero_titolo: conf.hero_titolo,
+      hero_sub: conf.hero_sub,
+      hero_cta: conf.hero_cta,
+      hl1: conf.hl1,
+      hl2: conf.hl2,
+      hl3: conf.hl3,
+      chisiamo_1: conf.chisiamo_1,
+      chisiamo_2: conf.chisiamo_2,
+      mare_quote: conf.mare_quote,
+      mare_testo: conf.mare_testo,
+      telefono: conf.telefono,
+      email: conf.email,
+      indirizzo: conf.indirizzo,
+      orari_pranzo: conf.orari_pranzo,
+      orari_cena: conf.orari_cena,
+      piva: conf.piva,
+      pagina_chisiamo: conf.pagina_chisiamo,
+      pagina_eventi: conf.pagina_eventi,
+      foto_cover: conf.foto_cover,
+      foto_reel_terra: conf.foto_reel_terra,
+      foto_reel_mare: conf.foto_reel_mare,
+      foto_locale: conf.foto_locale,
+      sezioni: conf.sezioni,
       updated_at: new Date().toISOString()
-    }, { onConflict: "azienda_id,sede_id" });
+    };
+
+    // Prova a fare update prima, poi insert se non esiste
+    const { data: existing } = await sc.from("sito_config")
+      .select("id").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente).maybeSingle();
+
+    if (existing?.id) {
+      await sc.from("sito_config").update(payload).eq("id", existing.id);
+    } else {
+      await sc.from("sito_config").insert(payload);
+    }
   }
 
   // ── CHECKLIST ────────────────────────────────────────────────
@@ -919,23 +954,65 @@ Rispondi con il testo diretto, no JSON.`,
 
   // ── GENERA HTML ──────────────────────────────────────────────
   async function generaHTML(conf) {
+    const sedeIdCorrente = sedeSelezionata?.id || null;
+
     const { data: identita } = await sc.from("azienda_identita")
       .select("logo_url,colore_brand").eq("azienda_id", aziendaId).maybeSingle();
-    const { data: form } = await sc.from("booking_forms")
-      .select("id").eq("azienda_id", aziendaId).eq("attivo", true).limit(1).maybeSingle();
-    const { data: menuCats } = await sc.from("menu_categorie")
-      .select("id,nome").eq("azienda_id", aziendaId).order("ordine").limit(15);
-    const { data: menuVoci } = await sc.from("menu_voci")
-      .select("id,nome,descrizione,prezzo,categoria_id").eq("azienda_id", aziendaId)
-      .eq("disponibile", true).order("ordine").limit(60);
 
+    // Booking form filtrato per sede
+    const { data: form } = await sc.from("booking_forms")
+      .select("id")
+      .eq("azienda_id", aziendaId)
+      .eq("attivo", true)
+      .then(async r => {
+        if (sedeIdCorrente && r.data?.length) {
+          const bySede = r.data.find(f => f.sede_id === sedeIdCorrente);
+          return { data: bySede || r.data[0] };
+        }
+        return { data: r.data?.[0] };
+      });
+
+    // Menu filtrato per sede
+    let menuCats = [], menuVoci = [];
+    if (sedeIdCorrente) {
+      const { data: menuSede } = await sc.from("menu")
+        .select("id").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente).eq("attivo", true);
+      const menuIds = (menuSede || []).map(m => m.id);
+      if (menuIds.length) {
+        const { data: cats } = await sc.from("menu_categorie")
+          .select("id,nome,menu_id").in("menu_id", menuIds).order("ordine").limit(15);
+        menuCats = cats || [];
+        const catIds = menuCats.map(c => c.id);
+        if (catIds.length) {
+          const { data: voci } = await sc.from("menu_voci")
+            .select("id,nome,descrizione,prezzo,categoria_id")
+            .in("categoria_id", catIds).eq("disponibile", true).order("ordine").limit(60);
+          menuVoci = voci || [];
+        }
+      }
+    } else {
+      const { data: cats } = await sc.from("menu_categorie")
+        .select("id,nome").eq("azienda_id", aziendaId).order("ordine").limit(15);
+      menuCats = cats || [];
+      const { data: voci } = await sc.from("menu_voci")
+        .select("id,nome,descrizione,prezzo,categoria_id").eq("azienda_id", aziendaId)
+        .eq("disponibile", true).order("ordine").limit(60);
+      menuVoci = voci || [];
+    }
+
+    // Logo: sede > identita azienda
     const logo   = sedeSelezionata?.logo_url || identita?.logo_url || "";
     const colore = identita?.colore_brand || "#B8892A";
-    const formUrl = form ? `https://app.ristoflow-ai.com/#/prenotazione-online?form_id=${form.id}` : "#";
-    const esc = v => String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-    const nome = conf.nome || "Ristorante";
+    // URL form prenotazione PUBBLICO (non hash route app)
+    const formUrl = form?.id
+      ? `https://app.ristoflow-ai.com/prenotazione-online.html?form_id=${form.id}`
+      : "#";
+
+    const esc = v => String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const nome = conf.nome || sedeSelezionata?.nome || "Ristorante";
     const ctaTesto = conf.hero_cta || "Prenota un tavolo";
+    const slug = conf.slug || "sito";
 
     // ── CSS condiviso ─────────────────────────────────────────
     const cssBase = `
