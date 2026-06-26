@@ -746,7 +746,7 @@ export async function render(container) {
     const nome    = conf.nome || sedeSelezionata?.nome || "Ristorante";
     const cta     = conf.hero_cta || "Prenota un tavolo";
     const formUrl = conf.form_id
-      ? `https://app.ristoflow-ai.com/prenotazione-online.html?form_id=${conf.form_id}`
+      ? `https://app.ristoflow-ai.com/#/prenotazione-online?form_id=${conf.form_id}`
       : "#";
 
     // Menu per sede
