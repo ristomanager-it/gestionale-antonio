@@ -190,7 +190,9 @@ const PUBLIC_ROUTES = new Set([
   "setPassword",
   "set-password",
   "prenota",
-  "booking"
+  "booking",
+  "prenotazione-online",
+  "prenotazione"
 ]);
 
 const PLATFORM_ROUTES = new Set([
