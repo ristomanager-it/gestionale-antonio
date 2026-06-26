@@ -519,47 +519,43 @@ Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
       return;
     }
 
-    // Carica dati reali filtrati per sede
-    const [menuCatsRes, menuVociRes, venditePeriodoRes] = await Promise.all([
-      sc.from("menu_categorie").select("id,nome,menu_id")
+    // Carica menu filtrato per sede
+    const { data: menuSede } = await sc.from("menu")
+      .select("id").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente);
+    const menuIds = (menuSede || []).map(m => m.id);
+
+    const { data: menuCatsRaw } = await sc.from("menu_categorie").select("id,nome,menu_id")
+      .eq("azienda_id", aziendaId);
+    const menuCatsRes = menuIds.length
+      ? (menuCatsRaw || []).filter(c => menuIds.includes(c.menu_id))
+      : (menuCatsRaw || []);
+
+    const { data: menuVociRaw } = await sc.from("menu_voci").select("id,nome,descrizione,prezzo,categoria_id")
+      .eq("azienda_id", aziendaId).eq("disponibile", true).order("ordine").limit(80);
+    const menuVociRes = menuVociRaw || [];
+
+    const top3 = "";
+    const topCatTesto = "";
+
+    // Prova a leggere top venduti (opzionale - non blocca se fallisce)
+    let topVendutiTesto = "";
+    try {
+      const { data: vendite } = await sc.from("vendite_giornaliere")
+        .select("nome_articolo,quantita")
         .eq("azienda_id", aziendaId)
-        .then(async r => {
-          // Filtra solo categorie dei menu di questa sede
-          const { data: menuSede } = await sc.from("menu")
-            .select("id").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente);
-          const menuIds = (menuSede || []).map(m => m.id);
-          return (r.data || []).filter(c => menuIds.includes(c.menu_id));
-        }),
-      sc.from("menu_voci").select("id,nome,descrizione,prezzo,categoria_id")
-        .eq("azienda_id", aziendaId).eq("disponibile", true).order("ordine").limit(80)
-        .then(r => r.data || []),
-      sc.from("vendite_giornaliere").select("nome_articolo,quantita,categoria_id")
-        .eq("azienda_id", aziendaId)
+        .eq("sede_uuid", sedeIdCorrente)
         .gte("data_vendita", new Date(Date.now() - 30*86400000).toISOString().split("T")[0])
-        .limit(2000).then(r => r.data || []),
-    ]);
-
-    // Top 3 globali
-    const topMap = new Map();
-    for (const v of venditePeriodoRes) {
-      const k = v.nome_articolo || "?";
-      topMap.set(k, (topMap.get(k) || 0) + (v.quantita || 1));
-    }
-    const top3 = [...topMap.entries()].sort((a,b) => b[1]-a[1]).slice(0,3)
-      .map(([nome, qty]) => `${nome} (${qty} pz)`).join(", ");
-
-    // Top 1 per categoria
-    const topPerCat = {};
-    for (const v of venditePeriodoRes) {
-      if (!v.categoria_id) continue;
-      if (!topPerCat[v.categoria_id] || v.quantita > topPerCat[v.categoria_id].qty) {
-        topPerCat[v.categoria_id] = { nome: v.nome_articolo, qty: v.quantita };
+        .limit(500);
+      if (vendite?.length) {
+        const topMap = new Map();
+        for (const v of vendite) {
+          const k = v.nome_articolo || "?";
+          topMap.set(k, (topMap.get(k) || 0) + (v.quantita || 1));
+        }
+        topVendutiTesto = [...topMap.entries()].sort((a,b) => b[1]-a[1]).slice(0,3)
+          .map(([nome, qty]) => `${nome} (${qty} pz)`).join(", ");
       }
-    }
-    const catNomi = Object.fromEntries(menuCatsRes.map(c => [c.id, c.nome]));
-    const topCatTesto = Object.entries(topPerCat)
-      .map(([catId, v]) => `${catNomi[catId] || catId}: ${v.nome}`)
-      .join(", ");
+    } catch(e) { /* vendite non disponibili - non blocca */ }
 
     // Menu strutturato
     const menuTesto = menuCatsRes.map(c => {
@@ -593,8 +589,7 @@ Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
       conf.orari_pranzo        ? `Orari pranzo: ${conf.orari_pranzo}` : "",
       conf.orari_cena          ? `Orari cena: ${conf.orari_cena}` : "",
       sedeSelezionata?.nome    ? `Sede: ${sedeSelezionata.nome}` : "",
-      top3                     ? `Top 3 piatti più venduti (30gg): ${top3}` : "",
-      topCatTesto              ? `Top piatto per categoria: ${topCatTesto}` : "",
+      topVendutiTesto              ? `Top 3 piatti più venduti (30gg): ${topVendutiTesto}` : "",
       menuTesto                ? `\nMENU COMPLETO:\n${menuTesto}` : "",
     ].filter(Boolean).join("\n");
 
