@@ -71,6 +71,8 @@ export async function render(container) {
   let sedeSelezionata = null;
   let allMedia = [];
   const fotoSel = { cover: null, reelTerra: null, reelMare: null, locale: [] };
+  let _identita = null;
+  let _profilo  = null;
   const SEZIONI = [
     { id:"hero",       label:"🦸 Hero + CTA principale",    def:true  },
     { id:"highlights", label:"✨ Highlights (3 punti chiave)", def:true  },
@@ -506,76 +508,154 @@ Rispondi SOLO con il JSON, nessun testo aggiuntivo.`;
     }
   };
 
-  // ── STATO DATI AZIENDA (popolato da caricaConfig) ────────────
-  let _identita = null;
-  let _profilo   = null;
-
-  // ── TONY AI ─────────────────────────────────────────────────
   async function chiamaTony(sezione) {
     const conf = leggiForm();
-    const nomeLocale = conf.nome || window.state?.azienda?.nome || "il locale";
+    const nomeLocale = conf.nome || sedeSelezionata?.nome || window.state?.azienda?.nome || "il locale";
+    const sedeIdCorrente = sedeSelezionata?.id || null;
 
-    // Contesto reale dal locale
+    if (!sedeIdCorrente) {
+      alert("⚠️ Seleziona prima la sede per cui vuoi creare il sito, poi usa Tony.");
+      return;
+    }
+
+    // Carica dati reali filtrati per sede
+    const [menuCatsRes, menuVociRes, venditePeriodoRes] = await Promise.all([
+      sc.from("menu_categorie").select("id,nome,menu_id")
+        .eq("azienda_id", aziendaId)
+        .then(async r => {
+          // Filtra solo categorie dei menu di questa sede
+          const { data: menuSede } = await sc.from("menu")
+            .select("id").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente);
+          const menuIds = (menuSede || []).map(m => m.id);
+          return (r.data || []).filter(c => menuIds.includes(c.menu_id));
+        }),
+      sc.from("menu_voci").select("id,nome,descrizione,prezzo,categoria_id")
+        .eq("azienda_id", aziendaId).eq("disponibile", true).order("ordine").limit(80)
+        .then(r => r.data || []),
+      sc.from("vendite_giornaliere").select("nome_articolo,quantita,categoria_id")
+        .eq("azienda_id", aziendaId)
+        .eq("sede_id", sedeIdCorrente)
+        .gte("data_vendita", new Date(Date.now() - 30*86400000).toISOString().split("T")[0])
+        .limit(2000).then(r => r.data || []),
+    ]);
+
+    // Top 3 globali
+    const topMap = new Map();
+    for (const v of venditePeriodoRes) {
+      const k = v.nome_articolo || "?";
+      topMap.set(k, (topMap.get(k) || 0) + (v.quantita || 1));
+    }
+    const top3 = [...topMap.entries()].sort((a,b) => b[1]-a[1]).slice(0,3)
+      .map(([nome, qty]) => `${nome} (${qty} pz)`).join(", ");
+
+    // Top 1 per categoria
+    const topPerCat = {};
+    for (const v of venditePeriodoRes) {
+      if (!v.categoria_id) continue;
+      if (!topPerCat[v.categoria_id] || v.quantita > topPerCat[v.categoria_id].qty) {
+        topPerCat[v.categoria_id] = { nome: v.nome_articolo, qty: v.quantita };
+      }
+    }
+    const catNomi = Object.fromEntries(menuCatsRes.map(c => [c.id, c.nome]));
+    const topCatTesto = Object.entries(topPerCat)
+      .map(([catId, v]) => `${catNomi[catId] || catId}: ${v.nome}`)
+      .join(", ");
+
+    // Menu strutturato
+    const menuTesto = menuCatsRes.map(c => {
+      const voci = menuVociRes.filter(v => v.categoria_id === c.id)
+        .map(v => `  - ${v.nome}${v.prezzo ? ` €${Number(v.prezzo).toFixed(2)}` : ""}${v.descrizione ? ` (${v.descrizione})` : ""}`)
+        .join("\n");
+      return voci ? `${c.nome}:\n${voci}` : null;
+    }).filter(Boolean).join("\n\n");
+
+    // Contesto reale completo — SEDE specifica
     const ctx = [
-      nomeLocale ? `Nome: ${nomeLocale}` : "",
-      _identita?.gc_why       ? `WHY: ${_identita.gc_why}` : "",
-      _identita?.gc_how       ? `HOW: ${_identita.gc_how}` : "",
-      _identita?.gc_what      ? `WHAT: ${_identita.gc_what}` : "",
-      _identita?.tone_of_voice? `Tone of voice: ${_identita.tone_of_voice}` : "",
+      `Nome locale: ${nomeLocale}`,
+      sedeSelezionata?.indirizzo ? `Indirizzo: ${sedeSelezionata.indirizzo}` : "",
+      sedeSelezionata?.citta     ? `Città: ${sedeSelezionata.citta}` : "",
+      sedeSelezionata?.telefono  ? `Telefono: ${sedeSelezionata.telefono}` : "",
+      _identita?.gc_why        ? `WHY: ${_identita.gc_why}` : "",
+      _identita?.gc_how        ? `HOW: ${_identita.gc_how}` : "",
+      _identita?.gc_what       ? `WHAT: ${_identita.gc_what}` : "",
+      _identita?.tone_of_voice ? `Tone of voice: ${_identita.tone_of_voice}` : "",
       _identita?.posizionamento? `Posizionamento: ${_identita.posizionamento}` : "",
       _identita?.cliente_ideale? `Cliente ideale: ${_identita.cliente_ideale}` : "",
-      _profilo?.testo_sede    ? `Descrizione: ${_profilo.testo_sede}` : "",
-      conf.chisiamo_1         ? `Chi siamo (già scritto): ${conf.chisiamo_1}` : "",
-      conf.telefono           ? `Telefono: ${conf.telefono}` : "",
-      conf.indirizzo          ? `Indirizzo: ${conf.indirizzo}` : "",
-      conf.orari_pranzo       ? `Orari pranzo: ${conf.orari_pranzo}` : "",
-      conf.orari_cena         ? `Orari cena: ${conf.orari_cena}` : "",
-      sedeSelezionata?.nome   ? `Sede: ${sedeSelezionata.nome}` : "",
+      _identita?.differenziazione? `Differenziazione: ${_identita.differenziazione}` : "",
+      _profilo?.testo_sede     ? `Descrizione locale: ${_profilo.testo_sede}` : "",
+      _profilo?.orari_pranzo   ? `Orari pranzo: ${_profilo.orari_pranzo}` : "",
+      _profilo?.orari_cena     ? `Orari cena: ${_profilo.orari_cena}` : "",
+      _profilo?.indirizzo      ? `Indirizzo: ${_profilo.indirizzo}` : "",
+      _profilo?.telefono       ? `Telefono: ${_profilo.telefono}` : "",
+      conf.chisiamo_1          ? `Chi siamo (già scritto): ${conf.chisiamo_1}` : "",
+      conf.mare_quote          ? `Filosofia mare (già scritta): ${conf.mare_quote}` : "",
+      conf.indirizzo           ? `Indirizzo: ${conf.indirizzo}` : "",
+      conf.orari_pranzo        ? `Orari pranzo: ${conf.orari_pranzo}` : "",
+      conf.orari_cena          ? `Orari cena: ${conf.orari_cena}` : "",
+      sedeSelezionata?.nome    ? `Sede: ${sedeSelezionata.nome}` : "",
+      top3                     ? `Top 3 piatti più venduti (30gg): ${top3}` : "",
+      topCatTesto              ? `Top piatto per categoria: ${topCatTesto}` : "",
+      menuTesto                ? `\nMENU COMPLETO:\n${menuTesto}` : "",
     ].filter(Boolean).join("\n");
 
     const prompts = {
       hero: `Sei un esperto di marketing per ristoranti italiani.
-Dati reali del locale:
+Il locale si chiama ESATTAMENTE: "${nomeLocale}"
+NON usare mai altri nomi — non "Campo Antico", non nomi inventati.
+
+Dati reali:
 ${ctx}
 
-Scrivi UN titolo hero (max 8 parole, evocativo, specifico per questo locale, non generico) e UN sottotitolo (max 15 parole).
-Usa i dati reali — non inventare. Tono elegante e concreto.
+Scrivi UN titolo hero (max 8 parole) e UN sottotitolo (max 15 parole) per "${nomeLocale}".
+Il titolo deve contenere riferimenti specifici a questo locale, non generici.
 Rispondi SOLO con JSON: {"hero_titolo":"...","hero_sub":"..."}`,
 
       highlights: `Sei un esperto di marketing per ristoranti italiani.
-Dati reali del locale:
+Il locale si chiama ESATTAMENTE: "${nomeLocale}"
+NON usare mai altri nomi.
+
+Dati reali:
 ${ctx}
 
-Scrivi 3 punti di forza REALI e specifici per questo locale (non generici). Usa i dati forniti.
+Scrivi 3 punti di forza SPECIFICI per "${nomeLocale}" basati sui dati forniti.
 Rispondi SOLO con JSON: {"hl1":{"titolo":"...","testo":"..."},"hl2":{"titolo":"...","testo":"..."},"hl3":{"titolo":"...","testo":"..."}}`,
 
       chisiamo: `Sei un esperto di copywriting per ristoranti italiani.
-Dati reali del locale:
+Il locale si chiama ESATTAMENTE: "${nomeLocale}"
+NON usare mai "Campo Antico" o altri nomi — solo "${nomeLocale}".
+
+Dati reali:
 ${ctx}
 
-Scrivi 2 paragrafi "chi siamo" BASATI SUI DATI REALI — non inventare. Tono caldo, autentico. Max 60 parole ciascuno.
+Scrivi 2 paragrafi "chi siamo" per "${nomeLocale}". Tono caldo, autentico. Max 60 parole ciascuno.
 Rispondi SOLO con JSON: {"p1":"...","p2":"..."}`,
 
       mare: `Sei un esperto di copywriting per ristoranti italiani.
-Dati reali del locale:
+Il locale si chiama ESATTAMENTE: "${nomeLocale}"
+
+Dati reali:
 ${ctx}
 
-Scrivi una citazione filosofica sul mare/pesce (max 2 righe, elegante, in linea con il tone of voice) e un paragrafo (max 40 parole).
-Usa lo stile e i valori del locale — non inventare.
+Scrivi una citazione filosofica sul mare (max 2 righe, elegante) e un paragrafo (max 40 parole) per "${nomeLocale}".
 Rispondi SOLO con JSON: {"quote":"...","testo":"..."}`,
 
       "pagina-chisiamo": `Sei un esperto di copywriting per ristoranti italiani.
-Dati reali del locale:
+Il locale si chiama ESATTAMENTE: "${nomeLocale}"
+NON usare mai altri nomi — solo "${nomeLocale}".
+
+Dati reali:
 ${ctx}
 
-Scrivi il testo completo della pagina "Chi siamo" BASATO SUI DATI REALI. 3-4 paragrafi, tono autentico. Non inventare informazioni non presenti nei dati.
+Scrivi il testo completo della pagina "Chi siamo" per "${nomeLocale}". 3-4 paragrafi, tono autentico.
 Rispondi con il testo diretto, no JSON.`,
 
       "pagina-eventi": `Sei un esperto di copywriting per ristoranti italiani.
-Dati reali del locale:
+Il locale si chiama ESATTAMENTE: "${nomeLocale}"
+
+Dati reali:
 ${ctx}
 
-Scrivi il testo introduttivo della pagina "Eventi" in linea con il tone of voice e i valori del locale. 2 paragrafi.
+Scrivi il testo introduttivo della pagina "Eventi" per "${nomeLocale}". 2 paragrafi.
 Rispondi con il testo diretto, no JSON.`,
     };
 
@@ -746,10 +826,14 @@ Rispondi con il testo diretto, no JSON.`,
   // ── CARICA CONFIG ────────────────────────────────────────────
   async function caricaConfig() {
     if (!aziendaId) return;
+    const sedeIdCorrente = sedeSelezionata?.id || null;
+
     const [{ data: az }, { data: profilo }, { data: conf }] = await Promise.all([
       sc.from("aziende").select("nome,telefono,indirizzo,citta,email_pubblica").eq("id", aziendaId).maybeSingle(),
-      sc.from("azienda_profilo_pubblico").select("testo_sede,testo_orari").eq("azienda_id", aziendaId).maybeSingle(),
-      sc.from("sito_config").select("*").eq("azienda_id", aziendaId).maybeSingle(),
+      sc.from("azienda_profilo_pubblico").select("testo_sede,testo_orari,orari_pranzo,orari_cena,indirizzo,telefono").eq("azienda_id", aziendaId).maybeSingle(),
+      sedeIdCorrente
+        ? sc.from("sito_config").select("*").eq("azienda_id", aziendaId).eq("sede_id", sedeIdCorrente).maybeSingle()
+        : sc.from("sito_config").select("*").eq("azienda_id", aziendaId).is("sede_id", null).maybeSingle(),
     ]);
 
     // Carica identita per Tony
@@ -763,9 +847,10 @@ Rispondi con il testo diretto, no JSON.`,
 
     // Precompila da dati Ristoflow
     if (az) {
-      set("sw-nome", conf?.nome || az.nome);
-      set("sw-telefono", conf?.telefono || az.telefono);
-      set("sw-indirizzo", conf?.indirizzo || [az.indirizzo, az.citta].filter(Boolean).join(", "));
+      // Nome: usa sede se disponibile, altrimenti azienda
+      set("sw-nome", conf?.nome || sedeSelezionata?.nome || az.nome);
+      set("sw-telefono", conf?.telefono || sedeSelezionata?.telefono || az.telefono);
+      set("sw-indirizzo", conf?.indirizzo || [sedeSelezionata?.indirizzo || az.indirizzo, sedeSelezionata?.citta || az.citta].filter(Boolean).join(", "));
       set("sw-email", conf?.email || az.email_pubblica);
     }
     if (profilo?.testo_sede && !conf?.chisiamo_1) set("sw-chisiamo-1", profilo.testo_sede);
@@ -803,12 +888,14 @@ Rispondi con il testo diretto, no JSON.`,
   async function salvaConfig() {
     if (!aziendaId) return;
     const conf = leggiForm();
+    const sedeIdCorrente = sedeSelezionata?.id || null;
     await sc.from("sito_config").upsert({
       azienda_id: aziendaId,
+      sede_id: sedeIdCorrente,
       ...conf,
       hl1: conf.hl1, hl2: conf.hl2, hl3: conf.hl3,
       updated_at: new Date().toISOString()
-    }, { onConflict: "azienda_id" });
+    }, { onConflict: "azienda_id,sede_id" });
   }
 
   // ── CHECKLIST ────────────────────────────────────────────────
