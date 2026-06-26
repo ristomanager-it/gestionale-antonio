@@ -375,8 +375,7 @@ export async function render(container) {
   });
 
   // ── FORM PRENOTAZIONE ───────────────────────────────────────
-  async function caricaForms() { return; // sostituito da link diretto
-  /*
+  async function caricaForms() { return; }
     if (!aziendaId) return;
     const { data: forms } = await sc.from("booking_forms")
       .select("id,nome,sede_id,attivo").eq("azienda_id", aziendaId).order("nome");
