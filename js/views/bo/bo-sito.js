@@ -1158,7 +1158,7 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 
     const ctaBar = `<div class="cta-bar">
   <a class="cta-prenota" href="${esc(formUrl)}">🗓 ${esc(ctaTesto)}</a>
-  ${telefono ? `<a class="cta-chiama" href="tel:${esc(gen_telefono)}">📞 Chiama</a>` : ""}
+  ${gen_telefono ? `<a class="cta-chiama" href="tel:${esc(gen_telefono)}">📞 Chiama</a>` : ""}
   <a class="cta-menu-link" href="menu.html">📋 Menu</a>
 </div>`;
 
@@ -1209,7 +1209,7 @@ ${nav}
     <h1 class="h2" style="color:#fff;font-size:clamp(38px,8vw,72px);margin-bottom:16px;">${esc(conf.hero_titolo||nome)}</h1>
     ${conf.hero_sub ? `<p style="font-size:14px;color:rgba(255,255,255,.75);margin-bottom:28px;line-height:1.6;max-width:420px;margin-left:auto;margin-right:auto;">${esc(conf.hero_sub)}</p>` : ""}
     <a class="cta-inline" href="${esc(formUrl)}" style="font-size:16px;padding:16px 36px;">🗓 ${esc(ctaTesto)}</a>
-    ${telefono ? `<a class="cta-inline-ghost" href="tel:${esc(gen_telefono)}">📞 Chiama</a>` : ""}
+    ${gen_telefono ? `<a class="cta-inline-ghost" href="tel:${esc(gen_telefono)}">📞 Chiama</a>` : ""}
   </div>
 </div>
 
@@ -1301,12 +1301,12 @@ ${sezioniState.mappa ? `
     <div class="map-infos">
       ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(gen_indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
-      ${telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(gen_telefono)}">${esc(gen_telefono)}</a></div></div>` : ""}
+      ${gen_telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(gen_telefono)}">${esc(gen_telefono)}</a></div></div>` : ""}
       ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(gen_email)}">${esc(gen_email)}</a></div></div>` : ""}
     </div>
     <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap;">
       <a class="cta-inline" href="${esc(formUrl)}" style="flex:1;min-width:180px;text-align:center;">🗓 ${esc(ctaTesto)}</a>
-      ${telefono ? `<a style="flex:1;min-width:180px;display:inline-block;border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:600;font-size:14px;padding:13px 20px;border-radius:8px;text-align:center;margin-top:0;" href="tel:${esc(gen_telefono)}">📞 Chiama ora</a>` : ""}
+      ${gen_telefono ? `<a style="flex:1;min-width:180px;display:inline-block;border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:600;font-size:14px;padding:13px 20px;border-radius:8px;text-align:center;margin-top:0;" href="tel:${esc(gen_telefono)}">📞 Chiama ora</a>` : ""}
     </div>
   </div>
 </div>` : ""}
@@ -1377,7 +1377,7 @@ ${nav}
     <div class="map-infos">
       ${indirizzo ? `<div><div class="map-label">Indirizzo</div><div class="map-val">${esc(gen_indirizzo)}</div></div>` : ""}
       <div><div class="map-label">Orari</div><div class="map-val">${conf.orari_pranzo?`Pranzo: ${esc(conf.orari_pranzo)}<br>`:""}${conf.orari_cena?`Cena: ${esc(conf.orari_cena)}`:""}</div></div>
-      ${telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(gen_telefono)}">${esc(gen_telefono)}</a></div></div>` : ""}
+      ${gen_telefono ? `<div><div class="map-label">Telefono</div><div class="map-val"><a href="tel:${esc(gen_telefono)}">${esc(gen_telefono)}</a></div></div>` : ""}
       ${email ? `<div><div class="map-label">Email</div><div class="map-val"><a href="mailto:${esc(gen_email)}">${esc(gen_email)}</a></div></div>` : ""}
     </div>
     <a class="cta-inline" href="${esc(formUrl)}" style="margin-top:28px;">🗓 ${esc(ctaTesto)}</a>
@@ -1493,7 +1493,7 @@ ${footer}
       { label:"Slug URL",     ok:!!conf.slug },
       { label:"Titolo hero",  ok:!!conf.hero_titolo },
       { label:"Chi siamo",    ok:!!conf.chisiamo_1 },
-      { label:"Telefono",     ok:!!gen_telefono },
+      { label:"Telefono",     ok:!!conf.telefono },
       { label:"Foto cover",   ok:!!conf.foto_cover },
       { label:"Orari",        ok:!!(conf.orari_pranzo||conf.orari_cena) },
     ];
