@@ -79,6 +79,7 @@ const routes = {
   // MARKETING (globale - lettura)
   // =========================
   "bo-marketing": () => import("./views/bo/bo-marketing.js"),
+  "bo-analytics": () => import("./views/bo/bo-analytics.js"),
   "bo-promo": () => import("./views/bo/bo-promo.js"),
   "bo-catenarie": () => import("./views/bo/bo-catenarie.js"),
   "bo-whatsapp": () => import("./views/bo/bo-whatsapp.js"),
@@ -216,6 +217,7 @@ const ROOT_ROUTES = new Set(["home", "homePiattaforma", "home-consulente", "home
 
 const BO_ROUTES = new Set([
   "bo-dashboard",
+  "bo-analytics",
 
   // MARKETING
   "bo-tag",
