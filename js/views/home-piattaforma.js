@@ -662,7 +662,7 @@ async function caricaConversazioniWA() {
 
   // Raggruppa per numero
   const byNum = {};
-  (data || []).forEach(function(m) { {
+  (data || []).forEach(function(m) {
     if (!byNum[m.from_numero]) {
       byNum[m.from_numero] = { nome: m.from_nome, numero: m.from_numero, messaggi: [], ultimo: m.created_at };
     }
