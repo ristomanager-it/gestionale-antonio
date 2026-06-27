@@ -64,6 +64,36 @@
 const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
 
+// ── Ristoflow Analytics ────────────────────────────────────
+(function(){
+  var SID = sessionStorage.getItem('rf_sid') || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+  sessionStorage.setItem('rf_sid', SID);
+  var p = new URLSearchParams(location.search);
+  window._rfPromoId = p.get('id') || null;
+  window._rfAzId = null; // verrà popolato dopo caricamento promo
+  window._rfTrack = function(tipo, elemento, extra) {
+    fetch(SUPABASE_URL + '/functions/v1/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({
+        azienda_id: window._rfAzId || null,
+        sede_id: null,
+        pagina: 'promo',
+        pagina_id: window._rfPromoId || null,
+        tipo: tipo,
+        elemento: elemento || null,
+        referrer: document.referrer || null,
+        utm_source: p.get('utm_source'),
+        utm_medium: p.get('utm_medium'),
+        utm_campaign: p.get('utm_campaign'),
+        device: /Mobi/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        session_id: SID
+      }, extra || {}))
+    }).catch(function(){});
+  };
+  // view tracciata dopo init (per avere azienda_id)
+})();
+
 async function api(path, opts={}) {
   const r = await fetch(SUPABASE_URL+'/rest/v1/'+path, {
     headers:{ 'apikey': SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', ...opts.headers },
@@ -253,6 +283,10 @@ async function init() {
   const pixelId = azienda?.meta_pixel_id || promo.meta_pixel_id;
   if (pixelId) injectPixel(pixelId);
 
+  // Track view con azienda_id reale
+  window._rfAzId = promo.azienda_id || null;
+  window._rfTrack && window._rfTrack('view', 'promo_landing', { completato: false, valore: promo.nome });
+
   // GTM
   if (azienda?.gtm_id) {
     const s=document.createElement('script');
@@ -318,10 +352,12 @@ async function init() {
     const consenso = document.getElementById('f-consenso')?.checked ?? false;
     const errEl    = document.getElementById('form-error');
 
+    window._rfTrack && window._rfTrack('click', 'btn_scarica_promo', { step: 'submit_tentativo', valore: promo.nome });
+
     errEl.style.display='none';
-    if (!nome) { errEl.textContent='Inserisci il tuo nome'; errEl.style.display=''; return; }
-    if (!telefono) { errEl.textContent='Inserisci il telefono'; errEl.style.display=''; return; }
-    if (promo.privacy_richiesta && !privacy) { errEl.textContent='Devi accettare la Privacy Policy'; errEl.style.display=''; return; }
+    if (!nome) { errEl.textContent='Inserisci il tuo nome'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'nome mancante' }); return; }
+    if (!telefono) { errEl.textContent='Inserisci il telefono'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'telefono mancante' }); return; }
+    if (promo.privacy_richiesta && !privacy) { errEl.textContent='Devi accettare la Privacy Policy'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'privacy non accettata' }); return; }
 
     btnScarica.disabled = true;
     btnScarica.textContent = '⏳ Invio in corso...';
@@ -349,6 +385,8 @@ async function init() {
 
       // 3. Invia WA — testo con link promo
       await inviaPromoWA({ promo, nome, telefono, aziendaId: promo.azienda_id });
+
+      window._rfTrack && window._rfTrack('submit', 'promo_scaricata', { completato: true, valore: promo.nome, step: 'success' });
 
     } catch(e) { console.error('Submit error:', e); }
 
