@@ -22,6 +22,34 @@ async function injectTracking(aziendaId) {
   } catch(e) { console.warn('Tracking init error:', e); }
 }
 
+// ── Ristoflow Analytics tracking ──────────────────────────────
+function initRFTrack(aziendaId, sedeId, formId) {
+  const SESSION_ID = sessionStorage.getItem('rf_sid') || crypto.randomUUID();
+  sessionStorage.setItem('rf_sid', SESSION_ID);
+  window._rfTrack = async function(tipo, elemento, extra = {}) {
+    const params = new URLSearchParams(location.search);
+    await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        azienda_id: aziendaId || null,
+        sede_id: sedeId || null,
+        pagina: 'prenotazione-online',
+        pagina_id: formId || null,
+        tipo,
+        elemento: elemento || null,
+        referrer: document.referrer || null,
+        utm_source: params.get('utm_source'),
+        utm_medium: params.get('utm_medium'),
+        utm_campaign: params.get('utm_campaign'),
+        device: /Mobi/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        session_id: SESSION_ID,
+        ...extra
+      })
+    }).catch(() => {});
+  };
+}
+
 export async function render(container) {
   document.querySelector(".app-header")?.style.setProperty("display", "none");
   document.querySelector(".topbar-global")?.style.setProperty("display", "none");
@@ -60,6 +88,10 @@ export async function render(container) {
   }
 
   if (!aziendaId) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#64748b;">Link non valido</div>`; return; }
+
+  // ── Init tracking ──────────────────────────────────────────
+  initRFTrack(aziendaId, sedeId, formId);
+  window._rfTrack?.('view', 'prenotazione_online', { completato: false });
 
   const defaultConfig = {
     branding:     { logo_enabled:true, logo_url:null, background_color:"#f7f9fc", background_image:null },
@@ -373,6 +405,9 @@ export async function render(container) {
     document.querySelectorAll(".pren-slot").forEach(el => {
       el.classList.toggle("selected", el.dataset.ora === ora);
     });
+    // Track click slot orario
+    const data = document.getElementById("data").value;
+    window._rfTrack?.('click', 'slot_orario', { valore: ora, step: 'seleziona_orario', elemento: data + ' ' + ora });
   };
 
   // Coperti stepper
@@ -392,21 +427,48 @@ export async function render(container) {
     aggiornaSlot();
   };
 
-  document.getElementById("data").addEventListener("change", () => { oraSelezionata = ""; document.getElementById("ora").value = ""; aggiornaSlot(); });
+  document.getElementById("data").addEventListener("change", () => {
+    oraSelezionata = ""; document.getElementById("ora").value = ""; aggiornaSlot();
+    window._rfTrack?.('click', 'seleziona_data', { step: 'seleziona_data', valore: document.getElementById("data").value });
+  });
   aggiornaSlot();
+
+  // ── Track abbandono ────────────────────────────────────────
+  let _bookingCompletata = false;
+  window.addEventListener('beforeunload', () => {
+    if (_bookingCompletata) return;
+    const nome = document.getElementById("nome")?.value?.trim();
+    const data = document.getElementById("data")?.value;
+    const ora  = document.getElementById("ora")?.value;
+    if (!nome && !data) return;
+    window._rfTrack?.('abbandono', 'form_abbandonato', {
+      step: ora ? 'dopo_slot' : data ? 'dopo_data' : nome ? 'dati_personali' : 'inizio',
+      completato: false,
+      valore: [nome ? 'nome' : '', data || '', ora || ''].filter(Boolean).join(' | ')
+    });
+  });
 
   // Policy modal
   const policyModal = document.getElementById("policy-modal");
   document.getElementById("btn-invia").onclick = async () => {
+    window._rfTrack?.('click', 'btn_invia', { step: 'submit_tentativo' });
     const validation = validateBooking();
-    if (!validation.ok) { showMessage(validation.message, true); return; }
-    if (config.policy?.enabled) { policyModal.style.display = "flex"; return; }
+    if (!validation.ok) {
+      showMessage(validation.message, true);
+      window._rfTrack?.('error', 'validazione_fallita', { step: 'submit_tentativo', valore: validation.message });
+      return;
+    }
+    if (config.policy?.enabled) {
+      window._rfTrack?.('step', 'policy_modal', { step: 'mostra_policy' });
+      policyModal.style.display = "flex"; return;
+    }
     await submitBooking();
   };
   document.getElementById("policy-cancel")?.addEventListener("click", () => policyModal.style.display = "none");
   document.getElementById("policy-confirm")?.addEventListener("click", async () => {
     if (!document.getElementById("policy_accept")?.checked) { showMessage("Accetta la policy per procedere.", true); return; }
     policyModal.style.display = "none";
+    window._rfTrack?.('step', 'policy_accettata', { step: 'policy_ok' });
     await submitBooking();
   });
 
@@ -444,6 +506,7 @@ export async function render(container) {
 
     const finalTag = [tagParam, ...tags].filter(Boolean).join(",");
     btn.disabled = true; btn.textContent = "⏳ Invio in corso...";
+    window._rfTrack?.('step', 'submit_avviato', { step: 'submit', valore: `${coperti} coperti - ${data} ${ora}` });
 
     const pag = config.pagamento || {};
     const pagamentoRichiesto = !!pag.attivo && pag.importo > 0;
@@ -468,7 +531,7 @@ export async function render(container) {
 
     btn.disabled = false; btn.textContent = config.pagamento?.attivo ? escapeHtml(config.pagamento?.label_btn || 'Paga e conferma') : '🦅 Prenota ora';
 
-    if (error) { showMessage(error.message, true); return; }
+    if (error) { showMessage(error.message, true); window._rfTrack?.('error', 'submit_db_error', { step: 'submit', valore: error.message }); return; }
 
     // Notifica WhatsApp + Email (fire & forget)
     if (pren?.id) {
@@ -480,6 +543,8 @@ export async function render(container) {
     }
 
     if (!pagamentoRichiesto) {
+      window._rfTrack?.('submit', 'prenotazione_completata', { step: 'success', completato: true, valore: `${coperti} coperti - ${data} ${ora}` });
+      _bookingCompletata = true;
       const tokenPub = pren?.token_pubblico;
       if (tokenPub) {
         showMessage("✅ Prenotazione inviata! Reindirizzamento...", false);
@@ -493,6 +558,8 @@ export async function render(container) {
 
     // Stripe
     showMessage("⏳ Reindirizzamento al pagamento...", false);
+    window._rfTrack?.('step', 'redirect_pagamento', { step: 'stripe_checkout', valore: String(importoCentesimi) });
+    _bookingCompletata = true;
     try {
       const descrizione = pag.descrizione || `Caparra — ${new Date(data).toLocaleDateString("it-IT")} ore ${ora} · ${coperti} coperti`;
       const res = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stripe-checkout", {
