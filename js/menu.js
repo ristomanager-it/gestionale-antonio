@@ -411,7 +411,6 @@ export function initMenu() {
         title: "GESTIONE",
         items: [
           { label: "📊 Dashboard",        route: "bo-dashboard"      },
-          { label: "📉 Analytics",        route: "bo-analytics"      },
           { label: "📈 Bilancio live",     route: "bo-bilancio"       },
           { label: "🛒 Acquisti",         route: "acquisti"          },
           { label: "💰 Venduto",          route: "venduto"           },
@@ -434,6 +433,7 @@ export function initMenu() {
       sections.push({
         title: "MARKETING & CRM",
         items: [
+          { label: "📉 Analytics",          route: "bo-analytics"      },
           { label: "🏷️ Tag & LTV",       route: "bo-tag"            },
           { label: "💬 Template WhatsApp",route: "bo-template"       },
           { label: "📣 Campagne",         route: "bo-marketing"      },
