@@ -839,6 +839,45 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 <title>${esc(title)} — ${esc(nome)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400&family=${fontUrl}&display=swap" rel="stylesheet">
 <style>${css}</style>
+<script>
+(function(){
+  var SID=sessionStorage.getItem('rf_sid')||(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
+  sessionStorage.setItem('rf_sid',SID);
+  var AZ_ID='${aziendaId||""}';
+  var SEDE_ID='${sedeId||""}';
+  var PAGINA=location.pathname.split('/').pop().replace('.html','')||'home';
+  window._rfTrack=function(tipo,elemento,extra){
+    var p=new URLSearchParams(location.search);
+    fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/track',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(Object.assign({
+        azienda_id:AZ_ID||null,sede_id:SEDE_ID||null,
+        pagina:'sito-'+PAGINA,pagina_id:AZ_ID||null,
+        tipo:tipo,elemento:elemento||null,
+        referrer:document.referrer||null,
+        utm_source:p.get('utm_source'),utm_medium:p.get('utm_medium'),utm_campaign:p.get('utm_campaign'),
+        device:/Mobi/.test(navigator.userAgent)?'mobile':'desktop',
+        session_id:SID
+      },extra||{}))
+    }).catch(function(){});
+  };
+  window._rfTrack('view','sito_pagina',{completato:false});
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a');
+    if(!a)return;
+    var href=a.href||'';
+    if(href.includes('prenotazione-online')||href.includes('booking')||a.classList.contains('nav-cta')||a.classList.contains('btn')||a.classList.contains('cta-p')){
+      window._rfTrack('click','cta_prenota',{valore:href.slice(0,80)});
+    } else if(a.classList.contains('cta-c')||href.startsWith('tel:')){
+      window._rfTrack('click','click_telefono',{valore:href});
+    } else if(href.includes('menu.html')||a.classList.contains('cta-m')){
+      window._rfTrack('click','click_menu',{});
+    } else if(href.includes('contatti.html')||href.includes('maps')){
+      window._rfTrack('click','click_mappa',{});
+    }
+  });
+})();
+</script>
 </head>`;
 
     const nav = `<nav class="nav">
