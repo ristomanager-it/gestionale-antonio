@@ -411,6 +411,7 @@ export function initMenu() {
         title: "GESTIONE",
         items: [
           { label: "📊 Dashboard",        route: "bo-dashboard"      },
+          { label: "📉 Analytics",        route: "bo-analytics"      },
           { label: "📈 Bilancio live",     route: "bo-bilancio"       },
           { label: "🛒 Acquisti",         route: "acquisti"          },
           { label: "💰 Venduto",          route: "venduto"           },
