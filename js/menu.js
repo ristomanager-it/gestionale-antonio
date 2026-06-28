@@ -484,6 +484,8 @@ export function initMenu() {
     sections.push({
       title: "🍷 TASTING",
       items: [
+        { label: "🎫 Vendite",       route: "ticket-vendite"  },
+        { label: "✅ Check-in",      route: "ticket-checkin"  },
         { label: "🍷 Vai a Tasting", url: "https://tasting.ristoflow-ai.com", external: true },
       ]
     });
