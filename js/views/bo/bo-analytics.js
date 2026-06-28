@@ -123,20 +123,41 @@ export async function render(container) {
     return data || [];
   }
 
+  async function fetchPrenotazioni() {
+    const from = dateFrom(giorni);
+    let q = supa().from("prenotazioni_tavoli")
+      .select("id, data, ora, coperti, stato, canale, created_at, sede_id, azienda_id")
+      .gte("created_at", from + "T00:00:00")
+      .not("stato", "eq", "annullata");
+    if (filtroAzienda) q = q.eq("azienda_id", filtroAzienda);
+    else if (!isSuperadmin) q = q.eq("azienda_id", aziendaId);
+    const { data } = await q.order("created_at", { ascending: true });
+    return data || [];
+  }
+
   // ── Render dashboard ───────────────────────────────────────
   async function carica() {
     document.getElementById("an-body").innerHTML = `<div class="an-loading">⏳ Caricamento...</div>`;
-    dati = await fetchDati();
-    renderDashboard(dati);
+    const [tracking, prenotazioni] = await Promise.all([fetchDati(), fetchPrenotazioni()]);
+    dati = tracking;
+    renderDashboard(dati, prenotazioni);
   }
 
-  function renderDashboard(rows) {
+  function renderDashboard(rows, prenotazioni = []) {
     // ── Aggregazioni base ──
     const visite   = rows.filter(r => r.tipo === "view").length;
     const sessioni = new Set(rows.map(r => r.session_id).filter(Boolean)).size;
-    const completate = rows.filter(r => r.tipo === "submit" && r.completato).length;
     const abbandoni  = rows.filter(r => r.tipo === "abbandono").length;
-    const tassoConv  = pct(completate, visite);
+
+    // ── Prenotazioni reali da DB ──
+    const prenOnline   = prenotazioni.filter(p => p.canale === "online").length;
+    const prenChatbot  = prenotazioni.filter(p => p.canale === "chatbot").length;
+    const prenManuale  = prenotazioni.filter(p => p.canale === "manuale").length;
+    const prenSocial   = prenotazioni.filter(p => p.canale === "ristoflowbook").length;
+    const prenTotale   = prenotazioni.length;
+    const tassoConv    = pct(prenOnline, visite); // conversione form online
+    const copertiTot   = prenotazioni.reduce((s,p) => s + (p.coperti||0), 0);
+    const copertiMedia = prenTotale ? Math.round(copertiTot / prenTotale * 10) / 10 : 0;
 
     // ── KPI ──
     const kpiHtml = `
@@ -147,13 +168,13 @@ export async function render(container) {
         <div class="an-kpi-sub">${fmt(sessioni)} sessioni uniche</div>
       </div>
       <div class="an-kpi">
-        <div class="an-kpi-val">${fmt(completate)}</div>
-        <div class="an-kpi-lab">✅ Prenotazioni</div>
-        <div class="an-kpi-sub">Completate con successo</div>
+        <div class="an-kpi-val">${fmt(prenTotale)}</div>
+        <div class="an-kpi-lab">✅ Prenotazioni reali</div>
+        <div class="an-kpi-sub">${fmt(copertiTot)} coperti · media ${copertiMedia}</div>
       </div>
       <div class="an-kpi">
         <div class="an-kpi-val" style="color:${tassoConv >= 20 ? '#16a34a' : tassoConv >= 10 ? '#d97706' : '#dc2626'}">${tassoConv}%</div>
-        <div class="an-kpi-lab">🎯 Conversione</div>
+        <div class="an-kpi-lab">🎯 Conversione form</div>
         <div class="an-kpi-sub">Media settore: ~20%</div>
       </div>
       <div class="an-kpi">
@@ -163,31 +184,72 @@ export async function render(container) {
       </div>
     </div>`;
 
-    // ── Grafico visite/giorno ──
-    const visitePer = {};
-    rows.filter(r => r.tipo === "view").forEach(r => {
-      const g = r.created_at?.split("T")[0];
-      if (g) visitePer[g] = (visitePer[g] || 0) + 1;
+    // ── Prenotazioni per canale ──
+    const canali = [
+      { label: '🌐 Form online', val: prenOnline, color: colore },
+      { label: '💬 WhatsApp chatbot', val: prenChatbot, color: '#25D366' },
+      { label: '📱 RistoflowBook', val: prenSocial, color: '#f97316' },
+      { label: '✍️ Manuale', val: prenManuale, color: '#94a3b8' },
+    ].filter(c => c.val > 0);
+    const maxCanale = Math.max(...canali.map(c => c.val), 1);
+    const canaliHtml = `
+    <div class="an-card">
+      <div class="an-card-title">📊 Prenotazioni per canale</div>
+      ${canali.length === 0 ? `<div class="an-empty">Nessuna prenotazione nel periodo</div>` :
+        canali.map(c => `
+          <div class="an-funnel-row">
+            <div class="an-funnel-label">${c.label}</div>
+            <div class="an-funnel-bar-wrap">
+              <div class="an-funnel-bar" style="width:${pct(c.val,maxCanale)}%;background:${c.color};">
+                <span>${fmt(c.val)}</span>
+              </div>
+            </div>
+            <div class="an-funnel-pct">${pct(c.val,prenTotale)}%</div>
+          </div>`).join('')}
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9;font-size:12px;color:#64748b;">
+        Totale: ${fmt(prenTotale)} prenotazioni · ${fmt(copertiTot)} coperti
+      </div>
+    </div>`;
+
+    // ── Grafico prenotazioni reali per giorno ──
+    const prenPer = {};
+    prenotazioni.forEach(p => {
+      const g = p.created_at?.split("T")[0];
+      if (g) prenPer[g] = (prenPer[g] || 0) + 1;
     });
-    // Genera tutti i giorni del periodo
     const tuttiGiorni = [];
     for (let i = giorni - 1; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
       tuttiGiorni.push(d.toISOString().split("T")[0]);
     }
-    const valori = tuttiGiorni.map(g => visitePer[g] || 0);
-    const maxVal = Math.max(...valori, 1);
-    const barsHtml = valori.map((v, i) => {
-      const h = Math.round((v / maxVal) * 100);
-      const label = tuttiGiorni[i].slice(5).replace("-", "/");
-      return `<div class="an-bar" style="height:${Math.max(h, 2)}%;background:${colore}cc;">
-        <div class="an-bar-tooltip">${label}: ${v} visite</div>
+    const visitePer = {};
+    rows.filter(r => r.tipo === "view").forEach(r => {
+      const g = r.created_at?.split("T")[0];
+      if (g) visitePer[g] = (visitePer[g] || 0) + 1;
+    });
+    const maxVal = Math.max(...tuttiGiorni.map(g => Math.max(visitePer[g]||0, (prenPer[g]||0)*5)), 1);
+    const barsHtml = tuttiGiorni.map((g, i) => {
+      const v = visitePer[g] || 0;
+      const p2 = prenPer[g] || 0;
+      const hV = Math.round((v / maxVal) * 100);
+      const hP = Math.round(((p2*5) / maxVal) * 100);
+      const label = g.slice(5).replace("-", "/");
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;">
+        <div class="an-bar-tooltip" style="display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#111827;color:white;font-size:10px;padding:3px 6px;border-radius:4px;white-space:nowrap;z-index:10;">${label}: ${v} visite, ${p2} pren.</div>
+        <div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:1px;">
+          <div style="flex:1;height:${Math.max(hV,2)}%;background:${colore}cc;border-radius:3px 3px 0 0;cursor:default;" onmouseenter="this.parentElement.parentElement.querySelector('.an-bar-tooltip').style.display='block'" onmouseleave="this.parentElement.parentElement.querySelector('.an-bar-tooltip').style.display='none'"></div>
+          <div style="flex:1;height:${Math.max(hP,p2>0?4:0)}%;background:#16a34a;border-radius:3px 3px 0 0;cursor:default;"></div>
+        </div>
       </div>`;
     }).join("");
 
     const chartHtml = `
     <div class="an-card">
-      <div class="an-card-title">📈 Visite per giorno</div>
+      <div class="an-card-title">📈 Visite vs Prenotazioni per giorno</div>
+      <div style="display:flex;gap:12px;margin-bottom:10px;font-size:11px;">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:${colore}cc;border-radius:2px;display:inline-block;"></span>Visite</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#16a34a;border-radius:2px;display:inline-block;"></span>Prenotazioni</span>
+      </div>
       <div class="an-chart-wrap">${barsHtml}</div>
       <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#94a3b8;">
         <span>${tuttiGiorni[0]?.slice(5).replace("-","/")}</span>
@@ -195,19 +257,19 @@ export async function render(container) {
       </div>
     </div>`;
 
-    // ── Funnel conversione ──
+    // ── Funnel conversione (tracking + prenotazioni reali) ──
     const fView     = visite;
     const fData     = rows.filter(r => r.tipo === "click" && r.elemento === "seleziona_data").length;
     const fSlot     = rows.filter(r => r.tipo === "click" && r.elemento === "slot_orario").length;
     const fSubmit   = rows.filter(r => r.tipo === "click" && r.elemento === "btn_invia").length;
-    const fComplete = completate;
+    const fComplete = prenOnline; // usa prenotazioni reali dal DB
 
     const fSteps = [
       { label: "👁️ Apertura form",    val: fView,     pct: 100 },
       { label: "📅 Seleziona data",    val: fData,     pct: pct(fData, fView) },
       { label: "⏰ Seleziona slot",    val: fSlot,     pct: pct(fSlot, fView) },
       { label: "🖱️ Click prenota",    val: fSubmit,   pct: pct(fSubmit, fView) },
-      { label: "✅ Completata",        val: fComplete, pct: pct(fComplete, fView) },
+      { label: "✅ Prenotate (DB)",    val: fComplete, pct: pct(fComplete, fView) },
     ];
 
     const colors = [`${colore}`, `${colore}cc`, `${colore}99`, `${colore}77`, "#16a34a"];
@@ -380,7 +442,7 @@ export async function render(container) {
 
     // ── Assembla tutto ──
     document.getElementById("an-body").innerHTML =
-      kpiHtml + chartHtml + funnelHtml + abbandonoHtml +
+      kpiHtml + chartHtml + canaliHtml + funnelHtml + abbandonoHtml +
       `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>${slotHtml}</div>
         <div>${deviceHtml}</div>
