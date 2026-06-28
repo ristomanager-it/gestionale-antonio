@@ -80,6 +80,7 @@ const routes = {
   // =========================
   "bo-marketing": () => import("./views/bo/bo-marketing.js"),
   "bo-analytics": () => import("./views/bo/bo-analytics.js"),
+  "bo-onboarding": () => import("./views/bo/bo-onboarding.js"),
   "bo-promo": () => import("./views/bo/bo-promo.js"),
   "ticket-vendite": () => import("./views/bo/ticket-vendite.js"),
   "ticket-checkin": () => import("./views/bo/ticket-checkin.js"),
