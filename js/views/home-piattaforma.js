@@ -211,6 +211,51 @@ export async function render(container) {
         <div id="conv-wa-list"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Caricamento...</div></div>
       </div>
 
+      <!-- MOTORI DI RISTORAZIONE -->
+      <div class="kpi-section-label">⚙️ Motori di Ristorazione</div>
+      <div style="background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;" id="motori-kpi">
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div style="font-size:22px;font-weight:800;color:#0E5A7A;" id="m-pren-oggi">—</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">🍽️ Prenotazioni oggi</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div style="font-size:22px;font-weight:800;color:#0E5A7A;" id="m-pren-mese">—</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">📅 Prenotazioni mese</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div style="font-size:22px;font-weight:800;color:#0E5A7A;" id="m-coperti-mese">—</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">👥 Coperti mese</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div style="font-size:22px;font-weight:800;color:#1B4F72;" id="m-hotel-oggi">—</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">🏨 Arrivi hotel oggi</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div style="font-size:22px;font-weight:800;color:#1B4F72;" id="m-hotel-mese">—</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">🏨 Notti hotel mese</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div style="font-size:22px;font-weight:800;color:#7C3AED;" id="m-tasting-mese">—</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">🎫 Biglietti Tasting mese</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div style="font-size:22px;font-weight:800;color:#16a34a;" id="m-incasso-tasting">—</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">💰 Incasso Tasting mese</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
+            <div style="font-size:22px;font-weight:800;color:#d97706;" id="m-analytics-visite">—</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">👁️ Visite form 7gg</div>
+          </div>
+        </div>
+
+        <!-- Breakdown per azienda -->
+        <div style="margin-top:16px;border-top:1px solid #f1f5f9;padding-top:14px;">
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Attività per azienda (ultimi 30gg)</div>
+          <div id="motori-breakdown" style="font-size:13px;color:#94a3b8;">Caricamento...</div>
+        </div>
+      </div>
+
       <!-- GRID -->
       <div class="grid">
 
@@ -360,6 +405,7 @@ export async function render(container) {
   window.initContatti(utentiList || []);
   window.caricaLeadWA();
   caricaConversazioniWA();
+  caricaMotori();
 }
 
 // ── TAWK STATUS ───────────────────────────────────────────────────────────────
@@ -744,6 +790,126 @@ window.apriConversazione = function(numero) {
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   document.body.appendChild(modal);
 };
+
+// ── MOTORI DI RISTORAZIONE ────────────────────────────────────────────────────
+async function caricaMotori() {
+  const oggi = new Date().toISOString().split("T")[0];
+  const inizioMese = oggi.substring(0, 7) + "-01";
+  const sett = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
+  const fmtE = n => "€ " + Number(n||0).toLocaleString("it-IT", {minimumFractionDigits:0, maximumFractionDigits:0});
+  const fmt  = n => Number(n||0).toLocaleString("it-IT");
+
+  try {
+    const [
+      prenOggi, prenMese, hotelOggi, hotelMese,
+      tastingMese, tastingIncasso, analytics,
+      aziende
+    ] = await Promise.all([
+      // Prenotazioni ristorante oggi
+      supabase.from("prenotazioni_tavoli").select("id,coperti", {count:"exact"})
+        .eq("data", oggi).neq("stato","annullata"),
+      // Prenotazioni ristorante mese
+      supabase.from("prenotazioni_tavoli").select("id,coperti")
+        .gte("data", inizioMese).neq("stato","annullata"),
+      // Hotel arrivi oggi
+      supabase.from("hotel_prenotazioni").select("id", {count:"exact"})
+        .eq("data_checkin", oggi).neq("stato","annullata"),
+      // Hotel notti mese
+      supabase.from("hotel_prenotazioni").select("notti")
+        .gte("data_checkin", inizioMese).neq("stato","annullata"),
+      // Tasting biglietti mese
+      supabase.from("ticket_ordini").select("id,quantita", {count:"exact"})
+        .gte("created_at", inizioMese+"T00:00:00").eq("stato","pagato"),
+      // Tasting incasso mese
+      supabase.from("ticket_ordini").select("totale")
+        .gte("created_at", inizioMese+"T00:00:00").eq("stato","pagato"),
+      // Analytics visite 7gg
+      supabase.from("page_analytics").select("id", {count:"exact"})
+        .eq("tipo","view").gte("created_at", sett+"T00:00:00"),
+      // Aziende attive con dati
+      supabase.from("aziende").select("id,nome,stato")
+        .neq("stato","piattaforma").eq("stato","attiva"),
+    ]);
+
+    // KPI principali
+    const prenOggiN  = prenOggi.count || 0;
+    const prenMeseN  = prenMese.data?.length || 0;
+    const copertiMese = (prenMese.data||[]).reduce((s,p) => s + (p.coperti||0), 0);
+    const hotelOggiN  = hotelOggi.count || 0;
+    const hotelNottiM = (hotelMese.data||[]).reduce((s,p) => s + (p.notti||0), 0);
+    const tastingN    = tastingMese.count || 0;
+    const tastingInc  = (tastingIncasso.data||[]).reduce((s,o) => s + parseFloat(o.totale||0), 0);
+    const visite7gg   = analytics.count || 0;
+
+    // Aggiorna KPI
+    const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    set("m-pren-oggi",      fmt(prenOggiN));
+    set("m-pren-mese",      fmt(prenMeseN));
+    set("m-coperti-mese",   fmt(copertiMese));
+    set("m-hotel-oggi",     fmt(hotelOggiN));
+    set("m-hotel-mese",     fmt(hotelNottiM));
+    set("m-tasting-mese",   fmt(tastingN));
+    set("m-incasso-tasting", fmtE(tastingInc));
+    set("m-analytics-visite", fmt(visite7gg));
+
+    // Breakdown per azienda
+    const azList = aziende.data || [];
+    if (!azList.length) {
+      const el = document.getElementById("motori-breakdown");
+      if (el) el.innerHTML = '<span style="color:#94a3b8;">Nessuna azienda attiva</span>';
+      return;
+    }
+
+    const breakdownRows = await Promise.all(azList.map(async (az) => {
+      const [pren, hotel, tasting] = await Promise.all([
+        supabase.from("prenotazioni_tavoli").select("id,coperti")
+          .eq("azienda_id", az.id).gte("data", inizioMese).neq("stato","annullata"),
+        supabase.from("hotel_prenotazioni").select("id,notti")
+          .eq("azienda_id", az.id).gte("data_checkin", inizioMese).neq("stato","annullata"),
+        supabase.from("ticket_ordini").select("id,totale")
+          .eq("azienda_id", az.id).gte("created_at", inizioMese+"T00:00:00").eq("stato","pagato"),
+      ]);
+      return {
+        nome: az.nome,
+        pren: pren.data?.length || 0,
+        coperti: (pren.data||[]).reduce((s,p)=>s+(p.coperti||0),0),
+        hotelNotti: (hotel.data||[]).reduce((s,p)=>s+(p.notti||0),0),
+        tastingInc: (tasting.data||[]).reduce((s,o)=>s+parseFloat(o.totale||0),0),
+      };
+    }));
+
+    const bdEl = document.getElementById("motori-breakdown");
+    if (bdEl) {
+      bdEl.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="color:#94a3b8;text-align:left;">
+              <th style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">Azienda</th>
+              <th style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:center;">🍽️ Prenotazioni</th>
+              <th style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:center;">👥 Coperti</th>
+              <th style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:center;">🏨 Notti hotel</th>
+              <th style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:center;">🎫 Incasso Tasting</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${breakdownRows.map(r => `
+              <tr style="border-bottom:1px solid #f9fafb;">
+                <td style="padding:8px;font-weight:600;color:#374151;">${r.nome}</td>
+                <td style="padding:8px;text-align:center;">${fmt(r.pren)}</td>
+                <td style="padding:8px;text-align:center;">${fmt(r.coperti)}</td>
+                <td style="padding:8px;text-align:center;">${r.hotelNotti > 0 ? fmt(r.hotelNotti) : '—'}</td>
+                <td style="padding:8px;text-align:center;font-weight:700;color:#16a34a;">${r.tastingInc > 0 ? fmtE(r.tastingInc) : '—'}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>`;
+    }
+  } catch(e) {
+    console.error("caricaMotori error:", e);
+    const el = document.getElementById("motori-breakdown");
+    if (el) el.innerHTML = '<span style="color:#ef4444;font-size:12px;">Errore caricamento dati</span>';
+  }
+}
 
 function escHP(v) {
   return String(v == null ? "" : v)
