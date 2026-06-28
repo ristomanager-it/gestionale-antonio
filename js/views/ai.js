@@ -18,11 +18,11 @@ export async function render(app) {
   // Chip in base al ruolo
   const chipsAdmin = `
     <button class="chat-chip" data-prompt="Dammi il briefing operativo di oggi">📊 Briefing</button>
-    <button class="chat-chip" data-prompt="Analizza le vendite degli ultimi giorni">📈 Vendite</button>
+    <button class="chat-chip" data-prompt="Quante prenotazioni ho oggi e quali sono? Analizza i coperti e dimmi se è una buona giornata">📅 Prenotazioni oggi</button>
+    <button class="chat-chip" data-prompt="Analizza le prenotazioni e il traffico degli ultimi 7 giorni. Da dove arrivano i clienti? Cosa posso migliorare?">📈 Trend settimana</button>
+    <button class="chat-chip" data-prompt="Analizza il tasso di conversione e gli abbandoni del form prenotazione. Dammi suggerimenti concreti per migliorarlo">🎯 Conversioni</button>
     <button class="chat-chip" data-prompt="Quali piatti devo produrre oggi?">🍳 Produzione</button>
-    <button class="chat-chip" data-prompt="Dimmi se ho prodotti sottoscorta">📦 Magazzino</button>
-    <button class="chat-chip" data-prompt="Dammi suggerimenti marketing per oggi">📢 Marketing</button>
-    <button class="chat-chip" data-prompt="Cosa devo spingere in sala oggi?">🍽️ Sala</button>
+    <button class="chat-chip" data-prompt="Dammi suggerimenti marketing per oggi basandoti sui dati reali">📢 Marketing</button>
     <button class="chat-chip" data-voice="ricetta">🎤 Nuova ricetta</button>
   `;
 
@@ -429,11 +429,144 @@ function renderChart(chart) {
   scrollBottom();
 }
 
+// ── Context DB — dati reali per Tony ──────────────────────────────────────
+async function buildContextDB() {
+  const supa = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  const sedeId = window.state?.sedeAttiva?.id || null;
+  if (!supa || !aziendaId) return "";
+
+  try {
+    const oggi = new Date().toISOString().split("T")[0];
+    const ieri = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const sett = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
+    const mese = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+
+    const [prenOggi, prenSett, prenMese, analyt, prenotazioni] = await Promise.all([
+      // Prenotazioni oggi
+      supa.from("prenotazioni_tavoli")
+        .select("id,coperti,stato,ora,canale,nome_cliente:cliente_nome")
+        .eq("azienda_id", aziendaId)
+        .eq("data", oggi)
+        .neq("stato", "annullata")
+        .order("ora"),
+
+      // Prenotazioni settimana
+      supa.from("prenotazioni_tavoli")
+        .select("id,coperti,stato,canale,data")
+        .eq("azienda_id", aziendaId)
+        .gte("data", sett)
+        .neq("stato", "annullata"),
+
+      // Prenotazioni mese
+      supa.from("prenotazioni_tavoli")
+        .select("id,coperti")
+        .eq("azienda_id", aziendaId)
+        .gte("data", mese)
+        .neq("stato", "annullata"),
+
+      // Analytics ultimi 7 giorni
+      supa.from("page_analytics")
+        .select("tipo,elemento,device,utm_source,created_at")
+        .eq("azienda_id", aziendaId)
+        .gte("created_at", sett + "T00:00:00"),
+
+      // Prossime prenotazioni
+      supa.from("prenotazioni_tavoli")
+        .select("data,ora,coperti,stato,nome_cliente:cliente_nome,canale")
+        .eq("azienda_id", aziendaId)
+        .gte("data", oggi)
+        .neq("stato", "annullata")
+        .order("data").order("ora")
+        .limit(10),
+    ]);
+
+    // Elabora prenotazioni oggi
+    const prenOggiData = prenOggi.data || [];
+    const copertiOggi = prenOggiData.reduce((s, p) => s + (p.coperti || 0), 0);
+    const prenOggiDettaglio = prenOggiData.map(p =>
+      `  - ${p.ora?.slice(0,5) || "?"} · ${p.nome_cliente || "N/D"} · ${p.coperti} cop. · ${p.stato}`
+    ).join("\n") || "  Nessuna prenotazione";
+
+    // Elabora settimana
+    const prenSettData = prenSett.data || [];
+    const copertiSett = prenSettData.reduce((s, p) => s + (p.coperti || 0), 0);
+    const canaliSett = {};
+    prenSettData.forEach(p => { canaliSett[p.canale || "?"] = (canaliSett[p.canale || "?"] || 0) + 1; });
+
+    // Elabora mese
+    const prenMeseData = prenMese.data || [];
+    const copertiMese = prenMeseData.reduce((s, p) => s + (p.coperti || 0), 0);
+
+    // Elabora analytics
+    const analytData = analyt.data || [];
+    const visite = analytData.filter(r => r.tipo === "view").length;
+    const abbandoni = analytData.filter(r => r.tipo === "abbandono").length;
+    const mobile = analytData.filter(r => r.tipo === "view" && r.device === "mobile").length;
+    const fonti = {};
+    analytData.filter(r => r.tipo === "view").forEach(r => {
+      const src = r.utm_source || "diretto";
+      fonti[src] = (fonti[src] || 0) + 1;
+    });
+    const fontiTop = Object.entries(fonti).sort((a,b) => b[1]-a[1]).slice(0,3).map(([k,v]) => `${k}:${v}`).join(", ");
+
+    // Prossime prenotazioni
+    const prossime = (prenotazioni.data || []).slice(0, 5).map(p =>
+      `  - ${p.data} ${p.ora?.slice(0,5)||""} · ${p.nome_cliente||"N/D"} · ${p.coperti} cop.`
+    ).join("\n") || "  Nessuna";
+
+    const convRate = visite > 0 ? Math.round((prenSettData.length / visite) * 100) : 0;
+
+    return `
+--- DATI REALI AGGIORNATI (${new Date().toLocaleString("it-IT")}) ---
+
+📅 PRENOTAZIONI OGGI (${oggi}):
+  Totale: ${prenOggiData.length} prenotazioni · ${copertiOggi} coperti
+${prenOggiDettaglio}
+
+📊 SETTIMANA (ultimi 7 giorni):
+  ${prenSettData.length} prenotazioni · ${copertiSett} coperti
+  Canali: ${Object.entries(canaliSett).map(([k,v]) => `${k}:${v}`).join(", ") || "N/D"}
+
+📆 MESE (ultimi 30 giorni):
+  ${prenMeseData.length} prenotazioni · ${copertiMese} coperti
+
+🔜 PROSSIME PRENOTAZIONI:
+${prossime}
+
+📈 ANALYTICS SITO/FORM (ultimi 7 giorni):
+  Visite form: ${visite} · Mobile: ${mobile} (${visite ? Math.round(mobile/visite*100) : 0}%)
+  Abbandoni: ${abbandoni} · Conversione: ${convRate}%
+  Fonti traffico: ${fontiTop || "N/D"}
+
+--- FINE DATI REALI ---`;
+
+  } catch(e) {
+    console.warn("buildContextDB error:", e);
+    return "";
+  }
+}
+
 // ── API Tony ───────────────────────────────────────────
 
 async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
+
+  // Inietta dati reali DB nel sistema (solo se non è messaggio iniziale)
+  let messagesConCtx = messages;
+  if (tipoMessaggio !== "messaggio_iniziale") {
+    const ctx = await buildContextDB();
+    if (ctx) {
+      // Inserisci il context come primo messaggio di sistema
+      messagesConCtx = [
+        { role: "user", content: ctx },
+        { role: "assistant", content: "Perfetto, ho i dati aggiornati. Sono pronto a rispondere." },
+        ...messages
+      ];
+    }
+  }
+
   const body = {
-    messages,
+    messages: messagesConCtx,
     azienda_id: window.state?.azienda?.id,
     azienda: window.state?.azienda?.nome,
     sede_id: window.state?.sedeAttiva?.id || null,
