@@ -261,8 +261,11 @@ export async function render(container) {
   };
 
   window.vaiASezione = function(route, tab) {
-    if (tab) window._pendingTab = tab;
-    window.location.hash = `#/${route}`;
+    if (tab) {
+      window.location.hash = `#/${route}?tab=${tab}`;
+    } else {
+      window.location.hash = `#/${route}`;
+    }
   };
 
   window.toggleStep = function(li, si) {
