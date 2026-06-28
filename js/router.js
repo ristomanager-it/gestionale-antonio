@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js";
+import { initMenu } from "./menu.js?v=13";
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
 /* =========================================================
