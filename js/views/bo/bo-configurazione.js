@@ -27,6 +27,9 @@ export async function render(container) {
   if (!authOk) { container.innerHTML = '<section class="view"><h2>Sessione non disponibile.</h2></section>'; return; }
 
   let tabAttivo = 'operativo';
+  // Leggi tab da parametro URL (es. #/bo-configurazione?tab=identita)
+  const _urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+  if (_urlParams.get('tab')) tabAttivo = _urlParams.get('tab');
   let settori = [], postazioni = [], prodottiVendita = [], categorieVendita = [], ricette = [];
   let tavoli = [], sale = [];
 
@@ -105,6 +108,7 @@ export async function render(container) {
   }
 
   container.querySelectorAll('[data-tab]').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
+  switchTab(tabAttivo);
 
   (async function initSedeBanner() {
     const { data: sediList } = await supa().from('sedi').select('id,nome').eq('azienda_id', aziendaId).eq('attiva', true).order('nome');
