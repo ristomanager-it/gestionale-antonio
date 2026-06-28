@@ -26,8 +26,50 @@ async function injectTracking(aziendaId) {
 function initRFTrack(aziendaId, sedeId, formId) {
   const SESSION_ID = sessionStorage.getItem('rf_sid') || crypto.randomUUID();
   sessionStorage.setItem('rf_sid', SESSION_ID);
+
+  // Estrae UTM dall'URL corrente O dal referrer (caso Meta Ads)
+  function getUtm(key) {
+    const fromPage = new URLSearchParams(location.search).get(key);
+    if (fromPage) return fromPage;
+    try {
+      const ref = new URL(document.referrer);
+      return ref.searchParams.get(key) || null;
+    } catch { return null; }
+  }
+
+  // Rileva fonte da fbclid/referrer se utm_source mancante
+  function detectSource() {
+    let src = getUtm('utm_source');
+    if (src) return src;
+    const ref = document.referrer || '';
+    if (ref.includes('fbclid') || ref.includes('facebook') || ref.includes('fb')) return 'facebook';
+    if (ref.includes('instagram')) return 'instagram';
+    if (ref.includes('google')) return 'google';
+    if (ref.includes('whatsapp')) return 'whatsapp';
+    if (ref) return 'referral';
+    return 'diretto';
+  }
+
+  // Tenta geolocalizzazione IP (fire & forget, salva in sessione)
+  if (!sessionStorage.getItem('rf_geo')) {
+    fetch('https://ipapi.co/json/')
+      .then(r => r.json())
+      .then(d => {
+        sessionStorage.setItem('rf_geo', JSON.stringify({
+          city: d.city || null,
+          region: d.region || null,
+          country: d.country_name || null
+        }));
+      }).catch(() => {});
+  }
+
+  function getGeo() {
+    try { return JSON.parse(sessionStorage.getItem('rf_geo') || '{}'); }
+    catch { return {}; }
+  }
+
   window._rfTrack = async function(tipo, elemento, extra = {}) {
-    const params = new URLSearchParams(location.search);
+    const geo = getGeo();
     await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -39,11 +81,12 @@ function initRFTrack(aziendaId, sedeId, formId) {
         tipo,
         elemento: elemento || null,
         referrer: document.referrer || null,
-        utm_source: params.get('utm_source'),
-        utm_medium: params.get('utm_medium'),
-        utm_campaign: params.get('utm_campaign'),
+        utm_source: detectSource(),
+        utm_medium: getUtm('utm_medium'),
+        utm_campaign: getUtm('utm_campaign'),
         device: /Mobi/.test(navigator.userAgent) ? 'mobile' : 'desktop',
         session_id: SESSION_ID,
+        valore: geo.city ? `${geo.city}, ${geo.region}` : null,
         ...extra
       })
     }).catch(() => {});
