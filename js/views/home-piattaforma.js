@@ -336,6 +336,15 @@ export async function render(container) {
           <div class="icon">🎯</div>
         </div>
 
+        <div class="card" onclick="toggleAgenti()">
+          <div>
+            <div class="label">Rete vendita</div>
+            <div class="title">Programma Agenti</div>
+            <div style="font-size:11px;color:#7C3AED;margin-top:4px;font-weight:700;" id="agenti-card-count">Caricamento...</div>
+          </div>
+          <div class="icon">🤝</div>
+        </div>
+
       </div>
 
       <!-- PREZZI (hidden by default) -->
@@ -364,6 +373,52 @@ export async function render(container) {
           Annuale unica = sconto 20% applicato sul prezzo annuo di listino ·
           3 rate = 10% sconto, prima rata subito poi 2° e 3° mese ·
           Mensile = prezzo pieno, disdetta in qualsiasi momento
+        </div>
+      </div>
+
+      <!-- AGENTI (hidden by default) -->
+      <div id="agenti-section" style="display:none;margin-top:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div class="kpi-section-label" style="margin:0;">🤝 Programma Agenti — Rete Vendita</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Segnalatori · Agenti strutturati · Area manager</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="apriModaleAgente()" style="background:#7C3AED;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">+ Nuovo agente</button>
+            <button onclick="toggleAgenti()" style="background:#f1f5f9;border:none;border-radius:8px;padding:8px 10px;font-size:12px;cursor:pointer;color:#64748b;">✕</button>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:10px;padding:3px;margin-bottom:16px;width:fit-content;">
+          <button id="ag-tab-rete" onclick="switchTabAgenti('rete')" style="padding:7px 16px;border-radius:8px;border:none;background:white;color:#0E5A7A;font-size:13px;font-weight:700;cursor:pointer;">👥 Rete</button>
+          <button id="ag-tab-performance" onclick="switchTabAgenti('performance')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📊 Performance</button>
+          <button id="ag-tab-provvigioni" onclick="switchTabAgenti('provvigioni')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">💰 Provvigioni</button>
+          <button id="ag-tab-piano" onclick="switchTabAgenti('piano')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📋 Piano economico</button>
+        </div>
+
+        <div id="agenti-content"></div>
+
+        <!-- Modale agente -->
+        <div id="agente-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:16px;">
+          <div style="background:white;border-radius:16px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;padding:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+              <div style="font-size:16px;font-weight:800;" id="agente-modal-title">Nuovo agente</div>
+              <button onclick="chiudiModaleAgente()" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;">✕</button>
+            </div>
+            <div id="agente-modal-body"></div>
+          </div>
+        </div>
+
+        <!-- Modale lead agente -->
+        <div id="ag-lead-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:16px;">
+          <div style="background:white;border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+              <div style="font-size:16px;font-weight:800;" id="ag-lead-modal-title">Nuova segnalazione</div>
+              <button onclick="chiudiModaleAgLead()" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;">✕</button>
+            </div>
+            <div id="ag-lead-modal-body"></div>
+          </div>
         </div>
       </div>
 
@@ -1501,6 +1556,682 @@ window.eliminaLead = async function(id) {
       .not('stato','in','(pagante,perso)');
     const el = document.getElementById('crm-card-count');
     if (el) el.textContent = `${count||0} lead attivi`;
+  } catch {}
+})();
+
+// ── PROGRAMMA AGENTI ─────────────────────────────────────────────────────────
+let _agenti = [];
+let _agentiLead = [];
+let _agTabAttiva = 'rete';
+let _agenteEditId = null;
+let _agLeadEditId = null;
+
+const AG_TIPI = {
+  segnalatore:   { label:'Segnalatore',    colore:'#0891B2', bg:'#e0f2fe', desc:'Segnala contatti, provvigione % sul contratto' },
+  strutturato:   { label:'Agente',         colore:'#7C3AED', bg:'#f5f3ff', desc:'Fisso + variabile per cliente chiuso' },
+  area_manager:  { label:'Area Manager',   colore:'#059669', bg:'#d1fae5', desc:'Gestisce altri agenti, % sulla rete' },
+};
+
+const AG_PIANI_VAR = {
+  starter:  { label:'Starter €69',   var_key:'var_starter' },
+  business: { label:'Business €119', var_key:'var_business' },
+  pro:      { label:'Pro €169',      var_key:'var_pro' },
+  hotel:    { label:'Hotel €99',     var_key:'var_starter' },
+  full:     { label:'Full €199',     var_key:'var_full' },
+};
+
+window.toggleAgenti = function() {
+  const sec = document.getElementById('agenti-section');
+  if (!sec) return;
+  const isHidden = sec.style.display === 'none';
+  sec.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) caricaAgenti();
+};
+
+async function caricaAgenti() {
+  const [{ data: ag }, { data: al }] = await Promise.all([
+    supabase.from('agenti').select('*').order('created_at', { ascending: false }),
+    supabase.from('agenti_lead').select('*').order('created_at', { ascending: false }),
+  ]);
+  _agenti = ag || [];
+  _agentiLead = al || [];
+
+  // Card count
+  const attivi = _agenti.filter(a => a.stato === 'attivo').length;
+  const cardEl = document.getElementById('agenti-card-count');
+  if (cardEl) cardEl.textContent = `${attivi} agenti attivi`;
+
+  renderTabAgenti(_agTabAttiva);
+}
+
+window.switchTabAgenti = function(tab) {
+  _agTabAttiva = tab;
+  ['rete','performance','provvigioni','piano'].forEach(t => {
+    const btn = document.getElementById(`ag-tab-${t}`);
+    if (!btn) return;
+    btn.style.background = t === tab ? 'white' : 'transparent';
+    btn.style.color      = t === tab ? '#0E5A7A' : '#64748b';
+    btn.style.fontWeight = t === tab ? '700' : '600';
+  });
+  renderTabAgenti(tab);
+};
+
+function renderTabAgenti(tab) {
+  const el = document.getElementById('agenti-content');
+  if (!el) return;
+  if (tab === 'rete')         el.innerHTML = '', renderReteAgenti(el);
+  if (tab === 'performance')  el.innerHTML = '', renderPerformanceAgenti(el);
+  if (tab === 'provvigioni')  el.innerHTML = '', renderProvvigioniAgenti(el);
+  if (tab === 'piano')        el.innerHTML = '', renderPianoEconomico(el);
+}
+
+function renderReteAgenti(el) {
+  if (!_agenti.length) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:40px;background:white;border-radius:12px;border:1px solid #e5e7eb;">
+        <div style="font-size:40px;margin-bottom:12px;">🤝</div>
+        <div style="font-size:16px;font-weight:700;color:#374151;margin-bottom:8px;">Nessun agente ancora</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Inizia aggiungendo il primo segnalatore o agente strutturato</div>
+        <button onclick="apriModaleAgente()" style="background:#7C3AED;color:white;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">+ Aggiungi agente</button>
+      </div>`;
+    return;
+  }
+
+  // KPI rete
+  const attivi = _agenti.filter(a => a.stato === 'attivo');
+  const totLead = _agentiLead.length;
+  const paganti = _agentiLead.filter(l => l.stato === 'pagante').length;
+  const provDaPagare = _agentiLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata)
+    .reduce((s, l) => s + parseFloat(l.provvigione_calcolata || 0), 0);
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;">
+      ${[
+        { v: _agenti.length,     l:'Totale agenti',      c:'#374151' },
+        { v: attivi.length,      l:'Attivi',              c:'#059669' },
+        { v: totLead,            l:'Lead segnalati',      c:'#7C3AED' },
+        { v: paganti,            l:'Clienti chiusi',      c:'#0E5A7A' },
+        { v: `€${Math.round(provDaPagare)}`, l:'Provv. da pagare', c:'#DC2626' },
+      ].map(k => `
+        <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:${k.c};">${k.v}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px;">${k.l}</div>
+        </div>`).join('')}
+    </div>
+
+    ${_agenti.map(a => {
+      const tipo = AG_TIPI[a.tipo] || AG_TIPI.segnalatore;
+      const myLead = _agentiLead.filter(l => l.agente_id === a.id);
+      const paganti = myLead.filter(l => l.stato === 'pagante').length;
+      const inCorso = myLead.filter(l => !['pagante','perso'].includes(l.stato)).length;
+      const provDovuta = myLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata)
+        .reduce((s, l) => s + parseFloat(l.provvigione_calcolata || 0), 0);
+      const zone = (a.zona || []).join(', ') || '—';
+
+      return `
+      <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:16px;margin-bottom:10px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div style="width:44px;height:44px;border-radius:12px;background:${tipo.bg};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+            ${a.tipo === 'segnalatore' ? '👋' : a.tipo === 'area_manager' ? '👑' : '🎯'}
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+              <span style="font-size:15px;font-weight:800;color:#111827;">${escHP(a.nome)} ${escHP(a.cognome)}</span>
+              <span style="background:${tipo.bg};color:${tipo.colore};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;">${tipo.label}</span>
+              ${a.stato !== 'attivo' ? `<span style="background:#fee2e2;color:#DC2626;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;">${a.stato}</span>` : ''}
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:6px;">
+              ${a.telefono ? `📱 ${escHP(a.telefono)} · ` : ''}
+              📍 ${zone} · 
+              Da: ${a.data_inizio ? new Date(a.data_inizio).toLocaleDateString('it-IT') : '—'}
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;">
+                <span style="color:#64748b;">Lead: </span><strong>${myLead.length}</strong>
+              </div>
+              <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;">
+                <span style="color:#64748b;">Chiusi: </span><strong style="color:#059669;">${paganti}</strong>
+              </div>
+              <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;">
+                <span style="color:#64748b;">In corso: </span><strong style="color:#7C3AED;">${inCorso}</strong>
+              </div>
+              ${provDovuta > 0 ? `<div style="background:#fee2e2;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#DC2626;">Provv. dovuta: </span><strong style="color:#DC2626;">€${Math.round(provDovuta)}</strong></div>` : ''}
+              ${a.tipo !== 'segnalatore' ? `<div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#64748b;">Fisso: </span><strong>€${a.fisso_mensile}/m</strong></div>` : `<div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#64748b;">% provv: </span><strong>${a.perc_segnalatore}%</strong></div>`}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            ${a.telefono ? `<a href="https://wa.me/39${a.telefono.replace(/\D/g,'')}" target="_blank" style="background:#25d366;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;">💬 WA</a>` : ''}
+            <button onclick="apriModaleAgLead('${a.id}')" style="background:#7C3AED;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;">+ Lead</button>
+            <button onclick="apriModaleAgente('${a.id}')" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Edit</button>
+          </div>
+        </div>
+
+        ${myLead.length ? `
+        <div style="margin-top:12px;border-top:1px solid #f1f5f9;padding-top:10px;">
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Lead segnalati</div>
+          ${myLead.slice(0,3).map(l => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#f8fafc;border-radius:8px;margin-bottom:4px;flex-wrap:wrap;gap:6px;">
+              <div>
+                <span style="font-size:13px;font-weight:600;">${escHP(l.nome_locale)}</span>
+                <span style="font-size:11px;color:#64748b;margin-left:8px;">${l.piano ? `· ${l.piano}` : ''}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${l.stato==='pagante'?'#d1fae5':l.stato==='perso'?'#fee2e2':'#f1f5f9'};color:${l.stato==='pagante'?'#059669':l.stato==='perso'?'#DC2626':'#64748b'};font-weight:700;">${l.stato}</span>
+                ${l.provvigione_calcolata ? `<span style="font-size:11px;color:#0E5A7A;font-weight:700;">€${l.provvigione_calcolata}</span>` : ''}
+                ${l.stato==='pagante'&&!l.provvigione_pagata ? `<button onclick="segnaProvvigionePagata('${l.id}')" style="background:#059669;color:white;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;">✓ Pagata</button>` : ''}
+                <button onclick="apriModaleAgLead('${a.id}','${l.id}')" style="background:#f1f5f9;border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;">Edit</button>
+              </div>
+            </div>`).join('')}
+          ${myLead.length > 3 ? `<div style="font-size:12px;color:#94a3b8;text-align:center;padding:4px;">+ altri ${myLead.length-3} lead</div>` : ''}
+        </div>` : ''}
+      </div>`;
+    }).join('')}`;
+}
+
+function renderPerformanceAgenti(el) {
+  if (!_agenti.length) { el.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;">Nessun agente da analizzare</div>'; return; }
+
+  const mesi = {};
+  _agentiLead.filter(l => l.stato === 'pagante' && l.data_conversione).forEach(l => {
+    const m = l.data_conversione.substring(0,7);
+    if (!mesi[m]) mesi[m] = { tot:0, val:0 };
+    mesi[m].tot++;
+    mesi[m].val += parseFloat(l.valore_contratto||0);
+  });
+
+  el.innerHTML = `
+    <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:16px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:14px;">📊 Performance per agente</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f8fafc;">
+              <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Agente</th>
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Tipo</th>
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Lead</th>
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Paganti</th>
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Conv. %</th>
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Valore chiuso</th>
+              <th style="padding:10px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Target/mese</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${_agenti.map(a => {
+              const myLead = _agentiLead.filter(l => l.agente_id === a.id);
+              const paganti = myLead.filter(l => l.stato === 'pagante').length;
+              const conv = myLead.length ? Math.round(paganti/myLead.length*100) : 0;
+              const valore = myLead.filter(l=>l.stato==='pagante').reduce((s,l)=>s+parseFloat(l.valore_contratto||0),0);
+              const tipo = AG_TIPI[a.tipo]||AG_TIPI.segnalatore;
+              const vs_target = a.target_mensile ? Math.round(paganti/a.target_mensile*100) : null;
+              return `
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 12px;font-weight:600;">${escHP(a.nome)} ${escHP(a.cognome)}</td>
+                <td style="padding:10px 12px;text-align:center;"><span style="background:${tipo.bg};color:${tipo.colore};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;">${tipo.label}</span></td>
+                <td style="padding:10px 12px;text-align:center;">${myLead.length}</td>
+                <td style="padding:10px 12px;text-align:center;font-weight:700;color:#059669;">${paganti}</td>
+                <td style="padding:10px 12px;text-align:center;${conv>=30?'color:#059669;font-weight:700;':conv>=15?'color:#d97706;':'color:#DC2626;'}">${conv}%</td>
+                <td style="padding:10px 12px;text-align:center;font-weight:700;color:#0E5A7A;">€${Math.round(valore).toLocaleString('it-IT')}</td>
+                <td style="padding:10px 12px;text-align:center;">${vs_target !== null ? `${vs_target}% del target` : '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:16px;">
+      <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:14px;">📅 Clienti chiusi per mese</div>
+      ${Object.entries(mesi).sort().reverse().slice(0,6).map(([m,d]) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+          <div style="font-size:13px;font-weight:600;color:#374151;min-width:80px;">${m}</div>
+          <div style="flex:1;background:#f1f5f9;border-radius:20px;height:8px;overflow:hidden;">
+            <div style="background:#7C3AED;height:100%;border-radius:20px;width:${Math.min(d.tot*10,100)}%"></div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#7C3AED;min-width:30px;">${d.tot}</div>
+          <div style="font-size:12px;color:#64748b;min-width:80px;">€${Math.round(d.val).toLocaleString('it-IT')}</div>
+        </div>`).join('') || '<div style="color:#94a3b8;font-size:13px;">Nessun cliente chiuso ancora</div>'}
+    </div>`;
+}
+
+function renderProvvigioniAgenti(el) {
+  const daPagare = _agentiLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata);
+  const pagate   = _agentiLead.filter(l => l.provvigione_pagata);
+  const totDaPagare = daPagare.reduce((s,l) => s+parseFloat(l.provvigione_calcolata||0), 0);
+  const totPagate   = pagate.reduce((s,l) => s+parseFloat(l.provvigione_calcolata||0), 0);
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div style="background:#fee2e2;border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#DC2626;">€${Math.round(totDaPagare).toLocaleString('it-IT')}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">Da pagare (${daPagare.length} provvigioni)</div>
+      </div>
+      <div style="background:#d1fae5;border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#059669;">€${Math.round(totPagate).toLocaleString('it-IT')}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">Già pagate (${pagate.length} provvigioni)</div>
+      </div>
+    </div>
+
+    ${daPagare.length ? `
+    <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:16px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:#DC2626;margin-bottom:12px;">⚠️ Provvigioni da pagare</div>
+      ${daPagare.map(l => {
+        const agente = _agenti.find(a => a.id === l.agente_id);
+        return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#fef2f2;border-radius:8px;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;">${escHP(l.nome_locale)} → ${agente ? escHP(agente.nome)+' '+escHP(agente.cognome) : '?'}</div>
+            <div style="font-size:11px;color:#64748b;">${l.piano||'—'} · Chiuso: ${l.data_conversione ? new Date(l.data_conversione).toLocaleDateString('it-IT') : '—'}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:16px;font-weight:800;color:#DC2626;">€${parseFloat(l.provvigione_calcolata||0).toFixed(0)}</span>
+            <button onclick="segnaProvvigionePagata('${l.id}')" style="background:#059669;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">✓ Segna pagata</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : '<div style="background:#d1fae5;border-radius:12px;padding:16px;text-align:center;color:#059669;font-weight:700;margin-bottom:12px;">✅ Nessuna provvigione in sospeso</div>'}
+
+    ${pagate.length ? `
+    <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:16px;">
+      <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:12px;">✅ Storico pagamenti</div>
+      ${pagate.slice(0,10).map(l => {
+        const agente = _agenti.find(a => a.id === l.agente_id);
+        return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;gap:6px;">
+          <div>
+            <span style="font-size:13px;font-weight:600;">${escHP(l.nome_locale)}</span>
+            <span style="font-size:11px;color:#64748b;margin-left:8px;">→ ${agente ? escHP(agente.nome) : '?'}</span>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#059669;">€${parseFloat(l.provvigione_calcolata||0).toFixed(0)}</div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}`;
+}
+
+function renderPianoEconomico(el) {
+  el.innerHTML = `
+    <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:20px;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:800;color:#374151;margin-bottom:16px;">📋 Struttura compensi</div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;color:#0891B2;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">👋 Segnalatore</div>
+        <div style="font-size:13px;color:#374151;line-height:1.7;background:#e0f2fe;border-radius:8px;padding:12px;">
+          Segnala un contatto qualificato → tu fai la visita → lui riceve una % sul contratto del primo anno al momento del pagamento.<br>
+          <strong>Zero costi fissi. Paghi solo se chiudi.</strong>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:10px;">
+          ${[
+            { piano:'Starter €69/m', anno:828, perc:10, prov:83 },
+            { piano:'Business €119/m', anno:1428, perc:10, prov:143 },
+            { piano:'Pro €169/m', anno:2028, perc:10, prov:203 },
+            { piano:'Hotel €99/m', anno:1188, perc:10, prov:119 },
+            { piano:'Full €199/m', anno:2388, perc:10, prov:239 },
+          ].map(p => `
+            <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:11px;color:#64748b;font-weight:600;">${p.piano}</div>
+              <div style="font-size:18px;font-weight:800;color:#0891B2;margin-top:4px;">€${p.prov}</div>
+              <div style="font-size:10px;color:#94a3b8;">${p.perc}% · anno 1</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🎯 Agente strutturato</div>
+        <div style="font-size:13px;color:#374151;line-height:1.7;background:#f5f3ff;border-radius:8px;padding:12px;">
+          Zona assegnata, obiettivo mensile, fisso + variabile per cliente chiuso + bonus obiettivo + ricorrente anno 2.
+        </div>
+        <div style="overflow-x:auto;margin-top:10px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="background:#f8fafc;">
+                <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Componente</th>
+                <th style="padding:8px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Importo</th>
+                <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Condizione</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${[
+                ['Fisso mensile', '€500-800', 'Base garantita'],
+                ['Variabile Starter', '€100/cliente', 'Al primo pagamento'],
+                ['Variabile Business', '€180/cliente', 'Al primo pagamento'],
+                ['Variabile Pro/Full', '€250/cliente', 'Al primo pagamento'],
+                ['Bonus obiettivo', '€300/mese', 'Se supera il target mensile'],
+                ['Ricorrente anno 2', '5% canone', 'Se il cliente rinnova'],
+              ].map(([c,i,cond]) => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:8px 12px;font-weight:600;">${c}</td>
+                  <td style="padding:8px 12px;text-align:center;font-weight:700;color:#7C3AED;">${i}</td>
+                  <td style="padding:8px 12px;color:#64748b;">${cond}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="background:#f5f3ff;border-radius:8px;padding:12px;margin-top:10px;font-size:13px;">
+          <strong>Esempio:</strong> Agente chiude 8 clienti/mese (6 Starter + 2 Business):<br>
+          Fisso €700 + variabile €960 = <strong style="color:#7C3AED;">€1.660 totale</strong>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">👑 Area Manager</div>
+        <div style="font-size:13px;color:#374151;line-height:1.7;background:#d1fae5;border-radius:8px;padding:12px;">
+          Gestisce 3-5 agenti nella sua area. Fa training, accompagna alle prime visite, monitora risultati. Prende % sulla rete.
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px;">
+          ${[
+            { l:'Fisso mensile', v:'€1.000-1.200' },
+            { l:'% su ogni contratto rete', v:'5%' },
+            { l:'Bonus trimestrale', v:'€500-1.000' },
+            { l:'Ricorrente anno 2 (rete)', v:'2.5%' },
+          ].map(k => `
+            <div style="background:#f8fafc;border-radius:8px;padding:10px;">
+              <div style="font-size:11px;color:#64748b;font-weight:600;">${k.l}</div>
+              <div style="font-size:18px;font-weight:800;color:#059669;margin-top:4px;">${k.v}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:16px;">
+      <div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:8px;">📅 Roadmap rete vendita</div>
+      ${[
+        { fase:'Fase 1 · Ora → Luglio', desc:'Solo tu fai visite. Testi lo script, affini il processo, capisci le obiezioni reali.', col:'#DC2626' },
+        { fase:'Fase 2 · Agosto → Settembre', desc:'Attivi 2-3 segnalatori nella rete. Fornitori, commercialisti, colleghi ristoratori. Zero costi fissi.', col:'#d97706' },
+        { fase:'Fase 3 · Ottobre → Dicembre', desc:'Inserisci 1 agente strutturato su Viterbo o Terni. 2 settimane affiancamento, poi autonomo.', col:'#7C3AED' },
+        { fase:'Fase 4 · 2026', desc:'Area manager + rete su Lazio, Umbria, Toscana.', col:'#059669' },
+      ].map(f => `
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #fde68a;">
+          <div style="width:8px;height:8px;border-radius:50%;background:${f.col};flex-shrink:0;margin-top:5px;"></div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:${f.col};">${f.fase}</div>
+            <div style="font-size:12px;color:#374151;margin-top:2px;">${f.desc}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+window.apriModaleAgente = function(id) {
+  _agenteEditId = id || null;
+  const agente = id ? _agenti.find(a => a.id === id) : null;
+  const modal = document.getElementById('agente-modal');
+  const title = document.getElementById('agente-modal-title');
+  const body  = document.getElementById('agente-modal-body');
+  if (!modal) return;
+
+  title.textContent = agente ? `Modifica — ${agente.nome} ${agente.cognome}` : 'Nuovo agente';
+  const v = (f, def='') => agente?.[f] ?? def;
+  const zone = v('zona', []);
+
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">NOME *</label>
+        <input id="ag-nome" value="${escHP(v('nome'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">COGNOME *</label>
+        <input id="ag-cognome" value="${escHP(v('cognome'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TELEFONO</label>
+        <input id="ag-tel" value="${escHP(v('telefono'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">EMAIL</label>
+        <input id="ag-email" value="${escHP(v('email'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TIPO *</label>
+        <select id="ag-tipo" onchange="aggiornaFormAgente()" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          ${Object.entries(AG_TIPI).map(([k,t]) => `<option value="${k}" ${v('tipo')===k?'selected':''}>${t.label}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">STATO</label>
+        <select id="ag-stato" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          ${['attivo','sospeso','terminato'].map(s => `<option ${v('stato')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">DATA INIZIO</label>
+        <input id="ag-data" type="date" value="${v('data_inizio')}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CODICE FISCALE</label>
+        <input id="ag-cf" value="${escHP(v('codice_fiscale'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;">ZONE ASSEGNATE</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          ${['Orte','Viterbo','Terni','Rieti','Roma','Altra'].map(z => `
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="ag-zona-${z}" ${zone.includes(z)?'checked':''} style="width:16px;height:16px;"> ${z}
+            </label>`).join('')}
+        </div>
+      </div>
+      <div id="ag-compenso-section" style="grid-column:1/-1;"></div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">IBAN</label>
+        <input id="ag-iban" value="${escHP(v('iban'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">NOTE</label>
+        <textarea id="ag-note" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;">${escHP(v('note'))}</textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+      ${agente ? `<button onclick="eliminaAgente('${agente.id}')" style="background:#fee2e2;color:#DC2626;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;margin-right:auto;">🗑 Elimina</button>` : ''}
+      <button onclick="chiudiModaleAgente()" style="background:#f1f5f9;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;">Annulla</button>
+      <button onclick="salvaAgente()" style="background:#7C3AED;color:white;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">💾 Salva</button>
+    </div>`;
+
+  modal.style.display = 'flex';
+  aggiornaFormAgente();
+};
+
+window.aggiornaFormAgente = function() {
+  const tipo = document.getElementById('ag-tipo')?.value;
+  const sec = document.getElementById('ag-compenso-section');
+  if (!sec) return;
+  const agente = _agenteEditId ? _agenti.find(a => a.id === _agenteEditId) : null;
+  const v = (f, def=0) => agente?.[f] ?? def;
+
+  if (tipo === 'segnalatore') {
+    sec.innerHTML = `
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">% PROVVIGIONE</label>
+        <input id="ag-perc" type="number" value="${v('perc_segnalatore',10)}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Sul valore del primo anno di contratto</div>
+      </div>`;
+  } else {
+    sec.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">FISSO MENSILE €</label>
+          <input id="ag-fisso" type="number" value="${v('fisso_mensile',700)}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TARGET MENSILE (clienti)</label>
+          <input id="ag-target" type="number" value="${v('target_mensile',5)}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">VAR. STARTER €</label>
+          <input id="ag-var-starter" type="number" value="${v('var_starter',100)}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">VAR. BUSINESS €</label>
+          <input id="ag-var-business" type="number" value="${v('var_business',180)}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">VAR. PRO/FULL €</label>
+          <input id="ag-var-pro" type="number" value="${v('var_pro',250)}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">BONUS OBIETTIVO €</label>
+          <input id="ag-bonus" type="number" value="${v('bonus_obiettivo',300)}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">RICORRENTE ANNO 2 %</label>
+          <input id="ag-ricorrente" type="number" value="${v('perc_ricorrente',5)}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+      </div>`;
+  }
+};
+
+window.chiudiModaleAgente = function() {
+  const modal = document.getElementById('agente-modal');
+  if (modal) modal.style.display = 'none';
+  _agenteEditId = null;
+};
+
+window.salvaAgente = async function() {
+  const tipo = document.getElementById('ag-tipo')?.value;
+  const zone = ['Orte','Viterbo','Terni','Rieti','Roma','Altra'].filter(z => document.getElementById(`ag-zona-${z}`)?.checked);
+
+  const payload = {
+    nome:           document.getElementById('ag-nome')?.value?.trim(),
+    cognome:        document.getElementById('ag-cognome')?.value?.trim(),
+    telefono:       document.getElementById('ag-tel')?.value?.trim() || null,
+    email:          document.getElementById('ag-email')?.value?.trim() || null,
+    tipo,
+    zona:           zone,
+    stato:          document.getElementById('ag-stato')?.value || 'attivo',
+    data_inizio:    document.getElementById('ag-data')?.value || null,
+    codice_fiscale: document.getElementById('ag-cf')?.value?.trim() || null,
+    iban:           document.getElementById('ag-iban')?.value?.trim() || null,
+    note:           document.getElementById('ag-note')?.value?.trim() || null,
+    perc_segnalatore: tipo === 'segnalatore' ? parseFloat(document.getElementById('ag-perc')?.value||10) : null,
+    fisso_mensile:  tipo !== 'segnalatore' ? parseFloat(document.getElementById('ag-fisso')?.value||0) : 0,
+    target_mensile: tipo !== 'segnalatore' ? parseInt(document.getElementById('ag-target')?.value||5) : null,
+    var_starter:    tipo !== 'segnalatore' ? parseFloat(document.getElementById('ag-var-starter')?.value||100) : null,
+    var_business:   tipo !== 'segnalatore' ? parseFloat(document.getElementById('ag-var-business')?.value||180) : null,
+    var_pro:        tipo !== 'segnalatore' ? parseFloat(document.getElementById('ag-var-pro')?.value||250) : null,
+    var_full:       tipo !== 'segnalatore' ? parseFloat(document.getElementById('ag-var-pro')?.value||250) : null,
+    bonus_obiettivo:tipo !== 'segnalatore' ? parseFloat(document.getElementById('ag-bonus')?.value||300) : null,
+    perc_ricorrente:tipo !== 'segnalatore' ? parseFloat(document.getElementById('ag-ricorrente')?.value||5) : null,
+  };
+
+  if (!payload.nome || !payload.cognome) { alert('Inserisci nome e cognome'); return; }
+
+  if (_agenteEditId) await supabase.from('agenti').update(payload).eq('id', _agenteEditId);
+  else await supabase.from('agenti').insert(payload);
+
+  chiudiModaleAgente();
+  await caricaAgenti();
+};
+
+window.eliminaAgente = async function(id) {
+  if (!confirm('Eliminare questo agente? Verranno eliminati anche i suoi lead.')) return;
+  await supabase.from('agenti').delete().eq('id', id);
+  chiudiModaleAgente();
+  await caricaAgenti();
+};
+
+window.apriModaleAgLead = function(agenteId, leadId) {
+  _agLeadEditId = leadId || null;
+  const lead = leadId ? _agentiLead.find(l => l.id === leadId) : null;
+  const agente = _agenti.find(a => a.id === agenteId);
+  const modal = document.getElementById('ag-lead-modal');
+  const title = document.getElementById('ag-lead-modal-title');
+  const body  = document.getElementById('ag-lead-modal-body');
+  if (!modal || !agente) return;
+
+  title.textContent = lead ? `Modifica lead — ${lead.nome_locale}` : `Nuova segnalazione da ${agente.nome}`;
+  const v = (f, def='') => lead?.[f] ?? def;
+
+  body.innerHTML = `
+    <input type="hidden" id="agl-agente-id" value="${agenteId}">
+    <div style="display:grid;gap:12px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">NOME LOCALE *</label>
+        <input id="agl-nome" value="${escHP(v('nome_locale'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">PIANO</label>
+          <select id="agl-piano" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+            <option value="">—</option>
+            ${['starter','business','pro','hotel','full'].map(p => `<option ${v('piano')===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">STATO</label>
+          <select id="agl-stato" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+            ${['segnalato','visitato','trial','pagante','perso'].map(s => `<option ${v('stato')===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">DATA SEGNALAZIONE</label>
+          <input id="agl-data-seg" type="date" value="${v('data_segnalazione', new Date().toISOString().split('T')[0])}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">DATA CONVERSIONE</label>
+          <input id="agl-data-conv" type="date" value="${v('data_conversione')}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">VALORE CONTRATTO €</label>
+          <input id="agl-valore" type="number" value="${v('valore_contratto')}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">PROVVIGIONE CALCOLATA €</label>
+          <input id="agl-prov" type="number" value="${v('provvigione_calcolata')}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">NOTE</label>
+        <textarea id="agl-note" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;">${escHP(v('note'))}</textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+      <button onclick="chiudiModaleAgLead()" style="background:#f1f5f9;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;">Annulla</button>
+      <button onclick="salvaAgLead()" style="background:#7C3AED;color:white;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">💾 Salva</button>
+    </div>`;
+
+  modal.style.display = 'flex';
+};
+
+window.chiudiModaleAgLead = function() {
+  const modal = document.getElementById('ag-lead-modal');
+  if (modal) modal.style.display = 'none';
+  _agLeadEditId = null;
+};
+
+window.salvaAgLead = async function() {
+  const payload = {
+    agente_id:             document.getElementById('agl-agente-id')?.value,
+    nome_locale:           document.getElementById('agl-nome')?.value?.trim(),
+    piano:                 document.getElementById('agl-piano')?.value || null,
+    stato:                 document.getElementById('agl-stato')?.value || 'segnalato',
+    data_segnalazione:     document.getElementById('agl-data-seg')?.value || null,
+    data_conversione:      document.getElementById('agl-data-conv')?.value || null,
+    valore_contratto:      parseFloat(document.getElementById('agl-valore')?.value) || null,
+    provvigione_calcolata: parseFloat(document.getElementById('agl-prov')?.value) || null,
+    note:                  document.getElementById('agl-note')?.value?.trim() || null,
+  };
+
+  if (!payload.nome_locale) { alert('Inserisci il nome del locale'); return; }
+
+  if (_agLeadEditId) await supabase.from('agenti_lead').update(payload).eq('id', _agLeadEditId);
+  else await supabase.from('agenti_lead').insert(payload);
+
+  chiudiModaleAgLead();
+  await caricaAgenti();
+};
+
+window.segnaProvvigionePagata = async function(id) {
+  if (!confirm('Segna questa provvigione come pagata?')) return;
+  await supabase.from('agenti_lead').update({
+    provvigione_pagata: true,
+    data_pagamento_prov: new Date().toISOString().split('T')[0]
+  }).eq('id', id);
+  await caricaAgenti();
+};
+
+// Carica conteggio agenti sulla card
+(async function initAgentiCount() {
+  try {
+    const { count } = await supabase.from('agenti').select('id', {count:'exact',head:true}).eq('stato','attivo');
+    const el = document.getElementById('agenti-card-count');
+    if (el) el.textContent = `${count||0} agenti attivi`;
   } catch {}
 })();
 
