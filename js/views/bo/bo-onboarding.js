@@ -173,6 +173,33 @@ export async function render(container) {
     </div>
   </div>`;
 
+  // ── Funzioni globali definite PRIMA del render HTML ──────────────
+  window.toggleOnbLivello = function(i) {
+    const body = document.getElementById(`body-${i}`);
+    const chev = document.getElementById(`chevron-${i}`);
+    if (!body) return;
+    const isOpen = body.classList.contains('open');
+    document.querySelectorAll('.onb-livello-body').forEach(b => b.classList.remove('open'));
+    document.querySelectorAll('[id^="chevron-"]').forEach(c => c.style.transform = 'rotate(0deg)');
+    if (!isOpen) {
+      body.classList.add('open');
+      if (chev) chev.style.transform = 'rotate(180deg)';
+    }
+  };
+
+  window.vaiASezione = function(route, tab) {
+    window.location.hash = tab ? `#/${route}?tab=${tab}` : `#/${route}`;
+  };
+
+  window.toggleStep = function(li, si) {
+    const key = `onb_${aziendaId}_${li}_${si}`;
+    const done = localStorage.getItem(key) === '1';
+    if (done) localStorage.removeItem(key); else localStorage.setItem(key, '1');
+    aggiornaStep(li, si);
+    aggiornaBadge();
+    aggiornaProgressGlobale();
+  };
+
   // Render livelli
   const livelliEl = document.getElementById('onb-livelli');
   LIVELLI.forEach((liv, li) => {
@@ -239,47 +266,9 @@ export async function render(container) {
     livelliEl.appendChild(div);
   });
 
-  // Apri primo livello di default
+  // Apri primo livello e carica stato
   toggleOnbLivello(0);
-
-  // Carica stato salvato
   caricaStatoOnboarding();
-
-  window.toggleOnbLivello = function(i) {
-    const body = document.getElementById(`body-${i}`);
-    const chev = document.getElementById(`chevron-${i}`);
-    if (!body) return;
-    const isOpen = body.classList.contains('open');
-    // Chiudi tutti
-    document.querySelectorAll('.onb-livello-body').forEach(b => b.classList.remove('open'));
-    document.querySelectorAll('[id^="chevron-"]').forEach(c => c.style.transform = 'rotate(0deg)');
-    // Apri questo se era chiuso
-    if (!isOpen) {
-      body.classList.add('open');
-      if (chev) chev.style.transform = 'rotate(180deg)';
-    }
-  };
-
-  window.vaiASezione = function(route, tab) {
-    if (tab) {
-      window.location.hash = `#/${route}?tab=${tab}`;
-    } else {
-      window.location.hash = `#/${route}`;
-    }
-  };
-
-  window.toggleStep = function(li, si) {
-    const key = `onb_${aziendaId}_${li}_${si}`;
-    const done = localStorage.getItem(key) === '1';
-    if (done) {
-      localStorage.removeItem(key);
-    } else {
-      localStorage.setItem(key, '1');
-    }
-    aggiornaStep(li, si);
-    aggiornaBadge();
-    aggiornaProgressGlobale();
-  };
 
   function aggiornaStep(li, si) {
     const key = `onb_${aziendaId}_${li}_${si}`;
