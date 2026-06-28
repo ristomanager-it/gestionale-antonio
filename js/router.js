@@ -989,7 +989,16 @@ async function resolve() {
         return;
       }
 
-      window.location.href = `/form-prenotazione.html?form_id=${link.form_id}`;
+      // Passa UTM + fbclid al form per il tracking
+      const utmParams = new URLSearchParams(window.location.search);
+      // Aggiunge anche utm dal hash se presenti (Meta ads li mette nell'URL base)
+      const hashSearch = window.location.href.split('?')[1] || '';
+      const hashParams = new URLSearchParams(hashSearch);
+      ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid'].forEach(k => {
+        if (hashParams.get(k) && !utmParams.get(k)) utmParams.set(k, hashParams.get(k));
+      });
+      const utmString = utmParams.toString();
+      window.location.href = `/form-prenotazione.html?form_id=${link.form_id}${utmString ? '&' + utmString : ''}`;
       return;
 
     } catch (e) {
