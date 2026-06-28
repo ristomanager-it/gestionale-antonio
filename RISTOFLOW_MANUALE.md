@@ -147,7 +147,7 @@ Per navigare direttamente a una sezione, cambia il hash nell'URL.
 
 Accessibile dal pulsante avatar in alto a destra (o `#/ai`).
 
-- Conosce **48 concetti** di gestione ristorazione (corso Pienissimo)
+- Conosce **48 concetti** di gestione ristorazione sviluppati da Antonio Carullo
 - Ha **memoria persistente** — usa frasi come *"ricordati che..."*
 - Può generare copy per il sito web
 - Risponde in base al ruolo dell'utente loggato
