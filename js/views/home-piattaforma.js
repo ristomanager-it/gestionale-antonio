@@ -327,6 +327,15 @@ export async function render(container) {
           <div class="icon">🚀</div>
         </div>
 
+        <div class="card" onclick="toggleCRM()">
+          <div>
+            <div class="label">Vendita</div>
+            <div class="title">CRM Lead</div>
+            <div style="font-size:11px;color:#DC2626;margin-top:4px;font-weight:700;" id="crm-card-count">Caricamento...</div>
+          </div>
+          <div class="icon">🎯</div>
+        </div>
+
       </div>
 
       <!-- PREZZI (hidden by default) -->
@@ -355,6 +364,66 @@ export async function render(container) {
           Annuale unica = sconto 20% applicato sul prezzo annuo di listino ·
           3 rate = 10% sconto, prima rata subito poi 2° e 3° mese ·
           Mensile = prezzo pieno, disdetta in qualsiasi momento
+        </div>
+      </div>
+
+      <!-- CRM LEAD (hidden by default) -->
+      <div id="crm-section" style="display:none;margin-top:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div class="kpi-section-label" style="margin:0;">🎯 CRM Lead — Pipeline Vendita</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Traccia visite, temperature, follow-up</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="apriModaleLead()" style="background:#DC2626;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">+ Nuova visita</button>
+            <button onclick="toggleCRM()" style="background:#f1f5f9;border:none;border-radius:8px;padding:8px 10px;font-size:12px;cursor:pointer;color:#64748b;">✕</button>
+          </div>
+        </div>
+
+        <!-- KPI Pipeline -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;" id="crm-kpi"></div>
+
+        <!-- Filtri -->
+        <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:14px;margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <select id="crm-filter-stato" onchange="renderCRM()" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;">
+            <option value="">Tutti gli stati</option>
+            <option value="visitato">Visitato</option>
+            <option value="demo_fatta">Demo fatta</option>
+            <option value="trial_attivo">Trial attivo</option>
+            <option value="pagante">Pagante ✅</option>
+            <option value="perso">Perso ❌</option>
+          </select>
+          <select id="crm-filter-temp" onchange="renderCRM()" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;">
+            <option value="">Tutte le temperature</option>
+            <option value="tiepido">🟡 Tiepido</option>
+            <option value="freddo">🔵 Freddo</option>
+            <option value="glaciale">❄️ Glaciale</option>
+          </select>
+          <select id="crm-filter-zona" onchange="renderCRM()" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;">
+            <option value="">Tutte le zone</option>
+            <option value="Orte">Orte</option>
+            <option value="Viterbo">Viterbo</option>
+            <option value="Terni">Terni</option>
+            <option value="Altra">Altra</option>
+          </select>
+          <input id="crm-search" onkeyup="renderCRM()" placeholder="🔍 Cerca locale..." style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;flex:1;min-width:140px;">
+        </div>
+
+        <!-- Lista lead -->
+        <div id="crm-lista"></div>
+
+        <!-- Alert follow-up -->
+        <div id="crm-followup" style="margin-top:12px;"></div>
+
+        <!-- Modale nuovo/modifica lead -->
+        <div id="crm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;">
+          <div style="background:white;border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+              <div style="font-size:16px;font-weight:800;" id="crm-modal-title">Nuova visita</div>
+              <button onclick="chiudiModaleLead()" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;">✕</button>
+            </div>
+            <div id="crm-modal-body"></div>
+          </div>
         </div>
       </div>
 
@@ -1092,6 +1161,348 @@ window.copiaPrezzoWhatsapp = function(pianoId) {
     prompt('Copia questo messaggio:', msg);
   });
 };
+
+// ── CRM LEAD ─────────────────────────────────────────────────────────────────
+let _crmLeads = [];
+let _crmEditId = null;
+
+const CRM_STATI = {
+  visitato:    { label:'Visitato',     colore:'#64748b', bg:'#f1f5f9' },
+  demo_fatta:  { label:'Demo fatta',   colore:'#d97706', bg:'#fef9c3' },
+  trial_attivo:{ label:'Trial attivo', colore:'#7C3AED', bg:'#f5f3ff' },
+  pagante:     { label:'Pagante ✅',   colore:'#059669', bg:'#d1fae5' },
+  perso:       { label:'Perso ❌',     colore:'#DC2626', bg:'#fee2e2' },
+};
+
+const CRM_TEMP = {
+  tiepido:  { label:'🟡 Tiepido',  colore:'#d97706' },
+  freddo:   { label:'🔵 Freddo',   colore:'#0891B2' },
+  glaciale: { label:'❄️ Glaciale', colore:'#374151' },
+};
+
+window.toggleCRM = function() {
+  const sec = document.getElementById('crm-section');
+  if (!sec) return;
+  const isHidden = sec.style.display === 'none';
+  sec.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) caricaCRM();
+};
+
+async function caricaCRM() {
+  const { data } = await supabase
+    .from('crm_lead')
+    .select('*')
+    .order('data_visita', { ascending: false });
+  _crmLeads = data || [];
+
+  // KPI card count
+  const cardCount = document.getElementById('crm-card-count');
+  if (cardCount) {
+    const attivi = _crmLeads.filter(l => !['perso','pagante'].includes(l.stato)).length;
+    cardCount.textContent = `${attivi} lead attivi`;
+  }
+
+  renderCRMKpi();
+  renderCRM();
+  renderFollowUp();
+}
+
+function renderCRMKpi() {
+  const el = document.getElementById('crm-kpi');
+  if (!el) return;
+  const tot = _crmLeads.length;
+  const byStato = {};
+  _crmLeads.forEach(l => { byStato[l.stato] = (byStato[l.stato]||0)+1; });
+  const conv = tot > 0 ? Math.round((byStato.pagante||0)/tot*100) : 0;
+
+  el.innerHTML = [
+    { val: tot,                      label:'Totali',       col:'#64748b' },
+    { val: byStato.visitato||0,      label:'Visitati',     col:'#64748b' },
+    { val: byStato.demo_fatta||0,    label:'Demo fatte',   col:'#d97706' },
+    { val: byStato.trial_attivo||0,  label:'Trial attivi', col:'#7C3AED' },
+    { val: byStato.pagante||0,       label:'Paganti ✅',   col:'#059669' },
+    { val: byStato.perso||0,         label:'Persi ❌',     col:'#DC2626' },
+    { val: conv+'%',                 label:'Conversione',  col:'#0E5A7A' },
+  ].map(k => `
+    <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:${k.col};">${k.val}</div>
+      <div style="font-size:11px;color:#64748b;margin-top:2px;">${k.label}</div>
+    </div>`).join('');
+}
+
+window.renderCRM = function() {
+  const el = document.getElementById('crm-lista');
+  if (!el) return;
+  const stato = document.getElementById('crm-filter-stato')?.value || '';
+  const temp  = document.getElementById('crm-filter-temp')?.value  || '';
+  const zona  = document.getElementById('crm-filter-zona')?.value  || '';
+  const q     = (document.getElementById('crm-search')?.value || '').toLowerCase();
+
+  const filtered = _crmLeads.filter(l =>
+    (!stato || l.stato === stato) &&
+    (!temp  || l.temperatura === temp) &&
+    (!zona  || l.zona === zona) &&
+    (!q     || l.nome_locale?.toLowerCase().includes(q) || l.nome_titolare?.toLowerCase().includes(q))
+  );
+
+  if (!filtered.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px;">Nessun lead trovato</div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(l => {
+    const st = CRM_STATI[l.stato] || CRM_STATI.visitato;
+    const tp = CRM_TEMP[l.temperatura] || { label:'—', colore:'#94a3b8' };
+    const oggi = new Date().toISOString().split('T')[0];
+    const scaduto = l.data_prossimo_step && l.data_prossimo_step < oggi;
+    const problemi = (l.problema_emerso||[]).join(', ') || '—';
+    return `
+    <div style="background:white;border-radius:12px;border:1px solid ${scaduto?'#fca5a5':'#e5e7eb'};padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+          <span style="font-size:14px;font-weight:800;color:#111827;">${escHP(l.nome_locale)}</span>
+          <span style="background:${st.bg};color:${st.colore};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;">${st.label}</span>
+          <span style="color:${tp.colore};font-size:11px;font-weight:600;">${tp.label}</span>
+        </div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">
+          ${l.nome_titolare ? `👤 ${escHP(l.nome_titolare)} · ` : ''}
+          ${l.zona ? `📍 ${escHP(l.zona)} · ` : ''}
+          ${l.tipo_locale ? `🍽️ ${escHP(l.tipo_locale)} · ` : ''}
+          ${l.coperti ? `${l.coperti} coperti` : ''}
+        </div>
+        <div style="font-size:12px;color:#64748b;">
+          ${l.data_visita ? `📅 Visita: ${new Date(l.data_visita).toLocaleDateString('it-IT')} · ` : ''}
+          ${l.visitato_da ? `👤 ${escHP(l.visitato_da)} · ` : ''}
+          Problema: <strong>${problemi}</strong>
+        </div>
+        ${l.prossimo_step ? `
+        <div style="margin-top:6px;font-size:12px;color:${scaduto?'#DC2626':'#7C3AED'};font-weight:600;">
+          ${scaduto?'⚠️':'📌'} ${escHP(l.prossimo_step)} ${l.data_prossimo_step ? `· ${new Date(l.data_prossimo_step).toLocaleDateString('it-IT')}` : ''}
+        </div>` : ''}
+        ${l.note ? `<div style="margin-top:6px;font-size:12px;color:#94a3b8;font-style:italic;">${escHP(l.note)}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+        ${l.telefono ? `<a href="https://wa.me/39${l.telefono.replace(/\D/g,'')}" target="_blank" style="background:#25d366;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;">💬 WA</a>` : ''}
+        <button onclick="apriModaleLead('${l.id}')" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Edit</button>
+        <button onclick="avanzaStato('${l.id}')" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">→ Avanza</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+function renderFollowUp() {
+  const el = document.getElementById('crm-followup');
+  if (!el) return;
+  const oggi = new Date().toISOString().split('T')[0];
+  const domani = new Date(Date.now()+86400000).toISOString().split('T')[0];
+  const urgenti = _crmLeads.filter(l =>
+    l.data_prossimo_step && l.data_prossimo_step <= domani &&
+    !['pagante','perso'].includes(l.stato)
+  );
+  if (!urgenti.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:14px 16px;">
+      <div style="font-size:12px;font-weight:700;color:#854d0e;margin-bottom:10px;">⚠️ Follow-up urgenti (oggi/domani)</div>
+      ${urgenti.map(l => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #fde68a;flex-wrap:wrap;gap:6px;">
+          <div>
+            <span style="font-weight:700;font-size:13px;">${escHP(l.nome_locale)}</span>
+            <span style="font-size:12px;color:#64748b;margin-left:8px;">${escHP(l.prossimo_step||'')}</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            ${l.telefono ? `<a href="https://wa.me/39${l.telefono.replace(/\D/g,'')}" target="_blank" style="background:#25d366;color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;text-decoration:none;">💬 Scrivi</a>` : ''}
+            <button onclick="apriModaleLead('${l.id}')" style="background:#854d0e;color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;">Aggiorna</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+window.avanzaStato = async function(id) {
+  const lead = _crmLeads.find(l => l.id === id);
+  if (!lead) return;
+  const ordine = ['visitato','demo_fatta','trial_attivo','pagante'];
+  const idx = ordine.indexOf(lead.stato);
+  if (idx === -1 || idx >= ordine.length-1) return;
+  const nuovoStato = ordine[idx+1];
+  await supabase.from('crm_lead').update({ stato: nuovoStato }).eq('id', id);
+  await caricaCRM();
+};
+
+window.apriModaleLead = function(id) {
+  _crmEditId = id || null;
+  const lead = id ? _crmLeads.find(l => l.id === id) : null;
+  const modal = document.getElementById('crm-modal');
+  const title = document.getElementById('crm-modal-title');
+  const body  = document.getElementById('crm-modal-body');
+  if (!modal) return;
+
+  title.textContent = lead ? `Modifica — ${lead.nome_locale}` : 'Nuova visita';
+
+  const v = (field, def='') => lead?.[field] ?? def;
+  const checked = (field, val) => (v(field,[]).includes(val)) ? 'checked' : '';
+
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="grid-column:1/-1;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">NOME LOCALE *</label>
+        <input id="cl-nome" value="${escHP(v('nome_locale'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TITOLARE</label>
+        <input id="cl-titolare" value="${escHP(v('nome_titolare'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TELEFONO</label>
+        <input id="cl-tel" value="${escHP(v('telefono'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">ZONA</label>
+        <select id="cl-zona" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          ${['Orte','Viterbo','Terni','Altra'].map(z => `<option ${v('zona')===z?'selected':''}>${z}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TIPO LOCALE</label>
+        <select id="cl-tipo" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          ${['ristorante','pizzeria','hotel','catering','bar','altro'].map(t => `<option ${v('tipo_locale')===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">COPERTI</label>
+        <input id="cl-coperti" type="number" value="${v('coperti')}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">DATA VISITA</label>
+        <input id="cl-data" type="date" value="${v('data_visita')}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">VISITATO DA</label>
+        <input id="cl-visitato" value="${escHP(v('visitato_da','Antonio'))}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">MODALITÀ</label>
+        <select id="cl-modalita" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          ${['porta_a_porta','referral','rete','social'].map(m => `<option ${v('modalita')===m?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">TEMPERATURA</label>
+        <select id="cl-temp" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          <option value="">—</option>
+          ${['tiepido','freddo','glaciale'].map(t => `<option ${v('temperatura')===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">STATO</label>
+        <select id="cl-stato" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          ${Object.entries(CRM_STATI).map(([k,s]) => `<option value="${k}" ${v('stato')===k?'selected':''}>${s.label}</option>`).join('')}
+        </select>
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;">PROBLEMA EMERSO</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          ${['conti','dipendenti','clienti','tempo','altro'].map(p => `
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="cl-prob-${p}" ${checked('problema_emerso',p)} style="width:16px;height:16px;"> ${p}
+            </label>`).join('')}
+        </div>
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px;">DEMO MOSTRATA</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          ${['bilancio','tony','prenotazioni','marketing','cassa','hr'].map(d => `
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="cl-demo-${d}" ${checked('demo_mostrata',d)} style="width:16px;height:16px;"> ${d}
+            </label>`).join('')}
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">PIANO INTERESSE</label>
+        <select id="cl-piano" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          <option value="">—</option>
+          ${['starter','business','pro','hotel','full'].map(p => `<option ${v('piano_interesse')===p?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">DATA PROSSIMO STEP</label>
+        <input id="cl-next-data" type="date" value="${v('data_prossimo_step')}" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">PROSSIMO STEP</label>
+        <input id="cl-next" value="${escHP(v('prossimo_step'))}" placeholder="Es. Richiamare martedì, mandare video demo..." style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">NOTE</label>
+        <textarea id="cl-note" rows="3" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;">${escHP(v('note'))}</textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+      ${lead ? `<button onclick="eliminaLead('${lead.id}')" style="background:#fee2e2;color:#DC2626;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;margin-right:auto;">🗑 Elimina</button>` : ''}
+      <button onclick="chiudiModaleLead()" style="background:#f1f5f9;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;">Annulla</button>
+      <button onclick="salvaLead()" style="background:#DC2626;color:white;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">💾 Salva</button>
+    </div>`;
+
+  modal.style.display = 'flex';
+};
+
+window.chiudiModaleLead = function() {
+  const modal = document.getElementById('crm-modal');
+  if (modal) modal.style.display = 'none';
+  _crmEditId = null;
+};
+
+window.salvaLead = async function() {
+  const getProblemi = () => ['conti','dipendenti','clienti','tempo','altro'].filter(p => document.getElementById(`cl-prob-${p}`)?.checked);
+  const getDemo    = () => ['bilancio','tony','prenotazioni','marketing','cassa','hr'].filter(d => document.getElementById(`cl-demo-${d}`)?.checked);
+
+  const payload = {
+    nome_locale:       document.getElementById('cl-nome')?.value?.trim(),
+    nome_titolare:     document.getElementById('cl-titolare')?.value?.trim() || null,
+    telefono:          document.getElementById('cl-tel')?.value?.trim() || null,
+    zona:              document.getElementById('cl-zona')?.value || null,
+    tipo_locale:       document.getElementById('cl-tipo')?.value || null,
+    coperti:           parseInt(document.getElementById('cl-coperti')?.value) || null,
+    data_visita:       document.getElementById('cl-data')?.value || null,
+    visitato_da:       document.getElementById('cl-visitato')?.value?.trim() || null,
+    modalita:          document.getElementById('cl-modalita')?.value || null,
+    temperatura:       document.getElementById('cl-temp')?.value || null,
+    stato:             document.getElementById('cl-stato')?.value || 'visitato',
+    problema_emerso:   getProblemi(),
+    demo_mostrata:     getDemo(),
+    piano_interesse:   document.getElementById('cl-piano')?.value || null,
+    prossimo_step:     document.getElementById('cl-next')?.value?.trim() || null,
+    data_prossimo_step:document.getElementById('cl-next-data')?.value || null,
+    note:              document.getElementById('cl-note')?.value?.trim() || null,
+  };
+
+  if (!payload.nome_locale) { alert('Inserisci il nome del locale'); return; }
+
+  if (_crmEditId) {
+    await supabase.from('crm_lead').update(payload).eq('id', _crmEditId);
+  } else {
+    await supabase.from('crm_lead').insert(payload);
+  }
+
+  chiudiModaleLead();
+  await caricaCRM();
+};
+
+window.eliminaLead = async function(id) {
+  if (!confirm('Eliminare questo lead?')) return;
+  await supabase.from('crm_lead').delete().eq('id', id);
+  chiudiModaleLead();
+  await caricaCRM();
+};
+
+// Carica conteggio CRM sulla card anche senza aprire la sezione
+(async function initCRMCount() {
+  try {
+    const { count } = await supabase.from('crm_lead').select('id', {count:'exact',head:true})
+      .not('stato','in','(pagante,perso)');
+    const el = document.getElementById('crm-card-count');
+    if (el) el.textContent = `${count||0} lead attivi`;
+  } catch {}
+})();
 
 function escHP(v) {
   return String(v == null ? "" : v)
