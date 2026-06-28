@@ -1411,10 +1411,123 @@ const ruolo = window.normalizeRuolo
     return;
   }
 
+// ── Feature gating — mappa route → feature richiesta ──────────────────────
+const ROUTE_FEATURES = {
+  // Marketing & CRM
+  "bo-promo":        "promo",
+  "bo-catenarie":    "promo",
+  "bo-marketing":    "marketing",
+  "bo-chatbot":      "chatbot_whatsapp",
+  "bo-fidelity":     "fidelity",
+  "bo-tag":          "marketing",
+
+  // Gestione
+  "bo-bilancio":     "report_kpi",
+  "bo-acquisti":     "acquisti",
+  "bo-venduto":      "report_kpi",
+  "bo-margini":      "food_cost",
+  "bo-magazzino":    "magazzino",
+
+  // Cucina & Ricette
+  "ricette-editor":  "ricettario",
+  "ricette":         "ricettario",
+  "bo-produzione":   "ricettario",
+  "planner-produzione": "ricettario",
+
+  // Personale
+  "bo-presenze":     "hr_timbrature",
+  "dipendenti":      "dipendenti",
+  "crea-dipendente": "dipendenti",
+  "hr-admin":        "dipendenti",
+  "fascicolo-hr":    "dipendenti",
+
+  // Prenotazioni avanzate
+  "booking-form-builder": "prenotazioni_avanzate",
+
+  // Multi-sede
+  "gestione-aziende": null, // solo superadmin, già gestito
+};
+
+function checkFeatureGating(route) {
+  if (isSuperadmin()) return null; // superadmin bypassa tutto
+  const feature = ROUTE_FEATURES[route];
+  if (!feature) return null; // nessuna feature richiesta
+  const features = window.state?.featuresEffettive || {};
+  if (features[feature]) return null; // feature disponibile
+  return feature; // feature mancante
+}
+
+function renderUpgradeWall(app, feature, route) {
+  const piano = window.state?.piano;
+  const nomePiano = piano?.nome || "piano attuale";
+
+  const featureLabels = {
+    promo:                 "Promo & Landing Page",
+    marketing:             "Marketing & CRM",
+    chatbot_whatsapp:      "Chatbot WhatsApp",
+    fidelity:              "Fidelity & Network",
+    report_kpi:            "Report & KPI",
+    acquisti:              "Gestione Acquisti",
+    food_cost:             "Food Cost & Margini",
+    magazzino:             "Magazzino",
+    ricettario:            "Ricettario & Produzione",
+    hr_timbrature:         "Presenze & Timbrature",
+    dipendenti:            "Gestione Dipendenti",
+    prenotazioni_avanzate: "Prenotazioni Avanzate",
+    multi_sede:            "Multi-Sede",
+    booking_online:        "Booking Online",
+  };
+
+  const featureLabel = featureLabels[feature] || feature;
+
+  app.innerHTML = `
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:60vh;padding:40px 20px;text-align:center;font-family:-apple-system,sans-serif;">
+    <div style="font-size:56px;margin-bottom:16px;">🔒</div>
+    <h2 style="font-size:22px;font-weight:800;color:#111827;margin-bottom:8px;">
+      Funzione non disponibile
+    </h2>
+    <p style="font-size:15px;color:#64748b;max-width:400px;line-height:1.6;margin-bottom:6px;">
+      <strong>${featureLabel}</strong> non è incluso nel tuo piano <em>${nomePiano}</em>.
+    </p>
+    <p style="font-size:13px;color:#94a3b8;margin-bottom:28px;">
+      Fai l'upgrade per sbloccare questa funzione e molte altre.
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <a href="#/portale-cliente" style="padding:13px 24px;background:#0E5A7A;color:#fff;
+        border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;">
+        🚀 Upgrade piano
+      </a>
+      <a href="#/home" style="padding:13px 24px;background:#f1f5f9;color:#374151;
+        border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;">
+        ← Torna alla home
+      </a>
+    </div>
+    ${piano ? `
+    <div style="margin-top:32px;padding:16px 24px;background:#f8fafc;border-radius:12px;
+      border:1px solid #e2e8f0;max-width:360px;text-align:left;">
+      <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;
+        letter-spacing:.5px;margin-bottom:10px;">Piano attuale: ${nomePiano}</div>
+      <div style="font-size:13px;color:#374151;">
+        ${Object.keys(window.state?.featuresEffettive || {}).filter(k => window.state.featuresEffettive[k])
+          .map(k => `<span style="display:inline-block;padding:3px 8px;margin:2px;background:#dbeafe;
+            color:#1d4ed8;border-radius:20px;font-size:11px;font-weight:600;">${featureLabels[k]||k}</span>`)
+          .join('') || 'Nessuna feature attiva'}
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
   if (routes[route]) {
     if (!PUBLIC_ROUTES.has(route) && !PREHOME_ROUTES.has(route) && !ROOT_ROUTES.has(route)) {
       if (!hasPermission(route) && !isSuperadmin()) {
         window.location.hash = "#/home";
+        return;
+      }
+      // ── Feature gating ──
+      const missingFeature = checkFeatureGating(route);
+      if (missingFeature) {
+        renderUpgradeWall(app, missingFeature, route);
         return;
       }
     }
@@ -1430,6 +1543,10 @@ const ruolo = window.normalizeRuolo
 ========================================================= */
 
 window.hasPermission = hasPermission;
+window.hasFeature = function(feature) {
+  if (isSuperadmin()) return true;
+  return !!(window.state?.featuresEffettive?.[feature]);
+};
 
 window.router = {
   reloadCurrentRoute() {
