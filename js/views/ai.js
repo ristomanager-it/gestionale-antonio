@@ -19,6 +19,7 @@ export async function render(app) {
   const chipsAdmin = `
     <button class="chat-chip" data-prompt="Dammi il briefing operativo di oggi">📊 Briefing</button>
     <button class="chat-chip" data-prompt="Quante prenotazioni ho oggi e quali sono? Analizza i coperti e dimmi se è una buona giornata">📅 Prenotazioni oggi</button>
+    <button class="chat-chip" data-prompt="Dimmi gli arrivi e le partenze hotel di oggi. Chi arriva, chi parte, ci sono saldi da riscuotere?">🏨 Hotel oggi</button>
     <button class="chat-chip" data-prompt="Analizza le prenotazioni e il traffico degli ultimi 7 giorni. Da dove arrivano i clienti? Cosa posso migliorare?">📈 Trend settimana</button>
     <button class="chat-chip" data-prompt="Analizza il tasso di conversione e gli abbandoni del form prenotazione. Dammi suggerimenti concreti per migliorarlo">🎯 Conversioni</button>
     <button class="chat-chip" data-prompt="Quali piatti devo produrre oggi?">🍳 Produzione</button>
@@ -442,8 +443,8 @@ async function buildContextDB() {
     const sett = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
     const mese = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
 
-    const [prenOggi, prenSett, prenMese, analyt, prenotazioni] = await Promise.all([
-      // Prenotazioni oggi
+    const [prenOggi, prenSett, prenMese, analyt, prenotazioni, hotelOggi, hotelSett, hotelProssimi] = await Promise.all([
+      // Prenotazioni ristorante oggi
       supa.from("prenotazioni_tavoli")
         .select("id,coperti,stato,ora,canale,nome_cliente:cliente_nome")
         .eq("azienda_id", aziendaId)
@@ -451,14 +452,14 @@ async function buildContextDB() {
         .neq("stato", "annullata")
         .order("ora"),
 
-      // Prenotazioni settimana
+      // Prenotazioni ristorante settimana
       supa.from("prenotazioni_tavoli")
         .select("id,coperti,stato,canale,data")
         .eq("azienda_id", aziendaId)
         .gte("data", sett)
         .neq("stato", "annullata"),
 
-      // Prenotazioni mese
+      // Prenotazioni ristorante mese
       supa.from("prenotazioni_tavoli")
         .select("id,coperti")
         .eq("azienda_id", aziendaId)
@@ -471,7 +472,7 @@ async function buildContextDB() {
         .eq("azienda_id", aziendaId)
         .gte("created_at", sett + "T00:00:00"),
 
-      // Prossime prenotazioni
+      // Prossime prenotazioni ristorante
       supa.from("prenotazioni_tavoli")
         .select("data,ora,coperti,stato,nome_cliente:cliente_nome,canale")
         .eq("azienda_id", aziendaId)
@@ -479,6 +480,29 @@ async function buildContextDB() {
         .neq("stato", "annullata")
         .order("data").order("ora")
         .limit(10),
+
+      // Hotel — arrivi/partenze oggi
+      supa.from("hotel_prenotazioni")
+        .select("id,ospite_nome,ospite_cognome,data_checkin,data_checkout,stato,hotel_camere(nome),notti,adulti,colazione_inclusa,saldo_residuo,note_ospite")
+        .eq("azienda_id", aziendaId)
+        .or(`data_checkin.eq.${oggi},data_checkout.eq.${oggi}`)
+        .neq("stato", "annullata"),
+
+      // Hotel — prenotazioni settimana
+      supa.from("hotel_prenotazioni")
+        .select("id,stato,notti,prezzo_totale,data_checkin,data_checkout")
+        .eq("azienda_id", aziendaId)
+        .gte("data_checkin", sett)
+        .neq("stato", "annullata"),
+
+      // Hotel — prossimi arrivi (7 giorni)
+      supa.from("hotel_prenotazioni")
+        .select("ospite_nome,ospite_cognome,data_checkin,data_checkout,hotel_camere(nome),adulti,stato,saldo_residuo,checkin_online_completato")
+        .eq("azienda_id", aziendaId)
+        .gte("data_checkin", oggi)
+        .neq("stato", "annullata")
+        .order("data_checkin")
+        .limit(7),
     ]);
 
     // Elabora prenotazioni oggi
@@ -517,6 +541,42 @@ async function buildContextDB() {
 
     const convRate = visite > 0 ? Math.round((prenSettData.length / visite) * 100) : 0;
 
+    // ── HOTEL ──
+    const hotelOggiData = hotelOggi.data || [];
+    const arriviOggi  = hotelOggiData.filter(p => p.data_checkin === oggi);
+    const partenzeOggi = hotelOggiData.filter(p => p.data_checkout === oggi);
+    const inCasaOggi  = hotelOggiData.filter(p => p.stato === 'checkin');
+    const hotelSettData = hotelSett.data || [];
+    const hotelProssimiData = hotelProssimi.data || [];
+    const incassoHotelSett = hotelSettData.reduce((s,p) => s + parseFloat(p.prezzo_totale||0), 0);
+
+    const arriviDettaglio = arriviOggi.map(p =>
+      `  - ${p.ospite_nome} ${p.ospite_cognome} | Camera: ${p.hotel_camere?.nome||'?'} | ${p.notti}n · ${p.adulti} pers.${p.colazione_inclusa?' · 🍳 colazione':''}${p.saldo_residuo>0?` · 💰 saldo €${parseFloat(p.saldo_residuo).toFixed(2)}`:''}${p.checkin_online_completato===false?' · ⚠️ check-in online NON completato':''}`
+    ).join('\n') || '  Nessun arrivo';
+
+    const partenzeDettaglio = partenzeOggi.map(p =>
+      `  - ${p.ospite_nome} ${p.ospite_cognome} | Camera: ${p.hotel_camere?.nome||'?'}${p.saldo_residuo>0?` | 💰 saldo da riscuotere €${parseFloat(p.saldo_residuo).toFixed(2)}`:''}`
+    ).join('\n') || '  Nessuna partenza';
+
+    const prossimiArrivi = hotelProssimiData.slice(0,5).map(p =>
+      `  - ${p.data_checkin} · ${p.ospite_nome} ${p.ospite_cognome} | ${p.hotel_camere?.nome||'?'} | ${p.adulti} pers.${p.saldo_residuo>0?` | saldo €${parseFloat(p.saldo_residuo).toFixed(2)}`:''}`
+    ).join('\n') || '  Nessuno';
+
+    const hotelSection = (arriviOggi.length || partenzeOggi.length || hotelProssimiData.length) ? `
+🏨 HOTEL — OGGI (${oggi}):
+  Arrivi: ${arriviOggi.length} ospiti
+${arriviDettaglio}
+  Partenze: ${partenzeOggi.length} ospiti
+${partenzeDettaglio}
+  In struttura: ${inCasaOggi.length} ospiti
+
+🏨 HOTEL — PROSSIMI ARRIVI:
+${prossimiArrivi}
+
+🏨 HOTEL — SETTIMANA:
+  ${hotelSettData.length} prenotazioni · Incasso: €${incassoHotelSett.toFixed(2)}
+` : '';
+
     return `
 --- DATI REALI AGGIORNATI (${new Date().toLocaleString("it-IT")}) ---
 
@@ -538,7 +598,7 @@ ${prossime}
   Visite form: ${visite} · Mobile: ${mobile} (${visite ? Math.round(mobile/visite*100) : 0}%)
   Abbandoni: ${abbandoni} · Conversione: ${convRate}%
   Fonti traffico: ${fontiTop || "N/D"}
-
+${hotelSection}
 --- FINE DATI REALI ---`;
 
   } catch(e) {
