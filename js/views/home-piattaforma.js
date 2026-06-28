@@ -318,6 +318,15 @@ export async function render(container) {
           <div class="icon">💰</div>
         </div>
 
+        <div class="card" onclick="window.location.hash='#/bo-onboarding'">
+          <div>
+            <div class="label">Onboarding</div>
+            <div class="title">Setup guidato</div>
+            <div style="font-size:11px;color:#059669;margin-top:4px;font-weight:700;">6 livelli · ~3h30</div>
+          </div>
+          <div class="icon">🚀</div>
+        </div>
+
       </div>
 
       <!-- PREZZI (hidden by default) -->
