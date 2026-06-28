@@ -309,6 +309,44 @@ export async function render(container) {
           <div class="icon">🧪</div>
         </div>
 
+        <div class="card" id="card-prezzi" onclick="togglePrezzi()">
+          <div>
+            <div class="label">Sales Tool</div>
+            <div class="title">Piani & Prezzi</div>
+            <div style="font-size:11px;color:#7c3aed;margin-top:4px;font-weight:700;">Solo superadmin</div>
+          </div>
+          <div class="icon">💰</div>
+        </div>
+
+      </div>
+
+      <!-- PREZZI (hidden by default) -->
+      <div id="prezzi-section" style="display:none;margin-top:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div>
+            <div class="kpi-section-label" style="margin:0;">💰 Piani & Prezzi — Sales Tool</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Riservato superadmin · non pubblico</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="background:#f1f5f9;border-radius:30px;display:flex;padding:3px;gap:2px;" id="billing-toggle">
+              <button data-mode="mensile" class="toggle-btn active" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:#0E5A7A;color:#fff;">Mensile</button>
+              <button data-mode="3rate" class="toggle-btn" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:#64748b;">3 Rate −10%</button>
+              <button data-mode="annuale" class="toggle-btn" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:#64748b;">Annuale −20%</button>
+            </div>
+            <button onclick="togglePrezzi()" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:#64748b;">✕ Chiudi</button>
+          </div>
+        </div>
+        <div id="prezzi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:24px;"></div>
+        <div id="prezzi-confronto" style="background:white;border-radius:14px;border:1px solid #e5e7eb;padding:20px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:14px;">📊 Confronto modalità di pagamento</div>
+          <div id="confronto-table"></div>
+        </div>
+        <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:14px;font-size:13px;color:#92400e;margin-bottom:16px;">
+          💡 <strong>Note commerciali:</strong>
+          Annuale unica = sconto 20% applicato sul prezzo annuo di listino ·
+          3 rate = 10% sconto, prima rata subito poi 2° e 3° mese ·
+          Mensile = prezzo pieno, disdetta in qualsiasi momento
+        </div>
       </div>
 
       <!-- MODALE -->
@@ -910,6 +948,141 @@ async function caricaMotori() {
     if (el) el.innerHTML = '<span style="color:#ef4444;font-size:12px;">Errore caricamento dati</span>';
   }
 }
+
+// ── PIANI & PREZZI ────────────────────────────────────────────────────────────
+const PIANI_PREZZI = [
+  { id:'starter',  nome:'Starter',         icona:'🌱', colore:'#0E5A7A', desc:'Per chi inizia', mensile:69,  annuale:790,  features:['Cassa & ordini','Menu digitale','Prenotazioni base','WhatsApp notifiche','Fidelity','1 sede · 3 utenti'] },
+  { id:'business', nome:'Business',        icona:'🚀', colore:'#7C3AED', desc:'Per chi cresce',  mensile:119, annuale:1490, popolare:true, features:['Tutto Starter +','Promo & marketing','Food cost & ricettario','Gestione dipendenti','Acquisti & magazzino','Report KPI','3 sedi · 10 utenti'] },
+  { id:'pro',      nome:'Pro',             icona:'⚡', colore:'#059669', desc:'Per chi scala',   mensile:169, annuale:2490, features:['Tutto Business +','Chatbot WhatsApp','RistoflowBook Social','API access','Multi-sede illimitata','Utenti illimitati'] },
+  { id:'hotel',    nome:'Hotel',           icona:'🏨', colore:'#1B4F72', desc:'Modulo hotel',    mensile:99,  annuale:1490, features:['Prenotazioni hotel','Calendario Gantt','Check-in online','Operations & task','Colazione','Marketing hotel'] },
+  { id:'full',     nome:'Full',            icona:'👑', colore:'#B45309', desc:'Ristorante + Hotel', mensile:199, annuale:3490, features:['Tutto Pro +','Tutto Hotel +','Chatbot WhatsApp','Priorità supporto','5 sedi · utenti illimitati'] },
+  { id:'fondatore',nome:'Fondatore 2026',  icona:'🏅', colore:'#DC2626', desc:'Accesso lifetime a tutto', mensile:null, annuale:1500, lifetime:true, features:['TUTTO incluso','Aggiornamenti futuri gratuiti','Badge Fondatore','5 sedi · utenti illimitati','Prezzo bloccato per sempre'] },
+];
+
+let _billingMode = 'mensile';
+
+window.togglePrezzi = function() {
+  const sec = document.getElementById('prezzi-section');
+  if (!sec) return;
+  const isHidden = sec.style.display === 'none';
+  sec.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) renderPrezziGrid();
+};
+
+function renderPrezziGrid() {
+  const grid = document.getElementById('prezzi-grid');
+  if (!grid) return;
+
+  grid.innerHTML = PIANI_PREZZI.map(p => {
+    const { prezzo, label, sub } = calcolaPrezzo(p, _billingMode);
+    return `
+    <div style="background:white;border-radius:16px;border:2px solid ${p.popolare ? p.colore : '#e5e7eb'};padding:20px;position:relative;${p.popolare ? `box-shadow:0 4px 20px ${p.colore}22;` : ''}">
+      ${p.popolare ? `<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:${p.colore};color:white;font-size:10px;font-weight:800;padding:3px 12px;border-radius:20px;white-space:nowrap;">⭐ PIÙ SCELTO</div>` : ''}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span style="font-size:24px;">${p.icona}</span>
+        <div>
+          <div style="font-weight:800;font-size:16px;color:#111827;">${p.nome}</div>
+          <div style="font-size:12px;color:#64748b;">${p.desc}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:28px;font-weight:800;color:${p.colore};">${prezzo}</div>
+        <div style="font-size:12px;color:#64748b;">${label}</div>
+        ${sub ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">${sub}</div>` : ''}
+      </div>
+      <div style="border-top:1px solid #f1f5f9;padding-top:12px;">
+        ${p.features.map(f => `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;color:#374151;"><span style="color:${p.colore};">✓</span>${f}</div>`).join('')}
+      </div>
+      <button onclick="copiaPrezzoWhatsapp('${p.id}')"
+        style="margin-top:14px;width:100%;padding:8px;border:1.5px solid ${p.colore};background:transparent;color:${p.colore};border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+        📋 Copia messaggio WA
+      </button>
+    </div>`;
+  }).join('');
+
+  renderConfrontoTabella();
+
+  // Binding toggle
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.onclick = () => {
+      _billingMode = btn.dataset.mode;
+      document.querySelectorAll('.toggle-btn').forEach(b => {
+        b.style.background = b.dataset.mode === _billingMode ? '#0E5A7A' : 'transparent';
+        b.style.color = b.dataset.mode === _billingMode ? '#fff' : '#64748b';
+      });
+      renderPrezziGrid();
+    };
+  });
+}
+
+function calcolaPrezzo(p, mode) {
+  if (p.lifetime) return { prezzo: `€ ${p.annuale.toLocaleString('it-IT')}`, label: 'una tantum · accesso lifetime', sub: 'Prezzo bloccato per sempre' };
+  if (!p.mensile) return { prezzo: '—', label: '', sub: '' };
+
+  if (mode === 'mensile') {
+    return { prezzo: `€ ${p.mensile}/mese`, label: 'fatturato mensilmente', sub: `€ ${(p.mensile*12).toLocaleString('it-IT')}/anno` };
+  }
+  if (mode === 'annuale') {
+    const sconto = Math.round(p.annuale * 0.8);
+    const alMese = Math.round(sconto / 12);
+    return { prezzo: `€ ${sconto.toLocaleString('it-IT')}/anno`, label: 'unica rata · sconto 20%', sub: `≈ € ${alMese}/mese · risparmi € ${(p.mensile*12-sconto).toLocaleString('it-IT')}` };
+  }
+  if (mode === '3rate') {
+    const totale = Math.round(p.annuale * 0.9);
+    const rata = Math.round(totale / 3);
+    return { prezzo: `€ ${rata}/mese`, label: '3 rate · sconto 10%', sub: `€ ${totale.toLocaleString('it-IT')} totale · 1ª+2ª+3ª mese` };
+  }
+  return { prezzo: '', label: '', sub: '' };
+}
+
+function renderConfrontoTabella() {
+  const el = document.getElementById('confronto-table');
+  if (!el) return;
+  const piani = PIANI_PREZZI.filter(p => p.mensile);
+  el.innerHTML = `
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#f8fafc;">
+            <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Piano</th>
+            <th style="padding:8px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Mensile</th>
+            <th style="padding:8px 12px;text-align:center;color:#7C3AED;font-weight:700;border-bottom:1px solid #e5e7eb;">3 Rate −10%</th>
+            <th style="padding:8px 12px;text-align:center;color:#059669;font-weight:700;border-bottom:1px solid #e5e7eb;">Annuale −20%</th>
+            <th style="padding:8px 12px;text-align:center;color:#94a3b8;font-weight:700;border-bottom:1px solid #e5e7eb;">Risparmio max</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${piani.map(p => {
+            const listino = p.mensile * 12;
+            const rate3   = Math.round(p.annuale * 0.9);
+            const annuale = Math.round(p.annuale * 0.8);
+            const risparmio = listino - annuale;
+            return `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="padding:10px 12px;font-weight:700;">${p.icona} ${p.nome}</td>
+              <td style="padding:10px 12px;text-align:center;">€ ${p.mensile}/mese<br><span style="color:#94a3b8;font-size:11px;">€ ${listino.toLocaleString('it-IT')}/anno</span></td>
+              <td style="padding:10px 12px;text-align:center;color:#7C3AED;font-weight:700;">€ ${Math.round(rate3/3)}/mese × 3<br><span style="color:#94a3b8;font-size:11px;">€ ${rate3.toLocaleString('it-IT')} totale</span></td>
+              <td style="padding:10px 12px;text-align:center;color:#059669;font-weight:700;">€ ${annuale.toLocaleString('it-IT')}/anno<br><span style="color:#94a3b8;font-size:11px;">≈ € ${Math.round(annuale/12)}/mese</span></td>
+              <td style="padding:10px 12px;text-align:center;color:#dc2626;font-weight:700;">− € ${risparmio.toLocaleString('it-IT')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+window.copiaPrezzoWhatsapp = function(pianoId) {
+  const p = PIANI_PREZZI.find(x => x.id === pianoId);
+  if (!p) return;
+  const { prezzo, label } = calcolaPrezzo(p, _billingMode);
+  const modeLabel = _billingMode === 'mensile' ? 'mensile' : _billingMode === '3rate' ? '3 rate (−10%)' : 'annuale (−20%)';
+  const msg = `Ciao! 👋\n\nTi propongo il piano *${p.nome}* di Ristoflow.AI:\n\n${p.icona} *${p.nome}* — ${p.desc}\n💰 *${prezzo}* (${modeLabel})\n\nInclude:\n${p.features.map(f=>`✅ ${f}`).join('\n')}\n\nVuoi che ti facciamo una demo? 🚀\nhttps://ristoflow-ai.com`;
+  navigator.clipboard.writeText(msg).then(() => {
+    alert('✅ Messaggio copiato! Incollalo su WhatsApp.');
+  }).catch(() => {
+    prompt('Copia questo messaggio:', msg);
+  });
+};
 
 function escHP(v) {
   return String(v == null ? "" : v)
