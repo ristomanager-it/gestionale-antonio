@@ -129,6 +129,315 @@ async function richiediPinRicette(container) {
 }
 
 
+
+/* ============================================================
+   🤖 TONY AI — Inserimento fasi e ingredienti da testo libero
+   L'operatore scrive/detta in linguaggio naturale.
+   Tony struttura e popola il form automaticamente.
+============================================================ */
+
+async function tonyInserisciDaTestoLibero(tipo, testoOperatore) {
+  const aziendaId = window.state?.azienda?.id;
+  if (!aziendaId) return;
+
+  // Costruisce lista prodotti per il contesto (solo nomi, max 80)
+  const prodottiContesto = prodottiCache.slice(0, 80).map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
+
+  let systemPrompt = "";
+  let userPrompt = "";
+
+  if (tipo === "fasi") {
+    systemPrompt = `Sei un assistente culinario professionale per un gestionale di ristorazione italiana.
+Il tuo compito: analizzare una descrizione di ricetta in linguaggio naturale e restituire le FASI DI PRODUZIONE strutturate.
+Rispondi SOLO con un array JSON valido, senza testo aggiuntivo, senza markdown, senza backtick.
+
+Struttura di ogni fase:
+{
+  "tipo_fase": "preparazione" | "cottura" | "attesa" | "raffreddamento",
+  "descrizione_operativa": "Istruzioni chiare e professionali per l'operatore (2-4 frasi)",
+  "durata_min": numero intero (minuti totali della fase, 0 se non specificato),
+  "lavoro_umano_min": numero intero (minuti di lavoro attivo operatore, <= durata_min),
+  "temperatura": numero o null (gradi Celsius se specificato),
+  "tecnologia": "attrezzatura usata o null"
+}
+
+Regole:
+- Se l'operatore dice "fuoco vivo" → temperatura ~200, cottura
+- Se dice "fuoco basso/lento" → temperatura ~80-90, cottura  
+- Se dice "lascia riposare/lievitare/raffreddare" → tipo attesa o raffreddamento
+- lavoro_umano_min deve essere sempre ≤ durata_min
+- Massimo 12 fasi
+- Descrizione operativa: sempre in italiano professionale, imperativo ("Soffriggete", "Aggiungete")`;
+
+    userPrompt = `Analizza questa descrizione di ricetta e restituisci le fasi strutturate:
+
+"${testoOperatore}"`;
+
+  } else if (tipo === "ingredienti") {
+    systemPrompt = `Sei un assistente culinario professionale per un gestionale di ristorazione italiana.
+Il tuo compito: analizzare una descrizione di ingredienti in linguaggio naturale e restituire la lista strutturata.
+Rispondi SOLO con un array JSON valido, senza testo aggiuntivo, senza markdown, senza backtick.
+
+Prodotti disponibili nel magazzino: ${prodottiContesto}
+
+Struttura di ogni ingrediente:
+{
+  "nome": "nome dell'ingrediente come scritto dall'operatore",
+  "nome_magazzino": "nome più simile trovato nel magazzino, o stringa vuota se non trovato",
+  "quantita": numero (es. 0.5, 200, 1),
+  "unita_misura": "kg" | "g" | "pz" | "l" | "ml",
+  "note": "note aggiuntive o stringa vuota"
+}
+
+Regole:
+- Converti sempre le quantità in numeri (es. "mezzo kg" → 0.5, "200 grammi" → 200)
+- "q.b." → quantita: 0.01, unita_misura: "kg"
+- Preferisci kg/g per solidi, l/ml per liquidi
+- Cerca la corrispondenza più vicina nel magazzino (ignora maiuscole, varianti)
+- Se non trovi nel magazzino, lascia nome_magazzino come stringa vuota`;
+
+    userPrompt = `Analizza questi ingredienti e restituisci la lista strutturata:
+
+"${testoOperatore}"`;
+  }
+
+  try {
+    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${window.supabaseClient?.supabaseKey || window.supabase?.supabaseKey || ""}`
+      },
+      body: JSON.stringify({
+        azienda_id: aziendaId,
+        messaggio: userPrompt,
+        system_override: systemPrompt,
+        modalita: "json_only"
+      })
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const rawText = data.reply || data.risposta || "";
+
+    // Pulizia JSON (rimuovi eventuali backtick residui)
+    const clean = rawText.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    return JSON.parse(clean);
+  } catch(err) {
+    console.error("Tony AI error:", err);
+    throw err;
+  }
+}
+
+function apriModalTonyFasi() {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;";
+
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:24px;box-shadow:0 -8px 40px rgba(0,0,0,0.2);max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <span style="font-size:28px;">🤖</span>
+        <div>
+          <div style="font-weight:700;font-size:17px;">Tony AI — Inserisci le fasi</div>
+          <div style="font-size:12px;color:#6b7280;">Descrivi il procedimento come lo spiegheresti a un collega</div>
+        </div>
+      </div>
+
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#0369a1;line-height:1.5;">
+        💡 <strong>Esempio:</strong><br>
+        "Prima soffriggo cipolla e aglio in olio per 5 minuti. Aggiungo la carne e la faccio rosolare bene 10 minuti a fuoco vivo. Poi metto il pomodoro e lascio cuocere 2 ore a fuoco basso mescolando ogni tanto. Alla fine aggiusto di sale."
+      </div>
+
+      <textarea id="tony-fasi-input" placeholder="Descrivi il procedimento qui..." 
+        style="width:100%;box-sizing:border-box;height:140px;border:2px solid #e5e7eb;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;resize:vertical;font-family:inherit;outline:none;"
+      ></textarea>
+
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;margin-bottom:14px;">
+        <span style="font-size:11px;color:#9ca3af;">Suggerimenti rapidi:</span>
+        ${["soffriggere", "cuocere in forno", "abbattere", "lievitare", "montare", "frullare"].map(s =>
+          `<button type="button" onclick="document.getElementById('tony-fasi-input').value += ' ${s}'" 
+            style="background:#f3f4f6;border:none;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:#374151;">${s}</button>`
+        ).join("")}
+      </div>
+
+      <div id="tony-fasi-status" style="font-size:13px;color:#6b7280;min-height:20px;margin-bottom:12px;"></div>
+
+      <div style="display:flex;gap:10px;">
+        <button id="tony-fasi-go" type="button"
+          style="flex:1;background:#0E5A7A;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">
+          🚀 Genera fasi con Tony
+        </button>
+        <button type="button" onclick="this.closest('[style*=position]').remove()"
+          style="background:#f3f4f6;color:#374151;border:none;border-radius:12px;padding:14px 18px;font-size:15px;cursor:pointer;">
+          ✕
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay.querySelector("#tony-fasi-input").focus();
+
+  overlay.querySelector("#tony-fasi-go").addEventListener("click", async () => {
+    const testo = overlay.querySelector("#tony-fasi-input").value.trim();
+    if (!testo) return;
+
+    const status = overlay.querySelector("#tony-fasi-status");
+    const btn = overlay.querySelector("#tony-fasi-go");
+    btn.disabled = true;
+    btn.textContent = "⏳ Tony sta pensando...";
+    status.innerHTML = `<span style="color:#0E5A7A;">Analisi in corso — attendi qualche secondo...</span>`;
+
+    try {
+      const fasi = await tonyInserisciDaTestoLibero("fasi", testo);
+
+      if (!Array.isArray(fasi) || !fasi.length) throw new Error("Nessuna fase estratta");
+
+      // Svuota container e inserisce le fasi generate
+      const container = document.getElementById("fasi-container");
+      if (container) container.innerHTML = "";
+
+      fasi.forEach(f => {
+        aggiungiFase({
+          tipo_fase: f.tipo_fase || "preparazione",
+          descrizione_operativa: f.descrizione_operativa || "",
+          durata_min: f.durata_min || 0,
+          lavoro_umano_min: f.lavoro_umano_min || 0,
+          temperatura: f.temperatura || null,
+          tecnologia: f.tecnologia || ""
+        });
+      });
+
+      status.innerHTML = `<span style="color:#16a34a;">✅ ${fasi.length} fase/i generate! Controlla e modifica se necessario.</span>`;
+      setTimeout(() => overlay.remove(), 1500);
+
+    } catch(err) {
+      status.innerHTML = `<span style="color:#dc2626;">❌ Errore: ${err.message}. Riprova o inserisci manualmente.</span>`;
+      btn.disabled = false;
+      btn.textContent = "🚀 Genera fasi con Tony";
+    }
+  });
+
+  // Click fuori chiude
+  overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function apriModalTonyIngredienti() {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:24px;box-shadow:0 -8px 40px rgba(0,0,0,0.2);max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <span style="font-size:28px;">🤖</span>
+        <div>
+          <div style="font-weight:700;font-size:17px;">Tony AI — Inserisci gli ingredienti</div>
+          <div style="font-size:12px;color:#6b7280;">Elenca gli ingredienti come vuoi, Tony li struttura</div>
+        </div>
+      </div>
+
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#0369a1;line-height:1.5;">
+        💡 <strong>Esempio:</strong><br>
+        "5 kg di carne macinata, 3 kg passata di pomodoro, una cipolla grande, 2 carote, mezzo bicchiere di vino rosso, olio evo q.b., sale e pepe"
+      </div>
+
+      <textarea id="tony-ing-input" placeholder="Elenca gli ingredienti qui..." 
+        style="width:100%;box-sizing:border-box;height:120px;border:2px solid #e5e7eb;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;resize:vertical;font-family:inherit;outline:none;"
+      ></textarea>
+
+      <div id="tony-ing-status" style="font-size:13px;color:#6b7280;min-height:20px;margin:10px 0;"></div>
+      <div id="tony-ing-preview" style="margin-bottom:12px;"></div>
+
+      <div style="display:flex;gap:10px;">
+        <button id="tony-ing-go" type="button"
+          style="flex:1;background:#0E5A7A;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">
+          🚀 Genera ingredienti con Tony
+        </button>
+        <button type="button" onclick="this.closest('[style*=position]').remove()"
+          style="background:#f3f4f6;color:#374151;border:none;border-radius:12px;padding:14px 18px;font-size:15px;cursor:pointer;">
+          ✕
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay.querySelector("#tony-ing-input").focus();
+
+  overlay.querySelector("#tony-ing-go").addEventListener("click", async () => {
+    const testo = overlay.querySelector("#tony-ing-input").value.trim();
+    if (!testo) return;
+
+    const status = overlay.querySelector("#tony-ing-status");
+    const preview = overlay.querySelector("#tony-ing-preview");
+    const btn = overlay.querySelector("#tony-ing-go");
+    btn.disabled = true;
+    btn.textContent = "⏳ Tony sta pensando...";
+    status.innerHTML = `<span style="color:#0E5A7A;">Analisi in corso...</span>`;
+
+    try {
+      const ingredienti = await tonyInserisciDaTestoLibero("ingredienti", testo);
+
+      if (!Array.isArray(ingredienti) || !ingredienti.length) throw new Error("Nessun ingrediente estratto");
+
+      // Preview prima di confermare
+      preview.innerHTML = `
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">Ingredienti estratti — controlla e conferma:</div>
+          ${ingredienti.map((ing, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
+              <span>${escapeHtml(ing.nome)}</span>
+              <span style="color:#0E5A7A;font-weight:600;">${ing.quantita} ${ing.unita_misura}</span>
+              <span style="font-size:11px;color:${ing.nome_magazzino ? '#16a34a' : '#f59e0b'};">
+                ${ing.nome_magazzino ? '✅ ' + ing.nome_magazzino : '⚠️ non in magazzino'}
+              </span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+
+      status.innerHTML = `<span style="color:#16a34a;">${ingredienti.length} ingredienti trovati. Premi "Inserisci" per aggiungerli.</span>`;
+
+      btn.disabled = false;
+      btn.textContent = "✅ Inserisci nel form";
+      btn.style.background = "#16a34a";
+
+      // Seconda click → inserisce nel form
+      btn.onclick = () => {
+        const container = document.getElementById("ingredienti-container");
+        if (container) container.innerHTML = "";
+
+        ingredienti.forEach(ing => {
+          // Cerca match nel cache prodotti
+          const match = ing.nome_magazzino
+            ? prodottiCache.find(p =>
+                (p.descrizione || "").toLowerCase().includes(ing.nome_magazzino.toLowerCase()) ||
+                ing.nome_magazzino.toLowerCase().includes((p.descrizione || "").toLowerCase().substring(0, 6))
+              )
+            : null;
+
+          aggiungiIngrediente({
+            prodotto_id: match?.id ?? "",
+            nome_prodotto: match?.descrizione || ing.nome,
+            quantita: ing.quantita,
+            unita_misura: ing.unita_misura,
+            note: ing.note || ""
+          });
+        });
+
+        overlay.remove();
+      };
+
+    } catch(err) {
+      status.innerHTML = `<span style="color:#dc2626;">❌ Errore: ${err.message}. Riprova.</span>`;
+      btn.disabled = false;
+      btn.textContent = "🚀 Genera ingredienti con Tony";
+    }
+  });
+
+  overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+}
+
 export async function render(app) {
   ricettaId = window.routeParams?.id ? String(window.routeParams.id) : null;
   const aziendaId = window.state?.azienda?.id;
@@ -335,11 +644,17 @@ export async function render(app) {
         body: `
           <div id="ingredienti-container"></div>
 
-          <div class="form-actions">
+          <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-tony-ing"
+              class="app-button"
+              type="button"
+              style="background:#0E5A7A;display:flex;align-items:center;gap:6px;">
+              🤖 Detta a Tony
+            </button>
             <button id="btn-add-ing"
               class="app-button secondary"
               type="button">
-              + Aggiungi ingrediente
+              + Aggiungi manuale
             </button>
           </div>
         `
@@ -396,11 +711,17 @@ export async function render(app) {
         body: `
           <div id="fasi-container"></div>
 
-          <div class="form-actions">
+          <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-tony-fasi"
+              class="app-button"
+              type="button"
+              style="background:#0E5A7A;display:flex;align-items:center;gap:6px;">
+              🤖 Detta a Tony
+            </button>
             <button id="btn-add-fase"
               class="app-button secondary"
               type="button">
-              + Aggiungi fase
+              + Aggiungi manuale
             </button>
           </div>
         `
@@ -526,23 +847,6 @@ async function loadProdotti() {
   prodottiMap = new Map(prodottiCache.map(p => [String(p.id), p]));
 
 setupAutocomplete(
-  document.getElementById("r-output-search"),
-  document.getElementById("r-output-id"),
-  document.getElementById("r-output-suggest"),
-  (p) => {
-    const umSel = document.getElementById("r-output-um");
-
-    if (p?.um && umSel) {
-      const val = String(p.um).toLowerCase();
-      const ok = ["kg", "g", "pz", "l", "ml"].includes(val);
-
-      if (ok) umSel.value = val;
-    }
-
-    aggiornaOutputInfo();
-  }
-);
-  setupAutocomplete(
     document.getElementById("r-output-search"),
     document.getElementById("r-output-id"),
     document.getElementById("r-output-suggest"),
@@ -1116,11 +1420,22 @@ function aggiungiFase(initial = {}) {
   aggiornaBadgeDisp(); // esegui subito se c'è già un valore
 }
 
+const TIPO_FASE_LABELS = {
+  preparazione: "🔪 Preparazione",
+  cottura: "🔥 Cottura",
+  attesa: "⏳ Attesa / Riposo",
+  raffreddamento: "❄️ Raffreddamento"
+};
+
 function renumberFasi() {
   const rows = document.querySelectorAll("#fasi-container .azienda-card");
   rows.forEach((card, idx) => {
     const t = card.querySelector(".fase-title");
-    if (t) t.textContent = `Fase ${idx + 1}`;
+    const tipoSel = card.querySelector(".fase-tipo");
+    const tipo = tipoSel?.value || "preparazione";
+    const label = TIPO_FASE_LABELS[tipo] || tipo;
+    if (t) t.textContent = `Fase ${idx + 1} — ${label}`;
+    card.dataset.tipoFase = tipo;
   });
 }
 
@@ -1843,7 +2158,7 @@ async function salvaTutto() {
     if (error) {
       console.error(error);
       if (esito) esito.innerText = "";
-      console.warn("Errore salvataggio output ricetta — non bloccante:", errOutput);
+      console.warn("Errore salvataggio output ricetta — non bloccante:", error);
     }
   }
 
@@ -2400,6 +2715,9 @@ function bindUI() {
     lavoro_umano_min: 0
   })
 );
+  // 🤖 Tony AI
+  safeOn("btn-tony-fasi", "click", () => apriModalTonyFasi());
+  safeOn("btn-tony-ing", "click", () => apriModalTonyIngredienti());
   safeOn("btn-add-conservazione", "click", () => aggiungiScenarioConservazione());
   safeOn("btn-add-porzione", "click", () => aggiungiPorzione());
   safeOn("btn-salva", "click", () => salvaTutto());
