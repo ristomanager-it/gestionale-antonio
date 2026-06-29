@@ -1,4 +1,3 @@
-// menu.js — build 2026-06-29 14:52:07 — cache bust
 export function initMenu() {
 
   const menu = document.getElementById("global-menu");
@@ -91,7 +90,7 @@ export function initMenu() {
       `;
       tonyBtn.innerHTML = `
         <img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
-          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" >
+          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" />
         <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Tony.AI</span>
       `;
       tonyBtn.onclick = () => {
@@ -337,7 +336,7 @@ export function initMenu() {
           class="menu-user-avatar"
           src="${escapeHtml(avatar)}"
           alt="Foto profilo"
-        >
+        />
 
         <div class="menu-user-info">
 
@@ -370,7 +369,7 @@ export function initMenu() {
       sections.push({
         title: "PIATTAFORMA",
         items: [
-          { label: "🖥 Dashboard SaaS",    route: "homePiattaforma" },
+          { label: "🖥️ Dashboard SaaS",    route: "homePiattaforma" },
           { label: "🏢 Gestione Aziende",  route: "gestioneAziende" },
           { label: "➕ Crea Azienda",      route: "creaAzienda"     },
           { label: "💳 Piani Abbonamento", route: "gestionePiani"   },
@@ -382,23 +381,22 @@ export function initMenu() {
     sections.push({
       title: "OPERATIVO",
       items: [
-        { label: "🏠 Home",             route: "home"           },
-        { label: "👨‍🍳 Display Cucina", route: "display-cucina" },
-        { label: "📦 Magazzino",        route: "magazzino"      },
-        { label: "🕒 Timbratura",       route: "timbrature"     },
+        { label: "Home",             route: "home"           },
+        { label: "Display Cucina",   route: "display-cucina" },
+        { label: "Magazzino",        route: "magazzino"      },
+        { label: "Timbratura",       route: "timbrature"     },
       ]
     });
 
-    // ── SALA ──
     sections.push({
-      title: "🪑 SALA",
+      title: "SALA",
       items: [
-        { label: "🪑 Comande",           route: "bo-comande"         },
-        { label: "📅 Prenotazioni",      route: "prenotazioni"       },
-        { label: "🗓 Tavoli",           route: "prenotazioni-tavoli"},
-        { label: "📑 Preventivi",        route: "preventivi"         },
-        { label: "📋 Mansionario Sala",  route: "mansionario-sala"   },
-        { label: "🗺 Mappa Sala",       route: "sala"               },
+        { label: "Comande",          route: "bo-comande"          },
+        { label: "Prenotazioni",     route: "prenotazioni"        },
+        { label: "Tavoli",           route: "prenotazioni-tavoli" },
+        { label: "Preventivi",       route: "preventivi"          },
+        { label: "Mansionario Sala", route: "mansionario-sala"    },
+        { label: "Mappa Sala",       route: "sala"                },
       ]
     });
 
@@ -412,7 +410,7 @@ export function initMenu() {
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
         { label: "📋 Planning",            route: "planner-produzione" },
         { label: "🔌 Dispositivi",         route: "bo-dispositivi"     },
-        { label: "📋 Mansionario Cucina",  route: "mansionario-cucina", contesto: "cucina" },
+        { label: "Mansionario Cucina",   route: "mansionario-cucina" },
       ]
     });
 
@@ -445,7 +443,7 @@ export function initMenu() {
         title: "MARKETING & CRM",
         items: [
           { label: "📉 Analytics",          route: "bo-analytics"      },
-          { label: "🏷 Tag & LTV",       route: "bo-tag"            },
+          { label: "🏷️ Tag & LTV",       route: "bo-tag"            },
           { label: "💬 Template WhatsApp",route: "bo-template"       },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "🎁 Promo",             route: "bo-promo"          },
@@ -453,7 +451,7 @@ export function initMenu() {
           { label: "🔗 Catenarie",          route: "bo-catenarie"      },
           { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
           { label: "🤖 Chatbot",             route: "bo-chatbot"        },
-          { label: "🖼 Media Library",       route: "bo-media"          },
+          { label: "🖼️ Media Library",       route: "bo-media"          },
           { label: "🌐 Sito Web",              route: "bo-sito"           },
         ]
       });
@@ -477,9 +475,9 @@ export function initMenu() {
         title: "CONFIGURAZIONE",
         items: [
           { label: "🚀 Setup guidato",        route: "bo-onboarding"    },
-          { label: "⚙ Impostazioni",         route: "bo-configurazione" },
+          { label: "⚙️ Impostazioni",         route: "bo-configurazione" },
           { label: "🔗 Accessi Consulenti",   route: "bo-consulenti"    },
-          { label: "🖼 Media Library",        route: "bo-media"         },
+          { label: "🖼️ Media Library",        route: "bo-media"         },
         ]
       });
 
@@ -496,10 +494,10 @@ export function initMenu() {
     sections.push({
       title: "🍷 TASTING",
       items: [
-        { label: "🎫 Vendite",         route: "ticket-vendite"    },
-        { label: "✅ Check-in",        route: "ticket-checkin"    },
-        { label: "📋 Mansionario",     route: "mansionario-tasting", contesto: "tasting" },
-        { label: "🍷 Vai a Tasting",   url: "https://tasting.ristoflow-ai.com", external: true },
+        { label: "🎫 Vendite",       route: "ticket-vendite"  },
+        { label: "Check-in",        route: "ticket-checkin"  },
+        { label: "Mansionario",      route: "mansionario-tasting" },
+        { label: "🍷 Vai a Tasting", url: "https://tasting.ristoflow-ai.com", external: true },
       ]
     });
 
@@ -555,7 +553,7 @@ export function initMenu() {
         return [
           { label: "🔄 Cambia sede",   route: "gestione-sedi"              },
           { label: "➕ Crea sede",     route: "gestione-sedi?mode=first"   },
-          { label: "⚙ Gestisci sedi", route: "gestione-sedi?mode=manage" },
+          { label: "⚙️ Gestisci sedi", route: "gestione-sedi?mode=manage" },
         ];
       })()
     });
