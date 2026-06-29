@@ -91,7 +91,7 @@ export function initMenu() {
       `;
       tonyBtn.innerHTML = `
         <img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
-          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" />
+          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" >
         <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Tony.AI</span>
       `;
       tonyBtn.onclick = () => {
@@ -337,7 +337,7 @@ export function initMenu() {
           class="menu-user-avatar"
           src="${escapeHtml(avatar)}"
           alt="Foto profilo"
-        />
+        >
 
         <div class="menu-user-info">
 
