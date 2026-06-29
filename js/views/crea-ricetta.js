@@ -1062,7 +1062,7 @@ async function loadDispositivi() {
 
   const { data, error } = await supabase
     .from("dispositivi")
-    .select("id, nome, tipo, connesso, temperatura_min, temperatura_max, marca, modello")
+    .select("id, nome, tipo, temperatura_min, temperatura_max, marca, modello")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome");
@@ -1075,8 +1075,7 @@ function buildDispositvoOptions(selectedId = "") {
   const nessuno = `<option value="">— Nessun dispositivo (manuale) —</option>`;
   if (!dispositividCache.length) return nessuno;
   return nessuno + dispositividCache.map(d => {
-    const badge = d.connesso ? "🤖 AUTO" : "✋ manuale";
-    const label = `${d.nome}${d.marca ? ` (${d.marca})` : ""} — ${badge}`;
+    const label = `${d.nome}${d.marca ? ` (${d.marca})` : ""}${d.tipo ? " — " + d.tipo : ""}`;
     return `<option value="${d.id}" ${String(d.id) === String(selectedId) ? "selected" : ""}>${escapeHtml(label)}</option>`;
   }).join("");
 }
