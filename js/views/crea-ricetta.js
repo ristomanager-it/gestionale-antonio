@@ -1060,15 +1060,19 @@ async function loadDispositivi() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
 
+  // Prova con schema minimo — gestisce tabelle con colonne diverse
   const { data, error } = await supabase
     .from("dispositivi")
-    .select("id, nome, tipo, temperatura_min, temperatura_max, marca, modello")
+    .select("id, nome, tipo")
     .eq("azienda_id", aziendaId)
-    .eq("attivo", true)
     .order("nome");
 
-  if (error) { console.error("loadDispositivi:", error); dispositividCache = []; return; }
-  dispositividCache = data || [];
+  if (error) {
+    console.warn("loadDispositivi: tabella non disponibile o schema diverso —", error.message);
+    dispositividCache = [];
+    return;
+  }
+  dispositividCache = (data || []).map(d => ({ ...d, temperatura_min: null, temperatura_max: null }));
 }
 
 function buildDispositvoOptions(selectedId = "") {
