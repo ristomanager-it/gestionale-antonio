@@ -245,56 +245,115 @@ async function tonyInserisciDaTestoLibero(tipo, testoOperatore) {
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) return;
 
-  // Usa API Anthropic direttamente per strutturare JSON.
-  // La Edge Function Tony (GPT-4o-mini) risponde sempre con { reply, action }
-  // e non accetta system_override — quindi la chiamiamo solo per audio.
-  const prodottiContesto = prodottiCache.slice(0, 80)
+  // Nota: l'API Anthropic non è chiamabile direttamente dal browser (CORS).
+  // Usiamo la Edge Function Tony che usa GPT-4o-mini con response_format json_object.
+  // La EF risponde SEMPRE { "reply": "...", "action": ... }.
+  // Iniettiamo le istruzioni nel messaggio utente chiedendo JSON dentro reply,
+  // poi estraiamo l'array dal campo reply.
+
+  const prodottiContesto = prodottiCache.slice(0, 60)
     .map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
 
-  let systemPrompt, userPrompt;
+  let prompt;
 
   if (tipo === "fasi") {
-    systemPrompt = "Sei un assistente culinario professionale per ristorazione italiana.\n" +
-      "Analizza la descrizione e restituisci SOLO un array JSON con le fasi di produzione.\n" +
-      "Nessun testo extra, nessun markdown, nessun backtick - SOLO l'array JSON.\n\n" +
-      "Struttura di ogni oggetto:\n" +
-      '{"tipo_fase":"preparazione|cottura|attesa|raffreddamento",' +
-      '"descrizione_operativa":"istruzioni in italiano professionale all\'imperativo",' +
-      '"durata_min":0,"lavoro_umano_min":0,"temperatura":null,"tecnologia":null}\n\n' +
-      "Regole: fuoco vivo=200gradi cottura, fuoco basso=85gradi cottura, riposa/lievita=attesa. Max 12 fasi.";
+    prompt = `TASK: struttura le seguenti istruzioni di cucina in fasi di produzione.
+Rispondi con un oggetto JSON con questa struttura ESATTA:
+{
+  "reply": "Ho strutturato le fasi.",
+  "fasi": [
+    {
+      "tipo_fase": "preparazione",
+      "descrizione_operativa": "testo istruzioni operative",
+      "durata_min": 10,
+      "lavoro_umano_min": 10,
+      "temperatura": null,
+      "tecnologia": null
+    }
+  ],
+  "action": null
+}
 
-    userPrompt = 'Descrizione ricetta:\n"' + testoOperatore + '"\n\nRestituisci SOLO l\'array JSON delle fasi.';
+Valori validi per tipo_fase: "preparazione", "cottura", "attesa", "raffreddamento".
+fuoco vivo = temperatura 200 e tipo cottura.
+fuoco basso/lento = temperatura 85 e tipo cottura.
+riposa/lievita/raffredda = tipo attesa o raffreddamento.
+lavoro_umano_min sempre minore o uguale a durata_min.
+Max 12 fasi.
+
+DESCRIZIONE DA STRUTTURARE:
+"` + testoOperatore + `"`;
 
   } else {
-    systemPrompt = "Sei un assistente culinario professionale per ristorazione italiana.\n" +
-      "Analizza la lista ingredienti e restituisci SOLO un array JSON.\n" +
-      "Nessun testo extra, nessun markdown, nessun backtick - SOLO l'array JSON.\n\n" +
-      "Prodotti disponibili nel magazzino: " + prodottiContesto + "\n\n" +
-      "Struttura di ogni oggetto:\n" +
-      '{"nome":"nome come scritto","nome_magazzino":"nome piu simile nel magazzino o stringa vuota",' +
-      '"quantita":0.5,"unita_misura":"kg|g|pz|l|ml","note":""}\n\n' +
-      "Regole: mezzo kg=0.5, 200grammi=200g, q.b.=0.01kg. Solidi in kg/g, liquidi in l/ml.";
+    prompt = `TASK: struttura la seguente lista di ingredienti.
+Prodotti disponibili nel magazzino: ` + prodottiContesto + `
 
-    userPrompt = 'Ingredienti:\n"' + testoOperatore + '"\n\nRestituisci SOLO l\'array JSON.';
+Rispondi con un oggetto JSON con questa struttura ESATTA:
+{
+  "reply": "Ho strutturato gli ingredienti.",
+  "ingredienti": [
+    {
+      "nome": "nome ingrediente",
+      "nome_magazzino": "nome prodotto nel magazzino o stringa vuota",
+      "quantita": 0.5,
+      "unita_misura": "kg",
+      "note": ""
+    }
+  ],
+  "action": null
+}
+
+Valori validi per unita_misura: "kg", "g", "pz", "l", "ml".
+mezzo kg = 0.5 kg. 200 grammi = 200 g. q.b. = 0.01 kg.
+Solidi in kg o g, liquidi in l o ml.
+Per nome_magazzino cerca il prodotto piu simile nel magazzino, altrimenti stringa vuota.
+
+INGREDIENTI DA STRUTTURARE:
+"` + testoOperatore + `"`;
   }
 
+  const supa = window.supabaseClient || window.supabase;
+  const sessionData = await supa.auth.getSession();
+  const token = sessionData?.data?.session?.access_token || "";
+
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+        "apikey": token
+      },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }]
+        azienda_id: aziendaId,
+        messages: [{ role: "user", content: prompt }]
       })
     });
 
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
-    const rawText = (data.content?.[0]?.text || "").trim();
-    const clean = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-    return JSON.parse(clean);
+
+    // La EF risponde { reply, fasi/ingredienti, action }
+    // ma GPT potrebbe mettere tutto dentro reply come stringa JSON
+    // Proviamo entrambi i casi
+    if (tipo === "fasi") {
+      if (Array.isArray(data.fasi)) return data.fasi;
+      // Fallback: parsa reply come JSON
+      const raw = (data.reply || "").trim()
+        .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed.fasi)) return parsed.fasi;
+      throw new Error("Nessun array fasi nella risposta");
+    } else {
+      if (Array.isArray(data.ingredienti)) return data.ingredienti;
+      const raw = (data.reply || "").trim()
+        .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed.ingredienti)) return parsed.ingredienti;
+      throw new Error("Nessun array ingredienti nella risposta");
+    }
   } catch(err) {
     console.error("Tony JSON error:", err);
     throw err;
