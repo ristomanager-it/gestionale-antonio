@@ -34,15 +34,27 @@ const CONTESTI = {
 };
 
 function getContesto() {
-  // Legge ?contesto= dall'hash o dal search
+  // 1. Legge ?contesto= dall'hash
   const hash = window.location.hash || "";
-  const m = hash.match(/[?&]contesto=([^&]+)/);
-  if (m) return m[1];
+  const mParam = hash.match(/[?&]contesto=([^&]+)/);
+  if (mParam) return mParam[1];
+
+  // 2. Estrae il contesto dal nome della route
+  //    #/mansionario-cucina → cucina
+  //    #/mansionario-tasting → tasting
+  //    #/mansionario-sala → sala
+  const mRoute = hash.match(/#\/mansionario-([^/?&]+)/);
+  if (mRoute && mRoute[1] !== "controllo" && mRoute[1] !== "operatore") {
+    return mRoute[1]; // cucina | tasting | sala | hotel
+  }
+
+  // 3. Legge dal search param
   const sp = new URLSearchParams(window.location.search);
   if (sp.get("contesto")) return sp.get("contesto");
-  // Fallback: guarda da quale URL siamo arrivati
-  const ref = document.referrer || "";
-  if (ref.includes("hotel.ristoflow-ai")) return "hotel";
+
+  // 4. Fallback referrer hotel
+  if (document.referrer?.includes("hotel.ristoflow-ai")) return "hotel";
+
   return "sala"; // default
 }
 
