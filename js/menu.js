@@ -411,7 +411,7 @@ export function initMenu() {
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
         { label: "📋 Planning",            route: "planner-produzione" },
         { label: "🔌 Dispositivi",         route: "bo-dispositivi"     },
-        { label: "📋 Mansionario Cucina",  route: "mansionario-cucina" },
+        { label: "📋 Mansionario Cucina",  route: "mansionario-cucina", contesto: "cucina" },
       ]
     });
 
@@ -497,7 +497,7 @@ export function initMenu() {
       items: [
         { label: "🎫 Vendite",         route: "ticket-vendite"    },
         { label: "✅ Check-in",        route: "ticket-checkin"    },
-        { label: "📋 Mansionario",     route: "mansionario-tasting"},
+        { label: "📋 Mansionario",     route: "mansionario-tasting", contesto: "tasting" },
         { label: "🍷 Vai a Tasting",   url: "https://tasting.ristoflow-ai.com", external: true },
       ]
     });
@@ -650,6 +650,12 @@ export function initMenu() {
         }
 
         row.onclick = () => {
+          if (item.contesto) {
+            // Naviga con il parametro contesto nell'hash
+            window.location.hash = "#/" + item.route + "?contesto=" + item.contesto;
+            closeMenu();
+            return;
+          }
           if (item.url) {
             // SSO: passa il token Supabase all'app hotel
             if (item.url && (item.url.includes("hotel.ristoflow-ai.com") || item.url.includes("tasting.ristoflow-ai.com"))) {
