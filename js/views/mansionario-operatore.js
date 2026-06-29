@@ -3,6 +3,11 @@
 // Accessibile da home-operatore tramite card Mansionario
 
 const supa = () => window.supabaseClient || window.supabase;
+
+function isVideo(url) {
+  const ext = (url||"").split("?")[0].split(".").pop().toLowerCase();
+  return ["mp4","mov","webm"].includes(ext);
+}
 const EDGE_TONY = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai";
 
 const CATEGORIE = {
@@ -201,7 +206,7 @@ async function renderDettaglio(container, procId, procedure) {
         <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:14px;">
           <div style="font-size:13px;font-weight:700;margin-bottom:10px;">📸 Foto & Video</div>
           <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
-            ${media.map(url => url.match(/\.(mp4|mov|webm)$/i)
+            ${media.map(url => isVideo(url)
               ? `<video src="${esc(url)}" controls style="height:120px;border-radius:8px;flex-shrink:0;"></video>`
               : `<img src="${esc(url)}" onclick="apriMedia('${esc(url)}')" style="height:120px;border-radius:8px;flex-shrink:0;object-fit:cover;cursor:pointer;">`
             ).join("")}
@@ -239,7 +244,7 @@ async function renderDettaglio(container, procId, procedure) {
                     ${f.durata_min ? `<div style="font-size:11px;color:#6b7280;margin-top:4px;">⏱ ${f.durata_min} min</div>` : ""}
                     ${fasMedia.length ? `
                       <div style="display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:4px;">
-                        ${fasMedia.map(url => url.match(/\.(mp4|mov|webm)$/i)
+                        ${fasMedia.map(url => isVideo(url)
                           ? `<video src="${esc(url)}" controls style="height:80px;border-radius:8px;flex-shrink:0;"></video>`
                           : `<img src="${esc(url)}" onclick="apriMedia('${esc(url)}')" style="height:80px;border-radius:8px;flex-shrink:0;object-fit:cover;cursor:pointer;">`
                         ).join("")}
