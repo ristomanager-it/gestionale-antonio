@@ -202,11 +202,16 @@ Regole:
   }
 
   try {
+    const supa = window.supabaseClient || window.supabase;
+    const sessionData = await supa.auth.getSession();
+    const token = sessionData?.data?.session?.access_token || "";
+
     const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${window.supabaseClient?.supabaseKey || window.supabase?.supabaseKey || ""}`
+        "Authorization": `Bearer ${token}`,
+        "apikey": token
       },
       body: JSON.stringify({
         azienda_id: aziendaId,
