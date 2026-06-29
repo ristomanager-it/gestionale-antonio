@@ -381,14 +381,23 @@ export function initMenu() {
     sections.push({
       title: "OPERATIVO",
       items: [
-        { label: "🏠 Home",             route: "home"                },
-        { label: "🪑 Comande",          route: "bo-comande"          },
-        { label: "📅 Prenotazioni",     route: "prenotazioni"        },
-        { label: "🗓️ Tavoli",          route: "prenotazioni-tavoli" },
-        { label: "📑 Preventivi",       route: "preventivi"          },
-        { label: "👨‍🍳 Display Cucina", route: "display-cucina"      },
-        { label: "📦 Magazzino",        route: "magazzino"           },
-        { label: "🕒 Timbratura",       route: "timbrature"          },
+        { label: "🏠 Home",             route: "home"           },
+        { label: "👨‍🍳 Display Cucina", route: "display-cucina" },
+        { label: "📦 Magazzino",        route: "magazzino"      },
+        { label: "🕒 Timbratura",       route: "timbrature"     },
+      ]
+    });
+
+    // ── SALA ──
+    sections.push({
+      title: "🪑 SALA",
+      items: [
+        { label: "🪑 Comande",           route: "bo-comande"         },
+        { label: "📅 Prenotazioni",      route: "prenotazioni"       },
+        { label: "🗓️ Tavoli",           route: "prenotazioni-tavoli"},
+        { label: "📑 Preventivi",        route: "preventivi"         },
+        { label: "📋 Mansionario Sala",  route: "mansionario-sala"   },
+        { label: "🗺️ Mappa Sala",       route: "sala"               },
       ]
     });
 
