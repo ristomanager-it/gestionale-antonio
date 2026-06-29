@@ -540,12 +540,12 @@ function apriModalTonyIngredienti() {
           const container = document.getElementById("ingredienti-container");
           if (container) container.innerHTML = "";
           parsed.forEach(ing => {
-            const match = ing.nome_magazzino
-              ? prodottiCache.find(p => (p.descrizione||"").toLowerCase().includes(ing.nome_magazzino.toLowerCase()))
-              : null;
+            const candidati = trovaProdottiSimili(ing.nome_magazzino || ing.nome, 1);
+            const match = candidati.length > 0 && candidati[0].score >= 70 ? candidati[0].prodotto : null;
             aggiungiIngrediente({
               prodotto_id: match?.id ?? "",
               nome_prodotto: match?.descrizione || ing.nome,
+              _nome_tony: match ? null : (ing.nome_magazzino || ing.nome),
               quantita: ing.quantita,
               unita_misura: ing.unita_misura,
               note: ing.note || ""
@@ -605,17 +605,12 @@ function apriModalTonyIngredienti() {
         if (container) container.innerHTML = "";
 
         ingredienti.forEach(ing => {
-          // Cerca match nel cache prodotti
-          const match = ing.nome_magazzino
-            ? prodottiCache.find(p =>
-                (p.descrizione || "").toLowerCase().includes(ing.nome_magazzino.toLowerCase()) ||
-                ing.nome_magazzino.toLowerCase().includes((p.descrizione || "").toLowerCase().substring(0, 6))
-              )
-            : null;
-
+          const candidati = trovaProdottiSimili(ing.nome_magazzino || ing.nome, 1);
+          const match = candidati.length > 0 && candidati[0].score >= 70 ? candidati[0].prodotto : null;
           aggiungiIngrediente({
             prodotto_id: match?.id ?? "",
             nome_prodotto: match?.descrizione || ing.nome,
+            _nome_tony: match ? null : (ing.nome_magazzino || ing.nome),
             quantita: ing.quantita,
             unita_misura: ing.unita_misura,
             note: ing.note || ""
@@ -1389,6 +1384,124 @@ function filterFasiByTab() {
 /* ============================================================
    INGREDIENTI
 ============================================================ */
+
+/* ============================================================
+   🔍 FUZZY MATCH — trova prodotti simili nel magazzino
+   Ritorna lista ordinata per score (0-100)
+============================================================ */
+function trovaProdottiSimili(nomeRicercato, maxRisultati = 5) {
+  if (!nomeRicercato || !prodottiCache.length) return [];
+  const q = nomeRicercato.toLowerCase().trim();
+  const parole = q.split(/\s+/).filter(p => p.length > 2);
+
+  const scored = prodottiCache.map(p => {
+    const nome = (p.descrizione || p.nome || "").toLowerCase();
+    let score = 0;
+
+    // Match esatto
+    if (nome === q) { score = 100; }
+    // Contiene la stringa intera
+    else if (nome.includes(q)) { score = 80; }
+    else if (q.includes(nome) && nome.length > 3) { score = 70; }
+    else {
+      // Match per parole chiave
+      const paroleTrovate = parole.filter(pw => nome.includes(pw));
+      score += paroleTrovate.length * 20;
+      // Match prime lettere
+      if (nome.startsWith(q.substring(0, 3))) score += 15;
+      // Levenshtein semplice sui primi 8 caratteri
+      const a = q.substring(0, 8), b = nome.substring(0, 8);
+      let dist = 0;
+      for (let i = 0; i < Math.min(a.length, b.length); i++) {
+        if (a[i] !== b[i]) dist++;
+      }
+      score += Math.max(0, 15 - dist * 5);
+    }
+
+    return { prodotto: p, score };
+  })
+  .filter(x => x.score > 0)
+  .sort((a, b) => b.score - a.score)
+  .slice(0, maxRisultati);
+
+  return scored;
+}
+
+// Precompila campo search e apre dropdown con candidati
+function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umSel, onPick) {
+  if (!nomeTony) return;
+
+  const candidati = trovaProdottiSimili(nomeTony, 6);
+  const matchEsatto = candidati.length > 0 && candidati[0].score >= 70
+    ? candidati[0].prodotto : null;
+
+  if (matchEsatto) {
+    // Match sicuro: preseleziona direttamente
+    ingSearch.value = matchEsatto.descrizione || matchEsatto.nome || nomeTony;
+    ingHidden.value = matchEsatto.id;
+    if (matchEsatto.um && umSel) {
+      const val = String(matchEsatto.um).toLowerCase();
+      if (["kg","g","pz","l","ml"].includes(val)) umSel.value = val;
+    }
+    ingSearch.style.borderColor = "#16a34a";
+    ingSearch.title = "✅ Trovato nel magazzino";
+    if (typeof onPick === "function") onPick(matchEsatto);
+  } else {
+    // Match incerto: precompila il nome e mostra dropdown con candidati
+    ingSearch.value = nomeTony;
+    ingHidden.value = "";
+    ingSearch.style.borderColor = "#f59e0b";
+    ingSearch.style.background = "#fffbeb";
+    ingSearch.title = "⚠️ Non trovato esatto — scegli dal menu o cerca manualmente";
+
+    if (candidati.length > 0) {
+      ingSuggest.innerHTML = candidati.map(({prodotto: p, score}) => {
+        const um = p.um || p.unita_base || "";
+        const costoMedio = p.costo_medio ? ` — €${Number(p.costo_medio).toFixed(2)}/${um}` : "";
+        const badge = score >= 50
+          ? `<span style="background:#dcfce7;color:#15803d;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px;">simile</span>`
+          : `<span style="background:#f3f4f6;color:#6b7280;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px;">cerca</span>`;
+        return `<div data-pid="${escapeHtml(String(p.id))}" data-pnome="${escapeHtml(p.descrizione||p.nome||"")}" data-pum="${escapeHtml(um)}"
+          style="padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+          <span>${escapeHtml(p.descrizione||p.nome||"")}${badge}</span>
+          <span style="color:#6b7280;font-size:11px;">${costoMedio}</span>
+        </div>`;
+      }).join("") +
+      `<div style="padding:6px 10px;font-size:11px;color:#9ca3af;border-top:1px solid #f1f5f9;">
+        oppure digita per cercare altri prodotti
+      </div>`;
+
+      ingSuggest.classList.add("open");
+
+      // Bind click sulle opzioni
+      ingSuggest.querySelectorAll("[data-pid]").forEach(item => {
+        item.addEventListener("click", e => {
+          e.stopPropagation();
+          const p = prodottiCache.find(x => String(x.id) === item.dataset.pid);
+          if (!p) return;
+          ingSearch.value = p.descrizione || p.nome || "";
+          ingHidden.value = p.id;
+          ingSearch.style.borderColor = "#16a34a";
+          ingSearch.style.background = "";
+          ingSearch.title = "✅ Trovato nel magazzino";
+          ingSuggest.classList.remove("open");
+          if (p.um && umSel) {
+            const val = String(p.um).toLowerCase();
+            if (["kg","g","pz","l","ml"].includes(val)) umSel.value = val;
+          }
+          if (typeof onPick === "function") onPick(p);
+        });
+      });
+    } else {
+      // Nessun candidato — suggerisce ricerca manuale
+      ingSuggest.innerHTML = `<div style="padding:8px 10px;font-size:12px;color:#f59e0b;">
+        ⚠️ "${escapeHtml(nomeTony)}" non trovato nel magazzino — digita per cercare
+      </div>`;
+      ingSuggest.classList.add("open");
+    }
+  }
+}
+
 function aggiungiIngrediente(initial = {}) {
   const container = document.getElementById("ingredienti-container");
 
@@ -1471,14 +1584,26 @@ function aggiungiIngrediente(initial = {}) {
   const ingSuggest = card.querySelector(".ing-suggest");
 
   setupAutocomplete(ingSearch, ingHidden, ingSuggest, (p) => {
-    // se il prodotto ha UM, proponila
     if (p?.um && umSel) {
       const val = String(p.um).toLowerCase();
       const ok = ["kg", "g", "pz", "l", "ml"].includes(val);
       if (ok) umSel.value = val;
     }
+    // Reset stile fuzzy quando l'utente sceglie manualmente
+    ingSearch.style.borderColor = "#16a34a";
+    ingSearch.style.background = "";
     aggiornaOutputInfo();
   });
+
+  // Se viene da Tony con nome non trovato → fuzzy precompila
+  if (initial._nome_tony && !initial.prodotto_id) {
+    // Ritardo minimo per assicurarsi che il DOM sia pronto
+    setTimeout(() => {
+      precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, initial._nome_tony, umSel, (p) => {
+        aggiornaOutputInfo();
+      });
+    }, 30);
+  }
 
   // aggiorna food cost su change qty/um
   card.querySelector(".ing-qta").addEventListener("input", () => aggiornaOutputInfo());
