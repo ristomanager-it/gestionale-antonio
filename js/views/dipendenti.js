@@ -735,15 +735,14 @@ async function renderForm(dip) {
           </select>
         </label>
 
-        <label>Voce di Tony (come ti parla)
+        <label>Voce di Tony (tono preferito)
           <select id="dip-voce-tony" class="input-pill">
-            <option value="nova"    ${(dip?.voce_tony||"nova")==="nova"   ?"selected":""}>Nova — femminile, calda e naturale (consigliata)</option>
-            <option value="alloy"   ${dip?.voce_tony==="alloy"  ?"selected":""}>Alloy — neutra e bilanciata</option>
-            <option value="echo"    ${dip?.voce_tony==="echo"   ?"selected":""}>Echo — maschile, profonda</option>
-            <option value="fable"   ${dip?.voce_tony==="fable"  ?"selected":""}>Fable — espressiva e dinamica</option>
-            <option value="onyx"    ${dip?.voce_tony==="onyx"   ?"selected":""}>Onyx — maschile, autorevole</option>
-            <option value="shimmer" ${dip?.voce_tony==="shimmer"?"selected":""}>Shimmer — femminile, vivace</option>
+            <option value="onyx"  ${(dip?.voce_tony||"onyx")==="onyx" ?"selected":""}>Onyx — profonda e autorevole (consigliata)</option>
+            <option value="echo"  ${dip?.voce_tony==="echo" ?"selected":""}>Echo — calda e rassicurante</option>
+            <option value="fable" ${dip?.voce_tony==="fable"?"selected":""}>Fable — espressiva e dinamica</option>
+            <option value="alloy" ${dip?.voce_tony==="alloy"?"selected":""}>Alloy — neutra e bilanciata</option>
           </select>
+          <small style="color:#6b7280;font-size:11px;">Tony parla sempre con voce maschile in italiano</small>
         </label>
 
         <label style="display:flex; align-items:center; gap:10px; margin-top:6px;">
