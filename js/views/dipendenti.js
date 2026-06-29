@@ -718,6 +718,23 @@ async function renderForm(dip) {
           <input type="time" id="dip-ora-uscita" class="input-pill" value="${dip?.ora_uscita || ""}" />
         </label>
 
+        <label>Lingua preferita (Tony parla in questa lingua)
+          <select id="dip-lingua" class="input-pill">
+            <option value="it" ${(dip?.lingua_preferita||"it")==="it"?"selected":""}>🇮🇹 Italiano</option>
+            <option value="en" ${dip?.lingua_preferita==="en"?"selected":""}>🇬🇧 English</option>
+            <option value="es" ${dip?.lingua_preferita==="es"?"selected":""}>🇪🇸 Español</option>
+            <option value="ro" ${dip?.lingua_preferita==="ro"?"selected":""}>🇷🇴 Română</option>
+            <option value="ar" ${dip?.lingua_preferita==="ar"?"selected":""}>🇸🇦 العربية</option>
+            <option value="zh" ${dip?.lingua_preferita==="zh"?"selected":""}>🇨🇳 中文</option>
+            <option value="fr" ${dip?.lingua_preferita==="fr"?"selected":""}>🇫🇷 Français</option>
+            <option value="de" ${dip?.lingua_preferita==="de"?"selected":""}>🇩🇪 Deutsch</option>
+            <option value="pt" ${dip?.lingua_preferita==="pt"?"selected":""}>🇧🇷 Português</option>
+            <option value="pl" ${dip?.lingua_preferita==="pl"?"selected":""}>🇵🇱 Polski</option>
+            <option value="uk" ${dip?.lingua_preferita==="uk"?"selected":""}>🇺🇦 Українська</option>
+            <option value="sq" ${dip?.lingua_preferita==="sq"?"selected":""}>🇦🇱 Shqip</option>
+          </select>
+        </label>
+
         <label style="display:flex; align-items:center; gap:10px; margin-top:6px;">
           <input type="checkbox" id="dip-attivo" ${dip?.attivo === false ? "" : "checked"} />
           Attivo
@@ -855,6 +872,7 @@ async function salvaDipendente(isEdit) {
       const oreMensili = parseFloat(document.getElementById("dip-ore-mensili")?.value) || null;
       const oreServizio = parseFloat(document.getElementById("dip-ore-servizio")?.value) || null;
       const costoOrario = parseFloat(document.getElementById("dip-costo")?.value) || null;
+      const linguaPreferita = document.getElementById("dip-lingua")?.value || "it";
       const costoMedio = (document.getElementById("dip-costo-medio")?.value || "").trim() || null;
       const oraIngresso = document.getElementById("dip-ora-ingresso")?.value || null;
       const oraUscita = document.getElementById("dip-ora-uscita")?.value || null;
@@ -875,6 +893,7 @@ async function salvaDipendente(isEdit) {
           ore_medie_per_servizio: oreServizio,
           costo_orario: costoOrario,
           costo_medio: costoMedio,
+          lingua_preferita: linguaPreferita,
           ora_ingresso: oraIngresso,
           ora_uscita: oraUscita,
           attivo: attivoCheck
