@@ -534,10 +534,19 @@ DESCRIZIONE: "${testo}"`;
       const data = await r.json();
 
       // Estrai JSON dalla reply
-      const raw = (data.reply||"").trim().replace(/^```json\s*/i,"").replace(/^```\s*/i,"").replace(/```\s*$/i,"").trim();
+      // Regex estratte da template literal per evitare SyntaxError
+      const RE_JSON_FENCE1 = new RegExp("^```json\\s*", "i");
+      const RE_JSON_FENCE2 = new RegExp("^```\\s*", "i");
+      const RE_JSON_FENCE3 = new RegExp("```\\s*$", "i");
+      const RE_JSON_OBJ    = new RegExp("\\{[\\s\\S]*\\}");
+      const raw = (data.reply||"").trim()
+        .replace(RE_JSON_FENCE1, "")
+        .replace(RE_JSON_FENCE2, "")
+        .replace(RE_JSON_FENCE3, "")
+        .trim();
       let parsed;
       try { parsed = JSON.parse(raw); } catch {
-        const m = raw.match(/\{[\s\S]*\}/);
+        const m = RE_JSON_OBJ.exec(raw);
         if (m) parsed = JSON.parse(m[0]);
         else throw new Error("JSON non valido nella risposta");
       }
