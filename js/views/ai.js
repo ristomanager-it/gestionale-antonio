@@ -282,6 +282,7 @@ export async function render(app) {
   <div class="chat-input-bar">
     <button id="chat-mic" class="chat-mic-btn" title="Parla con Tony">🎤</button>
     <textarea id="chat-input" rows="1" placeholder="Scrivi a Tony..."></textarea>
+    <button id="chat-tts" class="chat-mic-btn" title="Attiva voce Tony" style="font-size:18px;opacity:0.4;" aria-pressed="false">🔊</button>
     <button id="chat-send" class="chat-send-btn">➤</button>
   </div>
 
@@ -767,6 +768,7 @@ async function sendVoiceMessage() {
     const reply = data?.reply || "Non ho capito, puoi ripetere?";
     addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
     conversation.push({ role: "assistant", content: reply });
+    ttsParla(reply);
 
     if (data?.action?.type === "crea_ricetta" && data?.action_executed) {
       setTimeout(() => {
@@ -957,6 +959,7 @@ async function sendMessageSilent(hiddenPrompt) {
     const reply = data?.reply || "Nessuna risposta.";
     addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
     conversation.push({ role: "assistant", content: reply });
+    ttsParla(reply);
   } catch {
     if (loading) loading.textContent = "Errore Tony";
   }
@@ -966,10 +969,82 @@ async function sendMessageSilent(hiddenPrompt) {
   scrollBottom();
 }
 
+
+/* ============================================================
+   🔊 TEXT-TO-SPEECH — Tony parla in italiano
+   Usa Web Speech API SpeechSynthesis (nativa nel browser).
+   Nessuna libreria, nessuna chiamata esterna.
+============================================================ */
+
+let _ttsAttivo = false;
+let _ttsVoce = null;
+
+function ttsInit() {
+  if (!window.speechSynthesis) return;
+  const caricaVoce = () => {
+    const voci = window.speechSynthesis.getVoices();
+    _ttsVoce =
+      voci.find(v => v.lang === "it-IT" && v.localService) ||
+      voci.find(v => v.lang === "it-IT") ||
+      voci.find(v => v.lang.startsWith("it")) ||
+      voci[0] || null;
+  };
+  caricaVoce();
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = caricaVoce;
+  }
+}
+
+function ttsParla(testo) {
+  if (!_ttsAttivo || !window.speechSynthesis || !testo) return;
+  window.speechSynthesis.cancel();
+
+  const pulito = testo
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^[-\u2022]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/\n{2,}/g, ". ")
+    .replace(/\n/g, " ")
+    .replace(/\u20ac/g, "euro")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[^\w\s.,;:!?'()-]/g, " ")
+    .trim();
+
+  if (!pulito) return;
+  const testoBreve = pulito.length > 500 ? pulito.substring(0, 497) + "..." : pulito;
+
+  const utt = new SpeechSynthesisUtterance(testoBreve);
+  utt.lang = "it-IT";
+  utt.rate = 1.05;
+  utt.pitch = 1.0;
+  utt.volume = 1.0;
+  if (_ttsVoce) utt.voice = _ttsVoce;
+  window.speechSynthesis.speak(utt);
+}
+
+function ttsToggle() {
+  _ttsAttivo = !_ttsAttivo;
+  const btn = document.getElementById("chat-tts");
+  if (!btn) return;
+  btn.style.opacity = _ttsAttivo ? "1" : "0.4";
+  btn.title = _ttsAttivo ? "Voce Tony attiva — clicca per disattivare" : "Attiva voce Tony";
+  btn.setAttribute("aria-pressed", _ttsAttivo ? "true" : "false");
+  btn.textContent = _ttsAttivo ? "🔊" : "🔇";
+  setTimeout(() => { btn.textContent = "🔊"; }, 1000);
+  if (!_ttsAttivo && window.speechSynthesis) window.speechSynthesis.cancel();
+  if (_ttsAttivo) ttsParla("Voce attivata. Sono pronto.");
+}
+
+
 function initChat(ruolo) {
   const input = document.getElementById("chat-input");
   const send = document.getElementById("chat-send");
   const mic = document.getElementById("chat-mic");
+
+  ttsInit();
+  document.getElementById("chat-tts")?.addEventListener("click", ttsToggle);
 
   loadMessaggioIniziale(ruolo);
 
