@@ -35,7 +35,7 @@ let outputSecondariCache = [];
 
 let _autocompleteDocBound = false;
 
-let dispositividCache = []; // { id, nome, tipo, connesso, temperatura_min, temperatura_max }
+let dispositividCache = []; // { id, nome, tipo, temperatura_min, temperatura_max, marca, modello }
 
 // mini-tab fasi
 let faseTabAttiva = "preparazione";
@@ -1570,11 +1570,7 @@ function aggiungiFase(initial = {}) {
     if (!id) { if (badgeDisp) badgeDisp.innerHTML = ""; return; }
     const d = dispositividCache.find(x => String(x.id) === String(id));
     if (!d || !badgeDisp) return;
-    if (d.connesso) {
-      badgeDisp.innerHTML = `<span style="background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:20px;">🤖 Automatico — i dati arriveranno dal dispositivo</span>`;
-    } else {
-      badgeDisp.innerHTML = `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:20px;">✋ Manuale — il cuoco inserirà i dati in produzione</span>`;
-    }
+    badgeDisp.innerHTML = `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:20px;">✋ Manuale — il cuoco inserirà i dati in produzione</span>`;
     // Precompila temperatura prevista se il dispositivo ha soglie
     const tempEl = card.querySelector(".fase-temperatura");
     if (tempEl && !tempEl.value && d.temperatura_min != null) {
