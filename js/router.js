@@ -129,6 +129,7 @@ const routes = {
   manuale: () => import("./views/manuale.js"),
 
   sala: () => import("./views/sala.js"),
+  "manuario-sala": () => import("./views/bo-sala-manuario.js"),
 
   "prenotazione-online": () => import("./views/prenotazioni/prenotazione-online.js"),
   "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
@@ -515,6 +516,9 @@ const routePermissions = {
 
   "ricettario":
     "ricette.write",
+
+  "manuario-sala":
+    "sala.read",
 
   "creaRicetta":
     "ricette.write",
