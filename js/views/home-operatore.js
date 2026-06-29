@@ -185,6 +185,11 @@ export async function render(container){
         <div class="card-sub">Servizio</div>
       </div>
 
+      <div class="card action" data-route="mansionario-operatore">
+        <div class="card-title">📋 Mansionario</div>
+        <div class="card-sub">Studia & firma</div>
+      </div>
+
     </div>
 
     <!-- 🤖 -->
