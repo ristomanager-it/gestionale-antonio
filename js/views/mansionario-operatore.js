@@ -32,8 +32,10 @@ function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;"
 // ═══════════════════════════════════════════════════════
 function getContesto() {
   const hash = window.location.hash || "";
-  const m = hash.match(/[?&]contesto=([^&]+)/);
-  if (m) return m[1];
+  const mParam = hash.match(/[?&]contesto=([^&]+)/);
+  if (mParam) return mParam[1];
+  const mRoute = hash.match(/#\/mansionario-([^/?&]+)/);
+  if (mRoute && mRoute[1] !== "controllo" && mRoute[1] !== "operatore") return mRoute[1];
   const sp = new URLSearchParams(window.location.search);
   return sp.get("contesto") || "sala";
 }
