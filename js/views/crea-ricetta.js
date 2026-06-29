@@ -1060,26 +1060,27 @@ async function loadDispositivi() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
 
-  // Prova con schema minimo — gestisce tabelle con colonne diverse
   const { data, error } = await supabase
     .from("dispositivi")
-    .select("id, nome, tipo")
+    .select("id, nome, tipo, marca, modello, connesso, temperatura_min, temperatura_max")
     .eq("azienda_id", aziendaId)
+    .eq("attivo", true)
     .order("nome");
 
   if (error) {
-    console.warn("loadDispositivi: tabella non disponibile o schema diverso —", error.message);
+    console.warn("loadDispositivi:", error.message);
     dispositividCache = [];
     return;
   }
-  dispositividCache = (data || []).map(d => ({ ...d, temperatura_min: null, temperatura_max: null }));
+  dispositividCache = data || [];
 }
 
 function buildDispositvoOptions(selectedId = "") {
   const nessuno = `<option value="">— Nessun dispositivo (manuale) —</option>`;
   if (!dispositividCache.length) return nessuno;
   return nessuno + dispositividCache.map(d => {
-    const label = `${d.nome}${d.marca ? ` (${d.marca})` : ""}${d.tipo ? " — " + d.tipo : ""}`;
+    const badge = d.connesso ? "🤖 AUTO" : "✋ manuale";
+    const label = `${d.nome}${d.marca ? ` (${d.marca})` : ""} — ${badge}`;
     return `<option value="${d.id}" ${String(d.id) === String(selectedId) ? "selected" : ""}>${escapeHtml(label)}</option>`;
   }).join("");
 }
