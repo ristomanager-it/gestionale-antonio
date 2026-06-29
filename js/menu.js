@@ -1,3 +1,4 @@
+// menu.js — build 2026-06-29 14:52:07 — cache bust
 export function initMenu() {
 
   const menu = document.getElementById("global-menu");
