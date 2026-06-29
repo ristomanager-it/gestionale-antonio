@@ -1,5 +1,5 @@
-// js/views/bo-sala-manuario.js
-// Manuario di Sala — procedure operative per manager e admin
+// js/views/bo-sala-mansionario.js
+// Mansionario di Sala — procedure operative per manager e admin
 // Struttura: lista procedure → editor con fasi → Tony vocale per compilare
 
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
@@ -591,7 +591,7 @@ function apriModalValutazione(proceduraId, proceduraNome) {
 // ═══════════════════════════════════════════════════════════════
 function renderShell() {
   return createPageLayout({
-    title: "🪑 Manuario di Sala",
+    title: "🪑 Mansionario di Sala",
     subtitle: "Procedure operative, standard di servizio, formazione staff",
     content: `
       <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
