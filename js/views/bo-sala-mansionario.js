@@ -21,6 +21,31 @@ const DIFFICOLTA = [
   { id: "avanzato", label: "Avanzato", color: "#dc2626" },
 ];
 
+
+// ═══════════════════════════════════════════════════════════════
+// CONTESTI — stesso modulo per sala, cucina, hotel, tasting
+// ═══════════════════════════════════════════════════════════════
+const CONTESTI = {
+  sala:     { label: "Sala",    icon: "🪑", colore: "#0E5A7A" },
+  cucina:   { label: "Cucina",  icon: "👨‍🍳", colore: "#b45309" },
+  hotel:    { label: "Hotel",   icon: "🏨", colore: "#7c3aed" },
+  tasting:  { label: "Tasting", icon: "🍷", colore: "#b91c1c" },
+  generale: { label: "Generale",icon: "📋", colore: "#374151" },
+};
+
+function getContesto() {
+  // Legge ?contesto= dall'hash o dal search
+  const hash = window.location.hash || "";
+  const m = hash.match(/[?&]contesto=([^&]+)/);
+  if (m) return m[1];
+  const sp = new URLSearchParams(window.location.search);
+  if (sp.get("contesto")) return sp.get("contesto");
+  // Fallback: guarda da quale URL siamo arrivati
+  const ref = document.referrer || "";
+  if (ref.includes("hotel.ristoflow-ai")) return "hotel";
+  return "sala"; // default
+}
+
 const EDGE_TONY = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai";
 
 let procedureCache = [];
@@ -36,12 +61,17 @@ function esc(s)         { return String(s||"").replace(/&/g,"&amp;").replace(/</
 // LOAD
 // ═══════════════════════════════════════════════════════════════
 async function loadProcedure() {
-  const { data } = await supa()
+  const contesto = getContesto();
+  let query = supa()
     .from("procedure_sala")
     .select("*")
     .eq("azienda_id", getAziendaId())
-    .eq("attivo", true)
-    .order("categoria").order("nome");
+    .eq("attivo", true);
+  // Filtra per contesto (generale è visibile ovunque)
+  if (contesto && contesto !== "generale") {
+    query = query.in("contesto", [contesto, "generale"]);
+  }
+  const { data } = await query.order("categoria").order("nome");
   procedureCache = data || [];
 }
 
@@ -208,6 +238,7 @@ async function apriEditor(id = null) {
   document.getElementById("ms-f-categoria").value = "servizio";
   document.getElementById("ms-f-difficolta").value = "base";
   document.getElementById("ms-f-durata").value = "";
+  document.getElementById("ms-f-contesto").value = getContesto() || "sala";
   document.getElementById("ms-f-obiettivo").value = "";
   document.getElementById("ms-f-errori").value = "";
   document.getElementById("ms-f-standard").value = "";
@@ -221,6 +252,7 @@ async function apriEditor(id = null) {
       document.getElementById("ms-f-categoria").value = proc.categoria || "servizio";
       document.getElementById("ms-f-difficolta").value = proc.difficolta || "base";
       document.getElementById("ms-f-durata").value = proc.durata_min || "";
+      document.getElementById("ms-f-contesto").value = proc.contesto || getContesto() || "sala";
       document.getElementById("ms-f-obiettivo").value = proc.obiettivo || "";
       document.getElementById("ms-f-errori").value = proc.errori_comuni || "";
       document.getElementById("ms-f-standard").value = proc.standard_qualita || "";
@@ -324,6 +356,7 @@ async function salvaProcedura() {
     attivo: true,
     aggiornato_il: new Date().toISOString(),
     media_urls: (window._getProcMediaUrls ? window._getProcMediaUrls() : []) || [],
+    contesto: document.getElementById("ms-f-contesto")?.value || getContesto() || "sala",
   };
 
   let procId = editingId;
@@ -478,7 +511,13 @@ async function apriModalTonyProcedura() {
     btnGo.disabled=true; btnGo.textContent="⏳ Tony sta pensando...";
     status.innerHTML=`<span style="color:#0E5A7A;">Analisi in corso...</span>`;
 
-    const prompt = `Sei un assistente per la ristorazione italiana. Analizza questa descrizione di procedura di sala e restituisci SOLO un oggetto JSON con questa struttura esatta:
+    const contesto = getContesto();
+    const ctxInfo = CONTESTI[contesto] || CONTESTI.sala;
+    const identita = window.state?.azienda?.identita || "";
+    const gcWhy = window.state?.azienda?.gc_why || "";
+    const prompt = `Sei un assistente per la ristorazione italiana. Stai creando una procedura per l'area ${ctxInfo.label.toUpperCase()} di un locale.
+${gcWhy ? "VISION DEL LOCALE (WHY): " + gcWhy : ""}
+Analizza questa descrizione e restituisci SOLO un oggetto JSON con questa struttura esatta:
 {"reply":{"nome":"titolo breve procedura","categoria":"mise_en_place o accoglienza o servizio o vendita o operativo o igiene","difficolta":"base o medio o avanzato","durata_min":5,"obiettivo":"risultato atteso in una frase","materiali":["materiale1","materiale2"],"errori_comuni":"errori da evitare","standard_qualita":"come si verifica che sia fatto bene","fasi":[{"titolo":"step 1","descrizione_operativa":"istruzioni dettagliate","durata_min":2,"check_qualita":"domanda autocontrollo","tip_pro":"consiglio esperto","errori_comuni":"errore frequente"}]},"action":null}
 
 DESCRIZIONE: "${testo}"`;
@@ -630,9 +669,9 @@ function apriModalValutazione(proceduraId, proceduraNome) {
 // ═══════════════════════════════════════════════════════════════
 // SHELL HTML
 // ═══════════════════════════════════════════════════════════════
-function renderShell() {
+function renderShell(contesto = "sala", ctxInfo = CONTESTI.sala) {
   return createPageLayout({
-    title: "🪑 Mansionario di Sala",
+    title: ctxInfo.icon + " Mansionario " + ctxInfo.label,
     subtitle: "Procedure operative, standard di servizio, formazione staff",
     content: `
       <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
@@ -693,6 +732,16 @@ function renderShell() {
               <div>
                 <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Durata (min)</label>
                 <input id="ms-f-durata" class="input" type="number" min="0" placeholder="5">
+              </div>
+              <div>
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">Contesto</label>
+                <select id="ms-f-contesto" class="input">
+                  <option value="sala">🪑 Sala</option>
+                  <option value="cucina">👨‍🍳 Cucina</option>
+                  <option value="hotel">🏨 Hotel</option>
+                  <option value="tasting">🍷 Tasting</option>
+                  <option value="generale">📋 Generale (tutti)</option>
+                </select>
               </div>
             </div>
             <div>
@@ -762,7 +811,9 @@ export async function render(container) {
     return;
   }
 
-  container.innerHTML = renderShell();
+  const contesto = getContesto();
+  const ctxInfo = CONTESTI[contesto] || CONTESTI.sala;
+  container.innerHTML = renderShell(contesto, ctxInfo);
 
   await Promise.all([loadProcedure(), loadDipendenti()]);
   renderLista();
