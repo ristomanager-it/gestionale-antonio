@@ -219,6 +219,32 @@ export async function render(container) {
       </section>
     </div>
 
+    <section class="card" style="margin-top:16px;">
+      <div style="font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;">🔗 Accesso rapido</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">
+        <div onclick="location.hash='#/mansionario-sala'" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px;cursor:pointer;text-align:center;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="font-size:26px;margin-bottom:6px;">🪑</div>
+          <div style="font-size:13px;font-weight:700;">Mansionario Sala</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Procedure & formazione</div>
+        </div>
+        <div onclick="location.hash='#/dipendenti'" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px;cursor:pointer;text-align:center;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="font-size:26px;margin-bottom:6px;">👥</div>
+          <div style="font-size:13px;font-weight:700;">Brigata</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Gestione dipendenti</div>
+        </div>
+        <div onclick="location.hash='#/ricettario'" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px;cursor:pointer;text-align:center;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="font-size:26px;margin-bottom:6px;">📖</div>
+          <div style="font-size:13px;font-weight:700;">Ricettario</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Produzione & ricette</div>
+        </div>
+        <div onclick="location.hash='#/prenotazioni'" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px;cursor:pointer;text-align:center;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="font-size:26px;margin-bottom:6px;">📅</div>
+          <div style="font-size:13px;font-weight:700;">Prenotazioni</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Tavoli & servizi</div>
+        </div>
+      </div>
+    </section>
+
     ${renderTony()}
   </div>
 
