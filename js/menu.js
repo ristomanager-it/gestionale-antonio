@@ -651,12 +651,6 @@ export function initMenu() {
         }
 
         row.onclick = () => {
-          if (item.contesto) {
-            // Naviga con il parametro contesto nell'hash
-            window.location.hash = "#/" + item.route + "?contesto=" + item.contesto;
-            closeMenu();
-            return;
-          }
           if (item.url) {
             // SSO: passa il token Supabase all'app hotel
             if (item.url && (item.url.includes("hotel.ristoflow-ai.com") || item.url.includes("tasting.ristoflow-ai.com"))) {
