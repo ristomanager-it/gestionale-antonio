@@ -626,6 +626,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     }
   }
 
+  const _linguaDip = getLinguaDipendente();
   const body = {
     messages: messagesConCtx,
     azienda_id: window.state?.azienda?.id,
@@ -634,6 +635,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     lat: window.state?.sedeAttiva?.latitudine,
     lon: window.state?.sedeAttiva?.longitudine,
     ruolo: window.state?.ruolo || "operatore",
+    lingua: _linguaDip,
   };
   if (audioBase64) body.audio_base64 = audioBase64;
   if (tipoMessaggio) body.tipo_messaggio = tipoMessaggio;
@@ -769,6 +771,14 @@ async function sendVoiceMessage() {
     addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
     conversation.push({ role: "assistant", content: reply });
     ttsParla(reply);
+
+    // Conversazione continua: riavvia mic automaticamente dopo la risposta vocale
+    if (_ttsAttivo) {
+      const attesaLettura = Math.min(reply.length * 60, 8000); // stima durata lettura
+      setTimeout(async () => {
+        if (_ttsAttivo) await startRecording();
+      }, attesaLettura + 500);
+    }
 
     if (data?.action?.type === "crea_ricetta" && data?.action_executed) {
       setTimeout(() => {
@@ -979,14 +989,32 @@ async function sendMessageSilent(hiddenPrompt) {
 let _ttsAttivo = false;
 let _ttsVoce = null;
 
+
+// Mappa lingua_preferita → BCP-47 per SpeechSynthesis e TTS
+const LINGUA_BCP47 = {
+  it: "it-IT", en: "en-GB", es: "es-ES", ro: "ro-RO",
+  ar: "ar-SA", zh: "zh-CN", fr: "fr-FR", de: "de-DE",
+  pt: "pt-BR", pl: "pl-PL", uk: "uk-UA", sq: "sq-AL"
+};
+
+function getLinguaDipendente() {
+  return window.state?.dipendente?.lingua_preferita || "it";
+}
+
+function getBcp47() {
+  return LINGUA_BCP47[getLinguaDipendente()] || "it-IT";
+}
+
 function ttsInit() {
   if (!window.speechSynthesis) return;
   const caricaVoce = () => {
     const voci = window.speechSynthesis.getVoices();
+    const bcp = getBcp47();
+    const lang2 = bcp.split("-")[0];
     _ttsVoce =
-      voci.find(v => v.lang === "it-IT" && v.localService) ||
-      voci.find(v => v.lang === "it-IT") ||
-      voci.find(v => v.lang.startsWith("it")) ||
+      voci.find(v => v.lang === bcp && v.localService) ||
+      voci.find(v => v.lang === bcp) ||
+      voci.find(v => v.lang.startsWith(lang2)) ||
       voci[0] || null;
   };
   caricaVoce();
@@ -1013,14 +1041,19 @@ function ttsParla(testo) {
     .trim();
 
   if (!pulito) return;
-  const testoBreve = pulito.length > 500 ? pulito.substring(0, 497) + "..." : pulito;
+  const testoBreve = pulito.length > 1500 ? pulito.substring(0, 1497) + "..." : pulito;
 
   const utt = new SpeechSynthesisUtterance(testoBreve);
-  utt.lang = "it-IT";
-  utt.rate = 1.05;
+  utt.lang = getBcp47();  // lingua del dipendente
+  utt.rate = 1.0;
   utt.pitch = 1.0;
   utt.volume = 1.0;
   if (_ttsVoce) utt.voice = _ttsVoce;
+  // Ricarica voce se la lingua è cambiata dall'ultima volta
+  if (_ttsVoce && !_ttsVoce.lang.startsWith(getBcp47().split("-")[0])) {
+    ttsInit();
+    if (_ttsVoce) utt.voice = _ttsVoce;
+  }
   window.speechSynthesis.speak(utt);
 }
 
