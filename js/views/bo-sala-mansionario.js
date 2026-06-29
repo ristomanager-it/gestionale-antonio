@@ -200,9 +200,9 @@ async function uploadMedia(file, percorso) {
   const ext = file.name.split(".").pop().toLowerCase();
   const nome = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const path = `${percorso}/${nome}`;
-  const { error } = await supa().storage.from("mansionario").upload(path, file, { upsert: false });
+  const { error } = await supa().storage.from("media").upload(path, file, { upsert: false });
   if (error) throw new Error(error.message);
-  const { data } = supa().storage.from("mansionario").getPublicUrl(path);
+  const { data } = supa().storage.from("media").getPublicUrl(path);
   return data.publicUrl;
 }
 
