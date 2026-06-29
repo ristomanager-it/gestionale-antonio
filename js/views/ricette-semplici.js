@@ -143,7 +143,7 @@ async function loadRicette() {
 
 async function loadIngredienti(ricettaId) {
   const { data, error } = await supa()
-    .from("ricette_ingredienti")
+    .from("ricetta_ingredienti")
     .select("*")
     .eq("ricetta_id", ricettaId)
     .order("ordine", { ascending: true });
@@ -438,7 +438,7 @@ async function saveRicetta() {
   }
 
   await supa()
-    .from("ricette_ingredienti")
+    .from("ricetta_ingredienti")
     .delete()
     .eq("ricetta_id", ricettaId)
     .eq("azienda_id", aziendaId);
@@ -460,7 +460,7 @@ async function saveRicetta() {
   });
 
   const { error: ingError } = await supa()
-    .from("ricette_ingredienti")
+    .from("ricetta_ingredienti")
     .insert(rows);
 
   if (ingError) throw ingError;
