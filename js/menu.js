@@ -369,7 +369,7 @@ export function initMenu() {
       sections.push({
         title: "PIATTAFORMA",
         items: [
-          { label: "🖥️ Dashboard SaaS",    route: "homePiattaforma" },
+          { label: "🖥 Dashboard SaaS",    route: "homePiattaforma" },
           { label: "🏢 Gestione Aziende",  route: "gestioneAziende" },
           { label: "➕ Crea Azienda",      route: "creaAzienda"     },
           { label: "💳 Piani Abbonamento", route: "gestionePiani"   },
@@ -394,10 +394,10 @@ export function initMenu() {
       items: [
         { label: "🪑 Comande",           route: "bo-comande"         },
         { label: "📅 Prenotazioni",      route: "prenotazioni"       },
-        { label: "🗓️ Tavoli",           route: "prenotazioni-tavoli"},
+        { label: "🗓 Tavoli",           route: "prenotazioni-tavoli"},
         { label: "📑 Preventivi",        route: "preventivi"         },
         { label: "📋 Mansionario Sala",  route: "mansionario-sala"   },
-        { label: "🗺️ Mappa Sala",       route: "sala"               },
+        { label: "🗺 Mappa Sala",       route: "sala"               },
       ]
     });
 
@@ -443,7 +443,7 @@ export function initMenu() {
         title: "MARKETING & CRM",
         items: [
           { label: "📉 Analytics",          route: "bo-analytics"      },
-          { label: "🏷️ Tag & LTV",       route: "bo-tag"            },
+          { label: "🏷 Tag & LTV",       route: "bo-tag"            },
           { label: "💬 Template WhatsApp",route: "bo-template"       },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "🎁 Promo",             route: "bo-promo"          },
@@ -451,7 +451,7 @@ export function initMenu() {
           { label: "🔗 Catenarie",          route: "bo-catenarie"      },
           { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
           { label: "🤖 Chatbot",             route: "bo-chatbot"        },
-          { label: "🖼️ Media Library",       route: "bo-media"          },
+          { label: "🖼 Media Library",       route: "bo-media"          },
           { label: "🌐 Sito Web",              route: "bo-sito"           },
         ]
       });
@@ -475,9 +475,9 @@ export function initMenu() {
         title: "CONFIGURAZIONE",
         items: [
           { label: "🚀 Setup guidato",        route: "bo-onboarding"    },
-          { label: "⚙️ Impostazioni",         route: "bo-configurazione" },
+          { label: "⚙ Impostazioni",         route: "bo-configurazione" },
           { label: "🔗 Accessi Consulenti",   route: "bo-consulenti"    },
-          { label: "🖼️ Media Library",        route: "bo-media"         },
+          { label: "🖼 Media Library",        route: "bo-media"         },
         ]
       });
 
@@ -552,7 +552,7 @@ export function initMenu() {
         return [
           { label: "🔄 Cambia sede",   route: "gestione-sedi"              },
           { label: "➕ Crea sede",     route: "gestione-sedi?mode=first"   },
-          { label: "⚙️ Gestisci sedi", route: "gestione-sedi?mode=manage" },
+          { label: "⚙ Gestisci sedi", route: "gestione-sedi?mode=manage" },
         ];
       })()
     });
