@@ -245,11 +245,10 @@ async function tonyInserisciDaTestoLibero(tipo, testoOperatore) {
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) return;
 
-  // Nota: l'API Anthropic non è chiamabile direttamente dal browser (CORS).
-  // Usiamo la Edge Function Tony che usa GPT-4o-mini con response_format json_object.
-  // La EF risponde SEMPRE { "reply": "...", "action": ... }.
-  // Iniettiamo le istruzioni nel messaggio utente chiedendo JSON dentro reply,
-  // poi estraiamo l'array dal campo reply.
+  // GPT-4o-mini risponde sempre { "reply": "...", "action": ... }
+  // Il testo strutturato finisce dentro reply come stringa.
+  // Strategia: chiediamo a GPT di mettere il JSON dell'array direttamente
+  // dentro reply, poi lo estraiamo con una regex robusta.
 
   const prodottiContesto = prodottiCache.slice(0, 60)
     .map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
@@ -257,59 +256,27 @@ async function tonyInserisciDaTestoLibero(tipo, testoOperatore) {
   let prompt;
 
   if (tipo === "fasi") {
-    prompt = `TASK: struttura le seguenti istruzioni di cucina in fasi di produzione.
-Rispondi con un oggetto JSON con questa struttura ESATTA:
-{
-  "reply": "Ho strutturato le fasi.",
-  "fasi": [
-    {
-      "tipo_fase": "preparazione",
-      "descrizione_operativa": "testo istruzioni operative",
-      "durata_min": 10,
-      "lavoro_umano_min": 10,
-      "temperatura": null,
-      "tecnologia": null
-    }
-  ],
-  "action": null
-}
+    prompt = `Sei un assistente culinario. Analizza la descrizione e rispondi con questo JSON esatto:
+{"reply":"[{\"tipo_fase\":\"preparazione\",\"descrizione_operativa\":\"...\",\"durata_min\":10,\"lavoro_umano_min\":10,\"temperatura\":null,\"tecnologia\":null}]","action":null}
 
-Valori validi per tipo_fase: "preparazione", "cottura", "attesa", "raffreddamento".
-fuoco vivo = temperatura 200 e tipo cottura.
-fuoco basso/lento = temperatura 85 e tipo cottura.
-riposa/lievita/raffredda = tipo attesa o raffreddamento.
-lavoro_umano_min sempre minore o uguale a durata_min.
-Max 12 fasi.
+Il valore di reply deve essere una stringa JSON che contiene l'array delle fasi.
+tipo_fase: "preparazione" o "cottura" o "attesa" o "raffreddamento".
+fuoco vivo = temperatura 200, tipo cottura. fuoco basso = temperatura 85, tipo cottura.
+riposa/lievita = tipo attesa. raffredda = tipo raffreddamento.
+lavoro_umano_min sempre <= durata_min. Max 12 fasi.
 
-DESCRIZIONE DA STRUTTURARE:
-"` + testoOperatore + `"`;
-
+DESCRIZIONE: "` + testoOperatore + `"`;
   } else {
-    prompt = `TASK: struttura la seguente lista di ingredienti.
-Prodotti disponibili nel magazzino: ` + prodottiContesto + `
+    prompt = `Sei un assistente culinario. Analizza gli ingredienti e rispondi con questo JSON esatto:
+{"reply":"[{\"nome\":\"...\",\"nome_magazzino\":\"...\",\"quantita\":0.5,\"unita_misura\":\"kg\",\"note\":\"\"}]","action":null}
 
-Rispondi con un oggetto JSON con questa struttura ESATTA:
-{
-  "reply": "Ho strutturato gli ingredienti.",
-  "ingredienti": [
-    {
-      "nome": "nome ingrediente",
-      "nome_magazzino": "nome prodotto nel magazzino o stringa vuota",
-      "quantita": 0.5,
-      "unita_misura": "kg",
-      "note": ""
-    }
-  ],
-  "action": null
-}
+Il valore di reply deve essere una stringa JSON che contiene l'array degli ingredienti.
+Prodotti magazzino disponibili: ` + prodottiContesto + `
+unita_misura: "kg" o "g" o "pz" o "l" o "ml".
+mezzo kg=0.5kg, 200grammi=200g, q.b.=0.01kg. Solidi in kg/g, liquidi in l/ml.
+nome_magazzino: prodotto piu simile nel magazzino o stringa vuota.
 
-Valori validi per unita_misura: "kg", "g", "pz", "l", "ml".
-mezzo kg = 0.5 kg. 200 grammi = 200 g. q.b. = 0.01 kg.
-Solidi in kg o g, liquidi in l o ml.
-Per nome_magazzino cerca il prodotto piu simile nel magazzino, altrimenti stringa vuota.
-
-INGREDIENTI DA STRUTTURARE:
-"` + testoOperatore + `"`;
+INGREDIENTI: "` + testoOperatore + `"`;
   }
 
   const supa = window.supabaseClient || window.supabase;
@@ -333,27 +300,32 @@ INGREDIENTI DA STRUTTURARE:
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
 
-    // La EF risponde { reply, fasi/ingredienti, action }
-    // ma GPT potrebbe mettere tutto dentro reply come stringa JSON
-    // Proviamo entrambi i casi
-    if (tipo === "fasi") {
-      if (Array.isArray(data.fasi)) return data.fasi;
-      // Fallback: parsa reply come JSON
-      const raw = (data.reply || "").trim()
-        .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-      if (Array.isArray(parsed.fasi)) return parsed.fasi;
-      throw new Error("Nessun array fasi nella risposta");
-    } else {
-      if (Array.isArray(data.ingredienti)) return data.ingredienti;
-      const raw = (data.reply || "").trim()
-        .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-      if (Array.isArray(parsed.ingredienti)) return parsed.ingredienti;
-      throw new Error("Nessun array ingredienti nella risposta");
+    // data.reply può essere:
+    // A) una stringa JSON array: "[{...}]"
+    // B) testo con array JSON embedded
+    // C) oggetto JSON come stringa: "{\"fasi\":[...]}"
+    const replyRaw = (data.reply || "").trim();
+
+    // Funzione estrazione robusta: cerca il primo array JSON nella stringa
+    function estraiArray(testo) {
+      // Pulizia backtick
+      let s = testo.replace(/^```json\s*/i,"").replace(/^```\s*/i,"").replace(/```\s*$/i,"").trim();
+      // Caso A: è già un array
+      if (s.startsWith("[")) return JSON.parse(s);
+      // Caso B: cerca array dentro la stringa
+      const m = s.match(/\[[\s\S]*\]/);
+      if (m) return JSON.parse(m[0]);
+      // Caso C: oggetto con chiave nota
+      const obj = JSON.parse(s);
+      if (Array.isArray(obj)) return obj;
+      if (Array.isArray(obj.fasi)) return obj.fasi;
+      if (Array.isArray(obj.ingredienti)) return obj.ingredienti;
+      if (Array.isArray(obj.items)) return obj.items;
+      throw new Error("Array non trovato nella risposta");
     }
+
+    return estraiArray(replyRaw);
+
   } catch(err) {
     console.error("Tony JSON error:", err);
     throw err;
@@ -1342,8 +1314,8 @@ async function uploadFotoRicetta(file) {
     });
 
   if (uploadError) {
-    console.error(uploadError);
-    alert("Errore upload foto ricetta.");
+    // Bucket "ricette" non ancora creato su Supabase Storage — skip silenzioso
+    console.warn("Upload foto ricetta non disponibile:", uploadError.message);
     return null;
   }
 
