@@ -229,9 +229,8 @@ async function apriEditor(id = null) {
   editingId = id;
   fasiLocali = [];
 
-  const panel = document.getElementById("ms-editor-panel");
   const overlay = document.getElementById("ms-editor-overlay");
-  if (!panel || !overlay) return;
+  if (!overlay) return;
 
   // Reset form
   document.getElementById("ms-f-nome").value = "";
