@@ -332,6 +332,288 @@ INGREDIENTI: "` + testoOperatore + `"`;
   }
 }
 
+
+/* ============================================================
+   🤖 TONY UNIVERSALE — modal vocale/testo per ogni sezione
+   apriModalTony(sezione) dove sezione è:
+   "anagrafica" | "output" | "porzionature" | "conservazione" | "coprodotti"
+   (fasi e ingredienti hanno già i loro modal dedicati)
+============================================================ */
+
+const TONY_SEZIONI = {
+  anagrafica: {
+    titolo: "Anagrafica ricetta",
+    esempio: 'Es: "Ragù bolognese, piatto finito, categoria secondi, attrezzatura pentola grande, resa 3 kg, descrizione ragù tradizionale con cottura lenta"',
+    prompt: (testo) => `Sei un assistente culinario. Estrai i dati anagrafici da questa descrizione e rispondi con JSON esatto:
+{"reply":{"nome":"","tipo_ricetta":"base o finita","categoria_portata":"nome categoria o stringa vuota","attrezzatura":"","pezzi_base":null,"descrizione":"","note_procedimento":""},"action":null}
+tipo_ricetta: "finita" per piatti da menu, "base" per semilavorati/preparazioni.
+DESCRIZIONE: "${testo}"`
+  },
+  output: {
+    titolo: "Output / Resa finale",
+    esempio: 'Es: "resa 2.5 kg di ragù finito" oppure "produce 20 porzioni da 150g"',
+    prompt: (testo, prodottiCtx) => `Sei un assistente culinario. Estrai i dati di output/resa e rispondi con JSON esatto:
+{"reply":{"prodotto_nome":"nome del prodotto finito","peso_finale":0.0,"unita_misura":"kg o g o pz o l o ml"},"action":null}
+Prodotti magazzino disponibili: ${prodottiCtx}
+DESCRIZIONE: "${testo}"`
+  },
+  porzionature: {
+    titolo: "Porzionature",
+    esempio: 'Es: "ristorante 180g, evento 120g, trattoria 220g" oppure "vasetto 250g per asporto"',
+    prompt: (testo) => `Sei un assistente culinario. Estrai le porzionature e rispondi con JSON esatto:
+{"reply":[{"label":"nome contesto porzione","peso_porzione":180,"unita_misura":"g o kg o pz o ml","note":""}],"action":null}
+Il valore di reply deve essere un array di porzionature.
+DESCRIZIONE: "${testo}"`
+  },
+  conservazione: {
+    titolo: "Conservazione",
+    esempio: 'Es: "abbattimento a +3 gradi per 2 ore poi frigo 0/+3 per 5 giorni, oppure abbattimento a -18 e freezer per 90 giorni"',
+    prompt: (testo) => `Sei un assistente culinario. Estrai gli scenari di conservazione e rispondi con JSON esatto:
+{"reply":[{"scenario_label":"nome scenario es Frigo +3","shelf_life_giorni":5,"note":"","passaggi":[{"tipo_passaggio":"abbattimento o raffreddamento o sottovuoto o stoccaggio o congelamento o confezionamento","titolo":"","temperatura_c":null,"durata_min":null,"attrezzatura":"","descrizione_operativa":""}]}],"action":null}
+Il valore di reply deve essere un array di scenari, ognuno con il suo array di passaggi.
+DESCRIZIONE: "${testo}"`
+  },
+  coprodotti: {
+    titolo: "Coprodotti / Scarti nobili",
+    esempio: 'Es: "fondo bruno 1.2 kg, grasso filtrato 400g, ritagli di carne 600g"',
+    prompt: (testo, prodottiCtx) => `Sei un assistente culinario. Estrai i coprodotti e rispondi con JSON esatto:
+{"reply":[{"prodotto_nome":"nome prodotto","peso":1.2,"unita_misura":"kg o g o pz o l","metodo_allocazione":"peso"}],"action":null}
+Il valore di reply deve essere un array di coprodotti.
+Prodotti magazzino: ${prodottiCtx}
+DESCRIZIONE: "${testo}"`
+  }
+};
+
+async function tonyChiamaEF(prompt) {
+  const aziendaId = window.state?.azienda?.id;
+  const supa = window.supabaseClient || window.supabase;
+  const sessionData = await supa.auth.getSession();
+  const token = sessionData?.data?.session?.access_token || "";
+  const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json",
+      "Authorization": "Bearer " + token, "apikey": token },
+    body: JSON.stringify({ azienda_id: aziendaId,
+      messages: [{ role: "user", content: prompt }] })
+  });
+  if (!resp.ok) throw new Error("HTTP " + resp.status);
+  return await resp.json();
+}
+
+function tonyEstraiReply(data) {
+  const raw = (data.reply || "").trim()
+    .replace(/^```json\s*/i,"").replace(/^```\s*/i,"").replace(/```\s*$/i,"").trim();
+  const parsed = JSON.parse(raw);
+  // reply può essere l'oggetto diretto, un array, o dentro .reply
+  if (Array.isArray(parsed)) return parsed;
+  if (parsed && typeof parsed === "object") {
+    if (parsed.reply !== undefined) return parsed.reply;
+    return parsed;
+  }
+  return parsed;
+}
+
+function apriModalTony(sezione) {
+  const cfg = TONY_SEZIONI[sezione];
+  if (!cfg) return;
+
+  const prodottiCtx = prodottiCache.slice(0,60)
+    .map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
+
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:24px;box-shadow:0 -8px 40px rgba(0,0,0,0.2);max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="font-size:26px;">🤖</span>
+        <div>
+          <div style="font-weight:700;font-size:16px;">Tony AI — ${cfg.titolo}</div>
+          <div style="font-size:12px;color:#6b7280;">Descrivi a voce o per testo</div>
+        </div>
+      </div>
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#0369a1;">
+        💡 ${cfg.esempio}
+      </div>
+      <textarea id="tony-uni-input" placeholder="Scrivi qui oppure usa il vocale..." 
+        style="width:100%;box-sizing:border-box;height:110px;border:2px solid #e5e7eb;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;resize:vertical;font-family:inherit;outline:none;"></textarea>
+      <div id="tony-uni-status" style="font-size:13px;min-height:18px;margin:8px 0;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="tony-uni-mic" type="button"
+          style="background:#f3f4f6;color:#374151;border:none;border-radius:12px;padding:12px 16px;font-size:14px;cursor:pointer;">
+          🎤 Vocale
+        </button>
+        <button id="tony-uni-go" type="button"
+          style="flex:1;background:#0E5A7A;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">
+          🚀 Compila con Tony
+        </button>
+        <button id="tony-uni-close" type="button"
+          style="background:#f3f4f6;color:#374151;border:none;border-radius:12px;padding:14px 18px;font-size:15px;cursor:pointer;">✕</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  const textarea = overlay.querySelector("#tony-uni-input");
+  const status   = overlay.querySelector("#tony-uni-status");
+  const btnGo    = overlay.querySelector("#tony-uni-go");
+  const btnMic   = overlay.querySelector("#tony-uni-mic");
+  const btnClose = overlay.querySelector("#tony-uni-close");
+
+  textarea.focus();
+  btnClose.onclick = () => overlay.remove();
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  // 🎤 Vocale
+  btnMic.onclick = async () => {
+    if (!_tonyMicRecording) {
+      await tonyStartMic(btnMic, status);
+    } else {
+      btnGo.disabled = true; btnMic.disabled = true;
+      const audio = await tonyStopMic(btnMic);
+      if (!audio) { status.innerHTML = '<span style="color:#dc2626;">❌ Audio non registrato</span>'; btnGo.disabled=false; btnMic.disabled=false; return; }
+      status.innerHTML = '<span style="color:#0E5A7A;">⏳ Trascrizione...</span>';
+      try {
+        // Per la trascrizione audio inviamo audio_base64 direttamente
+        const supa2 = window.supabaseClient || window.supabase;
+        const s2 = await supa2.auth.getSession();
+        const tok2 = s2?.data?.session?.access_token || "";
+        const r2 = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+          method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+tok2,"apikey":tok2},
+          body: JSON.stringify({ azienda_id: window.state?.azienda?.id, audio_base64: audio, messages:[{role:"user",content:"trascrivi"}] })
+        });
+        const efData = r2.ok ? await r2.json() : { voice_input: "" };
+        // La EF con audio restituisce voice_input
+        const trascritto = efData.voice_input || "";
+        if (trascritto) { textarea.value = trascritto; status.innerHTML = '<span style="color:#16a34a;">✍️ Trascritto — premi Compila</span>'; }
+        else { status.innerHTML = '<span style="color:#f59e0b;">⚠️ Trascrizione vuota — riprova o scrivi</span>'; }
+      } catch(e) { status.innerHTML = '<span style="color:#dc2626;">❌ ' + e.message + '</span>'; }
+      btnGo.disabled=false; btnMic.disabled=false;
+    }
+  };
+
+  // 🚀 Compila
+  btnGo.onclick = async () => {
+    const testo = textarea.value.trim();
+    if (!testo) return;
+    btnGo.disabled = true;
+    btnGo.textContent = "⏳ Tony sta pensando...";
+    status.innerHTML = '<span style="color:#0E5A7A;">Analisi in corso...</span>';
+    try {
+      const prompt = typeof cfg.prompt === "function"
+        ? cfg.prompt(testo, prodottiCtx)
+        : cfg.prompt;
+      const data = await tonyChiamaEF(prompt);
+      const result = tonyEstraiReply(data);
+      await tonyApplicaSezione(sezione, result, overlay, status);
+    } catch(e) {
+      status.innerHTML = '<span style="color:#dc2626;">❌ ' + e.message + ' — riprova</span>';
+      btnGo.disabled=false; btnGo.textContent="🚀 Compila con Tony";
+    }
+  };
+}
+
+async function tonyApplicaSezione(sezione, result, overlay, status) {
+  if (sezione === "anagrafica") {
+    const d = result;
+    if (d.nome) setVal("r-nome", d.nome);
+    if (d.tipo_ricetta) {
+      setVal("r-tipo", d.tipo_ricetta);
+      const wrap = document.getElementById("categoria-wrapper");
+      if (wrap) wrap.style.display = d.tipo_ricetta === "finita" ? "" : "none";
+    }
+    if (d.attrezzatura) setVal("r-attrezzatura", d.attrezzatura);
+    if (d.pezzi_base) setVal("r-pezzi-base", d.pezzi_base);
+    if (d.descrizione) setVal("r-descrizione", d.descrizione);
+    if (d.note_procedimento) setVal("r-note-proc", d.note_procedimento);
+    // Categoria portata: cerca o crea
+    if (d.categoria_portata && d.tipo_ricetta === "finita") {
+      const catInput = document.getElementById("r-categoria-search");
+      const catHidden = document.getElementById("r-categoria-id");
+      if (catInput) catInput.value = d.categoria_portata;
+      // Cerca nella cache locale
+      const found = categoriePortataCache.find(c =>
+        (c.nome||"").toLowerCase() === d.categoria_portata.toLowerCase());
+      if (found && catHidden) catHidden.value = found.id;
+    }
+    status.innerHTML = '<span style="color:#16a34a;">✅ Anagrafica compilata!</span>';
+    setTimeout(() => overlay.remove(), 1200);
+
+  } else if (sezione === "output") {
+    const d = result;
+    if (d.peso_finale) setVal("r-output-peso", d.peso_finale);
+    if (d.unita_misura) setVal("r-output-um", d.unita_misura);
+    // Cerca prodotto output nel magazzino
+    if (d.prodotto_nome) {
+      const candidati = trovaProdottiSimili(d.prodotto_nome, 1);
+      const match = candidati.length > 0 && candidati[0].score >= 50 ? candidati[0].prodotto : null;
+      const outSearch = document.getElementById("r-output-search");
+      const outHidden = document.getElementById("r-output-id");
+      if (outSearch) outSearch.value = match ? (match.descrizione||match.nome||d.prodotto_nome) : d.prodotto_nome;
+      if (outHidden && match) outHidden.value = match.id;
+    }
+    aggiornaOutputInfo();
+    status.innerHTML = '<span style="color:#16a34a;">✅ Output compilato!</span>';
+    setTimeout(() => overlay.remove(), 1200);
+
+  } else if (sezione === "porzionature") {
+    const arr = Array.isArray(result) ? result : [result];
+    const container = document.getElementById("porzioni-container");
+    if (container) container.innerHTML = "";
+    arr.forEach(p => aggiungiPorzione({
+      label: p.label || "",
+      peso_porzione: p.peso_porzione || p.peso || 0,
+      unita_misura: p.unita_misura || "g",
+      note: p.note || ""
+    }));
+    status.innerHTML = `<span style="color:#16a34a;">✅ ${arr.length} porzionatura/e compilata/e!</span>`;
+    setTimeout(() => overlay.remove(), 1200);
+
+  } else if (sezione === "conservazione") {
+    const arr = Array.isArray(result) ? result : [result];
+    const container = document.getElementById("conservazione-container");
+    if (container) container.innerHTML = "";
+    arr.forEach(sc => {
+      const passaggi = Array.isArray(sc.passaggi) ? sc.passaggi : [];
+      aggiungiScenarioConservazione({
+        scenario_label: sc.scenario_label || sc.label || "",
+        shelf_life_giorni: sc.shelf_life_giorni || sc.shelf_life || null,
+        note: sc.note || "",
+        attivo: true
+      }, passaggi.map((p, idx) => ({
+        posizione: idx + 1,
+        tipo_passaggio: p.tipo_passaggio || "altro",
+        titolo: p.titolo || p.tipo_passaggio || "",
+        temperatura_c: p.temperatura_c || null,
+        durata_min: p.durata_min || null,
+        attrezzatura: p.attrezzatura || "",
+        descrizione_operativa: p.descrizione_operativa || ""
+      })));
+    });
+    status.innerHTML = `<span style="color:#16a34a;">✅ ${arr.length} scenario/i compilato/i!</span>`;
+    setTimeout(() => overlay.remove(), 1200);
+
+  } else if (sezione === "coprodotti") {
+    const arr = Array.isArray(result) ? result : [result];
+    const container = document.getElementById("output-secondari-container");
+    if (container) container.innerHTML = "";
+    arr.forEach(c => {
+      const candidati = trovaProdottiSimili(c.prodotto_nome || "", 1);
+      const match = candidati.length > 0 && candidati[0].score >= 50 ? candidati[0].prodotto : null;
+      aggiungiOutputSecondario({
+        prodotto_id: match?.id ?? "",
+        nome_prodotto: match?.descrizione || c.prodotto_nome || "",
+        peso: c.peso || 0,
+        unita_misura: c.unita_misura || "kg",
+        metodo_allocazione: c.metodo_allocazione || "peso"
+      });
+    });
+    status.innerHTML = `<span style="color:#16a34a;">✅ ${arr.length} coprodotto/i compilato/i!</span>`;
+    setTimeout(() => overlay.remove(), 1200);
+  }
+}
+
+
 function apriModalTonyFasi() {
   const overlay = document.createElement("div");
   overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0;";
@@ -828,6 +1110,12 @@ export async function render(app) {
             </div>
 
           </div>
+          <div style="margin-top:12px;">
+            <button id="btn-tony-anagrafica" type="button"
+              style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+              🤖 Compila anagrafica con Tony
+            </button>
+          </div>
         `
       })}
 
@@ -895,6 +1183,12 @@ export async function render(app) {
             </div>
 
           </div>
+          <div style="margin-top:10px;">
+            <button id="btn-tony-output" type="button"
+              style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+              🤖 Compila resa con Tony
+            </button>
+          </div>
         `
       })}
 
@@ -924,11 +1218,16 @@ export async function render(app) {
         body: `
           <div id="porzioni-container"></div>
 
-          <div class="form-actions">
+          <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-tony-porzionature" type="button"
+              class="app-button"
+              style="background:#0E5A7A;display:flex;align-items:center;gap:6px;">
+              🤖 Detta a Tony
+            </button>
             <button id="btn-add-porzione"
               class="app-button secondary"
               type="button">
-              + Aggiungi porzione
+              + Aggiungi manuale
             </button>
           </div>
         `
@@ -939,11 +1238,16 @@ export async function render(app) {
         body: `
           <div id="conservazione-container"></div>
 
-          <div class="form-actions">
+          <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-tony-conservazione" type="button"
+              class="app-button"
+              style="background:#0E5A7A;display:flex;align-items:center;gap:6px;">
+              🤖 Detta a Tony
+            </button>
             <button id="btn-add-conservazione"
               class="app-button secondary"
               type="button">
-              + Aggiungi scenario
+              + Aggiungi manuale
             </button>
           </div>
         `
@@ -954,11 +1258,16 @@ export async function render(app) {
         body: `
           <div id="output-secondari-container"></div>
 
-          <div class="form-actions">
+          <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-tony-coprodotti" type="button"
+              class="app-button"
+              style="background:#0E5A7A;display:flex;align-items:center;gap:6px;">
+              🤖 Detta a Tony
+            </button>
             <button id="btn-add-out2"
               class="app-button secondary"
               type="button">
-              + Aggiungi coprodotto
+              + Aggiungi manuale
             </button>
           </div>
         `
@@ -3037,9 +3346,14 @@ function bindUI() {
     lavoro_umano_min: 0
   })
 );
-  // 🤖 Tony AI
+  // 🤖 Tony AI — tutte le sezioni
   safeOn("btn-tony-fasi", "click", () => apriModalTonyFasi());
   safeOn("btn-tony-ing", "click", () => apriModalTonyIngredienti());
+  safeOn("btn-tony-anagrafica", "click", () => apriModalTony("anagrafica"));
+  safeOn("btn-tony-output", "click", () => apriModalTony("output"));
+  safeOn("btn-tony-porzionature", "click", () => apriModalTony("porzionature"));
+  safeOn("btn-tony-conservazione", "click", () => apriModalTony("conservazione"));
+  safeOn("btn-tony-coprodotti", "click", () => apriModalTony("coprodotti"));
   safeOn("btn-add-conservazione", "click", () => aggiungiScenarioConservazione());
   safeOn("btn-add-porzione", "click", () => aggiungiPorzione());
   safeOn("btn-salva", "click", () => salvaTutto());
