@@ -201,145 +201,102 @@ async function tonyTrascriviEInvia(tipo, audioBase64, statusEl, btnEl) {
   const sessionData = await supa.auth.getSession();
   const token = sessionData?.data?.session?.access_token || "";
 
-  if (statusEl) statusEl.innerHTML = `<span style="color:#0E5A7A;">⏳ Tony sta trascrivendo e analizzando...</span>`;
+  if (statusEl) statusEl.innerHTML = '<span style="color:#0E5A7A;">⏳ Trascrizione in corso...</span>';
 
-  // Costruisce lista prodotti per il contesto
-  const prodottiContesto = prodottiCache.slice(0, 80)
-    .map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
-
-  const systemPrompt = tipo === "fasi"
-    ? `Sei un assistente culinario. L'operatore sta descrivendo a voce le fasi di una ricetta.
-Trascrivi e struttura in JSON array. Ogni elemento: { tipo_fase, descrizione_operativa, durata_min, lavoro_umano_min, temperatura, tecnologia }.
-Rispondi SOLO JSON, nessun testo extra.`
-    : `Sei un assistente culinario. L'operatore sta elencando a voce gli ingredienti.
-Prodotti magazzino: ${prodottiContesto}
-Struttura in JSON array. Ogni elemento: { nome, nome_magazzino, quantita, unita_misura, note }.
-Rispondi SOLO JSON, nessun testo extra.`;
-
+  // STEP 1: invia audio alla Edge Function Tony per trascrizione (Whisper)
+  // La EF risponde con { voice_input: "testo trascritto", reply: "risposta Tony", ... }
+  let trascrizione = "";
   try {
     const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
+        "Authorization": "Bearer " + token,
         "apikey": token
       },
       body: JSON.stringify({
         azienda_id: aziendaId,
         audio_base64: audioBase64,
-        system_override: systemPrompt,
-        modalita: "json_only"
+        messages: [{ role: "user", content: "trascrivi" }]
       })
     });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-
-    // La Edge Function restituisce voice_input (testo trascritto) + reply (JSON strutturato)
-    const trascrizione = data.voice_input || "";
-    const rawJson = data.reply || "";
-    const clean = rawJson.trim().replace(/^```json\s*/i,"").replace(/^```\s*/i,"").replace(/```\s*$/i,"").trim();
-    const parsed = JSON.parse(clean);
-
-    return { trascrizione, parsed };
-  } catch(err) {
-    throw err;
+    if (resp.ok) {
+      const data = await resp.json();
+      trascrizione = data.voice_input || "";
+    }
+  } catch(e) {
+    console.warn("Trascrizione EF fallita, procedo senza:", e);
   }
+
+  if (!trascrizione) {
+    throw new Error("Trascrizione audio non riuscita. Prova a usare il campo testo.");
+  }
+
+  if (statusEl) statusEl.innerHTML = '<span style="color:#0E5A7A;">✍️ Tony sta strutturando: <em>' + trascrizione.substring(0, 60) + '...</em></span>';
+
+  // STEP 2: struttura il testo trascritto con API Anthropic
+  const parsed = await tonyInserisciDaTestoLibero(tipo, trascrizione);
+
+  return { trascrizione, parsed };
 }
+
 
 async function tonyInserisciDaTestoLibero(tipo, testoOperatore) {
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) return;
 
-  // Costruisce lista prodotti per il contesto (solo nomi, max 80)
-  const prodottiContesto = prodottiCache.slice(0, 80).map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
+  // Usa API Anthropic direttamente per strutturare JSON.
+  // La Edge Function Tony (GPT-4o-mini) risponde sempre con { reply, action }
+  // e non accetta system_override — quindi la chiamiamo solo per audio.
+  const prodottiContesto = prodottiCache.slice(0, 80)
+    .map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
 
-  let systemPrompt = "";
-  let userPrompt = "";
+  let systemPrompt, userPrompt;
 
   if (tipo === "fasi") {
-    systemPrompt = `Sei un assistente culinario professionale per un gestionale di ristorazione italiana.
-Il tuo compito: analizzare una descrizione di ricetta in linguaggio naturale e restituire le FASI DI PRODUZIONE strutturate.
-Rispondi SOLO con un array JSON valido, senza testo aggiuntivo, senza markdown, senza backtick.
+    systemPrompt = "Sei un assistente culinario professionale per ristorazione italiana.\n" +
+      "Analizza la descrizione e restituisci SOLO un array JSON con le fasi di produzione.\n" +
+      "Nessun testo extra, nessun markdown, nessun backtick - SOLO l'array JSON.\n\n" +
+      "Struttura di ogni oggetto:\n" +
+      '{"tipo_fase":"preparazione|cottura|attesa|raffreddamento",' +
+      '"descrizione_operativa":"istruzioni in italiano professionale all\'imperativo",' +
+      '"durata_min":0,"lavoro_umano_min":0,"temperatura":null,"tecnologia":null}\n\n' +
+      "Regole: fuoco vivo=200gradi cottura, fuoco basso=85gradi cottura, riposa/lievita=attesa. Max 12 fasi.";
 
-Struttura di ogni fase:
-{
-  "tipo_fase": "preparazione" | "cottura" | "attesa" | "raffreddamento",
-  "descrizione_operativa": "Istruzioni chiare e professionali per l'operatore (2-4 frasi)",
-  "durata_min": numero intero (minuti totali della fase, 0 se non specificato),
-  "lavoro_umano_min": numero intero (minuti di lavoro attivo operatore, <= durata_min),
-  "temperatura": numero o null (gradi Celsius se specificato),
-  "tecnologia": "attrezzatura usata o null"
-}
+    userPrompt = 'Descrizione ricetta:\n"' + testoOperatore + '"\n\nRestituisci SOLO l\'array JSON delle fasi.';
 
-Regole:
-- Se l'operatore dice "fuoco vivo" → temperatura ~200, cottura
-- Se dice "fuoco basso/lento" → temperatura ~80-90, cottura  
-- Se dice "lascia riposare/lievitare/raffreddare" → tipo attesa o raffreddamento
-- lavoro_umano_min deve essere sempre ≤ durata_min
-- Massimo 12 fasi
-- Descrizione operativa: sempre in italiano professionale, imperativo ("Soffriggete", "Aggiungete")`;
+  } else {
+    systemPrompt = "Sei un assistente culinario professionale per ristorazione italiana.\n" +
+      "Analizza la lista ingredienti e restituisci SOLO un array JSON.\n" +
+      "Nessun testo extra, nessun markdown, nessun backtick - SOLO l'array JSON.\n\n" +
+      "Prodotti disponibili nel magazzino: " + prodottiContesto + "\n\n" +
+      "Struttura di ogni oggetto:\n" +
+      '{"nome":"nome come scritto","nome_magazzino":"nome piu simile nel magazzino o stringa vuota",' +
+      '"quantita":0.5,"unita_misura":"kg|g|pz|l|ml","note":""}\n\n' +
+      "Regole: mezzo kg=0.5, 200grammi=200g, q.b.=0.01kg. Solidi in kg/g, liquidi in l/ml.";
 
-    userPrompt = `Analizza questa descrizione di ricetta e restituisci le fasi strutturate:
-
-"${testoOperatore}"`;
-
-  } else if (tipo === "ingredienti") {
-    systemPrompt = `Sei un assistente culinario professionale per un gestionale di ristorazione italiana.
-Il tuo compito: analizzare una descrizione di ingredienti in linguaggio naturale e restituire la lista strutturata.
-Rispondi SOLO con un array JSON valido, senza testo aggiuntivo, senza markdown, senza backtick.
-
-Prodotti disponibili nel magazzino: ${prodottiContesto}
-
-Struttura di ogni ingrediente:
-{
-  "nome": "nome dell'ingrediente come scritto dall'operatore",
-  "nome_magazzino": "nome più simile trovato nel magazzino, o stringa vuota se non trovato",
-  "quantita": numero (es. 0.5, 200, 1),
-  "unita_misura": "kg" | "g" | "pz" | "l" | "ml",
-  "note": "note aggiuntive o stringa vuota"
-}
-
-Regole:
-- Converti sempre le quantità in numeri (es. "mezzo kg" → 0.5, "200 grammi" → 200)
-- "q.b." → quantita: 0.01, unita_misura: "kg"
-- Preferisci kg/g per solidi, l/ml per liquidi
-- Cerca la corrispondenza più vicina nel magazzino (ignora maiuscole, varianti)
-- Se non trovi nel magazzino, lascia nome_magazzino come stringa vuota`;
-
-    userPrompt = `Analizza questi ingredienti e restituisci la lista strutturata:
-
-"${testoOperatore}"`;
+    userPrompt = 'Ingredienti:\n"' + testoOperatore + '"\n\nRestituisci SOLO l\'array JSON.';
   }
 
   try {
-    const supa = window.supabaseClient || window.supabase;
-    const sessionData = await supa.auth.getSession();
-    const token = sessionData?.data?.session?.access_token || "";
-
-    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-        "apikey": token
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        azienda_id: aziendaId,
-        messaggio: userPrompt,
-        system_override: systemPrompt,
-        modalita: "json_only"
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }]
       })
     });
 
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
-    const rawText = data.reply || data.risposta || "";
-
-    // Pulizia JSON (rimuovi eventuali backtick residui)
-    const clean = rawText.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    const rawText = (data.content?.[0]?.text || "").trim();
+    const clean = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
     return JSON.parse(clean);
   } catch(err) {
-    console.error("Tony AI error:", err);
+    console.error("Tony JSON error:", err);
     throw err;
   }
 }
