@@ -772,13 +772,7 @@ async function sendVoiceMessage() {
     conversation.push({ role: "assistant", content: reply });
     ttsParla(reply);
 
-    // Conversazione continua: riavvia mic automaticamente dopo la risposta vocale
-    if (_ttsAttivo) {
-      const attesaLettura = Math.min(reply.length * 60, 8000); // stima durata lettura
-      setTimeout(async () => {
-        if (_ttsAttivo) await startRecording();
-      }, attesaLettura + 500);
-    }
+    // Conversazione continua gestita dentro ttsParla via audio.onended
 
     if (data?.action?.type === "crea_ricetta" && data?.action_executed) {
       setTimeout(() => {
@@ -986,47 +980,43 @@ async function sendMessageSilent(hiddenPrompt) {
    Nessuna libreria, nessuna chiamata esterna.
 ============================================================ */
 
+/* ============================================================
+   🔊 TTS con OpenAI — Tony parla con voce naturale
+   Chiama la Edge Function assistente-ai con tipo_messaggio="tts"
+   che usa openai.audio.speech.create() e restituisce audio base64.
+   Fallback su SpeechSynthesis se la EF non risponde.
+============================================================ */
+
 let _ttsAttivo = false;
-let _ttsVoce = null;
+let _ttsAudio = null;  // HTMLAudioElement corrente
 
-
-// Mappa lingua_preferita → BCP-47 per SpeechSynthesis e TTS
-const LINGUA_BCP47 = {
-  it: "it-IT", en: "en-GB", es: "es-ES", ro: "ro-RO",
-  ar: "ar-SA", zh: "zh-CN", fr: "fr-FR", de: "de-DE",
-  pt: "pt-BR", pl: "pl-PL", uk: "uk-UA", sq: "sq-AL"
+// Voce OpenAI assegnata al dipendente (default: nova — la più naturale)
+const OPENAI_VOCI = {
+  nova:    { label: "Nova — voce femminile calda", emoji: "🎙️" },
+  alloy:   { label: "Alloy — voce neutra bilanciata", emoji: "🎙️" },
+  echo:    { label: "Echo — voce maschile profonda", emoji: "🎙️" },
+  fable:   { label: "Fable — voce espressiva", emoji: "🎙️" },
+  onyx:    { label: "Onyx — voce maschile autorevole", emoji: "🎙️" },
+  shimmer: { label: "Shimmer — voce femminile vivace", emoji: "🎙️" },
 };
 
-function getLinguaDipendente() {
-  return window.state?.dipendente?.lingua_preferita || "it";
+function getTtsVoice() {
+  return window.state?.dipendente?.voce_tony
+    || window.state?.user?.user_metadata?.voce_tony
+    || "nova";
 }
 
-function getBcp47() {
-  return LINGUA_BCP47[getLinguaDipendente()] || "it-IT";
-}
+async function ttsParla(testo) {
+  if (!_ttsAttivo || !testo) return;
 
-function ttsInit() {
-  if (!window.speechSynthesis) return;
-  const caricaVoce = () => {
-    const voci = window.speechSynthesis.getVoices();
-    const bcp = getBcp47();
-    const lang2 = bcp.split("-")[0];
-    _ttsVoce =
-      voci.find(v => v.lang === bcp && v.localService) ||
-      voci.find(v => v.lang === bcp) ||
-      voci.find(v => v.lang.startsWith(lang2)) ||
-      voci[0] || null;
-  };
-  caricaVoce();
-  if (window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = caricaVoce;
+  // Ferma audio precedente
+  if (_ttsAudio) {
+    _ttsAudio.pause();
+    _ttsAudio = null;
   }
-}
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
 
-function ttsParla(testo) {
-  if (!_ttsAttivo || !window.speechSynthesis || !testo) return;
-  window.speechSynthesis.cancel();
-
+  // Pulizia testo
   const pulito = testo
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
@@ -1037,25 +1027,66 @@ function ttsParla(testo) {
     .replace(/\n/g, " ")
     .replace(/\u20ac/g, "euro")
     .replace(/\s{2,}/g, " ")
-    .replace(/[^\w\s.,;:!?'()-]/g, " ")
     .trim();
 
   if (!pulito) return;
   const testoBreve = pulito.length > 1500 ? pulito.substring(0, 1497) + "..." : pulito;
 
+  // Prova prima con OpenAI via Edge Function
+  try {
+    const supa = window.supabaseClient || window.supabase;
+    const s = await supa.auth.getSession();
+    const token = s?.data?.session?.access_token || "";
+
+    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json",
+        "Authorization": "Bearer " + token, "apikey": token },
+      body: JSON.stringify({
+        azienda_id: window.state?.azienda?.id,
+        tipo_messaggio: "tts",
+        tts_testo: testoBreve,
+        tts_voce: getTtsVoice(),
+        messages: []
+      })
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.audio_base64) {
+        // Riproduce l'audio base64 ricevuto
+        const audio = new Audio("data:audio/mp3;base64," + data.audio_base64);
+        _ttsAudio = audio;
+        audio.play();
+        // Dopo la riproduzione riavvia mic se in modalità conversazione continua
+        audio.onended = () => {
+          _ttsAudio = null;
+          if (_ttsAttivo && _ttsConversazioneContinua) {
+            setTimeout(() => { if (_ttsAttivo) startRecording(); }, 400);
+          }
+        };
+        return;
+      }
+    }
+  } catch(e) {
+    console.warn("TTS OpenAI fallito, uso SpeechSynthesis:", e.message);
+  }
+
+  // Fallback: SpeechSynthesis browser
+  if (!window.speechSynthesis) return;
   const utt = new SpeechSynthesisUtterance(testoBreve);
-  utt.lang = getBcp47();  // lingua del dipendente
+  utt.lang = "it-IT";
   utt.rate = 1.0;
   utt.pitch = 1.0;
-  utt.volume = 1.0;
-  if (_ttsVoce) utt.voice = _ttsVoce;
-  // Ricarica voce se la lingua è cambiata dall'ultima volta
-  if (_ttsVoce && !_ttsVoce.lang.startsWith(getBcp47().split("-")[0])) {
-    ttsInit();
-    if (_ttsVoce) utt.voice = _ttsVoce;
-  }
   window.speechSynthesis.speak(utt);
+  utt.onend = () => {
+    if (_ttsAttivo && _ttsConversazioneContinua) {
+      setTimeout(() => { if (_ttsAttivo) startRecording(); }, 400);
+    }
+  };
 }
+
+let _ttsConversazioneContinua = false;
 
 function ttsToggle() {
   _ttsAttivo = !_ttsAttivo;
@@ -1066,10 +1097,18 @@ function ttsToggle() {
   btn.setAttribute("aria-pressed", _ttsAttivo ? "true" : "false");
   btn.textContent = _ttsAttivo ? "🔊" : "🔇";
   setTimeout(() => { btn.textContent = "🔊"; }, 1000);
-  if (!_ttsAttivo && window.speechSynthesis) window.speechSynthesis.cancel();
-  if (_ttsAttivo) ttsParla("Voce attivata. Sono pronto.");
+  if (!_ttsAttivo) {
+    if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio = null; }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  } else {
+    ttsParla("Voce attivata. Sono pronto.");
+  }
 }
 
+function ttsInit() {
+  // Non serve più inizializzare voci browser — usiamo OpenAI
+  // Manteniamo la funzione per compatibilità
+}
 
 function initChat(ruolo) {
   const input = document.getElementById("chat-input");
@@ -1156,7 +1195,7 @@ function initChat(ruolo) {
 
   if (mic) {
     mic.onclick = async () => {
-      if (!isRecording) await startRecording();
+      if (!isRecording) { _ttsConversazioneContinua = true; await startRecording(); }
       else await sendVoiceMessage();
     };
   }
