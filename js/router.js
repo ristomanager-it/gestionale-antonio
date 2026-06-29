@@ -129,7 +129,9 @@ const routes = {
   manuale: () => import("./views/manuale.js"),
 
   sala: () => import("./views/sala.js"),
-  "mansionario-sala": () => import("./views/bo-sala-mansionario.js"),
+  "mansionario-sala":      () => import("./views/bo-sala-mansionario.js"),
+  "mansionario-operatore": () => import("./views/mansionario-operatore.js"),
+  "mansionario-controllo": () => import("./views/mansionario-controllo.js"),
 
   "prenotazione-online": () => import("./views/prenotazioni/prenotazione-online.js"),
   "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
@@ -488,6 +490,8 @@ function hasPermission(area) {
       // HR personale
       "hr-richieste",
       "hr-documenti-me",
+
+      "mansionario-operatore",
 
       "ai"
 
