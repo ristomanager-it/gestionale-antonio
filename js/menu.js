@@ -26,7 +26,7 @@ export function initMenu() {
       `;
       waBtn.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.964-1.418A9.954 9.954 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.946 7.946 0 01-4.073-1.115l-.292-.173-3.024.865.852-3.114-.19-.302A7.96 7.96 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8zm4.406-5.884c-.241-.121-1.428-.704-1.649-.785-.221-.08-.382-.12-.543.12-.16.242-.622.786-.763.947-.14.162-.281.182-.522.061-.241-.121-1.018-.375-1.939-1.197-.716-.64-1.2-1.43-1.341-1.671-.14-.242-.015-.372.106-.493.108-.108.241-.282.362-.422.12-.141.16-.242.241-.403.08-.161.04-.302-.02-.423-.06-.12-.543-1.309-.744-1.792-.196-.47-.395-.406-.543-.414l-.463-.008a.888.888 0 00-.643.302c-.221.242-.844.824-.844 2.01 0 1.186.864 2.332.984 2.493.121.16 1.7 2.596 4.12 3.641.576.248 1.025.396 1.374.507.577.184 1.103.158 1.518.096.463-.069 1.428-.584 1.629-1.148.2-.563.2-1.046.14-1.147-.06-.1-.221-.16-.462-.282z"/>
+          <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.964-1.418A9.954 9.954 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.946 7.946 0 01-4.073-1.115l-.292-.173-3.024.865.852-3.114-.19-.302A7.96 7.96 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8zm4.406-5.884c-.241-.121-1.428-.704-1.649-.785-.221-.08-.382-.12-.543.12-.16.242-.622.786-.763.947-.14.162-.281.182-.522.061-.241-.121-1.018-.375-1.939-1.197-.716-.64-1.2-1.43-1.341-1.671-.14-.242-.015-.372.106-.493.108-.108.241-.282.362-.422.12-.141.16-.242.241-.403.08-.161.04-.302-.02-.423-.06-.12-.543-1.309-.744-1.792-.196-.47-.395-.406-.543-.414l-.463-.008a.888.888 0 00-.643.302c-.221.242-.844.824-.844 2.01 0 1.186.864 2.332.984 2.493.121.16 1.7 2.596 4.12 3.641.576.248 1.025.396 1.374.507.577.184 1.103.158 1.518.096.463-.069 1.428-.584 1.629-1.148.2-.563.2-1.046.14-1.147-.06-.1-.221-.16-.462-.282z">
         </svg>
         <div id="wa-badge" style="
           position: absolute;
@@ -90,7 +90,7 @@ export function initMenu() {
       `;
       tonyBtn.innerHTML = `
         <img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png"
-          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" />
+          style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0E5A7A;box-shadow:0 2px 8px rgba(14,90,122,0.3);" >
         <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Tony.AI</span>
       `;
       tonyBtn.onclick = () => {
@@ -128,9 +128,9 @@ export function initMenu() {
           box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         ">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5"/>
-            <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round">
+            <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5">
+            <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round">
           </svg>
         </div>
         <span style="font-size:9px;font-weight:800;color:#0E5A7A;letter-spacing:0.4px;line-height:1;white-space:nowrap;">Social</span>
@@ -336,7 +336,7 @@ export function initMenu() {
           class="menu-user-avatar"
           src="${escapeHtml(avatar)}"
           alt="Foto profilo"
-        />
+        >
 
         <div class="menu-user-info">
 
@@ -757,9 +757,9 @@ export function initMenu() {
     `;
     rfbMenuBtn.innerHTML = `
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5"/>
-        <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M8.5 14.5L4 19l1.5 1.5L10 16m5.5-1.5L20 19l-1.5 1.5L14 16" stroke="white" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.5">
+        <path d="M12 4v8M8 8h8" stroke="white" stroke-width="1.2" stroke-linecap="round">
       </svg>
       🌐 RistoflowBook
     `;
