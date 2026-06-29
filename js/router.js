@@ -130,6 +130,8 @@ const routes = {
 
   sala: () => import("./views/sala.js"),
   "mansionario-sala":      () => import("./views/bo-sala-mansionario.js"),
+  "mansionario-cucina":    () => import("./views/bo-sala-mansionario.js"),
+  "mansionario-tasting":   () => import("./views/bo-sala-mansionario.js"),
   "mansionario-operatore": () => import("./views/mansionario-operatore.js"),
   "mansionario-controllo": () => import("./views/mansionario-controllo.js"),
 
