@@ -17,8 +17,16 @@ export async function render(container) {
   container.innerHTML = `<div style="padding:20px;color:#94a3b8;">Caricamento...</div>`;
 
   const oggi = new Date().toISOString().slice(0, 10);
+  // Leggi contesto dall'URL
+  const _hashCtx = (window.location.hash||"").match(/[?&]contesto=([^&]+)/);
+  const _contesto = _hashCtx ? _hashCtx[1] : "sala";
+
   const [procData, eseData, valData, dipData] = await Promise.all([
-    supa().from("procedure_sala").select("id,nome,categoria,difficolta").eq("azienda_id", getAziendaId()).eq("attivo", true),
+    (() => {
+      let q = supa().from("procedure_sala").select("id,nome,categoria,difficolta").eq("azienda_id", getAziendaId()).eq("attivo", true);
+      if (_contesto !== "generale") q = q.in("contesto", [_contesto, "generale"]);
+      return q;
+    })(),
     supa().from("procedure_sala_esecuzioni").select("*").eq("azienda_id", getAziendaId()).gte("created_at", oggi+"T00:00:00").order("created_at", { ascending: false }),
     supa().from("procedure_sala_valutazioni").select("*").eq("azienda_id", getAziendaId()).gte("created_at", oggi+"T00:00:00").order("created_at", { ascending: false }),
     supa().from("dipendenti").select("id,nome,cognome,mansione").eq("azienda_id", getAziendaId()).eq("attivo", true),
