@@ -403,7 +403,7 @@ async function preloadDipendenti() {
   {
     const { data, error } = await supabase
       .from("dipendenti")
-      .select("id, nome, pin, codice")
+      .select("id, nome, pin, codice, costo_orario")
       .eq("azienda_id", aziendaId)
       .eq("attivo", true)
       .order("nome");
@@ -412,7 +412,8 @@ async function preloadDipendenti() {
       dipendentiCache = (data || []).map((d) => ({
         id: d.id,
         nome: d.nome,
-        pin: (d.pin ?? d.codice ?? "").toString()
+        pin: (d.pin ?? d.codice ?? "").toString(),
+        costo_orario: toNumber(d.costo_orario) || null
       }));
       return;
     }
@@ -420,7 +421,7 @@ async function preloadDipendenti() {
 
   const { data, error } = await supabase
     .from("dipendenti")
-    .select("id, nome, codice")
+    .select("id, nome, codice, costo_orario")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome");
@@ -434,7 +435,8 @@ async function preloadDipendenti() {
   dipendentiCache = (data || []).map((d) => ({
     id: d.id,
     nome: d.nome,
-    pin: (d.codice ?? "").toString()
+    pin: (d.codice ?? "").toString(),
+    costo_orario: toNumber(d.costo_orario) || null
   }));
 }
 
@@ -839,6 +841,10 @@ function setupOperatorePIN() {
 
     operatoreRisolto = match;
     info.innerText = `Operatore: ${match.nome} ✅`;
+    // Aggiorna il costo orario con quello reale del dipendente
+    if (match.costo_orario) {
+      costoOrarioDipendente = match.costo_orario;
+    }
   });
 }
 
