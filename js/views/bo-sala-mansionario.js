@@ -275,6 +275,18 @@ async function apriEditor(id = null) {
   renderFasiEditor();
   overlay.style.display = "flex";
   document.getElementById("ms-f-nome").focus();
+
+  // Binding pulsanti editor — qui il DOM è visibile
+  const btnSalva = document.getElementById("ms-btn-salva");
+  if (btnSalva) btnSalva.onclick = salvaProcedura;
+  const btnAddFase = document.getElementById("ms-btn-add-fase");
+  if (btnAddFase) btnAddFase.onclick = () => {
+    fasiLocali.push({ titolo:"", descrizione_operativa:"", durata_min:0, check_qualita:"", tip_pro:"", errori_comuni:"" });
+    renderFasiEditor();
+    document.getElementById("ms-fasi-container")?.lastElementChild?.scrollIntoView({ behavior:"smooth" });
+  };
+  const btnTonyFasi = document.getElementById("ms-btn-tony-fasi");
+  if (btnTonyFasi) btnTonyFasi.onclick = () => apriModalTonyProcedura();
 }
 
 function chiudiEditor() {
@@ -872,8 +884,7 @@ export async function render(container) {
     renderLista(e.target.value, document.getElementById("ms-search").value);
   });
 
-  // Pulsanti editor
-  document.getElementById("ms-btn-salva").onclick = salvaProcedura;
+  // Pulsanti editor — binding fatto in apriEditor() quando il DOM è visibile
 
   // Media procedura — binding ritardato perché l'overlay parte display:none
   let _procMediaUrls = [];
@@ -918,7 +929,7 @@ export async function render(container) {
       e.target.value = "";
     };
   }
-  document.getElementById("ms-btn-add-fase").onclick = () => {
+  document.getElementById("ms-btn-add-fase")?.addEventListener && (() => {})()// = () => {
     fasiLocali.push({ titolo:"", descrizione_operativa:"", durata_min:0, check_qualita:"", tip_pro:"", errori_comuni:"" });
     renderFasiEditor();
     document.getElementById("ms-fasi-container").lastElementChild?.scrollIntoView({ behavior:"smooth" });
