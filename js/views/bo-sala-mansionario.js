@@ -316,15 +316,16 @@ function renderFasiEditor() {
     </div>
   `).join("");
 
-  // Bind input changes
-  wrap.querySelectorAll("[data-fase-idx]").forEach(card => {
+  // Bind input changes — selettore specifico sulle card fase (non sui div media)
+  wrap.querySelectorAll(".azienda-card[data-fase-idx]").forEach(card => {
     const idx = Number(card.dataset.faseIdx);
-    card.querySelector(".ms-fase-titolo").oninput = e => { fasiLocali[idx].titolo = e.target.value; };
-    card.querySelector(".ms-fase-desc").oninput  = e => { fasiLocali[idx].descrizione_operativa = e.target.value; };
-    card.querySelector(".ms-fase-durata").oninput= e => { fasiLocali[idx].durata_min = Number(e.target.value)||0; };
-    card.querySelector(".ms-fase-check").oninput = e => { fasiLocali[idx].check_qualita = e.target.value; };
-    card.querySelector(".ms-fase-tip").oninput   = e => { fasiLocali[idx].tip_pro = e.target.value; };
-    card.querySelector(".ms-fase-errori").oninput= e => { fasiLocali[idx].errori_comuni = e.target.value; };
+    const bind = (sel, fn) => { const el = card.querySelector(sel); if (el) el.oninput = fn; };
+    bind(".ms-fase-titolo",  e => { fasiLocali[idx].titolo = e.target.value; });
+    bind(".ms-fase-desc",    e => { fasiLocali[idx].descrizione_operativa = e.target.value; });
+    bind(".ms-fase-durata",  e => { fasiLocali[idx].durata_min = Number(e.target.value)||0; });
+    bind(".ms-fase-check",   e => { fasiLocali[idx].check_qualita = e.target.value; });
+    bind(".ms-fase-tip",     e => { fasiLocali[idx].tip_pro = e.target.value; });
+    bind(".ms-fase-errori",  e => { fasiLocali[idx].errori_comuni = e.target.value; });
   });
 }
 
