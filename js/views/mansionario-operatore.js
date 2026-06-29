@@ -30,13 +30,25 @@ function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;"
 // ═══════════════════════════════════════════════════════
 // CARICA DATI
 // ═══════════════════════════════════════════════════════
+function getContesto() {
+  const hash = window.location.hash || "";
+  const m = hash.match(/[?&]contesto=([^&]+)/);
+  if (m) return m[1];
+  const sp = new URLSearchParams(window.location.search);
+  return sp.get("contesto") || "sala";
+}
+
 async function loadProcedure() {
-  const { data } = await supa()
+  const contesto = getContesto();
+  let query = supa()
     .from("procedure_sala")
     .select("*")
     .eq("azienda_id", getAziendaId())
-    .eq("attivo", true)
-    .order("categoria").order("nome");
+    .eq("attivo", true);
+  if (contesto && contesto !== "generale") {
+    query = query.in("contesto", [contesto, "generale"]);
+  }
+  const { data } = await query.order("categoria").order("nome");
   return data || [];
 }
 
