@@ -512,7 +512,8 @@ REGOLE:
       storia.push({ role:"assistant", content:reply });
 
       // Controlla punteggio finale
-      const match = reply.match(/PUNTEGGIO_FINALE:\s*(\d+)/i);
+      const RE_PUNTEGGIO = new RegExp("PUNTEGGIO_FINALE:\\\\s*(\\\\d+)", "i");
+      const match = RE_PUNTEGGIO.exec(reply);
       if (match) {
         const punteggio = Math.min(100, Math.max(0, Number(match[1])));
         const superato = punteggio >= 70;
