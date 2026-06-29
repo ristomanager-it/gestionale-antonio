@@ -320,6 +320,19 @@ export async function render(container) {
         </div>
       </div>
 
+      <div
+        class="card action-card"
+        data-route="mansionario-controllo"
+      >
+        <div class="card-title">
+          📊 Controllo Sala
+        </div>
+
+        <div class="card-sub">
+          Esecuzioni & valutazioni
+        </div>
+      </div>
+
     </div>
 
     <!-- 🤖 -->
