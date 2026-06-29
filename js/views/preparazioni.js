@@ -1661,11 +1661,9 @@ async function loadFasiHaccp(ricettaId) {
   if (dispIds.length) {
     const { data: disps } = await supabase
       .from("dispositivi")
-      .select("id, nome, tipo")
+      .select("id, nome, tipo, connesso, temperatura_min, temperatura_max")
       .in("id", dispIds);
-    (disps || []).forEach(d => {
-      dispositividMap[d.id] = { ...d, connesso: false, temperatura_min: null, temperatura_max: null };
-    });
+    (disps || []).forEach(d => { dispositividMap[d.id] = d; });
   }
 
   // Inizializza log vuoto per ogni fase
