@@ -526,18 +526,41 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
     if (d.pezzi_base) setVal("r-pezzi-base", d.pezzi_base);
     if (d.descrizione) setVal("r-descrizione", d.descrizione);
     if (d.note_procedimento) setVal("r-note-proc", d.note_procedimento);
-    // Categoria portata: cerca o crea
+    // Categoria portata: cerca in cache, altrimenti crea
     if (d.categoria_portata && d.tipo_ricetta === "finita") {
-      const catInput = document.getElementById("r-categoria-search");
+      const catInput  = document.getElementById("r-categoria-search");
       const catHidden = document.getElementById("r-categoria-id");
       if (catInput) catInput.value = d.categoria_portata;
       // Cerca nella cache locale
-      const found = categoriePortataCache.find(c =>
+      let found = categoriePortataCache.find(c =>
         (c.nome||"").toLowerCase() === d.categoria_portata.toLowerCase());
-      if (found && catHidden) catHidden.value = found.id;
+      if (found && catHidden) {
+        catHidden.value = found.id;
+      } else {
+        // Non trovata in cache — crea la categoria al volo
+        try {
+          const supa = window.supabaseClient || window.supabase;
+          const { data: newCat } = await supa
+            .from("categorie_portata")
+            .insert({ nome: d.categoria_portata, azienda_id: window.state?.azienda?.id })
+            .select("id,nome").single();
+          if (newCat) {
+            categoriePortataCache.push(newCat);
+            if (catHidden) catHidden.value = newCat.id;
+          }
+        } catch(e) { console.warn("Categoria non creata:", e.message); }
+      }
     }
-    status.innerHTML = '<span style="color:#16a34a;">✅ Anagrafica compilata!</span>';
-    setTimeout(() => overlay.remove(), 1200);
+    status.innerHTML = '<span style="color:#16a34a;">✅ Anagrafica compilata! Salvataggio in corso...</span>';
+    // Auto-salva dopo che Tony ha compilato l'anagrafica
+    setTimeout(async () => {
+      try {
+        await salvaTutto();
+        overlay.remove();
+      } catch(e) {
+        status.innerHTML = '<span style="color:#dc2626;">❌ Errore salvataggio: ' + e.message + '</span>';
+      }
+    }, 600);
 
   } else if (sezione === "output") {
     const d = result;
@@ -2693,7 +2716,26 @@ async function salvaTutto() {
   if (!nome) return alert("Nome ricetta obbligatorio.");
 
   if (tipo_ricetta === "finita" && !categoria_portata_id) {
-    return alert("Se la ricetta è FINITA devi selezionare la categoria (antipasti, primi, ...).");
+    // Prova a creare categoria "Generale" come fallback
+    try {
+      const supaFallback = window.supabaseClient || window.supabase;
+      let catFallback = categoriePortataCache.find(c => (c.nome||"").toLowerCase() === "generale");
+      if (!catFallback) {
+        const { data: nc } = await supaFallback
+          .from("categorie_portata")
+          .insert({ nome: "Generale", azienda_id: aziendaId })
+          .select("id,nome").single();
+        if (nc) { categoriePortataCache.push(nc); catFallback = nc; }
+      }
+      if (catFallback) {
+        const hidden = document.getElementById("r-categoria-id");
+        if (hidden) hidden.value = catFallback.id;
+      } else {
+        return alert("Seleziona la categoria portata (antipasti, primi, secondi...).");
+      }
+    } catch(e) {
+      return alert("Seleziona la categoria portata (antipasti, primi, secondi...).");
+    }
   }
   if (tipo_ricetta === "base" && categoria_portata_id) {
     return alert("Una ricetta BASE non può avere categoria portata.");
