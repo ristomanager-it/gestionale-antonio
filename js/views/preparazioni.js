@@ -41,6 +41,8 @@ let savedRighe = [];
 let fasiCache = [];       // ricette_preparazione_fasi della ricetta selezionata
 let logHaccp = [];        // registrazioni cuoco per fase
 let dispositividMap = {}; // uuid → dispositivo
+let passaggiConservazioneMap = {}; // scenarioId → [passaggi]
+let costoOrarioDipendente = 12; // €/h default — sovrascrivibile da azienda
 
 export async function render(container) {
   ricetteCache = [];
@@ -63,6 +65,7 @@ export async function render(container) {
   fasiCache = [];
   logHaccp = [];
   dispositividMap = {};
+  passaggiConservazioneMap = {};
 
   container.innerHTML = createPageLayout({
     title: "Produzione",
@@ -170,7 +173,7 @@ export async function render(container) {
           <div class="form-grid">
 
             <div class="form-group">
-              <label>Scenario</label>
+              <label>Scenario conservazione</label>
               <select id="prod-conservazione" class="input" ${savedLotto ? "disabled" : ""}>
                 <option value="">Seleziona...</option>
               </select>
@@ -183,16 +186,26 @@ export async function render(container) {
             </div>
 
             <div class="form-group">
-              <label>Temperatura</label>
+              <label>Temperatura conservazione</label>
               <input id="prod-temp" class="input" readonly placeholder="—" />
             </div>
 
           </div>
 
-          <div class="form-group" style="margin-top:10px;">
-            <label>Fasi operative (lettura)</label>
-            <textarea id="prod-fasi" class="input" rows="5" readonly placeholder="—"></textarea>
+          <!-- Suggerimento scenario in base al momento -->
+          <div id="cons-suggerimento" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px;color:#1e40af;"></div>
+
+          <!-- Passaggi tecnici dello scenario selezionato -->
+          <div id="cons-passaggi-wrap" style="display:none;margin-top:14px;">
+            <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              📋 Procedura di conservazione
+              <span style="font-size:11px;font-weight:400;color:#6b7280;">— spunta ogni step durante il lavoro</span>
+            </div>
+            <div id="cons-passaggi-list"></div>
           </div>
+
+          <!-- Campo fasi legacy (nascosto, usato internamente) -->
+          <input type="hidden" id="prod-fasi" />
         `
       })}
 
@@ -252,6 +265,23 @@ export async function render(container) {
           </div>
 
           <div id="produzione-result" class="form-result"></div>
+        `
+      })}
+
+      ${createCard({
+        title: "💰 Riepilogo economico produzione",
+        body: `
+          <div id="econ-empty" style="color:#94a3b8;font-size:13px;font-style:italic;">
+            Registra la produzione per vedere il riepilogo economico.
+          </div>
+          <div id="econ-wrap" style="display:none;">
+            <div class="tb-kpi-grid compact" id="econ-kpi-grid" style="margin-bottom:14px;"></div>
+            <div id="econ-dettaglio" style="font-size:13px;color:#374151;"></div>
+            <div style="margin-top:12px;padding:12px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
+              <div style="font-weight:600;font-size:13px;color:#15803d;margin-bottom:6px;">📅 Utilità per programmazione settimanale</div>
+              <div id="econ-programmazione" style="font-size:12px;color:#374151;line-height:1.6;"></div>
+            </div>
+          </div>
         `
       })}
 
@@ -489,6 +519,23 @@ async function loadConservazioni(ricettaId) {
     scenariConservazione = data || [];
   }
 
+  // Carica passaggi tecnici per ogni scenario
+  passaggiConservazioneMap = {};
+  if (scenariConservazione.length && supabase && aziendaId && ricettaId) {
+    const { data: passaggi } = await supabase
+      .from("ricette_conservazione_passaggi")
+      .select("*")
+      .eq("azienda_id", aziendaId)
+      .eq("ricetta_id", ricettaId)
+      .order("posizione", { ascending: true });
+
+    (passaggi || []).forEach(p => {
+      const sid = String(p.ricette_conservazione_id);
+      if (!passaggiConservazioneMap[sid]) passaggiConservazioneMap[sid] = [];
+      passaggiConservazioneMap[sid].push(p);
+    });
+  }
+
   const select = document.getElementById("prod-conservazione");
   const help = document.getElementById("prod-conservazione-help");
   if (!select) return;
@@ -497,15 +544,19 @@ async function loadConservazioni(ricettaId) {
   scenariConservazione.forEach((s) => {
     const opt = document.createElement("option");
     opt.value = s.id;
-    opt.textContent = s.scenario_label || "Scenario";
+    const nPassaggi = (passaggiConservazioneMap[String(s.id)] || []).length;
+    opt.textContent = (s.scenario_label || "Scenario") + (nPassaggi ? ` (${nPassaggi} step)` : "");
     select.appendChild(opt);
   });
 
   if (help) {
     help.innerText = scenariConservazione.length
-      ? "Seleziona uno scenario per calcolare scadenza e dettagli."
+      ? "Seleziona uno scenario per vedere la procedura completa."
       : "Nessuno scenario attivo per questa ricetta.";
   }
+
+  // Suggerimento automatico scenario in base al momento
+  suggerisciScenario();
 
   resetScadenza();
   resetConservazioneDettagli();
@@ -602,9 +653,11 @@ function resetConservazioneUI() {
 
 function resetConservazioneDettagli() {
   const t = document.getElementById("prod-temp");
-  const f = document.getElementById("prod-fasi");
   if (t) t.value = "";
-  if (f) f.value = "";
+  const wrap = document.getElementById("cons-passaggi-wrap");
+  if (wrap) wrap.style.display = "none";
+  const sug = document.getElementById("cons-suggerimento");
+  if (sug) sug.style.display = "none";
 }
 
 function resetScadenza() {
@@ -618,6 +671,7 @@ function aggiornaScadenza() {
   if (!scenario) {
     resetScadenza();
     resetConservazioneDettagli();
+    document.getElementById("cons-passaggi-wrap")?.style && (document.getElementById("cons-passaggi-wrap").style.display = "none");
     return;
   }
 
@@ -629,16 +683,129 @@ function aggiornaScadenza() {
   if (scadEl) scadEl.value = scad;
 
   const tempEl = document.getElementById("prod-temp");
-  if (tempEl) tempEl.value = (scenario.temperatura ?? "").toString();
+  if (tempEl) tempEl.value = scenario.temperatura != null ? `${scenario.temperatura}°C` : "";
 
-  const fasiEl = document.getElementById("prod-fasi");
-  if (fasiEl) fasiEl.value = (scenario.fasi_operativo ?? "").toString();
+  // Passaggi tecnici reali
+  renderPassaggiConservazione(String(scenario.id));
 
   coprodottiRows = coprodottiRows.map((r) => ({
     ...r,
     data_scadenza: r.data_scadenza || scad
   }));
   renderCoprodottiRows();
+}
+
+// ── Render checklist passaggi conservazione ────────────────────────────────
+const TIPO_PASSAGGIO_ICON = {
+  abbattimento: "❄️",
+  raffreddamento: "🌡",
+  sottovuoto: "🧴",
+  confezionamento: "📦",
+  etichettatura: "🏷",
+  stoccaggio: "🏠",
+  congelamento: "🧊",
+  surgelamento: "🧊",
+  pastorizzazione: "🔥",
+  sterilizzazione: "🔥",
+  altro: "📋"
+};
+
+function renderPassaggiConservazione(scenarioId) {
+  const wrap = document.getElementById("cons-passaggi-wrap");
+  const list = document.getElementById("cons-passaggi-list");
+  if (!wrap || !list) return;
+
+  const passaggi = passaggiConservazioneMap[scenarioId] || [];
+
+  if (!passaggi.length) {
+    wrap.style.display = "none";
+    return;
+  }
+
+  wrap.style.display = "";
+
+  list.innerHTML = passaggi.map((p, idx) => {
+    const icon = TIPO_PASSAGGIO_ICON[p.tipo_passaggio] || "📋";
+    const durataText = p.durata_min ? `⏱ ${p.durata_min} min` : "";
+    const tempText = p.temperatura_c != null ? `🌡 ${p.temperatura_c}°C` : "";
+    const attrText = p.attrezzatura ? `🔧 ${p.attrezzatura}` : "";
+    const badge = [durataText, tempText, attrText].filter(Boolean).join(" · ");
+
+    return `
+      <div class="azienda-card" style="margin-bottom:8px;padding:10px 14px;display:flex;gap:12px;align-items:flex-start;border-left:4px solid #0E5A7A;">
+        <div style="padding-top:2px;">
+          <input type="checkbox" class="cons-step-check" data-idx="${idx}"
+            style="width:18px;height:18px;cursor:pointer;accent-color:#0E5A7A;">
+        </div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-size:18px;">${icon}</span>
+            <strong style="font-size:14px;">Step ${p.posizione} — ${escapeHtml(p.titolo || p.tipo_passaggio)}</strong>
+            ${badge ? `<span style="font-size:11px;color:#6b7280;">${badge}</span>` : ""}
+            ${p.gruppo_alternativa ? `<span style="background:#fef3c7;color:#92400e;font-size:10px;padding:1px 6px;border-radius:10px;">ALT ${p.gruppo_alternativa}</span>` : ""}
+          </div>
+          ${p.descrizione_operativa ? `
+            <div style="font-size:13px;color:#374151;background:#f8fafc;border-radius:8px;padding:6px 10px;border:1px solid #e5e7eb;">
+              ${escapeHtml(p.descrizione_operativa)}
+            </div>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // Bind checkbox: barra lo step completato
+  list.querySelectorAll(".cons-step-check").forEach(cb => {
+    cb.addEventListener("change", e => {
+      const card = e.target.closest(".azienda-card");
+      if (card) {
+        card.style.opacity = e.target.checked ? "0.55" : "1";
+        card.style.background = e.target.checked ? "#f0fdf4" : "";
+        card.style.borderLeftColor = e.target.checked ? "#16a34a" : "#0E5A7A";
+      }
+    });
+  });
+}
+
+// ── Suggerimento scenario in base al momento/giorno ───────────────────────
+function suggerisciScenario() {
+  const el = document.getElementById("cons-suggerimento");
+  if (!el || !scenariConservazione.length) return;
+
+  const ora = new Date().getHours();
+  const giorno = new Date().getDay(); // 0=Dom, 5=Ven, 6=Sab
+
+  let messaggio = "";
+
+  // Scenari ordinati per shelf_life
+  const byShelf = [...scenariConservazione].sort((a, b) =>
+    (a.shelf_life_giorni || 0) - (b.shelf_life_giorni || 0)
+  );
+  const breve = byShelf[0]; // shelf life più corta = frigo
+  const lungo = byShelf[byShelf.length - 1]; // shelf life più lunga = freezer
+
+  if (giorno === 5 || giorno === 6) {
+    // Venerdì o Sabato
+    if (lungo && lungo.shelf_life_giorni >= 30) {
+      messaggio = `🧊 Siamo a ${giorno === 5 ? "venerdì" : "sabato"} — considera lo scenario <strong>${escapeHtml(lungo.scenario_label)}</strong> per coprire il weekend e i giorni successivi.`;
+    }
+  } else if (ora >= 14 && ora <= 18) {
+    // Produzione pomeridiana → consegna domani
+    if (breve) {
+      messaggio = `🌙 Produzione pomeridiana — lo scenario <strong>${escapeHtml(breve.scenario_label)}</strong> (${breve.shelf_life_giorni || 0} gg) è adatto per il servizio di domani.`;
+    }
+  } else if (ora >= 6 && ora <= 11) {
+    // Produzione mattutina → servizio pranzo
+    if (breve) {
+      messaggio = `☀️ Produzione mattutina — lo scenario <strong>${escapeHtml(breve.scenario_label)}</strong> copre il servizio pranzo e cena di oggi.`;
+    }
+  }
+
+  if (messaggio) {
+    el.innerHTML = `💡 ${messaggio}`;
+    el.style.display = "";
+  } else {
+    el.style.display = "none";
+  }
 }
 
 /* ========================================================= */
@@ -2080,6 +2247,17 @@ async function salvaProduzione() {
 
     lockUIAfterSave();
 
+    // ── Calcolo e render riepilogo economico ──
+    calcolaEMostraEconomia({
+      lotto,
+      ingredienti,
+      moltiplicatore,
+      pesoRealeKg,
+      confezionatoKg,
+      fasiCache,
+      scenario
+    });
+
     if (result) {
       result.innerHTML = `<span class="success-text">Produzione registrata ✔ — Lotto: ${escapeHtml(lotto.codice_lotto || "")}</span>`;
     }
@@ -2095,6 +2273,103 @@ async function salvaProduzione() {
 
     alert("Errore durante la registrazione della produzione. Controlla console.");
   }
+}
+
+
+/* ============================================================
+   💰 RIEPILOGO ECONOMICO PRODUZIONE
+   Calcola costo MP reale, costo manodopera stimato,
+   costo totale per kg/pz. Utile per programmazione settimanale.
+============================================================ */
+function calcolaEMostraEconomia({ lotto, ingredienti, moltiplicatore, pesoRealeKg, confezionatoKg, fasiCache, scenario }) {
+  const empty = document.getElementById("econ-empty");
+  const wrap = document.getElementById("econ-wrap");
+  const kpiGrid = document.getElementById("econ-kpi-grid");
+  const dettaglio = document.getElementById("econ-dettaglio");
+  const programmazione = document.getElementById("econ-programmazione");
+
+  if (!wrap || !kpiGrid) return;
+
+  // ── Costo materie prime ──────────────────────────────────────────
+  let costoMP = 0;
+  const righeMP = [];
+  for (const ing of (ingredienti || [])) {
+    const q = toNumber(ing.quantita ?? 0) * moltiplicatore;
+    const prod = prodottiCache.find(p => String(p.id) === String(ing.prodotto_id));
+    const costoUnitario = toNumber(prod?.costo_medio || prod?.costo_ultimo || 0);
+    // costo_medio è €/kg
+    const costoRiga = q * costoUnitario;
+    costoMP += costoRiga;
+    if (prod && q > 0) {
+      righeMP.push({ nome: prod.nome || prod.descrizione || "Ingrediente", q, costoUnitario, costoRiga });
+    }
+  }
+
+  // ── Costo manodopera stimato dalle fasi ──────────────────────────
+  let minLavoroTotale = 0;
+  for (const f of (fasiCache || [])) {
+    minLavoroTotale += toNumber(f.lavoro_umano_min || 0);
+  }
+  // Scala col moltiplicatore solo se > 1 batch
+  const minLavoroScalato = minLavoroTotale * Math.max(1, moltiplicatore);
+  const oreLavoro = minLavoroScalato / 60;
+  const costoManodopera = oreLavoro * costoOrarioDipendente;
+
+  // ── Totali ───────────────────────────────────────────────────────
+  const costoTotale = costoMP + costoManodopera;
+  const pesoKg = pesoRealeKg || 1;
+  const costoPorKg = costoTotale / pesoKg;
+
+  // ── KPI Grid ─────────────────────────────────────────────────────
+  const money = (v) => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(v || 0);
+  const fmt = (v, dec = 2) => Number(v || 0).toFixed(dec);
+
+  kpiGrid.innerHTML = `
+    <div class="tb-kpi"><span>Costo materie prime</span><strong>${money(costoMP)}</strong></div>
+    <div class="tb-kpi"><span>Manodopera (${fmt(oreLavoro, 1)}h × €${costoOrarioDipendente}/h)</span><strong>${money(costoManodopera)}</strong></div>
+    <div class="tb-kpi"><span>Costo totale produzione</span><strong style="color:#0E5A7A;">${money(costoTotale)}</strong></div>
+    <div class="tb-kpi"><span>Costo per kg prodotto</span><strong>${money(costoPorKg)}</strong></div>
+    <div class="tb-kpi"><span>Peso reale prodotto</span><strong>${fmt(pesoKg, 3)} kg</strong></div>
+    <div class="tb-kpi"><span>Resa %</span><strong>${fmt(confezionatoKg / pesoKg * 100, 1)}%</strong></div>
+  `;
+
+  // ── Dettaglio ingredienti ─────────────────────────────────────────
+  if (dettaglio) {
+    const righeHtml = righeMP.map(r =>
+      `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:12px;">
+        <span>${escapeHtml(r.nome)}</span>
+        <span style="color:#6b7280;">${fmt(r.q, 3)} kg × ${money(r.costoUnitario)}/kg = <strong>${money(r.costoRiga)}</strong></span>
+      </div>`
+    ).join("");
+
+    dettaglio.innerHTML = righeHtml
+      ? `<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Dettaglio materie prime:</div>${righeHtml}`
+      : "";
+  }
+
+  // ── Testo programmazione settimanale ─────────────────────────────
+  if (programmazione) {
+    const shelfGg = scenario?.shelf_life_giorni || 0;
+    const dataScad = lotto?.data_scadenza || "";
+    const produzioniSettimana = shelfGg >= 7 ? Math.floor(shelfGg / 7) : 1;
+
+    const lines = [
+      `<strong>Lotto ${escapeHtml(lotto?.codice_lotto || "")}</strong> — ${fmt(pesoKg, 2)} kg prodotti`,
+      shelfGg ? `📅 Shelf life: <strong>${shelfGg} giorni</strong> — scadenza ${dataScad ? new Date(dataScad).toLocaleDateString("it-IT") : "—"}` : "",
+      `💰 Costo batch: <strong>${money(costoTotale)}</strong> (MP ${money(costoMP)} + MOD ${money(costoManodopera)})`,
+      `⚖️ Costo/kg: <strong>${money(costoPorKg)}</strong>`,
+      minLavoroTotale ? `👷 Tempo operatore: <strong>${minLavoroScalato} min</strong> (${fmt(oreLavoro, 1)}h)` : "",
+      shelfGg >= 7 ? `🔄 Con questa shelf life puoi produrre <strong>ogni ${produzioniSettimana > 1 ? produzioniSettimana + " settimane" : "settimana"}</strong>` : "⚠️ Shelf life breve — produzione frequente necessaria",
+    ].filter(Boolean);
+
+    programmazione.innerHTML = lines.map(l => `<div style="margin-bottom:4px;">${l}</div>`).join("");
+  }
+
+  if (empty) empty.style.display = "none";
+  wrap.style.display = "";
+
+  // Scroll al riepilogo
+  setTimeout(() => wrap.closest(".card, .azienda-card")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 300);
 }
 
 function lockUIAfterSave() {
@@ -2347,6 +2622,33 @@ async function rfRenderLabelPdfPage(doc, format, label) {
   }
 }
 
+
+/* ── Testo conservazione da passaggi reali ───────────────────────────────── */
+function buildTestoConservazione(scenarioId) {
+  const passaggi = passaggiConservazioneMap[String(scenarioId)] || [];
+  if (!passaggi.length) return "";
+
+  const TIPO_ETICH = {
+    abbattimento: "❄️ Abbatt.",
+    raffreddamento: "🌡 Raffr.",
+    sottovuoto: "🧴 Sottovuoto",
+    confezionamento: "📦 Conf.",
+    etichettatura: "🏷 Etich.",
+    stoccaggio: "🏠 Stocc.",
+    congelamento: "🧊 Congel.",
+    surgelamento: "🧊 Surgel.",
+    pastorizzazione: "🔥 Pastor.",
+    sterilizzazione: "🔥 Steril.",
+    altro: "📋"
+  };
+
+  return passaggi.map(p => {
+    const tipo = TIPO_ETICH[p.tipo_passaggio] || "📋";
+    const temp = p.temperatura_c != null ? ` ${p.temperatura_c}°C` : "";
+    const durata = p.durata_min ? ` ${p.durata_min}min` : "";
+    return `${tipo}${temp}${durata}`;
+  }).join(" → ");
+}
 function stampaEtichetteConfezioni() {
   if (!savedLotto?.codice_lotto) return alert("Salva prima la produzione.");
 
@@ -2362,7 +2664,7 @@ function stampaEtichetteConfezioni() {
     const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
     const scenarioLabel = scenario?.scenario_label || "";
     const temperatura = (scenario?.temperatura ?? "").toString();
-    const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 260);
+    const fasiText = buildTestoConservazione(scenarioId) || compactText((scenario?.fasi_operativo ?? "").toString(), 260);
 
     const rows = confezioniRows
       .map((r) => {
@@ -2401,7 +2703,7 @@ function stampaEtichetteConfezioni() {
             { k: "Peso", v: `${formatNumber(r.kg_per_confezione)} kg` },
             scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
             temperatura ? { k: "Temperatura", v: temperatura } : null,
-            fasi ? { k: "Fasi", v: fasi } : null,
+            fasiText ? { k: "Conservazione", v: fasiText } : null,
             operatoreNome ? { k: "Operatore", v: operatoreNome } : null,
             noteLotto ? { k: "Note lotto", v: noteLotto } : null,
             r.note ? { k: "Note confezione", v: r.note } : null
@@ -2432,7 +2734,7 @@ function stampaEtichetteCoprodotti() {
     const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
     const scenarioLabel = scenario?.scenario_label || "";
     const temperatura = (scenario?.temperatura ?? "").toString();
-    const fasi = compactText((scenario?.fasi_operativo ?? "").toString(), 260);
+    const fasiText = buildTestoConservazione(scenarioId) || compactText((scenario?.fasi_operativo ?? "").toString(), 260);
 
     const coprodottiValidi = coprodottiRows
       .map((c) => ({
@@ -2459,7 +2761,7 @@ function stampaEtichetteCoprodotti() {
           { k: "Quantità", v: `${formatNumber(c.q)} ${unita}` },
           scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
           temperatura ? { k: "Temperatura", v: temperatura } : null,
-          fasi ? { k: "Fasi", v: fasi } : null,
+          fasiText ? { k: "Conservazione", v: fasiText } : null,
           { k: "", v: "Coprodotto da lavorazione" },
           c.note ? { k: "Note", v: c.note } : null
         ],
