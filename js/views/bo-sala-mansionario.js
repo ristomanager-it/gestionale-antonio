@@ -273,7 +273,10 @@ function chiudiEditor() {
 
 function renderFasiEditor() {
   const wrap = document.getElementById("ms-fasi-container");
-  if (!wrap) return;
+  if (!wrap) {
+    // Container non nel DOM (editor chiuso) — salva solo in memoria
+    return;
+  }
 
   if (!fasiLocali.length) {
     wrap.innerHTML = `<div style="color:#94a3b8;font-size:13px;padding:10px 0;">
@@ -540,30 +543,43 @@ DESCRIZIONE: "${testo}"`;
       }
       const d = parsed.reply || parsed;
 
-      // Popola il form dell'editor
-      if (d.nome) document.getElementById("ms-f-nome").value = d.nome;
-      if (d.categoria) document.getElementById("ms-f-categoria").value = d.categoria;
-      if (d.difficolta) document.getElementById("ms-f-difficolta").value = d.difficolta;
-      if (d.durata_min) document.getElementById("ms-f-durata").value = d.durata_min;
-      if (d.obiettivo) document.getElementById("ms-f-obiettivo").value = d.obiettivo;
-      if (d.errori_comuni) document.getElementById("ms-f-errori").value = d.errori_comuni;
-      if (d.standard_qualita) document.getElementById("ms-f-standard").value = d.standard_qualita;
-      if (d.materiali?.length) document.getElementById("ms-f-materiali").value = d.materiali.join(", ");
-
+      // Assegna le fasi in memoria prima di aprire l'editor
       if (Array.isArray(d.fasi) && d.fasi.length) {
         fasiLocali = d.fasi.map((f,i) => ({
-          titolo: f.titolo||`Step ${i+1}`,
+          titolo: f.titolo||("Step " + (i+1)),
           descrizione_operativa: f.descrizione_operativa||"",
           durata_min: f.durata_min||0,
           check_qualita: f.check_qualita||"",
           tip_pro: f.tip_pro||"",
           errori_comuni: f.errori_comuni||"",
         }));
-        renderFasiEditor();
+      } else {
+        fasiLocali = [];
       }
 
-      status.innerHTML=`<span style="color:#16a34a;">✅ Procedura strutturata! Controlla e salva.</span>`;
-      setTimeout(() => overlay.remove(), 1500);
+      // Apri l'editor solo se non è già aperto
+      const _overlay = document.getElementById("ms-editor-overlay");
+      const _editorGiaAperto = _overlay && _overlay.style.display !== "none";
+      if (!_editorGiaAperto) {
+        await apriEditor(null);
+      }
+
+      // Ora i campi esistono — popola i valori da Tony
+      const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+      setVal("ms-f-nome",      d.nome);
+      setVal("ms-f-categoria", d.categoria);
+      setVal("ms-f-difficolta",d.difficolta);
+      setVal("ms-f-obiettivo", d.obiettivo);
+      setVal("ms-f-errori",    d.errori_comuni);
+      setVal("ms-f-standard",  d.standard_qualita);
+      if (d.durata_min) setVal("ms-f-durata", String(d.durata_min));
+      if (d.materiali?.length) setVal("ms-f-materiali", d.materiali.join(", "));
+
+      // Ora il DOM c'è — renderizza le fasi
+      renderFasiEditor();
+
+      status.innerHTML = "<span style='color:#16a34a;'>✅ Procedura strutturata! Controlla e salva.</span>";
+      setTimeout(() => overlay.remove(), 800);
 
     } catch(e) {
       status.innerHTML=`<span style="color:#dc2626;">❌ ${e.message}</span>`;
@@ -823,8 +839,8 @@ export async function render(container) {
   // Bind pulsanti principali
   document.getElementById("ms-btn-nuova").onclick = () => apriEditor(null);
   document.getElementById("ms-btn-tony").onclick = () => {
-    apriEditor(null);
-    setTimeout(() => apriModalTonyProcedura(), 100);
+    // Non aprire l'editor subito — lo aprirà Tony dopo aver strutturato la procedura
+    apriModalTonyProcedura();
   };
 
   document.getElementById("ms-search").addEventListener("input", e => {
