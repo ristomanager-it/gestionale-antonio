@@ -136,6 +136,116 @@ async function richiediPinRicette(container) {
    Tony struttura e popola il form automaticamente.
 ============================================================ */
 
+
+/* ============================================================
+   🎤 VOCALE TONY — Registrazione audio per i modal ricette
+   Condivide la stessa logica di ai.js ma è indipendente.
+   Usa l'Edge Function assistente-ai con audio_base64.
+============================================================ */
+
+let _tonyMicRecorder = null;
+let _tonyMicChunks = [];
+let _tonyMicRecording = false;
+
+async function tonyStartMic(btnEl, statusEl) {
+  if (_tonyMicRecording) return;
+  if (location.protocol !== "https:" && location.hostname !== "localhost") {
+    alert("Il microfono richiede HTTPS. Usa https://app.ristoflow-ai.com");
+    return false;
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    alert("Il tuo browser non supporta il microfono.");
+    return false;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _tonyMicChunks = [];
+    let mimeType = "audio/webm;codecs=opus";
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/mp4";
+    _tonyMicRecorder = new MediaRecorder(stream, { mimeType });
+    _tonyMicRecorder._mimeType = mimeType;
+    _tonyMicRecorder.ondataavailable = e => { if (e.data.size > 0) _tonyMicChunks.push(e.data); };
+    _tonyMicRecorder.start(100);
+    _tonyMicRecording = true;
+    if (btnEl) { btnEl.textContent = "⏹ Stop"; btnEl.style.background = "#dc2626"; }
+    if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626;">🔴 Registrazione in corso... premi Stop quando hai finito</span>`;
+    return true;
+  } catch(err) {
+    alert("Microfono non accessibile: " + err.message);
+    return false;
+  }
+}
+
+function tonyStopMic(btnEl) {
+  return new Promise(resolve => {
+    if (!_tonyMicRecorder || _tonyMicRecorder.state === "inactive") { resolve(null); return; }
+    _tonyMicRecorder.onstop = () => {
+      const mime = _tonyMicRecorder._mimeType || "audio/webm";
+      const blob = new Blob(_tonyMicChunks, { type: mime });
+      _tonyMicRecorder.stream?.getTracks().forEach(t => t.stop());
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    };
+    _tonyMicRecorder.stop();
+    _tonyMicRecording = false;
+    if (btnEl) { btnEl.textContent = "🎤 Vocale"; btnEl.style.background = ""; }
+  });
+}
+
+async function tonyTrascriviEInvia(tipo, audioBase64, statusEl, btnEl) {
+  const aziendaId = window.state?.azienda?.id;
+  const supa = window.supabaseClient || window.supabase;
+  const sessionData = await supa.auth.getSession();
+  const token = sessionData?.data?.session?.access_token || "";
+
+  if (statusEl) statusEl.innerHTML = `<span style="color:#0E5A7A;">⏳ Tony sta trascrivendo e analizzando...</span>`;
+
+  // Costruisce lista prodotti per il contesto
+  const prodottiContesto = prodottiCache.slice(0, 80)
+    .map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
+
+  const systemPrompt = tipo === "fasi"
+    ? `Sei un assistente culinario. L'operatore sta descrivendo a voce le fasi di una ricetta.
+Trascrivi e struttura in JSON array. Ogni elemento: { tipo_fase, descrizione_operativa, durata_min, lavoro_umano_min, temperatura, tecnologia }.
+Rispondi SOLO JSON, nessun testo extra.`
+    : `Sei un assistente culinario. L'operatore sta elencando a voce gli ingredienti.
+Prodotti magazzino: ${prodottiContesto}
+Struttura in JSON array. Ogni elemento: { nome, nome_magazzino, quantita, unita_misura, note }.
+Rispondi SOLO JSON, nessun testo extra.`;
+
+  try {
+    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": token
+      },
+      body: JSON.stringify({
+        azienda_id: aziendaId,
+        audio_base64: audioBase64,
+        system_override: systemPrompt,
+        modalita: "json_only"
+      })
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    // La Edge Function restituisce voice_input (testo trascritto) + reply (JSON strutturato)
+    const trascrizione = data.voice_input || "";
+    const rawJson = data.reply || "";
+    const clean = rawJson.trim().replace(/^```json\s*/i,"").replace(/^```\s*/i,"").replace(/```\s*$/i,"").trim();
+    const parsed = JSON.parse(clean);
+
+    return { trascrizione, parsed };
+  } catch(err) {
+    throw err;
+  }
+}
+
 async function tonyInserisciDaTestoLibero(tipo, testoOperatore) {
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) return;
@@ -267,7 +377,11 @@ function apriModalTonyFasi() {
 
       <div id="tony-fasi-status" style="font-size:13px;color:#6b7280;min-height:20px;margin-bottom:12px;"></div>
 
-      <div style="display:flex;gap:10px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="tony-fasi-mic" type="button"
+          style="background:#f3f4f6;color:#374151;border:none;border-radius:12px;padding:12px 16px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          🎤 Vocale
+        </button>
         <button id="tony-fasi-go" type="button"
           style="flex:1;background:#0E5A7A;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">
           🚀 Genera fasi con Tony
@@ -282,6 +396,47 @@ function apriModalTonyFasi() {
 
   document.body.appendChild(overlay);
   overlay.querySelector("#tony-fasi-input").focus();
+
+  // 🎤 Pulsante vocale — modal fasi
+  overlay.querySelector("#tony-fasi-mic")?.addEventListener("click", async () => {
+    const btnMic = overlay.querySelector("#tony-fasi-mic");
+    const status = overlay.querySelector("#tony-fasi-status");
+    const textarea = overlay.querySelector("#tony-fasi-input");
+
+    if (!_tonyMicRecording) {
+      await tonyStartMic(btnMic, status);
+    } else {
+      const btnGo = overlay.querySelector("#tony-fasi-go");
+      btnGo.disabled = true;
+      btnMic.disabled = true;
+      const audioBase64 = await tonyStopMic(btnMic);
+      if (!audioBase64) {
+        status.innerHTML = `<span style="color:#dc2626;">❌ Audio non registrato</span>`;
+        btnGo.disabled = false; btnMic.disabled = false; return;
+      }
+      try {
+        const { trascrizione, parsed } = await tonyTrascriviEInvia("fasi", audioBase64, status, btnMic);
+        if (trascrizione) textarea.value = trascrizione;
+        if (Array.isArray(parsed) && parsed.length) {
+          const container = document.getElementById("fasi-container");
+          if (container) container.innerHTML = "";
+          parsed.forEach(f => aggiungiFase({
+            tipo_fase: f.tipo_fase || "preparazione",
+            descrizione_operativa: f.descrizione_operativa || "",
+            durata_min: f.durata_min || 0,
+            lavoro_umano_min: f.lavoro_umano_min || 0,
+            temperatura: f.temperatura || null,
+            tecnologia: f.tecnologia || ""
+          }));
+          status.innerHTML = `<span style="color:#16a34a;">✅ ${parsed.length} fase/i generate dal vocale!</span>`;
+          setTimeout(() => overlay.remove(), 1500);
+        }
+      } catch(err) {
+        status.innerHTML = `<span style="color:#dc2626;">❌ ${err.message}</span>`;
+      }
+      btnGo.disabled = false; btnMic.disabled = false;
+    }
+  });
 
   overlay.querySelector("#tony-fasi-go").addEventListener("click", async () => {
     const testo = overlay.querySelector("#tony-fasi-input").value.trim();
@@ -353,7 +508,11 @@ function apriModalTonyIngredienti() {
       <div id="tony-ing-status" style="font-size:13px;color:#6b7280;min-height:20px;margin:10px 0;"></div>
       <div id="tony-ing-preview" style="margin-bottom:12px;"></div>
 
-      <div style="display:flex;gap:10px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="tony-ing-mic" type="button"
+          style="background:#f3f4f6;color:#374151;border:none;border-radius:12px;padding:12px 16px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          🎤 Vocale
+        </button>
         <button id="tony-ing-go" type="button"
           style="flex:1;background:#0E5A7A;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">
           🚀 Genera ingredienti con Tony
@@ -368,6 +527,51 @@ function apriModalTonyIngredienti() {
 
   document.body.appendChild(overlay);
   overlay.querySelector("#tony-ing-input").focus();
+
+  // 🎤 Pulsante vocale — modal ingredienti
+  overlay.querySelector("#tony-ing-mic")?.addEventListener("click", async () => {
+    const btnMic = overlay.querySelector("#tony-ing-mic");
+    const status = overlay.querySelector("#tony-ing-status");
+    const textarea = overlay.querySelector("#tony-ing-input");
+
+    if (!_tonyMicRecording) {
+      await tonyStartMic(btnMic, status);
+    } else {
+      const btnGo = overlay.querySelector("#tony-ing-go");
+      btnGo.disabled = true; btnMic.disabled = true;
+      const audioBase64 = await tonyStopMic(btnMic);
+      if (!audioBase64) {
+        status.innerHTML = `<span style="color:#dc2626;">❌ Audio non registrato</span>`;
+        btnGo.disabled = false; btnMic.disabled = false; return;
+      }
+      try {
+        const { trascrizione, parsed } = await tonyTrascriviEInvia("ingredienti", audioBase64, status, btnMic);
+        if (trascrizione) textarea.value = trascrizione;
+        if (Array.isArray(parsed) && parsed.length) {
+          // Usa lo stesso flusso del testo: popola preview e poi inserisce
+          const container = document.getElementById("ingredienti-container");
+          if (container) container.innerHTML = "";
+          parsed.forEach(ing => {
+            const match = ing.nome_magazzino
+              ? prodottiCache.find(p => (p.descrizione||"").toLowerCase().includes(ing.nome_magazzino.toLowerCase()))
+              : null;
+            aggiungiIngrediente({
+              prodotto_id: match?.id ?? "",
+              nome_prodotto: match?.descrizione || ing.nome,
+              quantita: ing.quantita,
+              unita_misura: ing.unita_misura,
+              note: ing.note || ""
+            });
+          });
+          status.innerHTML = `<span style="color:#16a34a;">✅ ${parsed.length} ingredienti dal vocale!</span>`;
+          setTimeout(() => overlay.remove(), 1500);
+        }
+      } catch(err) {
+        status.innerHTML = `<span style="color:#dc2626;">❌ ${err.message}</span>`;
+      }
+      btnGo.disabled = false; btnMic.disabled = false;
+    }
+  });
 
   overlay.querySelector("#tony-ing-go").addEventListener("click", async () => {
     const testo = overlay.querySelector("#tony-ing-input").value.trim();
