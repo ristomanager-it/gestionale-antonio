@@ -162,6 +162,34 @@ function renderCardProcedura(p) {
 // ═══════════════════════════════════════════════════════════════
 // EDITOR PROCEDURA
 // ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// UPLOAD MEDIA (foto/video) — bucket "mansionario"
+// ═══════════════════════════════════════════════════════════════
+async function uploadMedia(file, percorso) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  const nome = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const path = `${percorso}/${nome}`;
+  const { error } = await supa().storage.from("mansionario").upload(path, file, { upsert: false });
+  if (error) throw new Error(error.message);
+  const { data } = supa().storage.from("mansionario").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function renderMediaPreview(urls, onRemove) {
+  if (!urls.length) return '<div style="color:#94a3b8;font-size:12px;">Nessun media</div>';
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    ${urls.map((url, idx) => `
+      <div style="position:relative;display:inline-block;">
+        ${url.match(/\.(mp4|mov|webm)$/i)
+          ? `<video src="${esc(url)}" style="height:70px;border-radius:8px;"></video>`
+          : `<img src="${esc(url)}" style="height:70px;width:70px;object-fit:cover;border-radius:8px;">`}
+        <button onclick="${onRemove}(${idx})" style="position:absolute;top:-6px;right:-6px;background:#dc2626;color:white;border:none;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;line-height:1;">✕</button>
+      </div>
+    `).join("")}
+  </div>`;
+}
+
 async function apriEditor(id = null) {
   editingId = id;
   fasiLocali = [];
@@ -237,6 +265,13 @@ function renderFasiEditor() {
           <input class="input ms-fase-check" placeholder="Autocontrollo..." value="${esc(f.check_qualita||"")}">
         </div>
         <input class="input ms-fase-tip" placeholder="💡 Tip pro..." value="${esc(f.tip_pro||"")}">
+        <div style="margin-top:6px;">
+          <div class="ms-fase-media-preview" data-fase-idx="${idx}"></div>
+          <label style="display:inline-flex;align-items:center;gap:4px;background:#f8fafc;border:1px dashed #d1d5db;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:11px;color:#6b7280;margin-top:4px;">
+            📎 Foto/video step
+            <input type="file" class="ms-fase-media-input" data-fase-idx="${idx}" accept="image/*,video/*" multiple style="display:none;">
+          </label>
+        </div>
         <input class="input ms-fase-errori" placeholder="⚠️ Errori comuni..." value="${esc(f.errori_comuni||"")}">
       </div>
     </div>
@@ -283,6 +318,7 @@ async function salvaProcedura() {
     materiali: materiali.length ? materiali : null,
     attivo: true,
     aggiornato_il: new Date().toISOString(),
+    media_urls: (window._getProcMediaUrls ? window._getProcMediaUrls() : []) || [],
   };
 
   let procId = editingId;
@@ -674,6 +710,17 @@ function renderShell() {
             </div>
           </div>
 
+          <!-- MEDIA PROCEDURA -->
+          <div style="margin-bottom:16px;">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">📸 Foto & Video procedura</label>
+            <div id="ms-media-preview" style="margin-bottom:8px;"></div>
+            <label style="display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;border:2px dashed #d1d5db;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;color:#374151;">
+              📎 Aggiungi foto/video
+              <input type="file" id="ms-media-input" accept="image/*,video/*" multiple style="display:none;">
+            </label>
+            <div id="ms-media-status" style="font-size:12px;color:#6b7280;margin-top:6px;"></div>
+          </div>
+
           <!-- FASI -->
           <div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -734,6 +781,43 @@ export async function render(container) {
 
   // Pulsanti editor
   document.getElementById("ms-btn-salva").onclick = salvaProcedura;
+
+  // Media procedura
+  let _procMediaUrls = [];
+  const mediaInput = document.getElementById("ms-media-input");
+  const mediaPreview = document.getElementById("ms-media-preview");
+  const mediaStatus = document.getElementById("ms-media-status");
+  window._getProcMediaUrls = () => _procMediaUrls;
+  window._setProcMediaUrls = (urls) => {
+    _procMediaUrls = urls;
+    aggiornaMediaPreview();
+  };
+  window._rimuoviProcMedia = (idx) => {
+    _procMediaUrls.splice(idx, 1);
+    aggiornaMediaPreview();
+  };
+  function aggiornaMediaPreview() {
+    if (!mediaPreview) return;
+    mediaPreview.innerHTML = renderMediaPreview(_procMediaUrls, "window._rimuoviProcMedia");
+  }
+  if (mediaInput) {
+    mediaInput.onchange = async (e) => {
+      const files = [...e.target.files];
+      mediaStatus.textContent = "⏳ Caricamento...";
+      try {
+        for (const f of files) {
+          const url = await uploadMedia(f, `procedure/${getAziendaId()}`);
+          _procMediaUrls.push(url);
+        }
+        aggiornaMediaPreview();
+        mediaStatus.textContent = `✅ ${files.length} file caricati`;
+        setTimeout(() => { mediaStatus.textContent = ""; }, 2000);
+      } catch(err) {
+        mediaStatus.textContent = "❌ " + err.message;
+      }
+      e.target.value = "";
+    };
+  }
   document.getElementById("ms-btn-add-fase").onclick = () => {
     fasiLocali.push({ titolo:"", descrizione_operativa:"", durata_min:0, check_qualita:"", tip_pro:"", errori_comuni:"" });
     renderFasiEditor();
