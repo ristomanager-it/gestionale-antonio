@@ -735,6 +735,17 @@ async function renderForm(dip) {
           </select>
         </label>
 
+        <label>Voce di Tony (come ti parla)
+          <select id="dip-voce-tony" class="input-pill">
+            <option value="nova"    ${(dip?.voce_tony||"nova")==="nova"   ?"selected":""}>Nova — femminile, calda e naturale (consigliata)</option>
+            <option value="alloy"   ${dip?.voce_tony==="alloy"  ?"selected":""}>Alloy — neutra e bilanciata</option>
+            <option value="echo"    ${dip?.voce_tony==="echo"   ?"selected":""}>Echo — maschile, profonda</option>
+            <option value="fable"   ${dip?.voce_tony==="fable"  ?"selected":""}>Fable — espressiva e dinamica</option>
+            <option value="onyx"    ${dip?.voce_tony==="onyx"   ?"selected":""}>Onyx — maschile, autorevole</option>
+            <option value="shimmer" ${dip?.voce_tony==="shimmer"?"selected":""}>Shimmer — femminile, vivace</option>
+          </select>
+        </label>
+
         <label style="display:flex; align-items:center; gap:10px; margin-top:6px;">
           <input type="checkbox" id="dip-attivo" ${dip?.attivo === false ? "" : "checked"} />
           Attivo
@@ -873,6 +884,7 @@ async function salvaDipendente(isEdit) {
       const oreServizio = parseFloat(document.getElementById("dip-ore-servizio")?.value) || null;
       const costoOrario = parseFloat(document.getElementById("dip-costo")?.value) || null;
       const linguaPreferita = document.getElementById("dip-lingua")?.value || "it";
+      const voceTony = document.getElementById("dip-voce-tony")?.value || "nova";
       const costoMedio = (document.getElementById("dip-costo-medio")?.value || "").trim() || null;
       const oraIngresso = document.getElementById("dip-ora-ingresso")?.value || null;
       const oraUscita = document.getElementById("dip-ora-uscita")?.value || null;
@@ -894,6 +906,7 @@ async function salvaDipendente(isEdit) {
           costo_orario: costoOrario,
           costo_medio: costoMedio,
           lingua_preferita: linguaPreferita,
+          voce_tony: voceTony,
           ora_ingresso: oraIngresso,
           ora_uscita: oraUscita,
           attivo: attivoCheck
