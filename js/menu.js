@@ -411,6 +411,7 @@ export function initMenu() {
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
         { label: "📋 Planning",            route: "planner-produzione" },
         { label: "🔌 Dispositivi",         route: "bo-dispositivi"     },
+        { label: "📋 Mansionario Cucina",  route: "mansionario-cucina" },
       ]
     });
 
@@ -494,9 +495,10 @@ export function initMenu() {
     sections.push({
       title: "🍷 TASTING",
       items: [
-        { label: "🎫 Vendite",       route: "ticket-vendite"  },
-        { label: "✅ Check-in",      route: "ticket-checkin"  },
-        { label: "🍷 Vai a Tasting", url: "https://tasting.ristoflow-ai.com", external: true },
+        { label: "🎫 Vendite",         route: "ticket-vendite"    },
+        { label: "✅ Check-in",        route: "ticket-checkin"    },
+        { label: "📋 Mansionario",     route: "mansionario-tasting"},
+        { label: "🍷 Vai a Tasting",   url: "https://tasting.ristoflow-ai.com", external: true },
       ]
     });
 
