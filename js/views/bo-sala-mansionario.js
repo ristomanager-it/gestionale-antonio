@@ -176,18 +176,23 @@ async function uploadMedia(file, percorso) {
   return data.publicUrl;
 }
 
+function isVideo(url) {
+  const ext = (url || "").split("?")[0].split(".").pop().toLowerCase();
+  return ["mp4","mov","webm"].includes(ext);
+}
+
 function renderMediaPreview(urls, onRemove) {
   if (!urls.length) return '<div style="color:#94a3b8;font-size:12px;">Nessun media</div>';
-  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-    ${urls.map((url, idx) => `
-      <div style="position:relative;display:inline-block;">
-        ${url.match(/\.(mp4|mov|webm)$/i)
-          ? `<video src="${esc(url)}" style="height:70px;border-radius:8px;"></video>`
-          : `<img src="${esc(url)}" style="height:70px;width:70px;object-fit:cover;border-radius:8px;">`}
-        <button onclick="${onRemove}(${idx})" style="position:absolute;top:-6px;right:-6px;background:#dc2626;color:white;border:none;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;line-height:1;">✕</button>
-      </div>
-    `).join("")}
-  </div>`;
+  const items = urls.map((url, idx) => {
+    const tag = isVideo(url)
+      ? '<video src="' + esc(url) + '" style="height:70px;border-radius:8px;" controls></video>'
+      : '<img src="' + esc(url) + '" style="height:70px;width:70px;object-fit:cover;border-radius:8px;">';
+    return '<div style="position:relative;display:inline-block;">'
+      + tag
+      + '<button onclick="' + onRemove + '(' + idx + ')" style="position:absolute;top:-6px;right:-6px;background:#dc2626;color:white;border:none;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;line-height:1;">✕</button>'
+      + '</div>';
+  }).join("");
+  return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">' + items + '</div>';
 }
 
 async function apriEditor(id = null) {
@@ -782,11 +787,16 @@ export async function render(container) {
   // Pulsanti editor
   document.getElementById("ms-btn-salva").onclick = salvaProcedura;
 
-  // Media procedura
+  // Media procedura — binding ritardato perché l'overlay parte display:none
   let _procMediaUrls = [];
-  const mediaInput = document.getElementById("ms-media-input");
-  const mediaPreview = document.getElementById("ms-media-preview");
-  const mediaStatus = document.getElementById("ms-media-status");
+  // Accessori tramite funzione per non catturare elementi null al momento del render
+  const getMediaInput   = () => document.getElementById("ms-media-input");
+  const getMediaPreview = () => document.getElementById("ms-media-preview");
+  const getMediaStatus  = () => document.getElementById("ms-media-status");
+  // Alias per retrocompatibilità
+  const mediaInput   = { get onchange() {}, set onchange(fn) { const el = getMediaInput(); if(el) el.onchange = fn; } };
+  const mediaPreview = null;
+  const mediaStatus  = null;
   window._getProcMediaUrls = () => _procMediaUrls;
   window._setProcMediaUrls = (urls) => {
     _procMediaUrls = urls;
@@ -797,23 +807,25 @@ export async function render(container) {
     aggiornaMediaPreview();
   };
   function aggiornaMediaPreview() {
-    if (!mediaPreview) return;
-    mediaPreview.innerHTML = renderMediaPreview(_procMediaUrls, "window._rimuoviProcMedia");
+    const el = document.getElementById("ms-media-preview");
+    if (!el) return;
+    el.innerHTML = renderMediaPreview(_procMediaUrls, "window._rimuoviProcMedia");
   }
-  if (mediaInput) {
-    mediaInput.onchange = async (e) => {
+  const _mi = getMediaInput ? getMediaInput() : document.getElementById("ms-media-input");
+  if (_mi) {
+    _mi.onchange = async (e) => {
       const files = [...e.target.files];
-      mediaStatus.textContent = "⏳ Caricamento...";
+      const _ms1 = document.getElementById("ms-media-status"); if(_ms1) _ms1.textContent = "⏳ Caricamento...";
       try {
         for (const f of files) {
           const url = await uploadMedia(f, `procedure/${getAziendaId()}`);
           _procMediaUrls.push(url);
         }
         aggiornaMediaPreview();
-        mediaStatus.textContent = `✅ ${files.length} file caricati`;
-        setTimeout(() => { mediaStatus.textContent = ""; }, 2000);
+        const _ms2 = document.getElementById("ms-media-status"); if(_ms2) _ms2.textContent = "✅ " + files.length + " file caricati";
+        setTimeout(() => { const _ms3 = document.getElementById("ms-media-status"); if(_ms3) _ms3.textContent = ""; }, 2000);
       } catch(err) {
-        mediaStatus.textContent = "❌ " + err.message;
+        const _ms4 = document.getElementById("ms-media-status"); if(_ms4) _ms4.textContent = "❌ " + err.message;
       }
       e.target.value = "";
     };
