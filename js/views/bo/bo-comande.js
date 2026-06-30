@@ -1,6 +1,6 @@
 // js/views/bo/bo-comande.js
 // Sistema comande completo — tavoli, ordini, up-sell, cross-sell, cucina, cassa
-// v2 — PIN cameriere, modal upsell/cross-sell, tracciamento vendite, apertura tavolo con coperti+nominativo
+// v3 — PIN da dipendenti, RLS comanda_righe, ricette maybeSingle — PIN cameriere, modal upsell/cross-sell, tracciamento vendite, apertura tavolo con coperti+nominativo
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -17,7 +17,7 @@ async function waitForAuth(maxWait = 3000) {
   return false;
 }
 
-// ── Camerieri: caricati da DB (tabella profili, campo pin) ──
+// ── Camerieri: caricati da DB (tabella dipendenti, campo pin) ──
 // PIN 0000 è sempre admin locale come fallback
 const ADMIN_PIN = { pin: '0000', nome: 'Admin', ruolo: 'manager', colore: '#dc2626' };
 const CATEGORIE_LIMITED = ['Bevande', 'Acqua', 'Vini rossi', 'Vini bianchi', 'Le bollicine', 'Caffetteria', 'Dolci', 'Dessert', 'Amari'];
@@ -419,18 +419,23 @@ export async function render(container) {
   // PIN LOGIC — carica camerieri da DB
   // ══════════════════════════════════════════
   let pinInput = '';
-  let camerieriDB = []; // caricati da profili
+  let camerieriDB = []; // caricati da dipendenti
 
   async function loadCamerieri() {
     try {
-      // I PIN operativi sono sulla tabella dipendenti.
-      // La tabella profili non contiene azienda_id/ruolo, quindi non va usata per le comande.
-      const { data, error } = await supa()
+      // I PIN operativi stanno su dipendenti, non su profili.
+      // La tabella profili non contiene azienda_id/ruolo per questo flusso.
+      let q = supa()
         .from('dipendenti')
-        .select('id, nome, cognome, pin, ruolo, azienda_id, sede_id, attivo')
+        .select('id, nome, cognome, pin, ruolo, mansione, azienda_id, sede_id, attivo')
         .eq('azienda_id', aziendaId)
-        .eq('attivo', true)
         .not('pin', 'is', null);
+
+      if (sedeId) {
+        q = q.or(`sede_id.eq.${sedeId},sede_id.is.null`);
+      }
+
+      const { data, error } = await q.order('nome');
 
       if (error) {
         console.warn('Caricamento camerieri fallito:', error.message || error);
@@ -439,20 +444,24 @@ export async function render(container) {
       }
 
       camerieriDB = (data || [])
-        .filter(d => String(d.pin || '').trim() !== '')
-        .filter(d => !sedeId || !d.sede_id || String(d.sede_id) === String(sedeId))
-        .map(d => ({
-          pin: String(d.pin || '').trim(),
-          nome: [d.nome, d.cognome].filter(Boolean).join(' ') || d.nome || 'Cameriere',
-          ruolo:
-            d.ruolo === 'admin' || d.ruolo === 'manager'
+        .filter(d => d.attivo !== false && d.pin != null && String(d.pin).trim() !== '')
+        .map(d => {
+          const ruoloRaw = String(d.ruolo || d.mansione || '').toLowerCase();
+          const ruoloComande =
+            ruoloRaw === 'admin' || ruoloRaw === 'manager' || ruoloRaw.includes('responsabile')
               ? 'manager'
-              : d.ruolo === 'limited'
+              : ruoloRaw === 'limited' || ruoloRaw.includes('bar') || ruoloRaw.includes('runner')
                 ? 'limited'
-                : 'full',
-          colore: '#0E5A7A',
-          dipendenteId: d.id,
-        }));
+                : 'full';
+
+          return {
+            pin: String(d.pin || '').trim(),
+            nome: [d.nome, d.cognome].filter(Boolean).join(' ') || d.nome || 'Cameriere',
+            ruolo: ruoloComande,
+            colore: ruoloComande === 'manager' ? '#dc2626' : ruoloComande === 'limited' ? '#f59e0b' : '#0E5A7A',
+            dipendenteId: d.id,
+          };
+        });
     } catch (e) {
       console.warn('Caricamento camerieri fallito, uso solo admin:', e);
       camerieriDB = [];
@@ -609,9 +618,18 @@ export async function render(container) {
   }
 
   async function loadRigheComanda(comandaId) {
-    const { data } = await supa()
+    const { data, error } = await supa()
       .from('comanda_righe').select('*')
-      .eq('comanda_id', comandaId).order('created_at');
+      .eq('azienda_id', aziendaId)
+      .eq('comanda_id', comandaId)
+      .order('created_at');
+
+    if (error) {
+      console.warn('loadRigheComanda error:', error.message || error);
+      righeComanda = [];
+      return;
+    }
+
     righeComanda = data || [];
   }
 
@@ -927,7 +945,14 @@ export async function render(container) {
     if (rigaEsistente) {
       const { error } = await supa().from('comanda_righe')
         .update({ quantita: rigaEsistente.quantita + 1 }).eq('id', rigaEsistente.id);
-      if (!error) rigaEsistente.quantita += 1;
+
+      if (error) {
+        mostraToast('Errore aggiornamento riga: ' + (error.message || 'permessi insufficienti'), 'error');
+        console.warn('comanda_righe update error:', error);
+        return;
+      }
+
+      rigaEsistente.quantita += 1;
     } else {
       const cat = categorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id));
       const catNome = (cat?.nome || '').toLowerCase();
@@ -950,7 +975,13 @@ export async function render(container) {
         uscita_numero: uscitaCorrente,
       }).select('*').single();
 
-      if (!error && data) righeComanda.push(data);
+      if (error) {
+        mostraToast('Errore aggiunta prodotto: ' + (error.message || 'permessi insufficienti'), 'error');
+        console.warn('comanda_righe insert error:', error);
+        return;
+      }
+
+      if (data) righeComanda.push(data);
     }
 
     // ── SCARICO MAGAZZINO IN TEMPO REALE ──
@@ -997,7 +1028,7 @@ export async function render(container) {
         .from('ricette')
         .select('id')
         .eq('prodotto_vendita_id', prodotto.id)
-        .single();
+        .maybeSingle();
 
       if (!ricetta) return; // nessuna ricetta collegata, skip
 
@@ -1020,7 +1051,7 @@ export async function render(container) {
           .select('id, quantita, scorta_minima')
           .eq('azienda_id', aziendaId)
           .eq('ingrediente_id', ing.ingrediente_id)
-          .single();
+          .maybeSingle();
 
         if (!giacenza) continue;
 
