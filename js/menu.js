@@ -429,6 +429,7 @@ export function initMenu() {
           { label: "🛒 Acquisti",         route: "acquisti"          },
           { label: "💰 Venduto",          route: "venduto"           },
           { label: "📈 Margini",          route: "margini"           },
+          { label: "🍽️ Menu Intelligence AI", route: "menu-intelligence" },
         ]
       });
 
