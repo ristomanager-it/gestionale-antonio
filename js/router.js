@@ -115,6 +115,7 @@ const routes = {
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js"),
   margini: () => import("./views/margini.js"),
+  "menu-intelligence": () => import("./views/menu-intelligence.js"),
 
   preventivi: () => import("./views/preventivi.js"),
   creaPreventivo: () => import("./views/crea-preventivo.js"),
@@ -512,6 +513,9 @@ function hasPermission(area) {
   // =====================================
 
 const routePermissions = {
+
+  "menu-intelligence":
+    "margini.read",
 
   "planner-produzione":
     "planning.write",
