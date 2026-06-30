@@ -379,6 +379,7 @@ export function initMenu() {
 
     // ── OPERATIVO ──
     sections.push({
+      key: "operativo",
       title: "OPERATIVO",
       items: [
         { label: "🏠 Home",             route: "home"           },
@@ -390,6 +391,7 @@ export function initMenu() {
 
     // ── SALA ──
     sections.push({
+      key: "sala",
       title: "🪑 SALA",
       items: [
         { label: "🪑 Comande",           route: "bo-comande"         },
@@ -403,6 +405,7 @@ export function initMenu() {
 
     // ── CUCINA ──
     sections.push({
+      key: "cucina",
       title: "CUCINA",
       items: [
         { label: "📖 Ricettario",         route: "ricettario"         },
@@ -418,10 +421,11 @@ export function initMenu() {
     // ── GESTIONE ──
     if (isAziendaRole() || isSuperadmin()) {
       sections.push({
+        key: "gestione",
         title: "GESTIONE",
         items: [
           { label: "📊 Dashboard",        route: "bo-dashboard"      },
-          { label: "📈 Bilancio live",     route: "bo-bilancio"       },
+          { label: "🧮 Ragioniere",       route: "bo-bilancio"       },
           { label: "🛒 Acquisti",         route: "acquisti"          },
           { label: "💰 Venduto",          route: "venduto"           },
           { label: "📈 Margini",          route: "margini"           },
@@ -429,6 +433,7 @@ export function initMenu() {
       });
 
       sections.push({
+        key: "menu_prodotti",
         title: "MENU & PRODOTTI",
         items: [
           { label: "📋 Menu Builder",     route: "bo-menu"           },
@@ -441,6 +446,7 @@ export function initMenu() {
       });
 
       sections.push({
+        key: "marketing",
         title: "MARKETING & CRM",
         items: [
           { label: "📉 Analytics",          route: "bo-analytics"      },
@@ -458,6 +464,7 @@ export function initMenu() {
       });
 
       sections.push({
+        key: "personale",
         title: "PERSONALE",
         items: [
           { label: "👥 Candidature",      route: "bo-candidature"    },
@@ -473,6 +480,7 @@ export function initMenu() {
       });
 
       sections.push({
+        key: "configurazione",
         title: "CONFIGURAZIONE",
         items: [
           { label: "🚀 Setup guidato",        route: "bo-onboarding"    },
@@ -484,6 +492,7 @@ export function initMenu() {
 
       // ── HOTEL ──
       sections.push({
+        key: "hotel",
         title: "🏨 HOTEL",
         items: [
           { label: "🏨 Vai a Ristoflow Hotel", url: "https://hotel.ristoflow-ai.com", external: true },
@@ -503,6 +512,7 @@ export function initMenu() {
 
     // ── TASTING — sempre visibile ──
     sections.push({
+      key: "tasting",
       title: "🍷 TASTING",
       items: [
         { label: "🎫 Vendite",       route: "ticket-vendite"  },
@@ -581,7 +591,43 @@ export function initMenu() {
       ]
     });
 
-    return sections;
+    return riordinaPerTipoApp(sections);
+  }
+
+  // ── RIORDINO SEZIONI IN BASE AL TIPO ATTIVITÀ ──
+  // Non nasconde nulla: porta in alto ciò che conta di più per quel business.
+  function riordinaPerTipoApp(sections) {
+    const tipoApp = window.state?.azienda?.tipo_app || [];
+    if (!Array.isArray(tipoApp) || !tipoApp.length) return sections;
+
+    // priorità per ciascun tipo attività: chiavi messe per prime
+    const PRIORITA = {
+      hotel:      ["hotel", "personale", "gestione", "marketing", "configurazione", "operativo", "sala", "cucina", "menu_prodotti", "tasting"],
+      tasting:    ["tasting", "marketing", "gestione", "personale", "configurazione", "operativo", "sala", "cucina", "menu_prodotti", "hotel"],
+      bar:        ["sala", "menu_prodotti", "gestione", "marketing", "cucina", "personale", "configurazione", "operativo", "hotel", "tasting"],
+      ristorante: ["sala", "cucina", "gestione", "menu_prodotti", "marketing", "personale", "configurazione", "operativo", "hotel", "tasting"],
+    };
+
+    // combina priorità di tutti i tipi selezionati (se multi-tipo, es. hotel+ristorante)
+    const ordineKeys = [];
+    tipoApp.forEach(t => {
+      (PRIORITA[t] || []).forEach(k => { if (!ordineKeys.includes(k)) ordineKeys.push(k); });
+    });
+
+    const fixedFirst = sections.filter(s => s.title === "PIATTAFORMA");
+    const fixedLast   = sections.filter(s => ["SEDI","IL MIO PROFILO"].includes(s.title));
+    const middle      = sections.filter(s => s.key && !["PIATTAFORMA","SEDI","IL MIO PROFILO"].includes(s.title));
+    const noKey       = sections.filter(s => !s.key && !["PIATTAFORMA","SEDI","IL MIO PROFILO"].includes(s.title));
+
+    middle.sort((a, b) => {
+      const ia = ordineKeys.indexOf(a.key);
+      const ib = ordineKeys.indexOf(b.key);
+      const pa = ia === -1 ? 999 : ia;
+      const pb = ib === -1 ? 999 : ib;
+      return pa - pb;
+    });
+
+    return [...fixedFirst, ...middle, ...noKey, ...fixedLast];
   }
 
   function renderMenu() {
