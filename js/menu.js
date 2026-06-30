@@ -489,6 +489,14 @@ export function initMenu() {
           { label: "🏨 Vai a Ristoflow Hotel", url: "https://hotel.ristoflow-ai.com", external: true },
         ]
       });
+
+      // ── AGENTI VENDITA ──
+      sections.push({
+        title: "🤝 VENDITA",
+        items: [
+          { label: "🤝 Home Agente", route: "home-agente" },
+        ]
+      });
     }
 
     // ── TASTING — sempre visibile ──
