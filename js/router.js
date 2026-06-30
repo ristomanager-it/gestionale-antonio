@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js";
+window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
 /* =========================================================
@@ -1583,10 +1584,26 @@ window.addEventListener("DOMContentLoaded", () => {
       if (window.stateActions?.setUser) {
         window.stateActions.setUser(session.user);
       }
+      // Check se l'utente è un agente vendita attivo (per voce menu condizionale)
+      (async () => {
+        try {
+          const { data: agenteCheck } = await supabase
+            .from("agenti")
+            .select("id")
+            .or(`user_id.eq.${session.user.id},email.eq.${session.user.email}`)
+            .eq("stato", "attivo")
+            .maybeSingle();
+          window.state._isAgenteAttivo = !!agenteCheck;
+          if (window.state._isAgenteAttivo && window.initMenu) window.initMenu();
+        } catch {
+          window.state._isAgenteAttivo = false;
+        }
+      })();
     } else {
       if (window.stateActions?.setUser) {
         window.stateActions.setUser(null);
       }
+      window.state._isAgenteAttivo = false;
     }
   });
 
