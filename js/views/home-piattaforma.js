@@ -1581,17 +1581,7 @@ const AG_PIANI_VAR = {
   full:     { label:'Full €199',     var_key:'var_full' },
 };
 
-const AG_FORECAST_PESI = {
-  segnalato: 0.20,
-  visitato: 0.35,
-  demo_fatta: 0.55,
-  demo: 0.55,
-  trial: 0.80,
-  trial_attivo: 0.80,
-  contratto: 0.95,
-  contratto_inviato: 0.95,
-  pagante: 1,
-};
+const AG_RICORRENTE_PERCENT = 5;
 
 const AG_PIANI_VALORE_ANNUO = {
   starter: 828,
@@ -1614,10 +1604,6 @@ function agEuro(v) {
 
 function agNormalizzaPiano(piano) {
   return String(piano || '').toLowerCase().trim();
-}
-
-function agPesoForecast(stato) {
-  return AG_FORECAST_PESI[String(stato || '').toLowerCase().trim()] ?? 0.25;
 }
 
 function agValoreAnnuoLead(l) {
@@ -1649,22 +1635,38 @@ function agBaseProvvigione(l, agente) {
   }
 
   const varKey = AG_PIANI_VAR[piano]?.var_key || 'var_business';
-  const fallback = piano === 'starter' ? 100 : piano === 'business' ? 180 : piano === 'hotel' ? 120 : 250;
+  const fallback = piano === 'starter' ? 83 : piano === 'business' ? 143 : piano === 'hotel' ? 119 : piano === 'pro' ? 203 : 239;
   return Number(agente?.[varKey] || fallback);
 }
 
-function agProvvigionePrevista(l, agente) {
+function agGuadagnoAContratto(l, agente) {
   if (!l || l.stato === 'perso') return 0;
-  if (l.stato === 'pagante') return Number(l.provvigione_calcolata || agBaseProvvigione(l, agente) || 0);
-  return agBaseProvvigione(l, agente) * agPesoForecast(l.stato);
+  return agBaseProvvigione(l, agente);
 }
 
-function agPipelinePrevista(leads, agenti) {
+function agRicorrenteAnnualeLead(l, agente) {
+  if (!l || agente?.tipo === 'segnalatore') return 0;
+  return agValoreAnnuoLead(l) * AG_RICORRENTE_PERCENT / 100;
+}
+
+function agPianoRowsGuadagni(agente) {
+  return Object.entries(AG_PIANI_VALORE_ANNUO).map(([piano, valore]) => {
+    const lead = { piano, valore_annuo: valore };
+    return {
+      piano,
+      label: piano.charAt(0).toUpperCase() + piano.slice(1),
+      valore,
+      subito: agBaseProvvigione(lead, agente),
+      ricorrente: agRicorrenteAnnualeLead(lead, agente),
+    };
+  });
+}
+
+function agContrattiApertiValore(leads) {
   return (leads || [])
     .filter(l => !['pagante','perso'].includes(l.stato || ''))
-    .reduce((s,l) => s + agProvvigionePrevista(l, (agenti || []).find(a => a.id === l.agente_id)), 0);
+    .reduce((s,l) => s + agValoreAnnuoLead(l), 0);
 }
-
 
 window.toggleAgenti = function() {
   const sec = document.getElementById('agenti-section');
@@ -1730,7 +1732,7 @@ function renderReteAgenti(el) {
   const paganti = _agentiLead.filter(l => l.stato === 'pagante').length;
   const provDaPagare = _agentiLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata)
     .reduce((s, l) => s + parseFloat(l.provvigione_calcolata || 0), 0);
-  const provPreviste = agPipelinePrevista(_agentiLead, _agenti);
+  const guadagnoContrattiAperti = _agentiLead.filter(l => !['pagante','perso'].includes(l.stato || '')).reduce((s, l) => s + agGuadagnoAContratto(l, _agenti.find(a => a.id === l.agente_id)), 0);
   const fatturatoVenduto = _agentiLead.filter(l => l.stato === 'pagante')
     .reduce((s, l) => s + agValoreAnnuoLead(l), 0);
   const mrrGenerato = fatturatoVenduto / 12;
@@ -1752,7 +1754,7 @@ function renderReteAgenti(el) {
         { v: agEuro(fatturatoVenduto), l:'Fatturato venduto', c:'#059669' },
         { v: agEuro(mrrGenerato), l:'MRR generato', c:'#0E5A7A' },
         { v: agEuro(bonusMaturati), l:'Bonus fatturato', c:'#d97706' },
-        { v: agEuro(provPreviste), l:'Provv. previste', c:'#d97706' },
+        { v: agEuro(guadagnoContrattiAperti), l:'Guadagno se chiusi', c:'#d97706' },
         { v: agEuro(provDaPagare), l:'Provv. da pagare', c:'#DC2626' },
         { v: agEuro(valorePipeline), l:'Pipeline contratti', c:'#7C3AED' },
       ].map(k => `
@@ -1769,8 +1771,7 @@ function renderReteAgenti(el) {
       const inCorso = myLead.filter(l => !['pagante','perso'].includes(l.stato)).length;
       const provDovuta = myLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata)
         .reduce((s, l) => s + parseFloat(l.provvigione_calcolata || 0), 0);
-      const provPrevista = myLead.filter(l => !['pagante','perso'].includes(l.stato || ''))
-        .reduce((s, l) => s + agProvvigionePrevista(l, a), 0);
+      const guadagnoAperti = myLead.filter(l => !['pagante','perso'].includes(l.stato || '')).reduce((s, l) => s + agGuadagnoAContratto(l, a), 0);
       const zone = (a.zona || []).join(', ') || '—';
 
       return `
@@ -1800,7 +1801,7 @@ function renderReteAgenti(el) {
               <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;">
                 <span style="color:#64748b;">In corso: </span><strong style="color:#7C3AED;">${inCorso}</strong>
               </div>
-              ${provPrevista > 0 ? `<div style="background:#fef3c7;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#d97706;">Provv. prevista: </span><strong style="color:#d97706;">${agEuro(provPrevista)}</strong></div>` : ''}
+              ${guadagnoAperti > 0 ? `<div style="background:#fef3c7;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#d97706;">Se chiusi: </span><strong style="color:#d97706;">${agEuro(guadagnoAperti)}</strong></div>` : ''}
               ${provDovuta > 0 ? `<div style="background:#fee2e2;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#DC2626;">Provv. dovuta: </span><strong style="color:#DC2626;">${agEuro(provDovuta)}</strong></div>` : ''}
               ${a.tipo !== 'segnalatore' ? `<div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#64748b;">Fisso: </span><strong>€${a.fisso_mensile}/m</strong></div>` : `<div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#64748b;">% provv: </span><strong>${a.perc_segnalatore}%</strong></div>`}
             </div>
@@ -1900,36 +1901,40 @@ function renderPerformanceAgenti(el) {
 }
 
 function renderProvvigioniAgenti(el) {
-  const daPagare = _agentiLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata);
-  const pagate   = _agentiLead.filter(l => l.provvigione_pagata);
-  const previste = _agentiLead
+  const aperti = _agentiLead
     .filter(l => !['pagante','perso'].includes(l.stato || ''))
     .map(l => {
       const agente = _agenti.find(a => a.id === l.agente_id);
-      return { ...l, agente, peso: agPesoForecast(l.stato), provvigione_prevista: agProvvigionePrevista(l, agente) };
+      return {
+        ...l,
+        agente,
+        guadagno_contratto: agGuadagnoAContratto(l, agente),
+        ricorrente_annuo: agRicorrenteAnnualeLead(l, agente),
+        valore_annuo: agValoreAnnuoLead(l),
+      };
     })
-    .sort((a,b) => b.provvigione_prevista - a.provvigione_prevista);
+    .sort((a,b) => b.guadagno_contratto - a.guadagno_contratto);
 
-  const totDaPagare = daPagare.reduce((s,l) => s+parseFloat(l.provvigione_calcolata||0), 0);
-  const totPagate   = pagate.reduce((s,l) => s+parseFloat(l.provvigione_calcolata||0), 0);
-  const totPreviste = previste.reduce((s,l) => s+Number(l.provvigione_prevista||0), 0);
-  const meseCorrente = new Date().toISOString().substring(0,7);
-  const forecastMese = previste
-    .filter(l => (l.created_at || '').substring(0,7) === meseCorrente)
-    .reduce((s,l) => s+Number(l.provvigione_prevista||0), 0);
-  const forecastTotale = totDaPagare + totPreviste;
-  const valorePipeline = _agentiLead.filter(l => !['pagante','perso'].includes(l.stato || ''))
-    .reduce((s, l) => s + agValoreAnnuoLead(l), 0);
+  const paganti = _agentiLead.filter(l => l.stato === 'pagante');
+  const daPagare = paganti.filter(l => !l.provvigione_pagata);
+  const pagate   = _agentiLead.filter(l => l.provvigione_pagata);
+
+  const totDaPagare = daPagare.reduce((s,l) => s+agBaseProvvigione(l, _agenti.find(a => a.id === l.agente_id)), 0);
+  const totPagate   = pagate.reduce((s,l) => s+agBaseProvvigione(l, _agenti.find(a => a.id === l.agente_id)), 0);
+  const valorePortafoglio = paganti.reduce((s,l) => s+agValoreAnnuoLead(l), 0);
+  const valoreAperti = aperti.reduce((s,l) => s+Number(l.valore_annuo||0), 0);
+  const guadagnoSeChiusi = aperti.reduce((s,l) => s+Number(l.guadagno_contratto||0), 0);
+  const renditaAnnuale = paganti.reduce((s,l) => s+agRicorrenteAnnualeLead(l, _agenti.find(a => a.id === l.agente_id)), 0);
 
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
-      <div style="background:#fef3c7;border-radius:12px;padding:16px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;color:#d97706;">${agEuro(totPreviste)}</div>
-        <div style="font-size:12px;color:#64748b;margin-top:4px;">Provvigioni previste</div>
-      </div>
       <div style="background:#f5f3ff;border-radius:12px;padding:16px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;color:#7C3AED;">${agEuro(forecastMese)}</div>
-        <div style="font-size:12px;color:#64748b;margin-top:4px;">Forecast mese</div>
+        <div style="font-size:28px;font-weight:800;color:#7C3AED;">${agEuro(valorePortafoglio)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">Valore portafoglio</div>
+      </div>
+      <div style="background:#ecfdf5;border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#059669;">${agEuro(renditaAnnuale)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">Rendita annuale rete</div>
       </div>
       <div style="background:#fee2e2;border-radius:12px;padding:16px;text-align:center;">
         <div style="font-size:28px;font-weight:800;color:#DC2626;">${agEuro(totDaPagare)}</div>
@@ -1944,30 +1949,33 @@ function renderProvvigioniAgenti(el) {
     <div style="background:#0f172a;color:white;border-radius:12px;padding:16px;margin-bottom:12px;">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
         <div>
-          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Forecast totale rete</div>
-          <div style="font-size:24px;font-weight:900;margin-top:4px;">${agEuro(forecastTotale)}</div>
+          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Contratti aperti</div>
+          <div style="font-size:24px;font-weight:900;margin-top:4px;">${agEuro(valoreAperti)}</div>
         </div>
         <div>
-          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Valore pipeline contratti</div>
-          <div style="font-size:24px;font-weight:900;margin-top:4px;">${agEuro(valorePipeline)}</div>
+          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Agenti incasserebbero</div>
+          <div style="font-size:24px;font-weight:900;margin-top:4px;">${agEuro(guadagnoSeChiusi)}</div>
         </div>
         <div>
-          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Regola forecast</div>
-          <div style="font-size:12px;line-height:1.6;margin-top:4px;">Segnalato 20% · Visitato 35% · Demo 55% · Trial 80% · Contratto 95%</div>
+          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Regola chiara</div>
+          <div style="font-size:12px;line-height:1.6;margin-top:4px;">Nessuna probabilità: importo riconosciuto solo a contratto concluso e primo incasso avvenuto.</div>
         </div>
       </div>
     </div>
 
     <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:16px;margin-bottom:12px;">
-      <div style="font-size:13px;font-weight:700;color:#d97706;margin-bottom:12px;">⏳ Provvigioni previste su lead in lavorazione</div>
-      ${previste.length ? previste.map(l => `
+      <div style="font-size:13px;font-weight:700;color:#d97706;margin-bottom:12px;">💰 Guadagno a contratto concluso sui lead in lavorazione</div>
+      ${aperti.length ? aperti.map(l => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#fffbeb;border-radius:8px;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
           <div>
             <div style="font-size:13px;font-weight:700;">${escHP(l.nome_locale)} → ${l.agente ? escHP(l.agente.nome)+' '+escHP(l.agente.cognome) : '?'}</div>
-            <div style="font-size:11px;color:#64748b;">${l.piano||'—'} · Stato: ${l.stato || 'segnalato'} · Probabilità ${Math.round((l.peso || 0) * 100)}%</div>
+            <div style="font-size:11px;color:#64748b;">${l.piano||'—'} · Stato: ${l.stato || 'segnalato'} · valore ${agEuro(l.valore_annuo)}</div>
           </div>
-          <div style="font-size:16px;font-weight:800;color:#d97706;">${agEuro(l.provvigione_prevista)}</div>
-        </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessun lead in lavorazione per il forecast.</div>'}
+          <div style="text-align:right;">
+            <div style="font-size:16px;font-weight:800;color:#7C3AED;">${agEuro(l.guadagno_contratto)}</div>
+            <div style="font-size:10px;color:#059669;">+ ${agEuro(l.ricorrente_annuo)}/anno se resta cliente</div>
+          </div>
+        </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessun lead in lavorazione.</div>'}
     </div>
 
     ${daPagare.length ? `
@@ -1975,7 +1983,7 @@ function renderProvvigioniAgenti(el) {
       <div style="font-size:13px;font-weight:700;color:#DC2626;margin-bottom:12px;">⚠️ Provvigioni da pagare</div>
       ${daPagare.map(l => {
         const agente = _agenti.find(a => a.id === l.agente_id);
-        const importo = l.provvigione_calcolata || agBaseProvvigione(l, agente);
+        const importo = agBaseProvvigione(l, agente);
         return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#fef2f2;border-radius:8px;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
           <div>
@@ -2001,11 +2009,12 @@ function renderProvvigioniAgenti(el) {
             <span style="font-size:13px;font-weight:600;">${escHP(l.nome_locale)}</span>
             <span style="font-size:11px;color:#64748b;margin-left:8px;">→ ${agente ? escHP(agente.nome) : '?'}</span>
           </div>
-          <div style="font-size:13px;font-weight:700;color:#059669;">${agEuro(l.provvigione_calcolata || agBaseProvvigione(l, agente))}</div>
+          <div style="font-size:13px;font-weight:700;color:#059669;">${agEuro(agBaseProvvigione(l, agente))}</div>
         </div>`;
       }).join('')}
     </div>` : ''}`;
 }
+
 
 function renderPianoEconomico(el) {
   el.innerHTML = `
@@ -2110,7 +2119,7 @@ function renderPianoEconomico(el) {
       <div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:8px;">📅 Roadmap rete vendita</div>
       ${[
         { fase:'Fase 1 · Ora → Luglio', desc:'Solo tu fai visite. Testi lo script, affini il processo, capisci le obiezioni reali.', col:'#DC2626' },
-        { fase:'Fase 2 · Agosto → Settembre', desc:'Attivi 2-3 segnalatori/agenti senza fisso mensile. Solo provvigioni, bonus e forecast controllato dalla piattaforma.', col:'#d97706' },
+        { fase:'Fase 2 · Agosto → Settembre', desc:'Attivi 2-3 segnalatori/agenti senza fisso mensile. Solo provvigioni, bonus e portafoglio controllato dalla piattaforma.', col:'#d97706' },
         { fase:'Fase 3 · Ottobre → Dicembre', desc:'Inserisci 1 agente strutturato su Viterbo o Terni. 2 settimane affiancamento, poi autonomo.', col:'#7C3AED' },
         { fase:'Fase 4 · 2026', desc:'Area manager + rete su Lazio, Umbria, Toscana.', col:'#059669' },
       ].map(f => `
