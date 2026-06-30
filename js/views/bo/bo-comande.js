@@ -423,20 +423,36 @@ export async function render(container) {
 
   async function loadCamerieri() {
     try {
-      // Carica profili con pin impostato, legati all'azienda
-      const { data } = await supa()
-        .from('profili')
-        .select('id, nome, cognome, pin, ruolo, colore')
+      // I PIN operativi sono sulla tabella dipendenti.
+      // La tabella profili non contiene azienda_id/ruolo, quindi non va usata per le comande.
+      const { data, error } = await supa()
+        .from('dipendenti')
+        .select('id, nome, cognome, pin, ruolo, azienda_id, sede_id, attivo')
         .eq('azienda_id', aziendaId)
+        .eq('attivo', true)
         .not('pin', 'is', null);
-      camerieriDB = (data || []).map(p => ({
-        pin: p.pin,
-        nome: [p.nome, p.cognome].filter(Boolean).join(' ') || p.nome || 'Cameriere',
-        ruolo: p.ruolo === 'admin' || p.ruolo === 'manager' ? 'manager'
-             : p.ruolo === 'limited' ? 'limited' : 'full',
-        colore: p.colore || '#0E5A7A',
-        profiloId: p.id,
-      }));
+
+      if (error) {
+        console.warn('Caricamento camerieri fallito:', error.message || error);
+        camerieriDB = [];
+        return;
+      }
+
+      camerieriDB = (data || [])
+        .filter(d => String(d.pin || '').trim() !== '')
+        .filter(d => !sedeId || !d.sede_id || String(d.sede_id) === String(sedeId))
+        .map(d => ({
+          pin: String(d.pin || '').trim(),
+          nome: [d.nome, d.cognome].filter(Boolean).join(' ') || d.nome || 'Cameriere',
+          ruolo:
+            d.ruolo === 'admin' || d.ruolo === 'manager'
+              ? 'manager'
+              : d.ruolo === 'limited'
+                ? 'limited'
+                : 'full',
+          colore: '#0E5A7A',
+          dipendenteId: d.id,
+        }));
     } catch (e) {
       console.warn('Caricamento camerieri fallito, uso solo admin:', e);
       camerieriDB = [];
