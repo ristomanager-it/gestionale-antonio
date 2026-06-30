@@ -642,7 +642,8 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
 
   // Fetch diretto con timeout 60s invece di supabase.functions.invoke
   const supabaseUrl = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-  const session = await window.supabase?.auth?.getSession();
+  const supaAuth = window.supabaseClient || window.supabase;
+  const session = await supaAuth?.auth?.getSession();
   const token = session?.data?.session?.access_token || "";
 
   const controller = new AbortController();
@@ -964,8 +965,9 @@ async function sendMessageSilent(hiddenPrompt) {
     addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
     conversation.push({ role: "assistant", content: reply });
     ttsParla(reply);
-  } catch {
-    if (loading) loading.textContent = "Errore Tony";
+  } catch (err) {
+    console.error("Tony errore (sendMessageSilent):", err);
+    if (loading) loading.textContent = "Errore Tony: " + (err?.message || "sconosciuto");
   }
 
   if (send) send.disabled = false;
