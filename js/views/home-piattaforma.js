@@ -1581,6 +1581,69 @@ const AG_PIANI_VAR = {
   full:     { label:'Full €199',     var_key:'var_full' },
 };
 
+const AG_FORECAST_PESI = {
+  segnalato: 0.20,
+  visitato: 0.35,
+  demo_fatta: 0.55,
+  demo: 0.55,
+  trial: 0.80,
+  trial_attivo: 0.80,
+  contratto: 0.95,
+  contratto_inviato: 0.95,
+  pagante: 1,
+};
+
+const AG_PIANI_VALORE_ANNUO = {
+  starter: 828,
+  business: 1428,
+  pro: 2028,
+  hotel: 1188,
+  full: 2388,
+};
+
+function agEuro(v) {
+  return `€${Math.round(Number(v || 0)).toLocaleString('it-IT')}`;
+}
+
+function agNormalizzaPiano(piano) {
+  return String(piano || '').toLowerCase().trim();
+}
+
+function agPesoForecast(stato) {
+  return AG_FORECAST_PESI[String(stato || '').toLowerCase().trim()] ?? 0.25;
+}
+
+function agBaseProvvigione(l, agente) {
+  const salvata = Number(l?.provvigione_calcolata || 0);
+  if (salvata > 0) return salvata;
+
+  const piano = agNormalizzaPiano(l?.piano);
+  const valoreContratto = Number(l?.valore_contratto || 0);
+  const valoreAnnuo = valoreContratto > 0 ? valoreContratto : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
+
+  if (agente?.tipo === 'segnalatore') {
+    const perc = Number(agente?.perc_segnalatore || 10);
+    return valoreAnnuo * perc / 100;
+  }
+
+  const varKey = AG_PIANI_VAR[piano]?.var_key || 'var_business';
+  const fallback = piano === 'starter' ? 100 : piano === 'business' ? 180 : piano === 'hotel' ? 120 : 250;
+  return Number(agente?.[varKey] || fallback);
+}
+
+function agProvvigionePrevista(l, agente) {
+  if (!l || l.stato === 'perso') return 0;
+  if (l.stato === 'pagante') return Number(l.provvigione_calcolata || agBaseProvvigione(l, agente) || 0);
+  return agBaseProvvigione(l, agente) * agPesoForecast(l.stato);
+}
+
+function agPipelinePrevista(leads, agenti) {
+  return (leads || [])
+    .filter(l => !['pagante','perso'].includes(l.stato || ''))
+    .reduce((s,l) => s + agProvvigionePrevista(l, (agenti || []).find(a => a.id === l.agente_id)), 0);
+}
+
+
 window.toggleAgenti = function() {
   const sec = document.getElementById('agenti-section');
   if (!sec) return;
@@ -1645,6 +1708,9 @@ function renderReteAgenti(el) {
   const paganti = _agentiLead.filter(l => l.stato === 'pagante').length;
   const provDaPagare = _agentiLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata)
     .reduce((s, l) => s + parseFloat(l.provvigione_calcolata || 0), 0);
+  const provPreviste = agPipelinePrevista(_agentiLead, _agenti);
+  const valorePipeline = _agentiLead.filter(l => !['pagante','perso'].includes(l.stato || ''))
+    .reduce((s, l) => s + Number(l.valore_contratto || AG_PIANI_VALORE_ANNUO[agNormalizzaPiano(l.piano)] || 0), 0);
 
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;">
@@ -1653,7 +1719,9 @@ function renderReteAgenti(el) {
         { v: attivi.length,      l:'Attivi',              c:'#059669' },
         { v: totLead,            l:'Lead segnalati',      c:'#7C3AED' },
         { v: paganti,            l:'Clienti chiusi',      c:'#0E5A7A' },
-        { v: `€${Math.round(provDaPagare)}`, l:'Provv. da pagare', c:'#DC2626' },
+        { v: agEuro(provPreviste), l:'Provv. previste', c:'#d97706' },
+        { v: agEuro(provDaPagare), l:'Provv. da pagare', c:'#DC2626' },
+        { v: agEuro(valorePipeline), l:'Pipeline contratti', c:'#7C3AED' },
       ].map(k => `
         <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;padding:12px;text-align:center;">
           <div style="font-size:22px;font-weight:800;color:${k.c};">${k.v}</div>
@@ -1668,6 +1736,8 @@ function renderReteAgenti(el) {
       const inCorso = myLead.filter(l => !['pagante','perso'].includes(l.stato)).length;
       const provDovuta = myLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata)
         .reduce((s, l) => s + parseFloat(l.provvigione_calcolata || 0), 0);
+      const provPrevista = myLead.filter(l => !['pagante','perso'].includes(l.stato || ''))
+        .reduce((s, l) => s + agProvvigionePrevista(l, a), 0);
       const zone = (a.zona || []).join(', ') || '—';
 
       return `
@@ -1697,7 +1767,8 @@ function renderReteAgenti(el) {
               <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;">
                 <span style="color:#64748b;">In corso: </span><strong style="color:#7C3AED;">${inCorso}</strong>
               </div>
-              ${provDovuta > 0 ? `<div style="background:#fee2e2;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#DC2626;">Provv. dovuta: </span><strong style="color:#DC2626;">€${Math.round(provDovuta)}</strong></div>` : ''}
+              ${provPrevista > 0 ? `<div style="background:#fef3c7;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#d97706;">Provv. prevista: </span><strong style="color:#d97706;">${agEuro(provPrevista)}</strong></div>` : ''}
+              ${provDovuta > 0 ? `<div style="background:#fee2e2;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#DC2626;">Provv. dovuta: </span><strong style="color:#DC2626;">${agEuro(provDovuta)}</strong></div>` : ''}
               ${a.tipo !== 'segnalatore' ? `<div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#64748b;">Fisso: </span><strong>€${a.fisso_mensile}/m</strong></div>` : `<div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12px;"><span style="color:#64748b;">% provv: </span><strong>${a.perc_segnalatore}%</strong></div>`}
             </div>
           </div>
@@ -1798,19 +1869,72 @@ function renderPerformanceAgenti(el) {
 function renderProvvigioniAgenti(el) {
   const daPagare = _agentiLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata);
   const pagate   = _agentiLead.filter(l => l.provvigione_pagata);
+  const previste = _agentiLead
+    .filter(l => !['pagante','perso'].includes(l.stato || ''))
+    .map(l => {
+      const agente = _agenti.find(a => a.id === l.agente_id);
+      return { ...l, agente, peso: agPesoForecast(l.stato), provvigione_prevista: agProvvigionePrevista(l, agente) };
+    })
+    .sort((a,b) => b.provvigione_prevista - a.provvigione_prevista);
+
   const totDaPagare = daPagare.reduce((s,l) => s+parseFloat(l.provvigione_calcolata||0), 0);
   const totPagate   = pagate.reduce((s,l) => s+parseFloat(l.provvigione_calcolata||0), 0);
+  const totPreviste = previste.reduce((s,l) => s+Number(l.provvigione_prevista||0), 0);
+  const meseCorrente = new Date().toISOString().substring(0,7);
+  const forecastMese = previste
+    .filter(l => (l.created_at || '').substring(0,7) === meseCorrente)
+    .reduce((s,l) => s+Number(l.provvigione_prevista||0), 0);
+  const forecastTotale = totDaPagare + totPreviste;
+  const valorePipeline = _agentiLead.filter(l => !['pagante','perso'].includes(l.stato || ''))
+    .reduce((s, l) => s + Number(l.valore_contratto || AG_PIANI_VALORE_ANNUO[agNormalizzaPiano(l.piano)] || 0), 0);
 
   el.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
+      <div style="background:#fef3c7;border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#d97706;">${agEuro(totPreviste)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">Provvigioni previste</div>
+      </div>
+      <div style="background:#f5f3ff;border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#7C3AED;">${agEuro(forecastMese)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">Forecast mese</div>
+      </div>
       <div style="background:#fee2e2;border-radius:12px;padding:16px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;color:#DC2626;">€${Math.round(totDaPagare).toLocaleString('it-IT')}</div>
-        <div style="font-size:12px;color:#64748b;margin-top:4px;">Da pagare (${daPagare.length} provvigioni)</div>
+        <div style="font-size:28px;font-weight:800;color:#DC2626;">${agEuro(totDaPagare)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">Da pagare (${daPagare.length})</div>
       </div>
       <div style="background:#d1fae5;border-radius:12px;padding:16px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;color:#059669;">€${Math.round(totPagate).toLocaleString('it-IT')}</div>
-        <div style="font-size:12px;color:#64748b;margin-top:4px;">Già pagate (${pagate.length} provvigioni)</div>
+        <div style="font-size:28px;font-weight:800;color:#059669;">${agEuro(totPagate)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">Già pagate (${pagate.length})</div>
       </div>
+    </div>
+
+    <div style="background:#0f172a;color:white;border-radius:12px;padding:16px;margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+        <div>
+          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Forecast totale rete</div>
+          <div style="font-size:24px;font-weight:900;margin-top:4px;">${agEuro(forecastTotale)}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Valore pipeline contratti</div>
+          <div style="font-size:24px;font-weight:900;margin-top:4px;">${agEuro(valorePipeline)}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#cbd5e1;text-transform:uppercase;font-weight:700;">Regola forecast</div>
+          <div style="font-size:12px;line-height:1.6;margin-top:4px;">Segnalato 20% · Visitato 35% · Demo 55% · Trial 80% · Contratto 95%</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:16px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:#d97706;margin-bottom:12px;">⏳ Provvigioni previste su lead in lavorazione</div>
+      ${previste.length ? previste.map(l => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#fffbeb;border-radius:8px;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;">${escHP(l.nome_locale)} → ${l.agente ? escHP(l.agente.nome)+' '+escHP(l.agente.cognome) : '?'}</div>
+            <div style="font-size:11px;color:#64748b;">${l.piano||'—'} · Stato: ${l.stato || 'segnalato'} · Probabilità ${Math.round((l.peso || 0) * 100)}%</div>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:#d97706;">${agEuro(l.provvigione_prevista)}</div>
+        </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessun lead in lavorazione per il forecast.</div>'}
     </div>
 
     ${daPagare.length ? `
@@ -1818,6 +1942,7 @@ function renderProvvigioniAgenti(el) {
       <div style="font-size:13px;font-weight:700;color:#DC2626;margin-bottom:12px;">⚠️ Provvigioni da pagare</div>
       ${daPagare.map(l => {
         const agente = _agenti.find(a => a.id === l.agente_id);
+        const importo = l.provvigione_calcolata || agBaseProvvigione(l, agente);
         return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#fef2f2;border-radius:8px;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
           <div>
@@ -1825,7 +1950,7 @@ function renderProvvigioniAgenti(el) {
             <div style="font-size:11px;color:#64748b;">${l.piano||'—'} · Chiuso: ${l.data_conversione ? new Date(l.data_conversione).toLocaleDateString('it-IT') : '—'}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:16px;font-weight:800;color:#DC2626;">€${parseFloat(l.provvigione_calcolata||0).toFixed(0)}</span>
+            <span style="font-size:16px;font-weight:800;color:#DC2626;">${agEuro(importo)}</span>
             <button onclick="segnaProvvigionePagata('${l.id}')" style="background:#059669;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">✓ Segna pagata</button>
           </div>
         </div>`;
@@ -1843,7 +1968,7 @@ function renderProvvigioniAgenti(el) {
             <span style="font-size:13px;font-weight:600;">${escHP(l.nome_locale)}</span>
             <span style="font-size:11px;color:#64748b;margin-left:8px;">→ ${agente ? escHP(agente.nome) : '?'}</span>
           </div>
-          <div style="font-size:13px;font-weight:700;color:#059669;">€${parseFloat(l.provvigione_calcolata||0).toFixed(0)}</div>
+          <div style="font-size:13px;font-weight:700;color:#059669;">${agEuro(l.provvigione_calcolata || agBaseProvvigione(l, agente))}</div>
         </div>`;
       }).join('')}
     </div>` : ''}`;
@@ -1879,7 +2004,7 @@ function renderPianoEconomico(el) {
       <div style="margin-bottom:20px;">
         <div style="font-size:12px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🎯 Agente strutturato</div>
         <div style="font-size:13px;color:#374151;line-height:1.7;background:#f5f3ff;border-radius:8px;padding:12px;">
-          Zona assegnata, obiettivo mensile, fisso + variabile per cliente chiuso + bonus obiettivo + ricorrente anno 2.
+          Primi 2-3 mesi senza fisso: solo variabile, bonus obiettivo e ricorrente. Il fisso si attiva solo dopo validazione commerciale e clienti attivi.
         </div>
         <div style="overflow-x:auto;margin-top:10px;">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -1892,11 +2017,11 @@ function renderPianoEconomico(el) {
             </thead>
             <tbody>
               ${[
-                ['Fisso mensile', '€500-800', 'Base garantita'],
+                ['Fisso mensile', '€0 primi 2-3 mesi', 'Si attiva solo dopo validazione e target minimo'],
                 ['Variabile Starter', '€100/cliente', 'Al primo pagamento'],
                 ['Variabile Business', '€180/cliente', 'Al primo pagamento'],
                 ['Variabile Pro/Full', '€250/cliente', 'Al primo pagamento'],
-                ['Bonus obiettivo', '€300/mese', 'Se supera il target mensile'],
+                ['Bonus obiettivo', '€300/mese', 'Da 5 clienti/mese o target concordato'],
                 ['Ricorrente anno 2', '5% canone', 'Se il cliente rinnova'],
               ].map(([c,i,cond]) => `
                 <tr style="border-bottom:1px solid #f1f5f9;">
@@ -1908,8 +2033,9 @@ function renderPianoEconomico(el) {
           </table>
         </div>
         <div style="background:#f5f3ff;border-radius:8px;padding:12px;margin-top:10px;font-size:13px;">
-          <strong>Esempio:</strong> Agente chiude 8 clienti/mese (6 Starter + 2 Business):<br>
-          Fisso €700 + variabile €960 = <strong style="color:#7C3AED;">€1.660 totale</strong>
+          <strong>Esempio primi mesi:</strong> Agente chiude 8 clienti/mese (6 Starter + 2 Business):<br>
+          Fisso €0 + variabile €960 + bonus €300 = <strong style="color:#7C3AED;">€1.260 totale</strong><br>
+          Dopo validazione: possibile fisso €500-800 mantenendo target e qualità clienti.
         </div>
       </div>
 
@@ -1937,7 +2063,7 @@ function renderPianoEconomico(el) {
       <div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:8px;">📅 Roadmap rete vendita</div>
       ${[
         { fase:'Fase 1 · Ora → Luglio', desc:'Solo tu fai visite. Testi lo script, affini il processo, capisci le obiezioni reali.', col:'#DC2626' },
-        { fase:'Fase 2 · Agosto → Settembre', desc:'Attivi 2-3 segnalatori nella rete. Fornitori, commercialisti, colleghi ristoratori. Zero costi fissi.', col:'#d97706' },
+        { fase:'Fase 2 · Agosto → Settembre', desc:'Attivi 2-3 segnalatori/agenti senza fisso mensile. Solo provvigioni, bonus e forecast controllato dalla piattaforma.', col:'#d97706' },
         { fase:'Fase 3 · Ottobre → Dicembre', desc:'Inserisci 1 agente strutturato su Viterbo o Terni. 2 settimane affiancamento, poi autonomo.', col:'#7C3AED' },
         { fase:'Fase 4 · 2026', desc:'Area manager + rete su Lazio, Umbria, Toscana.', col:'#059669' },
       ].map(f => `
