@@ -191,8 +191,8 @@ export async function render(container) {
         <div style="font-size:20px;font-weight:800;color:#0E5A7A;margin-top:3px;">${agEuro(arrGeneratoTotale)}</div>
       </div>
       <div>
-        <div style="font-size:11px;color:#64748b;font-weight:700;">Contratti aperti</div>
-        <div style="font-size:20px;font-weight:800;color:#d97706;margin-top:3px;">${agEuro(valoreContrattiAperti)}</div>
+        <div style="font-size:11px;color:#64748b;font-weight:700;">Guadagno se chiudi i lead aperti</div>
+        <div style="font-size:20px;font-weight:800;color:#d97706;margin-top:3px;">${agEuro(guadagnoContrattiAperti)}</div>
       </div>
       <div>
         <div style="font-size:11px;color:#64748b;font-weight:700;">Provvigioni maturate</div>
@@ -328,43 +328,53 @@ export async function render(container) {
   function renderAgProvvigioni(el) {
     const list = window._agLeadList || [];
     const agente = window._agAgente || {};
-    const aperti = list.filter(l => !['pagante','perso'].includes(l.stato || ''))
-      .map(l => ({ ...l, guadagno_contratto: agGuadagnoAContratto(l, agente), ricorrente_annuo: agRicorrenteAnnualeLead(l, agente), valore_annuo: agValoreAnnuoLead(l) }))
+
+    const leadAperti = list
+      .filter(l => !['pagante','perso'].includes(l.stato || ''))
+      .map(l => ({
+        ...l,
+        guadagno_contratto: agGuadagnoAContratto(l, agente),
+        ricorrente_annuo: agRicorrenteAnnualeLead(l, agente),
+        valore_annuo: agValoreAnnuoLead(l),
+      }))
       .sort((a,b) => b.guadagno_contratto - a.guadagno_contratto);
-    const pagantiAttivi = list.filter(l => l.stato === 'pagante');
-    const daPagare = pagantiAttivi.filter(l => !l.provvigione_pagata);
-    const pagate = list.filter(l => l.provvigione_pagata);
-    const totDaPagare = daPagare.reduce((s,l)=>s+agBaseProvvigione(l, agente),0);
-    const totPagate = pagate.reduce((s,l)=>s+agBaseProvvigione(l, agente),0);
-    const valorePortafoglio = pagantiAttivi.reduce((s,l)=>s+agValoreAnnuoLead(l),0);
-    const renditaAnnuale = pagantiAttivi.reduce((s,l)=>s+agRicorrenteAnnualeLead(l, agente),0);
+
+    const clientiChiusi = list.filter(l => l.stato === 'pagante');
+    const daLiquidare = clientiChiusi.filter(l => !l.provvigione_pagata);
+    const liquidate = clientiChiusi.filter(l => l.provvigione_pagata);
+
+    const totDaLiquidare = daLiquidare.reduce((s,l)=>s+agBaseProvvigione(l, agente),0);
+    const totLiquidato = liquidate.reduce((s,l)=>s+agBaseProvvigione(l, agente),0);
+    const valorePortafoglio = clientiChiusi.reduce((s,l)=>s+agValoreAnnuoLead(l),0);
+    const renditaAnnuale = clientiChiusi.reduce((s,l)=>s+agRicorrenteAnnualeLead(l, agente),0);
     const bonus = agBonusFatturato(valorePortafoglio);
+    const guadagnoSeChiudi = leadAperti.reduce((s,l)=>s+l.guadagno_contratto,0);
 
     el.innerHTML = `
       <div class="ag-card" style="border-left:4px solid #7C3AED;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
           <div>
-            <div style="font-size:15px;font-weight:800;color:#374151;">💼 Il mio portafoglio</div>
-            <div style="font-size:12px;color:#64748b;margin-top:3px;">Qui vedi solo importi chiari: quanto guadagni a contratto concluso e la rendita annuale sui clienti mantenuti.</div>
+            <div style="font-size:16px;font-weight:800;color:#374151;">💼 Il mio portafoglio</div>
+            <div style="font-size:12px;color:#64748b;margin-top:3px;">Questa pagina risponde a una sola domanda: quanto hai guadagnato e quanto guadagni quando chiudi un contratto.</div>
           </div>
-          <div style="font-size:12px;color:#64748b;background:#f8fafc;border-radius:999px;padding:6px 10px;">Ricorrente: ${AG_RICORRENTE_PERCENT}% del canone annuo</div>
+          <div style="font-size:12px;color:#059669;background:#ecfdf5;border-radius:999px;padding:6px 10px;font-weight:700;">Rendita annuale: ${AG_RICORRENTE_PERCENT}% del canone annuo</div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;">
           <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:24px;font-weight:800;color:#0E5A7A;">${pagantiAttivi.length}</div>
-            <div style="font-size:11px;color:#64748b;">Clienti attivi</div>
+            <div style="font-size:24px;font-weight:800;color:#0E5A7A;">${clientiChiusi.length}</div>
+            <div style="font-size:11px;color:#64748b;">Clienti chiusi</div>
           </div>
           <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center;">
             <div style="font-size:24px;font-weight:800;color:#7C3AED;">${agEuro(valorePortafoglio)}</div>
-            <div style="font-size:11px;color:#64748b;">Valore portafoglio</div>
+            <div style="font-size:11px;color:#64748b;">Valore venduto</div>
           </div>
           <div style="background:#fee2e2;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:24px;font-weight:800;color:#DC2626;">${agEuro(totDaPagare)}</div>
+            <div style="font-size:24px;font-weight:800;color:#DC2626;">${agEuro(totDaLiquidare)}</div>
             <div style="font-size:11px;color:#64748b;">Da liquidare</div>
           </div>
           <div style="background:#d1fae5;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:24px;font-weight:800;color:#059669;">${agEuro(totPagate)}</div>
+            <div style="font-size:24px;font-weight:800;color:#059669;">${agEuro(totLiquidato)}</div>
             <div style="font-size:11px;color:#64748b;">Già liquidato</div>
           </div>
           <div style="background:#ecfdf5;border-radius:10px;padding:12px;text-align:center;">
@@ -379,16 +389,16 @@ export async function render(container) {
       </div>
 
       <div class="ag-card">
-        <div style="font-size:14px;font-weight:800;color:#374151;margin-bottom:10px;">💰 Quanto guadagni per ogni contratto concluso</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Importo pagato dopo il primo incasso del cliente. La rendita annuale matura dal rinnovo/mantenimento del cliente, se resta attivo e in regola.</div>
+        <div style="font-size:14px;font-weight:800;color:#374151;margin-bottom:10px;">💰 Quanto guadagni a contratto concluso</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Quando il cliente paga il primo contratto, questo è il tuo guadagno. Dal secondo anno maturi anche la rendita annuale se il cliente resta attivo.</div>
         <div style="overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <thead>
               <tr style="background:#f8fafc;">
-                <th style="padding:8px;text-align:left;color:#64748b;">Piano</th>
-                <th style="padding:8px;text-align:right;color:#64748b;">Valore anno</th>
+                <th style="padding:8px;text-align:left;color:#64748b;">Piano venduto</th>
+                <th style="padding:8px;text-align:right;color:#64748b;">Valore cliente anno</th>
                 <th style="padding:8px;text-align:right;color:#64748b;">Guadagno subito</th>
-                <th style="padding:8px;text-align:right;color:#64748b;">Ogni anno</th>
+                <th style="padding:8px;text-align:right;color:#64748b;">Rendita ogni anno</th>
               </tr>
             </thead>
             <tbody>
@@ -407,33 +417,36 @@ export async function render(container) {
       <div class="ag-card" style="border-left:4px solid #d97706;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
           <div>
-            <div style="font-size:12px;font-weight:800;color:#374151;">Contratti in lavorazione</div>
-            <div style="font-size:11px;color:#64748b;margin-top:2px;">Non è una previsione: è quanto prenderesti se questi contratti venissero conclusi.</div>
+            <div style="font-size:13px;font-weight:800;color:#374151;">Contratti aperti: quanto guadagni se li chiudi</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">Non è una stima probabilistica: è il valore pieno a contratto concluso.</div>
           </div>
-          <div style="font-size:18px;font-weight:800;color:#d97706;">${agEuro(aperti.reduce((s,l)=>s+l.guadagno_contratto,0))}</div>
+          <div style="font-size:20px;font-weight:800;color:#d97706;">${agEuro(guadagnoSeChiudi)}</div>
         </div>
-        ${aperti.length ? aperti.map(l => `
+        ${leadAperti.length ? leadAperti.map(l => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f5f9;gap:8px;flex-wrap:wrap;">
             <div>
               <div style="font-size:13px;font-weight:700;color:#111827;">${escAg(l.nome_locale)}</div>
-              <div style="font-size:11px;color:#64748b;">${l.piano || 'Piano non indicato'} · ${l.stato || 'segnalato'} · valore ${agEuro(l.valore_annuo)}</div>
+              <div style="font-size:11px;color:#64748b;">${l.piano || 'Piano non indicato'} · ${l.stato || 'segnalato'} · valore cliente ${agEuro(l.valore_annuo)}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:13px;font-weight:800;color:#7C3AED;">${agEuro(l.guadagno_contratto)}</div>
-              <div style="font-size:10px;color:#059669;">+ ${agEuro(l.ricorrente_annuo)}/anno se resta cliente</div>
+              <div style="font-size:13px;font-weight:800;color:#7C3AED;">${agEuro(l.guadagno_contratto)} quando chiudi</div>
+              <div style="font-size:10px;color:#059669;">+ ${agEuro(l.ricorrente_annuo)}/anno dal mantenimento</div>
             </div>
-          </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessun contratto in lavorazione.</div>'}
+          </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessun contratto aperto.</div>'}
       </div>
 
       <div class="ag-card">
-        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:10px;">Storico clienti chiusi</div>
-        ${[...daPagare,...pagate].length ? [...daPagare,...pagate].map(l => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border-bottom:1px solid #f1f5f9;">
+        <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:10px;">Clienti chiusi e pagamenti</div>
+        ${clientiChiusi.length ? clientiChiusi.map(l => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f5f9;gap:8px;flex-wrap:wrap;">
             <div>
-              <span style="font-size:13px;font-weight:600;">${escAg(l.nome_locale)}</span>
-              <span style="font-size:11px;color:#94a3b8;margin-left:6px;">${l.piano||''}</span>
+              <div style="font-size:13px;font-weight:700;color:#111827;">${escAg(l.nome_locale)}</div>
+              <div style="font-size:11px;color:#64748b;">${l.piano || '—'} · valore cliente ${agEuro(agValoreAnnuoLead(l))}</div>
             </div>
-            <span style="font-size:13px;font-weight:700;color:${l.provvigione_pagata?'#059669':'#DC2626'};">${agEuro(agBaseProvvigione(l, agente))} ${l.provvigione_pagata?'✓':'⏳'}</span>
+            <div style="text-align:right;">
+              <div style="font-size:13px;font-weight:800;color:${l.provvigione_pagata?'#059669':'#DC2626'};">${agEuro(agBaseProvvigione(l, agente))}</div>
+              <div style="font-size:10px;color:#64748b;">${l.provvigione_pagata ? 'già liquidato' : 'da liquidare'} · rendita ${agEuro(agRicorrenteAnnualeLead(l, agente))}/anno</div>
+            </div>
           </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessun cliente chiuso ancora</div>'}
       </div>`;
   }
