@@ -2362,7 +2362,7 @@ function renderGuidaVendita(el) {
     ${sezione('🌡️ Pitch per temperatura cliente', '#d97706', `
       <div style="margin-bottom:16px;">
         <div style="font-size:13px;font-weight:800;color:#d97706;margin-bottom:6px;">🟡 TIEPIDO — sa già di avere il problema</div>
-        ${script('Apertura', 'L\\'anno scorso a dicembre ho chiuso un mese con il locale pieno tutti i weekend. A fine mese guardo il conto — quasi zero. Non capivo dove erano andati i soldi. Oggi lo so, ogni mattina, prima di aprire.', '#d97706')}
+        ${script('Apertura', 'Lo scorso dicembre ho chiuso un mese con il locale pieno tutti i weekend. A fine mese guardo il conto — quasi zero. Non capivo dove erano andati i soldi. Oggi lo so, ogni mattina, prima di aprire.', '#d97706')}
         <div style="font-size:12px;color:#94a3b8;">Poi apri il bilancio live e stai zitto.</div>
       </div>
 
