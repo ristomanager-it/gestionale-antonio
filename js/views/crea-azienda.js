@@ -77,6 +77,25 @@ export async function render(container) {
             </select>
           </div>
 
+          <div class="form-group">
+            <label>Tipo attività *</label>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">
+              <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400;cursor:pointer;">
+                <input type="checkbox" class="tipo-app-check" value="ristorante" style="width:16px;height:16px;"> 🍽️ Ristorante
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400;cursor:pointer;">
+                <input type="checkbox" class="tipo-app-check" value="bar" style="width:16px;height:16px;"> ☕ Bar
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400;cursor:pointer;">
+                <input type="checkbox" class="tipo-app-check" value="hotel" style="width:16px;height:16px;"> 🏨 Hotel
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400;cursor:pointer;">
+                <input type="checkbox" class="tipo-app-check" value="tasting" style="width:16px;height:16px;"> 🎫 Tasting/Eventi
+              </label>
+            </div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Determina quali moduli vengono mostrati nel menu del cliente.</div>
+          </div>
+
         </div>
 
         <div class="card">
@@ -180,6 +199,12 @@ export async function render(container) {
     const codice = document.getElementById("az-codice").value.trim();
     const piano_id = document.getElementById("az-piano").value;
     const email = document.getElementById("az-email").value.trim();
+    const tipo_app = Array.from(document.querySelectorAll(".tipo-app-check:checked")).map(c => c.value);
+
+    if (!tipo_app.length) {
+      errorBox.textContent = "Seleziona almeno un tipo di attività (Ristorante, Bar, Hotel, Tasting).";
+      return;
+    }
 
     btn.disabled = true;
     btn.textContent = "Creazione...";
@@ -189,7 +214,7 @@ export async function render(container) {
       const { data, error } = await supabase.functions.invoke(
         "platform-create-company",
         {
-          body: { nome, codice, piano_id, email }
+          body: { nome, codice, piano_id, email, tipo_app }
         }
       );
 
