@@ -929,10 +929,5 @@ export async function render(container) {
       e.target.value = "";
     };
   }
-  document.getElementById("ms-btn-add-fase")?.addEventListener && (() => {})()// = () => {
-    fasiLocali.push({ titolo:"", descrizione_operativa:"", durata_min:0, check_qualita:"", tip_pro:"", errori_comuni:"" });
-    renderFasiEditor();
-    document.getElementById("ms-fasi-container").lastElementChild?.scrollIntoView({ behavior:"smooth" });
-  };
-  document.getElementById("ms-btn-tony-fasi").onclick = () => apriModalTonyProcedura();
+  // btn-add-fase e btn-tony-fasi bindati in apriEditor()
 }
