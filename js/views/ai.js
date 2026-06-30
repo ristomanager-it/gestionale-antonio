@@ -1174,8 +1174,9 @@ function initChat(ruolo) {
           }
         }, 500);
       }
-    } catch {
-      if (loading) loading.textContent = "Errore Tony";
+    } catch (err) {
+      console.error("Tony errore (sendMessage):", err);
+      if (loading) loading.textContent = "Errore Tony: " + (err?.message || "sconosciuto");
     }
 
     if (send) send.disabled = false;
