@@ -37,34 +37,6 @@ let _autocompleteDocBound = false;
 
 let dispositividCache = []; // { id, nome, tipo, temperatura_min, temperatura_max, marca, modello }
 
-function normalizeDbId(value) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return null;
-  if (/^\d+$/.test(raw)) return Number(raw);
-  return raw;
-}
-
-function normalizeDbIdOrNull(value) {
-  return normalizeDbId(value);
-}
-
-function isPositiveNumber(value) {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0;
-}
-
-function showSaveError(prefix, error) {
-  console.error(prefix, error);
-  const details = [
-    error?.message,
-    error?.details,
-    error?.hint,
-    error?.code ? `Codice: ${error.code}` : null
-  ].filter(Boolean).join("\n");
-  alert(`${prefix}${details ? "\n\n" + details : ""}`);
-}
-
-
 // mini-tab fasi
 let faseTabAttiva = "preparazione";
 
@@ -2731,10 +2703,13 @@ async function salvaTutto() {
   const foto_url = getVal("r-foto-url").trim() || null;
   const tipo_ricetta = getVal("r-tipo") || "base";
   const categoria_portata_id_raw = getVal("r-categoria-id");
-  let categoria_portata_id = normalizeDbIdOrNull(categoria_portata_id_raw);
+  const categoria_portata_id = categoria_portata_id_raw
+    ? Number(categoria_portata_id_raw)
+    : null;
 
 
-  const prodotto_output_id = getVal("r-output-id");
+  const prodotto_output_id_raw = getVal("r-output-id");
+  const prodotto_output_id = toBigIntOrNull(prodotto_output_id_raw);
   const output_peso = toNumOrNull(getVal("r-output-peso"));
   const output_um = getVal("r-output-um");
   const output_note = getVal("r-output-note").trim() || null;
@@ -2754,7 +2729,6 @@ async function salvaTutto() {
         if (nc) { categoriePortataCache.push(nc); catFallback = nc; }
       }
       if (catFallback) {
-        categoria_portata_id = normalizeDbIdOrNull(catFallback.id);
         const hidden = document.getElementById("r-categoria-id");
         if (hidden) hidden.value = catFallback.id;
       } else {
@@ -2784,14 +2758,13 @@ async function salvaTutto() {
       note_procedimento,
       foto_url,
       pezzi_base,
-      prodotto_output_id: normalizeDbIdOrNull(prodotto_output_id),
+      prodotto_output_id,
       azienda_id: aziendaId,
       sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
       stato_strutturale: "bozza",
       tipo_ricetta,
       categoria_portata_id,
-      attrezzatura: getVal("r-attrezzatura") || null,
       creato_da: window.state?.user?.id || null,
       creato_da_tony: false
     };
@@ -2803,8 +2776,9 @@ async function salvaTutto() {
       .single();
 
     if (error) {
+      console.error("Errore salvataggio ricetta:", error);
       if (esito) esito.innerText = "";
-      return showSaveError("Errore salvataggio ricetta.", error);
+      return alert("Errore salvataggio ricetta: " + (error.message || "controlla console"));
     }
 
     savedId = String(data.id);
@@ -2816,11 +2790,10 @@ async function salvaTutto() {
       note_procedimento,
       foto_url,
       pezzi_base,
-      prodotto_output_id: normalizeDbIdOrNull(prodotto_output_id),
+      prodotto_output_id,
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
-      attrezzatura: getVal("r-attrezzatura") || null,
       modificato_da: window.state?.user?.id || null,
       modificato_il: new Date().toISOString()
     };
@@ -2832,8 +2805,9 @@ async function salvaTutto() {
       .eq("azienda_id", aziendaId);
 
     if (error) {
+      console.error("Errore aggiornamento ricetta:", error);
       if (esito) esito.innerText = "";
-      return showSaveError("Errore aggiornamento ricetta.", error);
+      return alert("Errore aggiornamento ricetta: " + (error.message || "controlla console"));
     }
   }
 
@@ -2841,30 +2815,22 @@ async function salvaTutto() {
 
   // output principale
   {
-    if (output_peso && output_peso > 0 && output_um) {
-      const payloadOut = {
-        ricetta_id: ricettaIdNum,
-        peso_finale: output_peso,
-        unita_misura: output_um,
-        note: output_note,
-        azienda_id: aziendaId
-      };
+    const payloadOut = {
+      ricetta_id: ricettaIdNum,
+      peso_finale: output_peso,
+      unita_misura: output_um,
+      note: output_note,
+      azienda_id: aziendaId
+    };
 
-      const { error } = await supabase
-        .from("ricette_output")
-        .upsert(payloadOut, { onConflict: "ricetta_id" });
+    const { error } = await supabase
+      .from("ricette_output")
+      .upsert(payloadOut, { onConflict: "ricetta_id" });
 
-      if (error) {
-        console.error(error);
-        if (esito) esito.innerText = "";
-        console.warn("Errore salvataggio output ricetta — non bloccante:", error);
-      }
-    } else if (ricettaIdNum) {
-      await supabase
-        .from("ricette_output")
-        .delete()
-        .eq("ricetta_id", ricettaIdNum)
-        .eq("azienda_id", aziendaId);
+    if (error) {
+      console.error(error);
+      if (esito) esito.innerText = "";
+      console.warn("Errore salvataggio output ricetta — non bloccante:", error);
     }
   }
 
@@ -2893,7 +2859,7 @@ async function salvaTutto() {
       if (pid && peso && peso > 0 && um) {
         out2Rows.push({
           ricetta_id: ricettaIdNum,
-          prodotto_id: normalizeDbId(pid),
+          prodotto_id: Number(pid),
           peso,
           unita_misura: um,
           metodo_allocazione: metodo,
@@ -2945,7 +2911,7 @@ async function salvaTutto() {
 
         rows.push({
           ricetta_id: ricettaIdNum,
-          prodotto_id: normalizeDbId(pid),
+          prodotto_id: Number(pid),
           nome_prodotto: nomeProd || (p?.descrizione || ""),
           quantita: qta,
           unita_misura: um,
@@ -2954,7 +2920,7 @@ async function salvaTutto() {
         });
 
         ingredientRowsForCost.push({
-          prodotto_id: normalizeDbId(pid),
+          prodotto_id: Number(pid),
           quantita: qta
         });
       }
@@ -3376,7 +3342,7 @@ function readOutputSecondariFromDOM() {
 
     if (pid && peso && peso > 0 && um) {
       out.push({
-        prodotto_id: normalizeDbId(pid),
+        prodotto_id: Number(pid),
         peso,
         unita_misura: um,
         metodo_allocazione: metodo,
@@ -3519,6 +3485,22 @@ function toNumOrNull(v) {
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
+
+function toBigIntOrNull(v) {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isSafeInteger(n) ? n : null;
+}
+
+function normalizzaUnitaRicette(v) {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (s === "g") return "gr";
+  if (s === "l") return "lt";
+  return s || null;
+}
+
 
 function safeOn(id, evt, fn) {
   const el = document.getElementById(id);
