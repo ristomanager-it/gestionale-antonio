@@ -626,7 +626,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     }
   }
 
-  const _linguaDip = getLinguaDipendente();
+  const _linguaDip = window.state?.lingua || "it";
   const body = {
     messages: messagesConCtx,
     azienda_id: window.state?.azienda?.id,
