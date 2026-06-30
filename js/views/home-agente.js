@@ -30,6 +30,13 @@ const AG_PIANI_VARIABILE_DEFAULT = {
   full: 250,
 };
 
+const AG_BONUS_FATTURATO_SOGLIE = [
+  { soglia: 50000, bonus: 1500 },
+  { soglia: 35000, bonus: 1000 },
+  { soglia: 20000, bonus: 500 },
+  { soglia: 10000, bonus: 200 },
+];
+
 function agEuro(v) {
   return `€${Math.round(Number(v || 0)).toLocaleString('it-IT')}`;
 }
@@ -42,13 +49,28 @@ function agPesoForecast(stato) {
   return AG_FORECAST_PESI[String(stato || '').toLowerCase().trim()] ?? 0.25;
 }
 
+function agValoreAnnuoLead(l) {
+  const piano = agNormalizzaPiano(l?.piano);
+  const valoreContratto = Number(l?.valore_contratto || l?.fatturato_annuo || l?.valore_annuo || 0);
+  return valoreContratto > 0 ? valoreContratto : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
+}
+
+function agMrrLead(l) {
+  return agValoreAnnuoLead(l) / 12;
+}
+
+function agBonusFatturato(fatturatoAnnuoVenduto) {
+  const valore = Number(fatturatoAnnuoVenduto || 0);
+  const soglia = AG_BONUS_FATTURATO_SOGLIE.find(s => valore >= s.soglia);
+  return soglia ? soglia.bonus : 0;
+}
+
 function agBaseProvvigione(l, agente) {
   const salvata = Number(l?.provvigione_calcolata || 0);
   if (salvata > 0) return salvata;
 
   const piano = agNormalizzaPiano(l?.piano);
-  const valoreContratto = Number(l?.valore_contratto || 0);
-  const valoreAnnuo = valoreContratto > 0 ? valoreContratto : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
+  const valoreAnnuo = agValoreAnnuoLead(l);
 
   if (agente?.tipo === 'segnalatore') {
     const perc = Number(agente?.perc_segnalatore || 10);
@@ -114,8 +136,15 @@ export async function render(container) {
     .reduce((s,l)=>s+agProvvigionePrevista(l, agente),0);
   const provForecastMese = leadMese.filter(l => l.stato !== 'perso')
     .reduce((s,l)=>s+agProvvigionePrevista(l, agente),0);
-  const target = agente.target_mensile || 5;
-  const pctTarget = Math.min(100, Math.round(paganteMese.length / target * 100));
+  const fatturatoVendutoMese = paganteMese.reduce((s,l)=>s+agValoreAnnuoLead(l),0);
+  const fatturatoVendutoTotale = paganti.reduce((s,l)=>s+agValoreAnnuoLead(l),0);
+  const fatturatoPipeline = _leadList.filter(l => !['pagante','perso'].includes(l.stato || ''))
+    .reduce((s,l)=>s+(agValoreAnnuoLead(l) * agPesoForecast(l.stato)),0);
+  const mrrGeneratoMese = fatturatoVendutoMese / 12;
+  const arrGeneratoTotale = fatturatoVendutoTotale;
+  const bonusMaturato = agBonusFatturato(fatturatoVendutoMese);
+  const targetFatturato = Number(agente.target_fatturato_mensile || agente.target_fatturato || 10000);
+  const pctTarget = targetFatturato > 0 ? Math.min(100, Math.round(fatturatoVendutoMese / targetFatturato * 100)) : 0;
 
   const appOggi = _appList.filter(a => a.data === oggi && a.stato === 'programmato');
   const appDomani = _appList.filter(a => a.data === new Date(Date.now()+86400000).toISOString().split('T')[0] && a.stato === 'programmato');
@@ -144,15 +173,35 @@ export async function render(container) {
       <p>${agente.tipo === 'segnalatore' ? 'Segnalatore' : agente.tipo === 'area_manager' ? 'Area Manager' : 'Agente'} · ${(agente.zona||[]).join(', ') || 'Zona non assegnata'}</p>
       <div class="ag-kpi-row">
         <div class="ag-kpi-box"><div class="ag-kpi-val">${appOggi.length}</div><div class="ag-kpi-lbl">Appuntamenti oggi</div></div>
-        <div class="ag-kpi-box"><div class="ag-kpi-val">${leadMese.length}</div><div class="ag-kpi-lbl">Lead questo mese</div></div>
-        <div class="ag-kpi-box"><div class="ag-kpi-val">${paganteMese.length}/${target}</div><div class="ag-kpi-lbl">Target mensile</div></div>
-        <div class="ag-kpi-box"><div class="ag-kpi-val">€${Math.round(provDaPagare)}</div><div class="ag-kpi-lbl">Da incassare</div></div>
-        <div class="ag-kpi-box"><div class="ag-kpi-val">€${Math.round(provPreviste)}</div><div class="ag-kpi-lbl">Provv. previste</div></div>
+        <div class="ag-kpi-box"><div class="ag-kpi-val">${agEuro(fatturatoVendutoMese)}</div><div class="ag-kpi-lbl">Fatturato venduto mese</div></div>
+        <div class="ag-kpi-box"><div class="ag-kpi-val">${agEuro(targetFatturato)}</div><div class="ag-kpi-lbl">Obiettivo fatturato</div></div>
+        <div class="ag-kpi-box"><div class="ag-kpi-val">${agEuro(mrrGeneratoMese)}</div><div class="ag-kpi-lbl">MRR generato</div></div>
+        <div class="ag-kpi-box"><div class="ag-kpi-val">${agEuro(bonusMaturato)}</div><div class="ag-kpi-lbl">Bonus fatturato</div></div>
+        <div class="ag-kpi-box"><div class="ag-kpi-val">${agEuro(provPreviste)}</div><div class="ag-kpi-lbl">Provv. previste</div></div>
       </div>
       <div style="margin-top:10px;background:rgba(255,255,255,.2);border-radius:20px;height:8px;">
         <div style="height:100%;border-radius:20px;background:white;width:${pctTarget}%;transition:width .4s;"></div>
       </div>
-      <div style="font-size:11px;opacity:.8;margin-top:4px;">${pctTarget}% del target mensile raggiunto</div>
+      <div style="font-size:11px;opacity:.8;margin-top:4px;">${pctTarget}% dell'obiettivo fatturato raggiunto</div>
+    </div>
+
+    <div class="ag-card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:11px;color:#64748b;font-weight:700;">ARR venduto totale</div>
+        <div style="font-size:20px;font-weight:800;color:#0E5A7A;margin-top:3px;">${agEuro(arrGeneratoTotale)}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#64748b;font-weight:700;">Pipeline ponderata</div>
+        <div style="font-size:20px;font-weight:800;color:#d97706;margin-top:3px;">${agEuro(fatturatoPipeline)}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#64748b;font-weight:700;">Provvigioni maturate</div>
+        <div style="font-size:20px;font-weight:800;color:#059669;margin-top:3px;">${agEuro(provDaPagare + provPagate)}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#64748b;font-weight:700;">Clienti chiusi</div>
+        <div style="font-size:20px;font-weight:800;color:#7C3AED;margin-top:3px;">${paganti.length}</div>
+      </div>
     </div>
 
     <div class="ag-tabs">
