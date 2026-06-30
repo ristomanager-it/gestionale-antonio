@@ -1601,6 +1601,13 @@ const AG_PIANI_VALORE_ANNUO = {
   full: 2388,
 };
 
+const AG_BONUS_FATTURATO_SOGLIE = [
+  { soglia: 50000, bonus: 1500 },
+  { soglia: 35000, bonus: 1000 },
+  { soglia: 20000, bonus: 500 },
+  { soglia: 10000, bonus: 200 },
+];
+
 function agEuro(v) {
   return `€${Math.round(Number(v || 0)).toLocaleString('it-IT')}`;
 }
@@ -1613,13 +1620,28 @@ function agPesoForecast(stato) {
   return AG_FORECAST_PESI[String(stato || '').toLowerCase().trim()] ?? 0.25;
 }
 
+function agValoreAnnuoLead(l) {
+  const piano = agNormalizzaPiano(l?.piano);
+  const valoreContratto = Number(l?.valore_contratto || l?.fatturato_annuo || l?.valore_annuo || 0);
+  return valoreContratto > 0 ? valoreContratto : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
+}
+
+function agMrrLead(l) {
+  return agValoreAnnuoLead(l) / 12;
+}
+
+function agBonusFatturato(fatturatoAnnuoVenduto) {
+  const valore = Number(fatturatoAnnuoVenduto || 0);
+  const soglia = AG_BONUS_FATTURATO_SOGLIE.find(s => valore >= s.soglia);
+  return soglia ? soglia.bonus : 0;
+}
+
 function agBaseProvvigione(l, agente) {
   const salvata = Number(l?.provvigione_calcolata || 0);
   if (salvata > 0) return salvata;
 
   const piano = agNormalizzaPiano(l?.piano);
-  const valoreContratto = Number(l?.valore_contratto || 0);
-  const valoreAnnuo = valoreContratto > 0 ? valoreContratto : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
+  const valoreAnnuo = agValoreAnnuoLead(l);
 
   if (agente?.tipo === 'segnalatore') {
     const perc = Number(agente?.perc_segnalatore || 10);
@@ -1709,8 +1731,16 @@ function renderReteAgenti(el) {
   const provDaPagare = _agentiLead.filter(l => l.stato === 'pagante' && !l.provvigione_pagata)
     .reduce((s, l) => s + parseFloat(l.provvigione_calcolata || 0), 0);
   const provPreviste = agPipelinePrevista(_agentiLead, _agenti);
+  const fatturatoVenduto = _agentiLead.filter(l => l.stato === 'pagante')
+    .reduce((s, l) => s + agValoreAnnuoLead(l), 0);
+  const mrrGenerato = fatturatoVenduto / 12;
+  const bonusMaturati = _agenti.reduce((s, a) => {
+    const myVenduto = _agentiLead.filter(l => l.agente_id === a.id && l.stato === 'pagante')
+      .reduce((tot, l) => tot + agValoreAnnuoLead(l), 0);
+    return s + agBonusFatturato(myVenduto);
+  }, 0);
   const valorePipeline = _agentiLead.filter(l => !['pagante','perso'].includes(l.stato || ''))
-    .reduce((s, l) => s + Number(l.valore_contratto || AG_PIANI_VALORE_ANNUO[agNormalizzaPiano(l.piano)] || 0), 0);
+    .reduce((s, l) => s + agValoreAnnuoLead(l), 0);
 
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;">
@@ -1719,6 +1749,9 @@ function renderReteAgenti(el) {
         { v: attivi.length,      l:'Attivi',              c:'#059669' },
         { v: totLead,            l:'Lead segnalati',      c:'#7C3AED' },
         { v: paganti,            l:'Clienti chiusi',      c:'#0E5A7A' },
+        { v: agEuro(fatturatoVenduto), l:'Fatturato venduto', c:'#059669' },
+        { v: agEuro(mrrGenerato), l:'MRR generato', c:'#0E5A7A' },
+        { v: agEuro(bonusMaturati), l:'Bonus fatturato', c:'#d97706' },
         { v: agEuro(provPreviste), l:'Provv. previste', c:'#d97706' },
         { v: agEuro(provDaPagare), l:'Provv. da pagare', c:'#DC2626' },
         { v: agEuro(valorePipeline), l:'Pipeline contratti', c:'#7C3AED' },
@@ -1886,7 +1919,7 @@ function renderProvvigioniAgenti(el) {
     .reduce((s,l) => s+Number(l.provvigione_prevista||0), 0);
   const forecastTotale = totDaPagare + totPreviste;
   const valorePipeline = _agentiLead.filter(l => !['pagante','perso'].includes(l.stato || ''))
-    .reduce((s, l) => s + Number(l.valore_contratto || AG_PIANI_VALORE_ANNUO[agNormalizzaPiano(l.piano)] || 0), 0);
+    .reduce((s, l) => s + agValoreAnnuoLead(l), 0);
 
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
@@ -2021,7 +2054,7 @@ function renderPianoEconomico(el) {
                 ['Variabile Starter', '€100/cliente', 'Al primo pagamento'],
                 ['Variabile Business', '€180/cliente', 'Al primo pagamento'],
                 ['Variabile Pro/Full', '€250/cliente', 'Al primo pagamento'],
-                ['Bonus obiettivo', '€300/mese', 'Da 5 clienti/mese o target concordato'],
+                ['Bonus fatturato', '€200-1.500/mese', 'Calcolato sul fatturato annuo venduto, non sul numero clienti'],
                 ['Ricorrente anno 2', '5% canone', 'Se il cliente rinnova'],
               ].map(([c,i,cond]) => `
                 <tr style="border-bottom:1px solid #f1f5f9;">
@@ -2034,8 +2067,22 @@ function renderPianoEconomico(el) {
         </div>
         <div style="background:#f5f3ff;border-radius:8px;padding:12px;margin-top:10px;font-size:13px;">
           <strong>Esempio primi mesi:</strong> Agente chiude 8 clienti/mese (6 Starter + 2 Business):<br>
-          Fisso €0 + variabile €960 + bonus €300 = <strong style="color:#7C3AED;">€1.260 totale</strong><br>
+          Fisso €0 + variabile €960 + bonus fatturato in base all'ARR venduto = <strong style="color:#7C3AED;">premio proporzionato al valore reale</strong><br>
           Dopo validazione: possibile fisso €500-800 mantenendo target e qualità clienti.
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🏆 Bonus su fatturato annuo venduto</div>
+        <div style="font-size:13px;color:#374151;line-height:1.7;background:#fef3c7;border-radius:8px;padding:12px;">
+          Il bonus non dipende dal numero di lead o clienti, ma dal valore economico generato. Cinque clienti piccoli non valgono come cinque clienti Full.
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px;">
+          ${AG_BONUS_FATTURATO_SOGLIE.slice().reverse().map(s => `
+            <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:11px;color:#64748b;font-weight:600;">Da ${agEuro(s.soglia)} ARR</div>
+              <div style="font-size:18px;font-weight:800;color:#d97706;margin-top:4px;">${agEuro(s.bonus)}</div>
+            </div>`).join('')}
         </div>
       </div>
 
@@ -2048,7 +2095,7 @@ function renderPianoEconomico(el) {
           ${[
             { l:'Fisso mensile', v:'€1.000-1.200' },
             { l:'% su ogni contratto rete', v:'5%' },
-            { l:'Bonus trimestrale', v:'€500-1.000' },
+            { l:'Bonus fatturato rete', v:'Su ARR squadra' },
             { l:'Ricorrente anno 2 (rete)', v:'2.5%' },
           ].map(k => `
             <div style="background:#f8fafc;border-radius:8px;padding:10px;">
