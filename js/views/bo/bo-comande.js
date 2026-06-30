@@ -1,6 +1,6 @@
 // js/views/bo/bo-comande.js
 // Sistema comande completo — tavoli, ordini, up-sell, cross-sell, cucina, cassa
-// v3 — PIN da dipendenti, RLS comanda_righe, ricette maybeSingle — PIN cameriere, modal upsell/cross-sell, tracciamento vendite, apertura tavolo con coperti+nominativo
+// v2 — PIN cameriere, modal upsell/cross-sell, tracciamento vendite, apertura tavolo con coperti+nominativo
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -423,45 +423,32 @@ export async function render(container) {
 
   async function loadCamerieri() {
     try {
-      // I PIN operativi stanno su dipendenti, non su profili.
-      // La tabella profili non contiene azienda_id/ruolo per questo flusso.
-      let q = supa()
+      // I PIN operativi sono nella tabella dipendenti.
+      // La tabella profili non contiene azienda_id/ruolo, quindi non va usata qui.
+      const { data, error } = await supa()
         .from('dipendenti')
-        .select('id, nome, cognome, pin, ruolo, mansione, azienda_id, sede_id, attivo')
+        .select('id, nome, cognome, pin, ruolo, azienda_id, sede_id, attivo')
         .eq('azienda_id', aziendaId)
+        .eq('attivo', true)
         .not('pin', 'is', null);
 
-      if (sedeId) {
-        q = q.or(`sede_id.eq.${sedeId},sede_id.is.null`);
-      }
-
-      const { data, error } = await q.order('nome');
-
       if (error) {
-        console.warn('Caricamento camerieri fallito:', error.message || error);
+        console.warn('Caricamento camerieri fallito:', error);
         camerieriDB = [];
         return;
       }
 
-      camerieriDB = (data || [])
-        .filter(d => d.attivo !== false && d.pin != null && String(d.pin).trim() !== '')
-        .map(d => {
-          const ruoloRaw = String(d.ruolo || d.mansione || '').toLowerCase();
-          const ruoloComande =
-            ruoloRaw === 'admin' || ruoloRaw === 'manager' || ruoloRaw.includes('responsabile')
-              ? 'manager'
-              : ruoloRaw === 'limited' || ruoloRaw.includes('bar') || ruoloRaw.includes('runner')
-                ? 'limited'
-                : 'full';
-
-          return {
-            pin: String(d.pin || '').trim(),
-            nome: [d.nome, d.cognome].filter(Boolean).join(' ') || d.nome || 'Cameriere',
-            ruolo: ruoloComande,
-            colore: ruoloComande === 'manager' ? '#dc2626' : ruoloComande === 'limited' ? '#f59e0b' : '#0E5A7A',
-            dipendenteId: d.id,
-          };
-        });
+      camerieriDB = (data || []).map(d => ({
+        pin: String(d.pin || ''),
+        nome: [d.nome, d.cognome].filter(Boolean).join(' ') || d.nome || 'Cameriere',
+        ruolo: d.ruolo === 'admin' || d.ruolo === 'manager'
+          ? 'manager'
+          : d.ruolo === 'limited'
+            ? 'limited'
+            : 'full',
+        colore: '#0E5A7A',
+        dipendenteId: d.id,
+      }));
     } catch (e) {
       console.warn('Caricamento camerieri fallito, uso solo admin:', e);
       camerieriDB = [];
@@ -618,18 +605,9 @@ export async function render(container) {
   }
 
   async function loadRigheComanda(comandaId) {
-    const { data, error } = await supa()
+    const { data } = await supa()
       .from('comanda_righe').select('*')
-      .eq('azienda_id', aziendaId)
-      .eq('comanda_id', comandaId)
-      .order('created_at');
-
-    if (error) {
-      console.warn('loadRigheComanda error:', error.message || error);
-      righeComanda = [];
-      return;
-    }
-
+      .eq('comanda_id', comandaId).order('created_at');
     righeComanda = data || [];
   }
 
@@ -945,14 +923,7 @@ export async function render(container) {
     if (rigaEsistente) {
       const { error } = await supa().from('comanda_righe')
         .update({ quantita: rigaEsistente.quantita + 1 }).eq('id', rigaEsistente.id);
-
-      if (error) {
-        mostraToast('Errore aggiornamento riga: ' + (error.message || 'permessi insufficienti'), 'error');
-        console.warn('comanda_righe update error:', error);
-        return;
-      }
-
-      rigaEsistente.quantita += 1;
+      if (!error) rigaEsistente.quantita += 1;
     } else {
       const cat = categorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id));
       const catNome = (cat?.nome || '').toLowerCase();
@@ -975,13 +946,7 @@ export async function render(container) {
         uscita_numero: uscitaCorrente,
       }).select('*').single();
 
-      if (error) {
-        mostraToast('Errore aggiunta prodotto: ' + (error.message || 'permessi insufficienti'), 'error');
-        console.warn('comanda_righe insert error:', error);
-        return;
-      }
-
-      if (data) righeComanda.push(data);
+      if (!error && data) righeComanda.push(data);
     }
 
     // ── SCARICO MAGAZZINO IN TEMPO REALE ──
@@ -999,84 +964,35 @@ export async function render(container) {
   // ── Scarico magazzino al tap ──
   async function scaricoMagazzino(prodotto, pesoKg = null) {
     try {
-      // METODO 1: porzioni_disponibili impostato → scala 1 porzione
-      if (prodotto.porzioni_disponibili != null) {
-        const nuovePorzioni = Math.max(0, (prodotto.porzioni_disponibili || 0) - 1);
-        const esaurito = nuovePorzioni === 0;
+      // Scarico non bloccante.
+      // Nel DB attuale non esiste la tabella public.giacenze e alcune ricette non sono collegate ai prodotti vendita.
+      // Per evitare errori in sala, qui scaliamo solo porzioni_disponibili quando il prodotto le usa.
+      if (prodotto.porzioni_disponibili == null) return;
 
-        await supa().from('prodotti_vendita')
-          .update({
-            porzioni_disponibili: nuovePorzioni,
-            disponibile: !esaurito,
-          })
-          .eq('id', prodotto.id);
+      const nuovePorzioni = Math.max(0, (prodotto.porzioni_disponibili || 0) - 1);
+      const esaurito = nuovePorzioni === 0;
 
-        // Aggiorna stato locale
-        prodotto.porzioni_disponibili = nuovePorzioni;
-        prodotto.disponibile = !esaurito;
+      const { error } = await supa().from('prodotti_vendita')
+        .update({
+          porzioni_disponibili: nuovePorzioni,
+          disponibile: !esaurito,
+        })
+        .eq('id', prodotto.id);
 
-        if (esaurito) {
-          mostraToast(`⚠️ ${prodotto.nome} — ultima porzione! Ora esaurito.`, 'warning');
-        } else if (nuovePorzioni <= 3) {
-          mostraToast(`⚠️ ${prodotto.nome} — rimangono solo ${nuovePorzioni} porzioni`, 'warning');
-        }
+      if (error) {
+        console.warn('Aggiornamento porzioni fallito:', error);
         return;
       }
 
-      // METODO 2: nessuna gestione porzioni → scala via ricetta sulle giacenze
-      const { data: ricetta } = await supa()
-        .from('ricette')
-        .select('id')
-        .eq('prodotto_vendita_id', prodotto.id)
-        .maybeSingle();
+      prodotto.porzioni_disponibili = nuovePorzioni;
+      prodotto.disponibile = !esaurito;
 
-      if (!ricetta) return; // nessuna ricetta collegata, skip
-
-      const { data: ingredienti } = await supa()
-        .from('ricetta_ingredienti')
-        .select('ingrediente_id, quantita, unita')
-        .eq('ricetta_id', ricetta.id);
-
-      if (!ingredienti?.length) return;
-
-      const quantitaScalata = pesoKg || 1; // se a peso, scala proporzionalmente
-
-      for (const ing of ingredienti) {
-        const qtScala = Number(ing.quantita || 0) * quantitaScalata;
-        if (!qtScala) continue;
-
-        // Decrementa giacenza
-        const { data: giacenza } = await supa()
-          .from('giacenze')
-          .select('id, quantita, scorta_minima')
-          .eq('azienda_id', aziendaId)
-          .eq('ingrediente_id', ing.ingrediente_id)
-          .maybeSingle();
-
-        if (!giacenza) continue;
-
-        const nuovaQt = Math.max(0, Number(giacenza.quantita || 0) - qtScala);
-        await supa().from('giacenze')
-          .update({ quantita: nuovaQt })
-          .eq('id', giacenza.id);
-
-        // Avvisa se sotto scorta minima
-        const scoreMin = Number(giacenza.scorta_minima || 0);
-        if (scoreMin > 0 && nuovaQt <= scoreMin && nuovaQt > 0) {
-          mostraToast(`⚠️ Scorta bassa: ${prodotto.nome}`, 'warning');
-        }
-
-        // Se a zero → segna prodotto come esaurito
-        if (nuovaQt === 0) {
-          await supa().from('prodotti_vendita')
-            .update({ disponibile: false })
-            .eq('id', prodotto.id);
-          prodotto.disponibile = false;
-          mostraToast(`❌ ${prodotto.nome} esaurito — rimosso dalla griglia`, 'warning');
-        }
+      if (esaurito) {
+        mostraToast(`⚠️ ${prodotto.nome} — ultima porzione! Ora esaurito.`, 'warning');
+      } else if (nuovePorzioni <= 3) {
+        mostraToast(`⚠️ ${prodotto.nome} — rimangono solo ${nuovePorzioni} porzioni`, 'warning');
       }
     } catch (err) {
-      // Scarico non bloccante — l'ordine è già stato preso
       console.warn('Scarico magazzino warning:', err);
     }
   }
@@ -1184,8 +1100,23 @@ export async function render(container) {
     const totale = righeComanda
       .filter(r => r.stato !== 'annullato')
       .reduce((s, r) => s + (Number(r.prezzo_snapshot || 0) * Number(r.quantita || 1)), 0);
-    await supa().from('comande').update({ totale }).eq('id', comandaAttiva.id);
+
+    if (!comandaAttiva?.id) {
+      return totale;
+    }
+
+    const { error } = await supa()
+      .from('comande')
+      .update({ totale })
+      .eq('id', comandaAttiva.id);
+
+    if (error) {
+      console.warn('aggiornaTotale error:', error);
+      return totale;
+    }
+
     comandaAttiva.totale = totale;
+    return totale;
   }
 
   const COLORI_USCITA = ['#0E5A7A','#7c3aed','#16a34a','#dc2626','#f59e0b','#0891b2','#be185d'];
@@ -1262,18 +1193,46 @@ export async function render(container) {
   async function cambiaQuantita(rigaId, delta) {
     const riga = righeComanda.find(r => String(r.id) === String(rigaId));
     if (!riga) return;
-    const nuova = riga.quantita + delta;
-    if (nuova <= 0) { annullaRiga(rigaId); return; }
-    await supa().from('comanda_righe').update({ quantita: nuova }).eq('id', rigaId);
+
+    const nuova = Number(riga.quantita || 1) + delta;
+    if (nuova <= 0) {
+      await annullaRiga(rigaId);
+      return;
+    }
+
+    const { error } = await supa()
+      .from('comanda_righe')
+      .update({ quantita: nuova })
+      .eq('id', rigaId);
+
+    if (error) {
+      mostraToast('Errore aggiornamento quantità: ' + error.message, 'error');
+      return;
+    }
+
     riga.quantita = nuova;
-    await aggiornaTotale(); renderRighe(); renderTotale();
+    await aggiornaTotale();
+    renderRighe();
+    renderTotale();
   }
 
   async function annullaRiga(rigaId) {
-    await supa().from('comanda_righe').update({ stato: 'annullato' }).eq('id', rigaId);
+    const { error } = await supa()
+      .from('comanda_righe')
+      .update({ stato: 'annullato' })
+      .eq('id', rigaId);
+
+    if (error) {
+      mostraToast('Errore eliminazione portata: ' + error.message, 'error');
+      return;
+    }
+
     const riga = righeComanda.find(r => String(r.id) === String(rigaId));
     if (riga) riga.stato = 'annullato';
-    await aggiornaTotale(); renderRighe(); renderTotale();
+
+    await aggiornaTotale();
+    renderRighe();
+    renderTotale();
   }
 
   async function aggiungiNoteRiga(rigaId) {
@@ -1380,6 +1339,14 @@ export async function render(container) {
 
   function mostraPreconto() { apriModalConto(); }
   function chiudiComanda()   { apriModalConto(); }
+
+  function chiudiModalConto() {
+    const modalConto = container.querySelector('#modal-conto');
+    if (modalConto) modalConto.style.display = 'none';
+
+    const modalPagamento = container.querySelector('#modal-pagamento');
+    if (modalPagamento) modalPagamento.style.display = 'none';
+  }
 
   function apriModalConto() {
     // Aggiorna schermo cliente con righe correnti
@@ -1754,19 +1721,27 @@ export async function render(container) {
     if (cameriereAttivo?.nome) aggiornamento.cameriere_chiusura = cameriereAttivo.nome;
     if (subConti) aggiornamento.sub_conti = JSON.stringify(subConti);
 
-    await supa().from('comande').update(aggiornamento).eq('id', comandaAttiva.id);
+    const { error: chiusuraError } = await supa()
+      .from('comande')
+      .update(aggiornamento)
+      .eq('id', comandaAttiva.id);
+
+    if (chiusuraError) {
+      mostraToast('Errore chiusura conto: ' + chiusuraError.message, 'error');
+      return;
+    }
 
     // Aggiorna schermo cliente → PAGATO
     await aggiornaCassaDisplay('pagato', [], totaleFinale, null, metodoPagamento);
 
     const comandaChiusaId = comandaAttiva.id;
-    comande = comande.filter(c => String(c.id) !== String(comandaAttiva.id));
+    chiudiModalConto();
+
+    comande = comande.filter(c => String(c.id) !== String(comandaChiusaId));
     comandaAttiva = null;
     righeComanda = [];
     _righeContoLocali = [];
 
-    chiudiModalConto();
-    container.querySelector('#modal-pagamento').style.display = 'none';
     switchView('tavoli');
     await loadComande();
     renderMapTavoli();
