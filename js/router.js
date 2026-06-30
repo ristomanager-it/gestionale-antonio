@@ -129,11 +129,11 @@ const routes = {
   manuale: () => import("./views/manuale.js"),
 
   sala: () => import("./views/sala.js"),
-  "mansionario-sala":      () => import("./views/bo-sala-mansionario.js"),
-  "mansionario-cucina":    () => import("./views/bo-sala-mansionario.js"),
-  "mansionario-tasting":   () => import("./views/bo-sala-mansionario.js"),
-  "mansionario-operatore": () => import("./views/mansionario-operatore.js"),
-  "mansionario-controllo": () => import("./views/mansionario-controllo.js"),
+  "mansionario-sala":      () => import("./views/bo-sala-mansionario.js?v=2"),
+  "mansionario-cucina":    () => import("./views/bo-sala-mansionario.js?v=2"),
+  "mansionario-tasting":   () => import("./views/bo-sala-mansionario.js?v=2"),
+  "mansionario-operatore": () => import("./views/mansionario-operatore.js?v=2"),
+  "mansionario-controllo": () => import("./views/mansionario-controllo.js?v=2"),
 
   "prenotazione-online": () => import("./views/prenotazioni/prenotazione-online.js"),
   "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
