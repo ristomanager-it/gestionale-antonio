@@ -1,6 +1,72 @@
 // home-agente.js — Home dedicata agli agenti vendita Ristoflow
 // Agenda · I miei lead · Provvigioni · Mansionario · Materiali
 
+// ── FORECAST PROVVIGIONI ────────────────────────────────────────────────────
+const AG_FORECAST_PESI = {
+  segnalato: 0.20,
+  visitato: 0.35,
+  demo_fatta: 0.55,
+  demo: 0.55,
+  trial: 0.80,
+  trial_attivo: 0.80,
+  contratto: 0.95,
+  contratto_inviato: 0.95,
+  pagante: 1,
+};
+
+const AG_PIANI_VALORE_ANNUO = {
+  starter: 828,
+  business: 1428,
+  pro: 2028,
+  hotel: 1188,
+  full: 2388,
+};
+
+const AG_PIANI_VARIABILE_DEFAULT = {
+  starter: 100,
+  business: 180,
+  pro: 250,
+  hotel: 120,
+  full: 250,
+};
+
+function agEuro(v) {
+  return `€${Math.round(Number(v || 0)).toLocaleString('it-IT')}`;
+}
+
+function agNormalizzaPiano(piano) {
+  return String(piano || '').toLowerCase().trim();
+}
+
+function agPesoForecast(stato) {
+  return AG_FORECAST_PESI[String(stato || '').toLowerCase().trim()] ?? 0.25;
+}
+
+function agBaseProvvigione(l, agente) {
+  const salvata = Number(l?.provvigione_calcolata || 0);
+  if (salvata > 0) return salvata;
+
+  const piano = agNormalizzaPiano(l?.piano);
+  const valoreContratto = Number(l?.valore_contratto || 0);
+  const valoreAnnuo = valoreContratto > 0 ? valoreContratto : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
+
+  if (agente?.tipo === 'segnalatore') {
+    const perc = Number(agente?.perc_segnalatore || 10);
+    return valoreAnnuo * perc / 100;
+  }
+
+  const varKey = piano === 'starter' || piano === 'hotel' ? 'var_starter' : piano === 'business' ? 'var_business' : piano === 'full' ? 'var_full' : 'var_pro';
+  const variabile = Number(agente?.[varKey] || AG_PIANI_VARIABILE_DEFAULT[piano] || AG_PIANI_VARIABILE_DEFAULT.business);
+  return variabile;
+}
+
+function agProvvigionePrevista(l, agente) {
+  if (!l || l.stato === 'perso') return 0;
+  if (l.stato === 'pagante') return Number(l.provvigione_calcolata || agBaseProvvigione(l, agente) || 0);
+  return agBaseProvvigione(l, agente) * agPesoForecast(l.stato);
+}
+
+
 export async function render(container) {
   const supa = window.supabaseClient || window.supabase;
   const userId = window.state?.user?.id;
@@ -44,6 +110,10 @@ export async function render(container) {
     .reduce((s,l)=>s+parseFloat(l.provvigione_calcolata||0),0);
   const provPagate = _leadList.filter(l => l.provvigione_pagata)
     .reduce((s,l)=>s+parseFloat(l.provvigione_calcolata||0),0);
+  const provPreviste = _leadList.filter(l => !['pagante','perso'].includes(l.stato || ''))
+    .reduce((s,l)=>s+agProvvigionePrevista(l, agente),0);
+  const provForecastMese = leadMese.filter(l => l.stato !== 'perso')
+    .reduce((s,l)=>s+agProvvigionePrevista(l, agente),0);
   const target = agente.target_mensile || 5;
   const pctTarget = Math.min(100, Math.round(paganteMese.length / target * 100));
 
@@ -77,6 +147,7 @@ export async function render(container) {
         <div class="ag-kpi-box"><div class="ag-kpi-val">${leadMese.length}</div><div class="ag-kpi-lbl">Lead questo mese</div></div>
         <div class="ag-kpi-box"><div class="ag-kpi-val">${paganteMese.length}/${target}</div><div class="ag-kpi-lbl">Target mensile</div></div>
         <div class="ag-kpi-box"><div class="ag-kpi-val">€${Math.round(provDaPagare)}</div><div class="ag-kpi-lbl">Da incassare</div></div>
+        <div class="ag-kpi-box"><div class="ag-kpi-val">€${Math.round(provPreviste)}</div><div class="ag-kpi-lbl">Provv. previste</div></div>
       </div>
       <div style="margin-top:10px;background:rgba(255,255,255,.2);border-radius:20px;height:8px;">
         <div style="height:100%;border-radius:20px;background:white;width:${pctTarget}%;transition:width .4s;"></div>
@@ -206,30 +277,69 @@ export async function render(container) {
   }
 
   function renderAgProvvigioni(el) {
-    const list = window._agLeadList;
+    const list = window._agLeadList || [];
     const daPagare = list.filter(l => l.stato==='pagante' && !l.provvigione_pagata);
     const pagate = list.filter(l => l.provvigione_pagata);
+    const previste = list.filter(l => !['pagante','perso'].includes(l.stato || ''))
+      .map(l => ({ ...l, provvigione_prevista: agProvvigionePrevista(l, window._agAgente), peso: agPesoForecast(l.stato) }))
+      .sort((a,b) => b.provvigione_prevista - a.provvigione_prevista);
+    const totPreviste = previste.reduce((s,l)=>s+Number(l.provvigione_prevista||0),0);
+    const forecastTotale = provDaPagare + totPreviste;
+    const mese = new Date().toISOString().substring(0,7);
+    const previsteMese = previste.filter(l => (l.created_at || '').substring(0,7) === mese)
+      .reduce((s,l)=>s+Number(l.provvigione_prevista||0),0);
+
     el.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px;">
         <div style="background:#fee2e2;border-radius:12px;padding:16px;text-align:center;">
-          <div style="font-size:24px;font-weight:800;color:#DC2626;">€${Math.round(provDaPagare)}</div>
+          <div style="font-size:24px;font-weight:800;color:#DC2626;">${agEuro(provDaPagare)}</div>
           <div style="font-size:11px;color:#64748b;margin-top:4px;">Da ricevere</div>
         </div>
+        <div style="background:#fef3c7;border-radius:12px;padding:16px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#d97706;">${agEuro(totPreviste)}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px;">Previste pipeline</div>
+        </div>
+        <div style="background:#f5f3ff;border-radius:12px;padding:16px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#7C3AED;">${agEuro(previsteMese)}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px;">Forecast mese</div>
+        </div>
         <div style="background:#d1fae5;border-radius:12px;padding:16px;text-align:center;">
-          <div style="font-size:24px;font-weight:800;color:#059669;">€${Math.round(provPagate)}</div>
+          <div style="font-size:24px;font-weight:800;color:#059669;">${agEuro(provPagate)}</div>
           <div style="font-size:11px;color:#64748b;margin-top:4px;">Già ricevute</div>
         </div>
       </div>
+
+      <div class="ag-card" style="border-left:4px solid #d97706;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#374151;">Provvigioni previste</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">Forecast ponderato per stato lead: segnalato 20%, visitato 35%, demo 55%, trial 80%, contratto 95%.</div>
+          </div>
+          <div style="font-size:18px;font-weight:800;color:#d97706;">${agEuro(totPreviste)}</div>
+        </div>
+        ${previste.length ? previste.map(l => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f5f9;gap:8px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#111827;">${escAg(l.nome_locale)}</div>
+              <div style="font-size:11px;color:#64748b;">${l.piano || 'Piano non indicato'} · ${l.stato || 'segnalato'} · probabilità ${Math.round((l.peso || 0) * 100)}%</div>
+            </div>
+            <div style="font-size:13px;font-weight:800;color:#d97706;">${agEuro(l.provvigione_prevista)}</div>
+          </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessuna provvigione prevista: registra lead in lavorazione per vedere il forecast.</div>'}
+      </div>
+
       <div class="ag-card">
-        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:10px;">Storico</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:700;color:#374151;">Storico provvigioni confermate</div>
+          <div style="font-size:12px;font-weight:800;color:#7C3AED;">Forecast totale: ${agEuro(forecastTotale)}</div>
+        </div>
         ${[...daPagare,...pagate].length ? [...daPagare,...pagate].map(l => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border-bottom:1px solid #f1f5f9;">
             <div>
               <span style="font-size:13px;font-weight:600;">${escAg(l.nome_locale)}</span>
               <span style="font-size:11px;color:#94a3b8;margin-left:6px;">${l.piano||''}</span>
             </div>
-            <span style="font-size:13px;font-weight:700;color:${l.provvigione_pagata?'#059669':'#DC2626'};">€${parseFloat(l.provvigione_calcolata||0).toFixed(0)} ${l.provvigione_pagata?'✓':'⏳'}</span>
-          </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessuna provvigione ancora</div>'}
+            <span style="font-size:13px;font-weight:700;color:${l.provvigione_pagata?'#059669':'#DC2626'};">${agEuro(l.provvigione_calcolata || agBaseProvvigione(l, window._agAgente))} ${l.provvigione_pagata?'✓':'⏳'}</span>
+          </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px;">Nessuna provvigione confermata ancora</div>'}
       </div>`;
   }
 
