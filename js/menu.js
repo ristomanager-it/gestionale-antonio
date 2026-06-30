@@ -490,13 +490,15 @@ export function initMenu() {
         ]
       });
 
-      // ── AGENTI VENDITA ──
-      sections.push({
-        title: "🤝 VENDITA",
-        items: [
-          { label: "🤝 Home Agente", route: "home-agente" },
-        ]
-      });
+      // ── AGENTI VENDITA — solo se l'utente è un agente registrato ──
+      if (window.state?._isAgenteAttivo === true) {
+        sections.push({
+          title: "🤝 VENDITA",
+          items: [
+            { label: "🤝 Home Agente", route: "home-agente" },
+          ]
+        });
+      }
     }
 
     // ── TASTING — sempre visibile ──
