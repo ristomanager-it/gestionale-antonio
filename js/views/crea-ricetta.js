@@ -37,6 +37,34 @@ let _autocompleteDocBound = false;
 
 let dispositividCache = []; // { id, nome, tipo, temperatura_min, temperatura_max, marca, modello }
 
+function normalizeDbId(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) return Number(raw);
+  return raw;
+}
+
+function normalizeDbIdOrNull(value) {
+  return normalizeDbId(value);
+}
+
+function isPositiveNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0;
+}
+
+function showSaveError(prefix, error) {
+  console.error(prefix, error);
+  const details = [
+    error?.message,
+    error?.details,
+    error?.hint,
+    error?.code ? `Codice: ${error.code}` : null
+  ].filter(Boolean).join("\n");
+  alert(`${prefix}${details ? "\n\n" + details : ""}`);
+}
+
+
 // mini-tab fasi
 let faseTabAttiva = "preparazione";
 
@@ -2703,9 +2731,7 @@ async function salvaTutto() {
   const foto_url = getVal("r-foto-url").trim() || null;
   const tipo_ricetta = getVal("r-tipo") || "base";
   const categoria_portata_id_raw = getVal("r-categoria-id");
-  const categoria_portata_id = categoria_portata_id_raw
-    ? Number(categoria_portata_id_raw)
-    : null;
+  let categoria_portata_id = normalizeDbIdOrNull(categoria_portata_id_raw);
 
 
   const prodotto_output_id = getVal("r-output-id");
@@ -2728,6 +2754,7 @@ async function salvaTutto() {
         if (nc) { categoriePortataCache.push(nc); catFallback = nc; }
       }
       if (catFallback) {
+        categoria_portata_id = normalizeDbIdOrNull(catFallback.id);
         const hidden = document.getElementById("r-categoria-id");
         if (hidden) hidden.value = catFallback.id;
       } else {
@@ -2757,7 +2784,7 @@ async function salvaTutto() {
       note_procedimento,
       foto_url,
       pezzi_base,
-      prodotto_output_id: Number(prodotto_output_id),
+      prodotto_output_id: normalizeDbIdOrNull(prodotto_output_id),
       azienda_id: aziendaId,
       sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
@@ -2776,9 +2803,8 @@ async function salvaTutto() {
       .single();
 
     if (error) {
-      console.error(error);
       if (esito) esito.innerText = "";
-      return alert("Errore salvataggio ricetta.");
+      return showSaveError("Errore salvataggio ricetta.", error);
     }
 
     savedId = String(data.id);
@@ -2790,7 +2816,7 @@ async function salvaTutto() {
       note_procedimento,
       foto_url,
       pezzi_base,
-      prodotto_output_id: Number(prodotto_output_id),
+      prodotto_output_id: normalizeDbIdOrNull(prodotto_output_id),
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
@@ -2806,9 +2832,8 @@ async function salvaTutto() {
       .eq("azienda_id", aziendaId);
 
     if (error) {
-      console.error(error);
       if (esito) esito.innerText = "";
-      return alert("Errore aggiornamento ricetta.");
+      return showSaveError("Errore aggiornamento ricetta.", error);
     }
   }
 
@@ -2816,22 +2841,30 @@ async function salvaTutto() {
 
   // output principale
   {
-    const payloadOut = {
-      ricetta_id: ricettaIdNum,
-      peso_finale: output_peso,
-      unita_misura: output_um,
-      note: output_note,
-      azienda_id: aziendaId
-    };
+    if (output_peso && output_peso > 0 && output_um) {
+      const payloadOut = {
+        ricetta_id: ricettaIdNum,
+        peso_finale: output_peso,
+        unita_misura: output_um,
+        note: output_note,
+        azienda_id: aziendaId
+      };
 
-    const { error } = await supabase
-      .from("ricette_output")
-      .upsert(payloadOut, { onConflict: "ricetta_id" });
+      const { error } = await supabase
+        .from("ricette_output")
+        .upsert(payloadOut, { onConflict: "ricetta_id" });
 
-    if (error) {
-      console.error(error);
-      if (esito) esito.innerText = "";
-      console.warn("Errore salvataggio output ricetta — non bloccante:", error);
+      if (error) {
+        console.error(error);
+        if (esito) esito.innerText = "";
+        console.warn("Errore salvataggio output ricetta — non bloccante:", error);
+      }
+    } else if (ricettaIdNum) {
+      await supabase
+        .from("ricette_output")
+        .delete()
+        .eq("ricetta_id", ricettaIdNum)
+        .eq("azienda_id", aziendaId);
     }
   }
 
@@ -2860,7 +2893,7 @@ async function salvaTutto() {
       if (pid && peso && peso > 0 && um) {
         out2Rows.push({
           ricetta_id: ricettaIdNum,
-          prodotto_id: Number(pid),
+          prodotto_id: normalizeDbId(pid),
           peso,
           unita_misura: um,
           metodo_allocazione: metodo,
@@ -2912,7 +2945,7 @@ async function salvaTutto() {
 
         rows.push({
           ricetta_id: ricettaIdNum,
-          prodotto_id: Number(pid),
+          prodotto_id: normalizeDbId(pid),
           nome_prodotto: nomeProd || (p?.descrizione || ""),
           quantita: qta,
           unita_misura: um,
@@ -2921,7 +2954,7 @@ async function salvaTutto() {
         });
 
         ingredientRowsForCost.push({
-          prodotto_id: Number(pid),
+          prodotto_id: normalizeDbId(pid),
           quantita: qta
         });
       }
@@ -3343,7 +3376,7 @@ function readOutputSecondariFromDOM() {
 
     if (pid && peso && peso > 0 && um) {
       out.push({
-        prodotto_id: Number(pid),
+        prodotto_id: normalizeDbId(pid),
         peso,
         unita_misura: um,
         metodo_allocazione: metodo,
