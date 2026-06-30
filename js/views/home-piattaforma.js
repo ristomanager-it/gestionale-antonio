@@ -395,6 +395,7 @@ export async function render(container) {
           <button id="ag-tab-performance" onclick="switchTabAgenti('performance')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📊 Performance</button>
           <button id="ag-tab-provvigioni" onclick="switchTabAgenti('provvigioni')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">💰 Provvigioni</button>
           <button id="ag-tab-piano" onclick="switchTabAgenti('piano')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📋 Piano economico</button>
+          <button id="ag-tab-guida" onclick="switchTabAgenti('guida')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📖 Guida Vendita</button>
         </div>
 
         <div id="agenti-content"></div>
@@ -1606,7 +1607,7 @@ async function caricaAgenti() {
 
 window.switchTabAgenti = function(tab) {
   _agTabAttiva = tab;
-  ['rete','performance','provvigioni','piano'].forEach(t => {
+  ['rete','performance','provvigioni','piano','guida'].forEach(t => {
     const btn = document.getElementById(`ag-tab-${t}`);
     if (!btn) return;
     btn.style.background = t === tab ? 'white' : 'transparent';
@@ -1623,6 +1624,7 @@ function renderTabAgenti(tab) {
   if (tab === 'performance')  el.innerHTML = '', renderPerformanceAgenti(el);
   if (tab === 'provvigioni')  el.innerHTML = '', renderProvvigioniAgenti(el);
   if (tab === 'piano')        el.innerHTML = '', renderPianoEconomico(el);
+  if (tab === 'guida')        el.innerHTML = '', renderGuidaVendita(el);
 }
 
 function renderReteAgenti(el) {
@@ -2234,6 +2236,236 @@ window.segnaProvvigionePagata = async function(id) {
     if (el) el.textContent = `${count||0} agenti attivi`;
   } catch {}
 })();
+
+function renderGuidaVendita(el) {
+  const sezione = (titolo, colore, contenutoHtml) => `
+    <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:14px;overflow:hidden;">
+      <div style="background:${colore};color:white;padding:12px 18px;font-size:14px;font-weight:800;">${titolo}</div>
+      <div style="padding:18px;">${contenutoHtml}</div>
+    </div>`;
+
+  const script = (label, testo, colore='#0E5A7A') => `
+    <div style="background:#f8fafc;border-left:3px solid ${colore};border-radius:8px;padding:12px 14px;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:${colore};text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">${label}</div>
+      <div style="font-size:13px;color:#374151;line-height:1.6;font-style:italic;">"${testo}"</div>
+    </div>`;
+
+  el.innerHTML = `
+    <div style="background:linear-gradient(135deg,#0E5A7A,#1a7a9f);border-radius:14px;padding:20px;color:white;margin-bottom:16px;">
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px;">📖 Guida alla Vendita Ristoflow</div>
+      <div style="font-size:13px;opacity:.9;line-height:1.6;">Il processo completo per visite porta a porta, pitch per temperatura cliente e gestione delle obiezioni. Consultala prima di ogni visita.</div>
+    </div>
+
+    ${sezione('🎯 I 3 problemi universali del ristoratore', '#DC2626', `
+      <div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px;">
+        Ogni ristoratore — dal piccolo locale alla catena — condivide questi tre dolori. Sono la base di ogni conversazione di vendita.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+        <div style="background:#fef2f2;border-radius:10px;padding:12px;">
+          <div style="font-size:20px;margin-bottom:4px;">💰</div>
+          <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:4px;">I conti che non tornano</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.5;">Lavora 16 ore, il locale è pieno, ma a fine mese non sa dove sono finiti i soldi.</div>
+        </div>
+        <div style="background:#fef2f2;border-radius:10px;padding:12px;">
+          <div style="font-size:20px;margin-bottom:4px;">😞</div>
+          <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:4px;">I dipendenti svogliati</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.5;">Investe tempo a formarli, poi se ne vanno o fanno il minimo indispensabile.</div>
+        </div>
+        <div style="background:#fef2f2;border-radius:10px;padding:12px;">
+          <div style="font-size:20px;margin-bottom:4px;">👥</div>
+          <div style="font-size:13px;font-weight:700;color:#991b1b;margin-bottom:4px;">I clienti non qualificati</div>
+          <div style="font-size:12px;color:#64748b;line-height:1.5;">Il locale si riempie ma di chi spende poco e non torna. Margine basso.</div>
+        </div>
+      </div>
+    `)}
+
+    ${sezione('🚪 Contesto operativo della visita', '#0891B2', `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+        <div style="background:#e0f2fe;border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:11px;color:#64748b;font-weight:600;">CHI SEI</div>
+          <div style="font-size:13px;font-weight:700;color:#0891B2;margin-top:4px;">Un collega, non un venditore</div>
+        </div>
+        <div style="background:#e0f2fe;border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:11px;color:#64748b;font-weight:600;">COSA PORTI</div>
+          <div style="font-size:13px;font-weight:700;color:#0891B2;margin-top:4px;">iPad con software live</div>
+        </div>
+        <div style="background:#e0f2fe;border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:11px;color:#64748b;font-weight:600;">ZONA</div>
+          <div style="font-size:13px;font-weight:700;color:#0891B2;margin-top:4px;">Orte · Viterbo · Terni</div>
+        </div>
+        <div style="background:#e0f2fe;border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:11px;color:#64748b;font-weight:600;">QUANDO</div>
+          <div style="font-size:13px;font-weight:700;color:#0891B2;margin-top:4px;">Mattina o pre-cena</div>
+        </div>
+      </div>
+    `)}
+
+    ${sezione('🔢 Le 5 fasi del processo', '#7C3AED', `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="background:#7C3AED;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">1</span>
+          <span style="font-size:13px;font-weight:700;color:#374151;">Approccio (30 secondi)</span>
+        </div>
+        ${script('Script di entrata', 'Salve, cerco il titolare — sono Antonio, ho un locale a Orte, Campo Antico. Volevo scambiare due parole con lui se ha un attimo, non vendo niente, ho trovato una cosa che mi ha cambiato la gestione e la condivido con chi fa il nostro lavoro.', '#7C3AED')}
+        <div style="font-size:12px;color:#94a3b8;line-height:1.6;">Funziona perché: "ho un locale" → sei uno di loro · "non vendo niente" → abbatte la diffidenza · "la condivido" → curiosità, non pressione.</div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="background:#7C3AED;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">2</span>
+          <span style="font-size:13px;font-weight:700;color:#374151;">Qualifica (2 minuti)</span>
+        </div>
+        <div style="font-size:12px;color:#374151;line-height:1.8;padding-left:32px;">
+          ▸ "Quanti coperti hai?"<br>
+          ▸ "Lavori anche a pranzo o solo cena?"<br>
+          ▸ "Hai personale fisso o stagionale?"
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:6px;padding-left:32px;">Se meno di 20 coperti e lavora da solo → non è il target oggi, ringrazi e vai.</div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="background:#7C3AED;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">3</span>
+          <span style="font-size:13px;font-weight:700;color:#374151;">Il problema (3 minuti)</span>
+        </div>
+        ${script('Domanda chiave — poi silenzio', 'Dimmi una cosa — a fine mese, quando guardi i numeri, ti tornano?', '#7C3AED')}
+        <div style="font-size:12px;color:#94a3b8;line-height:1.6;">La risposta rivela la temperatura del cliente. Lascia che parli lui.</div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="background:#7C3AED;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">4</span>
+          <span style="font-size:13px;font-weight:700;color:#374151;">Demo (10 minuti)</span>
+        </div>
+        <div style="background:#fef9c3;border-radius:8px;padding:10px 12px;font-size:12px;color:#854d0e;margin-bottom:8px;">⚡ Regola d'oro: mostra UNA cosa sola che risolve il problema specifico nominato. Mai il giro completo.</div>
+        <div style="font-size:12px;color:#374151;line-height:1.8;">
+          ▸ Problema conti → apri il <strong>bilancio live</strong><br>
+          ▸ Problema dipendenti → apri <strong>timbrature + survey clima</strong><br>
+          ▸ Problema clienti → apri <strong>promo + catenarie automatiche</strong>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="background:#7C3AED;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">5</span>
+          <span style="font-size:13px;font-weight:700;color:#374151;">Chiusura (5 minuti)</span>
+        </div>
+        ${script('Domanda di chiusura', 'Ti faccio una domanda diretta: quello che hai visto risolve un problema che hai?', '#7C3AED')}
+        <div style="font-size:12px;color:#374151;line-height:1.8;">
+          ▸ Sì → "Ti propongo 30 giorni gratis, nessun vincolo."<br>
+          ▸ "Ci devo pensare" → lasci numero + video demo da guardare con calma<br>
+          ▸ "Non ho tempo" → proponi un ritorno specifico (es. martedì mattina, 20 minuti)
+        </div>
+      </div>
+    `)}
+
+    ${sezione('🌡️ Pitch per temperatura cliente', '#d97706', `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:800;color:#d97706;margin-bottom:6px;">🟡 TIEPIDO — sa già di avere il problema</div>
+        ${script('Apertura', 'L\\'anno scorso a dicembre ho chiuso un mese con il locale pieno tutti i weekend. A fine mese guardo il conto — quasi zero. Non capivo dove erano andati i soldi. Oggi lo so, ogni mattina, prima di aprire.', '#d97706')}
+        <div style="font-size:12px;color:#94a3b8;">Poi apri il bilancio live e stai zitto.</div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:800;color:#0891B2;margin-bottom:6px;">🔵 FREDDO — sente il disagio ma non l'ha collegato a un sistema</div>
+        ${script('Apertura', 'Ti faccio vedere una cosa. Questo è quello che vedo io ogni mattina prima di aprire il locale.', '#0891B2')}
+        <div style="font-size:12px;color:#94a3b8;">Apri Tony AI → briefing del giorno. Lasci che faccia domande.</div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:6px;">❄️ GLACIALE — "tanto cucino bene"</div>
+        ${script('Apertura', 'Quante ore lavori al giorno? [...silenzio...] E quante di quelle potrebbe fare un sistema automatico? Io ne ho recuperate 3 al giorno senza assumere nessuno.', '#374151')}
+        <div style="font-size:12px;color:#94a3b8;">Non parli di tecnologia — parli di tempo libero.</div>
+      </div>
+    `)}
+
+    ${sezione('🛡️ Gestione obiezioni', '#059669', `
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f8fafc;">
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Temp.</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Obiezione</th>
+              <th style="padding:8px 10px;text-align:left;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Risposta</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${[
+              ['🟡','"Costa troppo"','Quanto ti costa non sapere dove vanno i soldi ogni mese?'],
+              ['🟡','"Ho già un gestionale"','Che cosa ti manca di quello che hai?'],
+              ['🔵','"Non ne ho bisogno"','Come tieni sotto controllo il food cost?'],
+              ['🔵','"Ci penso"','Cosa ti frena? Voglio capire se posso aiutarti davvero'],
+              ['❄️','"Cucino bene"','Si vede. Ma riesci a staccare un giorno a settimana?'],
+              ['❄️','"Sono troppo piccolo"','Ho iniziato con 40 coperti. Il problema dei conti è uguale'],
+            ].map(([t,o,r]) => `
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:8px 10px;font-size:16px;">${t}</td>
+                <td style="padding:8px 10px;font-weight:600;color:#374151;">${o}</td>
+                <td style="padding:8px 10px;color:#64748b;font-style:italic;">${r}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `)}
+
+    ${sezione('💬 Sequenza follow-up post-visita', '#0E5A7A', `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="background:#0E5A7A;color:white;font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;">GIORNO 1</div>
+          <div style="font-size:13px;color:#374151;">WA immediato — 3 varianti pronte per temperatura (Messaggi → Template Vendita)</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="background:#0891B2;color:white;font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;">GIORNO 4</div>
+          <div style="font-size:13px;color:#374151;">"Hai avuto modo di guardare il video? Volevo mostrarti una cosa specifica per [il suo problema]."</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="background:#7C3AED;color:white;font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;">GIORNO 10</div>
+          <div style="font-size:13px;color:#374151;">"Ho aperto il trial per un locale della tua zona — in 30 giorni ha [risultato]. Se vuoi vedere come, sono qui."</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="background:#DC2626;color:white;font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;">GIORNO 21</div>
+          <div style="font-size:13px;color:#374151;">Cambio angolo, rientri come cliente: "Non ti scrivo per Ristoflow. Domani passo da voi per pranzo — c'è qualcosa che consigli?"</div>
+        </div>
+      </div>
+    `)}
+
+    ${sezione('📅 Percorso post-trial (30 giorni)', '#7C3AED', `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+        ${[
+          ['Settimana 1','Onboarding guidato (guida 6 livelli) + chiamata check al giorno 3'],
+          ['Settimana 2','Far vedere UN risultato concreto (prenotazione arrivata da sola, WA che risponde)'],
+          ['Settimana 3','Aiutarli a leggere il primo dato reale che non sapevano (food cost, margine, ore)'],
+          ['Settimana 4','Chiusura naturale: "Hai visto qualcosa che non sapevi?" → si vende da solo'],
+        ].map(([s,d]) => `
+          <div style="background:#f5f3ff;border-radius:10px;padding:12px;">
+            <div style="font-size:12px;font-weight:800;color:#7C3AED;margin-bottom:6px;">${s}</div>
+            <div style="font-size:12px;color:#374151;line-height:1.5;">${d}</div>
+          </div>`).join('')}
+      </div>
+    `)}
+
+    ${sezione('📊 I numeri del processo', '#374151', `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px;">
+        ${[
+          ['20','Visite/settimana'],
+          ['10','Conversazioni reali'],
+          ['3','Trial attivati'],
+          ['1-2','Convertiti a pagamento'],
+        ].map(([v,l]) => `
+          <div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#374151;">${v}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">${l}</div>
+          </div>`).join('')}
+      </div>
+      <div style="background:#fef9c3;border-radius:10px;padding:12px;font-size:13px;color:#854d0e;">
+        <strong>20 visite → 1-2 clienti paganti/settimana.</strong> Per 50 clienti in 3 mesi servono ~120 visite/settimana — impossibile da soli, da qui la necessità della rete agenti.
+      </div>
+    `)}
+
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:16px;text-align:center;">
+      <div style="font-size:13px;color:#0369a1;">💡 Ricorda di registrare ogni visita nel <strong>CRM Lead</strong> qui sopra — temperatura, problema emerso, demo mostrata e prossimo step.</div>
+    </div>`;
+}
 
 function escHP(v) {
   return String(v == null ? "" : v)
