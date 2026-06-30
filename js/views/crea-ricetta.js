@@ -2703,9 +2703,10 @@ async function salvaTutto() {
   const foto_url = getVal("r-foto-url").trim() || null;
   const tipo_ricetta = getVal("r-tipo") || "base";
   const categoria_portata_id_raw = getVal("r-categoria-id");
-  const categoria_portata_id = categoria_portata_id_raw
+  let categoria_portata_id = categoria_portata_id_raw
     ? Number(categoria_portata_id_raw)
     : null;
+  if (!Number.isFinite(categoria_portata_id)) categoria_portata_id = null;
 
 
   const prodotto_output_id_raw = getVal("r-output-id");
@@ -2731,6 +2732,7 @@ async function salvaTutto() {
       if (catFallback) {
         const hidden = document.getElementById("r-categoria-id");
         if (hidden) hidden.value = catFallback.id;
+        categoria_portata_id = Number(catFallback.id) || null;
       } else {
         return alert("Seleziona la categoria portata (antipasti, primi, secondi...).");
       }
@@ -2752,13 +2754,12 @@ async function salvaTutto() {
   let savedId = ricettaId;
 
   if (!ricettaId) {
-    const payload = {
+    const payload = cleanPayload({
       nome,
       descrizione,
       note_procedimento,
       foto_url,
       pezzi_base,
-      prodotto_output_id,
       azienda_id: aziendaId,
       sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
@@ -2767,7 +2768,13 @@ async function salvaTutto() {
       categoria_portata_id,
       creato_da: window.state?.user?.id || null,
       creato_da_tony: false
-    };
+    });
+
+    // prodotto_output_id è bigint e FK verso prodotti(id).
+    // Lo inviamo solo se realmente selezionato e valido.
+    if (prodotto_output_id !== null) {
+      payload.prodotto_output_id = prodotto_output_id;
+    }
 
     const { data, error } = await supabase
       .from("ricette")
@@ -2776,27 +2783,32 @@ async function salvaTutto() {
       .single();
 
     if (error) {
-      console.error("Errore salvataggio ricetta:", error);
+      console.error("Errore salvataggio ricetta.", error, payload);
       if (esito) esito.innerText = "";
-      return alert("Errore salvataggio ricetta: " + (error.message || "controlla console"));
+      return showSaveError("Errore salvataggio ricetta.", error);
     }
 
     savedId = String(data.id);
     ricettaId = savedId;
   } else {
-    const payload = {
+    const payload = cleanPayload({
       nome,
       descrizione,
       note_procedimento,
       foto_url,
       pezzi_base,
-      prodotto_output_id,
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
       modificato_da: window.state?.user?.id || null,
       modificato_il: new Date().toISOString()
-    };
+    });
+
+    // prodotto_output_id è bigint e FK verso prodotti(id).
+    // Lo inviamo solo se realmente selezionato e valido.
+    if (prodotto_output_id !== null) {
+      payload.prodotto_output_id = prodotto_output_id;
+    }
 
     const { error } = await supabase
       .from("ricette")
@@ -2805,9 +2817,9 @@ async function salvaTutto() {
       .eq("azienda_id", aziendaId);
 
     if (error) {
-      console.error("Errore aggiornamento ricetta:", error);
+      console.error("Errore aggiornamento ricetta.", error, payload);
       if (esito) esito.innerText = "";
-      return alert("Errore aggiornamento ricetta: " + (error.message || "controlla console"));
+      return showSaveError("Errore aggiornamento ricetta.", error);
     }
   }
 
@@ -2818,7 +2830,7 @@ async function salvaTutto() {
     const payloadOut = {
       ricetta_id: ricettaIdNum,
       peso_finale: output_peso,
-      unita_misura: output_um,
+      unita_misura: normalizeUmForDb(output_um),
       note: output_note,
       azienda_id: aziendaId
     };
@@ -3489,18 +3501,33 @@ function toNumOrNull(v) {
 function toBigIntOrNull(v) {
   const s = String(v ?? "").trim();
   if (!s) return null;
+  // Accetta solo ID numerici bigint. Evita UUID, stringhe vuote e NaN.
   if (!/^\d+$/.test(s)) return null;
   const n = Number(s);
-  return Number.isSafeInteger(n) ? n : null;
+  return Number.isSafeInteger(n) && n > 0 ? n : null;
 }
 
-function normalizzaUnitaRicette(v) {
+function cleanPayload(obj) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, value]) => value !== undefined)
+  );
+}
+
+function normalizeUmForDb(v) {
   const s = String(v ?? "").trim().toLowerCase();
   if (s === "g") return "gr";
-  if (s === "l") return "lt";
   return s || null;
 }
 
+function showSaveError(titolo, error) {
+  const dettagli = [
+    error?.message,
+    error?.details,
+    error?.hint,
+    error?.code ? `Codice: ${error.code}` : null
+  ].filter(Boolean).join("\n");
+  alert(`${titolo}\n${dettagli || "Errore sconosciuto. Controlla la console."}`);
+}
 
 function safeOn(id, evt, fn) {
   const el = document.getElementById(id);
