@@ -49,6 +49,7 @@ const routes = {
   "home-operatore": () => import("./views/home-operatore.js"),
 
   homePiattaforma: () => import("./views/home-piattaforma.js"),
+  "home-agente": () => import("./views/home-agente.js"),
   "social-utenti": () => import("./views/social-utenti.js"),
 
   creaAzienda: () => import("./views/crea-azienda.js"),
@@ -221,7 +222,7 @@ const PREHOME_ROUTES = new Set([
   "completaAzienda",
 ]);
 
-const ROOT_ROUTES = new Set(["home", "homePiattaforma", "home-consulente", "home-commercialista"]);
+const ROOT_ROUTES = new Set(["home", "homePiattaforma", "home-consulente", "home-commercialista", "home-agente"]);
 
 const BO_ROUTES = new Set([
   "bo-dashboard",
