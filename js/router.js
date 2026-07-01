@@ -174,7 +174,7 @@ const routes = {
   // PRODUZIONE
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
   "bo-produzione": () => import("./views/bo/bo-produzione.js"),
-  "bo-comande": () => import("./views/bo/bo-comande.js"),
+  "bo-comande": () => import("./views/bo/bo-comande.js?v=2"),
   "bo-ricette": () => import("./views/bo/ricette-editor.js"),
   "ricette-editor": () => import("./views/bo/ricette-editor.js"),
   "bo-configurazione": () => import("./views/bo/bo-configurazione.js"),
