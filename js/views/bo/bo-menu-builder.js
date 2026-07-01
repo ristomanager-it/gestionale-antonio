@@ -20,9 +20,11 @@ export async function render(container) {
   let catSelezionata  = null;
   let prodottiVendita = [];
   let menuVoci        = [];
+  let coverGalleryUrls = []; // foto copertina a slide del menu in configurazione
   // Tutte le voci del menu per il mockup completo
   let tutteLeVoci     = {};   // { [categoria_id]: [voci...] }
   let dragSrcId       = null;
+  let coverGalleryUrls = []; // foto copertina a slide del menu in configurazione
 
   container.innerHTML = `
   <style>
@@ -185,32 +187,27 @@ export async function render(container) {
             </div>
           </div>
 
-          <!-- Cover e Logo menu -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-            <div>
-              <label class="mb-label">🖼️ Foto copertina (URL)</label>
-              <div style="display:flex;gap:6px;">
-                <input id="cfg-cover-url" class="mb-input" placeholder="https://... oppure carica ↓">
-                <label style="cursor:pointer;" title="Carica immagine">
-                  <input type="file" id="cfg-cover-file" accept="image/*" style="display:none;">
-                  <span class="mb-btn mb-btn-sec" style="padding:9px 10px;">📁</span>
-                </label>
-              </div>
-              <div id="cfg-cover-prev" style="margin-top:6px;"></div>
-              <div id="cfg-cover-prog" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>
+          <!-- Cover (galleria a slide) e Logo menu -->
+          <div style="margin-bottom:12px;">
+            <label class="mb-label">🖼️ Foto copertina — a slide (aggiungine più di una per far scorrere)</label>
+            <div id="cfg-cover-gallery" style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0;"></div>
+            <label style="cursor:pointer;display:inline-block;">
+              <input type="file" id="cfg-cover-file" accept="image/*" multiple style="display:none;">
+              <span class="mb-btn mb-btn-sec" style="padding:8px 14px;font-size:12px;">📁 Aggiungi foto</span>
+            </label>
+            <div id="cfg-cover-prog" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label class="mb-label">🔵 Logo menu (URL)</label>
+            <div style="display:flex;gap:6px;max-width:320px;">
+              <input id="cfg-logo-url" class="mb-input" placeholder="https://... oppure carica ↓">
+              <label style="cursor:pointer;" title="Carica logo">
+                <input type="file" id="cfg-logo-file" accept="image/*" style="display:none;">
+                <span class="mb-btn mb-btn-sec" style="padding:9px 10px;">📁</span>
+              </label>
             </div>
-            <div>
-              <label class="mb-label">🔵 Logo menu (URL)</label>
-              <div style="display:flex;gap:6px;">
-                <input id="cfg-logo-url" class="mb-input" placeholder="https://... oppure carica ↓">
-                <label style="cursor:pointer;" title="Carica logo">
-                  <input type="file" id="cfg-logo-file" accept="image/*" style="display:none;">
-                  <span class="mb-btn mb-btn-sec" style="padding:9px 10px;">📁</span>
-                </label>
-              </div>
-              <div id="cfg-logo-prev" style="margin-top:6px;"></div>
-              <div id="cfg-logo-prog" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>
-            </div>
+            <div id="cfg-logo-prev" style="margin-top:6px;"></div>
+            <div id="cfg-logo-prog" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>
           </div>
 
           <button id="btn-salva-cfg" class="mb-btn mb-btn-primary" style="width:100%;">💾 Salva configurazione</button>
@@ -349,23 +346,60 @@ export async function render(container) {
   qs("#btn-qr").onclick = () => { const s = qs("#cfg-slug").value.trim() || menuAttivo?.slug; if(s) mostraQR(s); else alert("Imposta prima uno slug"); };
   qs("#btn-salva-cfg").onclick = salvaConfigMenu;
 
-  // Upload cover menu
+  // Upload cover menu — a galleria (multi-foto per lo slideshow)
   const coverFileInput = qs("#cfg-cover-file");
   if (coverFileInput) {
     coverFileInput.onchange = async function() {
-      const file = this.files[0]; if (!file) return;
+      const files = Array.from(this.files || []); if (!files.length) return;
       const prog = qs("#cfg-cover-prog"); if (prog) prog.style.display = "";
-      const ext = file.name.split(".").pop();
-      const path = azienda_id + "/menu-cover-" + Date.now() + "." + ext;
-      const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+      for (const file of files) {
+        const ext = file.name.split(".").pop();
+        const path = azienda_id + "/menu-cover-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + "." + ext;
+        const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+        if (error) { alert("Errore upload " + file.name + ": " + error.message); continue; }
+        const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
+        coverGalleryUrls.push(pub.publicUrl);
+      }
       if (prog) prog.style.display = "none";
-      if (error) { alert("Errore upload: " + error.message); return; }
-      const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
-      const url = pub.publicUrl;
-      if (qs("#cfg-cover-url")) qs("#cfg-cover-url").value = url;
-      const prev = qs("#cfg-cover-prev");
-      if (prev) prev.innerHTML = '<img src="' + url + '" style="width:100%;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">';
+      this.value = "";
+      renderCoverGallery();
     };
+  }
+
+  function renderCoverGallery() {
+    const box = qs("#cfg-cover-gallery");
+    if (!box) return;
+    if (!coverGalleryUrls.length) {
+      box.innerHTML = `<div style="font-size:12px;color:#94a3b8;padding:8px 0;">Nessuna foto ancora — aggiungine almeno una (più ne metti, più scorrono a slide sulla pagina pubblica).</div>`;
+      return;
+    }
+    box.innerHTML = coverGalleryUrls.map((url, i) => `
+      <div class="cover-thumb" data-idx="${i}" draggable="true" style="position:relative;width:90px;height:60px;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;cursor:grab;flex-shrink:0;">
+        <img src="${esc(url)}" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <button class="btn-rm-cover" data-idx="${i}" type="button" style="position:absolute;top:2px;right:2px;background:rgba(220,38,38,.9);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;line-height:1;">✕</button>
+        ${i === 0 ? `<span style="position:absolute;bottom:2px;left:2px;background:rgba(14,90,122,.9);color:#fff;font-size:9px;padding:1px 5px;border-radius:6px;">principale</span>` : ""}
+      </div>
+    `).join("");
+
+    box.querySelectorAll(".btn-rm-cover").forEach(btn => {
+      btn.onclick = () => { coverGalleryUrls.splice(Number(btn.dataset.idx), 1); renderCoverGallery(); };
+    });
+
+    // Riordino drag&drop — la prima foto è quella "principale" usata anche come cover_url singola
+    let dragSrc = null;
+    box.querySelectorAll(".cover-thumb").forEach(thumb => {
+      thumb.addEventListener("dragstart", () => { dragSrc = Number(thumb.dataset.idx); thumb.style.opacity = ".4"; });
+      thumb.addEventListener("dragend", () => { thumb.style.opacity = "1"; });
+      thumb.addEventListener("dragover", (e) => e.preventDefault());
+      thumb.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const dstIdx = Number(thumb.dataset.idx);
+        if (dragSrc === null || dragSrc === dstIdx) return;
+        const [moved] = coverGalleryUrls.splice(dragSrc, 1);
+        coverGalleryUrls.splice(dstIdx, 0, moved);
+        renderCoverGallery();
+      });
+    });
   }
 
   // Upload logo menu
@@ -601,12 +635,12 @@ export async function render(container) {
     qs("#caparra-tipo").value = caparra.tipo || "fisso";
     qs("#caparra-importo").value = caparra.importo || "";
     qs("#caparra-note").value = caparra.note || "";
-    // Cover e logo
-    if (qs("#cfg-cover-url")) {
-      qs("#cfg-cover-url").value = m.cover_url || "";
-      const prevC = qs("#cfg-cover-prev");
-      if (prevC) prevC.innerHTML = m.cover_url ? '<img src="' + esc(m.cover_url) + '" style="width:100%;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">' : "";
-    }
+    // Cover a slide: usa cover_urls (nuovo, array) se presente, altrimenti
+    // ripiega sul vecchio cover_url singolo per non perdere le foto già impostate.
+    coverGalleryUrls = Array.isArray(m.cover_urls) && m.cover_urls.length
+      ? [...m.cover_urls]
+      : (m.cover_url ? [m.cover_url] : []);
+    renderCoverGallery();
     if (qs("#cfg-logo-url")) {
       qs("#cfg-logo-url").value = m.logo_url || "";
       const prevL = qs("#cfg-logo-prev");
@@ -632,7 +666,8 @@ export async function render(container) {
       colore_sfondo:   qs("#cfg-sfondo-hex").value || null,
       font_family:     qs("#cfg-font").value || null,
       attivo:          qs("#cfg-attivo").checked,
-      cover_url:       qs("#cfg-cover-url")?.value.trim() || null,
+      cover_url:       coverGalleryUrls[0] || null,
+      cover_urls:      coverGalleryUrls,
       logo_url:        qs("#cfg-logo-url")?.value.trim() || null,
       tracking_attivo: qs("#cfg-tracking").checked,
       raccolta_dati:   qs("#cfg-raccolta").checked,
