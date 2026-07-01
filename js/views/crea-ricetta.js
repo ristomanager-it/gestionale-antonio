@@ -272,7 +272,7 @@ DESCRIZIONE: "` + testoOperatore + `"`;
 
 Il valore di reply deve essere una stringa JSON che contiene l'array degli ingredienti.
 Prodotti magazzino disponibili: ` + prodottiContesto + `
-unita_misura: "kg" o "g" o "pz" o "l" o "ml".
+unita_misura: "kg" o "gr" o "pz" o "l" o "ml".
 mezzo kg=0.5kg, 200grammi=200g, q.b.=0.01kg. Solidi in kg/g, liquidi in l/ml.
 nome_magazzino: prodotto piu simile nel magazzino o stringa vuota.
 
@@ -586,7 +586,7 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
     arr.forEach(p => aggiungiPorzione({
       label: p.label || "",
       peso_porzione: p.peso_porzione || p.peso || 0,
-      unita_misura: p.unita_misura || "g",
+      unita_misura: p.unita_misura || "gr",
       note: p.note || ""
     }));
     status.innerHTML = `<span style="color:#16a34a;">✅ ${arr.length} porzionatura/e compilata/e!</span>`;
@@ -1192,7 +1192,7 @@ export async function render(app) {
               <label>Unità misura *</label>
               <select id="r-output-um" class="input">
                 <option value="kg">kg</option>
-                <option value="g">g</option>
+                <option value="gr">gr</option>
                 <option value="pz">pz</option>
                 <option value="l">l</option>
                 <option value="ml">ml</option>
@@ -1378,7 +1378,7 @@ setupAutocomplete(
       const umSel = document.getElementById("r-output-um");
       if (p?.um && umSel) {
         const val = String(p.um).toLowerCase();
-        const ok = ["kg", "g", "pz", "l", "ml"].includes(val);
+        const ok = ["kg", "gr", "pz", "l", "ml"].includes(val);
         if (ok) umSel.value = val;
       }
       aggiornaOutputInfo();
@@ -1773,7 +1773,7 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
     ingHidden.value = matchEsatto.id;
     if (matchEsatto.um && umSel) {
       const val = String(matchEsatto.um).toLowerCase();
-      if (["kg","g","pz","l","ml"].includes(val)) umSel.value = val;
+      if (["kg","gr","pz","l","ml"].includes(val)) umSel.value = val;
     }
     ingSearch.style.borderColor = "#16a34a";
     ingSearch.title = "✅ Trovato nel magazzino";
@@ -1819,7 +1819,7 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
           ingSuggest.classList.remove("open");
           if (p.um && umSel) {
             const val = String(p.um).toLowerCase();
-            if (["kg","g","pz","l","ml"].includes(val)) umSel.value = val;
+            if (["kg","gr","pz","l","ml"].includes(val)) umSel.value = val;
           }
           if (typeof onPick === "function") onPick(p);
         });
@@ -1876,7 +1876,7 @@ function aggiungiIngrediente(initial = {}) {
         <label>UM *</label>
         <select class="ing-um input">
           <option value="kg">kg</option>
-          <option value="g">g</option>
+          <option value="gr">gr</option>
           <option value="pz">pz</option>
           <option value="l">l</option>
           <option value="ml">ml</option>
@@ -1918,7 +1918,7 @@ function aggiungiIngrediente(initial = {}) {
   setupAutocomplete(ingSearch, ingHidden, ingSuggest, (p) => {
     if (p?.um && umSel) {
       const val = String(p.um).toLowerCase();
-      const ok = ["kg", "g", "pz", "l", "ml"].includes(val);
+      const ok = ["kg", "gr", "pz", "l", "ml"].includes(val);
       if (ok) umSel.value = val;
     }
     // Reset stile fuzzy quando l'utente sceglie manualmente
@@ -2138,7 +2138,7 @@ function aggiungiOutputSecondario(initial = {}) {
         <label>UM *</label>
         <select class="out2-um input">
           <option value="kg">kg</option>
-          <option value="g">g</option>
+          <option value="gr">gr</option>
           <option value="pz">pz</option>
         </select>
       </div>
@@ -2170,7 +2170,7 @@ function aggiungiOutputSecondario(initial = {}) {
   setupAutocomplete(s, hid, sug, (p) => {
     if (p?.um) {
       const val = String(p.um).toLowerCase();
-      const ok = ["kg", "g", "pz"].includes(val);
+      const ok = ["kg", "gr", "pz"].includes(val);
       if (ok) card.querySelector(".out2-um").value = val;
     }
   });
@@ -2478,7 +2478,7 @@ function aggiungiPorzione(initial = {}) {
       <div class="form-group">
         <label>Unità misura *</label>
         <select class="porz-um input">
-          <option value="g">g</option>
+          <option value="gr">gr</option>
           <option value="kg">kg</option>
           <option value="pz">pz</option>
           <option value="ml">ml</option>
@@ -2501,7 +2501,7 @@ function aggiungiPorzione(initial = {}) {
     </div>
   `;
 
-  card.querySelector(".porz-um").value = initial.unita_misura || "g";
+  card.querySelector(".porz-um").value = initial.unita_misura || "gr";
   card.querySelector(".porz-attivo").value = String(initial.attivo ?? true);
   card.querySelector('[data-action="delete"]').addEventListener("click", () => card.remove());
 
@@ -3166,7 +3166,7 @@ async function salvaTutto() {
     document.querySelectorAll("#porzioni-container .azienda-card").forEach(r => {
       const label = (r.querySelector(".porz-label")?.value || "").trim();
       const peso_porzione = toNumOrNull(r.querySelector(".porz-peso")?.value);
-      const unita_misura = (r.querySelector(".porz-um")?.value || "g").trim();
+      const unita_misura = (r.querySelector(".porz-um")?.value || "gr").trim();
       const note = (r.querySelector(".porz-note")?.value || "").trim() || null;
       const attivo = (r.querySelector(".porz-attivo")?.value !== "false");
 
@@ -3375,15 +3375,15 @@ function convertToBase(qty, um) {
     return { ok: false, warning: "Peso/Qtà output non valido." };
   }
 
-  if (u === "kg") return { ok: true, baseQty: n * 1000, baseUnitLabel: "g" };
-  if (u === "g") return { ok: true, baseQty: n, baseUnitLabel: "g" };
+  if (u === "kg") return { ok: true, baseQty: n * 1000, baseUnitLabel: "gr" };
+  if (u === "gr") return { ok: true, baseQty: n, baseUnitLabel: "gr" };
 
   if (u === "l") return { ok: true, baseQty: n * 1000, baseUnitLabel: "ml" };
   if (u === "ml") return { ok: true, baseQty: n, baseUnitLabel: "ml" };
 
   if (u === "pz") return { ok: true, baseQty: n, baseUnitLabel: "pz" };
 
-  return { ok: false, warning: "Unità output non supportata (usa kg/g oppure l/ml oppure pz)." };
+  return { ok: false, warning: "Unità output non supportata (usa kg/gr oppure l/ml oppure pz)." };
 }
 
 /* ============================================================
