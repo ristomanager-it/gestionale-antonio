@@ -6,6 +6,7 @@
   <title>Menu</title>
   <link rel="manifest" href="/manifest.json"/>
   <meta name="theme-color" content="#0E5A7A"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -20,6 +21,12 @@
     /* HERO SOCIAL */
     .menu-cover{position:relative;width:100%;height:200px;background:var(--brand);overflow:hidden;flex-shrink:0;}
     .menu-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+    .menu-cover-slides{position:relative;width:100%;height:100%;}
+    .cover-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s ease;}
+    .cover-slide.active{opacity:1;}
+    .cover-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:3;}
+    .cover-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);transition:all .2s;}
+    .cover-dot.active{background:#fff;width:16px;border-radius:3px;}
     .menu-cover-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.4) 100%);}
     .menu-profile-row{display:flex;align-items:flex-end;gap:14px;padding:0 16px 16px;margin-top:-36px;position:relative;z-index:2;background:var(--sfondo);}
     .menu-logo-wrap{width:84px;height:84px;border-radius:50%;border:4px solid var(--sfondo);overflow:hidden;background:#e5e7eb;flex-shrink:0;box-shadow:0 2px 12px rgba(0,0,0,0.15);}
@@ -271,6 +278,40 @@
       };
     }
 
+    // ── COVER SLIDESHOW ──────────────────────────────────────────────
+    function initCoverSlideshow() {
+      var slidesBox = document.getElementById("cover-slides");
+      if (!slidesBox) return; // una sola foto o nessuna: niente da animare
+
+      var slides = slidesBox.querySelectorAll(".cover-slide");
+      var dots = document.querySelectorAll(".cover-dot");
+      var idx = 0;
+
+      function vaiA(n) {
+        idx = (n + slides.length) % slides.length;
+        slides.forEach(function(s, i) { s.classList.toggle("active", i === idx); });
+        dots.forEach(function(d, i) { d.classList.toggle("active", i === idx); });
+      }
+
+      var timer = setInterval(function() { vaiA(idx + 1); }, 4000);
+
+      // Tap su un pallino = vai a quella foto, e riparti il timer da lì
+      dots.forEach(function(dot, i) {
+        dot.addEventListener("click", function() {
+          clearInterval(timer);
+          vaiA(i);
+          timer = setInterval(function() { vaiA(idx + 1); }, 4000);
+        });
+      });
+
+      // Tap sulla cover stessa = avanti di una, comodo su mobile
+      slidesBox.addEventListener("click", function() {
+        clearInterval(timer);
+        vaiA(idx + 1);
+        timer = setInterval(function() { vaiA(idx + 1); }, 4000);
+      });
+    }
+
     // ── RENDER MENU ────────────────────────────────────────────────
     function renderMenu() {
       var colore = azienda.colore_brand || menu.colore_primario || "#0E5A7A";
@@ -279,11 +320,25 @@
 
       var html = "";
 
-      // COVER + LOGO
+      // COVER + LOGO — slideshow se ci sono più foto, immagine singola/fallback altrimenti
+      var coverUrls = (Array.isArray(menu.cover_urls) && menu.cover_urls.length)
+        ? menu.cover_urls
+        : [menu.cover_url || (sede && sede.cover_url) || azienda.cover_url || null].filter(Boolean);
+
       html += '<div class="menu-cover">';
-      var coverSrc = menu.cover_url || (sede && sede.cover_url) || azienda.cover_url || null;
-      if (coverSrc) {
-        html += '<img src="' + esc(coverSrc) + '" alt="Cover">';
+      if (coverUrls.length > 1) {
+        html += '<div class="menu-cover-slides" id="cover-slides">';
+        coverUrls.forEach(function(src, i) {
+          html += '<img src="' + esc(src) + '" alt="Cover" class="cover-slide' + (i === 0 ? ' active' : '') + '" data-slide="' + i + '">';
+        });
+        html += '</div>';
+        html += '<div class="cover-dots" id="cover-dots">';
+        coverUrls.forEach(function(_, i) {
+          html += '<span class="cover-dot' + (i === 0 ? ' active' : '') + '" data-dot="' + i + '"></span>';
+        });
+        html += '</div>';
+      } else if (coverUrls.length === 1) {
+        html += '<img src="' + esc(coverUrls[0]) + '" alt="Cover">';
       } else {
         html += '<div style="width:100%;height:100%;background:' + esc(colore) + ';display:flex;align-items:center;justify-content:center;font-size:56px;">🍽️</div>';
       }
@@ -392,6 +447,8 @@
       html += '<div class="menu-footer">Menu digitale by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
 
       root.innerHTML = html;
+
+      initCoverSlideshow();
 
       // BIND NAV — click apre accordion corrispondente
       var navBtns = document.querySelectorAll(".cat-nav-btn");
