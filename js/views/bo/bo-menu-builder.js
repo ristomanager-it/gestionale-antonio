@@ -410,33 +410,53 @@ export async function render(container) {
   document.addEventListener("drop", () => clearInterval(scrollInterval));
 
   // ── INIT ─────────────────────────────────────────────────────
-  await loadMenus();
-  await loadCatVendita();
-  // Carica sedi — mostra selettore solo se azienda ha più sedi
-  (async function initSedeSel() {
-    const { data: sediList } = await supa().from('sedi').select('id,nome').eq('azienda_id', azienda_id).eq('attiva', true).order('nome');
-    const sel = qs('#mb-sede-sel');
-    if (!sel || !sediList || sediList.length <= 1) return;
-    sel.style.display = '';
-    sediList.forEach(s => {
+  // FIX BUG 1: la sede va risolta PRIMA di caricare menu/categorie.
+  // Prima la sede veniva risolta in una IIFE async non attesa: loadMenus()
+  // e loadCatVendita() partivano con currentSedeId ancora null, e le query
+  // saltano il filtro sede_id quando è falsy → venivano mostrate le
+  // categorie/menu di TUTTE le sedi dell'azienda. Inoltre il cambio sede
+  // chiamava caricaDati(), funzione mai definita nel file → ReferenceError
+  // silenzioso e i dati non venivano MAI ricaricati dopo la selezione sede.
+  const { data: sediListInit } = await supa().from('sedi').select('id,nome').eq('azienda_id', azienda_id).eq('attiva', true).order('nome');
+  const sediDisponibili = sediListInit || [];
+  if (!currentSedeId && sediDisponibili.length > 0) currentSedeId = sediDisponibili[0].id;
+
+  const sedeSel = qs('#mb-sede-sel');
+  if (sedeSel && sediDisponibili.length > 1) {
+    sedeSel.style.display = '';
+    sediDisponibili.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id; opt.textContent = s.nome;
       if (s.id === currentSedeId) opt.selected = true;
-      sel.appendChild(opt);
+      sedeSel.appendChild(opt);
     });
-    if (!currentSedeId && sediList.length > 0) { currentSedeId = sediList[0].id; sel.value = currentSedeId; }
-    sel.addEventListener('change', async function() {
+    sedeSel.value = currentSedeId || '';
+    sedeSel.addEventListener('change', async function() {
       currentSedeId = this.value || null;
       await caricaDati();
-      renderTabsMenu();
+    });
+  }
+
+  await caricaDati();
+
+  // Ricarica menu + categorie vendita per la sede corrente e ripristina la UI.
+  // Definita qui (prima non esisteva affatto).
+  async function caricaDati() {
+    menuAttivo      = null;
+    catSelezionata  = null;
+    menuCategorie   = [];
+    tutteLeVoci     = {};
+    await loadMenus();
+    await loadCatVendita();
+    renderTabsMenu();
+    if (menus.length > 0) {
+      await selezionaMenu(menus[0]);
+    } else {
       renderCatSx();
       renderCatCentro();
       renderDxPlaceholder();
-    });
-  })();
-
-  renderTabsMenu();
-  if (menus.length > 0) await selezionaMenu(menus[0]);
+    }
+  }
 
   // ── LOAD ─────────────────────────────────────────────────────
   async function loadMenus() {
