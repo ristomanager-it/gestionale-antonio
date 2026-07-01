@@ -45,6 +45,9 @@ const routes = {
   login: () => import("./views/login.js"),
   home: () => import("./views/home.js"),
 
+  "s": () => import("./views/short-link-redirect.js"),
+  "bo-shortlink": () => import("./views/bo/bo-shortlink.js"),
+
   "home-admin": () => import("./views/home-admin.js"),
   "home-manager": () => import("./views/home-manager.js"),
   "home-operatore": () => import("./views/home-operatore.js"),
@@ -205,7 +208,8 @@ const PUBLIC_ROUTES = new Set([
   "prenota",
   "booking",
   "prenotazione-online",
-  "prenotazione"
+  "prenotazione",
+  "s"
 ]);
 
 const PLATFORM_ROUTES = new Set([
