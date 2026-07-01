@@ -144,9 +144,15 @@
     // service role e decide lei cosa è sicuro esporre — la pagina pubblica
     // non dipende più dalle RLS delle tabelle menu/menu_categorie/menu_voci.
     async function chiamaApi(payload) {
+      // Content-Type "text/plain" invece di "application/json" e nessun header
+      // custom (Authorization/apikey non servono, la funzione è pubblica):
+      // così la richiesta resta "semplice" per il browser e NON scatena il
+      // preflight OPTIONS, che sul gateway Supabase falliva a prescindere
+      // dal toggle Verify JWT. Il corpo resta JSON valido, il server lo legge
+      // comunque con req.json() indipendentemente dal Content-Type dichiarato.
       var res = await fetch(EDGE_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + SUPA_ANON, "apikey": SUPA_ANON },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify(payload)
       });
       var testo = await res.text();
