@@ -128,12 +128,10 @@
     <img id="lb-img" src="" alt="">
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
   (function() {
-    var SUPA_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+    var EDGE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/menu-pubblico-api";
     var SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
-    var supa = window.supabase.createClient(SUPA_URL, SUPA_ANON);
     var root = document.getElementById("root");
     var params = new URLSearchParams(window.location.search);
     var slug = params.get("slug");
@@ -142,26 +140,33 @@
 
     var menu = null, azienda = null, categorie = [], tutteVoci = {}, filtriAttivi = new Set(), sede = null;
 
+    // Tutta la lettura/scrittura passa da qui: la Edge Function usa la
+    // service role e decide lei cosa è sicuro esporre — la pagina pubblica
+    // non dipende più dalle RLS delle tabelle menu/menu_categorie/menu_voci.
+    async function chiamaApi(payload) {
+      var res = await fetch(EDGE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + SUPA_ANON, "apikey": SUPA_ANON },
+        body: JSON.stringify(payload)
+      });
+      return res.json();
+    }
+
     init();
 
     async function init() {
-      // Carica menu
-      var mr = await supa.from("menu").select("*").eq("slug", slug).eq("attivo", true).maybeSingle();
-      if (!mr.data) { showError("Menu non disponibile", "Questo menu non è attivo o non esiste."); return; }
-      menu = mr.data;
+      var r = await chiamaApi({ azione: "carica", slug: slug });
+      if (!r.success) { showError("Menu non disponibile", r.error || "Questo menu non è attivo o non esiste."); return; }
 
-      // Carica azienda
-      var ar = await supa.from("aziende").select("id,nome,logo_url,cover_url,descrizione,telefono,indirizzo,citta,colore_brand,font_family,font_size").eq("id", menu.azienda_id).maybeSingle();
-      azienda = ar.data || {};
-
-      // Carica sede associata al menu (per cover/logo/nome specifici)
-      var sede = null;
-      if (menu.sede_id) {
-        try {
-          var sr = await supa.from("sedi").select("id,nome,logo_url,cover_url,descrizione").eq("id", menu.sede_id).maybeSingle();
-          if (!sr.error) sede = sr.data || null;
-        } catch(e) { sede = null; }
-      }
+      menu = r.menu;
+      azienda = r.azienda || {};
+      sede = r.sede || null;
+      categorie = r.categorie || [];
+      tutteVoci = {};
+      (r.voci || []).forEach(function(v) {
+        if (!tutteVoci[v.categoria_id]) tutteVoci[v.categoria_id] = [];
+        tutteVoci[v.categoria_id].push(v);
+      });
 
       // Applica brand
       if (azienda.colore_brand) {
@@ -178,50 +183,20 @@
         document.head.appendChild(lnk);
       }
 
-      // Tracking visita
-      if (menu.tracking_attivo) {
-        supa.from("menu_tracking_risposte").insert({
-          menu_id: menu.id, azienda_id: menu.azienda_id,
-          tipo: "visita", created_at: new Date().toISOString()
-        }).then(function(){});
-      }
+      // Tracking visita (la Edge Function controlla lei se tracking_attivo è vero)
+      chiamaApi({ azione: "track", slug: slug, tipo: "visita" }).catch(function(){});
 
       // Raccolta dati?
       if (menu.raccolta_dati) {
         var campi = menu.raccolta_campi || ["nome","telefono"];
-        mostraRaccoltaDati(campi, function() { caricaMenuCompleto(); });
+        mostraRaccoltaDati(campi, function() { finalizzaRender(); });
       } else {
-        caricaMenuCompleto();
+        finalizzaRender();
       }
     }
 
-    async function caricaMenuCompleto() {
-      // Carica categorie
-      var cr = await supa.from("menu_categorie")
-        .select("*").eq("menu_id", menu.id).eq("azienda_id", menu.azienda_id)
-        .eq("attivo", true).order("ordine");
-      categorie = cr.data || [];
-
-      // Filtra per orario
-      var ora = new Date();
-      var oraStr = ora.getHours().toString().padStart(2,"0") + ":" + ora.getMinutes().toString().padStart(2,"0");
-      categorie = categorie.filter(function(c) {
-        if (!c.ora_inizio || !c.ora_fine) return true;
-        return oraStr >= c.ora_inizio && oraStr <= c.ora_fine;
-      });
-
+    function finalizzaRender() {
       if (!categorie.length) { showError("Menu vuoto", "Nessuna categoria disponibile in questo momento."); return; }
-
-      // Carica tutte le voci
-      var vr = await supa.from("menu_voci")
-        .select("*").eq("menu_id", menu.id).eq("azienda_id", menu.azienda_id)
-        .eq("attivo", true).eq("visibile", true).order("ordine");
-      var tutteLeVoci = vr.data || [];
-      tutteLeVoci.forEach(function(v) {
-        if (!tutteVoci[v.categoria_id]) tutteVoci[v.categoria_id] = [];
-        tutteVoci[v.categoria_id].push(v);
-      });
-
       renderMenu();
     }
 
@@ -268,10 +243,7 @@
         });
         if (document.getElementById("rd-mkt")) dati.consenso_marketing = document.getElementById("rd-mkt").checked;
 
-        await supa.from("menu_tracking_risposte").insert({
-          menu_id: menu.id, azienda_id: menu.azienda_id,
-          tipo: "raccolta_dati", dati: dati, created_at: new Date().toISOString()
-        });
+        await chiamaApi({ azione: "track", slug: slug, tipo: "raccolta_dati", dati: dati });
 
         document.body.removeChild(overlay);
         onDone();
