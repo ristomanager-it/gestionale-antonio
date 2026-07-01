@@ -138,11 +138,15 @@ export async function render(container) {
       </div>
 
       <label>Foto prodotto</label>
-      <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
-        <input id="prod-img-file" class="input" type="file" accept="image/png,image/jpeg,image/jpg">
-        <button id="btn-upload-img" class="app-button" type="button">Carica</button>
-      </div>
-      <input id="prod-img-url" class="input" placeholder="URL foto" readonly>
+      <div id="prod-img-preview" style="
+        width:100%; height:140px; border-radius:12px; background:#f1f5f9;
+        display:flex; align-items:center; justify-content:center;
+        overflow:hidden; margin-bottom:8px; border:1px solid #e5e7eb;
+        color:#94a3b8; font-size:13px;
+      ">Nessuna foto</div>
+      <input id="prod-img-file" class="input" type="file" accept="image/png,image/jpeg,image/jpg" capture="environment">
+      <div id="prod-img-status" style="font-size:12px; color:#64748b; margin-top:4px;"></div>
+      <input id="prod-img-url" type="hidden">
 
       <hr>
 
@@ -169,6 +173,7 @@ export async function render(container) {
       <div style="display:flex; gap:8px; margin-top:12px;">
         <button id="btn-save" class="app-button primary" type="button">Salva</button>
         <button id="btn-cancel" class="app-button" type="button">Annulla</button>
+        <button id="btn-delete" class="app-button" type="button" style="display:none; margin-left:auto; background:#fee2e2; color:#dc2626;">🗑 Elimina</button>
       </div>
 
     </div>
@@ -198,7 +203,8 @@ export async function render(container) {
   // FORM
   qs("#btn-cancel").onclick = closeForm
   qs("#btn-save").onclick = saveProdotto
-  qs("#btn-upload-img").onclick = uploadProductImage
+  qs("#btn-delete").onclick = deleteProdotto
+  qs("#prod-img-file").addEventListener("change", uploadProductImage)
 
   // SEARCH
   qs("#product-search").addEventListener("input", () => {
@@ -555,9 +561,11 @@ export async function render(container) {
     qs("#prod-porzione").value = p.porzione_default ?? 1
     qs("#prod-um").value = p.unita_porzione || "pz"
     qs("#prod-img-url").value = p.foto_url || ""
+    renderImgPreview(p.foto_url || "")
     qs("#prod-attivo").checked = p.attivo !== false
     qs("#prod-visibile").checked = p.visibile !== false
     qs("#prod-contesto").value = p.contesto || ""
+    qs("#btn-delete").style.display = ""
 
     renderTags()
     renderFoodCostBox()
@@ -578,10 +586,12 @@ export async function render(container) {
     qs("#prod-porzione").value = 1
     qs("#prod-um").value = "pz"
     qs("#prod-img-url").value = ""
+    renderImgPreview("")
     qs("#prod-attivo").checked = true
     qs("#prod-visibile").checked = true
     qs("#prod-contesto").value = ""
     qs("#tag-input").value = ""
+    qs("#btn-delete").style.display = "none"
 
     renderTags()
     renderFoodCostBox()
@@ -853,18 +863,36 @@ export async function render(container) {
     })
   }
 
+  function renderImgPreview(url) {
+    const box = qs("#prod-img-preview")
+    if (url) {
+      box.style.backgroundImage = `url('${url.replace(/'/g, "%27")}')`
+      box.style.backgroundSize = "cover"
+      box.style.backgroundPosition = "center"
+      box.innerText = ""
+    } else {
+      box.style.backgroundImage = ""
+      box.innerText = "Nessuna foto"
+    }
+  }
+
   async function uploadProductImage() {
     const file = qs("#prod-img-file").files?.[0]
+    const status = qs("#prod-img-status")
 
-    if (!file) {
-      alert("Seleziona un file JPG o PNG.")
-      return
-    }
+    if (!file) return
 
     if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
-      alert("Formato non valido. Usa JPG o PNG.")
+      status.textContent = "⚠️ Formato non valido. Usa JPG o PNG."
+      status.style.color = "#dc2626"
       return
     }
+
+    // Anteprima immediata locale, prima ancora che finisca l'upload
+    const localPreview = URL.createObjectURL(file)
+    renderImgPreview(localPreview)
+    status.textContent = "⏳ Caricamento in corso..."
+    status.style.color = "#64748b"
 
     const ext = file.name.split(".").pop() || "png"
     const path = `prodotti/${azienda_id}/${Date.now()}-${crypto.randomUUID()}.${ext}`
@@ -878,7 +906,8 @@ export async function render(container) {
 
     if (error) {
       console.error(error)
-      alert("Errore upload immagine.")
+      status.textContent = "❌ Errore upload immagine. Riprova."
+      status.style.color = "#dc2626"
       return
     }
 
@@ -887,6 +916,50 @@ export async function render(container) {
       .getPublicUrl(path)
 
     qs("#prod-img-url").value = data?.publicUrl || ""
+    renderImgPreview(data?.publicUrl || "")
+    status.textContent = "✅ Foto caricata"
+    status.style.color = "#16a34a"
+  }
+
+  async function deleteProdotto() {
+    if (!prodottoAttivo?.id) return
+
+    const nomeProdotto = prodottoAttivo.nome || "questo prodotto"
+
+    // Controllo se il prodotto è già usato in un menu — avviso chiaro invece
+    // di un errore DB criptico se c'è un vincolo di integrità referenziale
+    const { count: usiMenu } = await supabase
+      .from("menu_voci")
+      .select("id", { count: "exact", head: true })
+      .eq("prodotto_vendita_id", prodottoAttivo.id)
+
+    let messaggioConferma = `Eliminare "${nomeProdotto}"? L'operazione non è reversibile.`
+    if (usiMenu > 0) {
+      messaggioConferma = `"${nomeProdotto}" è presente in ${usiMenu} men${usiMenu === 1 ? "ù" : "u"}. Eliminandolo verrà rimosso anche da lì. Continuare?`
+    }
+
+    if (!confirm(messaggioConferma)) return
+
+    if (usiMenu > 0) {
+      await supabase.from("menu_voci").delete().eq("prodotto_vendita_id", prodottoAttivo.id)
+    }
+
+    const { error } = await supabase
+      .from("prodotti_vendita")
+      .delete()
+      .eq("id", prodottoAttivo.id)
+      .eq("azienda_id", azienda_id)
+
+    if (error) {
+      console.error("Errore eliminazione prodotto:", error)
+      alert("Errore durante l'eliminazione. " + (error.message || ""))
+      return
+    }
+
+    prodotti = prodotti.filter(p => String(p.id) !== String(prodottoAttivo.id))
+    prodottiFiltrati = [...prodotti]
+    closeForm()
+    renderProdotti()
   }
 
   function parseNullableNumber(value) {
