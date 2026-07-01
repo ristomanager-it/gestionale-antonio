@@ -116,16 +116,30 @@ window.stateActions = {
   },
 
   setAzienda(azienda) {
+    // FIX: prima si controllava solo window.state.azienda per capire se
+    // l'azienda era "cambiata" — ma window.state.azienda parte sempre vuoto
+    // ad ogni refresh/apertura pagina (è in-memory, non persistito), quindi
+    // questo metodo veniva richiamato e azzerava active_sede_id ANCHE
+    // quando era esattamente la stessa azienda di prima. Risultato: i
+    // collaboratori/manager multi-sede dovevano riselezionare la sede ad
+    // ogni caricamento pagina. Ora confrontiamo con l'azienda salvata in
+    // localStorage (che invece persiste tra i refresh) e azzeriamo la sede
+    // SOLO se l'azienda è davvero diversa da prima.
+    const previousAziendaId = localStorage.getItem(this.LS_KEYS.ACTIVE_AZIENDA_ID);
+    const isSameAzienda = !!(azienda?.id && previousAziendaId && String(azienda.id) === String(previousAziendaId));
+
     window.state.azienda = azienda || null;
 
     if (azienda?.id) {
       localStorage.setItem(this.LS_KEYS.ACTIVE_AZIENDA_ID, String(azienda.id));
     }
 
-    localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+    if (!isSameAzienda) {
+      localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+      window.state.sedeAttiva = null;
+    }
 
     window.state.sedi = [];
-    window.state.sedeAttiva = null;
     window.state.dipendente = null;
     window.state.sediDipendente = [];
 
