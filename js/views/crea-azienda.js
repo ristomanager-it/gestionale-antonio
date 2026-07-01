@@ -78,6 +78,15 @@ export async function render(container) {
           </div>
 
           <div class="form-group">
+            <label>Ciclo di fatturazione</label>
+            <select id="az-intervallo" class="input">
+              <option value="mensile">Mensile (scadenza +1 mese)</option>
+              <option value="annuale">Annuale (scadenza +1 anno)</option>
+            </select>
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Per il piano Fondatore 2026 è ignorato: la scadenza viene impostata automaticamente come lifetime.</div>
+          </div>
+
+          <div class="form-group">
             <label>Tipo attività *</label>
             <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">
               <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400;cursor:pointer;">
@@ -198,6 +207,7 @@ export async function render(container) {
     const nome = document.getElementById("az-nome").value.trim();
     const codice = document.getElementById("az-codice").value.trim();
     const piano_id = document.getElementById("az-piano").value;
+    const intervallo = document.getElementById("az-intervallo").value;
     const email = document.getElementById("az-email").value.trim();
     const tipo_app = Array.from(document.querySelectorAll(".tipo-app-check:checked")).map(c => c.value);
 
@@ -214,7 +224,7 @@ export async function render(container) {
       const { data, error } = await supabase.functions.invoke(
         "platform-create-company",
         {
-          body: { nome, codice, piano_id, email, tipo_app }
+          body: { nome, codice, piano_id, intervallo, email, tipo_app }
         }
       );
 
