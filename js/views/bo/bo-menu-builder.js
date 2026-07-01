@@ -1041,7 +1041,7 @@ export async function render(container) {
       <div style="margin-bottom:12px;">
         <label class="mb-label">Foto portata</label>
         <div id="voce-foto-prev" style="width:100%;height:110px;border-radius:10px;background:${voce.foto_url?`url('${esc(voce.foto_url)}') center/cover`:"#f3f4f6"};display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:6px;border:1px solid #e5e7eb;">${voce.foto_url?"":"Nessuna foto"}</div>
-        <input id="voce-foto-file" type="file" class="mb-input" accept="image/png,image/jpeg,image/jpg" capture="environment">
+        <input id="voce-foto-file" type="file" class="mb-input" accept="image/png,image/jpeg,image/jpg">
         <div id="voce-foto-status" style="font-size:11px;color:#64748b;margin-top:4px;"></div>
         <input id="voce-foto-edit" type="hidden" value="${esc(voce.foto_url||"")}">
       </div>
