@@ -24,7 +24,6 @@ export async function render(container) {
   // Tutte le voci del menu per il mockup completo
   let tutteLeVoci     = {};   // { [categoria_id]: [voci...] }
   let dragSrcId       = null;
-  let coverGalleryUrls = []; // foto copertina a slide del menu in configurazione
 
   container.innerHTML = `
   <style>
