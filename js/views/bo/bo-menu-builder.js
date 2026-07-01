@@ -42,8 +42,12 @@ export async function render(container) {
     .cat-centro-item{padding:12px;border-radius:12px;border:1.5px solid #e5e7eb;background:#fff;margin-bottom:8px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;}
     .cat-centro-item:hover{border-color:#0E5A7A;}
     .cat-centro-item.active{border-color:#0E5A7A;background:#e0f2fe;}
+    .cat-centro-item.dragging{opacity:.4;}
+    .cat-centro-item.drag-over{outline:2px solid #0E5A7A;background:#f0f9ff;}
     .prodotto-row{padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
     .prodotto-row.nel-menu{background:#f0fdf4;border-color:#86efac;}
+    .prodotto-row.dragging{opacity:.4;}
+    .prodotto-row.drag-over{outline:2px solid #16a34a;}
     .mockup-wrap{background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;}
     .mockup-voce{padding:8px 14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;border-bottom:1px solid #f3f4f6;}
     .mockup-voce:last-child{border-bottom:none;}
@@ -681,7 +685,8 @@ export async function render(container) {
       const catV = catVendita.find(c => c.id === mc.categoria_vendita_id);
       const isActive = catSelezionata?.id === mc.id;
       return `
-        <div class="cat-centro-item ${isActive?"active":""}" data-mc-id="${mc.id}">
+        <div class="cat-centro-item ${isActive?"active":""}" data-mc-id="${mc.id}" draggable="true">
+          <span class="cat-drag-handle" onclick="event.stopPropagation()" style="cursor:grab;color:#cbd5e1;font-size:16px;flex-shrink:0;user-select:none;">⠿</span>
           ${catV?.immagine_url
             ?`<img src="${esc(catV.immagine_url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
             :`<div style="width:40px;height:40px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📂</div>`}
@@ -766,6 +771,47 @@ export async function render(container) {
       dropzone.classList.remove("drag-over");
       if (dragSrcId) await aggiungiCategoria(dragSrcId);
     };
+
+    // Riordino categorie nel menu (drag & drop)
+    let catDragSrc = null;
+    lista.querySelectorAll(".cat-centro-item").forEach(row => {
+      row.addEventListener("dragstart", (e) => {
+        catDragSrc = row;
+        row.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        e.stopPropagation();
+      });
+      row.addEventListener("dragend", () => {
+        row.classList.remove("dragging");
+        lista.querySelectorAll(".cat-centro-item").forEach(r => r.classList.remove("drag-over"));
+      });
+      row.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (row === catDragSrc) return;
+        lista.querySelectorAll(".cat-centro-item").forEach(r => r.classList.remove("drag-over"));
+        row.classList.add("drag-over");
+      });
+      row.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!catDragSrc || catDragSrc === row) return;
+        row.classList.remove("drag-over");
+        const rows = [...lista.querySelectorAll(".cat-centro-item")];
+        const srcIdx = rows.indexOf(catDragSrc), dstIdx = rows.indexOf(row);
+        if (srcIdx < dstIdx) lista.insertBefore(catDragSrc, row.nextSibling);
+        else lista.insertBefore(catDragSrc, row);
+        const nuovoOrdine = [...lista.querySelectorAll(".cat-centro-item")].map((r, i) => ({ id: r.dataset.mcId, ordine: i }));
+        nuovoOrdine.forEach(({ id, ordine }) => {
+          const mc = menuCategorie.find(m => m.id === id);
+          if (mc) mc.ordine = ordine;
+        });
+        menuCategorie.sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+        await Promise.all(nuovoOrdine.map(({ id, ordine }) =>
+          supa().from("menu_categorie").update({ ordine }).eq("id", id).eq("azienda_id", azienda_id)
+        ));
+      });
+    });
   }
 
   // ── AGGIUNGI CATEGORIA ────────────────────────────────────────
@@ -824,14 +870,15 @@ export async function render(container) {
       return;
     }
 
-    box.innerHTML = filtered.map(p => {
+    const rigaHtml = (p) => {
       const inMenu = nelMenu.has(String(p.id));
       const voce = inMenu ? menuVoci.find(v => String(v.prodotto_vendita_id) === String(p.id)) : null;
       const prezzoDisplay = voce?.prezzo_override || voce?.prezzo || p.prezzo_base || 0;
       const fc = voce?.food_cost_snapshot || null;
       const margine = fc && prezzoDisplay > 0 ? ((prezzoDisplay - fc) / prezzoDisplay * 100) : null;
       return `
-        <div class="prodotto-row ${inMenu?"nel-menu":""}" data-prod-id="${p.id}">
+        <div class="prodotto-row ${inMenu?"nel-menu":""}" data-prod-id="${p.id}" ${inMenu?`data-voce-ordine-id="${voce.id}" draggable="true"`:""}>
+          ${inMenu?`<span class="prod-drag-handle" onclick="event.stopPropagation()" style="cursor:grab;color:#86efac;font-size:16px;flex-shrink:0;user-select:none;">⠿</span>`:""}
           ${(p.foto_url||p.immagine_url)
             ?`<img src="${esc(p.foto_url||p.immagine_url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
             :`<div style="width:44px;height:44px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🍽️</div>`}
@@ -850,11 +897,67 @@ export async function render(container) {
             }
           </div>
         </div>`;
-    }).join("");
+    };
+
+    // Prodotti già nel menu, ordinati secondo l'ordine salvato (trascinabile per riordinare)
+    const inMenuOrdinati = menuVoci
+      .map(v => filtered.find(p => String(p.id) === String(v.prodotto_vendita_id)))
+      .filter(Boolean);
+    // Prodotti disponibili ma non ancora nel menu, in coda
+    const nonAncoraNelMenu = filtered.filter(p => !nelMenu.has(String(p.id)));
+
+    let html = "";
+    if (inMenuOrdinati.length) {
+      html += `<div style="font-size:11px;font-weight:700;color:#16a34a;margin:2px 0 6px;text-transform:uppercase;">✓ Nel menu — trascina per riordinare</div>`;
+      html += inMenuOrdinati.map(rigaHtml).join("");
+    }
+    if (nonAncoraNelMenu.length) {
+      if (inMenuOrdinati.length) html += `<div style="font-size:11px;font-weight:700;color:#94a3b8;margin:14px 0 6px;text-transform:uppercase;">Disponibili da aggiungere</div>`;
+      html += nonAncoraNelMenu.map(rigaHtml).join("");
+    }
+    box.innerHTML = html;
 
     box.querySelectorAll(".btn-add-voce").forEach(btn => { btn.onclick = () => aggiungiVoce(btn.dataset.prodId); });
     box.querySelectorAll(".btn-rm-voce").forEach(btn => { btn.onclick = () => rimuoviVoce(btn.dataset.voceId); });
     box.querySelectorAll(".btn-edit-voce").forEach(btn => { btn.onclick = () => aprireModalVoce(btn.dataset.voceId, btn.dataset.prodId); });
+
+    // Riordino prodotti nel menu (drag & drop) — solo tra righe "nel-menu"
+    let prodDragSrc = null;
+    box.querySelectorAll(".prodotto-row.nel-menu").forEach(row => {
+      row.addEventListener("dragstart", (e) => {
+        prodDragSrc = row;
+        row.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+      row.addEventListener("dragend", () => {
+        row.classList.remove("dragging");
+        box.querySelectorAll(".prodotto-row.nel-menu").forEach(r => r.classList.remove("drag-over"));
+      });
+      row.addEventListener("dragover", (e) => {
+        if (!prodDragSrc || !row.classList.contains("nel-menu")) return;
+        e.preventDefault();
+        box.querySelectorAll(".prodotto-row.nel-menu").forEach(r => r.classList.remove("drag-over"));
+        row.classList.add("drag-over");
+      });
+      row.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        if (!prodDragSrc || prodDragSrc === row || !row.classList.contains("nel-menu")) return;
+        row.classList.remove("drag-over");
+        const rows = [...box.querySelectorAll(".prodotto-row.nel-menu")];
+        const srcIdx = rows.indexOf(prodDragSrc), dstIdx = rows.indexOf(row);
+        if (srcIdx < dstIdx) prodDragSrc.parentNode.insertBefore(prodDragSrc, row.nextSibling);
+        else prodDragSrc.parentNode.insertBefore(prodDragSrc, row);
+        const nuovoOrdine = [...box.querySelectorAll(".prodotto-row.nel-menu")].map((r, i) => ({ id: r.dataset.voceOrdineId, ordine: i }));
+        nuovoOrdine.forEach(({ id, ordine }) => {
+          const v = menuVoci.find(x => String(x.id) === String(id));
+          if (v) v.ordine = ordine;
+        });
+        menuVoci.sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+        await Promise.all(nuovoOrdine.map(({ id, ordine }) =>
+          supa().from("menu_voci").update({ ordine }).eq("id", id).eq("azienda_id", azienda_id)
+        ));
+      });
+    });
   }
 
   // ── AGGIUNGI/RIMUOVI VOCE ─────────────────────────────────────
