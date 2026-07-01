@@ -8,14 +8,21 @@
  * @param {string} options.content
  * @returns {string}
  */
-export function createPageLayout({ title, subtitle = "", content = "" }) {
+export function createPageLayout({ title, subtitle = "", content = "", showBack = true }) {
   return `
     <div class="page">
 
       <div class="page-header">
-        <div>
-          <h1>${title}</h1>
-          ${subtitle ? `<p class="page-subtitle">${subtitle}</p>` : ""}
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          ${showBack ? `
+            <button onclick="(function(){ if (window.history.length > 1) { window.history.back(); } else { window.location.hash = '#/home'; } })()"
+              title="Indietro"
+              style="flex-shrink:0;width:36px;height:36px;border:none;border-radius:8px;background:#f1f5f9;color:#0f172a;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:2px;">←</button>
+          ` : ""}
+          <div>
+            <h1>${title}</h1>
+            ${subtitle ? `<p class="page-subtitle">${subtitle}</p>` : ""}
+          </div>
         </div>
       </div>
 
