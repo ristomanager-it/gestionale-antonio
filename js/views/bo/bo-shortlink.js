@@ -135,18 +135,19 @@ export async function render(container) {
           </div>
           <div style="font-size:12px;color:#64748b;flex-shrink:0;white-space:nowrap;">👆 ${l.click_count || 0}</div>
           <button class="btn-copy app-button" data-url="${esc(shortUrl)}" type="button" style="flex-shrink:0;padding:6px 10px;font-size:12px;">📋 Copia</button>
+          <button class="btn-copy-nude app-button" data-url="${esc(shortUrl.replace(/^https?:\/\//, ""))}" type="button" title="Copia senza https:// — comoda per bio social o vetrofanie" style="flex-shrink:0;padding:6px 10px;font-size:12px;">✂️</button>
           <button class="btn-toggle app-button" data-id="${l.id}" data-attivo="${l.attivo !== false}" type="button" style="flex-shrink:0;padding:6px 10px;font-size:12px;">${l.attivo === false ? "▶️" : "⏸️"}</button>
           <button class="btn-del app-button" data-id="${l.id}" type="button" style="flex-shrink:0;padding:6px 10px;font-size:12px;background:#fee2e2;color:#dc2626;">🗑</button>
         </div>
       `;
     }).join("");
 
-    box.querySelectorAll(".btn-copy").forEach(btn => {
+    box.querySelectorAll(".btn-copy, .btn-copy-nude").forEach(btn => {
       btn.onclick = async () => {
         try {
           await navigator.clipboard.writeText(btn.dataset.url);
           const original = btn.textContent;
-          btn.textContent = "✅ Copiato";
+          btn.textContent = "✅";
           setTimeout(() => { btn.textContent = original; }, 1500);
         } catch {
           prompt("Copia manualmente:", btn.dataset.url);
@@ -174,7 +175,7 @@ export async function render(container) {
   function generaCodiceCasuale() {
     const chars = "abcdefghijkmnpqrstuvwxyz23456789"; // niente 0/O/1/l/I ambigui
     let out = "";
-    for (let i = 0; i < 6; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 4; i++) out += chars[Math.floor(Math.random() * chars.length)];
     return out;
   }
 
