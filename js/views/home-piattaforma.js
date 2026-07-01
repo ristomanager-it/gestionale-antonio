@@ -2202,7 +2202,11 @@ window.apriModaleAgente = function(id) {
         <textarea id="ag-note" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;">${escHP(v('note'))}</textarea>
       </div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+    <div id="ag-invito-row" style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #f1f5f9;">
+      <button onclick="inviaInvitoAgenteWA()" style="background:#dcfce7;color:#16a34a;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;">📱 Invito WhatsApp</button>
+      <button onclick="inviaInvitoAgenteEmail()" style="background:#dbeafe;color:#0E5A7A;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;">✉️ Invito Email</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end;">
       ${agente ? `<button onclick="eliminaAgente('${agente.id}')" style="background:#fee2e2;color:#DC2626;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;margin-right:auto;">🗑 Elimina</button>` : ''}
       <button onclick="chiudiModaleAgente()" style="background:#f1f5f9;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;">Annulla</button>
       <button onclick="salvaAgente()" style="background:#7C3AED;color:white;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">💾 Salva</button>
@@ -2265,6 +2269,49 @@ window.chiudiModaleAgente = function() {
   const modal = document.getElementById('agente-modal');
   if (modal) modal.style.display = 'none';
   _agenteEditId = null;
+};
+
+// ── INVIA INVITO AGENTE (WhatsApp + Email) ────────────────────
+// Nessuna Edge Function/template Meta necessari: apre wa.me e mailto
+// precompilati, pronti da inviare con un click. Vanno bene sia per un
+// agente appena creato che per uno esistente — legge i campi dal form.
+function _agInvitoDati() {
+  const nome     = document.getElementById('ag-nome')?.value?.trim();
+  const cognome  = document.getElementById('ag-cognome')?.value?.trim();
+  const tel      = document.getElementById('ag-tel')?.value?.trim();
+  const email    = document.getElementById('ag-email')?.value?.trim();
+  const tipoKey  = document.getElementById('ag-tipo')?.value;
+  const tipoLbl  = (AG_TIPI[tipoKey] || AG_TIPI.segnalatore).label;
+  if (!nome) { alert('Inserisci almeno il nome prima di inviare l\'invito'); return null; }
+  return { nome, cognome, tel, email, tipoLbl };
+}
+
+function _agInvitoTesto(d) {
+  return `Ciao ${d.nome}! 👋 Sono Antonio di Ristoflow.
+
+Ti ho inserito nel nostro Programma Agenti come ${d.tipoLbl}.
+
+Per attivare il tuo accesso: vai su https://app.ristoflow-ai.com/#/login e registrati con questa email: ${d.email || '(quella che mi hai dato)'}.
+
+Appena fatto trovi la tua area riservata con lead, appuntamenti e provvigioni. Se hai domande scrivimi pure qui!`;
+}
+
+window.inviaInvitoAgenteWA = function() {
+  const d = _agInvitoDati(); if (!d) return;
+  if (!d.tel) { alert('Inserisci un numero di telefono per inviare l\'invito WhatsApp'); return; }
+  let numero = d.tel.replace(/[^\d+]/g,'');
+  if (numero.startsWith('+')) numero = numero.slice(1);
+  else if (!numero.startsWith('39')) numero = '39' + numero.replace(/^0+/,'');
+  const testo = encodeURIComponent(_agInvitoTesto(d));
+  window.open(`https://wa.me/${numero}?text=${testo}`, '_blank');
+};
+
+window.inviaInvitoAgenteEmail = function() {
+  const d = _agInvitoDati(); if (!d) return;
+  if (!d.email) { alert('Inserisci un indirizzo email per inviare l\'invito'); return; }
+  const oggetto = encodeURIComponent(`Benvenuto nel Programma Agenti Ristoflow`);
+  const corpo   = encodeURIComponent(_agInvitoTesto(d));
+  window.open(`mailto:${d.email}?subject=${oggetto}&body=${corpo}`, '_blank');
 };
 
 window.salvaAgente = async function() {
