@@ -457,6 +457,7 @@ export function initMenu() {
           { label: "🎁 Promo",             route: "bo-promo"          },
           { label: "🎫 Fidelity & Network", route: "bo-fidelity"       },
           { label: "🔗 Catenarie",          route: "bo-catenarie"      },
+          { label: "✂️ Short Link",         route: "bo-shortlink"      },
           { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
           { label: "🤖 Chatbot",             route: "bo-chatbot"        },
           { label: "🖼️ Media Library",       route: "bo-media"          },
