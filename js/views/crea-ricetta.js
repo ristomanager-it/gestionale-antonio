@@ -1200,8 +1200,8 @@ export async function render(app) {
             </div>
 
             <div class="form-group" style="grid-column:1/-1;">
-              <div id="r-cost-preview" class="small-muted">
-                Food cost: —
+              <div id="r-cost-preview" style="position:sticky;top:0;z-index:15;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;color:#166534;">
+                Food cost: — (aggiungi ingredienti per vedere il calcolo)
               </div>
             </div>
 
@@ -1657,20 +1657,57 @@ async function uploadFotoRicetta(file) {
 function aggiornaOutputInfo() {
   const outId = document.getElementById("r-output-id")?.value;
   const outInfo = document.getElementById("r-output-info");
-  if (!outInfo) return;
 
-  if (!outId) {
-    outInfo.innerText = "Nessun prodotto output selezionato";
+  if (outInfo) {
+    if (!outId) {
+      outInfo.innerText = "Nessun prodotto output selezionato";
+    } else {
+      const p = prodottiMap.get(String(outId));
+      outInfo.innerText = p ? `Output: ${p.descrizione} — UM: ${p.um || "-"}` : "Prodotto output selezionato";
+    }
+  }
+
+  aggiornaFoodCostLive();
+}
+
+// Ricalcola il food cost IN TEMPO REALE (senza salvare) leggendo lo stato
+// corrente del form — prima il food cost si vedeva solo DOPO aver premuto
+// Salva, ora si aggiorna mentre aggiungi/modifichi ingredienti.
+function aggiornaFoodCostLive() {
+  const prev = document.getElementById("r-cost-preview");
+  if (!prev) return;
+
+  const ingredientRows = [];
+  document.querySelectorAll("#ingredienti-container .azienda-card").forEach(r => {
+    const pid = (r.querySelector(".ing-id")?.value || "").trim();
+    const qta = toNumOrNull(r.querySelector(".ing-qta")?.value);
+    if (!pid || !qta || qta <= 0) return;
+    const p = prodottiMap.get(String(pid));
+    const um = (r.querySelector(".ing-um")?.value || p?.um || "pz");
+    ingredientRows.push({ prodotto_id: Number(pid), quantita: qta, unita_misura: um });
+  });
+
+  if (!ingredientRows.length) {
+    prev.innerText = "Food cost: — (aggiungi almeno un ingrediente)";
     return;
   }
 
-  const p = prodottiMap.get(String(outId));
-  if (!p) {
-    outInfo.innerText = "Prodotto output selezionato";
-    return;
-  }
+  const output_peso = toNumOrNull(getVal("r-output-peso"));
+  const output_um = getVal("r-output-um");
 
-  outInfo.innerText = `Output: ${p.descrizione} — UM: ${p.um || "-"}`;
+  const computed = computeCostoIndustriale({
+    outputPrincipale: { peso: output_peso || 1, um: output_um || "kg" },
+    ingredienti: ingredientRows,
+    outputSecondariDom: []
+  });
+
+  if (!output_peso) {
+    prev.innerText = `Food cost materia prima: € ${formatMoney(computed.costoTotaleInput)} (inserisci la resa/output per il costo unitario)`;
+  } else if (computed.ok) {
+    prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — Costo unitario output: € ${formatMoney(computed.costoUnitarioPrincipale)} / ${computed.baseUnitLabel}`;
+  } else {
+    prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — ${computed.warning || "Verifica unità output/ingredienti"}`;
+  }
 }
 
 /* ============================================================
@@ -2933,7 +2970,8 @@ async function salvaTutto() {
 
         ingredientRowsForCost.push({
           prodotto_id: Number(pid),
-          quantita: qta
+          quantita: qta,
+          unita_misura: um
         });
       }
     });
@@ -3274,6 +3312,21 @@ async function salvaTutto() {
 /* ============================================================
    COSTO INDUSTRIALE
 ============================================================ */
+// Converte una quantità tra unità dello stesso dominio (peso o volume).
+// Ritorna null se le unità non sono compatibili (es. "pz" con "kg").
+function convertQtyPerCosto(qty, fromUnit, toUnit) {
+  const n = Number(qty);
+  if (!Number.isFinite(n)) return null;
+  const f = String(fromUnit || "").toLowerCase().trim();
+  const t = String(toUnit || "").toLowerCase().trim();
+  if (!f || !t || f === t) return n;
+  const pesoInGrammi = { kg: 1000, gr: 1, g: 1 };
+  const volumeInMl = { l: 1000, ml: 1 };
+  if (pesoInGrammi[f] && pesoInGrammi[t]) return n * pesoInGrammi[f] / pesoInGrammi[t];
+  if (volumeInMl[f] && volumeInMl[t]) return n * volumeInMl[f] / volumeInMl[t];
+  return null;
+}
+
 function computeCostoIndustriale({ outputPrincipale, ingredienti, outputSecondariDom }) {
   let costoTotale = 0;
   for (const r of (ingredienti || [])) {
@@ -3281,7 +3334,14 @@ function computeCostoIndustriale({ outputPrincipale, ingredienti, outputSecondar
     // Usa _costo_per_unita che già tiene conto della divisione per quantità confezione
     // es. latte ct 6x1lt a €7 → _costo_per_unita = 7/6 = 1.167 €/lt
     const costoPerUnita = Number(p?._costo_per_unita ?? p?.costo_medio ?? 0);
-    const qta = Number(r.quantita ?? 0);
+    const qtaInserita = Number(r.quantita ?? 0);
+    // FIX: prima si moltiplicava direttamente qtaInserita (nell'unità scelta
+    // in riga, es. "gr") per costoPerUnita (nell'unità base prodotto, es.
+    // "kg") senza convertire — con farina a sacchi da 25kg questo produceva
+    // costi sballati di ordini di grandezza. Ora convertiamo la quantità
+    // inserita nell'unità base del prodotto prima di moltiplicare.
+    const qtaConvertita = convertQtyPerCosto(qtaInserita, r.unita_misura, p?._um_unitaria);
+    const qta = qtaConvertita !== null ? qtaConvertita : qtaInserita;
     costoTotale += (costoPerUnita * qta);
   }
 
@@ -3392,6 +3452,8 @@ function convertToBase(qty, um) {
 function bindUI() {
   safeOn("btn-add-ing", "click", () => aggiungiIngrediente());
   safeOn("btn-add-out2", "click", () => aggiungiOutputSecondario());
+  safeOn("r-output-peso", "input", () => aggiornaFoodCostLive());
+  safeOn("r-output-um", "change", () => aggiornaFoodCostLive());
   safeOn("btn-add-fase", "click", () =>
   aggiungiFase({
     tipo_fase: "preparazione",
