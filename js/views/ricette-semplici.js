@@ -34,8 +34,17 @@ function getSedeId() {
 }
 
 function productCost(p) {
-  // costo_medio è sempre in €/kg (dopo fix import)
-  return toNumber(p?.costo_medio || p?.costo_ultimo || 0);
+  // FIX: costo_medio è spesso il prezzo della CONFEZIONE intera (es. sacco da
+  // 25kg di farina), non del kg singolo — il commento precedente ("sempre in
+  // €/kg dopo fix import") non è affidabile per tutti i prodotti reali.
+  // Se c'è quantita_confezione, dividiamo per ottenere il prezzo per kg,
+  // esattamente come già fa la ricetta avanzata (crea-ricetta.js).
+  const costoMedio = toNumber(p?.costo_medio || p?.costo_ultimo || 0);
+  const qtaConfezione = toNumber(p?.quantita_confezione || 0);
+  if (qtaConfezione > 0) {
+    return costoMedio / qtaConfezione;
+  }
+  return costoMedio;
 }
 
 function productCostPerUm(p, um) {
@@ -98,7 +107,7 @@ async function loadProducts() {
 
   const { data, error } = await supa()
     .from("prodotti")
-    .select("id, nome, nome_interno, descrizione, um, unita_misura, unita_base, costo_medio, costo_ultimo, peso_unita_g, attivo, stato, azienda_id")
+    .select("id, nome, nome_interno, descrizione, um, unita_misura, unita_base, costo_medio, costo_ultimo, peso_unita_g, quantita_confezione, um_confezione, attivo, stato, azienda_id")
     .eq("azienda_id", aziendaId)
     .order("nome", { ascending: true });
 
