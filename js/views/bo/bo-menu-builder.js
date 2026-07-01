@@ -1004,7 +1004,13 @@ export async function render(container) {
         ${prod?.prezzo_base?`<div style="font-size:11px;color:#94a3b8;margin-top:4px;">Prezzo base: €${Number(prod.prezzo_base).toFixed(2)}</div>`:""}
       </div>
       ${fc?`<div id="fc-live-edit" style="background:#f0fdf4;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;"><strong>📊 Food cost: €${Number(fc).toFixed(2)}</strong><br><span id="fc-margine-edit" style="font-weight:700;"></span></div>`:""}
-      <div style="margin-bottom:12px;"><label class="mb-label">Foto URL</label><input id="voce-foto-edit" class="mb-input" value="${esc(voce.foto_url||"")}" placeholder="https://..."></div>
+      <div style="margin-bottom:12px;">
+        <label class="mb-label">Foto portata</label>
+        <div id="voce-foto-prev" style="width:100%;height:110px;border-radius:10px;background:${voce.foto_url?`url('${esc(voce.foto_url)}') center/cover`:"#f3f4f6"};display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:6px;border:1px solid #e5e7eb;">${voce.foto_url?"":"Nessuna foto"}</div>
+        <input id="voce-foto-file" type="file" class="mb-input" accept="image/png,image/jpeg,image/jpg" capture="environment">
+        <div id="voce-foto-status" style="font-size:11px;color:#64748b;margin-top:4px;"></div>
+        <input id="voce-foto-edit" type="hidden" value="${esc(voce.foto_url||"")}">
+      </div>
       <div style="margin-bottom:12px;"><label class="mb-label">Descrizione nel menu</label><textarea id="voce-desc-edit" class="mb-input" style="min-height:60px;resize:vertical;">${esc(voce.descrizione||"")}</textarea></div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="voce-disp-edit" ${voce.disponibile!==false?"checked":""} style="accent-color:#0E5A7A;"> Disponibile</label>
@@ -1024,6 +1030,24 @@ export async function render(container) {
       };
       prezzoInput.oninput = updateFC; updateFC();
     }
+    qs("#voce-foto-file").onchange = async function() {
+      const file = this.files[0]; if (!file) return;
+      const status = qs("#voce-foto-status");
+      const prev = qs("#voce-foto-prev");
+      const localUrl = URL.createObjectURL(file);
+      prev.style.background = `url('${localUrl}') center/cover`;
+      prev.innerText = "";
+      status.textContent = "⏳ Caricamento in corso...";
+      status.style.color = "#64748b";
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = azienda_id + "/voce-" + voceId + "-" + Date.now() + "." + ext;
+      const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) { status.textContent = "❌ Errore upload: " + error.message; status.style.color = "#dc2626"; return; }
+      const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
+      qs("#voce-foto-edit").value = pub.publicUrl;
+      status.textContent = "✅ Foto caricata";
+      status.style.color = "#16a34a";
+    };
     qs("#btn-salva-voce-edit").onclick = async () => {
       const prezzo = parseFloat(qs("#voce-prezzo-edit").value);
       const { error } = await supa().from("menu_voci").update({
