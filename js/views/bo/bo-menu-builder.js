@@ -260,7 +260,10 @@ export async function render(container) {
               <button class="dx-tab mb-btn mb-btn-sec" data-tab="mockup" style="font-size:12px;padding:6px 12px;">👁️ Anteprima menu</button>
             </div>
             <div id="dx-tab-portate" style="flex:1;overflow-y:auto;padding:10px;">
-              <input id="search-prodotti" class="mb-input" placeholder="Cerca prodotto..." style="margin-bottom:8px;font-size:12px;">
+              <div style="position:relative;margin-bottom:14px;">
+                <input id="search-aggiungi-prodotto" class="mb-input" placeholder="🔍 Cerca portata da aggiungere..." autocomplete="off" style="font-size:13px;">
+                <div id="dropdown-aggiungi-prodotto" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:20;max-height:280px;overflow-y:auto;margin-top:4px;"></div>
+              </div>
               <div id="lista-prodotti-dx"></div>
             </div>
             <div id="dx-tab-mockup" style="display:none;flex:1;overflow-y:auto;padding:10px;">
@@ -384,7 +387,14 @@ export async function render(container) {
     };
   }
   qs("#search-cat-sx").oninput = (e) => renderCatSx(e.target.value);
-  qs("#search-prodotti").oninput = (e) => renderProdottiDx(e.target.value);
+  qs("#search-aggiungi-prodotto").addEventListener("input", (e) => renderDropdownAggiungi(e.target.value));
+  qs("#search-aggiungi-prodotto").addEventListener("focus", (e) => { if (e.target.value.trim()) renderDropdownAggiungi(e.target.value); });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#search-aggiungi-prodotto") && !e.target.closest("#dropdown-aggiungi-prodotto")) {
+      const dd = qs("#dropdown-aggiungi-prodotto");
+      if (dd) dd.style.display = "none";
+    }
+  });
 
   container.querySelectorAll(".dx-tab").forEach(btn => {
     btn.onclick = () => switchDxTab(btn.dataset.tab);
@@ -858,27 +868,19 @@ export async function render(container) {
     qs("#dx-content").style.display = "none";
   }
 
-  // ── RENDER PRODOTTI DX ────────────────────────────────────────
-  function renderProdottiDx(filter = "") {
+  // ── RENDER PRODOTTI DX (solo ciò che è già nel menu) ───────────
+  function renderProdottiDx() {
     const box = qs("#lista-prodotti-dx");
     if (!box) return;
-    const nelMenu = new Set(menuVoci.map(v => String(v.prodotto_vendita_id)).filter(Boolean));
-    const filtered = prodottiVendita.filter(p => !filter || p.nome?.toLowerCase().includes(filter.toLowerCase()));
-
-    if (!filtered.length) {
-      box.innerHTML = `<div style="color:#94a3b8;font-size:12px;text-align:center;padding:20px;">Nessun prodotto in questa categoria</div>`;
-      return;
-    }
 
     const rigaHtml = (p) => {
-      const inMenu = nelMenu.has(String(p.id));
-      const voce = inMenu ? menuVoci.find(v => String(v.prodotto_vendita_id) === String(p.id)) : null;
+      const voce = menuVoci.find(v => String(v.prodotto_vendita_id) === String(p.id));
       const prezzoDisplay = voce?.prezzo_override || voce?.prezzo || p.prezzo_base || 0;
       const fc = voce?.food_cost_snapshot || null;
       const margine = fc && prezzoDisplay > 0 ? ((prezzoDisplay - fc) / prezzoDisplay * 100) : null;
       return `
-        <div class="prodotto-row ${inMenu?"nel-menu":""}" data-prod-id="${p.id}" ${inMenu?`data-voce-ordine-id="${voce.id}" draggable="true"`:""}>
-          ${inMenu?`<span class="prod-drag-handle" onclick="event.stopPropagation()" style="cursor:grab;color:#86efac;font-size:16px;flex-shrink:0;user-select:none;">⠿</span>`:""}
+        <div class="prodotto-row nel-menu" data-prod-id="${p.id}" data-voce-ordine-id="${voce.id}" draggable="true">
+          <span class="prod-drag-handle" onclick="event.stopPropagation()" style="cursor:grab;color:#86efac;font-size:16px;flex-shrink:0;user-select:none;">⠿</span>
           ${(p.foto_url||p.immagine_url)
             ?`<img src="${esc(p.foto_url||p.immagine_url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
             :`<div style="width:44px;height:44px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🍽️</div>`}
@@ -890,38 +892,27 @@ export async function render(container) {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
-            ${inMenu
-              ?`<button class="btn-edit-voce mb-btn mb-btn-sec" data-voce-id="${voce.id}" data-prod-id="${p.id}" style="font-size:11px;padding:4px 8px;">✏️</button>
-                <button class="btn-rm-voce mb-btn mb-btn-danger" data-voce-id="${voce.id}" style="font-size:11px;padding:4px 8px;">✕</button>`
-              :`<button class="btn-add-voce mb-btn mb-btn-green" data-prod-id="${p.id}" style="font-size:11px;padding:4px 8px;">+ Menu</button>`
-            }
+            <button class="btn-edit-voce mb-btn mb-btn-sec" data-voce-id="${voce.id}" data-prod-id="${p.id}" style="font-size:11px;padding:4px 8px;">✏️</button>
+            <button class="btn-rm-voce mb-btn mb-btn-danger" data-voce-id="${voce.id}" style="font-size:11px;padding:4px 8px;">✕</button>
           </div>
         </div>`;
     };
 
-    // Prodotti già nel menu, ordinati secondo l'ordine salvato (trascinabile per riordinare)
     const inMenuOrdinati = menuVoci
-      .map(v => filtered.find(p => String(p.id) === String(v.prodotto_vendita_id)))
+      .map(v => prodottiVendita.find(p => String(p.id) === String(v.prodotto_vendita_id)))
       .filter(Boolean);
-    // Prodotti disponibili ma non ancora nel menu, in coda
-    const nonAncoraNelMenu = filtered.filter(p => !nelMenu.has(String(p.id)));
 
-    let html = "";
-    if (inMenuOrdinati.length) {
-      html += `<div style="font-size:11px;font-weight:700;color:#16a34a;margin:2px 0 6px;text-transform:uppercase;">✓ Nel menu — trascina per riordinare</div>`;
-      html += inMenuOrdinati.map(rigaHtml).join("");
+    if (!inMenuOrdinati.length) {
+      box.innerHTML = `<div style="color:#94a3b8;font-size:12px;text-align:center;padding:30px 10px;">Nessuna portata ancora nel menu.<br>Cercala qui sopra per aggiungerla.</div>`;
+      return;
     }
-    if (nonAncoraNelMenu.length) {
-      if (inMenuOrdinati.length) html += `<div style="font-size:11px;font-weight:700;color:#94a3b8;margin:14px 0 6px;text-transform:uppercase;">Disponibili da aggiungere</div>`;
-      html += nonAncoraNelMenu.map(rigaHtml).join("");
-    }
-    box.innerHTML = html;
 
-    box.querySelectorAll(".btn-add-voce").forEach(btn => { btn.onclick = () => aggiungiVoce(btn.dataset.prodId); });
+    box.innerHTML = `<div style="font-size:11px;font-weight:700;color:#16a34a;margin:2px 0 6px;text-transform:uppercase;">✓ Nel menu (${inMenuOrdinati.length}) — trascina per riordinare</div>` + inMenuOrdinati.map(rigaHtml).join("");
+
     box.querySelectorAll(".btn-rm-voce").forEach(btn => { btn.onclick = () => rimuoviVoce(btn.dataset.voceId); });
     box.querySelectorAll(".btn-edit-voce").forEach(btn => { btn.onclick = () => aprireModalVoce(btn.dataset.voceId, btn.dataset.prodId); });
 
-    // Riordino prodotti nel menu (drag & drop) — solo tra righe "nel-menu"
+    // Riordino prodotti nel menu (drag & drop)
     let prodDragSrc = null;
     box.querySelectorAll(".prodotto-row.nel-menu").forEach(row => {
       row.addEventListener("dragstart", (e) => {
@@ -934,14 +925,14 @@ export async function render(container) {
         box.querySelectorAll(".prodotto-row.nel-menu").forEach(r => r.classList.remove("drag-over"));
       });
       row.addEventListener("dragover", (e) => {
-        if (!prodDragSrc || !row.classList.contains("nel-menu")) return;
+        if (!prodDragSrc) return;
         e.preventDefault();
         box.querySelectorAll(".prodotto-row.nel-menu").forEach(r => r.classList.remove("drag-over"));
         row.classList.add("drag-over");
       });
       row.addEventListener("drop", async (e) => {
         e.preventDefault();
-        if (!prodDragSrc || prodDragSrc === row || !row.classList.contains("nel-menu")) return;
+        if (!prodDragSrc || prodDragSrc === row) return;
         row.classList.remove("drag-over");
         const rows = [...box.querySelectorAll(".prodotto-row.nel-menu")];
         const srcIdx = rows.indexOf(prodDragSrc), dstIdx = rows.indexOf(row);
@@ -957,6 +948,49 @@ export async function render(container) {
           supa().from("menu_voci").update({ ordine }).eq("id", id).eq("azienda_id", azienda_id)
         ));
       });
+    });
+  }
+
+  // ── DROPDOWN RICERCA PER AGGIUNGERE PORTATA ────────────────────
+  function renderDropdownAggiungi(query) {
+    const dd = qs("#dropdown-aggiungi-prodotto");
+    if (!dd) return;
+    const q = query.trim().toLowerCase();
+    if (!q) { dd.style.display = "none"; return; }
+
+    const nelMenu = new Set(menuVoci.map(v => String(v.prodotto_vendita_id)).filter(Boolean));
+    const risultati = prodottiVendita
+      .filter(p => !nelMenu.has(String(p.id)) && p.nome?.toLowerCase().includes(q))
+      .slice(0, 8);
+
+    if (!risultati.length) {
+      dd.innerHTML = `<div style="padding:14px;font-size:12px;color:#94a3b8;text-align:center;">Nessuna portata trovata in questa categoria.</div>`;
+      dd.style.display = "block";
+      return;
+    }
+
+    dd.innerHTML = risultati.map(p => `
+      <div class="dd-add-item" data-prod-id="${p.id}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;">
+        ${(p.foto_url||p.immagine_url)
+          ?`<img src="${esc(p.foto_url||p.immagine_url)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
+          :`<div style="width:36px;height:36px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">🍽️</div>`}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.nome)}</div>
+          ${p.prezzo_base?`<div style="font-size:11px;color:#0E5A7A;font-weight:700;">€${Number(p.prezzo_base).toFixed(2)}</div>`:""}
+        </div>
+        <span style="color:#16a34a;font-size:18px;flex-shrink:0;">+</span>
+      </div>
+    `).join("");
+    dd.style.display = "block";
+
+    dd.querySelectorAll(".dd-add-item").forEach(item => {
+      item.onmouseenter = () => { item.style.background = "#f0fdf4"; };
+      item.onmouseleave = () => { item.style.background = ""; };
+      item.onclick = async () => {
+        await aggiungiVoce(item.dataset.prodId);
+        qs("#search-aggiungi-prodotto").value = "";
+        dd.style.display = "none";
+      };
     });
   }
 
@@ -976,7 +1010,7 @@ export async function render(container) {
     });
     await loadMenuVoci(catSelezionata.id);
     await loadTutteLeVoci();
-    renderProdottiDx(qs("#search-prodotti").value);
+    renderProdottiDx();
     renderCatCentro();
   }
 
@@ -986,7 +1020,7 @@ export async function render(container) {
     if (rmErr) { console.error("Errore rimozione voce:", rmErr); alert("Errore: " + rmErr.message); return; }
     await loadMenuVoci(catSelezionata.id);
     await loadTutteLeVoci();
-    renderProdottiDx(qs("#search-prodotti").value);
+    renderProdottiDx();
     renderCatCentro();
   }
 
@@ -1062,7 +1096,7 @@ export async function render(container) {
       msg.innerHTML = `<span style="color:#16a34a;">✅ Salvato</span>`;
       await loadMenuVoci(catSelezionata.id);
       await loadTutteLeVoci();
-      renderProdottiDx(qs("#search-prodotti").value);
+      renderProdottiDx();
       setTimeout(() => chiudiModalVoce(), 800);
     };
     qs("#modal-voce").style.display = "flex";
