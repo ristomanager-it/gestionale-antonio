@@ -658,9 +658,33 @@ export async function render(container) {
     const msg = qs("#msg-cfg");
     btn.disabled = true; btn.textContent = "Salvataggio...";
     const caparraAttiva = qs("#cfg-caparra").checked;
+
+    // FIX: lo slug deve essere unico su TUTTA la piattaforma (la pagina
+    // pubblica cerca per slug senza filtrare per azienda) — prima non c'era
+    // nessun controllo, e due sedi diverse potevano ritrovarsi con lo stesso
+    // slug "estate", rompendo il link pubblico di entrambe. Ora, se lo slug
+    // scelto è già usato da un ALTRO menu (di questa o di un'altra azienda),
+    // ne generiamo automaticamente uno libero aggiungendo un numero.
+    let slugFinale = qs("#cfg-slug").value.trim() || makeSlug(qs("#cfg-nome").value);
+    if (slugFinale) {
+      let tentativo = slugFinale;
+      let suffisso = 2;
+      while (true) {
+        const { data: esistente } = await supa().from("menu").select("id").eq("slug", tentativo).neq("id", menuAttivo.id).maybeSingle();
+        if (!esistente) break;
+        tentativo = `${slugFinale}-${suffisso}`;
+        suffisso++;
+      }
+      if (tentativo !== slugFinale) {
+        slugFinale = tentativo;
+        qs("#cfg-slug").value = slugFinale;
+        msg.innerHTML = `<span style="color:#f59e0b;">⚠️ Slug già in uso da un altro menu — cambiato in "${slugFinale}"</span>`;
+      }
+    }
+
     const { error } = await supa().from("menu").update({
       nome:            qs("#cfg-nome").value.trim(),
-      slug:            qs("#cfg-slug").value.trim() || null,
+      slug:            slugFinale || null,
       colore_primario: qs("#cfg-colore-hex").value || null,
       colore_sfondo:   qs("#cfg-sfondo-hex").value || null,
       font_family:     qs("#cfg-font").value || null,
@@ -676,11 +700,11 @@ export async function render(container) {
     }).eq("id", menuAttivo.id).eq("azienda_id", azienda_id);
     btn.disabled = false; btn.textContent = "💾 Salva configurazione";
     if (error) { msg.innerHTML = `<span style="color:#dc2626;">${error.message}</span>`; return; }
-    msg.innerHTML = `<span style="color:#16a34a;">✅ Salvato</span>`;
+    if (!msg.innerHTML) msg.innerHTML = `<span style="color:#16a34a;">✅ Salvato</span>`;
     await loadMenus();
     menuAttivo = menus.find(m => m.id === menuAttivo.id);
     renderTabsMenu();
-    setTimeout(() => msg.innerHTML = "", 3000);
+    setTimeout(() => msg.innerHTML = "", 4000);
   }
 
   // ── RENDER CAT SX ─────────────────────────────────────────────
