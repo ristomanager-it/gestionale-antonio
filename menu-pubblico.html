@@ -149,10 +149,18 @@
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + SUPA_ANON, "apikey": SUPA_ANON },
         body: JSON.stringify(payload)
       });
-      return res.json();
+      var testo = await res.text();
+      var dati;
+      try { dati = JSON.parse(testo); }
+      catch (e) { throw new Error("Risposta non valida dal server (status " + res.status + "): " + testo.slice(0, 200)); }
+      if (!res.ok && !dati.error) { throw new Error("Errore server (status " + res.status + ")"); }
+      return dati;
     }
 
-    init();
+    init().catch(function(err) {
+      console.error("ERRORE CARICAMENTO MENU:", err);
+      showError("Errore di caricamento", err.message || "Qualcosa è andato storto. Riprova tra poco.");
+    });
 
     async function init() {
       var r = await chiamaApi({ azione: "carica", slug: slug });
