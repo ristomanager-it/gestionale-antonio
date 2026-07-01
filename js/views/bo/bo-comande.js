@@ -2032,6 +2032,32 @@ export async function render(container) {
   container.querySelector('#btn-nuovo-tavolo').onclick = () => creaNuovoTavolo();
   container.querySelector('#search-prodotto').addEventListener('input', e => renderGrigliaProdotti(e.target.value));
 
+  // ── AGGIORNAMENTO AUTOMATICO (realtime) ──────────────────────────
+  // Quando un piatto viene segnato esaurito/disponibile, o aggiunto/tolto
+  // dal menu — da qualunque altra schermata (Prodotti, Menu Builder) — la
+  // griglia comande si aggiorna da sola, senza bisogno di ricaricare la pagina.
+  let realtimeDebounce = null;
+  function scheduleRicaricaProdotti() {
+    clearTimeout(realtimeDebounce);
+    realtimeDebounce = setTimeout(async () => {
+      await Promise.all([loadProdotti(), loadCategorie()]);
+      renderGrigliaProdotti(container.querySelector('#search-prodotto')?.value || '');
+    }, 400);
+  }
+
+  const realtimeChannel = supa()
+    .channel('comande-live-' + aziendaId)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'prodotti_vendita', filter: `azienda_id=eq.${aziendaId}` }, scheduleRicaricaProdotti)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_voci', filter: `azienda_id=eq.${aziendaId}` }, scheduleRicaricaProdotti)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'categorie_vendita', filter: `azienda_id=eq.${aziendaId}` }, scheduleRicaricaProdotti)
+    .subscribe();
+
+  // Chiudi la sottoscrizione quando si esce dalla pagina (cambio rotta/ricarica)
+  window.addEventListener('hashchange', function chiudiRealtime() {
+    supa().removeChannel(realtimeChannel);
+    window.removeEventListener('hashchange', chiudiRealtime);
+  });
+
   setInterval(() => {
     if (viewMode === 'cucina') loadCucinaDisplay();
     else if (viewMode === 'tavoli') { loadComande().then(renderMapTavoli); }
