@@ -144,7 +144,7 @@ export async function render(container) {
         overflow:hidden; margin-bottom:8px; border:1px solid #e5e7eb;
         color:#94a3b8; font-size:13px;
       ">Nessuna foto</div>
-      <input id="prod-img-file" class="input" type="file" accept="image/png,image/jpeg,image/jpg" capture="environment">
+      <input id="prod-img-file" class="input" type="file" accept="image/png,image/jpeg,image/jpg">
       <div id="prod-img-status" style="font-size:12px; color:#64748b; margin-top:4px;"></div>
       <input id="prod-img-url" type="hidden">
 
