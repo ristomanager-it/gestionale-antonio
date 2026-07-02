@@ -8,6 +8,16 @@ export async function render(container) {
   let currentSedeId = window.state?.sedeAttiva?.id || null;
   const ruolo      = window.state?.ruolo;
 
+  // Etichette dei 14 allergeni UE (Reg. 1169/2011) — stessa lista usata in
+  // Prodotti vendita e nel menu pubblico, per coerenza ovunque.
+  const ALLERGENI_LABELS = {
+    glutine: "🌾 Glutine (cereali)", crostacei: "🦐 Crostacei", uova: "🥚 Uova",
+    pesce: "🐟 Pesce", arachidi: "🥜 Arachidi", soia: "🌱 Soia",
+    latte: "🥛 Latte e derivati (lattosio)", frutta_a_guscio: "🌰 Frutta a guscio",
+    sedano: "🥬 Sedano", senape: "🟡 Senape", sesamo: "◯ Semi di sesamo",
+    solfiti: "🍷 Anidride solforosa e solfiti", lupini: "🫘 Lupini", molluschi: "🐚 Molluschi"
+  };
+
   if (ruolo !== "admin" && ruolo !== "superadmin") {
     container.innerHTML = `<div style="padding:40px;text-align:center;color:#94a3b8;">Accesso negato</div>`;
     return;
@@ -1140,6 +1150,15 @@ export async function render(container) {
         ${prod?.prezzo_base?`<div style="font-size:11px;color:#94a3b8;margin-top:4px;">Prezzo base: €${Number(prod.prezzo_base).toFixed(2)}</div>`:""}
       </div>
       ${fc?`<div id="fc-live-edit" style="background:#f0fdf4;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;"><strong>📊 Food cost: €${Number(fc).toFixed(2)}</strong><br><span id="fc-margine-edit" style="font-weight:700;"></span></div>`:""}
+      <div style="margin-bottom:12px;">
+        <label class="mb-label">Allergeni presenti</label>
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:4px;">
+          ${prod?.allergeni?.length
+            ? `<div style="display:flex;flex-wrap:wrap;gap:6px;">${prod.allergeni.map(a => `<span style="background:#fef3c7;color:#92400e;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;">${esc(ALLERGENI_LABELS[a]||a)}</span>`).join("")}</div>`
+            : `<div style="font-size:12px;color:#94a3b8;">Nessun allergene segnato su questo prodotto.</div>`}
+          <div style="font-size:11px;color:#92400e;margin-top:6px;">📝 Si modificano da "Prodotti vendita", non da qui — valgono per il prodotto ovunque compaia.</div>
+        </div>
+      </div>
       <div style="margin-bottom:12px;">
         <label class="mb-label">Foto portata</label>
         <div id="voce-foto-prev" style="width:100%;height:110px;border-radius:10px;background:${voce.foto_url?`url('${esc(voce.foto_url)}') center/cover`:"#f3f4f6"};display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:6px;border:1px solid #e5e7eb;">${voce.foto_url?"":"Nessuna foto"}</div>
