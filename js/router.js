@@ -192,7 +192,7 @@ const routes = {
   // =========================
   // DISPLAY (tablet fissi)
   // =========================
-  "display-cucina": () => import("./views/display/display-cucina.js?v=2"),
+  "display-cucina": () => import("./views/display/display-cucina.js?v=3"),
 
 }; // 
 
