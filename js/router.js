@@ -166,10 +166,10 @@ const routes = {
   "bo-survey":      () => import("./views/bo/bo-survey.js"),
 
   // MENU
-  "bo-menu": () => import("./views/bo/bo-menu-builder.js?v=8"),
+  "bo-menu": () => import("./views/bo/bo-menu-builder.js?v=9"),
   "bo-fidelity": () => import("./views/bo/bo-fidelity.js"),
   "bo-categorie": () => import("./views/bo/categorie.js"),
-  "bo-prodotti": () => import("./views/bo/prodotti.js"),
+  "bo-prodotti": () => import("./views/bo/prodotti.js?v=2"),
 
   // PRODUZIONE
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
