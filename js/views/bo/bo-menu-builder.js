@@ -234,6 +234,7 @@ export async function render(container) {
               </label>
             </div>
             <div id="cfg-logo-prev" style="margin-top:6px;"></div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px;">📐 Consigliato: 500×500px (quadrato) — appare tondo, meglio se il soggetto è centrato</div>
             <div id="cfg-logo-prog" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>
           </div>
 
