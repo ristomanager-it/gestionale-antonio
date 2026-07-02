@@ -1010,8 +1010,9 @@ export async function render(container) {
       // (il prodotto sparisce da menu/comande future) senza cancellare dati.
       if (error.code === "23503") {
         const disattiva = confirm(
-          `"${nomeProdotto}" è presente in ordini/comande già registrati, quindi non può essere eliminato senza perdere lo storico.\n\n` +
-          `Vuoi disattivarlo invece? Sparirà dai nuovi menu e comande, ma lo storico resterà intatto.`
+          `"${nomeProdotto}" è presente in ordini/comande già registrati, quindi non può essere eliminato senza toccare lo storico.\n\n` +
+          `Consigliato: disattivarlo (sparisce da menu e nuove comande, storico intatto).\n\n` +
+          `Premi OK per disattivarlo, oppure Annulla se vuoi eliminarlo davvero.`
         )
         if (disattiva) {
           const { error: errDisattiva } = await supabase
@@ -1028,7 +1029,47 @@ export async function render(container) {
           await loadAll()
           closeForm()
           alert(`"${nomeProdotto}" è stato disattivato.`)
+          return
         }
+
+        // L'utente vuole eliminarlo davvero. Le righe comanda hanno già
+        // nome_snapshot/prezzo_snapshot salvati in autonomia al momento
+        // dell'ordine, quindi possiamo staccare il collegamento al prodotto
+        // (prodotto_vendita_id = null) senza perdere nulla dello storico
+        // visibile: le vecchie comande continueranno a mostrare correttamente
+        // cosa è stato ordinato e a che prezzo, solo senza più il link al
+        // prodotto (che stiamo per cancellare).
+        const eliminaDavvero = confirm(
+          `Eliminare definitivamente "${nomeProdotto}"?\n\n` +
+          `Le comande passate manterranno nome e prezzo di quel momento, ma perderanno il collegamento diretto al prodotto (che verrà cancellato). Operazione non reversibile.`
+        )
+        if (!eliminaDavvero) return
+
+        const { error: errUnlink } = await supabase
+          .from("comanda_righe")
+          .update({ prodotto_vendita_id: null })
+          .eq("prodotto_vendita_id", prodottoAttivo.id)
+
+        if (errUnlink) {
+          alert("Errore durante lo scollegamento dallo storico comande: " + (errUnlink.message || ""))
+          return
+        }
+
+        const { error: errDeleteRetry } = await supabase
+          .from("prodotti_vendita")
+          .delete()
+          .eq("id", prodottoAttivo.id)
+          .eq("azienda_id", azienda_id)
+
+        if (errDeleteRetry) {
+          alert("Errore durante l'eliminazione. " + (errDeleteRetry.message || ""))
+          return
+        }
+
+        prodotti = prodotti.filter(p => String(p.id) !== String(prodottoAttivo.id))
+        prodottiFiltrati = [...prodotti]
+        closeForm()
+        renderProdotti()
         return
       }
 
