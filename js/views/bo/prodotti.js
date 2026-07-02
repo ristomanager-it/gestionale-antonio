@@ -695,7 +695,7 @@ export async function render(container) {
 
       if (error) {
         console.error("Errore aggiornamento prodotto:", error)
-        alert("Errore durante il salvataggio del prodotto.")
+        alert("Errore durante il salvataggio del prodotto:\n\n" + (error.message || "") + (error.details ? "\n\nDettagli: " + error.details : "") + (error.hint ? "\n\nSuggerimento: " + error.hint : "") + "\n\nCodice: " + (error.code || "n/d"))
         return
       }
 
@@ -709,7 +709,7 @@ export async function render(container) {
 
       if (error) {
         console.error("Errore creazione prodotto:", error)
-        alert("Errore durante il salvataggio del prodotto.")
+        alert("Errore durante il salvataggio del prodotto:\n\n" + (error.message || "") + (error.details ? "\n\nDettagli: " + error.details : "") + (error.hint ? "\n\nSuggerimento: " + error.hint : "") + "\n\nCodice: " + (error.code || "n/d"))
         return
       }
 
