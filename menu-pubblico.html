@@ -33,15 +33,18 @@
     .menu-logo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
     .menu-logo-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--brand-light);}
     .menu-info{padding-bottom:6px;flex:1;min-width:0;}
-    .menu-locale-nome{font-size:16px;font-weight:800;color:#111827;line-height:1.3;word-break:break-word;}
-    .menu-locale-sottotitolo{font-size:12px;font-weight:600;color:var(--brand);margin-top:1px;letter-spacing:.3px;}
-    .menu-locale-desc{font-size:12px;color:#64748b;margin-top:2px;}
+    .menu-locale-nome{font-size:22px;font-weight:800;color:#111827;line-height:1.3;word-break:break-word;}
+    .menu-locale-sottotitolo{font-size:14px;font-weight:600;color:var(--brand);margin-top:1px;letter-spacing:.3px;}
+    .menu-locale-desc{font-size:14px;color:#64748b;margin-top:2px;}
 
-    /* NAV CATEGORIE */
-    .cat-nav{background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:20;overflow-x:auto;display:flex;gap:0;padding:0 8px;scrollbar-width:none;}
+    /* NAV CATEGORIE — pillole scure + punti di paginazione, stile "social" */
+    .cat-nav{background:var(--sfondo);border-bottom:none;position:sticky;top:0;z-index:20;overflow-x:auto;display:flex;gap:10px;padding:14px 14px 4px;scrollbar-width:none;}
     .cat-nav::-webkit-scrollbar{display:none;}
-    .cat-nav-btn{padding:12px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;flex-shrink:0;}
-    .cat-nav-btn.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:800;}
+    .cat-nav-btn{padding:16px 22px;border:none;border-radius:14px;background:#2d3748;cursor:pointer;font-size:16px;font-weight:700;color:#fff;white-space:nowrap;transition:all .15s;flex-shrink:0;}
+    .cat-nav-btn.active{background:var(--brand);}
+    .cat-dots{display:flex;justify-content:center;gap:7px;padding:10px 0 4px;background:var(--sfondo);}
+    .cat-dot{width:8px;height:8px;border-radius:50%;background:#d1d5db;transition:all .2s;}
+    .cat-dot.active{background:#dc2626;width:9px;height:9px;}
 
     /* FILTRI */
     .filtri-bar{padding:10px 12px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;background:#fff;border-bottom:1px solid #f3f4f6;}
@@ -49,39 +52,34 @@
     .filtro-chip{border:1.5px solid #e5e7eb;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;background:#fff;color:#374151;transition:all .15s;flex-shrink:0;}
     .filtro-chip.active{background:var(--brand);color:#fff;border-color:var(--brand);}
 
-    /* ACCORDION CATEGORIE */
-    .cat-accordion{margin:10px 12px 0;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
-    .cat-accordion+.cat-accordion{margin-top:10px;}
-    .cat-acc-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none;transition:background .15s;}
-    .cat-acc-header:hover{background:#f8fafc;}
-    .cat-acc-header.open{background:var(--brand-light);}
+    /* SEZIONI CATEGORIA — sempre aperte, niente accordion da cliccare */
+    .cat-accordion{margin:16px 0 0;background:transparent;}
+    .cat-acc-header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#9ca3af;cursor:default;}
     .cat-acc-img{width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0;}
-    .cat-acc-img-empty{width:44px;height:44px;border-radius:10px;background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+    .cat-acc-img-empty{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
     .cat-acc-info{flex:1;min-width:0;}
-    .cat-acc-nome{font-size:16px;font-weight:800;color:#111827;}
-    .cat-acc-desc{font-size:12px;color:#64748b;margin-top:1px;}
-    .cat-acc-orario{font-size:11px;font-weight:700;color:var(--brand);margin-top:1px;}
-    .cat-acc-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-    .cat-acc-count{font-size:12px;font-weight:700;color:#94a3b8;}
-    .cat-acc-arrow{font-size:16px;color:var(--brand);transition:transform .2s;display:inline-block;}
-    .cat-acc-arrow.open{transform:rotate(180deg);}
-    .cat-acc-body{display:none;padding:0 12px 12px;}
-    .cat-acc-body.open{display:block;}
+    .cat-acc-nome{font-size:22px;font-weight:800;color:#fff;text-align:center;flex:1;}
+    .cat-acc-desc{font-size:13px;color:rgba(255,255,255,.85);margin-top:1px;}
+    .cat-acc-orario{font-size:12px;font-weight:700;color:#fff;margin-top:1px;}
+    .cat-acc-right{display:none;}
+    .cat-acc-body{display:block;padding:0;}
 
-    /* CARD PRODOTTO */
-    .prodotto-card{background:#fff;border-radius:16px;margin-bottom:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);display:flex;gap:0;}
+    /* CARD PRODOTTO — foto grande a piena larghezza in alto */
+    .prodotto-card{background:#fff;margin-bottom:0;overflow:hidden;display:flex;flex-direction:column;border-bottom:1px solid #e5e7eb;}
     .prodotto-card.non-disp{opacity:.5;}
-    .prodotto-body{flex:1;padding:14px;min-width:0;}
-    .prodotto-nome{font-size:15px;font-weight:800;color:#111827;margin-bottom:4px;}
-    .prodotto-desc{font-size:12px;color:#64748b;line-height:1.5;margin-bottom:8px;}
-    .prodotto-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;}
-    .prodotto-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--brand-light);color:var(--brand);}
+    .prodotto-body{flex:1;padding:18px 16px;min-width:0;}
+    .prodotto-nome{font-size:24px;font-weight:700;color:#111827;margin-bottom:8px;text-align:center;}
+    .prodotto-desc{font-size:15px;color:#4b5563;line-height:1.5;margin-bottom:14px;text-align:center;}
+    .prodotto-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;justify-content:center;}
+    .prodotto-tag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--brand-light);color:var(--brand);}
     .prodotto-tag.chef{background:#fef3c7;color:#92400e;}
     .prodotto-tag.non-disp-tag{background:#fee2e2;color:#dc2626;}
-    .prodotto-prezzo{font-size:18px;font-weight:800;color:var(--brand);}
-    .prodotto-foto-wrap{width:96px;height:96px;flex-shrink:0;position:relative;}
-    .prodotto-foto{width:100%;height:100%;object-fit:cover;}
-    .prodotto-foto-empty{width:100%;height:100%;background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-size:28px;}
+    .prodotto-riga-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #f1f5f9;padding-top:12px;margin-top:4px;}
+    .prodotto-prezzo{font-size:22px;font-weight:800;color:#111827;}
+    .prodotto-dettaglio-btn{background:#dc2626;color:#fff;border:none;border-radius:999px;padding:12px 24px;font-size:14px;font-weight:800;letter-spacing:.5px;cursor:pointer;text-transform:uppercase;}
+    .prodotto-foto-wrap{width:100%;height:280px;flex-shrink:0;position:relative;}
+    .prodotto-foto{width:100%;height:100%;object-fit:cover;display:block;}
+    .prodotto-foto-empty{width:100%;height:100%;background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-size:48px;}
 
     /* RACCOLTA DATI */
     .raccolta-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
@@ -116,6 +114,25 @@
       body{display:flex;flex-direction:column;align-items:center;}
       .menu-cover,.menu-profile-row,.cat-nav,.filtri-bar,.cat-section,.fidelity-promo,.menu-footer{max-width:480px;width:100%;}
       .raccolta-box{border-radius:20px;}
+    }
+
+    /* PULSANTE STAMPA */
+    .btn-stampa-menu{position:fixed;bottom:20px;right:20px;background:var(--brand);color:#fff;border:none;border-radius:999px;padding:14px 20px;font-size:14px;font-weight:800;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;z-index:50;display:flex;align-items:center;gap:8px;}
+
+    /* STAMPA — una pagina A4 per categoria, niente fronzoli */
+    @media print{
+      @page{size:A4;margin:14mm;}
+      body{background:#fff;}
+      .btn-stampa-menu,.cat-nav,.cat-dots,.filtri-bar,.fidelity-promo,.menu-footer,.lightbox,.raccolta-overlay,.non-disp-badge{display:none!important;}
+      .menu-cover{height:110px;}
+      .menu-cover-slides,.cover-dots{display:none!important;}
+      .menu-cover img{display:block;}
+      .prodotto-dettaglio-btn{display:none!important;}
+      .prodotto-riga-bottom{border-top:none;justify-content:flex-end;}
+      .prodotto-foto-wrap{height:140px;}
+      .cat-accordion{page-break-after:always;break-after:page;}
+      .cat-accordion:last-child{page-break-after:auto;break-after:auto;}
+      .prodotto-card{border-bottom:1px dashed #cbd5e1;}
     }
   </style>
 </head>
@@ -353,6 +370,13 @@
         html += '<button class="cat-nav-btn" data-cat-id="' + c.id + '">' + esc(c.nome) + '</button>';
       });
       html += '</div>';
+      if (categorie.length > 1) {
+        html += '<div class="cat-dots" id="cat-dots">';
+        categorie.forEach(function(c, i) {
+          html += '<span class="cat-dot' + (i===0?" active":"") + '" data-dot-cat="' + c.id + '"></span>';
+        });
+        html += '</div>';
+      }
 
       // FILTRI ALLERGENI
       html += '<div class="filtri-bar">';
@@ -368,44 +392,30 @@
       });
       html += '</div>';
 
-      // CATEGORIE ACCORDION
+      // CATEGORIE — sezioni sempre aperte, foto grande, stile "social"
       html += '<div id="menu-body" style="padding-bottom:8px;">';
       categorie.forEach(function(cat, idx) {
         var voci = tutteVoci[cat.id] || [];
-        var isFirst = idx === 0;
         html += '<div class="cat-accordion" id="cat-' + cat.id + '">';
-        // HEADER accordion
-        html += '<div class="cat-acc-header' + (isFirst?" open":"") + '" data-cat="' + cat.id + '">';
-        if (cat.immagine_url) {
-          html += '<img class="cat-acc-img" src="' + esc(cat.immagine_url) + '" alt="' + esc(cat.nome) + '">';
-        } else {
-          html += '<div class="cat-acc-img-empty">📂</div>';
-        }
-        html += '<div class="cat-acc-info">';
+        // HEADER categoria (barra grigia, sempre visibile, non cliccabile per aprire/chiudere)
+        html += '<div class="cat-acc-header" data-cat="' + cat.id + '">';
         html += '<div class="cat-acc-nome">' + esc(cat.nome) + '</div>';
-        if (cat.descrizione) html += '<div class="cat-acc-desc">' + esc(cat.descrizione) + '</div>';
-        if (cat.ora_inizio) html += '<div class="cat-acc-orario">⏰ ' + cat.ora_inizio + ' – ' + cat.ora_fine + '</div>';
         html += '</div>';
-        html += '<div class="cat-acc-right">';
-        html += '<span class="cat-acc-count">' + voci.length + ' piatti</span>';
-        html += '<span class="cat-acc-arrow' + (isFirst?" open":"") + '">▼</span>';
-        html += '</div>';
-        html += '</div>';
-        // BODY accordion
-        html += '<div class="cat-acc-body' + (isFirst?" open":"") + '" id="body-' + cat.id + '">';
+        if (cat.descrizione || cat.ora_inizio) {
+          html += '<div style="text-align:center;padding:6px 12px;background:#9ca3af;">';
+          if (cat.descrizione) html += '<div class="cat-acc-desc">' + esc(cat.descrizione) + '</div>';
+          if (cat.ora_inizio) html += '<div class="cat-acc-orario">⏰ ' + cat.ora_inizio + ' – ' + cat.ora_fine + '</div>';
+          html += '</div>';
+        }
+        // BODY — sempre visibile
+        html += '<div class="cat-acc-body" id="body-' + cat.id + '">';
         if (!voci.length) {
-          html += '<div style="color:#94a3b8;font-size:13px;padding:8px 4px 4px;">Nessuna portata disponibile</div>';
+          html += '<div style="color:#94a3b8;font-size:14px;padding:16px;text-align:center;">Nessuna portata disponibile</div>';
         } else {
           voci.forEach(function(v) {
             var isNonDisp = v.disponibile === false;
             var prezzo = v.prezzo_override || v.prezzo || 0;
             html += '<div class="prodotto-card' + (isNonDisp?" non-disp":"") + '">';
-            html += '<div class="prodotto-body">';
-            html += '<div class="prodotto-nome">' + esc(v.nome) + '</div>';
-            if (v.descrizione) html += '<div class="prodotto-desc">' + esc(v.descrizione) + '</div>';
-            if (isNonDisp) html += '<span class="prodotto-tag non-disp-tag">Non disponibile</span> ';
-            html += '<div class="prodotto-prezzo">€ ' + Number(prezzo).toFixed(2) + '</div>';
-            html += '</div>';
             if (v.foto_url) {
               html += '<div class="prodotto-foto-wrap" data-lb="' + esc(v.foto_url) + '" style="cursor:pointer;">';
               html += '<img class="prodotto-foto" src="' + esc(v.foto_url) + '" alt="' + esc(v.nome) + '" loading="lazy">';
@@ -414,6 +424,15 @@
             } else {
               html += '<div class="prodotto-foto-wrap"><div class="prodotto-foto-empty">🍽️</div></div>';
             }
+            html += '<div class="prodotto-body">';
+            html += '<div class="prodotto-nome">' + esc(v.nome) + '</div>';
+            if (v.descrizione) html += '<div class="prodotto-desc">' + esc(v.descrizione) + '</div>';
+            if (isNonDisp) html += '<div style="text-align:center;margin-bottom:8px;"><span class="prodotto-tag non-disp-tag">Non disponibile</span></div>';
+            html += '<div class="prodotto-riga-bottom">';
+            html += '<div class="prodotto-prezzo">' + Number(prezzo).toFixed(2) + ' €</div>';
+            html += '<button class="prodotto-dettaglio-btn" data-lb="' + esc(v.foto_url||"") + '">Dettaglio</button>';
+            html += '</div>';
+            html += '</div>';
             html += '</div>';
           });
         }
@@ -431,58 +450,41 @@
       html += '</div></div>';
 
       html += '<div class="menu-footer">Menu digitale by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
+      html += '<button class="btn-stampa-menu" id="btn-stampa-menu">🖨️ Stampa menu</button>';
 
       root.innerHTML = html;
 
       initCoverSlideshow();
 
-      // BIND NAV — click apre accordion corrispondente
+      // BIND NAV — click scrolla alla sezione corrispondente (sempre aperta, niente accordion)
       var navBtns = document.querySelectorAll(".cat-nav-btn");
       navBtns[0]?.classList.add("active");
+      document.querySelector(".cat-dot")?.classList.add("active");
 
       navBtns.forEach(function(btn) {
         btn.onclick = function() {
-          navBtns.forEach(function(b){ b.classList.remove("active"); });
-          btn.classList.add("active");
-          // Apri accordion corrispondente e scrolla
           var catId = btn.dataset.catId;
-          apriAccordion(catId);
+          evidenziaCategoria(catId);
           var el = document.getElementById("cat-" + catId);
-          if (el) setTimeout(function(){ el.scrollIntoView({ behavior:"smooth", block:"start" }); }, 50);
+          if (el) el.scrollIntoView({ behavior:"smooth", block:"start" });
         };
       });
 
-      // BIND ACCORDION headers
-      document.querySelectorAll(".cat-acc-header").forEach(function(hdr) {
-        hdr.onclick = function() {
-          var catId = hdr.dataset.cat;
-          var body = document.getElementById("body-" + catId);
-          var arrow = hdr.querySelector(".cat-acc-arrow");
-          var isOpen = body.classList.contains("open");
-          if (isOpen) {
-            body.classList.remove("open");
-            hdr.classList.remove("open");
-            arrow.classList.remove("open");
-          } else {
-            apriAccordion(catId);
-          }
+      document.querySelectorAll(".cat-dot").forEach(function(dot) {
+        dot.onclick = function() {
+          var catId = dot.dataset.dotCat;
+          evidenziaCategoria(catId);
+          var el = document.getElementById("cat-" + catId);
+          if (el) el.scrollIntoView({ behavior:"smooth", block:"start" });
         };
       });
 
-      function apriAccordion(catId) {
-        // Apri solo quello selezionato, chiudi gli altri
-        document.querySelectorAll(".cat-acc-body").forEach(function(b){ b.classList.remove("open"); });
-        document.querySelectorAll(".cat-acc-header").forEach(function(h){ h.classList.remove("open"); });
-        document.querySelectorAll(".cat-acc-arrow").forEach(function(a){ a.classList.remove("open"); });
-        var body = document.getElementById("body-" + catId);
-        var hdr = document.querySelector("[data-cat='" + catId + "']");
-        var arrow = hdr?.querySelector(".cat-acc-arrow");
-        if (body) body.classList.add("open");
-        if (hdr) hdr.classList.add("open");
-        if (arrow) arrow.classList.add("open");
-        // Aggiorna nav
+      function evidenziaCategoria(catId) {
         document.querySelectorAll(".cat-nav-btn").forEach(function(btn){
           btn.classList.toggle("active", btn.dataset.catId === catId);
+        });
+        document.querySelectorAll(".cat-dot").forEach(function(dot){
+          dot.classList.toggle("active", dot.dataset.dotCat === catId);
         });
       }
 
@@ -496,20 +498,23 @@
         };
       });
 
-      // BIND LIGHTBOX foto
+      // BIND LIGHTBOX foto (ignora i pulsanti Dettaglio di piatti senza foto)
       document.querySelectorAll("[data-lb]").forEach(function(el) {
+        if (!el.dataset.lb) return;
         el.onclick = function() {
           document.getElementById("lb-img").src = el.dataset.lb;
           document.getElementById("lightbox").classList.add("open");
         };
       });
 
-      // SCROLL → aggiorna nav attivo
+      var btnStampa = document.getElementById("btn-stampa-menu");
+      if (btnStampa) btnStampa.onclick = function() { window.print(); };
+
+      // SCROLL → aggiorna nav e punti in base a quale sezione è visibile
       window.addEventListener("scroll", aggiornaNavScroll, { passive:true });
     }
 
     function aggiornaNavScroll() {
-      // Aggiorna nav in base a quale accordion è visibile
       var scrollY = window.scrollY + 160;
       var attivo = null;
       categorie.forEach(function(c) {
@@ -519,6 +524,9 @@
       if (attivo) {
         document.querySelectorAll(".cat-nav-btn").forEach(function(btn) {
           btn.classList.toggle("active", btn.dataset.catId === attivo);
+        });
+        document.querySelectorAll(".cat-dot").forEach(function(dot) {
+          dot.classList.toggle("active", dot.dataset.dotCat === attivo);
         });
       }
     }
