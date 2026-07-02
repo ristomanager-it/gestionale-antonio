@@ -195,6 +195,7 @@ export async function render(container) {
               <input type="file" id="cfg-cover-file" accept="image/*" multiple style="display:none;">
               <span class="mb-btn mb-btn-sec" style="padding:8px 14px;font-size:12px;">📁 Aggiungi foto</span>
             </label>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px;">📐 Consigliato: 1200×500px (formato largo, tipo copertina) — foto più piccole verranno ingrandite e perdono qualità</div>
             <div id="cfg-cover-prog" style="display:none;font-size:11px;color:#0E5A7A;margin-top:4px;">⏳ Caricamento...</div>
           </div>
           <div style="margin-bottom:12px;">
@@ -1108,10 +1109,20 @@ export async function render(container) {
         <label class="mb-label">Foto portata</label>
         <div id="voce-foto-prev" style="width:100%;height:110px;border-radius:10px;background:${voce.foto_url?`url('${esc(voce.foto_url)}') center/cover`:"#f3f4f6"};display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:6px;border:1px solid #e5e7eb;">${voce.foto_url?"":"Nessuna foto"}</div>
         <input id="voce-foto-file" type="file" class="mb-input" accept="image/png,image/jpeg,image/jpg">
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">📐 Consigliato: 1200×900px (formato 4:3) — il piatto si vede meglio se fotografato leggermente dall'alto</div>
         <div id="voce-foto-status" style="font-size:11px;color:#64748b;margin-top:4px;"></div>
         <input id="voce-foto-edit" type="hidden" value="${esc(voce.foto_url||"")}">
       </div>
       <div style="margin-bottom:12px;"><label class="mb-label">Descrizione nel menu</label><textarea id="voce-desc-edit" class="mb-input" style="min-height:60px;resize:vertical;">${esc(voce.descrizione||"")}</textarea></div>
+      <div style="margin-bottom:12px;">
+        <label class="mb-label">Etichette (compaiono nel dettaglio del piatto)</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+          ${[
+            ["vegetariano","🌱 Vegetariano"],["vegano","🥦 Vegano"],["senza_glutine","🌾 Senza glutine"],
+            ["senza_lattosio","🥛 Senza lattosio"],["piccante","🌶️ Piccante"],["chef","⭐ Consiglio dello chef"]
+          ].map(([id,label]) => `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;"><input type="checkbox" class="voce-tag-check" value="${id}" ${(voce.tags||[]).includes(id)?"checked":""} style="accent-color:#0E5A7A;"> ${label}</label>`).join("")}
+        </div>
+      </div>
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="voce-disp-edit" ${voce.disponibile!==false?"checked":""} style="accent-color:#0E5A7A;"> Disponibile</label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="voce-vis-edit" ${voce.visibile!==false?"checked":""} style="accent-color:#0E5A7A;"> Visibile</label>
@@ -1150,10 +1161,12 @@ export async function render(container) {
     };
     qs("#btn-salva-voce-edit").onclick = async () => {
       const prezzo = parseFloat(qs("#voce-prezzo-edit").value);
+      const tagsSelezionati = Array.from(container.querySelectorAll(".voce-tag-check:checked")).map(c => c.value);
       const { error } = await supa().from("menu_voci").update({
         prezzo_override: prezzo||null, prezzo: prezzo||voce.prezzo,
         foto_url: qs("#voce-foto-edit").value.trim()||null,
         descrizione: qs("#voce-desc-edit").value.trim()||null,
+        tags: tagsSelezionati,
         disponibile: qs("#voce-disp-edit").checked,
         visibile: qs("#voce-vis-edit").checked
       }).eq("id", voceId).eq("azienda_id", azienda_id);
@@ -1184,6 +1197,7 @@ export async function render(container) {
         <label class="mb-label">📷 Foto categoria — compare nella lista, anche chiusa</label>
         <div id="cfg-cat-foto-prev" style="width:100%;height:110px;border-radius:10px;background:${mc.immagine_url?`url('${esc(mc.immagine_url)}') center/cover`:"#f3f4f6"};display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:6px;border:1px solid #e5e7eb;">${mc.immagine_url?"":"Nessuna foto"}</div>
         <input id="cfg-cat-foto-file" type="file" class="mb-input" accept="image/png,image/jpeg,image/jpg">
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">📐 Consigliato: 1200×600px (formato 2:1, largo) — è mostrata a piena larghezza nella lista</div>
         <div id="cfg-cat-foto-status" style="font-size:11px;color:#64748b;margin-top:4px;"></div>
         <input id="cfg-cat-foto-url" type="hidden" value="${esc(mc.immagine_url||"")}">
       </div>
