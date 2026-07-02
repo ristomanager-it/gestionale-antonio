@@ -175,6 +175,10 @@ export async function render(container) {
               <input type="checkbox" id="cfg-caparra" style="accent-color:#0E5A7A;width:16px;height:16px;">
               💳 Caparra richiesta
             </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
+              <input type="checkbox" id="cfg-ordinabile" style="accent-color:#16a34a;width:16px;height:16px;">
+              🛒 Ordinabile (carrello + pagamento online)
+            </label>
           </div>
 
           <div id="caparra-panel" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px;margin-bottom:12px;">
@@ -185,6 +189,28 @@ export async function render(container) {
               <div><label class="mb-label">Importo</label><input id="caparra-importo" type="number" class="mb-input" placeholder="10" min="0" step="0.01"></div>
               <div><label class="mb-label">Note</label><input id="caparra-note" class="mb-input" placeholder="Es. Non rimborsabile"></div>
             </div>
+          </div>
+
+          <div id="ordinabile-panel" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px;margin-bottom:12px;">
+            <div style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px;">🛒 Configurazione ordini — es. Room Service, Spiaggia, Asporto</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div>
+                <label class="mb-label">Etichetta luogo consegna</label>
+                <select id="cfg-luogo-label" class="mb-input">
+                  <option value="Tavolo">Tavolo</option>
+                  <option value="Camera">Camera</option>
+                  <option value="Ombrellone">Ombrellone</option>
+                  <option value="Indirizzo ufficio">Indirizzo ufficio</option>
+                  <option value="Indirizzo">Indirizzo di consegna</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;margin-top:22px;">
+                  <input type="checkbox" id="cfg-richiedi-orario" style="accent-color:#16a34a;" checked> Chiedi orario di consegna desiderato
+                </label>
+              </div>
+            </div>
+            <div style="font-size:11px;color:#166534;">Il cliente pagherà con carta al momento dell'ordine (Stripe). Riceverai l'ordine in tempo reale in Comande e via WhatsApp.</div>
           </div>
 
           <!-- Cover (galleria a slide) e Logo menu -->
@@ -332,6 +358,7 @@ export async function render(container) {
 
   qs("#cfg-attivo").onchange = (e) => { qs("#cfg-attivo-label").textContent = e.target.checked ? "Attivo" : "Non attivo"; };
   qs("#cfg-caparra").onchange = (e) => { qs("#caparra-panel").style.display = e.target.checked ? "block" : "none"; };
+  qs("#cfg-ordinabile").onchange = (e) => { qs("#ordinabile-panel").style.display = e.target.checked ? "block" : "none"; };
   qs("#cfg-raccolta").onchange = (e) => { qs("#raccolta-campi-panel").style.display = e.target.checked ? "block" : "none"; };
 
   qs("#cfg-nome").oninput = () => {
@@ -643,6 +670,10 @@ export async function render(container) {
     qs("#caparra-tipo").value = caparra.tipo || "fisso";
     qs("#caparra-importo").value = caparra.importo || "";
     qs("#caparra-note").value = caparra.note || "";
+    qs("#cfg-ordinabile").checked = !!m.ordinabile;
+    qs("#ordinabile-panel").style.display = m.ordinabile ? "block" : "none";
+    qs("#cfg-luogo-label").value = m.luogo_consegna_label || "Tavolo";
+    qs("#cfg-richiedi-orario").checked = m.richiedi_orario_consegna !== false;
     // Cover a slide: usa cover_urls (nuovo, array) se presente, altrimenti
     // ripiega sul vecchio cover_url singolo per non perdere le foto già impostate.
     coverGalleryUrls = Array.isArray(m.cover_urls) && m.cover_urls.length
@@ -705,7 +736,10 @@ export async function render(container) {
       raccolta_dati:   qs("#cfg-raccolta").checked,
       raccolta_campi:  Array.from(container.querySelectorAll(".raccolta-campo:checked")).map(c => c.dataset.campo),
       caparra_attiva:  caparraAttiva,
-      caparra_formula: caparraAttiva ? { tipo: qs("#caparra-tipo").value, importo: parseFloat(qs("#caparra-importo").value)||0, note: qs("#caparra-note").value.trim() } : null
+      caparra_formula: caparraAttiva ? { tipo: qs("#caparra-tipo").value, importo: parseFloat(qs("#caparra-importo").value)||0, note: qs("#caparra-note").value.trim() } : null,
+      ordinabile: qs("#cfg-ordinabile").checked,
+      luogo_consegna_label: qs("#cfg-luogo-label").value,
+      richiedi_orario_consegna: qs("#cfg-richiedi-orario").checked
     }).eq("id", menuAttivo.id).eq("azienda_id", azienda_id);
     btn.disabled = false; btn.textContent = "💾 Salva configurazione";
     if (error) { msg.innerHTML = `<span style="color:#dc2626;">${error.message}</span>`; return; }
