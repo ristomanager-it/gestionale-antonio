@@ -43,6 +43,25 @@ export async function render(container) {
   let ricette = []
   let tagsDisponibili = []
   let tagsSelezionati = []
+  let allergeniSelezionati = []
+
+  // I 14 allergeni a dichiarazione obbligatoria secondo il Regolamento UE 1169/2011
+  const ALLERGENI_UE = [
+    ["glutine", "🌾 Glutine (cereali)"],
+    ["crostacei", "🦐 Crostacei"],
+    ["uova", "🥚 Uova"],
+    ["pesce", "🐟 Pesce"],
+    ["arachidi", "🥜 Arachidi"],
+    ["soia", "🌱 Soia"],
+    ["latte", "🥛 Latte e derivati (lattosio)"],
+    ["frutta_a_guscio", "🌰 Frutta a guscio"],
+    ["sedano", "🥬 Sedano"],
+    ["senape", "🟡 Senape"],
+    ["sesamo", "◯ Semi di sesamo"],
+    ["solfiti", "🍷 Anidride solforosa e solfiti"],
+    ["lupini", "🫘 Lupini"],
+    ["molluschi", "🐚 Molluschi"]
+  ]
   let prodottoAttivo = null
   let searchDebounce = null
 
@@ -148,6 +167,11 @@ export async function render(container) {
       <div style="font-size:11px;color:#94a3b8;margin-top:4px;">📐 Consigliato: 1200×900px (formato 4:3) — coerente con le foto piatto nel menu</div>
       <div id="prod-img-status" style="font-size:12px; color:#64748b; margin-top:4px;"></div>
       <input id="prod-img-url" type="hidden">
+
+      <hr>
+
+      <h4>Allergeni presenti (14 allergeni UE)</h4>
+      <div id="prod-allergeni-box" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px;"></div>
 
       <hr>
 
@@ -551,6 +575,7 @@ export async function render(container) {
 
     prodottoAttivo = p
     tagsSelezionati = Array.isArray(p.tags) ? p.tags : []
+    allergeniSelezionati = Array.isArray(p.allergeni) ? p.allergeni : []
 
     qs("#form-title").innerText = "Modifica prodotto"
     qs("#prod-nome").value = p.nome || ""
@@ -569,6 +594,7 @@ export async function render(container) {
     qs("#btn-delete").style.display = ""
 
     renderTags()
+    renderAllergeniBox()
     renderFoodCostBox()
     openForm()
   }
@@ -576,6 +602,7 @@ export async function render(container) {
   function resetForm() {
     prodottoAttivo = null
     tagsSelezionati = []
+    allergeniSelezionati = []
 
     qs("#form-title").innerText = "Nuovo prodotto"
     qs("#prod-nome").value = ""
@@ -595,6 +622,7 @@ export async function render(container) {
     qs("#btn-delete").style.display = "none"
 
     renderTags()
+    renderAllergeniBox()
     renderFoodCostBox()
   }
 
@@ -639,6 +667,7 @@ export async function render(container) {
       alert_food_cost: alertFoodCost,
       stato: alertFoodCost ? "bozza" : "completo",
       tags: tagsSelezionati,
+      allergeni: allergeniSelezionati,
       attivo: qs("#prod-attivo").checked,
       visibile: qs("#prod-visibile").checked,
       contesto: qs("#prod-contesto").value || null
@@ -831,6 +860,26 @@ export async function render(container) {
 
     input.value = ""
     renderTags()
+  }
+
+  function renderAllergeniBox() {
+    const box = qs("#prod-allergeni-box")
+    box.innerHTML = ALLERGENI_UE.map(([id, label]) => `
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
+        <input type="checkbox" class="prod-allergene-check" value="${id}" ${allergeniSelezionati.includes(id) ? "checked" : ""} style="accent-color:#0E5A7A;">
+        ${label}
+      </label>
+    `).join("")
+
+    box.querySelectorAll(".prod-allergene-check").forEach(chk => {
+      chk.onchange = () => {
+        if (chk.checked) {
+          if (!allergeniSelezionati.includes(chk.value)) allergeniSelezionati.push(chk.value)
+        } else {
+          allergeniSelezionati = allergeniSelezionati.filter(a => a !== chk.value)
+        }
+      }
+    })
   }
 
   function renderTags() {
