@@ -54,9 +54,9 @@ export async function render(container) {
   let settoreAttivo = null; // null = tutti
   let righeAttive   = [];
   let tempiRicetta  = {}; // prodotto_vendita_id → tempo_esecuzione_min
-  let alertFired    = new Set(); // rigaId già segnalata (ritardo cottura)
-  let alertFiredAttesa = new Set(); // rigaId già segnalata (attesa >5 min senza iniziare)
+  let alertFiredTavolo = new Set(); // comandaId già segnalata (5+ min dall'arrivo ordine)
   let refreshTimer  = null;
+  let cronometroTick = null;
   let timersManuali = []; // {id, label, secondiTotali, secondiRimanenti, running, scaduto}
   let timerManualeTick = null;
 
@@ -392,101 +392,72 @@ export async function render(container) {
       return;
     }
 
+    // Raggruppa per tavolo (comanda_id): il cronometro e l'urgenza sono
+    // dell'intero tavolo, non della singola vivanda — la portata più vecchia
+    // ancora attiva determina quanto è "caldo" il tavolo.
+    const gruppi = {};
+    lista.forEach(r => {
+      const key = r.comanda_id || 'senza-tavolo';
+      if (!gruppi[key]) gruppi[key] = [];
+      gruppi[key].push(r);
+    });
+
     const ora = Date.now();
 
-    box.innerHTML = lista.map(r => {
-      const info       = tavoloMap[r.comanda_id] || { tavolo:'?', cliente:'', coperti:0 };
-      const tempoLimite = tempiRicetta[r.prodotto_vendita_id] || 15;
-      const inPrep     = r.stato === 'in_preparazione';
-      const startedAt  = r.started_at ? new Date(r.started_at).getTime() : null;
-      const elapsed    = startedAt ? Math.floor((ora - startedAt) / 60000) : null;
-      const rimane     = elapsed !== null ? Math.max(0, tempoLimite - elapsed) : null;
-      const urgente    = inPrep && elapsed !== null && elapsed >= tempoLimite;
-      const warn       = inPrep && elapsed !== null && elapsed >= tempoLimite * 0.75 && !urgente;
+    const tavoliOrdinati = Object.entries(gruppi).sort((a, b) => {
+      const arrA = Math.min(...a[1].map(r => r.created_at ? new Date(r.created_at).getTime() : ora));
+      const arrB = Math.min(...b[1].map(r => r.created_at ? new Date(r.created_at).getTime() : ora));
+      return arrA - arrB; // il tavolo che aspetta di più va per primo
+    });
 
-      // Attesa dall'arrivo ordine: se una portata è ferma in "in_attesa" da
-      // più di 5 minuti senza che nessuno l'abbia ancora iniziata, è un
-      // problema a prescindere dal tempo di cottura previsto — va segnalato.
-      const arrivataAt  = r.created_at ? new Date(r.created_at).getTime() : null;
-      const attesaMin   = (!inPrep && arrivataAt) ? Math.floor((ora - arrivataAt) / 60000) : null;
-      const attesaLunga = !inPrep && attesaMin !== null && attesaMin >= 5;
+    box.innerHTML = tavoliOrdinati.map(([comandaId, righe]) => {
+      const info      = tavoloMap[comandaId] || { tavolo:'?', cliente:'', coperti:0 };
+      const arrivoAt  = Math.min(...righe.map(r => r.created_at ? new Date(r.created_at).getTime() : ora));
 
-      // Suona se urgente/attesa lunga e non già segnalata
-      if (urgente && !alertFired.has(r.id)) {
-        alertFired.add(r.id);
-        suonaAlert();
-      }
-      if (attesaLunga && !alertFiredAttesa.has(r.id)) {
-        alertFiredAttesa.add(r.id);
-        suonaAlert();
-      }
-
-      const borderColor = urgente ? '#dc2626' : warn ? '#f59e0b' : inPrep ? '#22c55e' : attesaLunga ? '#dc2626' : '#334155';
-      const bgColor     = urgente ? '#1c0a0a' : warn ? '#1c1400' : attesaLunga ? '#1c0a0a' : '#1e293b';
-
-      return `
-        <div class="${(urgente || attesaLunga) ? 'card-urgente' : ''}" style="
-          background:${bgColor};border-radius:16px;padding:18px;
-          border:2px solid ${borderColor};position:relative;
-        ">
-          <!-- Stato badge -->
-          <div style="position:absolute;top:12px;right:12px;">
-            ${urgente ? `<span style="background:#dc2626;color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">🔴 RITARDO</span>`
-              : warn  ? `<span style="background:#f59e0b;color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">⚠️ QUASI</span>`
-              : inPrep? `<span style="background:#22c55e20;color:#22c55e;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #22c55e40;">🔥 IN PREP</span>`
-              : attesaLunga ? `<span style="background:#dc2626;color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">⏰ ATTESA ${attesaMin} MIN</span>`
-              :         `<span style="background:#334155;color:#94a3b8;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">⏳ ATTESA</span>`}
-          </div>
-
-          <!-- Nome piatto -->
-          <div style="font-size:17px;font-weight:700;color:white;margin-bottom:4px;padding-right:80px;">${esc(r.nome_snapshot)}</div>
-
-          <!-- Tavolo info -->
-          <div style="font-size:13px;color:#94a3b8;margin-bottom:10px;">
-            Tavolo <strong style="color:#e2e8f0;">${esc(info.tavolo)}</strong>
-            ${info.cliente ? ` — ${esc(info.cliente)}` : ''}
-            — Qt: <strong style="color:#e2e8f0;">${r.quantita}</strong>
-          </div>
-
-          ${r.note ? `<div style="background:#334155;border-radius:8px;padding:6px 10px;font-size:12px;color:#fbbf24;margin-bottom:10px;">📝 ${esc(r.note)}</div>` : ''}
-
-          <!-- Timer -->
-          ${inPrep ? `
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                <span style="font-size:12px;color:#64748b;">Tempo</span>
-                <span style="font-size:13px;font-weight:700;color:${urgente?'#f87171':warn?'#fbbf24':'#4ade80'};">
-                  ${elapsed}/${tempoLimite} min ${urgente?'⚠️':''}
-                </span>
-              </div>
-              <div style="background:#334155;border-radius:6px;height:6px;overflow:hidden;">
-                <div style="height:100%;border-radius:6px;background:${urgente?'#dc2626':warn?'#f59e0b':'#22c55e'};width:${Math.min(100,Math.round((elapsed/tempoLimite)*100))}%;transition:width 0.5s;"></div>
-              </div>
-              ${r.cuoco_nome ? `<div style="font-size:11px;color:#64748b;margin-top:4px;">👨‍🍳 ${esc(r.cuoco_nome)}</div>` : ''}
+      const portateHtml = righe.map(r => {
+        const inPrep = r.stato === 'in_preparazione';
+        const startedAt = r.started_at ? new Date(r.started_at).getTime() : null;
+        const elapsedCottura = startedAt ? Math.floor((ora - startedAt) / 60000) : null;
+        return `
+          <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:700;color:white;">${esc(r.nome_snapshot)} <span style="color:#64748b;font-weight:400;">×${r.quantita}</span></div>
+              ${r.note ? `<div style="font-size:11px;color:#fbbf24;margin-top:2px;">📝 ${esc(r.note)}</div>` : ''}
+              ${inPrep ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">🔥 in cottura da ${elapsedCottura} min${r.cuoco_nome ? ' — 👨‍🍳 '+esc(r.cuoco_nome) : ''}</div>` : ''}
             </div>
-          ` : `
-            <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Tempo stimato: ${tempoLimite} min</div>
-          `}
-
-          <!-- Azioni -->
-          <div style="display:flex;gap:8px;">
             ${!inPrep ? `
-              <button data-inizia="${r.id}" style="
-                flex:1;background:#0E5A7A;color:white;border:none;border-radius:10px;
-                padding:10px;cursor:pointer;font-size:14px;font-weight:700;
-              ">▶ Inizia</button>
+              <button data-inizia="${r.id}" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;">▶ Inizia</button>
             ` : `
-              <button data-pronto="${r.id}" style="
-                flex:1;background:#16a34a;color:white;border:none;border-radius:10px;
-                padding:10px;cursor:pointer;font-size:14px;font-weight:700;
-              ">✅ Pronto</button>
+              <button data-pronto="${r.id}" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;">✅ Pronto</button>
             `}
           </div>
+        `;
+      }).join('');
+
+      return `
+        <div data-tavolo-card="${comandaId}" data-arrivo="${arrivoAt}" style="
+          background:#1e293b;border-radius:16px;padding:18px;
+          border:3px solid #334155;position:relative;transition:border-color 0.4s;
+        ">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+            <div>
+              <div style="font-size:19px;font-weight:800;color:white;">🪑 Tavolo ${esc(info.tavolo)}</div>
+              <div style="font-size:12px;color:#94a3b8;">
+                ${info.cliente ? esc(info.cliente)+' — ' : ''}${info.coperti ? info.coperti+' coperti — ' : ''}${righe.length} portat${righe.length===1?'a':'e'}
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div data-cronometro="${comandaId}" style="font-size:26px;font-weight:800;color:#4ade80;font-variant-numeric:tabular-nums;">00:00</div>
+              <div data-cronometro-badge="${comandaId}" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;margin-top:2px;"></div>
+            </div>
+          </div>
+
+          <div>${portateHtml}</div>
         </div>
       `;
     }).join('');
 
-    // Binding azioni
+    // Binding azioni (per singola portata dentro il tavolo)
     box.querySelectorAll('[data-inizia]').forEach(btn => {
       btn.onclick = async () => {
         const rid = btn.dataset.inizia;
@@ -499,7 +470,6 @@ export async function render(container) {
         await supa().from('comanda_righe').update(aggiornamento).eq('id', rid);
         const r = righeAttive.find(x => String(x.id) === String(rid));
         if (r) { r.stato='in_preparazione'; r.started_at=aggiornamento.started_at; r.cuoco_nome=aggiornamento.cuoco_nome||null; }
-        alertFiredAttesa.delete(rid);
         renderCards();
       };
     });
@@ -511,12 +481,61 @@ export async function render(container) {
           stato: 'pronto',
           completed_at: new Date().toISOString(),
         }).eq('id', rid);
+        const eraUltimaDelTavolo = righeAttive.filter(x => x.comanda_id === (righeAttive.find(x2=>String(x2.id)===String(rid))||{}).comanda_id).length <= 1;
         righeAttive = righeAttive.filter(x => String(x.id) !== String(rid));
-        alertFired.delete(rid);
-        alertFiredAttesa.delete(rid);
         renderCards();
       };
     });
+
+    aggiornaCronometriTavolo();
+  }
+
+  // ════════════════════════════════════════
+  // CRONOMETRO PER TAVOLO — tick al secondo
+  // ════════════════════════════════════════
+  // Soglie richieste: bordo arancione dopo 3 min, rosso dopo 5 min,
+  // "infuocato" (lampeggiante) dopo 10 min. Allarme sonoro una tantum al
+  // superamento dei 5 minuti dall'arrivo dell'ordine.
+  function aggiornaCronometriTavolo() {
+    const now = Date.now();
+    container.querySelectorAll('[data-tavolo-card]').forEach(card => {
+      const comandaId = card.dataset.tavoloCard;
+      const arrivoAt = Number(card.dataset.arrivo);
+      if (!arrivoAt) return;
+      const elapsedSec = Math.max(0, Math.floor((now - arrivoAt) / 1000));
+      const elapsedMin = elapsedSec / 60;
+      const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+      const ss = String(elapsedSec % 60).padStart(2, '0');
+
+      let borderColor, textColor, badgeLabel, badgeBg, infuocato = false;
+      if (elapsedMin >= 10) {
+        borderColor = '#dc2626'; textColor = '#f87171'; badgeLabel = '🔥🔥 INFUOCATO'; badgeBg = '#dc2626'; infuocato = true;
+      } else if (elapsedMin >= 5) {
+        borderColor = '#dc2626'; textColor = '#f87171'; badgeLabel = '🔴 RITARDO'; badgeBg = '#dc2626';
+      } else if (elapsedMin >= 3) {
+        borderColor = '#f59e0b'; textColor = '#fbbf24'; badgeLabel = '⚠️ ATTENZIONE'; badgeBg = '#f59e0b';
+      } else {
+        borderColor = '#334155'; textColor = '#4ade80'; badgeLabel = '✅ OK'; badgeBg = '#334155';
+      }
+
+      card.style.borderColor = borderColor;
+      card.classList.toggle('card-urgente', infuocato);
+
+      const cronoEl = card.querySelector(`[data-cronometro="${comandaId}"]`);
+      if (cronoEl) { cronoEl.textContent = mm + ':' + ss; cronoEl.style.color = textColor; }
+      const badgeEl = card.querySelector(`[data-cronometro-badge="${comandaId}"]`);
+      if (badgeEl) { badgeEl.textContent = badgeLabel; badgeEl.style.background = badgeBg; badgeEl.style.color = 'white'; }
+
+      // Allarme una tantum al superamento dei 5 minuti
+      if (elapsedMin >= 5 && !alertFiredTavolo.has(comandaId)) {
+        alertFiredTavolo.add(comandaId);
+        suonaAlert();
+      }
+    });
+
+    if (!cronometroTick) {
+      cronometroTick = setInterval(aggiornaCronometriTavolo, 1000);
+    }
   }
 
   // ════════════════════════════════════════
@@ -665,6 +684,7 @@ export async function render(container) {
 
   function fermaRefresh() {
     if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    if (cronometroTick) { clearInterval(cronometroTick); cronometroTick = null; }
   }
 
   container.querySelector('#btn-cucina-refresh').onclick = () => caricaTutto();
