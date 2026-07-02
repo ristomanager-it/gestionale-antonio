@@ -1180,6 +1180,13 @@ export async function render(container) {
     qs("#modal-voce-body").innerHTML = `
       <div style="margin-bottom:12px;"><label class="mb-label">Nome</label><input id="cfg-cat-nome" class="mb-input" value="${esc(mc.nome)}"></div>
       <div style="margin-bottom:12px;"><label class="mb-label">Descrizione</label><input id="cfg-cat-desc" class="mb-input" value="${esc(mc.descrizione||"")}"></div>
+      <div style="margin-bottom:12px;">
+        <label class="mb-label">📷 Foto categoria — compare nella lista, anche chiusa</label>
+        <div id="cfg-cat-foto-prev" style="width:100%;height:110px;border-radius:10px;background:${mc.immagine_url?`url('${esc(mc.immagine_url)}') center/cover`:"#f3f4f6"};display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:6px;border:1px solid #e5e7eb;">${mc.immagine_url?"":"Nessuna foto"}</div>
+        <input id="cfg-cat-foto-file" type="file" class="mb-input" accept="image/png,image/jpeg,image/jpg">
+        <div id="cfg-cat-foto-status" style="font-size:11px;color:#64748b;margin-top:4px;"></div>
+        <input id="cfg-cat-foto-url" type="hidden" value="${esc(mc.immagine_url||"")}">
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;">
         <div><label class="mb-label">Visibile dalle ore</label><input id="cfg-cat-ora-ini" type="time" class="mb-input" value="${mc.ora_inizio||""}"></div>
         <div><label class="mb-label">Fino alle ore</label><input id="cfg-cat-ora-fin" type="time" class="mb-input" value="${mc.ora_fine||""}"></div>
@@ -1196,11 +1203,30 @@ export async function render(container) {
       <button id="btn-salva-cfg-cat" class="mb-btn mb-btn-primary" style="width:100%;">💾 Salva</button>
       <div id="msg-cfg-cat" style="margin-top:8px;font-size:12px;text-align:center;"></div>
     `;
+    qs("#cfg-cat-foto-file").onchange = async function() {
+      const file = this.files[0]; if (!file) return;
+      const status = qs("#cfg-cat-foto-status");
+      const prev = qs("#cfg-cat-foto-prev");
+      const localUrl = URL.createObjectURL(file);
+      prev.style.background = `url('${localUrl}') center/cover`;
+      prev.innerText = "";
+      status.textContent = "⏳ Caricamento in corso...";
+      status.style.color = "#64748b";
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = azienda_id + "/categoria-" + mc.id + "-" + Date.now() + "." + ext;
+      const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) { status.textContent = "❌ Errore upload: " + error.message; status.style.color = "#dc2626"; return; }
+      const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
+      qs("#cfg-cat-foto-url").value = pub.publicUrl;
+      status.textContent = "✅ Foto caricata";
+      status.style.color = "#16a34a";
+    };
     qs("#btn-salva-cfg-cat").onclick = async () => {
       const settoreId = qs("#cfg-cat-settore").value || null;
       const { error } = await supa().from("menu_categorie").update({
         nome: qs("#cfg-cat-nome").value.trim(),
         descrizione: qs("#cfg-cat-desc").value.trim()||null,
+        immagine_url: qs("#cfg-cat-foto-url").value.trim()||null,
         ora_inizio: qs("#cfg-cat-ora-ini").value||null,
         ora_fine: qs("#cfg-cat-ora-fin").value||null,
         settore_id: settoreId,
