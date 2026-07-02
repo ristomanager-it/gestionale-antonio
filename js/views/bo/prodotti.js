@@ -1002,6 +1002,36 @@ export async function render(container) {
 
     if (error) {
       console.error("Errore eliminazione prodotto:", error)
+
+      // Vincolo di integrità referenziale: il prodotto è stato usato in
+      // almeno una comanda/ordine passato. Il DB blocca giustamente la
+      // cancellazione per non spezzare lo storico — proponiamo la
+      // disattivazione al suo posto, che ottiene lo stesso risultato pratico
+      // (il prodotto sparisce da menu/comande future) senza cancellare dati.
+      if (error.code === "23503") {
+        const disattiva = confirm(
+          `"${nomeProdotto}" è presente in ordini/comande già registrati, quindi non può essere eliminato senza perdere lo storico.\n\n` +
+          `Vuoi disattivarlo invece? Sparirà dai nuovi menu e comande, ma lo storico resterà intatto.`
+        )
+        if (disattiva) {
+          const { error: errDisattiva } = await supabase
+            .from("prodotti_vendita")
+            .update({ attivo: false, visibile: false })
+            .eq("id", prodottoAttivo.id)
+            .eq("azienda_id", azienda_id)
+
+          if (errDisattiva) {
+            alert("Errore durante la disattivazione. " + (errDisattiva.message || ""))
+            return
+          }
+
+          await loadAll()
+          closeForm()
+          alert(`"${nomeProdotto}" è stato disattivato.`)
+        }
+        return
+      }
+
       alert("Errore durante l'eliminazione. " + (error.message || ""))
       return
     }
