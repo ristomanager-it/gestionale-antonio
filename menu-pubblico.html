@@ -66,6 +66,7 @@
     .cat-acc-arrow.open{transform:rotate(180deg);}
     .cat-acc-body{display:none;padding:0;}
     .cat-acc-body.open{display:block;}
+    .cat-acc-preview{width:100%;height:180px;object-fit:cover;display:block;cursor:pointer;}
 
     /* CARD PRODOTTO — foto grande a piena larghezza in alto */
     .prodotto-card{background:#fff;margin-bottom:0;overflow:hidden;display:flex;flex-direction:column;border-bottom:1px solid #e5e7eb;}
@@ -405,6 +406,9 @@
         html += '<div class="cat-acc-nome">' + esc(cat.nome) + '</div>';
         html += '<div class="cat-acc-right"><span class="cat-acc-arrow">▼</span></div>';
         html += '</div>';
+        if (cat.immagine_url) {
+          html += '<img src="' + esc(cat.immagine_url) + '" alt="' + esc(cat.nome) + '" class="cat-acc-preview" data-cat="' + cat.id + '">';
+        }
         if (cat.descrizione || cat.ora_inizio) {
           html += '<div style="text-align:center;padding:6px 12px;background:#9ca3af;">';
           if (cat.descrizione) html += '<div class="cat-acc-desc">' + esc(cat.descrizione) + '</div>';
@@ -510,19 +514,19 @@
         };
       });
 
-      // BIND ACCORDION — click header apre/chiude la categoria (solo quella cliccata)
-      document.querySelectorAll(".cat-acc-header").forEach(function(hdr) {
+      // BIND ACCORDION — click header O foto apre/chiude la categoria (solo quella cliccata)
+      document.querySelectorAll(".cat-acc-header, .cat-acc-preview").forEach(function(hdr) {
         hdr.onclick = function() {
           var catId = hdr.dataset.cat;
           var body = document.getElementById("body-" + catId);
-          var arrow = hdr.querySelector(".cat-acc-arrow");
+          var arrow = document.querySelector(".cat-acc-header[data-cat='" + catId + "'] .cat-acc-arrow");
           var isOpen = body.classList.contains("open");
           if (isOpen) {
             body.classList.remove("open");
-            arrow.classList.remove("open");
+            if (arrow) arrow.classList.remove("open");
           } else {
             body.classList.add("open");
-            arrow.classList.add("open");
+            if (arrow) arrow.classList.add("open");
             evidenziaCategoria(catId);
           }
         };
