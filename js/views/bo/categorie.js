@@ -99,7 +99,21 @@ export async function render(container) {
       }
     })
 
-    qs("#cat-img-file").onchange = async e => {
+    bindFileInput()
+  }
+
+  // Ricrea completamente l'elemento <input type=file> da zero (invece di
+  // limitarsi a svuotare .value) e ci riattacca l'onchange. Necessario
+  // perché su alcuni browser mobile (Safari/WebKit in PWA) il picker nativo
+  // può "ricordare" l'ultima selezione sullo stesso nodo DOM anche dopo aver
+  // svuotato .value — ricreando il nodo togliamo qualsiasi stato residuo.
+  function bindFileInput() {
+    const old = qs("#cat-img-file")
+    const fresh = old.cloneNode(true)
+    fresh.value = ""
+    old.parentNode.replaceChild(fresh, old)
+
+    fresh.onchange = async e => {
       const file = e.target.files[0]
       if (!file) return
       const status = qs("#cat-img-status")
@@ -107,7 +121,7 @@ export async function render(container) {
       const localUrl = URL.createObjectURL(file)
       preview.style.background = `url('${localUrl}') center/cover`
       preview.innerText = ""
-      status.textContent = "⏳ Caricamento in corso..."
+      status.textContent = "⏳ Caricamento in corso... (" + file.name + ", " + Math.round(file.size / 1024) + "kb)"
       status.style.color = "#64748b"
       const { url, error } = await uploadImage(file)
       if (error) {
@@ -116,7 +130,7 @@ export async function render(container) {
         return
       }
       qs("#cat-img-url").value = url
-      status.textContent = "✅ Foto caricata"
+      status.textContent = "✅ Foto caricata: " + file.name
       status.style.color = "#16a34a"
     }
   }
@@ -277,7 +291,7 @@ export async function render(container) {
     qs("#cat-nome").value = ""
     qs("#cat-descrizione").value = ""
     qs("#cat-img-url").value = ""
-    qs("#cat-img-file").value = ""
+    bindFileInput()
     qs("#cat-img-status").textContent = ""
     qs("#cat-img-preview").style.background = "#f3f4f6"
     qs("#cat-img-preview").innerText = "Nessuna foto"
@@ -301,7 +315,7 @@ export async function render(container) {
     qs("#cat-nome").value = c.nome || ""
     qs("#cat-descrizione").value = c.descrizione || ""
     qs("#cat-img-url").value = c.immagine_url || ""
-    qs("#cat-img-file").value = ""
+    bindFileInput()
     qs("#cat-img-status").textContent = ""
     if (c.immagine_url) {
       qs("#cat-img-preview").style.background = `url('${c.immagine_url}') center/cover`
