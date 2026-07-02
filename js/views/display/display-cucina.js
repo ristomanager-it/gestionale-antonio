@@ -54,8 +54,11 @@ export async function render(container) {
   let settoreAttivo = null; // null = tutti
   let righeAttive   = [];
   let tempiRicetta  = {}; // prodotto_vendita_id → tempo_esecuzione_min
-  let alertFired    = new Set(); // rigaId già segnalata
+  let alertFired    = new Set(); // rigaId già segnalata (ritardo cottura)
+  let alertFiredAttesa = new Set(); // rigaId già segnalata (attesa >5 min senza iniziare)
   let refreshTimer  = null;
+  let timersManuali = []; // {id, label, secondiTotali, secondiRimanenti, running, scaduto}
+  let timerManualeTick = null;
 
   // ════════════════════════════════════════
   // HTML SHELL
@@ -76,6 +79,10 @@ export async function render(container) {
         <div id="badge-cuoco" style="display:none;background:rgba(255,255,255,0.1);border-radius:20px;padding:5px 14px;font-size:13px;color:white;cursor:pointer;"></div>
         <div id="cucina-ora" style="font-size:13px;color:#94a3b8;"></div>
         <button id="btn-cucina-refresh" style="background:rgba(255,255,255,0.08);border:none;color:white;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;">🔄</button>
+        <button id="btn-timer-manuale" style="background:#7c3aed;border:none;color:white;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;position:relative;">
+          ⏱ Timer
+          <span id="badge-timer-count" style="display:none;position:absolute;top:-6px;right:-6px;background:#dc2626;color:white;font-size:10px;font-weight:700;border-radius:10px;min-width:18px;height:18px;display:none;align-items:center;justify-content:center;padding:0 4px;"></span>
+        </button>
         <button id="btn-gestisci-settori" style="background:#0E5A7A;border:none;color:white;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;">⚙️ Settori</button>
       </div>
     </div>
@@ -114,6 +121,28 @@ export async function render(container) {
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- MODAL: Timer manuali (pentole/padelle) -->
+  <div id="modal-timer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:#1e293b;border-radius:20px;padding:28px;width:420px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid #334155;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:700;color:white;">⏱ Timer cucina</div>
+        <button id="btn-timer-x" style="background:#334155;border:none;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:16px;color:white;">✕</button>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input id="nuovo-timer-nome" placeholder="es. Pasta, Sugo, Forno..." class="input"
+          style="flex:1;padding:10px 12px;background:#0f172a;border:1px solid #334155;border-radius:10px;color:white;font-size:14px;">
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+        ${[3,5,10,15,20,30,45,60].map(m => `
+          <button data-preset="${m}" style="background:#334155;color:white;border:none;border-radius:10px;padding:10px 4px;cursor:pointer;font-size:13px;font-weight:600;">${m}′</button>
+        `).join('')}
+      </div>
+
+      <div id="timer-manuali-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
   </div>
 
@@ -375,17 +404,28 @@ export async function render(container) {
       const urgente    = inPrep && elapsed !== null && elapsed >= tempoLimite;
       const warn       = inPrep && elapsed !== null && elapsed >= tempoLimite * 0.75 && !urgente;
 
-      // Suona se urgente e non già segnalato
+      // Attesa dall'arrivo ordine: se una portata è ferma in "in_attesa" da
+      // più di 5 minuti senza che nessuno l'abbia ancora iniziata, è un
+      // problema a prescindere dal tempo di cottura previsto — va segnalato.
+      const arrivataAt  = r.created_at ? new Date(r.created_at).getTime() : null;
+      const attesaMin   = (!inPrep && arrivataAt) ? Math.floor((ora - arrivataAt) / 60000) : null;
+      const attesaLunga = !inPrep && attesaMin !== null && attesaMin >= 5;
+
+      // Suona se urgente/attesa lunga e non già segnalata
       if (urgente && !alertFired.has(r.id)) {
         alertFired.add(r.id);
         suonaAlert();
       }
+      if (attesaLunga && !alertFiredAttesa.has(r.id)) {
+        alertFiredAttesa.add(r.id);
+        suonaAlert();
+      }
 
-      const borderColor = urgente ? '#dc2626' : warn ? '#f59e0b' : inPrep ? '#22c55e' : '#334155';
-      const bgColor     = urgente ? '#1c0a0a' : warn ? '#1c1400' : '#1e293b';
+      const borderColor = urgente ? '#dc2626' : warn ? '#f59e0b' : inPrep ? '#22c55e' : attesaLunga ? '#dc2626' : '#334155';
+      const bgColor     = urgente ? '#1c0a0a' : warn ? '#1c1400' : attesaLunga ? '#1c0a0a' : '#1e293b';
 
       return `
-        <div class="${urgente ? 'card-urgente' : ''}" style="
+        <div class="${(urgente || attesaLunga) ? 'card-urgente' : ''}" style="
           background:${bgColor};border-radius:16px;padding:18px;
           border:2px solid ${borderColor};position:relative;
         ">
@@ -394,6 +434,7 @@ export async function render(container) {
             ${urgente ? `<span style="background:#dc2626;color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">🔴 RITARDO</span>`
               : warn  ? `<span style="background:#f59e0b;color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">⚠️ QUASI</span>`
               : inPrep? `<span style="background:#22c55e20;color:#22c55e;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #22c55e40;">🔥 IN PREP</span>`
+              : attesaLunga ? `<span style="background:#dc2626;color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">⏰ ATTESA ${attesaMin} MIN</span>`
               :         `<span style="background:#334155;color:#94a3b8;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">⏳ ATTESA</span>`}
           </div>
 
@@ -458,6 +499,7 @@ export async function render(container) {
         await supa().from('comanda_righe').update(aggiornamento).eq('id', rid);
         const r = righeAttive.find(x => String(x.id) === String(rid));
         if (r) { r.stato='in_preparazione'; r.started_at=aggiornamento.started_at; r.cuoco_nome=aggiornamento.cuoco_nome||null; }
+        alertFiredAttesa.delete(rid);
         renderCards();
       };
     });
@@ -471,9 +513,142 @@ export async function render(container) {
         }).eq('id', rid);
         righeAttive = righeAttive.filter(x => String(x.id) !== String(rid));
         alertFired.delete(rid);
+        alertFiredAttesa.delete(rid);
         renderCards();
       };
     });
+  }
+
+  // ════════════════════════════════════════
+  // TIMER MANUALI (pentole/padelle, indipendenti dalle comande)
+  // ════════════════════════════════════════
+  function apriModalTimer() {
+    container.querySelector('#modal-timer').style.display = 'flex';
+    renderTimerManuali();
+  }
+  container.querySelector('#btn-timer-manuale').onclick = apriModalTimer;
+  container.querySelector('#btn-timer-x').onclick = () => container.querySelector('#modal-timer').style.display = 'none';
+
+  container.querySelectorAll('[data-preset]').forEach(btn => {
+    btn.onclick = () => {
+      const minuti = Number(btn.dataset.preset);
+      const nomeInput = container.querySelector('#nuovo-timer-nome');
+      const label = nomeInput.value.trim() || (minuti + ' min');
+      timersManuali.push({
+        id: 'tm_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+        label,
+        secondiTotali: minuti * 60,
+        secondiRimanenti: minuti * 60,
+        running: true,
+        scaduto: false,
+      });
+      nomeInput.value = '';
+      renderTimerManuali();
+      avviaTickManuale();
+    };
+  });
+
+  function renderTimerManuali() {
+    const box = container.querySelector('#timer-manuali-lista');
+    if (!timersManuali.length) {
+      box.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;font-size:13px;">Nessun timer attivo. Scegli una durata sopra.</div>';
+      aggiornaBadgeTimer();
+      return;
+    }
+    box.innerHTML = timersManuali.map(t => {
+      const mm = String(Math.floor(t.secondiRimanenti/60)).padStart(2,'0');
+      const ss = String(t.secondiRimanenti%60).padStart(2,'0');
+      const pct = Math.max(0, Math.round((t.secondiRimanenti/t.secondiTotali)*100));
+      return `
+        <div class="${t.scaduto?'card-urgente':''}" style="background:${t.scaduto?'#1c0a0a':'#0f172a'};border:2px solid ${t.scaduto?'#dc2626':'#334155'};border-radius:14px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="color:white;font-weight:700;font-size:14px;">${esc(t.label)}</div>
+            <button data-timer-del="${t.id}" style="background:transparent;border:none;color:#64748b;font-size:16px;cursor:pointer;">✕</button>
+          </div>
+          <div style="font-size:34px;font-weight:800;color:${t.scaduto?'#f87171':'#38bdf8'};text-align:center;margin-bottom:8px;letter-spacing:2px;">
+            ${t.scaduto ? '⏰ FINE!' : mm+':'+ss}
+          </div>
+          <div style="background:#334155;border-radius:6px;height:6px;overflow:hidden;margin-bottom:10px;">
+            <div style="height:100%;border-radius:6px;background:${t.scaduto?'#dc2626':'#7c3aed'};width:${pct}%;transition:width 1s linear;"></div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            ${t.scaduto ? `
+              <button data-timer-ok="${t.id}" style="flex:1;background:#16a34a;color:white;border:none;border-radius:10px;padding:9px;cursor:pointer;font-size:13px;font-weight:700;">✅ OK</button>
+            ` : `
+              <button data-timer-toggle="${t.id}" style="flex:1;background:${t.running?'#334155':'#7c3aed'};color:white;border:none;border-radius:10px;padding:9px;cursor:pointer;font-size:13px;font-weight:700;">${t.running?'⏸ Pausa':'▶ Riprendi'}</button>
+              <button data-timer-reset="${t.id}" style="background:#334155;color:white;border:none;border-radius:10px;padding:9px 12px;cursor:pointer;font-size:13px;">↺</button>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    box.querySelectorAll('[data-timer-toggle]').forEach(btn => {
+      btn.onclick = () => {
+        const t = timersManuali.find(x => x.id === btn.dataset.timerToggle);
+        if (t) t.running = !t.running;
+        renderTimerManuali();
+      };
+    });
+    box.querySelectorAll('[data-timer-reset]').forEach(btn => {
+      btn.onclick = () => {
+        const t = timersManuali.find(x => x.id === btn.dataset.timerReset);
+        if (t) { t.secondiRimanenti = t.secondiTotali; t.running = false; }
+        renderTimerManuali();
+      };
+    });
+    box.querySelectorAll('[data-timer-ok]').forEach(btn => {
+      btn.onclick = () => {
+        timersManuali = timersManuali.filter(x => x.id !== btn.dataset.timerOk);
+        renderTimerManuali();
+      };
+    });
+    box.querySelectorAll('[data-timer-del]').forEach(btn => {
+      btn.onclick = () => {
+        timersManuali = timersManuali.filter(x => x.id !== btn.dataset.timerDel);
+        renderTimerManuali();
+      };
+    });
+
+    aggiornaBadgeTimer();
+  }
+
+  function aggiornaBadgeTimer() {
+    const badge = container.querySelector('#badge-timer-count');
+    const attivi = timersManuali.filter(t => !t.scaduto).length;
+    const scaduti = timersManuali.filter(t => t.scaduto).length;
+    if (scaduti > 0) {
+      badge.style.display = 'flex';
+      badge.style.background = '#dc2626';
+      badge.textContent = scaduti;
+    } else if (attivi > 0) {
+      badge.style.display = 'flex';
+      badge.style.background = '#7c3aed';
+      badge.textContent = attivi;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function avviaTickManuale() {
+    if (timerManualeTick) return;
+    timerManualeTick = setInterval(() => {
+      let cambiato = false;
+      timersManuali.forEach(t => {
+        if (t.running && !t.scaduto) {
+          t.secondiRimanenti = Math.max(0, t.secondiRimanenti - 1);
+          if (t.secondiRimanenti === 0) {
+            t.scaduto = true;
+            t.running = false;
+            suonaAlert();
+          }
+          cambiato = true;
+        }
+      });
+      if (!timersManuali.length) { clearInterval(timerManualeTick); timerManualeTick = null; return; }
+      if (cambiato && container.querySelector('#modal-timer').style.display === 'flex') renderTimerManuali();
+      else aggiornaBadgeTimer();
+    }, 1000);
   }
 
   // ════════════════════════════════════════
