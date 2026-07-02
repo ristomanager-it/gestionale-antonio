@@ -156,6 +156,12 @@ export async function render(container) {
         </div>
       </div>
 
+      <div>
+        <label>⏱ Minutaggio di servizio (min in cottura)</label>
+        <input id="prod-minutaggio" class="input" type="number" step="1" min="0" placeholder="es. 6">
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Usato dal display cucina per far uscire insieme piatti con tempi diversi dello stesso tavolo.</div>
+      </div>
+
       <label>Foto prodotto</label>
       <div id="prod-img-preview" style="
         width:100%; height:140px; border-radius:12px; background:#f1f5f9;
@@ -586,6 +592,7 @@ export async function render(container) {
     qs("#prod-iva").value = p.iva ?? 10
     qs("#prod-porzione").value = p.porzione_default ?? 1
     qs("#prod-um").value = p.unita_porzione || "pz"
+    qs("#prod-minutaggio").value = p.minutaggio_servizio ?? ""
     qs("#prod-img-url").value = p.foto_url || ""
     renderImgPreview(p.foto_url || "")
     qs("#prod-attivo").checked = p.attivo !== false
@@ -613,6 +620,7 @@ export async function render(container) {
     qs("#prod-iva").value = 10
     qs("#prod-porzione").value = 1
     qs("#prod-um").value = "pz"
+    qs("#prod-minutaggio").value = ""
     qs("#prod-img-url").value = ""
     renderImgPreview("")
     qs("#prod-attivo").checked = true
@@ -663,6 +671,7 @@ export async function render(container) {
       iva: parseNullableNumber(qs("#prod-iva").value),
       porzione_default: parseNullableNumber(qs("#prod-porzione").value) || 1,
       unita_porzione: qs("#prod-um").value || "pz",
+      minutaggio_servizio: parseNullableNumber(qs("#prod-minutaggio").value),
       food_cost_snapshot: foodCost,
       alert_food_cost: alertFoodCost,
       stato: alertFoodCost ? "bozza" : "completo",
