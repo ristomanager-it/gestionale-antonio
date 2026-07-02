@@ -799,8 +799,8 @@ export async function render(container) {
       return `
         <div class="cat-centro-item ${isActive?"active":""}" data-mc-id="${mc.id}" draggable="true">
           <span class="cat-drag-handle" onclick="event.stopPropagation()" style="cursor:grab;color:#cbd5e1;font-size:16px;flex-shrink:0;user-select:none;">⠿</span>
-          ${catV?.immagine_url
-            ?`<img src="${esc(catV.immagine_url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
+          ${mc.immagine_url
+            ?`<img src="${esc(mc.immagine_url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
             :`<div style="width:40px;height:40px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📂</div>`}
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(mc.nome)}</div>
