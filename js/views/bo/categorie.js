@@ -50,8 +50,10 @@ export async function render(container) {
       <input id="cat-nome" class="input" placeholder="Nome categoria">
       <textarea id="cat-descrizione" class="input" placeholder="Descrizione"></textarea>
 
-      <input id="cat-img-file" type="file">
+      <div id="cat-img-preview" style="width:100%;height:90px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;margin-bottom:6px;border:1px solid #e5e7eb;">Nessuna foto</div>
+      <input id="cat-img-file" type="file" accept="image/png,image/jpeg,image/jpg">
       <input id="cat-img-url" class="input" placeholder="URL immagine" readonly>
+      <div id="cat-img-status" style="font-size:11px;margin-top:4px;"></div>
 
       <input id="cat-ordine" type="number" class="input" placeholder="Ordine">
 
@@ -100,8 +102,22 @@ export async function render(container) {
     qs("#cat-img-file").onchange = async e => {
       const file = e.target.files[0]
       if (!file) return
-      const url = await uploadImage(file)
-      if (url) qs("#cat-img-url").value = url
+      const status = qs("#cat-img-status")
+      const preview = qs("#cat-img-preview")
+      const localUrl = URL.createObjectURL(file)
+      preview.style.background = `url('${localUrl}') center/cover`
+      preview.innerText = ""
+      status.textContent = "⏳ Caricamento in corso..."
+      status.style.color = "#64748b"
+      const { url, error } = await uploadImage(file)
+      if (error) {
+        status.textContent = "❌ Errore upload: " + error
+        status.style.color = "#dc2626"
+        return
+      }
+      qs("#cat-img-url").value = url
+      status.textContent = "✅ Foto caricata"
+      status.style.color = "#16a34a"
     }
   }
 
@@ -261,6 +277,10 @@ export async function render(container) {
     qs("#cat-nome").value = ""
     qs("#cat-descrizione").value = ""
     qs("#cat-img-url").value = ""
+    qs("#cat-img-file").value = ""
+    qs("#cat-img-status").textContent = ""
+    qs("#cat-img-preview").style.background = "#f3f4f6"
+    qs("#cat-img-preview").innerText = "Nessuna foto"
     qs("#cat-ordine").value = 0
 
     qs("#cat-attivo").checked = true
@@ -281,6 +301,15 @@ export async function render(container) {
     qs("#cat-nome").value = c.nome || ""
     qs("#cat-descrizione").value = c.descrizione || ""
     qs("#cat-img-url").value = c.immagine_url || ""
+    qs("#cat-img-file").value = ""
+    qs("#cat-img-status").textContent = ""
+    if (c.immagine_url) {
+      qs("#cat-img-preview").style.background = `url('${c.immagine_url}') center/cover`
+      qs("#cat-img-preview").innerText = ""
+    } else {
+      qs("#cat-img-preview").style.background = "#f3f4f6"
+      qs("#cat-img-preview").innerText = "Nessuna foto"
+    }
     qs("#cat-ordine").value = c.ordine || 0
 
     qs("#cat-attivo").checked = c.attiva ?? true
@@ -303,12 +332,12 @@ export async function render(container) {
         ordine: Number(qs("#cat-ordine").value || 0)
       }
 
-      console.log("UPDATE OK:", updatePayload)
-
-      await supabase
+      const { error } = await supabase
         .from("categorie_vendita")
         .update(updatePayload)
         .eq("id", categoriaAttiva.id)
+
+      if (error) { alert("Errore salvataggio: " + error.message); return }
 
     } else {
 
@@ -324,9 +353,11 @@ export async function render(container) {
         ordine: Number(qs("#cat-ordine").value || 0)
       }
 
-      await supabase
+      const { error } = await supabase
         .from("categorie_vendita")
         .insert(insertPayload)
+
+      if (error) { alert("Errore salvataggio: " + error.message); return }
     }
 
     closeForm()
@@ -364,19 +395,20 @@ export async function render(container) {
 
   async function uploadImage(file) {
 
-    const path = `categorie/${azienda_id}/${Date.now()}-${file.name}`
+    const ext = file.name.split(".").pop() || "jpg"
+    const path = `${azienda_id}/categoria-vendita-${Date.now()}.${ext}`
 
     const { error } = await supabase.storage
-      .from("loghi-aziende")
-      .upload(path, file)
+      .from("media-aziende")
+      .upload(path, file, { upsert: true, contentType: file.type })
 
-    if (error) return null
+    if (error) return { url: null, error: error.message }
 
     const { data } = supabase.storage
-      .from("loghi-aziende")
+      .from("media-aziende")
       .getPublicUrl(path)
 
-    return data.publicUrl
+    return { url: data.publicUrl, error: null }
   }
 
   function qs(s) { return container.querySelector(s) }
