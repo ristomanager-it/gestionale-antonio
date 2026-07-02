@@ -130,12 +130,12 @@
       @page{ size:A4; margin:12mm; }
       body{ background:#fff; }
       body > *:not(#stampa-output){ display:none!important; }
-      #stampa-output{ display:block!important; font-family:-apple-system,sans-serif; }
+      #stampa-output{ display:block!important; }
       .stampa-pagina{ page-break-after:always; break-after:page; }
       .stampa-pagina:last-child{ page-break-after:auto; break-after:auto; }
-      .stampa-header{ display:flex; align-items:center; gap:12px; border-bottom:2px solid #0E5A7A; padding-bottom:8px; margin-bottom:14px; }
+      .stampa-header{ display:flex; align-items:center; gap:12px; border-bottom:2px solid var(--brand); padding-bottom:8px; margin-bottom:14px; }
       .stampa-logo{ width:40px; height:40px; border-radius:50%; object-fit:cover; }
-      .stampa-titolo-cat{ font-size:22px; font-weight:800; color:#0E5A7A; }
+      .stampa-titolo-cat{ font-size:22px; font-weight:800; color:var(--brand); }
       .stampa-locale{ font-size:11px; color:#64748b; margin-left:auto; }
       .stampa-riga{ display:flex; align-items:flex-start; gap:12px; padding:8px 0; border-bottom:1px solid #e5e7eb; }
       .stampa-riga-foto{ width:56px; height:56px; border-radius:8px; object-fit:cover; flex-shrink:0; }
