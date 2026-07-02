@@ -166,7 +166,7 @@ const routes = {
   "bo-survey":      () => import("./views/bo/bo-survey.js"),
 
   // MENU
-  "bo-menu": () => import("./views/bo/bo-menu-builder.js?v=6"),
+  "bo-menu": () => import("./views/bo/bo-menu-builder.js?v=7"),
   "bo-fidelity": () => import("./views/bo/bo-fidelity.js"),
   "bo-categorie": () => import("./views/bo/categorie.js"),
   "bo-prodotti": () => import("./views/bo/prodotti.js"),
