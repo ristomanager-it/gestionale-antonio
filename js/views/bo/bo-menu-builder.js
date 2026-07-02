@@ -1154,7 +1154,7 @@ export async function render(container) {
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
           ${[
             ["vegetariano","🌱 Vegetariano"],["vegano","🥦 Vegano"],["senza_glutine","🌾 Senza glutine"],
-            ["senza_lattosio","🥛 Senza lattosio"],["piccante","🌶️ Piccante"],["chef","⭐ Consiglio dello chef"]
+            ["pesce","🐟 Pesce"],["carne","🥩 Carne"],["senza_lattosio","🥛 Senza lattosio"],["piccante","🌶️ Piccante"],["chef","⭐ Consiglio dello chef"]
           ].map(([id,label]) => `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;"><input type="checkbox" class="voce-tag-check" value="${id}" ${(voce.tags||[]).includes(id)?"checked":""} style="accent-color:#0E5A7A;"> ${label}</label>`).join("")}
         </div>
       </div>
