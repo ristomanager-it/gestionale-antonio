@@ -211,6 +211,7 @@
     var ORDINI_EDGE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/Ordini-menu-pubblico-api-index";
     var TAG_LABELS = {
       vegetariano: "🌱 Vegetariano", vegano: "🥦 Vegano", senza_glutine: "🌾 Senza glutine",
+      pesce: "🐟 Pesce", carne: "🥩 Carne",
       senza_lattosio: "🥛 Senza lattosio", piccante: "🌶️ Piccante", chef: "⭐ Consiglio dello chef"
     };
 
@@ -446,11 +447,11 @@
       html += '<div class="filtri-bar">';
       html += '<span style="font-size:11px;font-weight:700;color:#94a3b8;padding:5px 4px;flex-shrink:0;">Filtri:</span>';
       [
-        {id:"vegetariano",label:"🌱 Veg"},
-        {id:"vegano",label:"🥦 Vegano"},
         {id:"senza_glutine",label:"🌾 Senza glutine"},
-        {id:"senza_lattosio",label:"🥛 Senza lattosio"},
-        {id:"chef",label:"⭐ Chef consiglia"}
+        {id:"pesce",label:"🐟 Pesce"},
+        {id:"carne",label:"🥩 Carne"},
+        {id:"vegetariano",label:"🌱 Vegetariano"},
+        {id:"vegano",label:"🥦 Vegano"}
       ].forEach(function(f) {
         html += '<button class="filtro-chip" data-filtro="' + f.id + '">' + f.label + '</button>';
       });
@@ -702,8 +703,14 @@
           var card = cards[i];
           if (!card) return;
           var mostra = true;
-          if (filtriAttivi.has("chef") && !v.note_interne?.includes("chef")) mostra = false;
-          // Altri filtri basati su descrizione
+          var tags = v.tags || [];
+          filtriAttivi.forEach(function(f) {
+            if (f === "chef") {
+              if (!v.note_interne?.includes("chef")) mostra = false;
+            } else if (!tags.includes(f)) {
+              mostra = false;
+            }
+          });
           if (mostra) {
             card.style.display = "";
             visibili++;
