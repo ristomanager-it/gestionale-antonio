@@ -214,6 +214,13 @@
       pesce: "🐟 Pesce", carne: "🥩 Carne",
       senza_lattosio: "🥛 Senza lattosio", piccante: "🌶️ Piccante", chef: "⭐ Consiglio dello chef"
     };
+    var ALLERGENE_LABELS = {
+      glutine: "🌾 Glutine (cereali)", crostacei: "🦐 Crostacei", uova: "🥚 Uova",
+      pesce: "🐟 Pesce", arachidi: "🥜 Arachidi", soia: "🌱 Soia",
+      latte: "🥛 Latte e derivati (lattosio)", frutta_a_guscio: "🌰 Frutta a guscio",
+      sedano: "🥬 Sedano", senape: "🟡 Senape", sesamo: "◯ Semi di sesamo",
+      solfiti: "🍷 Anidride solforosa e solfiti", lupini: "🫘 Lupini", molluschi: "🐚 Molluschi"
+    };
 
     // Tutta la lettura/scrittura passa da qui: la Edge Function usa la
     // service role e decide lei cosa è sicuro esporre — la pagina pubblica
@@ -737,6 +744,13 @@
       var tagsHtml = (v.tags && v.tags.length)
         ? '<div class="prodotto-tags" style="justify-content:flex-start;margin-bottom:14px;">' + v.tags.map(function(t){ return TAG_LABELS[t] ? '<span class="prodotto-tag">' + TAG_LABELS[t] + '</span>' : ''; }).join('') + '</div>'
         : '';
+      var allergeniHtml = (v.allergeni && v.allergeni.length)
+        ? '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:14px;">' +
+          '<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px;">⚠️ ALLERGENI PRESENTI</div>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+          v.allergeni.map(function(a){ return ALLERGENE_LABELS[a] ? '<span style="background:#fef3c7;color:#92400e;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;">' + ALLERGENE_LABELS[a] + '</span>' : ''; }).join('') +
+          '</div></div>'
+        : '';
       var fotoHtml = v.foto_url
         ? '<img src="' + esc(v.foto_url) + '" alt="' + esc(v.nome) + '" style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:16px;cursor:pointer;" id="detail-foto">'
         : '';
@@ -744,6 +758,7 @@
         fotoHtml +
         '<div class="raccolta-title">' + esc(v.nome) + '</div>' +
         tagsHtml +
+        allergeniHtml +
         (v.descrizione ? '<div style="font-size:15px;color:#374151;line-height:1.6;margin-bottom:16px;">' + esc(v.descrizione) + '</div>' : '<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Nessuna descrizione disponibile.</div>') +
         '<div style="font-size:26px;font-weight:800;color:#111827;text-align:right;">' + Number(prezzo).toFixed(2) + ' €</div>';
 
