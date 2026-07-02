@@ -55,6 +55,7 @@ export async function render(container) {
   let righeAttive   = [];
   let tempiRicetta  = {}; // prodotto_vendita_id → tempo_esecuzione_min
   let alertFiredTavolo = new Set(); // comandaId già segnalata (5+ min dall'arrivo ordine)
+  let alertPartiFired = new Set(); // rigaId già segnalata "parti ora" (sincronizzazione uscita)
   let refreshTimer  = null;
   let cronometroTick = null;
   let timersManuali = []; // {id, label, secondiTotali, secondiRimanenti, running, scaduto}
@@ -280,15 +281,27 @@ export async function render(container) {
   }
 
   async function loadTempiRicetta() {
+    tempiRicetta = {};
+    // Fonte primaria: minutaggio_servizio impostato direttamente sul
+    // prodotto (più semplice da compilare di una ricetta completa).
+    try {
+      const { data: prod } = await supa()
+        .from('prodotti_vendita')
+        .select('id, minutaggio_servizio')
+        .eq('azienda_id', aziendaId)
+        .not('minutaggio_servizio', 'is', null);
+      (prod || []).forEach(p => { tempiRicetta[p.id] = p.minutaggio_servizio; });
+    } catch(e) {}
+    // Fallback: tempo_esecuzione_min dalla ricetta, solo per i prodotti che
+    // non hanno già un minutaggio diretto.
     try {
       const { data } = await supa()
         .from('ricette')
         .select('prodotto_vendita_id, tempo_esecuzione_min')
         .eq('azienda_id', aziendaId)
         .not('tempo_esecuzione_min', 'is', null);
-      tempiRicetta = {};
-      (data || []).forEach(r => { tempiRicetta[r.prodotto_vendita_id] = r.tempo_esecuzione_min; });
-    } catch(e) { tempiRicetta = {}; }
+      (data || []).forEach(r => { if (tempiRicetta[r.prodotto_vendita_id] == null) tempiRicetta[r.prodotto_vendita_id] = r.tempo_esecuzione_min; });
+    } catch(e) {}
   }
 
   async function caricaTutto() {
@@ -414,22 +427,61 @@ export async function render(container) {
       const info      = tavoloMap[comandaId] || { tavolo:'?', cliente:'', coperti:0 };
       const arrivoAt  = Math.min(...righe.map(r => r.created_at ? new Date(r.created_at).getTime() : ora));
 
-      const portateHtml = righe.map(r => {
-        const inPrep = r.stato === 'in_preparazione';
-        const startedAt = r.started_at ? new Date(r.started_at).getTime() : null;
-        const elapsedCottura = startedAt ? Math.floor((ora - startedAt) / 60000) : null;
-        return `
-          <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:14px;font-weight:700;color:white;">${esc(r.nome_snapshot)} <span style="color:#64748b;font-weight:400;">×${r.quantita}</span></div>
-              ${r.note ? `<div style="font-size:11px;color:#fbbf24;margin-top:2px;">📝 ${esc(r.note)}</div>` : ''}
-              ${inPrep ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">🔥 in cottura da ${elapsedCottura} min${r.cuoco_nome ? ' — 👨‍🍳 '+esc(r.cuoco_nome) : ''}</div>` : ''}
+      // Sotto-raggruppa per uscita: uscite diverse dello stesso tavolo sono
+      // partite/servizi distinti, non vanno mescolati nella stessa lista.
+      const uscite = {};
+      righe.forEach(r => {
+        const u = r.uscita_numero || 1;
+        if (!uscite[u]) uscite[u] = [];
+        uscite[u].push(r);
+      });
+      const numeriUscita = Object.keys(uscite).map(Number).sort((a,b) => a-b);
+
+      const usciteHtml = numeriUscita.map(numUscita => {
+        const righeUscita = uscite[numUscita];
+
+        // Sincronizzazione uscite: la portata col minutaggio più lungo è
+        // l'"ancora" — va avviata per prima. Le altre portate del gruppo
+        // devono partire (tempoAncora - tempoLoro) minuti DOPO che l'ancora
+        // è stata avviata, così finiscono tutte insieme.
+        const conTempo = righeUscita.map(r => ({ r, tempo: tempiRicetta[r.prodotto_vendita_id] || 15 }));
+        const tempoMax = Math.max(...conTempo.map(x => x.tempo));
+        const ancora = conTempo.find(x => x.tempo === tempoMax)?.r;
+
+        const portateHtml = righeUscita.map(r => {
+          const inPrep = r.stato === 'in_preparazione';
+          const startedAt = r.started_at ? new Date(r.started_at).getTime() : null;
+          const elapsedCottura = startedAt ? Math.floor((ora - startedAt) / 60000) : null;
+          const tempoR = tempiRicetta[r.prodotto_vendita_id] || 15;
+          const isAncora = ancora && r.id === ancora.id;
+          const delayMin = (!isAncora && righeUscita.length > 1) ? Math.max(0, tempoMax - tempoR) : 0;
+
+          const noteSync = (!inPrep && !isAncora && righeUscita.length > 1)
+            ? `<div data-parti-nota="${r.id}" data-anchor-id="${ancora?.id||''}" data-delay-min="${delayMin}" style="font-size:11px;margin-top:2px;font-weight:600;"></div>`
+            : '';
+
+          return `
+            <div data-riga-wrap="${r.id}" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;transition:background 0.3s,box-shadow 0.3s;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:14px;font-weight:700;color:white;">${esc(r.nome_snapshot)} <span style="color:#64748b;font-weight:400;">×${r.quantita}</span> ${isAncora && righeUscita.length > 1 ? '<span style="font-size:10px;color:#a78bfa;">⚓ ' + tempoMax + '′</span>' : ''}</div>
+                ${r.note ? `<div style="font-size:11px;color:#fbbf24;margin-top:2px;">📝 ${esc(r.note)}</div>` : ''}
+                ${inPrep ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">🔥 in cottura da ${elapsedCottura} min${r.cuoco_nome ? ' — 👨‍🍳 '+esc(r.cuoco_nome) : ''}</div>` : ''}
+                ${noteSync}
+              </div>
+              ${!inPrep ? `
+                <button data-inizia="${r.id}" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;">▶ Inizia</button>
+              ` : `
+                <button data-pronto="${r.id}" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;">✅ Pronto</button>
+              `}
             </div>
-            ${!inPrep ? `
-              <button data-inizia="${r.id}" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;">▶ Inizia</button>
-            ` : `
-              <button data-pronto="${r.id}" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;">✅ Pronto</button>
-            `}
+          `;
+        }).join('');
+
+        const labelUscite = ['','1ª','2ª','3ª','4ª','5ª','6ª'];
+        return `
+          <div style="margin-bottom:10px;">
+            ${numeriUscita.length > 1 ? `<div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">${labelUscite[numUscita]||numUscita+'ª'} uscita</div>` : ''}
+            ${portateHtml}
           </div>
         `;
       }).join('');
@@ -452,7 +504,7 @@ export async function render(container) {
             </div>
           </div>
 
-          <div>${portateHtml}</div>
+          ${usciteHtml}
         </div>
       `;
     }).join('');
@@ -470,6 +522,7 @@ export async function render(container) {
         await supa().from('comanda_righe').update(aggiornamento).eq('id', rid);
         const r = righeAttive.find(x => String(x.id) === String(rid));
         if (r) { r.stato='in_preparazione'; r.started_at=aggiornamento.started_at; r.cuoco_nome=aggiornamento.cuoco_nome||null; }
+        alertPartiFired.delete(rid);
         renderCards();
       };
     });
@@ -483,6 +536,7 @@ export async function render(container) {
         }).eq('id', rid);
         const eraUltimaDelTavolo = righeAttive.filter(x => x.comanda_id === (righeAttive.find(x2=>String(x2.id)===String(rid))||{}).comanda_id).length <= 1;
         righeAttive = righeAttive.filter(x => String(x.id) !== String(rid));
+        alertPartiFired.delete(rid);
         renderCards();
       };
     });
@@ -530,6 +584,47 @@ export async function render(container) {
       if (elapsedMin >= 5 && !alertFiredTavolo.has(comandaId)) {
         alertFiredTavolo.add(comandaId);
         suonaAlert();
+      }
+    });
+
+    // Segnali di sincronizzazione uscita: per ogni portata "non ancora"
+    // (in attesa, non ancora avviata) che deve partire in ritardo rispetto
+    // all'ancora del gruppo, controlliamo se è arrivato il momento.
+    container.querySelectorAll('[data-parti-nota]').forEach(notaEl => {
+      const rigaId = notaEl.dataset.partiNota;
+      const anchorId = notaEl.dataset.anchorId;
+      const delayMin = Number(notaEl.dataset.delayMin || 0);
+      const anchorRiga = righeAttive.find(x => String(x.id) === String(anchorId));
+      const wrap = container.querySelector(`[data-riga-wrap="${rigaId}"]`);
+      if (!wrap) return;
+
+      if (!anchorRiga || anchorRiga.stato !== 'in_preparazione' || !anchorRiga.started_at) {
+        // L'ancora non è ancora partita: mostra solo l'informazione, niente allarme
+        notaEl.textContent = delayMin > 0 ? `⏱ parte ${delayMin} min dopo l'ancora` : '⏱ parte insieme all\'ancora';
+        notaEl.style.color = '#64748b';
+        wrap.style.boxShadow = 'none';
+        return;
+      }
+
+      const anchorStartedAt = new Date(anchorRiga.started_at).getTime();
+      const target = anchorStartedAt + delayMin * 60000;
+      const pronta = now >= target;
+
+      if (pronta) {
+        notaEl.textContent = '🔔 PARTI ORA!';
+        notaEl.style.color = '#fbbf24';
+        wrap.style.boxShadow = '0 0 0 2px #f59e0b';
+        wrap.classList.add('card-urgente');
+        if (!alertPartiFired.has(rigaId)) {
+          alertPartiFired.add(rigaId);
+          suonaAlert();
+        }
+      } else {
+        const mancano = Math.ceil((target - now) / 60000);
+        notaEl.textContent = `⏳ parte tra ${mancano} min`;
+        notaEl.style.color = '#64748b';
+        wrap.style.boxShadow = 'none';
+        wrap.classList.remove('card-urgente');
       }
     });
 
