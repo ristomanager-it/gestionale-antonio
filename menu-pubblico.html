@@ -299,14 +299,14 @@
         dots.forEach(function(d, i) { d.classList.toggle("active", i === idx); });
       }
 
-      var timer = setInterval(function() { vaiA(idx + 1); }, 4000);
+      var timer = setInterval(function() { vaiA(idx + 1); }, 2000);
 
       // Tap su un pallino = vai a quella foto, e riparti il timer da lì
       dots.forEach(function(dot, i) {
         dot.addEventListener("click", function() {
           clearInterval(timer);
           vaiA(i);
-          timer = setInterval(function() { vaiA(idx + 1); }, 4000);
+          timer = setInterval(function() { vaiA(idx + 1); }, 2000);
         });
       });
 
@@ -314,7 +314,7 @@
       slidesBox.addEventListener("click", function() {
         clearInterval(timer);
         vaiA(idx + 1);
-        timer = setInterval(function() { vaiA(idx + 1); }, 4000);
+        timer = setInterval(function() { vaiA(idx + 1); }, 2000);
       });
     }
 
