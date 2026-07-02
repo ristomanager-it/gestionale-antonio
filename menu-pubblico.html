@@ -124,19 +124,26 @@
     .btn-stampa-menu{position:fixed;bottom:20px;right:20px;background:var(--brand);color:#fff;border:none;border-radius:999px;padding:14px 20px;font-size:14px;font-weight:800;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;z-index:50;display:flex;align-items:center;gap:8px;}
 
     /* STAMPA — una pagina A4 per categoria, niente fronzoli */
+    #stampa-output{ display:none; }
+
     @media print{
-      @page{size:A4;margin:14mm;}
-      body{background:#fff;}
-      .btn-stampa-menu,.cat-nav,.cat-dots,.filtri-bar,.fidelity-promo,.menu-footer,.lightbox,.raccolta-overlay,.non-disp-badge{display:none!important;}
-      .menu-cover{height:110px;}
-      .menu-cover-slides,.cover-dots{display:none!important;}
-      .menu-cover img{display:block;}
-      .prodotto-dettaglio-btn{display:none!important;}
-      .prodotto-riga-bottom{border-top:none;justify-content:flex-end;}
-      .prodotto-foto-wrap{height:140px;}
-      .cat-accordion{page-break-after:always;break-after:page;}
-      .cat-accordion:last-child{page-break-after:auto;break-after:auto;}
-      .prodotto-card{border-bottom:1px dashed #cbd5e1;}
+      @page{ size:A4; margin:12mm; }
+      body{ background:#fff; }
+      body > *:not(#stampa-output){ display:none!important; }
+      #stampa-output{ display:block!important; font-family:-apple-system,sans-serif; }
+      .stampa-pagina{ page-break-after:always; break-after:page; }
+      .stampa-pagina:last-child{ page-break-after:auto; break-after:auto; }
+      .stampa-header{ display:flex; align-items:center; gap:12px; border-bottom:2px solid #0E5A7A; padding-bottom:8px; margin-bottom:14px; }
+      .stampa-logo{ width:40px; height:40px; border-radius:50%; object-fit:cover; }
+      .stampa-titolo-cat{ font-size:22px; font-weight:800; color:#0E5A7A; }
+      .stampa-locale{ font-size:11px; color:#64748b; margin-left:auto; }
+      .stampa-riga{ display:flex; align-items:flex-start; gap:12px; padding:8px 0; border-bottom:1px solid #e5e7eb; }
+      .stampa-riga-foto{ width:56px; height:56px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+      .stampa-riga-foto-vuota{ width:56px; height:56px; border-radius:8px; background:#f1f5f9; flex-shrink:0; }
+      .stampa-riga-testo{ flex:1; min-width:0; }
+      .stampa-riga-nome{ font-size:13px; font-weight:700; color:#111827; }
+      .stampa-riga-desc{ font-size:10.5px; color:#6b7280; line-height:1.35; margin-top:2px; }
+      .stampa-riga-prezzo{ font-size:14px; font-weight:800; color:#111827; white-space:nowrap; flex-shrink:0; padding-top:1px; }
     }
   </style>
 </head>
@@ -144,9 +151,17 @@
   <div id="root">
     <div class="page-loader"><div class="spinner"></div><div>Caricamento menu...</div></div>
   </div>
+  <div id="stampa-output"></div>
   <div class="lightbox" id="lightbox">
     <button class="lightbox-close" id="lb-close">✕</button>
     <img id="lb-img" src="" alt="">
+  </div>
+
+  <div class="raccolta-overlay" id="detail-overlay" style="display:none;">
+    <div class="raccolta-box" id="detail-box">
+      <div class="raccolta-handle"></div>
+      <div id="detail-content"></div>
+    </div>
   </div>
 
   <script>
@@ -159,7 +174,11 @@
 
     if (!slug) { showError("Menu non trovato", "Il link non è valido."); return; }
 
-    var menu = null, azienda = null, categorie = [], tutteVoci = {}, filtriAttivi = new Set(), sede = null;
+    var menu = null, azienda = null, categorie = [], tutteVoci = {}, filtriAttivi = new Set(), sede = null, vociById = {};
+    var TAG_LABELS = {
+      vegetariano: "🌱 Vegetariano", vegano: "🥦 Vegano", senza_glutine: "🌾 Senza glutine",
+      senza_lattosio: "🥛 Senza lattosio", piccante: "🌶️ Piccante", chef: "⭐ Consiglio dello chef"
+    };
 
     // Tutta la lettura/scrittura passa da qui: la Edge Function usa la
     // service role e decide lei cosa è sicuro esporre — la pagina pubblica
@@ -361,11 +380,13 @@
       }
       html += '</div>';
       html += '<div class="menu-info">';
-      // Titolo = nome menu, payoff = descrizione menu
-      var nomeMenu = menu.nome || (sede && sede.nome) || (azienda.nome || "");
-      var payoff = menu.descrizione || "";
-      html += '<div class="menu-locale-nome">' + esc(nomeMenu) + '</div>';
-      if (payoff) html += '<div class="menu-locale-desc">' + esc(payoff) + '</div>';
+      // Titolo = nome del locale (non il nome interno del menu, che è solo
+      // un'etichetta di lavoro per chi lo gestisce). Sotto: la descrizione
+      // del menu se impostata, altrimenti un saluto di benvenuto generico.
+      var nomeLocale = (sede && sede.nome) || azienda.nome || menu.nome || "";
+      var payoff = menu.descrizione || "Benvenuti! Scoprite il nostro menù 🍽️";
+      html += '<div class="menu-locale-nome">' + esc(nomeLocale) + '</div>';
+      html += '<div class="menu-locale-desc">' + esc(payoff) + '</div>';
       html += '</div></div>';
 
       // NAV CATEGORIE
@@ -421,6 +442,7 @@
           html += '<div style="color:#94a3b8;font-size:14px;padding:16px;text-align:center;">Nessuna portata disponibile</div>';
         } else {
           voci.forEach(function(v) {
+            vociById[v.id] = v;
             var isNonDisp = v.disponibile === false;
             var prezzo = v.prezzo_override || v.prezzo || 0;
             html += '<div class="prodotto-card' + (isNonDisp?" non-disp":"") + '">';
@@ -435,10 +457,13 @@
             html += '<div class="prodotto-body">';
             html += '<div class="prodotto-nome">' + esc(v.nome) + '</div>';
             if (v.descrizione) html += '<div class="prodotto-desc">' + esc(v.descrizione) + '</div>';
+            if (v.tags && v.tags.length) {
+              html += '<div class="prodotto-tags">' + v.tags.map(function(t){ return TAG_LABELS[t] ? '<span class="prodotto-tag">' + TAG_LABELS[t] + '</span>' : ''; }).join('') + '</div>';
+            }
             if (isNonDisp) html += '<div style="text-align:center;margin-bottom:8px;"><span class="prodotto-tag non-disp-tag">Non disponibile</span></div>';
             html += '<div class="prodotto-riga-bottom">';
             html += '<div class="prodotto-prezzo">' + Number(prezzo).toFixed(2) + ' €</div>';
-            html += '<button class="prodotto-dettaglio-btn" data-lb="' + esc(v.foto_url||"") + '">Dettaglio</button>';
+            html += '<button class="prodotto-dettaglio-btn" data-detail="' + v.id + '">Dettaglio</button>';
             html += '</div>';
             html += '</div>';
             html += '</div>';
@@ -514,6 +539,15 @@
         };
       });
 
+      // BIND DETTAGLIO — apre la scheda del piatto (tag, descrizione estesa, prezzo)
+      document.querySelectorAll(".prodotto-dettaglio-btn").forEach(function(btn) {
+        btn.onclick = function() {
+          var v = vociById[btn.dataset.detail];
+          if (!v) return;
+          apriDettaglio(v);
+        };
+      });
+
       // BIND ACCORDION — click header O foto apre/chiude la categoria (solo quella cliccata)
       document.querySelectorAll(".cat-acc-header, .cat-acc-preview").forEach(function(hdr) {
         hdr.onclick = function() {
@@ -534,14 +568,49 @@
 
       // Auto-stampa: SOLO se il link arriva dal pannello admin con ?print=1
       // (i clienti sulla pagina pubblica non hanno mai questo parametro né
-      // vedono un pulsante di stampa — evita che tutti stampino per sbaglio)
+      // vedono un pulsante di stampa — evita che tutti stampino per sbaglio).
+      // Genera una lista compatta separata dalla grafica online — una
+      // categoria per pagina A4, una riga per portata (foto piccola,
+      // nome+descrizione, prezzo) invece delle card grandi da schermo.
       if (params.get("print") === "1") {
-        document.querySelectorAll(".cat-acc-body").forEach(function(b){ b.classList.add("open"); });
-        setTimeout(function(){ window.print(); }, 400);
+        generaStampaCompatta();
+        setTimeout(function(){ window.print(); }, 300);
       }
 
       // SCROLL → aggiorna nav e punti in base a quale sezione è visibile
       window.addEventListener("scroll", aggiornaNavScroll, { passive:true });
+    }
+
+    function generaStampaCompatta() {
+      var nomeLocale = (sede && sede.nome) || azienda.nome || "";
+      var logoSrc = menu.logo_url || (sede && sede.logo_url) || azienda.logo_url || "";
+      var html = "";
+      categorie.forEach(function(cat) {
+        var voci = tutteVoci[cat.id] || [];
+        if (!voci.length) return;
+        html += '<div class="stampa-pagina">';
+        html += '<div class="stampa-header">';
+        if (logoSrc) html += '<img class="stampa-logo" src="' + esc(logoSrc) + '">';
+        html += '<div class="stampa-titolo-cat">' + esc(cat.nome) + '</div>';
+        html += '<div class="stampa-locale">' + esc(nomeLocale) + '</div>';
+        html += '</div>';
+        voci.forEach(function(v) {
+          if (v.disponibile === false) return;
+          var prezzo = v.prezzo_override || v.prezzo || 0;
+          html += '<div class="stampa-riga">';
+          html += v.foto_url
+            ? '<img class="stampa-riga-foto" src="' + esc(v.foto_url) + '">'
+            : '<div class="stampa-riga-foto-vuota"></div>';
+          html += '<div class="stampa-riga-testo">';
+          html += '<div class="stampa-riga-nome">' + esc(v.nome) + '</div>';
+          if (v.descrizione) html += '<div class="stampa-riga-desc">' + esc(v.descrizione) + '</div>';
+          html += '</div>';
+          html += '<div class="stampa-riga-prezzo">' + Number(prezzo).toFixed(2) + ' €</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+      });
+      document.getElementById("stampa-output").innerHTML = html;
     }
 
     function aggiornaNavScroll() {
@@ -595,6 +664,34 @@
     };
     document.getElementById("lightbox").onclick = function(e) {
       if (e.target === e.currentTarget) document.getElementById("lightbox").classList.remove("open");
+    };
+
+    // SCHEDA DETTAGLIO PRODOTTO
+    function apriDettaglio(v) {
+      var prezzo = v.prezzo_override || v.prezzo || 0;
+      var tagsHtml = (v.tags && v.tags.length)
+        ? '<div class="prodotto-tags" style="justify-content:flex-start;margin-bottom:14px;">' + v.tags.map(function(t){ return TAG_LABELS[t] ? '<span class="prodotto-tag">' + TAG_LABELS[t] + '</span>' : ''; }).join('') + '</div>'
+        : '';
+      var fotoHtml = v.foto_url
+        ? '<img src="' + esc(v.foto_url) + '" alt="' + esc(v.nome) + '" style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:16px;cursor:pointer;" id="detail-foto">'
+        : '';
+      document.getElementById("detail-content").innerHTML =
+        fotoHtml +
+        '<div class="raccolta-title">' + esc(v.nome) + '</div>' +
+        tagsHtml +
+        (v.descrizione ? '<div style="font-size:15px;color:#374151;line-height:1.6;margin-bottom:16px;">' + esc(v.descrizione) + '</div>' : '<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Nessuna descrizione disponibile.</div>') +
+        '<div style="font-size:26px;font-weight:800;color:#111827;text-align:right;">' + Number(prezzo).toFixed(2) + ' €</div>';
+
+      var fotoEl = document.getElementById("detail-foto");
+      if (fotoEl) fotoEl.onclick = function() {
+        document.getElementById("lb-img").src = v.foto_url;
+        document.getElementById("lightbox").classList.add("open");
+      };
+
+      document.getElementById("detail-overlay").style.display = "flex";
+    }
+    document.getElementById("detail-overlay").onclick = function(e) {
+      if (e.target === e.currentTarget) document.getElementById("detail-overlay").style.display = "none";
     };
 
     function showError(title, sub) {
