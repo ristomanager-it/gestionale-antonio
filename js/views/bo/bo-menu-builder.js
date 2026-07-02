@@ -102,7 +102,7 @@ export async function render(container) {
             <img id="link-qr-img" src="" style="width:64px;height:64px;border-radius:8px;cursor:pointer;flex-shrink:0;" title="Clicca per ingrandire">
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end;margin-bottom:12px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr auto auto auto;gap:10px;align-items:end;margin-bottom:12px;">
             <div>
               <label class="mb-label">Nome menu</label>
               <input id="cfg-nome" class="mb-input" placeholder="Es. Menu Cena">
@@ -116,6 +116,7 @@ export async function render(container) {
             </div>
             <a id="cfg-link-pub" href="#" target="_blank" class="mb-btn mb-btn-primary" style="text-decoration:none;white-space:nowrap;opacity:.4;">🔗 Apri</a>
             <button id="btn-qr" class="mb-btn mb-btn-sec">📷 QR</button>
+            <button id="btn-stampa-menu-admin" class="mb-btn mb-btn-sec" title="Apre il menu e avvia la stampa — una pagina A4 per categoria">🖨️ Stampa</button>
           </div>
 
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">
@@ -343,6 +344,13 @@ export async function render(container) {
   qs("#btn-gen-slug").onclick = () => { const n = qs("#cfg-nome").value.trim(); if(n){ qs("#cfg-slug").value = makeSlug(n); aggiornaLinkQR(qs("#cfg-slug").value); } };
   qs("#link-qr-img").onclick = () => { const s = qs("#cfg-slug").value.trim(); if(s) mostraQR(s); };
   qs("#btn-qr").onclick = () => { const s = qs("#cfg-slug").value.trim() || menuAttivo?.slug; if(s) mostraQR(s); else alert("Imposta prima uno slug"); };
+  qs("#btn-stampa-menu-admin").onclick = () => {
+    const s = qs("#cfg-slug").value.trim() || menuAttivo?.slug;
+    if (!s) { alert("Imposta prima uno slug"); return; }
+    // Apre in una nuova scheda con ?print=1: solo da qui si attiva la stampa
+    // automatica, i clienti sulla pagina pubblica non vedono mai questa opzione.
+    window.open(`${BASE_URL}/menu-pubblico.html?slug=${encodeURIComponent(s)}&print=1`, "_blank");
+  };
   qs("#btn-salva-cfg").onclick = salvaConfigMenu;
 
   // Upload cover menu — a galleria (multi-foto per lo slideshow)
