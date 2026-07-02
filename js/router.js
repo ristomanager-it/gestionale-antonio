@@ -142,7 +142,7 @@ const routes = {
   "mansionario-controllo": () => import("./views/mansionario-controllo.js?v=3"),
 
   "prenotazione-online": () => import("./views/prenotazioni/prenotazione-online.js"),
-  "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js"),
+  "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js?v=2"),
   "prenotazione-tavolo-form": () => import("./views/prenotazioni/form.js"),
   "prenotazioni-form": () => import("./views/prenotazioni/form.js"),
   "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
