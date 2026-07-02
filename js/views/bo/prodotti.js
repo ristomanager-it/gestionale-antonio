@@ -145,7 +145,7 @@ export async function render(container) {
         color:#94a3b8; font-size:13px;
       ">Nessuna foto</div>
       <input id="prod-img-file" class="input" type="file" accept="image/png,image/jpeg,image/jpg">
-      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">📐 Consigliato: 1200×900px (formato 4:3)</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">📐 Consigliato: 1200×900px (formato 4:3) — coerente con le foto piatto nel menu</div>
       <div id="prod-img-status" style="font-size:12px; color:#64748b; margin-top:4px;"></div>
       <input id="prod-img-url" type="hidden">
 
