@@ -107,7 +107,20 @@
     .lightbox img{max-width:95vw;max-height:90vh;border-radius:12px;object-fit:contain;}
     .lightbox-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;}
 
-    /* FOOTER */
+    /* CARRELLO — barra flottante, drawer, checkout */
+    .cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--brand);color:#fff;padding:14px 18px;display:none;align-items:center;justify-content:space-between;z-index:150;cursor:pointer;box-shadow:0 -4px 16px rgba(0,0,0,.15);}
+    .cart-bar.show{display:flex;}
+    .cart-bar-count{background:rgba(255,255,255,.25);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:800;}
+    .cart-bar-tot{font-size:17px;font-weight:800;}
+    .cart-qty-ctrl{display:flex;align-items:center;gap:10px;margin-top:8px;}
+    .cart-qty-btn{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--brand);background:#fff;color:var(--brand);font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .cart-qty-val{font-size:15px;font-weight:800;min-width:20px;text-align:center;}
+    .cart-item-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9;}
+    .cart-item-nome{flex:1;font-size:14px;font-weight:700;}
+    .cart-item-prezzo{font-size:13px;color:#64748b;}
+    .cart-item-rm{color:#dc2626;font-size:18px;cursor:pointer;padding:4px;}
+    .checkout-field{margin-bottom:12px;}
+    .checkout-field label{font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px;}
     .menu-footer{text-align:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));font-size:11px;color:#9ca3af;}
     .menu-footer a{color:var(--brand);text-decoration:none;}
 
@@ -164,6 +177,25 @@
     </div>
   </div>
 
+  <div class="cart-bar" id="cart-bar">
+    <div><span class="cart-bar-count" id="cart-bar-count">0</span> nel carrello</div>
+    <div class="cart-bar-tot" id="cart-bar-tot">0,00 €</div>
+  </div>
+
+  <div class="raccolta-overlay" id="cart-overlay" style="display:none;">
+    <div class="raccolta-box" id="cart-box">
+      <div class="raccolta-handle"></div>
+      <div id="cart-content"></div>
+    </div>
+  </div>
+
+  <div class="raccolta-overlay" id="checkout-overlay" style="display:none;">
+    <div class="raccolta-box" id="checkout-box">
+      <div class="raccolta-handle"></div>
+      <div id="checkout-content"></div>
+    </div>
+  </div>
+
   <script>
   (function() {
     var EDGE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/Menu-pubblico-api-index";
@@ -175,6 +207,8 @@
     if (!slug) { showError("Menu non trovato", "Il link non è valido."); return; }
 
     var menu = null, azienda = null, categorie = [], tutteVoci = {}, filtriAttivi = new Set(), sede = null, vociById = {};
+    var carrello = {}; // { voceId: quantita }
+    var ORDINI_EDGE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/Ordini-menu-pubblico-api-index";
     var TAG_LABELS = {
       vegetariano: "🌱 Vegetariano", vegano: "🥦 Vegano", senza_glutine: "🌾 Senza glutine",
       senza_lattosio: "🥛 Senza lattosio", piccante: "🌶️ Piccante", chef: "⭐ Consiglio dello chef"
@@ -252,6 +286,11 @@
     function finalizzaRender() {
       if (!categorie.length) { showError("Menu vuoto", "Nessuna categoria disponibile in questo momento."); return; }
       renderMenu();
+      if (params.get("ordine") === "ok") {
+        setTimeout(function() {
+          alert("✅ Ordine confermato e pagato! Grazie, lo staff è stato avvisato.");
+        }, 300);
+      }
     }
 
     // ── RACCOLTA DATI ──────────────────────────────────────────────
@@ -465,6 +504,13 @@
             html += '<div class="prodotto-prezzo">' + Number(prezzo).toFixed(2) + ' €</div>';
             html += '<button class="prodotto-dettaglio-btn" data-detail="' + v.id + '">Dettaglio</button>';
             html += '</div>';
+            if (menu.ordinabile && !isNonDisp) {
+              html += '<div class="cart-qty-ctrl" id="qtyctrl-' + v.id + '">';
+              html += '<button class="cart-qty-btn" data-cart-dec="' + v.id + '">−</button>';
+              html += '<span class="cart-qty-val" id="qtyval-' + v.id + '">0</span>';
+              html += '<button class="cart-qty-btn" data-cart-inc="' + v.id + '">+</button>';
+              html += '</div>';
+            }
             html += '</div>';
             html += '</div>';
           });
@@ -547,6 +593,18 @@
           apriDettaglio(v);
         };
       });
+
+      // BIND CARRELLO (solo se il menu è ordinabile)
+      if (menu.ordinabile) {
+        document.querySelectorAll("[data-cart-inc]").forEach(function(btn) {
+          btn.onclick = function() { modificaCarrello(btn.dataset.cartInc, 1); };
+        });
+        document.querySelectorAll("[data-cart-dec]").forEach(function(btn) {
+          btn.onclick = function() { modificaCarrello(btn.dataset.cartDec, -1); };
+        });
+        document.getElementById("cart-bar").onclick = apriCarrello;
+        aggiornaCarrelloUI();
+      }
 
       // BIND ACCORDION — click header O foto apre/chiude la categoria (solo quella cliccata)
       document.querySelectorAll(".cat-acc-header, .cat-acc-preview").forEach(function(hdr) {
@@ -693,6 +751,161 @@
     document.getElementById("detail-overlay").onclick = function(e) {
       if (e.target === e.currentTarget) document.getElementById("detail-overlay").style.display = "none";
     };
+
+    // ── CARRELLO ─────────────────────────────────────────────────
+    function modificaCarrello(voceId, delta) {
+      var q = (carrello[voceId] || 0) + delta;
+      if (q <= 0) delete carrello[voceId];
+      else carrello[voceId] = q;
+      var valEl = document.getElementById("qtyval-" + voceId);
+      if (valEl) valEl.textContent = carrello[voceId] || 0;
+      aggiornaCarrelloUI();
+    }
+
+    function totaleCarrello() {
+      var tot = 0, count = 0;
+      Object.keys(carrello).forEach(function(id) {
+        var v = vociById[id];
+        if (!v) return;
+        var prezzo = v.prezzo_override || v.prezzo || 0;
+        tot += prezzo * carrello[id];
+        count += carrello[id];
+      });
+      return { tot: tot, count: count };
+    }
+
+    function aggiornaCarrelloUI() {
+      var r = totaleCarrello();
+      var bar = document.getElementById("cart-bar");
+      if (r.count > 0) {
+        bar.classList.add("show");
+        document.getElementById("cart-bar-count").textContent = r.count;
+        document.getElementById("cart-bar-tot").textContent = r.tot.toFixed(2).replace(".", ",") + " €";
+      } else {
+        bar.classList.remove("show");
+      }
+    }
+
+    function apriCarrello() {
+      var r = totaleCarrello();
+      var righeHtml = Object.keys(carrello).map(function(id) {
+        var v = vociById[id];
+        if (!v) return "";
+        var prezzo = v.prezzo_override || v.prezzo || 0;
+        return '<div class="cart-item-row">' +
+          '<div style="flex:1;">' +
+            '<div class="cart-item-nome">' + esc(v.nome) + '</div>' +
+            '<div class="cart-item-prezzo">' + prezzo.toFixed(2) + ' € × ' + carrello[id] + '</div>' +
+          '</div>' +
+          '<div class="cart-qty-ctrl" style="margin-top:0;">' +
+            '<button class="cart-qty-btn" data-cart-dec="' + id + '">−</button>' +
+            '<span class="cart-qty-val">' + carrello[id] + '</span>' +
+            '<button class="cart-qty-btn" data-cart-inc="' + id + '">+</button>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+
+      document.getElementById("cart-content").innerHTML =
+        '<div class="raccolta-title">🛒 Il tuo ordine</div>' +
+        '<div style="margin:12px 0;">' + (righeHtml || '<div style="color:#94a3b8;font-size:13px;">Carrello vuoto</div>') + '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding-top:12px;border-top:2px solid #111827;margin-bottom:16px;">' +
+          '<span>Totale</span><span>' + r.tot.toFixed(2).replace(".", ",") + ' €</span>' +
+        '</div>' +
+        '<button class="raccolta-btn" id="btn-vai-checkout"' + (r.count === 0 ? ' disabled style="opacity:.5;"' : '') + '>Procedi all\'ordine →</button>';
+
+      document.querySelectorAll("#cart-content [data-cart-inc]").forEach(function(btn) {
+        btn.onclick = function() { modificaCarrello(btn.dataset.cartInc, 1); apriCarrello(); };
+      });
+      document.querySelectorAll("#cart-content [data-cart-dec]").forEach(function(btn) {
+        btn.onclick = function() { modificaCarrello(btn.dataset.cartDec, -1); apriCarrello(); };
+      });
+      var btnCheckout = document.getElementById("btn-vai-checkout");
+      if (btnCheckout) btnCheckout.onclick = function() {
+        document.getElementById("cart-overlay").style.display = "none";
+        apriCheckout();
+      };
+
+      document.getElementById("cart-overlay").style.display = "flex";
+    }
+    document.getElementById("cart-overlay").onclick = function(e) {
+      if (e.target === e.currentTarget) document.getElementById("cart-overlay").style.display = "none";
+    };
+
+    // ── CHECKOUT ─────────────────────────────────────────────────
+    function apriCheckout() {
+      var luogoLabel = menu.luogo_consegna_label || "Tavolo";
+      var chiediOrario = menu.richiedi_orario_consegna !== false;
+
+      document.getElementById("checkout-content").innerHTML =
+        '<div class="raccolta-title">I tuoi dati</div>' +
+        '<div class="raccolta-sub">Servono per consegnarti l\'ordine — il pagamento avviene con carta nello step successivo.</div>' +
+        '<div class="checkout-field"><label>Nome e cognome *</label><input id="chk-nome" class="raccolta-input" placeholder="Mario Rossi"></div>' +
+        '<div class="checkout-field"><label>Telefono *</label><input id="chk-tel" class="raccolta-input" type="tel" placeholder="333 1234567"></div>' +
+        '<div class="checkout-field"><label>Email *</label><input id="chk-email" class="raccolta-input" type="email" placeholder="mario@email.it"></div>' +
+        '<div class="checkout-field"><label>' + esc(luogoLabel) + ' *</label><input id="chk-luogo" class="raccolta-input" placeholder="Es. 12"></div>' +
+        (chiediOrario ? '<div class="checkout-field"><label>Orario di consegna desiderato</label><input id="chk-orario" class="raccolta-input" placeholder="Es. 13:30 oppure appena pronto"></div>' : '') +
+        '<div class="checkout-field"><label>Allergie o intolleranze</label><textarea id="chk-allergie" class="raccolta-input" style="min-height:60px;resize:vertical;" placeholder="Se non ce ne sono lascia vuoto"></textarea></div>' +
+        '<div id="chk-errore" style="color:#dc2626;font-size:13px;margin-bottom:10px;"></div>' +
+        '<button class="raccolta-btn" id="btn-paga">💳 Paga con carta e conferma ordine</button>';
+
+      document.getElementById("btn-paga").onclick = inviaOrdine;
+      document.getElementById("checkout-overlay").style.display = "flex";
+    }
+    document.getElementById("checkout-overlay").onclick = function(e) {
+      if (e.target === e.currentTarget) document.getElementById("checkout-overlay").style.display = "none";
+    };
+
+    async function inviaOrdine() {
+      var nome = document.getElementById("chk-nome").value.trim();
+      var tel = document.getElementById("chk-tel").value.trim();
+      var email = document.getElementById("chk-email").value.trim();
+      var luogo = document.getElementById("chk-luogo").value.trim();
+      var orarioEl = document.getElementById("chk-orario");
+      var orario = orarioEl ? orarioEl.value.trim() : "";
+      var allergie = document.getElementById("chk-allergie").value.trim();
+      var erroreBox = document.getElementById("chk-errore");
+
+      if (!nome || !tel || !email || !luogo) {
+        erroreBox.textContent = "Compila tutti i campi obbligatori (*).";
+        return;
+      }
+
+      var righe = Object.keys(carrello).map(function(id) {
+        var v = vociById[id];
+        return { menu_voce_id: id, nome_prodotto: v.nome, quantita: carrello[id], prezzo_unitario: v.prezzo_override || v.prezzo || 0 };
+      });
+      if (!righe.length) { erroreBox.textContent = "Il carrello è vuoto."; return; }
+
+      var btn = document.getElementById("btn-paga");
+      btn.disabled = true; btn.textContent = "⏳ Preparazione pagamento...";
+
+      try {
+        var res = await fetch(ORDINI_EDGE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            azione: "crea_ordine",
+            menu_id: menu.id,
+            cliente_nome: nome, cliente_telefono: tel, cliente_email: email,
+            luogo_consegna_label: menu.luogo_consegna_label || "Tavolo",
+            luogo_consegna_valore: luogo,
+            orario_consegna: orario,
+            allergie_note: allergie,
+            righe: righe,
+            success_url: window.location.href.split("?")[0] + "?slug=" + slug + "&ordine=ok",
+            cancel_url: window.location.href
+          })
+        });
+        var testo = await res.text();
+        var dati = JSON.parse(testo);
+        if (!dati.success) { throw new Error(dati.error || "Errore nella creazione dell'ordine"); }
+        // Redirect a Stripe Checkout per il pagamento
+        window.location.href = dati.checkout_url;
+      } catch (err) {
+        erroreBox.textContent = "Errore: " + err.message;
+        btn.disabled = false; btn.textContent = "💳 Paga con carta e conferma ordine";
+      }
+    }
 
     function showError(title, sub) {
       root.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;gap:12px;"><div style="font-size:56px;">😕</div><div style="font-size:20px;font-weight:800;">' + esc(title) + '</div><div style="font-size:13px;color:#64748b;">' + esc(sub) + '</div></div>';
