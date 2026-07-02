@@ -13,6 +13,28 @@ export async function render(container) {
           background:#f7f9fc;
         }
 
+        #stampa-schede-output{ display:none; }
+
+        @media print{
+          @page{ size:A5; margin:10mm; }
+          body *{ visibility:hidden; }
+          #stampa-schede-output, #stampa-schede-output *{ visibility:visible; }
+          #stampa-schede-output{
+            display:block;
+            position:absolute; left:0; top:0; width:100%;
+          }
+          .scheda-tavolo{
+            page-break-after:always; break-after:page;
+            padding:20px; border:2px solid #0E5A7A; border-radius:16px;
+            font-family:-apple-system,sans-serif;
+          }
+          .scheda-tavolo:last-child{ page-break-after:auto; break-after:auto; }
+          .scheda-nome{ font-size:28px; font-weight:800; color:#0E5A7A; margin-bottom:10px; }
+          .scheda-riga{ font-size:18px; margin-bottom:8px; color:#111827; }
+          .scheda-riga strong{ color:#0E5A7A; }
+          .scheda-note{ margin-top:14px; padding:12px; background:#f0f9ff; border-radius:10px; font-size:15px; }
+        }
+
         .pren-shell{
           min-height:100%;
           background:linear-gradient(180deg,#ffffff 0%,#f7f9fc 100%);
@@ -726,6 +748,7 @@ export async function render(container) {
             <input type="date" id="filtro-data" class="pren-tool-date" />
 
             <button type="button" class="pren-tool-btn" id="btn-refresh" title="Aggiorna">↻</button>
+            <button type="button" class="pren-tool-btn" id="btn-stampa-schede" title="Stampa schede tavolo">🖨️</button>
           </div>
 
           <div class="pren-inline-filter" id="stato-chips"></div>
@@ -791,6 +814,8 @@ export async function render(container) {
           <div>Messaggi</div>
         </button>
       </div>
+
+      <div id="stampa-schede-output"></div>
     </div>
   `;
 
@@ -830,9 +855,35 @@ export async function render(container) {
   renderDays();
 
   document.getElementById("btn-refresh").onclick = load;
+  document.getElementById("btn-stampa-schede").onclick = stampaSchedeTavoli;
   document.getElementById("btn-qr").onclick = () => {
     alert("Lettore QR in arrivo: qui collegheremo la scansione di sconti e promo.");
   };
+
+  function stampaSchedeTavoli() {
+    const elenco = state.prenotazioni || [];
+    if (!elenco.length) { alert("Nessuna prenotazione da stampare per i filtri attuali."); return; }
+
+    const output = document.getElementById("stampa-schede-output");
+    output.innerHTML = elenco.map((p) => {
+      const nome = escapeHtml((p.cliente_nome || p.nome_cliente || "Cliente") + (p.cognome ? " " + p.cognome : ""));
+      const coperti = Number(p.coperti) || 0;
+      const ora = p.ora ? p.ora.slice(0, 5) : "—";
+      const tavolo = p.tavoli?.nome || p.tavolo_nome || "";
+      const note = p.note ? `<div class="scheda-note">📝 ${escapeHtml(p.note)}</div>` : "";
+      return `
+        <div class="scheda-tavolo">
+          <div class="scheda-nome">${nome}</div>
+          <div class="scheda-riga">🕐 Ora: <strong>${ora}</strong></div>
+          <div class="scheda-riga">👥 Persone: <strong>${coperti}</strong></div>
+          ${tavolo ? `<div class="scheda-riga">🪑 Tavolo: <strong>${escapeHtml(tavolo)}</strong></div>` : ""}
+          ${note}
+        </div>
+      `;
+    }).join("");
+
+    window.print();
+  }
 
   document.getElementById("footer-new").onclick = () => {
     window.location.hash = "#/prenotazione-tavolo-form";
