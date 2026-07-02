@@ -52,17 +52,20 @@
     .filtro-chip{border:1.5px solid #e5e7eb;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;background:#fff;color:#374151;transition:all .15s;flex-shrink:0;}
     .filtro-chip.active{background:var(--brand);color:#fff;border-color:var(--brand);}
 
-    /* SEZIONI CATEGORIA — sempre aperte, niente accordion da cliccare */
+    /* SEZIONI CATEGORIA — accordion: chiuse, si aprono al click */
     .cat-accordion{margin:16px 0 0;background:transparent;}
-    .cat-acc-header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#9ca3af;cursor:default;}
+    .cat-acc-header{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#9ca3af;cursor:pointer;user-select:none;}
     .cat-acc-img{width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0;}
     .cat-acc-img-empty{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
     .cat-acc-info{flex:1;min-width:0;}
     .cat-acc-nome{font-size:22px;font-weight:800;color:#fff;text-align:center;flex:1;}
     .cat-acc-desc{font-size:13px;color:rgba(255,255,255,.85);margin-top:1px;}
     .cat-acc-orario{font-size:12px;font-weight:700;color:#fff;margin-top:1px;}
-    .cat-acc-right{display:none;}
-    .cat-acc-body{display:block;padding:0;}
+    .cat-acc-right{display:flex;align-items:center;flex-shrink:0;}
+    .cat-acc-arrow{font-size:20px;color:#fff;transition:transform .2s;display:inline-block;}
+    .cat-acc-arrow.open{transform:rotate(180deg);}
+    .cat-acc-body{display:none;padding:0;}
+    .cat-acc-body.open{display:block;}
 
     /* CARD PRODOTTO — foto grande a piena larghezza in alto */
     .prodotto-card{background:#fff;margin-bottom:0;overflow:hidden;display:flex;flex-direction:column;border-bottom:1px solid #e5e7eb;}
@@ -392,14 +395,15 @@
       });
       html += '</div>';
 
-      // CATEGORIE — sezioni sempre aperte, foto grande, stile "social"
+      // CATEGORIE — accordion, chiuse di default, stile "social" con foto grandi
       html += '<div id="menu-body" style="padding-bottom:8px;">';
       categorie.forEach(function(cat, idx) {
         var voci = tutteVoci[cat.id] || [];
         html += '<div class="cat-accordion" id="cat-' + cat.id + '">';
-        // HEADER categoria (barra grigia, sempre visibile, non cliccabile per aprire/chiudere)
+        // HEADER categoria (cliccabile per aprire/chiudere)
         html += '<div class="cat-acc-header" data-cat="' + cat.id + '">';
         html += '<div class="cat-acc-nome">' + esc(cat.nome) + '</div>';
+        html += '<div class="cat-acc-right"><span class="cat-acc-arrow">▼</span></div>';
         html += '</div>';
         if (cat.descrizione || cat.ora_inizio) {
           html += '<div style="text-align:center;padding:6px 12px;background:#9ca3af;">';
@@ -407,7 +411,7 @@
           if (cat.ora_inizio) html += '<div class="cat-acc-orario">⏰ ' + cat.ora_inizio + ' – ' + cat.ora_fine + '</div>';
           html += '</div>';
         }
-        // BODY — sempre visibile
+        // BODY — chiuso di default
         html += '<div class="cat-acc-body" id="body-' + cat.id + '">';
         if (!voci.length) {
           html += '<div style="color:#94a3b8;font-size:14px;padding:16px;text-align:center;">Nessuna portata disponibile</div>';
@@ -450,7 +454,6 @@
       html += '</div></div>';
 
       html += '<div class="menu-footer">Menu digitale by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
-      html += '<button class="btn-stampa-menu" id="btn-stampa-menu">🖨️ Stampa menu</button>';
 
       root.innerHTML = html;
 
@@ -507,8 +510,31 @@
         };
       });
 
-      var btnStampa = document.getElementById("btn-stampa-menu");
-      if (btnStampa) btnStampa.onclick = function() { window.print(); };
+      // BIND ACCORDION — click header apre/chiude la categoria (solo quella cliccata)
+      document.querySelectorAll(".cat-acc-header").forEach(function(hdr) {
+        hdr.onclick = function() {
+          var catId = hdr.dataset.cat;
+          var body = document.getElementById("body-" + catId);
+          var arrow = hdr.querySelector(".cat-acc-arrow");
+          var isOpen = body.classList.contains("open");
+          if (isOpen) {
+            body.classList.remove("open");
+            arrow.classList.remove("open");
+          } else {
+            body.classList.add("open");
+            arrow.classList.add("open");
+            evidenziaCategoria(catId);
+          }
+        };
+      });
+
+      // Auto-stampa: SOLO se il link arriva dal pannello admin con ?print=1
+      // (i clienti sulla pagina pubblica non hanno mai questo parametro né
+      // vedono un pulsante di stampa — evita che tutti stampino per sbaglio)
+      if (params.get("print") === "1") {
+        document.querySelectorAll(".cat-acc-body").forEach(function(b){ b.classList.add("open"); });
+        setTimeout(function(){ window.print(); }, 400);
+      }
 
       // SCROLL → aggiorna nav e punti in base a quale sezione è visibile
       window.addEventListener("scroll", aggiornaNavScroll, { passive:true });
