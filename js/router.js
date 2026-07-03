@@ -58,6 +58,7 @@ const routes = {
 
   creaAzienda: () => import("./views/crea-azienda.js"),
   gestioneAziende: () => import("./views/gestione-aziende.js"),
+  gestioneWeddingPlanner: () => import("./views/gestione-wedding-planner.js"),
   modificaAzienda: () => import("./views/modifica-azienda.js"),
   gestionePiani: () => import("./views/gestione-piani.js"),
 
@@ -218,6 +219,7 @@ const PUBLIC_ROUTES = new Set([
 const PLATFORM_ROUTES = new Set([
   "homePiattaforma",
   "gestioneAziende",
+  "gestioneWeddingPlanner",
   "creaAzienda",
   "modificaAzienda",
   "gestionePiani",
