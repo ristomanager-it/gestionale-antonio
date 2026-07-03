@@ -98,6 +98,7 @@ const routes = {
   dipendenti: () => import("./views/dipendenti.js?v=2"),
   dipendente: () => import("./views/dipendente.js"),
   "crea-dipendente": () => import("./views/crea-dipendente.js?v=2"),
+  "bo-agenzie": () => import("./views/bo/bo-agenzie.js"),
   timbrature: () => import("./views/timbrature.js"),
 
   completaProfilo: () => import("./views/completa-profilo.js"),
@@ -549,6 +550,9 @@ const routePermissions = {
     "dipendenti.read",
 
   "crea-dipendente":
+    "dipendenti.write",
+
+  "bo-agenzie":
     "dipendenti.write",
 
   "timbrature-consulente":
@@ -1459,6 +1463,7 @@ const ROUTE_FEATURES = {
   "bo-presenze":     "hr_timbrature",
   "dipendenti":      "dipendenti",
   "crea-dipendente": "dipendenti",
+  "bo-agenzie":      "dipendenti",
   "hr-admin":        "dipendenti",
   "fascicolo-hr":    "dipendenti",
 
