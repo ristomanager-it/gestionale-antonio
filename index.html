@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0E5A7A" />
 
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=17" />
 
 </head>
 
@@ -159,6 +159,30 @@
       }[c]));
     }
 
+    function positionSedeDropdown() {
+      const dropdown = document.getElementById("sede-dropdown");
+      const trigger = document.getElementById("header-sede-trigger");
+      if (!dropdown || !trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const margin = 14;
+      const maxWidth = window.innerWidth - (margin * 2);
+
+      let left = rect.left;
+      let width = Math.min(280, maxWidth);
+
+      if (left + width > window.innerWidth - margin) {
+        left = window.innerWidth - margin - width;
+      }
+      if (left < margin) {
+        left = margin;
+      }
+
+      dropdown.style.left = left + "px";
+      dropdown.style.top = (rect.bottom + 8) + "px";
+      dropdown.style.width = width + "px";
+    }
+
     function closeSedeDropdown() {
       const dropdown = document.getElementById("sede-dropdown");
       const overlay = document.getElementById("sede-dropdown-overlay");
@@ -172,6 +196,7 @@
       const dropdown = document.getElementById("sede-dropdown");
       const overlay = document.getElementById("sede-dropdown-overlay");
       const trigger = document.getElementById("header-sede-trigger");
+      positionSedeDropdown();
       if (dropdown) dropdown.classList.add("open");
       if (overlay) overlay.classList.add("open");
       if (trigger) trigger.setAttribute("aria-expanded", "true");
@@ -278,7 +303,7 @@
   <!-- ROUTER (MODULE) -->
   <script
     type="module"
-    src="js/router.js?v=16"
+    src="js/router.js?v=17"
   ></script>
 
 </body>
