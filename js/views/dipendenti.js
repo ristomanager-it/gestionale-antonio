@@ -329,7 +329,10 @@ async function caricaDipendenti() {
       attivo,
       created_at,
       reparto_id,
-      user_id
+      user_id,
+      tipo_contratto,
+      agenzia_nome,
+      costo_orario_agenzia
     `)
     .eq("azienda_id", azienda.id)
     .in("user_id", userIds)
@@ -439,12 +442,20 @@ async function caricaDipendenti() {
       .filter(Boolean)
       .join(", ") || "-";
 
+  const isAgenzia = d.tipo_contratto === "agenzia";
+  const badgeAgenzia = isAgenzia
+    ? `<span title="${escapeHtml(d.agenzia_nome || 'Agenzia')}" style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:8px;background:#f3e8ff;color:#7c3aed;font-size:10px;font-weight:700;vertical-align:middle;">🏢 AGENZIA</span>`
+    : "";
+  const costoVisualizzato = isAgenzia
+    ? (typeof d.costo_orario_agenzia === "number" ? d.costo_orario_agenzia.toFixed(2) + " (ag.)" : "-")
+    : (typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-");
+
   tbody.innerHTML += `
   <tr>
-    <td>${escapeHtml(nomeCompleto)}</td>
+    <td>${escapeHtml(nomeCompleto)}${badgeAgenzia}</td>
     <td>${escapeHtml(repartoNome)}</td>
     <td>${escapeHtml(d.mansione || "-")}</td>
-    <td>${typeof d.costo_orario === "number" ? d.costo_orario.toFixed(2) : "-"}</td>
+    <td>${costoVisualizzato}</td>
     <td>${escapeHtml(d.costo_medio || "-")}</td>
     <td>${escapeHtml(d.email || "-")}</td>
     <td>${escapeHtml(ruolo)}</td>
