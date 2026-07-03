@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js";
+import { initMenu } from "./menu.js?v=2";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -48,9 +48,9 @@ const routes = {
   "s": () => import("./views/short-link-redirect.js"),
   "bo-shortlink": () => import("./views/bo/bo-shortlink.js"),
 
-  "home-admin": () => import("./views/home-admin.js"),
-  "home-manager": () => import("./views/home-manager.js"),
-  "home-operatore": () => import("./views/home-operatore.js"),
+  "home-admin": () => import("./views/home-admin.js?v=2"),
+  "home-manager": () => import("./views/home-manager.js?v=2"),
+  "home-operatore": () => import("./views/home-operatore.js?v=2"),
 
   homePiattaforma: () => import("./views/home-piattaforma.js"),
   "home-agente": () => import("./views/home-agente.js"),
@@ -1631,3 +1631,4 @@ window.addEventListener("DOMContentLoaded", () => {
 
   resolve();
 });
+
