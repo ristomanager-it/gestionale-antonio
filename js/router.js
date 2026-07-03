@@ -101,6 +101,7 @@ const routes = {
   "bo-agenzie": () => import("./views/bo/bo-agenzie.js"),
   "bo-location-ricevimenti": () => import("./views/bo/bo-location-ricevimenti.js"),
   timbrature: () => import("./views/timbrature.js"),
+  "planning-lavoro": () => import("./views/planning-lavoro.js"),
 
   completaProfilo: () => import("./views/completa-profilo.js"),
   profilo: () => import("./views/completa-profilo.js"),
@@ -490,6 +491,7 @@ function hasPermission(area) {
 
       // Timbrature e profilo
       "timbrature",
+      "planning-lavoro",
       "profilo",
       "completa-profilo",
 
