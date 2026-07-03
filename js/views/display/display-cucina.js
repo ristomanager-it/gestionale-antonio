@@ -143,6 +143,17 @@ export async function render(container) {
         `).join('')}
       </div>
 
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;padding:10px;background:#0f172a;border:1px solid #334155;border-radius:10px;">
+        <span style="color:#94a3b8;font-size:12px;font-weight:600;white-space:nowrap;">Durata libera</span>
+        <input id="custom-timer-min" type="number" min="0" max="180" placeholder="min" class="input"
+          style="width:56px;padding:8px 6px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:white;font-size:14px;text-align:center;">
+        <span style="color:#64748b;font-size:13px;">′</span>
+        <input id="custom-timer-sec" type="number" min="0" max="59" placeholder="sec" class="input"
+          style="width:56px;padding:8px 6px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:white;font-size:14px;text-align:center;">
+        <span style="color:#64748b;font-size:13px;">″</span>
+        <button id="btn-timer-custom-start" style="flex:1;background:#7c3aed;color:white;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:13px;font-weight:700;">▶ Avvia</button>
+      </div>
+
       <div id="timer-manuali-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
   </div>
@@ -660,6 +671,35 @@ export async function render(container) {
       renderTimerManuali();
       avviaTickManuale();
     };
+  });
+
+  container.querySelector('#btn-timer-custom-start').onclick = () => {
+    const minInput = container.querySelector('#custom-timer-min');
+    const secInput = container.querySelector('#custom-timer-sec');
+    const nomeInput = container.querySelector('#nuovo-timer-nome');
+    const min = Number(minInput.value) || 0;
+    const sec = Number(secInput.value) || 0;
+    const secondiTotali = (min * 60) + sec;
+    if (secondiTotali <= 0) { minInput.focus(); return; }
+    const label = nomeInput.value.trim() || (min > 0 ? `${min}′${sec ? ' ' + sec + '″' : ''}` : `${sec}″`);
+    timersManuali.push({
+      id: 'tm_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      label,
+      secondiTotali,
+      secondiRimanenti: secondiTotali,
+      running: true,
+      scaduto: false,
+    });
+    nomeInput.value = '';
+    minInput.value = '';
+    secInput.value = '';
+    renderTimerManuali();
+    avviaTickManuale();
+  };
+  ['#custom-timer-min', '#custom-timer-sec'].forEach(sel => {
+    container.querySelector(sel).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') container.querySelector('#btn-timer-custom-start').click();
+    });
   });
 
   function renderTimerManuali() {
