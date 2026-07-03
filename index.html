@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0E5A7A" />
 
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=16" />
 
 </head>
 
@@ -54,7 +54,7 @@
   </header>
 
   <div id="sede-dropdown-overlay" class="sede-dropdown-overlay"></div>
-  <div id="sede-dropdown" class="sede-dropdown" role="listbox" hidden></div>
+  <div id="sede-dropdown" class="sede-dropdown" role="listbox"></div>
 
   <div id="page-subheader"></div>
 
@@ -163,7 +163,7 @@
       const dropdown = document.getElementById("sede-dropdown");
       const overlay = document.getElementById("sede-dropdown-overlay");
       const trigger = document.getElementById("header-sede-trigger");
-      if (dropdown) dropdown.hidden = true;
+      if (dropdown) dropdown.classList.remove("open");
       if (overlay) overlay.classList.remove("open");
       if (trigger) trigger.setAttribute("aria-expanded", "false");
     }
@@ -172,7 +172,7 @@
       const dropdown = document.getElementById("sede-dropdown");
       const overlay = document.getElementById("sede-dropdown-overlay");
       const trigger = document.getElementById("header-sede-trigger");
-      if (dropdown) dropdown.hidden = false;
+      if (dropdown) dropdown.classList.add("open");
       if (overlay) overlay.classList.add("open");
       if (trigger) trigger.setAttribute("aria-expanded", "true");
     }
@@ -239,7 +239,7 @@
           const dropdown = document.getElementById("sede-dropdown");
           if (!window.state?.sedi || window.state.sedi.length <= 1) return;
           renderSedeSelector();
-          if (dropdown && dropdown.hidden) {
+          if (dropdown && !dropdown.classList.contains("open")) {
             openSedeDropdown();
           } else {
             closeSedeDropdown();
@@ -254,7 +254,7 @@
       // aggiorna la tendina periodicamente se le sedi vengono caricate dopo l'avvio
       setInterval(() => {
         const dropdown = document.getElementById("sede-dropdown");
-        if (dropdown && dropdown.hidden) renderSedeSelector();
+        if (dropdown && !dropdown.classList.contains("open")) renderSedeSelector();
       }, 3000);
 
     });
@@ -278,7 +278,7 @@
   <!-- ROUTER (MODULE) -->
   <script
     type="module"
-    src="js/router.js?v=15"
+    src="js/router.js?v=16"
   ></script>
 
 </body>
