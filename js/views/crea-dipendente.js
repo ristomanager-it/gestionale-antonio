@@ -303,6 +303,13 @@ export async function render(container) {
     .eq("azienda_id", azienda.id)
     .order("nome", { ascending: true });
 
+  const { data: agenzie } = await supabase
+    .from("agenzie")
+    .select("id, nome")
+    .eq("azienda_id", azienda.id)
+    .eq("attivo", true)
+    .order("nome", { ascending: true });
+
   if (repartiError || sediError) {
     container.innerHTML = `
       <div class="view">
@@ -451,12 +458,24 @@ export async function render(container) {
 
           <div id="blocco-agenzia" style="display:none;">
             <div class="form-group">
-              <label>Nome agenzia</label>
+              <label>
+                Agenzia
+                <a href="#/bo-agenzie" style="float:right;font-size:12px;font-weight:600;color:#7c3aed;text-decoration:none;">Gestisci agenzie →</a>
+              </label>
+
+              <select id="agenzia-id" class="input">
+                <option value="">Seleziona agenzia</option>
+                ${(agenzie || []).map(a => `
+                  <option value="${a.id}">${a.nome}</option>
+                `).join("")}
+                <option value="__nuova__">➕ Nuova agenzia...</option>
+              </select>
 
               <input
-                id="agenzia-nome"
+                id="agenzia-nome-nuova"
                 class="input"
-                placeholder="es. JobCafè Staffing srl"
+                placeholder="Nome della nuova agenzia"
+                style="display:none;margin-top:8px;"
               >
             </div>
 
@@ -578,6 +597,13 @@ export async function render(container) {
     ?.addEventListener("change", toggleBloccoAgenzia);
 
   document
+    .getElementById("agenzia-id")
+    ?.addEventListener("change", (e) => {
+      const nuovoInput = document.getElementById("agenzia-nome-nuova");
+      if (nuovoInput) nuovoInput.style.display = e.target.value === "__nuova__" ? "block" : "none";
+    });
+
+  document
     .getElementById("tipo-compenso")
     ?.addEventListener("change", calcolaCostoOrario);
 
@@ -644,9 +670,14 @@ export async function render(container) {
     const pin =
       document.getElementById("dip-pin")?.value.trim() || null;
 
-    const agenzia_nome =
+    const agenziaSelezionata =
       tipo_contratto === "agenzia"
-        ? document.getElementById("agenzia-nome")?.value.trim() || null
+        ? document.getElementById("agenzia-id")?.value || null
+        : null;
+
+    const agenziaNomeNuova =
+      agenziaSelezionata === "__nuova__"
+        ? document.getElementById("agenzia-nome-nuova")?.value.trim() || null
         : null;
 
     const costo_orario_agenzia =
@@ -663,10 +694,19 @@ export async function render(container) {
       return;
     }
 
-    if (tipo_contratto === "agenzia" && !agenzia_nome) {
+    if (tipo_contratto === "agenzia" && !agenziaSelezionata) {
       msg.innerHTML = `
         <span style="color:#dc2626;">
-          Indica il nome dell'agenzia
+          Seleziona o crea un'agenzia
+        </span>
+      `;
+      return;
+    }
+
+    if (agenziaSelezionata === "__nuova__" && !agenziaNomeNuova) {
+      msg.innerHTML = `
+        <span style="color:#dc2626;">
+          Indica il nome della nuova agenzia
         </span>
       `;
       return;
@@ -710,6 +750,29 @@ export async function render(container) {
         );
       }
 
+      // Se è stata scelta "nuova agenzia", la creo prima nell'anagrafica
+      let agenzia_id = agenziaSelezionata;
+      let agenzia_nome = null;
+      if (tipo_contratto === "agenzia") {
+        if (agenziaSelezionata === "__nuova__") {
+          const { data: nuovaAg, error: nuovaAgErr } = await supabase
+            .from("agenzie")
+            .insert({ nome: agenziaNomeNuova, azienda_id: azienda.id, attivo: true })
+            .select()
+            .single();
+          if (nuovaAgErr) throw nuovaAgErr;
+          agenzia_id = nuovaAg.id;
+          agenzia_nome = nuovaAg.nome;
+        } else if (agenziaSelezionata) {
+          const { data: agSel } = await supabase
+            .from("agenzie")
+            .select("nome")
+            .eq("id", agenziaSelezionata)
+            .single();
+          agenzia_nome = agSel?.nome || null;
+        }
+      }
+
       const payload = {
         nome,
         cognome,
@@ -729,6 +792,7 @@ export async function render(container) {
         costo_orario,
         turni,
         pin,
+        agenzia_id,
         agenzia_nome,
         costo_orario_agenzia,
         azienda_id: azienda.id
