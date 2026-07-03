@@ -107,18 +107,16 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function() {
-  const SUPABASE_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
-  const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  const API_URL = SUPABASE_URL + "/functions/v1/location-operatore-api";
 
   const params = new URLSearchParams(window.location.search);
   const token  = params.get('token');
 
-  let accesso = null;
-  let location_ = null;
+  let pinVerificato = null; // memorizzato solo in memoria di sessione, mai in localStorage
+  let locationInfo = null;
   let pinInserito = '';
 
   const STATI = {
@@ -144,26 +142,18 @@
     return new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric', weekday:'short' });
   }
 
+  async function chiamaApi(payload) {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS complesso, coerente col resto della piattaforma
+      body: JSON.stringify({ token, pin: pinVerificato, ...payload })
+    });
+    return res.json();
+  }
+
   async function init() {
     if (!token) { showError('Link non valido: token mancante'); return; }
-
-    const { data, error } = await supa
-      .from('location_accessi')
-      .select('id, pin, referente_nome, attivo, location_id')
-      .eq('token_accesso', token)
-      .maybeSingle();
-
-    if (error || !data || data.attivo === false) { showError('Accesso non valido o disattivato'); return; }
-    accesso = data;
-
-    const { data: loc } = await supa
-      .from('location_ricevimenti')
-      .select('id, nome, azienda_id')
-      .eq('id', accesso.location_id)
-      .single();
-    location_ = loc;
-
-    document.getElementById('login-nome').textContent = (accesso.referente_nome ? accesso.referente_nome + ' — ' : '') + (location_?.nome || '');
+    document.getElementById('login-nome').textContent = 'Inserisci il PIN';
     renderPinPad();
   }
 
@@ -198,11 +188,20 @@
     document.getElementById('pin-error').textContent = '';
   }
 
-  function verificaPin() {
-    if (pinInserito === accesso.pin) {
-      entraApp();
+  async function verificaPin() {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'login', token, pin: pinInserito })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      pinVerificato = pinInserito;
+      locationInfo = data.location;
+      entraApp(data.referente_nome);
     } else {
-      document.getElementById('pin-error').textContent = '❌ PIN non corretto';
+      document.getElementById('pin-error').textContent = '❌ ' + (data.error || 'PIN non corretto');
       for (let i = 0; i < 4; i++) document.getElementById('dot-' + i).classList.add('error');
       setTimeout(() => { pinInserito = ''; aggiornaDots(); }, 500);
     }
@@ -211,26 +210,23 @@
   function entraApp() {
     document.getElementById('screen-login').classList.remove('active');
     document.getElementById('screen-app').classList.add('active');
-    document.getElementById('op-nome-header').textContent = location_?.nome || 'Location';
+    document.getElementById('op-nome-header').textContent = locationInfo?.nome || 'Location';
     caricaPrenotazioni();
   }
 
   async function caricaPrenotazioni() {
-    const oggi = new Date().toISOString().slice(0, 10);
-    const { data } = await supa
-      .from('location_prenotazioni')
-      .select('*')
-      .eq('location_id', accesso.location_id)
-      .gte('data_evento', oggi)
-      .order('data_evento');
-
+    const data = await chiamaApi({ action: 'list_prenotazioni' });
     const box = document.getElementById('lista-prenotazioni');
-    if (!data || !data.length) {
+
+    if (!data.success) { toast('Errore: ' + data.error); return; }
+
+    const prenotazioni = data.prenotazioni || [];
+    if (!prenotazioni.length) {
       box.innerHTML = '<div class="empty-state"><div style="font-size:40px;margin-bottom:8px;">📭</div>Nessuna data registrata</div>';
       return;
     }
 
-    box.innerHTML = data.map(p => {
+    box.innerHTML = prenotazioni.map(p => {
       const s = STATI[p.stato] || STATI.opzione;
       return `
         <div class="pren-card">
@@ -253,9 +249,9 @@
 
     box.querySelectorAll('[data-stato]').forEach(btn => {
       btn.onclick = async () => {
-        await supa.from('location_prenotazioni').update({ stato: btn.dataset.stato }).eq('id', btn.dataset.id);
-        toast('✅ Aggiornato');
-        caricaPrenotazioni();
+        const res = await chiamaApi({ action: 'update_stato', prenotazione_id: btn.dataset.id, nuovo_stato: btn.dataset.stato });
+        if (res.success) { toast('✅ Aggiornato'); caricaPrenotazioni(); }
+        else toast('Errore: ' + res.error);
       };
     });
   }
@@ -264,16 +260,16 @@
     const data_evento = document.getElementById('pren-data').value;
     if (!data_evento) { toast('Seleziona una data'); return; }
 
-    await supa.from('location_prenotazioni').insert({
-      location_id: accesso.location_id,
-      azienda_id: location_?.azienda_id,
+    const res = await chiamaApi({
+      action: 'add_prenotazione',
       data_evento,
       stato: document.getElementById('pren-stato').value,
       cliente_nome: document.getElementById('pren-cliente').value.trim() || null,
       num_invitati: parseInt(document.getElementById('pren-invitati').value) || null,
       note: document.getElementById('pren-note').value.trim() || null,
-      creato_da: 'location',
     });
+
+    if (!res.success) { toast('Errore: ' + res.error); return; }
 
     document.getElementById('pren-data').value = '';
     document.getElementById('pren-cliente').value = '';
