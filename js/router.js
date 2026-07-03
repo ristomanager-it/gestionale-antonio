@@ -99,6 +99,7 @@ const routes = {
   dipendente: () => import("./views/dipendente.js"),
   "crea-dipendente": () => import("./views/crea-dipendente.js?v=3"),
   "bo-agenzie": () => import("./views/bo/bo-agenzie.js"),
+  "bo-location-ricevimenti": () => import("./views/bo/bo-location-ricevimenti.js"),
   timbrature: () => import("./views/timbrature.js"),
 
   completaProfilo: () => import("./views/completa-profilo.js"),
@@ -554,6 +555,9 @@ const routePermissions = {
 
   "bo-agenzie":
     "dipendenti.write",
+
+  "bo-location-ricevimenti":
+    "prenotazioni.write",
 
   "timbrature-consulente":
     "dipendenti.read",
@@ -1469,6 +1473,7 @@ const ROUTE_FEATURES = {
 
   // Prenotazioni avanzate
   "booking-form-builder": "prenotazioni_avanzate",
+  "bo-location-ricevimenti": "prenotazioni_avanzate",
 
   // Multi-sede
   "gestione-aziende": null, // solo superadmin, già gestito
