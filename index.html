@@ -49,11 +49,7 @@
       </button>
     </div>
 
-    <div id="header-right" class="header-right">
-      <div id="header-saluto" class="header-chip hide-mobile"></div>
-      <div id="header-data" class="header-chip"></div>
-      <div id="header-meteo" class="header-chip hide-mobile"></div>
-    </div>
+    <div id="header-right" class="header-right"></div>
 
   </header>
 
@@ -106,14 +102,10 @@
 
         const azienda = window.state?.azienda || null;
         const sede = window.state?.sedeAttiva || null;
-        const user = window.state?.user || null;
 
         const logo = document.getElementById("header-logo");
         const nomeEl = document.getElementById("header-location-name");
         const metaEl = document.getElementById("header-location-meta");
-        const salutoEl = document.getElementById("header-saluto");
-        const dataEl = document.getElementById("header-data");
-        const meteoEl = document.getElementById("header-meteo");
 
         if (logo) {
 
@@ -148,71 +140,6 @@
           } else {
 
             metaEl.textContent = "";
-
-          }
-
-        }
-
-        if (salutoEl) {
-
-          if (user?.email) {
-
-            const nomeUser =
-              user.email.split("@")[0] || "utente";
-
-            const ora = new Date().getHours();
-
-            let saluto = "Ciao";
-
-            if (ora < 12) {
-              saluto = "Buongiorno";
-            } else if (ora < 18) {
-              saluto = "Buon pomeriggio";
-            } else {
-              saluto = "Buonasera";
-            }
-
-            salutoEl.textContent =
-              `${saluto}, ${nomeUser}`;
-
-          } else {
-
-            salutoEl.textContent = "";
-
-          }
-
-        }
-
-        if (dataEl) {
-
-          const oggi = new Date();
-
-          dataEl.textContent = oggi.toLocaleDateString(
-            "it-IT",
-            {
-              weekday: "short",
-              day: "2-digit",
-              month: "short"
-            }
-          );
-
-        }
-
-        if (meteoEl) {
-
-          if (typeof window.getWeather === "function") {
-
-            window.getWeather()
-              .then((res) => {
-                meteoEl.innerHTML = res || "";
-              })
-              .catch(() => {
-                meteoEl.textContent = "";
-              });
-
-          } else {
-
-            meteoEl.textContent = "";
 
           }
 
@@ -351,7 +278,7 @@
   <!-- ROUTER (MODULE) -->
   <script
     type="module"
-    src="js/router.js?v=14"
+    src="js/router.js?v=15"
   ></script>
 
 </body>
