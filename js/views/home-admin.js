@@ -244,8 +244,6 @@ export async function render(container) {
         </div>
       </div>
     </section>
-
-    ${renderTony()}
   </div>
 
   <style>
@@ -556,24 +554,6 @@ export async function render(container) {
       line-height:1.1;
     }
 
-    .tony-avatar{
-      position:fixed;
-      right:18px;
-      bottom:90px;
-      width:56px;
-      height:56px;
-      border-radius:50%;
-      background:var(--color-primary);
-      color:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:24px;
-      cursor:pointer;
-      box-shadow:0 10px 24px rgba(14,90,122,0.28);
-      z-index:60;
-    }
-
     @media (max-width: 1100px){
       .home-grid{
         grid-template-columns:1fr;
@@ -609,13 +589,6 @@ export async function render(container) {
 
       .admin-sales-value-card{
         min-width:92px;
-      }
-
-      .tony-avatar{
-        width:52px;
-        height:52px;
-        right:14px;
-        bottom:84px;
       }
     }
   </style>
@@ -1104,11 +1077,7 @@ function renderSalesList() {
    TONY
 ========================================================= */
 
-function renderTony() {
-  return `
-    <div class="tony-avatar" onclick="location.hash='#/ai'">🤖</div>
-  `;
-}
+
 
 /* =========================================================
    METEO
@@ -1260,3 +1229,4 @@ function escapeHtml(str) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
