@@ -400,6 +400,22 @@ export async function render(container) {
             >
           </div>
 
+          <div class="form-group">
+            <label>PIN accesso app (4 cifre)</label>
+
+            <input
+              id="dip-pin"
+              class="input"
+              inputmode="numeric"
+              pattern="[0-9]{4}"
+              maxlength="4"
+              placeholder="es. 4821"
+            >
+            <div class="small-muted" style="margin-top:4px;">
+              Usato per timbrature, comande e mansionario. Lascia vuoto per assegnarlo dopo.
+            </div>
+          </div>
+
         </div>
 
         <div class="card" style="margin-top:20px;">
@@ -419,6 +435,7 @@ export async function render(container) {
               <option value="part_time">Part time</option>
               <option value="full_time">Full time</option>
               <option value="apprendistato">Apprendistato</option>
+              <option value="agenzia">Agenzia (personale esterno)</option>
             </select>
           </div>
 
@@ -430,6 +447,31 @@ export async function render(container) {
               class="input"
               placeholder="es. Pubblici esercizi"
             >
+          </div>
+
+          <div id="blocco-agenzia" style="display:none;">
+            <div class="form-group">
+              <label>Nome agenzia</label>
+
+              <input
+                id="agenzia-nome"
+                class="input"
+                placeholder="es. JobCafè Staffing srl"
+              >
+            </div>
+
+            <div class="form-group">
+              <label>Costo orario fatturato dall'agenzia (€)</label>
+
+              <input
+                id="costo-orario-agenzia"
+                class="input"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="es. 18.50"
+              >
+            </div>
           </div>
 
           <div class="form-group">
@@ -525,6 +567,16 @@ export async function render(container) {
 
   renderTurni();
 
+  function toggleBloccoAgenzia() {
+    const tipo = document.getElementById("tipo-contratto")?.value;
+    const blocco = document.getElementById("blocco-agenzia");
+    if (blocco) blocco.style.display = tipo === "agenzia" ? "block" : "none";
+  }
+  toggleBloccoAgenzia();
+  document
+    .getElementById("tipo-contratto")
+    ?.addEventListener("change", toggleBloccoAgenzia);
+
   document
     .getElementById("tipo-compenso")
     ?.addEventListener("change", calcolaCostoOrario);
@@ -589,6 +641,37 @@ export async function render(container) {
     const costo_orario =
       parseFloat(document.getElementById("costo-orario").value) || 0;
 
+    const pin =
+      document.getElementById("dip-pin")?.value.trim() || null;
+
+    const agenzia_nome =
+      tipo_contratto === "agenzia"
+        ? document.getElementById("agenzia-nome")?.value.trim() || null
+        : null;
+
+    const costo_orario_agenzia =
+      tipo_contratto === "agenzia"
+        ? parseFloat(document.getElementById("costo-orario-agenzia")?.value) || null
+        : null;
+
+    if (pin && !/^[0-9]{4}$/.test(pin)) {
+      msg.innerHTML = `
+        <span style="color:#dc2626;">
+          Il PIN deve essere di 4 cifre numeriche
+        </span>
+      `;
+      return;
+    }
+
+    if (tipo_contratto === "agenzia" && !agenzia_nome) {
+      msg.innerHTML = `
+        <span style="color:#dc2626;">
+          Indica il nome dell'agenzia
+        </span>
+      `;
+      return;
+    }
+
     const turni =
       window.state?.creaDipendente?.turni ||
       getTurniDefault();
@@ -645,6 +728,9 @@ export async function render(container) {
         costo_medio,
         costo_orario,
         turni,
+        pin,
+        agenzia_nome,
+        costo_orario_agenzia,
         azienda_id: azienda.id
       };
 
