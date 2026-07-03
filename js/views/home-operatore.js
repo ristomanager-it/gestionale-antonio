@@ -192,13 +192,6 @@ export async function render(container){
 
     </div>
 
-    <!-- 🤖 -->
-    <div
-      class="tony-avatar"
-      onclick="location.hash='#/ai'"
-    >
-      🤖
-    </div>
 
   </div>
 
@@ -278,24 +271,6 @@ export async function render(container){
   .action:active{
     transform:scale(0.97);
     opacity:0.7;
-  }
-
-  .tony-avatar{
-    position:fixed;
-    right:18px;
-    bottom:90px;
-    width:56px;
-    height:56px;
-    border-radius:50%;
-    background:#0ea5e9;
-    color:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:24px;
-    box-shadow:0 10px 24px rgba(14,165,233,0.28);
-    z-index:50;
-    cursor:pointer;
   }
 
   @media (max-width:767px){
@@ -386,3 +361,4 @@ function initActions(){
     });
 
 }
+
