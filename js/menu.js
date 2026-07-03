@@ -332,6 +332,7 @@ export function initMenu() {
         items: [
           { label: "🖥️ Dashboard SaaS",    route: "homePiattaforma" },
           { label: "🏢 Gestione Aziende",  route: "gestioneAziende" },
+          { label: "💍 Wedding Planner",   route: "gestioneWeddingPlanner" },
           { label: "➕ Crea Azienda",      route: "creaAzienda"     },
           { label: "💳 Piani Abbonamento", route: "gestionePiani"   },
         ]
