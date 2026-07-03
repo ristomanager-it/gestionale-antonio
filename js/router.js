@@ -50,7 +50,7 @@ const routes = {
 
   "home-admin": () => import("./views/home-admin.js?v=2"),
   "home-manager": () => import("./views/home-manager.js?v=2"),
-  "home-operatore": () => import("./views/home-operatore.js?v=2"),
+  "home-operatore": () => import("./views/home-operatore.js?v=3"),
 
   homePiattaforma: () => import("./views/home-piattaforma.js"),
   "home-agente": () => import("./views/home-agente.js"),
