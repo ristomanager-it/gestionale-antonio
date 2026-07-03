@@ -97,7 +97,7 @@ const routes = {
 
   dipendenti: () => import("./views/dipendenti.js?v=2"),
   dipendente: () => import("./views/dipendente.js"),
-  "crea-dipendente": () => import("./views/crea-dipendente.js?v=2"),
+  "crea-dipendente": () => import("./views/crea-dipendente.js?v=3"),
   "bo-agenzie": () => import("./views/bo/bo-agenzie.js"),
   timbrature: () => import("./views/timbrature.js"),
 
