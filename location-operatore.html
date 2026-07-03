@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Location — Ristoflow</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    body { font-family:system-ui,-apple-system,sans-serif; background:#f0f4f8; color:#1e293b; min-height:100vh; font-size:16px; }
+    .screen { display:none; min-height:100vh; }
+    .screen.active { display:flex; flex-direction:column; }
+
+    /* LOGIN */
+    .login-wrap { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+    .login-logo { width:80px; height:80px; background:linear-gradient(135deg,#7c3aed,#a855f7); border-radius:24px; display:flex; align-items:center; justify-content:center; font-size:36px; margin-bottom:20px; box-shadow:0 8px 24px rgba(124,58,237,.3); }
+    .login-titolo { font-size:22px; font-weight:800; margin-bottom:4px; text-align:center; }
+    .login-sub { font-size:14px; color:#64748b; margin-bottom:32px; text-align:center; }
+    .login-nome { font-size:18px; font-weight:700; color:#7c3aed; margin-bottom:24px; text-align:center; min-height:24px; }
+    .pin-display { display:flex; gap:12px; justify-content:center; margin-bottom:28px; }
+    .pin-dot { width:18px; height:18px; border-radius:50%; background:#e2e8f0; transition:background .15s; }
+    .pin-dot.filled { background:#7c3aed; }
+    .pin-dot.error { background:#dc2626; }
+    .pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:100%; max-width:300px; }
+    .pin-btn { background:white; border:none; border-radius:16px; padding:18px; font-size:22px; font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.08); color:#1e293b; }
+    .pin-btn:active { transform:scale(.94); }
+    .pin-btn.del { font-size:18px; color:#64748b; }
+    .pin-error { color:#dc2626; font-size:13px; font-weight:600; text-align:center; min-height:20px; margin-bottom:12px; }
+
+    /* HEADER */
+    .op-header { background:linear-gradient(135deg,#7c3aed,#a855f7); color:white; padding:16px 20px; }
+    .op-nome { font-weight:700; font-size:16px; }
+    .op-sub { font-size:12px; opacity:.85; margin-top:2px; }
+
+    .op-content { flex:1; overflow-y:auto; padding:16px; padding-bottom:32px; }
+
+    .card { background:white; border-radius:14px; padding:14px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+    .form-group label { font-size:12px; font-weight:600; color:#64748b; display:block; margin-bottom:4px; }
+    .input { width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:16px; margin-bottom:10px; box-sizing:border-box; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .btn { border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; width:100%; }
+    .btn-primary { background:#7c3aed; color:white; }
+
+    .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+
+    .pren-card { border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+    .pren-row { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+    .stato-btns { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
+    .stato-btn { border:none; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:700; cursor:pointer; }
+
+    .empty-state { text-align:center; padding:40px 20px; color:#94a3b8; }
+    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1e293b; color:white; padding:12px 20px; border-radius:12px; font-size:14px; font-weight:600; z-index:9999; opacity:0; transition:opacity .3s; }
+    .toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+
+<!-- SCREEN: LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="login-wrap">
+    <div class="login-logo">📍</div>
+    <div class="login-titolo">Ristoflow Location</div>
+    <div class="login-sub">Accesso referente</div>
+    <div class="login-nome" id="login-nome">Caricamento...</div>
+    <div class="pin-display" id="pin-display">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-pad" id="pin-pad"></div>
+  </div>
+</div>
+
+<!-- SCREEN: APP -->
+<div id="screen-app" class="screen">
+  <div class="op-header">
+    <div class="op-nome" id="op-nome-header">Location</div>
+    <div class="op-sub">Calendario disponibilità</div>
+  </div>
+
+  <div class="op-content">
+    <div class="card">
+      <h3 style="margin-bottom:10px;font-size:15px;">➕ Segna una data</h3>
+      <div class="form-group"><label>Data</label><input id="pren-data" type="date" class="input"></div>
+      <div class="grid2">
+        <div class="form-group"><label>Stato</label>
+          <select id="pren-stato" class="input">
+            <option value="opzione">Opzione</option>
+            <option value="confermata">Confermata</option>
+            <option value="bloccata">Bloccata</option>
+          </select>
+        </div>
+        <div class="form-group"><label>N. invitati</label><input id="pren-invitati" type="number" min="0" class="input"></div>
+      </div>
+      <div class="form-group"><label>Cliente / evento</label><input id="pren-cliente" class="input" placeholder="es. Sposi Rossi-Bianchi"></div>
+      <div class="form-group"><label>Note</label><input id="pren-note" class="input" placeholder="Note per il catering"></div>
+      <button id="btn-add-pren" class="btn btn-primary">Salva</button>
+    </div>
+
+    <h3 style="margin:16px 0 10px;font-size:15px;">📅 Prossime date</h3>
+    <div id="lista-prenotazioni"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function() {
+  const SUPABASE_URL  = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('token');
+
+  let accesso = null;
+  let location_ = null;
+  let pinInserito = '';
+
+  const STATI = {
+    opzione:    { label: 'Opzione',    colore: '#f59e0b', bg: '#fef3c7' },
+    confermata: { label: 'Confermata', colore: '#16a34a', bg: '#dcfce7' },
+    bloccata:   { label: 'Bloccata',   colore: '#64748b', bg: '#f1f5f9' },
+    annullata:  { label: 'Annullata',  colore: '#dc2626', bg: '#fee2e2' },
+  };
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function showError(msg) {
+    document.getElementById('login-nome').textContent = msg;
+  }
+
+  function fmtData(d) {
+    if (!d) return '—';
+    return new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric', weekday:'short' });
+  }
+
+  async function init() {
+    if (!token) { showError('Link non valido: token mancante'); return; }
+
+    const { data, error } = await supa
+      .from('location_accessi')
+      .select('id, pin, referente_nome, attivo, location_id')
+      .eq('token_accesso', token)
+      .maybeSingle();
+
+    if (error || !data || data.attivo === false) { showError('Accesso non valido o disattivato'); return; }
+    accesso = data;
+
+    const { data: loc } = await supa
+      .from('location_ricevimenti')
+      .select('id, nome, azienda_id')
+      .eq('id', accesso.location_id)
+      .single();
+    location_ = loc;
+
+    document.getElementById('login-nome').textContent = (accesso.referente_nome ? accesso.referente_nome + ' — ' : '') + (location_?.nome || '');
+    renderPinPad();
+  }
+
+  function renderPinPad() {
+    const pad = document.getElementById('pin-pad');
+    const tasti = [1,2,3,4,5,6,7,8,9,'',0,'⌫'];
+    pad.innerHTML = tasti.map(n => `<button class="pin-btn${n==='⌫'?' del':''}" data-pin="${n}">${n}</button>`).join('');
+    pad.querySelectorAll('[data-pin]').forEach(btn => {
+      btn.onclick = () => onPinPress(btn.dataset.pin);
+    });
+  }
+
+  function onPinPress(val) {
+    if (val === '') return;
+    if (val === '⌫') {
+      pinInserito = pinInserito.slice(0, -1);
+      aggiornaDots();
+      return;
+    }
+    if (pinInserito.length >= 4) return;
+    pinInserito += val;
+    aggiornaDots();
+    if (pinInserito.length === 4) verificaPin();
+  }
+
+  function aggiornaDots() {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById('dot-' + i);
+      dot.classList.remove('filled', 'error');
+      if (i < pinInserito.length) dot.classList.add('filled');
+    }
+    document.getElementById('pin-error').textContent = '';
+  }
+
+  function verificaPin() {
+    if (pinInserito === accesso.pin) {
+      entraApp();
+    } else {
+      document.getElementById('pin-error').textContent = '❌ PIN non corretto';
+      for (let i = 0; i < 4; i++) document.getElementById('dot-' + i).classList.add('error');
+      setTimeout(() => { pinInserito = ''; aggiornaDots(); }, 500);
+    }
+  }
+
+  function entraApp() {
+    document.getElementById('screen-login').classList.remove('active');
+    document.getElementById('screen-app').classList.add('active');
+    document.getElementById('op-nome-header').textContent = location_?.nome || 'Location';
+    caricaPrenotazioni();
+  }
+
+  async function caricaPrenotazioni() {
+    const oggi = new Date().toISOString().slice(0, 10);
+    const { data } = await supa
+      .from('location_prenotazioni')
+      .select('*')
+      .eq('location_id', accesso.location_id)
+      .gte('data_evento', oggi)
+      .order('data_evento');
+
+    const box = document.getElementById('lista-prenotazioni');
+    if (!data || !data.length) {
+      box.innerHTML = '<div class="empty-state"><div style="font-size:40px;margin-bottom:8px;">📭</div>Nessuna data registrata</div>';
+      return;
+    }
+
+    box.innerHTML = data.map(p => {
+      const s = STATI[p.stato] || STATI.opzione;
+      return `
+        <div class="pren-card">
+          <div class="pren-row">
+            <div>
+              <div style="font-weight:700;font-size:14px;">${fmtData(p.data_evento)}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">${p.cliente_nome || 'Senza nome'}${p.num_invitati ? ' · ' + p.num_invitati + ' inv.' : ''}</div>
+              ${p.note ? `<div style="font-size:11px;color:#94a3b8;margin-top:4px;">${p.note}</div>` : ''}
+            </div>
+            <span class="badge" style="background:${s.bg};color:${s.colore};">${s.label}</span>
+          </div>
+          <div class="stato-btns">
+            ${Object.entries(STATI).filter(([k]) => k !== 'annullata').map(([k, v]) => `
+              <button class="stato-btn" data-id="${p.id}" data-stato="${k}" style="background:${p.stato===k?v.colore:'#f1f5f9'};color:${p.stato===k?'white':'#374151'};">${v.label}</button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    box.querySelectorAll('[data-stato]').forEach(btn => {
+      btn.onclick = async () => {
+        await supa.from('location_prenotazioni').update({ stato: btn.dataset.stato }).eq('id', btn.dataset.id);
+        toast('✅ Aggiornato');
+        caricaPrenotazioni();
+      };
+    });
+  }
+
+  document.getElementById('btn-add-pren').onclick = async () => {
+    const data_evento = document.getElementById('pren-data').value;
+    if (!data_evento) { toast('Seleziona una data'); return; }
+
+    await supa.from('location_prenotazioni').insert({
+      location_id: accesso.location_id,
+      azienda_id: location_?.azienda_id,
+      data_evento,
+      stato: document.getElementById('pren-stato').value,
+      cliente_nome: document.getElementById('pren-cliente').value.trim() || null,
+      num_invitati: parseInt(document.getElementById('pren-invitati').value) || null,
+      note: document.getElementById('pren-note').value.trim() || null,
+      creato_da: 'location',
+    });
+
+    document.getElementById('pren-data').value = '';
+    document.getElementById('pren-cliente').value = '';
+    document.getElementById('pren-invitati').value = '';
+    document.getElementById('pren-note').value = '';
+    toast('✅ Data salvata');
+    caricaPrenotazioni();
+  };
+
+  init();
+})();
+</script>
+</body>
+</html>
