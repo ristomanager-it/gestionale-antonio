@@ -35,13 +35,18 @@
     </div>
 
     <div class="header-center">
-      <div class="header-brand">
+      <button id="header-sede-trigger" class="header-brand header-sede-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
         <img id="header-logo" class="header-logo" src="assets/favicon-192.png" alt="Logo azienda" />
         <div class="header-brand-text">
-          <div id="header-location-name" class="header-location-name"></div>
+          <div class="header-location-row">
+            <div id="header-location-name" class="header-location-name"></div>
+            <svg id="header-sede-caret" class="header-sede-caret" width="12" height="12" viewBox="0 0 12 12" fill="none" hidden>
+              <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
           <div id="header-location-meta" class="header-location-meta"></div>
         </div>
-      </div>
+      </button>
     </div>
 
     <div id="header-right" class="header-right">
@@ -51,6 +56,9 @@
     </div>
 
   </header>
+
+  <div id="sede-dropdown-overlay" class="sede-dropdown-overlay"></div>
+  <div id="sede-dropdown" class="sede-dropdown" role="listbox" hidden></div>
 
   <div id="page-subheader"></div>
 
@@ -217,11 +225,110 @@
       }
     }
 
+    // ---- TENDINA CAMBIO SEDE ----
+    function escapeHtmlHeader(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    function closeSedeDropdown() {
+      const dropdown = document.getElementById("sede-dropdown");
+      const overlay = document.getElementById("sede-dropdown-overlay");
+      const trigger = document.getElementById("header-sede-trigger");
+      if (dropdown) dropdown.hidden = true;
+      if (overlay) overlay.classList.remove("open");
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+    }
+
+    function openSedeDropdown() {
+      const dropdown = document.getElementById("sede-dropdown");
+      const overlay = document.getElementById("sede-dropdown-overlay");
+      const trigger = document.getElementById("header-sede-trigger");
+      if (dropdown) dropdown.hidden = false;
+      if (overlay) overlay.classList.add("open");
+      if (trigger) trigger.setAttribute("aria-expanded", "true");
+    }
+
+    function renderSedeSelector() {
+      const dropdown = document.getElementById("sede-dropdown");
+      const caret = document.getElementById("header-sede-caret");
+      const trigger = document.getElementById("header-sede-trigger");
+      if (!dropdown) return;
+
+      const sedi = window.state?.sedi || [];
+      const sedeAttiva = window.state?.sedeAttiva || null;
+
+      if (sedi.length <= 1) {
+        if (caret) caret.hidden = true;
+        if (trigger) trigger.style.cursor = "default";
+        dropdown.innerHTML = "";
+        closeSedeDropdown();
+        return;
+      }
+
+      if (caret) caret.hidden = false;
+      if (trigger) trigger.style.cursor = "pointer";
+
+      dropdown.innerHTML = sedi.map((sede) => {
+        const attiva = sedeAttiva && String(sede.id) === String(sedeAttiva.id);
+        return `
+          <button type="button" class="sede-dropdown-item${attiva ? " active" : ""}" data-sede-id="${escapeHtmlHeader(sede.id)}" role="option" aria-selected="${attiva}">
+            <span class="sede-dropdown-item-name">${escapeHtmlHeader(sede.nome || "Sede")}</span>
+            ${attiva ? '<span class="sede-dropdown-item-check">✓</span>' : ""}
+          </button>
+        `;
+      }).join("");
+
+      dropdown.querySelectorAll(".sede-dropdown-item").forEach((btn) => {
+        btn.onclick = () => {
+          const sedeId = btn.getAttribute("data-sede-id");
+          closeSedeDropdown();
+          if (window.stateActions?.setSedeAttiva) {
+            window.stateActions.setSedeAttiva(sedeId);
+          }
+          renderHeaderUI();
+          if (window.router?.reloadCurrentRoute) {
+            window.router.reloadCurrentRoute();
+          }
+        };
+      });
+    }
+
+    window.uiActions = window.uiActions || {};
+    window.uiActions.renderSedeSelector = renderSedeSelector;
+
     window.addEventListener("DOMContentLoaded", () => {
 
       renderHeaderUI();
 
       setInterval(renderHeaderUI, 3000);
+
+      const trigger = document.getElementById("header-sede-trigger");
+      const overlay = document.getElementById("sede-dropdown-overlay");
+
+      if (trigger) {
+        trigger.addEventListener("click", () => {
+          const dropdown = document.getElementById("sede-dropdown");
+          if (!window.state?.sedi || window.state.sedi.length <= 1) return;
+          renderSedeSelector();
+          if (dropdown && dropdown.hidden) {
+            openSedeDropdown();
+          } else {
+            closeSedeDropdown();
+          }
+        });
+      }
+
+      if (overlay) {
+        overlay.addEventListener("click", closeSedeDropdown);
+      }
+
+      // aggiorna la tendina periodicamente se le sedi vengono caricate dopo l'avvio
+      setInterval(() => {
+        const dropdown = document.getElementById("sede-dropdown");
+        if (dropdown && dropdown.hidden) renderSedeSelector();
+      }, 3000);
 
     });
   </script>
@@ -249,3 +356,4 @@
 
 </body>
 </html>
+
