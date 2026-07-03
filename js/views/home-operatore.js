@@ -37,6 +37,36 @@ export async function render(container){
   }
 
   // =========================
+  // CONTESTO MANSIONARIO — determinato dal reparto del dipendente
+  // (evita di mostrare sempre le procedure di "sala" per default)
+  // =========================
+
+  let contestoMansionario = "sala";
+
+  if (dipendenteId) {
+    const { data: dipReparto } = await supabase
+      .from("dipendenti")
+      .select("reparto_id")
+      .eq("id", dipendenteId)
+      .maybeSingle();
+
+    if (dipReparto?.reparto_id) {
+      const { data: reparto } = await supabase
+        .from("reparti")
+        .select("nome")
+        .eq("id", dipReparto.reparto_id)
+        .maybeSingle();
+
+      const nomeReparto = (reparto?.nome || "").toLowerCase();
+      if (nomeReparto.includes("tasting")) contestoMansionario = "tasting";
+      else if (nomeReparto.includes("cucina")) contestoMansionario = "cucina";
+      else if (nomeReparto.includes("hotel")) contestoMansionario = "hotel";
+      else if (nomeReparto.includes("vendit")) contestoMansionario = "vendite";
+      else contestoMansionario = "sala";
+    }
+  }
+
+  // =========================
   // TIMBRATURA
   // =========================
 
@@ -185,7 +215,7 @@ export async function render(container){
         <div class="card-sub">Servizio</div>
       </div>
 
-      <div class="card action" data-route="mansionario-operatore">
+      <div class="card action" data-route="mansionario-operatore" data-contesto="${contestoMansionario}">
         <div class="card-title">📋 Mansionario</div>
         <div class="card-sub">Studia & firma</div>
       </div>
@@ -351,9 +381,12 @@ function initActions(){
       el.onclick = () => {
 
         const route = el.dataset.route;
+        const contesto = el.dataset.contesto;
 
         if (route) {
-          window.location.hash = "#/" + route;
+          window.location.hash = contesto
+            ? "#/" + route + "?contesto=" + contesto
+            : "#/" + route;
         }
 
       };
