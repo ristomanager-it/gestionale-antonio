@@ -99,7 +99,32 @@ async function api(path, opts={}) {
     headers:{ 'apikey': SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', ...opts.headers },
     ...opts
   });
-  return r.json();
+  // Tollerante a body vuoto (Prefer: return=minimal → 201 senza body)
+  const testo = await r.text();
+  let json = null;
+  try { json = testo ? JSON.parse(testo) : null; } catch(e) { json = null; }
+  return { ok: r.ok, status: r.status, data: json };
+}
+
+// ── Coupon univoco ─────────────────────────────────────────────
+// Alfabeto senza caratteri ambigui (no 0/O, 1/I/L)
+const COUPON_ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function genCouponCode() {
+  const arr = new Uint8Array(8);
+  crypto.getRandomValues(arr);
+  let c = '';
+  for (let i = 0; i < 8; i++) c += COUPON_ALFABETO[arr[i] % COUPON_ALFABETO.length];
+  return c.slice(0,4) + '-' + c.slice(4); // es. K7QF-3XWM
+}
+function calcScadenzaCoupon(promo) {
+  if (promo.data_scadenza) {
+    const d = new Date(promo.data_scadenza);
+    d.setHours(23,59,59,999);
+    return d.toISOString();
+  }
+  const d = new Date();
+  d.setDate(d.getDate() + (parseInt(promo.validita_giorni)||30));
+  return d.toISOString();
 }
 
 function esc(v){ return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -107,6 +132,7 @@ function esc(v){ return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 const params = new URLSearchParams(location.search);
 const promoId = params.get('id');
 const isTY    = params.get('ty') === '1';
+let couponCode = params.get('c') || null; // coupon univoco (generato al submit o passato via link WA)
 
 // ── Pixel Meta ────────────────────────────────────────────────
 function firePixel(event, pixelId) {
@@ -210,7 +236,9 @@ function renderThankyouDefault(promo) {
     <div class="box-offerta" style="margin:0 16px 16px;">
       <div class="valore">${esc(renderValore(promo))}</div>
       <div class="label">${esc(promo.nome)}</div>
-      ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
+      ${couponCode
+        ? `<div class="codice">${esc(couponCode)}</div><div style="font-size:11px;opacity:.75;margin-top:6px;">🎟 Il tuo coupon personale — nominale e monouso</div>`
+        : (promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : '')}
     </div>
     <div style="padding:0 16px 16px;">
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;font-size:13px;color:#15803d;line-height:1.7;">
@@ -236,10 +264,11 @@ function renderGiorniInfo(promo) {
 function generaQRThankyou(promoId) {
   const el = document.getElementById('qr-thankyou');
   if (!el) return;
-  const url = location.href.split('?')[0]+'?id='+promoId;
+  // Con coupon: QR = "RFC:CODICE" (scansionabile in cassa). Senza: link landing (retrocompatibile)
+  const url = couponCode ? `RFC:${couponCode}` : (location.href.split('?')[0]+'?id='+promoId);
   const load = () => {
-    el.innerHTML = '<div style="text-align:center;margin-top:8px;"><div style="font-size:12px;color:#64748b;margin-bottom:8px;">📱 Mostra questo QR al cameriere</div><div id="qr-el" style="display:inline-block;background:white;padding:8px;border:1px solid #e5e7eb;border-radius:8px;"></div></div>';
-    new QRCode(document.getElementById('qr-el'), { text: url, width:120, height:120 });
+    el.innerHTML = '<div style="text-align:center;margin-top:8px;"><div style="font-size:12px;color:#64748b;margin-bottom:8px;">📱 Mostra questo QR al cameriere per riscattare</div><div id="qr-el" style="display:inline-block;background:white;padding:8px;border:1px solid #e5e7eb;border-radius:8px;"></div></div>';
+    new QRCode(document.getElementById('qr-el'), { text: url, width:140, height:140 });
   };
   if (window.QRCode) { load(); return; }
   const s = document.createElement('script');
@@ -257,14 +286,11 @@ async function init() {
   // Carica promo + azienda
   let promo, azienda;
   try {
-    const [pData, _] = await Promise.all([
-      api(`promo?id=eq.${promoId}&select=*&limit=1`),
-      Promise.resolve()
-    ]);
-    promo = Array.isArray(pData) ? pData[0] : null;
+    const pRes = await api(`promo?id=eq.${promoId}&select=*&limit=1`);
+    promo = Array.isArray(pRes.data) ? pRes.data[0] : null;
     if (promo?.azienda_id) {
-      const aData = await api(`azienda_identita?id=eq.${promo.azienda_id}&select=nome_azienda,logo_url,meta_pixel_id,gtm_id&limit=1`);
-      azienda = Array.isArray(aData) ? aData[0] : null;
+      const aRes = await api(`azienda_identita?id=eq.${promo.azienda_id}&select=nome_azienda,logo_url,meta_pixel_id,gtm_id&limit=1`);
+      azienda = Array.isArray(aRes.data) ? aRes.data[0] : null;
     }
   } catch(e) { console.error(e); }
 
@@ -363,30 +389,42 @@ async function init() {
     btnScarica.textContent = '⏳ Invio in corso...';
 
     try {
-      // 1. Salva lead
-      await api('promo_lead?select=id', {
-        method:'POST',
-        headers:{ 'Prefer':'return=minimal' },
-        body: JSON.stringify({
-          promo_id: promoId,
-          azienda_id: promo.azienda_id,
-          nome, telefono, email,
-          consenso_marketing: consenso,
-          privacy_accettata: privacy,
-          user_agent: navigator.userAgent,
-          data_scaricamento: new Date().toISOString(),
-        })
-      });
+      // 1. Salva lead con coupon univoco (retry ×3 su collisione codice)
+      const scadenzaCoupon = calcScadenzaCoupon(promo);
+      let salvato = false;
+      for (let tentativo = 0; tentativo < 3 && !salvato; tentativo++) {
+        couponCode = genCouponCode();
+        const res = await api('promo_lead?select=id', {
+          method:'POST',
+          headers:{ 'Prefer':'return=minimal' },
+          body: JSON.stringify({
+            promo_id: promoId,
+            azienda_id: promo.azienda_id,
+            nome, telefono, email,
+            consenso_marketing: consenso,
+            privacy_accettata: privacy,
+            user_agent: navigator.userAgent,
+            data_scaricamento: new Date().toISOString(),
+            codice_coupon: couponCode,
+            stato_coupon: 'emesso',
+            scadenza_coupon: scadenzaCoupon,
+          })
+        });
+        if (res.ok) { salvato = true; }
+        else if (res.data?.code === '23505') { continue; }        // codice duplicato → rigenera
+        else { console.error('Lead insert error:', res.status, res.data); break; }
+      }
+      if (!salvato) couponCode = null; // fallback: flusso vecchio senza coupon
 
       // 2. Fire pixel
       const evento = promo.meta_pixel_evento_scaricamento || 'Lead';
       firePixel(evento, pixelId);
       if (window.dataLayer) window.dataLayer.push({ event: evento, promo_id: promoId, promo_nome: promo.nome });
 
-      // 3. Invia WA — testo con link promo
-      await inviaPromoWA({ promo, nome, telefono, aziendaId: promo.azienda_id });
+      // 3. Invia WA — testo con link promo + coupon
+      await inviaPromoWA({ promo, nome, telefono, aziendaId: promo.azienda_id, coupon: couponCode });
 
-      window._rfTrack && window._rfTrack('submit', 'promo_scaricata', { completato: true, valore: promo.nome, step: 'success' });
+      window._rfTrack && window._rfTrack('submit', 'promo_scaricata', { completato: true, valore: promo.nome, step: 'success', coupon: couponCode });
 
     } catch(e) { console.error('Submit error:', e); }
 
@@ -395,8 +433,11 @@ async function init() {
 }
 
 // ── Invio WhatsApp promo ───────────────────────────────────────
-async function inviaPromoWA({ promo, nome, telefono, aziendaId }) {
-  const landingUrl = `${location.origin}${location.pathname}?id=${promoId}`;
+async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null }) {
+  // Link thank you personale: mostra coupon + QR riaprendo il link
+  const landingUrl = coupon
+    ? `${location.origin}${location.pathname}?id=${promoId}&ty=1&c=${coupon}`
+    : `${location.origin}${location.pathname}?id=${promoId}`;
 
   // Componi testo sostituendo variabili
   let testo = promo.messaggio_wa || '';
@@ -407,8 +448,8 @@ async function inviaPromoWA({ promo, nome, telefono, aziendaId }) {
                       : promo.tipo==='2x1' ? '2×1' : '🎁';
     testo = `Ciao ${nome}! 🎁\n\nHai una promo esclusiva: *${promo.nome}*\n`
           + (valoreLabel ? `Valore: *${valoreLabel}*\n` : '')
-          + (promo.codice ? `Codice: *${promo.codice}*\n` : '')
-          + `\n👉 Scaricala qui: ${landingUrl}`;
+          + (coupon ? `Il tuo coupon personale: *${coupon}*\n` : (promo.codice ? `Codice: *${promo.codice}*\n` : ''))
+          + `\n👉 Ritrovi coupon e QR qui: ${landingUrl}`;
   } else {
     const scadenza = promo.data_scadenza
       ? new Date(promo.data_scadenza).toLocaleDateString('it-IT')
@@ -418,7 +459,8 @@ async function inviaPromoWA({ promo, nome, telefono, aziendaId }) {
       .replace(/{{promo_nome}}/g, promo.nome||'')
       .replace(/{{promo_valore}}/g, promo.valore||'')
       .replace(/{{scadenza}}/g, scadenza)
-      .replace(/{{codice}}/g, promo.codice||'')
+      .replace(/{{codice}}/g, coupon || promo.codice || '')
+      .replace(/{{coupon}}/g, coupon || '')
       .replace(/{{link_promo}}/g, landingUrl);
   }
 
@@ -439,8 +481,10 @@ async function inviaPromoWA({ promo, nome, telefono, aziendaId }) {
   } catch(e) { console.error('WA testo error:', e); }
 
   // 3b. Genera QR e invialo come immagine separata
+  // Con coupon: il QR codifica "RFC:CODICE" → è quello che verrà scansionato in cassa
   try {
-    const qrUrl = await generaECaricaQR(promoId, landingUrl, aziendaId);
+    const qrPayload = coupon ? `RFC:${coupon}` : landingUrl;
+    const qrUrl = await generaECaricaQR(promoId, qrPayload, aziendaId);
     if (qrUrl) {
       await fetch(WA_URL, {
         method: 'POST',
@@ -529,6 +573,14 @@ function mostrarThankyou(promo) {
   let html = '';
   if (blocks.length) {
     html = blocks.map(b => renderBlock(b, promo, null)).join('');
+    // Box coupon personale sempre visibile anche con blocchi custom
+    if (couponCode) {
+      html += `<div class="box-offerta" style="margin:16px;">
+        <div class="codice">${esc(couponCode)}</div>
+        <div style="font-size:11px;opacity:.75;margin-top:6px;">🎟 Il tuo coupon personale — nominale e monouso</div>
+      </div>
+      <div style="padding:0 16px 24px;" id="qr-thankyou"></div>`;
+    }
   } else {
     html = renderThankyouDefault(promo);
   }
@@ -538,8 +590,8 @@ function mostrarThankyou(promo) {
   overlay.classList.add('show');
   overlay.scrollTo(0,0);
 
-  // QR nella thank you (se non già nei blocchi)
-  if (!blocks.length) generaQRThankyou(promoId);
+  // QR nella thank you (default sempre; con blocchi custom solo se c'è coupon)
+  if (!blocks.length || couponCode) generaQRThankyou(promoId);
 
   // Fire pixel thank you / Purchase
   const pixelId = document.querySelector('meta[name="pixel-id"]')?.content;
