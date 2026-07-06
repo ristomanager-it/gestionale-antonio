@@ -119,13 +119,44 @@ export async function renderPromo(container, aziendaId) {
         <div style="font-size:18px;font-weight:700;color:#0f172a;">🎁 Promo & Offerte</div>
         <div style="font-size:13px;color:#64748b;">Crea promo personalizzate — landing, tracking Meta, referral</div>
       </div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="btn-tony-promo" style="background:linear-gradient(135deg,#7c3aed,#0E5A7A);color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(124,58,237,.3);">✨ Crea con Tony</button>
         <button id="btn-usa-template" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:700;">✨ Template 2x1</button>
         <button id="btn-nuova-promo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:700;">+ Nuova promo</button>
       </div>
     </div>
 
     <div id="lista-promo"></div>
+
+    <!-- MODAL TONY -->
+    <div id="modal-tony" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;overflow-y:auto;padding:16px;box-sizing:border-box;">
+      <div style="background:white;border-radius:20px;max-width:560px;margin:40px auto;padding:24px;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-size:18px;font-weight:800;color:#0f172a;">✨ Crea una promo con Tony</div>
+          <button id="tony-chiudi" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94a3b8;line-height:1;">×</button>
+        </div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Scrivi o detta cosa vuoi offrire. Ci pensa Tony a scrivere testo, WhatsApp, regolamento e tutto il resto — poi controlli e salvi.</div>
+
+        <div style="position:relative;">
+          <textarea id="tony-input" rows="4" placeholder="Es. 'Fammi un 2x1 sulle pizze valido nei weekend di questo mese' oppure premi il microfono e parla..." style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:12px;padding:12px 48px 12px 12px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+          <button id="tony-mic" title="Detta con la voce" style="position:absolute;right:10px;bottom:12px;width:36px;height:36px;border-radius:50%;border:none;background:#f1f5f9;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;">🎤</button>
+        </div>
+        <div id="tony-mic-status" style="font-size:12px;color:#7c3aed;margin-top:6px;min-height:16px;"></div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+          <button class="tony-esempio" data-t="Fammi uno sconto del 20% sui secondi per i clienti che non vengono da più di 2 mesi, valido 30 giorni" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;font-size:11px;cursor:pointer;color:#475569;">💡 Sconto riattivazione</button>
+          <button class="tony-esempio" data-t="Crea un omaggio dolce della casa per chi festeggia il compleanno nel mese" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;font-size:11px;cursor:pointer;color:#475569;">💡 Omaggio compleanno</button>
+          <button class="tony-esempio" data-t="2x1 sulle pizze valido solo a cena dal lunedì al giovedì" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;font-size:11px;cursor:pointer;color:#475569;">💡 2x1 infrasettimanale</button>
+        </div>
+
+        <div id="tony-esito" style="font-size:13px;margin-top:14px;min-height:18px;"></div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button id="tony-annulla" style="flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:10px;padding:12px;cursor:pointer;font-size:14px;font-weight:700;">Annulla</button>
+          <button id="tony-genera" style="flex:2;background:linear-gradient(135deg,#7c3aed,#0E5A7A);color:white;border:none;border-radius:10px;padding:12px;cursor:pointer;font-size:14px;font-weight:800;">✨ Genera promo</button>
+        </div>
+      </div>
+    </div>
 
     <!-- MODAL -->
     <div id="modal-promo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;overflow-y:auto;padding:16px;box-sizing:border-box;">
@@ -994,6 +1025,189 @@ export async function renderPromo(container, aziendaId) {
     if (!confirm('Aprire il template 2x1 preimpostato?')) return;
     apriModal({ ...PROMO_BENVENUTO_TEMPLATE, id:null, _isTemplate:true });
   });
+
+  // ══════════════════════════════════════════════════════════════
+  //  TONY — Crea promo con AI (testo o voce)
+  // ══════════════════════════════════════════════════════════════
+  const modalTony = container.querySelector('#modal-tony');
+  const tonyInput = container.querySelector('#tony-input');
+  const tonyEsito = container.querySelector('#tony-esito');
+  let tonyRecog = null, tonyRecording = false;
+
+  function apriTony() {
+    tonyInput.value = '';
+    tonyEsito.textContent = '';
+    tonyEsito.style.color = '#64748b';
+    container.querySelector('#tony-mic-status').textContent = '';
+    modalTony.style.display = '';
+    setTimeout(() => tonyInput.focus(), 100);
+  }
+  function chiudiTony() {
+    if (tonyRecording && tonyRecog) { try { tonyRecog.stop(); } catch(e){} }
+    modalTony.style.display = 'none';
+  }
+
+  container.querySelector('#btn-tony-promo').addEventListener('click', apriTony);
+  container.querySelector('#tony-chiudi').addEventListener('click', chiudiTony);
+  container.querySelector('#tony-annulla').addEventListener('click', chiudiTony);
+  modalTony.addEventListener('click', e => { if (e.target === modalTony) chiudiTony(); });
+
+  container.querySelectorAll('.tony-esempio').forEach(btn => {
+    btn.addEventListener('click', () => { tonyInput.value = btn.dataset.t; tonyInput.focus(); });
+  });
+
+  // ── Microfono (Web Speech API) ────────────────────────────────
+  const micBtn = container.querySelector('#tony-mic');
+  const micStatus = container.querySelector('#tony-mic-status');
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRec) {
+    micBtn.style.display = 'none';
+  } else {
+    micBtn.addEventListener('click', () => {
+      if (tonyRecording) { try { tonyRecog.stop(); } catch(e){} return; }
+      tonyRecog = new SpeechRec();
+      tonyRecog.lang = 'it-IT';
+      tonyRecog.interimResults = true;
+      tonyRecog.continuous = false;
+      const testoBase = tonyInput.value ? tonyInput.value + ' ' : '';
+
+      tonyRecog.onstart = () => {
+        tonyRecording = true;
+        micBtn.style.background = '#fecaca';
+        micBtn.textContent = '⏺';
+        micStatus.textContent = '🔴 Sto ascoltando... parla pure';
+      };
+      tonyRecog.onresult = (ev) => {
+        let txt = '';
+        for (let i=0; i<ev.results.length; i++) txt += ev.results[i][0].transcript;
+        tonyInput.value = testoBase + txt;
+      };
+      tonyRecog.onerror = (ev) => {
+        micStatus.textContent = ev.error === 'not-allowed'
+          ? '⚠️ Permesso microfono negato. Abilitalo nelle impostazioni del browser.'
+          : '⚠️ Errore microfono: ' + ev.error;
+      };
+      tonyRecog.onend = () => {
+        tonyRecording = false;
+        micBtn.style.background = '#f1f5f9';
+        micBtn.textContent = '🎤';
+        if (!micStatus.textContent.startsWith('⚠️')) micStatus.textContent = '';
+      };
+      try { tonyRecog.start(); } catch(e){ micStatus.textContent = '⚠️ Impossibile avviare il microfono.'; }
+    });
+  }
+
+  // ── Genera promo con Tony ─────────────────────────────────────
+  container.querySelector('#tony-genera').addEventListener('click', async () => {
+    const richiesta = tonyInput.value.trim();
+    if (!richiesta) { tonyEsito.textContent = '❌ Scrivi o detta cosa vuoi offrire.'; tonyEsito.style.color = '#dc2626'; return; }
+
+    const btnGen = container.querySelector('#tony-genera');
+    btnGen.disabled = true;
+    const btnTxt = btnGen.textContent;
+    btnGen.textContent = '⏳ Tony sta pensando...';
+    tonyEsito.style.color = '#64748b';
+    tonyEsito.textContent = '🧠 Genero la promo su misura...';
+
+    try {
+      const oggi = new Date().toISOString().slice(0,10);
+      const prompt = `[GENERA_PROMO]
+Richiesta ristoratore: "${richiesta}"
+Data odierna: ${oggi}
+
+Rispondi ESCLUSIVAMENTE con un oggetto JSON valido (nessun testo prima o dopo, niente backtick) con questi campi:
+{
+  "nome": "titolo breve e accattivante della promo (max 40 caratteri, può avere 1 emoji)",
+  "tipo": "uno tra: sconto_perc | sconto_euro | omaggio | 2x1",
+  "valore": numero o null (percentuale se sconto_perc, euro se sconto_euro, null per omaggio/2x1),
+  "codice": "CODICE breve maiuscolo senza spazi",
+  "descrizione": "1-2 frasi che spiegano l'offerta in modo invitante",
+  "validita_giorni": numero intero (default 30),
+  "messaggio_wa": "testo WhatsApp caldo e diretto, usa {{nome}} {{codice}} {{link_promo}}, max 4 righe, con emoji",
+  "messaggio_reminder": "promemoria breve prima della scadenza, usa {{nome}} {{scadenza}} {{link_promo}}",
+  "messaggio_scadenza": "messaggio dopo scadenza, gentile, invita a tornare, usa {{nome}}",
+  "regolamento": "regolamento sintetico e chiaro della promozione",
+  "giorni_disponibili": array di interi 0-6 (0=lunedì...6=domenica) oppure null se sempre valida,
+  "turni": array tra ["pranzo","cena"] oppure null se entrambi
+}
+Scrivi tutto in italiano, tono adatto a un ristorante. Sii concreto, niente placeholder generici.`;
+
+      const azienda = window.state?.azienda;
+      const { data, error } = await supa().functions.invoke('assistente-ai', {
+        body: {
+          messages: [{ role:'user', content: prompt }],
+          azienda_id: aziendaId,
+          azienda: azienda?.nome,
+          modalita: 'genera_promo'
+        }
+      });
+
+      if (error) throw new Error(error.message || 'Errore chiamata Tony');
+
+      const promoGen = estraiPromoJSON(data?.reply || data?.content || '');
+      if (!promoGen) {
+        tonyEsito.style.color = '#dc2626';
+        tonyEsito.textContent = '❌ Tony non è riuscito a strutturare la promo. Riprova riformulando la richiesta.';
+        return;
+      }
+
+      // Normalizza e passa alla modal esistente
+      const promoObj = {
+        id: null,
+        nome: promoGen.nome || 'Nuova promo',
+        tipo: ['sconto_perc','sconto_euro','omaggio','2x1'].includes(promoGen.tipo) ? promoGen.tipo : 'sconto_perc',
+        valore: promoGen.valore ?? null,
+        codice: (promoGen.codice || '').toUpperCase().replace(/\s+/g,'') || null,
+        descrizione: promoGen.descrizione || null,
+        validita_giorni: parseInt(promoGen.validita_giorni) || 30,
+        messaggio_wa: promoGen.messaggio_wa || null,
+        messaggio_reminder: promoGen.messaggio_reminder || null,
+        messaggio_scadenza: promoGen.messaggio_scadenza || null,
+        regolamento: promoGen.regolamento || null,
+        giorni_disponibili: Array.isArray(promoGen.giorni_disponibili) ? promoGen.giorni_disponibili : null,
+        turni: Array.isArray(promoGen.turni) ? promoGen.turni : null,
+        privacy_richiesta: true,
+        consenso_marketing: true,
+        referral_attivo: false,
+        landing_config: { blocks: [
+          { tipo:'immagine', label:'🖼 Immagine', contenuto:'' },
+          { tipo:'testo', label:'📝 Testo', contenuto: promoGen.descrizione || '' },
+          { tipo:'box_offerta', label:'🎁 Box offerta', contenuto:'' },
+          { tipo:'form', label:'📋 Form', contenuto:'' },
+        ]},
+        thankyou_config: { blocks: [] },
+      };
+
+      chiudiTony();
+      apriModal(promoObj);
+      mostraToast('✨ Promo generata da Tony — controlla e salva','success');
+
+    } catch(err) {
+      console.error('Tony genera promo error:', err);
+      tonyEsito.style.color = '#dc2626';
+      tonyEsito.textContent = '❌ ' + (err.message || 'Errore imprevisto. Riprova.');
+    } finally {
+      btnGen.disabled = false;
+      btnGen.textContent = btnTxt;
+    }
+  });
+
+  // Estrae il primo blocco JSON valido dalla risposta di Tony (robusto a testo extra)
+  function estraiPromoJSON(reply) {
+    if (!reply) return null;
+    let s = String(reply).trim();
+    // rimuovi eventuali fence markdown
+    s = s.replace(/```json/gi,'').replace(/```/g,'').trim();
+    // prova parse diretto
+    try { return JSON.parse(s); } catch(e){}
+    // altrimenti isola dal primo { all'ultimo }
+    const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if (a>=0 && b>a) {
+      try { return JSON.parse(s.slice(a, b+1)); } catch(e){}
+    }
+    return null;
+  }
 
   // ── Render lista ──────────────────────────────────────────────
   function renderLista() {
