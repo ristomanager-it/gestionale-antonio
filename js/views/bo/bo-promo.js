@@ -1112,12 +1112,26 @@ export async function renderPromo(container, aziendaId) {
 
     try {
       const azienda = window.state?.azienda;
+
+      // Carico la libreria foto dell'azienda (solo immagini) per farla scegliere a Tony
+      let libreriaFoto = [];
+      try {
+        const { data: media } = await supa()
+          .from('media_library')
+          .select('nome,url,tag')
+          .eq('azienda_id', aziendaId)
+          .eq('tipo', 'immagine')
+          .limit(60);
+        libreriaFoto = Array.isArray(media) ? media : [];
+      } catch(e) { console.warn('Libreria foto non caricata:', e); }
+
       const { data, error } = await supa().functions.invoke('assistente-ai', {
         body: {
           messages: [{ role:'user', content: richiesta }],
           azienda_id: aziendaId,
           azienda: azienda?.nome,
-          tipo_messaggio: 'genera_promo'
+          tipo_messaggio: 'genera_promo',
+          libreria_foto: libreriaFoto.map(f => ({ nome: f.nome, tag: f.tag }))
         }
       });
 
@@ -1130,6 +1144,15 @@ export async function renderPromo(container, aziendaId) {
         return;
       }
 
+      // Risolvo la foto scelta da Tony (per nome) → URL reale dalla libreria
+      let immagineUrl = null;
+      if (promoGen.foto_nome && libreriaFoto.length) {
+        const match = libreriaFoto.find(f =>
+          (f.nome||'').toLowerCase().trim() === String(promoGen.foto_nome).toLowerCase().trim()
+        );
+        if (match) immagineUrl = match.url;
+      }
+
       // Normalizza e passa alla modal esistente
       const promoObj = {
         id: null,
@@ -1139,6 +1162,7 @@ export async function renderPromo(container, aziendaId) {
         codice: (promoGen.codice || '').toUpperCase().replace(/\s+/g,'') || null,
         descrizione: promoGen.descrizione || null,
         validita_giorni: parseInt(promoGen.validita_giorni) || 30,
+        immagine_url: immagineUrl,
         messaggio_wa: promoGen.messaggio_wa || null,
         messaggio_reminder: promoGen.messaggio_reminder || null,
         messaggio_scadenza: promoGen.messaggio_scadenza || null,
@@ -1159,7 +1183,8 @@ export async function renderPromo(container, aziendaId) {
 
       chiudiTony();
       apriModal(promoObj);
-      mostraToast('✨ Promo generata da Tony — controlla e salva','success');
+      const notaFoto = immagineUrl ? '' : (libreriaFoto.length ? ' (aggiungi tu la foto)' : ' (carica prima delle foto in Media)');
+      mostraToast('✨ Promo generata da Tony — controlla e salva' + notaFoto, 'success');
 
     } catch(err) {
       console.error('Tony genera promo error:', err);
