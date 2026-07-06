@@ -337,8 +337,17 @@ async function init() {
     const pRes = await api(`promo?id=eq.${promoId}&select=*&limit=1`);
     promo = Array.isArray(pRes.data) ? pRes.data[0] : null;
     if (promo?.azienda_id) {
-      const aRes = await api(`azienda_identita?id=eq.${promo.azienda_id}&select=nome_azienda,logo_url,meta_pixel_id,gtm_id&limit=1`);
-      azienda = Array.isArray(aRes.data) ? aRes.data[0] : null;
+      // Identità (nome_azienda, logo, pixel) — filtro su azienda_id
+      const aRes = await api(`azienda_identita?azienda_id=eq.${promo.azienda_id}&select=nome_azienda,logo_url,meta_pixel_id,gtm_id&limit=1`);
+      azienda = Array.isArray(aRes.data) && aRes.data[0] ? aRes.data[0] : null;
+      // Fallback: se manca il nome, lo prendo dalla tabella aziende
+      if (!azienda || !azienda.nome_azienda) {
+        try {
+          const azRes = await api(`aziende?id=eq.${promo.azienda_id}&select=nome,email&limit=1`);
+          const az = Array.isArray(azRes.data) ? azRes.data[0] : null;
+          if (az) azienda = { ...(azienda||{}), nome_azienda: azienda?.nome_azienda || az.nome, email: az.email };
+        } catch(e) { console.warn('Fallback aziende:', e); }
+      }
     }
   } catch(e) { console.error(e); }
 
@@ -442,6 +451,21 @@ async function init() {
     btnScarica.textContent = '⏳ Invio in corso...';
 
     try {
+      // 0. Controllo anti-doppione: stesso telefono o email per QUESTA promo?
+      try {
+        const emailEsc = encodeURIComponent(email);
+        const telEsc = encodeURIComponent(telefono);
+        const dupRes = await api(`promo_lead?promo_id=eq.${promoId}&or=(telefono.eq.${telEsc},email.eq.${emailEsc})&select=id&limit=1`);
+        if (Array.isArray(dupRes.data) && dupRes.data.length > 0) {
+          btnScarica.disabled = false;
+          btnScarica.textContent = '🎁 Voglio la mia promo!';
+          errEl.innerHTML = 'Hai già richiesto questa promozione con questo contatto. 🎁<br>Controlla WhatsApp o la tua email per il coupon.';
+          errEl.style.display = '';
+          window._rfTrack && window._rfTrack('error', 'gia_scaricata', { valore: promo.nome });
+          return;
+        }
+      } catch(e) { console.warn('Controllo doppione non riuscito, proseguo:', e); }
+
       // 1. Salva lead con coupon univoco (retry ×3 su collisione codice)
       const scadenzaCoupon = calcScadenzaCoupon(promo);
       let salvato = false;
