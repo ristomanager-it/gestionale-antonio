@@ -526,7 +526,7 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
     </div>`;
 
   try {
-    await fetch(`${SUPABASE_URL}/functions/v1/invia-email`, {
+    await fetch(`${SUPABASE_URL}/functions/v1/Invia-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
       body: JSON.stringify({
