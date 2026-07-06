@@ -484,6 +484,7 @@ export async function renderPromo(container, aziendaId) {
             <!-- Footer -->
             <div id="p-esito" style="font-size:13px;min-height:16px;margin-top:14px;margin-bottom:8px;"></div>
             <div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f1f5f9;padding-top:14px;">
+              <button id="btn-anteprima-promo" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:14px;font-weight:600;">👁 Anteprima</button>
               <button id="btn-salva-promo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 26px;cursor:pointer;font-size:14px;font-weight:700;">💾 Salva</button>
               <button id="btn-annulla-promo" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:14px;">Annulla</button>
             </div>
@@ -1021,6 +1022,34 @@ export async function renderPromo(container, aziendaId) {
   container.querySelector('#btn-chiudi-modal').addEventListener('click', chiudiModal);
   container.querySelector('#btn-annulla-promo').addEventListener('click', chiudiModal);
   container.querySelector('#modal-promo').addEventListener('click', e => { if(e.target===container.querySelector('#modal-promo')) chiudiModal(); });
+
+  // ── Anteprima landing (fullscreen, utile su mobile dove il telefono è nascosto) ──
+  container.querySelector('#btn-anteprima-promo').addEventListener('click', () => {
+    aggiornaPreview(); // rigenera con i valori correnti
+    const landingHTML = buildPreviewHTML(landingBlocks, stileCorrente);
+    const css = getPreviewCSS(stileCorrente);
+    let ov = document.getElementById('promo-anteprima-overlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'promo-anteprima-overlay';
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:11000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 12px;overflow-y:auto;';
+      document.body.appendChild(ov);
+    }
+    ov.innerHTML = `
+      <div style="width:100%;max-width:420px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="color:white;font-size:14px;font-weight:700;">👁 Anteprima — così la vede il cliente</div>
+        <button id="chiudi-anteprima" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <div style="width:100%;max-width:420px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+        <div style="${css}">${landingHTML || '<div style="padding:40px;text-align:center;color:#94a3b8;">Configura la promo per vedere l\\'anteprima</div>'}</div>
+      </div>
+      <div style="color:rgba(255,255,255,.6);font-size:11px;margin-top:12px;text-align:center;max-width:420px;">Questa è l'anteprima. Salva la promo per ottenere il link reale da inviare.</div>
+    `;
+    ov.style.display = 'flex';
+    document.getElementById('chiudi-anteprima').onclick = () => { ov.style.display='none'; };
+    ov.onclick = (e) => { if (e.target === ov) ov.style.display='none'; };
+  });
+
   container.querySelector('#btn-usa-template').addEventListener('click', () => {
     if (!confirm('Aprire il template 2x1 preimpostato?')) return;
     apriModal({ ...PROMO_BENVENUTO_TEMPLATE, id:null, _isTemplate:true });
@@ -1179,6 +1208,7 @@ export async function renderPromo(container, aziendaId) {
           { tipo:'form', label:'📋 Form', contenuto:'' },
         ]},
         thankyou_config: { blocks: [] },
+        stile: { ...STILE_DEFAULT },
       };
 
       chiudiTony();
@@ -1228,6 +1258,10 @@ export async function renderPromo(container, aziendaId) {
       const giorniLabel = p.giorni_disponibili?.length ? p.giorni_disponibili.map(g=>GIORNI_NOMI[g-1]).join(', ') : null;
       const turniLabel  = p.turni?.length ? p.turni.map(t=>t==='pranzo'?'Pranzo':'Cena').join(' + ') : null;
       const accentColor = p.stile?.colore_primario || '#0E5A7A';
+      // Per sconto_perc/sconto_euro mostro "Sconto % · 20%"; per 2x1/omaggio solo l'etichetta (niente doppione 2x1·2×1)
+      const tipoValoreLabel = (p.tipo==='sconto_perc'||p.tipo==='sconto_euro')
+        ? `${tipo.l} · <strong style="color:${accentColor};">${valore}</strong>`
+        : `<strong style="color:${accentColor};">${tipo.l}</strong>`;
       return `<div class="promo-card">
         <div style="display:flex;align-items:stretch;">
           ${p.immagine_url
@@ -1237,7 +1271,7 @@ export async function renderPromo(container, aziendaId) {
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
               <div>
                 <div style="font-size:16px;font-weight:700;color:#0f172a;">${esc(p.nome)}</div>
-                <div style="font-size:13px;color:#64748b;margin-top:2px;">${tipo.l} · <strong style="color:${accentColor};">${valore}</strong> · ${p.validita_giorni||30}gg</div>
+                <div style="font-size:13px;color:#64748b;margin-top:2px;">${tipoValoreLabel} · ${p.validita_giorni||30}gg</div>
                 ${p.descrizione?`<div style="font-size:12px;color:#94a3b8;margin-top:4px;">${esc(p.descrizione)}</div>`:''}
                 ${giorniLabel||turniLabel?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
                   ${giorniLabel?`<span style="background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:10px;padding:2px 10px;font-size:11px;font-weight:600;">📅 ${giorniLabel}</span>`:''}
