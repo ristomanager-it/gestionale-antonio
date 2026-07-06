@@ -1111,35 +1111,13 @@ export async function renderPromo(container, aziendaId) {
     tonyEsito.textContent = '🧠 Genero la promo su misura...';
 
     try {
-      const oggi = new Date().toISOString().slice(0,10);
-      const prompt = `[GENERA_PROMO]
-Richiesta ristoratore: "${richiesta}"
-Data odierna: ${oggi}
-
-Rispondi ESCLUSIVAMENTE con un oggetto JSON valido (nessun testo prima o dopo, niente backtick) con questi campi:
-{
-  "nome": "titolo breve e accattivante della promo (max 40 caratteri, può avere 1 emoji)",
-  "tipo": "uno tra: sconto_perc | sconto_euro | omaggio | 2x1",
-  "valore": numero o null (percentuale se sconto_perc, euro se sconto_euro, null per omaggio/2x1),
-  "codice": "CODICE breve maiuscolo senza spazi",
-  "descrizione": "1-2 frasi che spiegano l'offerta in modo invitante",
-  "validita_giorni": numero intero (default 30),
-  "messaggio_wa": "testo WhatsApp caldo e diretto, usa {{nome}} {{codice}} {{link_promo}}, max 4 righe, con emoji",
-  "messaggio_reminder": "promemoria breve prima della scadenza, usa {{nome}} {{scadenza}} {{link_promo}}",
-  "messaggio_scadenza": "messaggio dopo scadenza, gentile, invita a tornare, usa {{nome}}",
-  "regolamento": "regolamento sintetico e chiaro della promozione",
-  "giorni_disponibili": array di interi 0-6 (0=lunedì...6=domenica) oppure null se sempre valida,
-  "turni": array tra ["pranzo","cena"] oppure null se entrambi
-}
-Scrivi tutto in italiano, tono adatto a un ristorante. Sii concreto, niente placeholder generici.`;
-
       const azienda = window.state?.azienda;
       const { data, error } = await supa().functions.invoke('assistente-ai', {
         body: {
-          messages: [{ role:'user', content: prompt }],
+          messages: [{ role:'user', content: richiesta }],
           azienda_id: aziendaId,
           azienda: azienda?.nome,
-          modalita: 'genera_promo'
+          tipo_messaggio: 'genera_promo'
         }
       });
 
