@@ -163,12 +163,18 @@ function renderValore(promo) {
   return promo.tipo==='omaggio' ? '🎁' : (promo.valore||'');
 }
 
+function isVideoSrc(url){ return /\.(mp4|mov|webm|quicktime)(\?|$)/i.test(url||''); }
+function mediaTag(src, nome){
+  if (!src) return `<div class="promo-img-placeholder">🍽</div>`;
+  if (isVideoSrc(src)) {
+    return `<video class="promo-img" src="${esc(src)}" autoplay muted loop playsinline controls onerror="this.parentNode.replaceChild(Object.assign(document.createElement('div'),{className:'promo-img-placeholder',innerHTML:'🍽'}),this)"></video>`;
+  }
+  return `<img class="promo-img" src="${esc(src)}" alt="${esc(nome||'')}" onerror="this.parentNode.replaceChild(Object.assign(document.createElement('div'),{className:'promo-img-placeholder',innerHTML:'🍽'}),this)">`;
+}
+
 function renderBlock(b, promo, azienda) {
   if (b.tipo==='immagine') {
-    const src = promo.immagine_url;
-    return src
-      ? `<img class="promo-img" src="${esc(src)}" alt="${esc(promo.nome)}" onerror="this.style.display='none'">`
-      : `<div class="promo-img-placeholder">🍽</div>`;
+    return mediaTag(promo.immagine_url, promo.nome);
   }
   if (b.tipo==='testo') {
     const testo = b.contenuto || promo.descrizione || '';
@@ -209,9 +215,7 @@ function renderBlock(b, promo, azienda) {
 function renderDefaultLayout(promo, azienda) {
   // Layout fisso elegante quando non ci sono blocchi configurati
   return `
-    ${promo.immagine_url
-      ? `<img class="promo-img" src="${esc(promo.immagine_url)}" alt="${esc(promo.nome)}" onerror="this.parentNode.replaceChild(Object.assign(document.createElement('div'),{className:'promo-img-placeholder',innerHTML:'🍽'}),this)">`
-      : `<div class="promo-img-placeholder">🍽</div>`}
+    ${mediaTag(promo.immagine_url, promo.nome)}
     <div class="box-offerta">
       <div class="valore">${esc(renderValore(promo))}</div>
       <div class="label">${esc(promo.nome)}</div>
