@@ -445,8 +445,16 @@ async function init() {
 
   btnScarica.addEventListener('click', async () => {
     const capitalizza = (s) => (s||'').trim().replace(/\b\p{L}/gu, ch => ch.toUpperCase());
-    const nome     = capitalizza(document.getElementById('f-nome')?.value);
-    const cognome  = capitalizza(document.getElementById('f-cognome')?.value);
+    // DIAGNOSTICA TEMPORANEA — rimuovere dopo il test
+    const _rawNome = document.getElementById('f-nome')?.value;
+    const _rawCognome = document.getElementById('f-cognome')?.value;
+    const _nCampi = document.querySelectorAll('#f-nome').length;
+    console.log('🔍 PROMO DEBUG → f-nome:', JSON.stringify(_rawNome), '| f-cognome:', JSON.stringify(_rawCognome), '| n° f-nome nel DOM:', _nCampi);
+    if (location.search.includes('debug=1')) {
+      alert('DEBUG\nCampo NOME contiene: "' + (_rawNome||'') + '"\nCampo COGNOME contiene: "' + (_rawCognome||'') + '"\nN° campi nome nel DOM: ' + _nCampi);
+    }
+    const nome     = capitalizza(_rawNome);
+    const cognome  = capitalizza(_rawCognome);
     const nomeSaluto = nome || cognome || 'ciao';  // fallback se nome vuoto
     const telefono = document.getElementById('f-telefono')?.value.trim();
     const email    = document.getElementById('f-email')?.value.trim()||null;
