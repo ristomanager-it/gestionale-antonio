@@ -288,6 +288,11 @@ function buildRegolamentoCompleto(promo) {
     righe.push('🕐 Valida a ' + turni + '.');
   }
 
+  // Minimo persone al tavolo
+  if (promo.min_persone && promo.min_persone > 1) {
+    righe.push('👥 Valida per un minimo di ' + promo.min_persone + ' persone al tavolo.');
+  }
+
   let out = righe.length ? righe.map(r => esc(r)).join('<br>') : '';
 
   // Testo regolamento libero
@@ -445,16 +450,8 @@ async function init() {
 
   btnScarica.addEventListener('click', async () => {
     const capitalizza = (s) => (s||'').trim().replace(/\b\p{L}/gu, ch => ch.toUpperCase());
-    // DIAGNOSTICA TEMPORANEA — rimuovere dopo il test
-    const _rawNome = document.getElementById('f-nome')?.value;
-    const _rawCognome = document.getElementById('f-cognome')?.value;
-    const _nCampi = document.querySelectorAll('#f-nome').length;
-    console.log('🔍 PROMO DEBUG → f-nome:', JSON.stringify(_rawNome), '| f-cognome:', JSON.stringify(_rawCognome), '| n° f-nome nel DOM:', _nCampi);
-    if (location.search.includes('debug=1')) {
-      alert('DEBUG\nCampo NOME contiene: "' + (_rawNome||'') + '"\nCampo COGNOME contiene: "' + (_rawCognome||'') + '"\nN° campi nome nel DOM: ' + _nCampi);
-    }
-    const nome     = capitalizza(_rawNome);
-    const cognome  = capitalizza(_rawCognome);
+    const nome     = capitalizza(document.getElementById('f-nome')?.value);
+    const cognome  = capitalizza(document.getElementById('f-cognome')?.value);
     const nomeSaluto = nome || cognome || 'ciao';  // fallback se nome vuoto
     const telefono = document.getElementById('f-telefono')?.value.trim();
     const email    = document.getElementById('f-email')?.value.trim()||null;
@@ -540,37 +537,85 @@ async function init() {
 }
 
 // ── Invio Email promo (usa Edge Function send-email esistente) ──
+// Costruisce il testo del regolamento per email/landing: giorni + turni + min persone + validità + testo libero
+function buildRegolamentoTesto(promo) {
+  const giorniNomi = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato','domenica'];
+  const righe = [];
+  if (promo.giorni_disponibili?.length) {
+    const nomi = promo.giorni_disponibili.map(g => giorniNomi[g-1]).filter(Boolean).join(', ');
+    if (nomi) righe.push('📅 Valida nei giorni: ' + nomi);
+  }
+  if (promo.turni?.length) {
+    righe.push('🕐 Valida a ' + promo.turni.map(t => t==='pranzo'?'pranzo':'cena').join(' e '));
+  }
+  if (promo.min_persone && promo.min_persone > 1) {
+    righe.push('👥 Minimo ' + promo.min_persone + ' persone al tavolo');
+  }
+  if (promo.data_scadenza) {
+    righe.push('⏰ Valida fino al ' + new Date(promo.data_scadenza).toLocaleDateString('it-IT'));
+  } else if (promo.validita_giorni) {
+    righe.push('⏰ Valida per ' + promo.validita_giorni + ' giorni');
+  }
+  return righe;
+}
+
 async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azienda, nomeLocale }) {
-  const landingUrl = coupon
+  const nomeAzienda = nomeLocale || azienda?.nome_azienda || azienda?.nome || 'Il tuo locale';
+  const accent = promo.stile?.colore_primario || '#0E5A7A';
+
+  // Link "Mostra promo/QR" (thank-you con coupon) e link "Prenota tavolo"
+  const linkCoupon = coupon
     ? `${location.origin}${location.pathname}?id=${promoId}&ty=1&c=${coupon}`
-    : `${location.origin}${location.pathname}?id=${promoId}`;
+    : `${location.origin}${location.pathname}?id=${promoId}&ty=1`;
+  const linkPrenota = `${location.origin}/#/prenotazione-online?azienda=${promo.azienda_id}${promo.sede_id ? '&sede='+promo.sede_id : ''}${coupon ? '&coupon='+coupon : ''}`;
+
+  // QR come IMMAGINE (nelle email il JS non gira) — encoda "RFC:COUPON" per la scansione in cassa
+  const qrData = coupon ? `RFC:${coupon}` : linkCoupon;
+  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
 
   const valoreLabel = promo.tipo==='sconto_perc' ? promo.valore+'%'
                     : promo.tipo==='sconto_euro' ? '€'+promo.valore
                     : promo.tipo==='2x1' ? '2×1' : 'Omaggio';
-  const nomeAzienda = nomeLocale || azienda?.nome_azienda || azienda?.nome || 'Il tuo locale';
-  const accent = promo.stile?.colore_primario || '#0E5A7A';
-  const scadenzaTxt = promo.data_scadenza
-    ? 'Valida fino al ' + new Date(promo.data_scadenza).toLocaleDateString('it-IT')
-    : (promo.validita_giorni ? 'Valida per ' + promo.validita_giorni + ' giorni' : '');
+
+  const regoleRighe = buildRegolamentoTesto(promo);
+  const regolamentoHtml = regoleRighe.length || promo.regolamento
+    ? `<div style="background:#f8fafc;border:1px solid #eef2f7;border-radius:12px;padding:16px 18px;margin:0 0 22px;">
+         <div style="font-size:13px;font-weight:700;color:#334155;margin-bottom:10px;">📜 Come funziona</div>
+         ${regoleRighe.map(r => `<div style="font-size:13px;color:#475569;line-height:1.9;">${r}</div>`).join('')}
+         ${promo.regolamento ? `<div style="font-size:12px;color:#94a3b8;line-height:1.6;margin-top:10px;">${promo.regolamento.replace(/\n/g,'<br>')}</div>` : ''}
+       </div>`
+    : '';
 
   const html = `
     <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;background:#ffffff;">
       ${promo.immagine_url && !/\.(mp4|mov|webm)(\?|$)/i.test(promo.immagine_url)
-        ? `<img src="${promo.immagine_url}" alt="${promo.nome}" style="width:100%;max-height:240px;object-fit:cover;display:block;">` : ''}
+        ? `<img src="${promo.immagine_url}" alt="${promo.nome}" style="width:100%;max-height:220px;object-fit:cover;display:block;">` : ''}
       <div style="padding:28px 24px;">
-        <p style="font-size:16px;color:#334155;margin:0 0 12px;">Ciao ${nome},</p>
-        <p style="font-size:15px;color:#475569;line-height:1.6;margin:0 0 20px;">
-          ecco la tua promozione da <strong>${nomeAzienda}</strong>.
+
+        <!-- 1. Saluto + nome promo -->
+        <p style="font-size:16px;color:#334155;margin:0 0 6px;">Ciao ${nome},</p>
+        <p style="font-size:15px;color:#475569;line-height:1.6;margin:0 0 18px;">
+          ecco la tua promo da <strong>${nomeAzienda}</strong>:
         </p>
-        <div style="background:linear-gradient(135deg,${accent},${accent}cc);border-radius:16px;padding:24px;text-align:center;color:#fff;margin-bottom:20px;">
-          <div style="font-size:34px;font-weight:900;line-height:1;">${valoreLabel}</div>
-          <div style="font-size:15px;opacity:.9;margin-top:6px;">${promo.nome}</div>
-          ${coupon ? `<div style="margin-top:16px;background:rgba(255,255,255,.2);border:1px dashed rgba(255,255,255,.6);border-radius:10px;padding:10px 16px;font-size:18px;font-weight:800;letter-spacing:2px;">${coupon}</div>` : ''}
+        <div style="background:linear-gradient(135deg,${accent},${accent}cc);border-radius:16px;padding:22px;text-align:center;color:#fff;margin-bottom:22px;">
+          <div style="font-size:32px;font-weight:900;line-height:1;">${valoreLabel}</div>
+          <div style="font-size:16px;font-weight:700;margin-top:8px;">${promo.nome}</div>
+          ${coupon ? `<div style="margin-top:14px;background:rgba(255,255,255,.2);border:1px dashed rgba(255,255,255,.6);border-radius:10px;padding:9px 14px;font-size:17px;font-weight:800;letter-spacing:2px;">${coupon}</div>` : ''}
         </div>
-        <a href="${landingUrl}" style="display:block;background:${accent};color:#fff;text-decoration:none;text-align:center;border-radius:12px;padding:14px;font-size:16px;font-weight:700;">Mostra la promo e il QR</a>
-        ${scadenzaTxt ? `<p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:14px;">${scadenzaTxt}</p>` : ''}
-        ${promo.regolamento ? `<p style="font-size:11px;color:#cbd5e1;line-height:1.5;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:14px;">${promo.regolamento}</p>` : ''}
+
+        <!-- 2. Regolamento -->
+        ${regolamentoHtml}
+
+        <!-- 3. QR code (immagine) -->
+        <div style="text-align:center;margin:0 0 24px;">
+          <div style="font-size:13px;color:#64748b;margin-bottom:10px;">📱 Mostra questo QR al nostro staff per usare la promo</div>
+          <img src="${qrImgUrl}" alt="QR coupon" width="180" height="180" style="border:1px solid #e5e7eb;border-radius:12px;padding:8px;background:#fff;">
+        </div>
+
+        <!-- 4. Bottone Prenota tavolo -->
+        <a href="${linkPrenota}" style="display:block;background:${accent};color:#fff;text-decoration:none;text-align:center;border-radius:12px;padding:15px;font-size:16px;font-weight:800;margin-bottom:10px;">🍽 Prenota il tavolo</a>
+        <a href="${linkCoupon}" style="display:block;color:${accent};text-decoration:none;text-align:center;font-size:13px;padding:8px;">Rivedi la promo online</a>
+
       </div>
     </div>`;
 
@@ -580,7 +625,7 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
       body: JSON.stringify({
         destinatario: email,
-        oggetto: `🎁 La tua promo da ${nomeAzienda}: ${promo.nome}`,
+        oggetto: `🎁 ${promo.nome} — la tua promo da ${nomeAzienda}`,
         corpo_html: html,
         mittente_nome: nomeAzienda,
         reply_to: azienda?.email || undefined
