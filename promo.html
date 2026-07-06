@@ -332,7 +332,7 @@ async function init() {
   }
 
   // Carica promo + azienda
-  let promo, azienda;
+  let promo, azienda, sede, nomeDaComunicare, logoDaComunicare;
   try {
     const pRes = await api(`promo?id=eq.${promoId}&select=*&limit=1`);
     promo = Array.isArray(pRes.data) ? pRes.data[0] : null;
@@ -348,8 +348,19 @@ async function init() {
           if (az) azienda = { ...(azienda||{}), nome_azienda: azienda?.nome_azienda || az.nome, email: az.email };
         } catch(e) { console.warn('Fallback aziende:', e); }
       }
+      // Se la promo è di una SEDE specifica, carico la sede (nome/logo/telefono corretti)
+      if (promo.sede_id) {
+        try {
+          const sRes = await api(`sedi?id=eq.${promo.sede_id}&select=nome,logo_url,telefono&limit=1`);
+          sede = Array.isArray(sRes.data) ? sRes.data[0] : null;
+        } catch(e) { console.warn('Caricamento sede:', e); }
+      }
     }
   } catch(e) { console.error(e); }
+
+  // Nome da comunicare al cliente: sede se presente, altrimenti azienda
+  nomeDaComunicare = sede?.nome || azienda?.nome_azienda || 'Il tuo locale';
+  logoDaComunicare = sede?.logo_url || azienda?.logo_url || null;
 
   if (!promo || !promo.attiva) {
     document.getElementById('loader').innerHTML = '<div class="error-box"><div style="font-size:40px;margin-bottom:12px;">⏰</div><div style="font-size:16px;font-weight:600;">Promo non disponibile</div><div style="font-size:13px;margin-top:6px;">Questa promo non è più attiva o è scaduta.</div></div>';
@@ -381,18 +392,18 @@ async function init() {
   }
 
   // Titolo pagina
-  document.title = promo.nome + (azienda?.nome_azienda ? ' — '+azienda.nome_azienda : '');
+  document.title = promo.nome + (nomeDaComunicare ? ' — '+nomeDaComunicare : '');
 
   // Render landing
   const blocks = promo.landing_config?.blocks || [];
   const wrap = document.getElementById('wrap');
 
   let html = '';
-  // Header azienda
-  if (azienda?.nome_azienda || azienda?.logo_url) {
+  // Header locale (sede se presente, altrimenti azienda)
+  if (nomeDaComunicare || logoDaComunicare) {
     html += `<div style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9;">
-      ${azienda.logo_url ? `<img src="${esc(azienda.logo_url)}" style="height:36px;width:auto;border-radius:6px;" onerror="this.style.display='none'">` : ''}
-      ${azienda.nome_azienda ? `<div style="font-size:14px;font-weight:700;color:#0f172a;">${esc(azienda.nome_azienda)}</div>` : ''}
+      ${logoDaComunicare ? `<img src="${esc(logoDaComunicare)}" style="height:36px;width:auto;border-radius:6px;" onerror="this.style.display='none'">` : ''}
+      ${nomeDaComunicare ? `<div style="font-size:14px;font-weight:700;color:#0f172a;">${esc(nomeDaComunicare)}</div>` : ''}
     </div>`;
   }
 
@@ -499,11 +510,11 @@ async function init() {
       if (window.dataLayer) window.dataLayer.push({ event: evento, promo_id: promoId, promo_nome: promo.nome });
 
       // 3. Invia WA — testo con link promo + coupon
-      await inviaPromoWA({ promo, nome, telefono, aziendaId: promo.azienda_id, coupon: couponCode });
+      await inviaPromoWA({ promo, nome, telefono, aziendaId: promo.azienda_id, coupon: couponCode, nomeLocale: nomeDaComunicare });
 
       // 4. Invia email con coupon (email ora obbligatoria)
       if (email) {
-        await inviaPromoEmail({ promo, nome, cognome, email, coupon: couponCode, azienda });
+        await inviaPromoEmail({ promo, nome, cognome, email, coupon: couponCode, azienda, nomeLocale: nomeDaComunicare });
       }
 
       window._rfTrack && window._rfTrack('submit', 'promo_scaricata', { completato: true, valore: promo.nome, step: 'success', coupon: couponCode });
@@ -515,7 +526,7 @@ async function init() {
 }
 
 // ── Invio Email promo (usa Edge Function send-email esistente) ──
-async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azienda }) {
+async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azienda, nomeLocale }) {
   const landingUrl = coupon
     ? `${location.origin}${location.pathname}?id=${promoId}&ty=1&c=${coupon}`
     : `${location.origin}${location.pathname}?id=${promoId}`;
@@ -523,7 +534,7 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
   const valoreLabel = promo.tipo==='sconto_perc' ? promo.valore+'%'
                     : promo.tipo==='sconto_euro' ? '€'+promo.valore
                     : promo.tipo==='2x1' ? '2×1' : 'Omaggio';
-  const nomeAzienda = azienda?.nome_azienda || azienda?.nome || 'Il tuo locale';
+  const nomeAzienda = nomeLocale || azienda?.nome_azienda || azienda?.nome || 'Il tuo locale';
   const accent = promo.stile?.colore_primario || '#0E5A7A';
   const scadenzaTxt = promo.data_scadenza
     ? 'Valida fino al ' + new Date(promo.data_scadenza).toLocaleDateString('it-IT')
@@ -565,11 +576,13 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
 }
 
 // ── Invio WhatsApp promo ───────────────────────────────────────
-async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null }) {
+async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null, nomeLocale = null }) {
   // Link thank you personale: mostra coupon + QR riaprendo il link
   const landingUrl = coupon
     ? `${location.origin}${location.pathname}?id=${promoId}&ty=1&c=${coupon}`
     : `${location.origin}${location.pathname}?id=${promoId}`;
+
+  const locale = nomeLocale || 'noi';
 
   // Componi testo sostituendo variabili
   let testo = promo.messaggio_wa || '';
@@ -578,7 +591,7 @@ async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null })
     const valoreLabel = promo.tipo==='sconto_perc' ? promo.valore+'%'
                       : promo.tipo==='sconto_euro' ? '€'+promo.valore
                       : promo.tipo==='2x1' ? '2×1' : '🎁';
-    testo = `Ciao ${nome}! 🎁\n\nHai una promo esclusiva: *${promo.nome}*\n`
+    testo = `Ciao ${nome}! 🎁\n\nHai una promo esclusiva da *${locale}*: *${promo.nome}*\n`
           + (valoreLabel ? `Valore: *${valoreLabel}*\n` : '')
           + (coupon ? `Il tuo coupon personale: *${coupon}*\n` : (promo.codice ? `Codice: *${promo.codice}*\n` : ''))
           + `\n👉 Ritrovi coupon e QR qui: ${landingUrl}`;
@@ -588,6 +601,7 @@ async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null })
       : `${promo.validita_giorni||30} giorni`;
     testo = testo
       .replace(/{{nome}}/g, nome)
+      .replace(/{{locale}}/g, locale)
       .replace(/{{promo_nome}}/g, promo.nome||'')
       .replace(/{{promo_valore}}/g, promo.valore||'')
       .replace(/{{scadenza}}/g, scadenza)
