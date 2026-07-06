@@ -238,6 +238,10 @@ export async function renderPromo(container, aziendaId) {
                   <label class="promo-label">Nr. disponibili</label>
                   <input id="p-nr-disp" type="number" min="0" class="promo-input" placeholder="∞">
                 </div>
+                <div>
+                  <label class="promo-label">Min. persone al tavolo</label>
+                  <input id="p-min-persone" type="number" min="1" class="promo-input" placeholder="Es. 2">
+                </div>
               </div>
               <div style="margin-bottom:14px;">
                 <label class="promo-label">📅 Giorni disponibili (vuoto = tutti)</label>
@@ -979,6 +983,7 @@ export async function renderPromo(container, aziendaId) {
     container.querySelector('#p-data-scad').value   = promo?.data_scadenza||'';
     container.querySelector('#p-validita').value    = promo?.validita_giorni||30;
     container.querySelector('#p-nr-disp').value     = promo?.nr_disponibili||'';
+    container.querySelector('#p-min-persone').value = promo?.min_persone||'';
     container.querySelector('#p-immagine-url').value= promo?.immagine_url||'';
     mostraMediaPreview(promo?.immagine_url||'');
     container.querySelector('#p-tag-scaricamento').value = promo?.meta_pixel_evento_scaricamento||'Lead';
@@ -1048,6 +1053,7 @@ export async function renderPromo(container, aziendaId) {
       data_scadenza:container.querySelector('#p-data-scad').value||null,
       validita_giorni: parseInt(container.querySelector('#p-validita').value)||30,
       nr_disponibili: parseInt(container.querySelector('#p-nr-disp').value)||null,
+      min_persone: parseInt(container.querySelector('#p-min-persone').value)||null,
       immagine_url: container.querySelector('#p-immagine-url').value.trim()||null,
       meta_pixel_evento_scaricamento: container.querySelector('#p-tag-scaricamento').value.trim()||'Lead',
       meta_pixel_evento_uso:          container.querySelector('#p-tag-utilizzata').value.trim()||'Purchase',
@@ -1256,6 +1262,7 @@ export async function renderPromo(container, aziendaId) {
         codice: (promoGen.codice || '').toUpperCase().replace(/\s+/g,'') || null,
         descrizione: promoGen.descrizione || null,
         validita_giorni: parseInt(promoGen.validita_giorni) || 30,
+        min_persone: parseInt(promoGen.min_persone) || (promoGen.tipo === '2x1' ? 2 : null),
         immagine_url: immagineUrl,
         messaggio_wa: promoGen.messaggio_wa || null,
         messaggio_reminder: promoGen.messaggio_reminder || null,
