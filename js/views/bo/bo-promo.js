@@ -574,6 +574,7 @@ export async function renderPromo(container, aziendaId) {
         return `<div style="margin:10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:${r}px;padding:14px;">
           <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:${s.colore_testo};">📋 Scarica la promo</div>
           <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;margin-bottom:6px;font-size:11px;color:#94a3b8;">Nome</div>
+          <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;margin-bottom:6px;font-size:11px;color:#94a3b8;">Cognome</div>
           <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:11px;color:#94a3b8;">Telefono</div>
           <div style="background:${s.colore_bottone};border-radius:${r}px;padding:9px;text-align:center;color:white;font-size:12px;font-weight:800;">🎁 Voglio la mia promo!</div>
         </div>`;
@@ -1105,7 +1106,7 @@ export async function renderPromo(container, aziendaId) {
         <button id="chiudi-anteprima" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:16px;">✕</button>
       </div>
       <div style="width:100%;max-width:420px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">
-        <div style="${css}">${landingHTML || '<div style="padding:40px;text-align:center;color:#94a3b8;">Configura la promo per vedere l\\'anteprima</div>'}</div>
+        <div style="${css}">${landingHTML || '<div style="padding:40px;text-align:center;color:#94a3b8;">Configura la promo per vedere la sua anteprima</div>'}</div>
       </div>
       <div style="color:rgba(255,255,255,.6);font-size:11px;margin-top:12px;text-align:center;max-width:420px;">Questa è l'anteprima. Salva la promo per ottenere il link reale da inviare.</div>
     `;
