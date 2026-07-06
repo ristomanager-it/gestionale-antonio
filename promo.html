@@ -196,8 +196,10 @@ function renderBlock(b, promo, azienda) {
   if (b.tipo==='form') {
     return `<div class="form-block" id="form-container">
       <h3>📋 Scarica la tua promo</h3>
-      <input class="form-input" id="f-nome" type="text" placeholder="Nome *" autocomplete="given-name">
-      <input class="form-input" id="f-cognome" type="text" placeholder="Cognome *" autocomplete="family-name">
+      <label style="display:block;font-size:11px;color:#94a3b8;margin:0 0 3px 2px;font-weight:600;">Nome</label>
+      <input class="form-input" id="f-nome" type="text" placeholder="Es. Mario" autocomplete="off" autocapitalize="words">
+      <label style="display:block;font-size:11px;color:#94a3b8;margin:6px 0 3px 2px;font-weight:600;">Cognome</label>
+      <input class="form-input" id="f-cognome" type="text" placeholder="Es. Rossi" autocomplete="off" autocapitalize="words">
       <input class="form-input" id="f-telefono" type="tel" placeholder="Telefono *" autocomplete="tel">
       <input class="form-input" id="f-email" type="email" placeholder="Email *" autocomplete="email">
       ${promo.privacy_richiesta ? `<label class="form-check"><input type="checkbox" id="f-privacy"> <span>Ho letto e accetto la <a href="#" style="color:#0E5A7A;">Privacy Policy</a> *</span></label>` : ''}
@@ -225,8 +227,10 @@ function renderDefaultLayout(promo, azienda) {
     ${promo.descrizione ? `<div class="testo-block">${esc(promo.descrizione).replace(/\n/g,'<br>')}</div>` : ''}
     <div class="form-block" id="form-container">
       <h3>📋 Scarica la tua promo</h3>
-      <input class="form-input" id="f-nome" type="text" placeholder="Nome *" autocomplete="given-name">
-      <input class="form-input" id="f-cognome" type="text" placeholder="Cognome *" autocomplete="family-name">
+      <label style="display:block;font-size:11px;color:#94a3b8;margin:0 0 3px 2px;font-weight:600;">Nome</label>
+      <input class="form-input" id="f-nome" type="text" placeholder="Es. Mario" autocomplete="off" autocapitalize="words">
+      <label style="display:block;font-size:11px;color:#94a3b8;margin:6px 0 3px 2px;font-weight:600;">Cognome</label>
+      <input class="form-input" id="f-cognome" type="text" placeholder="Es. Rossi" autocomplete="off" autocapitalize="words">
       <input class="form-input" id="f-telefono" type="tel" placeholder="Telefono *" autocomplete="tel">
       <input class="form-input" id="f-email" type="email" placeholder="Email *" autocomplete="email">
       ${promo.privacy_richiesta ? `<label class="form-check"><input type="checkbox" id="f-privacy"> <span>Ho letto e accetto la <a href="#" style="color:#0E5A7A;">Privacy Policy</a> *</span></label>` : ''}
@@ -440,8 +444,10 @@ async function init() {
   if (!btnScarica) return;
 
   btnScarica.addEventListener('click', async () => {
-    const nome     = document.getElementById('f-nome')?.value.trim();
-    const cognome  = document.getElementById('f-cognome')?.value.trim();
+    const capitalizza = (s) => (s||'').trim().replace(/\b\p{L}/gu, ch => ch.toUpperCase());
+    const nome     = capitalizza(document.getElementById('f-nome')?.value);
+    const cognome  = capitalizza(document.getElementById('f-cognome')?.value);
+    const nomeSaluto = nome || cognome || 'ciao';  // fallback se nome vuoto
     const telefono = document.getElementById('f-telefono')?.value.trim();
     const email    = document.getElementById('f-email')?.value.trim()||null;
     const privacy  = document.getElementById('f-privacy')?.checked ?? true;
@@ -510,11 +516,11 @@ async function init() {
       if (window.dataLayer) window.dataLayer.push({ event: evento, promo_id: promoId, promo_nome: promo.nome });
 
       // 3. Invia WA — testo con link promo + coupon
-      await inviaPromoWA({ promo, nome, telefono, aziendaId: promo.azienda_id, coupon: couponCode, nomeLocale: nomeDaComunicare });
+      await inviaPromoWA({ promo, nome: nomeSaluto, telefono, aziendaId: promo.azienda_id, coupon: couponCode, nomeLocale: nomeDaComunicare });
 
       // 4. Invia email con coupon (email ora obbligatoria)
       if (email) {
-        await inviaPromoEmail({ promo, nome, cognome, email, coupon: couponCode, azienda, nomeLocale: nomeDaComunicare });
+        await inviaPromoEmail({ promo, nome: nomeSaluto, cognome, email, coupon: couponCode, azienda, nomeLocale: nomeDaComunicare });
       }
 
       window._rfTrack && window._rfTrack('submit', 'promo_scaricata', { completato: true, valore: promo.nome, step: 'success', coupon: couponCode });
