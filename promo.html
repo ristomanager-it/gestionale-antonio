@@ -5,45 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Promo</title>
 <style>
+  :root{
+    --primario:#0E5A7A;
+    --primario-2:#1a8aad;
+    --sfondo:#ffffff;
+    --testo:#374151;
+    --bottone:#0E5A7A;
+    --bottone-testo:#ffffff;
+    --radius:12px;
+  }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;min-height:100vh;}
-  .wrap{max-width:480px;margin:0 auto;background:white;min-height:100vh;position:relative;overflow:hidden;}
+  .wrap{max-width:480px;margin:0 auto;background:var(--sfondo);min-height:100vh;position:relative;overflow:hidden;}
   .promo-img{width:100%;height:240px;object-fit:cover;display:block;}
-  .promo-img-placeholder{width:100%;height:240px;background:linear-gradient(135deg,#0E5A7A,#1a8aad);display:flex;align-items:center;justify-content:center;font-size:64px;}
-  .box-offerta{margin:16px;background:linear-gradient(135deg,#0E5A7A,#1a8aad);border-radius:18px;padding:24px;color:white;text-align:center;}
+  .promo-img-placeholder{width:100%;height:240px;background:linear-gradient(135deg,var(--primario),var(--primario-2));display:flex;align-items:center;justify-content:center;font-size:64px;}
+  .box-offerta{margin:16px;background:linear-gradient(135deg,var(--primario),var(--primario-2));border-radius:18px;padding:24px;color:white;text-align:center;}
   .box-offerta .valore{font-size:48px;font-weight:900;line-height:1;}
   .box-offerta .label{font-size:14px;opacity:.85;margin-top:6px;}
   .box-offerta .codice{margin-top:14px;background:rgba(255,255,255,.2);border:1px dashed rgba(255,255,255,.5);border-radius:10px;padding:8px 16px;font-size:15px;font-weight:800;letter-spacing:2px;}
   .box-offerta .scadenza{font-size:11px;opacity:.7;margin-top:8px;}
-  .testo-block{padding:16px 20px;color:#374151;font-size:14px;line-height:1.7;}
+  .testo-block{padding:16px 20px;color:var(--testo);font-size:14px;line-height:1.7;}
   .form-block{margin:16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:20px;}
   .form-block h3{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;}
   .form-input{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;background:white;margin-bottom:10px;transition:border-color .2s;}
-  .form-input:focus{border-color:#0E5A7A;}
+  .form-input:focus{border-color:var(--primario);}
   .form-check{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#64748b;margin-bottom:10px;cursor:pointer;}
-  .form-check input{margin-top:2px;accent-color:#0E5A7A;}
-  .btn-cta{width:100%;background:linear-gradient(135deg,#0E5A7A,#1a8aad);color:white;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.3px;box-shadow:0 4px 20px rgba(14,90,122,.3);}
+  .form-check input{margin-top:2px;accent-color:var(--primario);}
+  .btn-cta{width:100%;background:linear-gradient(135deg,var(--bottone),var(--primario-2));color:var(--bottone-testo);border:none;border-radius:var(--radius);padding:15px;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.3px;box-shadow:0 4px 20px rgba(0,0,0,.15);}
   .btn-cta:disabled{opacity:.6;cursor:not-allowed;}
-  .btn-cta-secondary{width:100%;background:#f1f5f9;color:#0E5A7A;border:2px solid #0E5A7A;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;}
+  .btn-cta-secondary{width:100%;background:#f1f5f9;color:var(--primario);border:2px solid var(--primario);border-radius:var(--radius);padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;}
   .valutazioni{padding:14px 20px;text-align:center;}
   .stelle{color:#f59e0b;font-size:22px;letter-spacing:2px;}
   .stelle-label{font-size:12px;color:#64748b;margin-top:4px;}
   .accordion{margin:16px;}
   .accordion-head{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:#374151;}
   .accordion-body{display:none;padding:12px 16px;font-size:12px;color:#64748b;line-height:1.8;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;}
-  .giorni-badge{display:inline-block;background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;margin:2px;}
+  .giorni-badge{display:inline-block;background:#f0f9ff;border:1px solid #bae6fd;color:var(--primario);border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;margin:2px;}
   /* Thank you overlay */
   .thankyou{display:none;position:fixed;inset:0;background:white;z-index:999;overflow-y:auto;}
   .thankyou.show{display:block;}
   /* Loader */
   .loader{text-align:center;padding:60px 20px;color:#64748b;}
-  .loader-spin{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#0E5A7A;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+  .loader-spin{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:var(--primario);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
   @keyframes spin{to{transform:rotate(360deg);}}
   /* Errore */
   .error-box{padding:60px 24px;text-align:center;color:#64748b;}
   /* Footer */
   .footer{padding:20px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;}
-  .footer a{color:#0E5A7A;text-decoration:none;}
+  .footer a{color:var(--primario);text-decoration:none;}
 </style>
 </head>
 <body>
@@ -166,12 +175,10 @@ function renderBlock(b, promo, azienda) {
     return testo ? `<div class="testo-block">${esc(testo).replace(/\n/g,'<br>')}</div>` : '';
   }
   if (b.tipo==='box_offerta') {
-    const scad = promo.data_scadenza ? 'Valida fino al '+new Date(promo.data_scadenza).toLocaleDateString('it-IT') : (promo.validita_giorni ? 'Valida per '+promo.validita_giorni+' giorni' : '');
     return `<div class="box-offerta">
       <div class="valore">${esc(renderValore(promo))}</div>
       <div class="label">${esc(promo.nome)}</div>
       ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
-      ${scad ? `<div class="scadenza">⏰ ${scad}</div>` : ''}
     </div>`;
   }
   if (b.tipo==='valutazioni') {
@@ -201,7 +208,6 @@ function renderBlock(b, promo, azienda) {
 
 function renderDefaultLayout(promo, azienda) {
   // Layout fisso elegante quando non ci sono blocchi configurati
-  const scad = promo.data_scadenza ? 'Valida fino al '+new Date(promo.data_scadenza).toLocaleDateString('it-IT') : (promo.validita_giorni ? 'Valida per '+promo.validita_giorni+' giorni' : '');
   return `
     ${promo.immagine_url
       ? `<img class="promo-img" src="${esc(promo.immagine_url)}" alt="${esc(promo.nome)}" onerror="this.parentNode.replaceChild(Object.assign(document.createElement('div'),{className:'promo-img-placeholder',innerHTML:'🍽'}),this)">`
@@ -210,7 +216,6 @@ function renderDefaultLayout(promo, azienda) {
       <div class="valore">${esc(renderValore(promo))}</div>
       <div class="label">${esc(promo.nome)}</div>
       ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
-      ${scad ? `<div class="scadenza">⏰ ${scad}</div>` : ''}
     </div>
     ${promo.descrizione ? `<div class="testo-block">${esc(promo.descrizione).replace(/\n/g,'<br>')}</div>` : ''}
     <div class="form-block" id="form-container">
@@ -250,14 +255,38 @@ function renderThankyouDefault(promo) {
   `;
 }
 
-function renderGiorniInfo(promo) {
-  if (!promo.giorni_disponibili?.length && !promo.turni?.length) return '';
+function buildRegolamentoCompleto(promo) {
   const giorni = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
-  return `<div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-    <span style="font-size:12px;color:#64748b;font-weight:600;">Disponibile:</span>
-    ${(promo.giorni_disponibili||[]).map(g=>`<span class="giorni-badge">${giorni[g-1]}</span>`).join('')}
-    ${(promo.turni||[]).map(t=>`<span class="giorni-badge">${t==='pranzo'?'🌞 Pranzo':'🌙 Cena'}</span>`).join('')}
-  </div>`;
+  const righe = [];
+
+  // Validità temporale
+  if (promo.data_scadenza) {
+    righe.push('⏰ Valida fino al ' + new Date(promo.data_scadenza).toLocaleDateString('it-IT') + '.');
+  } else if (promo.validita_giorni) {
+    righe.push('⏰ Valida per ' + promo.validita_giorni + ' giorni dall\'attivazione.');
+  }
+
+  // Giorni disponibili
+  if (promo.giorni_disponibili?.length) {
+    const nomi = promo.giorni_disponibili.map(g => giorni[g-1]).filter(Boolean).join(', ');
+    if (nomi) righe.push('📅 Disponibile nei giorni: ' + nomi + '.');
+  }
+
+  // Turni
+  if (promo.turni?.length) {
+    const turni = promo.turni.map(t => t==='pranzo' ? 'pranzo' : 'cena').join(' e ');
+    righe.push('🕐 Valida a ' + turni + '.');
+  }
+
+  let out = righe.length ? righe.map(r => esc(r)).join('<br>') : '';
+
+  // Testo regolamento libero
+  if (promo.regolamento) {
+    if (out) out += '<br><br>';
+    out += esc(promo.regolamento).replace(/\n/g,'<br>');
+  }
+
+  return out;
 }
 
 // ── QR thankyou ───────────────────────────────────────────────
@@ -277,6 +306,19 @@ function generaQRThankyou(promoId) {
 }
 
 // ── Main ──────────────────────────────────────────────────────
+function applicaStilePromo(stile) {
+  if (!stile || typeof stile !== 'object') return; // nessuno stile → restano i default brand
+  const root = document.documentElement;
+  const set = (varName, val) => { if (val) root.style.setProperty(varName, val); };
+  set('--primario',       stile.colore_primario);
+  set('--primario-2',     stile.colore_primario);  // gradiente monocromo se non c'è un secondario
+  set('--sfondo',         stile.colore_sfondo);
+  set('--testo',          stile.colore_testo);
+  set('--bottone',        stile.colore_bottone || stile.colore_primario);
+  set('--bottone-testo',  stile.colore_testo_bottone);
+  if (stile.border_radius != null) root.style.setProperty('--radius', stile.border_radius + 'px');
+}
+
 async function init() {
   if (!promoId) {
     document.getElementById('loader').innerHTML = '<div class="error-box"><div style="font-size:40px;margin-bottom:12px;">🔍</div><div style="font-size:16px;font-weight:600;">Promo non trovata</div><div style="font-size:13px;margin-top:6px;">Il link non è valido.</div></div>';
@@ -304,6 +346,9 @@ async function init() {
     document.getElementById('loader').innerHTML = '<div class="error-box"><div style="font-size:40px;margin-bottom:12px;">📅</div><div style="font-size:16px;font-weight:600;">Promo scaduta</div></div>';
     return;
   }
+
+  // Applica colori: brand di default, oppure stile specifico della promo se presente
+  applicaStilePromo(promo.stile);
 
   // Inject Pixel
   const pixelId = azienda?.meta_pixel_id || promo.meta_pixel_id;
@@ -343,16 +388,14 @@ async function init() {
     html += renderDefaultLayout(promo, azienda);
   }
 
-  // Giorni/turni
-  html += renderGiorniInfo(promo);
-
-  // Regolamento
-  if (promo.regolamento) {
+  // Regolamento (include validità, giorni e turni — NON mostrati nella landing principale)
+  const regolamentoCompleto = buildRegolamentoCompleto(promo);
+  if (regolamentoCompleto) {
     html += `<div class="accordion">
       <div class="accordion-head" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-        📜 Regolamento <span>▸</span>
+        📜 Regolamento e condizioni <span>▸</span>
       </div>
-      <div class="accordion-body">${esc(promo.regolamento).replace(/\n/g,'<br>')}</div>
+      <div class="accordion-body">${regolamentoCompleto}</div>
     </div>`;
   }
 
