@@ -526,13 +526,15 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
     </div>`;
 
   try {
-    await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+    await fetch(`${SUPABASE_URL}/functions/v1/invia-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
       body: JSON.stringify({
-        to: [email],
-        subject: `🎁 La tua promo da ${nomeAzienda}: ${promo.nome}`,
-        html
+        destinatario: email,
+        oggetto: `🎁 La tua promo da ${nomeAzienda}: ${promo.nome}`,
+        corpo_html: html,
+        mittente_nome: nomeAzienda,
+        reply_to: azienda?.email || undefined
       })
     });
   } catch(e) { console.error('Invio email promo fallito:', e); }
