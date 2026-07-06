@@ -291,16 +291,18 @@ export async function renderPromo(container, aziendaId) {
             <!-- TAB: LANDING -->
             <div data-tab-content-promo="visual" style="display:none;">
               <div style="margin-bottom:14px;">
-                <label class="promo-label">Immagine promo</label>
-                <div style="display:flex;gap:8px;align-items:flex-end;">
-                  <input id="p-immagine-url" class="promo-input" placeholder="https://... oppure carica →" style="flex:1;">
+                <label class="promo-label">Immagine / Video promo</label>
+                <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+                  <input id="p-immagine-url" class="promo-input" placeholder="https://... oppure scegli →" style="flex:1;min-width:180px;">
+                  <button type="button" id="p-btn-libreria" style="background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;">🖼 Libreria</button>
                   <label style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;">
-                    📎 Carica<input type="file" id="p-immagine-file" accept="image/*" style="display:none;">
+                    📎 Carica<input type="file" id="p-immagine-file" accept="image/*,video/mp4,video/quicktime,video/webm" style="display:none;">
                   </label>
                 </div>
                 <div id="p-immagine-preview" style="margin-top:8px;display:none;">
-                  <img id="p-immagine-img" src="" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:cover;">
-                  <div style="font-size:11px;color:#15803d;margin-top:4px;">✅ Immagine caricata — visibile nell'anteprima →</div>
+                  <img id="p-immagine-img" src="" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:cover;display:none;">
+                  <video id="p-immagine-video" src="" controls style="max-width:100%;max-height:140px;border-radius:8px;display:none;"></video>
+                  <div style="font-size:11px;color:#15803d;margin-top:4px;">✅ Media selezionato — visibile nell'anteprima →</div>
                 </div>
               </div>
               <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
@@ -549,9 +551,10 @@ export async function renderPromo(container, aziendaId) {
 
     return blocks.map(b => {
       if (b.tipo==='immagine') {
-        return imgUrl
-          ? `<img src="${imgUrl}" style="width:100%;height:150px;object-fit:cover;display:block;" onerror="this.style.display='none'">`
-          : `<div style="width:100%;height:150px;background:linear-gradient(135deg,${s.colore_primario},${s.colore_primario}99);display:flex;align-items:center;justify-content:center;font-size:48px;">🍽</div>`;
+        if (!imgUrl) return `<div style="width:100%;height:150px;background:linear-gradient(135deg,${s.colore_primario},${s.colore_primario}99);display:flex;align-items:center;justify-content:center;font-size:48px;">🍽</div>`;
+        return isVideoUrl(imgUrl)
+          ? `<video src="${imgUrl}" autoplay muted loop playsinline style="width:100%;height:150px;object-fit:cover;display:block;"></video>`
+          : `<img src="${imgUrl}" style="width:100%;height:150px;object-fit:cover;display:block;" onerror="this.style.display='none'">`;
       }
       if (b.tipo==='testo') {
         const t = b.contenuto || desc;
@@ -722,12 +725,79 @@ export async function renderPromo(container, aziendaId) {
     container.querySelector('#'+id)?.addEventListener('input', aggiornaPreview);
   });
   container.querySelector('#p-immagine-url').addEventListener('input', e => {
-    const url = e.target.value.trim();
-    if (url) {
-      container.querySelector('#p-immagine-img').src = url;
-      container.querySelector('#p-immagine-preview').style.display = '';
-    }
+    mostraMediaPreview(e.target.value.trim());
     aggiornaPreview();
+  });
+
+  // Mostra il media (immagine o video) nel preview della modal
+  function isVideoUrl(url) { return /\.(mp4|mov|webm|quicktime)(\?|$)/i.test(url||''); }
+  function mostraMediaPreview(url) {
+    const img = container.querySelector('#p-immagine-img');
+    const vid = container.querySelector('#p-immagine-video');
+    const box = container.querySelector('#p-immagine-preview');
+    if (!url) { box.style.display='none'; img.style.display='none'; vid.style.display='none'; return; }
+    box.style.display='';
+    if (isVideoUrl(url)) {
+      vid.src = url; vid.style.display=''; img.style.display='none';
+    } else {
+      img.src = url; img.style.display=''; vid.style.display='none';
+    }
+  }
+
+  // ── Selettore Libreria media (foto + video) ──────────────────
+  container.querySelector('#p-btn-libreria').addEventListener('click', async () => {
+    let ov = document.getElementById('promo-libreria-overlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'promo-libreria-overlay';
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.8);z-index:11000;display:flex;align-items:center;justify-content:center;padding:16px;';
+      document.body.appendChild(ov);
+    }
+    ov.innerHTML = `<div style="background:white;border-radius:16px;max-width:620px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:16px;font-weight:800;">🖼 Scegli dalla libreria</div>
+        <button id="lib-chiudi" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;">×</button>
+      </div>
+      <div id="lib-grid" style="padding:16px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;">
+        <div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:30px;">Carico la libreria…</div>
+      </div>
+    </div>`;
+    ov.style.display='flex';
+    document.getElementById('lib-chiudi').onclick = ()=>{ ov.style.display='none'; };
+    ov.onclick = (e)=>{ if(e.target===ov) ov.style.display='none'; };
+
+    // Carico foto + video
+    let media = [];
+    try {
+      const { data } = await supa().from('media_library')
+        .select('nome,url,tipo,tag').eq('azienda_id', aziendaId)
+        .order('created_at',{ascending:false}).limit(120);
+      media = Array.isArray(data) ? data : [];
+    } catch(e) { console.warn(e); }
+
+    const grid = document.getElementById('lib-grid');
+    if (!media.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:30px;">Nessun media in libreria. Carica foto o video dalla sezione Media.</div>';
+      return;
+    }
+    grid.innerHTML = media.map((m,i)=>{
+      const isVid = m.tipo==='video' || isVideoUrl(m.url);
+      const thumb = isVid
+        ? `<video src="${esc(m.url)}" muted style="width:100%;height:90px;object-fit:cover;border-radius:8px;"></video><div style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.6);color:white;font-size:10px;padding:2px 5px;border-radius:5px;">🎬</div>`
+        : `<img src="${esc(m.url)}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;">`;
+      return `<div data-lib-url="${esc(m.url)}" style="position:relative;cursor:pointer;border:2px solid transparent;border-radius:10px;overflow:hidden;transition:border-color .15s;" title="${esc(m.nome||'')}">${thumb}</div>`;
+    }).join('');
+    grid.querySelectorAll('[data-lib-url]').forEach(el=>{
+      el.onmouseenter=()=>el.style.borderColor='#0E5A7A';
+      el.onmouseleave=()=>el.style.borderColor='transparent';
+      el.onclick=()=>{
+        const url = el.dataset.libUrl;
+        container.querySelector('#p-immagine-url').value = url;
+        mostraMediaPreview(url);
+        aggiornaPreview();
+        ov.style.display='none';
+      };
+    });
   });
 
   // ── Chips giorni/turni ────────────────────────────────────────
@@ -796,8 +866,7 @@ export async function renderPromo(container, aziendaId) {
     if (error) { mostraToast('Errore upload: '+error.message,'error'); return; }
     const { data: urlData } = supa().storage.from('immagini-promo').getPublicUrl(fileName);
     container.querySelector('#p-immagine-url').value = urlData.publicUrl;
-    container.querySelector('#p-immagine-img').src   = urlData.publicUrl;
-    container.querySelector('#p-immagine-preview').style.display='';
+    mostraMediaPreview(urlData.publicUrl);
     aggiornaPreview();
   });
 
@@ -910,12 +979,7 @@ export async function renderPromo(container, aziendaId) {
     container.querySelector('#p-validita').value    = promo?.validita_giorni||30;
     container.querySelector('#p-nr-disp').value     = promo?.nr_disponibili||'';
     container.querySelector('#p-immagine-url').value= promo?.immagine_url||'';
-    if (promo?.immagine_url) {
-      container.querySelector('#p-immagine-img').src = promo.immagine_url;
-      container.querySelector('#p-immagine-preview').style.display='';
-    } else {
-      container.querySelector('#p-immagine-preview').style.display='none';
-    }
+    mostraMediaPreview(promo?.immagine_url||'');
     container.querySelector('#p-tag-scaricamento').value = promo?.meta_pixel_evento_scaricamento||'Lead';
     container.querySelector('#p-tag-utilizzata').value   = promo?.meta_pixel_evento_uso||'Purchase';
     container.querySelector('#p-tag-scaduta').value      = promo?.meta_pixel_evento_scaduto||'PromoExpired';
