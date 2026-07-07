@@ -222,6 +222,62 @@
       solfiti: "🍷 Anidride solforosa e solfiti", lupini: "🫘 Lupini", molluschi: "🐚 Molluschi"
     };
 
+    // ── MULTILINGUA ──────────────────────────────────────────────
+    var LANG = "it";
+    var TRAD = {}; // { lingua: { record_id: {nome, descrizione} } }
+    var TRAD_EDGE = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/menu-traduzioni";
+    var LINGUE_MENU = [["it","🇮🇹 IT"],["en","🇬🇧 EN"],["fr","🇫🇷 FR"],["de","🇩🇪 DE"],["es","🇪🇸 ES"]];
+    var UI_ML = {
+      it:{filtri:"Filtri:",fid_t:"🎁 Hai la tessera fidelity?",fid_s:"Iscriviti in un tocco: accumuli punti e ottieni sconti immediati.",fid_b:"Iscriviti ora →",no_desc:"Nessuna descrizione disponibile.",allerg:"⚠️ ALLERGENI PRESENTI"},
+      en:{filtri:"Filters:",fid_t:"🎁 Got a loyalty card?",fid_s:"Join in one tap: collect points and get instant discounts.",fid_b:"Join now →",no_desc:"No description available.",allerg:"⚠️ CONTAINS ALLERGENS"},
+      fr:{filtri:"Filtres :",fid_t:"🎁 Carte de fidélité ?",fid_s:"Inscrivez-vous en un clic : cumulez des points et profitez de remises immédiates.",fid_b:"Je m'inscris →",no_desc:"Aucune description disponible.",allerg:"⚠️ ALLERGÈNES PRÉSENTS"},
+      de:{filtri:"Filter:",fid_t:"🎁 Treuekarte?",fid_s:"Mit einem Klick anmelden: Punkte sammeln und sofort Rabatte erhalten.",fid_b:"Jetzt anmelden →",no_desc:"Keine Beschreibung verfügbar.",allerg:"⚠️ ENTHÄLT ALLERGENE"},
+      es:{filtri:"Filtros:",fid_t:"🎁 ¿Tienes la tarjeta de fidelidad?",fid_s:"Apúntate con un toque: acumula puntos y consigue descuentos al instante.",fid_b:"Apúntate ahora →",no_desc:"Sin descripción disponible.",allerg:"⚠️ CONTIENE ALÉRGENOS"}
+    };
+    var TAG_ML = {
+      en:{vegetariano:"🌱 Vegetarian",vegano:"🥦 Vegan",senza_glutine:"🌾 Gluten-free",pesce:"🐟 Fish",carne:"🥩 Meat",senza_lattosio:"🥛 Lactose-free",piccante:"🌶️ Spicy",chef:"⭐ Chef's choice"},
+      fr:{vegetariano:"🌱 Végétarien",vegano:"🥦 Végan",senza_glutine:"🌾 Sans gluten",pesce:"🐟 Poisson",carne:"🥩 Viande",senza_lattosio:"🥛 Sans lactose",piccante:"🌶️ Épicé",chef:"⭐ Choix du chef"},
+      de:{vegetariano:"🌱 Vegetarisch",vegano:"🥦 Vegan",senza_glutine:"🌾 Glutenfrei",pesce:"🐟 Fisch",carne:"🥩 Fleisch",senza_lattosio:"🥛 Laktosefrei",piccante:"🌶️ Scharf",chef:"⭐ Empfehlung des Chefs"},
+      es:{vegetariano:"🌱 Vegetariano",vegano:"🥦 Vegano",senza_glutine:"🌾 Sin gluten",pesce:"🐟 Pescado",carne:"🥩 Carne",senza_lattosio:"🥛 Sin lactosa",piccante:"🌶️ Picante",chef:"⭐ Recomendación del chef"}
+    };
+    var ALLERG_ML = {
+      en:{glutine:"🌾 Gluten (cereals)",crostacei:"🦐 Crustaceans",uova:"🥚 Eggs",pesce:"🐟 Fish",arachidi:"🥜 Peanuts",soia:"🌱 Soy",latte:"🥛 Milk (lactose)",frutta_a_guscio:"🌰 Tree nuts",sedano:"🥬 Celery",senape:"🟡 Mustard",sesamo:"◯ Sesame seeds",solfiti:"🍷 Sulphites",lupini:"🫘 Lupins",molluschi:"🐚 Molluscs"},
+      fr:{glutine:"🌾 Gluten (céréales)",crostacei:"🦐 Crustacés",uova:"🥚 Œufs",pesce:"🐟 Poisson",arachidi:"🥜 Arachides",soia:"🌱 Soja",latte:"🥛 Lait (lactose)",frutta_a_guscio:"🌰 Fruits à coque",sedano:"🥬 Céleri",senape:"🟡 Moutarde",sesamo:"◯ Graines de sésame",solfiti:"🍷 Sulfites",lupini:"🫘 Lupin",molluschi:"🐚 Mollusques"},
+      de:{glutine:"🌾 Gluten (Getreide)",crostacei:"🦐 Krebstiere",uova:"🥚 Eier",pesce:"🐟 Fisch",arachidi:"🥜 Erdnüsse",soia:"🌱 Soja",latte:"🥛 Milch (Laktose)",frutta_a_guscio:"🌰 Schalenfrüchte",sedano:"🥬 Sellerie",senape:"🟡 Senf",sesamo:"◯ Sesam",solfiti:"🍷 Sulfite",lupini:"🫘 Lupinen",molluschi:"🐚 Weichtiere"},
+      es:{glutine:"🌾 Gluten (cereales)",crostacei:"🦐 Crustáceos",uova:"🥚 Huevos",pesce:"🐟 Pescado",arachidi:"🥜 Cacahuetes",soia:"🌱 Soja",latte:"🥛 Leche (lactosa)",frutta_a_guscio:"🌰 Frutos de cáscara",sedano:"🥬 Apio",senape:"🟡 Mostaza",sesamo:"◯ Semillas de sésamo",solfiti:"🍷 Sulfitos",lupini:"🫘 Altramuces",molluschi:"🐚 Moluscos"}
+    };
+    function UIT(k){ return (UI_ML[LANG]||UI_ML.it)[k] || UI_ML.it[k]; }
+    function tN(x){ var t=TRAD[LANG]; return (t && t[x.id] && t[x.id].nome) || x.nome; }
+    function tD(x){ var t=TRAD[LANG]; if(t && t[x.id] && t[x.id].descrizione) return t[x.id].descrizione; return x.descrizione; }
+    function tTag(k){ if(LANG!=="it" && TAG_ML[LANG] && TAG_ML[LANG][k]) return TAG_ML[LANG][k]; return TAG_LABELS[k]; }
+    function tAll(k){ if(LANG!=="it" && ALLERG_ML[LANG] && ALLERG_ML[LANG][k]) return ALLERG_ML[LANG][k]; return ALLERGENE_LABELS[k]; }
+    async function setLang(l){
+      if(l===LANG) return;
+      if(l!=="it" && !TRAD[l]){
+        var elementi=[];
+        categorie.forEach(function(c){ elementi.push({id:c.id,nome:c.nome,descrizione:""}); });
+        Object.keys(tutteVoci).forEach(function(cid){
+          (tutteVoci[cid]||[]).forEach(function(v){ elementi.push({id:v.id,nome:v.nome,descrizione:v.descrizione||""}); });
+        });
+        var bar=document.getElementById("lang-bar");
+        if(bar){bar.style.opacity=".45";bar.style.pointerEvents="none";}
+        try{
+          var res=await fetch(TRAD_EDGE,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({azienda_id:menu.azienda_id,lingua:l,elementi:elementi})});
+          var d=await res.json();
+          if(!d.success) throw new Error(d.error||"Traduzione fallita");
+          TRAD[l]=d.traduzioni||{};
+        }catch(e){
+          console.error("Traduzioni:",e);
+          if(bar){bar.style.opacity="";bar.style.pointerEvents="";}
+          alert("Traduzione non disponibile al momento, riprova tra poco.");
+          return;
+        }
+      }
+      LANG=l;
+      try{localStorage.setItem("rf_menu_lang",l)}catch(e){}
+      renderMenu();
+    }
+
     // Tutta la lettura/scrittura passa da qui: la Edge Function usa la
     // service role e decide lei cosa è sicuro esporre — la pagina pubblica
     // non dipende più dalle RLS delle tabelle menu/menu_categorie/menu_voci.
@@ -294,6 +350,10 @@
     function finalizzaRender() {
       if (!categorie.length) { showError("Menu vuoto", "Nessuna categoria disponibile in questo momento."); return; }
       renderMenu();
+      // Lingua preferita (da ?lang= o dall'ultima visita)
+      var lp = params.get("lang");
+      try { lp = lp || localStorage.getItem("rf_menu_lang"); } catch(e) {}
+      if (lp && lp !== "it" && UI_ML[lp]) setLang(lp);
       if (params.get("ordine") === "ok") {
         setTimeout(function() {
           alert("✅ Ordine confermato e pagato! Grazie, lo staff è stato avvisato.");
@@ -437,9 +497,16 @@
       html += '</div></div>';
 
       // NAV CATEGORIE
+      // LINGUE
+      html += '<div class="lang-bar" id="lang-bar" style="padding:10px 12px 0;display:flex;gap:8px;overflow-x:auto;background:#fff;">';
+      LINGUE_MENU.forEach(function(L){
+        html += '<button class="lang-chip" data-lang="' + L[0] + '" style="padding:6px 13px;border-radius:999px;border:1.5px solid ' + (LANG===L[0] ? colore : '#e5e7eb') + ';background:' + (LANG===L[0] ? colore : '#fff') + ';color:' + (LANG===L[0] ? '#fff' : '#64748b') + ';font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;font-family:inherit;">' + L[1] + '</button>';
+      });
+      html += '</div>';
+
       html += '<div class="cat-nav" id="cat-nav">';
       categorie.forEach(function(c) {
-        html += '<button class="cat-nav-btn" data-cat-id="' + c.id + '">' + esc(c.nome) + '</button>';
+        html += '<button class="cat-nav-btn" data-cat-id="' + c.id + '">' + esc(tN(c)) + '</button>';
       });
       html += '</div>';
       if (categorie.length > 1) {
@@ -452,7 +519,7 @@
 
       // FILTRI ALLERGENI
       html += '<div class="filtri-bar">';
-      html += '<span style="font-size:11px;font-weight:700;color:#94a3b8;padding:5px 4px;flex-shrink:0;">Filtri:</span>';
+      html += '<span style="font-size:11px;font-weight:700;color:#94a3b8;padding:5px 4px;flex-shrink:0;">' + UIT("filtri") + '</span>';
       [
         {id:"senza_glutine",label:"🌾 Senza glutine"},
         {id:"pesce",label:"🐟 Pesce"},
@@ -460,7 +527,7 @@
         {id:"vegetariano",label:"🌱 Vegetariano"},
         {id:"vegano",label:"🥦 Vegano"}
       ].forEach(function(f) {
-        html += '<button class="filtro-chip" data-filtro="' + f.id + '">' + f.label + '</button>';
+        html += '<button class="filtro-chip" data-filtro="' + f.id + '">' + tTag(f.id) + '</button>';
       });
       html += '</div>';
 
@@ -471,7 +538,7 @@
         html += '<div class="cat-accordion" id="cat-' + cat.id + '">';
         // HEADER categoria (cliccabile per aprire/chiudere)
         html += '<div class="cat-acc-header" data-cat="' + cat.id + '">';
-        html += '<div class="cat-acc-nome">' + esc(cat.nome) + '</div>';
+        html += '<div class="cat-acc-nome">' + esc(tN(cat)) + '</div>';
         html += '<div class="cat-acc-right"><span class="cat-acc-arrow">▼</span></div>';
         html += '</div>';
         if (cat.immagine_url) {
@@ -495,17 +562,17 @@
             html += '<div class="prodotto-card' + (isNonDisp?" non-disp":"") + '">';
             if (v.foto_url) {
               html += '<div class="prodotto-foto-wrap" data-lb="' + esc(v.foto_url) + '" style="cursor:pointer;">';
-              html += '<img class="prodotto-foto" src="' + esc(v.foto_url) + '" alt="' + esc(v.nome) + '" loading="lazy">';
+              html += '<img class="prodotto-foto" src="' + esc(v.foto_url) + '" alt="' + esc(tN(v)) + '" loading="lazy">';
               if (isNonDisp) html += '<div class="non-disp-badge">Non disp.</div>';
               html += '</div>';
             } else {
               html += '<div class="prodotto-foto-wrap"><div class="prodotto-foto-empty">🍽️</div></div>';
             }
             html += '<div class="prodotto-body">';
-            html += '<div class="prodotto-nome">' + esc(v.nome) + '</div>';
-            if (v.descrizione) html += '<div class="prodotto-desc">' + esc(v.descrizione) + '</div>';
+            html += '<div class="prodotto-nome">' + esc(tN(v)) + '</div>';
+            var vDesc = tD(v); if (vDesc) html += '<div class="prodotto-desc">' + esc(vDesc) + '</div>';
             if (v.tags && v.tags.length) {
-              html += '<div class="prodotto-tags">' + v.tags.map(function(t){ return TAG_LABELS[t] ? '<span class="prodotto-tag">' + TAG_LABELS[t] + '</span>' : ''; }).join('') + '</div>';
+              html += '<div class="prodotto-tags">' + v.tags.map(function(t){ return tTag(t) ? '<span class="prodotto-tag">' + tTag(t) + '</span>' : ''; }).join('') + '</div>';
             }
             if (isNonDisp) html += '<div style="text-align:center;margin-bottom:8px;"><span class="prodotto-tag non-disp-tag">Non disponibile</span></div>';
             html += '<div class="prodotto-riga-bottom">';
@@ -529,18 +596,26 @@
       html += '</div>';
 
       // FIDELITY PROMO
-      html += '<div class="fidelity-promo">';
-      html += '<img class="fidelity-promo-qr" src="' + qrFidelity + '" alt="QR Fidelity">';
-      html += '<div>';
-      html += '<div class="fidelity-promo-title">🎁 Hai la tessera fidelity?</div>';
-      html += '<div class="fidelity-promo-sub">Scansiona il QR e iscriviti per accumulare punti e ottenere sconti immediati.</div>';
-      html += '</div></div>';
+      html += '<a class="fidelity-promo" href="' + linkFidelity + '" style="text-decoration:none;color:#fff;cursor:pointer;">';
+      html += '<div style="font-size:38px;flex-shrink:0;line-height:1;">🎁</div>';
+      html += '<div style="flex:1;">';
+      html += '<div class="fidelity-promo-title">' + UIT("fid_t") + '</div>';
+      html += '<div class="fidelity-promo-sub">' + UIT("fid_s") + '</div>';
+      html += '<div style="margin-top:9px;display:inline-block;background:#fff;color:#059669;font-weight:800;font-size:13px;padding:8px 18px;border-radius:999px;">' + UIT("fid_b") + '</div>';
+      html += '</div></a>';
 
       html += '<div class="menu-footer">Menu digitale by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
 
       root.innerHTML = html;
 
       initCoverSlideshow();
+
+      // BIND LINGUE
+      var lbEl = document.getElementById("lang-bar");
+      if (lbEl) lbEl.addEventListener("click", function(e){
+        var b = e.target.closest(".lang-chip");
+        if (b) setLang(b.dataset.lang);
+      });
 
       // BIND NAV — click scrolla alla sezione corrispondente (sempre aperta, niente accordion)
       var navBtns = document.querySelectorAll(".cat-nav-btn");
@@ -668,8 +743,8 @@
             ? '<img class="stampa-riga-foto" src="' + esc(v.foto_url) + '">'
             : '<div class="stampa-riga-foto-vuota"></div>';
           html += '<div class="stampa-riga-testo">';
-          html += '<div class="stampa-riga-nome">' + esc(v.nome) + '</div>';
-          if (v.descrizione) html += '<div class="stampa-riga-desc">' + esc(v.descrizione) + '</div>';
+          html += '<div class="stampa-riga-nome">' + esc(tN(v)) + '</div>';
+          var vDescS = tD(v); if (vDescS) html += '<div class="stampa-riga-desc">' + esc(vDescS) + '</div>';
           html += '</div>';
           html += '<div class="stampa-riga-prezzo">' + Number(prezzo).toFixed(2) + ' €</div>';
           html += '</div>';
@@ -742,24 +817,24 @@
     function apriDettaglio(v) {
       var prezzo = v.prezzo_override || v.prezzo || 0;
       var tagsHtml = (v.tags && v.tags.length)
-        ? '<div class="prodotto-tags" style="justify-content:flex-start;margin-bottom:14px;">' + v.tags.map(function(t){ return TAG_LABELS[t] ? '<span class="prodotto-tag">' + TAG_LABELS[t] + '</span>' : ''; }).join('') + '</div>'
+        ? '<div class="prodotto-tags" style="justify-content:flex-start;margin-bottom:14px;">' + v.tags.map(function(t){ return tTag(t) ? '<span class="prodotto-tag">' + tTag(t) + '</span>' : ''; }).join('') + '</div>'
         : '';
       var allergeniHtml = (v.allergeni && v.allergeni.length)
         ? '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:14px;">' +
-          '<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px;">⚠️ ALLERGENI PRESENTI</div>' +
+          '<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px;">' + UIT("allerg") + '</div>' +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
-          v.allergeni.map(function(a){ return ALLERGENE_LABELS[a] ? '<span style="background:#fef3c7;color:#92400e;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;">' + ALLERGENE_LABELS[a] + '</span>' : ''; }).join('') +
+          v.allergeni.map(function(a){ return tAll(a) ? '<span style="background:#fef3c7;color:#92400e;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;">' + tAll(a) + '</span>' : ''; }).join('') +
           '</div></div>'
         : '';
       var fotoHtml = v.foto_url
-        ? '<img src="' + esc(v.foto_url) + '" alt="' + esc(v.nome) + '" style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:16px;cursor:pointer;" id="detail-foto">'
+        ? '<img src="' + esc(v.foto_url) + '" alt="' + esc(tN(v)) + '" style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:16px;cursor:pointer;" id="detail-foto">'
         : '';
       document.getElementById("detail-content").innerHTML =
         fotoHtml +
-        '<div class="raccolta-title">' + esc(v.nome) + '</div>' +
+        '<div class="raccolta-title">' + esc(tN(v)) + '</div>' +
         tagsHtml +
         allergeniHtml +
-        (v.descrizione ? '<div style="font-size:15px;color:#374151;line-height:1.6;margin-bottom:16px;">' + esc(v.descrizione) + '</div>' : '<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Nessuna descrizione disponibile.</div>') +
+        (tD(v) ? '<div style="font-size:15px;color:#374151;line-height:1.6;margin-bottom:16px;">' + esc(tD(v)) + '</div>' : '<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">' + UIT("no_desc") + '</div>') +
         '<div style="font-size:26px;font-weight:800;color:#111827;text-align:right;">' + Number(prezzo).toFixed(2) + ' €</div>';
 
       var fotoEl = document.getElementById("detail-foto");
