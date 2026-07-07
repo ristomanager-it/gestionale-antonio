@@ -145,14 +145,20 @@
 
     if (!aziendaId) { showError("Link non valido", "Manca il riferimento al locale."); return; }
 
+    var FIDELITY_API = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/fidelity-api";
+
     init();
 
     async function init() {
-      // Carica config azienda
-      var azRes = await supa.from("aziende")
-        .select("id,nome,logo_url,telefono,indirizzo,citta,colore_brand,font_family,font_size")
-        .eq("id", aziendaId).maybeSingle();
-      var azienda = azRes.data || {};
+      // Tutto passa dalla fidelity-api (service role): le tabelle sono chiuse via RLS
+      var apiRes, d;
+      try {
+        apiRes = await fetch(FIDELITY_API, { method: "POST", headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ azione: "carica", azienda_id: aziendaId, qr_token: qrToken || null }) });
+        d = await apiRes.json();
+      } catch (e) { showError("Errore di rete", "Controlla la connessione e riprova."); return; }
+      if (!d.success) { showError("Errore", d.error || "Riprova più tardi."); return; }
+      var azienda = d.azienda || {};
 
       // Applica colore brand
       if (azienda.colore_brand) {
@@ -169,10 +175,7 @@
       var fsSz = {small:"13px",medium:"15px",large:"17px",xlarge:"19px"};
       if (azienda.font_size) document.body.style.fontSize = fsSz[azienda.font_size]||"15px";
 
-      // Carica config fidelity
-      var cfgRes = await supa.from("fidelity_config")
-        .select("*").eq("azienda_id", aziendaId).maybeSingle();
-      var cfg = cfgRes.data || { punti_per_euro: 1, sconto_benvenuto_perc: 10, bonus_benvenuto_punti: 50, soglia_argento: 500, soglia_oro: 1500 };
+      var cfg = d.cfg || { punti_per_euro: 1, sconto_benvenuto_perc: 10, bonus_benvenuto_punti: 50, soglia_argento: 500, soglia_oro: 1500 };
 
       if (!qrToken) {
         // Nessun token → form iscrizione
@@ -180,42 +183,12 @@
         return;
       }
 
-      // Cerca cliente per token
-      var clienteRes = await supa.from("fidelity_clienti")
-        .select("*").eq("qr_token", qrToken).maybeSingle();
-
-      if (!clienteRes.data) {
+      if (!d.cliente) {
         showError("Tessera non trovata", "Il QR code non è valido o è scaduto.");
         return;
       }
 
-      var cliente = clienteRes.data;
-
-      // Cerca tessera per questo locale
-      var tesseraRes = await supa.from("fidelity_tessere")
-        .select("*")
-        .eq("cliente_id", cliente.id)
-        .eq("azienda_id", aziendaId)
-        .maybeSingle();
-      var tessera = tesseraRes.data;
-
-      // Carica movimenti
-      var movRes = await supa.from("fidelity_movimenti")
-        .select("*")
-        .eq("cliente_id", cliente.id)
-        .eq("azienda_id", aziendaId)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      var movimenti = movRes.data || [];
-
-      // Carica offerte network
-      var offerteRes = await supa.from("network_offerte")
-        .select("*, aziende(nome, logo_url, indirizzo, citta, colore_brand, lat, lng)")
-        .eq("attiva", true)
-        .neq("azienda_id", aziendaId);
-      var offerte = offerteRes.data || [];
-
-      renderTessera(cliente, tessera, azienda, cfg, movimenti, offerte);
+      renderTessera(d.cliente, d.tessera, azienda, cfg, d.movimenti || [], d.offerte || []);
     }
 
     // ── FORM ISCRIZIONE ──────────────────────────────────────────
@@ -264,66 +237,23 @@
       var btn = document.getElementById("btn-iscriviti");
       btn.disabled = true; btn.textContent = "Iscrizione in corso...";
 
-      // Controlla se telefono già esistente
-      var esistente = await supa.from("fidelity_clienti")
-        .select("*").eq("telefono", telefono).maybeSingle();
+      // Iscrizione via fidelity-api (dedupe, tessera, movimento e WA li fa il server)
+      var apiRes, d;
+      try {
+        apiRes = await fetch(FIDELITY_API, { method: "POST", headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ azione: "iscrivi", azienda_id: aziendaId,
+            nome: nome, cognome: cognome, telefono: telefono, email: email, data_nascita: nascita }) });
+        d = await apiRes.json();
+      } catch (e) { d = { success: false, error: "Errore di rete, riprova." }; }
 
-      var cliente;
-      if (esistente.data) {
-        cliente = esistente.data;
-      } else {
-        var insertRes = await supa.from("fidelity_clienti").insert({
-          nome: nome, cognome: cognome || null,
-          telefono: telefono,
-          email: email || null,
-          data_nascita: nascita || null,
-          punti_totali: cfg.bonus_benvenuto_punti || 50
-        }).select().single();
-        if (insertRes.error) {
-          msg.innerHTML = '<span style="color:#dc2626;">Errore: ' + insertRes.error.message + '</span>';
-          btn.disabled = false; btn.textContent = "✅ Iscriviti e applica sconto";
-          return;
-        }
-        cliente = insertRes.data;
+      if (!d.success || !d.qr_token) {
+        msg.innerHTML = '<span style="color:#dc2626;">' + esc(d.error || "Errore durante l'iscrizione.") + '</span>';
+        btn.disabled = false; btn.textContent = "✅ Iscriviti e applica sconto";
+        return;
       }
 
-      // Crea tessera per questo locale
-      var tesseraEsistente = await supa.from("fidelity_tessere")
-        .select("id").eq("cliente_id", cliente.id).eq("azienda_id", aziendaId).maybeSingle();
-
-      if (!tesseraEsistente.data) {
-        await supa.from("fidelity_tessere").insert({
-          cliente_id: cliente.id,
-          azienda_id: aziendaId,
-          punti_locali: cfg.bonus_benvenuto_punti || 50,
-          livello: "bronzo"
-        });
-        // Movimento benvenuto
-        await supa.from("fidelity_movimenti").insert({
-          cliente_id: cliente.id,
-          azienda_id: aziendaId,
-          tipo: "benvenuto",
-          punti: cfg.bonus_benvenuto_punti || 50,
-          descrizione: "Bonus iscrizione"
-        });
-      }
-
-      // Invia WA con link tessera
-      var linkTessera = window.location.origin + "/fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId;
-      var telWA = telefono.replace(/[^0-9]/g,"");
-      if (telWA.length >= 9) {
-        var testoWA = "Ciao " + nome + "! Benvenuto nel programma fidelity di " + (azienda.nome||"noi") + ". Hai guadagnato " + (cfg.bonus_benvenuto_punti||50) + " punti di benvenuto. Salva questo link per accedere sempre alla tua tessera: " + linkTessera;
-        // Invio WA via Supabase edge function
-        supa.functions.invoke("whatsapp-send-ts", {
-          body: {
-            to: "39" + telWA,
-            type: "text",
-            text: testoWA
-          }
-        }).catch(function(e) { console.warn("WA send:", e); });
-      }
       // Redirect alla tessera
-      window.location.href = "fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId;
+      window.location.href = "fidelity.html?t=" + d.qr_token + "&a=" + aziendaId;
     }
 
     // ── RENDER TESSERA ───────────────────────────────────────────
