@@ -207,29 +207,27 @@ export async function renderFatture(container, azienda) {
     `;
   }
 
-  btnCerca.addEventListener("click", async () => {
+  async function eseguiRicerca() {
     const fornitore = String(inputFornitore.value || "").trim();
     const dataDa = String(inputDataDa.value || "").trim();
     const dataA = String(inputDataA.value || "").trim();
 
-    if (!fornitore && !dataDa && !dataA) {
-      feedback.textContent = "Inserisci almeno un filtro per cercare i documenti.";
-      renderDocumentResults([]);
-      return;
-    }
-
-    feedback.textContent = "Ricerca in corso...";
+    feedback.textContent = "Caricamento documenti...";
     const rows = await searchDocumenti(azienda, { fornitore, dataDa, dataA });
 
     if (!rows.length) {
-      feedback.textContent = "Nessun documento trovato con i filtri inseriti.";
+      feedback.textContent = "Nessun documento trovato.";
       renderDocumentResults([]);
       return;
     }
-
-    feedback.textContent = `Trovati ${rows.length} documenti con i filtri selezionati.`;
+    feedback.textContent = `Trovati ${rows.length} documenti.`;
     renderDocumentResults(rows);
-  });
+  }
+
+  btnCerca.addEventListener("click", eseguiRicerca);
+
+  // Caricamento automatico all'apertura della vista (tutte le fatture recenti)
+  eseguiRicerca();
 
   btnReset.addEventListener("click", () => {
     inputFornitore.value = "";
