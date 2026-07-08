@@ -47,6 +47,8 @@ export async function renderFatture(container, azienda) {
         </div>
         <div style="display:flex;gap:8px;">
           <button id="btn-carica-documento" class="btn-primary">Carica documento</button>
+          <button id="btn-carica-xml" style="background:#0f766e;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;">📄 Carica XML fattura</button>
+          <input type="file" id="input-xml-fattura" accept=".xml" style="display:none;">
           <button id="btn-scarica-acquisti" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;">📥 Scarica CSV</button>
         </div>
       </div>
@@ -119,6 +121,61 @@ export async function renderFatture(container, azienda) {
   const btnCarica = container.querySelector("#btn-carica-documento");
   const feedback = container.querySelector("#documenti-search-feedback");
   const resultsWrap = container.querySelector("#documenti-results");
+
+  // ── CARICAMENTO XML FATTURA ELETTRONICA (Hub Fiscale) ──
+  const FISCALE_PARSE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/fiscale-parse";
+  const RF_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  const btnXml = container.querySelector("#btn-carica-xml");
+  const inputXml = container.querySelector("#input-xml-fattura");
+  if (btnXml && inputXml) {
+    btnXml.addEventListener("click", () => inputXml.click());
+    inputXml.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const testoOrig = btnXml.textContent;
+      btnXml.disabled = true; btnXml.textContent = "⏳ Elaboro...";
+      try {
+        const xmlText = await file.text();
+        const supa = window.supabaseClient || window.supabase;
+        const { data: sess } = await supa.auth.getSession();
+        const token = sess?.session?.access_token;
+        const res = await fetch(FISCALE_PARSE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + (token || ""),
+            "apikey": RF_ANON_KEY
+          },
+          body: JSON.stringify({
+            azione: "parse_xml",
+            azienda_id: azienda.id,
+            sede_id: window.state?.sede?.id || null,
+            origine: "manuale",
+            xml_text: xmlText
+          })
+        });
+        const d = await res.json();
+        if (d.success) {
+          alert(
+            "✅ Fattura importata nell'Hub Fiscale\n\n" +
+            "Numero: " + (d.numero || "—") + "\n" +
+            "Fornitore: " + (d.fornitore || "—") +
+            (d.fornitore_agganciato ? " (collegato ✓)" : " (⚠️ non in anagrafica)") + "\n" +
+            "Righe: " + d.righe + "  ·  Totale: € " + (d.totale ?? "—")
+          );
+        } else if (res.status === 409) {
+          alert("ℹ️ Questa fattura è già stata importata.");
+        } else {
+          alert("❌ " + (d.error || "Errore durante l'import."));
+        }
+      } catch (err) {
+        alert("❌ Errore: " + (err && err.message ? err.message : err));
+      } finally {
+        btnXml.disabled = false; btnXml.textContent = testoOrig;
+        inputXml.value = "";
+      }
+    });
+  }
 
   function renderDocumentResults(rows) {
     if (!rows.length) {
