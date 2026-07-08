@@ -1,6 +1,6 @@
 export async function renderFornitori(container, azienda) {
 
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
 
   container.innerHTML = `
 
@@ -39,82 +39,65 @@ export async function renderFornitori(container, azienda) {
     .getElementById("btn-nuovo-fornitore")
     .addEventListener("click", () => openForm());
 
-  inputSearch.addEventListener("input", async () => {
-
-    const value = inputSearch.value.trim();
-
-    if (value.length < 2) {
-      results.innerHTML = "";
+  function renderRows(data) {
+    if (!data || !data.length) {
+      results.innerHTML = `<div style="color:#94a3b8;padding:12px;">Nessun fornitore trovato.</div>`;
       return;
     }
-
-    const { data, error } = await supabase
-      .from("fornitori")
-      .select("*")
-      .eq("azienda_id", azienda.id)
-      .ilike("ragione_sociale", `%${value}%`)
-      .order("ragione_sociale", { ascending: true })
-      .limit(20);
-
-    if (error) {
-      results.innerHTML = "Errore ricerca";
-      return;
-    }
-
-    if (!data.length) {
-      results.innerHTML = `<div>Nessun fornitore trovato</div>`;
-      return;
-    }
-
     results.innerHTML = `
-
       <table class="app-table">
-
         <thead>
           <tr>
             <th>Ragione sociale</th>
+            <th>P. IVA</th>
             <th>Telefono</th>
             <th>Email</th>
           </tr>
         </thead>
-
         <tbody>
-
         ${data.map(f => `
-
-          <tr class="fornitore-row" data-id="${f.id}">
+          <tr class="fornitore-row" data-id="${f.id}" style="cursor:pointer;">
             <td>${f.ragione_sociale || ""}</td>
+            <td>${f.partita_iva || ""}</td>
             <td>${f.telefono || ""}</td>
             <td>${f.email_amministrativa || ""}</td>
           </tr>
-
         `).join("")}
-
         </tbody>
-
       </table>
-
     `;
-
     results.querySelectorAll(".fornitore-row").forEach(row => {
-
       row.addEventListener("click", async () => {
-
         const id = row.dataset.id;
-
         const { data: fornitore } = await supabase
-          .from("fornitori")
-          .select("*")
-          .eq("id", id)
-          .single();
-
+          .from("fornitori").select("*").eq("id", id).single();
         openForm(fornitore);
-
       });
-
     });
+  }
 
+  async function caricaFornitori(filtro = "") {
+    results.innerHTML = `<div style="color:#94a3b8;padding:12px;">Caricamento...</div>`;
+    let q = supabase
+      .from("fornitori")
+      .select("*")
+      .eq("azienda_id", azienda.id)
+      .order("ragione_sociale", { ascending: true })
+      .limit(500);
+    if (filtro && filtro.length >= 2) q = q.ilike("ragione_sociale", `%${filtro}%`);
+    const { data, error } = await q;
+    if (error) { results.innerHTML = `<div style="color:#dc2626;padding:12px;">Errore nel caricamento fornitori.</div>`; return; }
+    renderRows(data || []);
+  }
+
+  let searchTimer = null;
+  inputSearch.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => caricaFornitori(inputSearch.value.trim()), 250);
   });
+
+  // Caricamento automatico di tutti i fornitori all'apertura
+  await caricaFornitori();
 
   function openForm(f = null) {
 
@@ -253,6 +236,7 @@ export async function renderFornitori(container, azienda) {
         }
 
         feedback.innerHTML = `<span style="color:green;">Salvato</span>`;
+        await caricaFornitori(inputSearch.value.trim());
 
       });
 
