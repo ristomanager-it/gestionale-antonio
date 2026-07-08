@@ -761,6 +761,19 @@ function pickActiveAzienda(aziendePulite, preferBozza = false) {
     return aziendePulite[0].aziende;
   }
 
+  // Più aziende, nessun match da localStorage: provo a dedurre l'azienda
+  // dalla sede attiva salvata (una sede appartiene a una sola azienda).
+  try {
+    const storedSedeId = getStoredSedeId();
+    if (storedSedeId && window.state?.sedi?.length) {
+      const sede = window.state.sedi.find(s => String(s.id) === String(storedSedeId));
+      if (sede?.azienda_id) {
+        const match = aziendePulite.find(a => String(a.aziende.id) === String(sede.azienda_id));
+        if (match?.aziende) return match.aziende;
+      }
+    }
+  } catch (e) { /* fallback sotto */ }
+
   return null;
 }
 
@@ -951,6 +964,18 @@ async function ensureSedeContext(routeName) {
 
   window.state.sedeAttiva = sede;
   setStoredSedeId(sede.id);
+
+  // Allinea l'azienda salvata a quella della sede scelta (evita disallineamenti multi-azienda)
+  if (sede.azienda_id) {
+    setStoredAziendaId(sede.azienda_id);
+    if (!window.state.azienda || String(window.state.azienda.id) !== String(sede.azienda_id)) {
+      const rec = (window.state?.aziende || []).find(
+        a => String(a.aziende?.id || a.id) === String(sede.azienda_id)
+      );
+      const az = rec?.aziende || rec;
+      if (az?.id && window.stateActions?.setAzienda) window.stateActions.setAzienda(az);
+    }
+  }
 
   return { ok: true, sede };
 }
