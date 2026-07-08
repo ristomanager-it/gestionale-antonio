@@ -190,7 +190,7 @@ export async function renderFatture(container, azienda) {
     resultsWrap.innerHTML = `
       <div class="rf-doc-list">
         ${rows.map((row) => `
-          <div class="rf-doc-item">
+          <div class="rf-doc-item" ${row.tipo === "fattura" && row.id ? `data-fattura-id="${escapeHtml(String(row.id))}" style="cursor:pointer;"` : ""}>
             <div class="rf-doc-top">
               <div class="rf-doc-badge ${row.tipo === "ddt" ? "ddt" : "fattura"}">${escapeHtml(row.tipo.toUpperCase())}</div>
               <div class="rf-doc-date">${escapeHtml(row.data || "-")}</div>
@@ -200,11 +200,62 @@ export async function renderFatture(container, azienda) {
               <span>Numero: ${escapeHtml(row.numero || "-")}</span>
               ${row.tipo === "fattura" ? `<span>Totale: € ${escapeHtml(formatMoney(row.totale || 0))}</span>` : ""}
               ${row.stato ? `<span>Stato: ${escapeHtml(row.stato)}</span>` : ""}
+              ${row.tipo === "fattura" && row.id ? `<span style="color:#0f766e;font-weight:600;">▸ Vedi righe</span>` : ""}
             </div>
+            ${row.tipo === "fattura" && row.id ? `<div class="rf-righe-dettaglio" id="righe-${escapeHtml(String(row.id))}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #e5e7eb;"></div>` : ""}
           </div>
         `).join("")}
       </div>
     `;
+
+    // Click su una fattura → carica e mostra/nasconde le righe
+    resultsWrap.querySelectorAll("[data-fattura-id]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        const fatturaId = el.getAttribute("data-fattura-id");
+        const box = document.getElementById("righe-" + fatturaId);
+        if (!box) return;
+        if (box.style.display === "block") { box.style.display = "none"; return; }
+        box.style.display = "block";
+        if (box.dataset.caricato === "1") return;
+        box.innerHTML = `<div style="color:#94a3b8;font-size:13px;">Caricamento righe...</div>`;
+        try {
+          const { data: mie, error } = await window.db.from("fatture_acquisto_righe")
+            .select("id, fattura_id, riga_numero, descrizione, quantita, unita_misura, prezzo_unitario, iva_percent, totale_riga");
+          if (error) throw error;
+          const rr = (mie || []).filter(r => String(r.fattura_id) === String(fatturaId))
+            .sort((a,b) => (a.riga_numero||0) - (b.riga_numero||0));
+          if (!rr.length) {
+            box.innerHTML = `<div style="color:#94a3b8;font-size:13px;">Nessuna riga di dettaglio per questa fattura.</div>`;
+          } else {
+            box.innerHTML = `
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="text-align:left;color:#64748b;">
+                  <th style="padding:4px 6px;">Descrizione</th>
+                  <th style="padding:4px 6px;text-align:right;">Q.tà</th>
+                  <th style="padding:4px 6px;">UM</th>
+                  <th style="padding:4px 6px;text-align:right;">Prezzo</th>
+                  <th style="padding:4px 6px;text-align:right;">Totale</th>
+                </tr></thead>
+                <tbody>
+                  ${rr.map(r => `
+                    <tr style="border-top:1px solid #f1f5f9;">
+                      <td style="padding:4px 6px;">${escapeHtml(r.descrizione || "-")}</td>
+                      <td style="padding:4px 6px;text-align:right;">${escapeHtml(String(r.quantita ?? "-"))}</td>
+                      <td style="padding:4px 6px;">${escapeHtml(r.unita_misura || "")}</td>
+                      <td style="padding:4px 6px;text-align:right;">€ ${escapeHtml(formatMoney(r.prezzo_unitario || 0))}</td>
+                      <td style="padding:4px 6px;text-align:right;">€ ${escapeHtml(formatMoney(r.totale_riga || 0))}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>`;
+          }
+          box.dataset.caricato = "1";
+        } catch (err) {
+          box.innerHTML = `<div style="color:#dc2626;font-size:13px;">Errore nel caricamento delle righe.</div>`;
+          console.error("Righe fattura:", err);
+        }
+      });
+    });
   }
 
   async function eseguiRicerca() {
@@ -286,6 +337,7 @@ async function searchDocumenti(azienda, filters) {
     const dataA = String(filters?.dataA || "").trim();
 
     const fatture = (fattureRes.data || []).map((f) => ({
+      id: f.id,
       tipo: "fattura",
       data: f.data_documento || "",
       fornitore: f.fornitori?.ragione_sociale || "",
