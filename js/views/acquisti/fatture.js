@@ -222,8 +222,11 @@ export async function renderFatture(container, azienda) {
           const docFiscale = el.getAttribute("data-doc-fiscale");
           let rr = [];
           if (docFiscale) {
-            // Fattura importata da XML: righe nel Data Lake fiscale
-            const { data: mie, error } = await window.db.from("fiscale_documenti_righe")
+            // Fattura importata da XML: righe nel Data Lake fiscale.
+            // Uso il client Supabase diretto: window.db forza filtri
+            // azienda_id/sede_id che questa tabella non espone.
+            const supaDiretto = window.supabaseClient || window.supabase;
+            const { data: mie, error } = await supaDiretto.from("fiscale_documenti_righe")
               .select("numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, aliquota_iva, totale_riga")
               .eq("documento_id", docFiscale);
             if (error) throw error;
