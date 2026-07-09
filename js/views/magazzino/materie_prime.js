@@ -24,6 +24,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
             />
           </div>
 
+          <div id="mp-da-completare"></div>
           <div id="mp-results"></div>
           <div id="mp-scheda" class="rf-section-spacer"></div>
         </div>
@@ -50,6 +51,8 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     const term = input.value.trim();
 
     scheda.innerHTML = "";
+    if (term.length >= 2) daCompletareBox.innerHTML = "";
+    else if (term.length === 0) caricaDaCompletare();
 
     if (term.length < 2) {
       results.innerHTML = "";
@@ -137,6 +140,42 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     .from("prodotti").select("categoria_interna")
     .eq("azienda_id", azienda.id).not("categoria_interna", "is", null);
   catInterne_cache = [...new Set((ci_list || []).map(r => (r.categoria_interna || "").trim()).filter(Boolean))].sort();
+
+  // Lista prodotti da completare (categorie mancanti) — mostrata all'apertura
+  const daCompletareBox = overlay.querySelector("#mp-da-completare");
+  async function caricaDaCompletare() {
+    const { data: incompleti } = await window.supabaseClient
+      .from("prodotti")
+      .select("id, nome, descrizione, categoria_bilancio_id, categoria_interna")
+      .eq("azienda_id", azienda.id).eq("attivo", true)
+      .or("categoria_bilancio_id.is.null,categoria_interna.is.null")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    const lista = incompleti || [];
+    if (!lista.length) {
+      daCompletareBox.innerHTML = `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;font-size:13px;color:#166534;margin-bottom:12px;">🟢 Tutti i prodotti hanno le categorie complete.</div>`;
+      return;
+    }
+    daCompletareBox.innerHTML = `
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px;">⚠️ ${lista.length} prodotti da completare</div>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;">
+          ${lista.map(p => {
+            const haB = !!p.categoria_bilancio_id;
+            const haI = !!(p.categoria_interna && String(p.categoria_interna).trim());
+            const pallino = (!haB && !haI) ? "🔴" : "🟡";
+            return `<button class="mp-completa-item" data-id="${p.id}" style="text-align:left;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+              <span>${pallino}</span>
+              <span style="flex:1;">${escapeHtml(p.descrizione || p.nome || "—")}</span>
+              <span style="color:#9ca3af;font-size:16px;">›</span>
+            </button>`;
+          }).join("")}
+        </div>
+      </div>`;
+    daCompletareBox.querySelectorAll(".mp-completa-item").forEach(btn => {
+      btn.onclick = () => { daCompletareBox.innerHTML = ""; openScheda(btn.getAttribute("data-id")); };
+    });
+  }
 
   async function openScheda(prodottoId) {
     scheda.innerHTML = `<div class="rf-empty-state">Caricamento scheda...</div>`;
@@ -454,6 +493,9 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       setTimeout(() => openScheda(prodotto.prodotto_id), 700);
     };
   }
+
+  // All'apertura mostro subito i prodotti da completare
+  caricaDaCompletare();
 }
 
 function formatNumber(v) {
