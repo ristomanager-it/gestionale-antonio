@@ -190,7 +190,7 @@ export async function renderFatture(container, azienda) {
     resultsWrap.innerHTML = `
       <div class="rf-doc-list">
         ${rows.map((row) => `
-          <div class="rf-doc-item" ${row.tipo === "fattura" && row.id ? `data-fattura-id="${escapeHtml(String(row.id))}" style="cursor:pointer;"` : ""}>
+          <div class="rf-doc-item" ${row.tipo === "fattura" && row.id ? `data-fattura-id="${escapeHtml(String(row.id))}"${row.documentoFiscaleId ? ` data-doc-fiscale="${escapeHtml(String(row.documentoFiscaleId))}"` : ""} style="cursor:pointer;"` : ""}>
             <div class="rf-doc-top">
               <div class="rf-doc-badge ${row.tipo === "ddt" ? "ddt" : "fattura"}">${escapeHtml(row.tipo.toUpperCase())}</div>
               <div class="rf-doc-date">${escapeHtml(row.data || "-")}</div>
@@ -219,11 +219,32 @@ export async function renderFatture(container, azienda) {
         if (box.dataset.caricato === "1") return;
         box.innerHTML = `<div style="color:#94a3b8;font-size:13px;">Caricamento righe...</div>`;
         try {
-          const { data: mie, error } = await window.db.from("fatture_acquisto_righe")
-            .select("id, fattura_id, riga_numero, descrizione, quantita, unita_misura, prezzo_unitario, iva_percent, totale_riga");
-          if (error) throw error;
-          const rr = (mie || []).filter(r => String(r.fattura_id) === String(fatturaId))
-            .sort((a,b) => (a.riga_numero||0) - (b.riga_numero||0));
+          const docFiscale = el.getAttribute("data-doc-fiscale");
+          let rr = [];
+          if (docFiscale) {
+            // Fattura importata da XML: righe nel Data Lake fiscale
+            const { data: mie, error } = await window.db.from("fiscale_documenti_righe")
+              .select("numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, aliquota_iva, totale_riga")
+              .eq("documento_id", docFiscale);
+            if (error) throw error;
+            rr = (mie || [])
+              .map(r => ({
+                riga_numero: r.numero_riga,
+                descrizione: r.descrizione_originale,
+                quantita: r.quantita,
+                unita_misura: r.unita_misura,
+                prezzo_unitario: r.prezzo_unitario,
+                totale_riga: r.totale_riga
+              }))
+              .sort((a,b) => (a.riga_numero||0) - (b.riga_numero||0));
+          } else {
+            // Fattura tradizionale: righe in fatture_acquisto_righe
+            const { data: mie, error } = await window.db.from("fatture_acquisto_righe")
+              .select("id, fattura_id, riga_numero, descrizione, quantita, unita_misura, prezzo_unitario, iva_percent, totale_riga");
+            if (error) throw error;
+            rr = (mie || []).filter(r => String(r.fattura_id) === String(fatturaId))
+              .sort((a,b) => (a.riga_numero||0) - (b.riga_numero||0));
+          }
           if (!rr.length) {
             box.innerHTML = `<div style="color:#94a3b8;font-size:13px;">Nessuna riga di dettaglio per questa fattura.</div>`;
           } else {
@@ -304,6 +325,8 @@ async function searchDocumenti(azienda, filters) {
           data_documento,
           totale,
           stato,
+          origine,
+          import_external_id,
           fornitori:fornitore_id (
             ragione_sociale
           )
@@ -343,7 +366,9 @@ async function searchDocumenti(azienda, filters) {
       fornitore: f.fornitori?.ragione_sociale || "",
       numero: f.numero_documento || "",
       totale: f.totale || 0,
-      stato: f.stato || ""
+      stato: f.stato || "",
+      origine: f.origine || "",
+      documentoFiscaleId: f.import_external_id || null
     }));
 
     const ddt = (ddtRes.data || []).map((d) => ({
