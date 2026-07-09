@@ -90,7 +90,8 @@ function calcLocalFoodCost() {
     const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
     if (!p) continue;
     const costoKg = productCost(p); // €/kg
-    const qta_kg = convertToKg(ing.quantita, ing.unita_misura, p);
+    const umIng = ing.unita_misura || productUm(p) || "kg";
+    const qta_kg = convertToKg(ing.quantita, umIng, p);
     total += qta_kg * costoKg;
   }
 
@@ -238,7 +239,8 @@ function renderIngredienti() {
     wrap.innerHTML = ingredienti.map((ing, index) => {
       const p = prodottiCache.find((x) => String(x.id) === String(ing.prodotto_id));
       const costo = productCost(p);
-      const qta_kg = convertToKg(ing.quantita, ing.unita_misura);
+      const umRiga = ing.unita_misura || productUm(p) || "kg";
+      const qta_kg = convertToKg(ing.quantita, umRiga, p);
       const totale = qta_kg * costo;
 
       // Ingrediente libero (non in magazzino)
