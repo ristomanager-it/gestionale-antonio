@@ -220,27 +220,14 @@ export async function renderFatture(container, azienda) {
         box.innerHTML = `<div style="color:#94a3b8;font-size:13px;">Caricamento righe...</div>`;
         try {
           const docFiscale = el.getAttribute("data-doc-fiscale");
-          let rr = [];
           if (docFiscale) {
-            // Fattura importata da XML: righe nel Data Lake fiscale.
-            // Uso il client Supabase diretto: window.db forza filtri
-            // azienda_id/sede_id che questa tabella non espone.
-            const supaDiretto = window.supabaseClient || window.supabase;
-            const { data: mie, error } = await supaDiretto.from("fiscale_documenti_righe")
-              .select("numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, aliquota_iva, totale_riga")
-              .eq("documento_id", docFiscale);
-            if (error) throw error;
-            rr = (mie || [])
-              .map(r => ({
-                riga_numero: r.numero_riga,
-                descrizione: r.descrizione_originale,
-                quantita: r.quantita,
-                unita_misura: r.unita_misura,
-                prezzo_unitario: r.prezzo_unitario,
-                totale_riga: r.totale_riga
-              }))
-              .sort((a,b) => (a.riga_numero||0) - (b.riga_numero||0));
-          } else {
+            // Fattura XML: interfaccia di abbinamento prodotti
+            await renderRigheFiscali(box, docFiscale, azienda);
+            box.dataset.caricato = "1";
+            return;
+          }
+          let rr = [];
+          {
             // Fattura tradizionale: righe in fatture_acquisto_righe
             const { data: mie, error } = await window.db.from("fatture_acquisto_righe")
               .select("id, fattura_id, riga_numero, descrizione, quantita, unita_misura, prezzo_unitario, iva_percent, totale_riga");
@@ -1966,4 +1953,132 @@ input,select,textarea{
 `;
 
   document.head.appendChild(style);
+}
+
+// =========================================================
+// HUB FISCALE — Interfaccia abbinamento righe → prodotti
+// =========================================================
+const FISCALE_MATCH_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/fiscale-match";
+const FISCALE_CONFERMA_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/fiscale-conferma";
+const RF_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+
+async function fiscaleFetch(url, payload) {
+  const supa = window.supabaseClient || window.supabase;
+  const { data: sess } = await supa.auth.getSession();
+  const token = sess?.session?.access_token || "";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": RF_ANON },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+function badgeConf(conf, confermato) {
+  if (confermato) return '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">✓ confermato</span>';
+  const c = Number(conf) || 0;
+  if (c >= 0.72) return '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">' + Math.round(c*100) + '%</span>';
+  if (c >= 0.45) return '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">' + Math.round(c*100) + '% da verificare</span>';
+  return '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">nessun match</span>';
+}
+
+async function renderRigheFiscali(box, documentoId, azienda) {
+  const supa = window.supabaseClient || window.supabase;
+  box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px;">Caricamento righe...</div>';
+
+  // Carico righe fiscali, prodotti dell'azienda e stato documento
+  const [righeRes, prodRes, docRes] = await Promise.all([
+    supa.from("fiscale_documenti_righe")
+      .select("id, numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, totale_riga, prodotto_id, match_confidenza, match_confermato")
+      .eq("documento_id", documentoId),
+    supa.from("prodotti").select("id, nome").eq("azienda_id", azienda.id).eq("attivo", true).order("nome"),
+    supa.from("fiscale_documenti").select("stato").eq("id", documentoId).maybeSingle()
+  ]);
+
+  if (righeRes.error) { box.innerHTML = '<div style="color:#dc2626;font-size:13px;">Errore nel caricamento delle righe.</div>'; return; }
+  const righe = (righeRes.data || []).sort((a,b) => (a.numero_riga||0) - (b.numero_riga||0));
+  const prodotti = prodRes.data || [];
+  const statoDoc = docRes.data?.stato || "normalizzato";
+  const giaFinalizzato = statoDoc === "arricchito";
+
+  if (!righe.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessuna riga.</div>'; return; }
+
+  const mappaProd = new Map(prodotti.map(p => [String(p.id), p.nome]));
+  const optionsProdotti = prodotti.map(p => '<option value="' + p.id + '">' + escapeHtml(p.nome) + '</option>').join("");
+
+  // Header con pulsanti azione
+  let html = '';
+  if (!giaFinalizzato) {
+    html += '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">';
+    html += '<button class="fisc-btn-match" style="background:#6366f1;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">🔗 Abbina automaticamente</button>';
+    html += '<button class="fisc-btn-carica" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">📥 Carica in magazzino</button>';
+    html += '</div>';
+  } else {
+    html += '<div style="background:#dcfce7;color:#166534;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:10px;">✓ Fattura già caricata in magazzino</div>';
+  }
+
+  html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+  for (const r of righe) {
+    const nomeProd = r.prodotto_id ? (mappaProd.get(String(r.prodotto_id)) || "—") : null;
+    html += '<div class="fisc-riga" data-riga="' + r.id + '" style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;">';
+    html += '<div style="font-weight:600;font-size:13px;margin-bottom:4px;">' + escapeHtml(r.descrizione_originale || "-") + '</div>';
+    html += '<div style="font-size:12px;color:#64748b;margin-bottom:8px;">' + (r.quantita ?? "-") + ' ' + escapeHtml(r.unita_misura || "") + ' · € ' + formatMoney(r.prezzo_unitario || 0) + '/u · tot € ' + formatMoney(r.totale_riga || 0) + '</div>';
+    if (!giaFinalizzato) {
+      html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
+      html += '<select class="fisc-select" data-riga="' + r.id + '" style="flex:1;min-width:160px;padding:7px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">';
+      html += '<option value="">— nessun prodotto —</option>' + optionsProdotti;
+      html += '</select>';
+      html += badgeConf(r.match_confidenza, r.match_confermato);
+      html += '<button class="fisc-conferma" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">Conferma</button>';
+      html += '</div>';
+    } else {
+      html += '<div style="font-size:13px;">→ ' + escapeHtml(nomeProd || "non abbinato") + ' ' + badgeConf(r.match_confidenza, r.match_confermato) + '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  box.innerHTML = html;
+
+  // Preseleziono i prodotti già abbinati
+  box.querySelectorAll(".fisc-select").forEach(sel => {
+    const rigaId = sel.getAttribute("data-riga");
+    const riga = righe.find(x => x.id === rigaId);
+    if (riga && riga.prodotto_id) sel.value = String(riga.prodotto_id);
+  });
+
+  // Abbina automaticamente
+  const btnMatch = box.querySelector(".fisc-btn-match");
+  if (btnMatch) btnMatch.addEventListener("click", async () => {
+    btnMatch.disabled = true; btnMatch.textContent = "⏳ Abbinamento...";
+    const d = await fiscaleFetch(FISCALE_MATCH_URL, { azienda_id: azienda.id, documento_id: documentoId });
+    if (d.success) { box.dataset.caricato = ""; await renderRigheFiscali(box, documentoId, azienda); }
+    else { alert("Errore: " + (d.error || "riprova")); btnMatch.disabled = false; btnMatch.textContent = "🔗 Abbina automaticamente"; }
+  });
+
+  // Conferma singola riga
+  box.querySelectorAll(".fisc-conferma").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const rigaId = btn.getAttribute("data-riga");
+      const sel = box.querySelector('.fisc-select[data-riga="' + rigaId + '"]');
+      const prodId = sel && sel.value ? Number(sel.value) : null;
+      btn.disabled = true; btn.textContent = "...";
+      const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "conferma_riga", azienda_id: azienda.id, riga_id: rigaId, prodotto_id: prodId });
+      if (d.success) { btn.textContent = "✓"; btn.style.background = "#dcfce7"; }
+      else { alert("Errore: " + (d.error || "riprova")); btn.disabled = false; btn.textContent = "Conferma"; }
+    });
+  });
+
+  // Carica in magazzino (finalizza)
+  const btnCarica = box.querySelector(".fisc-btn-carica");
+  if (btnCarica) btnCarica.addEventListener("click", async () => {
+    if (!confirm("Caricare in magazzino le righe confermate? Genera i movimenti di carico e aggiorna i costi.")) return;
+    btnCarica.disabled = true; btnCarica.textContent = "⏳ Carico...";
+    const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "finalizza", azienda_id: azienda.id, documento_id: documentoId });
+    if (d.success) {
+      alert("✅ Caricate " + d.carichi_generati + " righe in magazzino.\n" + (d.righe_non_confermate ? (d.righe_non_confermate + " righe non confermate sono state saltate.") : "Tutte le righe caricate!"));
+      box.dataset.caricato = ""; await renderRigheFiscali(box, documentoId, azienda);
+    } else {
+      alert("Errore: " + (d.error || "riprova")); btnCarica.disabled = false; btnCarica.textContent = "📥 Carica in magazzino";
+    }
+  });
 }
