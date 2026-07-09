@@ -961,7 +961,7 @@ export async function render(container) {
       const nome = container.querySelector('#settore-nome').value.trim();
       if (!nome) { mostraToast('Inserisci il nome del settore','warning'); return; }
       const ordine = parseInt(container.querySelector('#settore-ordine').value)||0;
-      const { data, error } = await supa().from('settori').insert({ azienda_id:aziendaId, nome, colore:coloreSelezionato, ordine }).select('*').single();
+      const { data, error } = await supa().from('settori').insert({ azienda_id:aziendaId, sede_id:currentSedeId||null, nome, colore:coloreSelezionato, ordine }).select('*').single();
       if (error) { mostraToast('Errore salvataggio: '+error.message,'error'); return; }
       settori.push(data);
       container.querySelector('#settore-nome').value = '';
