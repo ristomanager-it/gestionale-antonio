@@ -94,9 +94,15 @@ async function openDrillDown(tipo, from, to) {
       el.innerHTML = '<div style="background:#fffbeb;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;"><span style="color:#92400e;font-weight:500;">Totale spese fisse</span><strong style="color:#92400e;font-size:20px;">€'+Math.round(tot*100)/100+'</strong></div>'+(!data?.length?'<div style="color:#64748b;text-align:center;padding:20px;">Nessuna spesa nel periodo</div>':'<table style="width:100%;border-collapse:collapse;font-size:13px;"><tbody>'+data.map(r=>'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px;">'+new Date(r.data).toLocaleDateString("it-IT")+'</td><td style="padding:8px;">'+(r.descrizione||"")+'</td><td style="padding:8px;color:#64748b;">'+(r.categorie_bilancio?.nome||"")+'</td><td style="padding:8px;text-align:right;font-weight:600;">€'+Number(r.importo||0).toFixed(2)+'</td></tr>').join("")+'</tbody></table>');
     } else if (tipo==="cl") {
       const {data:paghe} = await supabase.from("spese_extra").select("data,descrizione,importo").eq("azienda_id",aziendaId).eq("categoria_bilancio_id",14).gte("data",f).lte("data",t).order("data",{ascending:false});
-      const {data:timb} = await supabase.from("timbrature").select("dip_nome,ore_lavorate,costo_orario").eq("azienda_id",aziendaId).eq("tipo","fine_turno").gte("timestamp",f).lte("timestamp",t+"T23:59:59").limit(100);
+      const {data:timb} = await supabase.from("timbrature").select("dipendente_id,dip_nome,ore_lavorate,costo_orario").eq("azienda_id",aziendaId).eq("tipo","fine_turno").gte("timestamp",f).lte("timestamp",t+"T23:59:59").limit(5000);
+      const {data:dips} = await supabase.from("dipendenti").select("id,costo_orario").eq("azienda_id",aziendaId);
+      const costoDip = new Map((dips||[]).map(d=>[String(d.id),Number(d.costo_orario)||0]));
       const totP = (paghe||[]).reduce((s,r)=>s+Number(r.importo||0),0);
-      const totT = (timb||[]).reduce((s,r)=>s+(Number(r.ore_lavorate||0)*Number(r.costo_orario||0)),0);
+      const totT = (timb||[]).reduce((s,r)=>{
+        const ore=Number(r.ore_lavorate||0);
+        const co=Number(r.costo_orario)>0?Number(r.costo_orario):(costoDip.get(String(r.dipendente_id))||0);
+        return s+ore*co;
+      },0);
       el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;"><div style="background:#eff6ff;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:12px;color:#1d4ed8;margin-bottom:4px;">💳 Paghe</div><strong style="font-size:22px;color:#1d4ed8;">€'+totP.toFixed(2)+'</strong></div><div style="background:#f0fdf4;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:12px;color:#166534;margin-bottom:4px;">⏱️ Timbrature</div><strong style="font-size:22px;color:#166534;">€'+totT.toFixed(2)+'</strong></div></div>'+(paghe?.length?'<table style="width:100%;border-collapse:collapse;font-size:13px;"><tbody>'+paghe.map(r=>'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px;">'+new Date(r.data).toLocaleDateString("it-IT")+'</td><td style="padding:8px;">'+(r.descrizione||"")+'</td><td style="padding:8px;text-align:right;">€'+Number(r.importo).toFixed(2)+'</td></tr>').join("")+'</tbody></table>':'<div style="color:#64748b;font-size:13px;">Nessuna paga nel periodo</div>');
     }
   } catch(e) { el.innerHTML = '<div style="color:#dc2626;">Errore: '+e.message+'</div>'; }
@@ -900,7 +906,45 @@ async function fetchDashboardData(period) {
       }
     } catch(e) { console.warn("Errore lettura acquisti:", e); }
     const speseFisse = toNumber(data?.spese_fisse);
-    const costoLavoro = toNumber(data?.costo_lavoro);
+    let costoLavoro = toNumber(data?.costo_lavoro);
+    try {
+      // Fix CL: le timbrature spesso NON hanno costo_orario (sta sui
+      // dipendenti). Ricalcolo ore × costo con fallback su dipendenti.
+      const { data: timb } = await supabase
+        .from("timbrature")
+        .select("dipendente_id, ore_lavorate, costo_orario")
+        .eq("azienda_id", azienda.id)
+        .eq("tipo", "fine_turno")
+        .gte("timestamp", from)
+        .lte("timestamp", to + "T23:59:59")
+        .limit(5000);
+      if (timb?.length) {
+        // Mappa costo_orario dei dipendenti
+        const { data: dips } = await supabase
+          .from("dipendenti")
+          .select("id, costo_orario")
+          .eq("azienda_id", azienda.id);
+        const costoDip = new Map((dips || []).map(d => [String(d.id), Number(d.costo_orario) || 0]));
+        let totCL = 0;
+        for (const r of timb) {
+          const ore = Number(r.ore_lavorate) || 0;
+          const costoOra = Number(r.costo_orario) > 0
+            ? Number(r.costo_orario)
+            : (costoDip.get(String(r.dipendente_id)) || 0);
+          totCL += ore * costoOra;
+        }
+        // Aggiungo eventuali paghe extra (spese_extra categoria 14)
+        const { data: paghe } = await supabase
+          .from("spese_extra")
+          .select("importo")
+          .eq("azienda_id", azienda.id)
+          .eq("categoria_bilancio_id", 14)
+          .gte("data", from).lte("data", to);
+        const totPaghe = (paghe || []).reduce((s, r) => s + Number(r.importo || 0), 0);
+        const clCalcolato = Math.round((totCL + totPaghe) * 100) / 100;
+        if (clCalcolato > 0) costoLavoro = clCalcolato;
+      }
+    } catch (e) { console.warn("Errore ricalcolo CL:", e); }
     const margine = data?.margine != null
       ? toNumber(data.margine)
       : roundCurrency(incasso - materiaPrima - speseFisse - costoLavoro);
