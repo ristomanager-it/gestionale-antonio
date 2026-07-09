@@ -750,6 +750,21 @@ function pickActiveAzienda(aziendePulite, preferBozza = false) {
 
   const storedId = getStoredAziendaId();
 
+  // La sede attiva (quella mostrata nell'header) è la verità: se punta a
+  // un'azienda diversa da quella salvata, la sede vince. Evita che, avendo
+  // più aziende (es. superadmin), si venga rimandati a un'azienda vecchia
+  // salvata in localStorage mentre si sta operando su un'altra sede.
+  try {
+    const storedSedeId = getStoredSedeId();
+    if (storedSedeId && window.state?.sedi?.length) {
+      const sede = window.state.sedi.find(s => String(s.id) === String(storedSedeId));
+      if (sede?.azienda_id) {
+        const matchSede = aziendePulite.find(a => String(a.aziende.id) === String(sede.azienda_id));
+        if (matchSede?.aziende) return matchSede.aziende;
+      }
+    }
+  } catch (e) { /* prosegue con la logica standard sotto */ }
+
   if (storedId) {
     const match = aziendePulite.find(
       (a) => String(a.aziende.id) === String(storedId)
