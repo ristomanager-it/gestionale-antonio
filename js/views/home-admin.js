@@ -864,27 +864,39 @@ async function fetchDashboardData(period) {
     let materiaPrima = toNumber(data?.materia_prima);
     let acquisti_categorie = [];
     try {
-      // Usa il range del periodo selezionato
-      const { data: acquisti } = await supabase
+      // MP a livello AZIENDA (non per sede): il magazzino acquisti è
+      // centralizzato, i carichi stanno sul centro cottura. Query senza
+      // join su categorie_bilancio (che può fallire per RLS) e senza
+      // filtro sede, così la MP compare da qualsiasi sede si guardi.
+      const { data: acquisti, error: accErr } = await supabase
         .from("magazzino_movimenti")
-        .select("categoria_bilancio_id, quantita, costo, categorie_bilancio(nome)")
+        .select("categoria_bilancio_id, quantita, costo")
         .eq("azienda_id", azienda.id)
         .eq("tipo_movimento", "carico")
+        .gt("costo", 0)
         .gte("created_at", from)
-        .lte("created_at", to)
+        .lte("created_at", to + "T23:59:59")
         .limit(5000);
 
+      if (accErr) console.warn("MP query error:", accErr.message);
+
       if (acquisti?.length) {
-        // Aggrega per categoria
+        // Nomi categoria caricati a parte (mappa id→nome)
+        let catNomi = new Map();
+        try {
+          const { data: cats } = await supabase.from("categorie_bilancio").select("id, nome");
+          catNomi = new Map((cats || []).map(c => [String(c.id), c.nome]));
+        } catch (e) { /* se fallisce, uso "Altro" */ }
+
         const map = new Map();
         for (const r of acquisti) {
-          const cat = r.categorie_bilancio?.nome || "Altro";
+          const cat = catNomi.get(String(r.categoria_bilancio_id)) || "Acquisti";
           const val = (Number(r.quantita || 0) * Number(r.costo || 0));
           map.set(cat, (map.get(cat) || 0) + val);
         }
         acquisti_categorie = [...map.entries()].map(([categoria, totale]) => ({ categoria, totale: Math.round(totale * 100) / 100 }));
         const totaleAcquisti = acquisti_categorie.reduce((s, r) => s + r.totale, 0);
-        if (totaleAcquisti > 0) materiaPrima = Math.round(totaleAcquisti * 100) / 100;
+        materiaPrima = Math.round(totaleAcquisti * 100) / 100;
       }
     } catch(e) { console.warn("Errore lettura acquisti:", e); }
     const speseFisse = toNumber(data?.spese_fisse);
