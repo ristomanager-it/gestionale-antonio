@@ -55,7 +55,7 @@ export async function renderAnagraficaProdotti(container) {
 
     const { data, error } = await window.db
       .from("prodotti")
-      .select("id, codice_interno, nome, descrizione, tipo_prodotto, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id")
+      .select("id, codice_interno, nome, descrizione, tipo_prodotto, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, categoria_bilancio_id, categoria_interna")
       .eq("azienda_id", azienda?.id)
       .or(`descrizione.ilike.%${term}%,nome.ilike.%${term}%,codice_interno.ilike.%${term}%`)
       .limit(15);
@@ -71,13 +71,21 @@ export async function renderAnagraficaProdotti(container) {
       return;
     }
 
-    risultati.innerHTML = data.map(p => `
+    risultati.innerHTML = data.map(p => {
+      const haBilancio = !!p.categoria_bilancio_id;
+      const haInterna = !!(p.categoria_interna && String(p.categoria_interna).trim());
+      let colore = "#22c55e", titolo = "Categorie complete";
+      if (!haBilancio && !haInterna) { colore = "#dc2626"; titolo = "Mancano categoria bilancio e interna"; }
+      else if (!haBilancio) { colore = "#f59e0b"; titolo = "Manca categoria di bilancio"; }
+      else if (!haInterna) { colore = "#f59e0b"; titolo = "Manca categoria interna"; }
+      return `
       <div class="rf-search-item">
+        <span title="${titolo}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colore};flex-shrink:0;"></span>
         <div>${escapeHtml(p.codice_interno || "—")}</div>
         <div>${escapeHtml(p.descrizione || p.nome || "")}</div>
         <button data-id="${p.id}">Apri</button>
       </div>
-    `).join("");
+    `;}).join("");
 
     risultati.querySelectorAll("button").forEach(btn => {
       btn.onclick = () => {
@@ -93,7 +101,7 @@ async function apriSchedaProdotto(box, prodottoId) {
 
   const { data: prodotto, error } = await window.db
     .from("prodotti")
-    .select("id, azienda_id, codice_interno, nome, descrizione, tipo_prodotto, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, attivo")
+    .select("id, azienda_id, codice_interno, nome, descrizione, tipo_prodotto, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, attivo, categoria_bilancio_id, categoria_interna")
     .eq("azienda_id", aziendaId)
     .eq("id", prodottoId)
     .maybeSingle();
@@ -164,6 +172,30 @@ async function apriSchedaProdotto(box, prodottoId) {
     `<option value="${f.id}" ${String(f.id) === String(prodotto.fornitore_preferito_id) ? "selected" : ""}>${escapeHtml(f.ragione_sociale)}</option>`
   ).join("");
 
+  // Categorie di bilancio (tabella categorie_bilancio) — solo costi
+  const supaDir = window.supabaseClient || window.supabase;
+  const { data: catBilancio } = await supaDir
+    .from("categorie_bilancio")
+    .select("id, nome, tipo")
+    .order("nome");
+  const catBilancioOptions = (catBilancio || [])
+    .filter(c => c.tipo === "costo")
+    .map(c => `<option value="${c.id}" ${String(c.id) === String(prodotto.categoria_bilancio_id) ? "selected" : ""}>${escapeHtml(c.nome)}</option>`)
+    .join("");
+
+  // Categorie interne — valori distinti già usati dall'azienda
+  const { data: catInterneRows } = await supaDir
+    .from("prodotti")
+    .select("categoria_interna")
+    .eq("azienda_id", aziendaId)
+    .not("categoria_interna", "is", null);
+  const catInterneSet = [...new Set((catInterneRows || [])
+    .map(r => (r.categoria_interna || "").trim())
+    .filter(Boolean))].sort();
+  const catInterneOptions = catInterneSet
+    .map(c => `<option value="${escapeHtml(c)}" ${c === (prodotto.categoria_interna || "").trim() ? "selected" : ""}>${escapeHtml(c)}</option>`)
+    .join("");
+
   box.innerHTML = `
     <div class="rf-product-card">
       <div class="rf-product-heading">
@@ -206,6 +238,20 @@ async function apriSchedaProdotto(box, prodottoId) {
           </select>
         </div>
 
+        <div class="rf-field" style="margin-top:10px;">
+          <label>📊 Categoria di bilancio ${!prodotto.categoria_bilancio_id ? '<span style="color:#dc2626;font-weight:700;">• da assegnare</span>' : ''}</label>
+          <select id="edit-cat-bilancio" class="input">
+            <option value="">-- Seleziona categoria bilancio --</option>
+            ${catBilancioOptions}
+          </select>
+        </div>
+
+        <div class="rf-field" style="margin-top:10px;">
+          <label>🍽️ Categoria interna ${!(prodotto.categoria_interna || "").trim() ? '<span style="color:#dc2626;font-weight:700;">• da assegnare</span>' : ''}</label>
+          <input id="edit-cat-interna" class="input" list="cat-interne-list" value="${escapeHtml((prodotto.categoria_interna || "").trim())}" placeholder="Carni, Pesce, Farinacei..." />
+          <datalist id="cat-interne-list">${catInterneOptions}</datalist>
+        </div>
+
         <div class="rf-product-grid" style="margin-top:10px;">
           <div class="rf-field">
             <label>Scorta minima</label>
@@ -246,6 +292,8 @@ async function apriSchedaProdotto(box, prodottoId) {
     const fornitoreId = box.querySelector("#edit-fornitore").value || null;
     const scorta = box.querySelector("#edit-scorta").value;
     const riordino = box.querySelector("#edit-riordino").value;
+    const catBilancio = box.querySelector("#edit-cat-bilancio").value || null;
+    const catInterna = box.querySelector("#edit-cat-interna").value.trim() || null;
 
     if (!nome) { esito.textContent = "❌ Nome obbligatorio"; esito.style.color = "#dc2626"; return; }
 
@@ -260,6 +308,8 @@ async function apriSchedaProdotto(box, prodottoId) {
         fornitore_preferito_id: fornitoreId,
         scorta_minima: scorta ? Number(scorta) : null,
         quantita_riordino: riordino ? Number(riordino) : null,
+        categoria_bilancio_id: catBilancio ? Number(catBilancio) : null,
+        categoria_interna: catInterna,
       })
       .eq("id", prodottoId)
       .eq("azienda_id", aziendaId);
