@@ -127,6 +127,17 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     .order("ragione_sociale");
   fornitori_cache = f_list || [];
 
+  // Categorie per i dropdown (caricate una volta)
+  let catBilancio_cache = [];
+  let catInterne_cache = [];
+  const { data: cb_list } = await window.supabaseClient
+    .from("categorie_bilancio").select("id, nome, tipo").order("nome");
+  catBilancio_cache = (cb_list || []).filter(c => c.tipo === "costo");
+  const { data: ci_list } = await window.supabaseClient
+    .from("prodotti").select("categoria_interna")
+    .eq("azienda_id", azienda.id).not("categoria_interna", "is", null);
+  catInterne_cache = [...new Set((ci_list || []).map(r => (r.categoria_interna || "").trim()).filter(Boolean))].sort();
+
   async function openScheda(prodottoId) {
     scheda.innerHTML = `<div class="rf-empty-state">Caricamento scheda...</div>`;
 
@@ -139,7 +150,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
     const { data: prodotto, error: prodottoError } = await window.supabaseClient
       .from("prodotti")
-      .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, alias_ocr")
+      .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, alias_ocr, categoria_bilancio_id, categoria_interna")
       .eq("azienda_id", azienda.id)
       .eq("id", prodottoId)
       .maybeSingle();
@@ -250,6 +261,27 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
           🔍 Alias OCR: ${escapeHtml((prodotto.alias_ocr || []).join(", "))}
         </div>` : ""}
 
+        ${(() => {
+          const haB = !!prodotto.categoria_bilancio_id;
+          const haI = !!(prodotto.categoria_interna && String(prodotto.categoria_interna).trim());
+          const nomeB = haB ? (catBilancio_cache.find(c => String(c.id) === String(prodotto.categoria_bilancio_id))?.nome || "impostata") : null;
+          if (haB && haI) {
+            return `<div style="margin-top:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:8px 10px;font-size:12px;color:#166534;">
+              🟢 Categorie complete — Bilancio: <b>${escapeHtml(nomeB)}</b> · Interna: <b>${escapeHtml(prodotto.categoria_interna)}</b>
+            </div>`;
+          }
+          const mancanti = [];
+          if (!haB) mancanti.push("categoria di bilancio");
+          if (!haI) mancanti.push("categoria interna");
+          const colore = (!haB && !haI) ? "#dc2626" : "#f59e0b";
+          const sfondo = (!haB && !haI) ? "#fef2f2" : "#fffbeb";
+          const bordo = (!haB && !haI) ? "#fca5a5" : "#fcd34d";
+          const pallino = (!haB && !haI) ? "🔴" : "🟡";
+          return `<div style="margin-top:10px;background:${sfondo};border:1px solid ${bordo};border-radius:8px;padding:8px 10px;font-size:12px;color:${colore};font-weight:600;">
+            ${pallino} Da completare: manca ${mancanti.join(" e ")}. Premi <b>Modifica</b> per assegnarle.
+          </div>`;
+        })()}
+
         <div class="rf-product-section-title">Ultimi movimenti</div>
 
         <div class="rf-mov-list">
@@ -284,7 +316,9 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
         renderEditForm({
           ...data,
           fornitore_preferito_id: prodotto.fornitore_preferito_id,
-          quantita_riordino: prodotto.quantita_riordino
+          quantita_riordino: prodotto.quantita_riordino,
+          categoria_bilancio_id: prodotto.categoria_bilancio_id,
+          categoria_interna: prodotto.categoria_interna
         }, fornitore || "—");
       };
     }
@@ -334,6 +368,22 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
         </div>
 
         <div class="rf-field" style="margin-top:10px;">
+          <label>📊 Categoria di bilancio ${!prodotto.categoria_bilancio_id ? '<span style="color:#dc2626;font-weight:700;">• da assegnare</span>' : ''}</label>
+          <select id="edit-mp-cat-bilancio" class="input">
+            <option value="">-- Seleziona categoria bilancio --</option>
+            ${catBilancio_cache.map(c => `<option value="${c.id}" ${String(c.id) === String(prodotto.categoria_bilancio_id || "") ? "selected" : ""}>${escapeHtml(c.nome)}</option>`).join("")}
+          </select>
+        </div>
+
+        <div class="rf-field" style="margin-top:10px;">
+          <label>🍽️ Categoria interna ${!(prodotto.categoria_interna || "").trim() ? '<span style="color:#dc2626;font-weight:700;">• da assegnare</span>' : ''}</label>
+          <input id="edit-mp-cat-interna" class="input" list="mp-cat-interne-list" value="${escapeAttr((prodotto.categoria_interna || "").trim())}" placeholder="Carni, Pesce, Farinacei, Verdure..." />
+          <datalist id="mp-cat-interne-list">
+            ${catInterne_cache.map(c => `<option value="${escapeAttr(c)}"></option>`).join("")}
+          </datalist>
+        </div>
+
+        <div class="rf-field" style="margin-top:10px;">
           <label>Alias OCR <span style="font-size:11px;color:#6b7280;">(termini alternativi per match fattura, separati da virgola)</span></label>
           <input id="edit-mp-alias" class="input" 
             value="${escapeAttr((prodotto.alias_ocr || []).join(", "))}" 
@@ -363,6 +413,8 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       const riordineVal = scheda.querySelector("#edit-mp-riordino").value;
       const fornitoreId = scheda.querySelector("#edit-mp-fornitore").value || null;
       const aliasVal = scheda.querySelector("#edit-mp-alias").value.trim();
+      const catBilancio = scheda.querySelector("#edit-mp-cat-bilancio").value || null;
+      const catInterna = scheda.querySelector("#edit-mp-cat-interna").value.trim() || null;
 
       if (!descrizione) {
         esito.innerText = "❌ Inserisci il nome prodotto";
@@ -384,6 +436,8 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
           quantita_riordino: riordineVal !== "" ? Number(riordineVal) : null,
           fornitore_preferito_id: fornitoreId,
           alias_ocr: aliasVal ? aliasVal.split(",").map(a => a.trim().toLowerCase()).filter(Boolean) : [],
+          categoria_bilancio_id: catBilancio ? Number(catBilancio) : null,
+          categoria_interna: catInterna,
         })
         .eq("id", prodotto.prodotto_id)
         .eq("azienda_id", azienda.id);
