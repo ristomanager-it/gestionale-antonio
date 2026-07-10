@@ -56,6 +56,8 @@ export async function render(container) {
         </div>
 
         <div class="bo-m-item" data-sec="campagne-meta">📣 Campagne Meta</div>
+        <div class="bo-m-item" data-sec="tony-ai">🤖 Tony AI</div>
+        <div class="bo-m-item" data-sec="connessioni">🔗 Connessioni</div>
         <div class="bo-m-item" data-sec="campagne-google">🎯 Campagne Google</div>
         <div class="bo-m-item" data-sec="promozioni">🎯 Promozioni</div>
         <div class="bo-m-item" data-sec="fidelity">💳 Fidelity</div>
@@ -378,8 +380,10 @@ export async function render(container) {
         <div style="background:white;border-radius:16px;padding:40px;text-align:center;">
           <div style="font-size:32px;margin-bottom:12px;">📣</div>
           <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Nessun account Meta collegato</div>
-          <div style="font-size:13px;color:#64748b;">Configura l'account pubblicitario nelle impostazioni.</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Collega la pagina Facebook e l'account pubblicitario del locale.</div>
+          <button id="btn-vai-connessioni" style="border:none;border-radius:8px;padding:8px 16px;cursor:pointer;background:#1877f2;color:white;font-size:13px;font-weight:600;">🔗 Collega ora</button>
         </div>`;
+      content.querySelector('#btn-vai-connessioni')?.addEventListener('click', async () => { currentSection = 'connessioni'; await renderSection(); });
       return;
     }
 
@@ -998,6 +1002,171 @@ DESC 2: ...`;
     });
   }
 
+  /* ================= CONNESSIONI META ================= */
+
+  async function chiamaMetaAds(body) {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+      body: JSON.stringify({ azienda_id: window.state?.azienda?.id, ...body })
+    });
+    return await res.json();
+  }
+
+  async function renderConnessioni(content) {
+    await caricaConnessioni();
+    content.innerHTML = `
+      <div style="max-width:640px;">
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🔗 Connessioni social</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Collega la pagina Facebook/Instagram e l'account pubblicitario del locale. Tony e le campagne useranno questa connessione.</div>
+
+        ${connessioni.map(c => `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:700;">📄 ${c.pagina_nome || c.pagina_id || 'Pagina non impostata'}</div>
+              <div style="font-size:12px;color:#64748b;">Account: ${c.account_nome || c.account_id} ${c.pixel_id ? '· Pixel ✅' : '· Pixel mancante ⚠️'}</div>
+            </div>
+            <button class="btn-disattiva-conn" data-id="${c.id}" style="border:none;border-radius:8px;padding:6px 12px;cursor:pointer;background:#fee2e2;color:#b91c1c;font-size:12px;font-weight:600;">Scollega</button>
+          </div>
+        `).join('')}
+
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-top:8px;">
+          <div style="font-weight:700;margin-bottom:10px;">➕ Collega un account Meta</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:10px;">
+            Incolla il token di accesso Meta (Business Manager → Impostazioni → Utenti di sistema → Genera token con permessi <b>ads_management</b>, <b>ads_read</b> e <b>pages_show_list</b>). Presto qui ci sarà il pulsante "Accedi con Facebook".
+          </div>
+          <textarea id="conn-token" rows="3" placeholder="EAAB..." style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:12px;width:100%;box-sizing:border-box;font-family:monospace;"></textarea>
+          <button id="btn-verifica-token" style="margin-top:10px;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;background:#1877f2;color:white;font-size:13px;font-weight:600;">Verifica token</button>
+          <div id="conn-step2" style="margin-top:14px;"></div>
+        </div>
+      </div>
+    `;
+
+    content.querySelectorAll('.btn-disattiva-conn').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Scollegare questo account?')) return;
+      await supabase.from('meta_ads_connessioni').update({ attivo: false }).eq('id', b.dataset.id);
+      await renderConnessioni(content);
+    }));
+
+    content.querySelector('#btn-verifica-token')?.addEventListener('click', async () => {
+      const token = content.querySelector('#conn-token').value.trim();
+      if (!token) return alert('Incolla il token');
+      const step2 = content.querySelector('#conn-step2');
+      step2.innerHTML = '⏳ Verifico...';
+      const r = await chiamaMetaAds({ azione: 'setup_lista', params: { token } });
+      if (!r.ok) { step2.innerHTML = `<div style="color:#b91c1c;font-size:13px;">❌ ${r.errore}</div>`; return; }
+      const account = r.risultato?.account || [];
+      const pagine = r.risultato?.pagine || [];
+      step2.innerHTML = `
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px;">✅ Token valido. Scegli cosa collegare:</div>
+        <label style="font-size:12px;color:#64748b;">Account pubblicitario</label>
+        <select id="sel-account" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin:4px 0 10px;">
+          ${account.map(a => `<option value="${a.id}" data-nome="${a.name || ''}">${a.name || a.id} (${a.id})</option>`).join('')}
+        </select>
+        <label style="font-size:12px;color:#64748b;">Pagina Facebook</label>
+        <select id="sel-pagina" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin:4px 0 10px;">
+          ${pagine.map(p => `<option value="${p.id}" data-nome="${p.name || ''}">${p.name || p.id}</option>`).join('')}
+        </select>
+        <label style="font-size:12px;color:#64748b;">Pixel ID (facoltativo)</label>
+        <input id="inp-pixel" placeholder="es. 123456789" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin:4px 0 12px;box-sizing:border-box;" />
+        <button id="btn-salva-conn" style="border:none;border-radius:8px;padding:8px 16px;cursor:pointer;background:#15803d;color:white;font-size:13px;font-weight:600;">💾 Salva connessione</button>
+      `;
+      step2.querySelector('#btn-salva-conn').addEventListener('click', async () => {
+        const selA = step2.querySelector('#sel-account');
+        const selP = step2.querySelector('#sel-pagina');
+        const r2 = await chiamaMetaAds({ azione: 'setup_salva', params: {
+          token,
+          account_id: selA.value,
+          account_nome: selA.selectedOptions[0]?.dataset.nome || null,
+          pagina_id: selP.value || null,
+          pagina_nome: selP.selectedOptions[0]?.dataset.nome || null,
+          pixel_id: step2.querySelector('#inp-pixel').value.trim() || null
+        }});
+        if (!r2.ok) return alert('Errore: ' + r2.errore);
+        alert('✅ Account collegato!');
+        await renderConnessioni(content);
+      });
+    });
+  }
+
+  /* ================= TONY AI MARKETING ================= */
+
+  let tonyStorico = [];
+
+  async function renderTonyAI(content) {
+    await caricaConnessioni();
+
+    if (!connessioni.length) {
+      content.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">🤖</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Tony ha bisogno di un account Meta collegato</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Collega prima la pagina e l'account pubblicitario del locale.</div>
+          <button id="tony-vai-conn" style="border:none;border-radius:8px;padding:8px 16px;cursor:pointer;background:#1877f2;color:white;font-size:13px;font-weight:600;">🔗 Collega ora</button>
+        </div>`;
+      content.querySelector('#tony-vai-conn')?.addEventListener('click', async () => { currentSection = 'connessioni'; await renderSection(); });
+      return;
+    }
+
+    content.innerHTML = `
+      <div style="display:flex;flex-direction:column;height:70vh;max-width:760px;background:white;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
+        <div style="padding:12px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:#0E5A7A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div>
+          <div>
+            <div style="font-weight:700;">Tony · Marketing Meta</div>
+            <div style="font-size:11px;color:#64748b;">Analizza le campagne, propone e chiede sempre conferma prima di spendere</div>
+          </div>
+        </div>
+        <div id="tony-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;"></div>
+        <div style="padding:12px;border-top:1px solid #e5e7eb;display:flex;gap:8px;">
+          <input id="tony-input" placeholder="Es: come stanno andando le mie campagne?" style="flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;" />
+          <button id="tony-send" style="border:none;border-radius:10px;padding:10px 18px;cursor:pointer;background:#0E5A7A;color:white;font-weight:700;">➤</button>
+        </div>
+      </div>
+    `;
+
+    const box = content.querySelector('#tony-msgs');
+
+    const disegna = () => {
+      box.innerHTML = tonyStorico.map(m => m.role === 'user'
+        ? `<div style="align-self:flex-end;background:#0E5A7A;color:white;border-radius:14px 14px 2px 14px;padding:10px 14px;max-width:80%;font-size:14px;white-space:pre-wrap;">${m.content}</div>`
+        : `<div style="align-self:flex-start;background:#f1f5f9;border-radius:14px 14px 14px 2px;padding:10px 14px;max-width:85%;font-size:14px;white-space:pre-wrap;">${m.content}</div>`
+      ).join('');
+      box.scrollTop = box.scrollHeight;
+    };
+
+    if (!tonyStorico.length) {
+      tonyStorico.push({ role: 'assistant', content: 'Ciao! Sono Tony 👋 Posso guardare le tue campagne Meta, dirti cosa funziona e cosa no, e sistemare pubblici e budget (ti chiedo sempre conferma prima). Da dove partiamo?' });
+    }
+    disegna();
+
+    const invia = async () => {
+      const inp = content.querySelector('#tony-input');
+      const testo = inp.value.trim();
+      if (!testo) return;
+      inp.value = '';
+      tonyStorico.push({ role: 'user', content: testo });
+      disegna();
+      box.insertAdjacentHTML('beforeend', `<div id="tony-typing" style="align-self:flex-start;color:#94a3b8;font-size:13px;">Tony sta guardando i dati…</div>`);
+      box.scrollTop = box.scrollHeight;
+      try {
+        const msgs = tonyStorico.filter(m => m.role === 'user' || m.role === 'assistant').slice(-12);
+        const r = await chiamaMetaAds({ azione: 'tony_chat', messaggi: msgs });
+        content.querySelector('#tony-typing')?.remove();
+        if (!r.ok) tonyStorico.push({ role: 'assistant', content: '⚠️ Errore: ' + (r.errore || 'sconosciuto') });
+        else tonyStorico.push({ role: 'assistant', content: r.risultato?.risposta || '...' });
+      } catch (e) {
+        content.querySelector('#tony-typing')?.remove();
+        tonyStorico.push({ role: 'assistant', content: '⚠️ Errore di rete, riprova.' });
+      }
+      disegna();
+    };
+
+    content.querySelector('#tony-send').addEventListener('click', invia);
+    content.querySelector('#tony-input').addEventListener('keydown', e => { if (e.key === 'Enter') invia(); });
+  }
+
+
   async function renderSection() {
 
     const content = container.querySelector("#bo-m-content")
@@ -1021,6 +1190,8 @@ DESC 2: ...`;
 
       if (currentSection === "campagne-meta") { await renderCampagneMeta(content); return; }
       if (currentSection === "campagne-google") { await renderCampagneGoogle(content); return; }
+      if (currentSection === "tony-ai") { await renderTonyAI(content); return; }
+      if (currentSection === "connessioni") { await renderConnessioni(content); return; }
       if (currentSection === "promozioni") return renderPlaceholder(content, "Promozioni")
       if (currentSection === "fidelity") return renderPlaceholder(content, "Fidelity")
       if (currentSection === "bozze") return renderPlaceholder(content, "Bozze")
