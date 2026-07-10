@@ -180,6 +180,21 @@
       var sizeMap = {small:"14px",medium:"16px",large:"18px",xlarge:"20px"};
       if (az.font_size && sizeMap[az.font_size]) document.body.style.fontSize = sizeMap[az.font_size];
       document.getElementById("cc-pagato-locale").textContent = az.nome || "";
+
+      // Se è indicata una sede, il nome mostrato è quello della SEDE (es. Trattoria)
+      if (sedeId) {
+        supa.from("sedi").select("nome,logo_url").eq("id", sedeId).maybeSingle().then(function(r2) {
+          var sede = r2.data || {};
+          if (sede.nome) {
+            document.getElementById("cc-locale").textContent = sede.nome;
+            document.getElementById("cc-pagato-locale").textContent = sede.nome;
+          }
+          if (sede.logo_url) {
+            var img2 = document.getElementById("cc-logo");
+            img2.src = sede.logo_url; img2.style.display = "block";
+          }
+        });
+      }
     });
 
     // Carica config fidelity
