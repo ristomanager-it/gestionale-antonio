@@ -954,7 +954,7 @@ export async function render(container) {
     status.style.color = "#64748b"
 
     const ext = file.name.split(".").pop() || "png"
-    const path = `prodotti/${azienda_id}/${Date.now()}-${crypto.randomUUID()}.${ext}`
+    const path = `${azienda_id}/prodotti/${Date.now()}-${crypto.randomUUID()}.${ext}`
 
     const { error } = await supabase.storage
       .from(STORAGE_BUCKET)
@@ -965,7 +965,7 @@ export async function render(container) {
 
     if (error) {
       console.error(error)
-      status.textContent = "❌ Errore upload immagine. Riprova."
+      status.textContent = "❌ Errore upload: " + (error.message || "riprova")
       status.style.color = "#dc2626"
       return
     }
