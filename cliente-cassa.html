@@ -205,7 +205,7 @@
       if (badge) { badge.textContent = "-" + sconto + "% SUBITO"; badge.style.display = "block"; }
 
       // QR iscrizione fidelity
-      var linkFidelity = "https://app.ristoflow-ai.com/fidelity.html?a=" + aziendaId;
+      var linkFidelity = "https://app.ristoflow-ai.com/fidelity.html?a=" + aziendaId + (sedeId ? "&s=" + sedeId : "");
       var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(linkFidelity);
       var qrImg = document.getElementById("cc-qr");
       if (qrImg) { qrImg.src = qrUrl; qrImg.style.display = "block"; }
