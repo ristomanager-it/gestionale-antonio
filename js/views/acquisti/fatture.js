@@ -306,8 +306,11 @@ export async function renderFatture(container, azienda) {
 
 async function searchDocumenti(azienda, filters) {
   try {
+    // Le fatture/DDT di acquisto sono AZIENDALI (senza sede_id): uso il client
+    // diretto filtrando solo per azienda_id, non window.db che forza anche la sede.
+    const supaDir = window.supabaseClient || window.supabase;
     const [fattureRes, ddtRes] = await Promise.all([
-      window.db
+      supaDir
         .from("fatture_acquisto")
         .select(`
           id,
@@ -321,8 +324,9 @@ async function searchDocumenti(azienda, filters) {
             ragione_sociale
           )
         `)
+        .eq("azienda_id", azienda.id)
         .order("data_documento", { ascending: false }),
-      window.db
+      supaDir
         .from("ddt_acquisto")
         .select(`
           id,
@@ -332,6 +336,7 @@ async function searchDocumenti(azienda, filters) {
             ragione_sociale
           )
         `)
+        .eq("azienda_id", azienda.id)
         .order("data_ddt", { ascending: false })
     ]);
 
