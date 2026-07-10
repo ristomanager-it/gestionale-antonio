@@ -228,12 +228,14 @@ export async function renderFatture(container, azienda) {
           }
           let rr = [];
           {
-            // Fattura tradizionale: righe in fatture_acquisto_righe
-            const { data: mie, error } = await window.db.from("fatture_acquisto_righe")
-              .select("id, fattura_id, riga_numero, descrizione, quantita, unita_misura, prezzo_unitario, iva_percent, totale_riga");
+            // Fattura tradizionale: righe in fatture_acquisto_righe.
+            // Client diretto (no window.db che forza la sede): filtro per fattura.
+            const supaDir = window.supabaseClient || window.supabase;
+            const { data: mie, error } = await supaDir.from("fatture_acquisto_righe")
+              .select("id, fattura_id, riga_numero, descrizione, quantita, unita_misura, prezzo_unitario, iva_percent, totale_riga")
+              .eq("fattura_id", fatturaId);
             if (error) throw error;
-            rr = (mie || []).filter(r => String(r.fattura_id) === String(fatturaId))
-              .sort((a,b) => (a.riga_numero||0) - (b.riga_numero||0));
+            rr = (mie || []).sort((a,b) => (a.riga_numero||0) - (b.riga_numero||0));
           }
           if (!rr.length) {
             box.innerHTML = `<div style="color:#94a3b8;font-size:13px;">Nessuna riga di dettaglio per questa fattura.</div>`;
