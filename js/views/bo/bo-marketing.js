@@ -57,6 +57,7 @@ export async function render(container) {
 
         <div class="bo-m-item" data-sec="campagne-meta">📣 Campagne Meta</div>
         <div class="bo-m-item" data-sec="tony-ai">🤖 Tony AI</div>
+        <div class="bo-m-item" data-sec="pubblici">👥 Pubblici</div>
         <div class="bo-m-item" data-sec="connessioni">🔗 Connessioni</div>
         <div class="bo-m-item" data-sec="campagne-google">🎯 Campagne Google</div>
         <div class="bo-m-item" data-sec="promozioni">🎯 Promozioni</div>
@@ -1167,6 +1168,145 @@ DESC 2: ...`;
   }
 
 
+  /* ================= PUBBLICI META ================= */
+
+  const SUBTYPE_LABEL = { CUSTOM: '📇 Lista clienti', LOOKALIKE: '🎯 Lookalike', ENGAGEMENT: '💬 Engagement', WEBSITE: '🌐 Sito' };
+
+  async function renderPubblici(content) {
+    await caricaConnessioni();
+    if (!connessioni.length) {
+      content.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">👥</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Nessun account Meta collegato</div>
+          <button id="pub-vai-conn" style="border:none;border-radius:8px;padding:8px 16px;cursor:pointer;background:#1877f2;color:white;font-size:13px;font-weight:600;">🔗 Collega ora</button>
+        </div>`;
+      content.querySelector('#pub-vai-conn')?.addEventListener('click', async () => { currentSection = 'connessioni'; await renderSection(); });
+      return;
+    }
+
+    content.innerHTML = `<div style="color:#64748b;font-size:14px;">⏳ Carico i pubblici dall'account Meta…</div>`;
+    const r = await chiamaMetaAds({ azione: 'lista_pubblici' });
+    if (!r.ok) {
+      content.innerHTML = `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;color:#b91c1c;font-size:13px;">❌ ${r.errore === 'NESSUNA_CONNESSIONE' ? 'Nessun account Meta collegato' : (r.messaggio || r.errore)}</div>`;
+      return;
+    }
+    const pubblici = r.risultato || [];
+    const pubbliciClienti = pubblici.filter(p => p.subtype === 'CUSTOM');
+    const conn = connessioni[0] || {};
+
+    const fmtDim = (p) => {
+      const lo = p.approximate_count_lower_bound, hi = p.approximate_count_upper_bound;
+      if (lo == null && hi == null) return 'dimensione n/d';
+      if (lo != null && hi != null && lo !== hi) return `~${Number(lo).toLocaleString('it-IT')}–${Number(hi).toLocaleString('it-IT')} persone`;
+      return `~${Number(lo ?? hi).toLocaleString('it-IT')} persone`;
+    };
+
+    content.innerHTML = `
+      <div style="max-width:760px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:18px;font-weight:700;">👥 Pubblici</div>
+          <button id="pub-refresh" style="border:1px solid #e2e8f0;background:white;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;">🔄 Aggiorna</button>
+        </div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:16px;">I pubblici del tuo account pubblicitario. Creali qui e ritrovali quando costruisci le campagne.</div>
+
+        ${pubblici.length ? pubblici.map(p => `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div>
+              <div style="font-weight:700;font-size:14px;">${p.name || p.id}</div>
+              <div style="font-size:12px;color:#64748b;">${SUBTYPE_LABEL[p.subtype] || p.subtype || ''} · ${fmtDim(p)}</div>
+            </div>
+            <div style="font-size:11px;color:#94a3b8;">${p.operation_status?.description || ''}</div>
+          </div>
+        `).join('') : `<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;text-align:center;color:#64748b;font-size:13px;margin-bottom:8px;">Nessun pubblico ancora — creane uno qui sotto 👇</div>`}
+
+        <div style="font-size:15px;font-weight:700;margin:20px 0 10px;">➕ Crea un pubblico</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;">
+
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:4px;">📇 Lista clienti Ristoflow</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:10px;">I tuoi clienti veri: telefoni ed email da prenotazioni e lead promo, caricati su Meta in forma cifrata. Il pubblico più prezioso.</div>
+            <input id="pub-cl-nome" value="Clienti Ristoflow" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;box-sizing:border-box;font-size:13px;" />
+            <button class="pub-crea" data-tipo="clienti" style="border:none;border-radius:8px;padding:8px 14px;cursor:pointer;background:#15803d;color:white;font-size:13px;font-weight:600;">Crea da Ristoflow</button>
+          </div>
+
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:4px;">🎯 Lookalike</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Meta trova le persone più simili a un tuo pubblico esistente. Perfetto per trovare clienti nuovi.</div>
+            ${pubbliciClienti.length ? `
+              <select id="pub-lal-origine" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;font-size:13px;">
+                ${pubbliciClienti.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+              </select>
+              <select id="pub-lal-perc" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;font-size:13px;">
+                <option value="1">1% — più simili (pubblico piccolo)</option>
+                <option value="3" selected>3% — equilibrato (consigliato)</option>
+                <option value="5">5% — più ampio</option>
+              </select>
+              <button class="pub-crea" data-tipo="lookalike" style="border:none;border-radius:8px;padding:8px 14px;cursor:pointer;background:#0E5A7A;color:white;font-size:13px;font-weight:600;">Crea lookalike</button>
+            ` : `<div style="font-size:12px;color:#94a3b8;">Prima crea la Lista clienti: il lookalike parte da lì.</div>`}
+          </div>
+
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:4px;">💬 Engagement pagina</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Chi ha interagito con la pagina ${conn.pagina_nome ? `<b>${conn.pagina_nome}</b>` : 'Facebook'} negli ultimi 365 giorni. Retargeting caldo a costo bassissimo.</div>
+            ${conn.pagina_id ? `
+              <button class="pub-crea" data-tipo="engagement" style="border:none;border-radius:8px;padding:8px 14px;cursor:pointer;background:#0E5A7A;color:white;font-size:13px;font-weight:600;">Crea engagement 365gg</button>
+            ` : `<div style="font-size:12px;color:#94a3b8;">Nessuna pagina nella connessione: collegala in 🔗 Connessioni.</div>`}
+          </div>
+
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:4px;">🌐 Visitatori sito</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Chi ha visitato il sito o una pagina specifica (es. la landing wedding), dal pixel.</div>
+            ${conn.pixel_id ? `
+              <input id="pub-sito-url" placeholder="URL contiene… (vuoto = tutto il sito)" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;box-sizing:border-box;font-size:13px;" />
+              <select id="pub-sito-gg" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;font-size:13px;">
+                <option value="30" selected>Ultimi 30 giorni</option>
+                <option value="90">Ultimi 90 giorni</option>
+                <option value="180">Ultimi 180 giorni</option>
+              </select>
+              <button class="pub-crea" data-tipo="sito" style="border:none;border-radius:8px;padding:8px 14px;cursor:pointer;background:#0E5A7A;color:white;font-size:13px;font-weight:600;">Crea visitatori sito</button>
+            ` : `<div style="font-size:12px;color:#94a3b8;">Nessun pixel configurato: aggiungi il Pixel ID in 🔗 Connessioni.</div>`}
+          </div>
+
+        </div>
+        <div id="pub-esito" style="margin-top:14px;"></div>
+      </div>
+    `;
+
+    content.querySelector('#pub-refresh')?.addEventListener('click', () => renderPubblici(content));
+
+    content.querySelectorAll('.pub-crea').forEach(btn => btn.addEventListener('click', async () => {
+      const tipo = btn.dataset.tipo;
+      const esito = content.querySelector('#pub-esito');
+      btn.disabled = true;
+      const vecchioTesto = btn.textContent;
+      btn.textContent = '⏳ Creo…';
+      esito.innerHTML = '';
+      let body = null;
+      if (tipo === 'clienti') body = { azione: 'crea_pubblico_clienti', params: { nome: content.querySelector('#pub-cl-nome')?.value?.trim() || 'Clienti Ristoflow' } };
+      if (tipo === 'lookalike') body = { azione: 'crea_lookalike', params: { origine_id: content.querySelector('#pub-lal-origine')?.value, percentuale: Number(content.querySelector('#pub-lal-perc')?.value || 3) } };
+      if (tipo === 'engagement') body = { azione: 'crea_pubblico_engagement', params: { giorni: 365 } };
+      if (tipo === 'sito') body = { azione: 'crea_pubblico_sito', params: { giorni: Number(content.querySelector('#pub-sito-gg')?.value || 30), url_contiene: content.querySelector('#pub-sito-url')?.value?.trim() || '' } };
+      try {
+        const rr = await chiamaMetaAds(body);
+        if (!rr.ok) throw new Error(rr.messaggio || rr.errore);
+        const info = rr.risultato || {};
+        let msg = '✅ Pubblico creato!';
+        if (tipo === 'clienti') {
+          msg = `✅ Pubblico creato: ${info.telefoni_caricati || 0} telefoni e ${info.email_caricate || 0} email caricati (cifrati). Meta impiega qualche ora per fare il match.`;
+          if (info.nota) msg += ` ⚠️ ${info.nota}`;
+        }
+        esito.innerHTML = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;font-size:13px;color:#166534;">${msg}</div>`;
+        setTimeout(() => renderPubblici(content), 2500);
+      } catch (e) {
+        esito.innerHTML = `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;font-size:13px;color:#b91c1c;">❌ ${e.message}</div>`;
+        btn.disabled = false;
+        btn.textContent = vecchioTesto;
+      }
+    }));
+  }
+
+
   async function renderSection() {
 
     const content = container.querySelector("#bo-m-content")
@@ -1191,6 +1331,7 @@ DESC 2: ...`;
       if (currentSection === "campagne-meta") { await renderCampagneMeta(content); return; }
       if (currentSection === "campagne-google") { await renderCampagneGoogle(content); return; }
       if (currentSection === "tony-ai") { await renderTonyAI(content); return; }
+      if (currentSection === "pubblici") { await renderPubblici(content); return; }
       if (currentSection === "connessioni") { await renderConnessioni(content); return; }
       if (currentSection === "promozioni") return renderPlaceholder(content, "Promozioni")
       if (currentSection === "fidelity") return renderPlaceholder(content, "Fidelity")
