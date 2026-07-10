@@ -14,6 +14,12 @@
 
 import { avviaPagamentoCarta, emettiScontrinoFiscale, configuraCassa } from './cassa-hardware.js';
 
+// Il router chiama render(app). Recupero l'azienda dallo stato globale.
+export async function render(container) {
+  const azienda = window.state?.azienda || {};
+  return renderCassaLibera(container, azienda);
+}
+
 export async function renderCassaLibera(container, azienda) {
   const supabase = window.supabaseClient || window.supabase;
   const aziendaId = azienda?.id || window.state?.azienda?.id;
