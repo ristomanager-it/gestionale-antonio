@@ -359,6 +359,20 @@ export async function render(container) {
 
         <!-- Totale -->
         <div style="padding:16px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;">
+          <!-- Sezione PROMO -->
+          <div id="conto-promo-box" style="margin-bottom:12px;">
+            <div id="promo-applicata" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:10px 12px;margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#065f46;" id="promo-nome"></div>
+                  <div style="font-size:12px;color:#047857;" id="promo-sconto-txt"></div>
+                </div>
+                <button id="btn-promo-rimuovi" style="background:white;border:1px solid #a7f3d0;border-radius:8px;padding:4px 10px;font-size:12px;color:#065f46;cursor:pointer;">Rimuovi</button>
+              </div>
+            </div>
+            <button id="btn-scansiona-promo" style="width:100%;padding:11px;border:2px dashed #cbd5e1;border-radius:12px;background:white;color:#475569;font-size:13px;font-weight:600;cursor:pointer;">📷 Scansiona promo del cliente</button>
+            <div id="promo-stato" style="font-size:12px;color:#64748b;margin-top:6px;min-height:16px;text-align:center;"></div>
+          </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
             <div style="font-size:15px;color:#64748b;">Totale</div>
             <div style="font-size:28px;font-weight:800;color:#0E5A7A;" id="conto-totale-display">€ 0,00</div>
@@ -1366,6 +1380,15 @@ export async function render(container) {
 
     renderContoRighe();
     aggiornaContoTotale();
+    // Reset e collegamento sezione promo
+    _promoApplicata = null;
+    if (_promoPollTimer) clearInterval(_promoPollTimer);
+    renderPromoApplicata();
+    const stp = container.querySelector('#promo-stato'); if (stp) stp.textContent = '';
+    const btnScan = container.querySelector('#btn-scansiona-promo');
+    if (btnScan) btnScan.onclick = () => richiediScannerPromo();
+    const btnRim = container.querySelector('#btn-promo-rimuovi');
+    if (btnRim) btnRim.onclick = () => rimuoviPromo();
     container.querySelector('#modal-conto').style.display = 'flex';
   }
 
@@ -1428,9 +1451,15 @@ export async function render(container) {
   }
 
   function aggiornaContoTotale() {
-    const tot = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
+    const base = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
+    const sconto = _promoApplicata ? Number(_promoApplicata.sconto||0) : 0;
+    const tot = Math.max(0, Math.round((base - sconto)*100)/100);
     container.querySelector('#conto-totale-display').textContent = `€ ${tot.toFixed(2).replace('.',',')}`;
     return tot;
+  }
+  // Totale lordo (senza promo) — base per calcolare lo sconto
+  function totaleContoLordo() {
+    return _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
   }
 
   container.querySelector('#btn-apri-pagamento').onclick = () => {
@@ -1689,6 +1718,98 @@ export async function render(container) {
         updated_at: new Date().toISOString()
       }, { onConflict: 'azienda_id,sede_id' });
     } catch(e) { console.warn('cassa_display:', e); }
+  }
+
+  // ── PROMO in cassa ──
+  let _promoApplicata = null;   // { id, codice, nome, sconto }
+  let _promoPollTimer = null;
+
+  // Richiede l'apertura dello scanner sullo schermo cliente
+  async function richiediScannerPromo() {
+    const stato = container.querySelector('#promo-stato');
+    if (stato) stato.textContent = '📷 In attesa che il cliente inquadri il QR…';
+    try {
+      await supa().from('cassa_display').upsert({
+        azienda_id: aziendaId, sede_id: sedeId || null,
+        comanda_id: comandaAttiva?.id || null,
+        scanner_richiesto: true, scanner_codice: null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'azienda_id,sede_id' });
+    } catch(e) { console.warn('richiediScanner:', e); }
+    // Poll del codice letto (lo schermo cliente lo scrive in scanner_codice)
+    if (_promoPollTimer) clearInterval(_promoPollTimer);
+    let tentativi = 0;
+    _promoPollTimer = setInterval(async () => {
+      tentativi++;
+      if (tentativi > 40) { clearInterval(_promoPollTimer); if (stato) stato.textContent = 'Scanner annullato (tempo scaduto).'; await resetScanner(); return; }
+      try {
+        const { data } = await supa().from('cassa_display')
+          .select('scanner_codice').eq('azienda_id', aziendaId).eq('sede_id', sedeId || null).maybeSingle();
+        if (data?.scanner_codice) {
+          clearInterval(_promoPollTimer);
+          const codice = data.scanner_codice;
+          await resetScanner();
+          await applicaPromoCodice(codice);
+        }
+      } catch(e) { /* continua */ }
+    }, 1500);
+  }
+
+  async function resetScanner() {
+    try {
+      await supa().from('cassa_display').update({ scanner_richiesto: false, scanner_codice: null })
+        .eq('azienda_id', aziendaId).eq('sede_id', sedeId || null);
+    } catch(e) {}
+  }
+
+  // Applica un codice promo (via Edge Function sicura)
+  async function applicaPromoCodice(codice) {
+    const stato = container.querySelector('#promo-stato');
+    if (stato) stato.textContent = '⏳ Verifica promo…';
+    const totaleCorrente = totaleContoLordo();
+    try {
+      const { data, error } = await supa().functions.invoke('applica-promo', {
+        body: { azienda_id: aziendaId, codice, comanda_id: comandaAttiva?.id || null, totale: totaleCorrente }
+      });
+      if (error) { if (stato) stato.textContent = '❌ Errore verifica promo'; return; }
+      if (!data?.ok) { if (stato) stato.textContent = '❌ ' + (data?.errore || 'Promo non valida'); return; }
+      _promoApplicata = { id: data.promo.id, codice: data.promo.codice, nome: data.promo.nome, sconto: data.sconto };
+      if (stato) stato.textContent = '';
+      renderPromoApplicata();
+      aggiornaContoTotale();
+    } catch(e) {
+      if (stato) stato.textContent = '❌ ' + (e?.message || 'Errore');
+    }
+  }
+
+  function renderPromoApplicata() {
+    const box = container.querySelector('#promo-applicata');
+    const btn = container.querySelector('#btn-scansiona-promo');
+    if (!box) return;
+    if (_promoApplicata) {
+      box.style.display = 'block';
+      const n = container.querySelector('#promo-nome');
+      const s = container.querySelector('#promo-sconto-txt');
+      if (n) n.textContent = '🎉 ' + (_promoApplicata.nome || _promoApplicata.codice);
+      if (s) s.textContent = '− € ' + Number(_promoApplicata.sconto || 0).toFixed(2) + ' di sconto';
+      if (btn) btn.style.display = 'none';
+    } else {
+      box.style.display = 'none';
+      if (btn) btn.style.display = 'block';
+    }
+  }
+
+  function rimuoviPromo() {
+    _promoApplicata = null;
+    renderPromoApplicata();
+    aggiornaContoTotale();
+  }
+
+  // Totale del conto tenendo conto della promo (usata anche per i punti)
+  function totaleConPromo() {
+    const base = totaleContoLordo();
+    const sconto = _promoApplicata ? Number(_promoApplicata.sconto || 0) : 0;
+    return Math.max(0, Math.round((base - sconto) * 100) / 100);
   }
 
   async function eseguiChiusuraConto(metodoPagamento, subConti = null) {
