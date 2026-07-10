@@ -2,6 +2,32 @@ export async function renderOrdini(container, azienda) {
 
   const supabase = window.supabaseClient;
 
+  // Match prodotto tollerante: prima esatto, poi "contiene", poi per parole.
+  // Serve perché i nomi sono lunghi (es. "cime di rapa porz kg2,5") e l'utente
+  // digita solo una parte ("cime di rapa").
+  function trovaProdotto(lista, testo) {
+    const q = (testo || "").trim().toLowerCase();
+    if (!q) return null;
+    const nomeOf = p => (p.nome || "").toLowerCase();
+    const intOf  = p => (p.nome_interno || "").toLowerCase();
+    // 1) match esatto
+    let prod = lista.find(p => nomeOf(p) === q || intOf(p) === q);
+    if (prod) return prod;
+    // 2) il nome del prodotto inizia con quello che ho scritto
+    prod = lista.find(p => nomeOf(p).startsWith(q) || intOf(p).startsWith(q));
+    if (prod) return prod;
+    // 3) il nome contiene quello che ho scritto
+    prod = lista.find(p => nomeOf(p).includes(q) || intOf(p).includes(q));
+    if (prod) return prod;
+    // 4) tutte le parole digitate sono presenti nel nome
+    const parole = q.split(/\s+/).filter(Boolean);
+    if (parole.length) {
+      prod = lista.find(p => { const n = nomeOf(p); return parole.every(w => n.includes(w)); });
+      if (prod) return prod;
+    }
+    return null;
+  }
+
   // Carica sedi per trasferimenti
   const { data: sediData } = await supabase
     .from("sedi")
@@ -97,6 +123,15 @@ export async function renderOrdini(container, azienda) {
 
     prodotti = prodottiData || [];
 
+    // Popolo/aggiorno la datalist per l'autocompletamento degli input prodotto
+    let dl = document.getElementById("prodotti-list");
+    if (!dl) {
+      dl = document.createElement("datalist");
+      dl.id = "prodotti-list";
+      document.body.appendChild(dl);
+    }
+    dl.innerHTML = prodotti.map(p => '<option value="' + (p.nome || "").replace(/"/g, "&quot;") + '"></option>').join("");
+
     const { data:fornitoriData } = await supabase
       .from("fornitori")
       .select("id,ragione_sociale,email_referente_ordini,telefono_referente_ordini")
@@ -164,7 +199,7 @@ export async function renderOrdini(container, azienda) {
 
       const nome=input.value.toLowerCase();
 
-      const prod=prodotti.find(p=>p.nome.toLowerCase()===nome);
+      const prod=trovaProdotto(prodotti, nome);
 
       if(prod){
 
@@ -234,7 +269,7 @@ export async function renderOrdini(container, azienda) {
 
       if(!nome || qta<=0) return;
 
-      const prodotto=prodotti.find(p=>p.nome.toLowerCase()===nome);
+      const prodotto=trovaProdotto(prodotti, nome);
 
       if(!prodotto) return;
 
@@ -459,7 +494,7 @@ export async function renderOrdini(container, azienda) {
 
     inputProd.addEventListener("input", () => {
       const nome = inputProd.value.toLowerCase();
-      const prod = prodotti.find(p => p.nome.toLowerCase() === nome || (p.nome_interno || "").toLowerCase() === nome);
+      const prod = trovaProdotto(prodotti, nome);
       if (prod) {
         costInput.value = Number(prod.costo_medio || 0).toFixed(4);
         umInput.value = prod.unita_base || "kg";
@@ -489,7 +524,7 @@ export async function renderOrdini(container, azienda) {
       const um = row.querySelector(".um-trasf").value;
       const costo = parseFloat(row.querySelector(".costo-trasf").value || 0);
       if (!nomeProd || qta <= 0) return;
-      const prod = prodotti.find(p => p.nome.toLowerCase() === nomeProd.toLowerCase() || (p.nome_interno||"").toLowerCase() === nomeProd.toLowerCase());
+      const prod = trovaProdotto(prodotti, nomeProd);
       righe.push({ nomeProd, prodottoId: prod?.id || null, qta, um, costo });
     });
 
