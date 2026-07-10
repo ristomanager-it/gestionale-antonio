@@ -325,14 +325,14 @@ export async function render(container) {
           dataFine = `${anno}-${String(mese).padStart(2,'0')}-${lastDay}`;
         }
 
-        // IVA ACQUISTI da fatture_acquisto
+        // IVA ACQUISTI da fatture_acquisto — a livello AZIENDA
+        // (le fatture di acquisto non hanno sede_id: sono aziendali)
         let qAcq = window.supabaseClient.from('fatture_acquisto')
-          .select('data_documento, imponibile, iva, totale')
+          .select('data_documento, imponibile, iva, totale, aliquota_iva')
           .eq('azienda_id', aziendaId)
           .gte('data_documento', dataInizio)
           .lte('data_documento', dataFine)
           .order('data_documento');
-        if (sedeId) qAcq = qAcq.eq('sede_id', sedeId);
         const { data: fatture } = await qAcq.limit(5000);
 
         // IVA VENDITE da comande_righe con iva su prodotto
