@@ -1830,13 +1830,21 @@ export async function render(container) {
       r.stato = 'annullato';
     }
 
-    const totaleFinale = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0)*Number(r.quantita||1)), 0);
+    const totaleLordo = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0)*Number(r.quantita||1)), 0);
+    const scontoPromo = _promoApplicata ? Number(_promoApplicata.sconto||0) : 0;
+    const totaleFinale = Math.max(0, Math.round((totaleLordo - scontoPromo)*100)/100);
 
     const aggiornamento = {
       stato: 'chiusa',
       chiusa_at: new Date().toISOString(),
       totale: totaleFinale,
     };
+    // Traccia promo sulla comanda (se applicata)
+    if (_promoApplicata) {
+      aggiornamento.promo_id = _promoApplicata.id;
+      aggiornamento.promo_codice = _promoApplicata.codice;
+      aggiornamento.promo_sconto = scontoPromo;
+    }
     // Colonne opzionali — includo solo se esistono i valori
     if (metodoPagamento) aggiornamento.metodo_pagamento = metodoPagamento;
     if (cameriereAttivo?.nome) aggiornamento.cameriere_chiusura = cameriereAttivo.nome;
@@ -1876,6 +1884,7 @@ export async function render(container) {
   // FIDELITY POPUP POST-CONTO
   // ══════════════════════════════════════════
   let _fiClienteSelezionato = null;
+  let _fiPromoAttiva = false;
   let _fiTotaleChiuso = 0;
   let _fiCfg = null;
 
@@ -1888,6 +1897,21 @@ export async function render(container) {
       .select('*').eq('azienda_id', aziendaId).maybeSingle();
     _fiCfg = cfg || { punti_per_euro:1, sconto_benvenuto_perc:10, bonus_benvenuto_punti:50, soglia_argento:500, soglia_oro:1500, moltiplicatore_argento:1.5, moltiplicatore_oro:2 };
 
+    // Se c'è una promo attiva sul conto, NON si dà anche lo sconto benvenuto
+    // (promo esclude altri sconti). I punti però si assegnano comunque,
+    // calcolati sull'importo pagato (_fiTotaleChiuso già scontato).
+    _fiPromoAttiva = !!_promoApplicata;
+    const scontoBox = container.querySelector('#fi-popup-sconto');
+    if (scontoBox) {
+      if (_fiPromoAttiva) {
+        scontoBox.textContent = '🎉 Promo attiva · accumuli punti';
+        scontoBox.style.fontSize = '18px';
+      } else {
+        scontoBox.textContent = `-${_fiCfg.sconto_benvenuto_perc||10}% SUBITO`;
+        scontoBox.style.fontSize = '24px';
+      }
+    }
+
     const modal = container.querySelector('#modal-fidelity');
     container.querySelector('#fi-popup-tel').value = '';
     container.querySelector('#fi-popup-nome').value = '';
@@ -1896,7 +1920,9 @@ export async function render(container) {
     container.querySelector('#fi-popup-form-nuovo').style.display = 'none';
     container.querySelector('#fi-popup-calcolo').style.display = 'none';
     container.querySelector('#fi-popup-msg').textContent = '';
-    container.querySelector('#fi-popup-sconto').textContent = `-${_fiCfg.sconto_benvenuto_perc||10}% SUBITO`;
+    container.querySelector('#fi-popup-sconto').textContent = _promoApplicata
+      ? '🎉 Promo attiva · accumuli punti'
+      : `-${_fiCfg.sconto_benvenuto_perc||10}% SUBITO`;
     modal.style.display = 'flex';
   }
 
@@ -1968,8 +1994,10 @@ export async function render(container) {
       const { data: tesseraEsistente } = await supa().from('fidelity_tessere')
         .select('*').eq('cliente_id', cliente.id).eq('azienda_id', aziendaId).maybeSingle();
 
-      const sconto = _fiTotaleChiuso * (_fiCfg.sconto_benvenuto_perc||10) / 100;
-      const totScontato = _fiTotaleChiuso - sconto;
+      // Se c'è una promo attiva, NON si applica anche lo sconto benvenuto.
+      // I punti però si accumulano, sull'importo effettivamente pagato.
+      const sconto = _fiPromoAttiva ? 0 : (_fiTotaleChiuso * (_fiCfg.sconto_benvenuto_perc||10) / 100);
+      const totScontato = Math.round((_fiTotaleChiuso - sconto) * 100) / 100;
       const puntiBonus = !tesseraEsistente ? (_fiCfg.bonus_benvenuto_punti||50) : 0;
       const puntiAcquisto = Math.round((_fiCfg.punti_per_euro||1) * totScontato);
       const nuoviPunti = (tesseraEsistente?.punti_locali||0) + puntiBonus + puntiAcquisto;
@@ -1995,7 +2023,9 @@ export async function render(container) {
         cliente_id: cliente.id, azienda_id,
         tipo: 'acquisto', punti: puntiAcquisto,
         importo_speso: totScontato,
-        descrizione: `Acquisto €${totScontato.toFixed(2)} (sconto ${_fiCfg.sconto_benvenuto_perc||10}%)`
+        descrizione: _fiPromoAttiva
+          ? `Acquisto €${totScontato.toFixed(2)} (promo ${_promoApplicata?.codice||''})`
+          : `Acquisto €${totScontato.toFixed(2)} (sconto ${_fiCfg.sconto_benvenuto_perc||10}%)`
       });
 
       await supa().from('fidelity_clienti').update({
