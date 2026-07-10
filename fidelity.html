@@ -135,7 +135,18 @@
     var params = new URLSearchParams(window.location.search);
     var qrToken = params.get("t");
     var aziendaId = params.get("a");  // azienda che ha emesso il QR
+    var sedeId = params.get("s");     // sede (opzionale): se presente, nome/logo della sede
+    var _brandSede = null;            // { nome, logo_url } della sede, se disponibile
     var deferredInstall = null;
+
+    // Carica il brand della sede (nome + logo) per personalizzare rispetto alla sede
+    function caricaBrandSede(cb) {
+      if (!sedeId) { cb(); return; }
+      supa.from("sedi").select("nome,logo_url").eq("id", sedeId).maybeSingle().then(function(res) {
+        if (res.data) _brandSede = res.data;
+        cb();
+      }).catch(function(){ cb(); });
+    }
 
     // Cattura evento installazione PWA
     window.addEventListener("beforeinstallprompt", function(e) {
@@ -147,7 +158,7 @@
 
     var FIDELITY_API = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/fidelity-api";
 
-    init();
+    caricaBrandSede(function(){ init(); });
 
     async function init() {
       // Tutto passa dalla fidelity-api (service role): le tabelle sono chiuse via RLS
@@ -193,10 +204,13 @@
 
     // ── FORM ISCRIZIONE ──────────────────────────────────────────
     function renderFormIscrizione(azienda, cfg) {
+      // Nome e logo: preferisci la sede (es. Trattoria), altrimenti l'azienda
+      var nomeMostra = (_brandSede && _brandSede.nome) ? _brandSede.nome : (azienda.nome || "noi");
+      var logoMostra = (_brandSede && _brandSede.logo_url) ? _brandSede.logo_url : azienda.logo_url;
       root.innerHTML =
         '<div class="form-card">' +
-          (azienda.logo_url ? '<img src="' + esc(azienda.logo_url) + '" style="width:56px;height:56px;border-radius:14px;object-fit:cover;margin-bottom:12px;">' : '') +
-          '<div class="form-title">Benvenuto da ' + esc(azienda.nome || "noi") + '!</div>' +
+          (logoMostra ? '<img src="' + esc(logoMostra) + '" style="width:56px;height:56px;border-radius:14px;object-fit:cover;margin-bottom:12px;">' : '') +
+          '<div class="form-title">Benvenuto da ' + esc(nomeMostra) + '!</div>' +
           '<div class="form-sub">Iscriviti alla tessera fidelity e ottieni subito uno sconto del ' + (cfg.sconto_benvenuto_perc || 10) + '% sul tuo conto, più ' + (cfg.bonus_benvenuto_punti || 50) + ' punti di benvenuto.</div>' +
           '<div class="promo-box">' +
             '<div class="promo-box-title">-' + (cfg.sconto_benvenuto_perc || 10) + '% SUBITO</div>' +
@@ -253,7 +267,7 @@
       }
 
       // Redirect alla tessera
-      window.location.href = "fidelity.html?t=" + d.qr_token + "&a=" + aziendaId;
+      window.location.href = "fidelity.html?t=" + d.qr_token + "&a=" + aziendaId + (sedeId ? "&s=" + sedeId : "");
     }
 
     // ── RENDER TESSERA ───────────────────────────────────────────
@@ -262,7 +276,7 @@
       var livello = getLivello(puntiLocali, cfg);
       var prossimaSoglia = getProssimaSoglia(puntiLocali, cfg);
       var nomeCompleto = (cliente.nome || "") + (cliente.cognome ? " " + cliente.cognome : "");
-      var linkTessera = window.location.origin + "/fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId;
+      var linkTessera = window.location.origin + "/fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId + (sedeId ? "&s=" + sedeId : "");
 
       var html = '';
 
