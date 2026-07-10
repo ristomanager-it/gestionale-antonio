@@ -357,7 +357,6 @@ export function initMenu() {
       title: "🪑 SALA",
       items: [
         { label: "🪑 Comande",           route: "bo-comande"         },
-        { label: "💳 Cassa",             route: "bo-cassa"           },
         { label: "📅 Prenotazioni",      route: "prenotazioni"       },
         { label: "🗓️ Tavoli",           route: "prenotazioni-tavoli"},
         { label: "🏛️ Location Ricevimenti", route: "bo-location-ricevimenti" },
