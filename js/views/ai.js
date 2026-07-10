@@ -610,7 +610,54 @@ ${hotelSection}
 
 // ── API Tony ───────────────────────────────────────────
 
+// ── Routing Meta Ads: messaggi su campagne/pubblicita vanno al motore marketing ──
+let tonyMetaMode = false;
+const META_KEYWORDS = ["campagn", "facebook", "instagram", " meta", "meta ", "sponsorizz", "inserzion", "pubblicit", " ads", "adset", "lookalike", "pixel"];
+
+function isMetaIntent(text) {
+  const t = " " + (text || "").toLowerCase() + " ";
+  return META_KEYWORDS.some(k => t.includes(k));
+}
+
+async function callTonyMeta(messages) {
+  const supabaseUrl = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  const supaAuth = window.supabaseClient || window.supabase;
+  const session = await supaAuth?.auth?.getSession();
+  const token = session?.data?.session?.access_token || "";
+  const msgs = (messages || []).filter(m => (m.role === "user" || m.role === "assistant") && typeof m.content === "string").slice(-12);
+  const res = await fetch(`${supabaseUrl}/functions/v1/meta-ads`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
+    body: JSON.stringify({ azienda_id: window.state?.azienda?.id, azione: "tony_chat", messaggi: msgs })
+  });
+  const j = await res.json();
+  if (!j.ok) {
+    if (j.errore === "NESSUNA_CONNESSIONE" || j.errore === "TOKEN_MANCANTE") {
+      return { success: true, reply: "Per gestire le campagne Meta devo prima essere collegato: vai in Marketing \u2192 \ud83d\udd17 Connessioni e collega la pagina e l'account pubblicitario del locale. Poi chiedimi pure!", action: null };
+    }
+    throw new Error(j.errore || "Errore motore marketing");
+  }
+  return { success: true, reply: j.risultato?.risposta || "...", action: null };
+}
+
 async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
+  // Routing marketing: se si parla di campagne Meta, usa il motore dedicato (con fallback)
+  if (!tipoMessaggio) {
+    const lastUser = [...(messages || [])].reverse().find(m => m.role === "user");
+    const testoMsg = typeof lastUser?.content === "string" ? lastUser.content : "";
+    if (!audioBase64 && testoMsg && (isMetaIntent(testoMsg) || (tonyMetaMode && testoMsg.trim().length <= 60))) {
+      try {
+        const rMeta = await callTonyMeta(messages);
+        tonyMetaMode = true;
+        return rMeta;
+      } catch (e) {
+        console.warn("Routing meta fallito, uso Tony standard:", e);
+      }
+    } else if (testoMsg) {
+      tonyMetaMode = false;
+    }
+  }
+
 
   // Inietta dati reali DB nel sistema (solo se non è messaggio iniziale)
   let messagesConCtx = messages;
