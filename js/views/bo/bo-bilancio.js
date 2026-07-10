@@ -59,6 +59,30 @@ export async function render(container) {
       .gte('data', dataDa || '2000-01-01')
       .lte('data', dataA || '2099-12-31');
 
+    // Costo del lavoro: timbrature x costo_orario (fallback su dipendenti).
+    // È la quarta fonte del conto economico, mancava del tutto.
+    let costoLavoro = 0;
+    try {
+      let qt = supa().from('timbrature')
+        .select('dipendente_id, ore_lavorate, costo_orario')
+        .eq('azienda_id', aziendaId)
+        .eq('tipo', 'fine_turno');
+      if (dataDa) qt = qt.gte('timestamp', dataDa).lte('timestamp', dataA + 'T23:59:59');
+      const { data: timb } = await qt;
+      if (timb?.length) {
+        const { data: dips } = await supa().from('dipendenti')
+          .select('id, costo_orario').eq('azienda_id', aziendaId);
+        const costoDip = new Map((dips || []).map(d => [String(d.id), Number(d.costo_orario) || 0]));
+        for (const r of timb) {
+          const ore = Number(r.ore_lavorate) || 0;
+          const co = Number(r.costo_orario) > 0
+            ? Number(r.costo_orario)
+            : (costoDip.get(String(r.dipendente_id)) || 0);
+          costoLavoro += ore * co;
+        }
+      }
+    } catch (e) { console.warn('Errore calcolo costo lavoro:', e); }
+
     // Aggrega per categoria
     const aggregato = {}; // { categoria_id: { cat, totale, n } }
 
@@ -72,6 +96,13 @@ export async function render(container) {
     (fatture || []).forEach(f => aggiungi(f.categorie_bilancio, f.imponibile || f.totale || 0));
     (movimenti || []).forEach(m => aggiungi(m.categorie_bilancio, (m.quantita || 0) * (m.costo || 0)));
     (speseExtra || []).forEach(s => aggiungi(s.categorie_bilancio, s.importo || 0));
+
+    // Aggiungo il costo del lavoro sulla categoria 14 "Costo del lavoro"
+    if (costoLavoro > 0) {
+      const { data: catCL } = await supa().from('categorie_bilancio')
+        .select('id,nome,codice_conto,tipo,ordine').eq('id', 14).maybeSingle();
+      if (catCL) aggiungi(catCL, Math.round(costoLavoro * 100) / 100);
+    }
 
     const costi  = Object.values(aggregato).filter(a => a.cat.tipo !== 'ricavo').sort((a,b) => (a.cat.ordine||99)-(b.cat.ordine||99));
     const ricavi = Object.values(aggregato).filter(a => a.cat.tipo === 'ricavo').sort((a,b) => (a.cat.ordine||99)-(b.cat.ordine||99));
