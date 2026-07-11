@@ -181,7 +181,7 @@ const routes = {
   "bo-comande": () => import("./views/bo/bo-comande.js?v=2"),
   "bo-ricette": () => import("./views/bo/ricette-editor.js"),
   "ricette-editor": () => import("./views/bo/ricette-editor.js"),
-  "bo-configurazione": () => import("./views/bo/bo-configurazione.js"),
+  "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=2"),
   "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
   "bo-consulenti": () => import("./views/bo/bo-consulenti.js"),
   "home-consulente": () => import("./views/home-consulente.js"),
