@@ -612,7 +612,7 @@ ${hotelSection}
 
 // ── Routing Meta Ads: messaggi su campagne/pubblicita vanno al motore marketing ──
 let tonyMetaMode = false;
-const META_KEYWORDS = ["campagn", "facebook", "instagram", " meta", "meta ", "sponsorizz", "inserzion", "pubblicit", " ads", "adset", "lookalike", "pixel"];
+const META_KEYWORDS = ["campagn", "facebook", "instagram", " meta", "meta ", "sponsorizz", "inserzion", "pubblicit", "pubblica", " ads", "adset", "lookalike", "pixel", "promo", "landing", "2x1"];
 
 function isMetaIntent(text) {
   const t = " " + (text || "").toLowerCase() + " ";
