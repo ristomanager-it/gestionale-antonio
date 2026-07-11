@@ -96,7 +96,7 @@ const routes = {
   "bo-media": () => import("./views/bo/bo-media.js"),
   "bo-sito": () => import("./views/bo/bo-sito.js"),
 
-  dipendenti: () => import("./views/dipendenti.js?v=2"),
+  dipendenti: () => import("./views/dipendenti.js?v=3"),
   dipendente: () => import("./views/dipendente.js"),
   "crea-dipendente": () => import("./views/crea-dipendente.js?v=3"),
 "organizzazione": () => import("./views/organizzazione.js"),
