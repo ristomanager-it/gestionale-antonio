@@ -46,6 +46,11 @@
   .punto .p-testo{font-size:11.5px;font-weight:700;color:var(--testo);line-height:1.35;}
   .urgenza-block{margin:14px 16px;background:var(--testo);color:#fff;border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:13.5px;font-weight:700;}
   .urgenza-block .u-icona{font-size:22px;}
+  .regolamento-block{margin:14px 16px 20px;border:1px solid rgba(0,0,0,.12);border-radius:var(--radius);overflow:hidden;}
+  .regolamento-block summary{padding:13px 16px;font-size:13px;font-weight:700;color:var(--testo);cursor:pointer;background:rgba(0,0,0,.03);list-style:none;display:flex;justify-content:space-between;align-items:center;}
+  .regolamento-block summary::after{content:'▾';opacity:.6;}
+  .regolamento-block[open] summary::after{content:'▴';}
+  .regolamento-block .reg-testo{padding:12px 16px;font-size:12.5px;line-height:1.65;color:var(--testo);opacity:.85;}
   .form-block{margin:16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:20px;}
   .form-block h3{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;}
   .form-input{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;background:white;margin-bottom:10px;transition:border-color .2s;}
@@ -274,6 +279,11 @@ function renderBlock(b, promo, azienda) {
     }
     if (!testo) return '';
     return `<div class="urgenza-block"><span class="u-icona">⏳</span><span>${esc(testo)}</span></div>`;
+  }
+  if (b.tipo==='regolamento') {
+    const reg = b.contenuto || promo.regolamento || '';
+    if (!reg) return '';
+    return `<details class="regolamento-block"><summary>📜 Regolamento della promozione</summary><div class="reg-testo">${esc(reg).replace(/\n/g,'<br>')}</div></details>`;
   }
   if (b.tipo==='cta_button') {
     const label = b.contenuto || 'Scopri di più';
