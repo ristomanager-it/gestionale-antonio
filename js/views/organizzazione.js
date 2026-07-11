@@ -21,7 +21,10 @@ export async function render(container) {
           <h2 style="margin:0;">🏛️ Ruoli & Organizzazione</h2>
           <p style="margin:6px 0 0;font-size:13px;color:#64748b;">Chi fa cosa, nero su bianco: obiettivo e responsabilità di ogni ruolo. La base del manuale operativo.</p>
         </div>
-        <button id="org-nuovo" style="background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">+ Nuovo ruolo</button>
+        <div style="display:flex;gap:8px;">
+          <button onclick="window.location.hash='#/manuale-operativo'" style="background:#fff;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;">📖 Manuale</button>
+          <button id="org-nuovo" style="background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">+ Nuovo ruolo</button>
+        </div>
       </div>
       <div id="org-lista" style="margin-top:16px;"><div style="color:#94a3b8;font-size:13px;">Caricamento...</div></div>
     </div>
