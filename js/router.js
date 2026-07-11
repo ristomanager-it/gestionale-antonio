@@ -84,7 +84,7 @@ const routes = {
   // =========================
   // MARKETING (globale - lettura)
   // =========================
-  "bo-marketing": () => import("./views/bo/bo-marketing.js?v=3"),
+  "bo-marketing": () => import("./views/bo/bo-marketing.js?v=4"),
   "bo-analytics": () => import("./views/bo/bo-analytics.js"),
   "bo-onboarding": () => import("./views/bo/bo-onboarding.js?v=2"),
   "bo-promo": () => import("./views/bo/bo-promo.js"),
@@ -126,7 +126,7 @@ const routes = {
 
   preventivi: () => import("./views/preventivi.js"),
   creaPreventivo: () => import("./views/crea-preventivo.js"),
-  ai: () => import("./views/ai.js?v=7"),
+  ai: () => import("./views/ai.js?v=8"),
 
   permessi: () => import("./views/permessi-ferie.js"),
 
