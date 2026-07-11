@@ -532,8 +532,11 @@ async function init() {
 
   wrap.innerHTML = html;
 
-  // Se URL è ?ty=1 mostra direttamente la thank you page
-  if (isTY) {
+  // Se URL è ?ty=1 O il cliente ha già scaricato da questo dispositivo → thank-you diretta col suo coupon
+  let giaScaricato = null;
+  try { giaScaricato = JSON.parse(localStorage.getItem('rf_promo_dl_' + promoId) || 'null'); } catch(e) {}
+  if (isTY || giaScaricato) {
+    if (giaScaricato?.coupon && !couponCode) couponCode = giaScaricato.coupon;
     mostrarThankyou(promo);
     return;
   }
@@ -865,6 +868,7 @@ async function generaECaricaQR(promoId, landingUrl, aziendaId) {
 }
 
 function mostrarThankyou(promo) {
+  try { localStorage.setItem('rf_promo_dl_' + promoId, JSON.stringify({ coupon: couponCode || null, ts: Date.now() })); } catch(e) {}
   const overlay = document.getElementById('thankyou-overlay');
   const wrap    = document.getElementById('thankyou-wrap');
   const blocks  = promo.thankyou_config?.blocks || [];
