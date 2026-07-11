@@ -96,10 +96,11 @@ const routes = {
   "bo-media": () => import("./views/bo/bo-media.js"),
   "bo-sito": () => import("./views/bo/bo-sito.js"),
 
-  dipendenti: () => import("./views/dipendenti.js?v=3"),
+  dipendenti: () => import("./views/dipendenti.js?v=4"),
   dipendente: () => import("./views/dipendente.js"),
   "crea-dipendente": () => import("./views/crea-dipendente.js?v=3"),
-"organizzazione": () => import("./views/organizzazione.js"),
+"organizzazione": () => import("./views/organizzazione.js?v=2"),
+"manuale-operativo": () => import("./views/manuale-operativo.js"),
   "bo-agenzie": () => import("./views/bo/bo-agenzie.js"),
   "bo-location-ricevimenti": () => import("./views/bo/bo-location-ricevimenti.js"),
   timbrature: () => import("./views/timbrature.js"),
