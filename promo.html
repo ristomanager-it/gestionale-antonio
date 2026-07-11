@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Promo</title>
 <style>
   :root{
+    --font-titoli:'Playfair Display','Cormorant Garamond',Georgia,serif;
     --primario:#0E5A7A;
     --primario-2:#1a8aad;
     --sfondo:#ffffff;
@@ -51,6 +54,20 @@
   .regolamento-block summary::after{content:'▾';opacity:.6;}
   .regolamento-block[open] summary::after{content:'▴';}
   .regolamento-block .reg-testo{padding:12px 16px;font-size:12.5px;line-height:1.65;color:var(--testo);opacity:.85;}
+  /* ── Tipografia e layout livello sito ── */
+  .hero-title,.sezione-title,.box-offerta .valore,.box-offerta .label{font-family:var(--font-titoli);}
+  .hero-kicker{font-family:var(--font-titoli);font-style:italic;}
+  @media(min-width:768px){
+    .wrap{max-width:760px;box-shadow:0 0 60px rgba(0,0,0,.08);}
+    .hero-block{min-height:480px;}
+    .hero-title{font-size:52px;}
+    .hero-sub{font-size:17px;}
+    .sezione-title{font-size:32px;}
+    .sezione-testo{font-size:16px;}
+    .galleria-block{grid-template-columns:repeat(3,1fr);}
+    .galleria-block img:first-child{grid-column:1 / -1;}
+    .testo-block{font-size:16px;}
+  }
   .form-block{margin:16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:20px;}
   .form-block h3{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;}
   .form-input{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;background:white;margin-bottom:10px;transition:border-color .2s;}
