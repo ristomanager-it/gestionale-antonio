@@ -139,14 +139,11 @@ export async function render(container) {
         </div>
       </div>
 
-      <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
-        <div>
-          <h2 style="margin:0;">Dipendenti</h2>
-          <p class="small-muted" style="margin-top:6px;">
-            Gestione personale azienda (anagrafica + accessi + sedi)
-          </p>
-        </div>
-        <button onclick="window.location.hash='#/organizzazione'" style="background:#fff;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;">🏛️ Ruoli & Organizzazione</button>
+      <div style="margin-top:14px;">
+        <h2 style="margin:0;">Dipendenti</h2>
+        <p class="small-muted" style="margin-top:6px;">
+          Gestione personale azienda (anagrafica + accessi + sedi)
+        </p>
       </div>
 
       <div id="dip-view-elenco" style="margin-top:16px;"></div>
@@ -646,6 +643,12 @@ async function renderForm(dip) {
           </datalist>
         </label>
 
+        <label>Ruolo organizzativo <span style="font-size:11px;color:#94a3b8;">(mansionario — da 🏛️ Ruoli & Organizzazione)</span>
+          <select id="dip-ruolo-org" class="input-pill">
+            <option value="">— Nessuno —</option>
+          </select>
+        </label>
+
         <label>Telefono
           <input type="text" id="dip-telefono" class="input-pill" value="${dip?.telefono || ""}" />
         </label>
@@ -816,6 +819,26 @@ async function renderForm(dip) {
   document.getElementById("dip-ore-mensili")?.addEventListener("input", calcolaCosto);
   document.getElementById("dip-ore-servizio")?.addEventListener("input", calcolaCosto);
 
+  // Popola ruoli organizzativi
+  try {
+    const { data: ruoliOrg } = await getSupabase()
+      .from("ruoli_organizzativi")
+      .select("id,nome,area")
+      .eq("azienda_id", window.state?.azienda?.id)
+      .eq("attivo", true)
+      .order("ordine");
+    const selRuolo = document.getElementById("dip-ruolo-org");
+    if (selRuolo && Array.isArray(ruoliOrg)) {
+      ruoliOrg.forEach((r) => {
+        const o = document.createElement("option");
+        o.value = r.id;
+        o.textContent = r.nome + (r.area ? " (" + r.area + ")" : "");
+        if (dip?.ruolo_organizzativo_id && String(dip.ruolo_organizzativo_id) === String(r.id)) o.selected = true;
+        selRuolo.appendChild(o);
+      });
+    }
+  } catch (e) { console.warn("ruoli organizzativi non caricati", e); }
+
   document.getElementById("btn-dip-cancel").onclick = async () => {
     setTab("elenco");
     await caricaDipendenti();
@@ -911,6 +934,7 @@ async function salvaDipendente(isEdit) {
           email,
           telefono,
           mansione,
+          ruolo_organizzativo_id: document.getElementById("dip-ruolo-org")?.value || null,
           reparto_id: repartoId,
           tipo_compenso: tipoCompenso,
           retribuzione_base: retribuzioneBase,
@@ -978,6 +1002,7 @@ async function salvaDipendente(isEdit) {
         telefono,
         ruolo,
         mansione,
+        ruolo_organizzativo_id: document.getElementById("dip-ruolo-org")?.value || null,
         reparto_id: repartoId,
         azienda_id: azienda.id,
         sede_id: sediSelezionate[0]
