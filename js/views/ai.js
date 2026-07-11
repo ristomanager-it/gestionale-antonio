@@ -1,6 +1,44 @@
 import { supabase } from "../supabaseClient.js";
 
 let conversation = [];
+
+// ── Storico chat persistente (tony_chat_storico) ──
+function salvaTonyMsg(role, content) {
+  try {
+    const az = window.state?.azienda?.id;
+    if (!az || typeof content !== "string" || !content.trim()) return;
+    supabase.from("tony_chat_storico").insert({
+      azienda_id: az,
+      utente_id: window.state?.user?.id || null,
+      role,
+      content: content.slice(0, 8000)
+    }).then(() => {}, (e) => console.warn("storico tony non salvato", e));
+  } catch (e) { /* mai bloccare la chat per lo storico */ }
+}
+
+async function caricaStoricoTony() {
+  try {
+    const az = window.state?.azienda?.id;
+    if (!az) return false;
+    const { data, error } = await supabase
+      .from("tony_chat_storico")
+      .select("role,content")
+      .eq("azienda_id", az)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error || !data?.length) return false;
+    const storico = data.reverse();
+    conversation = storico.map((m) => ({ role: m.role, content: m.content }));
+    for (const m of storico) {
+      addMessage(m.content, m.role === "user" ? "user" : "ai");
+    }
+    return true;
+  } catch (e) {
+    console.warn("storico tony non caricato", e);
+    return false;
+  }
+}
+
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
@@ -811,6 +849,7 @@ async function sendVoiceMessage() {
       if (barText) barText.textContent = `"${voiceInput}"`;
       addMessage(voiceInput, "user", { isVoice: true });
       conversation.push({ role: "user", content: voiceInput });
+      salvaTonyMsg("user", voiceInput);
     } else {
       if (bar) bar.style.display = "none";
     }
@@ -818,6 +857,7 @@ async function sendVoiceMessage() {
     const reply = data?.reply || "Non ho capito, puoi ripetere?";
     addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
     conversation.push({ role: "assistant", content: reply });
+    salvaTonyMsg("assistant", reply);
     ttsParla(reply);
 
     // Conversazione continua gestita dentro ttsParla via audio.onended
@@ -879,11 +919,13 @@ REGOLE PRECISE:
 
     addMessage(reply, "ai");
     conversation.push({ role: "assistant", content: reply });
+    salvaTonyMsg("assistant", reply);
     setStatus("Assistente operativo");
   } catch {
     const fallback = `${saluto}${nome ? " " + nome : ""}!\n\nSono Tony, pronto a darti una mano oggi. Scrivi "briefing" per il riepilogo completo, oppure dimmi direttamente cosa ti serve. 🚀`;
     addMessage(fallback, "ai");
     conversation.push({ role: "assistant", content: fallback });
+    salvaTonyMsg("assistant", fallback);
     setStatus("Assistente operativo");
   }
 }
@@ -1011,6 +1053,7 @@ async function sendMessageSilent(hiddenPrompt) {
     const reply = data?.reply || "Nessuna risposta.";
     addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
     conversation.push({ role: "assistant", content: reply });
+    salvaTonyMsg("assistant", reply);
     ttsParla(reply);
   } catch (err) {
     console.error("Tony errore (sendMessageSilent):", err);
@@ -1167,7 +1210,14 @@ function initChat(ruolo) {
   ttsInit();
   document.getElementById("chat-tts")?.addEventListener("click", ttsToggle);
 
-  loadMessaggioIniziale(ruolo);
+  // Storico: se ci sono conversazioni passate, riprendi da lì; altrimenti benvenuto
+  caricaStoricoTony().then((haStorico) => {
+    if (!haStorico) loadMessaggioIniziale(ruolo);
+    else {
+      const c = document.getElementById("chat-messages");
+      if (c) c.scrollTop = c.scrollHeight;
+    }
+  });
 
   // Memoria panel
   const btnMemoria = document.getElementById("btn-memoria");
@@ -1191,6 +1241,7 @@ function initChat(ruolo) {
 
     addMessage(prompt, "user");
     conversation.push({ role: "user", content: prompt });
+    salvaTonyMsg("user", prompt);
     if (input) input.value = "";
     if (send) send.disabled = true;
 
@@ -1212,6 +1263,7 @@ function initChat(ruolo) {
       const reply = data?.reply || "Nessuna risposta.";
       addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
       conversation.push({ role: "assistant", content: reply });
+    salvaTonyMsg("assistant", reply);
 
       if (data?.action?.type === "crea_ricetta" && data?.action_executed) {
         setTimeout(() => {
