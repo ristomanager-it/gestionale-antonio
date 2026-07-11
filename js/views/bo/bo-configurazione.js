@@ -2051,6 +2051,16 @@ export async function render(container) {
           <div style="font-size:18px;font-weight:700;margin-bottom:4px;">🎯 Identità & Brand</div>
           <div style="font-size:13px;opacity:.85;line-height:1.5;">Definisci chi siete, dove volete arrivare e come volete essere percepiti.<br>Questi dati alimentano le campagne AI, la formazione del personale e i meeting aziendali.</div>
         </div>
+        <div class="id-card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #f59e0b;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="font-size:28px;">🧙‍♂️</div>
+            <div style="flex:1;min-width:200px;">
+              <div style="font-size:15px;font-weight:800;color:#92400e;">Non sai da dove iniziare? Ci pensa Tony</div>
+              <div style="font-size:12.5px;color:#a16207;margin-top:2px;">Rispondi a 10 domande semplici, una alla volta: Tony scrive identità, valori e comportamenti per te. Poi rivedi, modifichi e approvi.</div>
+            </div>
+            <button id="btn-wizard-identita" style="background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">✨ Avvia il wizard</button>
+          </div>
+        </div>
         <div class="id-card">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🌟 Vision & Mission</div>
           <div style="margin-bottom:16px;">
@@ -2134,6 +2144,28 @@ export async function render(container) {
             <div class="id-desc">Il prodotto o servizio — la parte più superficiale ma necessaria. Es. "Ristorante, catering per eventi, sala ricevimenti"</div>
             <textarea id="id-what" class="id-ta" placeholder="Scrivi cosa vendete concretamente...">${val('gc_what')}</textarea>
           </div>
+        </div>
+
+        <!-- ── PROMESSA & STANDARD ── -->
+        <div class="id-card">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🤝 Promessa & Standard di servizio</div>
+          <div style="margin-bottom:16px;">
+            <span class="id-label">Promessa al cliente</span>
+            <div class="id-desc">Cosa garantiamo a OGNI cliente, sempre. Es. "Da noi nessuno esce senza essersi sentito a casa"</div>
+            <textarea id="id-promessa" class="id-ta" placeholder="La promessa che fate a ogni cliente...">${val('promessa_cliente')}</textarea>
+          </div>
+          <div>
+            <span class="id-label">Standard di servizio</span>
+            <div class="id-desc">Regole concrete e verificabili. Es. "Tavolo servito entro 15 minuti; ogni lamentela gestita dal responsabile entro 5 minuti"</div>
+            <textarea id="id-standard" class="id-ta" placeholder="Gli standard concreti del vostro servizio...">${val('standard_servizio')}</textarea>
+          </div>
+        </div>
+
+        <!-- ── VALORI STRUTTURATI ── -->
+        <div class="id-card" id="card-valori-strutturati">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:6px;">⭐ Valori & comportamenti osservabili</div>
+          <div class="id-desc" style="margin-bottom:12px;">Ogni valore tradotto in comportamenti attesi ✅ e non accettati 🚫: la base per formazione e valutazioni del personale.</div>
+          <div id="lista-valori-strutturati"><div style="font-size:13px;color:#94a3b8;">Caricamento...</div></div>
         </div>
 
         <!-- ── TRACKING ── -->
@@ -2258,11 +2290,158 @@ export async function render(container) {
         obiettivo_lungo: box.querySelector('#id-obj-lungo').value.trim() || null,
         meta_pixel_id: box.querySelector('#id-meta-pixel').value.trim() || null,
         gtm_id: box.querySelector('#id-gtm').value.trim() || null,
+        promessa_cliente: box.querySelector('#id-promessa').value.trim() || null,
+        standard_servizio: box.querySelector('#id-standard').value.trim() || null,
+        stato: 'approvata',
+        approvata_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: 'azienda_id' });
       if (error) { esito.textContent = '❌ ' + error.message; esito.style.color = '#dc2626'; }
-      else { esito.textContent = '✅ Identità salvata!'; esito.style.color = '#15803d'; setTimeout(() => { esito.textContent = ''; }, 3000); }
+      else {
+        try { await salvaValoriStrutturati(); await caricaValoriStrutturati(); } catch (e2) { console.warn('Valori non salvati:', e2); }
+        esito.textContent = '✅ Identità salvata e approvata!'; esito.style.color = '#15803d'; setTimeout(() => { esito.textContent = ''; }, 3000);
+      }
     });
+
+    // ── Valori strutturati: stato locale + render ──
+    let valoriState = null; // null = non toccati; array = da salvare al prossimo Salva
+    function escV(s){ return String(s ?? '').replace(/</g,'&lt;'); }
+    function renderValori(vals, cont) {
+      if (!cont) return;
+      if (!vals || !vals.length) { cont.innerHTML = '<div style="font-size:13px;color:#94a3b8;">Nessun valore strutturato ancora. Usa il wizard ✨ qui sopra: Tony li scrive partendo dalle tue risposte.</div>'; return; }
+      cont.innerHTML = vals.map(v => {
+        const comp = v.azienda_valori_comportamenti || v.comportamenti || [];
+        const attesi = comp.filter(c => (c.tipo || 'atteso') === 'atteso');
+        const no = comp.filter(c => c.tipo === 'non_accettato');
+        return `<div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:10px;">
+          <div style="font-size:14px;font-weight:800;color:#0f172a;">${escV(v.nome)}</div>
+          ${v.descrizione ? `<div style="font-size:12.5px;color:#475569;margin-top:2px;">${escV(v.descrizione)}</div>` : ''}
+          ${attesi.length ? `<div style="margin-top:8px;font-size:12px;color:#15803d;line-height:1.6;">✅ ${attesi.map(c=>escV(c.testo)).join('<br>✅ ')}</div>` : ''}
+          ${no.length ? `<div style="margin-top:6px;font-size:12px;color:#dc2626;line-height:1.6;">🚫 ${no.map(c=>escV(c.testo)).join('<br>🚫 ')}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+    async function caricaValoriStrutturati() {
+      const cont = box.querySelector('#lista-valori-strutturati');
+      if (!cont) return;
+      const { data: vals } = await supa().from('azienda_valori')
+        .select('id,nome,descrizione,ordine,azienda_valori_comportamenti(id,tipo,testo,ordine)')
+        .eq('azienda_id', aziendaId).eq('attivo', true).order('ordine');
+      renderValori(vals || [], cont);
+    }
+    async function salvaValoriStrutturati() {
+      if (!Array.isArray(valoriState)) return;
+      await supa().from('azienda_valori').delete().eq('azienda_id', aziendaId);
+      for (let i = 0; i < valoriState.length; i++) {
+        const v = valoriState[i];
+        const { data: riga, error: eV } = await supa().from('azienda_valori')
+          .insert({ azienda_id: aziendaId, nome: v.nome, descrizione: v.descrizione || null, ordine: i, attivo: true })
+          .select('id').single();
+        if (eV) throw eV;
+        const comp = [];
+        (v.comportamenti_attesi || []).forEach((t, j) => comp.push({ valore_id: riga.id, tipo: 'atteso', testo: t, ordine: j }));
+        (v.comportamenti_non_accettati || []).forEach((t, j) => comp.push({ valore_id: riga.id, tipo: 'non_accettato', testo: t, ordine: j }));
+        if (comp.length) { const { error: eC } = await supa().from('azienda_valori_comportamenti').insert(comp); if (eC) throw eC; }
+      }
+      valoriState = null;
+    }
+    caricaValoriStrutturati();
+
+    // ── Wizard identità con Tony ──
+    const DOMANDE_WIZARD = [
+      { k:'perche',      t:'Perché hai creato questa attività? Cosa ti ha spinto davvero?' },
+      { k:'ricordo',     t:'Cosa vuoi che un cliente ricordi di voi dopo esserci stato?' },
+      { k:'diverso',     t:'Cosa fate diversamente dai concorrenti della zona?' },
+      { k:'compromessi', t:'Su cosa NON siete disposti a scendere a compromessi?' },
+      { k:'apprezzi',    t:'Quali comportamenti apprezzi di più nei tuoi collaboratori? Racconta anche un esempio.' },
+      { k:'nonsopporti', t:'Quali comportamenti non sopporti nel tuo team?' },
+      { k:'emozione',    t:'Come dovrebbe sentirsi un cliente quando entra? E quando esce?' },
+      { k:'assenza',     t:'Come dovrebbe comportarsi una persona del team quando tu NON ci sei?' },
+      { k:'benfatto',    t:'Cosa significa per voi "fare bene il proprio lavoro"? Un esempio concreto.' },
+      { k:'futuro',      t:'Dove vuoi portare questa attività nei prossimi anni?' },
+    ];
+    box.querySelector('#btn-wizard-identita')?.addEventListener('click', apriWizardIdentita);
+    async function apriWizardIdentita() {
+      const { data: salvate } = await supa().from('azienda_identita_risposte').select('domanda_chiave,risposta').eq('azienda_id', aziendaId);
+      const mappa = {}; (salvate || []).forEach(r => mappa[r.domanda_chiave] = r.risposta || '');
+      let step = 0;
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+      ov.innerHTML = `<div style="background:#fff;border-radius:18px;max-width:560px;width:100%;padding:24px;max-height:90vh;overflow:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-size:16px;font-weight:800;color:#0f172a;">🧙‍♂️ Wizard identità con Tony</div>
+          <button id="wz-chiudi" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;">✕</button>
+        </div>
+        <div style="height:6px;background:#e2e8f0;border-radius:3px;margin-bottom:16px;"><div id="wz-bar" style="height:100%;width:0;background:#0E5A7A;border-radius:3px;transition:width .3s;"></div></div>
+        <div id="wz-num" style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;"></div>
+        <div id="wz-domanda" style="font-size:16px;font-weight:700;color:#0f172a;line-height:1.4;margin-bottom:12px;"></div>
+        <textarea id="wz-risposta" style="width:100%;min-height:120px;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:16px;font-family:inherit;line-height:1.6;box-sizing:border-box;outline:none;" placeholder="Scrivi liberamente, come lo racconteresti a un amico. Se una domanda non ti ispira, salta pure avanti."></textarea>
+        <div id="wz-esito" style="font-size:12.5px;min-height:16px;margin-top:8px;"></div>
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <button id="wz-indietro" style="flex:1;background:#f1f5f9;color:#334155;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">← Indietro</button>
+          <button id="wz-avanti" style="flex:2;background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">Avanti →</button>
+        </div>
+      </div>`;
+      document.body.appendChild(ov);
+      const el = (s) => ov.querySelector(s);
+      el('#wz-chiudi').onclick = () => ov.remove();
+      function mostra() {
+        const d = DOMANDE_WIZARD[step];
+        el('#wz-num').textContent = `Domanda ${step + 1} di ${DOMANDE_WIZARD.length} — si salva da sola, puoi riprendere quando vuoi`;
+        el('#wz-domanda').textContent = d.t;
+        el('#wz-risposta').value = mappa[d.k] || '';
+        el('#wz-bar').style.width = `${step / DOMANDE_WIZARD.length * 100}%`;
+        el('#wz-indietro').style.visibility = step === 0 ? 'hidden' : 'visible';
+        el('#wz-avanti').textContent = step === DOMANDE_WIZARD.length - 1 ? '✨ Genera identità' : 'Avanti →';
+      }
+      async function salvaStep() {
+        const d = DOMANDE_WIZARD[step];
+        mappa[d.k] = el('#wz-risposta').value.trim();
+        await supa().from('azienda_identita_risposte').upsert({
+          azienda_id: aziendaId, domanda_chiave: d.k, domanda_testo: d.t,
+          risposta: mappa[d.k] || null, ordine: step, updated_at: new Date().toISOString()
+        }, { onConflict: 'azienda_id,domanda_chiave' });
+      }
+      el('#wz-indietro').onclick = async () => { await salvaStep(); step = Math.max(0, step - 1); mostra(); };
+      el('#wz-avanti').onclick = async () => {
+        await salvaStep();
+        if (step < DOMANDE_WIZARD.length - 1) { step++; mostra(); return; }
+        const risposte = DOMANDE_WIZARD.filter(d => (mappa[d.k] || '').trim()).map(d => ({ domanda: d.t, risposta: mappa[d.k] }));
+        if (risposte.length < 3) { el('#wz-esito').textContent = 'Rispondi ad almeno 3 domande per generare.'; el('#wz-esito').style.color = '#dc2626'; return; }
+        el('#wz-avanti').disabled = true;
+        el('#wz-esito').textContent = '🧠 Tony sta scrivendo la vostra identità... (10-20 secondi)'; el('#wz-esito').style.color = '#0E5A7A';
+        try {
+          const { data: { session } } = await supa().auth.getSession();
+          const resp = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-organizzazione', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session?.access_token || '') },
+            body: JSON.stringify({ azienda_id: aziendaId, azione: 'genera_identita', risposte })
+          });
+          const j = await resp.json();
+          if (!j.ok) throw new Error(j.errore || 'Errore generazione');
+          const p = j.proposta || {};
+          const setVal = (sel, v) => { const n = box.querySelector(sel); if (n && v) n.value = v; };
+          setVal('#id-why', p.gc_why); setVal('#id-how', p.gc_how); setVal('#id-what', p.gc_what);
+          setVal('#id-mission', p.mission); setVal('#id-vision', p.vision);
+          setVal('#id-posizionamento', p.posizionamento); setVal('#id-cliente', p.cliente_ideale);
+          setVal('#id-diff', p.differenziazione); setVal('#id-tov', p.tone_of_voice); setVal('#id-kw', p.parole_chiave);
+          setVal('#id-promessa', p.promessa_cliente); setVal('#id-standard', p.standard_servizio);
+          if (Array.isArray(p.valori) && p.valori.length) {
+            setVal('#id-valori', p.valori.map(v => v.nome).join(', '));
+            valoriState = p.valori;
+            renderValori(p.valori, box.querySelector('#lista-valori-strutturati'));
+          }
+          ov.remove();
+          const esito = box.querySelector('#id-esito');
+          if (esito) { esito.textContent = '✨ Proposta di Tony inserita nei campi: rivedila, modifica ciò che vuoi e premi Salva per approvarla (valori compresi).'; esito.style.color = '#0E5A7A'; }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (e) {
+          el('#wz-esito').textContent = '❌ ' + (e.message || e); el('#wz-esito').style.color = '#dc2626';
+          el('#wz-avanti').disabled = false;
+        }
+      };
+      mostra();
+    }
   }
 
 
