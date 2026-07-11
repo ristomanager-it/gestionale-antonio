@@ -628,7 +628,7 @@ async function callTonyMeta(messages) {
   const res = await fetch(`${supabaseUrl}/functions/v1/meta-ads`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
-    body: JSON.stringify({ azienda_id: window.state?.azienda?.id, azione: "tony_chat", messaggi: msgs })
+    body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, sede_lat: window.state?.sedeAttiva?.latitudine || null, sede_lng: window.state?.sedeAttiva?.longitudine || null, azione: "tony_chat", messaggi: msgs })
   });
   const j = await res.json();
   if (!j.ok) {
