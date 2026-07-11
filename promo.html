@@ -25,6 +25,27 @@
   .box-offerta .codice{margin-top:14px;background:rgba(255,255,255,.2);border:1px dashed rgba(255,255,255,.5);border-radius:10px;padding:8px 16px;font-size:15px;font-weight:800;letter-spacing:2px;}
   .box-offerta .scadenza{font-size:11px;opacity:.7;margin-top:8px;}
   .testo-block{padding:16px 20px;color:var(--testo);font-size:14px;line-height:1.7;}
+  /* ── Blocchi ricchi (livello sito) ── */
+  .hero-block{position:relative;width:100%;min-height:340px;display:flex;align-items:flex-end;overflow:hidden;}
+  .hero-block img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25) 0%,rgba(0,0,0,.65) 100%);}
+  .hero-content{position:relative;width:100%;padding:28px 22px;text-align:center;color:#fff;}
+  .hero-kicker{font-size:11px;letter-spacing:3px;text-transform:uppercase;opacity:.9;margin-bottom:10px;}
+  .hero-title{font-size:34px;line-height:1.15;font-weight:700;text-shadow:0 2px 14px rgba(0,0,0,.45);margin-bottom:14px;}
+  .hero-sub{font-size:14px;opacity:.95;margin-bottom:18px;}
+  .hero-btn{display:inline-block;background:var(--bottone);color:var(--bottone-testo);border:none;border-radius:var(--radius);padding:13px 26px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.3px;box-shadow:0 6px 22px rgba(0,0,0,.35);}
+  .sezione-block{padding:26px 22px 6px;}
+  .sezione-title{font-size:24px;line-height:1.2;font-weight:700;color:var(--testo);margin-bottom:10px;}
+  .sezione-testo{color:var(--testo);font-size:14px;line-height:1.75;opacity:.92;}
+  .galleria-block{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:16px;}
+  .galleria-block img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:calc(var(--radius) - 2px);}
+  .galleria-block img:first-child{grid-column:1 / -1;aspect-ratio:16/9;}
+  .punti-block{display:flex;gap:10px;padding:14px 16px;justify-content:space-between;}
+  .punto{flex:1;text-align:center;background:rgba(0,0,0,.035);border-radius:var(--radius);padding:14px 8px;}
+  .punto .p-icona{font-size:26px;margin-bottom:6px;}
+  .punto .p-testo{font-size:11.5px;font-weight:700;color:var(--testo);line-height:1.35;}
+  .urgenza-block{margin:14px 16px;background:var(--testo);color:#fff;border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:13.5px;font-weight:700;}
+  .urgenza-block .u-icona{font-size:22px;}
   .form-block{margin:16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:20px;}
   .form-block h3{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;}
   .form-input{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;background:white;margin-bottom:10px;transition:border-color .2s;}
@@ -207,6 +228,52 @@ function renderBlock(b, promo, azienda) {
       <div id="form-error" style="color:#dc2626;font-size:12px;margin-bottom:8px;display:none;"></div>
       <button class="btn-cta" id="btn-scarica">🎁 Voglio la mia promo!</button>
     </div>`;
+  }
+  if (b.tipo==='hero') {
+    const img = b.contenuto || promo.immagine_url || '';
+    const titolo = b.titolo || promo.nome || '';
+    const kicker = b.kicker || '';
+    const sub = b.sottotitolo || '';
+    const btn = b.cta || 'Scopri l\'offerta';
+    return `<div class="hero-block">
+      ${img ? `<img src="${esc(img)}" alt="${esc(titolo)}">` : ''}
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        ${kicker ? `<div class="hero-kicker">${esc(kicker)}</div>` : ''}
+        <div class="hero-title">${esc(titolo)}</div>
+        ${sub ? `<div class="hero-sub">${esc(sub)}</div>` : ''}
+        <button class="hero-btn" onclick="window.scrollTo({top:document.getElementById('form-container')?.offsetTop-20||0,behavior:'smooth'})">${esc(btn)}</button>
+      </div>
+    </div>`;
+  }
+  if (b.tipo==='sezione') {
+    return `<div class="sezione-block">
+      ${b.titolo ? `<div class="sezione-title">${esc(b.titolo)}</div>` : ''}
+      ${b.contenuto ? `<div class="sezione-testo">${esc(b.contenuto).replace(/\n/g,'<br>')}</div>` : ''}
+    </div>`;
+  }
+  if (b.tipo==='galleria') {
+    const foto = Array.isArray(b.foto) ? b.foto.filter(Boolean) : [];
+    if (!foto.length) return '';
+    return `<div class="galleria-block">${foto.map(f => `<img src="${esc(f)}" alt="" loading="lazy" onerror="this.remove()">`).join('')}</div>`;
+  }
+  if (b.tipo==='punti_forza') {
+    const punti = Array.isArray(b.punti) ? b.punti.slice(0,4) : [];
+    if (!punti.length) return '';
+    return `<div class="punti-block">${punti.map(p => `<div class="punto"><div class="p-icona">${esc(p.icona||'⭐')}</div><div class="p-testo">${esc(p.testo||'')}</div></div>`).join('')}</div>`;
+  }
+  if (b.tipo==='urgenza') {
+    let testo = b.contenuto || '';
+    if (!testo && promo.data_scadenza) {
+      const d = new Date(promo.data_scadenza + 'T23:59:59');
+      testo = 'Offerta valida fino al ' + d.toLocaleDateString('it-IT', {day:'numeric', month:'long'});
+    }
+    if (promo.nr_disponibili) {
+      const rimaste = Math.max(0, promo.nr_disponibili - (promo.nr_utilizzate||0));
+      if (rimaste > 0) testo += (testo ? ' · ' : '') + 'Solo ' + rimaste + ' disponibili';
+    }
+    if (!testo) return '';
+    return `<div class="urgenza-block"><span class="u-icona">⏳</span><span>${esc(testo)}</span></div>`;
   }
   if (b.tipo==='cta_button') {
     const label = b.contenuto || 'Scopri di più';
