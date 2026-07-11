@@ -1009,7 +1009,7 @@ DESC 2: ...`;
     const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-      body: JSON.stringify({ azienda_id: window.state?.azienda?.id, ...body })
+      body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, sede_lat: window.state?.sedeAttiva?.latitudine || null, sede_lng: window.state?.sedeAttiva?.longitudine || null, ...body })
     });
     return await res.json();
   }
