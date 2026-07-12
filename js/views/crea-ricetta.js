@@ -3442,6 +3442,10 @@ function convertQtyPerCosto(qty, fromUnit, toUnit) {
   const volumeInMl = { lt: 1000, ml: 1, cl: 10 };
   if (pesoInGrammi[f] && pesoInGrammi[t]) return n * pesoInGrammi[f] / pesoInGrammi[t];
   if (volumeInMl[f] && volumeInMl[t]) return n * volumeInMl[f] / volumeInMl[t];
+  // Fallback: costo per pz senza contenuto confezione, riga in peso/volume
+  // → assunzione 1 pz ≈ 1 kg (o 1 lt), come lato SQL
+  if (t === "pz" && pesoInGrammi[f]) return n * pesoInGrammi[f] / 1000;
+  if (t === "pz" && volumeInMl[f]) return n * volumeInMl[f] / 1000;
   return null;
 }
 
