@@ -248,6 +248,16 @@ export async function render(container) {
           <div style="font-size:13px;font-weight:700;">Prenotazioni</div>
           <div style="font-size:11px;color:#6b7280;margin-top:2px;">Tavoli & servizi</div>
         </div>
+        <div onclick="location.hash='#/magazzino'" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px;cursor:pointer;text-align:center;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="font-size:26px;margin-bottom:6px;">📦</div>
+          <div style="font-size:13px;font-weight:700;">Magazzino</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Giacenze & riordino</div>
+        </div>
+        <div onclick="location.hash='#/ordini'" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px;cursor:pointer;text-align:center;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="font-size:26px;margin-bottom:6px;">🚚</div>
+          <div style="font-size:13px;font-weight:700;">Ordini Fornitore</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Acquisti & ricezione</div>
+        </div>
       </div>
     </section>
   </div>
