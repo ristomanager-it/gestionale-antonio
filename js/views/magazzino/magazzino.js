@@ -1,6 +1,7 @@
 import { renderMateriePrime } from "./materie_prime.js";
 import { renderPreparazioni } from "./preparazioni.js";
 import { renderCaricoModal, apriCaricoModal } from "./carico_magazzino.js";
+import { apriRiordinoModal } from "./riordino.js";
 
 export async function render(container) {
   const azienda = window.state?.azienda;
@@ -56,6 +57,10 @@ function renderHome(azienda) {
       <button class="app-button tiny" id="btn-carico-magazzino">
         + Carico Giacenza
       </button>
+
+      <button class="app-button tiny" id="btn-da-riordinare" style="background:#f59e0b;color:#fff;">
+        ⚠️ Da riordinare
+      </button>
     </div>
 
     <div class="rf-magazzino-hint">
@@ -80,6 +85,9 @@ function renderHome(azienda) {
       aziendaId: azienda.id
     });
   };
+
+  const btnRiordino = home.querySelector("#btn-da-riordinare");
+  if (btnRiordino) btnRiordino.onclick = () => { apriRiordinoModal(azienda); };
 }
 
 function ensureMagazzinoOverlayStyles() {
