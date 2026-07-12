@@ -46,14 +46,15 @@ export async function render(container) {
   }
 
   const stato = ordine?.stato || "bozza";
-  const readonly = ["inviato", "ricevuto", "chiuso"].includes(stato);
+  const readonly = ["inviato", "parziale", "ricevuto", "chiuso"].includes(stato);
+  const ricevibile = ["inviato", "parziale"].includes(stato);
 
   container.innerHTML = `
     <div class="view">
       <button class="app-button tiny gray" id="ord-back" style="margin-bottom:10px;">← Ordini</button>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
         <h2 style="margin:0;">${ordine ? "Ordine " + esc(ordine.numero_ordine) : "Nuovo ordine"}</h2>
-        <span style="background:${stato === 'inviato' ? '#dcfce7;color:#15803d' : stato === 'bozza' ? '#fef3c7;color:#92400e' : '#e0f2fe;color:#0369a1'};border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;text-transform:uppercase;">${esc(stato)}</span>
+        <span style="background:${stato === 'inviato' ? '#dcfce7;color:#15803d' : stato === 'bozza' ? '#fef3c7;color:#92400e' : stato === 'parziale' ? '#fed7aa;color:#c2410c' : '#e0f2fe;color:#0369a1'};border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;text-transform:uppercase;">${esc(stato)}</span>
       </div>
 
       <div style="margin-top:14px;display:grid;grid-template-columns:1fr;gap:10px;max-width:520px;">
@@ -153,7 +154,13 @@ export async function render(container) {
 
   function renderAzioni() {
     if (readonly) {
-      azioni.innerHTML = `<div class="small-muted">Ordine ${esc(stato)}${ordine?.inviato_at ? " il " + new Date(ordine.inviato_at).toLocaleString("it-IT") : ""}.</div>`;
+      const info = `<div class="small-muted" style="margin-bottom:8px;">Ordine ${esc(stato)}${ordine?.inviato_at ? " il " + new Date(ordine.inviato_at).toLocaleString("it-IT") : ""}.</div>`;
+      if (ricevibile) {
+        azioni.innerHTML = info + `<button class="app-button" id="ord-ricevi" style="background:#16a34a;color:#fff;font-weight:800;padding:12px 18px;">\u{1F4E5} Registra ricezione merce</button>`;
+        azioni.querySelector("#ord-ricevi").onclick = () => apriRicezione(ordine, righe, aziendaId);
+      } else {
+        azioni.innerHTML = info;
+      }
       return;
     }
     azioni.innerHTML = `
@@ -208,4 +215,85 @@ export async function render(container) {
     azioni.querySelector("#ord-invia-both").onclick = () => invia("entrambi");
   }
   renderAzioni();
+}
+
+// ── Modale ricezione merce: carica magazzino via trigger DB ──
+async function apriRicezione(ordine, righe, aziendaId) {
+  const { data: righeOrd } = await supa().from("ordini_fornitore_righe").select("id, prodotto_id, quantita, unita_misura, prezzo_unitario").eq("ordine_id", ordine.id);
+  const { data: giaRic } = await supa().from("ordini_fornitore_ricezioni_righe")
+    .select("ordine_riga_id, quantita_ricevuta").in("ordine_riga_id", (righeOrd || []).map(r => r.id));
+  const ricevutoPer = {};
+  (giaRic || []).forEach(r => { ricevutoPer[r.ordine_riga_id] = (ricevutoPer[r.ordine_riga_id] || 0) + Number(r.quantita_ricevuta || 0); });
+
+  const pids = (righeOrd || []).map(r => r.prodotto_id);
+  const nomiById = {};
+  if (pids.length) {
+    const { data: prods } = await supa().from("prodotti").select("id, nome, nome_interno, costo_ultimo").in("id", pids);
+    (prods || []).forEach(p => nomiById[String(p.id)] = p);
+  }
+
+  if (document.getElementById("rf-ric-backdrop")) document.getElementById("rf-ric-backdrop").remove();
+  document.body.insertAdjacentHTML("beforeend",
+    '<div class="rf-overlay-backdrop" id="rf-ric-backdrop" style="position:fixed;inset:0;background:rgba(15,23,42,0.5);display:flex;align-items:flex-end;justify-content:center;z-index:9999;">' +
+    '<div style="width:100%;max-width:640px;max-height:88vh;background:#fff;border-radius:18px 18px 0 0;overflow:hidden;display:flex;flex-direction:column;">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px;border-bottom:1px solid #eee;">' +
+    '<h3 style="margin:0;font-size:16px;">\u{1F4E5} Ricezione — ' + esc(ordine.numero_ordine) + '</h3>' +
+    '<button class="app-button tiny gray" id="rf-ric-close">Chiudi</button></div>' +
+    '<div style="padding:14px;overflow:auto;" id="rf-ric-body"></div></div></div>');
+  const bd = document.getElementById("rf-ric-backdrop");
+  document.getElementById("rf-ric-close").onclick = () => bd.remove();
+  bd.onclick = (e) => { if (e.target === bd) bd.remove(); };
+
+  const body = document.getElementById("rf-ric-body");
+  body.innerHTML =
+    '<div class="small-muted" style="margin-bottom:10px;">Inserisci le quantità realmente arrivate. Il magazzino si carica in automatico.</div>' +
+    (righeOrd || []).map(r => {
+      const p = nomiById[String(r.prodotto_id)] || {};
+      const gia = ricevutoPer[r.id] || 0;
+      const residuo = Math.max(Number(r.quantita) - gia, 0);
+      return '<div class="rf-ric-riga" data-rigaid="' + r.id + '" data-pid="' + r.prodotto_id + '" style="padding:9px 0;border-bottom:1px solid #f1f5f9;' + (residuo <= 0 ? 'opacity:.5;' : '') + '">' +
+        '<div style="font-weight:600;font-size:14px;">' + esc(p.nome_interno || p.nome || 'Prodotto') + '</div>' +
+        '<div class="small-muted" style="font-size:11.5px;margin-bottom:5px;">ordinato ' + r.quantita + (r.unita_misura ? ' ' + esc(r.unita_misura) : '') + (gia > 0 ? ' · già ricevuto ' + gia : '') + (residuo > 0 ? ' · residuo ' + residuo : ' · completo') + '</div>' +
+        '<div style="display:flex;gap:6px;align-items:center;">' +
+        '<input type="number" class="rf-ric-qta" value="' + (residuo > 0 ? residuo : 0) + '" min="0" step="0.5" style="width:80px;padding:7px;border:1.5px solid #e2e8f0;border-radius:8px;text-align:right;font-weight:700;">' +
+        '<input type="number" class="rf-ric-costo" value="' + (r.prezzo_unitario ?? p.costo_ultimo ?? '') + '" min="0" step="0.01" placeholder="€/u" style="width:66px;padding:7px;border:1.5px solid #e2e8f0;border-radius:8px;text-align:right;">' +
+        '<input type="text" class="rf-ric-lotto" placeholder="lotto" style="flex:1;min-width:60px;padding:7px;border:1.5px solid #e2e8f0;border-radius:8px;">' +
+        '<input type="date" class="rf-ric-scad" style="padding:7px;border:1.5px solid #e2e8f0;border-radius:8px;"></div></div>';
+    }).join("") +
+    '<div id="rf-ric-esito" style="font-size:13px;min-height:18px;margin:10px 0;"></div>' +
+    '<button class="app-button" id="rf-ric-salva" style="width:100%;padding:13px;font-weight:800;background:#16a34a;color:#fff;">\u2705 Conferma ricezione e carica magazzino</button>';
+
+  document.getElementById("rf-ric-salva").onclick = async () => {
+    const btn = document.getElementById("rf-ric-salva");
+    const esito = document.getElementById("rf-ric-esito");
+    const daInserire = [];
+    body.querySelectorAll(".rf-ric-riga").forEach(el => {
+      const qta = parseFloat(el.querySelector(".rf-ric-qta").value) || 0;
+      if (qta <= 0) return;
+      daInserire.push({
+        ordine_riga_id: el.dataset.rigaid,
+        prodotto_id: Number(el.dataset.pid),
+        quantita_ricevuta: qta,
+        costo_unitario: parseFloat(el.querySelector(".rf-ric-costo").value) || null,
+        lotto: el.querySelector(".rf-ric-lotto").value.trim() || null,
+        data_scadenza: el.querySelector(".rf-ric-scad").value || null
+      });
+    });
+    if (!daInserire.length) { esito.style.color = "#dc2626"; esito.textContent = "Inserisci almeno una quantità."; return; }
+    btn.disabled = true; esito.style.color = "#64748b"; esito.textContent = "Registrazione e carico magazzino…";
+    try {
+      const { data: ric, error: e1 } = await supa().from("ordini_fornitore_ricezioni").insert({
+        azienda_id: aziendaId, ordine_id: ordine.id, data_ricezione: new Date().toISOString().slice(0, 10)
+      }).select("id").single();
+      if (e1) throw e1;
+      const righeIns = daInserire.map(r => ({ ...r, azienda_id: aziendaId, ricezione_id: ric.id }));
+      const { error: e2 } = await supa().from("ordini_fornitore_ricezioni_righe").insert(righeIns);
+      if (e2) throw e2;
+      esito.style.color = "#15803d"; esito.textContent = "✅ Merce ricevuta e magazzino caricato!";
+      btn.textContent = "Fatto ✓";
+      setTimeout(() => { document.getElementById("rf-ric-backdrop")?.remove(); window.location.hash = "#/ordini"; }, 1300);
+    } catch (err) {
+      esito.style.color = "#dc2626"; esito.textContent = "Errore: " + (err.message || err); btn.disabled = false;
+    }
+  };
 }
