@@ -676,9 +676,9 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
     : `${location.origin}${location.pathname}?id=${promoId}&ty=1`;
   const linkPrenota = `${location.origin}/#/prenotazione-online?azienda=${promo.azienda_id}${promo.sede_id ? '&sede='+promo.sede_id : ''}${coupon ? '&coupon='+coupon : ''}`;
 
-  // QR come IMMAGINE (nelle email il JS non gira) — encoda "RFC:COUPON" per la scansione in cassa
+  // QR come IMMAGINE (nelle email il JS non gira) — generato dalla NOSTRA Edge Function (in casa)
   const qrData = coupon ? `RFC:${coupon}` : linkCoupon;
-  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+  const qrImgUrl = `${SUPABASE_URL}/functions/v1/genera-qr?size=240&data=${encodeURIComponent(qrData)}`;
 
   const valoreLabel = promo.tipo==='sconto_perc' ? promo.valore+'%'
                     : promo.tipo==='sconto_euro' ? '€'+promo.valore
