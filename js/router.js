@@ -114,7 +114,7 @@ const routes = {
   acquisti: () => import("./views/acquisti/index.js"),
   magazzino: () => import("./views/magazzino/magazzino.js?v=2"),
   ordini: () => import("./views/ordini.js?v=2"),
-  ordine: () => import("./views/ordine.js?v=2"),
+  ordine: () => import("./views/ordine.js?v=3"),
 
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
