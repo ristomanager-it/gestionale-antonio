@@ -1204,7 +1204,7 @@ export async function render(app) {
                 <option value="kg">kg</option>
                 <option value="gr">gr</option>
                 <option value="pz">pz</option>
-                <option value="l">l</option>
+                <option value="lt">lt</option>
                 <option value="ml">ml</option>
               </select>
             </div>
@@ -1417,7 +1417,7 @@ async function loadProdotti() {
 
   const { data, error } = await supabase
     .from("prodotti")
-    .select("id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione")
+    .select("id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione, contenuto_confezione, um_costo")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("descrizione");
@@ -1430,18 +1430,31 @@ async function loadProdotti() {
   }
 
   prodottiCache = data || [];
-  // Calcola costo_per_um_base per ogni prodotto:
-  // Se il prodotto ha quantita_confezione (es. ct da 6 lt), il costo_medio è per confezione
-  // → costo per unità base = costo_medio / quantita_confezione
+  // Calcola il costo per unità di RICETTA di ogni prodotto.
+  // um_costo dice in che unità è espresso costo_medio (deriva dalle fatture):
+  // - fattura a peso/volume (kg, gr, lt, ml) → costo_medio è già €/unità
+  // - fattura a collo (pz) → costo_medio è €/collo: si divide per
+  //   quantita_confezione (multipack) e poi per contenuto_confezione
+  //   (es. sacco farina kg25 a €48 → 48/25 = €1,92/kg)
   prodottiCache.forEach(p => {
-    const costoMedio = Number(p.costo_medio ?? 0);
+    let costo = Number(p.costo_medio ?? 0);
     const qtaConfezione = Number(p.quantita_confezione ?? 0);
-    if (qtaConfezione > 0) {
-      p._costo_per_unita = costoMedio / qtaConfezione;
-      p._um_unitaria = p.um_confezione || p.unita_base || p.um || "pz";
+    const contenuto = Number(p.contenuto_confezione ?? 0);
+    const umCosto = normUm(p.um_costo);
+    const umConf = normUm(p.um_confezione);
+
+    if (["kg", "gr", "lt", "ml"].includes(umCosto)) {
+      p._costo_per_unita = costo;
+      p._um_unitaria = umCosto;
     } else {
-      p._costo_per_unita = costoMedio;
-      p._um_unitaria = p.unita_base || p.um || "pz";
+      if (qtaConfezione > 1) costo = costo / qtaConfezione;
+      if (contenuto > 0 && ["kg", "gr", "lt", "ml"].includes(umConf)) {
+        p._costo_per_unita = costo / contenuto;
+        p._um_unitaria = umConf;
+      } else {
+        p._costo_per_unita = costo;
+        p._um_unitaria = normUm(p.unita_base || p.um) || "pz";
+      }
     }
   });
   prodottiMap = new Map(prodottiCache.map(p => [String(p.id), p]));
@@ -1884,9 +1897,9 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
     // Match sicuro: preseleziona direttamente
     ingSearch.value = matchEsatto.descrizione || matchEsatto.nome || nomeTony;
     ingHidden.value = matchEsatto.id;
-    if (matchEsatto.um && umSel) {
-      const val = String(matchEsatto.um).toLowerCase();
-      if (["kg","gr","pz","l","ml"].includes(val)) umSel.value = val;
+    if (umSel) {
+      const val = normUm(matchEsatto._um_unitaria || matchEsatto.um);
+      if (["kg","gr","pz","lt","ml"].includes(val)) umSel.value = val;
     }
     ingSearch.style.borderColor = "#16a34a";
     ingSearch.title = "✅ Trovato nel magazzino";
@@ -1902,7 +1915,7 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
     if (candidati.length > 0) {
       ingSuggest.innerHTML = candidati.map(({prodotto: p, score}) => {
         const um = p.um || p.unita_base || "";
-        const costoMedio = p.costo_medio ? ` — €${Number(p.costo_medio).toFixed(2)}/${um}` : "";
+        const costoMedio = p._costo_per_unita ? ` — €${Number(p._costo_per_unita).toFixed(2)}/${p._um_unitaria || um}` : "";
         const badge = score >= 50
           ? `<span style="background:#dcfce7;color:#15803d;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px;">simile</span>`
           : `<span style="background:#f3f4f6;color:#6b7280;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px;">cerca</span>`;
@@ -1930,9 +1943,9 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
           ingSearch.style.background = "";
           ingSearch.title = "✅ Trovato nel magazzino";
           ingSuggest.classList.remove("open");
-          if (p.um && umSel) {
-            const val = String(p.um).toLowerCase();
-            if (["kg","gr","pz","l","ml"].includes(val)) umSel.value = val;
+          if (umSel) {
+            const val = normUm(p._um_unitaria || p.um);
+            if (["kg","gr","pz","lt","ml"].includes(val)) umSel.value = val;
           }
           if (typeof onPick === "function") onPick(p);
         });
@@ -1991,7 +2004,7 @@ function aggiungiIngrediente(initial = {}) {
           <option value="kg">kg</option>
           <option value="gr">gr</option>
           <option value="pz">pz</option>
-          <option value="l">l</option>
+          <option value="lt">lt</option>
           <option value="ml">ml</option>
         </select>
       </div>
@@ -2595,7 +2608,7 @@ function aggiungiPorzione(initial = {}) {
           <option value="kg">kg</option>
           <option value="pz">pz</option>
           <option value="ml">ml</option>
-          <option value="l">l</option>
+          <option value="lt">lt</option>
         </select>
       </div>
 
@@ -3388,16 +3401,25 @@ async function salvaTutto() {
 /* ============================================================
    COSTO INDUSTRIALE
 ============================================================ */
+// UM canoniche Ristoflow: kg, gr, lt, ml, pz (g→gr, l/L/litri→lt)
+function normUm(u) {
+  const x = String(u || "").toLowerCase().trim();
+  if (["g", "grammi", "grammo"].includes(x)) return "gr";
+  if (["l", "litri", "litro"].includes(x)) return "lt";
+  if (["pezzi", "pezzo", "nr", "n", "collo", "colli", "ct", "cf"].includes(x)) return "pz";
+  return x;
+}
+
 // Converte una quantità tra unità dello stesso dominio (peso o volume).
 // Ritorna null se le unità non sono compatibili (es. "pz" con "kg").
 function convertQtyPerCosto(qty, fromUnit, toUnit) {
   const n = Number(qty);
   if (!Number.isFinite(n)) return null;
-  const f = String(fromUnit || "").toLowerCase().trim();
-  const t = String(toUnit || "").toLowerCase().trim();
+  const f = normUm(fromUnit);
+  const t = normUm(toUnit);
   if (!f || !t || f === t) return n;
-  const pesoInGrammi = { kg: 1000, gr: 1, g: 1 };
-  const volumeInMl = { l: 1000, ml: 1 };
+  const pesoInGrammi = { kg: 1000, gr: 1 };
+  const volumeInMl = { lt: 1000, ml: 1, cl: 10 };
   if (pesoInGrammi[f] && pesoInGrammi[t]) return n * pesoInGrammi[f] / pesoInGrammi[t];
   if (volumeInMl[f] && volumeInMl[t]) return n * volumeInMl[f] / volumeInMl[t];
   return null;
