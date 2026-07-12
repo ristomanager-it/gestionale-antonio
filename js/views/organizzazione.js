@@ -23,6 +23,7 @@ export async function render(container) {
         </div>
         <div style="display:flex;gap:8px;">
           <button onclick="window.location.hash='#/manuale-operativo'" style="background:#fff;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;">📖 Manuale</button>
+          <button id="org-regolamento" style="background:#fff;color:#92400e;border:1.5px solid #f59e0b;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;">📜 Regolamento</button>
           <button id="org-nuovo" style="background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">+ Nuovo ruolo</button>
         </div>
       </div>
@@ -33,6 +34,7 @@ export async function render(container) {
 
   container.querySelector('#org-back').onclick = () => { window.location.hash = '#/dipendenti'; };
   container.querySelector('#org-nuovo').onclick = () => apriModal(null);
+  container.querySelector('#org-regolamento').onclick = () => apriRegolamento();
   await carica(container);
 }
 
@@ -115,6 +117,12 @@ function apriModal(ruolo) {
       <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Responsabilità (una per riga)</label>
       <textarea id="om-resp" style="width:100%;min-height:150px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;line-height:1.7;box-sizing:border-box;margin-top:4px;" placeholder="Preparazione sala prima del servizio&#10;Accoglienza clienti entro 1 minuto&#10;...">${esc(resp)}</textarea>
     </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Procedure collegate al ruolo</label>
+      <div id="om-procedure" style="max-height:190px;overflow:auto;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;margin-top:4px;">
+        <div style="font-size:12px;color:#94a3b8;">Caricamento procedure...</div>
+      </div>
+    </div>
     <div id="om-extra" style="display:none;background:#f0f9ff;border-radius:12px;padding:12px;margin-bottom:12px;font-size:12.5px;color:#0E5A7A;line-height:1.6;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
       <div>
@@ -135,6 +143,27 @@ function apriModal(ruolo) {
   const el = (s) => modal.querySelector(s);
   const chiudi = () => { modal.style.display = 'none'; modal.innerHTML = ''; };
   el('#om-chiudi').onclick = chiudi;
+  // Carica procedure aziendali + collegamenti esistenti
+  (async () => {
+    const cont = el('#om-procedure');
+    try {
+      const [{ data: procs }, linkRes] = await Promise.all([
+        supa().from('procedure_sala').select('id,nome,categoria').eq('azienda_id', aziendaId).eq('attivo', true).order('categoria').order('nome').limit(200),
+        ruolo ? supa().from('ruoli_procedure').select('procedura_id').eq('ruolo_id', ruolo.id) : Promise.resolve({ data: [] })
+      ]);
+      const collegate = new Set((linkRes.data || []).map(l => String(l.procedura_id)));
+      if (!procs || !procs.length) {
+        cont.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Nessuna procedura in azienda ancora: creale nella sezione Procedure (anche con Tony), poi collegale qui.</div>';
+        return;
+      }
+      cont.innerHTML = procs.map(p => `<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;color:#334155;cursor:pointer;">
+        <input type="checkbox" class="om-proc" value="${p.id}" ${collegate.has(String(p.id)) ? 'checked' : ''}>
+        <span>${esc(p.nome)}${p.categoria ? ` <span style="color:#94a3b8;font-size:11px;">(${esc(p.categoria)})</span>` : ''}</span>
+      </label>`).join('');
+    } catch (e) {
+      cont.innerHTML = '<div style="font-size:12px;color:#dc2626;">Errore caricamento procedure</div>';
+    }
+  })();
   modal.onclick = (e) => { if (e.target === modal) chiudi(); };
 
   el('#om-tony').onclick = async () => {
@@ -180,11 +209,25 @@ function apriModal(ruolo) {
       updated_at: new Date().toISOString(),
     };
     el('#om-esito').textContent = 'Salvataggio...'; el('#om-esito').style.color = '#64748b';
-    const q = ruolo
-      ? supa().from('ruoli_organizzativi').update(payload).eq('id', ruolo.id)
-      : supa().from('ruoli_organizzativi').insert(payload);
-    const { error } = await q;
-    if (error) { el('#om-esito').textContent = '❌ ' + error.message; el('#om-esito').style.color = '#dc2626'; return; }
+    let ruoloId = ruolo?.id || null;
+    if (ruolo) {
+      const { error } = await supa().from('ruoli_organizzativi').update(payload).eq('id', ruolo.id);
+      if (error) { el('#om-esito').textContent = '❌ ' + error.message; el('#om-esito').style.color = '#dc2626'; return; }
+    } else {
+      const { data: nuovo, error } = await supa().from('ruoli_organizzativi').insert(payload).select('id').single();
+      if (error) { el('#om-esito').textContent = '❌ ' + error.message; el('#om-esito').style.color = '#dc2626'; return; }
+      ruoloId = nuovo?.id || null;
+    }
+    // Sync procedure collegate
+    if (ruoloId) {
+      try {
+        const scelte = Array.from(modal.querySelectorAll('.om-proc:checked')).map(c => c.value);
+        await supa().from('ruoli_procedure').delete().eq('ruolo_id', ruoloId);
+        if (scelte.length) {
+          await supa().from('ruoli_procedure').insert(scelte.map((pid, i) => ({ ruolo_id: ruoloId, procedura_id: pid, ordine: i })));
+        }
+      } catch (e) { console.warn('sync procedure fallita', e); }
+    }
     chiudi();
     await carica({ querySelector: (s) => document.querySelector(s) });
   };
@@ -197,4 +240,108 @@ function apriModal(ruolo) {
     chiudi();
     await carica({ querySelector: (s) => document.querySelector(s) });
   };
+}
+
+
+// ── Regolamento aziendale (azienda_documenti, generato da Tony come le campagne) ──
+async function apriRegolamento() {
+  const modal = document.getElementById('org-modal');
+  modal.style.display = 'flex';
+  modal.innerHTML = `<div style="background:#fff;border-radius:18px;max-width:720px;width:100%;padding:22px;max-height:92vh;overflow:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="font-size:16px;font-weight:800;color:#0f172a;">📜 Regolamento aziendale</div>
+      <button id="rg-chiudi" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;">✕</button>
+    </div>
+    <div id="rg-stato" style="font-size:12px;color:#94a3b8;margin-bottom:10px;">Caricamento...</div>
+    <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1.5px solid #f59e0b;border-radius:12px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:180px;font-size:12.5px;color:#92400e;font-weight:600;">Tony scrive il regolamento completo (10 sezioni) partendo dall'identità e dai valori della vostra azienda. Poi rivedi, modifichi e approvi.</div>
+      <button id="rg-tony" style="background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;">✨ Genera con Tony</button>
+    </div>
+    <input id="rg-titolo" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:700;box-sizing:border-box;margin-bottom:10px;" placeholder="Titolo del regolamento">
+    <textarea id="rg-contenuto" style="width:100%;min-height:320px;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:13.5px;font-family:inherit;line-height:1.7;box-sizing:border-box;" placeholder="Il testo del regolamento..."></textarea>
+    <div id="rg-esito" style="font-size:12.5px;min-height:16px;margin-top:8px;"></div>
+    <div style="display:flex;gap:10px;margin-top:10px;">
+      <button id="rg-salva" style="flex:1;background:#f1f5f9;color:#334155;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">💾 Salva bozza</button>
+      <button id="rg-approva" style="flex:1;background:#15803d;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">✅ Approva e pubblica</button>
+    </div>
+  </div>`;
+
+  const el = (s) => modal.querySelector(s);
+  const chiudi = () => { modal.style.display = 'none'; modal.innerHTML = ''; };
+  el('#rg-chiudi').onclick = chiudi;
+  modal.onclick = (e) => { if (e.target === modal) chiudi(); };
+
+  let docId = null;
+  let generatoDaTony = false;
+
+  // Carica ultimo regolamento
+  const { data: doc } = await supa().from('azienda_documenti')
+    .select('id,titolo,contenuto,stato,versione,generato_da_tony,updated_at')
+    .eq('azienda_id', aziendaId).eq('tipo', 'regolamento')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (doc) {
+    docId = doc.id;
+    generatoDaTony = !!doc.generato_da_tony;
+    el('#rg-titolo').value = doc.titolo || '';
+    el('#rg-contenuto').value = doc.contenuto || '';
+    el('#rg-stato').innerHTML = doc.stato === 'approvato'
+      ? `<span style="background:#dcfce7;color:#15803d;border-radius:999px;padding:3px 10px;font-weight:700;">✅ APPROVATO v${doc.versione}</span> — modificandolo torna in bozza`
+      : `<span style="background:#fef3c7;color:#92400e;border-radius:999px;padding:3px 10px;font-weight:700;">📝 BOZZA v${doc.versione}</span>`;
+  } else {
+    el('#rg-stato').textContent = 'Nessun regolamento ancora: generane uno con Tony o scrivilo qui.';
+  }
+
+  el('#rg-tony').onclick = async () => {
+    el('#rg-tony').disabled = true;
+    el('#rg-esito').textContent = '🧠 Tony sta scrivendo il regolamento della vostra azienda... (20-40 secondi)';
+    el('#rg-esito').style.color = '#0E5A7A';
+    try {
+      const { data: { session } } = await supa().auth.getSession();
+      const resp = await fetch(FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session?.access_token || '') },
+        body: JSON.stringify({ azienda_id: aziendaId, azione: 'genera_regolamento' })
+      });
+      const j = await resp.json();
+      if (!j.ok) throw new Error(j.errore || 'Errore generazione');
+      el('#rg-titolo').value = j.proposta?.titolo || 'Regolamento interno';
+      el('#rg-contenuto').value = j.proposta?.contenuto || '';
+      generatoDaTony = true;
+      el('#rg-esito').textContent = '✨ Regolamento generato: leggilo tutto, modifica ciò che vuoi, poi salva o approva.';
+      el('#rg-esito').style.color = '#15803d';
+    } catch (e) {
+      el('#rg-esito').textContent = '❌ ' + (e.message || e);
+      el('#rg-esito').style.color = '#dc2626';
+    }
+    el('#rg-tony').disabled = false;
+  };
+
+  async function salvaRegolamento(stato) {
+    const titolo = el('#rg-titolo').value.trim() || 'Regolamento interno';
+    const contenuto = el('#rg-contenuto').value.trim();
+    if (!contenuto) { el('#rg-esito').textContent = 'Il regolamento è vuoto.'; el('#rg-esito').style.color = '#dc2626'; return; }
+    el('#rg-esito').textContent = 'Salvataggio...'; el('#rg-esito').style.color = '#64748b';
+    const base = {
+      titolo, contenuto, stato,
+      generato_da_tony: generatoDaTony,
+      updated_at: new Date().toISOString(),
+      ...(stato === 'approvato' ? { approvato_da: window.state?.user?.id || null, approvato_at: new Date().toISOString() } : {})
+    };
+    let error;
+    if (docId) {
+      ({ error } = await supa().from('azienda_documenti').update(base).eq('id', docId));
+    } else {
+      const { data: nuovo, error: e2 } = await supa().from('azienda_documenti')
+        .insert({ azienda_id: aziendaId, tipo: 'regolamento', ...base }).select('id').single();
+      error = e2; docId = nuovo?.id || null;
+    }
+    if (error) { el('#rg-esito').textContent = '❌ ' + error.message; el('#rg-esito').style.color = '#dc2626'; return; }
+    el('#rg-esito').textContent = stato === 'approvato' ? '✅ Regolamento approvato e pubblicato!' : '💾 Bozza salvata.';
+    el('#rg-esito').style.color = '#15803d';
+    el('#rg-stato').innerHTML = stato === 'approvato'
+      ? '<span style="background:#dcfce7;color:#15803d;border-radius:999px;padding:3px 10px;font-weight:700;">✅ APPROVATO</span>'
+      : '<span style="background:#fef3c7;color:#92400e;border-radius:999px;padding:3px 10px;font-weight:700;">📝 BOZZA</span>';
+  }
+  el('#rg-salva').onclick = () => salvaRegolamento('bozza');
+  el('#rg-approva').onclick = () => salvaRegolamento('approvato');
 }
