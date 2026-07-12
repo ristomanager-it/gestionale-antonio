@@ -1,7 +1,7 @@
 // js/views/ordine.js — Dettaglio/creazione ordine fornitore + invio WhatsApp/Email
 import "../supabaseClient.js";
 import "../state.js";
-import { apriScanner } from "./barcode-scanner.js?v=2";
+import { apriScanner } from "./barcode-scanner-v2.js";
 
 const supa = () => window.supabaseClient || window.supabase || window.db;
 const FN_INVIO = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invia-ordine-fornitore";
