@@ -1,7 +1,7 @@
 import { renderMateriePrime } from "./materie_prime.js";
 import { renderPreparazioni } from "./preparazioni.js";
 import { renderCaricoModal, apriCaricoModal } from "./carico_magazzino.js";
-import { apriRiordinoModal } from "./riordino.js";
+import { apriRicezioneModal } from "./ricezione.js";
 
 export async function render(container) {
   const azienda = window.state?.azienda;
@@ -58,6 +58,10 @@ function renderHome(azienda) {
         + Carico Giacenza
       </button>
 
+      <button class="app-button tiny" id="btn-ricezione" style="background:#16a34a;color:#fff;">
+        📥 Ricezione merce
+      </button>
+
       <button class="app-button tiny" id="btn-da-riordinare" style="background:#f59e0b;color:#fff;">
         ⚠️ Da riordinare
       </button>
@@ -86,8 +90,11 @@ function renderHome(azienda) {
     });
   };
 
+  const btnRicezione = home.querySelector("#btn-ricezione");
+  if (btnRicezione) btnRicezione.onclick = () => { apriRicezioneModal(azienda); };
+
   const btnRiordino = home.querySelector("#btn-da-riordinare");
-  if (btnRiordino) btnRiordino.onclick = () => { apriRiordinoModal(azienda); };
+  if (btnRiordino) btnRiordino.onclick = () => { window.location.hash = "#/acquisti?tab=riordino"; };
 }
 
 function ensureMagazzinoOverlayStyles() {
