@@ -118,13 +118,13 @@ export async function render(app) {
           </button>
 
           <button class="app-button"
-            onclick="window.location.hash='#/ricette-semplici'">
-            🥗 Ricette semplici / Food cost
+            onclick="window.location.hash='#/crea-ricetta'">
+            ➕ Nuova ricetta
           </button>
 
           <button class="app-button secondary"
-            onclick="window.location.hash='#/creaRicetta'">
-            🏭 Ricetta avanzata / Produzione
+            onclick="window.location.hash='#/abbina-articoli'">
+            🔗 Abbina articoli cassa
           </button>
           <button class="app-button secondary"
             onclick="mostraStoricoModifiche()">
