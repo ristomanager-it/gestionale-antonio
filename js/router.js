@@ -113,6 +113,8 @@ const routes = {
 "scegli-sede": () => import("./views/scegli-sede.js"),
   acquisti: () => import("./views/acquisti/index.js"),
   magazzino: () => import("./views/magazzino/magazzino.js?v=2"),
+  ordini: () => import("./views/ordini.js?v=2"),
+  ordine: () => import("./views/ordine.js"),
 
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
@@ -256,6 +258,8 @@ const BO_ROUTES = new Set([
 
   // PRODUZIONE
   "bo-magazzino",
+  "ordini",
+  "ordine",
   "bo-produzione",
   "bo-comande",
   "bo-ricette",
