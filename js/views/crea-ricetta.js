@@ -3353,9 +3353,12 @@ async function salvaTutto() {
   });
 
   {
+    // NB: costo_tot_snapshot è BLOCCATO dal trigger su ricette (campi economici
+    // migrati in ricette_controllo_gestione): includerlo faceva fallire in
+    // silenzio l'intero update. Qui aggiorniamo solo i campi consentiti,
+    // poi il ricalcolo ufficiale (con conversioni UM) lo fa il server.
     const payloadSnap = {
       costo_materia_prima: computed.costoTotaleInput,
-      costo_tot_snapshot: computed.costoTotaleInput,
       ultimo_ricalcolo: new Date().toISOString(),
       stato_costo: computed.ok ? "ok" : "warning"
     };
@@ -3367,6 +3370,10 @@ async function salvaTutto() {
       .eq("azienda_id", aziendaId);
 
     if (upErr) console.error(upErr);
+
+    const { error: rpcErr } = await supabase
+      .rpc("ricalcola_costo_ricetta", { p_ricetta_id: ricettaIdNum });
+    if (rpcErr) console.error("ricalcolo server:", rpcErr);
   }
 
   const prev = document.getElementById("r-cost-preview");
