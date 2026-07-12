@@ -139,11 +139,14 @@ export async function render(container) {
         </div>
       </div>
 
-      <div style="margin-top:14px;">
-        <h2 style="margin:0;">Dipendenti</h2>
-        <p class="small-muted" style="margin-top:6px;">
-          Gestione personale azienda (anagrafica + accessi + sedi)
-        </p>
+      <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+        <div>
+          <h2 style="margin:0;">Dipendenti</h2>
+          <p class="small-muted" style="margin-top:6px;">
+            Gestione personale azienda (anagrafica + accessi + sedi)
+          </p>
+        </div>
+        <button onclick="window.location.hash='#/organizzazione'" style="background:#fff;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;">🏛️ Ruoli & Organizzazione</button>
       </div>
 
       <div id="dip-view-elenco" style="margin-top:16px;"></div>
