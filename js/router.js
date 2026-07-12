@@ -112,9 +112,9 @@ const routes = {
   completaAzienda: () => import("./views/completa-azienda.js"),
 "scegli-sede": () => import("./views/scegli-sede.js"),
   acquisti: () => import("./views/acquisti/index.js?v=2"),
-  magazzino: () => import("./views/magazzino/magazzino.js?v=6"),
+  magazzino: () => import("./views/magazzino/magazzino.js?v=7"),
   ordini: () => import("./views/ordini.js?v=2"),
-  ordine: () => import("./views/ordine.js?v=6"),
+  ordine: () => import("./views/ordine.js?v=7"),
 
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
