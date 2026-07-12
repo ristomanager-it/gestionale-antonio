@@ -1,6 +1,6 @@
 // js/views/magazzino/ricezione.js — Ricezione merce del magazziniere: scanner + carico magazzino
 // Due modalità: "Spara e carica" (senza ordine) · "Ricevi ordine" (con controllo qta vs ordine)
-import { apriScanner } from "../barcode-scanner.js?v=2";
+import { apriScanner } from "../barcode-scanner-v2.js";
 
 const supa = () => window.supabaseClient || window.supabase || window.db;
 const FN_LOOKUP = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/lookup-barcode";
