@@ -126,6 +126,11 @@ export async function render(app) {
             onclick="window.location.hash='#/abbina-articoli'">
             🔗 Abbina articoli cassa
           </button>
+
+          <button class="app-button secondary"
+            onclick="window.location.hash='#/menu-engineering'">
+            📊 Menu Engineering
+          </button>
           <button class="app-button secondary"
             onclick="mostraStoricoModifiche()">
             📋 Storico modifiche
