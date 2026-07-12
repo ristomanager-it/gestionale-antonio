@@ -250,31 +250,30 @@ async function tonyInserisciDaTestoLibero(tipo, testoOperatore) {
   // Strategia: chiediamo a GPT di mettere il JSON dell'array direttamente
   // dentro reply, poi lo estraiamo con una regex robusta.
 
-  const prodottiContesto = prodottiCache.slice(0, 60)
-    .map(p => p.descrizione || p.nome || "").filter(Boolean).join(", ");
-
   let prompt;
 
   if (tipo === "fasi") {
-    prompt = `Sei un assistente culinario. Analizza la descrizione e rispondi con questo JSON esatto:
-{"reply":"[{\"tipo_fase\":\"preparazione\",\"descrizione_operativa\":\"...\",\"durata_min\":10,\"lavoro_umano_min\":10,\"temperatura\":null,\"tecnologia\":null}]","action":null}
+    prompt = `Estrai le fasi di lavorazione. Rispondi SOLO con questo JSON:
+{"fasi":[{"tipo_fase":"preparazione","descrizione_operativa":"...","durata_min":10,"lavoro_umano_min":10,"temperatura":null,"tecnologia":null}]}
 
-Il valore di reply deve essere una stringa JSON che contiene l'array delle fasi.
-tipo_fase: "preparazione" o "cottura" o "attesa" o "raffreddamento".
-fuoco vivo = temperatura 200, tipo cottura. fuoco basso = temperatura 85, tipo cottura.
-riposa/lievita = tipo attesa. raffredda = tipo raffreddamento.
-lavoro_umano_min sempre <= durata_min. Max 12 fasi.
+REGOLE:
+- tipo_fase: "preparazione" o "cottura" o "attesa" o "raffreddamento".
+- riposa/lievita = attesa. raffredda/abbatti = raffreddamento.
+- fuoco vivo = temperatura 200, cottura. fuoco basso/lento = temperatura 85, cottura.
+- Durate e temperature SOLO se dette o deducibili dalle regole sopra: altrimenti null. NON inventare.
+- lavoro_umano_min <= durata_min. Max 12 fasi. Ordine di esecuzione.
 
 DESCRIZIONE: "` + testoOperatore + `"`;
   } else {
-    prompt = `Sei un assistente culinario. Analizza gli ingredienti e rispondi con questo JSON esatto:
-{"reply":"[{\"nome\":\"...\",\"nome_magazzino\":\"...\",\"quantita\":0.5,\"unita_misura\":\"kg\",\"note\":\"\"}]","action":null}
+    prompt = `Estrai gli ingredienti con quantità. Rispondi SOLO con questo JSON:
+{"ingredienti":[{"nome":"...","quantita":0.5,"unita_misura":"kg","note":""}]}
 
-Il valore di reply deve essere una stringa JSON che contiene l'array degli ingredienti.
-Prodotti magazzino disponibili: ` + prodottiContesto + `
-unita_misura: "kg" o "gr" o "pz" o "l" o "ml".
-mezzo kg=0.5kg, 200grammi=200g, q.b.=0.01kg. Solidi in kg/g, liquidi in l/ml.
-nome_magazzino: prodotto piu simile nel magazzino o stringa vuota.
+REGOLE:
+- unita_misura SOLO tra: "kg", "gr", "lt", "ml", "pz". MAI "g", "l", "grammi", "litri".
+- mezzo kg = 0.5 kg. un etto = 100 gr. q.b. = quantita 0.01, um "kg", note "q.b.".
+- Solidi in kg/gr, liquidi in lt/ml, uova e pezzi contabili in pz.
+- Quantità SOLO se detta: se manca usa null, NON inventare.
+- nome: nome pulito dell'ingrediente, singolare, minuscolo, senza quantità dentro.
 
 INGREDIENTI: "` + testoOperatore + `"`;
   }
@@ -293,6 +292,7 @@ INGREDIENTI: "` + testoOperatore + `"`;
       },
       body: JSON.stringify({
         azienda_id: aziendaId,
+        tipo_messaggio: "estrai_ricetta",
         messages: [{ role: "user", content: prompt }]
       })
     });
@@ -321,10 +321,29 @@ INGREDIENTI: "` + testoOperatore + `"`;
       if (Array.isArray(obj.fasi)) return obj.fasi;
       if (Array.isArray(obj.ingredienti)) return obj.ingredienti;
       if (Array.isArray(obj.items)) return obj.items;
+      if (typeof obj.reply === "string") return estraiArray(obj.reply);
+      if (Array.isArray(obj.reply)) return obj.reply;
       throw new Error("Array non trovato nella risposta");
     }
 
-    return estraiArray(replyRaw);
+    let items = estraiArray(replyRaw);
+
+    // Precisione: UM canoniche + matching magazzino LOCALE (fuzzy su tutti
+    // i prodotti, non delegato a GPT). Match certo solo con score alto.
+    if (Array.isArray(items) && tipo !== "fasi") {
+      items = items.map(ing => {
+        const out = { ...ing, unita_misura: normUm(ing.unita_misura) || "kg" };
+        if (!out.nome_magazzino) {
+          const candidati = trovaProdottiSimili(out.nome, 1);
+          if (candidati.length && candidati[0].score >= 70) {
+            out.nome_magazzino = candidati[0].prodotto.descrizione || candidati[0].prodotto.nome || "";
+          }
+        }
+        return out;
+      });
+    }
+
+    return items;
 
   } catch(err) {
     console.error("Tony JSON error:", err);
@@ -353,7 +372,7 @@ DESCRIZIONE: "${testo}"`
     titolo: "Output / Resa finale",
     esempio: 'Es: "resa 2.5 kg di ragù finito" oppure "produce 20 porzioni da 150g"',
     prompt: (testo, prodottiCtx) => `Sei un assistente culinario. Estrai i dati di output/resa e rispondi con JSON esatto:
-{"reply":{"prodotto_nome":"nome del prodotto finito","peso_finale":0.0,"unita_misura":"kg o g o pz o l o ml"},"action":null}
+{"reply":{"prodotto_nome":"nome del prodotto finito","peso_finale":0.0,"unita_misura":"kg o gr o pz o lt o ml"},"action":null}
 Prodotti magazzino disponibili: ${prodottiCtx}
 DESCRIZIONE: "${testo}"`
   },
@@ -361,7 +380,7 @@ DESCRIZIONE: "${testo}"`
     titolo: "Porzionature",
     esempio: 'Es: "ristorante 180g, evento 120g, trattoria 220g" oppure "vasetto 250g per asporto"',
     prompt: (testo) => `Sei un assistente culinario. Estrai le porzionature e rispondi con JSON esatto:
-{"reply":[{"label":"nome contesto porzione","peso_porzione":180,"unita_misura":"g o kg o pz o ml","note":""}],"action":null}
+{"reply":[{"label":"nome contesto porzione","peso_porzione":180,"unita_misura":"gr o kg o pz o ml","note":""}],"action":null}
 Il valore di reply deve essere un array di porzionature.
 DESCRIZIONE: "${testo}"`
   },
@@ -377,7 +396,7 @@ DESCRIZIONE: "${testo}"`
     titolo: "Coprodotti / Scarti nobili",
     esempio: 'Es: "fondo bruno 1.2 kg, grasso filtrato 400g, ritagli di carne 600g"',
     prompt: (testo, prodottiCtx) => `Sei un assistente culinario. Estrai i coprodotti e rispondi con JSON esatto:
-{"reply":[{"prodotto_nome":"nome prodotto","peso":1.2,"unita_misura":"kg o g o pz o l","metodo_allocazione":"peso"}],"action":null}
+{"reply":[{"prodotto_nome":"nome prodotto","peso":1.2,"unita_misura":"kg o gr o pz o lt","metodo_allocazione":"peso"}],"action":null}
 Il valore di reply deve essere un array di coprodotti.
 Prodotti magazzino: ${prodottiCtx}
 DESCRIZIONE: "${testo}"`
@@ -394,6 +413,7 @@ async function tonyChiamaEF(prompt) {
     headers: { "Content-Type": "application/json",
       "Authorization": "Bearer " + token, "apikey": token },
     body: JSON.stringify({ azienda_id: aziendaId,
+      tipo_messaggio: "estrai_ricetta",
       messages: [{ role: "user", content: prompt }] })
   });
   if (!resp.ok) throw new Error("HTTP " + resp.status);
