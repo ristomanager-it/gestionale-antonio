@@ -286,15 +286,21 @@ async function apriRicezione(ordine, righe, aziendaId) {
         }
         return;
       }
-      // 2) EAN nuovo: associo a una riga dell'ordine
-      const nomeRiga = (rid) => {
-        const el = body.querySelector('.rf-ric-riga[data-rigaid="' + rid + '"]');
-        return el ? el.querySelector("div").textContent : "";
-      };
+      // 2) EAN nuovo: chiedo a OpenFoodFacts cosa e', poi associo a una riga
+      esito.style.color = "#0E5A7A"; esito.textContent = "Riconoscimento prodotto in corso...";
+      let riconosciuto = "";
+      try {
+        const rl = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/lookup-barcode?barcode=" + codice);
+        const jl = await rl.json();
+        if (jl.ok && jl.trovato) riconosciuto = [jl.nome, jl.quantita].filter(Boolean).join(" ");
+      } catch (e) {}
       const opzioni = Array.from(body.querySelectorAll(".rf-ric-riga")).map(el => ({ pid: el.dataset.pid, nome: el.querySelector("div").textContent }));
-      const scelta = prompt("Codice " + codice + " non riconosciuto.\nA quale prodotto lo associo? Scrivi il numero:\n\n" + opzioni.map((o, i) => (i + 1) + ") " + o.nome).join("\n"));
+      const intro = riconosciuto
+        ? "Riconosciuto: " + riconosciuto + " (codice " + codice + ")\n\nA quale prodotto dell'ordine lo associo? Scrivi il numero:\n\n"
+        : "Codice " + codice + " non riconosciuto dal database mondiale.\nA quale prodotto lo associo? Scrivi il numero:\n\n";
+      const scelta = prompt(intro + opzioni.map((o, i) => (i + 1) + ") " + o.nome).join("\n"));
       const idx = parseInt(scelta) - 1;
-      if (isNaN(idx) || idx < 0 || idx >= opzioni.length) { esito.style.color = "#64748b"; esito.textContent = "Associazione annullata."; return; }
+      if (isNaN(idx) || idx < 0 || idx >= opzioni.length) { esito.style.color = "#64748b"; esito.textContent = riconosciuto ? (riconosciuto + " - associazione annullata.") : "Associazione annullata."; return; }
       const pid = Number(opzioni[idx].pid);
       const { error } = await supa().from("prodotti").update({ barcode: codice }).eq("id", pid);
       if (error) { esito.style.color = "#dc2626"; esito.textContent = "Errore associazione: " + error.message; return; }
