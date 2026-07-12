@@ -1,6 +1,7 @@
 // js/views/ordine.js — Dettaglio/creazione ordine fornitore + invio WhatsApp/Email
 import "../supabaseClient.js";
 import "../state.js";
+import { apriScanner } from "./barcode-scanner.js";
 
 const supa = () => window.supabaseClient || window.supabase || window.db;
 const FN_INVIO = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invia-ordine-fornitore";
@@ -246,7 +247,8 @@ async function apriRicezione(ordine, righe, aziendaId) {
 
   const body = document.getElementById("rf-ric-body");
   body.innerHTML =
-    '<div class="small-muted" style="margin-bottom:10px;">Inserisci le quantità realmente arrivate. Il magazzino si carica in automatico.</div>' +
+    '<button class="app-button" id="rf-ric-scan" style="width:100%;padding:12px;font-weight:800;background:#0f172a;color:#fff;margin-bottom:10px;">\u{1F4F7} Spara codice a barre</button>' +
+    '<div class="small-muted" style="margin-bottom:10px;">Inserisci le quantità realmente arrivate, oppure spara il codice per trovare il prodotto. Il magazzino si carica in automatico.</div>' +
     (righeOrd || []).map(r => {
       const p = nomiById[String(r.prodotto_id)] || {};
       const gia = ricevutoPer[r.id] || 0;
@@ -262,6 +264,45 @@ async function apriRicezione(ordine, righe, aziendaId) {
     }).join("") +
     '<div id="rf-ric-esito" style="font-size:13px;min-height:18px;margin:10px 0;"></div>' +
     '<button class="app-button" id="rf-ric-salva" style="width:100%;padding:13px;font-weight:800;background:#16a34a;color:#fff;">\u2705 Conferma ricezione e carica magazzino</button>';
+
+  // Scanner: trova la riga per EAN, o propone l'associazione
+  document.getElementById("rf-ric-scan").onclick = () => {
+    apriScanner(async (codice) => {
+      const esito = document.getElementById("rf-ric-esito");
+      // 1) EAN già noto?
+      const { data: trovato } = await supa().rpc("trova_prodotto_da_barcode", { p_azienda: aziendaId, p_barcode: codice });
+      const prod = Array.isArray(trovato) ? trovato[0] : trovato;
+      if (prod) {
+        const riga = body.querySelector('.rf-ric-riga[data-pid="' + prod.id + '"]');
+        if (riga) {
+          riga.scrollIntoView({ behavior: "smooth", block: "center" });
+          riga.style.transition = "background .3s"; riga.style.background = "#dcfce7";
+          const qtaInput = riga.querySelector(".rf-ric-qta");
+          qtaInput.focus(); qtaInput.select();
+          setTimeout(() => { riga.style.background = ""; }, 1500);
+          esito.style.color = "#15803d"; esito.textContent = "✅ " + (prod.nome_interno || prod.nome) + " — inserisci la quantità.";
+        } else {
+          esito.style.color = "#d97706"; esito.textContent = "⚠️ " + (prod.nome_interno || prod.nome) + " non è in questo ordine.";
+        }
+        return;
+      }
+      // 2) EAN nuovo: associo a una riga dell'ordine
+      const nomeRiga = (rid) => {
+        const el = body.querySelector('.rf-ric-riga[data-rigaid="' + rid + '"]');
+        return el ? el.querySelector("div").textContent : "";
+      };
+      const opzioni = Array.from(body.querySelectorAll(".rf-ric-riga")).map(el => ({ pid: el.dataset.pid, nome: el.querySelector("div").textContent }));
+      const scelta = prompt("Codice " + codice + " non riconosciuto.\nA quale prodotto lo associo? Scrivi il numero:\n\n" + opzioni.map((o, i) => (i + 1) + ") " + o.nome).join("\n"));
+      const idx = parseInt(scelta) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= opzioni.length) { esito.style.color = "#64748b"; esito.textContent = "Associazione annullata."; return; }
+      const pid = Number(opzioni[idx].pid);
+      const { error } = await supa().from("prodotti").update({ barcode: codice }).eq("id", pid);
+      if (error) { esito.style.color = "#dc2626"; esito.textContent = "Errore associazione: " + error.message; return; }
+      const riga = body.querySelector('.rf-ric-riga[data-pid="' + pid + '"]');
+      if (riga) { riga.style.background = "#dcfce7"; riga.querySelector(".rf-ric-qta").focus(); setTimeout(() => { riga.style.background = ""; }, 1500); }
+      esito.style.color = "#15803d"; esito.textContent = "🔗 Codice associato a " + opzioni[idx].nome + ". La prossima volta sarà automatico.";
+    });
+  };
 
   document.getElementById("rf-ric-salva").onclick = async () => {
     const btn = document.getElementById("rf-ric-salva");
