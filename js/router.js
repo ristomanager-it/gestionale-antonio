@@ -118,13 +118,14 @@ const routes = {
 
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
-  ricettario: () => import("./views/ricettario.js?v=2"),
+  ricettario: () => import("./views/ricettario.js?v=3"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
   // Editor ricette UNICO: modalità semplice/avanzata dentro crea-ricetta.js
   creaRicetta: () => import("./views/crea-ricetta.js?v=7"),
   "crea-ricetta":          () => import("./views/crea-ricetta.js?v=7"),
   "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=7"),
   "abbina-articoli": () => import("./views/abbina-articoli.js"),
+  "menu-engineering": () => import("./views/menu-engineering.js"),
   preparazioni: () => import("./views/preparazioni.js"),
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js"),
@@ -593,6 +594,9 @@ const routePermissions = {
 
   "abbina-articoli":
     "ricette.write",
+
+  "menu-engineering":
+    "bilancio.read",
 
 };
 
