@@ -44,7 +44,12 @@ export async function render(container) {
 async function carica(container) {
   const box = container.querySelector('#pe-lista');
   box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:20px;">Calcolo KPI in corso...</div>';
-  const { data: kpi, error } = await supa().rpc('get_kpi_dipendenti', { p_azienda: aziendaId, p_giorni: giorniPeriodo });
+  const [{ data: kpi, error }, valRes] = await Promise.all([
+    supa().rpc('get_kpi_dipendenti', { p_azienda: aziendaId, p_giorni: giorniPeriodo }),
+    supa().from('dipendenti_valutazioni').select('dipendente_id,punteggio_totale,created_at').eq('azienda_id', aziendaId).order('created_at', { ascending: false }).limit(200)
+  ]);
+  const ultimaVal = {};
+  (valRes.data || []).forEach(v => { if (!ultimaVal[v.dipendente_id]) ultimaVal[v.dipendente_id] = v; });
   if (error) { box.innerHTML = `<div style="color:#dc2626;font-size:13px;">❌ ${esc(error.message)}</div>`; return; }
   if (!kpi || !kpi.length) {
     box.innerHTML = `<div style="background:#fff;border:2px dashed #cbd5e1;border-radius:14px;padding:30px;text-align:center;">
@@ -65,6 +70,8 @@ async function carica(container) {
     if (Number(k.media_ore_giorno) >= 10) badges.push('<span style="background:#fee2e2;color:#dc2626;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">🔥 Carico alto</span>');
     if (ultimoGg > 7) badges.push(`<span style="background:#f1f5f9;color:#64748b;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">💤 Assente da ${ultimoGg}gg</span>`);
     if (Number(k.regolarita_minuti) <= 60 && Number(k.giorni_lavorati) >= 5) badges.push('<span style="background:#dcfce7;color:#15803d;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">🎯 Preciso</span>');
+    const uv = k.dipendente_id ? ultimaVal[k.dipendente_id] : null;
+    if (uv) badges.push(`<span style="background:#ede9fe;color:#6d28d9;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">⭐ ${Number(uv.punteggio_totale).toFixed(1)}/10</span>`);
     return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <div style="font-size:15.5px;font-weight:800;color:#0f172a;">${esc(k.dip_nome)}</div>
@@ -77,11 +84,15 @@ async function carica(container) {
         <div style="background:#f8fafc;border-radius:10px;padding:9px;text-align:center;"><div style="font-size:17px;font-weight:800;color:#0f172a;">${k.ingresso_medio || '-'}</div><div style="font-size:10.5px;color:#94a3b8;font-weight:700;text-transform:uppercase;">Ingresso</div></div>
         <div style="background:#f8fafc;border-radius:10px;padding:9px;text-align:center;"><div style="font-size:17px;font-weight:800;color:#0f172a;">±${k.regolarita_minuti}′</div><div style="font-size:10.5px;color:#94a3b8;font-weight:700;text-transform:uppercase;">Variabilità</div></div>
       </div>
-      <button class="pe-analisi" data-nome="${esc(k.dip_nome)}" style="margin-top:12px;width:100%;background:linear-gradient(135deg,#0E5A7A,#1a8fb5);color:#fff;border:none;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;cursor:pointer;">🧠 Analisi di Tony</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+        <button class="pe-analisi" data-nome="${esc(k.dip_nome)}" style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">🧠 Analisi Tony</button>
+        <button class="pe-valuta" data-id="${k.dipendente_id || ''}" data-nome="${esc(k.dip_nome)}" ${k.dipendente_id ? '' : 'disabled title="Timbrature senza dipendente collegato"'} style="background:#fff;color:#6d28d9;border:1.5px solid #8b5cf6;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:${k.dipendente_id ? 'pointer' : 'not-allowed'};opacity:${k.dipendente_id ? 1 : 0.5};">⭐ Valuta</button>
+      </div>
     </div>`;
   }).join('');
 
   box.querySelectorAll('.pe-analisi').forEach(b => b.onclick = () => analisiTony(b.dataset.nome));
+  box.querySelectorAll('.pe-valuta').forEach(b => { if (!b.disabled) b.onclick = () => valutaDipendente(b.dataset.id, b.dataset.nome, container); });
 }
 
 async function analisiTony(nome) {
@@ -121,4 +132,88 @@ async function analisiTony(nome) {
   } catch (e) {
     modal.querySelector('#pa-body').innerHTML = `<div style="color:#dc2626;">❌ ${esc(e.message || e)}</div>`;
   }
+}
+
+
+// ── Valutazione rapida: 7 punteggi + note (dipendenti_valutazioni) ──
+const METRICHE = [
+  ['punteggio_presenza', 'Presenza e puntualità'],
+  ['punteggio_velocita', 'Velocità operativa'],
+  ['punteggio_qualita', 'Qualità del lavoro'],
+  ['punteggio_conoscenza', 'Conoscenza di menu e procedure'],
+  ['punteggio_autonomia', 'Autonomia e iniziativa'],
+  ['punteggio_collaborazione', 'Collaborazione col team'],
+  ['punteggio_responsabilita', 'Responsabilità personale'],
+];
+
+function valutaDipendente(dipId, nome, container) {
+  const modal = document.getElementById('pe-modal');
+  modal.style.display = 'flex';
+  modal.innerHTML = `<div style="background:#fff;border-radius:18px;max-width:560px;width:100%;padding:22px;max-height:92vh;overflow:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div style="font-size:16px;font-weight:800;color:#0f172a;">⭐ Valutazione — ${esc(nome)}</div>
+      <button id="pv-chiudi" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;">✕</button>
+    </div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">Periodo: ultimi ${giorniPeriodo} giorni · Totale: <strong id="pv-tot" style="color:#6d28d9;">7.0</strong>/10</div>
+    ${METRICHE.map(([k, label]) => `
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#334155;margin-bottom:4px;">
+          <span style="font-weight:600;">${label}</span>
+          <strong class="pv-val" data-per="${k}" style="color:#6d28d9;">7</strong>
+        </div>
+        <input type="range" class="pv-metrica" data-campo="${k}" min="1" max="10" step="1" value="7" style="width:100%;accent-color:#8b5cf6;">
+      </div>`).join('')}
+    <textarea id="pv-forza" style="width:100%;min-height:54px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:8px;" placeholder="💪 Punti di forza (facoltativo)"></textarea>
+    <textarea id="pv-migliora" style="width:100%;min-height:54px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:8px;" placeholder="📈 Aree di miglioramento (facoltativo)"></textarea>
+    <select id="pv-azione" style="width:100%;padding:11px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13.5px;background:#fff;box-sizing:border-box;margin-bottom:10px;">
+      <option value="">Azione consigliata: nessuna</option>
+      <option value="riconoscimento">🏆 Riconoscimento / complimenti</option>
+      <option value="colloquio">💬 Colloquio individuale</option>
+      <option value="obiettivo">🎯 Assegnare un obiettivo</option>
+      <option value="formazione">📚 Formazione mirata</option>
+      <option value="richiamo">⚠️ Richiamo</option>
+    </select>
+    <div id="pv-esito" style="font-size:12.5px;min-height:16px;margin-bottom:8px;"></div>
+    <button id="pv-salva" style="width:100%;background:#6d28d9;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">💾 Salva valutazione</button>
+  </div>`;
+
+  const el = (s) => modal.querySelector(s);
+  const chiudi = () => { modal.style.display = 'none'; modal.innerHTML = ''; };
+  el('#pv-chiudi').onclick = chiudi;
+  modal.onclick = (e) => { if (e.target === modal) chiudi(); };
+
+  function aggiornaTotale() {
+    const valori = Array.from(modal.querySelectorAll('.pv-metrica')).map(r => Number(r.value));
+    const media = valori.reduce((a, b) => a + b, 0) / valori.length;
+    el('#pv-tot').textContent = media.toFixed(1);
+  }
+  modal.querySelectorAll('.pv-metrica').forEach(r => {
+    r.oninput = () => {
+      modal.querySelector(`.pv-val[data-per="${r.dataset.campo}"]`).textContent = r.value;
+      aggiornaTotale();
+    };
+  });
+
+  el('#pv-salva').onclick = async () => {
+    const payload = {
+      azienda_id: aziendaId,
+      dipendente_id: dipId,
+      valutatore_user_id: window.state?.user?.id || null,
+      valutatore_ruolo: window.state?.ruolo || 'admin',
+      periodo_da: new Date(Date.now() - giorniPeriodo * 86400000).toISOString().slice(0, 10),
+      periodo_a: new Date().toISOString().slice(0, 10),
+      tipo: 'periodica',
+      punti_forza: el('#pv-forza').value.trim() || null,
+      aree_miglioramento: el('#pv-migliora').value.trim() || null,
+      azione_consigliata: el('#pv-azione').value || null,
+    };
+    let somma = 0;
+    modal.querySelectorAll('.pv-metrica').forEach(r => { payload[r.dataset.campo] = Number(r.value); somma += Number(r.value); });
+    payload.punteggio_totale = Math.round((somma / METRICHE.length) * 10) / 10;
+    el('#pv-esito').textContent = 'Salvataggio...'; el('#pv-esito').style.color = '#64748b';
+    const { error } = await supa().from('dipendenti_valutazioni').insert(payload);
+    if (error) { el('#pv-esito').textContent = '❌ ' + error.message; el('#pv-esito').style.color = '#dc2626'; return; }
+    chiudi();
+    await carica(container);
+  };
 }
