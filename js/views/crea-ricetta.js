@@ -983,7 +983,17 @@ export async function render(app) {
     title: ricettaId ? "Modifica Ricetta" : "Crea Ricetta",
     subtitle: "Struttura operativa ed economica",
     content: `
- <div style="margin-bottom:16px;">
+ <div style="margin-bottom:16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <div id="mode-toggle" style="display:inline-flex; background:#eef1f4; border-radius:12px; padding:4px; gap:4px;">
+          <button id="btn-mode-semplice" type="button"
+            style="border:none; border-radius:9px; padding:8px 16px; font-size:14px; font-weight:700; cursor:pointer; background:transparent; color:#334155;">
+            ⚡ Semplice
+          </button>
+          <button id="btn-mode-avanzata" type="button"
+            style="border:none; border-radius:9px; padding:8px 16px; font-size:14px; font-weight:700; cursor:pointer; background:transparent; color:#334155;">
+            🔧 Avanzata
+          </button>
+        </div>
         <button id="btn-help" class="app-button gray small" type="button">
          Come funziona questa scheda
         </button>
@@ -1316,6 +1326,7 @@ export async function render(app) {
   await loadFasiTemplate();
   await loadDispositivi();
   bindUI();
+  initModeToggle();
 
   if (ricettaId) {
     await caricaRicettaCompleta();
@@ -1332,6 +1343,71 @@ export async function render(app) {
     aggiornaOutputInfo();
   }
 }
+
+/* ============================================================
+   MODALITÀ SEMPLICE / AVANZATA
+   Semplice = anagrafica essenziale + ingredienti + resa/food cost
+   Avanzata = tutto (procedimento, porzionature, conservazione, coprodotti)
+============================================================ */
+const EDITOR_MODE_KEY = "rf_ricetta_mode";
+
+function getAdvancedCards() {
+  const ids = [
+    "fasi-container",
+    "porzioni-container",
+    "conservazione-container",
+    "output-secondari-container",
+  ];
+  return ids
+    .map((id) => document.getElementById(id)?.closest(".card"))
+    .filter(Boolean);
+}
+
+function getAdvancedFields() {
+  const ids = ["r-attrezzatura", "r-note-proc"];
+  return ids
+    .map((id) => document.getElementById(id)?.closest(".form-group"))
+    .filter(Boolean);
+}
+
+function applyEditorMode(mode) {
+  const semplice = mode === "semplice";
+
+  getAdvancedCards().forEach((card) => {
+    card.style.display = semplice ? "none" : "";
+  });
+  getAdvancedFields().forEach((fg) => {
+    fg.style.display = semplice ? "none" : "";
+  });
+
+  const btnS = document.getElementById("btn-mode-semplice");
+  const btnA = document.getElementById("btn-mode-avanzata");
+  const on = "background:#0E5A7A;color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;";
+  const off = "background:transparent;color:#334155;border:none;border-radius:9px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;";
+  if (btnS) btnS.style.cssText = semplice ? on : off;
+  if (btnA) btnA.style.cssText = semplice ? off : on;
+
+  try { localStorage.setItem(EDITOR_MODE_KEY, mode); } catch {}
+}
+
+function initModeToggle() {
+  const btnS = document.getElementById("btn-mode-semplice");
+  const btnA = document.getElementById("btn-mode-avanzata");
+  if (!btnS || !btnA) return;
+
+  btnS.addEventListener("click", () => applyEditorMode("semplice"));
+  btnA.addEventListener("click", () => applyEditorMode("avanzata"));
+
+  // Route "crea-ricetta-avanzata" forza avanzata; altrimenti ultima scelta o semplice
+  let mode = "semplice";
+  if ((window.location.hash || "").includes("crea-ricetta-avanzata")) {
+    mode = "avanzata";
+  } else {
+    try { mode = localStorage.getItem(EDITOR_MODE_KEY) || "semplice"; } catch {}
+  }
+  applyEditorMode(mode);
+}
+
 /* ============================================================
    PRODOTTI + AUTOCOMPLETE
 ============================================================ */
