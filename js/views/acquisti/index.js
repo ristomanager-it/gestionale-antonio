@@ -87,6 +87,10 @@ export async function render(container) {
 
   });
 
-  await renderTab("fatture");
+  // Deep-link: #/acquisti?tab=riordino apre direttamente quella tab
+  const tabQuery = (window.location.hash.split("?")[1] || "");
+  const tabParam = new URLSearchParams(tabQuery).get("tab");
+  const tabValide = ["fatture","ddt","pagamenti","fornitori","riordino","ordini"];
+  await renderTab(tabValide.includes(tabParam) ? tabParam : "fatture");
 
 }
