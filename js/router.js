@@ -77,7 +77,7 @@ const routes = {
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
   "ricette-semplici": () =>
-    import("./views/crea-ricetta.js?v=6"),
+    import("./views/crea-ricetta.js?v=7"),
   "permessi-operatore": () =>
     import("./views/permessi-operatore/index.js"),
 
@@ -121,9 +121,9 @@ const routes = {
   ricettario: () => import("./views/ricettario.js"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
   // Editor ricette UNICO: modalità semplice/avanzata dentro crea-ricetta.js
-  creaRicetta: () => import("./views/crea-ricetta.js?v=6"),
-  "crea-ricetta":          () => import("./views/crea-ricetta.js?v=6"),
-  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=6"),
+  creaRicetta: () => import("./views/crea-ricetta.js?v=7"),
+  "crea-ricetta":          () => import("./views/crea-ricetta.js?v=7"),
+  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=7"),
   preparazioni: () => import("./views/preparazioni.js"),
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js"),
