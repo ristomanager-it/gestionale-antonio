@@ -112,7 +112,7 @@ const routes = {
   completaAzienda: () => import("./views/completa-azienda.js"),
 "scegli-sede": () => import("./views/scegli-sede.js"),
   acquisti: () => import("./views/acquisti/index.js"),
-  magazzino: () => import("./views/magazzino/magazzino.js"),
+  magazzino: () => import("./views/magazzino/magazzino.js?v=2"),
 
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
