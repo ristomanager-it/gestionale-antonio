@@ -100,7 +100,7 @@ const routes = {
   dipendente: () => import("./views/dipendente.js"),
   "crea-dipendente": () => import("./views/crea-dipendente.js?v=3"),
 "organizzazione": () => import("./views/organizzazione.js?v=4"),
-"persone": () => import("./views/persone.js"),
+"persone": () => import("./views/persone.js?v=2"),
 "manuale-operativo": () => import("./views/manuale-operativo.js"),
   "bo-agenzie": () => import("./views/bo/bo-agenzie.js"),
   "bo-location-ricevimenti": () => import("./views/bo/bo-location-ricevimenti.js"),
