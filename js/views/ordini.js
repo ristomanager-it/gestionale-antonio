@@ -135,7 +135,7 @@ export async function render(container) {
 
               <td>${escapeHtml(o.fornitori?.ragione_sociale || "-")}</td>
 
-              <td>${escapeHtml(o.stato)}</td>
+              <td><span style="padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:${o.stato==='inviato'?'#dcfce7':o.stato==='bozza'?'#fef3c7':'#e0f2fe'};">${escapeHtml(o.stato||'-')}</span></td>
 
               <td>
                 <button
