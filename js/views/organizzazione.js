@@ -24,6 +24,7 @@ export async function render(container) {
         <div style="display:flex;gap:8px;">
           <button onclick="window.location.hash='#/manuale-operativo'" style="background:#fff;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;">📖 Manuale</button>
           <button id="org-regolamento" style="background:#fff;color:#92400e;border:1.5px solid #f59e0b;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;">📜 Regolamento</button>
+          <button onclick="window.location.hash='#/persone'" style="background:#fff;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;cursor:pointer;">👥 Persone</button>
           <button id="org-nuovo" style="background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">+ Nuovo ruolo</button>
         </div>
       </div>
