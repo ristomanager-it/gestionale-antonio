@@ -183,10 +183,7 @@ const routes = {
 
   // PRODUZIONE
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
-  "bo-produzione": () => import("./views/bo/bo-produzione.js"),
   "bo-comande": () => import("./views/bo/bo-comande.js?v=2"),
-  "bo-ricette": () => import("./views/bo/ricette-editor.js"),
-  "ricette-editor": () => import("./views/bo/ricette-editor.js"),
   "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=2"),
   "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
   "bo-consulenti": () => import("./views/bo/bo-consulenti.js"),
@@ -261,9 +258,7 @@ const BO_ROUTES = new Set([
   "bo-magazzino",
   "ordini",
   "ordine",
-  "bo-produzione",
   "bo-comande",
-  "bo-ricette",
   "bo-configurazione",
   "bo-promo",
   "bo-catenarie",
@@ -1510,9 +1505,7 @@ const ROUTE_FEATURES = {
   "bo-magazzino":    "magazzino",
 
   // Cucina & Ricette
-  "ricette-editor":  "ricettario",
   "ricette":         "ricettario",
-  "bo-produzione":   "ricettario",
   "planner-produzione": "ricettario",
 
   // Personale
