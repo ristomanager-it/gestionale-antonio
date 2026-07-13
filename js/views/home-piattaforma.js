@@ -2724,9 +2724,22 @@ window.invitaAgente = async function(agenteId) {
     );
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.error || "Errore invito");
-    alert(data.linked
-      ? "Email già registrata: utente collegato all'agente ✅"
-      : "Invito inviato ✅ L'agente riceverà l'email per creare la password.");
+    if (data.link_manuale) {
+      // Email non partita: link di attivazione da mandare a mano (WhatsApp)
+      try { await navigator.clipboard.writeText(data.link_manuale); } catch {}
+      const agName = ( _agenti.find(x => x.id === agenteId) || {} );
+      const waNum = String(agName.telefono || "").replace(/\D/g, "");
+      const testoWa = encodeURIComponent("Ciao! Ecco il link per attivare il tuo accesso Ristoflow (crea la tua password):\n" + data.link_manuale);
+      if (waNum && confirm("Email non inviata, ma il link di attivazione è pronto (già copiato).\n\nAprire WhatsApp per mandarlo all'agente?")) {
+        window.open("https://wa.me/39" + waNum + "?text=" + testoWa, "_blank");
+      } else {
+        alert("Link di attivazione copiato negli appunti ✅ Incollalo in un messaggio all'agente.");
+      }
+    } else {
+      alert(data.linked
+        ? "Email già registrata: utente collegato all'agente ✅"
+        : "Invito inviato ✅ L'agente riceverà l'email per creare la password.");
+    }
     if (typeof caricaAgenti === "function") await caricaAgenti();
   } catch (e) {
     alert("Errore: " + e.message);
