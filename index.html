@@ -25,7 +25,7 @@
   <header class="app-header">
 
     <div class="header-left">
-      <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Apri menu">
+      <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Apri menu di navigazione" aria-controls="global-menu" aria-expanded="false">
         <div class="menu-icon">
           <span></span>
           <span></span>
@@ -35,7 +35,7 @@
     </div>
 
     <div class="header-center">
-      <button id="header-sede-trigger" class="header-brand header-sede-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+      <button id="header-sede-trigger" class="header-brand header-sede-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Seleziona sede">
         <img id="header-logo" class="header-logo" src="assets/favicon-192.png" alt="Logo azienda" />
         <div class="header-brand-text">
           <div class="header-location-row">
@@ -154,7 +154,7 @@
 
     // ---- TENDINA CAMBIO SEDE ----
     function escapeHtmlHeader(str) {
-      return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+      return String(str ?? "").replace(/[&<>"]'/g, (c) => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
       }[c]));
     }
@@ -227,7 +227,7 @@
         return `
           <button type="button" class="sede-dropdown-item${attiva ? " active" : ""}" data-sede-id="${escapeHtmlHeader(sede.id)}" role="option" aria-selected="${attiva}">
             <span class="sede-dropdown-item-name">${escapeHtmlHeader(sede.nome || "Sede")}</span>
-            ${attiva ? '<span class="sede-dropdown-item-check">✓</span>' : ""}
+            ${attiva ? '<span class="sede-dropdown-item-check">â</span>' : ""}
           </button>
         `;
       }).join("");
@@ -308,4 +308,3 @@
 
 </body>
 </html>
-
