@@ -26,6 +26,12 @@ export async function render(container) {
   window._piani = piani || [];
 
   const content = `
+    <div style="margin-top:12px;">
+      <button class="app-button" onclick="window.location.hash='#/super-tony'">
+        🛠️ Super Tony — assistenza tecnica AI
+      </button>
+    </div>
+
     <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:center;margin-top:20px;">
       <canvas id="grafico-scadenze" width="200" height="200"></canvas>
 
