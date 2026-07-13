@@ -210,6 +210,10 @@ async function invia() {
   aggiungiMsg("assistant", "⏳ Sto indagando…");
 
   try {
+    // Sessione fresca: il JWT scade dopo un po' e il gateway respinge
+    // con un non-2xx PRIMA che la funzione parta. Refresh preventivo.
+    try { await supabase.auth.refreshSession(); } catch {}
+
     // le immagini viaggiano solo con l'ULTIMO messaggio utente (token)
     const storia = chat.filter(m => !m.content.startsWith("⏳")).slice(-16);
     const ultimoUserIdx = storia.map(m => m.role).lastIndexOf("user");
@@ -223,7 +227,14 @@ async function invia() {
     });
     chat.pop(); // rimuove il placeholder ⏳
     if (error || !data?.success) {
-      aggiungiMsg("assistant", "❌ Errore: " + (error?.message || data?.error || "sconosciuto"));
+      let dettaglio = data?.error || error?.message || "sconosciuto";
+      try {
+        if (error?.context) {
+          const bodyErr = await error.context.json();
+          if (bodyErr?.error) dettaglio = bodyErr.error;
+        }
+      } catch {}
+      aggiungiMsg("assistant", "❌ Errore: " + dettaglio + (String(dettaglio).includes("Sessione") ? "" : " — se persiste, ricarica la pagina."));
     } else {
       aggiungiMsg("assistant", data.reply || "(nessuna risposta)");
       if (Array.isArray(data.proposals) && data.proposals.length) {
@@ -247,6 +258,7 @@ async function eseguiProposta(idx) {
     : `Pubblicare ${p.path} su GitHub (deploy automatico)?`)) return;
 
   try {
+    try { await supabase.auth.refreshSession(); } catch {}
     const { data, error } = await supabase.functions.invoke("super-tony", {
       body: { confirm_action: p }
     });
