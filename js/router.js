@@ -52,7 +52,7 @@ const routes = {
   "home-manager": () => import("./views/home-manager.js?v=2"),
   "home-operatore": () => import("./views/home-operatore.js?v=3"),
 
-  homePiattaforma: () => import("./views/home-piattaforma.js?v=2"),
+  homePiattaforma: () => import("./views/home-piattaforma.js?v=3"),
   "home-agente": () => import("./views/home-agente.js"),
   "social-utenti": () => import("./views/social-utenti.js"),
 
