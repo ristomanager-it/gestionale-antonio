@@ -1810,6 +1810,9 @@ function renderReteAgenti(el) {
             ${a.telefono ? `<a href="https://wa.me/39${a.telefono.replace(/\D/g,'')}" target="_blank" style="background:#25d366;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;">💬 WA</a>` : ''}
             <button onclick="apriModaleAgLead('${a.id}')" style="background:#7C3AED;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;">+ Lead</button>
             <button onclick="apriModaleAgente('${a.id}')" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Edit</button>
+            ${a.user_id
+              ? `<span style="background:#d1fae5;color:#059669;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;text-align:center;">🔓 Accesso attivo</span>`
+              : `<button onclick="invitaAgente('${a.id}')" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;">📧 Invita</button>`}
           </div>
         </div>
 
@@ -2700,3 +2703,32 @@ function escHP(v) {
   return String(v == null ? "" : v)
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+
+
+/* ── INVITO CREDENZIALI AGENTE ─────────────────────────────── */
+window.invitaAgente = async function(agenteId) {
+  if (!confirm("Inviare all'agente l'email di invito per creare le credenziali?")) return;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Sessione non valida, ricarica la pagina");
+    const res = await fetch(
+      "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invita-agente",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ agente_id: agenteId })
+      }
+    );
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Errore invito");
+    alert(data.linked
+      ? "Email già registrata: utente collegato all'agente ✅"
+      : "Invito inviato ✅ L'agente riceverà l'email per creare la password.");
+    if (typeof caricaAgenti === "function") await caricaAgenti();
+  } catch (e) {
+    alert("Errore: " + e.message);
+  }
+};
