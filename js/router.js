@@ -126,7 +126,7 @@ const routes = {
   "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=7"),
   "abbina-articoli": () => import("./views/abbina-articoli.js"),
   "menu-engineering": () => import("./views/menu-engineering.js"),
-  "super-tony": () => import("./views/super-tony.js?v=3"),
+  "super-tony": () => import("./views/super-tony.js?v=4"),
   preparazioni: () => import("./views/preparazioni.js"),
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js"),
