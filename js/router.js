@@ -126,6 +126,7 @@ const routes = {
   "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=7"),
   "abbina-articoli": () => import("./views/abbina-articoli.js"),
   "menu-engineering": () => import("./views/menu-engineering.js"),
+  "super-tony": () => import("./views/super-tony.js"),
   preparazioni: () => import("./views/preparazioni.js"),
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js"),
@@ -1530,6 +1531,7 @@ const ROUTE_FEATURES = {
 
   // Multi-sede
   "gestione-aziende": null, // solo superadmin, già gestito
+  "super-tony": null,       // solo superadmin, verificato lato server (Edge Function)
 };
 
 function checkFeatureGating(route) {
