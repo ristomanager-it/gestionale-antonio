@@ -379,6 +379,32 @@ window.stateActions = {
     this.setSedi(data || []);
   },
 
+  // Recupera dalla localStorage una sede valida dell'azienda corrente.
+  // Usata come rete di salvataggio in caricaContestoOperativo per non
+  // buttare via la sede scelta dall'utente quando mancano le assegnazioni.
+  async _recuperaSedeDaStorage(aziendaId) {
+    try {
+      const storedSedeId = localStorage.getItem(this.LS_KEYS.ACTIVE_SEDE_ID);
+      if (!storedSedeId) return null;
+      const { data, error } = await window.supabase
+        .from("sedi")
+        .select("id, nome, indirizzo, latitudine, longitudine")
+        .eq("id", storedSedeId)
+        .eq("azienda_id", aziendaId)
+        .maybeSingle();
+      if (error || !data) return null;
+      window.state.sedi = [data];
+      window.state.sedeAttiva = data;
+      if (window.uiActions?.renderSedeSelector) {
+        window.uiActions.renderSedeSelector();
+      }
+      return data;
+    } catch (e) {
+      console.warn("Recupero sede da storage fallito:", e);
+      return null;
+    }
+  },
+
   async caricaContestoOperativo() {
     const user = window.state.user;
     const azienda = window.state.azienda;
@@ -421,6 +447,22 @@ window.stateActions = {
     this.setSedi(sedi);
 
     if (!dipendente?.id && sedi.length === 0) {
+      // FIX "sede persa a ogni navigazione": prima di azzerare tutto,
+      // se in localStorage c'è una sede VALIDA di questa azienda (scelta
+      // dall'utente in gestione-sedi), la teniamo buona. Senza questo,
+      // gli utenti senza righe in utenti_sedi perdevano la sede a ogni
+      // cambio modulo e dovevano riaprirla dal menu laterale.
+      const sedeRecuperata = await this._recuperaSedeDaStorage(azienda.id);
+      if (sedeRecuperata) {
+        return {
+          ok: true,
+          tipo: "sede_da_storage",
+          dipendente,
+          sedi: [sedeRecuperata],
+          sedeAttiva: sedeRecuperata,
+        };
+      }
+
       window.state.sedi = [];
       window.state.sedeAttiva = null;
       window.state.sediDipendente = [];
@@ -433,6 +475,18 @@ window.stateActions = {
     }
 
     if (sedi.length === 0) {
+      // FIX: stesso recupero da localStorage (vedi commento sopra)
+      const sedeRecuperata = await this._recuperaSedeDaStorage(azienda.id);
+      if (sedeRecuperata) {
+        return {
+          ok: true,
+          tipo: "sede_da_storage",
+          dipendente,
+          sedi: [sedeRecuperata],
+          sedeAttiva: sedeRecuperata,
+        };
+      }
+
       window.state.sedeAttiva = null;
       localStorage.removeItem(this.LS_KEYS.ACTIVE_SEDE_ID);
 
