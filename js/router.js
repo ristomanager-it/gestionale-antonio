@@ -52,7 +52,7 @@ const routes = {
   "home-manager": () => import("./views/home-manager.js?v=2"),
   "home-operatore": () => import("./views/home-operatore.js?v=3"),
 
-  homePiattaforma: () => import("./views/home-piattaforma.js"),
+  homePiattaforma: () => import("./views/home-piattaforma.js?v=2"),
   "home-agente": () => import("./views/home-agente.js"),
   "social-utenti": () => import("./views/social-utenti.js"),
 
@@ -1168,6 +1168,23 @@ async function resolve() {
     return;
   }
 
+  // ── AGENTE VENDITA: home dedicata, non servono aziende associate ──
+  if (route === "home-agente") {
+    try {
+      const { data: agAttivo } = await supabase
+        .from("agenti")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .eq("stato", "attivo")
+        .maybeSingle();
+      if (agAttivo) {
+        setHeaderVisible(true);
+        await renderView("home-agente");
+        return;
+      }
+    } catch (e) { console.warn("Check agente:", e); }
+  }
+
   try {
     const { data: dipCheck, error: dipCheckErr } = await supabase
       .from("dipendenti")
@@ -1197,6 +1214,20 @@ async function resolve() {
     if (aziendaRes.redirected) return;
 
     if (aziendaRes.reason === "no_aziende") {
+      // Agente vendita "puro" (nessuna azienda): va alla sua home dedicata
+      try {
+        const { data: agSolo } = await supabase
+          .from("agenti")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .eq("stato", "attivo")
+          .maybeSingle();
+        if (agSolo) {
+          window.location.hash = "#/home-agente";
+          return;
+        }
+      } catch (e) { console.warn("Check agente no_aziende:", e); }
+
       app.innerHTML = `
         <div class="view" style="padding:40px; text-align:center;">
           <h2 style="color:#dc2626;">Accesso non consentito</h2>
