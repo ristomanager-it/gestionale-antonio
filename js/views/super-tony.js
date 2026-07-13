@@ -6,8 +6,9 @@
 import { supabase } from "../supabaseClient.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 
-let chat = [];       // {role, content}
+let chat = [];       // {role, content, images?}
 let proposte = [];   // proposte in attesa
+let allegati = [];   // data URL immagini per il prossimo messaggio
 let busy = false;
 
 function escapeHtml(s) {
@@ -37,8 +38,12 @@ export async function render(app) {
         body: `
           <div id="st-chat" style="display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; padding:4px;"></div>
           <div id="st-proposte" style="margin-top:10px;"></div>
-          <div style="display:flex; gap:8px; margin-top:12px;">
-            <textarea id="st-input" class="input" rows="2" placeholder="Descrivi il problema del cliente o cosa serve fare…" style="flex:1; resize:vertical;"></textarea>
+          <div id="st-anteprime" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;"></div>
+          <div style="display:flex; gap:8px; margin-top:12px; align-items:flex-end;">
+            <button id="st-allega" class="app-button gray small" title="Allega screenshot" type="button">📎</button>
+            <button id="st-cattura" class="app-button gray small" title="Cattura schermo" type="button">📸</button>
+            <input id="st-file" type="file" accept="image/*" multiple style="display:none;">
+            <textarea id="st-input" class="input" rows="2" placeholder="Descrivi il problema, incolla o allega uno screenshot…" style="flex:1; resize:vertical;"></textarea>
             <button id="st-send" class="app-button">Invia</button>
           </div>
           <div style="font-size:11px; color:#94a3b8; margin-top:6px;">
@@ -54,12 +59,96 @@ export async function render(app) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); invia(); }
   });
 
+  document.getElementById("st-allega").addEventListener("click", () =>
+    document.getElementById("st-file").click());
+  document.getElementById("st-file").addEventListener("change", async e => {
+    for (const f of e.target.files || []) await aggiungiAllegato(f);
+    e.target.value = "";
+  });
+
+  document.getElementById("st-input").addEventListener("paste", async e => {
+    for (const item of e.clipboardData?.items || []) {
+      if (item.type?.startsWith("image/")) {
+        e.preventDefault();
+        const f = item.getAsFile();
+        if (f) await aggiungiAllegato(f);
+      }
+    }
+  });
+
+  document.getElementById("st-cattura").addEventListener("click", catturaSchermo);
+
   aggiungiMsg("assistant", "Ciao! Sono Super Tony, il tecnico della piattaforma. Dimmi il problema — posso interrogare il database di produzione e leggere il codice su GitHub. Le modifiche te le propongo e le esegui tu con un tap.");
 }
 
-function aggiungiMsg(role, content) {
-  chat.push({ role, content });
+function aggiungiMsg(role, content, images) {
+  chat.push({ role, content, ...(images?.length ? { images } : {}) });
   renderChat();
+}
+
+// Ridimensiona a max 1600px e converte in JPEG per non gonfiare i token
+function ridimensionaImmagine(dataUrl) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1600;
+      const scala = Math.min(1, MAX / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scala);
+      c.height = Math.round(img.height * scala);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+async function aggiungiAllegato(file) {
+  if (allegati.length >= 4) { alert("Massimo 4 screenshot per messaggio."); return; }
+  const dataUrl = await new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.readAsDataURL(file);
+  });
+  allegati.push(await ridimensionaImmagine(String(dataUrl)));
+  renderAnteprime();
+}
+
+async function catturaSchermo() {
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    alert("Cattura schermo non disponibile su questo dispositivo: fai lo screenshot e allegalo con 📎 o incollalo.");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    const track = stream.getVideoTracks()[0];
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    await video.play();
+    await new Promise(r => setTimeout(r, 300));
+    const c = document.createElement("canvas");
+    c.width = video.videoWidth;
+    c.height = video.videoHeight;
+    c.getContext("2d").drawImage(video, 0, 0);
+    track.stop();
+    allegati.push(await ridimensionaImmagine(c.toDataURL("image/png")));
+    renderAnteprime();
+  } catch (e) {
+    if (e?.name !== "NotAllowedError") alert("Cattura fallita: " + e.message);
+  }
+}
+
+function renderAnteprime() {
+  const cont = document.getElementById("st-anteprime");
+  if (!cont) return;
+  cont.innerHTML = allegati.map((a, i) => `
+    <div style="position:relative;">
+      <img src="${a}" style="height:56px; border-radius:8px; border:1px solid #e2e8f0;">
+      <button data-idx="${i}" class="st-del-img" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; border:none; background:#dc2626; color:#fff; font-size:11px; cursor:pointer;">✕</button>
+    </div>`).join("");
+  cont.querySelectorAll(".st-del-img").forEach(b =>
+    b.addEventListener("click", () => { allegati.splice(Number(b.dataset.idx), 1); renderAnteprime(); }));
 }
 
 function renderChat() {
@@ -70,7 +159,7 @@ function renderChat() {
                 max-width:88%; padding:10px 12px; border-radius:12px; white-space:pre-wrap; font-size:14px;
                 background:${m.role === "user" ? "#0E5A7A" : "#f1f5f9"};
                 color:${m.role === "user" ? "#fff" : "#0f172a"};">
-      ${escapeHtml(m.content)}
+      ${(m.images || []).map(img => `<img src="${img}" style="max-width:180px; border-radius:8px; display:block; margin-bottom:6px;">`).join("")}${escapeHtml(m.content)}
     </div>`).join("");
   cont.scrollTop = cont.scrollHeight;
 }
@@ -111,15 +200,26 @@ async function invia() {
   if (busy) return;
   const input = document.getElementById("st-input");
   const testo = (input.value || "").trim();
-  if (!testo) return;
+  if (!testo && !allegati.length) return;
   input.value = "";
-  aggiungiMsg("user", testo);
+  const imgs = allegati.slice();
+  allegati = [];
+  renderAnteprime();
+  aggiungiMsg("user", testo || "(screenshot)", imgs);
   busy = true;
   aggiungiMsg("assistant", "⏳ Sto indagando…");
 
   try {
+    // le immagini viaggiano solo con l'ULTIMO messaggio utente (token)
+    const storia = chat.filter(m => !m.content.startsWith("⏳")).slice(-16);
+    const ultimoUserIdx = storia.map(m => m.role).lastIndexOf("user");
+    const payload = storia.map((m, i) => ({
+      role: m.role,
+      content: m.content,
+      ...(i === ultimoUserIdx && m.images?.length ? { images: m.images } : {})
+    }));
     const { data, error } = await supabase.functions.invoke("super-tony", {
-      body: { messages: chat.filter(m => !m.content.startsWith("⏳")).slice(-16) }
+      body: { messages: payload }
     });
     chat.pop(); // rimuove il placeholder ⏳
     if (error || !data?.success) {
