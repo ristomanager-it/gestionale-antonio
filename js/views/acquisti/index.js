@@ -1,14 +1,20 @@
+import { renderFatture } from "./fatture.js";
+import { renderDDT } from "./ddt.js";
+import { renderPagamenti } from "./pagamenti.js";
+import { renderFornitori } from "./fornitori.js";
+import { renderRiordino } from "./riordino.js";
+import { renderOrdini } from "./ordini.js";
+
 export async function render(container) {
 
   const azienda = window.state?.azienda;
-  const sedeAttiva = window.state?.sedeAttiva || localStorage.getItem('active_sede_id');
 
-  if (!azienda || !sedeAttiva) {
+  if (!azienda) {
 
     container.innerHTML = `
       <section class="view">
         <div class="card">
-          <h3>Nessuna azienda o sede attiva</h3>
+          <h3>Nessuna azienda attiva</h3>
         </div>
       </section>
     `;
