@@ -17,6 +17,17 @@ function escapeHtml(s) {
 }
 
 export async function render(app) {
+  // Sezione riservata alla PIATTAFORMA: stessa regola di gestione-aziende.
+  // (Il gate vero resta comunque lato server nell'Edge Function: JWT + ruolo superadmin)
+  const aziendaAttiva = window.state?.azienda;
+  if (!window.state?.user || !aziendaAttiva || aziendaAttiva.stato !== "piattaforma") {
+    app.innerHTML = createPageLayout({
+      title: "Accesso negato",
+      content: createCard({ body: "<p>Sezione riservata alla piattaforma.</p>" })
+    });
+    return;
+  }
+
   app.innerHTML = createPageLayout({
     title: "🛠️ Super Tony",
     subtitle: "Tecnico AI della piattaforma — database e GitHub, con conferma umana su ogni modifica",
