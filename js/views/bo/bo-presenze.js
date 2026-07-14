@@ -300,13 +300,61 @@ export async function render(container) {
         const dipId = card.dataset.dipId;
         container.querySelector('#filtro-dip').value = dipId;
         filtroDipId = dipId;
-        renderTabella(timbratureCorrente.filter(t => t.dipendente_id === dipId));
+        const suoi = timbratureCorrente.filter(t => t.dipendente_id === dipId);
+        mostraAnomalieDip(dipId, suoi);
+        renderTabella(suoi);
         card.style.borderColor = '#0E5A7A';
         card.style.background = '#f0f9ff';
+        const boxAnom = container.querySelector('#box-anomalie');
+        if (boxAnom) boxAnom.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     });
 
     renderTabella(timbratureCorrente);
+  }
+
+  // ── Riquadro anomalie del dipendente selezionato ──
+  function mostraAnomalieDip(dipId, timbrDip) {
+    let box = container.querySelector('#box-anomalie');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'box-anomalie';
+      box.style.margin = '0 0 16px';
+      const tabella = container.querySelector('#tabella-presenze');
+      if (tabella && tabella.parentNode) tabella.parentNode.insertBefore(box, tabella);
+    }
+    const nome = (timbrDip[0] && timbrDip[0].dip_nome) || 'Dipendente';
+    // anomalie = timbrature con geo_esito diverso da 'ok' (e valorizzato)
+    const anomalie = timbrDip.filter(t => t.geo_esito && t.geo_esito !== 'ok');
+    if (!anomalie.length) {
+      box.innerHTML = `
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;font-size:13px;color:#15803d;">
+          ✅ <strong>${esc(nome)}</strong>: nessuna anomalia nel periodo selezionato.
+        </div>`;
+      return;
+    }
+    const righe = anomalie.map(t => {
+      const tipo = { inizio_turno:'Inizio turno', fine_turno:'Fine turno', inizio_pausa:'Inizio pausa', fine_pausa:'Fine pausa' }[t.tipo] || t.tipo;
+      return `<tr>
+        <td style="padding:6px 10px;">${fmtData(t.timestamp)}</td>
+        <td style="padding:6px 10px;">${fmtOra(t.timestamp)}</td>
+        <td style="padding:6px 10px;">${esc(tipo)}</td>
+        <td style="padding:6px 10px;color:#b91c1c;font-weight:600;">${esc(t.geo_esito)}</td>
+        <td style="padding:6px 10px;color:#64748b;">${esc(t.geo_motivo || '—')}</td>
+      </tr>`;
+    }).join('');
+    box.innerHTML = `
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 14px;">
+        <div style="font-weight:700;color:#b91c1c;font-size:14px;margin-bottom:8px;">⚠️ Anomalie di ${esc(nome)} — ${anomalie.length} timbrature da verificare</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr style="background:#fff;color:#374151;text-align:left;">
+              <th style="padding:6px 10px;">Data</th><th style="padding:6px 10px;">Ora</th><th style="padding:6px 10px;">Tipo</th><th style="padding:6px 10px;">Problema</th><th style="padding:6px 10px;">Dettaglio</th>
+            </tr></thead>
+            <tbody>${righe}</tbody>
+          </table>
+        </div>
+      </div>`;
   }
 
   // ── Render tabella ──────────────────────────────────────────
@@ -532,13 +580,34 @@ export async function render(container) {
         <p>${azienda ? azienda + ' · ' : ''}${periodoLabel} · estratto il ${new Date().toLocaleDateString('it-IT')}</p>
       </div>
       ${blocchi}
-      <script>window.onload = function(){ window.print(); }<\/script>
       </body></html>`;
 
-    const w = window.open('', '_blank');
-    if (!w) { alert('Consenti i popup per stampare il cartellino.'); return; }
-    w.document.write(html);
-    w.document.close();
+    // Stampa via iframe nascosto: affidabile anche su iOS/Safari mobile,
+    // dove window.open + auto-print spesso non funziona (fogli bianchi).
+    const vecchio = document.getElementById('cartellino-print-frame');
+    if (vecchio) vecchio.remove();
+    const iframe = document.createElement('iframe');
+    iframe.id = 'cartellino-print-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    // aspetto che il contenuto sia pronto, poi stampo l'iframe
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        alert('Impossibile aprire la stampa: ' + (e?.message || e));
+      }
+    }, 400);
   }
 
   // Carica dati iniziali
