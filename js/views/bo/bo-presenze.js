@@ -253,8 +253,9 @@ export async function render(container) {
         riepilogoCorrente[id].minutiTotali += Math.round(t.ore_lavorate * 60);
         riepilogoCorrente[id].turniCompleti++;
       }
-      if (t.geo_esito === 'ok') riepilogoCorrente[id].gpsOk++;
-      else if (t.geo_esito) riepilogoCorrente[id].gpsKo++;
+      const esitoGeo = (t.geo_esito || '').toLowerCase();
+      if (esitoGeo === 'ok') riepilogoCorrente[id].gpsOk++;
+      else if (esitoGeo) riepilogoCorrente[id].gpsKo++;
     }
 
     // Trova sede selezionata per controllo GPS
@@ -325,7 +326,7 @@ export async function render(container) {
     }
     const nome = (timbrDip[0] && timbrDip[0].dip_nome) || 'Dipendente';
     // anomalie = timbrature con geo_esito diverso da 'ok' (e valorizzato)
-    const anomalie = timbrDip.filter(t => t.geo_esito && t.geo_esito !== 'ok');
+    const anomalie = timbrDip.filter(t => t.geo_esito && t.geo_esito.toLowerCase() !== 'ok');
     if (!anomalie.length) {
       box.innerHTML = `
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;font-size:13px;color:#15803d;">
@@ -398,7 +399,7 @@ export async function render(container) {
               }
 
               // GPS status
-              const gpsHtml = t.geo_esito === 'ok'
+              const gpsHtml = (t.geo_esito || '').toLowerCase() === 'ok'
                 ? '<span style="color:#15803d;">✅ Ok</span>'
                 : t.geo_esito
                   ? `<span style="color:#dc2626;" title="${esc(t.geo_motivo||'')}">⚠️ ${esc(t.geo_esito)}</span>`
@@ -562,24 +563,25 @@ export async function render(container) {
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
       <title>Cartellino ore — ${periodoLabel}</title>
       <style>
-        * { font-family: -apple-system, Arial, sans-serif; }
-        body { margin: 24px; color: #111; }
-        .head { border-bottom: 2px solid #0E5A7A; padding-bottom: 10px; margin-bottom: 20px; }
-        .head h1 { margin: 0; font-size: 20px; color: #0E5A7A; }
-        .head p { margin: 4px 0 0; color: #555; font-size: 13px; }
-        .dip { margin-bottom: 26px; page-break-inside: avoid; }
-        .dip h3 { margin: 0 0 8px; font-size: 15px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { padding: 6px 10px; border-bottom: 1px solid #e5e7eb; }
+        * { font-family: -apple-system, Arial, sans-serif; box-sizing: border-box; }
+        body { margin: 16px; color: #111; }
+        .head { border-bottom: 2px solid #0E5A7A; padding-bottom: 8px; margin-bottom: 14px; }
+        .head h1 { margin: 0; font-size: 17px; color: #0E5A7A; }
+        .head p { margin: 3px 0 0; color: #555; font-size: 11px; }
+        .grid { column-count: 2; column-gap: 18px; }
+        .dip { break-inside: avoid; page-break-inside: avoid; margin-bottom: 14px; display: inline-block; width: 100%; }
+        .dip h3 { margin: 0 0 4px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        th, td { padding: 2px 6px; border-bottom: 1px solid #eee; }
         thead th { background: #f1f5f9; text-align: left; }
-        tfoot td { font-weight: 800; border-top: 2px solid #0E5A7A; border-bottom: none; color: #0E5A7A; }
-        @media print { body { margin: 12mm; } }
+        tfoot td { font-weight: 800; border-top: 1.5px solid #0E5A7A; border-bottom: none; color: #0E5A7A; }
+        @media print { body { margin: 10mm; } }
       </style></head><body>
       <div class="head">
         <h1>Cartellino ore lavorate</h1>
         <p>${azienda ? azienda + ' · ' : ''}${periodoLabel} · estratto il ${new Date().toLocaleDateString('it-IT')}</p>
       </div>
-      ${blocchi}
+      <div class="grid">${blocchi}</div>
       </body></html>`;
 
     // Stampa via iframe nascosto: affidabile anche su iOS/Safari mobile,
