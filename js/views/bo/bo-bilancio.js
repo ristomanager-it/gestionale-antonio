@@ -369,6 +369,23 @@ export async function render(container) {
         if (sedeId) qVend = qVend.eq('sede_id', sedeId);
         const { data: righe } = await qVend.limit(10000);
 
+        // IVA VENDITE anche dal venduto importato (vendite_giornaliere / iPratico):
+        // l'aliquota si eredita agganciando il nome al prodotto_vendita.
+        let qVendGiorn = window.supabaseClient.from('vendite_giornaliere')
+          .select('nome_prodotto, nome_articolo, totale_incassato, totale_riga')
+          .eq('azienda_id', aziendaId)
+          .gte('data_vendita', dataInizio)
+          .lte('data_vendita', dataFine);
+        const { data: vendGiorn } = await qVendGiorn.limit(20000);
+
+        // Mappa nome→iva dai prodotti_vendita (per agganciare il venduto iPratico)
+        const { data: prodVend } = await window.supabaseClient.from('prodotti_vendita')
+          .select('nome, iva').eq('azienda_id', aziendaId).limit(5000);
+        const mapIva = new Map();
+        for (const p of (prodVend || [])) {
+          if (p.nome) mapIva.set(String(p.nome).trim().toLowerCase(), Number(p.iva) || 10);
+        }
+
         // Funzione per trovare aliquota standard più vicina (4, 10, 22, 0)
         function aliquotaStandard(imponibile, totale) {
           if (!imponibile || !totale || totale <= imponibile) return 0;
@@ -414,6 +431,22 @@ export async function render(container) {
           totTotaleVend += totRiga;
         }
 
+        // Aggiungo il venduto importato (iPratico): aliquota per nome, default 10%
+        for (const v of (vendGiorn || [])) {
+          const nome = String(v.nome_prodotto || v.nome_articolo || '').trim().toLowerCase();
+          const aliquota = mapIva.get(nome) ?? 10;
+          if (!ivaVendMap[aliquota]) ivaVendMap[aliquota] = { imponibile: 0, iva: 0, totale: 0 };
+          const totRiga = Number(v.totale_incassato ?? v.totale_riga ?? 0);
+          if (!totRiga) continue;
+          const imponibile = totRiga / (1 + aliquota / 100);
+          const ivaImporto = totRiga - imponibile;
+          ivaVendMap[aliquota].imponibile += imponibile;
+          ivaVendMap[aliquota].iva += ivaImporto;
+          ivaVendMap[aliquota].totale += totRiga;
+          totImponibileVend += imponibile;
+          totIvaVend += ivaImporto;
+          totTotaleVend += totRiga;
+        }
         const ivaDovuta = totIvaVend - totIvaAcq;
         const periodoLabel = periodo === 'mese' && mese
           ? `${new Date(anno, mese-1, 1).toLocaleString('it-IT',{month:'long',year:'numeric'})}`
