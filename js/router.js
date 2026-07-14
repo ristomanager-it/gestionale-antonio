@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=5";
+import { initMenu } from "./menu.js?v=6";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -105,7 +105,7 @@ const routes = {
 "manuale-operativo": () => import("./views/manuale-operativo.js"),
   "bo-agenzie": () => import("./views/bo/bo-agenzie.js"),
   "bo-location-ricevimenti": () => import("./views/bo/bo-location-ricevimenti.js"),
-  timbrature: () => import("./views/timbrature.js"),
+  timbrature: () => import("./views/timbrature.js?v=1"),
   "planning-lavoro": () => import("./views/planning-lavoro.js"),
 
   completaProfilo: () => import("./views/completa-profilo.js"),
