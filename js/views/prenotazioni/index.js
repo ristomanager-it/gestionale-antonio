@@ -1330,6 +1330,68 @@ if (onlineModal.classList.contains("open")) {
     renderKpiRow();
   }
 
+  function apriModalAllegati(allegati, nomeCliente) {
+    const isPdf = (a) => (a.tipo || "").includes("pdf") || (a.url || "").toLowerCase().endsWith(".pdf");
+    const isImg = (a) => (a.tipo || "").includes("image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.url || "");
+
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;display:flex;align-items:center;justify-content:center;padding:12px;";
+
+    const primo = allegati[0];
+    const renderViewer = (a) => {
+      if (isPdf(a)) {
+        return `<iframe src="${escapeAttribute(a.url)}" style="width:100%;height:100%;border:none;border-radius:8px;background:#fff;"></iframe>`;
+      }
+      if (isImg(a)) {
+        return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:auto;"><img src="${escapeAttribute(a.url)}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;" /></div>`;
+      }
+      // docx e altri: non visualizzabili inline
+      return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:#e5e7eb;text-align:center;padding:20px;">
+        <div style="font-size:44px;">📄</div>
+        <div style="font-size:15px;">Questo tipo di file (${escapeHtml((a.nome||"").split(".").pop().toUpperCase())}) non si apre nell'anteprima.</div>
+        <a href="${escapeAttribute(a.url)}" target="_blank" rel="noopener" style="background:#0E5A7A;color:#fff;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:600;">⬇️ Scarica ${escapeHtml(a.nome||"file")}</a>
+        <div style="font-size:12px;color:#9ca3af;">Suggerimento: carica il menu in PDF per aprirlo e stamparlo al volo.</div>
+      </div>`;
+    };
+
+    overlay.innerHTML = `
+      <div style="background:#1f2937;border-radius:16px;width:100%;max-width:820px;height:88vh;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #374151;">
+          <div style="color:#fff;font-weight:700;font-size:15px;flex:1;">📎 Allegati — ${escapeHtml(nomeCliente || "")}</div>
+          <button id="all-stampa" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer;">🖨️ Stampa</button>
+          <button id="all-chiudi" style="background:#374151;color:#fff;border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:18px;">✕</button>
+        </div>
+        ${allegati.length > 1 ? `
+          <div style="display:flex;gap:6px;padding:8px 14px;overflow-x:auto;border-bottom:1px solid #374151;">
+            ${allegati.map((a,i) => `<button class="all-tab" data-i="${i}" style="background:${i===0?'#0E5A7A':'#374151'};color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;white-space:nowrap;cursor:pointer;">${escapeHtml(a.nome||('file '+(i+1)))}</button>`).join("")}
+          </div>` : ""}
+        <div id="all-viewer" style="flex:1;padding:12px;min-height:0;">${renderViewer(primo)}</div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    let fileCorrente = primo;
+    const viewer = overlay.querySelector("#all-viewer");
+    overlay.querySelectorAll(".all-tab").forEach(tab => {
+      tab.onclick = () => {
+        const i = Number(tab.dataset.i);
+        fileCorrente = allegati[i];
+        viewer.innerHTML = renderViewer(fileCorrente);
+        overlay.querySelectorAll(".all-tab").forEach((t,j) => t.style.background = j===i ? "#0E5A7A" : "#374151");
+      };
+    });
+
+    overlay.querySelector("#all-stampa").onclick = () => {
+      // apre il file in nuova scheda per la stampa nativa (funziona per pdf/immagini)
+      const w = window.open(fileCorrente.url, "_blank");
+      if (w) { w.focus(); setTimeout(() => { try { w.print(); } catch(_){} }, 800); }
+    };
+    const chiudi = () => overlay.remove();
+    overlay.querySelector("#all-chiudi").onclick = chiudi;
+    overlay.onclick = (e) => { if (e.target === overlay) chiudi(); };
+  }
+
   function renderRow(p) {
     const nome = buildClientName(p);
     const coperti = Number(p.coperti) || 0;
@@ -1364,6 +1426,10 @@ if (onlineModal.classList.contains("open")) {
 
           <div class="pren-right">
             ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
+
+            ${(Array.isArray(p.allegati) && p.allegati.length)
+              ? `<span class="pren-ico allegato" data-id="${escapeAttribute(p.id)}" title="${p.allegati.length} allegato/i" style="cursor:pointer;">📎</span>`
+              : ""}
 
             ${telefono
               ? `<span class="pren-ico whatsapp" data-phone="${escapeAttribute(telefono)}" data-id="${escapeAttribute(p.id)}">💬</span>`
@@ -1471,6 +1537,18 @@ if (onlineModal.classList.contains("open")) {
         if (!id) return;
 
         window.location.hash = "#/prenotazioni-dettaglio?id=" + encodeURIComponent(id);
+      };
+    });
+
+    lista.querySelectorAll(".allegato").forEach((el) => {
+      el.onclick = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const id = el.dataset.id;
+        const pren = (state.prenotazioni || []).find(x => String(x.id) === String(id));
+        if (pren && Array.isArray(pren.allegati) && pren.allegati.length) {
+          apriModalAllegati(pren.allegati, buildClientName(pren));
+        }
       };
     });
 
