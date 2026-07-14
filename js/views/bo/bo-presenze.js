@@ -105,6 +105,7 @@ export async function render(container) {
             <button id="btn-export-csv" class="pr-btn" style="background:#16a34a;color:white;">⬇️ CSV</button>
             <button id="btn-export-pdf" class="pr-btn" style="background:#dc2626;color:white;">📄 PDF</button>
             <button id="btn-stampa" class="pr-btn" style="background:#374151;color:white;">🖨️ Stampa</button>
+            <button id="btn-cartellino" class="pr-btn" style="background:#0E5A7A;color:white;">📋 Cartellino ore</button>
           </div>
         </div>
 
@@ -457,6 +458,88 @@ export async function render(container) {
   });
   container.querySelector('#btn-export-pdf').addEventListener('click', generaPDF);
   container.querySelector('#btn-stampa').addEventListener('click', () => window.print());
+  container.querySelector('#btn-cartellino').addEventListener('click', () => stampaCartellino());
+
+  // ── Cartellino ore: giorno per giorno + totale mese, tutti i dipendenti ──
+  function stampaCartellino() {
+    if (!timbratureCorrente || !timbratureCorrente.length) {
+      alert('Nessuna timbratura nel periodo selezionato.');
+      return;
+    }
+    // aggrego per dipendente -> per giorno -> minuti totali (dai fine_turno)
+    const perDip = {};
+    for (const t of timbratureCorrente) {
+      if (t.tipo !== 'fine_turno' || !t.ore_lavorate) continue;
+      const nome = t.dip_nome || 'Senza nome';
+      const dt = t.timestamp ? new Date(t.timestamp) : null;
+      if (!dt) continue;
+      const giorno = dt.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
+      if (!perDip[nome]) perDip[nome] = {};
+      perDip[nome][giorno] = (perDip[nome][giorno] || 0) + Math.round(t.ore_lavorate * 60);
+    }
+    const nomi = Object.keys(perDip).sort((a, b) => a.localeCompare(b));
+    if (!nomi.length) { alert('Nessun turno completato nel periodo.'); return; }
+
+    const periodoLabel = (modalitaFiltro === 'mese')
+      ? new Date(filtroAnno, filtroMese - 1, 1).toLocaleString('it-IT', { month: 'long', year: 'numeric' })
+      : `${dataInizio} — ${dataFine}`;
+    const azienda = window.state?.azienda?.nome || '';
+
+    const fmt = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+
+    let blocchi = '';
+    for (const nome of nomi) {
+      const giorni = Object.keys(perDip[nome]).sort((a, b) => {
+        const [ga, ma, aa] = a.split('/').map(Number);
+        const [gb, mb, ab] = b.split('/').map(Number);
+        return new Date(aa, ma - 1, ga) - new Date(ab, mb - 1, gb);
+      });
+      let totMin = 0;
+      const righe = giorni.map(g => {
+        const min = perDip[nome][g];
+        totMin += min;
+        return `<tr><td>${g}</td><td style="text-align:right;">${fmt(min)}</td></tr>`;
+      }).join('');
+      blocchi += `
+        <div class="dip">
+          <h3>${nome}</h3>
+          <table>
+            <thead><tr><th>Giorno</th><th style="text-align:right;">Ore</th></tr></thead>
+            <tbody>${righe}</tbody>
+            <tfoot><tr><td>TOTALE MESE</td><td style="text-align:right;">${fmt(totMin)}</td></tr></tfoot>
+          </table>
+        </div>`;
+    }
+
+    const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+      <title>Cartellino ore — ${periodoLabel}</title>
+      <style>
+        * { font-family: -apple-system, Arial, sans-serif; }
+        body { margin: 24px; color: #111; }
+        .head { border-bottom: 2px solid #0E5A7A; padding-bottom: 10px; margin-bottom: 20px; }
+        .head h1 { margin: 0; font-size: 20px; color: #0E5A7A; }
+        .head p { margin: 4px 0 0; color: #555; font-size: 13px; }
+        .dip { margin-bottom: 26px; page-break-inside: avoid; }
+        .dip h3 { margin: 0 0 8px; font-size: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 6px 10px; border-bottom: 1px solid #e5e7eb; }
+        thead th { background: #f1f5f9; text-align: left; }
+        tfoot td { font-weight: 800; border-top: 2px solid #0E5A7A; border-bottom: none; color: #0E5A7A; }
+        @media print { body { margin: 12mm; } }
+      </style></head><body>
+      <div class="head">
+        <h1>Cartellino ore lavorate</h1>
+        <p>${azienda ? azienda + ' · ' : ''}${periodoLabel} · estratto il ${new Date().toLocaleDateString('it-IT')}</p>
+      </div>
+      ${blocchi}
+      <script>window.onload = function(){ window.print(); }<\/script>
+      </body></html>`;
+
+    const w = window.open('', '_blank');
+    if (!w) { alert('Consenti i popup per stampare il cartellino.'); return; }
+    w.document.write(html);
+    w.document.close();
+  }
 
   // Carica dati iniziali
   await caricaDati();
