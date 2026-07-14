@@ -575,8 +575,11 @@ export async function render(container) {
         th, td { padding: 2px 6px; border-bottom: 1px solid #eee; }
         thead th { background: #f1f5f9; text-align: left; }
         tfoot td { font-weight: 800; border-top: 1.5px solid #0E5A7A; border-bottom: none; color: #0E5A7A; }
-        @media print { body { margin: 10mm; } }
+        @media print { body { margin: 10mm; } .noprint { display: none !important; } }
+        .noprint { text-align: center; margin-bottom: 16px; }
+        .noprint button { background: #0E5A7A; color: #fff; border: none; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
       </style></head><body>
+      <div class="noprint"><button onclick="window.print()">🖨️ Stampa questo cartellino</button></div>
       <div class="head">
         <h1>Cartellino ore lavorate</h1>
         <p>${azienda ? azienda + ' · ' : ''}${periodoLabel} · estratto il ${new Date().toLocaleDateString('it-IT')}</p>
@@ -584,32 +587,16 @@ export async function render(container) {
       <div class="grid">${blocchi}</div>
       </body></html>`;
 
-    // Stampa via iframe nascosto: affidabile anche su iOS/Safari mobile,
-    // dove window.open + auto-print spesso non funziona (fogli bianchi).
-    const vecchio = document.getElementById('cartellino-print-frame');
-    if (vecchio) vecchio.remove();
-    const iframe = document.createElement('iframe');
-    iframe.id = 'cartellino-print-frame';
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(html);
-    doc.close();
-    // aspetto che il contenuto sia pronto, poi stampo l'iframe
-    setTimeout(() => {
-      try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-      } catch (e) {
-        alert('Impossibile aprire la stampa: ' + (e?.message || e));
-      }
-    }, 400);
+    // Apro una scheda nuova con il cartellino VISIBILE e un pulsante Stampa.
+    // Niente auto-print (inaffidabile): l'utente vede il contenuto e stampa lui.
+    const w = window.open('', '_blank');
+    if (!w) {
+      alert('Il browser ha bloccato la finestra. Consenti i popup per questo sito e riprova.');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   }
 
   // Carica dati iniziali
