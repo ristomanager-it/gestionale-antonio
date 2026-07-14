@@ -404,7 +404,7 @@ async function openDocumentoUploadModal(azienda) {
       .order("ragione_sociale", { ascending: true }),
     supabase
       .from("prodotti")
-      .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
+      .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, categoria_interna_id, quantita_riordino, scorta_minima")
       .eq("azienda_id", azienda.id)
       .eq("attivo", true)
       .order("nome", { ascending: true })
@@ -420,6 +420,7 @@ async function openDocumentoUploadModal(azienda) {
     codice_interno: p.codice_interno || "",
     um: p.um || "",
     categoria_bilancio_id: p.categoria_bilancio_id ?? null,
+    categoria_interna_id: p.categoria_interna_id ?? null,
     quantita_riordino: p.quantita_riordino ?? 0,
     scorta_minima: p.scorta_minima ?? 0
   }));
@@ -704,8 +705,29 @@ async function openDocumentoUploadModal(azienda) {
     }
 
     righeContainer.innerHTML = righe.map((row, i) => {
-      const matched = row.prodotto_id ? "Prodotto agganciato" : "Prodotto non trovato";
-      const matchedClass = row.prodotto_id ? "ok" : "missing";
+      // Semaforo a 3 stati basato sulle due categorie del prodotto agganciato:
+      // rosso = nessuna categoria / prodotto non agganciato
+      // giallo = una sola categoria assegnata
+      // verde  = entrambe le categorie assegnate (sistemato)
+      const prod = row.prodotto_id ? prodottiCache.find(p => String(p.id) === String(row.prodotto_id)) : null;
+      const haBilancio = !!(prod && prod.categoria_bilancio_id);
+      const haInterna = !!(prod && prod.categoria_interna_id);
+      const nCat = (haBilancio ? 1 : 0) + (haInterna ? 1 : 0);
+
+      let matchedClass, matched;
+      if (!row.prodotto_id) {
+        matchedClass = "missing";
+        matched = "⚠️ Prodotto non agganciato";
+      } else if (nCat === 2) {
+        matchedClass = "ok";
+        matched = "✅ Sistemato";
+      } else if (nCat === 1) {
+        matchedClass = "warning";
+        matched = haBilancio ? "🟡 Manca categoria interna" : "🟡 Manca categoria bilancio";
+      } else {
+        matchedClass = "missing";
+        matched = "🔴 Mancano entrambe le categorie";
+      }
 
       return `
         <div class="rf-riga-card ${matchedClass}" data-i="${i}">
@@ -825,6 +847,7 @@ async function openDocumentoUploadModal(azienda) {
           codice_interno: res.prodotto.codice_interno || "",
           um: res.prodotto.um || "",
           categoria_bilancio_id: res.prodotto.categoria_bilancio_id ?? null,
+          categoria_interna_id: res.prodotto.categoria_interna_id ?? null,
           quantita_riordino: res.prodotto.quantita_riordino ?? 0,
           scorta_minima: res.prodotto.scorta_minima ?? 0
         });
@@ -1605,7 +1628,7 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
       const { data: inserted, error } = await supabase
         .from("prodotti")
         .insert(prodottoPayload)
-        .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
+        .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, categoria_interna_id, quantita_riordino, scorta_minima")
         .single();
 
       if (!error && inserted?.id) {
@@ -1615,7 +1638,7 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
       if (error && error.code === "23505") {
         const { data: existing, error: existingError } = await supabase
           .from("prodotti")
-          .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, quantita_riordino, scorta_minima")
+          .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, categoria_interna_id, quantita_riordino, scorta_minima")
           .eq("azienda_id", azienda.id)
           .ilike("nome", nomeInterno)
           .maybeSingle();
@@ -1641,6 +1664,7 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
           codice_interno: created.codice_interno || codiceInterno,
           um: created.um || "pz",
           categoria_bilancio_id: created.categoria_bilancio_id ?? null,
+          categoria_interna_id: created.categoria_interna_id ?? null,
           quantita_riordino: created.quantita_riordino ?? 0,
           scorta_minima: created.scorta_minima ?? 0
         }
@@ -1811,8 +1835,13 @@ body.rf-modal-open{
 }
 
 .rf-riga-card.missing{
-  border-color:#fdba74;
-  background:#fff7ed;
+  border-color:#fca5a5;
+  background:#fef2f2;
+}
+
+.rf-riga-card.warning{
+  border-color:#fde047;
+  background:#fefce8;
 }
 
 .rf-riga-bottom{
@@ -1833,7 +1862,11 @@ body.rf-modal-open{
 }
 
 .rf-riga-status.missing{
-  color:#b45309;
+  color:#b91c1c;
+}
+
+.rf-riga-status.warning{
+  color:#a16207;
 }
 
 .rf-riga-actions{
