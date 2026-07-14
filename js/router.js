@@ -176,7 +176,7 @@ const routes = {
   "bo-tag": () => import("./views/bo/bo-tag.js"),
   "bo-template": () => import("./views/bo/bo-template.js"),
   "bo-candidature": () => import("./views/bo/bo-candidature.js"),
-  "bo-bilancio":     () => import("./views/bo/bo-bilancio.js"),
+  "bo-bilancio":     () => import("./views/bo/bo-bilancio.js?v=2"),
   "bo-survey":      () => import("./views/bo/bo-survey.js"),
 
   // MENU
