@@ -11,6 +11,96 @@ function getSupabase() {
   return window.supabase;
 }
 
+// ── Gestione turni ricorrenti settimanali (doppio turno supportato) ──
+const _GIORNI_TURNO = [
+  { key: "lunedi", label: "Lun" },
+  { key: "martedi", label: "Mar" },
+  { key: "mercoledi", label: "Mer" },
+  { key: "giovedi", label: "Gio" },
+  { key: "venerdi", label: "Ven" },
+  { key: "sabato", label: "Sab" },
+  { key: "domenica", label: "Dom" }
+];
+
+let _turniEdit = [{ giorni: [], inizio: "", fine: "" }];
+
+function _setTurniEdit(turni) {
+  _turniEdit = Array.isArray(turni) && turni.length
+    ? turni.map(t => ({ giorni: Array.isArray(t.giorni) ? [...t.giorni] : [], inizio: t.inizio || "", fine: t.fine || "" }))
+    : [{ giorni: [], inizio: "", fine: "" }];
+}
+
+function _aggiungiTurnoEdit() {
+  _turniEdit.push({ giorni: [], inizio: "", fine: "" });
+  _renderTurniEdit();
+}
+
+function _rimuoviTurnoEdit(index) {
+  if (_turniEdit.length <= 1) return;
+  _turniEdit.splice(index, 1);
+  _renderTurniEdit();
+}
+
+function _aggiornaTurnoEdit(index, campo, valore) {
+  if (_turniEdit[index]) _turniEdit[index][campo] = valore;
+}
+
+function _toggleGiornoEdit(index, giorno) {
+  const t = _turniEdit[index];
+  if (!t) return;
+  if (t.giorni.includes(giorno)) t.giorni = t.giorni.filter(g => g !== giorno);
+  else t.giorni.push(giorno);
+  _renderTurniEdit();
+}
+
+function _renderTurniEdit() {
+  const container = document.getElementById("turni-container");
+  if (!container) return;
+  container.innerHTML = `
+    ${_turniEdit.map((turno, index) => `
+      <div class="card" style="margin-top:12px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-weight:600;">Turno ${index + 1}</div>
+          ${_turniEdit.length > 1
+            ? `<button type="button" class="remove-turno-edit" data-index="${index}" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">Rimuovi</button>`
+            : ""}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+          ${_GIORNI_TURNO.map(g => {
+            const active = turno.giorni.includes(g.key);
+            return `<button type="button" class="giorno-btn-edit" data-turno="${index}" data-giorno="${g.key}"
+              style="border:none;border-radius:999px;padding:8px 12px;cursor:pointer;background:${active ? '#0E5A7A' : '#e5e7eb'};color:${active ? '#fff' : '#111827'};font-size:13px;font-weight:600;">${g.label}</button>`;
+          }).join("")}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label style="font-size:13px;">Inizio
+            <input type="time" class="input-pill turno-input-edit" data-index="${index}" data-campo="inizio" value="${turno.inizio || ""}">
+          </label>
+          <label style="font-size:13px;">Fine
+            <input type="time" class="input-pill turno-input-edit" data-index="${index}" data-campo="fine" value="${turno.fine || ""}">
+          </label>
+        </div>
+      </div>
+    `).join("")}
+    <div style="margin-top:12px;">
+      <button type="button" id="aggiungi-turno-edit"
+        style="width:100%;background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">
+        + Aggiungi turno
+      </button>
+    </div>
+  `;
+  document.getElementById("aggiungi-turno-edit").onclick = _aggiungiTurnoEdit;
+  container.querySelectorAll(".remove-turno-edit").forEach(btn => {
+    btn.onclick = () => _rimuoviTurnoEdit(Number(btn.dataset.index));
+  });
+  container.querySelectorAll(".turno-input-edit").forEach(input => {
+    input.onchange = (e) => _aggiornaTurnoEdit(Number(input.dataset.index), input.dataset.campo, e.target.value);
+  });
+  container.querySelectorAll(".giorno-btn-edit").forEach(btn => {
+    btn.onclick = () => _toggleGiornoEdit(Number(btn.dataset.turno), btn.dataset.giorno);
+  });
+}
+
 function getSedeAttivaUuid() {
   return window.state?.sedeAttiva?.id || null;
 }
@@ -738,6 +828,12 @@ async function renderForm(dip) {
           <input type="time" id="dip-ora-uscita" class="input-pill" value="${dip?.ora_uscita || ""}" />
         </label>
 
+        <div style="margin-top:8px;">
+          <div style="font-weight:700;font-size:14px;color:#0E5A7A;margin-bottom:2px;">📅 Turni ricorrenti settimanali</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Imposta giorni e orari. Aggiungi più turni per chi fa doppio turno.</div>
+          <div id="turni-container"></div>
+        </div>
+
         <label>Lingua preferita (Tony parla in questa lingua)
           <select id="dip-lingua" class="input-pill">
             <option value="it" ${(dip?.lingua_preferita||"it")==="it"?"selected":""}>🇮🇹 Italiano</option>
@@ -841,6 +937,10 @@ async function renderForm(dip) {
       });
     }
   } catch (e) { console.warn("ruoli organizzativi non caricati", e); }
+
+  // Carico i turni ricorrenti del dipendente (o un turno vuoto se nuovo)
+  _setTurniEdit(Array.isArray(dip?.turni) ? dip.turni : null);
+  _renderTurniEdit();
 
   document.getElementById("btn-dip-cancel").onclick = async () => {
     setTab("elenco");
@@ -949,6 +1049,7 @@ async function salvaDipendente(isEdit) {
           voce_tony: voceTony,
           ora_ingresso: oraIngresso,
           ora_uscita: oraUscita,
+          turni: _turniEdit.filter(t => (t.giorni && t.giorni.length) || t.inizio || t.fine),
           attivo: attivoCheck
         })
         .eq("id", id)
