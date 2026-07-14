@@ -515,81 +515,124 @@ export async function render(container) {
       alert('Nessuna timbratura nel periodo selezionato.');
       return;
     }
-    // aggrego per dipendente -> per giorno -> minuti totali (dai fine_turno)
-    const perDip = {};
-    for (const t of timbratureCorrente) {
-      if (t.tipo !== 'fine_turno' || !t.ore_lavorate) continue;
-      const nome = t.dip_nome || 'Senza nome';
-      const dt = t.timestamp ? new Date(t.timestamp) : null;
-      if (!dt) continue;
-      const giorno = dt.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
-      if (!perDip[nome]) perDip[nome] = {};
-      perDip[nome][giorno] = (perDip[nome][giorno] || 0) + Math.round(t.ore_lavorate * 60);
-    }
-    const nomi = Object.keys(perDip).sort((a, b) => a.localeCompare(b));
-    if (!nomi.length) { alert('Nessun turno completato nel periodo.'); return; }
 
     const periodoLabel = (modalitaFiltro === 'mese')
       ? new Date(filtroAnno, filtroMese - 1, 1).toLocaleString('it-IT', { month: 'long', year: 'numeric' })
       : `${dataInizio} — ${dataFine}`;
     const azienda = window.state?.azienda?.nome || '';
+    const fmtMin = (min) => `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
+    const oraDi = (ts) => ts ? new Date(ts).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }) : '—';
+    const giornoDi = (ts) => ts ? new Date(ts).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' }) : '';
 
-    const fmt = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+    // Raggruppo per dipendente, ordino cronologicamente e appaio inizio->fine
+    const perDip = {};
+    for (const t of timbratureCorrente) {
+      const nome = t.dip_nome || 'Senza nome';
+      if (!perDip[nome]) perDip[nome] = [];
+      perDip[nome].push(t);
+    }
+    const nomi = Object.keys(perDip).sort((a, b) => a.localeCompare(b));
 
-    let blocchi = '';
+    // Costruisco, per ogni dipendente, la lista di turni {giorno, ingresso, uscita, minuti, anomalia}
+    const datiDip = {};
     for (const nome of nomi) {
-      const giorni = Object.keys(perDip[nome]).sort((a, b) => {
-        const [ga, ma, aa] = a.split('/').map(Number);
-        const [gb, mb, ab] = b.split('/').map(Number);
-        return new Date(aa, ma - 1, ga) - new Date(ab, mb - 1, gb);
-      });
-      let totMin = 0;
-      const righe = giorni.map(g => {
-        const min = perDip[nome][g];
-        totMin += min;
-        return `<tr><td>${g}</td><td style="text-align:right;">${fmt(min)}</td></tr>`;
+      const eventi = perDip[nome].slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const turni = [];
+      let apertura = null;
+      for (const e of eventi) {
+        if (e.tipo === 'inizio_turno') {
+          if (apertura) {
+            // due ingressi di fila: il precedente non ha uscita
+            turni.push({ ingresso: apertura.timestamp, uscita: null, minuti: 0, anomalia: 'uscita mancante' });
+          }
+          apertura = e;
+        } else if (e.tipo === 'fine_turno') {
+          if (apertura) {
+            const min = e.ore_lavorate ? Math.round(e.ore_lavorate * 60) : 0;
+            turni.push({ ingresso: apertura.timestamp, uscita: e.timestamp, minuti: min, anomalia: null });
+            apertura = null;
+          } else {
+            // uscita senza ingresso
+            turni.push({ ingresso: null, uscita: e.timestamp, minuti: 0, anomalia: 'ingresso mancante' });
+          }
+        }
+      }
+      if (apertura) turni.push({ ingresso: apertura.timestamp, uscita: null, minuti: 0, anomalia: 'uscita mancante' });
+      const totMin = turni.reduce((s, t) => s + t.minuti, 0);
+      datiDip[nome] = { turni, totMin };
+    }
+
+    // ── RESOCONTO ──
+    const resoconto = nomi.map(nome => {
+      const d = datiDip[nome];
+      const anom = d.turni.filter(t => t.anomalia).length;
+      return `<tr>
+        <td>${nome}</td>
+        <td style="text-align:right;font-weight:700;">${fmtMin(d.totMin)}</td>
+        <td style="text-align:center;">${d.turni.filter(t => !t.anomalia).length}</td>
+        <td style="text-align:center;color:${anom ? '#b91c1c' : '#94a3b8'};">${anom || '—'}</td>
+      </tr>`;
+    }).join('');
+
+    // ── DETTAGLIO per dipendente ──
+    const dettaglio = nomi.map(nome => {
+      const d = datiDip[nome];
+      const righe = d.turni.map(t => {
+        const alert = t.anomalia ? ` <span style="color:#b91c1c;">⚠ ${t.anomalia}</span>` : '';
+        return `<tr>
+          <td>${giornoDi(t.ingresso || t.uscita)}</td>
+          <td style="text-align:center;">${oraDi(t.ingresso)}</td>
+          <td style="text-align:center;">${oraDi(t.uscita)}</td>
+          <td style="text-align:right;">${t.minuti ? fmtMin(t.minuti) : '—'}${alert}</td>
+        </tr>`;
       }).join('');
-      blocchi += `
+      return `
         <div class="dip">
           <h3>${nome}</h3>
           <table>
-            <thead><tr><th>Giorno</th><th style="text-align:right;">Ore</th></tr></thead>
+            <thead><tr><th>Giorno</th><th style="text-align:center;">Ingresso</th><th style="text-align:center;">Uscita</th><th style="text-align:right;">Ore</th></tr></thead>
             <tbody>${righe}</tbody>
-            <tfoot><tr><td>TOTALE MESE</td><td style="text-align:right;">${fmt(totMin)}</td></tr></tfoot>
+            <tfoot><tr><td colspan="3">TOTALE MESE</td><td style="text-align:right;">${fmtMin(d.totMin)}</td></tr></tfoot>
           </table>
         </div>`;
-    }
+    }).join('');
 
     const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
       <title>Cartellino ore — ${periodoLabel}</title>
       <style>
         * { font-family: -apple-system, Arial, sans-serif; box-sizing: border-box; }
         body { margin: 16px; color: #111; }
-        .head { border-bottom: 2px solid #0E5A7A; padding-bottom: 8px; margin-bottom: 14px; }
-        .head h1 { margin: 0; font-size: 17px; color: #0E5A7A; }
-        .head p { margin: 3px 0 0; color: #555; font-size: 11px; }
-        .grid { column-count: 2; column-gap: 18px; }
-        .dip { break-inside: avoid; page-break-inside: avoid; margin-bottom: 14px; display: inline-block; width: 100%; }
-        .dip h3 { margin: 0 0 4px; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        th, td { padding: 2px 6px; border-bottom: 1px solid #eee; }
-        thead th { background: #f1f5f9; text-align: left; }
-        tfoot td { font-weight: 800; border-top: 1.5px solid #0E5A7A; border-bottom: none; color: #0E5A7A; }
-        @media print { body { margin: 10mm; } .noprint { display: none !important; } }
         .noprint { text-align: center; margin-bottom: 16px; }
         .noprint button { background: #0E5A7A; color: #fff; border: none; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+        .head { border-bottom: 2px solid #0E5A7A; padding-bottom: 8px; margin-bottom: 14px; }
+        .head h1 { margin: 0; font-size: 18px; color: #0E5A7A; }
+        .head p { margin: 3px 0 0; color: #555; font-size: 12px; }
+        h2.sez { font-size: 14px; color: #0E5A7A; margin: 22px 0 8px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 4px; }
+        th, td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+        thead th { background: #f1f5f9; text-align: left; }
+        .resoconto tfoot, .dip { break-inside: avoid; page-break-inside: avoid; }
+        .dip { margin-bottom: 18px; }
+        .dip h3 { margin: 0 0 4px; font-size: 13px; }
+        .dip tfoot td { font-weight: 800; border-top: 1.5px solid #0E5A7A; border-bottom: none; color: #0E5A7A; }
+        @media print { body { margin: 10mm; } .noprint { display: none !important; } }
       </style></head><body>
       <div class="noprint"><button onclick="window.print()">🖨️ Stampa questo cartellino</button></div>
       <div class="head">
         <h1>Cartellino ore lavorate</h1>
         <p>${azienda ? azienda + ' · ' : ''}${periodoLabel} · estratto il ${new Date().toLocaleDateString('it-IT')}</p>
       </div>
-      <div class="grid">${blocchi}</div>
+
+      <h2 class="sez">Resoconto</h2>
+      <table class="resoconto">
+        <thead><tr><th>Dipendente</th><th style="text-align:right;">Ore totali</th><th style="text-align:center;">Turni</th><th style="text-align:center;">Anomalie</th></tr></thead>
+        <tbody>${resoconto}</tbody>
+      </table>
+
+      <h2 class="sez">Dettaglio giornaliero</h2>
+      ${dettaglio}
       </body></html>`;
 
-    // Apro il cartellino come vero documento (Blob URL) in una scheda nuova:
-    // così la pagina ha un URL reale ed è stampabile su tutti i browser,
-    // a differenza di document.write su about:blank.
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const w = window.open(url, '_blank');
