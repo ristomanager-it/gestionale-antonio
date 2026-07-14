@@ -2130,13 +2130,21 @@ function aggiungiFase(initial = {}) {
       </div>
 
       <div class="form-group">
-        <label>Durata totale (min)</label>
-        <input class="fase-durata input" type="number" min="0" value="${escapeAttr(initial.durata_min ?? 0)}" />
+        <label>Durata totale (ore : min)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="fase-durata-h input" type="number" min="0" style="width:70px;" placeholder="h" value="${escapeAttr(Math.floor((initial.durata_min ?? 0) / 60) || "")}" />
+          <span style="font-weight:700;">:</span>
+          <input class="fase-durata-m input" type="number" min="0" max="59" style="width:70px;" placeholder="min" value="${escapeAttr((initial.durata_min ?? 0) % 60 || "")}" />
+        </div>
       </div>
 
       <div class="form-group">
-        <label>Lavoro umano (min)</label>
-        <input class="fase-lavoro input" type="number" min="0" value="${escapeAttr(initial.lavoro_umano_min ?? 0)}" />
+        <label>Lavoro umano (ore : min)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="fase-lavoro-h input" type="number" min="0" style="width:70px;" placeholder="h" value="${escapeAttr(Math.floor((initial.lavoro_umano_min ?? 0) / 60) || "")}" />
+          <span style="font-weight:700;">:</span>
+          <input class="fase-lavoro-m input" type="number" min="0" max="59" style="width:70px;" placeholder="min" value="${escapeAttr((initial.lavoro_umano_min ?? 0) % 60 || "")}" />
+        </div>
       </div>
 
       <div class="form-group">
@@ -2154,7 +2162,7 @@ function aggiungiFase(initial = {}) {
 
       <div class="form-group">
         <label>Temperatura (°C)</label>
-        <input class="fase-temperatura input" type="number" step="0.1" value="${escapeAttr(initial.temperatura ?? "")}" />
+        <input class="fase-temperatura input" type="number" step="0.1" inputmode="text" placeholder="es. -18" value="${escapeAttr(initial.temperatura ?? "")}" />
       </div>
 
       <div class="form-group">
@@ -2503,7 +2511,7 @@ function aggiungiConservazionePassaggio(passContainer, initial = {}) {
 
       <div class="form-group">
         <label>Temp (°C)</label>
-        <input class="cp-temp input" type="number" step="0.1" value="${escapeAttr(initial.temperatura_c ?? "")}" />
+        <input class="cp-temp input" type="number" step="0.1" inputmode="text" placeholder="es. -18" value="${escapeAttr(initial.temperatura_c ?? "")}" />
       </div>
 
       <div class="form-group">
@@ -3118,8 +3126,8 @@ async function salvaTutto() {
       const tipo_fase = (r.querySelector(".fase-tipo")?.value || "preparazione").trim();
       const nome_fase = (r.querySelector(".fase-tipo")?.value || "preparazione").trim();
       const descrizione_operativa = (r.querySelector(".fase-descrizione")?.value || "").trim() || null;
-      const durata_min = toIntOrNull(r.querySelector(".fase-durata")?.value) ?? 0;
-      const lavoro_umano_min = toIntOrNull(r.querySelector(".fase-lavoro")?.value) ?? 0;
+      const durata_min = ((toIntOrNull(r.querySelector(".fase-durata-h")?.value) ?? 0) * 60) + (toIntOrNull(r.querySelector(".fase-durata-m")?.value) ?? 0);
+      const lavoro_umano_min = ((toIntOrNull(r.querySelector(".fase-lavoro-h")?.value) ?? 0) * 60) + (toIntOrNull(r.querySelector(".fase-lavoro-m")?.value) ?? 0);
       const tecnologia = (r.querySelector(".fase-tecnologia")?.value || "").trim() || null;
       const temperatura = toNumOrNull(r.querySelector(".fase-temperatura")?.value);
       const note = (r.querySelector(".fase-note")?.value || "").trim() || null;
