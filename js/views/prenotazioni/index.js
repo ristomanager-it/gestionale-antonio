@@ -1348,9 +1348,10 @@ if (onlineModal.classList.contains("open")) {
       // docx e altri: non visualizzabili inline
       return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:#e5e7eb;text-align:center;padding:20px;">
         <div style="font-size:44px;">📄</div>
-        <div style="font-size:15px;">Questo tipo di file (${escapeHtml((a.nome||"").split(".").pop().toUpperCase())}) non si apre nell'anteprima.</div>
-        <a href="${escapeAttribute(a.url)}" target="_blank" rel="noopener" style="background:#0E5A7A;color:#fff;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:600;">⬇️ Scarica ${escapeHtml(a.nome||"file")}</a>
-        <div style="font-size:12px;color:#9ca3af;">Suggerimento: carica il menu in PDF per aprirlo e stamparlo al volo.</div>
+        <div style="font-size:15px;">${escapeHtml(a.nome||"file")}</div>
+        <div style="font-size:13px;color:#9ca3af;">I file Word (.docx) non si aprono in anteprima nel browser.</div>
+        <button class="all-apri-esterno" data-url="${escapeAttribute(a.url)}" style="background:#0E5A7A;color:#fff;padding:13px 22px;border-radius:12px;border:none;font-weight:600;font-size:15px;cursor:pointer;">⬇️ Apri / Scarica</button>
+        <div style="font-size:12px;color:#9ca3af;max-width:280px;">Consiglio: carica il menu in <b>PDF</b> per aprirlo e stamparlo al volo dal telefono.</div>
       </div>`;
     };
 
@@ -1373,16 +1374,34 @@ if (onlineModal.classList.contains("open")) {
 
     let fileCorrente = primo;
     const viewer = overlay.querySelector("#all-viewer");
+    const btnStampa = overlay.querySelector("#all-stampa");
+
+    // Aggancia il pulsante "Apri / Scarica" (per docx e non-anteprimabili) e
+    // mostra/nasconde Stampa a seconda che il file sia stampabile.
+    function postRender() {
+      const apri = viewer.querySelector(".all-apri-esterno");
+      if (apri) {
+        apri.onclick = () => {
+          // Su iOS un click diretto (gesto utente) apre/scarica in modo affidabile
+          window.location.href = apri.dataset.url;
+        };
+      }
+      const stampabile = isImg(fileCorrente) || isPdf(fileCorrente);
+      btnStampa.style.display = stampabile ? "" : "none";
+    }
+    postRender();
+
     overlay.querySelectorAll(".all-tab").forEach(tab => {
       tab.onclick = () => {
         const i = Number(tab.dataset.i);
         fileCorrente = allegati[i];
         viewer.innerHTML = renderViewer(fileCorrente);
         overlay.querySelectorAll(".all-tab").forEach((t,j) => t.style.background = j===i ? "#0E5A7A" : "#374151");
+        postRender();
       };
     });
 
-    overlay.querySelector("#all-stampa").onclick = () => {
+    btnStampa.onclick = () => {
       const url = fileCorrente.url;
       const img = isImg(fileCorrente);
 
