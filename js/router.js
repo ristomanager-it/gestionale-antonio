@@ -157,8 +157,8 @@ const routes = {
 
   "prenotazione-online": () => import("./views/prenotazioni/prenotazione-online.js"),
   "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js?v=2"),
-  "prenotazione-tavolo-form": () => import("./views/prenotazioni/form.js?v=2"),
-  "prenotazioni-form": () => import("./views/prenotazioni/form.js?v=2"),
+  "prenotazione-tavolo-form": () => import("./views/prenotazioni/form.js?v=3"),
+  "prenotazioni-form": () => import("./views/prenotazioni/form.js?v=3"),
   "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
 
   prenotazioni: () => import("./views/prenotazioni/index.js"),
