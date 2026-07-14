@@ -505,8 +505,8 @@ export async function render(container) {
     if (!timbratureCorrente.length) { alert('Applica prima i filtri.'); return; }
     generaCSV(timbratureCorrente);
   });
-  container.querySelector('#btn-export-pdf').addEventListener('click', generaPDF);
-  container.querySelector('#btn-stampa').addEventListener('click', () => window.print());
+  container.querySelector('#btn-export-pdf').addEventListener('click', () => stampaCartellino());
+  container.querySelector('#btn-stampa').addEventListener('click', () => stampaCartellino());
   container.querySelector('#btn-cartellino').addEventListener('click', () => stampaCartellino());
 
   // ── Cartellino ore: giorno per giorno + totale mese, tutti i dipendenti ──
@@ -587,16 +587,18 @@ export async function render(container) {
       <div class="grid">${blocchi}</div>
       </body></html>`;
 
-    // Apro una scheda nuova con il cartellino VISIBILE e un pulsante Stampa.
-    // Niente auto-print (inaffidabile): l'utente vede il contenuto e stampa lui.
-    const w = window.open('', '_blank');
+    // Apro il cartellino come vero documento (Blob URL) in una scheda nuova:
+    // così la pagina ha un URL reale ed è stampabile su tutti i browser,
+    // a differenza di document.write su about:blank.
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
     if (!w) {
       alert('Il browser ha bloccato la finestra. Consenti i popup per questo sito e riprova.');
+      URL.revokeObjectURL(url);
       return;
     }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
   // Carica dati iniziali
