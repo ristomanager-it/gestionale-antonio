@@ -11,6 +11,34 @@ let proposte = [];   // proposte in attesa
 let allegati = [];   // data URL immagini per il prossimo messaggio
 let busy = false;
 
+// --- Persistenza conversazione (sopravvive alla navigazione tra pagine) ---
+const ST_KEY = "supertony_sessione_v1";
+function salvaStato() {
+  try {
+    sessionStorage.setItem(ST_KEY, JSON.stringify({ chat, proposte }));
+  } catch {}
+}
+function ripristinaStato() {
+  try {
+    const raw = sessionStorage.getItem(ST_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (Array.isArray(d.chat) && d.chat.length) {
+      chat = d.chat;
+      proposte = Array.isArray(d.proposte) ? d.proposte : [];
+      // se ero rimasto "in indagine" quando ho cambiato pagina, chiudo lo stato appeso
+      chat = chat.filter(m => !String(m.content).startsWith("⏳"));
+      const ultimo = chat[chat.length - 1];
+      if (busy || (ultimo && ultimo.role === "user")) {
+        chat.push({ role: "assistant", content: "⚠️ La richiesta precedente è stata interrotta (hai cambiato pagina). Riscrivi o riprova pure." });
+      }
+      busy = false;
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
@@ -78,12 +106,18 @@ export async function render(app) {
 
   document.getElementById("st-cattura").addEventListener("click", catturaSchermo);
 
-  aggiungiMsg("assistant", "Ciao! Sono Super Tony, il tecnico della piattaforma. Dimmi il problema — posso interrogare il database di produzione e leggere il codice su GitHub. Le modifiche te le propongo e le esegui tu con un tap.");
+  if (ripristinaStato()) {
+    renderChat();
+    renderProposte();
+  } else {
+    aggiungiMsg("assistant", "Ciao! Sono Super Tony, il tecnico della piattaforma. Dimmi il problema — posso interrogare il database di produzione e leggere il codice su GitHub. Le modifiche te le propongo e le esegui tu con un tap.");
+  }
 }
 
 function aggiungiMsg(role, content, images) {
   chat.push({ role, content, ...(images?.length ? { images } : {}) });
   renderChat();
+  salvaStato();
 }
 
 // Ridimensiona a max 1600px e converte in JPEG per non gonfiare i token
@@ -193,7 +227,7 @@ function renderProposte() {
   cont.querySelectorAll(".st-esegui").forEach(b =>
     b.addEventListener("click", () => eseguiProposta(Number(b.dataset.idx))));
   cont.querySelectorAll(".st-annulla").forEach(b =>
-    b.addEventListener("click", () => { proposte.splice(Number(b.dataset.idx), 1); renderProposte(); }));
+    b.addEventListener("click", () => { proposte.splice(Number(b.dataset.idx), 1); renderProposte(); salvaStato(); }));
 }
 
 async function invia() {
@@ -240,6 +274,7 @@ async function invia() {
       if (Array.isArray(data.proposals) && data.proposals.length) {
         proposte.push(...data.proposals);
         renderProposte();
+        salvaStato();
       }
     }
   } catch (e) {
@@ -267,6 +302,7 @@ async function eseguiProposta(idx) {
     } else {
       proposte.splice(idx, 1);
       renderProposte();
+      salvaStato();
       const dettaglio = p.type === "sql_write"
         ? `righe interessate: ${data.result?.affected ?? "n/d"}`
         : `commit ${String(data.result?.commit || "").slice(0, 7)} su ${p.path}`;
