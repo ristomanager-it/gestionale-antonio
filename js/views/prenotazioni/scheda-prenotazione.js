@@ -414,6 +414,19 @@ export async function render(container) {
             <label class="pren-det-label" for="pren-note">Note</label>
             <textarea id="pren-note" class="pren-det-textarea" placeholder="Aggiungi note">${escapeHtml(p.note || "")}</textarea>
           </div>
+
+          <div class="pren-det-field full">
+            <label class="pren-det-label">📎 Allegati (menu, documenti)</label>
+            <div id="pren-allegati-esistenti" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
+              ${(Array.isArray(p.allegati) ? p.allegati : []).map(a => `
+                <a href="${escapeHtml(a.url)}" target="_blank" rel="noopener" style="font-size:13px;color:#0E5A7A;text-decoration:none;background:#f1f5f9;padding:8px 10px;border-radius:8px;display:flex;align-items:center;gap:6px;">
+                  📄 ${escapeHtml(a.nome || "allegato")} <span style="color:#94a3b8;margin-left:auto;">apri ↗</span>
+                </a>
+              `).join("") || '<div style="font-size:13px;color:#94a3b8;">Nessun allegato</div>'}
+            </div>
+            <input type="file" id="pren-allegati-input" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="font-size:13px;" />
+            <div id="pren-allegati-nuovi" style="margin-top:6px;display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
         </div>
       </div>
 
@@ -480,6 +493,19 @@ export async function render(container) {
         const contattoId = pageState.prenotazione?.contatto_id || "";
         if (!contattoId) return;
         window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(contattoId);
+      };
+    }
+
+    // Anteprima nuovi allegati selezionati
+    const allInput = container.querySelector("#pren-allegati-input");
+    if (allInput) {
+      allInput.onchange = () => {
+        const box = container.querySelector("#pren-allegati-nuovi");
+        const files = Array.from(allInput.files || []);
+        box.innerHTML = files.map(f => {
+          const kb = Math.round(f.size / 1024);
+          return `<div style="font-size:13px;color:#374151;background:#ecfdf5;padding:6px 10px;border-radius:8px;">➕ ${f.name} <span style="color:#94a3b8;">(${kb} KB)</span></div>`;
+        }).join("");
       };
     }
 
@@ -558,6 +584,24 @@ const clienteNome = container.querySelector("#pren-nome")?.value || "";
 const clienteCognome = container.querySelector("#pren-cognome")?.value || "";
 const telefono = container.querySelector("#pren-telefono")?.value || "";
 
+// Allegati: parto da quelli esistenti e aggiungo i nuovi caricati
+let allegatiFinali = Array.isArray(current.allegati) ? [...current.allegati] : [];
+const inputAll = container.querySelector("#pren-allegati-input");
+const nuoviFile = inputAll?.files ? Array.from(inputAll.files) : [];
+if (nuoviFile.length) {
+  const azId = current.azienda_id;
+  for (const file of nuoviFile) {
+    try {
+      const est = file.name.split(".").pop();
+      const path = `prenotazioni/${azId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${est}`;
+      const { error: upErr } = await window.supabaseClient.storage.from("media-aziende").upload(path, file, { upsert: false });
+      if (upErr) { console.warn("Upload allegato fallito:", upErr.message); continue; }
+      const { data: pub } = window.supabaseClient.storage.from("media-aziende").getPublicUrl(path);
+      allegatiFinali.push({ nome: file.name, url: pub?.publicUrl || "", tipo: file.type || est, caricato_il: new Date().toISOString() });
+    } catch (e) { console.warn("Errore upload allegato:", e); }
+  }
+}
+
 // DEBUG (puoi toglierlo dopo)
 console.log("STATO SALVATO:", stato);
 const payload = {
@@ -566,6 +610,7 @@ const payload = {
   coperti,
   stato,
   note,
+  allegati: allegatiFinali,
   cliente_nome: clienteNome,
   cognome: clienteCognome,
   cliente_telefono: telefono
