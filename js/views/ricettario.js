@@ -460,9 +460,14 @@ function renderRicetteList() {
               ${r.modificato_da_nome ? ` · ✏️ ${escapeHtml(r.modificato_da_nome)} ${r.modificato_il ? "il " + new Date(r.modificato_il).toLocaleDateString("it-IT") : ""}` : ""}
             </div>
           </div>
-          <button class="app-button" type="button" data-edit-ricetta="${escapeAttribute(r.id)}">
-            ✏️ Completa
-          </button>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="app-button" type="button" data-edit-ricetta="${escapeAttribute(r.id)}">
+              ✏️ Completa
+            </button>
+            <button class="app-button secondary" type="button" data-del-ricetta="${escapeAttribute(r.id)}" data-del-nome="${escapeAttribute(r.nome)}" title="Elimina ricetta" style="padding:8px 10px;">
+              🗑
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -481,6 +486,36 @@ function renderRicetteList() {
       window.location.hash = `#/creaRicetta?id=${btn.dataset.editRicetta}`;
     });
   });
+
+  box.querySelectorAll("[data-del-ricetta]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      eliminaRicetta(btn.dataset.delRicetta, btn.dataset.delNome);
+    });
+  });
+}
+
+async function eliminaRicetta(id, nome) {
+  if (!id) return;
+  const conferma = confirm(`Vuoi eliminare la ricetta "${nome || ""}"?\n\nLa ricetta verrà rimossa dal ricettario. Lo storico collegato (produzione, preventivi) resta intatto.`);
+  if (!conferma) return;
+  const supabase = window.supabaseClient;
+  try {
+    const { error } = await supabase
+      .from("ricette")
+      .update({ attivo: false })
+      .eq("id", id);
+    if (error) {
+      alert("Errore durante l'eliminazione: " + error.message);
+      return;
+    }
+    // rimuovo dalla cache locale e ridisegno
+    ricetteCache = ricetteCache.filter(r => String(r.id) !== String(id));
+    renderStats();
+    renderRicetteList();
+  } catch (e) {
+    alert("Errore: " + (e?.message || e));
+  }
 }
 
 function setupAutocomplete() {
