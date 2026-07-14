@@ -1383,9 +1383,29 @@ if (onlineModal.classList.contains("open")) {
     });
 
     overlay.querySelector("#all-stampa").onclick = () => {
-      // apre il file in nuova scheda per la stampa nativa (funziona per pdf/immagini)
-      const w = window.open(fileCorrente.url, "_blank");
-      if (w) { w.focus(); setTimeout(() => { try { w.print(); } catch(_){} }, 800); }
+      const url = fileCorrente.url;
+      const img = isImg(fileCorrente);
+
+      if (img) {
+        // Immagini: stampo con una pagina HTML nostra (affidabile, non esce bianca)
+        const html = `<!doctype html><html><head><meta charset="utf-8"><title>Stampa</title>
+          <style>@media print{@page{margin:10mm}} body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh}
+          img{max-width:100%;max-height:100vh}
+          .barra{position:fixed;top:0;left:0;right:0;padding:10px;background:#0E5A7A;text-align:center}
+          .barra button{padding:10px 18px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-weight:600;font-size:15px}
+          @media print{.barra{display:none}}</style></head>
+          <body>
+          <div class="barra"><button onclick="window.print()">🖨️ Stampa questa immagine</button></div>
+          <img src="${url}" onload="setTimeout(()=>window.print(),300)" />
+          </body></html>`;
+        const blob = new Blob([html], { type: "text/html" });
+        window.open(URL.createObjectURL(blob), "_blank");
+        return;
+      }
+
+      // PDF e altri: apro nella scheda; l'utente usa il tasto Condividi/Stampa nativo iOS.
+      // (Forzare print() via JS su PDF esterno dà pagina bianca su iOS, quindi non lo faccio.)
+      window.open(url, "_blank");
     };
     const chiudi = () => overlay.remove();
     overlay.querySelector("#all-chiudi").onclick = chiudi;
