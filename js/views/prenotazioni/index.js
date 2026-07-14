@@ -725,7 +725,9 @@ export async function render(container) {
 
       <div class="pren-days-bar">
         <div id="pren-days" class="pren-days"></div>
-        <button id="btn-calendar" class="pren-calendar-btn" aria-label="Scegli data">📅</button>
+        <button id="btn-calendar" class="pren-calendar-btn" aria-label="Scegli data" style="position:relative;overflow:hidden;">📅
+          <input type="date" id="filtro-data" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;" />
+        </button>
       </div>
     </div>
 
@@ -746,8 +748,6 @@ export async function render(container) {
         </select>
 <button id="pren-richieste-trigger" class="pren-tool-btn">📂 Fila-Fast</button>
         <button type="button" class="pren-tool-btn" id="btn-refresh" title="Aggiorna">↻</button>
-
-        <input type="date" id="filtro-data" style="display:none" />
       </div>
 
       <div id="pren-kpi-row" class="pren-kpi-row">
@@ -865,24 +865,30 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
       window.location.hash = "#/prenotazioni-rifiutate";
     };
   }
-  document.getElementById("btn-calendar").onclick = () => {
-    try {
-      if (typeof filtroData.showPicker === "function") {
-        filtroData.showPicker();
-      } else {
-        throw new Error("showPicker non disponibile");
+  // L'input date è ora sovrapposto trasparente al bottone: su iOS il tap
+  // apre direttamente il picker nativo. showPicker resta come aiuto sul desktop.
+  const btnCal = document.getElementById("btn-calendar");
+  if (btnCal) {
+    btnCal.addEventListener("click", (e) => {
+      // se il tap non è già sull'input, provo showPicker (desktop)
+      if (e.target !== filtroData && typeof filtroData.showPicker === "function") {
+        try { filtroData.showPicker(); } catch (_) {}
       }
-    } catch (e) {
-      filtroData.focus();
-      filtroData.click();
-    }
-  };
+    });
+  }
 
   filtroData.onchange = async () => {
     state.daysCenterDate = filtroData.value || formatDateInput(today);
     syncActiveDayFromInput(true);
     await load();
   };
+  // iOS: 'change' sui date input a volte è inaffidabile, aggiungo 'input'
+  filtroData.addEventListener("input", async () => {
+    if (!filtroData.value) return;
+    state.daysCenterDate = filtroData.value;
+    syncActiveDayFromInput(true);
+    await load();
+  });
 
   filtroServizio.onchange = async () => {
     await load();
