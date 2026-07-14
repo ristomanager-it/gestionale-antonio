@@ -439,6 +439,7 @@ export function initMenu() {
           { label: "🏢 Agenzie",          route: "bo-agenzie"        },
           { label: "🔐 Permessi",         route: "permessi-operatore"},
           { label: "📆 Gestione ferie",   route: "hr-admin"          },
+          { label: "📋 Cartellino ore",   route: "bo-presenze"       },
           { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
           { label: "📁 Documenti HR",      route: "hr-documenti"      },
           { label: "📘 Manuale",          route: "manuale"           },
@@ -498,6 +499,7 @@ export function initMenu() {
           { label: "➕ Nuovo dipendente",  route: "crea-dipendente" },
           { label: "🕒 Timbrature",        route: "timbrature"      },
           { label: "📆 Gestione ferie",    route: "hr-admin"        },
+          { label: "📋 Cartellino ore",    route: "bo-presenze"     },
           { label: "👤 Fascicolo HR",       route: "hr-fascicolo"    },
           { label: "📁 Documenti HR",       route: "hr-documenti"    },
         ]
