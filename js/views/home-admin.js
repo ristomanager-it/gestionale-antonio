@@ -170,7 +170,7 @@ export async function render(container) {
         </div>
 
         <div class="admin-bep">
-          BEP giornaliero <span id="bepValore">€ 0</span>
+          BEP <span id="bepValore">€ 0</span>
         </div>
 
         <div class="admin-kpi-row">
