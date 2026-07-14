@@ -247,8 +247,12 @@ export async function render(container) {
           gpsKo: 0,
         };
       }
-      const giorno = t.timestamp?.slice(0, 10);
-      if (giorno) riepilogoCorrente[id].giorni.add(giorno);
+      // Il giorno lavorativo è quello dell'INIZIO turno (ora italiana):
+      // così un turno che finisce dopo mezzanotte resta attribuito al giorno di apertura.
+      if (t.tipo === 'inizio_turno' && t.timestamp) {
+        const giorno = new Date(t.timestamp).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
+        riepilogoCorrente[id].giorni.add(giorno);
+      }
       if (t.tipo === 'fine_turno' && t.ore_lavorate) {
         riepilogoCorrente[id].minutiTotali += Math.round(t.ore_lavorate * 60);
         riepilogoCorrente[id].turniCompleti++;
