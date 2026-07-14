@@ -81,8 +81,11 @@ export async function render(container) {
           <div>
             <label>Stato</label>
             <select id="stato" class="input">
-              <option value="nuova">Nuova</option>
+              <option value="in_attesa">In attesa</option>
               <option value="confermata">Confermata</option>
+              <option value="arrivata">Arrivata</option>
+              <option value="no_show">No show</option>
+              <option value="rifiutata">Rifiutata</option>
             </select>
           </div>
 
@@ -138,7 +141,7 @@ export async function render(container) {
       .select("coperti", { count: "exact", head: false })
       .eq("azienda_id", aziendaId)
       .eq("data", data)
-      .in("stato", ["nuova","confermata","arrivata"])
+      .in("stato", ["in_attesa","confermata","arrivata"])
       .gte("ora", ora)
       .lt("ora", oraEndStr);
 
@@ -148,7 +151,7 @@ export async function render(container) {
       .select("coperti")
       .eq("azienda_id", aziendaId)
       .eq("data", data)
-      .in("stato", ["nuova","confermata","arrivata"])
+      .in("stato", ["in_attesa","confermata","arrivata"])
       .gte("ora", ora)
       .lt("ora", oraEndStr);
 
