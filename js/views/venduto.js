@@ -95,6 +95,48 @@ export async function render(container) {
         </div>
       </div>
 
+      <!-- IMPORT IPRATICO MENSILE -->
+      <div style="margin-top:12px; background:#ffffff; border-radius:16px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.15);">
+        <h3 style="margin:0 0 10px;">📊 Importa venduto iPratico (mensile)</h3>
+        <div style="font-size:12px; color:#6b7280; margin-bottom:10px;">
+          Il file iPratico ha colonne <strong>Nome, Totale, Qtà</strong> (un file = un mese). Scegli il mese e carica.
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;">
+          <div>
+            <label style="font-size:12px; display:block; margin-bottom:4px;">Mese</label>
+            <select id="iprat-mese" class="input-pill">
+              ${["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
+                .map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; display:block; margin-bottom:4px;">Anno</label>
+            <input type="number" id="iprat-anno" class="input-pill" value="${new Date().getFullYear()}" style="width:100px;" />
+          </div>
+          <div>
+            <label style="font-size:12px; display:block; margin-bottom:4px;">Canale</label>
+            <select id="iprat-canale" class="input-pill">
+              <option value="NR">Sala (NR)</option>
+              <option value="RA">Asporto (RA)</option>
+              <option value="CC">Consegna (CC)</option>
+              <option value="CAT">Catering (CAT)</option>
+            </select>
+          </div>
+        </div>
+        <input type="file" id="iprat-csv" accept=".csv" class="input-pill" />
+        <div id="iprat-feedback" style="margin-top:10px; font-size:13px;"></div>
+      </div>
+
+      <!-- IMPORT XML FATTURA VENDITA (ARUBA) -->
+      <div style="margin-top:12px; background:#ffffff; border-radius:16px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.15);">
+        <h3 style="margin:0 0 10px;">🧾 Carica fattura di vendita (XML)</h3>
+        <div style="font-size:12px; color:#6b7280; margin-bottom:10px;">
+          Per il venduto fatturato (es. da Aruba). Carica il file XML della fattura elettronica emessa.
+        </div>
+        <input type="file" id="venduto-xml" accept=".xml" class="input-pill" />
+        <div id="xml-vendita-feedback" style="margin-top:10px; font-size:13px;"></div>
+      </div>
+
       <!-- LISTA -->
       <div style="margin-top:12px; background:#ffffff; border-radius:16px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.15);">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -152,7 +194,8 @@ export async function render(container) {
 
   const { data: prodotti, error: prodottiError } = await supabase
     .from("prodotti")
-    .select("id, descrizione")
+    .select("id, nome, descrizione")
+    .eq("azienda_id", azienda.id)
     .order("descrizione", { ascending: true });
 
   if (prodottiError) {
@@ -500,6 +543,277 @@ export async function render(container) {
     );
 
     await caricaVendite();
+    e.target.value = "";
+  });
+
+  /* =========================================================
+     IMPORT IPRATICO MENSILE (Nome, Totale, Qtà)
+  ========================================================= */
+
+  // Converte "3078.61 €" o "1.234,56 €" in numero
+  function parseImporto(s) {
+    if (!s) return NaN;
+    let t = String(s).replace(/€/g, "").replace(/\s/g, "").trim();
+    // Se ha sia punto che virgola: il punto è migliaia, la virgola decimali
+    if (t.includes(".") && t.includes(",")) {
+      t = t.replace(/\./g, "").replace(",", ".");
+    } else if (t.includes(",")) {
+      // Solo virgola = decimale
+      t = t.replace(",", ".");
+    }
+    // Se ha solo punti, è già in formato con punto decimale (iPratico: 3078.61)
+    return parseFloat(t);
+  }
+
+  const ipratFeedback = document.getElementById("iprat-feedback");
+
+  document.getElementById("iprat-csv").addEventListener("change", async (e) => {
+    setFeedback(ipratFeedback, "", "info");
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const mese = parseInt(document.getElementById("iprat-mese").value, 10);
+    const anno = parseInt(document.getElementById("iprat-anno").value, 10);
+    const canale = document.getElementById("iprat-canale").value || "NR";
+
+    if (!mese || !anno) {
+      setFeedback(ipratFeedback, "Seleziona mese e anno prima di caricare.", "err");
+      e.target.value = "";
+      return;
+    }
+
+    // data_vendita = primo giorno del mese
+    const dataVendita = `${anno}-${String(mese).padStart(2, "0")}-01`;
+
+    // Controllo anti-doppione: quel mese è già caricato?
+    const fineMese = new Date(anno, mese, 0).getDate();
+    const dataFineMese = `${anno}-${String(mese).padStart(2, "0")}-${String(fineMese).padStart(2, "0")}`;
+    const { count: giaCaricate } = await supabase
+      .from("vendite_giornaliere")
+      .select("id", { count: "exact", head: true })
+      .eq("azienda_id", azienda.id)
+      .gte("data_vendita", dataVendita)
+      .lte("data_vendita", dataFineMese);
+
+    if (giaCaricate && giaCaricate > 0) {
+      const conferma = confirm(
+        `Attenzione: per ${["","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"][mese]} ${anno} risultano già ${giaCaricate} vendite caricate.\n\nCaricare comunque creerebbe dei doppioni. Vuoi procedere lo stesso?`
+      );
+      if (!conferma) {
+        setFeedback(ipratFeedback, "Import annullato (mese già presente).", "warn");
+        e.target.value = "";
+        return;
+      }
+    }
+
+    // Leggo il file gestendo l'encoding Windows-1252 (accenti iPratico)
+    let text;
+    try {
+      const buf = await file.arrayBuffer();
+      text = new TextDecoder("windows-1252").decode(buf);
+    } catch {
+      text = await file.text();
+    }
+
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length < 2) {
+      setFeedback(ipratFeedback, "File vuoto o non valido.", "err");
+      e.target.value = "";
+      return;
+    }
+
+    const header = parseCSVLine(lines[0], ",").map(h => h.toLowerCase().trim());
+    const idxNome = header.findIndex(h => ["nome", "prodotto", "articolo"].includes(h));
+    const idxTot = header.findIndex(h => ["totale", "importo", "incasso"].includes(h));
+    const idxQ = header.findIndex(h => ["qtà", "qta", "quantita", "quantità", "qty"].includes(h));
+
+    if (idxNome === -1 || idxTot === -1) {
+      setFeedback(ipratFeedback, "Intestazioni non riconosciute. Il file iPratico deve avere: Nome, Totale, Qtà.", "err");
+      e.target.value = "";
+      return;
+    }
+
+    // Dizionario prodotti per aggancio (case-insensitive su nome e descrizione)
+    const mapProd = new Map();
+    (prodotti || []).forEach(p => {
+      if (p.nome) mapProd.set(String(p.nome).trim().toLowerCase(), p);
+      if (p.descrizione) mapProd.set(String(p.descrizione).trim().toLowerCase(), p);
+    });
+
+    const righeDaInserire = [];
+    let saltati = 0, agganciati = 0, nonAgganciati = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCSVLine(lines[i], ",");
+      const nome = (cols[idxNome] || "").trim();
+      const tot = parseImporto(cols[idxTot]);
+      const q = idxQ >= 0 ? parseInt((cols[idxQ] || "0").replace(/\D/g, ""), 10) || 0 : 0;
+
+      if (!nome || !Number.isFinite(tot)) { saltati++; continue; }
+
+      const prod = mapProd.get(nome.toLowerCase());
+      if (prod) agganciati++; else nonAgganciati++;
+
+      righeDaInserire.push({
+        azienda_id: azienda.id,
+        data_vendita: dataVendita,
+        canale,
+        prodotto_id: prod?.id || null,
+        nome_articolo: nome,
+        nome_prodotto: nome,
+        quantita: q,
+        prezzo_unitario: q > 0 ? tot / q : null,
+        totale_riga: tot,
+        totale_incassato: tot,
+      });
+    }
+
+    if (!righeDaInserire.length) {
+      setFeedback(ipratFeedback, "Nessuna riga valida trovata nel file.", "warn");
+      e.target.value = "";
+      return;
+    }
+
+    const totaleMese = righeDaInserire.reduce((s, r) => s + (r.totale_riga || 0), 0);
+    const nomeMese = ["","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"][mese];
+
+    // Anteprima + conferma
+    const ok = confirm(
+      `ANTEPRIMA IMPORT — ${nomeMese} ${anno}\n\n` +
+      `Righe: ${righeDaInserire.length}\n` +
+      `Totale venduto: € ${totaleMese.toLocaleString("it-IT", { minimumFractionDigits: 2 })}\n` +
+      `Prodotti agganciati al catalogo: ${agganciati}\n` +
+      `Non agganciati (salvati comunque col nome): ${nonAgganciati}\n\n` +
+      `Tutte le righe avranno data ${dataVendita}. Confermi il salvataggio?`
+    );
+    if (!ok) {
+      setFeedback(ipratFeedback, "Import annullato.", "warn");
+      e.target.value = "";
+      return;
+    }
+
+    setFeedback(ipratFeedback, "Salvataggio in corso...", "info");
+
+    // Inserimento a blocchi per non superare i limiti
+    let inseriti = 0;
+    for (let i = 0; i < righeDaInserire.length; i += 100) {
+      const blocco = righeDaInserire.slice(i, i + 100);
+      const { error } = await supabase.from("vendite_giornaliere").insert(blocco);
+      if (!error) inseriti += blocco.length;
+    }
+
+    setFeedback(
+      ipratFeedback,
+      `✅ ${nomeMese} ${anno} importato. Righe salvate: ${inseriti} • Totale: € ${totaleMese.toLocaleString("it-IT", { minimumFractionDigits: 2 })}` +
+      (nonAgganciati > 0 ? `<br/><span style="color:#92400e;">${nonAgganciati} prodotti non agganciati al catalogo (ricavo salvato, aggancio da rifinire dopo la bonifica).</span>` : ""),
+      "ok"
+    );
+
+    await caricaVendite();
+    e.target.value = "";
+  });
+
+  /* =========================================================
+     IMPORT XML FATTURA VENDITA (ARUBA)
+  ========================================================= */
+
+  const xmlVenditaFeedback = document.getElementById("xml-vendita-feedback");
+
+  document.getElementById("venduto-xml").addEventListener("change", async (e) => {
+    setFeedback(xmlVenditaFeedback, "", "info");
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setFeedback(xmlVenditaFeedback, "Lettura fattura XML in corso...", "info");
+
+    try {
+      const xmlText = await file.text();
+      const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+
+      if (doc.querySelector("parsererror")) {
+        setFeedback(xmlVenditaFeedback, "File XML non valido.", "err");
+        e.target.value = "";
+        return;
+      }
+
+      // Helper: legge un tag ignorando il namespace
+      const getText = (parent, tag) => {
+        const els = parent.getElementsByTagName(tag);
+        return els.length ? (els[0].textContent || "").trim() : "";
+      };
+
+      // Data documento
+      const dataDoc = getText(doc, "Data") || new Date().toISOString().split("T")[0];
+      const dataVendita = dataDoc.split("T")[0];
+
+      // Righe di dettaglio della fattura
+      const dettagli = doc.getElementsByTagName("DettaglioLinee");
+      if (!dettagli.length) {
+        setFeedback(xmlVenditaFeedback, "Nessuna riga di dettaglio trovata nella fattura.", "warn");
+        e.target.value = "";
+        return;
+      }
+
+      const mapProd = new Map();
+      (prodotti || []).forEach(p => {
+        if (p.nome) mapProd.set(String(p.nome).trim().toLowerCase(), p);
+        if (p.descrizione) mapProd.set(String(p.descrizione).trim().toLowerCase(), p);
+      });
+
+      const righe = [];
+      let totFattura = 0;
+      for (const linea of dettagli) {
+        const descr = getText(linea, "Descrizione");
+        const qta = parseFloat(getText(linea, "Quantita")) || 1;
+        const prezzoTot = parseFloat(getText(linea, "PrezzoTotale")) || 0;
+        if (!descr) continue;
+        const prod = mapProd.get(descr.toLowerCase());
+        totFattura += prezzoTot;
+        righe.push({
+          azienda_id: azienda.id,
+          data_vendita: dataVendita,
+          canale: "NR",
+          prodotto_id: prod?.id || null,
+          nome_articolo: descr,
+          nome_prodotto: descr,
+          quantita: qta,
+          prezzo_unitario: qta > 0 ? prezzoTot / qta : prezzoTot,
+          totale_riga: prezzoTot,
+          totale_incassato: prezzoTot,
+        });
+      }
+
+      if (!righe.length) {
+        setFeedback(xmlVenditaFeedback, "Nessuna riga valida nella fattura.", "warn");
+        e.target.value = "";
+        return;
+      }
+
+      const ok = confirm(
+        `FATTURA VENDITA XML\n\n` +
+        `Data: ${dataVendita}\n` +
+        `Righe: ${righe.length}\n` +
+        `Totale: € ${totFattura.toLocaleString("it-IT", { minimumFractionDigits: 2 })}\n\n` +
+        `Salvare queste vendite?`
+      );
+      if (!ok) {
+        setFeedback(xmlVenditaFeedback, "Import annullato.", "warn");
+        e.target.value = "";
+        return;
+      }
+
+      const { error } = await supabase.from("vendite_giornaliere").insert(righe);
+      if (error) {
+        setFeedback(xmlVenditaFeedback, "Errore salvataggio: " + error.message, "err");
+        e.target.value = "";
+        return;
+      }
+
+      setFeedback(xmlVenditaFeedback, `✅ Fattura importata. Righe: ${righe.length} • Totale: € ${totFattura.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`, "ok");
+      await caricaVendite();
+    } catch (err) {
+      setFeedback(xmlVenditaFeedback, "Errore lettura fattura: " + (err?.message || err), "err");
+    }
     e.target.value = "";
   });
 }
