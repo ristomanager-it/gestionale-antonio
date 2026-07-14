@@ -83,6 +83,23 @@ export async function render(container) {
       }
     } catch (e) { console.warn('Errore calcolo costo lavoro:', e); }
 
+    // Ricavi da venduto (vendite_giornaliere / iPratico): mancavano del tutto nel
+    // conto economico. Li aggancio alla categoria "Ricavi da corrispettivi" (id 32).
+    let ricaviVenduto = 0;
+    try {
+      let qv = supa().from('vendite_giornaliere')
+        .select('totale_incassato, totale_riga')
+        .eq('azienda_id', aziendaId);
+      if (dataDa) qv = qv.gte('data_vendita', dataDa);
+      if (dataA) qv = qv.lte('data_vendita', dataA);
+      const { data: vendite } = await qv;
+      if (vendite?.length) {
+        for (const v of vendite) {
+          ricaviVenduto += Number(v.totale_incassato ?? v.totale_riga ?? 0);
+        }
+      }
+    } catch (e) { console.warn('Errore lettura ricavi venduto:', e); }
+
     // Aggrega per categoria
     const aggregato = {}; // { categoria_id: { cat, totale, n } }
 
@@ -102,6 +119,13 @@ export async function render(container) {
       const { data: catCL } = await supa().from('categorie_bilancio')
         .select('id,nome,codice_conto,tipo,ordine').eq('id', 14).maybeSingle();
       if (catCL) aggiungi(catCL, Math.round(costoLavoro * 100) / 100);
+    }
+
+    // Aggiungo il venduto sulla categoria 32 "Ricavi da corrispettivi"
+    if (ricaviVenduto > 0) {
+      const { data: catRic } = await supa().from('categorie_bilancio')
+        .select('id,nome,codice_conto,tipo,ordine').eq('id', 32).maybeSingle();
+      if (catRic) aggiungi(catRic, Math.round(ricaviVenduto * 100) / 100);
     }
 
     const costi  = Object.values(aggregato).filter(a => a.cat.tipo !== 'ricavo').sort((a,b) => (a.cat.ordine||99)-(b.cat.ordine||99));
