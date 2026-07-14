@@ -104,6 +104,12 @@ export async function render(container) {
             <textarea id="note" class="input" rows="2"></textarea>
           </div>
 
+          <div style="grid-column:1 / -1;">
+            <label>📎 Allegati (menu, documenti)</label>
+            <input type="file" id="allegati-input" class="input" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="padding:8px;" />
+            <div id="allegati-lista" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+
         </div>
 
         <!-- DISPONIBILITÀ SLOT -->
@@ -212,6 +218,19 @@ export async function render(container) {
 
   document.getElementById("btn-annulla").onclick = () => window.location.hash = "#/prenotazioni";
 
+  // Anteprima allegati selezionati
+  const allegatiInput = document.getElementById("allegati-input");
+  if (allegatiInput) {
+    allegatiInput.onchange = () => {
+      const lista = document.getElementById("allegati-lista");
+      const files = Array.from(allegatiInput.files || []);
+      lista.innerHTML = files.map(f => {
+        const kb = Math.round(f.size / 1024);
+        return `<div style="font-size:13px;color:#374151;background:#f1f5f9;padding:6px 10px;border-radius:8px;">📄 ${f.name} <span style="color:#94a3b8;">(${kb} KB)</span></div>`;
+      }).join("");
+    };
+  }
+
   // Salvataggio
   document.getElementById("btn-salva").onclick = async () => {
     const nome = document.getElementById("cliente_nome").value.trim();
@@ -246,6 +265,29 @@ export async function render(container) {
     let contattoId = clienteSelezionato || contatto?.id || null;
     if (contattoId && contattoId.length < 20) contattoId = null;
 
+    // Upload allegati su storage (bucket media-aziende)
+    let allegatiSalvati = [];
+    const inputFile = document.getElementById("allegati-input");
+    const files = inputFile?.files ? Array.from(inputFile.files) : [];
+    if (files.length) {
+      msg.innerHTML = `<span style="color:#0E5A7A;">Caricamento allegati…</span>`;
+      for (const file of files) {
+        try {
+          const estensione = file.name.split(".").pop();
+          const path = `prenotazioni/${aziendaId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${estensione}`;
+          const { error: upErr } = await supa().storage.from("media-aziende").upload(path, file, { upsert: false });
+          if (upErr) { console.warn("Upload allegato fallito:", upErr.message); continue; }
+          const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
+          allegatiSalvati.push({
+            nome: file.name,
+            url: pub?.publicUrl || "",
+            tipo: file.type || estensione,
+            caricato_il: new Date().toISOString(),
+          });
+        } catch (e) { console.warn("Errore upload allegato:", e); }
+      }
+    }
+
     const { data: pren, error } = await supa()
       .from("prenotazioni_tavoli")
       .insert([{
@@ -260,6 +302,7 @@ export async function render(container) {
         coperti,
         stato,
         note,
+        allegati: allegatiSalvati,
         canale: "manuale",
       }])
       .select()
