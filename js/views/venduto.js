@@ -696,10 +696,18 @@ export async function render(container) {
 
     // Inserimento a blocchi per non superare i limiti
     let inseriti = 0;
+    let erroreInsert = null;
     for (let i = 0; i < righeDaInserire.length; i += 100) {
       const blocco = righeDaInserire.slice(i, i + 100);
       const { error } = await supabase.from("vendite_giornaliere").insert(blocco);
       if (!error) inseriti += blocco.length;
+      else if (!erroreInsert) erroreInsert = error;
+    }
+
+    if (inseriti === 0 && erroreInsert) {
+      setFeedback(ipratFeedback, "Errore nel salvataggio: " + erroreInsert.message, "warn");
+      e.target.value = "";
+      return;
     }
 
     setFeedback(
