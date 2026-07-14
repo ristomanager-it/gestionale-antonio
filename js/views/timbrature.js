@@ -837,6 +837,9 @@ function renderManagerCards() {
           <button id="tb-toggle" class="app-button small" type="button">
             Mostra Timbrature 📋
           </button>
+          <button class="app-button small" type="button" onclick="window.location.hash='#/bo-presenze'">
+            📋 Cartellino ore
+          </button>
         </div>
 
         <div id="tb-manager-panel" class="timbrature-card" style="margin-top:12px; display:none;">
