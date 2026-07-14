@@ -874,7 +874,27 @@ async function fetchDashboardData(period) {
       return null;
     }
 
-    const incasso = toNumber(data?.incasso);
+    let incasso = toNumber(data?.incasso);
+    let margineVenduto = null;
+    // Legge l'incasso reale dal venduto caricato, che la edge function dashboard-kpi
+    // non considera. Legge da vendite_giornaliere (ha sede_uuid) e calcola il margine
+    // dalla vista vw_vendite_con_margine. Filtra per sede se selezionata.
+    try {
+      let vq = supabase
+        .from("vendite_giornaliere")
+        .select("id, totale_incassato, totale_riga, sede_uuid")
+        .eq("azienda_id", azienda.id)
+        .gte("data_vendita", from)
+        .lte("data_vendita", to)
+        .limit(20000);
+      if (sede?.id != null) vq = vq.eq("sede_uuid", sede.id);
+      const { data: vendite, error: vErr } = await vq;
+      if (vErr) console.warn("Incasso venduto query error:", vErr.message);
+      if (vendite && vendite.length) {
+        const totInc = vendite.reduce((s, r) => s + Number(r.totale_incassato ?? r.totale_riga ?? 0), 0);
+        if (totInc > 0) incasso = roundCurrency(totInc);
+      }
+    } catch (e) { console.warn("Errore lettura incasso venduto:", e); }
     const incassoIva = data?.incasso_iva != null ? toNumber(data.incasso_iva) : Math.round(incasso * 1.1);
     // Legge acquisti reali da v_contabilita_categorie per il mese corrente
     let materiaPrima = toNumber(data?.materia_prima);
@@ -955,12 +975,8 @@ async function fetchDashboardData(period) {
         if (clCalcolato > 0) costoLavoro = clCalcolato;
       }
     } catch (e) { console.warn("Errore ricalcolo CL:", e); }
-    const margine = data?.margine != null
-      ? toNumber(data.margine)
-      : roundCurrency(incasso - materiaPrima - speseFisse - costoLavoro);
-    const bep = data?.bep != null
-      ? toNumber(data.bep)
-      : roundCurrency(materiaPrima + speseFisse + costoLavoro);
+    const margine = roundCurrency(incasso - materiaPrima - speseFisse - costoLavoro);
+    const bep = roundCurrency(materiaPrima + speseFisse + costoLavoro);
 
     const prodotti = normalizeProducts(data?.prodotti || []);
 
