@@ -118,7 +118,7 @@ const routes = {
 
   produzione: () => import("./views/produzione.js"),
   storicoLotto: () => import("./views/storico-lotto.js"),
-  ricettario: () => import("./views/ricettario.js?v=3"),
+  ricettario: () => import("./views/ricettario.js?v=4"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
   // Editor ricette UNICO: modalità semplice/avanzata dentro crea-ricetta.js
   creaRicetta: () => import("./views/crea-ricetta.js?v=7"),
