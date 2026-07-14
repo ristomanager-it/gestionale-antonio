@@ -536,7 +536,7 @@ export async function render(container) {
         btnSave.textContent = "Salvataggio...";
 
         try {
-          const payload = buildPayloadFromForm();
+          const payload = await buildPayloadFromForm();
           const { error, data } = await window.supabaseClient
             .from("prenotazioni_tavoli")
             .update(payload)
@@ -564,7 +564,7 @@ export async function render(container) {
     }
   }
 
-  function buildPayloadFromForm() {
+  async function buildPayloadFromForm() {
     const current = pageState.prenotazione || {};
 
    const data = container.querySelector("#pren-data")?.value || null;
