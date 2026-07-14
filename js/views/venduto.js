@@ -122,6 +122,12 @@ export async function render(container) {
               <option value="CAT">Catering (CAT)</option>
             </select>
           </div>
+          <div>
+            <label style="font-size:12px; display:block; margin-bottom:4px;">Sede</label>
+            <select id="iprat-sede" class="input-pill">
+              <option value="">— Scegli sede —</option>
+            </select>
+          </div>
         </div>
         <input type="file" id="iprat-csv" accept=".csv" class="input-pill" />
         <div id="iprat-feedback" style="margin-top:10px; font-size:13px;"></div>
@@ -567,6 +573,28 @@ export async function render(container) {
 
   const ipratFeedback = document.getElementById("iprat-feedback");
 
+  // Popolo il selettore sede per l'import iPratico
+  (async () => {
+    const sedeSelect = document.getElementById("iprat-sede");
+    if (!sedeSelect) return;
+    const { data: sedi } = await supabase
+      .from("sedi")
+      .select("id, nome")
+      .eq("azienda_id", azienda.id)
+      .order("nome");
+    if (sedi && sedi.length) {
+      for (const s of sedi) {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.nome;
+        sedeSelect.appendChild(opt);
+      }
+      // se c'è una sede attiva nello stato, la preseleziono
+      const sedeAttiva = window.state?.sedeAttiva?.id;
+      if (sedeAttiva) sedeSelect.value = sedeAttiva;
+    }
+  })();
+
   document.getElementById("iprat-csv").addEventListener("change", async (e) => {
     setFeedback(ipratFeedback, "", "info");
     const file = e.target.files[0];
@@ -575,9 +603,16 @@ export async function render(container) {
     const mese = parseInt(document.getElementById("iprat-mese").value, 10);
     const anno = parseInt(document.getElementById("iprat-anno").value, 10);
     const canale = document.getElementById("iprat-canale").value || "NR";
+    const sedeUuid = document.getElementById("iprat-sede").value || null;
 
     if (!mese || !anno) {
       setFeedback(ipratFeedback, "Seleziona mese e anno prima di caricare.", "err");
+      e.target.value = "";
+      return;
+    }
+
+    if (!sedeUuid) {
+      setFeedback(ipratFeedback, "Scegli la sede prima di caricare (es. Trattoria dell'Aquila o Catering Ricevimenti).", "err");
       e.target.value = "";
       return;
     }
@@ -656,6 +691,7 @@ export async function render(container) {
 
       righeDaInserire.push({
         azienda_id: azienda.id,
+        sede_uuid: sedeUuid,
         data_vendita: dataVendita,
         canale,
         prodotto_id: prod?.id || null,
@@ -675,6 +711,25 @@ export async function render(container) {
     }
 
     const totaleMese = righeDaInserire.reduce((s, r) => s + (r.totale_riga || 0), 0);
+
+    // Controllo anti-doppione: se questo mese+sede è già stato caricato, avviso
+    const { count: giaEsistenti } = await supabase
+      .from("vendite_giornaliere")
+      .select("id", { count: "exact", head: true })
+      .eq("azienda_id", azienda.id)
+      .eq("sede_uuid", sedeUuid)
+      .eq("data_vendita", dataVendita);
+    if (giaEsistenti && giaEsistenti > 0) {
+      const proc = confirm(
+        `⚠️ ATTENZIONE: per questa sede e questo mese risultano già ${giaEsistenti} righe caricate.\n\n` +
+        `Caricare di nuovo creerebbe DOPPIONI. Vuoi procedere comunque?`
+      );
+      if (!proc) {
+        setFeedback(ipratFeedback, "Import annullato (mese già presente per questa sede).", "warn");
+        e.target.value = "";
+        return;
+      }
+    }
     const nomeMese = ["","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"][mese];
 
     // Anteprima + conferma
