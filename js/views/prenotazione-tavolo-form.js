@@ -47,9 +47,11 @@ export async function render(container) {
           <div>
             <label>Stato</label>
             <select id="stato" class="input">
-              <option value="nuova">Nuova</option>
+              <option value="in_attesa">In attesa</option>
               <option value="confermata">Confermata</option>
               <option value="arrivata">Arrivata</option>
+              <option value="no_show">No show</option>
+              <option value="rifiutata">Rifiutata</option>
             </select>
           </div>
 
