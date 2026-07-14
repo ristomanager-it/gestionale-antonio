@@ -203,20 +203,47 @@ function renderProposte() {
   if (!cont) return;
   if (!proposte.length) { cont.innerHTML = ""; return; }
 
+  const box = (c) => `<pre style="background:#0f172a; color:#e2e8f0; padding:10px; border-radius:8px; overflow-x:auto; font-size:12px; margin:8px 0;">${escapeHtml(c)}</pre>`;
+  const TITOLI = {
+    sql_write: "🗄️ Proposta modifica DATABASE",
+    github_write: "📦 Proposta modifica CODICE (deploy)",
+    github_upload_media: "🖼️ Proposta caricamento FOTO/VIDEO",
+    edge_deploy: "⚙️ Proposta deploy EDGE FUNCTION",
+    mgmt_auth_write: "🔐 Proposta modifica CONFIG AUTH",
+    resend_email: "✉️ Proposta invio EMAIL",
+    edge_call: "▶️ Proposta chiamata FUNZIONE",
+    stripe_write: "💳 Proposta creazione LISTINO STRIPE",
+  };
+  function anteprimaDi(p) {
+    switch (p.type) {
+      case "sql_write": return box(p.query);
+      case "github_write": return `<div style="font-size:12px; margin:6px 0;"><b>${escapeHtml(p.repo)}</b> → <code>${escapeHtml(p.path)}</code> (${(p.content||"").length.toLocaleString("it-IT")} caratteri)</div>
+        <details style="margin:6px 0;"><summary style="cursor:pointer; font-size:12px; color:#0E5A7A;">Mostra contenuto file</summary><pre style="background:#0f172a; color:#e2e8f0; padding:10px; border-radius:8px; overflow-x:auto; font-size:11px; max-height:300px;">${escapeHtml(p.content)}</pre></details>`;
+      case "github_upload_media": return `<div style="font-size:12px; margin:6px 0;"><b>${escapeHtml(p.repo)}</b> → <code>${escapeHtml(p.path)}</code><br>da: <span style="color:#0E5A7A;">${escapeHtml((p.source_url||"").slice(0,80))}</span></div>`;
+      case "edge_deploy": return `<div style="font-size:12px; margin:6px 0;">funzione <code>${escapeHtml(p.name)}</code> (${(p.code||"").length.toLocaleString("it-IT")} caratteri)</div>`;
+      case "mgmt_auth_write": return box(JSON.stringify(p.payload, null, 2));
+      case "resend_email": return `<div style="font-size:12px; margin:6px 0;">a <b>${escapeHtml(p.to)}</b><br>oggetto: ${escapeHtml(p.subject||"")}</div>`;
+      case "edge_call": return `<div style="font-size:12px; margin:6px 0;">funzione <code>${escapeHtml(p.slug)}</code></div>${box(JSON.stringify(p.payload||{}, null, 2))}`;
+      case "stripe_write": {
+        const pr = p.params || {};
+        const eur = pr.unit_amount ? (pr.unit_amount/100).toLocaleString("it-IT",{style:"currency",currency:"EUR"}) : "";
+        const ric = pr["recurring[interval]"] ? `/${pr["recurring[interval]"]==="month"?"mese":"anno"}` : "";
+        return `<div style="font-size:13px; margin:6px 0;"><code>${escapeHtml(p.path)}</code></div>
+          ${eur ? `<div style="font-size:15px; font-weight:700; color:#15803d;">${eur}${ric}</div>` : ""}
+          <details style="margin:6px 0;"><summary style="cursor:pointer; font-size:12px; color:#0E5A7A;">Dettagli</summary>${box(JSON.stringify(pr, null, 2))}</details>`;
+      }
+      default: return box(JSON.stringify(p, null, 2));
+    }
+  }
   cont.innerHTML = proposte.map((p, i) => {
-    const anteprima = p.type === "sql_write"
-      ? `<pre style="background:#0f172a; color:#e2e8f0; padding:10px; border-radius:8px; overflow-x:auto; font-size:12px; margin:8px 0;">${escapeHtml(p.query)}</pre>`
-      : `<div style="font-size:12px; margin:6px 0;"><b>${escapeHtml(p.repo)}</b> → <code>${escapeHtml(p.path)}</code> (${(p.content || "").length.toLocaleString("it-IT")} caratteri)</div>
-         <details style="margin:6px 0;"><summary style="cursor:pointer; font-size:12px; color:#0E5A7A;">Mostra contenuto file</summary>
-           <pre style="background:#0f172a; color:#e2e8f0; padding:10px; border-radius:8px; overflow-x:auto; font-size:11px; max-height:300px;">${escapeHtml(p.content)}</pre>
-         </details>`;
+    const rischio = p.type === "sql_write" || p.type === "stripe_write" || p.type === "mgmt_auth_write";
+    const bordo = rischio ? "#b91c1c" : "#d97706";
+    const sfondo = rischio ? "#fef2f2" : "#fffbeb";
     return `
-    <div style="border:2px solid #d97706; border-radius:12px; padding:12px; margin-bottom:8px; background:#fffbeb;">
-      <div style="font-weight:800; font-size:13px; color:#92400e;">
-        ${p.type === "sql_write" ? "🗄️ Proposta modifica DATABASE" : "📦 Proposta modifica CODICE (deploy)"}
-      </div>
+    <div style="border:2px solid ${bordo}; border-radius:12px; padding:12px; margin-bottom:8px; background:${sfondo};">
+      <div style="font-weight:800; font-size:13px; color:#92400e;">${TITOLI[p.type] || "Proposta"}</div>
       <div style="font-size:13px; margin-top:4px;">${escapeHtml(p.motivo || "")}</div>
-      ${anteprima}
+      ${anteprimaDi(p)}
       <div style="display:flex; gap:8px;">
         <button class="app-button small st-esegui" data-idx="${i}">✅ Esegui</button>
         <button class="app-button gray small st-annulla" data-idx="${i}">Annulla</button>
@@ -288,9 +315,17 @@ async function invia() {
 async function eseguiProposta(idx) {
   const p = proposte[idx];
   if (!p) return;
-  if (!confirm(p.type === "sql_write"
-    ? "Eseguire questa modifica sul DATABASE DI PRODUZIONE?"
-    : `Pubblicare ${p.path} su GitHub (deploy automatico)?`)) return;
+  const CONFERME = {
+    sql_write: "Eseguire questa modifica sul DATABASE DI PRODUZIONE?",
+    github_write: `Pubblicare ${p.path} su GitHub (deploy automatico)?`,
+    github_upload_media: `Caricare il media in ${p.path}?`,
+    edge_deploy: `Deployare la Edge Function ${p.name}?`,
+    mgmt_auth_write: "Modificare la configurazione Auth del progetto?",
+    resend_email: `Inviare l'email a ${p.to}?`,
+    edge_call: `Chiamare la funzione ${p.slug}?`,
+    stripe_write: "Creare questo LISTINO su STRIPE (pagamenti reali)?",
+  };
+  if (!confirm(CONFERME[p.type] || "Eseguire questa azione?")) return;
 
   try {
     try { await supabase.auth.refreshSession(); } catch {}
@@ -303,9 +338,17 @@ async function eseguiProposta(idx) {
       proposte.splice(idx, 1);
       renderProposte();
       salvaStato();
-      const dettaglio = p.type === "sql_write"
-        ? `righe interessate: ${data.result?.affected ?? "n/d"}`
-        : `commit ${String(data.result?.commit || "").slice(0, 7)} su ${p.path}`;
+      let dettaglio;
+      switch (p.type) {
+        case "sql_write": dettaglio = `righe interessate: ${data.result?.affected ?? "n/d"}`; break;
+        case "github_write": case "github_upload_media": dettaglio = `commit ${String(data.result?.commit || "").slice(0, 7)} su ${p.path}`; break;
+        case "edge_deploy": dettaglio = `${p.name} deployata (v${data.result?.version ?? "?"})`; break;
+        case "stripe_write": dettaglio = `creato su Stripe: ${data.result?.id || "ok"}`; break;
+        case "resend_email": dettaglio = `email inviata`; break;
+        case "edge_call": dettaglio = `funzione ${p.slug} chiamata (status ${data.result?.status ?? "?"})`; break;
+        case "mgmt_auth_write": dettaglio = `config aggiornata`; break;
+        default: dettaglio = "completato";
+      }
       aggiungiMsg("assistant", `✅ Fatto — ${dettaglio}`);
     }
   } catch (e) {
