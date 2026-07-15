@@ -92,8 +92,22 @@ export async function render(container) {
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;">
           <div>
+            <label style="font-size:12px; display:block; margin-bottom:4px;">Anno</label>
+            <select id="iprat-anno" class="input-pill">
+              ${(() => { const y = new Date().getFullYear(); let o = ""; for (let a = y; a >= 2018; a--) o += `<option value="${a}"${a === y ? " selected" : ""}>${a}</option>`; return o; })()}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; display:block; margin-bottom:4px;">Mese</label>
+            <select id="iprat-mese" class="input-pill">
+              ${["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].map((m, i) => { const mm = String(i + 1).padStart(2, "0"); const cur = new Date().getMonth() === i; return `<option value="${mm}"${cur ? " selected" : ""}>${m}</option>`; }).join("")}
+            </select>
+          </div>
+          <div>
             <label style="font-size:12px; display:block; margin-bottom:4px;">Giorno</label>
-            <input type="date" id="iprat-giorno" class="input-pill" value="${new Date().toISOString().slice(0,10)}" />
+            <select id="iprat-giorno" class="input-pill">
+              ${(() => { const d = new Date().getDate(); let o = ""; for (let g = 1; g <= 31; g++) { const gg = String(g).padStart(2, "0"); o += `<option value="${gg}"${g === d ? " selected" : ""}>${gg}</option>`; } return o; })()}
+            </select>
           </div>
           <div>
             <label style="font-size:12px; display:block; margin-bottom:4px;">Canale</label>
@@ -583,7 +597,7 @@ export async function render(container) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const dataVendita = document.getElementById("iprat-giorno").value;
+    const dataVendita = document.getElementById("iprat-anno").value + "-" + document.getElementById("iprat-mese").value + "-" + document.getElementById("iprat-giorno").value;
     const canale = document.getElementById("iprat-canale").value || "NR";
     const sedeUuid = document.getElementById("iprat-sede").value || null;
 
