@@ -54,6 +54,7 @@ export async function render(container) {
     });
   }
   let mezzaPensione = mgEsistente ? !!mgEsistente.mezza_pensione : true;
+  let prezzoFisso = mgEsistente && mgEsistente.prezzo_fisso != null ? Number(mgEsistente.prezzo_fisso) : null;
 
   // Storico ultimi 7 giorni (stessa sede) per evitare portate ravvicinate
   const daFa = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
@@ -133,10 +134,11 @@ export async function render(container) {
   let html = '<section class="view" style="padding:16px;max-width:900px;margin:0 auto;">';
 
   html += '<div class="card" style="border-radius:12px;padding:16px;margin-bottom:14px;">'
-    + '<h2 style="margin:0 0 4px;color:' + COLORE + ';">🍽️ Menu del Giorno</h2>'
+    + '<h2 style="margin:0 0 4px;color:' + COLORE + ';">🍽️ Menu del Giorno <span id="mg-titolo-prezzo" style="font-size:16px;color:#16a34a;font-weight:700;">' + (prezzoFisso && prezzoFisso > 0 ? '— € ' + money(prezzoFisso) : '') + '</span></h2>'
     + '<p style="margin:0 0 12px;color:#64748b;font-size:13px;">Componi il menu del giorno' + (sede?.nome ? ' — ' + esc(sede.nome) : '') + '. Vale anche come mezza pensione per gli ospiti hotel.</p>'
     + '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">'
     + '<label style="font-size:13px;color:#334155;">Data <input id="mg-data" type="date" value="' + oggi + '" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
+    + '<label style="font-size:13px;color:#334155;">💶 Prezzo fisso € <input id="mg-prezzo" type="number" step="0.5" min="0" value="' + (prezzoFisso != null ? prezzoFisso : '') + '" placeholder="—" style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-mp" type="checkbox"' + (mezzaPensione ? ' checked' : '') + '> Mezza pensione</label>'
     + '<span id="mg-stato" style="font-size:12px;color:#64748b;margin-left:auto;">' + (mgEsistente ? (mgEsistente.pubblicato ? '✅ pubblicato' : '📝 bozza salvata') : 'nuovo') + '</span>'
     + '</div></div>';
@@ -188,6 +190,13 @@ export async function render(container) {
 
   html += '</section>';
   container.innerHTML = html;
+
+  const inpPrezzo = container.querySelector("#mg-prezzo");
+  if (inpPrezzo) inpPrezzo.addEventListener("input", () => {
+    const v = Number(inpPrezzo.value) || 0;
+    const t = container.querySelector("#mg-titolo-prezzo");
+    if (t) t.textContent = v > 0 ? ("— € " + money(v)) : "";
+  });
 
   // ---------- INTERAZIONI ----------
   function aggiornaInfo(selEl) {
@@ -265,10 +274,11 @@ export async function render(container) {
     const voci = raccogliVoci();
     const data = container.querySelector("#mg-data").value || oggi;
     const mp = container.querySelector("#mg-mp").checked;
+    const prezzoF = Number(container.querySelector("#mg-prezzo")?.value) || null;
     const s2 = supa();
     const { data: sess } = await s2.auth.getUser();
     const uid = sess?.user?.id || null;
-    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, voci, created_by: uid, updated_at: new Date().toISOString() };
+    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzo_fisso: prezzoF, voci, created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
       const { error } = await s2.from("menu_giorno").update(payload).eq("id", mgEsistente.id);
       if (error) throw error;
