@@ -372,6 +372,7 @@ export function initMenu() {
       title: "CUCINA",
       items: [
         { label: "📖 Ricettario",         route: "ricettario"         },
+        { label: "🍽️ Menu del Giorno", route: "menu-giorno" },
         { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
         { label: "🏭 Produzione",          route: "produzione"         },
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
