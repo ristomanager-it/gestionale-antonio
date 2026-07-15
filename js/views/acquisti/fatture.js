@@ -191,9 +191,11 @@ export async function renderFatture(container, azienda) {
       <div class="rf-doc-list">
         ${rows.map((row) => `
           <div class="rf-doc-item" ${row.tipo === "fattura" && row.id ? `data-fattura-id="${escapeHtml(String(row.id))}"${row.documentoFiscaleId ? ` data-doc-fiscale="${escapeHtml(String(row.documentoFiscaleId))}"` : ""} style="cursor:pointer;"` : ""}>
-            <div class="rf-doc-top">
+            <div class="rf-doc-top" style="display:flex;align-items:center;gap:8px;">
+              ${row.tipo === "fattura" ? semaforoDot(row.stato_cat) : ""}
               <div class="rf-doc-badge ${row.tipo === "ddt" ? "ddt" : "fattura"}">${escapeHtml(row.tipo.toUpperCase())}</div>
-              <div class="rf-doc-date">${escapeHtml(row.data || "-")}</div>
+              ${row.origine === "xml" ? `<span style="font-size:10px;font-weight:700;color:#6366f1;border:1px solid #c7d2fe;background:#eef2ff;border-radius:5px;padding:1px 5px;">XML</span>` : ""}
+              <div class="rf-doc-date" style="margin-left:auto;">${escapeHtml(row.data || "-")}</div>
             </div>
             <div class="rf-doc-title">${escapeHtml(row.fornitore || "Fornitore non definito")}</div>
             <div class="rf-doc-meta">
@@ -306,12 +308,81 @@ export async function renderFatture(container, azienda) {
   });
 }
 
+// ── Semaforo classificazione (categoria bilancio + categoria interna) ──
+// Regole confermate: bilancio "presente" = valorizzato e ≠ 7 (default "Acquisti di merci").
+//                    interna  "presente" = valorizzata, non vuota e ≠ "Varie".
+function _catBilancioOk(v) { return v != null && Number(v) !== 7; }
+function _catInternaOk(t) {
+  if (!t) return false;
+  const s = String(t).trim().toLowerCase();
+  return s !== "" && s !== "varie";
+}
+function _statoRiga(haBil, haInt) {
+  const n = (haBil ? 1 : 0) + (haInt ? 1 : 0);
+  return n === 2 ? "green" : (n === 1 ? "yellow" : "red");
+}
+function _peggioreStato(list) {
+  if (list.includes("red")) return "red";
+  if (list.includes("yellow")) return "yellow";
+  if (list.length) return "green";
+  return "red"; // fattura senza righe = da lavorare
+}
+function semaforoDot(stato) {
+  const col = { red: "#dc2626", yellow: "#f59e0b", green: "#16a34a" };
+  const lbl = { red: "Da classificare", yellow: "Classificazione incompleta", green: "Classificata" };
+  const c = col[stato] || "#94a3b8";
+  return '<span title="' + (lbl[stato] || "") + '" style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + c + ';flex:0 0 auto;"></span>';
+}
+
+// Calcola lo stato-categorie di ogni fattura a partire dai prodotti agganciati alle righe.
+async function calcolaStatoCategorie(supa, azienda, fatture, fiscali) {
+  try {
+    const fatturaIds = fatture.map((f) => f.id);
+    const fiscaleIds = fiscali.map((f) => f.id);
+
+    const [righeFattRes, righeFiscRes] = await Promise.all([
+      fatturaIds.length
+        ? supa.from("fatture_acquisto_righe").select("fattura_id, prodotto_id").in("fattura_id", fatturaIds)
+        : Promise.resolve({ data: [] }),
+      fiscaleIds.length
+        ? supa.from("fiscale_documenti_righe").select("documento_id, prodotto_id").in("documento_id", fiscaleIds)
+        : Promise.resolve({ data: [] })
+    ]);
+    const righeFatt = righeFattRes.data || [];
+    const righeFisc = righeFiscRes.data || [];
+
+    const prodIds = new Set();
+    righeFatt.forEach((r) => { if (r.prodotto_id) prodIds.add(r.prodotto_id); });
+    righeFisc.forEach((r) => { if (r.prodotto_id) prodIds.add(r.prodotto_id); });
+
+    const mappaProd = new Map();
+    if (prodIds.size) {
+      const { data: prods } = await supa.from("prodotti")
+        .select("id, categoria_bilancio_id, categoria_interna")
+        .in("id", Array.from(prodIds));
+      (prods || []).forEach((p) => {
+        mappaProd.set(String(p.id), _statoRiga(_catBilancioOk(p.categoria_bilancio_id), _catInternaOk(p.categoria_interna)));
+      });
+    }
+
+    function statoDoc(righe, keyField, docId) {
+      const rr = righe.filter((r) => String(r[keyField]) === String(docId));
+      if (!rr.length) return "red";
+      return _peggioreStato(rr.map((r) => (r.prodotto_id ? (mappaProd.get(String(r.prodotto_id)) || "red") : "red")));
+    }
+
+    fatture.forEach((f) => { f.stato_cat = statoDoc(righeFatt, "fattura_id", f.id); });
+    fiscali.forEach((f) => { f.stato_cat = statoDoc(righeFisc, "documento_id", f.id); });
+  } catch (e) {
+    console.error("calcolaStatoCategorie:", e);
+  }
+}
+
 async function searchDocumenti(azienda, filters) {
   try {
-    // Le fatture/DDT di acquisto sono AZIENDALI (senza sede_id): uso il client
-    // diretto filtrando solo per azienda_id, non window.db che forza anche la sede.
+    // Fatture/DDT di acquisto sono AZIENDALI (senza sede_id): client diretto, filtro solo per azienda_id.
     const supaDir = window.supabaseClient || window.supabase;
-    const [fattureRes, ddtRes] = await Promise.all([
+    const [fattureRes, fiscaliRes, ddtRes] = await Promise.all([
       supaDir
         .from("fatture_acquisto")
         .select(`
@@ -322,9 +393,19 @@ async function searchDocumenti(azienda, filters) {
           stato,
           origine,
           import_external_id,
-          fornitori:fornitore_id (
-            ragione_sociale
-          )
+          fornitori:fornitore_id ( ragione_sociale )
+        `)
+        .eq("azienda_id", azienda.id)
+        .order("data_documento", { ascending: false }),
+      supaDir
+        .from("fiscale_documenti")
+        .select(`
+          id,
+          numero_documento,
+          data_documento,
+          totale,
+          stato,
+          fornitori:fornitore_id ( ragione_sociale )
         `)
         .eq("azienda_id", azienda.id)
         .order("data_documento", { ascending: false }),
@@ -334,42 +415,58 @@ async function searchDocumenti(azienda, filters) {
           id,
           numero_ddt,
           data_ddt,
-          fornitori:fornitore_id (
-            ragione_sociale
-          )
+          fornitori:fornitore_id ( ragione_sociale )
         `)
         .eq("azienda_id", azienda.id)
         .order("data_ddt", { ascending: false })
     ]);
 
-    if (fattureRes.error) {
-      console.error(fattureRes.error);
-      return [];
-    }
+    if (fattureRes.error) { console.error(fattureRes.error); return []; }
+    if (ddtRes.error) { console.error(ddtRes.error); return []; }
 
-    if (ddtRes.error) {
-      console.error(ddtRes.error);
-      return [];
-    }
+    const fattureRaw = fattureRes.data || [];
+    // Se la query fiscale fallisce non blocco la lista: mostro solo le tradizionali.
+    const fiscaliRaw = (fiscaliRes && !fiscaliRes.error) ? (fiscaliRes.data || []) : [];
+    if (fiscaliRes && fiscaliRes.error) console.error("fiscale_documenti:", fiscaliRes.error);
 
-    const fornitoreNeedle = String(filters?.fornitore || "").trim().toLowerCase();
-    const dataDa = String(filters?.dataDa || "").trim();
-    const dataA = String(filters?.dataA || "").trim();
+    // Dedup: nascondo i documenti fiscali già collegati a una fattura_acquisto (import_external_id).
+    const idFiscaliCollegati = new Set(
+      fattureRaw.map((f) => f.import_external_id).filter(Boolean).map(String)
+    );
 
-    const fatture = (fattureRes.data || []).map((f) => ({
+    const fatture = fattureRaw.map((f) => ({
       id: f.id,
       tipo: "fattura",
+      fonte: "fattura",
       data: f.data_documento || "",
       fornitore: f.fornitori?.ragione_sociale || "",
       numero: f.numero_documento || "",
       totale: f.totale || 0,
       stato: f.stato || "",
       origine: f.origine || "",
-      documentoFiscaleId: f.import_external_id || null
+      documentoFiscaleId: f.import_external_id || null,
+      stato_cat: "red"
     }));
+
+    const fiscali = fiscaliRaw
+      .filter((fd) => !idFiscaliCollegati.has(String(fd.id)))
+      .map((fd) => ({
+        id: fd.id,
+        tipo: "fattura",
+        fonte: "fiscale",
+        data: fd.data_documento || "",
+        fornitore: fd.fornitori?.ragione_sociale || "",
+        numero: fd.numero_documento || "",
+        totale: fd.totale || 0,
+        stato: fd.stato || "",
+        origine: "xml",
+        documentoFiscaleId: fd.id,
+        stato_cat: "red"
+      }));
 
     const ddt = (ddtRes.data || []).map((d) => ({
       tipo: "ddt",
+      fonte: "ddt",
       data: d.data_ddt || "",
       fornitore: d.fornitori?.ragione_sociale || "",
       numero: d.numero_ddt || "",
@@ -377,7 +474,14 @@ async function searchDocumenti(azienda, filters) {
       stato: ""
     }));
 
-    return [...fatture, ...ddt]
+    // Semaforo classificazione per ogni fattura (tradizionale + XML).
+    await calcolaStatoCategorie(supaDir, azienda, fatture, fiscali);
+
+    const fornitoreNeedle = String(filters?.fornitore || "").trim().toLowerCase();
+    const dataDa = String(filters?.dataDa || "").trim();
+    const dataA = String(filters?.dataA || "").trim();
+
+    return [...fatture, ...fiscali, ...ddt]
       .filter((row) => {
         const fornitoreOk = !fornitoreNeedle || String(row.fornitore || "").toLowerCase().includes(fornitoreNeedle);
         const dataOkDa = !dataDa || (row.data && row.data >= dataDa);
