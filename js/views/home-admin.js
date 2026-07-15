@@ -835,6 +835,7 @@ async function refreshDashboard(period) {
 
   populateSalesCategoryFilter(currentProducts);
   renderGauge(metrics);
+  await loadSalesFoodCost();
   renderSalesList();
 }
 
@@ -1094,6 +1095,31 @@ function destroyGauge() {
    SALES
 ========================================================= */
 
+let salesFoodCost = {};
+function _normNome(s) { return String(s == null ? "" : s).trim().toLowerCase(); }
+async function loadSalesFoodCost() {
+  salesFoodCost = {};
+  try {
+    const supabase = window.supabaseClient;
+    const azienda = window.state?.azienda;
+    const sede = window.state?.sedeAttiva;
+    if (!supabase || !azienda) return;
+    let q = supabase.from("prodotti_vendita")
+      .select("id, nome, food_cost_manuale, ricette(costo_porzione)")
+      .eq("azienda_id", azienda.id).eq("attivo", true).limit(20000);
+    if (sede?.id) q = q.eq("sede_id", sede.id);
+    const { data } = await q;
+    (data || []).forEach((p) => {
+      const rc = p.ricette?.costo_porzione != null ? Number(p.ricette.costo_porzione) : 0;
+      salesFoodCost[_normNome(p.nome)] = {
+        id: p.id,
+        ricettaCost: rc > 0 ? rc : null,
+        manuale: p.food_cost_manuale != null ? Number(p.food_cost_manuale) : null
+      };
+    });
+  } catch (e) { console.warn("loadSalesFoodCost:", e); }
+}
+
 function renderSalesList() {
   const box = document.getElementById("sales-list");
   const categoryFilter = document.getElementById("sales-category-filter");
@@ -1129,13 +1155,20 @@ function renderSalesList() {
   }
 
   box.innerHTML = items.map((item) => {
+    const fc = salesFoodCost[_normNome(item.nome)];
+    let fcHtml = "";
+    if (fc && fc.ricettaCost != null) {
+      fcHtml = `<div class="admin-sales-value-card"><div class="admin-sales-value-label">Food cost</div><div class="admin-sales-value" style="color:#166534;">${formatCurrency(fc.ricettaCost)}<span style="font-size:10px;color:#94a3b8;"> ric.</span></div></div>`;
+    } else if (fc) {
+      fcHtml = `<div class="admin-sales-value-card"><div class="admin-sales-value-label">Food cost €</div><input class="fc-inline" data-id="${fc.id}" type="number" step="0.10" min="0" inputmode="decimal" value="${fc.manuale != null ? fc.manuale : ""}" placeholder="—" style="width:76px;padding:5px;border:1px solid ${fc.manuale != null ? "#16a34a" : "#cbd5e1"};border-radius:8px;text-align:right;font-size:13px;"></div>`;
+    }
     return `
       <div class="admin-sales-row">
         <div class="admin-sales-left">
           <div class="admin-sales-name">${escapeHtml(item.nome)}</div>
           <div class="admin-sales-category">${escapeHtml(item.categoria || "Senza categoria")}</div>
         </div>
-
+        ${fcHtml}
         <div class="admin-sales-value-card">
           <div class="admin-sales-value-label">${sortByLabel(sortBy)}</div>
           <div class="admin-sales-value">${sortBy === "numero" ? formatNumber(item.numero) : formatCurrency(item[sortBy])}</div>
@@ -1143,6 +1176,26 @@ function renderSalesList() {
       </div>
     `;
   }).join("");
+
+  box.querySelectorAll(".fc-inline").forEach((inp) => {
+    inp.addEventListener("change", async () => {
+      const id = Number(inp.getAttribute("data-id"));
+      const raw = inp.value.trim().replace(",", ".");
+      const val = raw === "" ? null : Number(raw);
+      if (val != null && (!Number.isFinite(val) || val < 0)) { inp.style.borderColor = "#dc2626"; return; }
+      inp.disabled = true;
+      try {
+        const { error } = await window.supabaseClient.from("prodotti_vendita")
+          .update({ food_cost_manuale: val, updated_at: new Date().toISOString() }).eq("id", id);
+        inp.disabled = false;
+        if (error) { inp.style.borderColor = "#dc2626"; return; }
+        inp.style.borderColor = val != null ? "#16a34a" : "#cbd5e1";
+        const k = Object.keys(salesFoodCost).find((kk) => salesFoodCost[kk].id === id);
+        if (k) salesFoodCost[k].manuale = val;
+        if (typeof refreshDashboard === "function") refreshDashboard(currentPeriod);
+      } catch (e) { inp.disabled = false; inp.style.borderColor = "#dc2626"; }
+    });
+  });
 }
 
 /* =========================================================
