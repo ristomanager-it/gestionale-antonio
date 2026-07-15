@@ -932,7 +932,9 @@ export async function render(container) {
     if (cameriereAttivo?.ruolo === 'limited') {
       cats = cats.filter(c => CATEGORIE_LIMITED.some(cl => c.nome.toLowerCase().includes(cl.toLowerCase())));
     }
-    const all = [{ id: null, nome: 'Tutti' }, ...cats];
+    const all = [{ id: null, nome: 'Tutti' }];
+    if (menuGiornoOggi && Number(menuGiornoOggi.prezzo_fisso) > 0) all.push({ id: '__mdg__', nome: '🍽️ Menu del Giorno' });
+    all.push(...cats);
     box.innerHTML = all.map(c => `
       <button data-cat="${c.id || ''}" style="
         display:inline-block;padding:8px 14px;margin-right:4px;
@@ -975,13 +977,10 @@ export async function render(container) {
       list = list.filter(p => (p.nome || '').toLowerCase().includes(q));
     }
 
-    // Tile speciale "Menu del Giorno" (prezzo fisso) — mostrato sotto Tutti/Tavolo
+    // Tile speciale "Menu del Giorno" — nella sua categoria dedicata
     let specialHtml = '';
-    const q0 = (searchTerm || '').toLowerCase();
     const mgOk = menuGiornoOggi && Number(menuGiornoOggi.prezzo_fisso) > 0
-      && !categoriaSelezionata
-      && (!settoreSelezionato || String(settoreSelezionato) === String(settoreDefaultId))
-      && (!q0 || 'menu del giorno'.includes(q0));
+      && String(categoriaSelezionata) === '__mdg__';
     if (mgOk) {
       const pf = Number(menuGiornoOggi.prezzo_fisso);
       specialHtml = `
