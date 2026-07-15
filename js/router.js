@@ -48,7 +48,7 @@ const routes = {
   "s": () => import("./views/short-link-redirect.js"),
   "bo-shortlink": () => import("./views/bo/bo-shortlink.js"),
 
-  "home-admin": () => import("./views/home-admin.js?v=6"),
+  "home-admin": () => import("./views/home-admin.js?v=7"),
   "home-manager": () => import("./views/home-manager.js?v=2"),
   "home-operatore": () => import("./views/home-operatore.js?v=3"),
 
