@@ -55,6 +55,7 @@ export async function render(container) {
   }
   let mezzaPensione = mgEsistente ? !!mgEsistente.mezza_pensione : true;
   let prezzoFisso = mgEsistente && mgEsistente.prezzo_fisso != null ? Number(mgEsistente.prezzo_fisso) : null;
+  const escluse = new Set(Array.isArray(mgEsistente?.portate_escluse) ? mgEsistente.portate_escluse : []);
 
   // Storico ultimi 7 giorni (stessa sede) per evitare portate ravvicinate
   const daFa = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
@@ -145,17 +146,28 @@ export async function render(container) {
 
   // Sezioni portate
   PORTATE.forEach(p => {
+    if (escluse.has(p.key)) return;
     const disp = (perPortata[p.key] || []).length;
     html += '<div class="card" style="border-radius:12px;padding:16px;margin-bottom:12px;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
       + '<h3 style="margin:0;color:#0f172a;">' + p.label + '</h3>'
-      + '<span style="font-size:11px;color:#94a3b8;">' + disp + ' ricette disponibili</span></div>';
+      + '<div style="display:flex;gap:10px;align-items:center;">'
+      + '<span style="font-size:11px;color:#94a3b8;">' + disp + ' ricette</span>'
+      + '<button class="mg-rm-portata" data-portata="' + p.key + '" title="Rimuovi questa portata dal menu" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;">✕</button>'
+      + '</div></div>';
     for (let i = 0; i < p.slots; i++) html += slotRow(p.key, i);
     html += '<div class="mg-liberi" data-portata="' + p.key + '">' + (liberiEsistenti[p.key] || []).map(v => liberoRow(p.key, v.nome, v.prezzo)).join("") + '</div>';
     html += '<button class="mg-add-libero" data-portata="' + p.key + '" style="font-size:12px;background:#eef2ff;border:1px dashed #c7d2fe;color:#4338ca;border-radius:8px;padding:6px 10px;cursor:pointer;margin-top:2px;">＋ Piatto libero (non catalogato)</button>';
     if (disp === 0) html += '<p style="font-size:12px;color:#b45309;margin:8px 0 0;">Nessuna ricetta con categoria "' + p.key + '" nel ricettario: usa "Piatto libero" oppure catalogala.</p>';
     html += '</div>';
   });
+
+  const rimosse = PORTATE.filter(p => escluse.has(p.key));
+  if (rimosse.length) {
+    html += '<div style="margin:-2px 0 12px;font-size:12px;color:#64748b;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">Categorie rimosse: '
+      + rimosse.map(p => '<button class="mg-readd" data-portata="' + p.key + '" style="background:#eef2ff;border:1px dashed #c7d2fe;color:#4338ca;border-radius:14px;padding:3px 10px;font-size:11px;cursor:pointer;">＋ ' + esc(p.label) + '</button>').join(' ')
+      + '</div>';
+  }
 
   // Pannello scadenze
   html += '<div class="card" style="border-radius:12px;padding:16px;margin-bottom:12px;background:#fffbeb;border:1px solid #fde68a;">'
@@ -244,9 +256,29 @@ export async function render(container) {
     });
   });
 
+  // Rimuovi / ripristina portate (categorie del menu del giorno)
+  container.querySelectorAll(".mg-rm-portata").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const key = btn.getAttribute("data-portata");
+      if (!confirm("Rimuovere questa portata dal menu del giorno?")) return;
+      escluse.add(key);
+      try { await salva(); } catch (e) { alert("Errore: " + (e.message || e)); return; }
+      await render(container);
+    });
+  });
+  container.querySelectorAll(".mg-readd").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const key = btn.getAttribute("data-portata");
+      escluse.delete(key);
+      try { await salva(); } catch (e) { alert("Errore: " + (e.message || e)); return; }
+      await render(container);
+    });
+  });
+
   function raccogliVoci() {
     const voci = [];
     PORTATE.forEach(p => {
+      if (escluse.has(p.key)) return;
       container.querySelectorAll('.mg-sel[data-portata="' + p.key + '"]').forEach(selEl => {
         const rid = selEl.value;
         if (!rid) return;
@@ -278,7 +310,7 @@ export async function render(container) {
     const s2 = supa();
     const { data: sess } = await s2.auth.getUser();
     const uid = sess?.user?.id || null;
-    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzo_fisso: prezzoF, voci, created_by: uid, updated_at: new Date().toISOString() };
+    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzo_fisso: prezzoF, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
       const { error } = await s2.from("menu_giorno").update(payload).eq("id", mgEsistente.id);
       if (error) throw error;
