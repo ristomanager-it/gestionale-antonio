@@ -34,12 +34,13 @@ export async function render(container) {
   const oggi = new Date().toISOString().slice(0, 10);
   const s = supa();
 
-  // Ricette divise per portata (categoria_food)
-  const { data: ricetteData } = await s.from("ricette")
+  // Ricette divise per portata (categoria_food) — filtrate per sede
+  let ricQ = s.from("ricette")
     .select("id, nome, categoria_food, prezzo_ristorante, prezzo_vendita, food_cost_percentuale")
     .eq("azienda_id", azienda.id).eq("attivo", true)
-    .in("categoria_food", ["antipasti", "primi", "secondi", "dessert"])
-    .order("nome");
+    .in("categoria_food", ["antipasti", "primi", "secondi", "dessert"]);
+  if (sede?.id) ricQ = ricQ.eq("sede_id", sede.id);
+  const { data: ricetteData } = await ricQ.order("nome");
   const ricette = ricetteData || [];
   const mappaRicetta = new Map(ricette.map(r => [String(r.id), r]));
   const perPortata = {};
