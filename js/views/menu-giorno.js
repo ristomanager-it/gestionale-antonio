@@ -44,9 +44,11 @@ export async function render(container) {
   const { data: mgData } = await q.maybeSingle();
   let mgEsistente = mgData || null;
   const sel = {};
-  PORTATE.forEach(p => { sel[p.key] = new Array(p.slots).fill(""); });
+  const liberiEsistenti = {};
+  PORTATE.forEach(p => { sel[p.key] = new Array(p.slots).fill(""); liberiEsistenti[p.key] = []; });
   if (mgEsistente && Array.isArray(mgEsistente.voci)) {
     mgEsistente.voci.forEach(v => {
+      if (!v.ricetta_id) { if (liberiEsistenti[v.portata]) liberiEsistenti[v.portata].push(v); return; }
       const arr = sel[v.portata];
       if (arr) { const idx = arr.indexOf(""); if (idx >= 0) arr[idx] = String(v.ricetta_id); }
     });
@@ -112,6 +114,13 @@ export async function render(container) {
     return 'FC ' + (r.food_cost_percentuale != null ? Math.round(r.food_cost_percentuale) + '%' : '—') + ' · € ' + money(prezzoRicetta(r)) + (rec != null ? (' · ⚠️ servito ' + rec + 'gg fa') : '');
   }
   function infoColor(r) { return (r && usoRecente.get(String(r.id)) != null) ? '#b45309' : '#64748b'; }
+  function liberoRow(key, nome, prezzo) {
+    return '<div class="mg-lib-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
+      + '<input class="mg-lib-nome" data-portata="' + key + '" value="' + esc(nome || '') + '" placeholder="Piatto non catalogato (scrivilo)" style="flex:1;min-width:160px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
+      + '<input class="mg-lib-prezzo" type="number" step="0.5" value="' + (prezzo != null && prezzo !== '' ? prezzo : '') + '" placeholder="€" style="width:78px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
+      + '<button class="mg-lib-del" title="Rimuovi" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:7px 10px;cursor:pointer;">✕</button>'
+      + '</div>';
+  }
   function slotRow(key, idx) {
     const selId = sel[key][idx];
     const r = selId ? mappaRicetta.get(String(selId)) : null;
@@ -140,7 +149,9 @@ export async function render(container) {
       + '<h3 style="margin:0;color:#0f172a;">' + p.label + '</h3>'
       + '<span style="font-size:11px;color:#94a3b8;">' + disp + ' ricette disponibili</span></div>';
     for (let i = 0; i < p.slots; i++) html += slotRow(p.key, i);
-    if (disp === 0) html += '<p style="font-size:12px;color:#b45309;margin:4px 0 0;">Nessuna ricetta con categoria "' + p.key + '". Assegnala nel ricettario per vederla qui.</p>';
+    html += '<div class="mg-liberi" data-portata="' + p.key + '">' + (liberiEsistenti[p.key] || []).map(v => liberoRow(p.key, v.nome, v.prezzo)).join("") + '</div>';
+    html += '<button class="mg-add-libero" data-portata="' + p.key + '" style="font-size:12px;background:#eef2ff;border:1px dashed #c7d2fe;color:#4338ca;border-radius:8px;padding:6px 10px;cursor:pointer;margin-top:2px;">＋ Piatto libero (non catalogato)</button>';
+    if (disp === 0) html += '<p style="font-size:12px;color:#b45309;margin:8px 0 0;">Nessuna ricetta con categoria "' + p.key + '" nel ricettario: usa "Piatto libero" oppure catalogala.</p>';
     html += '</div>';
   });
 
@@ -204,6 +215,26 @@ export async function render(container) {
     });
   });
 
+  // Piatti liberi (non catalogati): aggiungi/rimuovi righe
+  function wireDel(row) {
+    const del = row.querySelector(".mg-lib-del");
+    if (del) del.addEventListener("click", () => row.remove());
+  }
+  container.querySelectorAll(".mg-lib-row").forEach(wireDel);
+  container.querySelectorAll(".mg-add-libero").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-portata");
+      const cont = container.querySelector('.mg-liberi[data-portata="' + key + '"]');
+      const tmp = document.createElement("div");
+      tmp.innerHTML = liberoRow(key, "", "");
+      const row = tmp.firstElementChild;
+      cont.appendChild(row);
+      wireDel(row);
+      const inp = row.querySelector(".mg-lib-nome");
+      if (inp) inp.focus();
+    });
+  });
+
   function raccogliVoci() {
     const voci = [];
     PORTATE.forEach(p => {
@@ -218,6 +249,13 @@ export async function render(container) {
           prezzo: r ? prezzoRicetta(r) : 0,
           food_cost: r && r.food_cost_percentuale != null ? Number(r.food_cost_percentuale) : null,
         });
+      });
+      // Piatti liberi
+      container.querySelectorAll('.mg-liberi[data-portata="' + p.key + '"] .mg-lib-row').forEach(row => {
+        const nome = (row.querySelector(".mg-lib-nome")?.value || "").trim();
+        if (!nome) return;
+        const prezzo = Number(row.querySelector(".mg-lib-prezzo")?.value) || 0;
+        voci.push({ ricetta_id: null, portata: p.key, nome, prezzo, food_cost: null, libero: true });
       });
     });
     return voci;
