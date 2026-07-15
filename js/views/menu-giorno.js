@@ -53,6 +53,20 @@ export async function render(container) {
   }
   let mezzaPensione = mgEsistente ? !!mgEsistente.mezza_pensione : true;
 
+  // Storico ultimi 7 giorni (stessa sede) per evitare portate ravvicinate
+  const daFa = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  let hq = s.from("menu_giorno").select("data, voci").eq("azienda_id", azienda.id).gte("data", daFa).lt("data", oggi);
+  hq = sede?.id ? hq.eq("sede_id", sede.id) : hq.is("sede_id", null);
+  const { data: storico } = await hq;
+  const usoRecente = new Map(); // ricetta_id -> giorni fa (minimo)
+  (storico || []).forEach(m => {
+    const gg = Math.max(1, Math.round((new Date(oggi) - new Date(m.data)) / 86400000));
+    (Array.isArray(m.voci) ? m.voci : []).forEach(v => {
+      const k = String(v.ricetta_id);
+      if (!usoRecente.has(k) || usoRecente.get(k) > gg) usoRecente.set(k, gg);
+    });
+  });
+
   // Scadenze materie prime (ricezione barcode) entro 7 giorni
   const inX = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
   const { data: scadRic } = await s.from("ordini_fornitore_ricezioni_righe")
@@ -86,18 +100,24 @@ export async function render(container) {
     let o = '<option value="">— scegli —</option>';
     (perPortata[key] || []).forEach(r => {
       const p = prezzoRicetta(r);
-      const label = r.nome + (p > 0 ? "  (€ " + money(p) + ")" : "");
+      const rec = usoRecente.get(String(r.id));
+      const label = r.nome + (p > 0 ? "  (€ " + money(p) + ")" : "") + (rec != null ? "  ⚠️ " + rec + "gg fa" : "");
       o += '<option value="' + r.id + '"' + (String(r.id) === String(selectedId) ? " selected" : "") + '>' + esc(label) + '</option>';
     });
     return o;
   }
+  function infoText(r) {
+    if (!r) return '';
+    const rec = usoRecente.get(String(r.id));
+    return 'FC ' + (r.food_cost_percentuale != null ? Math.round(r.food_cost_percentuale) + '%' : '—') + ' · € ' + money(prezzoRicetta(r)) + (rec != null ? (' · ⚠️ servito ' + rec + 'gg fa') : '');
+  }
+  function infoColor(r) { return (r && usoRecente.get(String(r.id)) != null) ? '#b45309' : '#64748b'; }
   function slotRow(key, idx) {
     const selId = sel[key][idx];
     const r = selId ? mappaRicetta.get(String(selId)) : null;
-    const info = r ? ('FC ' + (r.food_cost_percentuale != null ? Math.round(r.food_cost_percentuale) + '%' : '—') + ' · € ' + money(prezzoRicetta(r))) : '';
     return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
       + '<select class="mg-sel" data-portata="' + key + '" data-slot="' + idx + '" style="flex:1;min-width:180px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;">' + optionsFor(key, selId) + '</select>'
-      + '<span class="mg-info" data-portata="' + key + '" data-slot="' + idx + '" style="font-size:11px;color:#64748b;min-width:120px;">' + info + '</span>'
+      + '<span class="mg-info" data-portata="' + key + '" data-slot="' + idx + '" style="font-size:11px;color:' + infoColor(r) + ';min-width:120px;">' + infoText(r) + '</span>'
       + '</div>';
   }
 
@@ -164,7 +184,7 @@ export async function render(container) {
     const idx = selEl.getAttribute("data-slot");
     const infoEl = container.querySelector('.mg-info[data-portata="' + key + '"][data-slot="' + idx + '"]');
     const r = selEl.value ? mappaRicetta.get(String(selEl.value)) : null;
-    if (infoEl) infoEl.textContent = r ? ('FC ' + (r.food_cost_percentuale != null ? Math.round(r.food_cost_percentuale) + '%' : '—') + ' · € ' + money(prezzoRicetta(r))) : '';
+    if (infoEl) { infoEl.textContent = infoText(r); infoEl.style.color = infoColor(r); }
   }
   container.querySelectorAll(".mg-sel").forEach(selEl => selEl.addEventListener("change", () => aggiornaInfo(selEl)));
 
