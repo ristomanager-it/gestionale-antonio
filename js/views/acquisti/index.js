@@ -1,4 +1,4 @@
-import { renderFatture } from "./fatture.js?v=2";
+import { renderFatture } from "./fatture.js?v=3";
 import { renderDDT } from "./ddt.js";
 import { renderPagamenti } from "./pagamenti.js";
 import { renderFornitori } from "./fornitori.js";
