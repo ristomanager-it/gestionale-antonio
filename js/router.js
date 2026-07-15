@@ -48,7 +48,7 @@ const routes = {
   "s": () => import("./views/short-link-redirect.js"),
   "bo-shortlink": () => import("./views/bo/bo-shortlink.js"),
 
-  "home-admin": () => import("./views/home-admin.js?v=9"),
+  "home-admin": () => import("./views/home-admin.js?v=10"),
   "home-manager": () => import("./views/home-manager.js?v=2"),
   "home-operatore": () => import("./views/home-operatore.js?v=3"),
 
@@ -134,6 +134,7 @@ const routes = {
   venduto: () => import("./views/venduto.js?v=8"),
   margini: () => import("./views/margini.js"),
   "food-cost-mancanti": () => import("./views/food-cost-mancanti.js?v=1"),
+  "spese-fisse": () => import("./views/spese-fisse.js?v=1"),
   "menu-intelligence": () => import("./views/menu-intelligence.js"),
 
   preventivi: () => import("./views/preventivi.js"),
@@ -266,6 +267,7 @@ const BO_ROUTES = new Set([
   "ordine",
   "acquisti",
   "food-cost-mancanti",
+  "spese-fisse",
   "menu-giorno",
   "bo-comande",
   "bo-configurazione",
