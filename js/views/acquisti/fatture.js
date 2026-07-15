@@ -2194,7 +2194,9 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     html += '<div class="fisc-riga" data-riga="' + r.id + '" style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">';
     html += '<span class="fisc-dot" data-riga="' + r.id + '" title="' + (LBL[st0]||'') + '" style="display:inline-block;width:12px;height:12px;border-radius:50%;flex:0 0 auto;background:' + (COL[st0]||'#94a3b8') + ';"></span>';
+    const omaggio = (Number(r.quantita) > 0) && (Number(r.prezzo_unitario) === 0 || Number(r.totale_riga) === 0);
     html += '<div style="font-weight:600;font-size:13px;">' + escapeHtml(r.descrizione_originale || "-") + '</div>';
+    if (omaggio) html += '<span title="Merce omaggio: entra in magazzino a costo 0, abbassa il costo medio" style="font-size:10px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:5px;padding:1px 6px;flex:0 0 auto;">🎁 Omaggio</span>';
     html += '</div>';
     html += '<div style="font-size:12px;color:#64748b;margin-bottom:8px;padding-left:20px;">' + (r.quantita ?? "-") + ' ' + escapeHtml(r.unita_misura || "") + ' · € ' + formatMoney(r.prezzo_unitario || 0) + '/u · tot € ' + formatMoney(r.totale_riga || 0) + '</div>';
 
