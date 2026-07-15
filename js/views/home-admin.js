@@ -925,7 +925,19 @@ async function fetchDashboardData(period) {
       }
     } catch (e) { console.warn("Errore materia prima food cost:", e); }
     const incassoIva = data?.incasso_iva != null ? toNumber(data.incasso_iva) : Math.round(incasso * 1.1);
-    const speseFisse = toNumber(data?.spese_fisse);
+    let speseFisse = toNumber(data?.spese_fisse);
+    // Spese fisse = quota pro-rata dell'annuo (costi_fissi): annuo / 365 * giorni periodo.
+    try {
+      const annoRif = new Date().getFullYear();
+      let cq = supabase.from("costi_fissi").select("importo_annuo")
+        .eq("azienda_id", azienda.id).eq("attivo", true).eq("anno_riferimento", annoRif);
+      if (sede?.id != null) cq = cq.eq("sede_uuid", sede.id);
+      const { data: cf } = await cq;
+      if (cf && cf.length) {
+        const annuo = cf.reduce((s, r) => s + (Number(r.importo_annuo) || 0), 0);
+        speseFisse = roundCurrency(annuo / 365 * (days || 1));
+      }
+    } catch (e) { console.warn("Spese fisse pro-rata:", e); }
     let costoLavoro = toNumber(data?.costo_lavoro);
     try {
       // Fix CL: le timbrature spesso NON hanno costo_orario (sta sui
