@@ -4,15 +4,22 @@
 const COLORE = "#0E5A7A";
 const PUBBLICA_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/menu-giorno-pubblica";
 const PORTATE = [
-  { key: "antipasti", label: "🥗 Antipasti", slots: 3 },
-  { key: "primi", label: "🍝 Primi", slots: 3 },
-  { key: "secondi", label: "🍖 Secondi", slots: 3 },
-  { key: "dessert", label: "🍰 Dessert", slots: 1 },
+  { key: "antipasti", label: "🥗 Antipasti", titolo: "Antipasti", slots: 3 },
+  { key: "primi", label: "🍝 Primi", titolo: "Primi", slots: 3 },
+  { key: "secondi", label: "🍖 Secondi", titolo: "Secondi", slots: 3 },
+  { key: "dessert", label: "🍰 Dessert", titolo: "Dessert", slots: 1 },
 ];
 
 function supa() { return window.supabaseClient || window.supabase; }
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function money(n) { const v = Number(n) || 0; return v.toFixed(2).replace(".", ","); }
+function formatDataIta(iso) {
+  try {
+    const d = new Date(iso + "T00:00:00");
+    const mesi = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+    return d.getDate() + " " + mesi[d.getMonth()] + " " + d.getFullYear();
+  } catch (e) { return iso; }
+}
 function prezzoRicetta(r) { return (r.prezzo_ristorante != null ? Number(r.prezzo_ristorante) : (r.prezzo_vendita != null ? Number(r.prezzo_vendita) : 0)); }
 
 export async function render(container) {
@@ -103,9 +110,8 @@ export async function render(container) {
   function optionsFor(key, selectedId) {
     let o = '<option value="">— scegli —</option>';
     (perPortata[key] || []).forEach(r => {
-      const p = prezzoRicetta(r);
       const rec = usoRecente.get(String(r.id));
-      const label = r.nome + (p > 0 ? "  (€ " + money(p) + ")" : "") + (rec != null ? "  ⚠️ " + rec + "gg fa" : "");
+      const label = r.nome + (rec != null ? "  ⚠️ " + rec + "gg fa" : "");
       o += '<option value="' + r.id + '"' + (String(r.id) === String(selectedId) ? " selected" : "") + '>' + esc(label) + '</option>';
     });
     return o;
@@ -113,7 +119,7 @@ export async function render(container) {
   function infoText(r) {
     if (!r) return '';
     const rec = usoRecente.get(String(r.id));
-    return 'FC ' + (r.food_cost_percentuale != null ? Math.round(r.food_cost_percentuale) + '%' : '—') + ' · € ' + money(prezzoRicetta(r)) + (rec != null ? (' · ⚠️ servito ' + rec + 'gg fa') : '');
+    return rec != null ? ('⚠️ servito ' + rec + 'gg fa') : '';
   }
   function infoColor(r) { return (r && usoRecente.get(String(r.id)) != null) ? '#b45309' : '#64748b'; }
   function liberoRow(key, nome, prezzo) {
@@ -196,8 +202,9 @@ export async function render(container) {
 
   // Azioni
   html += '<div style="display:flex;gap:10px;flex-wrap:wrap;position:sticky;bottom:0;background:#fff;padding:12px 0;">'
-    + '<button id="mg-salva" style="flex:1;min-width:140px;background:#f1f5f9;border:1px solid #cbd5e1;color:#0f172a;border-radius:12px;padding:12px;font-weight:600;font-size:14px;cursor:pointer;">💾 Salva bozza</button>'
-    + '<button id="mg-pubblica" style="flex:1;min-width:140px;background:' + COLORE + ';border:none;color:#fff;border-radius:12px;padding:12px;font-weight:600;font-size:14px;cursor:pointer;">🚀 Pubblica sul menu</button>'
+    + '<button id="mg-salva" style="flex:1;min-width:120px;background:#f1f5f9;border:1px solid #cbd5e1;color:#0f172a;border-radius:12px;padding:12px;font-weight:600;font-size:14px;cursor:pointer;">💾 Salva</button>'
+    + '<button id="mg-stampa" style="flex:1;min-width:120px;background:#fff;border:1px solid ' + COLORE + ';color:' + COLORE + ';border-radius:12px;padding:12px;font-weight:600;font-size:14px;cursor:pointer;">🖨️ Stampa</button>'
+    + '<button id="mg-pubblica" style="flex:1;min-width:120px;background:' + COLORE + ';border:none;color:#fff;border-radius:12px;padding:12px;font-weight:600;font-size:14px;cursor:pointer;">🚀 Pubblica</button>'
     + '</div>';
 
   html += '</section>';
@@ -321,6 +328,52 @@ export async function render(container) {
     }
     return mgEsistente;
   }
+
+  function stampa() {
+    const voci = raccogliVoci();
+    if (!voci.length) { alert("Aggiungi almeno un piatto prima di stampare."); return; }
+    const dataV = container.querySelector("#mg-data").value || oggi;
+    const prezzoF = Number(container.querySelector("#mg-prezzo")?.value) || null;
+    const byPortata = {};
+    PORTATE.forEach(p => { byPortata[p.key] = []; });
+    voci.forEach(v => { if (byPortata[v.portata]) byPortata[v.portata].push(v); });
+
+    let sezioni = "";
+    PORTATE.forEach(p => {
+      if (escluse.has(p.key)) return;
+      const items = byPortata[p.key] || [];
+      if (!items.length) return;
+      sezioni += "<h2>" + esc(p.titolo) + "</h2><ul>" + items.map(v => "<li>" + esc(v.nome) + "</li>").join("") + "</ul>";
+    });
+
+    const titoloPrezzo = prezzoF ? '<div class="prezzo">Menu a € ' + money(prezzoF) + "</div>" : "";
+    const sedeNome = sede?.nome ? '<div class="sede">' + esc(sede.nome) + "</div>" : "";
+    const doc = '<!doctype html><html><head><meta charset="utf-8"><title>Menu del Giorno</title><style>'
+      + "body{font-family:Georgia,serif;color:#1a1a1a;max-width:600px;margin:0 auto;padding:40px 30px;text-align:center;}"
+      + "h1{font-size:30px;letter-spacing:2px;margin:0 0 4px;text-transform:uppercase;}"
+      + ".data{color:#666;font-size:14px;}"
+      + ".sede{color:#666;font-size:13px;margin-bottom:6px;}"
+      + ".prezzo{font-size:18px;font-weight:bold;margin:8px 0 18px;}"
+      + "h2{font-size:16px;letter-spacing:3px;text-transform:uppercase;margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px;display:inline-block;}"
+      + "ul{list-style:none;padding:0;margin:0 0 6px;} li{font-size:16px;margin:4px 0;}"
+      + ".incluso{margin-top:26px;font-style:italic;font-size:14px;color:#444;}"
+      + "@media print{body{padding:20px;}}"
+      + "</style></head><body>"
+      + "<h1>Menu del Giorno</h1>"
+      + '<div class="data">' + esc(formatDataIta(dataV)) + "</div>"
+      + sedeNome + titoloPrezzo + sezioni
+      + '<div class="incluso">Acqua e caffè inclusi</div>'
+      + "</body></html>";
+    const w = window.open("", "_blank");
+    if (!w) { alert("Consenti i popup per stampare."); return; }
+    w.document.write(doc);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { try { w.print(); } catch (e) {} }, 300);
+  }
+
+  const btnStampa = container.querySelector("#mg-stampa");
+  if (btnStampa) btnStampa.addEventListener("click", stampa);
 
   const btnSalva = container.querySelector("#mg-salva");
   btnSalva.addEventListener("click", async () => {
