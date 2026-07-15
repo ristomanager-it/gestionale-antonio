@@ -635,7 +635,7 @@ export async function render(container) {
     menuGiornoOggi = null;
     try {
       const oggi = new Date().toISOString().slice(0, 10);
-      let q = supa().from('menu_giorno').select('id, prezzo_fisso, pubblicato').eq('azienda_id', aziendaId).eq('data', oggi);
+      let q = supa().from('menu_giorno').select('id, prezzo_fisso, pubblicato, voci').eq('azienda_id', aziendaId).eq('data', oggi);
       if (sedeId) q = q.eq('sede_id', sedeId);
       const { data } = await q.maybeSingle();
       if (data && Number(data.prezzo_fisso) > 0) menuGiornoOggi = data;
@@ -1027,28 +1027,57 @@ export async function render(container) {
     if (mgBtn) mgBtn.onclick = () => aggiungiMenuGiorno();
   }
 
-  async function aggiungiMenuGiorno() {
+  function aggiungiMenuGiorno() {
     if (!comandaAttiva || !menuGiornoOggi) return;
+    const voci = Array.isArray(menuGiornoOggi.voci) ? menuGiornoOggi.voci : [];
+    const anti = voci.filter(v => v.portata === 'antipasti');
+    const primi = voci.filter(v => v.portata === 'primi');
+    const secondi = voci.filter(v => v.portata === 'secondi');
     const prezzo = Number(menuGiornoOggi.prezzo_fisso) || 0;
-    const { data, error } = await supa().from('comanda_righe').insert({
-      azienda_id: aziendaId,
-      comanda_id: comandaAttiva.id,
-      prodotto_vendita_id: null,
-      nome_snapshot: '🍽️ Menu del Giorno',
-      prezzo_snapshot: prezzo,
-      quantita: 1,
-      stato: 'in_attesa',
-      stampante: 'cucina',
-      cameriere: cameriereAttivo?.nome || null,
-      uscita_numero: uscitaCorrente,
-    }).select('*').single();
+    const sel = (arr, id, label) => `<div style="margin-bottom:12px;"><div style="font-size:12px;color:#64748b;margin-bottom:4px;">${label}</div>`
+      + `<select id="${id}" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;">`
+      + (arr.length ? arr.map(v => `<option value="${esc(v.nome)}">${esc(v.nome)}</option>`).join('') : '<option value="">— nessuna scelta —</option>')
+      + `</select></div>`;
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = `<div style="background:white;border-radius:16px;padding:20px;max-width:420px;width:100%;box-sizing:border-box;">
+      <div style="font-size:18px;font-weight:700;">🍽️ Menu del Giorno</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:16px;">3 portate in 3 uscite — € ${prezzo.toFixed(2).replace('.', ',')}</div>
+      ${sel(anti, 'mdg-anti', 'Antipasto (uscita 1)')}
+      ${sel(primi, 'mdg-primo', 'Primo (uscita 2)')}
+      ${sel(secondi, 'mdg-secondo', 'Secondo (uscita 3)')}
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button id="mdg-annulla" style="flex:1;padding:12px;border:1px solid #cbd5e1;background:#f1f5f9;border-radius:10px;font-weight:600;cursor:pointer;">Annulla</button>
+        <button id="mdg-ok" style="flex:2;padding:12px;border:none;background:#0E5A7A;color:white;border-radius:10px;font-weight:700;cursor:pointer;">Aggiungi al tavolo</button>
+      </div>
+    </div>`;
+    document.body.appendChild(ov);
+    ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+    ov.querySelector('#mdg-annulla').onclick = () => ov.remove();
+    ov.querySelector('#mdg-ok').onclick = async () => {
+      const a = ov.querySelector('#mdg-anti')?.value || '';
+      const p = ov.querySelector('#mdg-primo')?.value || '';
+      const s = ov.querySelector('#mdg-secondo')?.value || '';
+      ov.remove();
+      await inserisciMenuGiorno(a, p, s, prezzo);
+    };
+  }
+
+  async function inserisciMenuGiorno(anti, primo, secondo, prezzo) {
+    const base = { azienda_id: aziendaId, comanda_id: comandaAttiva.id, prodotto_vendita_id: null, stato: 'in_attesa', stampante: 'cucina', cameriere: cameriereAttivo?.nome || null };
+    const righe = [
+      { ...base, nome_snapshot: '🍽️ Menu del Giorno' + (anti ? ': ' + anti : ''), prezzo_snapshot: prezzo, quantita: 1, uscita_numero: 1 },
+      { ...base, nome_snapshot: (primo || 'Primo'), prezzo_snapshot: 0, quantita: 1, uscita_numero: 2 },
+      { ...base, nome_snapshot: (secondo || 'Secondo'), prezzo_snapshot: 0, quantita: 1, uscita_numero: 3 },
+    ];
+    const { data, error } = await supa().from('comanda_righe').insert(righe).select('*');
     if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
     if (data) {
-      righeComanda.push(data);
+      data.forEach(r => righeComanda.push(r));
       await aggiornaTotale();
       renderRighe();
       renderTotale();
-      mostraToast('🍽️ Menu del Giorno aggiunto', 'success');
+      mostraToast('🍽️ Menu del Giorno aggiunto (3 uscite)', 'success');
     }
   }
 
