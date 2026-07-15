@@ -88,6 +88,7 @@ export async function render(container) {
   let settori = [];
   let settoreSelezionato = null;
   let settoreDefaultId = null; // settore "Tavolo": include anche i prodotti senza settore
+  let menuGiornoOggi = null;   // menu del giorno di oggi (prezzo fisso) da vendere in cassa
   let salaSelezionata = null;
   let viewMode = 'pin'; // pin | tavoli | comanda | cucina
   let cameriereAttivo = null; // { pin, nome, ruolo, colore }
@@ -544,7 +545,7 @@ export async function render(container) {
     await Promise.all([
       loadSale(), loadTavoli(), loadComande(),
       loadProdotti(), loadCategorie(), loadPrenotazioniOggi(),
-      loadCamerieri(), loadMenuFiltro(), loadSettori(),
+      loadCamerieri(), loadMenuFiltro(), loadSettori(), loadMenuGiornoOggi(),
     ]);
     applicaFiltroMenu();
     renderSaleTabs();
@@ -628,6 +629,17 @@ export async function render(container) {
       settori = data || [];
       settoreDefaultId = settori.length ? settori[0].id : null;
     } catch (e) { console.warn('loadSettori:', e); settori = []; }
+  }
+
+  async function loadMenuGiornoOggi() {
+    menuGiornoOggi = null;
+    try {
+      const oggi = new Date().toISOString().slice(0, 10);
+      let q = supa().from('menu_giorno').select('id, prezzo_fisso, pubblicato').eq('azienda_id', aziendaId).eq('data', oggi);
+      if (sedeId) q = q.eq('sede_id', sedeId);
+      const { data } = await q.maybeSingle();
+      if (data && Number(data.prezzo_fisso) > 0) menuGiornoOggi = data;
+    } catch (e) { console.warn('loadMenuGiornoOggi:', e); }
   }
 
   async function loadMenuFiltro() {
@@ -963,12 +975,31 @@ export async function render(container) {
       list = list.filter(p => (p.nome || '').toLowerCase().includes(q));
     }
 
-    if (!list.length) {
+    // Tile speciale "Menu del Giorno" (prezzo fisso) — mostrato sotto Tutti/Tavolo
+    let specialHtml = '';
+    const q0 = (searchTerm || '').toLowerCase();
+    const mgOk = menuGiornoOggi && Number(menuGiornoOggi.prezzo_fisso) > 0
+      && !categoriaSelezionata
+      && (!settoreSelezionato || String(settoreSelezionato) === String(settoreDefaultId))
+      && (!q0 || 'menu del giorno'.includes(q0));
+    if (mgOk) {
+      const pf = Number(menuGiornoOggi.prezzo_fisso);
+      specialHtml = `
+        <button data-menugiorno="1" style="
+          background:linear-gradient(135deg,#0E5A7A,#0b455e);border:none;border-radius:12px;padding:12px 8px;cursor:pointer;text-align:center;
+          display:flex;flex-direction:column;align-items:center;gap:6px;color:white;position:relative;">
+          <div style="font-size:32px;">🍽️</div>
+          <div style="font-size:12px;font-weight:700;line-height:1.3;">Menu del Giorno</div>
+          <div style="font-size:13px;font-weight:800;">€${pf.toFixed(2).replace('.', ',')}</div>
+        </button>`;
+    }
+
+    if (!list.length && !specialHtml) {
       box.innerHTML = `<div style="color:#64748b;font-size:13px;grid-column:1/-1;">Nessun prodotto.</div>`;
       return;
     }
 
-    box.innerHTML = list.map(p => {
+    box.innerHTML = specialHtml + list.map(p => {
       const esaurito = p.disponibile === false;
       const pochePortate = !esaurito && p.porzioni_disponibili != null && p.porzioni_disponibili <= 3 && p.porzioni_disponibili > 0;
       return `
@@ -992,6 +1023,33 @@ export async function render(container) {
     box.querySelectorAll('[data-prodotto]').forEach(btn => {
       btn.onclick = () => aggiungiProdotto(btn.dataset.prodotto);
     });
+    const mgBtn = box.querySelector('[data-menugiorno]');
+    if (mgBtn) mgBtn.onclick = () => aggiungiMenuGiorno();
+  }
+
+  async function aggiungiMenuGiorno() {
+    if (!comandaAttiva || !menuGiornoOggi) return;
+    const prezzo = Number(menuGiornoOggi.prezzo_fisso) || 0;
+    const { data, error } = await supa().from('comanda_righe').insert({
+      azienda_id: aziendaId,
+      comanda_id: comandaAttiva.id,
+      prodotto_vendita_id: null,
+      nome_snapshot: '🍽️ Menu del Giorno',
+      prezzo_snapshot: prezzo,
+      quantita: 1,
+      stato: 'in_attesa',
+      stampante: 'cucina',
+      cameriere: cameriereAttivo?.nome || null,
+      uscita_numero: uscitaCorrente,
+    }).select('*').single();
+    if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
+    if (data) {
+      righeComanda.push(data);
+      await aggiornaTotale();
+      renderRighe();
+      renderTotale();
+      mostraToast('🍽️ Menu del Giorno aggiunto', 'success');
+    }
   }
 
   // ══════════════════════════════════════════
