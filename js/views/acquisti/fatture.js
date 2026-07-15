@@ -337,15 +337,19 @@ function semaforoDot(stato) {
 // Calcola lo stato-categorie di ogni fattura a partire dai prodotti agganciati alle righe.
 async function calcolaStatoCategorie(supa, azienda, fatture, fiscali) {
   try {
-    const fatturaIds = fatture.map((f) => f.id);
-    const fiscaleIds = fiscali.map((f) => f.id);
+    // Fatture "tradizionali" (senza documento fiscale) -> righe in fatture_acquisto_righe.
+    // Fatture da XML (con documentoFiscaleId) e documenti fiscali -> righe in fiscale_documenti_righe.
+    const fatturaTradIds = fatture.filter((f) => !f.documentoFiscaleId).map((f) => f.id);
+    const fiscaleDocIds = new Set();
+    fiscali.forEach((f) => fiscaleDocIds.add(String(f.id)));
+    fatture.forEach((f) => { if (f.documentoFiscaleId) fiscaleDocIds.add(String(f.documentoFiscaleId)); });
 
     const [righeFattRes, righeFiscRes] = await Promise.all([
-      fatturaIds.length
-        ? supa.from("fatture_acquisto_righe").select("fattura_id, prodotto_id").in("fattura_id", fatturaIds)
+      fatturaTradIds.length
+        ? supa.from("fatture_acquisto_righe").select("fattura_id, prodotto_id").in("fattura_id", fatturaTradIds)
         : Promise.resolve({ data: [] }),
-      fiscaleIds.length
-        ? supa.from("fiscale_documenti_righe").select("documento_id, prodotto_id").in("documento_id", fiscaleIds)
+      fiscaleDocIds.size
+        ? supa.from("fiscale_documenti_righe").select("documento_id, prodotto_id").in("documento_id", Array.from(fiscaleDocIds))
         : Promise.resolve({ data: [] })
     ]);
     const righeFatt = righeFattRes.data || [];
@@ -371,7 +375,11 @@ async function calcolaStatoCategorie(supa, azienda, fatture, fiscali) {
       return _peggioreStato(rr.map((r) => (r.prodotto_id ? (mappaProd.get(String(r.prodotto_id)) || "red") : "red")));
     }
 
-    fatture.forEach((f) => { f.stato_cat = statoDoc(righeFatt, "fattura_id", f.id); });
+    fatture.forEach((f) => {
+      f.stato_cat = f.documentoFiscaleId
+        ? statoDoc(righeFisc, "documento_id", f.documentoFiscaleId)
+        : statoDoc(righeFatt, "fattura_id", f.id);
+    });
     fiscali.forEach((f) => { f.stato_cat = statoDoc(righeFisc, "documento_id", f.id); });
   } catch (e) {
     console.error("calcolaStatoCategorie:", e);
