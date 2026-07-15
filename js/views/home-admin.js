@@ -910,6 +910,13 @@ async function fetchDashboardData(period) {
           const fc = rc > 0 ? rc : (p.food_cost_manuale != null ? Number(p.food_cost_manuale) : 0);
           if (fc > 0) fcMap.set(String(p.sede_id) + "|" + _norm(p.nome), fc);
         });
+        // override food cost (voci vendute non a catalogo)
+        let ovQ = supabase.from("food_cost_venduto").select("sede_uuid, nome_norm, costo").eq("azienda_id", azienda.id);
+        if (sede?.id != null) ovQ = ovQ.eq("sede_uuid", sede.id);
+        const { data: ovRows } = await ovQ;
+        (ovRows || []).forEach((o) => {
+          if (o.costo > 0) { const key = String(o.sede_uuid) + "|" + o.nome_norm; if (!fcMap.has(key)) fcMap.set(key, Number(o.costo)); }
+        });
 
         let mp = 0, incCoperto = 0, incTot = 0;
         for (const r of vendite) {
@@ -1135,6 +1142,14 @@ async function loadSalesFoodCost() {
         manuale: p.food_cost_manuale != null ? Number(p.food_cost_manuale) : null
       };
     });
+    // override food cost per voci non a catalogo (food_cost_venduto)
+    let ovQ = supabase.from("food_cost_venduto").select("nome_norm, costo").eq("azienda_id", azienda.id);
+    if (sede?.id) ovQ = ovQ.eq("sede_uuid", sede.id);
+    const { data: ov } = await ovQ;
+    (ov || []).forEach((o) => {
+      if (!salesFoodCost[o.nome_norm]) salesFoodCost[o.nome_norm] = { id: null, ricettaCost: null, manuale: null };
+      salesFoodCost[o.nome_norm].override = o.costo != null ? Number(o.costo) : null;
+    });
   } catch (e) { console.warn("loadSalesFoodCost:", e); }
 }
 
@@ -1177,8 +1192,10 @@ function renderSalesList() {
     let fcHtml = "";
     if (fc && fc.ricettaCost != null) {
       fcHtml = `<div style="text-align:center;flex-shrink:0;"><div style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;">Food cost</div><div style="font-size:15px;font-weight:800;color:#166534;">${formatCurrency(fc.ricettaCost)}</div></div>`;
-    } else if (fc) {
-      fcHtml = `<div style="text-align:center;flex-shrink:0;"><div style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;margin-bottom:3px;">Food cost €</div><input class="fc-inline" data-id="${fc.id}" type="number" step="0.10" min="0" inputmode="decimal" value="${fc.manuale != null ? fc.manuale : ""}" placeholder="—" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" style="width:82px;padding:8px;border:1.5px solid ${fc.manuale != null ? "#16a34a" : "#0E5A7A"};border-radius:8px;text-align:right;font-size:14px;background:#fff;position:relative;z-index:2;"></div>`;
+    } else {
+      const val = fc ? (fc.manuale != null ? fc.manuale : (fc.override != null ? fc.override : "")) : "";
+      const saved = fc && (fc.manuale != null || fc.override != null);
+      fcHtml = `<div style="text-align:center;flex-shrink:0;"><div style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;margin-bottom:3px;">Food cost €</div><input class="fc-inline" data-id="${fc && fc.id != null ? fc.id : ""}" data-nome="${escapeHtml(item.nome)}" type="number" step="0.10" min="0" inputmode="decimal" value="${val}" placeholder="—" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" style="width:82px;padding:8px;border:1.5px solid ${saved ? "#16a34a" : "#0E5A7A"};border-radius:8px;text-align:right;font-size:14px;background:#fff;position:relative;z-index:2;"></div>`;
     }
     return `
       <div class="admin-sales-row">
@@ -1197,19 +1214,30 @@ function renderSalesList() {
 
   box.querySelectorAll(".fc-inline").forEach((inp) => {
     inp.addEventListener("change", async () => {
-      const id = Number(inp.getAttribute("data-id"));
+      const idRaw = inp.getAttribute("data-id");
+      const nome = inp.getAttribute("data-nome") || "";
       const raw = inp.value.trim().replace(",", ".");
       const val = raw === "" ? null : Number(raw);
       if (val != null && (!Number.isFinite(val) || val < 0)) { inp.style.borderColor = "#dc2626"; return; }
       inp.disabled = true;
       try {
-        const { error } = await window.supabaseClient.from("prodotti_vendita")
-          .update({ food_cost_manuale: val, updated_at: new Date().toISOString() }).eq("id", id);
+        let error = null;
+        if (idRaw) {
+          const r = await window.supabaseClient.from("prodotti_vendita")
+            .update({ food_cost_manuale: val, updated_at: new Date().toISOString() }).eq("id", Number(idRaw));
+          error = r.error;
+          if (!error) { const k = Object.keys(salesFoodCost).find((kk) => salesFoodCost[kk].id === Number(idRaw)); if (k) salesFoodCost[k].manuale = val; }
+        } else {
+          const azienda = window.state?.azienda; const sede = window.state?.sedeAttiva;
+          const r = await window.supabaseClient.from("food_cost_venduto").upsert({
+            azienda_id: azienda?.id, sede_uuid: sede?.id || null, nome_norm: _normNome(nome), costo: val, updated_at: new Date().toISOString()
+          }, { onConflict: "azienda_id,sede_uuid,nome_norm" });
+          error = r.error;
+          if (!error) { const k = _normNome(nome); if (!salesFoodCost[k]) salesFoodCost[k] = { id: null, ricettaCost: null, manuale: null }; salesFoodCost[k].override = val; }
+        }
         inp.disabled = false;
         if (error) { inp.style.borderColor = "#dc2626"; return; }
         inp.style.borderColor = val != null ? "#16a34a" : "#cbd5e1";
-        const k = Object.keys(salesFoodCost).find((kk) => salesFoodCost[kk].id === id);
-        if (k) salesFoodCost[k].manuale = val;
         if (typeof refreshDashboard === "function") refreshDashboard(currentPeriod);
       } catch (e) { inp.disabled = false; inp.style.borderColor = "#dc2626"; }
     });
