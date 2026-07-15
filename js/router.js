@@ -112,7 +112,7 @@ const routes = {
   profilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
 "scegli-sede": () => import("./views/scegli-sede.js"),
-  acquisti: () => import("./views/acquisti/index.js?v=11"),
+  acquisti: () => import("./views/acquisti/index.js?v=9"),
   magazzino: () => import("./views/magazzino/magazzino.js?v=7"),
   ordini: () => import("./views/ordini.js?v=2"),
   ordine: () => import("./views/ordine.js?v=7"),
@@ -1297,6 +1297,12 @@ async function resolve() {
       }
     }
     if (!window.state?.sedeAttiva?.id && sedi.length === 1) {
+      window.state.sedeAttiva = sedi[0];
+      setStoredSedeId(sedi[0].id);
+    }
+    // Rete di sicurezza: se ancora nessuna sede (es. sede salvata di un'altra azienda),
+    // prendi la prima della sede corrente cosi le rotte BO non chiedono mai di sceglierla.
+    if (!window.state?.sedeAttiva?.id && sedi.length > 1) {
       window.state.sedeAttiva = sedi[0];
       setStoredSedeId(sedi[0].id);
     }
