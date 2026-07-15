@@ -97,21 +97,14 @@ export async function render(container) {
 
       <!-- IMPORT IPRATICO MENSILE -->
       <div style="margin-top:12px; background:#ffffff; border-radius:16px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.15);">
-        <h3 style="margin:0 0 10px;">📊 Importa venduto iPratico (mensile)</h3>
+        <h3 style="margin:0 0 10px;">📊 Importa venduto iPratico (giornaliero)</h3>
         <div style="font-size:12px; color:#6b7280; margin-bottom:10px;">
-          Il file iPratico ha colonne <strong>Nome, Totale, Qtà</strong> (un file = un mese). Scegli il mese e carica.
+          Il file iPratico ha colonne <strong>Nome, Totale, Qtà</strong> (un file = un giorno). Scegli il giorno e carica.
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;">
           <div>
-            <label style="font-size:12px; display:block; margin-bottom:4px;">Mese</label>
-            <select id="iprat-mese" class="input-pill">
-              ${["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
-                .map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}
-            </select>
-          </div>
-          <div>
-            <label style="font-size:12px; display:block; margin-bottom:4px;">Anno</label>
-            <input type="number" id="iprat-anno" class="input-pill" value="${new Date().getFullYear()}" style="width:100px;" />
+            <label style="font-size:12px; display:block; margin-bottom:4px;">Giorno</label>
+            <input type="date" id="iprat-giorno" class="input-pill" value="${new Date().toISOString().slice(0,10)}" />
           </div>
           <div>
             <label style="font-size:12px; display:block; margin-bottom:4px;">Canale</label>
@@ -600,13 +593,12 @@ export async function render(container) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const mese = parseInt(document.getElementById("iprat-mese").value, 10);
-    const anno = parseInt(document.getElementById("iprat-anno").value, 10);
+    const dataVendita = document.getElementById("iprat-giorno").value;
     const canale = document.getElementById("iprat-canale").value || "NR";
     const sedeUuid = document.getElementById("iprat-sede").value || null;
 
-    if (!mese || !anno) {
-      setFeedback(ipratFeedback, "Seleziona mese e anno prima di caricare.", "err");
+    if (!dataVendita) {
+      setFeedback(ipratFeedback, "Seleziona il giorno prima di caricare.", "err");
       e.target.value = "";
       return;
     }
@@ -617,25 +609,19 @@ export async function render(container) {
       return;
     }
 
-    // data_vendita = primo giorno del mese
-    const dataVendita = `${anno}-${String(mese).padStart(2, "0")}-01`;
-
-    // Controllo anti-doppione: quel mese è già caricato?
-    const fineMese = new Date(anno, mese, 0).getDate();
-    const dataFineMese = `${anno}-${String(mese).padStart(2, "0")}-${String(fineMese).padStart(2, "0")}`;
+    // Controllo anti-doppione: quel giorno è già caricato?
     const { count: giaCaricate } = await supabase
       .from("vendite_giornaliere")
       .select("id", { count: "exact", head: true })
       .eq("azienda_id", azienda.id)
-      .gte("data_vendita", dataVendita)
-      .lte("data_vendita", dataFineMese);
+      .eq("data_vendita", dataVendita);
 
     if (giaCaricate && giaCaricate > 0) {
       const conferma = confirm(
-        `Attenzione: per ${["","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"][mese]} ${anno} risultano già ${giaCaricate} vendite caricate.\n\nCaricare comunque creerebbe dei doppioni. Vuoi procedere lo stesso?`
+        `Attenzione: per il ${dataVendita} risultano già ${giaCaricate} vendite caricate.\n\nCaricare comunque creerebbe dei doppioni. Vuoi procedere lo stesso?`
       );
       if (!conferma) {
-        setFeedback(ipratFeedback, "Import annullato (mese già presente).", "warn");
+        setFeedback(ipratFeedback, "Import annullato (giorno già presente).", "warn");
         e.target.value = "";
         return;
       }
