@@ -131,7 +131,7 @@ const routes = {
   "super-tony": () => import("./views/super-tony.js?v=6"),
   preparazioni: () => import("./views/preparazioni.js"),
   reparti: () => import("./views/reparti.js"),
-  venduto: () => import("./views/venduto.js?v=6"),
+  venduto: () => import("./views/venduto.js?v=7"),
   margini: () => import("./views/margini.js"),
   "food-cost-mancanti": () => import("./views/food-cost-mancanti.js?v=1"),
   "menu-intelligence": () => import("./views/menu-intelligence.js"),
