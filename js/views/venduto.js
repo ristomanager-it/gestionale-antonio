@@ -84,17 +84,6 @@ export async function render(container) {
         </div>
       </div>
 
-      <!-- IMPORT CSV -->
-      <div style="margin-top:12px; background:#ffffff; border-radius:16px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.15);">
-        <h3 style="margin:0 0 10px;">Importa CSV</h3>
-        <input type="file" id="venduto-csv" accept=".csv" class="input-pill" />
-        <div id="csv-feedback" style="margin-top:10px; font-size:13px;"></div>
-        <div style="margin-top:8px; font-size:12px; color:#6b7280;">
-          Formato atteso (intestazione inclusa): data_vendita, nome, quantita, totale
-          <br/>Supporta separatore virgola o punto e virgola. Supporta campi tra virgolette.
-        </div>
-      </div>
-
       <!-- IMPORT IPRATICO MENSILE -->
       <div style="margin-top:12px; background:#ffffff; border-radius:16px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.15);">
         <h3 style="margin:0 0 10px;">📊 Importa venduto iPratico (giornaliero)</h3>
@@ -440,7 +429,8 @@ export async function render(container) {
      IMPORT CSV
   ========================================================= */
 
-  document.getElementById("venduto-csv").addEventListener("change", async (e) => {
+  const _vcsv = document.getElementById("venduto-csv");
+  if (_vcsv) _vcsv.addEventListener("change", async (e) => {
     setFeedback(csvFeedback, "", "info");
 
     const file = e.target.files[0];
