@@ -633,11 +633,12 @@ export async function render(container) {
 
   async function loadMenuGiornoOggi() {
     menuGiornoOggi = null;
+    if (!sedeId) return; // il menu del giorno è per sede
     try {
       const oggi = new Date().toISOString().slice(0, 10);
-      let q = supa().from('menu_giorno').select('id, prezzo_fisso, pubblicato, voci').eq('azienda_id', aziendaId).eq('data', oggi);
-      if (sedeId) q = q.eq('sede_id', sedeId);
-      const { data } = await q.maybeSingle();
+      const { data } = await supa().from('menu_giorno')
+        .select('id, prezzo_fisso, pubblicato, voci')
+        .eq('azienda_id', aziendaId).eq('sede_id', sedeId).eq('data', oggi).maybeSingle();
       if (data && Number(data.prezzo_fisso) > 0) menuGiornoOggi = data;
     } catch (e) { console.warn('loadMenuGiornoOggi:', e); }
   }
