@@ -2142,7 +2142,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     supa.from("fiscale_documenti_righe")
       .select("id, numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, totale_riga, prodotto_id, match_confidenza, match_confermato")
       .eq("documento_id", documentoId),
-    supa.from("prodotti").select("id, nome, categoria_bilancio_id, categoria_interna").eq("azienda_id", azienda.id).eq("attivo", true).order("nome"),
+    supa.from("prodotti").select("id, nome, nome_interno, categoria_bilancio_id, categoria_interna").eq("azienda_id", azienda.id).eq("attivo", true).order("nome"),
     supa.from("categorie_bilancio").select("id, nome, tipo, solo_costo, ordine").eq("tipo", "costo").order("ordine"),
     supa.from("fiscale_documenti").select("stato").eq("id", documentoId).maybeSingle()
   ]);
@@ -2157,6 +2157,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
   if (!righe.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessuna riga.</div>'; return; }
 
   const mappaProd = new Map(prodotti.map(p => [String(p.id), p.nome]));
+  const mappaNomeInt = new Map(prodotti.map(p => [String(p.id), p.nome_interno || ""]));
   const mappaCatProd = new Map(prodotti.map(p => [String(p.id), p.categoria_bilancio_id]));
   const mappaIntProd = new Map(prodotti.map(p => [String(p.id), p.categoria_interna]));
   const optionsProdotti = prodotti.map(p => '<option value="' + p.id + '">' + escapeHtml(p.nome) + '</option>').join("");
@@ -2219,7 +2220,12 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       html += '<button class="fisc-crea" data-riga="' + r.id + '" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">＋ Crea prodotto</button>';
       html += '</div>';
     } else {
-      html += '<div style="font-size:13px;margin-bottom:4px;padding-left:20px;">→ ' + escapeHtml(nomeProd || "non abbinato") + '</div>';
+      const nomeVis = mappaNomeInt.get(String(r.prodotto_id)) || nomeProd || "non abbinato";
+      html += '<div style="font-size:13px;margin-bottom:4px;padding-left:20px;">→ ' + escapeHtml(nomeVis) + '</div>';
+      html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:2px;padding-left:20px;flex-wrap:wrap;">';
+      html += '<span style="font-size:11px;color:#64748b;">🏷️ Nome interno</span>';
+      html += '<input class="fisc-nome-interno" data-riga="' + r.id + '" data-prod="' + r.prodotto_id + '" value="' + escapeHtml(mappaNomeInt.get(String(r.prodotto_id)) || "") + '" placeholder="' + escapeHtml(nomeProd || "nome comodo per voi") + '" style="flex:1;min-width:180px;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;" />';
+      html += '</div>';
     }
 
     // Categorie — sempre modificabili (anche se già in magazzino)
@@ -2354,6 +2360,22 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "conferma_riga", azienda_id: azienda.id, riga_id: rigaId, prodotto_id: nuovo.id });
       if (!d.success) alert("Prodotto creato ma abbinamento non riuscito: " + (d.error || "riprova"));
       await renderRigheFiscali(box, documentoId, azienda);
+    });
+  });
+
+  box.querySelectorAll(".fisc-nome-interno").forEach(inp => {
+    inp.addEventListener("click", (e) => e.stopPropagation());
+    inp.addEventListener("change", async () => {
+      const prodId = inp.getAttribute("data-prod");
+      if (!prodId) return;
+      const val = inp.value.trim();
+      inp.disabled = true;
+      const supaDir = window.supabaseClient || window.supabase;
+      const { error } = await supaDir.from("prodotti").update({ nome_interno: val || null }).eq("id", Number(prodId)).eq("azienda_id", azienda.id);
+      inp.disabled = false;
+      if (error) { alert("Errore salvataggio nome interno: " + error.message); return; }
+      mappaNomeInt.set(String(prodId), val);
+      inp.style.borderColor = "#16a34a";
     });
   });
 
