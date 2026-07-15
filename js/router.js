@@ -133,6 +133,7 @@ const routes = {
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js?v=6"),
   margini: () => import("./views/margini.js"),
+  "food-cost-mancanti": () => import("./views/food-cost-mancanti.js?v=1"),
   "menu-intelligence": () => import("./views/menu-intelligence.js"),
 
   preventivi: () => import("./views/preventivi.js"),
@@ -264,6 +265,7 @@ const BO_ROUTES = new Set([
   "ordini",
   "ordine",
   "acquisti",
+  "food-cost-mancanti",
   "menu-giorno",
   "bo-comande",
   "bo-configurazione",
