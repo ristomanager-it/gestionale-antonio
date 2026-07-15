@@ -83,6 +83,8 @@ export async function render(container) {
   let comandaAttiva = null;
   let righeComanda = [];
   let categoriaSelezionata = null;
+  let menuProdSet = null;    // Set prodotto_vendita_id presenti nel menu attivo
+  let menuCatOrdine = null;  // Map categoria_vendita_id -> ordine nel menu
   let salaSelezionata = null;
   let viewMode = 'pin'; // pin | tavoli | comanda | cucina
   let cameriereAttivo = null; // { pin, nome, ruolo, colore }
@@ -538,8 +540,9 @@ export async function render(container) {
     await Promise.all([
       loadSale(), loadTavoli(), loadComande(),
       loadProdotti(), loadCategorie(), loadPrenotazioniOggi(),
-      loadCamerieri(),
+      loadCamerieri(), loadMenuFiltro(),
     ]);
+    applicaFiltroMenu();
     renderSaleTabs();
     renderMapTavoli();
   }
@@ -609,8 +612,41 @@ export async function render(container) {
     }
   }
 
-  async function loadPrenotazioniOggi() {
-    const oggi = new Date().toISOString().slice(0, 10);
+  async function loadMenuFiltro() {
+    menuProdSet = null; menuCatOrdine = null;
+    try {
+      let mq = supa().from('menu').select('id').eq('azienda_id', aziendaId).eq('attivo', true);
+      if (sedeId) mq = mq.eq('sede_id', sedeId);
+      const { data: menus } = await mq.order('created_at', { ascending: false });
+      const menuId = menus && menus.length ? menus[0].id : null;
+      if (!menuId) return;
+      const [{ data: cats }, { data: voci }] = await Promise.all([
+        supa().from('menu_categorie').select('categoria_vendita_id, ordine').eq('menu_id', menuId),
+        supa().from('menu_voci').select('prodotto_vendita_id').eq('menu_id', menuId).eq('attivo', true),
+      ]);
+      const ord = new Map();
+      (cats || []).forEach(c => { if (c.categoria_vendita_id != null) ord.set(String(c.categoria_vendita_id), c.ordine == null ? 999 : c.ordine); });
+      const prods = new Set();
+      (voci || []).forEach(v => { if (v.prodotto_vendita_id) prods.add(String(v.prodotto_vendita_id)); });
+      if (ord.size) menuCatOrdine = ord;
+      if (prods.size) menuProdSet = prods;
+    } catch (e) { console.warn('loadMenuFiltro:', e); }
+  }
+
+  // Regola fissa: in comande compare solo ciò che è nel menu, categorie in ordine menu.
+  // Fallback: se non c'è un menu attivo con voci, resta tutto come prima.
+  function applicaFiltroMenu() {
+    if (menuProdSet && menuProdSet.size) {
+      prodottiVendita = prodottiVendita.filter(p => menuProdSet.has(String(p.id)));
+    }
+    if (menuCatOrdine && menuCatOrdine.size) {
+      categorieVendita = categorieVendita
+        .filter(c => menuCatOrdine.has(String(c.id)))
+        .sort((a, b) => (menuCatOrdine.get(String(a.id)) ?? 999) - (menuCatOrdine.get(String(b.id)) ?? 999));
+    }
+  }
+
+  async function loadPrenotazioniOggi() {    const oggi = new Date().toISOString().slice(0, 10);
     const { data } = await supa()
       .from('prenotazioni_tavoli').select('*')
       .eq('azienda_id', aziendaId).eq('data', oggi)
