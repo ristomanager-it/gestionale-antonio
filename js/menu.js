@@ -393,6 +393,7 @@ export function initMenu() {
           { label: "🛒 Acquisti",         route: "acquisti"          },
           { label: "💰 Venduto",          route: "venduto"           },
           { label: "📈 Margini",          route: "margini"           },
+          { label: "🍝 Food cost mancanti", route: "food-cost-mancanti" },
           { label: "🍽️ Menu Intelligence AI", route: "menu-intelligence" },
         ]
       });
