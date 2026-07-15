@@ -2208,13 +2208,15 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     html += '</div>';
     html += '<div style="font-size:12px;color:#64748b;margin-bottom:8px;padding-left:20px;">' + (r.quantita ?? "-") + ' ' + escapeHtml(r.unita_misura || "") + ' · € ' + formatMoney(r.prezzo_unitario || 0) + '/u · tot € ' + formatMoney(r.totale_riga || 0) + '</div>';
 
-    if (!giaFinalizzato) {
+    const isMatched = !!r.prodotto_id;
+    if (!giaFinalizzato || !isMatched) {
       html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
-      html += '<select class="fisc-select" data-riga="' + r.id + '" style="flex:1;min-width:160px;padding:7px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">';
-      html += '<option value="">— nessun prodotto —</option>' + optionsProdotti;
+      html += '<select class="fisc-select" data-riga="' + r.id + '" style="flex:1;min-width:150px;padding:7px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">';
+      html += '<option value="">— scegli prodotto —</option>' + optionsProdotti;
       html += '</select>';
       html += badgeConf(r.match_confidenza, r.match_confermato);
-      html += '<button class="fisc-conferma" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">Conferma</button>';
+      html += '<button class="fisc-conferma" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">Abbina</button>';
+      html += '<button class="fisc-crea" data-riga="' + r.id + '" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">＋ Crea prodotto</button>';
       html += '</div>';
     } else {
       html += '<div style="font-size:13px;margin-bottom:4px;padding-left:20px;">→ ' + escapeHtml(nomeProd || "non abbinato") + '</div>';
@@ -2318,6 +2320,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       const rigaId = btn.getAttribute("data-riga");
       const sel = box.querySelector('.fisc-select[data-riga="' + rigaId + '"]');
       const prodId = sel && sel.value ? Number(sel.value) : null;
+      if (!prodId) { alert("Scegli prima un prodotto dalla tendina (o usa Crea prodotto)."); return; }
       btn.disabled = true; btn.textContent = "...";
       const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "conferma_riga", azienda_id: azienda.id, riga_id: rigaId, prodotto_id: prodId });
       if (d.success) {
@@ -2326,7 +2329,31 @@ async function renderRigheFiscali(box, documentoId, azienda) {
         statiRiga[rigaId] = statoDaProd(prodId);
         applyDot(dotEl(rigaId), statiRiga[rigaId]);
         aggiornaDotFattura();
-      } else { alert("Errore: " + (d.error || "riprova")); btn.disabled = false; btn.textContent = "Conferma"; }
+        if (giaFinalizzato) await renderRigheFiscali(box, documentoId, azienda);
+      } else { alert("Errore: " + (d.error || "riprova")); btn.disabled = false; btn.textContent = "Abbina"; }
+    });
+  });
+
+  box.querySelectorAll(".fisc-crea").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const rigaId = btn.getAttribute("data-riga");
+      const riga = righe.find(x => x.id === rigaId);
+      if (!riga) return;
+      const nomeSugg = String(riga.descrizione_originale || "").replace(/^\s*sconto\s+merce\s*:?\s*/i, "").trim();
+      const nome = (prompt("Nome del nuovo prodotto da creare:", nomeSugg) || "").trim();
+      if (!nome) return;
+      btn.disabled = true; btn.textContent = "...";
+      const supaDir = window.supabaseClient || window.supabase;
+      const { data: nuovo, error: errP } = await supaDir.from("prodotti").insert({
+        azienda_id: azienda.id, nome: nome.toLowerCase(), descrizione: riga.descrizione_originale || nome,
+        tipo_prodotto: "materia_prima", um: riga.unita_misura || "pz", unita_misura: riga.unita_misura || "pz",
+        costo_ultimo: (Number(riga.prezzo_unitario) > 0 ? Number(riga.prezzo_unitario) : 0),
+        attivo: true, categoria_bilancio_id: 7, categoria_interna: null
+      }).select("id").single();
+      if (errP || !nuovo) { alert("Errore creazione prodotto: " + (errP?.message || "riprova")); btn.disabled = false; btn.textContent = "＋ Crea prodotto"; return; }
+      const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "conferma_riga", azienda_id: azienda.id, riga_id: rigaId, prodotto_id: nuovo.id });
+      if (!d.success) alert("Prodotto creato ma abbinamento non riuscito: " + (d.error || "riprova"));
+      await renderRigheFiscali(box, documentoId, azienda);
     });
   });
 
