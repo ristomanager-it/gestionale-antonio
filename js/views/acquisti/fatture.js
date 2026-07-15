@@ -331,7 +331,7 @@ function semaforoDot(stato) {
   const col = { red: "#dc2626", yellow: "#f59e0b", green: "#16a34a" };
   const lbl = { red: "Da classificare", yellow: "Classificazione incompleta", green: "Classificata" };
   const c = col[stato] || "#94a3b8";
-  return '<span title="' + (lbl[stato] || "") + '" style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + c + ';flex:0 0 auto;"></span>';
+  return '<span class="rf-sem-dot" title="' + (lbl[stato] || "") + '" style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + c + ';flex:0 0 auto;"></span>';
 }
 
 // Calcola lo stato-categorie di ogni fattura a partire dai prodotti agganciati alle righe.
@@ -2130,12 +2130,11 @@ async function renderRigheFiscali(box, documentoId, azienda) {
   const supa = window.supabaseClient || window.supabase;
   box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px;">Caricamento righe...</div>';
 
-  // Carico righe fiscali, prodotti (con categoria), categorie bilancio e stato documento
   const [righeRes, prodRes, catRes, docRes] = await Promise.all([
     supa.from("fiscale_documenti_righe")
       .select("id, numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, totale_riga, prodotto_id, match_confidenza, match_confermato")
       .eq("documento_id", documentoId),
-    supa.from("prodotti").select("id, nome, categoria_bilancio_id").eq("azienda_id", azienda.id).eq("attivo", true).order("nome"),
+    supa.from("prodotti").select("id, nome, categoria_bilancio_id, categoria_interna").eq("azienda_id", azienda.id).eq("attivo", true).order("nome"),
     supa.from("categorie_bilancio").select("id, nome, tipo, solo_costo, ordine").eq("tipo", "costo").order("ordine"),
     supa.from("fiscale_documenti").select("stato").eq("id", documentoId).maybeSingle()
   ]);
@@ -2151,11 +2150,33 @@ async function renderRigheFiscali(box, documentoId, azienda) {
 
   const mappaProd = new Map(prodotti.map(p => [String(p.id), p.nome]));
   const mappaCatProd = new Map(prodotti.map(p => [String(p.id), p.categoria_bilancio_id]));
+  const mappaIntProd = new Map(prodotti.map(p => [String(p.id), p.categoria_interna]));
   const optionsProdotti = prodotti.map(p => '<option value="' + p.id + '">' + escapeHtml(p.nome) + '</option>').join("");
-  // Categoria 7 = "Acquisti di merci" è il default: la evidenzio come "da verificare"
   const optionsCategorie = categorie.map(c => '<option value="' + c.id + '">' + escapeHtml(c.nome) + (c.solo_costo ? ' (solo costo)' : '') + '</option>').join("");
 
-  // Header con pulsanti azione
+  // Categorie interne esistenti (dai prodotti) per la tendina
+  const interneSet = new Set();
+  prodotti.forEach(p => { const v = (p.categoria_interna || "").trim(); if (v && v.toLowerCase() !== "varie") interneSet.add(v); });
+  const interneList = Array.from(interneSet).sort((a,b) => a.localeCompare(b));
+  function optionsInterne() { return interneList.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join(""); }
+
+  const COL = { red:'#dc2626', yellow:'#f59e0b', green:'#16a34a' };
+  const LBL = { red:'Da classificare', yellow:'Classificazione incompleta', green:'Classificata' };
+  function statoDaProd(prodId) {
+    if (!prodId) return 'red';
+    return _statoRiga(_catBilancioOk(mappaCatProd.get(String(prodId))), _catInternaOk(mappaIntProd.get(String(prodId))));
+  }
+  const statiRiga = {};
+  righe.forEach(r => { statiRiga[r.id] = statoDaProd(r.prodotto_id); });
+
+  function applyDot(el, stato) { if (!el) return; el.style.background = COL[stato] || '#94a3b8'; el.setAttribute('title', LBL[stato] || ''); }
+  function dotEl(rid) { return box.querySelector('.fisc-dot[data-riga="' + rid + '"]'); }
+  function aggiornaDotFattura() {
+    const worst = _peggioreStato(Object.values(statiRiga));
+    const card = box.closest('.rf-doc-item');
+    if (card) applyDot(card.querySelector('.rf-sem-dot'), worst);
+  }
+
   let html = '';
   if (!giaFinalizzato) {
     html += '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">';
@@ -2163,15 +2184,20 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     html += '<button class="fisc-btn-carica" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">📥 Carica in magazzino</button>';
     html += '</div>';
   } else {
-    html += '<div style="background:#dcfce7;color:#166534;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:10px;">✓ Fattura già caricata in magazzino</div>';
+    html += '<div style="background:#dcfce7;color:#166534;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:10px;">✓ Fattura già in magazzino · le categorie restano modificabili</div>';
   }
 
   html += '<div style="display:flex;flex-direction:column;gap:8px;">';
   for (const r of righe) {
     const nomeProd = r.prodotto_id ? (mappaProd.get(String(r.prodotto_id)) || "—") : null;
+    const st0 = statiRiga[r.id];
     html += '<div class="fisc-riga" data-riga="' + r.id + '" style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;">';
-    html += '<div style="font-weight:600;font-size:13px;margin-bottom:4px;">' + escapeHtml(r.descrizione_originale || "-") + '</div>';
-    html += '<div style="font-size:12px;color:#64748b;margin-bottom:8px;">' + (r.quantita ?? "-") + ' ' + escapeHtml(r.unita_misura || "") + ' · € ' + formatMoney(r.prezzo_unitario || 0) + '/u · tot € ' + formatMoney(r.totale_riga || 0) + '</div>';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">';
+    html += '<span class="fisc-dot" data-riga="' + r.id + '" title="' + (LBL[st0]||'') + '" style="display:inline-block;width:12px;height:12px;border-radius:50%;flex:0 0 auto;background:' + (COL[st0]||'#94a3b8') + ';"></span>';
+    html += '<div style="font-weight:600;font-size:13px;">' + escapeHtml(r.descrizione_originale || "-") + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:12px;color:#64748b;margin-bottom:8px;padding-left:20px;">' + (r.quantita ?? "-") + ' ' + escapeHtml(r.unita_misura || "") + ' · € ' + formatMoney(r.prezzo_unitario || 0) + '/u · tot € ' + formatMoney(r.totale_riga || 0) + '</div>';
+
     if (!giaFinalizzato) {
       html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
       html += '<select class="fisc-select" data-riga="' + r.id + '" style="flex:1;min-width:160px;padding:7px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">';
@@ -2180,70 +2206,95 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       html += badgeConf(r.match_confidenza, r.match_confermato);
       html += '<button class="fisc-conferma" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">Conferma</button>';
       html += '</div>';
-      // Riga categoria di bilancio del prodotto
-      const catAttuale = r.prodotto_id ? mappaCatProd.get(String(r.prodotto_id)) : null;
-      const daClassificare = !catAttuale || String(catAttuale) === "7"; // 7 = default Acquisti merci
-      html += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;">';
-      html += '<span style="font-size:11px;color:#64748b;">📊 Categoria:</span>';
-      html += '<select class="fisc-cat" data-riga="' + r.id + '" data-prodotto="' + (r.prodotto_id || '') + '" style="flex:1;min-width:140px;padding:6px;border:1px solid ' + (daClassificare ? '#f59e0b' : '#d1d5db') + ';border-radius:6px;font-size:12px;' + (daClassificare ? 'background:#fffbeb;' : '') + '">';
-      html += '<option value="">— da classificare —</option>' + optionsCategorie;
-      html += '</select>';
-      if (daClassificare) html += '<span style="font-size:15px;" title="Da classificare">🟡</span>';
-      html += '</div>';
     } else {
-      html += '<div style="font-size:13px;">→ ' + escapeHtml(nomeProd || "non abbinato") + ' ' + badgeConf(r.match_confidenza, r.match_confermato) + '</div>';
+      html += '<div style="font-size:13px;margin-bottom:4px;padding-left:20px;">→ ' + escapeHtml(nomeProd || "non abbinato") + '</div>';
     }
+
+    // Categorie — sempre modificabili (anche se già in magazzino)
+    html += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">';
+    html += '<span style="font-size:11px;color:#64748b;">📊 Bilancio</span>';
+    html += '<select class="fisc-cat" data-riga="' + r.id + '" style="flex:1;min-width:150px;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;">';
+    html += '<option value="">— da classificare —</option>' + optionsCategorie;
+    html += '</select>';
+    html += '<span style="font-size:11px;color:#64748b;">🏷️ Interna</span>';
+    html += '<select class="fisc-interna" data-riga="' + r.id + '" style="flex:1;min-width:150px;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;">';
+    html += '<option value="">— da classificare —</option>' + optionsInterne() + '<option value="__new__">＋ Nuova categoria…</option>';
+    html += '</select>';
+    html += '</div>';
     html += '</div>';
   }
   html += '</div>';
   box.innerHTML = html;
 
-  // Evito che i click sui controlli chiudano la card fattura (propagazione)
   box.addEventListener("click", (e) => e.stopPropagation());
   box.querySelectorAll("select").forEach(s => {
     s.addEventListener("click", (e) => e.stopPropagation());
     s.addEventListener("change", (e) => e.stopPropagation());
   });
 
-  // Preseleziono i prodotti già abbinati
   box.querySelectorAll(".fisc-select").forEach(sel => {
-    const rigaId = sel.getAttribute("data-riga");
-    const riga = righe.find(x => x.id === rigaId);
+    const riga = righe.find(x => x.id === sel.getAttribute("data-riga"));
     if (riga && riga.prodotto_id) sel.value = String(riga.prodotto_id);
   });
 
-  // Preseleziono la categoria di bilancio attuale del prodotto e gestisco il salvataggio
+  // Bilancio
   box.querySelectorAll(".fisc-cat").forEach(sel => {
-    const prodId = sel.getAttribute("data-prodotto");
-    if (prodId) {
-      const catAttuale = mappaCatProd.get(String(prodId));
-      if (catAttuale) sel.value = String(catAttuale);
-    }
-    // Al cambio: salvo la categoria sul PRODOTTO (così ricorda per le volte dopo)
+    const rigaId = sel.getAttribute("data-riga");
+    const riga = righe.find(x => x.id === rigaId);
+    const prodId = riga?.prodotto_id;
+    if (prodId) { const c = mappaCatProd.get(String(prodId)); if (c != null) sel.value = String(c); }
     sel.addEventListener("change", async () => {
-      const rigaId = sel.getAttribute("data-riga");
-      const riga = righe.find(x => x.id === rigaId);
-      const prodottoId = riga?.prodotto_id;
-      const nuovaCat = sel.value ? Number(sel.value) : null;
-      if (!prodottoId) { alert("Prima abbina un prodotto a questa riga."); return; }
-      if (!nuovaCat) return;
+      const pid = (righe.find(x => x.id === rigaId) || {}).prodotto_id;
+      if (!pid) { alert("Prima abbina un prodotto a questa riga."); sel.value = ""; return; }
+      const nuova = sel.value ? Number(sel.value) : null;
       sel.disabled = true;
       const supaDir = window.supabaseClient || window.supabase;
-      const { error } = await supaDir.from("prodotti")
-        .update({ categoria_bilancio_id: nuovaCat })
-        .eq("id", prodottoId).eq("azienda_id", azienda.id);
+      const { error } = await supaDir.from("prodotti").update({ categoria_bilancio_id: nuova }).eq("id", pid).eq("azienda_id", azienda.id);
       sel.disabled = false;
-      if (error) { alert("Errore salvataggio categoria: " + error.message); return; }
-      // Aggiorno la mappa e tolgo l'evidenziazione gialla
-      mappaCatProd.set(String(prodottoId), nuovaCat);
-      sel.style.borderColor = "#d1d5db";
-      sel.style.background = "";
-      const emoji = sel.parentElement.querySelector('span[title="Da classificare"]');
-      if (emoji && String(nuovaCat) !== "7") emoji.remove();
+      if (error) { alert("Errore salvataggio bilancio: " + error.message); return; }
+      mappaCatProd.set(String(pid), nuova);
+      statiRiga[rigaId] = statoDaProd(pid);
+      applyDot(dotEl(rigaId), statiRiga[rigaId]);
+      aggiornaDotFattura();
     });
   });
 
-  // Abbina automaticamente
+  // Interna (+ crea nuova)
+  box.querySelectorAll(".fisc-interna").forEach(sel => {
+    const rigaId = sel.getAttribute("data-riga");
+    const riga = righe.find(x => x.id === rigaId);
+    const prodId = riga?.prodotto_id;
+    if (prodId) { const v = (mappaIntProd.get(String(prodId)) || "").trim(); if (v && v.toLowerCase() !== "varie") sel.value = v; }
+    sel.addEventListener("change", async () => {
+      const pid = (righe.find(x => x.id === rigaId) || {}).prodotto_id;
+      if (!pid) { alert("Prima abbina un prodotto a questa riga."); sel.value = ""; return; }
+      let valore = sel.value;
+      if (valore === "__new__") {
+        const nome = (prompt("Nome nuova categoria interna:") || "").trim();
+        if (!nome) { sel.value = ""; return; }
+        if (!interneList.some(x => x.toLowerCase() === nome.toLowerCase())) {
+          interneList.push(nome); interneList.sort((a,b) => a.localeCompare(b));
+          box.querySelectorAll(".fisc-interna").forEach(s2 => {
+            const optNew = s2.querySelector('option[value="__new__"]');
+            const o = document.createElement("option"); o.value = nome; o.textContent = nome;
+            s2.insertBefore(o, optNew);
+          });
+        }
+        sel.value = nome; valore = nome;
+      }
+      const nuova = valore ? valore : null;
+      sel.disabled = true;
+      const supaDir = window.supabaseClient || window.supabase;
+      const { error } = await supaDir.from("prodotti").update({ categoria_interna: nuova }).eq("id", pid).eq("azienda_id", azienda.id);
+      sel.disabled = false;
+      if (error) { alert("Errore salvataggio interna: " + error.message); return; }
+      mappaIntProd.set(String(pid), nuova);
+      statiRiga[rigaId] = statoDaProd(pid);
+      applyDot(dotEl(rigaId), statiRiga[rigaId]);
+      aggiornaDotFattura();
+    });
+  });
+
   const btnMatch = box.querySelector(".fisc-btn-match");
   if (btnMatch) btnMatch.addEventListener("click", async () => {
     btnMatch.disabled = true; btnMatch.textContent = "⏳ Abbinamento...";
@@ -2252,7 +2303,6 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     else { alert("Errore: " + (d.error || "riprova")); btnMatch.disabled = false; btnMatch.textContent = "🔗 Abbina automaticamente"; }
   });
 
-  // Conferma singola riga
   box.querySelectorAll(".fisc-conferma").forEach(btn => {
     btn.addEventListener("click", async () => {
       const rigaId = btn.getAttribute("data-riga");
@@ -2260,12 +2310,16 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       const prodId = sel && sel.value ? Number(sel.value) : null;
       btn.disabled = true; btn.textContent = "...";
       const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "conferma_riga", azienda_id: azienda.id, riga_id: rigaId, prodotto_id: prodId });
-      if (d.success) { btn.textContent = "✓"; btn.style.background = "#dcfce7"; }
-      else { alert("Errore: " + (d.error || "riprova")); btn.disabled = false; btn.textContent = "Conferma"; }
+      if (d.success) {
+        btn.textContent = "✓"; btn.style.background = "#dcfce7";
+        const riga = righe.find(x => x.id === rigaId); if (riga) riga.prodotto_id = prodId;
+        statiRiga[rigaId] = statoDaProd(prodId);
+        applyDot(dotEl(rigaId), statiRiga[rigaId]);
+        aggiornaDotFattura();
+      } else { alert("Errore: " + (d.error || "riprova")); btn.disabled = false; btn.textContent = "Conferma"; }
     });
   });
 
-  // Carica in magazzino (finalizza)
   const btnCarica = box.querySelector(".fisc-btn-carica");
   if (btnCarica) btnCarica.addEventListener("click", async () => {
     if (!confirm("Caricare in magazzino le righe confermate? Genera i movimenti di carico e aggiorna i costi.")) return;
