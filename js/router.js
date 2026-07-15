@@ -113,7 +113,7 @@ const routes = {
   completaAzienda: () => import("./views/completa-azienda.js"),
 "scegli-sede": () => import("./views/scegli-sede.js"),
   acquisti: () => import("./views/acquisti/index.js?v=12"),
-  "menu-giorno": () => import("./views/menu-giorno.js?v=3"),
+  "menu-giorno": () => import("./views/menu-giorno.js?v=4"),
   magazzino: () => import("./views/magazzino/magazzino.js?v=7"),
   ordini: () => import("./views/ordini.js?v=2"),
   ordine: () => import("./views/ordine.js?v=7"),
