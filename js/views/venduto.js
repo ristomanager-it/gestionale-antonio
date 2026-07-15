@@ -597,7 +597,9 @@ export async function render(container) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const dataVendita = document.getElementById("iprat-anno").value + "-" + document.getElementById("iprat-mese").value + "-" + document.getElementById("iprat-giorno").value;
+    const anno = document.getElementById("iprat-anno").value;
+    const mese = Number(document.getElementById("iprat-mese").value);
+    const dataVendita = anno + "-" + document.getElementById("iprat-mese").value + "-" + document.getElementById("iprat-giorno").value;
     const canale = document.getElementById("iprat-canale").value || "NR";
     const sedeUuid = document.getElementById("iprat-sede").value || null;
 
