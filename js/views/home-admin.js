@@ -822,13 +822,7 @@ async function refreshDashboard(period) {
   setText("materiaPrimaValore", formatCurrency(metrics.materiaPrima));
   const breakdownEl = document.getElementById("acquisti-breakdown");
   if (breakdownEl) {
-    if (metrics.acquisti_categorie?.length) {
-      breakdownEl.innerHTML = metrics.acquisti_categorie
-        .map(a => `<span>${a.categoria}: <b>${formatCurrency(a.totale)}</b></span>`)
-        .join("<br>");
-    } else {
-      breakdownEl.innerHTML = "";
-    }
+    breakdownEl.innerHTML = metrics.mp_nota ? `<span>${metrics.mp_nota}</span>` : "";
   }
   setText("speseFisseValore", formatCurrency(metrics.speseFisse));
   setText("costoLavoroValore", formatCurrency(metrics.costoLavoro));
@@ -875,66 +869,61 @@ async function fetchDashboardData(period) {
     }
 
     let incasso = toNumber(data?.incasso);
-    let margineVenduto = null;
-    // Legge l'incasso reale dal venduto caricato, che la edge function dashboard-kpi
-    // non considera. Legge da vendite_giornaliere (ha sede_uuid) e calcola il margine
-    // dalla vista vw_vendite_con_margine. Filtra per sede se selezionata.
+    let materiaPrima = toNumber(data?.materia_prima);
+    let acquisti_categorie = [];
+    let mpNota = "";
+    const _norm = (x) => String(x == null ? "" : x).trim().toLowerCase();
+    // Incasso + Materia prima = FOOD COST del venduto giornaliero.
+    // La materia prima non viene più dagli acquisti: è la somma di
+    // (quantità venduta × food cost del prodotto), agganciando il venduto
+    // ai prodotti_vendita per sede + nome (univoco dopo la pulizia doppioni).
+    // Gli acquisti restano sulla Ragioniere.
     try {
       let vq = supabase
         .from("vendite_giornaliere")
-        .select("id, totale_incassato, totale_riga, sede_uuid")
+        .select("nome_prodotto, nome_articolo, quantita, totale_incassato, totale_riga, sede_uuid")
         .eq("azienda_id", azienda.id)
         .gte("data_vendita", from)
         .lte("data_vendita", to)
-        .limit(20000);
+        .limit(50000);
       if (sede?.id != null) vq = vq.eq("sede_uuid", sede.id);
       const { data: vendite, error: vErr } = await vq;
-      if (vErr) console.warn("Incasso venduto query error:", vErr.message);
+      if (vErr) console.warn("Venduto query error:", vErr.message);
+
       if (vendite && vendite.length) {
         const totInc = vendite.reduce((s, r) => s + Number(r.totale_incassato ?? r.totale_riga ?? 0), 0);
         if (totInc > 0) incasso = roundCurrency(totInc);
-      }
-    } catch (e) { console.warn("Errore lettura incasso venduto:", e); }
-    const incassoIva = data?.incasso_iva != null ? toNumber(data.incasso_iva) : Math.round(incasso * 1.1);
-    // Legge acquisti reali da v_contabilita_categorie per il mese corrente
-    let materiaPrima = toNumber(data?.materia_prima);
-    let acquisti_categorie = [];
-    try {
-      // MP a livello AZIENDA (non per sede): il magazzino acquisti è
-      // centralizzato, i carichi stanno sul centro cottura. Query senza
-      // join su categorie_bilancio (che può fallire per RLS) e senza
-      // filtro sede, così la MP compare da qualsiasi sede si guardi.
-      const { data: acquisti, error: accErr } = await supabase
-        .from("magazzino_movimenti")
-        .select("categoria_bilancio_id, quantita, costo")
-        .eq("azienda_id", azienda.id)
-        .eq("tipo_movimento", "carico")
-        .gt("costo", 0)
-        .gte("created_at", from)
-        .lte("created_at", to + "T23:59:59")
-        .limit(5000);
 
-      if (accErr) console.warn("MP query error:", accErr.message);
+        // Mappa food cost per (sede + nome) dai prodotti_vendita
+        let pvq = supabase
+          .from("prodotti_vendita")
+          .select("nome, sede_id, food_cost_manuale, ricette(costo_porzione)")
+          .eq("azienda_id", azienda.id)
+          .eq("attivo", true)
+          .limit(20000);
+        if (sede?.id != null) pvq = pvq.eq("sede_id", sede.id);
+        const { data: pvs } = await pvq;
+        const fcMap = new Map();
+        (pvs || []).forEach(p => {
+          const rc = p.ricette?.costo_porzione != null ? Number(p.ricette.costo_porzione) : 0;
+          const fc = rc > 0 ? rc : (p.food_cost_manuale != null ? Number(p.food_cost_manuale) : 0);
+          if (fc > 0) fcMap.set(String(p.sede_id) + "|" + _norm(p.nome), fc);
+        });
 
-      if (acquisti?.length) {
-        // Nomi categoria caricati a parte (mappa id→nome)
-        let catNomi = new Map();
-        try {
-          const { data: cats } = await supabase.from("categorie_bilancio").select("id, nome");
-          catNomi = new Map((cats || []).map(c => [String(c.id), c.nome]));
-        } catch (e) { /* se fallisce, uso "Altro" */ }
-
-        const map = new Map();
-        for (const r of acquisti) {
-          const cat = catNomi.get(String(r.categoria_bilancio_id)) || "Acquisti";
-          const val = (Number(r.quantita || 0) * Number(r.costo || 0));
-          map.set(cat, (map.get(cat) || 0) + val);
+        let mp = 0, incCoperto = 0, incTot = 0;
+        for (const r of vendite) {
+          const key = String(r.sede_uuid) + "|" + _norm(r.nome_prodotto || r.nome_articolo);
+          const fc = fcMap.get(key) || 0;
+          const inc = Number(r.totale_incassato ?? r.totale_riga ?? 0);
+          incTot += inc;
+          if (fc > 0) { mp += fc * (Number(r.quantita) || 0); incCoperto += inc; }
         }
-        acquisti_categorie = [...map.entries()].map(([categoria, totale]) => ({ categoria, totale: Math.round(totale * 100) / 100 }));
-        const totaleAcquisti = acquisti_categorie.reduce((s, r) => s + r.totale, 0);
-        materiaPrima = Math.round(totaleAcquisti * 100) / 100;
+        materiaPrima = roundCurrency(mp);
+        const perc = incTot > 0 ? Math.round(incCoperto / incTot * 100) : 0;
+        mpNota = "da food cost venduto · " + perc + "% del venduto coperto";
       }
-    } catch(e) { console.warn("Errore lettura acquisti:", e); }
+    } catch (e) { console.warn("Errore materia prima food cost:", e); }
+    const incassoIva = data?.incasso_iva != null ? toNumber(data.incasso_iva) : Math.round(incasso * 1.1);
     const speseFisse = toNumber(data?.spese_fisse);
     let costoLavoro = toNumber(data?.costo_lavoro);
     try {
@@ -995,6 +984,7 @@ async function fetchDashboardData(period) {
       costoLavoroPerc: toPercent(costoLavoro, incasso),
       marginePerc: toPercent(margine, incasso),
       acquisti_categorie,
+      mp_nota: mpNota,
       prodotti
     };
   } catch (err) {
