@@ -311,7 +311,7 @@ export async function renderFatture(container, azienda) {
 // ── Semaforo classificazione (categoria bilancio + categoria interna) ──
 // Regole confermate: bilancio "presente" = valorizzato e ≠ 7 (default "Acquisti di merci").
 //                    interna  "presente" = valorizzata, non vuota e ≠ "Varie".
-function _catBilancioOk(v) { return v != null && Number(v) !== 7; }
+function _catBilancioOk(v) { return v != null; }
 function _catInternaOk(t) {
   if (!t) return false;
   const s = String(t).trim().toLowerCase();
