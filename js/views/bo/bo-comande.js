@@ -85,6 +85,9 @@ export async function render(container) {
   let categoriaSelezionata = null;
   let menuProdSet = null;    // Set prodotto_vendita_id presenti nel menu attivo
   let menuCatOrdine = null;  // Map categoria_vendita_id -> ordine nel menu
+  let settori = [];
+  let settoreSelezionato = null;
+  let settoreDefaultId = null; // settore "Tavolo": include anche i prodotti senza settore
   let salaSelezionata = null;
   let viewMode = 'pin'; // pin | tavoli | comanda | cucina
   let cameriereAttivo = null; // { pin, nome, ruolo, colore }
@@ -180,11 +183,12 @@ export async function render(container) {
             </style>
 
             <div style="overflow:hidden;display:flex;flex-direction:column;border-right:1px solid #e5e7eb;">
-              <div style="overflow-x:auto;white-space:nowrap;padding:8px 12px;background:white;border-bottom:1px solid #e5e7eb;flex-shrink:0;" id="cat-tabs"></div>
+              <div style="overflow-x:auto;white-space:nowrap;padding:8px 12px;background:white;border-bottom:1px solid #e5e7eb;flex-shrink:0;" id="settore-tabs"></div>
               <div style="padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
-                <input id="search-prodotto" class="input" placeholder="🔍 Cerca prodotto..." style="width:100%;box-sizing:border-box;">
+                <input id="search-prodotto" class="input" placeholder="🔍 Cerca nel menu..." style="width:100%;box-sizing:border-box;">
               </div>
               <div id="griglia-prodotti" style="flex:1;overflow-y:auto;padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;align-content:start;"></div>
+              <div style="overflow-x:auto;white-space:nowrap;padding:8px 12px;background:white;border-top:1px solid #e5e7eb;flex-shrink:0;" id="cat-tabs"></div>
             </div>
 
             <div style="overflow:hidden;display:flex;flex-direction:column;background:white;">
@@ -540,7 +544,7 @@ export async function render(container) {
     await Promise.all([
       loadSale(), loadTavoli(), loadComande(),
       loadProdotti(), loadCategorie(), loadPrenotazioniOggi(),
-      loadCamerieri(), loadMenuFiltro(),
+      loadCamerieri(), loadMenuFiltro(), loadSettori(),
     ]);
     applicaFiltroMenu();
     renderSaleTabs();
@@ -610,6 +614,20 @@ export async function render(container) {
     } else {
       categorieVendita = data || [];
     }
+  }
+
+  async function loadSettori() {
+    try {
+      let q = supa().from('settori').select('*').eq('azienda_id', aziendaId);
+      if (sedeId) q = q.eq('sede_id', sedeId);
+      let { data } = await q.order('ordine');
+      if (sedeId && (!data || !data.length)) {
+        const r = await supa().from('settori').select('*').eq('azienda_id', aziendaId).order('ordine');
+        data = r.data;
+      }
+      settori = data || [];
+      settoreDefaultId = settori.length ? settori[0].id : null;
+    } catch (e) { console.warn('loadSettori:', e); settori = []; }
   }
 
   async function loadMenuFiltro() {
@@ -861,6 +879,7 @@ export async function render(container) {
       );
       if (catLimitata) categoriaSelezionata = catLimitata.id;
     }
+    renderSettoreTabs();
     renderCategorieTabs();
     renderGrigliaProdotti();
     renderRighe();
@@ -870,6 +889,30 @@ export async function render(container) {
   // ══════════════════════════════════════════
   // RENDER CATEGORIE + GRIGLIA PRODOTTI
   // ══════════════════════════════════════════
+  function renderSettoreTabs() {
+    const box = container.querySelector('#settore-tabs');
+    if (!box) return;
+    if (!settori.length) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    const all = [{ id: null, nome: 'Tutti', colore: '#334155' }, ...settori];
+    box.innerHTML = all.map(s => `
+      <button data-settore="${s.id || ''}" style="
+        display:inline-block;padding:8px 16px;margin-right:6px;
+        border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;
+        background:${String(settoreSelezionato) === String(s.id) ? (s.colore || '#0E5A7A') : '#f1f5f9'};
+        color:${String(settoreSelezionato) === String(s.id) ? 'white' : '#374151'};
+        white-space:nowrap;
+      ">${esc(s.nome)}</button>
+    `).join('');
+    box.querySelectorAll('[data-settore]').forEach(btn => {
+      btn.onclick = () => {
+        settoreSelezionato = btn.dataset.settore || null;
+        renderSettoreTabs();
+        renderGrigliaProdotti(container.querySelector('#search-prodotto')?.value || '');
+      };
+    });
+  }
+
   function renderCategorieTabs() {
     const box = container.querySelector('#cat-tabs');
     let cats = categorieVendita;
@@ -908,6 +951,13 @@ export async function render(container) {
     }
 
     if (categoriaSelezionata) list = list.filter(p => String(p.categoria_vendita_id) === String(categoriaSelezionata));
+    if (settoreSelezionato) {
+      if (String(settoreSelezionato) === String(settoreDefaultId)) {
+        list = list.filter(p => !p.settore_id || String(p.settore_id) === String(settoreSelezionato));
+      } else {
+        list = list.filter(p => String(p.settore_id) === String(settoreSelezionato));
+      }
+    }
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       list = list.filter(p => (p.nome || '').toLowerCase().includes(q));
