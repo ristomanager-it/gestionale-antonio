@@ -262,6 +262,7 @@ const BO_ROUTES = new Set([
   "bo-magazzino",
   "ordini",
   "ordine",
+  "acquisti",
   "bo-comande",
   "bo-configurazione",
   "bo-promo",
