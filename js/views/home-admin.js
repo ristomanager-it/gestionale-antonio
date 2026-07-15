@@ -1105,12 +1105,18 @@ async function loadSalesFoodCost() {
     const sede = window.state?.sedeAttiva;
     if (!supabase || !azienda) return;
     let q = supabase.from("prodotti_vendita")
-      .select("id, nome, food_cost_manuale, ricette(costo_porzione)")
+      .select("id, nome, ricetta_id, food_cost_manuale")
       .eq("azienda_id", azienda.id).eq("attivo", true).limit(20000);
     if (sede?.id) q = q.eq("sede_id", sede.id);
-    const { data } = await q;
-    (data || []).forEach((p) => {
-      const rc = p.ricette?.costo_porzione != null ? Number(p.ricette.costo_porzione) : 0;
+    const { data: pvs } = await q;
+    const ricIds = [...new Set((pvs || []).map((p) => p.ricetta_id).filter(Boolean))];
+    const ricCost = {};
+    if (ricIds.length) {
+      const { data: rics } = await supabase.from("ricette").select("id, costo_porzione").in("id", ricIds);
+      (rics || []).forEach((r) => { ricCost[String(r.id)] = r.costo_porzione != null ? Number(r.costo_porzione) : 0; });
+    }
+    (pvs || []).forEach((p) => {
+      const rc = p.ricetta_id != null ? (ricCost[String(p.ricetta_id)] || 0) : 0;
       salesFoodCost[_normNome(p.nome)] = {
         id: p.id,
         ricettaCost: rc > 0 ? rc : null,
@@ -1158,9 +1164,9 @@ function renderSalesList() {
     const fc = salesFoodCost[_normNome(item.nome)];
     let fcHtml = "";
     if (fc && fc.ricettaCost != null) {
-      fcHtml = `<div class="admin-sales-value-card"><div class="admin-sales-value-label">Food cost</div><div class="admin-sales-value" style="color:#166534;">${formatCurrency(fc.ricettaCost)}<span style="font-size:10px;color:#94a3b8;"> ric.</span></div></div>`;
+      fcHtml = `<div style="text-align:center;flex-shrink:0;"><div style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;">Food cost</div><div style="font-size:15px;font-weight:800;color:#166534;">${formatCurrency(fc.ricettaCost)}</div></div>`;
     } else if (fc) {
-      fcHtml = `<div class="admin-sales-value-card"><div class="admin-sales-value-label">Food cost €</div><input class="fc-inline" data-id="${fc.id}" type="number" step="0.10" min="0" inputmode="decimal" value="${fc.manuale != null ? fc.manuale : ""}" placeholder="—" style="width:76px;padding:5px;border:1px solid ${fc.manuale != null ? "#16a34a" : "#cbd5e1"};border-radius:8px;text-align:right;font-size:13px;"></div>`;
+      fcHtml = `<div style="text-align:center;flex-shrink:0;"><div style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;margin-bottom:3px;">Food cost €</div><input class="fc-inline" data-id="${fc.id}" type="number" step="0.10" min="0" inputmode="decimal" value="${fc.manuale != null ? fc.manuale : ""}" placeholder="—" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" style="width:82px;padding:8px;border:1.5px solid ${fc.manuale != null ? "#16a34a" : "#0E5A7A"};border-radius:8px;text-align:right;font-size:14px;background:#fff;position:relative;z-index:2;"></div>`;
     }
     return `
       <div class="admin-sales-row">
