@@ -1321,7 +1321,11 @@ function getDateRange(period) {
   const today = new Date();
 
   if (period === "day") {
-    const d = toISODate(today);
+    // La home apre sull'ultima giornata CHIUSA (ieri): il venduto di oggi
+    // non è ancora completo/importato.
+    const ieri = new Date(today);
+    ieri.setDate(today.getDate() - 1);
+    const d = toISODate(ieri);
     return { from: d, to: d };
   }
 
