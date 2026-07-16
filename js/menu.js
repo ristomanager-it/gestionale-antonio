@@ -755,7 +755,9 @@ export function initMenu() {
           await Promise.all(regs.map(r => r.unregister()));
         }
       } catch(e) {}
-      window.location.reload(true);
+      // Forza il riscaricamento di index.html su iOS con un parametro anti-cache
+      const base = window.location.origin + window.location.pathname;
+      window.location.replace(base + "?u=" + Date.now() + (window.location.hash || ""));
     };
     menu.appendChild(cacheBtn);
 
