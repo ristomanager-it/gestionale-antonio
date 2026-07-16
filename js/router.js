@@ -867,7 +867,24 @@ async function ensureAziendaContext(routeName) {
   }
 
   const preferBozza = routeName === "completaAzienda";
-  const activeAzienda = pickActiveAzienda(aziendePulite, preferBozza);
+  let activeAzienda = pickActiveAzienda(aziendePulite, preferBozza);
+
+  // Fallback robusto: se non l'abbiamo trovata ma c'è una sede salvata, deduci
+  // l'azienda dalla sede leggendola dal DB (window.state.sedi può non essere
+  // ancora caricato quando si entra in una rotta BO come Acquisti).
+  if (!activeAzienda) {
+    const storedSedeId = getStoredSedeId();
+    if (storedSedeId) {
+      try {
+        const { data: sedeRow } = await window.supabase
+          .from("sedi").select("azienda_id").eq("id", storedSedeId).maybeSingle();
+        if (sedeRow?.azienda_id) {
+          const match = aziendePulite.find(a => String(a.aziende?.id) === String(sedeRow.azienda_id));
+          if (match?.aziende) activeAzienda = match.aziende;
+        }
+      } catch (e) { /* prosegue con il reset sotto */ }
+    }
+  }
 
   // Se abbiamo trovato una bozza, aggiorna il localStorage così i resolve() successivi la mantengono
   if (preferBozza && activeAzienda) {
