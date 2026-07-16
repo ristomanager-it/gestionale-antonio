@@ -346,6 +346,45 @@ function setStatus(text) {
   if (el) el.textContent = text;
 }
 
+function oggettoRicettaATesto(o) {
+  const parts = [];
+  if (o.Nome || o.nome) parts.push(String(o.Nome || o.nome));
+  const ing = o.Ingredienti || o.ingredienti;
+  if (ing && typeof ing === "object" && !Array.isArray(ing)) {
+    parts.push("\nIngredienti:");
+    for (const k of Object.keys(ing)) parts.push("- " + k + ": " + ing[k]);
+  } else if (Array.isArray(ing)) {
+    parts.push("\nIngredienti:");
+    ing.forEach(i => parts.push("- " + (typeof i === "string" ? i : JSON.stringify(i))));
+  }
+  const proc = o.Procedimento || o.procedimento;
+  if (Array.isArray(proc)) {
+    parts.push("\nProcedimento:");
+    proc.forEach((p, i) => parts.push((i + 1) + ". " + p));
+  } else if (typeof proc === "string" && proc.trim()) {
+    parts.push("\nProcedimento:\n" + proc);
+  }
+  return parts.length ? parts.join("\n") : JSON.stringify(o);
+}
+
+function puliscilReply(raw) {
+  if (raw == null) return "";
+  let val = raw;
+  if (typeof val === "string") {
+    const s = val.trim();
+    if (s.startsWith("{") && s.endsWith("}")) {
+      try { val = JSON.parse(s); } catch { return val; }
+    } else {
+      return val;
+    }
+  }
+  if (val && typeof val === "object") {
+    if (typeof val.reply === "string") return val.reply;
+    return oggettoRicettaATesto(val);
+  }
+  return String(val);
+}
+
 function addMessage(text, type, opts = {}) {
   const container = document.getElementById("chat-messages");
   if (!container) return null;
@@ -502,11 +541,21 @@ async function buildRicettaContext(messages) {
     ]);
     const ings = ingsRes.data || [], fasi = fasiRes.data || [], out = outRes.data || [];
 
-    let t = "RICETTA UFFICIALE DEL NOSTRO LOCALE — rispondi USANDO SOLO QUESTA, MAI una versione generica presa da internet.\n";
+    const fasiValide = fasi.filter(f => (f.nome_fase && String(f.nome_fase).trim()) || (f.descrizione_operativa && String(f.descrizione_operativa).trim()));
+
+    let t = "RICETTA UFFICIALE DEL NOSTRO LOCALE.\n";
+    t += "ISTRUZIONI PER LA RISPOSTA:\n";
+    t += "- Rispondi in testo SEMPLICE e discorsivo. NIENTE JSON, niente parentesi graffe, niente virgolette di struttura.\n";
+    t += "- Usa SOLO le informazioni qui sotto. NON inventare quantità, ingredienti, tempi, temperature o passaggi non presenti.\n";
+    t += "- Se il procedimento non è registrato, dillo chiaramente (\"il procedimento non è ancora stato inserito nella scheda\") e invita ad aggiungerlo. NON inventarlo.\n\n";
     t += "Nome: " + scelta.nome + (scelta.tipo_ricetta ? " (" + scelta.tipo_ricetta + ")" : "") + "\n";
     if (out[0] && out[0].peso_finale != null) t += "Resa: " + out[0].peso_finale + " " + (out[0].unita_misura || "") + "\n";
     t += "Ingredienti:\n" + (ings.length ? ings.map(i => "- " + i.nome_prodotto + ": " + i.quantita + " " + (i.unita_misura || "")).join("\n") : "- (nessun ingrediente registrato)") + "\n";
-    if (fasi.length) t += "Procedimento:\n" + fasi.map((f, i) => (i + 1) + ". " + (f.nome_fase || "Fase") + (f.descrizione_operativa ? ": " + f.descrizione_operativa : "")).join("\n") + "\n";
+    if (fasiValide.length) {
+      t += "Procedimento:\n" + fasiValide.map((f, i) => (i + 1) + ". " + (f.nome_fase || "Fase") + (f.descrizione_operativa ? ": " + f.descrizione_operativa : "")).join("\n") + "\n";
+    } else {
+      t += "Procedimento: NON ancora inserito nella scheda — non inventarlo, di' che va aggiunto.\n";
+    }
     return t;
   } catch (e) { console.warn("buildRicettaContext:", e); return null; }
 }
@@ -903,7 +952,7 @@ async function sendVoiceMessage() {
       if (bar) bar.style.display = "none";
     }
 
-    const reply = data?.reply || "Non ho capito, puoi ripetere?";
+    const reply = puliscilReply(data?.reply) || "Non ho capito, puoi ripetere?";
     addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
     conversation.push({ role: "assistant", content: reply });
     salvaTonyMsg("assistant", reply);
@@ -964,7 +1013,7 @@ REGOLE PRECISE:
 - Ruolo utente: ${ruolo}`;
 
     const data = await callTony([{ role: "user", content: prompt }], null, "messaggio_iniziale");
-    const reply = data?.reply || `${saluto}! Sono Tony, il tuo assistente operativo. Cosa possiamo fare di grande oggi?`;
+    const reply = puliscilReply(data?.reply) || `${saluto}! Sono Tony, il tuo assistente operativo. Cosa possiamo fare di grande oggi?`;
 
     addMessage(reply, "ai");
     conversation.push({ role: "assistant", content: reply });
