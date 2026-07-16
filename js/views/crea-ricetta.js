@@ -1134,11 +1134,6 @@ export async function render(app) {
             </div>
 
             <div class="form-group">
-              <label>Pezzi base</label>
-              <input id="r-pezzi-base" type="number" min="0" class="input" />
-            </div>
-
-            <div class="form-group">
               <label>Foto piatto</label>
               <input id="r-foto-file"
                 type="file"
