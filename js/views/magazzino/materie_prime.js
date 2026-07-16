@@ -189,7 +189,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
     const { data: prodotto, error: prodottoError } = await window.supabaseClient
       .from("prodotti")
-      .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, alias_ocr, categoria_bilancio_id, categoria_interna")
+      .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, alias_ocr, categoria_bilancio_id, categoria_interna, costo_medio, costo_ultimo, um_costo, contenuto_confezione, um_confezione")
       .eq("azienda_id", azienda.id)
       .eq("id", prodottoId)
       .maybeSingle();
@@ -293,6 +293,22 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
             <span class="rf-product-label">Scorta minima</span>
             <div class="rf-product-value">${formatNumber(data.scorta_minima)}</div>
           </div>
+
+          <div class="rf-product-field">
+            <span class="rf-product-label">💰 Costo medio</span>
+            <div class="rf-product-value">${data.costo_medio != null ? "€ " + formatNumber(data.costo_medio) + (data.um_costo ? " / " + escapeHtml(data.um_costo) : "") : "—"}</div>
+          </div>
+
+          <div class="rf-product-field">
+            <span class="rf-product-label">Costo ultimo</span>
+            <div class="rf-product-value">${data.costo_ultimo != null ? "€ " + formatNumber(data.costo_ultimo) : "—"}</div>
+          </div>
+
+          ${data.contenuto_confezione ? `
+          <div class="rf-product-field">
+            <span class="rf-product-label">Confezione</span>
+            <div class="rf-product-value">${formatNumber(data.contenuto_confezione)} ${escapeHtml(data.um_confezione || "")} / ${escapeHtml(data.um_costo || "pz")}</div>
+          </div>` : ""}
         </div>
 
         ${prodotto.alias_ocr?.length ? `
@@ -389,6 +405,30 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
         </div>
 
         <div class="rf-field" style="margin-top:10px;">
+          <label>💰 Costo acquisto (€)</label>
+          <input id="edit-mp-costo" type="number" step="0.0001" min="0" class="input" value="${escapeAttr(prodotto.costo_medio ?? "")}" placeholder="es. 17.50" />
+        </div>
+
+        <div class="rf-field" style="margin-top:10px;">
+          <label>Costo riferito a</label>
+          <select id="edit-mp-um-costo" class="input">
+            ${["kg","gr","lt","ml","pz"].map(u => `<option value="${u}"${(prodotto.um_costo || "") === u ? " selected" : ""}>${u}</option>`).join("")}
+          </select>
+          <div style="font-size:11px;color:#64748b;margin-top:2px;">Se il costo è a confezione/pezzo scegli "pz" e compila il contenuto sotto.</div>
+        </div>
+
+        <div class="rf-field" style="margin-top:10px;">
+          <label>Contenuto confezione (se "pz")</label>
+          <div style="display:flex;gap:8px;">
+            <input id="edit-mp-contenuto" type="number" step="0.001" min="0" class="input" value="${escapeAttr(prodotto.contenuto_confezione ?? "")}" placeholder="es. 25" style="flex:2;" />
+            <select id="edit-mp-um-conf" class="input" style="flex:1;">
+              ${["", "gr", "kg", "ml", "lt"].map(u => `<option value="${u}"${(prodotto.um_confezione || "") === u ? " selected" : ""}>${u || "—"}</option>`).join("")}
+            </select>
+          </div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px;">Es. tartufo: 1 pz = 25 gr → costo "pz", contenuto 25, um gr. Così il costo/kg è calcolato giusto.</div>
+        </div>
+
+        <div class="rf-field" style="margin-top:10px;">
           <label>Scorta minima</label>
           <input id="edit-mp-scorta" type="number" step="0.001" min="0" class="input" value="${escapeAttr(prodotto.scorta_minima ?? "")}" placeholder="es. 5" />
         </div>
@@ -454,6 +494,10 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       const aliasVal = scheda.querySelector("#edit-mp-alias").value.trim();
       const catBilancio = scheda.querySelector("#edit-mp-cat-bilancio").value || null;
       const catInterna = scheda.querySelector("#edit-mp-cat-interna").value.trim() || null;
+      const costoVal = scheda.querySelector("#edit-mp-costo").value;
+      const umCosto = scheda.querySelector("#edit-mp-um-costo").value || null;
+      const contenutoVal = scheda.querySelector("#edit-mp-contenuto").value;
+      const umConf = scheda.querySelector("#edit-mp-um-conf").value || null;
 
       if (!descrizione) {
         esito.innerText = "❌ Inserisci il nome prodotto";
@@ -477,6 +521,10 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
           alias_ocr: aliasVal ? aliasVal.split(",").map(a => a.trim().toLowerCase()).filter(Boolean) : [],
           categoria_bilancio_id: catBilancio ? Number(catBilancio) : null,
           categoria_interna: catInterna,
+          costo_medio: costoVal !== "" ? Number(costoVal) : null,
+          um_costo: umCosto,
+          contenuto_confezione: contenutoVal !== "" ? Number(contenutoVal) : null,
+          um_confezione: umConf,
         })
         .eq("id", prodotto.prodotto_id)
         .eq("azienda_id", azienda.id);
