@@ -219,13 +219,19 @@ export async function renderFatture(container, azienda) {
         });
         const d = await res.json();
         if (d.success) {
-          alert(
-            "✅ Fattura importata nell'Hub Fiscale\n\n" +
-            "Numero: " + (d.numero || "—") + "\n" +
-            "Fornitore: " + (d.fornitore || "—") +
-            (d.fornitore_agganciato ? " (collegato ✓)" : " (⚠️ non in anagrafica)") + "\n" +
-            "Righe: " + d.righe + "  ·  Totale: € " + (d.totale ?? "—")
-          );
+          // Apri subito il popup di assegnazione categorie sulle righe importate
+          let docId = d.documento_id || d.documentoId || d.id || null;
+          if (!docId) {
+            const { data: doc } = await supa.from("fiscale_documenti")
+              .select("id").eq("azienda_id", azienda.id)
+              .order("created_at", { ascending: false }).limit(1).maybeSingle();
+            docId = doc?.id || null;
+          }
+          if (docId) {
+            apriPopupCategorie(docId, d);
+          } else {
+            alert("✅ Fattura importata (" + (d.righe || 0) + " righe). Aprila da 'Vedi righe' per assegnare le categorie.");
+          }
         } else if (res.status === 409) {
           alert("ℹ️ Questa fattura è già stata importata.");
         } else {
@@ -238,6 +244,23 @@ export async function renderFatture(container, azienda) {
         inputXml.value = "";
       }
     });
+  }
+
+  function apriPopupCategorie(documentoId, info) {
+    const m = document.createElement("div");
+    m.innerHTML =
+      '<div class="rf-modal-backdrop"><div class="rf-modal" style="max-width:840px;width:96%;">' +
+      '<div class="rf-modal-header"><h3 class="rf-modal-title">🏷️ Assegna categorie — ' + escapeHtml(info?.fornitore || "fattura") + '</h3>' +
+      '<button id="catx-close" style="background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:#64748b;">✕</button></div>' +
+      '<div class="rf-modal-body" id="catx-box" style="max-height:72vh;overflow:auto;"><div style="color:#94a3b8;font-size:13px;">Caricamento righe…</div></div>' +
+      '<div class="rf-modal-actions"><button id="catx-fine" class="btn-primary">Fatto</button></div>' +
+      '</div></div>';
+    document.body.appendChild(m);
+    document.body.classList.add("rf-modal-open");
+    const chiudi = () => { m.remove(); document.body.classList.remove("rf-modal-open"); if (typeof eseguiRicerca === "function") eseguiRicerca(); };
+    m.querySelector("#catx-close").onclick = chiudi;
+    m.querySelector("#catx-fine").onclick = chiudi;
+    renderRigheFiscali(m.querySelector("#catx-box"), documentoId, azienda);
   }
 
   function renderDocumentResults(rows) {
@@ -2216,7 +2239,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
 
   const [righeRes, prodRes, catRes, docRes] = await Promise.all([
     supa.from("fiscale_documenti_righe")
-      .select("id, numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, totale_riga, prodotto_id, match_confidenza, match_confermato")
+      .select("id, numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, totale_riga, prodotto_id, match_metodo, match_confidenza, match_confermato")
       .eq("documento_id", documentoId),
     supa.from("prodotti").select("id, nome, nome_interno, categoria_bilancio_id, categoria_interna").eq("azienda_id", azienda.id).eq("attivo", true).order("nome"),
     supa.from("categorie_bilancio").select("id, nome, tipo, solo_costo, ordine").eq("tipo", "costo").order("ordine"),
@@ -2252,7 +2275,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     return _statoRiga(_catBilancioOk(mappaCatProd.get(String(prodId))), _catInternaOk(mappaIntProd.get(String(prodId))));
   }
   const statiRiga = {};
-  righe.forEach(r => { statiRiga[r.id] = statoDaProd(r.prodotto_id); });
+  righe.forEach(r => { statiRiga[r.id] = r.match_metodo === 'non_prodotto' ? 'green' : statoDaProd(r.prodotto_id); });
 
   function applyDot(el, stato) { if (!el) return; el.style.background = COL[stato] || '#94a3b8'; el.setAttribute('title', LBL[stato] || ''); }
   function dotEl(rid) { return box.querySelector('.fisc-dot[data-riga="' + rid + '"]'); }
@@ -2285,6 +2308,11 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     html += '</div>';
     html += '<div style="font-size:12px;color:#64748b;margin-bottom:8px;padding-left:20px;">' + (r.quantita ?? "-") + ' ' + escapeHtml(r.unita_misura || "") + ' · € ' + formatMoney(r.prezzo_unitario || 0) + '/u · tot € ' + formatMoney(r.totale_riga || 0) + '</div>';
 
+    if (r.match_metodo === 'non_prodotto') {
+      html += '<div style="display:flex;align-items:center;gap:10px;padding-left:20px;flex-wrap:wrap;"><span style="font-size:12px;color:#be123c;font-weight:600;">🚫 Non è un prodotto — esclusa dal magazzino</span><button class="fisc-ripristina" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;">Ripristina</button></div>';
+      html += '</div>';
+      continue;
+    }
     const isMatched = !!r.prodotto_id;
     if (!giaFinalizzato || !isMatched) {
       html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
@@ -2294,6 +2322,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       html += badgeConf(r.match_confidenza, r.match_confermato);
       html += '<button class="fisc-conferma" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">Abbina</button>';
       html += '<button class="fisc-crea" data-riga="' + r.id + '" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">＋ Crea prodotto</button>';
+      html += '<button class="fisc-nonprod" data-riga="' + r.id + '" style="background:#fff1f2;border:1px solid #fecdd3;color:#be123c;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">🚫 Non è un prodotto</button>';
       html += '</div>';
     } else {
       const nomeVis = mappaNomeInt.get(String(r.prodotto_id)) || nomeProd || "non abbinato";
@@ -2435,6 +2464,30 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       if (errP || !nuovo) { alert("Errore creazione prodotto: " + (errP?.message || "riprova")); btn.disabled = false; btn.textContent = "＋ Crea prodotto"; return; }
       const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "conferma_riga", azienda_id: azienda.id, riga_id: rigaId, prodotto_id: nuovo.id });
       if (!d.success) alert("Prodotto creato ma abbinamento non riuscito: " + (d.error || "riprova"));
+      await renderRigheFiscali(box, documentoId, azienda);
+    });
+  });
+
+  box.querySelectorAll(".fisc-nonprod").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const rid = btn.getAttribute("data-riga");
+      btn.disabled = true;
+      const { error } = await supa.from("fiscale_documenti_righe")
+        .update({ prodotto_id: null, match_confermato: true, match_metodo: "non_prodotto" }).eq("id", rid);
+      if (error) { btn.disabled = false; alert("Errore: " + error.message); return; }
+      await renderRigheFiscali(box, documentoId, azienda);
+    });
+  });
+
+  box.querySelectorAll(".fisc-ripristina").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const rid = btn.getAttribute("data-riga");
+      btn.disabled = true;
+      const { error } = await supa.from("fiscale_documenti_righe")
+        .update({ match_metodo: null, match_confermato: false }).eq("id", rid);
+      if (error) { btn.disabled = false; alert("Errore: " + error.message); return; }
       await renderRigheFiscali(box, documentoId, azienda);
     });
   });
