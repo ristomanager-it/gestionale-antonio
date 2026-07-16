@@ -139,7 +139,7 @@ const routes = {
 
   preventivi: () => import("./views/preventivi.js"),
   creaPreventivo: () => import("./views/crea-preventivo.js"),
-  ai: () => import("./views/ai.js?v=10"),
+  ai: () => import("./views/ai.js?v=11"),
 
   permessi: () => import("./views/permessi-ferie.js"),
 
