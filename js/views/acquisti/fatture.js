@@ -2285,7 +2285,24 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     if (card) applyDot(card.querySelector('.rf-sem-dot'), worst);
   }
 
+  function aggiornaStatoCaricabile() {
+    const daFare = Object.values(statiRiga).filter(s => s === 'red' || s === 'yellow').length;
+    const banner = box.querySelector('.fisc-stato-banner');
+    const btnC = box.querySelector('.fisc-btn-carica');
+    if (banner) {
+      if (daFare === 0) {
+        banner.style.background = '#dcfce7'; banner.style.color = '#166534';
+        banner.textContent = '\u2713 Fattura pronta per il carico \u2014 tutte le righe sono classificate o escluse';
+      } else {
+        banner.style.background = '#fef3c7'; banner.style.color = '#92400e';
+        banner.textContent = '\u26a0\ufe0f ' + daFare + ' rig' + (daFare === 1 ? 'a' : 'he') + ' da completare: assegna la categoria o segna \"non \u00e8 un prodotto\" prima di caricare';
+      }
+    }
+    if (btnC) { btnC.style.opacity = daFare === 0 ? '1' : '0.65'; btnC.dataset.pronto = daFare === 0 ? '1' : '0'; }
+  }
+
   let html = '';
+  html += '<div class="fisc-stato-banner" style="padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:10px;"></div>';
   if (!giaFinalizzato) {
     html += '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">';
     html += '<button class="fisc-btn-match" style="background:#6366f1;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">🔗 Abbina automaticamente</button>';
@@ -2379,6 +2396,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       statiRiga[rigaId] = statoDaProd(pid);
       applyDot(dotEl(rigaId), statiRiga[rigaId]);
       aggiornaDotFattura();
+      aggiornaStatoCaricabile();
     });
   });
 
@@ -2415,6 +2433,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       statiRiga[rigaId] = statoDaProd(pid);
       applyDot(dotEl(rigaId), statiRiga[rigaId]);
       aggiornaDotFattura();
+      aggiornaStatoCaricabile();
     });
   });
 
@@ -2440,6 +2459,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
         statiRiga[rigaId] = statoDaProd(prodId);
         applyDot(dotEl(rigaId), statiRiga[rigaId]);
         aggiornaDotFattura();
+        aggiornaStatoCaricabile();
         if (giaFinalizzato) await renderRigheFiscali(box, documentoId, azienda);
       } else { alert("Errore: " + (d.error || "riprova")); btn.disabled = false; btn.textContent = "Abbina"; }
     });
@@ -2510,7 +2530,11 @@ async function renderRigheFiscali(box, documentoId, azienda) {
 
   const btnCarica = box.querySelector(".fisc-btn-carica");
   if (btnCarica) btnCarica.addEventListener("click", async () => {
-    if (!confirm("Caricare in magazzino le righe confermate? Genera i movimenti di carico e aggiorna i costi.")) return;
+    const daFare = Object.values(statiRiga).filter(s => s === 'red' || s === 'yellow').length;
+    const msgC = daFare > 0
+      ? ("\u26a0\ufe0f Ci sono ancora " + daFare + " righe da classificare: verranno SALTATE. Caricare comunque solo le righe pronte?")
+      : "Caricare in magazzino le righe confermate? Genera i movimenti di carico e aggiorna i costi.";
+    if (!confirm(msgC)) return;
     btnCarica.disabled = true; btnCarica.textContent = "⏳ Carico...";
     const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "finalizza", azienda_id: azienda.id, documento_id: documentoId });
     if (d.success) {
@@ -2520,4 +2544,6 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       alert("Errore: " + (d.error || "riprova")); btnCarica.disabled = false; btnCarica.textContent = "📥 Carica in magazzino";
     }
   });
+
+  aggiornaStatoCaricabile();
 }
