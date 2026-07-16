@@ -1,4 +1,4 @@
-import { renderMateriePrime } from "./materie_prime.js";
+import { renderMateriePrime } from "./materie_prime.js?v=2";
 import { renderPreparazioni } from "./preparazioni.js";
 import { renderCaricoModal, apriCaricoModal } from "./carico_magazzino.js";
 import { apriRicezioneModal } from "./ricezione.js";
