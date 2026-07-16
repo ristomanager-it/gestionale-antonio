@@ -112,7 +112,7 @@ const routes = {
   profilo: () => import("./views/completa-profilo.js"),
   completaAzienda: () => import("./views/completa-azienda.js"),
 "scegli-sede": () => import("./views/scegli-sede.js"),
-  acquisti: () => import("./views/acquisti/index.js?v=15"),
+  acquisti: () => import("./views/acquisti/index.js?v=16"),
   "menu-giorno": () => import("./views/menu-giorno.js?v=8"),
   magazzino: () => import("./views/magazzino/magazzino.js?v=8"),
   ordini: () => import("./views/ordini.js?v=2"),
