@@ -157,11 +157,16 @@ export async function render(container) {
 
         <div class="admin-period-label" id="period-label">Periodo: Giorno</div>
 
-        <div class="admin-incasso-row">
+        <div class="admin-incasso-row" style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-end;">
           <div>
             <div class="admin-incasso-label">Incasso</div>
             <div class="admin-incasso-value" id="incassoTotale">€ 0</div>
             <div class="admin-incasso-iva">Con IVA <span id="incassoIva">€ 0</span></div>
+          </div>
+          <div>
+            <div class="admin-incasso-label">Coperti</div>
+            <div style="font-size:26px;font-weight:800;color:#0f172a;line-height:1.1;" id="copertiValore">0</div>
+            <div class="admin-incasso-iva">medio <span id="copertoMedio">€ 0</span></div>
           </div>
         </div>
 
@@ -519,10 +524,11 @@ export async function render(container) {
       justify-content:space-between;
       align-items:center;
       gap:14px;
-      border:1px solid var(--color-border);
-      border-radius:14px;
-      padding:12px 14px;
-      background:#fff;
+      border:none;
+      border-bottom:1px solid var(--color-border);
+      border-radius:0;
+      padding:9px 2px;
+      background:transparent;
     }
 
     .admin-sales-left{
@@ -531,41 +537,41 @@ export async function render(container) {
     }
 
     .admin-sales-name{
-      font-size:15px;
-      font-weight:800;
+      font-size:14px;
+      font-weight:600;
       color:var(--color-text);
-      line-height:1.1;
+      line-height:1.15;
     }
 
     .admin-sales-category{
-      font-size:12px;
+      font-size:11px;
       color:var(--color-text-muted);
-      font-weight:700;
-      margin-top:4px;
+      font-weight:500;
+      margin-top:2px;
     }
 
     .admin-sales-value-card{
-      min-width:110px;
-      padding:10px 12px;
-      border-radius:12px;
-      background:#EEF2F7;
-      text-align:center;
+      min-width:auto;
+      padding:0 2px;
+      border-radius:0;
+      background:transparent;
+      text-align:right;
       flex-shrink:0;
     }
 
     .admin-sales-value-label{
-      font-size:11px;
+      font-size:10px;
       color:var(--color-text-muted);
-      font-weight:800;
+      font-weight:600;
       text-transform:uppercase;
-      letter-spacing:0.4px;
+      letter-spacing:0.3px;
       line-height:1;
     }
 
     .admin-sales-value{
-      margin-top:6px;
+      margin-top:4px;
       font-size:14px;
-      font-weight:800;
+      font-weight:700;
       color:var(--color-text);
       line-height:1.1;
     }
@@ -778,6 +784,8 @@ async function refreshDashboard(period) {
     setText("period-label", "Periodo: " + getPeriodLabel(period, getDaysByPeriod(period)));
     setText("incassoTotale", formatCurrency(0));
     setText("incassoIva", formatCurrency(0));
+    setText("copertiValore", "0");
+    setText("copertoMedio", formatCurrency(0));
     setText("bepValore", formatCurrency(0));
 
     setText("materiaPrimaValore", formatCurrency(0));
@@ -817,6 +825,8 @@ async function refreshDashboard(period) {
   setText("period-label", "Periodo: " + metrics.label);
   setText("incassoTotale", formatCurrency(metrics.incasso));
   setText("incassoIva", formatCurrency(metrics.incassoIva));
+  setText("copertiValore", (metrics.coperti != null ? Math.round(metrics.coperti) : 0).toLocaleString("it-IT"));
+  setText("copertoMedio", formatCurrency(metrics.copertoMedio || 0));
   setText("bepValore", formatCurrency(metrics.bep));
 
   setText("materiaPrimaValore", formatCurrency(metrics.materiaPrima));
@@ -873,6 +883,7 @@ async function fetchDashboardData(period) {
     let materiaPrima = toNumber(data?.materia_prima);
     let acquisti_categorie = [];
     let mpNota = "";
+    let coperti = 0;
     const _norm = (x) => String(x == null ? "" : x).trim().toLowerCase();
     // Incasso + Materia prima = FOOD COST del venduto giornaliero.
     // La materia prima non viene più dagli acquisti: è la somma di
@@ -920,7 +931,9 @@ async function fetchDashboardData(period) {
 
         let mp = 0, incCoperto = 0, incTot = 0;
         for (const r of vendite) {
-          const key = String(r.sede_uuid) + "|" + _norm(r.nome_prodotto || r.nome_articolo);
+          const nomeN = _norm(r.nome_prodotto || r.nome_articolo);
+          if (nomeN.startsWith("copert")) coperti += Number(r.quantita) || 0;
+          const key = String(r.sede_uuid) + "|" + nomeN;
           const fc = fcMap.get(key) || 0;
           const inc = Number(r.totale_incassato ?? r.totale_riga ?? 0);
           incTot += inc;
@@ -994,6 +1007,8 @@ async function fetchDashboardData(period) {
       days,
       incasso,
       incassoIva,
+      coperti,
+      copertoMedio: coperti > 0 ? incasso / coperti : 0,
       materiaPrima,
       speseFisse,
       costoLavoro,
@@ -1224,9 +1239,9 @@ function renderSalesList() {
         let error = null;
         if (idRaw) {
           const r = await window.supabaseClient.from("prodotti_vendita")
-            .update({ food_cost_manuale: val, updated_at: new Date().toISOString() }).eq("id", Number(idRaw));
+            .update({ food_cost_manuale: val, updated_at: new Date().toISOString() }).eq("id", idRaw);
           error = r.error;
-          if (!error) { const k = Object.keys(salesFoodCost).find((kk) => salesFoodCost[kk].id === Number(idRaw)); if (k) salesFoodCost[k].manuale = val; }
+          if (!error) { const k = Object.keys(salesFoodCost).find((kk) => String(salesFoodCost[kk].id) === String(idRaw)); if (k) salesFoodCost[k].manuale = val; }
         } else {
           const azienda = window.state?.azienda; const sede = window.state?.sedeAttiva;
           const r = await window.supabaseClient.from("food_cost_venduto").upsert({
