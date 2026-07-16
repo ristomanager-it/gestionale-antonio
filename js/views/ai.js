@@ -470,8 +470,48 @@ function renderChart(chart) {
 }
 
 // ── Context DB — dati reali per Tony ──────────────────────────────────────
-async function buildContextDB() {
-  const supa = window.supabaseClient || window.supabase;
+async function buildRicettaContext(messages) {
+  try {
+    const supa = window.supabaseClient || window.supabase;
+    const aziendaId = window.state?.azienda?.id;
+    if (!aziendaId) return null;
+    const lastUser = [...(messages || [])].reverse().find(m => m && m.role === "user");
+    const txt = String(lastUser?.content || "").toLowerCase();
+    if (!txt) return null;
+    const triggers = ["ricetta", "come si prepar", "come si fa", "come preparo", "ingredienti", "procedimento"];
+    if (!triggers.some(t => txt.includes(t))) return null;
+
+    const { data: ricette } = await supa.from("ricette").select("id,nome,tipo_ricetta").eq("azienda_id", aziendaId).limit(400);
+    const match = (ricette || [])
+      .filter(r => r.nome && txt.includes(String(r.nome).toLowerCase()))
+      .sort((a, b) => String(b.nome).length - String(a.nome).length);
+    if (!match.length) return null;
+
+    // Tra i match con lo stesso nome, preferisci quello con più ingredienti registrati
+    let scelta = null, maxIng = -1;
+    for (const r of match.slice(0, 6)) {
+      const { count } = await supa.from("ricetta_ingredienti").select("id", { count: "exact", head: true }).eq("ricetta_id", r.id);
+      if ((count || 0) > maxIng) { maxIng = count || 0; scelta = r; }
+    }
+    if (!scelta) scelta = match[0];
+
+    const [ingsRes, fasiRes, outRes] = await Promise.all([
+      supa.from("ricetta_ingredienti").select("nome_prodotto,quantita,unita_misura").eq("ricetta_id", scelta.id),
+      supa.from("ricette_preparazione_fasi").select("ordine,nome_fase,descrizione_operativa,durata_min,temperatura").eq("ricetta_id", scelta.id).order("ordine"),
+      supa.from("ricette_output").select("peso_finale,unita_misura").eq("ricetta_id", scelta.id).limit(1),
+    ]);
+    const ings = ingsRes.data || [], fasi = fasiRes.data || [], out = outRes.data || [];
+
+    let t = "RICETTA UFFICIALE DEL NOSTRO LOCALE — rispondi USANDO SOLO QUESTA, MAI una versione generica presa da internet.\n";
+    t += "Nome: " + scelta.nome + (scelta.tipo_ricetta ? " (" + scelta.tipo_ricetta + ")" : "") + "\n";
+    if (out[0] && out[0].peso_finale != null) t += "Resa: " + out[0].peso_finale + " " + (out[0].unita_misura || "") + "\n";
+    t += "Ingredienti:\n" + (ings.length ? ings.map(i => "- " + i.nome_prodotto + ": " + i.quantita + " " + (i.unita_misura || "")).join("\n") : "- (nessun ingrediente registrato)") + "\n";
+    if (fasi.length) t += "Procedimento:\n" + fasi.map((f, i) => (i + 1) + ". " + (f.nome_fase || "Fase") + (f.descrizione_operativa ? ": " + f.descrizione_operativa : "")).join("\n") + "\n";
+    return t;
+  } catch (e) { console.warn("buildRicettaContext:", e); return null; }
+}
+
+async function buildContextDB() {  const supa = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   const sedeId = window.state?.sedeAttiva?.id || null;
   if (!supa || !aziendaId) return "";
@@ -707,6 +747,15 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
         { role: "user", content: ctx },
         { role: "assistant", content: "Perfetto, ho i dati aggiornati. Sono pronto a rispondere." },
         ...messages
+      ];
+    }
+    // Se l'utente chiede una ricetta esistente, inietta quella REALE del locale
+    const ricettaCtx = await buildRicettaContext(messages);
+    if (ricettaCtx) {
+      messagesConCtx = [
+        { role: "user", content: ricettaCtx },
+        { role: "assistant", content: "Ok, userò la ricetta ufficiale del vostro locale." },
+        ...messagesConCtx
       ];
     }
   }
