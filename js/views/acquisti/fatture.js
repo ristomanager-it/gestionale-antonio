@@ -81,7 +81,53 @@ export async function renderFatture(container, azienda) {
 
       <div id="documenti-results" style="margin-top:14px;"></div>
     </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px;">🔎 Storico prezzi prodotto</h3>
+      <div style="font-size:13px;color:#667085;margin-bottom:8px;">Cerca un prodotto per vedere quando l'hai comprato, da chi e a che prezzo (su tutte le fatture).</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input id="filter-prodotto-prezzo" class="input" placeholder="Es. tartufo, parmigiano, farina..." style="flex:1;min-width:200px;" />
+        <button id="btn-cerca-prezzo" class="btn-secondary">Cerca prezzo</button>
+      </div>
+      <div id="prezzo-results" style="margin-top:14px;"></div>
+    </div>
   `;
+
+  // === Storico prezzi prodotto: cerca nelle righe fattura ===
+  async function cercaStoricoPrezzi(term) {
+    const supa = window.supabaseClient || window.supabase;
+    const box = container.querySelector("#prezzo-results");
+    const t = (term || "").trim();
+    if (t.length < 2) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Scrivi almeno 2 lettere del prodotto.</div>'; return; }
+    box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Ricerca...</div>';
+    try {
+      const { data: righe } = await supa.from("fatture_acquisto_righe")
+        .select("fattura_id, descrizione, quantita, unita_misura, prezzo_unitario")
+        .ilike("descrizione", "%" + t + "%").limit(400);
+      const fattIds = [...new Set((righe || []).map(r => r.fattura_id).filter(Boolean))];
+      const heads = {};
+      if (fattIds.length) {
+        const { data: fatt } = await supa.from("fatture_acquisto")
+          .select("id, data_documento, fornitori(ragione_sociale)")
+          .in("id", fattIds).eq("azienda_id", azienda.id);
+        (fatt || []).forEach(f => { heads[f.id] = f; });
+      }
+      const rows = (righe || [])
+        .filter(r => heads[r.fattura_id])
+        .map(r => ({ data: heads[r.fattura_id].data_documento, fornitore: heads[r.fattura_id].fornitori?.ragione_sociale || "—", desc: r.descrizione, qta: r.quantita, um: r.unita_misura, prezzo: r.prezzo_unitario }))
+        .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+      if (!rows.length) { box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessuna riga trovata per "' + escapeHtml(t) + '".</div>'; return; }
+      const u = rows[0];
+      box.innerHTML =
+        '<div style="margin-bottom:10px;font-size:14px;padding:8px 10px;background:#f0fdfa;border-radius:8px;">Ultimo prezzo: <b>€ ' + formatMoney(u.prezzo || 0) + '</b>' + (u.um ? ' / ' + escapeHtml(u.um) : '') + ' · ' + escapeHtml(u.fornitore) + ' · ' + escapeHtml(u.data || "") + '</div>' +
+        '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="text-align:left;color:#64748b;">' +
+        '<th style="padding:5px 6px;">Data</th><th style="padding:5px 6px;">Fornitore</th><th style="padding:5px 6px;">Descrizione</th><th style="padding:5px 6px;text-align:right;">Q.tà</th><th style="padding:5px 6px;text-align:right;">Prezzo unit.</th></tr></thead><tbody>' +
+        rows.map(r => '<tr style="border-top:1px solid #f1f5f9;"><td style="padding:5px 6px;white-space:nowrap;">' + escapeHtml(r.data || "") + '</td><td style="padding:5px 6px;">' + escapeHtml(r.fornitore) + '</td><td style="padding:5px 6px;">' + escapeHtml(r.desc || "") + '</td><td style="padding:5px 6px;text-align:right;white-space:nowrap;">' + escapeHtml(String(r.qta ?? "")) + ' ' + escapeHtml(r.um || "") + '</td><td style="padding:5px 6px;text-align:right;font-weight:600;white-space:nowrap;">€ ' + formatMoney(r.prezzo || 0) + '</td></tr>').join("") +
+        '</tbody></table></div>';
+    } catch (e) { box.innerHTML = '<div style="color:#dc2626;font-size:13px;">Errore nella ricerca.</div>'; console.error("Storico prezzi:", e); }
+  }
+  container.querySelector("#btn-cerca-prezzo")?.addEventListener("click", () => cercaStoricoPrezzi(container.querySelector("#filter-prodotto-prezzo").value));
+  container.querySelector("#filter-prodotto-prezzo")?.addEventListener("keydown", (e) => { if (e.key === "Enter") cercaStoricoPrezzi(e.target.value); });
 
   // Scarica CSV acquisti
   container.querySelector('#btn-scarica-acquisti')?.addEventListener('click', async () => {
