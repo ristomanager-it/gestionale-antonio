@@ -1762,7 +1762,18 @@ async function compilaRicettaDaFoto(file) {
         aggiungiIngrediente({ _nome_tony: i.nome, quantita: i.quantita, unita_misura: i.unita_misura });
       });
     }
-    setStato("✓ Ricetta compilata dalla foto: " + ((r.ingredienti || []).length) + " ingredienti. Controlla i dati e salva.");
+    // Fasi (sezione Avanzate) — passaggi operativi ricavati dal procedimento
+    if (Array.isArray(r.fasi) && r.fasi.length && typeof aggiungiFase === "function") {
+      r.fasi.forEach((f) => aggiungiFase({
+        descrizione_operativa: f.descrizione_operativa,
+        tipo_fase: f.tipo_fase,
+        durata_min: f.durata_min,
+        temperatura: f.temperatura,
+      }));
+    }
+    const nIng = (r.ingredienti || []).length;
+    const nFasi = (r.fasi || []).length;
+    setStato("✓ Ricetta compilata: " + nIng + " ingredienti" + (nFasi ? " · " + nFasi + " fasi (in Avanzate)" : "") + ". Controlla e salva.");
   } catch (e) {
     setStato("⚠️ Errore: " + (e && e.message ? e.message : e));
   } finally {
