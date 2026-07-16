@@ -396,6 +396,9 @@ function getRicetteFiltrate() {
     });
   }
 
+  const qTestoLista = normalize(document.getElementById("ric-search")?.value || "");
+  if (qTestoLista) risultati = risultati.filter(r => normalize(r.nome).includes(qTestoLista));
+
   risultati.sort((a, b) => {
     const peso = {
       bozza: 0,
@@ -526,6 +529,7 @@ function setupAutocomplete() {
   input.addEventListener("input", () => {
 
     const q = (input.value || "").toLowerCase().trim();
+    renderRicetteList();
     suggest.innerHTML = "";
 
     if (q.length < 2) {
