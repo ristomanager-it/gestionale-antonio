@@ -809,6 +809,14 @@ function pickActiveAzienda(aziendePulite, preferBozza = false) {
     }
   } catch (e) { /* fallback sotto */ }
 
+  // Fallback: se un'azienda è GIÀ attiva ed è tra quelle dell'utente, mantienila.
+  // Evita di perdere il contesto azienda navigando verso rotte BO (Acquisti, ecc.)
+  // prima che le sedi siano caricate, quando il superadmin ha più aziende.
+  if (window.state?.azienda?.id) {
+    const corrente = aziendePulite.find(a => String(a.aziende?.id) === String(window.state.azienda.id));
+    if (corrente?.aziende) return corrente.aziende;
+  }
+
   return null;
 }
 
