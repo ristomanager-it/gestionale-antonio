@@ -96,21 +96,44 @@ export async function renderFatture(container, azienda) {
     feedback.textContent = 'Cerco "' + t + '" nelle fatture...';
     box.innerHTML = "";
     try {
-      const { data: righe } = await supa.from("fatture_acquisto_righe")
+      const rows = [];
+      // Fatture elettroniche (righe in fiscale_documenti_righe)
+      const { data: rf } = await supa.from("fiscale_documenti_righe")
+        .select("documento_id, descrizione_originale, quantita, unita_misura, prezzo_unitario")
+        .eq("azienda_id", azienda.id).ilike("descrizione_originale", "%" + t + "%").limit(400);
+      const docIds = [...new Set((rf || []).map(r => r.documento_id).filter(Boolean))];
+      const docHeads = {};
+      if (docIds.length) {
+        const { data: docs } = await supa.from("fiscale_documenti").select("id, data_documento, fornitore_id").in("id", docIds);
+        const fornIds = [...new Set((docs || []).map(d => d.fornitore_id).filter(Boolean))];
+        const fornMap = {};
+        if (fornIds.length) {
+          const { data: forn } = await supa.from("fornitori").select("id, ragione_sociale").in("id", fornIds);
+          (forn || []).forEach(f => { fornMap[f.id] = f.ragione_sociale; });
+        }
+        (docs || []).forEach(d => { docHeads[d.id] = { data: d.data_documento, fornitore: fornMap[d.fornitore_id] || "—" }; });
+      }
+      (rf || []).forEach(r => {
+        const h = docHeads[r.documento_id] || {};
+        rows.push({ data: h.data, fornitore: h.fornitore || "—", desc: r.descrizione_originale, qta: r.quantita, um: r.unita_misura, prezzo: r.prezzo_unitario });
+      });
+      // Fatture tradizionali (righe in fatture_acquisto_righe)
+      const { data: rt } = await supa.from("fatture_acquisto_righe")
         .select("fattura_id, descrizione, quantita, unita_misura, prezzo_unitario")
         .ilike("descrizione", "%" + t + "%").limit(400);
-      const fattIds = [...new Set((righe || []).map(r => r.fattura_id).filter(Boolean))];
-      const heads = {};
+      const fattIds = [...new Set((rt || []).map(r => r.fattura_id).filter(Boolean))];
+      const fHeads = {};
       if (fattIds.length) {
         const { data: fatt } = await supa.from("fatture_acquisto")
-          .select("id, data_documento, fornitori(ragione_sociale)")
-          .in("id", fattIds).eq("azienda_id", azienda.id);
-        (fatt || []).forEach(f => { heads[f.id] = f; });
+          .select("id, data_documento, fornitori(ragione_sociale)").in("id", fattIds).eq("azienda_id", azienda.id);
+        (fatt || []).forEach(f => { fHeads[f.id] = f; });
       }
-      const rows = (righe || [])
-        .filter(r => heads[r.fattura_id])
-        .map(r => ({ data: heads[r.fattura_id].data_documento, fornitore: heads[r.fattura_id].fornitori?.ragione_sociale || "—", desc: r.descrizione, qta: r.quantita, um: r.unita_misura, prezzo: r.prezzo_unitario }))
-        .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+      (rt || []).forEach(r => {
+        if (!fHeads[r.fattura_id]) return;
+        const h = fHeads[r.fattura_id];
+        rows.push({ data: h.data_documento, fornitore: h.fornitori?.ragione_sociale || "—", desc: r.descrizione, qta: r.quantita, um: r.unita_misura, prezzo: r.prezzo_unitario });
+      });
+      rows.sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
       if (!rows.length) { feedback.textContent = 'Nessuna riga trovata per "' + t + '".'; box.innerHTML = ""; return; }
       const u = rows[0];
       feedback.textContent = "Trovate " + rows.length + " righe per \"" + t + "\".";
@@ -334,6 +357,13 @@ export async function renderFatture(container, azienda) {
 
   btnCerca.addEventListener("click", eseguiRicerca);
   container.querySelector("#filter-prodotto")?.addEventListener("keydown", (e) => { if (e.key === "Enter") eseguiRicerca(); });
+  let _prodDebounce;
+  container.querySelector("#filter-prodotto")?.addEventListener("input", (e) => {
+    const v = e.target.value;
+    clearTimeout(_prodDebounce);
+    if (v.trim().length < 2) { if (feedback) feedback.textContent = ""; if (resultsWrap) resultsWrap.innerHTML = ""; return; }
+    _prodDebounce = setTimeout(() => cercaStoricoPrezzi(v), 300);
+  });
   inputFornitore.addEventListener("keydown", (e) => { if (e.key === "Enter") eseguiRicerca(); });
 
   // Caricamento automatico all'apertura della vista (tutte le fatture recenti)
