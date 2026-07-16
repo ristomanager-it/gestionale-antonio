@@ -1172,6 +1172,13 @@ export async function render(app) {
         body: `
           <div id="ingredienti-container"></div>
 
+          <div style="margin:6px 0 12px;padding:12px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;">
+            <button id="btn-foto-ricetta" class="app-button" type="button" style="background:#7c3aed;color:#fff;display:inline-flex;align-items:center;gap:6px;">📷 Compila ricetta da foto</button>
+            <span style="font-size:12px;color:#7c3aed;margin-left:8px;">Fotografa una ricetta (anche scritta a mano): Tony la legge e compila nome, ingredienti e procedimento.</span>
+            <input id="input-foto-ricetta" type="file" accept="image/*" capture="environment" style="display:none;" />
+            <div id="foto-ricetta-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
+          </div>
+
           <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
             <button id="btn-tony-ing"
               class="app-button"
@@ -1718,6 +1725,52 @@ function setupCategoriaAutocomplete() {
     suggestBox.innerHTML = "";
     suggestBox.classList.remove("open");
   });
+}
+
+async function compilaRicettaDaFoto(file) {
+  if (!file) return;
+  const stato = document.getElementById("foto-ricetta-stato");
+  const setStato = (t) => { if (stato) stato.textContent = t; };
+  const btn = document.getElementById("btn-foto-ricetta");
+  if (btn) btn.disabled = true;
+  setStato("📷 Leggo la ricetta dalla foto…");
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result));
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const supa = window.supabaseClient || window.supabase;
+    const token = (await supa.auth.getSession())?.data?.session?.access_token || "";
+    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-foto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": token },
+      body: JSON.stringify({ azione: "ricetta", image_base64: b64 })
+    });
+    const data = await resp.json();
+    if (!data.success) { setStato("⚠️ " + (data.error || "Non sono riuscito a leggere la foto.")); return; }
+    const r = data.ricetta || {};
+    if (r.nome) setVal("r-nome", r.nome);
+    if (r.tipo_ricetta) { setVal("r-tipo", r.tipo_ricetta); document.getElementById("r-tipo")?.dispatchEvent(new Event("change")); }
+    if (r.procedimento) setVal("r-note-proc", r.procedimento);
+    if (Array.isArray(r.ingredienti)) {
+      r.ingredienti.forEach((i) => {
+        let match = "";
+        try {
+          const cand = (typeof trovaProdottiSimili === "function") ? trovaProdottiSimili(i.nome, 1) : [];
+          if (cand.length && cand[0].score >= 70) match = cand[0].prodotto.descrizione || cand[0].prodotto.nome || "";
+        } catch (e) { /* no match */ }
+        aggiungiIngrediente({ nome: i.nome, quantita: i.quantita, unita_misura: i.unita_misura, nome_magazzino: match });
+      });
+    }
+    setStato("✓ Ricetta compilata dalla foto: " + ((r.ingredienti || []).length) + " ingredienti. Controlla i dati e salva.");
+  } catch (e) {
+    setStato("⚠️ Errore: " + (e && e.message ? e.message : e));
+  } finally {
+    if (btn) btn.disabled = false;
+    const inp = document.getElementById("input-foto-ricetta"); if (inp) inp.value = "";
+  }
 }
 
 async function uploadFotoRicetta(file) {
@@ -3604,6 +3657,12 @@ function bindUI() {
   safeOn("btn-add-conservazione", "click", () => aggiungiScenarioConservazione());
   safeOn("btn-add-porzione", "click", () => aggiungiPorzione());
   safeOn("btn-salva", "click", () => salvaTutto());
+  safeOn("btn-foto-ricetta", "click", () => document.getElementById("input-foto-ricetta")?.click());
+  const _fotoRic = document.getElementById("input-foto-ricetta");
+  if (_fotoRic && !_fotoRic.dataset.bound) {
+    _fotoRic.dataset.bound = "1";
+    _fotoRic.addEventListener("change", (e) => compilaRicettaDaFoto(e.target.files && e.target.files[0]));
+  }
 
   // Tipo ricetta -> mostra/nasconde categoria
   safeOn("r-tipo", "change", () => {
