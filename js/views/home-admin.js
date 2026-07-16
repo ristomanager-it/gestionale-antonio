@@ -843,6 +843,7 @@ async function refreshDashboard(period) {
   setText("costoLavoroPerc", metrics.costoLavoroPerc + "%");
   setText("marginePerc", metrics.marginePerc + "%");
 
+  await enrichProductCategories();
   populateSalesCategoryFilter(currentProducts);
   renderGauge(metrics);
   await loadSalesFoodCost();
@@ -1028,8 +1029,31 @@ async function fetchDashboardData(period) {
   }
 }
 
-function normalizeProducts(list) {
-  return (Array.isArray(list) ? list : []).map((item) => {
+async function enrichProductCategories() {
+  try {
+    const sedeId = window.state?.sedeAttiva?.id;
+    const supa = window.supabaseClient || window.supabase;
+    if (!sedeId || !supa || !currentProducts.length) return;
+    const { data: pv } = await supa.from("prodotti_vendita").select("nome, categoria_vendita_id").eq("sede_id", sedeId).limit(3000);
+    const catIds = [...new Set((pv || []).map((r) => r.categoria_vendita_id).filter(Boolean))];
+    const catMap = {};
+    if (catIds.length) {
+      const { data: cats } = await supa.from("categorie_vendita").select("id, nome").in("id", catIds);
+      (cats || []).forEach((c) => { catMap[c.id] = c.nome; });
+    }
+    const nomeCat = new Map();
+    (pv || []).forEach((r) => {
+      const cat = catMap[r.categoria_vendita_id];
+      if (r.nome && cat) nomeCat.set(_norm(r.nome), cat);
+    });
+    currentProducts.forEach((p) => {
+      const c = nomeCat.get(_norm(p.nome || ""));
+      if (c) p.categoria = c;
+    });
+  } catch (e) { /* categorie non disponibili, resta il default */ }
+}
+
+function normalizeProducts(list) { (Array.isArray(list) ? list : []).map((item) => {
     const nome = item?.nome || item?.nome_prodotto || item?.descrizione || `Prodotto ${item?.prodotto_id ?? ""}`.trim();
     const categoria = item?.categoria || item?.categoria_nome || item?.categoria_portata || "Senza categoria";
     const incasso = toNumber(item?.incasso);
