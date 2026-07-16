@@ -1756,16 +1756,10 @@ async function compilaRicettaDaFoto(file) {
     if (r.procedimento) setVal("r-note-proc", r.procedimento);
     if (Array.isArray(r.ingredienti)) {
       r.ingredienti.forEach((i) => {
-        let prodId = "";
-        let nomeCampo = i.nome;
-        try {
-          const cand = (typeof trovaProdottiSimili === "function") ? trovaProdottiSimili(i.nome, 1) : [];
-          if (cand.length && cand[0].score >= 70) {
-            prodId = cand[0].prodotto.id;
-            nomeCampo = cand[0].prodotto.descrizione || cand[0].prodotto.nome || i.nome;
-          }
-        } catch (e) { /* nessun match */ }
-        aggiungiIngrediente({ nome_prodotto: nomeCampo, prodotto_id: prodId, quantita: i.quantita, unita_misura: i.unita_misura });
+        // Passa il nome letto come _nome_tony (senza prodotto_id): la riga scrive
+        // il nome e apre la lista dei prodotti magazzino corrispondenti da scegliere
+        // (o preseleziona da sola quando il match è sicuro).
+        aggiungiIngrediente({ _nome_tony: i.nome, quantita: i.quantita, unita_misura: i.unita_misura });
       });
     }
     setStato("✓ Ricetta compilata dalla foto: " + ((r.ingredienti || []).length) + " ingredienti. Controlla i dati e salva.");
