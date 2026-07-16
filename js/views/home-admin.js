@@ -1034,7 +1034,9 @@ async function enrichProductCategories() {
     const sedeId = window.state?.sedeAttiva?.id;
     const supa = window.supabaseClient || window.supabase;
     if (!sedeId || !supa || !currentProducts.length) return;
-    const { data: pv } = await supa.from("prodotti_vendita").select("nome, categoria_vendita_id").eq("sede_id", sedeId).limit(3000);
+    const { data: pv } = await supa.from("prodotti_vendita")
+      .select("nome, categoria_vendita_id, sede_id")
+      .or("sede_id.eq." + sedeId + ",sede_id.is.null").limit(5000);
     const catIds = [...new Set((pv || []).map((r) => r.categoria_vendita_id).filter(Boolean))];
     const catMap = {};
     if (catIds.length) {
@@ -1042,12 +1044,17 @@ async function enrichProductCategories() {
       (cats || []).forEach((c) => { catMap[c.id] = c.nome; });
     }
     const nomeCat = new Map();
-    (pv || []).forEach((r) => {
+    // prima i prodotti con sede NULL (fallback), poi quelli della sede (prevalgono)
+    (pv || []).filter((r) => !r.sede_id).forEach((r) => {
       const cat = catMap[r.categoria_vendita_id];
-      if (r.nome && cat) nomeCat.set(_norm(r.nome), cat);
+      if (r.nome && cat) nomeCat.set(_normNome(r.nome), cat);
+    });
+    (pv || []).filter((r) => r.sede_id).forEach((r) => {
+      const cat = catMap[r.categoria_vendita_id];
+      if (r.nome && cat) nomeCat.set(_normNome(r.nome), cat);
     });
     currentProducts.forEach((p) => {
-      const c = nomeCat.get(_norm(p.nome || ""));
+      const c = nomeCat.get(_normNome(p.nome || ""));
       if (c) p.categoria = c;
     });
   } catch (e) { /* categorie non disponibili, resta il default */ }
@@ -1209,9 +1216,22 @@ function renderSalesList() {
     items = items.filter((item) => (item.categoria || "Senza categoria") === category);
   }
 
+  // Margine reale = incasso - (food cost unitario x pezzi), usando il food cost
+  // inserito in lista (ricetta o manuale/override), non il costo-ricetta del KPI.
+  items.forEach((item) => {
+    const fc = salesFoodCost[_normNome(item.nome)];
+    let fcUnit = 0;
+    if (fc) {
+      if (fc.ricettaCost != null && fc.ricettaCost > 0) fcUnit = fc.ricettaCost;
+      else if (fc.manuale != null) fcUnit = Number(fc.manuale) || 0;
+      else if (fc.override != null) fcUnit = Number(fc.override) || 0;
+    }
+    item._margineReale = toNumber(item.incasso) - fcUnit * toNumber(item.numero);
+  });
+
   items.sort((a, b) => {
     if (sortBy === "numero") return toNumber(b.numero) - toNumber(a.numero);
-    if (sortBy === "margine") return toNumber(b.margine) - toNumber(a.margine);
+    if (sortBy === "margine") return toNumber(b._margineReale) - toNumber(a._margineReale);
     return toNumber(b.incasso) - toNumber(a.incasso);
   });
 
@@ -1246,7 +1266,7 @@ function renderSalesList() {
         ${fcHtml}
         <div class="admin-sales-value-card">
           <div class="admin-sales-value-label">${sortByLabel(sortBy)}</div>
-          <div class="admin-sales-value">${sortBy === "numero" ? formatNumber(item.numero) : formatCurrency(item[sortBy])}</div>
+          <div class="admin-sales-value">${sortBy === "numero" ? formatNumber(item.numero) : (sortBy === "margine" ? formatCurrency(item._margineReale) : formatCurrency(item[sortBy]))}</div>
         </div>
       </div>
     `;
