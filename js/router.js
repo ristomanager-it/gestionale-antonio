@@ -77,7 +77,7 @@ const routes = {
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
   "ricette-semplici": () =>
-    import("./views/crea-ricetta.js?v=11"),
+    import("./views/crea-ricetta.js?v=12"),
   "permessi-operatore": () =>
     import("./views/permessi-operatore/index.js"),
 
@@ -123,9 +123,9 @@ const routes = {
   ricettario: () => import("./views/ricettario.js?v=4"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
   // Editor ricette UNICO: modalità semplice/avanzata dentro crea-ricetta.js
-  creaRicetta: () => import("./views/crea-ricetta.js?v=11"),
-  "crea-ricetta":          () => import("./views/crea-ricetta.js?v=11"),
-  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=11"),
+  creaRicetta: () => import("./views/crea-ricetta.js?v=12"),
+  "crea-ricetta":          () => import("./views/crea-ricetta.js?v=12"),
+  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=12"),
   "abbina-articoli": () => import("./views/abbina-articoli.js"),
   "menu-engineering": () => import("./views/menu-engineering.js"),
   "super-tony": () => import("./views/super-tony.js?v=6"),
