@@ -914,28 +914,31 @@ async function fetchDashboardData(period) {
           .eq("azienda_id", azienda.id)
           .eq("attivo", true)
           .limit(20000);
-        if (sede?.id != null) pvq = pvq.eq("sede_id", sede.id);
+        if (sede?.id != null) pvq = pvq.or("sede_id.eq." + sede.id + ",sede_id.is.null");
         const { data: pvs } = await pvq;
         const fcMap = new Map();
         (pvs || []).forEach(p => {
           const rc = p.ricette?.costo_porzione != null ? Number(p.ricette.costo_porzione) : 0;
           const fc = rc > 0 ? rc : (p.food_cost_manuale != null ? Number(p.food_cost_manuale) : 0);
-          if (fc > 0) fcMap.set(String(p.sede_id) + "|" + _norm(p.nome), fc);
+          if (fc > 0) {
+            const k = _norm(p.nome);
+            // il prodotto con sede specifica prevale su quello a sede NULL
+            if (!fcMap.has(k) || p.sede_id != null) fcMap.set(k, fc);
+          }
         });
         // override food cost (voci vendute non a catalogo)
         let ovQ = supabase.from("food_cost_venduto").select("sede_uuid, nome_norm, costo").eq("azienda_id", azienda.id);
         if (sede?.id != null) ovQ = ovQ.eq("sede_uuid", sede.id);
         const { data: ovRows } = await ovQ;
         (ovRows || []).forEach((o) => {
-          if (o.costo > 0) { const key = String(o.sede_uuid) + "|" + o.nome_norm; if (!fcMap.has(key)) fcMap.set(key, Number(o.costo)); }
+          if (o.costo > 0) { const key = o.nome_norm; if (!fcMap.has(key)) fcMap.set(key, Number(o.costo)); }
         });
 
         let mp = 0, incCoperto = 0, incTot = 0;
         for (const r of vendite) {
           const nomeN = _norm(r.nome_prodotto || r.nome_articolo);
           if (nomeN.startsWith("copert")) coperti += Number(r.quantita) || 0;
-          const key = String(r.sede_uuid) + "|" + nomeN;
-          const fc = fcMap.get(key) || 0;
+          const fc = fcMap.get(nomeN) || 0;
           const inc = Number(r.totale_incassato ?? r.totale_riga ?? 0);
           incTot += inc;
           if (fc > 0) { mp += fc * (Number(r.quantita) || 0); incCoperto += inc; }
@@ -1171,9 +1174,9 @@ async function loadSalesFoodCost() {
     const sede = window.state?.sedeAttiva;
     if (!supabase || !azienda) return;
     let q = supabase.from("prodotti_vendita")
-      .select("id, nome, ricetta_id, food_cost_manuale")
+      .select("id, nome, sede_id, ricetta_id, food_cost_manuale")
       .eq("azienda_id", azienda.id).eq("attivo", true).limit(20000);
-    if (sede?.id) q = q.eq("sede_id", sede.id);
+    if (sede?.id) q = q.or("sede_id.eq." + sede.id + ",sede_id.is.null");
     const { data: pvs } = await q;
     const ricIds = [...new Set((pvs || []).map((p) => p.ricetta_id).filter(Boolean))];
     const ricCost = {};
@@ -1183,7 +1186,10 @@ async function loadSalesFoodCost() {
     }
     (pvs || []).forEach((p) => {
       const rc = p.ricetta_id != null ? (ricCost[String(p.ricetta_id)] || 0) : 0;
-      salesFoodCost[_normNome(p.nome)] = {
+      const k = _normNome(p.nome);
+      // il prodotto con sede specifica prevale su quello a sede NULL
+      if (salesFoodCost[k] && p.sede_id == null) return;
+      salesFoodCost[k] = {
         id: p.id,
         ricettaCost: rc > 0 ? rc : null,
         manuale: p.food_cost_manuale != null ? Number(p.food_cost_manuale) : null
