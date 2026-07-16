@@ -1252,15 +1252,18 @@ function renderSalesList() {
     return;
   }
 
-  box.innerHTML = items.map((item) => {
+  const _totInc = items.reduce((s, it) => s + toNumber(it.incasso), 0);
+  const _totMar = items.reduce((s, it) => s + toNumber(it._margineReale), 0);
+  const _catLabel = category === "all" ? "Tutte le categorie" : category;
+  const _summaryHtml = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 2px 12px;border-bottom:2px solid #e2e8f0;margin-bottom:6px;font-size:13px;"><span style="font-weight:800;color:#0f172a;">${escapeHtml(_catLabel)}</span><span style="color:#64748b;">Incasso <b style="color:#0f172a;">${formatCurrency(_totInc)}</b> · Margine <b style="color:#0E5A7A;">${formatCurrency(_totMar)}</b></span></div>`;
+
+  box.innerHTML = _summaryHtml + items.map((item) => {
     const fc = salesFoodCost[_normNome(item.nome)];
+    const hasFc = fc && (fc.ricettaCost != null || fc.manuale != null || fc.override != null);
     let fcHtml = "";
-    if (fc && fc.ricettaCost != null) {
-      fcHtml = `<div style="text-align:center;flex-shrink:0;"><div style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;">Food cost</div><div style="font-size:15px;font-weight:800;color:#166534;">${formatCurrency(fc.ricettaCost)}</div></div>`;
-    } else {
-      const val = fc ? (fc.manuale != null ? fc.manuale : (fc.override != null ? fc.override : "")) : "";
-      const saved = fc && (fc.manuale != null || fc.override != null);
-      fcHtml = `<div style="text-align:center;flex-shrink:0;"><div style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;margin-bottom:3px;">Food cost €</div><input class="fc-inline" data-id="${fc && fc.id != null ? fc.id : ""}" data-nome="${escapeHtml(item.nome)}" type="number" step="0.10" min="0" inputmode="decimal" value="${val}" placeholder="—" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" style="width:82px;padding:8px;border:1.5px solid ${saved ? "#16a34a" : "#0E5A7A"};border-radius:8px;text-align:right;font-size:14px;background:#fff;position:relative;z-index:2;"></div>`;
+    if (!hasFc) {
+      // Mostra l'input SOLO per i piatti che NON hanno ancora un food cost.
+      fcHtml = `<div style="text-align:center;flex-shrink:0;"><div style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;margin-bottom:3px;">Food cost €</div><input class="fc-inline" data-id="${fc && fc.id != null ? fc.id : ""}" data-nome="${escapeHtml(item.nome)}" type="number" step="0.10" min="0" inputmode="decimal" value="" placeholder="—" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" style="width:82px;padding:8px;border:1.5px solid #0E5A7A;border-radius:8px;text-align:right;font-size:14px;background:#fff;position:relative;z-index:2;"></div>`;
     }
     return `
       <div class="admin-sales-row">
