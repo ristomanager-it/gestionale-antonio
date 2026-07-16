@@ -1053,7 +1053,8 @@ async function enrichProductCategories() {
   } catch (e) { /* categorie non disponibili, resta il default */ }
 }
 
-function normalizeProducts(list) { (Array.isArray(list) ? list : []).map((item) => {
+function normalizeProducts(list) {
+  return (Array.isArray(list) ? list : []).map((item) => {
     const nome = item?.nome || item?.nome_prodotto || item?.descrizione || `Prodotto ${item?.prodotto_id ?? ""}`.trim();
     const categoria = item?.categoria || item?.categoria_nome || item?.categoria_portata || "Senza categoria";
     const incasso = toNumber(item?.incasso);
