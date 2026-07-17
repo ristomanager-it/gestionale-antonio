@@ -73,6 +73,11 @@ export async function eseguiAutomazioni(evento, pren){
         try {
           const { data: sess } = await supabase.auth.getSession();
           const token = sess?.session?.access_token || ANON_KEY;
+          let sede = {};
+          if (pren.sede_id) {
+            try { const { data:s } = await supabase.from("sedi").select("nome,telefono,indirizzo,citta").eq("id", pren.sede_id).maybeSingle(); sede = s || {}; } catch(e){}
+          }
+          const mitt = sede.nome || window.state?.azienda?.nome || "Ristoflow";
           await fetch(SUPABASE_URL + "/functions/v1/invia-email-momento", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": ANON_KEY },
@@ -80,7 +85,7 @@ export async function eseguiAutomazioni(evento, pren){
               azienda_id: aziendaId,
               template_id: t.id,
               destinatario: dest,
-              mittente_nome: window.state?.azienda?.nome || "Ristoflow",
+              mittente_nome: mitt,
               dati: {
                 nome: pren.cliente_nome,
                 cognome: pren.cognome,
@@ -88,7 +93,10 @@ export async function eseguiAutomazioni(evento, pren){
                 data: pren.data, data_prenotazione: pren.data,
                 ora: pren.ora, ora_prenotazione: pren.ora,
                 num_persone: pren.coperti, coperti: pren.coperti,
-                nome_ristorante: window.state?.azienda?.nome || ""
+                nome_ristorante: sede.nome || "",
+                telefono_ristorante: sede.telefono || "",
+                indirizzo: sede.indirizzo || "",
+                citta: sede.citta || ""
               }
             })
           });

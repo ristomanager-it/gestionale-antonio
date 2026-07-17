@@ -1,5 +1,5 @@
 import { trovaOCreaContatto } from "../services/contatti.js";
-import { eseguiAutomazioni } from "../services/automazioni.js?v=2";
+import { eseguiAutomazioni } from "../services/automazioni.js?v=3";
 
 export async function render(container) {
 

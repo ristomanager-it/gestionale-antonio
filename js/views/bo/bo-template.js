@@ -1015,7 +1015,16 @@ export async function render(container) {
     if (!id) { esito.style.color = '#dc2626'; esito.textContent = 'Salva prima l\'email, poi invia la prova.'; return; }
     if (!dest) { esito.style.color = '#dc2626'; esito.textContent = 'Inserisci un indirizzo email.'; return; }
     esito.style.color = '#64748b'; esito.textContent = 'Invio in corso...';
-    const mitt = window.state?.azienda?.nome || 'Ristoflow';
+    // dati ristorante dalla SEDE attiva (non dall'azienda)
+    let sede = { nome: window.state?.sedeAttiva?.nome || '', telefono: '', indirizzo: '', citta: '' };
+    const sedeId = window.state?.sedeAttiva?.id;
+    if (sedeId) {
+      try {
+        const { data: s } = await supa().from('sedi').select('nome,telefono,indirizzo,citta').eq('id', sedeId).maybeSingle();
+        if (s) sede = s;
+      } catch (e) { /* uso i default */ }
+    }
+    const mitt = sede.nome || window.state?.azienda?.nome || 'Ristoflow';
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/invia-email-momento`, {
         method: 'POST',
@@ -1025,7 +1034,12 @@ export async function render(container) {
           template_id: id,
           destinatario: dest,
           mittente_nome: mitt,
-          dati: { nome: 'Mario', cognome: 'Rossi', nome_completo: 'Mario Rossi', data_prenotazione: '15 giugno', ora_prenotazione: '20:30', num_persone: '4', nome_ristorante: mitt }
+          dati: {
+            nome: 'Mario', cognome: 'Rossi', nome_completo: 'Mario Rossi',
+            data_prenotazione: '15 giugno', ora_prenotazione: '20:30', num_persone: '4',
+            nome_ristorante: sede.nome || '', telefono_ristorante: sede.telefono || '',
+            indirizzo: sede.indirizzo || '', citta: sede.citta || ''
+          }
         })
       });
       const j = await res.json();
