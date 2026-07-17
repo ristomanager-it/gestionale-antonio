@@ -149,8 +149,9 @@ export async function render(container) {
   const sediMap = Object.fromEntries(sedi.map((s) => [String(s.id), s.nome]));
 
   const profiloAI = normalizeProfiloAI(dip.profilo_ai);
-  const bozzaTony = valutazioni.find((v) => v.tipo === "auto_produzione") || null;
-  const ultimaValutazione = valutazioni.find((v) => v.tipo !== "auto_produzione") || null;
+  const TIPI_TONY = ["auto_produzione", "auto_servizio"];
+  const bozzeTony = valutazioni.filter((v) => TIPI_TONY.includes(v.tipo));
+  const ultimaValutazione = valutazioni.find((v) => !TIPI_TONY.includes(v.tipo)) || null;
 
   window.__confermaBozzaTony = async (id) => {
     if (!confirm("Confermi questa valutazione proposta da Tony? Diventerà una valutazione registrata.")) return;
@@ -295,21 +296,21 @@ export async function render(container) {
         `
       })}
 
-      ${bozzaTony ? createCard({
-        title: "🤖 Bozza di Tony da confermare",
+      ${bozzeTony.map((bz) => createCard({
+        title: "🤖 Bozza di Tony da confermare — " + (bz.tipo === "auto_servizio" ? "Servizio" : "Produzione"),
         body: `
           <div style="display:grid; gap:12px; border-left:4px solid #7c3aed; padding-left:12px;">
-            <div class="small-muted">Proposta automatica dai dati di produzione — ${formatPeriodo(bozzaTony.periodo_da, bozzaTony.periodo_a)}</div>
+            <div class="small-muted">Proposta automatica ${bz.tipo === "auto_servizio" ? "dai dati di sala" : "dai dati di produzione"} — ${formatPeriodo(bz.periodo_da, bz.periodo_a)}</div>
             <div style="display:grid; gap:6px;">
-              ${scoreRow("Velocità (suggerita)", bozzaTony.punteggio_velocita)}
-              ${scoreRow("Qualità (suggerita)", bozzaTony.punteggio_qualita)}
+              ${scoreRow("Velocità (suggerita)", bz.punteggio_velocita)}
+              ${bz.punteggio_qualita != null ? scoreRow("Qualità (suggerita)", bz.punteggio_qualita) : ""}
             </div>
-            ${infoRow("Azione consigliata", bozzaTony.azione_consigliata || "-")}
-            ${longTextRow("Analisi Tony", bozzaTony.note_manager || "-")}
-            <button onclick="window.__confermaBozzaTony('${bozzaTony.id}')" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;width:fit-content;">✓ Conferma valutazione</button>
+            ${infoRow("Azione consigliata", bz.azione_consigliata || "-")}
+            ${longTextRow("Analisi Tony", bz.note_manager || "-")}
+            <button onclick="window.__confermaBozzaTony('${bz.id}')" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;width:fit-content;">✓ Conferma valutazione</button>
           </div>
         `
-      }) : ""}
+      })).join("")}
 
       ${createCard({
         title: "Valutazione corrente",
