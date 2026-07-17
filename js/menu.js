@@ -390,7 +390,14 @@ export function initMenu() {
         items: [
           { label: "📊 Dashboard",        route: "bo-dashboard"      },
           { label: "🧮 Ragioniere",       route: "bo-bilancio"       },
-          { label: "🛒 Acquisti",         route: "acquisti"          },
+          { label: "🛒 Acquisti", route: "acquisti", children: [
+            { label: "Fatture", route: "acquisti?tab=fatture" },
+            { label: "DDT", route: "acquisti?tab=ddt" },
+            { label: "Pagamenti", route: "acquisti?tab=pagamenti" },
+            { label: "Fornitori", route: "acquisti?tab=fornitori" },
+            { label: "Riordino", route: "acquisti?tab=riordino" },
+            { label: "Ordini", route: "acquisti?tab=ordini" },
+          ] },
           { label: "💰 Venduto",          route: "venduto"           },
           { label: "📈 Margini",          route: "margini"           },
           { label: "🍝 Food cost mancanti", route: "food-cost-mancanti" },
@@ -523,7 +530,14 @@ export function initMenu() {
         title: "CONTABILITÀ",
         items: [
           { label: "📈 Bilancio live", route: "bo-bilancio" },
-          { label: "🛒 Acquisti",      route: "acquisti"    },
+          { label: "🛒 Acquisti", route: "acquisti", children: [
+            { label: "Fatture", route: "acquisti?tab=fatture" },
+            { label: "DDT", route: "acquisti?tab=ddt" },
+            { label: "Pagamenti", route: "acquisti?tab=pagamenti" },
+            { label: "Fornitori", route: "acquisti?tab=fornitori" },
+            { label: "Riordino", route: "acquisti?tab=riordino" },
+            { label: "Ordini", route: "acquisti?tab=ordini" },
+          ] },
         ]
       });
       sections.push({
@@ -651,6 +665,36 @@ export function initMenu() {
 
         row.className =
           "menu-subitem";
+
+        // Voce con sotto-voci: espandibile (accordion)
+        if (item.children && item.children.length) {
+          row.innerHTML = `<span>${item.label}</span><span class="menu-subarrow" style="transition:transform .2s ease;opacity:.7;">▾</span>`;
+          row.style.display = "flex";
+          row.style.justifyContent = "space-between";
+          row.style.alignItems = "center";
+          const childBox = document.createElement("div");
+          childBox.className = "menu-childitems";
+          childBox.style.display = "none";
+          item.children.forEach(ch => {
+            const crow = document.createElement("div");
+            crow.className = "menu-subitem menu-childitem";
+            crow.style.paddingLeft = "30px";
+            crow.style.fontSize = "0.92em";
+            crow.style.opacity = "0.9";
+            crow.innerText = ch.label;
+            crow.onclick = (e) => { e.stopPropagation(); go(ch.route); };
+            childBox.appendChild(crow);
+          });
+          row.onclick = () => {
+            const open = childBox.style.display !== "none";
+            childBox.style.display = open ? "none" : "block";
+            const arr = row.querySelector(".menu-subarrow");
+            if (arr) arr.style.transform = open ? "rotate(0deg)" : "rotate(180deg)";
+          };
+          itemsBox.appendChild(row);
+          itemsBox.appendChild(childBox);
+          return;
+        }
 
         if (item.badge === "wa") {
           const badgeCount = document.getElementById("wa-badge")?.textContent || "0";
