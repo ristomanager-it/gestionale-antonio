@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=12";
+import { initMenu } from "./menu.js?v=13";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -177,7 +177,7 @@ const routes = {
   // =========================
   "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
   "bo-tag": () => import("./views/bo/bo-tag.js"),
-  "bo-template": () => import("./views/bo/bo-template.js"),
+  "bo-template": () => import("./views/bo/bo-template.js?v=1"),
   "bo-candidature": () => import("./views/bo/bo-candidature.js"),
   "bo-bilancio":     () => import("./views/bo/bo-bilancio.js?v=3"),
   "bo-survey":      () => import("./views/bo/bo-survey.js"),

@@ -71,6 +71,24 @@ const TRIGGER_LISTA = [
   { value: 'richiesta_recensione',      label: '⭐ Richiesta recensione (X giorni dopo evento)' },
 ];
 
+// ─── MOMENTI (catalogo in linguaggio semplice per lo staff) ──────────────────
+const MOMENTI = [
+  { key:'prenotazione_confermata',   ic:'✅', tit:'Prenotazione confermata', cosa:'Conferma al cliente che il tavolo è prenotato.',        quando:'Appena confermi la prenotazione.',            cat:'Prenotazioni' },
+  { key:'prenotazione_annullata',    ic:'❌', tit:'Prenotazione annullata',  cosa:'Avvisa il cliente che la prenotazione è annullata.',    quando:'Appena annulli la prenotazione.',             cat:'Prenotazioni' },
+  { key:'prenotazione_reminder_24h', ic:'⏰', tit:'Promemoria 24 ore prima',  cosa:'Ricorda al cliente che ha prenotato.',                  quando:'24 ore prima dell\u2019orario.',              cat:'Prenotazioni' },
+  { key:'prenotazione_reminder_2h',  ic:'⏰', tit:'Promemoria 2 ore prima',   cosa:'Ultimo promemoria prima dell\u2019arrivo.',             quando:'2 ore prima dell\u2019orario.',               cat:'Prenotazioni' },
+  { key:'evento_confermato',         ic:'🎉', tit:'Evento confermato',        cosa:'Conferma un evento o ricevimento prenotato.',           quando:'Appena confermi l\u2019evento.',              cat:'Eventi' },
+  { key:'preventivo_pronto',         ic:'📋', tit:'Preventivo pronto',        cosa:'Avvisa il cliente che il preventivo è pronto.',         quando:'Quando salvi o invii il preventivo.',         cat:'Eventi' },
+  { key:'compleanno',                ic:'🎂', tit:'Compleanno cliente',       cosa:'Fai gli auguri, magari con un\u2019offerta.',           quando:'Il giorno del compleanno.',                   cat:'Fidelizzazione' },
+  { key:'richiesta_recensione',      ic:'⭐', tit:'Richiesta recensione',     cosa:'Chiedi una recensione dopo la visita.',                 quando:'Qualche giorno dopo l\u2019evento o la visita.', cat:'Fidelizzazione' },
+  { key:'inattivo_45giorni',         ic:'😴', tit:'Cliente che non torna',    cosa:'Riporta indietro chi non viene da un po\u2019.',        quando:'45 giorni dopo l\u2019ultima visita.',        cat:'Fidelizzazione' },
+  { key:'tag_assegnato',             ic:'🏷️', tit:'Etichetta assegnata',     cosa:'Messaggio quando metti un\u2019etichetta a un cliente (es. VIP).', quando:'Appena assegni l\u2019etichetta.',  cat:'Fidelizzazione' },
+  { key:'timbratura_ingresso',       ic:'🟢', tit:'Entrata dipendente',       cosa:'Notifica quando un dipendente timbra l\u2019entrata.',   quando:'Alla timbratura di ingresso.',                cat:'Personale' },
+  { key:'timbratura_uscita',         ic:'🔴', tit:'Uscita dipendente',        cosa:'Notifica quando un dipendente timbra l\u2019uscita.',    quando:'Alla timbratura di uscita.',                  cat:'Personale' },
+  { key:'nuovo_documento',           ic:'📄', tit:'Nuovo documento',          cosa:'Avvisa che è stato caricato un documento.',             quando:'Al caricamento di un documento.',             cat:'Personale' },
+];
+const MOMENTI_CAT = ['Prenotazioni', 'Eventi', 'Fidelizzazione', 'Personale'];
+
 // ─── STATI META ───────────────────────────────────────────────────────────────
 const STATI = {
   APPROVED: { label: '✅ Attivo',        bg: '#dcfce7', color: '#15803d' },
@@ -154,6 +172,36 @@ export async function render(container) {
   const allTags = tagDefs || [];
   const allMappings = templateMappings || [];
 
+  const momentiHtml = MOMENTI_CAT.map(cat => {
+    const items = MOMENTI.filter(m => m.cat === cat);
+    return `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">${cat}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+          ${items.map(m => {
+            const attached = allMappings.some(x => x.trigger_evento === m.key);
+            const active   = allMappings.some(x => x.trigger_evento === m.key && x.trigger_attivo);
+            const pill = active
+              ? '<span style="background:#dcfce7;color:#15803d;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;">✅ Messaggio attivo</span>'
+              : (attached
+                ? '<span style="background:#fef3c7;color:#92400e;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;">⏸ Messaggio in pausa</span>'
+                : '<span style="background:#f1f5f9;color:#64748b;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;">⚪ Nessun messaggio</span>');
+            return `
+            <div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:22px;">${m.ic}</span>
+                <span style="font-size:15px;font-weight:700;color:#0f172a;">${m.tit}</span>
+              </div>
+              <div style="font-size:13px;color:#475569;line-height:1.5;">${m.cosa}</div>
+              <div style="font-size:12px;color:#94a3b8;">🕒 ${m.quando}</div>
+              <div>${pill}</div>
+              <button class="momento-btn" data-momento="${m.key}" style="margin-top:4px;background:#0E5A7A;color:white;border:none;border-radius:9px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:600;">${attached ? '✏️ Modifica messaggio' : '✏️ Scrivi messaggio'}</button>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
   container.innerHTML = `
     <style>
       .rf-tab { display:none; }
@@ -193,13 +241,23 @@ export async function render(container) {
 
         <!-- Tabs -->
         <div style="display:flex;border-bottom:1px solid #e5e7eb;margin:16px 0 20px;">
-          <button class="rf-nav-btn attiva" data-tab="tab-template">💬 Template</button>
+          <button class="rf-nav-btn attiva" data-tab="tab-momenti">📅 Momenti</button>
+          <button class="rf-nav-btn" data-tab="tab-template">💬 Template</button>
           <button class="rf-nav-btn" data-tab="tab-tag">🏷️ Tag</button>
           <button class="rf-nav-btn" data-tab="tab-regole">⚡ Regole automatiche</button>
         </div>
 
+        <!-- ═══ TAB MOMENTI ══════════════════════════════════════════════════ -->
+        <div id="tab-momenti" class="rf-tab attiva">
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:#475569;line-height:1.6;">
+            Qui trovi <b>tutti i momenti</b> in cui il gestionale può mandare un messaggio, al cliente o al personale.
+            Per ognuno vedi <b>cosa fa</b> e <b>quando parte</b>. Premi <b>Scrivi messaggio</b> per decidere cosa dire.
+          </div>
+          ${momentiHtml}
+        </div>
+
         <!-- ═══ TAB TEMPLATE ═══════════════════════════════════════════════ -->
-        <div id="tab-template" class="rf-tab attiva">
+        <div id="tab-template" class="rf-tab">
 
           <!-- Form nuovo template -->
           <div id="form-template" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:16px;padding:24px;margin-bottom:20px;">
@@ -658,6 +716,28 @@ export async function render(container) {
       container.querySelectorAll('.rf-tab').forEach(t => t.classList.remove('attiva'));
       btn.classList.add('attiva');
       container.querySelector(`#${btn.dataset.tab}`).classList.add('attiva');
+    });
+  });
+
+  // ─── MOMENTI → apri Template col trigger preimpostato ─────────────────────
+  container.querySelectorAll('.momento-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.momento;
+      // vai alla tab Template
+      container.querySelectorAll('.rf-nav-btn').forEach(b => b.classList.remove('attiva'));
+      container.querySelectorAll('.rf-tab').forEach(t => t.classList.remove('attiva'));
+      const navT = container.querySelector('.rf-nav-btn[data-tab="tab-template"]');
+      if (navT) navT.classList.add('attiva');
+      const panT = container.querySelector('#tab-template');
+      if (panT) panT.classList.add('attiva');
+      // apri il form e preimposta il momento
+      const form = container.querySelector('#form-template');
+      if (form) form.style.display = 'block';
+      const trg = container.querySelector('#tmpl-trigger');
+      if (trg) { trg.value = key; trg.dispatchEvent(new Event('change')); }
+      const nome = container.querySelector('#tmpl-nome');
+      if (nome) setTimeout(() => nome.focus(), 50);
+      if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
 
