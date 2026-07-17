@@ -770,6 +770,20 @@ function pickActiveAzienda(aziendePulite, preferBozza = false) {
 
   const storedId = getStoredAziendaId();
 
+  // PRIORITÀ MASSIMA: la sede ATTIVA in memoria (quella mostrata nell'header)
+  // conosce la propria azienda. Se sono già dentro una sede, l'azienda è la sua,
+  // anche quando window.state.sedi non è ancora caricato entrando in una rotta BO
+  // (es. Acquisti) e getStoredSedeId() in localStorage non è allineato.
+  try {
+    const sedeAtt = window.state?.sedeAttiva;
+    if (sedeAtt?.azienda_id) {
+      const matchAttiva = aziendePulite.find(
+        a => String(a.aziende?.id) === String(sedeAtt.azienda_id)
+      );
+      if (matchAttiva?.aziende) return matchAttiva.aziende;
+    }
+  } catch (e) { /* prosegue con la logica standard sotto */ }
+
   // La sede attiva (quella mostrata nell'header) è la verità: se punta a
   // un'azienda diversa da quella salvata, la sede vince. Evita che, avendo
   // più aziende (es. superadmin), si venga rimandati a un'azienda vecchia
