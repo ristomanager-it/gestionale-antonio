@@ -74,6 +74,7 @@ export async function render(container) {
       <div class="form-actions" style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap;">
         <button type="button" id="btn-back" class="app-button secondary">← Centro Produzione</button>
         <button type="button" id="btn-scheda-tecnica" class="app-button secondary">📘 Scheda tecnica</button>
+        <button type="button" id="btn-stampa-produzione" class="app-button secondary">🖨 Stampa scheda produzione</button>
       </div>
 
       ${createCard({
@@ -1487,6 +1488,104 @@ function chiudiSchedaTecnica() {
 }
 
 /* ========================================================= */
+/* STAMPA SCHEDA PRODUZIONE (anteprima A4 browser)           */
+/* ========================================================= */
+async function stampaSchedaProduzione() {
+  if (!ricettaSelezionata?.id) { alert("Seleziona prima una ricetta."); return; }
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  const azienda = window.state?.azienda;
+
+  const [ingRes, fasiRes] = await Promise.all([
+    supabase.from("ricetta_ingredienti").select("*").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata.id).order("ordine"),
+    supabase.from("ricette_preparazione_fasi").select("*").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata.id).order("ordine"),
+  ]);
+  const ingredienti = ingRes.data || [];
+  const fasi = fasiRes.data || [];
+
+  const molt = getMoltiplicatoreRicetta();
+  const dataProd = document.getElementById("prod-data")?.value || new Date().toISOString().slice(0, 10);
+  const dataFmt = new Date(dataProd).toLocaleDateString("it-IT");
+  const lotto = (document.getElementById("prod-lotto")?.value || "").trim() || "—";
+  const note = (document.getElementById("prod-note-lotto")?.value || "").trim();
+  const operatore = (document.getElementById("prod-operatore-info")?.innerText || "").replace(/nessun operatore identificato/i, "").trim() || "—";
+  const resaTeo = getResaTeoricaKg();
+  const pesoReale = getPesoRealeKg();
+
+  const righeIng = ingredienti.length ? ingredienti.map((i) => {
+    const base = Number(i.qta ?? i.quantita ?? i.qta_ingrediente ?? 0);
+    const um = i.unita_misura || i.um || "";
+    const nome = i.nome_ingrediente || i.nome || i.nome_prodotto || "Ingrediente";
+    const scaled = base * (Number.isFinite(molt) && molt > 0 ? molt : 1);
+    return `<tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:8px;text-align:center;font-size:16px;">☐</td>
+      <td style="padding:8px;">${escapeHtml(nome)}</td>
+      <td style="padding:8px;text-align:right;font-weight:700;font-size:15px;">${formatNumber(scaled)} ${escapeHtml(um)}</td>
+      <td style="padding:8px;text-align:right;color:#94a3b8;font-size:12px;">${formatNumber(base)} ${escapeHtml(um)}</td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="4" style="padding:12px;color:#64748b;">Nessun ingrediente in ricetta</td></tr>`;
+
+  const listaFasi = fasi.length
+    ? `<ol style="margin:0;padding-left:20px;">${fasi.map((f) => `<li style="margin-bottom:10px;">☐ &nbsp;${escapeHtml(f.nome_fase || f.testo || f.descrizione || "Fase")}</li>`).join("")}</ol>`
+    : `<div style="color:#64748b;">Nessuna fase registrata</div>`;
+
+  const moltInfo = (Number.isFinite(molt) && Math.abs(molt - 1) > 0.001)
+    ? `<div class="meta-item"><div class="meta-label">Moltiplicatore</div><div class="meta-value">${formatNumber(molt)} x</div></div>`
+    : "";
+
+  const win = window.open("", "_blank");
+  if (!win) { alert("Consenti i popup del browser per vedere l'anteprima di stampa."); return; }
+  win.document.write(`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+    <title>Scheda produzione — ${escapeHtml(ricettaSelezionata.nome || "")}</title>
+    <style>
+      * { box-sizing:border-box; margin:0; padding:0; font-family:Arial,sans-serif; }
+      body { padding:32px; color:#1a1a2e; }
+      h1 { font-size:22px; margin-bottom:2px; }
+      .sub { font-size:13px; color:#64748b; margin-bottom:20px; }
+      .meta { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:22px; }
+      .meta-item { background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px; }
+      .meta-label { font-size:10px; text-transform:uppercase; color:#64748b; letter-spacing:1px; }
+      .meta-value { font-size:15px; font-weight:700; margin-top:3px; }
+      h2 { font-size:14px; text-transform:uppercase; letter-spacing:1px; color:#0E5A7A; margin:20px 0 10px; border-bottom:2px solid #0E5A7A; padding-bottom:4px; }
+      table { width:100%; border-collapse:collapse; font-size:13px; }
+      th { background:#0E5A7A; color:white; padding:8px; text-align:left; font-size:11px; text-transform:uppercase; }
+      th.r, td.r { text-align:right; }
+      .note-box { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; font-size:13px; margin-top:10px; }
+      .firma-box { margin-top:44px; display:flex; justify-content:space-between; gap:40px; }
+      .firma-line { border-top:1px solid #1a1a2e; width:220px; text-align:center; padding-top:6px; font-size:11px; color:#64748b; }
+      @media print { .no-print { display:none; } body { padding:12px; } }
+    </style></head><body>
+    <div class="no-print" style="text-align:center;padding:12px;background:#f8fafc;margin-bottom:16px;border-radius:8px;">
+      <button onclick="window.print()" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">🖨️ Stampa / Salva PDF</button>
+    </div>
+    <h1>Scheda di produzione</h1>
+    <div class="sub">${escapeHtml(azienda?.nome || "")}</div>
+    <div class="meta">
+      <div class="meta-item"><div class="meta-label">Ricetta</div><div class="meta-value">${escapeHtml(ricettaSelezionata.nome || "—")}</div></div>
+      <div class="meta-item"><div class="meta-label">Data produzione</div><div class="meta-value">${dataFmt}</div></div>
+      <div class="meta-item"><div class="meta-label">Lotto</div><div class="meta-value">${escapeHtml(lotto)}</div></div>
+      <div class="meta-item"><div class="meta-label">Operatore</div><div class="meta-value">${escapeHtml(operatore)}</div></div>
+      ${resaTeo ? `<div class="meta-item"><div class="meta-label">Resa teorica</div><div class="meta-value">${formatNumber(resaTeo)} kg</div></div>` : ""}
+      ${pesoReale ? `<div class="meta-item"><div class="meta-label">Peso reale</div><div class="meta-value">${formatNumber(pesoReale)} kg</div></div>` : ""}
+      ${moltInfo}
+    </div>
+    ${note ? `<div class="note-box"><b>Note / destinatario:</b> ${escapeHtml(note)}</div>` : ""}
+    <h2>Ingredienti da preparare</h2>
+    <table>
+      <thead><tr><th style="width:34px;"></th><th>Ingrediente</th><th class="r">Q.tà produzione</th><th class="r">Base ricetta</th></tr></thead>
+      <tbody>${righeIng}</tbody>
+    </table>
+    <h2>Fasi di preparazione</h2>
+    ${listaFasi}
+    <div class="firma-box">
+      <div class="firma-line">Preparato da (firma)</div>
+      <div class="firma-line">Controllo (firma)</div>
+    </div>
+  </body></html>`);
+  win.document.close();
+}
+
+/* ========================================================= */
 /* EVENTS */
 /* ========================================================= */
 
@@ -1496,6 +1595,7 @@ function bindEvents() {
   });
 
   document.getElementById("btn-scheda-tecnica")?.addEventListener("click", apriSchedaTecnica);
+  document.getElementById("btn-stampa-produzione")?.addEventListener("click", stampaSchedaProduzione);
   document.getElementById("prod-tech-close")?.addEventListener("click", chiudiSchedaTecnica);
   document.getElementById("prod-tech-backdrop")?.addEventListener("click", (e) => {
     if (e.target?.id === "prod-tech-backdrop") chiudiSchedaTecnica();
