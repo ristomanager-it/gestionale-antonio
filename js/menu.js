@@ -615,6 +615,8 @@ export function initMenu() {
     return [...fixedFirst, ...middle, ...noKey, ...fixedLast];
   }
 
+  let submenuAperto = null;
+
   function renderMenu() {
 
     menu.innerHTML = "";
@@ -622,6 +624,28 @@ export function initMenu() {
     menu.appendChild(
       renderMenuHeader()
     );
+
+    // Vista laterale (drill-down): mostra solo le sotto-voci del genitore aperto
+    if (submenuAperto) {
+      const back = document.createElement("div");
+      back.className = "menu-subitem";
+      back.style.cssText = "font-weight:700;display:flex;align-items:center;gap:8px;color:var(--primary,#0E5A7A);";
+      back.innerHTML = "‹ <span>" + submenuAperto.label + "</span>";
+      back.onclick = () => { submenuAperto = null; renderMenu(); };
+      menu.appendChild(back);
+      const sub = document.createElement("div");
+      sub.className = "menu-subitems open";
+      sub.style.display = "block";
+      submenuAperto.children.forEach(ch => {
+        const crow = document.createElement("div");
+        crow.className = "menu-subitem";
+        crow.innerText = ch.label;
+        crow.onclick = () => { submenuAperto = null; go(ch.route); };
+        sub.appendChild(crow);
+      });
+      menu.appendChild(sub);
+      return;
+    }
 
     const struttura =
       getMenu();
@@ -666,33 +690,14 @@ export function initMenu() {
         row.className =
           "menu-subitem";
 
-        // Voce con sotto-voci: espandibile (accordion)
+        // Voce con sotto-voci: apre la vista laterale (drill-down)
         if (item.children && item.children.length) {
-          row.innerHTML = `<span>${item.label}</span><span class="menu-subarrow" style="transition:transform .2s ease;opacity:.7;">▾</span>`;
+          row.innerHTML = `<span>${item.label}</span><span class="menu-subarrow" style="opacity:.55;">›</span>`;
           row.style.display = "flex";
           row.style.justifyContent = "space-between";
           row.style.alignItems = "center";
-          const childBox = document.createElement("div");
-          childBox.className = "menu-childitems";
-          childBox.style.display = "none";
-          item.children.forEach(ch => {
-            const crow = document.createElement("div");
-            crow.className = "menu-subitem menu-childitem";
-            crow.style.paddingLeft = "30px";
-            crow.style.fontSize = "0.92em";
-            crow.style.opacity = "0.9";
-            crow.innerText = ch.label;
-            crow.onclick = (e) => { e.stopPropagation(); go(ch.route); };
-            childBox.appendChild(crow);
-          });
-          row.onclick = () => {
-            const open = childBox.style.display !== "none";
-            childBox.style.display = open ? "none" : "block";
-            const arr = row.querySelector(".menu-subarrow");
-            if (arr) arr.style.transform = open ? "rotate(0deg)" : "rotate(180deg)";
-          };
+          row.onclick = () => { submenuAperto = item; renderMenu(); };
           itemsBox.appendChild(row);
-          itemsBox.appendChild(childBox);
           return;
         }
 
@@ -869,6 +874,7 @@ export function initMenu() {
 
     await loadMenuUserProfile();
 
+    submenuAperto = null;
     renderMenu();
 
     menu.classList.add("open");
