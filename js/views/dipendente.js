@@ -149,7 +149,18 @@ export async function render(container) {
   const sediMap = Object.fromEntries(sedi.map((s) => [String(s.id), s.nome]));
 
   const profiloAI = normalizeProfiloAI(dip.profilo_ai);
-  const ultimaValutazione = valutazioni.length > 0 ? valutazioni[0] : null;
+  const bozzaTony = valutazioni.find((v) => v.tipo === "auto_produzione") || null;
+  const ultimaValutazione = valutazioni.find((v) => v.tipo !== "auto_produzione") || null;
+
+  window.__confermaBozzaTony = async (id) => {
+    if (!confirm("Confermi questa valutazione proposta da Tony? Diventerà una valutazione registrata.")) return;
+    try {
+      await window.supabaseClient.from("dipendenti_valutazioni")
+        .update({ tipo: "periodica", valutatore_ruolo: "admin" })
+        .eq("id", id);
+      location.reload();
+    } catch (e) { alert("Errore: " + (e?.message || e)); }
+  };
   const messaggiTony = generaMessaggiTony({
     presenza: presenzaData,
     produzione: produzioneData,
@@ -283,6 +294,22 @@ export async function render(container) {
           </div>
         `
       })}
+
+      ${bozzaTony ? createCard({
+        title: "🤖 Bozza di Tony da confermare",
+        body: `
+          <div style="display:grid; gap:12px; border-left:4px solid #7c3aed; padding-left:12px;">
+            <div class="small-muted">Proposta automatica dai dati di produzione — ${formatPeriodo(bozzaTony.periodo_da, bozzaTony.periodo_a)}</div>
+            <div style="display:grid; gap:6px;">
+              ${scoreRow("Velocità (suggerita)", bozzaTony.punteggio_velocita)}
+              ${scoreRow("Qualità (suggerita)", bozzaTony.punteggio_qualita)}
+            </div>
+            ${infoRow("Azione consigliata", bozzaTony.azione_consigliata || "-")}
+            ${longTextRow("Analisi Tony", bozzaTony.note_manager || "-")}
+            <button onclick="window.__confermaBozzaTony('${bozzaTony.id}')" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;width:fit-content;">✓ Conferma valutazione</button>
+          </div>
+        `
+      }) : ""}
 
       ${createCard({
         title: "Valutazione corrente",
