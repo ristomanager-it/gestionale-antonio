@@ -552,7 +552,6 @@ function hasPermission(area) {
       "produzione",
       "produzioni-aperte",
       "registro-lotti",
-      "produttivita-produzione",
       "registro-messaggi",
       "display-cucina",
 
