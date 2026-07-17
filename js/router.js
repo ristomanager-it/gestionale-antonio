@@ -356,16 +356,22 @@ async function renderView(routeName) {
   await module.render(app);
 
   // Deep-link generico alle tab: se l'hash contiene ?tab=X, seleziona quella tab
-  // cliccando il bottone .tab-btn[data-tab="X"] (convenzione comune a tutte le view).
-  // Le view che gestiscono già ?tab= internamente (es. Acquisti, Sito) hanno il
-  // bottone giusto già .active, quindi vengono saltate (nessun doppio render).
+  // cliccando il bottone [data-tab="X"] (convenzione comune a tutte le view, con
+  // classi diverse: tab-btn, cb-tab, disp-tab, sw-tab, sv-nav, rf-nav-btn...).
+  // Se il bottone è già attivo (active/attiva/att) si salta: niente doppio render
+  // per le view che gestiscono già ?tab= internamente (Acquisti, Sito).
   try {
     const _q = (window.location.hash.split("?")[1] || "");
     const _tab = new URLSearchParams(_q).get("tab");
     if (_tab) {
       setTimeout(() => {
-        const _btn = app.querySelector('.tab-btn[data-tab="' + _tab + '"]');
-        if (_btn && !_btn.classList.contains("active")) _btn.click();
+        const _btn = app.querySelector('button[data-tab="' + _tab + '"]')
+                  || app.querySelector('[data-tab="' + _tab + '"]');
+        if (_btn) {
+          const cl = _btn.classList;
+          const giaAttivo = cl.contains("active") || cl.contains("attiva") || cl.contains("att");
+          if (!giaAttivo) _btn.click();
+        }
       }, 0);
     }
   } catch (e) { /* no-op */ }
