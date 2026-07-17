@@ -79,8 +79,17 @@ async function carica(sedeId) {
   if (!ids.length) { comandeCache = []; renderBoard(); return; }
 
   const { data: righe } = await supa().from("comanda_righe")
-    .select("id, comanda_id, nome_snapshot, quantita, note, stato, portata, started_at, completed_at, inviato_cucina_at, created_at")
+    .select("id, comanda_id, prodotto_vendita_id, nome_snapshot, quantita, note, stato, portata, started_at, completed_at, inviato_cucina_at, created_at")
     .in("comanda_id", ids).order("portata").order("created_at");
+
+  // allergeni per prodotto venduto (critico in cucina)
+  const pvIds = [...new Set((righe || []).map(r => r.prodotto_vendita_id).filter(Boolean))];
+  const allergByPv = {};
+  if (pvIds.length) {
+    const { data: pv } = await supa().from("prodotti_vendita").select("id, allergeni").in("id", pvIds);
+    (pv || []).forEach(p => { if (Array.isArray(p.allergeni) && p.allergeni.length) allergByPv[String(p.id)] = p.allergeni; });
+  }
+  (righe || []).forEach(r => { r._allergeni = allergByPv[String(r.prodotto_vendita_id)] || []; });
 
   const righeByComanda = {};
   (righe || []).forEach(r => { (righeByComanda[r.comanda_id] = righeByComanda[r.comanda_id] || []).push(r); });
@@ -141,6 +150,7 @@ function cardHtml(c) {
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #1f2937;">
         <div style="flex:1;${done ? "opacity:.6;" : ""}">
           <div style="font-size:14px;font-weight:600;">${r.quantita > 1 ? r.quantita + "× " : ""}${escapeHtml(r.nome_snapshot || "Piatto")}</div>
+          ${(r._allergeni && r._allergeni.length) ? `<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px;">${r._allergeni.map(a => `<span style="background:#7f1d1d;color:#fecaca;border-radius:4px;font-size:10px;font-weight:700;padding:1px 6px;text-transform:uppercase;">⚠ ${escapeHtml(a)}</span>`).join("")}</div>` : ""}
           ${r.note ? `<div style="font-size:11px;color:#fbbf24;">✎ ${escapeHtml(r.note)}</div>` : ""}
         </div>
         ${az ? `<button data-riga="${r.id}" data-stato="${st}" style="background:${st === "in_attesa" ? "#334155" : (st === "in_preparazione" ? "#16a34a" : "#0e7490")};color:white;border:none;border-radius:7px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">${az}</button>` : `<span style="color:#4ade80;font-size:12px;">✓</span>`}

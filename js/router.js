@@ -211,7 +211,7 @@ const routes = {
   // DISPLAY (tablet fissi)
   // =========================
   "display-cucina": () => import("./views/display/display-cucina.js?v=5"),
-  "kds": () => import("./views/display/kds.js?v=1"),
+  "kds": () => import("./views/display/kds.js?v=2"),
 
 }; // 
 
