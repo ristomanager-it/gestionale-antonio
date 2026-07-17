@@ -114,6 +114,7 @@ async function apriProduzione() {
     quantita_output: qta,
     unita_misura: "kg",
     stato: "aperta",
+    sede_uuid: window.state?.sedeAttiva?.id || null,
     luogo: window.state?.sedeAttiva?.nome || null,
     note: note || null,
     operatore_id,

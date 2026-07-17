@@ -119,7 +119,7 @@ const routes = {
   ordine: () => import("./views/ordine.js?v=7"),
 
   produzione: () => import("./views/produzione.js"),
-  "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=1"),
+  "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=2"),
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js?v=5"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
