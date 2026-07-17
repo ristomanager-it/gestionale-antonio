@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=14";
+import { initMenu } from "./menu.js?v=15";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -99,7 +99,7 @@ const routes = {
 
   dipendenti: () => import("./views/dipendenti.js?v=6"),
   dipendente: () => import("./views/dipendente.js"),
-  "crea-dipendente": () => import("./views/crea-dipendente.js?v=3"),
+  "crea-dipendente": () => import("./views/crea-dipendente.js?v=4"),
 "organizzazione": () => import("./views/organizzazione.js?v=4"),
 "persone": () => import("./views/persone.js?v=2"),
 "manuale-operativo": () => import("./views/manuale-operativo.js"),
@@ -284,6 +284,20 @@ const BO_ROUTES = new Set([
 const DISPLAY_ROUTES = new Set([
   "display-cucina",
 ]);
+
+// Addetto marketing: ruolo con accesso limitato all'area marketing + prenotazioni
+const ADDETTO_MARKETING_ROUTES = new Set([
+  // Marketing core
+  "bo-template", "bo-tag", "bo-marketing", "bo-catenarie", "bo-promo",
+  // Fidelity
+  "bo-fidelity",
+  // Sito / Media
+  "bo-sito", "bo-media",
+  // Prenotazioni / clienti
+  "prenotazioni", "prenotazioni-tavoli",
+  // Essenziali
+  "home", "profilo", "completaProfilo", "scegli-sede",
+]);
 /* =========================================================
    STORAGE KEYS
 ========================================================= */
@@ -451,6 +465,14 @@ function hasPermission(area) {
 
   if (isSuperadmin()) {
     return true;
+  }
+
+  // =====================================
+  // ADDETTO MARKETING (scope limitato)
+  // =====================================
+
+  if (ruolo === "addetto_marketing") {
+    return ADDETTO_MARKETING_ROUTES.has(String(area).split("?")[0]);
   }
 
   // =====================================

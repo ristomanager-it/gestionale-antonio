@@ -128,7 +128,7 @@ export function initMenu() {
 
   function isAziendaRole() {
     const r = getRuoloAttivo();
-    return ["admin", "manager", "operatore"].includes(r);
+    return ["admin", "manager", "operatore", "addetto_marketing"].includes(r);
   }
 
   function can(route) {

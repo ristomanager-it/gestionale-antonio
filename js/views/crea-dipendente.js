@@ -363,6 +363,7 @@ export async function render(container) {
               <option value="operatore">Operatore</option>
               <option value="manager">Manager</option>
               <option value="admin">Admin</option>
+              <option value="addetto_marketing">Addetto marketing</option>
             </select>
           </div>
 
