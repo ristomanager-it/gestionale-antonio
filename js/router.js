@@ -510,6 +510,8 @@ function hasPermission(area) {
     "bo-candidature",
   "bo-bilancio",
     "bo-survey",
+    // Produzione — dati di controllo/produttività (solo admin)
+    "produttivita-produzione",
   ]);
 
   if (ADMIN_ONLY_ROUTES.has(area)) {
