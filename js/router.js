@@ -119,7 +119,8 @@ const routes = {
   ordine: () => import("./views/ordine.js?v=7"),
 
   produzione: () => import("./views/produzione.js"),
-  "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=3"),
+  "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=4"),
+  lavorazione: () => import("./views/lavorazione.js?v=1"),
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js?v=5"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
@@ -548,6 +549,7 @@ function hasPermission(area) {
       "app-produzione",
       "produzione",
       "produzioni-aperte",
+      "lavorazione",
       "display-cucina",
 
       // Timbrature e profilo

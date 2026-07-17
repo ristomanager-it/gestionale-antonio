@@ -211,7 +211,7 @@ async function refreshLista() {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            ${tot ? `<button data-fasi="${l.lotto_uuid}" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;white-space:nowrap;">▶ Completa fasi</button>` : ""}
+            ${tot ? `<button data-fasi="${l.lotto_uuid}" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;white-space:nowrap;">▶ Vai alla lavorazione</button>` : ""}
             <button data-chiudi="${l.id}" style="background:${complete ? "#16a34a" : "#e2e8f0"};color:${complete ? "white" : "#334155"};border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;white-space:nowrap;">✔ Chiudi</button>
           </div>
         </div>
@@ -219,7 +219,7 @@ async function refreshLista() {
   }).join("");
 
   cont.querySelectorAll("[data-chiudi]").forEach(b => b.addEventListener("click", () => chiudiProduzione(b.dataset.chiudi)));
-  cont.querySelectorAll("[data-fasi]").forEach(b => b.addEventListener("click", () => apriModalFasi(b.dataset.fasi)));
+  cont.querySelectorAll("[data-fasi]").forEach(b => b.addEventListener("click", () => { window.location.hash = "#/lavorazione?lotto=" + b.dataset.fasi; }));
 }
 
 function apriModalFasi(lottoUuid) {
