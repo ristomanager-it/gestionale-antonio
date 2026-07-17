@@ -2,6 +2,7 @@ import { renderFatture } from "./fatture.js?v=12";
 import { renderDDT } from "./ddt.js";
 import { renderPagamenti } from "./pagamenti.js";
 import { renderFornitori } from "./fornitori.js";
+import { renderListini } from "./listini.js";
 import { renderRiordino } from "./riordino.js";
 import { renderOrdini } from "./ordini.js";
 
@@ -37,6 +38,7 @@ export async function render(container) {
         <button class="tab-btn" data-tab="ddt">DDT</button>
         <button class="tab-btn" data-tab="pagamenti">Pagamenti</button>
         <button class="tab-btn" data-tab="fornitori">Fornitori</button>
+        <button class="tab-btn" data-tab="listini">Listini</button>
         <button class="tab-btn" data-tab="riordino">Riordino</button>
         <button class="tab-btn" data-tab="ordini">Ordini</button>
 
@@ -74,6 +76,7 @@ export async function render(container) {
     if (tab === "ddt") await renderDDT(content, azienda);
     if (tab === "pagamenti") await renderPagamenti(content, azienda);
     if (tab === "fornitori") await renderFornitori(content, azienda);
+    if (tab === "listini") await renderListini(content, azienda);
     if (tab === "riordino") await renderRiordino(content, azienda);
     if (tab === "ordini") await renderOrdini(content, azienda);
 
@@ -90,7 +93,7 @@ export async function render(container) {
   // Deep-link: #/acquisti?tab=riordino apre direttamente quella tab
   const tabQuery = (window.location.hash.split("?")[1] || "");
   const tabParam = new URLSearchParams(tabQuery).get("tab");
-  const tabValide = ["fatture","ddt","pagamenti","fornitori","riordino","ordini"];
+  const tabValide = ["fatture","ddt","pagamenti","fornitori","listini","riordino","ordini"];
   await renderTab(tabValide.includes(tabParam) ? tabParam : "fatture");
 
 }
