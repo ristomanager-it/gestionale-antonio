@@ -73,6 +73,7 @@ const TRIGGER_LISTA = [
 
 // ─── MOMENTI (catalogo in linguaggio semplice per lo staff) ──────────────────
 const MOMENTI = [
+  { key:'prenotazione_creata',       ic:'🆕', tit:'Nuova prenotazione',    cosa:'Messaggio appena una prenotazione viene salvata.',       quando:'Appena salvi la prenotazione. (già attivo)',  cat:'Prenotazioni' },
   { key:'prenotazione_confermata',   ic:'✅', tit:'Prenotazione confermata', cosa:'Conferma al cliente che il tavolo è prenotato.',        quando:'Appena confermi la prenotazione.',            cat:'Prenotazioni' },
   { key:'prenotazione_annullata',    ic:'❌', tit:'Prenotazione annullata',  cosa:'Avvisa il cliente che la prenotazione è annullata.',    quando:'Appena annulli la prenotazione.',             cat:'Prenotazioni' },
   { key:'prenotazione_reminder_24h', ic:'⏰', tit:'Promemoria 24 ore prima',  cosa:'Ricorda al cliente che ha prenotato.',                  quando:'24 ore prima dell\u2019orario.',              cat:'Prenotazioni' },
@@ -152,25 +153,18 @@ export async function render(container) {
     .eq('attivo', true);
 
   const conn = (connAll || []).find(c => !c.sede_id) || connAll?.[0] || null;
+  const waConnesso = !!conn?.meta_access_token;
 
-  if (!conn?.meta_access_token) {
-    container.innerHTML = `
-      <div style="padding:40px;text-align:center;color:#64748b;">
-        <div style="font-size:32px;margin-bottom:12px;">📱</div>
-        <div>Nessuna connessione WhatsApp attiva.</div>
-        <div style="font-size:13px;margin-top:8px;">Configura WhatsApp in Configurazione → Integrazioni.</div>
-      </div>`;
-    return;
-  }
-
-  // Carica tag definizioni e mapping dal DB
-  const [{ data: tagDefs }, { data: templateMappings }] = await Promise.all([
+  // Carica tag definizioni, mapping WhatsApp e template email dal DB
+  const [{ data: tagDefs }, { data: templateMappings }, { data: emailTemplates }] = await Promise.all([
     supa().from('contatti_tag_definizioni').select('*').eq('azienda_id', aziendaId).eq('attivo', true).order('label'),
     supa().from('whatsapp_template_mapping').select('*').eq('azienda_id', aziendaId),
+    supa().from('messaggi_template').select('*').eq('azienda_id', aziendaId).eq('tipo', 'email').order('created_at', { ascending: false }),
   ]);
 
   const allTags = tagDefs || [];
   const allMappings = templateMappings || [];
+  let allEmail = emailTemplates || [];
 
   const momentiHtml = MOMENTI_CAT.map(cat => {
     const items = MOMENTI.filter(m => m.cat === cat);
@@ -242,6 +236,7 @@ export async function render(container) {
         <!-- Tabs -->
         <div style="display:flex;border-bottom:1px solid #e5e7eb;margin:16px 0 20px;">
           <button class="rf-nav-btn attiva" data-tab="tab-momenti">📅 Momenti</button>
+          <button class="rf-nav-btn" data-tab="tab-email">📧 Email</button>
           <button class="rf-nav-btn" data-tab="tab-template">💬 Template</button>
           <button class="rf-nav-btn" data-tab="tab-tag">🏷️ Tag</button>
           <button class="rf-nav-btn" data-tab="tab-regole">⚡ Regole automatiche</button>
@@ -254,6 +249,77 @@ export async function render(container) {
             Per ognuno vedi <b>cosa fa</b> e <b>quando parte</b>. Premi <b>Scrivi messaggio</b> per decidere cosa dire.
           </div>
           ${momentiHtml}
+        </div>
+
+        <!-- ═══ TAB EMAIL ══════════════════════════════════════════════════ -->
+        <div id="tab-email" class="rf-tab">
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#475569;line-height:1.6;">
+            Scrivi le email che partono nei vari momenti. Partono <b>subito</b>, senza approvazioni, dall'indirizzo <b>noreply@ristoflow-ai.com</b>.
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+            <button id="btn-nuova-email" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:14px;font-weight:600;">+ Nuova email</button>
+          </div>
+
+          <div id="form-email" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:16px;padding:24px;margin-bottom:20px;">
+            <input type="hidden" id="email-id">
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">✏️ Email</div>
+
+            <div style="margin-bottom:12px;">
+              <div class="sezione-label">In quale momento parte?</div>
+              <select id="email-momento" class="input" style="width:100%;box-sizing:border-box;">
+                <option value="">— Scegli un momento —</option>
+                ${MOMENTI.map(m => `<option value="${m.key}">${m.ic} ${m.tit}</option>`).join('')}
+              </select>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <div class="sezione-label">Oggetto dell'email *</div>
+              <input id="email-oggetto" class="input" placeholder="Es: La tua prenotazione è confermata" style="width:100%;box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <div class="sezione-label">Inserisci un dato (clicca per aggiungerlo nel testo)</div>
+              <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;">
+                ${WILDCARD_GRUPPI.map(g => `
+                  <div style="margin-bottom:8px;">
+                    <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:4px;">${g.gruppo}</div>
+                    <div>${g.items.map(it => `<button class="wc-btn-email" data-wc="${it.key}" title="{{${it.key}}}">${it.label}</button>`).join('')}</div>
+                  </div>`).join('')}
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <div class="sezione-label">Testo dell'email *</div>
+              <textarea id="email-testo" class="input" rows="6" placeholder="Ciao {{nome_completo}}, ..." style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+            </div>
+
+            <div id="email-anteprima-wrap" style="margin-bottom:12px;display:none;">
+              <div class="sezione-label">Anteprima</div>
+              <div id="email-anteprima" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6;"></div>
+            </div>
+
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#374151;cursor:pointer;margin-bottom:16px;">
+              <input type="checkbox" id="email-attivo" checked> Attiva (parte in automatico nel momento scelto)
+            </label>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button id="btn-salva-email" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Salva</button>
+              <button id="btn-annulla-email" style="background:#f1f5f9;color:#475569;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Annulla</button>
+            </div>
+
+            <div style="border-top:1px solid #f1f5f9;margin-top:16px;padding-top:14px;">
+              <div class="sezione-label">Invia un'email di prova (salva prima)</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <input id="email-test-dest" class="input" placeholder="tua@email.it" style="flex:1;min-width:180px;box-sizing:border-box;">
+                <button id="btn-email-test" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:600;">Invia prova</button>
+              </div>
+              <div id="email-test-esito" style="font-size:12px;margin-top:6px;"></div>
+            </div>
+
+            <div id="email-feedback" style="margin-top:8px;"></div>
+          </div>
+
+          <div id="email-lista"></div>
         </div>
 
         <!-- ═══ TAB TEMPLATE ═══════════════════════════════════════════════ -->
@@ -741,6 +807,143 @@ export async function render(container) {
     });
   });
 
+  // ─── EMAIL (messaggi_template tipo=email) ─────────────────────────────────
+  const momentoLabel = (k) => {
+    const m = MOMENTI.find(x => x.key === k);
+    return m ? (m.ic + ' ' + m.tit) : '✋ Solo manuale';
+  };
+
+  function caricaEmail() {
+    const el = container.querySelector('#email-lista');
+    if (!allEmail.length) {
+      el.innerHTML = `<div style="color:#94a3b8;padding:12px;">Nessuna email ancora. Premi "+ Nuova email" per crearne una.</div>`;
+      return;
+    }
+    el.innerHTML = allEmail.map(e => `
+      <div class="card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin-bottom:8px;${e.attivo ? '' : 'opacity:.55;'}">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;color:#0f172a;">${e.oggetto || e.nome || '(senza oggetto)'}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">${momentoLabel(e.trigger_evento)}</div>
+          <div style="font-size:12px;color:#94a3b8;margin-top:4px;white-space:pre-wrap;">${(e.contenuto || '').slice(0,120)}${(e.contenuto||'').length>120?'…':''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <span style="background:${e.attivo ? '#dcfce7' : '#f1f5f9'};color:${e.attivo ? '#15803d' : '#64748b'};padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;text-align:center;">${e.attivo ? 'Attiva' : 'In pausa'}</span>
+          <button class="email-edit" data-id="${e.id}" style="background:#e0f2fe;color:#0369a1;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">Modifica</button>
+          <button class="email-del" data-id="${e.id}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">Elimina</button>
+        </div>
+      </div>`).join('');
+
+    el.querySelectorAll('.email-edit').forEach(b => b.addEventListener('click', () => {
+      const e = allEmail.find(x => String(x.id) === String(b.dataset.id));
+      if (e) apriFormEmail(e);
+    }));
+    el.querySelectorAll('.email-del').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Eliminare questa email?')) return;
+      await supa().from('messaggi_template').delete().eq('id', b.dataset.id);
+      allEmail = allEmail.filter(x => String(x.id) !== String(b.dataset.id));
+      caricaEmail();
+    }));
+  }
+
+  function aggiornaAnteprimaEmail() {
+    const wrap = container.querySelector('#email-anteprima-wrap');
+    const box = container.querySelector('#email-anteprima');
+    const testo = container.querySelector('#email-testo').value;
+    if (!testo.trim()) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    box.innerHTML = anteprimaColorata(testo).replace(/\n/g, '<br>');
+  }
+
+  function apriFormEmail(e = null) {
+    const form = container.querySelector('#form-email');
+    form.style.display = 'block';
+    container.querySelector('#email-id').value = e?.id || '';
+    container.querySelector('#email-momento').value = e?.trigger_evento || '';
+    container.querySelector('#email-oggetto').value = e?.oggetto || '';
+    container.querySelector('#email-testo').value = e?.contenuto || '';
+    container.querySelector('#email-attivo').checked = e ? !!e.attivo : true;
+    container.querySelector('#email-feedback').innerHTML = '';
+    container.querySelector('#email-test-esito').innerHTML = '';
+    aggiornaAnteprimaEmail();
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  container.querySelector('#btn-nuova-email').addEventListener('click', () => apriFormEmail());
+  container.querySelector('#btn-annulla-email').addEventListener('click', () => {
+    container.querySelector('#form-email').style.display = 'none';
+  });
+  container.querySelector('#email-testo').addEventListener('input', aggiornaAnteprimaEmail);
+  container.querySelectorAll('.wc-btn-email').forEach(btn => {
+    btn.addEventListener('click', () => {
+      inserisciAlCursore(container.querySelector('#email-testo'), `{{${btn.dataset.wc}}}`);
+      aggiornaAnteprimaEmail();
+    });
+  });
+
+  container.querySelector('#btn-salva-email').addEventListener('click', async () => {
+    const fb = container.querySelector('#email-feedback');
+    const id = container.querySelector('#email-id').value;
+    const oggetto = container.querySelector('#email-oggetto').value.trim();
+    const contenuto = container.querySelector('#email-testo').value.trim();
+    const trigger = container.querySelector('#email-momento').value;
+    const attivo = container.querySelector('#email-attivo').checked;
+    if (!oggetto) { fb.innerHTML = '<span style="color:#dc2626;">Inserisci l\'oggetto.</span>'; return; }
+    if (!contenuto) { fb.innerHTML = '<span style="color:#dc2626;">Scrivi il testo.</span>'; return; }
+
+    const payload = {
+      azienda_id: aziendaId,
+      nome: oggetto.slice(0, 80),
+      tipo: 'email',
+      oggetto,
+      contenuto,
+      trigger_evento: trigger || null,
+      timing_tipo: 'subito',
+      attivo,
+    };
+    let saved, error;
+    if (id) {
+      ({ data: saved, error } = await supa().from('messaggi_template').update(payload).eq('id', id).select().single());
+    } else {
+      ({ data: saved, error } = await supa().from('messaggi_template').insert(payload).select().single());
+    }
+    if (error) { fb.innerHTML = `<span style="color:#dc2626;">Errore: ${error.message}</span>`; return; }
+    allEmail = allEmail.filter(x => String(x.id) !== String(saved.id));
+    allEmail.unshift(saved);
+    container.querySelector('#email-id').value = saved.id;
+    fb.innerHTML = '<span style="color:#16a34a;">Salvata.</span>';
+    caricaEmail();
+  });
+
+  container.querySelector('#btn-email-test').addEventListener('click', async () => {
+    const esito = container.querySelector('#email-test-esito');
+    const id = container.querySelector('#email-id').value;
+    const dest = container.querySelector('#email-test-dest').value.trim();
+    if (!id) { esito.style.color = '#dc2626'; esito.textContent = 'Salva prima l\'email, poi invia la prova.'; return; }
+    if (!dest) { esito.style.color = '#dc2626'; esito.textContent = 'Inserisci un indirizzo email.'; return; }
+    esito.style.color = '#64748b'; esito.textContent = 'Invio in corso...';
+    const mitt = window.state?.azienda?.nome || 'Ristoflow';
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/invia-email-momento`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
+        body: JSON.stringify({
+          azienda_id: aziendaId,
+          template_id: id,
+          destinatario: dest,
+          mittente_nome: mitt,
+          dati: { nome: 'Mario', cognome: 'Rossi', nome_completo: 'Mario Rossi', data_prenotazione: '15 giugno', ora_prenotazione: '20:30', num_persone: '4', nome_ristorante: mitt }
+        })
+      });
+      const j = await res.json();
+      if (j.success && j.inviate > 0) { esito.style.color = '#16a34a'; esito.textContent = '✅ Email di prova inviata a ' + dest; }
+      else { esito.style.color = '#dc2626'; esito.textContent = '❌ ' + (j.errori?.[0] || j.error || j.note || 'Invio non riuscito'); }
+    } catch (err) {
+      esito.style.color = '#dc2626'; esito.textContent = '❌ ' + err.message;
+    }
+  });
+
+  caricaEmail();
+
   // ─── WILDCARD BUTTONS ─────────────────────────────────────────────────────
   container.querySelectorAll('.wc-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -872,6 +1075,15 @@ export async function render(container) {
   // ─── CARICA TEMPLATE DA META ──────────────────────────────────────────────
   async function caricaTemplate() {
     const el = container.querySelector('#lista-template');
+    if (!waConnesso) {
+      el.innerHTML = `
+        <div style="padding:30px;text-align:center;color:#64748b;">
+          <div style="font-size:28px;margin-bottom:10px;">📱</div>
+          <div>WhatsApp non è ancora collegato.</div>
+          <div style="font-size:13px;margin-top:6px;">Puoi comunque usare le <b>Email</b> qui accanto. Per i messaggi WhatsApp, collega WhatsApp in Configurazione → Integrazioni.</div>
+        </div>`;
+      return;
+    }
     el.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:20px;">Caricamento...</div>';
 
     try {
