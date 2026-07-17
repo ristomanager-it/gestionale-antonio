@@ -219,7 +219,7 @@ async function refreshLista() {
   }).join("");
 
   cont.querySelectorAll("[data-chiudi]").forEach(b => b.addEventListener("click", () => chiudiProduzione(b.dataset.chiudi)));
-  cont.querySelectorAll("[data-fasi]").forEach(b => b.addEventListener("click", () => { window.location.hash = "#/lavorazione?lotto=" + b.dataset.fasi; }));
+  cont.querySelectorAll("[data-fasi]").forEach(b => b.addEventListener("click", () => { window.location.hash = "#/app-produzione?lotto=" + b.dataset.fasi; }));
 }
 
 function apriModalFasi(lottoUuid) {
