@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=15";
+import { initMenu } from "./menu.js?v=16";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -119,6 +119,7 @@ const routes = {
   ordine: () => import("./views/ordine.js?v=7"),
 
   produzione: () => import("./views/produzione.js"),
+  "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=1"),
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js?v=5"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
@@ -546,6 +547,7 @@ function hasPermission(area) {
       "preparazioni",
       "app-produzione",
       "produzione",
+      "produzioni-aperte",
       "display-cucina",
 
       // Timbrature e profilo

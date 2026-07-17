@@ -375,6 +375,7 @@ export function initMenu() {
         { label: "🍽️ Menu del Giorno", route: "menu-giorno" },
         { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
         { label: "🏭 Produzione",          route: "produzione"         },
+        { label: "🟢 Produzioni aperte",   route: "produzioni-aperte"  },
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
         { label: "📋 Planning",            route: "planner-produzione" },
         { label: "🔌 Dispositivi", route: "bo-dispositivi", children: [
