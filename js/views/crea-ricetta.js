@@ -3158,7 +3158,10 @@ async function salvaTutto() {
       const nomeProd = (r.querySelector(".ing-search")?.value || "").trim();
       const qta = toNumOrNull(r.querySelector(".ing-qta")?.value);
 
-      if (pid && qta && qta > 0) {
+      if (!qta || qta <= 0) return;
+
+      if (pid) {
+        // Ingrediente a catalogo (abbinato)
         const p = prodottiMap.get(String(pid));
         const um = (r.querySelector(".ing-um")?.value || p?.um || "pz");
 
@@ -3176,6 +3179,19 @@ async function salvaTutto() {
           prodotto_id: Number(pid),
           quantita: qta,
           unita_misura: um
+        });
+      } else if (nomeProd) {
+        // Ingrediente scritto a mano, non ancora a catalogo:
+        // lo salvo comunque come "da abbinare". Si aggancerà da solo al primo acquisto.
+        const um = (r.querySelector(".ing-um")?.value || "pz");
+        rows.push({
+          ricetta_id: ricettaIdNum,
+          prodotto_id: null,
+          nome_prodotto: nomeProd,
+          quantita: qta,
+          unita_misura: um,
+          azienda_id: aziendaId,
+          mapping_stato: "da_mappare"
         });
       }
     });
