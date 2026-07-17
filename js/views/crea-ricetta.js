@@ -2098,6 +2098,9 @@ function aggiungiIngrediente(initial = {}) {
           <input class="ing-id" type="hidden" value="${escapeAttr(initial.prodotto_id ?? "")}" />
           <div class="ing-suggest suggest-list"></div>
         </div>
+        <div class="ing-abbina-badge" style="display:none;margin-top:5px;font-size:12px;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:3px 8px;width:fit-content;">
+          🕓 da abbinare — si collegherà da solo al primo acquisto
+        </div>
       </div>
 
       <div class="form-group">
@@ -2148,6 +2151,16 @@ function aggiungiIngrediente(initial = {}) {
   const ingHidden = card.querySelector(".ing-id");
   const ingSuggest = card.querySelector(".ing-suggest");
 
+  const aggiornaBadge = () => {
+    const nome = (ingSearch.value || "").trim();
+    const pid = (ingHidden.value || "").trim();
+    const badge = card.querySelector(".ing-abbina-badge");
+    if (!badge) return;
+    const da = !!nome && !pid;
+    badge.style.display = da ? "block" : "none";
+    if (da) ingSearch.style.borderColor = "#f59e0b";
+  };
+
   setupAutocomplete(ingSearch, ingHidden, ingSuggest, (p) => {
     if (p?.um && umSel) {
       const val = String(p.um).toLowerCase();
@@ -2157,14 +2170,19 @@ function aggiungiIngrediente(initial = {}) {
     // Reset stile fuzzy quando l'utente sceglie manualmente
     ingSearch.style.borderColor = "#16a34a";
     ingSearch.style.background = "";
+    aggiornaBadge();
     aggiornaOutputInfo();
   });
+
+  ingSearch.addEventListener("input", aggiornaBadge);
+  aggiornaBadge();
 
   // Se viene da Tony con nome non trovato → fuzzy precompila
   if (initial._nome_tony && !initial.prodotto_id) {
     // Ritardo minimo per assicurarsi che il DOM sia pronto
     setTimeout(() => {
       precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, initial._nome_tony, umSel, (p) => {
+        aggiornaBadge();
         aggiornaOutputInfo();
       });
     }, 30);
