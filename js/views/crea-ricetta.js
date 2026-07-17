@@ -1439,7 +1439,7 @@ async function loadProdotti() {
 
   const { data, error } = await supabase
     .from("prodotti")
-    .select("id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione, contenuto_confezione, um_costo")
+    .select("id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione, contenuto_confezione, um_costo, tipo_prodotto, ricetta_id")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("descrizione");
@@ -1479,6 +1479,36 @@ async function loadProdotti() {
       }
     }
   });
+
+  // SEMILAVORATI: il costo non è in costo_medio (=0) ma si ribalta dalla loro ricetta.
+  // costo per unità = costo_totale ricetta / resa (peso_output_kg → €/kg, altrimenti pezzi_base → €/pz)
+  try {
+    const semilav = prodottiCache.filter(p => p.tipo_prodotto === "semilavorato" && p.ricetta_id);
+    if (semilav.length) {
+      const ids = [...new Set(semilav.map(p => Number(p.ricetta_id)))];
+      const [ricRes, cgRes] = await Promise.all([
+        supabase.from("ricette").select("id, peso_output_kg, pezzi_base").in("id", ids),
+        supabase.from("ricette_controllo_gestione").select("ricetta_id, costo_totale").in("ricetta_id", ids),
+      ]);
+      const resaMap = new Map((ricRes.data || []).map(r => [String(r.id), r]));
+      const costoMap = new Map((cgRes.data || []).map(c => [String(c.ricetta_id), Number(c.costo_totale) || 0]));
+      semilav.forEach(p => {
+        p._semilavorato = true;
+        const r = resaMap.get(String(p.ricetta_id));
+        const costoTot = costoMap.get(String(p.ricetta_id)) || 0;
+        if (r && costoTot > 0) {
+          if (Number(r.peso_output_kg) > 0) {
+            p._costo_per_unita = costoTot / Number(r.peso_output_kg);
+            p._um_unitaria = "kg";
+          } else if (Number(r.pezzi_base) > 0) {
+            p._costo_per_unita = costoTot / Number(r.pezzi_base);
+            p._um_unitaria = "pz";
+          }
+        }
+      });
+    }
+  } catch (e) { console.error("Costo semilavorati:", e); }
+
   prodottiMap = new Map(prodottiCache.map(p => [String(p.id), p]));
 
 setupAutocomplete(
