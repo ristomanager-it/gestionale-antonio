@@ -379,6 +379,7 @@ export function initMenu() {
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
         { label: "📋 Planning",            route: "planner-produzione" },
         { label: "📒 Registro lotti",      route: "registro-lotti"    },
+        { label: "📊 Produttività",        route: "produttivita-produzione" },
         { label: "🔌 Dispositivi", route: "bo-dispositivi", children: [
           { label: "🔌 Dispositivi", route: "bo-dispositivi?tab=dispositivi" },
           { label: "⚡ Energia", route: "bo-dispositivi?tab=energia" },

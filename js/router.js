@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=17";
+import { initMenu } from "./menu.js?v=18";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -121,6 +121,7 @@ const routes = {
   produzione: () => import("./views/produzione.js"),
   "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=6"),
   "registro-lotti": () => import("./views/registro-lotti.js?v=1"),
+  "produttivita-produzione": () => import("./views/produttivita-produzione.js?v=1"),
   "registro-messaggi": () => import("./views/registro-messaggi.js?v=1"),
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js?v=5"),
@@ -551,6 +552,7 @@ function hasPermission(area) {
       "produzione",
       "produzioni-aperte",
       "registro-lotti",
+      "produttivita-produzione",
       "registro-messaggi",
       "display-cucina",
 
