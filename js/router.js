@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=18";
+import { initMenu } from "./menu.js?v=19";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -211,6 +211,7 @@ const routes = {
   // DISPLAY (tablet fissi)
   // =========================
   "display-cucina": () => import("./views/display/display-cucina.js?v=5"),
+  "kds": () => import("./views/display/kds.js?v=1"),
 
 }; // 
 
@@ -556,6 +557,7 @@ function hasPermission(area) {
       "registro-lotti",
       "registro-messaggi",
       "display-cucina",
+      "kds",
 
       // Timbrature e profilo
       "timbrature",
