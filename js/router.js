@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=11";
+import { initMenu } from "./menu.js?v=12";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -354,6 +354,21 @@ async function renderView(routeName) {
   }
 
   await module.render(app);
+
+  // Deep-link generico alle tab: se l'hash contiene ?tab=X, seleziona quella tab
+  // cliccando il bottone .tab-btn[data-tab="X"] (convenzione comune a tutte le view).
+  // Le view che gestiscono già ?tab= internamente (es. Acquisti, Sito) hanno il
+  // bottone giusto già .active, quindi vengono saltate (nessun doppio render).
+  try {
+    const _q = (window.location.hash.split("?")[1] || "");
+    const _tab = new URLSearchParams(_q).get("tab");
+    if (_tab) {
+      setTimeout(() => {
+        const _btn = app.querySelector('.tab-btn[data-tab="' + _tab + '"]');
+        if (_btn && !_btn.classList.contains("active")) _btn.click();
+      }, 0);
+    }
+  } catch (e) { /* no-op */ }
 
   // Footer rimosso intenzionalmente
 

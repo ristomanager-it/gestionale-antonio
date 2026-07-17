@@ -377,7 +377,11 @@ export function initMenu() {
         { label: "🏭 Produzione",          route: "produzione"         },
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
         { label: "📋 Planning",            route: "planner-produzione" },
-        { label: "🔌 Dispositivi",         route: "bo-dispositivi"     },
+        { label: "🔌 Dispositivi", route: "bo-dispositivi", children: [
+          { label: "🔌 Dispositivi", route: "bo-dispositivi?tab=dispositivi" },
+          { label: "⚡ Energia", route: "bo-dispositivi?tab=energia" },
+          { label: "📋 Log", route: "bo-dispositivi?tab=log" },
+        ] },
         { label: "📋 Mansionario Cucina",  route: "mansionario-cucina" },
       ]
     });
@@ -425,17 +429,41 @@ export function initMenu() {
         title: "MARKETING & CRM",
         items: [
           { label: "📉 Analytics",          route: "bo-analytics"      },
-          { label: "🏷️ Tag & LTV",       route: "bo-tag"            },
-          { label: "💬 Template WhatsApp",route: "bo-template"       },
+          { label: "🏷️ Tag & LTV", route: "bo-tag", children: [
+            { label: "👁 Panoramica", route: "bo-tag?tab=tab-panoramica" },
+            { label: "💎 Livelli LTV", route: "bo-tag?tab=tab-ltv" },
+            { label: "⚙️ Tag sistema", route: "bo-tag?tab=tab-sistema" },
+            { label: "✏️ Tag personalizzati", route: "bo-tag?tab=tab-custom" },
+          ] },
+          { label: "💬 Template WhatsApp", route: "bo-template", children: [
+            { label: "💬 Template", route: "bo-template?tab=tab-template" },
+            { label: "🏷️ Tag", route: "bo-template?tab=tab-tag" },
+            { label: "⚡ Regole automatiche", route: "bo-template?tab=tab-regole" },
+          ] },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "🎁 Promo",             route: "bo-promo"          },
-          { label: "🎫 Fidelity & Network", route: "bo-fidelity"       },
+          { label: "🎫 Fidelity & Network", route: "bo-fidelity", children: [
+            { label: "📊 Dashboard", route: "bo-fidelity?tab=dashboard" },
+            { label: "👥 Clienti", route: "bo-fidelity?tab=clienti" },
+            { label: "⚙️ Regole punti", route: "bo-fidelity?tab=configurazione" },
+            { label: "🌐 Network", route: "bo-fidelity?tab=network" },
+          ] },
           { label: "🔗 Catenarie",          route: "bo-catenarie"      },
           { label: "✂️ Short Link",         route: "bo-shortlink"      },
           { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
-          { label: "🤖 Chatbot",             route: "bo-chatbot"        },
+          { label: "🤖 Chatbot", route: "bo-chatbot", children: [
+            { label: "💬 Flussi", route: "bo-chatbot?tab=flussi" },
+            { label: "🪑 Tavoli chatbot", route: "bo-chatbot?tab=tavoli" },
+            { label: "📊 Sessioni", route: "bo-chatbot?tab=sessioni" },
+            { label: "⚙️ Impostazioni", route: "bo-chatbot?tab=config" },
+          ] },
           { label: "🖼️ Media Library",       route: "bo-media"          },
-          { label: "🌐 Sito Web",              route: "bo-sito"           },
+          { label: "🌐 Sito Web", route: "bo-sito", children: [
+            { label: "✏️ Contenuti", route: "bo-sito?tab=contenuti" },
+            { label: "📸 Media", route: "bo-sito?tab=foto" },
+            { label: "📋 Sezioni", route: "bo-sito?tab=sezioni" },
+            { label: "🚀 Pubblica", route: "bo-sito?tab=pubblica" },
+          ] },
         ]
       });
 
@@ -444,7 +472,11 @@ export function initMenu() {
         title: "PERSONALE",
         items: [
           { label: "👥 Candidature",      route: "bo-candidature"    },
-          { label: "💬 Survey team",       route: "bo-survey"         },
+          { label: "💬 Survey team", route: "bo-survey", children: [
+            { label: "📊 Overview", route: "bo-survey?tab=tab-overview" },
+            { label: "💬 Risposte", route: "bo-survey?tab=tab-risposte" },
+            { label: "📤 Invii", route: "bo-survey?tab=tab-invii" },
+          ] },
           { label: "👨‍💼 Dipendenti",     route: "dipendenti"        },
           { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
           { label: "🏢 Agenzie",          route: "bo-agenzie"        },
