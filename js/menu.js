@@ -437,6 +437,7 @@ export function initMenu() {
           ] },
           { label: "💬 Template WhatsApp", route: "bo-template", children: [
             { label: "📅 Momenti", route: "bo-template?tab=tab-momenti" },
+            { label: "✉️ Messaggi", route: "bo-template?tab=tab-email" },
             { label: "💬 Template", route: "bo-template?tab=tab-template" },
             { label: "🏷️ Tag", route: "bo-template?tab=tab-tag" },
             { label: "⚡ Regole automatiche", route: "bo-template?tab=tab-regole" },

@@ -67,6 +67,7 @@ export async function eseguiAutomazioni(evento, pren){
 
     // 📧 EMAIL: invio reale via edge (Resend)
     if(t.tipo === "email"){
+      if(t.invia_email === false){ continue; }
       const dest = pren.cliente_email || pren.email || await emailDaContatto(pren.contatto_id);
       if(dest){
         try {

@@ -236,7 +236,7 @@ export async function render(container) {
         <!-- Tabs -->
         <div style="display:flex;border-bottom:1px solid #e5e7eb;margin:16px 0 20px;">
           <button class="rf-nav-btn attiva" data-tab="tab-momenti">📅 Momenti</button>
-          <button class="rf-nav-btn" data-tab="tab-email">📧 Email</button>
+          <button class="rf-nav-btn" data-tab="tab-email">✉️ Messaggi</button>
           <button class="rf-nav-btn" data-tab="tab-template">💬 Template</button>
           <button class="rf-nav-btn" data-tab="tab-tag">🏷️ Tag</button>
           <button class="rf-nav-btn" data-tab="tab-regole">⚡ Regole automatiche</button>
@@ -254,15 +254,15 @@ export async function render(container) {
         <!-- ═══ TAB EMAIL ══════════════════════════════════════════════════ -->
         <div id="tab-email" class="rf-tab">
           <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#475569;line-height:1.6;">
-            Scrivi le email che partono nei vari momenti. Partono <b>subito</b>, senza approvazioni, dall'indirizzo <b>noreply@ristoflow-ai.com</b>.
+            Scrivi <b>una volta</b> il messaggio del momento. Scegli se mandarlo come <b>Email</b>, <b>WhatsApp</b> o entrambi, e a chi (filtri per tag). L'email parte subito; il WhatsApp viene mandato in approvazione a Meta.
           </div>
           <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-            <button id="btn-nuova-email" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:14px;font-weight:600;">+ Nuova email</button>
+            <button id="btn-nuova-email" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:14px;font-weight:600;">+ Nuovo messaggio</button>
           </div>
 
           <div id="form-email" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:16px;padding:24px;margin-bottom:20px;">
             <input type="hidden" id="email-id">
-            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">✏️ Email</div>
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">✏️ Messaggio del momento</div>
 
             <div style="margin-bottom:12px;">
               <div class="sezione-label">In quale momento parte?</div>
@@ -273,7 +273,22 @@ export async function render(container) {
             </div>
 
             <div style="margin-bottom:12px;">
-              <div class="sezione-label">Oggetto dell'email *</div>
+              <div class="sezione-label">Come lo mando?</div>
+              <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:#0f172a;cursor:pointer;">
+                  <input type="checkbox" id="canale-email" checked> 📧 Email
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:${waConnesso ? '#0f172a' : '#94a3b8'};cursor:${waConnesso ? 'pointer' : 'not-allowed'};">
+                  <input type="checkbox" id="canale-whatsapp" ${waConnesso ? '' : 'disabled'}> 💬 WhatsApp ${waConnesso ? '' : '(collega WhatsApp per usarlo)'}
+                </label>
+              </div>
+              <div id="wa-nota" style="display:none;font-size:12px;color:#92400e;background:#fef3c7;border-radius:8px;padding:8px 10px;margin-top:8px;">
+                Il WhatsApp viene mandato in approvazione a Meta e diventa attivo appena approvato (di solito pochi minuti).
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <div class="sezione-label">Oggetto <span style="font-weight:400;text-transform:none;">(solo email)</span> *</div>
               <input id="email-oggetto" class="input" placeholder="Es: La tua prenotazione è confermata" style="width:100%;box-sizing:border-box;">
             </div>
 
@@ -296,6 +311,16 @@ export async function render(container) {
             <div id="email-anteprima-wrap" style="margin-bottom:12px;display:none;">
               <div class="sezione-label">Anteprima</div>
               <div id="email-anteprima" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6;"></div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <div class="sezione-label">A chi lo mando? <span style="font-weight:400;text-transform:none;">(filtri per tag, facoltativi)</span></div>
+              ${allTags.length ? `
+                <div style="font-size:12px;color:#64748b;margin:4px 0;">Solo clienti con questi tag:</div>
+                <div>${allTags.map(t => `<span class="tag-chip" data-email-includi="${t.nome}" style="background:${t.colore}20;color:${t.colore};">${t.icona || '🏷️'} ${t.label}</span>`).join('')}</div>
+                <div style="font-size:12px;color:#64748b;margin:8px 0 4px;">Escludi chi ha questi tag:</div>
+                <div>${allTags.map(t => `<span class="tag-chip-remove" data-email-escludi="${t.nome}" style="background:${t.colore}15;color:${t.colore};">${t.icona || '🏷️'} ${t.label}</span>`).join('')}</div>
+              ` : `<div style="font-size:12px;color:#94a3b8;">Nessun tag definito: senza filtri il messaggio vale per tutti.</div>`}
             </div>
 
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#374151;cursor:pointer;margin-bottom:16px;">
@@ -785,25 +810,18 @@ export async function render(container) {
     });
   });
 
-  // ─── MOMENTI → apri Template col trigger preimpostato ─────────────────────
+  // ─── MOMENTI → apri l'editor unificato col momento preimpostato ───────────
   container.querySelectorAll('.momento-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const key = btn.dataset.momento;
-      // vai alla tab Template
+      const esistente = allEmail.find(x => x.trigger_evento === key);
       container.querySelectorAll('.rf-nav-btn').forEach(b => b.classList.remove('attiva'));
       container.querySelectorAll('.rf-tab').forEach(t => t.classList.remove('attiva'));
-      const navT = container.querySelector('.rf-nav-btn[data-tab="tab-template"]');
-      if (navT) navT.classList.add('attiva');
-      const panT = container.querySelector('#tab-template');
-      if (panT) panT.classList.add('attiva');
-      // apri il form e preimposta il momento
-      const form = container.querySelector('#form-template');
-      if (form) form.style.display = 'block';
-      const trg = container.querySelector('#tmpl-trigger');
-      if (trg) { trg.value = key; trg.dispatchEvent(new Event('change')); }
-      const nome = container.querySelector('#tmpl-nome');
-      if (nome) setTimeout(() => nome.focus(), 50);
-      if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const navE = container.querySelector('.rf-nav-btn[data-tab="tab-email"]');
+      if (navE) navE.classList.add('attiva');
+      const panE = container.querySelector('#tab-email');
+      if (panE) panE.classList.add('attiva');
+      apriFormEmail(esistente || null, key);
     });
   });
 
@@ -854,19 +872,52 @@ export async function render(container) {
     box.innerHTML = anteprimaColorata(testo).replace(/\n/g, '<br>');
   }
 
-  function apriFormEmail(e = null) {
+  function apriFormEmail(e = null, presetMomento = null) {
     const form = container.querySelector('#form-email');
     form.style.display = 'block';
     container.querySelector('#email-id').value = e?.id || '';
-    container.querySelector('#email-momento').value = e?.trigger_evento || '';
+    container.querySelector('#email-momento').value = e?.trigger_evento || presetMomento || '';
     container.querySelector('#email-oggetto').value = e?.oggetto || '';
     container.querySelector('#email-testo').value = e?.contenuto || '';
     container.querySelector('#email-attivo').checked = e ? !!e.attivo : true;
+    container.querySelector('#canale-email').checked = e ? !!e.invia_email : true;
+    const waC = container.querySelector('#canale-whatsapp');
+    if (waC && !waC.disabled) waC.checked = e ? !!e.invia_whatsapp : false;
+    const waNota = container.querySelector('#wa-nota');
+    if (waNota) waNota.style.display = (waC && waC.checked) ? 'block' : 'none';
+    // filtri tag
+    emailTagIncludi.clear(); emailTagEscludi.clear();
+    (e?.tag_richiesti || []).forEach(t => emailTagIncludi.add(t));
+    (e?.tag_esclusi || []).forEach(t => emailTagEscludi.add(t));
+    container.querySelectorAll('[data-email-includi]').forEach(c => c.classList.toggle('selected', emailTagIncludi.has(c.dataset.emailIncludi)));
+    container.querySelectorAll('[data-email-escludi]').forEach(c => c.classList.toggle('selected', emailTagEscludi.has(c.dataset.emailEscludi)));
     container.querySelector('#email-feedback').innerHTML = '';
     container.querySelector('#email-test-esito').innerHTML = '';
     aggiornaAnteprimaEmail();
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  const emailTagIncludi = new Set();
+  const emailTagEscludi = new Set();
+  container.querySelectorAll('[data-email-includi]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const tag = chip.dataset.emailIncludi;
+      if (emailTagIncludi.has(tag)) { emailTagIncludi.delete(tag); chip.classList.remove('selected'); }
+      else { emailTagIncludi.add(tag); chip.classList.add('selected'); }
+    });
+  });
+  container.querySelectorAll('[data-email-escludi]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const tag = chip.dataset.emailEscludi;
+      if (emailTagEscludi.has(tag)) { emailTagEscludi.delete(tag); chip.classList.remove('selected'); }
+      else { emailTagEscludi.add(tag); chip.classList.add('selected'); }
+    });
+  });
+  const _waCheck = container.querySelector('#canale-whatsapp');
+  if (_waCheck) _waCheck.addEventListener('change', () => {
+    const n = container.querySelector('#wa-nota');
+    if (n) n.style.display = _waCheck.checked ? 'block' : 'none';
+  });
 
   container.querySelector('#btn-nuova-email').addEventListener('click', () => apriFormEmail());
   container.querySelector('#btn-annulla-email').addEventListener('click', () => {
@@ -880,6 +931,8 @@ export async function render(container) {
     });
   });
 
+  const WA_ESEMPI = { nome:'Mario', cognome:'Rossi', nome_completo:'Mario Rossi', telefono:'+393331234567', data_prenotazione:'15 Giugno 2026', ora_prenotazione:'20:00', num_persone:'4', nome_sala:'Sala Principale', numero_tavolo:'5', data_evento:'20 Luglio 2026', tipo_evento:'Matrimonio', nome_evento:'Evento Rossi', importo:'1500', ora_ingresso:'08:30', ora_uscita:'17:30', data_oggi: new Date().toLocaleDateString('it-IT'), nome_ristorante:'Ristorante', telefono_ristorante:'+390123456789', indirizzo:'Via Roma 1' };
+
   container.querySelector('#btn-salva-email').addEventListener('click', async () => {
     const fb = container.querySelector('#email-feedback');
     const id = container.querySelector('#email-id').value;
@@ -887,30 +940,71 @@ export async function render(container) {
     const contenuto = container.querySelector('#email-testo').value.trim();
     const trigger = container.querySelector('#email-momento').value;
     const attivo = container.querySelector('#email-attivo').checked;
-    if (!oggetto) { fb.innerHTML = '<span style="color:#dc2626;">Inserisci l\'oggetto.</span>'; return; }
+    const cEmail = container.querySelector('#canale-email').checked;
+    const waC = container.querySelector('#canale-whatsapp');
+    const cWa = !!(waC && waC.checked && !waC.disabled);
+
+    if (!cEmail && !cWa) { fb.innerHTML = '<span style="color:#dc2626;">Scegli almeno un canale (Email o WhatsApp).</span>'; return; }
+    if (cEmail && !oggetto) { fb.innerHTML = '<span style="color:#dc2626;">Per l\'email serve l\'oggetto.</span>'; return; }
     if (!contenuto) { fb.innerHTML = '<span style="color:#dc2626;">Scrivi il testo.</span>'; return; }
 
+    fb.innerHTML = '<span style="color:#64748b;">Salvataggio...</span>';
+    const tagInc = Array.from(emailTagIncludi);
+    const tagEsc = Array.from(emailTagEscludi);
+
+    // 1) Record master (messaggi_template)
     const payload = {
       azienda_id: aziendaId,
-      nome: oggetto.slice(0, 80),
+      nome: (oggetto || contenuto).slice(0, 80),
       tipo: 'email',
-      oggetto,
+      oggetto: oggetto || null,
       contenuto,
       trigger_evento: trigger || null,
       timing_tipo: 'subito',
       attivo,
+      invia_email: cEmail,
+      invia_whatsapp: cWa,
+      tag_richiesti: tagInc,
+      tag_esclusi: tagEsc,
+      tag_logica: 'AND',
     };
     let saved, error;
-    if (id) {
-      ({ data: saved, error } = await supa().from('messaggi_template').update(payload).eq('id', id).select().single());
-    } else {
-      ({ data: saved, error } = await supa().from('messaggi_template').insert(payload).select().single());
-    }
+    if (id) ({ data: saved, error } = await supa().from('messaggi_template').update(payload).eq('id', id).select().single());
+    else    ({ data: saved, error } = await supa().from('messaggi_template').insert(payload).select().single());
     if (error) { fb.innerHTML = `<span style="color:#dc2626;">Errore: ${error.message}</span>`; return; }
+
+    // 2) WhatsApp: genera template Meta + mapping
+    let waMsg = '';
+    if (cWa) {
+      try {
+        const { testoConvertito, map } = convertiWildcard(contenuto);
+        const esempi = Object.values(map).map(k => WA_ESEMPI[k] || 'esempio');
+        const waName = ('msg_' + (trigger || 'manuale') + '_' + Date.now().toString(36)).toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 60);
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-create-templates`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+          body: JSON.stringify({ azienda_id: aziendaId, single: { name: waName, category: 'UTILITY', text: testoConvertito, example: esempi.length ? esempi : ['esempio'], buttons: [] } })
+        });
+        const wd = await res.json();
+        if (wd.success) {
+          await supa().from('whatsapp_template_mapping').insert({
+            azienda_id: aziendaId, template_name: waName, wildcard_map: map, testo_originale: contenuto,
+            trigger_evento: trigger || null, trigger_delay_minuti: 0, trigger_attivo: attivo,
+            tag_richiesti: tagInc, tag_esclusi: tagEsc, tag_logica: 'AND', attivo: true,
+          });
+          await supa().from('messaggi_template').update({ wa_template_name: waName }).eq('id', saved.id);
+          saved.wa_template_name = waName;
+          waMsg = ' · 💬 WhatsApp inviato a Meta per approvazione';
+        } else {
+          waMsg = ' · ⚠️ WhatsApp non inviato: ' + (wd.error || 'errore Meta');
+        }
+      } catch (e) { waMsg = ' · ⚠️ WhatsApp: ' + e.message; }
+    }
+
     allEmail = allEmail.filter(x => String(x.id) !== String(saved.id));
     allEmail.unshift(saved);
     container.querySelector('#email-id').value = saved.id;
-    fb.innerHTML = '<span style="color:#16a34a;">Salvata.</span>';
+    fb.innerHTML = `<span style="color:#16a34a;">Salvato${waMsg}</span>`;
     caricaEmail();
   });
 
