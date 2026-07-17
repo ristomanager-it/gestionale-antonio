@@ -96,7 +96,8 @@ export async function eseguiAutomazioni(evento, pren){
                 nome_ristorante: sede.nome || "",
                 telefono_ristorante: sede.telefono || "",
                 indirizzo: sede.indirizzo || "",
-                citta: sede.citta || ""
+                citta: sede.citta || "",
+                link_gestione: pren.token_pubblico ? (window.location.origin + "/prenotazione.html?t=" + pren.token_pubblico) : ""
               }
             })
           });

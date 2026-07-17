@@ -24,6 +24,7 @@ const WILDCARD_GRUPPI = [
       { key: 'num_persone',       label: 'N° persone' },
       { key: 'nome_sala',         label: 'Sala' },
       { key: 'numero_tavolo',     label: 'Tavolo' },
+      { key: 'link_gestione',     label: 'Link gestione prenotazione' },
     ]
   },
   {
@@ -1038,7 +1039,8 @@ export async function render(container) {
             nome: 'Mario', cognome: 'Rossi', nome_completo: 'Mario Rossi',
             data_prenotazione: '15 giugno', ora_prenotazione: '20:30', num_persone: '4',
             nome_ristorante: sede.nome || '', telefono_ristorante: sede.telefono || '',
-            indirizzo: sede.indirizzo || '', citta: sede.citta || ''
+            indirizzo: sede.indirizzo || '', citta: sede.citta || '',
+            link_gestione: window.location.origin + '/prenotazione.html?t=ESEMPIO123'
           }
         })
       });

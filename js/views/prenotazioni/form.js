@@ -1,5 +1,5 @@
 import { trovaOCreaContatto } from "../../services/contatti.js";
-import { eseguiAutomazioni } from "../../services/automazioni.js?v=3";
+import { eseguiAutomazioni } from "../../services/automazioni.js?v=4";
 
 const supa = () => window.supabaseClient || window.supabase;
 
