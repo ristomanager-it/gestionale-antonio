@@ -177,7 +177,7 @@ const routes = {
   // =========================
   "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
   "bo-tag": () => import("./views/bo/bo-tag.js"),
-  "bo-template": () => import("./views/bo/bo-template.js?v=5"),
+  "bo-template": () => import("./views/bo/bo-template.js?v=6"),
   "bo-candidature": () => import("./views/bo/bo-candidature.js"),
   "bo-bilancio":     () => import("./views/bo/bo-bilancio.js?v=3"),
   "bo-survey":      () => import("./views/bo/bo-survey.js"),

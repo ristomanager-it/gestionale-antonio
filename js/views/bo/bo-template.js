@@ -286,6 +286,9 @@ export async function render(container) {
               <div id="wa-nota" style="display:none;font-size:12px;color:#92400e;background:#fef3c7;border-radius:8px;padding:8px 10px;margin-top:8px;">
                 Il WhatsApp viene mandato in approvazione a Meta e diventa attivo appena approvato (di solito pochi minuti).
               </div>
+              <label id="wa-bottone-wrap" style="display:none;align-items:center;gap:6px;font-size:13px;color:#374151;cursor:pointer;margin-top:8px;">
+                <input type="checkbox" id="wa-bottone-link"> Su WhatsApp, metti il link come <b style="margin:0 3px;">bottone</b> "Gestisci prenotazione"
+              </label>
             </div>
 
             <div style="margin-bottom:12px;">
@@ -886,6 +889,10 @@ export async function render(container) {
     if (waC && !waC.disabled) waC.checked = e ? !!e.invia_whatsapp : false;
     const waNota = container.querySelector('#wa-nota');
     if (waNota) waNota.style.display = (waC && waC.checked) ? 'block' : 'none';
+    const waBtnWrap = container.querySelector('#wa-bottone-wrap');
+    if (waBtnWrap) waBtnWrap.style.display = (waC && waC.checked) ? 'flex' : 'none';
+    const waBtn = container.querySelector('#wa-bottone-link');
+    if (waBtn) waBtn.checked = false;
     // filtri tag
     emailTagIncludi.clear(); emailTagEscludi.clear();
     (e?.tag_richiesti || []).forEach(t => emailTagIncludi.add(t));
@@ -918,6 +925,8 @@ export async function render(container) {
   if (_waCheck) _waCheck.addEventListener('change', () => {
     const n = container.querySelector('#wa-nota');
     if (n) n.style.display = _waCheck.checked ? 'block' : 'none';
+    const b = container.querySelector('#wa-bottone-wrap');
+    if (b) b.style.display = _waCheck.checked ? 'flex' : 'none';
   });
 
   container.querySelector('#btn-nuova-email').addEventListener('click', () => apriFormEmail());
@@ -932,7 +941,7 @@ export async function render(container) {
     });
   });
 
-  const WA_ESEMPI = { nome:'Mario', cognome:'Rossi', nome_completo:'Mario Rossi', telefono:'+393331234567', data_prenotazione:'15 Giugno 2026', ora_prenotazione:'20:00', num_persone:'4', nome_sala:'Sala Principale', numero_tavolo:'5', data_evento:'20 Luglio 2026', tipo_evento:'Matrimonio', nome_evento:'Evento Rossi', importo:'1500', ora_ingresso:'08:30', ora_uscita:'17:30', data_oggi: new Date().toLocaleDateString('it-IT'), nome_ristorante:'Ristorante', telefono_ristorante:'+390123456789', indirizzo:'Via Roma 1' };
+  const WA_ESEMPI = { nome:'Mario', cognome:'Rossi', nome_completo:'Mario Rossi', telefono:'+393331234567', data_prenotazione:'15 Giugno 2026', ora_prenotazione:'20:00', num_persone:'4', nome_sala:'Sala Principale', numero_tavolo:'5', data_evento:'20 Luglio 2026', tipo_evento:'Matrimonio', nome_evento:'Evento Rossi', importo:'1500', ora_ingresso:'08:30', ora_uscita:'17:30', data_oggi: new Date().toLocaleDateString('it-IT'), nome_ristorante:'Ristorante', telefono_ristorante:'+390123456789', indirizzo:'Via Roma 1', link_gestione:'https://app.ristoflow-ai.com/prenotazione.html?t=abc123' };
 
   container.querySelector('#btn-salva-email').addEventListener('click', async () => {
     const fb = container.querySelector('#email-feedback');
@@ -978,13 +987,22 @@ export async function render(container) {
     let waMsg = '';
     if (cWa) {
       try {
-        const { testoConvertito, map } = convertiWildcard(contenuto);
+        const conBottone = !!container.querySelector('#wa-bottone-link')?.checked;
+        let testoWa = contenuto;
+        let buttons = [];
+        if (conBottone) {
+          // il link diventa bottone: tolgo dal testo la riga con {{link_gestione}}
+          testoWa = contenuto.split('\n').filter(r => !r.includes('{{link_gestione}}')).join('\n').trim();
+          const base = window.location.origin + '/prenotazione.html?t=';
+          buttons = [{ type: 'URL', text: 'Gestisci prenotazione', url: base + '{{1}}', example: base + 'abc123token' }];
+        }
+        const { testoConvertito, map } = convertiWildcard(testoWa);
         const esempi = Object.values(map).map(k => WA_ESEMPI[k] || 'esempio');
         const waName = ('msg_' + (trigger || 'manuale') + '_' + Date.now().toString(36)).toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 60);
         const res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-create-templates`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-          body: JSON.stringify({ azienda_id: aziendaId, single: { name: waName, category: 'UTILITY', text: testoConvertito, example: esempi.length ? esempi : ['esempio'], buttons: [] } })
+          body: JSON.stringify({ azienda_id: aziendaId, single: { name: waName, category: 'UTILITY', text: testoConvertito, example: esempi.length ? esempi : ['esempio'], buttons } })
         });
         const wd = await res.json();
         if (wd.success) {
