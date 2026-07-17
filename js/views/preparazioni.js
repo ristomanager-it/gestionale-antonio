@@ -2017,12 +2017,20 @@ function verificaHaccpTemp(idx, inputEl) {
 }
 
 function firmaFaseHaccp(idx) {
-  const operatore = operatoreRisolto?.nome || document.getElementById("prod-operatore-pin")?.value?.trim();
-  if (!operatore) { alert("Identifica prima l'operatore tramite PIN."); return; }
   const log = logHaccp[idx];
+  const fase = fasiCache[idx];
+  const nomeFase = fase?.nome_fase || fase?.tipo_fase || "fase";
+  // Ogni fase può essere firmata da una persona diversa: chiedo il PIN di CHI la esegue.
+  const suggerito = operatoreRisolto?.pin ? String(operatoreRisolto.pin) : "";
+  const pin = (prompt(`PIN di chi ha eseguito la fase «${nomeFase}»:`, suggerito) || "").trim();
+  if (!pin) return;
+  const match = dipendentiCache.find((d) => (d.pin ?? "").toString() === pin);
+  if (!match) { alert("PIN non valido ❌"); return; }
   log.firmato = true;
-  log.firmato_da = operatoreRisolto?.nome || operatore;
-  log.firmato_il = new Date().toLocaleString("it-IT");
+  log.operatore_id = match.id ?? null;
+  log.operatore_nome = match.nome;
+  log.firmato_da = match.nome;
+  log.firmato_il = new Date().toISOString();
   if (!log.ora_fine) {
     log.ora_fine = new Date().toISOString().slice(0, 16);
     calcolaHaccpDurata(idx);
@@ -2046,7 +2054,8 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId) {
     fonte_dato: log.fonte_dato || "manuale",
     tecnologia_prevista: log.tecnologia_prevista || null,
     temperatura_prevista: log.temperatura_prevista ?? null,
-    operatore_nome: operatoreRisolto?.nome || null,
+    operatore_id: log.operatore_id || operatoreRisolto?.id || null,
+    operatore_nome: log.operatore_nome || operatoreRisolto?.nome || null,
     temperatura_rilevata: log.temperatura_rilevata !== "" ? Number(log.temperatura_rilevata) : null,
     temperatura_ok: log.temperatura_ok ?? null,
     ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
@@ -2055,7 +2064,7 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId) {
     esito: log.esito || "ok",
     note: log.note || null,
     firmato_da: log.firmato_da || null,
-    firmato_il: log.firmato ? new Date().toISOString() : null
+    firmato_il: log.firmato_il || (log.firmato ? new Date().toISOString() : null)
   }));
 
   try {
