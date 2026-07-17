@@ -75,6 +75,7 @@ export async function render(container) {
         <button type="button" id="btn-back" class="app-button secondary">← Centro Produzione</button>
         <button type="button" id="btn-scheda-tecnica" class="app-button secondary">📘 Scheda tecnica</button>
         <button type="button" id="btn-stampa-produzione" class="app-button secondary">🖨 Stampa scheda produzione</button>
+        <button type="button" id="btn-stampa-etichetta" class="app-button secondary">🏷 Etichetta (anteprima)</button>
       </div>
 
       ${createCard({
@@ -1589,6 +1590,80 @@ async function stampaSchedaProduzione() {
 /* EVENTS */
 /* ========================================================= */
 
+async function stampaEtichettaProduzione() {
+  if (!ricettaSelezionata?.id) { alert("Seleziona prima una ricetta."); return; }
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  const azienda = window.state?.azienda;
+  const sedeNome = window.state?.sedeAttiva?.nome || azienda?.nome || "";
+
+  const { data: ric } = await supabase
+    .from("ricette")
+    .select("nome, shelf_life_giorni, shelf_life_tipo, allergeni")
+    .eq("id", ricettaSelezionata.id)
+    .maybeSingle();
+
+  const nome = ric?.nome || ricettaSelezionata.nome || "Prodotto";
+  const dataProd = document.getElementById("prod-data")?.value || new Date().toISOString().slice(0, 10);
+  const dataFmt = new Date(dataProd).toLocaleDateString("it-IT");
+  const lotto = (document.getElementById("prod-lotto")?.value || "").trim() || "________";
+  const note = (document.getElementById("prod-note-lotto")?.value || "").trim();
+  const operatore = (document.getElementById("prod-operatore-info")?.innerText || "").replace(/nessun operatore identificato/i, "").trim() || "____________";
+
+  let scadenza = "____ / ____ / ________";
+  if (ric?.shelf_life_giorni) {
+    const d = new Date(dataProd);
+    d.setDate(d.getDate() + Number(ric.shelf_life_giorni));
+    scadenza = d.toLocaleDateString("it-IT");
+  }
+  const conservazione = ric?.shelf_life_tipo ? escapeHtml(ric.shelf_life_tipo) : "____________";
+
+  let allergeniTxt = "—";
+  if (Array.isArray(ric?.allergeni) && ric.allergeni.length) {
+    allergeniTxt = ric.allergeni.map((a) => (typeof a === "string" ? a : (a?.nome || a?.label || ""))).filter(Boolean).join(", ");
+  }
+
+  const copie = Math.max(1, Math.min(40, parseInt(prompt("Quante etichette vuoi stampare?", "1"), 10) || 1));
+
+  const etichetta = `
+    <div class="lbl">
+      <div class="lbl-name">${escapeHtml(nome)}</div>
+      <div class="lbl-sede">${escapeHtml(sedeNome)}</div>
+      <div class="lbl-row"><span>Lotto</span><b>${escapeHtml(lotto)}</b></div>
+      <div class="lbl-row"><span>Prodotto il</span><b>${dataFmt}</b></div>
+      <div class="lbl-row"><span>Consumare entro</span><b>${scadenza}</b></div>
+      <div class="lbl-row"><span>Conservazione</span><b>${conservazione}</b></div>
+      <div class="lbl-aller"><span>Allergeni:</span> ${escapeHtml(allergeniTxt)}</div>
+      ${note ? `<div class="lbl-note">${escapeHtml(note)}</div>` : ""}
+      <div class="lbl-row"><span>Operatore</span><b>${escapeHtml(operatore)}</b></div>
+    </div>`;
+
+  const win = window.open("", "_blank");
+  if (!win) { alert("Consenti i popup del browser per vedere l'anteprima."); return; }
+  win.document.write(`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+    <title>Etichetta — ${escapeHtml(nome)}</title>
+    <style>
+      * { box-sizing:border-box; margin:0; padding:0; font-family:Arial,sans-serif; }
+      body { padding:16px; background:#f1f5f9; }
+      .grid { display:flex; flex-wrap:wrap; gap:8px; }
+      .lbl { width:88mm; border:1.5px solid #1a1a2e; border-radius:6px; padding:8px 10px; background:white; }
+      .lbl-name { font-size:17px; font-weight:800; color:#0E5A7A; line-height:1.1; }
+      .lbl-sede { font-size:10px; color:#64748b; margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
+      .lbl-row { display:flex; justify-content:space-between; font-size:12px; padding:2px 0; border-bottom:1px dotted #cbd5e1; }
+      .lbl-row span { color:#64748b; }
+      .lbl-aller { font-size:11px; margin-top:5px; background:#fff7ed; border:1px solid #fed7aa; border-radius:4px; padding:3px 6px; }
+      .lbl-aller span { font-weight:700; color:#9a3412; }
+      .lbl-note { font-size:11px; font-style:italic; color:#334155; margin-top:4px; }
+      @media print { body { padding:0; background:white; } .no-print { display:none; } .lbl { break-inside:avoid; } }
+    </style></head><body>
+    <div class="no-print" style="text-align:center;padding:10px;margin-bottom:12px;">
+      <button onclick="window.print()" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">🖨️ Stampa etichette</button>
+    </div>
+    <div class="grid">${etichetta.repeat(copie)}</div>
+  </body></html>`);
+  win.document.close();
+}
+
 function bindEvents() {
   document.getElementById("btn-back")?.addEventListener("click", () => {
     window.location.hash = "#/produzione";
@@ -1596,6 +1671,7 @@ function bindEvents() {
 
   document.getElementById("btn-scheda-tecnica")?.addEventListener("click", apriSchedaTecnica);
   document.getElementById("btn-stampa-produzione")?.addEventListener("click", stampaSchedaProduzione);
+  document.getElementById("btn-stampa-etichetta")?.addEventListener("click", stampaEtichettaProduzione);
   document.getElementById("prod-tech-close")?.addEventListener("click", chiudiSchedaTecnica);
   document.getElementById("prod-tech-backdrop")?.addEventListener("click", (e) => {
     if (e.target?.id === "prod-tech-backdrop") chiudiSchedaTecnica();

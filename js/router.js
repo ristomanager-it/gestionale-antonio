@@ -129,7 +129,7 @@ const routes = {
   "abbina-articoli": () => import("./views/abbina-articoli.js"),
   "menu-engineering": () => import("./views/menu-engineering.js"),
   "super-tony": () => import("./views/super-tony.js?v=6"),
-  preparazioni: () => import("./views/preparazioni.js?v=2"),
+  preparazioni: () => import("./views/preparazioni.js?v=3"),
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js?v=8"),
   margini: () => import("./views/margini.js"),
