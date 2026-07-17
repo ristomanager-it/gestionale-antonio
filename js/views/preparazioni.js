@@ -36,6 +36,8 @@ let coprodottiRows = []; // [{ id, prodotto_id, quantita, unita_misura, data_sca
 
 let savedLotto = null;
 let savedLottoUUID = null;
+let resumeLottoId = null;
+let resumeLottoUUID = null;
 let savedRighe = [];
 
 let fasiCache = [];       // ricette_preparazione_fasi della ricetta selezionata
@@ -60,6 +62,8 @@ export async function render(container) {
 
   savedLotto = null;
   savedLottoUUID = null;
+  resumeLottoId = null;
+  resumeLottoUUID = null;
   savedRighe = [];
 
   fasiCache = [];
@@ -324,6 +328,14 @@ await Promise.all([preloadRicette(), preloadDipendenti(), preloadProdotti()]);
 // =========================
 if (plannerId) {
   await preloadFromPlanner(plannerId)
+}
+
+// =========================
+// 🔥 RESUME DA PRODUZIONI APERTE (#/preparazioni?lotto=<uuid>)
+// =========================
+const lottoParam = params.get("lotto")
+if (lottoParam) {
+  await resumeDaLotto(lottoParam)
 }
 
 setupAutocompleteRicette();
@@ -2038,9 +2050,32 @@ function firmaFaseHaccp(idx) {
   renderFasiHaccp();
 }
 
-async function salvaLogHaccpConLotto(lottoUUID, aziendaId) {
+async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
   const supabase = window.supabaseClient;
   if (!logHaccp.length || !lottoUUID) return;
+
+  // In resume le righe fase esistono già (create all'apertura): le aggiorno.
+  if (resume) {
+    for (const log of logHaccp) {
+      if (!log.fase_id) continue;
+      try {
+        await supabase.from("produzione_log_haccp").update({
+          operatore_id: log.operatore_id || operatoreRisolto?.id || null,
+          operatore_nome: log.operatore_nome || operatoreRisolto?.nome || null,
+          temperatura_rilevata: log.temperatura_rilevata !== "" ? Number(log.temperatura_rilevata) : null,
+          temperatura_ok: log.temperatura_ok ?? null,
+          ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
+          ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
+          durata_reale_min: log.durata_reale_min ?? null,
+          esito: log.esito || "ok",
+          note: log.note || null,
+          firmato_da: log.firmato_da || null,
+          firmato_il: log.firmato_il || (log.firmato ? new Date().toISOString() : null)
+        }).eq("lotto_id", lottoUUID).eq("fase_id", log.fase_id);
+      } catch (e) { console.warn("Update log HACCP fase non riuscito:", e); }
+    }
+    return;
+  }
 
   const rows = logHaccp.map(log => ({
     azienda_id: aziendaId,
@@ -2216,27 +2251,32 @@ async function salvaProduzione() {
         };
       });
 
-    const { data: lotto, error: errLotto } = await supabase
-      .from("produzione_lotti")
-      .insert({
-        azienda_id: aziendaId,
-        ricetta_id: ricettaSelezionata.id,
-        data_produzione: dati.dataProduzione,
-        data_scadenza: dati.scadenza,
-        quantita_output: pesoRealeKg,
-        unita_misura: "kg",
-        scenario_conservazione_id: dati.scenarioId || null,
-        porzione_id: null,
-        stato: "firmato",
-        note: (dati.noteLotto || "").toString(),
-        operatore_id: dati.operatore.id,
-        firmato_at: new Date().toISOString(),
-        dettaglio_confezionamento: dettaglioConfezionamento,
-        resa_percentuale: (resaTeoKg && resaTeoKg > 0) ? (pesoRealeKg / resaTeoKg) * 100 : null,
-        scarto_percentuale: (resaTeoKg && resaTeoKg > 0) ? ((resaTeoKg - pesoRealeKg) / resaTeoKg) * 100 : null
-      })
-      .select()
-      .single();
+    const payloadLotto = {
+      azienda_id: aziendaId,
+      ricetta_id: ricettaSelezionata.id,
+      data_produzione: dati.dataProduzione,
+      data_scadenza: dati.scadenza,
+      quantita_output: pesoRealeKg,
+      unita_misura: "kg",
+      scenario_conservazione_id: dati.scenarioId || null,
+      porzione_id: null,
+      stato: "firmato",
+      note: (dati.noteLotto || "").toString(),
+      operatore_id: dati.operatore.id,
+      firmato_at: new Date().toISOString(),
+      dettaglio_confezionamento: dettaglioConfezionamento,
+      resa_percentuale: (resaTeoKg && resaTeoKg > 0) ? (pesoRealeKg / resaTeoKg) * 100 : null,
+      scarto_percentuale: (resaTeoKg && resaTeoKg > 0) ? ((resaTeoKg - pesoRealeKg) / resaTeoKg) * 100 : null
+    };
+
+    let lotto, errLotto;
+    if (resumeLottoId) {
+      ({ data: lotto, error: errLotto } = await supabase
+        .from("produzione_lotti").update(payloadLotto).eq("id", resumeLottoId).select().single());
+    } else {
+      ({ data: lotto, error: errLotto } = await supabase
+        .from("produzione_lotti").insert(payloadLotto).select().single());
+    }
 
     if (errLotto) throw errLotto;
     savedLotto = lotto;
@@ -2247,7 +2287,7 @@ async function salvaProduzione() {
     }
 
     // Salva registro HACCP collegato al lotto (best-effort)
-    await salvaLogHaccpConLotto(savedLottoUUID, aziendaId);
+    await salvaLogHaccpConLotto(savedLottoUUID, aziendaId, !!resumeLottoId);
 
     await logEventoHaccp({
       aziendaId,
@@ -3160,4 +3200,77 @@ async function preloadFromPlanner(plannerId){
   }
 
   console.log("Planner collegato:", plannerId)
+}
+
+// =========================================================
+// RESUME: riprende un lotto aperto dal monitor "Produzioni aperte"
+// =========================================================
+async function resumeDaLotto(lottoUuid) {
+  const supabase = window.supabaseClient
+  const aziendaId = window.state?.azienda?.id
+  if (!supabase || !aziendaId) return
+
+  const { data: lotto } = await supabase
+    .from("produzione_lotti")
+    .select("*")
+    .eq("lotto_uuid", lottoUuid)
+    .eq("azienda_id", aziendaId)
+    .maybeSingle()
+  if (!lotto) { console.warn("Lotto da riprendere non trovato:", lottoUuid); return }
+
+  resumeLottoId = lotto.id
+  resumeLottoUUID = lotto.lotto_uuid
+
+  // Preseleziona la ricetta e carica porzioni/conservazioni/fasi
+  const ricetta = ricetteCache.find(r => r.id === lotto.ricetta_id)
+  if (ricetta) {
+    ricettaSelezionata = ricetta
+    const input = document.getElementById("prod-ricetta-search")
+    const hidden = document.getElementById("prod-ricetta-id")
+    const btn = document.getElementById("btn-vedi-ricetta")
+    if (input) input.value = ricetta.nome
+    if (hidden) hidden.value = ricetta.id
+    if (btn) btn.disabled = false
+    if (typeof setRicettaInfo === "function") setRicettaInfo("Ripresa da produzioni aperte ✔")
+    await Promise.all([
+      loadPorzioniRicetta(ricetta.id),
+      loadConservazioni(ricetta.id),
+      loadFasiHaccp(ricetta.id)
+    ])
+  }
+
+  // Sovrappone le firme/temperature già registrate sulle fasi
+  const { data: haccp } = await supabase
+    .from("produzione_log_haccp")
+    .select("*")
+    .eq("lotto_id", lottoUuid)
+  if (haccp && haccp.length && logHaccp.length) {
+    haccp.forEach(h => {
+      const log = logHaccp.find(l => String(l.fase_id) === String(h.fase_id))
+      if (!log) return
+      if (h.firmato_da) {
+        log.firmato = true
+        log.firmato_da = h.firmato_da
+        log.firmato_il = h.firmato_il
+        log.operatore_id = h.operatore_id
+        log.operatore_nome = h.operatore_nome
+      }
+      if (h.temperatura_rilevata != null) log.temperatura_rilevata = h.temperatura_rilevata
+      if (h.temperatura_ok != null) log.temperatura_ok = h.temperatura_ok
+      if (h.ora_inizio) log.ora_inizio = h.ora_inizio
+      if (h.ora_fine) log.ora_fine = h.ora_fine
+      if (h.esito) log.esito = h.esito
+    })
+    renderFasiHaccp()
+  }
+
+  // Prefill data / peso / note
+  const dataEl = document.getElementById("prod-data")
+  if (dataEl && lotto.data_produzione) dataEl.value = lotto.data_produzione
+  const pesoEl = document.getElementById("prod-peso-reale")
+  if (pesoEl && lotto.quantita_output) pesoEl.value = lotto.quantita_output
+  const noteEl = document.getElementById("prod-note-lotto")
+  if (noteEl && lotto.note) noteEl.value = lotto.note
+
+  recalcResaUI()
 }
