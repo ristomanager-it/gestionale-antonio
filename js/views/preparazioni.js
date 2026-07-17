@@ -264,6 +264,7 @@ export async function render(container) {
         title: "Azioni",
         body: `
           <div class="form-actions">
+            <button type="button" id="btn-apri-produzione" class="app-button secondary" ${savedLotto ? "disabled" : ""}>🟢 Apri (continua dopo)</button>
             <button type="button" id="btn-salva-produzione" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra produzione</button>
             <button type="button" id="btn-print-lotto" class="app-button secondary" disabled>🏷 Stampa etichette confezioni</button>
             <button type="button" id="btn-print-coprodotti" class="app-button secondary" disabled>🏷 Stampa etichette coprodotti</button>
@@ -1730,6 +1731,7 @@ function bindEvents() {
   document.getElementById("coprodotti-wrap")?.addEventListener("click", (e) => onCoprodottiClick(e));
 
   document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
+  document.getElementById("btn-apri-produzione")?.addEventListener("click", apriProduzioneAperta);
 
   document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichetteConfezioni);
   document.getElementById("btn-print-coprodotti")?.addEventListener("click", stampaEtichetteCoprodotti);
@@ -2204,6 +2206,65 @@ async function logEventoHaccp({ aziendaId, produzioneId, tipo, payload }) {
 /* ========================================================= */
 /* SAVE */
 /* ========================================================= */
+
+async function apriProduzioneAperta() {
+  if (!ricettaSelezionata?.id) return alert("Seleziona prima una ricetta.");
+  if (resumeLottoId) return alert("Questa produzione è già aperta: usa 💾 Registra per chiuderla.");
+
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  if (!supabase || !aziendaId) return alert("Azienda non attiva.");
+
+  const dataProd = document.getElementById("prod-data")?.value || new Date().toISOString().slice(0, 10);
+  const peso = getPesoRealeKg();
+  const note = (document.getElementById("prod-note-lotto")?.value || "").trim();
+  const lottoUuid = (crypto?.randomUUID && crypto.randomUUID()) || null;
+
+  const { data: lotto, error } = await supabase.from("produzione_lotti").insert({
+    azienda_id: aziendaId,
+    ricetta_id: ricettaSelezionata.id,
+    data_produzione: dataProd,
+    data_scadenza: null,
+    quantita_output: (Number.isFinite(peso) && peso > 0) ? peso : null,
+    unita_misura: "kg",
+    stato: "aperta",
+    sede_uuid: window.state?.sedeAttiva?.id || null,
+    luogo: window.state?.sedeAttiva?.nome || null,
+    note: note || null,
+    operatore_id: operatoreRisolto?.id || null,
+    lotto_uuid: lottoUuid,
+  }).select("id, lotto_uuid, codice_lotto").single();
+
+  if (error) { alert("Errore apertura: " + error.message); return; }
+  const luuid = lotto.lotto_uuid || lottoUuid;
+
+  // crea le righe fase (con eventuali firme già messe localmente)
+  if (luuid && logHaccp.length) {
+    const righe = logHaccp.map(log => ({
+      azienda_id: aziendaId, lotto_id: luuid, ricetta_id: ricettaSelezionata.id,
+      fase_id: log.fase_id || null, fase_ordine: log.fase_ordine, fase_nome: log.fase_nome, fase_tipo: log.fase_tipo,
+      dispositivo_id: log.dispositivo_id || null, fonte_dato: log.fonte_dato || "manuale",
+      tecnologia_prevista: log.tecnologia_prevista || null, temperatura_prevista: log.temperatura_prevista ?? null,
+      operatore_id: log.operatore_id || null, operatore_nome: log.operatore_nome || null,
+      temperatura_rilevata: log.temperatura_rilevata !== "" ? Number(log.temperatura_rilevata) : null,
+      temperatura_ok: log.temperatura_ok ?? null,
+      ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
+      ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
+      esito: log.esito || "ok", note: log.note || null,
+      firmato_da: log.firmato_da || null, firmato_il: log.firmato_il || null,
+    }));
+    try { await supabase.from("produzione_log_haccp").insert(righe); } catch (e) { console.warn("Fasi lotto:", e); }
+  }
+
+  resumeLottoId = lotto.id;
+  resumeLottoUUID = luuid;
+  const lottoEl = document.getElementById("prod-lotto");
+  if (lottoEl && lotto.codice_lotto) lottoEl.value = lotto.codice_lotto;
+  const btnApri = document.getElementById("btn-apri-produzione");
+  if (btnApri) { btnApri.disabled = true; btnApri.textContent = "🟢 Aperta ✔"; }
+  const result = document.getElementById("produzione-result");
+  if (result) result.innerHTML = '<span style="color:#16a34a;">🟢 Produzione aperta — la trovi nel monitor "Produzioni aperte". Potrai completare le fasi e chiuderla con 💾 Registra, anche più tardi.</span>';
+}
 
 async function salvaProduzione() {
   const dati = raccogliDatiForm();
