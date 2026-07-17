@@ -74,13 +74,17 @@ async function carica() {
 
 async function caricaEmail(aziendaId) {
   try {
-    const { data } = await window.supabaseClient.from("email_log")
-      .select("direzione, destinatario_email, destinatario_nome, oggetto, testo, stato, created_at")
-      .eq("azienda_id", aziendaId).order("created_at", { ascending: false }).limit(300);
-    return (data || []).map(m => ({
-      canale: "email", dir: m.direzione || "out", quando: m.created_at,
-      chi: m.destinatario_nome || m.destinatario_email || "—", numero: m.destinatario_email || "",
-      testo: m.oggetto || "", extra: m.testo ? String(m.testo).slice(0, 140) : "", stato: m.stato || "",
+    const base = (window.SUPABASE_URL || "https://cuhcscpvhypoaplcmtjk.supabase.co");
+    const res = await fetch(base + "/functions/v1/registro-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ azienda_id: aziendaId }),
+    });
+    if (!res.ok) return [];
+    const j = await res.json();
+    return (j.messaggi || []).map(m => ({
+      canale: "email", dir: m.dir || "out", quando: m.quando,
+      chi: m.chi || "—", numero: m.email || "", testo: m.oggetto || "", extra: "", stato: m.stato || "",
     }));
   } catch (_e) { return []; }
 }
