@@ -378,6 +378,7 @@ export function initMenu() {
         { label: "🟢 Produzioni aperte",   route: "produzioni-aperte"  },
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
         { label: "📋 Planning",            route: "planner-produzione" },
+        { label: "📒 Registro lotti",      route: "registro-lotti"    },
         { label: "🔌 Dispositivi", route: "bo-dispositivi", children: [
           { label: "🔌 Dispositivi", route: "bo-dispositivi?tab=dispositivi" },
           { label: "⚡ Energia", route: "bo-dispositivi?tab=energia" },
@@ -445,6 +446,7 @@ export function initMenu() {
           ] },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "🎁 Promo",             route: "bo-promo"          },
+          { label: "📨 Registro messaggi",  route: "registro-messaggi" },
           { label: "🎫 Fidelity & Network", route: "bo-fidelity", children: [
             { label: "📊 Dashboard", route: "bo-fidelity?tab=dashboard" },
             { label: "👥 Clienti", route: "bo-fidelity?tab=clienti" },
