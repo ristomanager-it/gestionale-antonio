@@ -153,6 +153,19 @@ export async function render(container) {
   const bozzeTony = valutazioni.filter((v) => TIPI_TONY.includes(v.tipo));
   const ultimaValutazione = valutazioni.find((v) => !TIPI_TONY.includes(v.tipo)) || null;
 
+  let feedbackRicevuti = [];
+  try {
+    const { data: fbData } = await window.supabaseClient
+      .from("valutazione_feedback")
+      .select("ruolo, tipo, voto, piatti, data, note, fonte")
+      .eq("dipendente_id", dip.id)
+      .order("data", { ascending: false }).limit(50);
+    feedbackRicevuti = fbData || [];
+  } catch (_e) {}
+  const fbPos = feedbackRicevuti.filter((f) => f.tipo === "positivo").length;
+  const fbNeg = feedbackRicevuti.filter((f) => f.tipo === "negativo").length;
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
   window.__confermaBozzaTony = async (id) => {
     if (!confirm("Confermi questa valutazione proposta da Tony? Diventerà una valutazione registrata.")) return;
     try {
@@ -295,6 +308,26 @@ export async function render(container) {
           </div>
         `
       })}
+
+      ${feedbackRicevuti.length ? createCard({
+        title: "💬 Feedback da recensioni",
+        body: `
+          <div style="display:flex; gap:14px; margin-bottom:10px;">
+            <div style="background:#dcfce7; color:#166534; border-radius:8px; padding:6px 12px; font-weight:700;">👍 ${fbPos} elogi</div>
+            <div style="background:#fee2e2; color:#991b1b; border-radius:8px; padding:6px 12px; font-weight:700;">👎 ${fbNeg} lamentele</div>
+          </div>
+          ${feedbackRicevuti.slice(0, 8).map((f) => `
+            <div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid #f1f5f9; font-size:13px;">
+              <div>
+                <span style="font-weight:700; color:${f.tipo === "positivo" ? "#16a34a" : (f.tipo === "negativo" ? "#dc2626" : "#64748b")};">${f.tipo === "positivo" ? "👍" : (f.tipo === "negativo" ? "👎" : "•")} ${esc(f.ruolo || "")}</span>
+                ${f.piatti ? ` — ${esc(f.piatti)}` : ""}
+                ${f.note ? `<div class="small-muted">"${esc(f.note)}"</div>` : ""}
+              </div>
+              <div class="small-muted" style="white-space:nowrap;">${f.data ? new Date(f.data).toLocaleDateString("it-IT") : ""}</div>
+            </div>
+          `).join("")}
+        `
+      }) : ""}
 
       ${bozzeTony.map((bz) => createCard({
         title: "🤖 Bozza di Tony da confermare — " + (bz.tipo === "auto_servizio" ? "Servizio" : "Produzione"),
