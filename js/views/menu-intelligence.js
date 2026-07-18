@@ -435,6 +435,7 @@ function renderTable() {
               <th>Prezzo</th>
               <th>Food Cost</th>
               <th>Margine</th>
+              <th>Consigliato</th>
               <th>Classe</th>
               <th></th>
             </tr>
@@ -477,6 +478,9 @@ function renderTableRows(rows) {
           <b>${euro(i.margineTotale)}</b>
           <div style="font-size:11px;color:#64748b;">${fmt(i.marginePerc)}%</div>
         </td>
+        <td>
+          ${i.prezzoConsigliato != null ? `<b style="color:${i.margineSpingibile > 0 ? "#16a34a" : "#111827"};">${euro(i.prezzoConsigliato)}</b>${i.margineSpingibile > 0 ? `<div style="font-size:11px;color:#16a34a;">+${euro(i.margineSpingibile)}</div>` : `<div style="font-size:11px;color:#94a3b8;">ok così</div>`}` : "—"}
+        </td>
         <td><span class="mi-badge" style="background:${q.bg};color:${q.colore};">${q.icon} ${q.label}</span></td>
         <td><button class="mi-btn-small" onclick="miSimula('${i.id}')">Simula</button></td>
       </tr>
@@ -494,10 +498,10 @@ function renderMatrix() {
       <div style="font-size:15px;font-weight:900;color:#111827;margin-bottom:4px;">Matrice menu</div>
       <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Clicca un quadrante per filtrare la tabella.</div>
       <div class="mi-matrix-grid">
-        ${quad("star", counts.star)}
-        ${quad("puzzle", counts.puzzle)}
         ${quad("plowhorse", counts.plowhorse)}
+        ${quad("star", counts.star)}
         ${quad("dog", counts.dog)}
+        ${quad("puzzle", counts.puzzle)}
       </div>
     </div>
   `;
