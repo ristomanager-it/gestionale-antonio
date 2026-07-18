@@ -60,6 +60,7 @@ export async function render(container) {
           { id:'sondaggi',     icon:'📊',  label:'Sondaggi'         },
           { id:'profilo',      icon:'📱',  label:'RistoflowBook'    },
           { id:'pagamenti',    icon:'💳',  label:'Pagamenti'        },
+          { id:'centralino',   icon:'📞',  label:'Centralino'       },
         ].map(t => `
           <button data-tab="${t.id}" style="
             padding:10px 8px;border:none;background:none;cursor:pointer;
@@ -104,6 +105,7 @@ export async function render(container) {
       case 'sondaggi':     renderTabSondaggi(box);    break;
       case 'profilo':      renderTabProfilo(box);     break;
       case 'pagamenti':    renderTabPagamenti(box);   break;
+      case 'centralino':   renderTabCentralino(box);  break;
     }
   }
 
@@ -864,6 +866,137 @@ export async function render(container) {
         else { esito.textContent = '❌ ' + (data.error || 'Errore'); esito.style.color = '#dc2626'; }
       } catch (e) { esito.textContent = '❌ ' + e.message; esito.style.color = '#dc2626'; }
     });
+  }
+
+  async function renderTabCentralino(box) {
+    box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento centralino...</div>';
+
+    const [{ data: cfgs }, { data: sedi }] = await Promise.all([
+      supa().from('centralino_config').select('*').eq('azienda_id', aziendaId).order('created_at'),
+      supa().from('sedi').select('id,nome').eq('azienda_id', aziendaId).order('nome'),
+    ]);
+    const cfg = (cfgs || [])[0] || null;
+    let opzioni = [];
+    let chiamate = [];
+    if (cfg) {
+      const [{ data: o }, { data: ch }] = await Promise.all([
+        supa().from('centralino_opzioni').select('*').eq('config_id', cfg.id).order('ordine'),
+        supa().from('centralino_chiamate').select('*').eq('azienda_id', aziendaId).order('created_at', { ascending: false }).limit(15),
+      ]);
+      opzioni = o || []; chiamate = ch || [];
+    }
+    const AZIONI = { invia_link: '📲 Invia link (WhatsApp/SMS)', inoltra: '📞 Inoltra la chiamata', voce: '🔊 Leggi un messaggio' };
+
+    box.innerHTML = `
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#475569;line-height:1.6;">
+        Il <b>centralino intelligente</b> risponde al posto tuo: legge il benvenuto e l'informativa privacy, poi propone i tasti qui sotto. Chi chiama da <b>cellulare</b> riceve subito il link su WhatsApp/SMS; chi chiama da <b>fisso</b> viene invitato a digitare il proprio cellulare. Ogni chiamata diventa un <b>contatto</b> nel CRM.
+        ${cfg && cfg.numero_vonage ? '' : '<br/>⚠️ <b>Numero non ancora assegnato</b>: serve la ricarica del conto Vonage e l\'acquisto del numero (per l\'Italia è in corso la pratica di attivazione).'}
+      </div>
+
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px;">⚙️ Impostazioni</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px;">
+          <div><div class="sezione-label">Sede</div>
+            <select id="cent-sede" class="input" style="width:100%;box-sizing:border-box;">
+              ${(sedi || []).map(s => `<option value="${s.id}" ${cfg && cfg.sede_id === s.id ? 'selected' : ''}>${s.nome}</option>`).join('')}
+            </select></div>
+          <div><div class="sezione-label">Numero telefonico (quando assegnato)</div>
+            <input id="cent-numero" class="input" style="width:100%;box-sizing:border-box;" value="${cfg?.numero_vonage || ''}" placeholder="es. 3906..."></div>
+          <div style="display:flex;align-items:end;"><label style="font-size:14px;display:flex;gap:8px;align-items:center;cursor:pointer;"><input type="checkbox" id="cent-attivo" ${cfg?.attivo ? 'checked' : ''}> Centralino attivo</label></div>
+        </div>
+        <div class="sezione-label">Messaggio di benvenuto + privacy (letto a voce)</div>
+        <textarea id="cent-saluto" class="input" rows="3" style="width:100%;box-sizing:border-box;">${cfg?.saluto || "Benvenuto! Ti informiamo che questa chiamata è gestita da un assistente automatico e il tuo numero sarà usato solo per inviarti le informazioni richieste."}</textarea>
+        <button id="cent-salva" style="margin-top:10px;background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva impostazioni</button>
+        <span id="cent-esito" style="margin-left:10px;font-size:13px;"></span>
+      </div>
+
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;">🔢 Tasti del menu</div>
+          <button id="cent-add-opz" ${cfg ? '' : 'disabled'} style="background:#16a34a;color:white;border:none;border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">+ Aggiungi tasto</button>
+        </div>
+        <div id="cent-opzioni">
+          ${opzioni.length === 0 ? '<div style="font-size:13px;color:#94a3b8;">Nessun tasto. Salva prima le impostazioni, poi aggiungi i tasti.</div>' : opzioni.map(o => `
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;padding:9px 0;font-size:13px;gap:8px;flex-wrap:wrap;">
+              <div><b style="background:#0E5A7A;color:white;border-radius:6px;padding:2px 8px;">${o.tasto}</b>
+                ${o.etichetta} · <span style="color:#64748b;">${AZIONI[o.azione] || o.azione}${o.azione === 'inoltra' && o.numero_inoltro ? ' → ' + o.numero_inoltro : ''}</span></div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="centModOpz('${o.id}')" style="background:#f0f9ff;color:#0E5A7A;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">✏️</button>
+                <button onclick="centDelOpz('${o.id}')" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">🗑</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;">
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px;">📋 Ultime chiamate</div>
+        ${chiamate.length === 0 ? '<div style="font-size:13px;color:#94a3b8;">Nessuna chiamata ancora.</div>' : chiamate.map(c => `
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid #f1f5f9;padding:7px 0;font-size:13px;gap:8px;">
+            <div>${c.numero_chiamante || 'anonimo'} <span style="color:#94a3b8;">(${c.tipo_numero || '-'})</span>${c.tasto_scelto ? ' · tasto ' + c.tasto_scelto : ''}${c.canale_invio && c.canale_invio !== 'nessuno' ? ' · ' + c.canale_invio : ''}</div>
+            <div style="color:#64748b;">${new Date(c.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+          </div>`).join('')}
+      </div>
+    `;
+
+    box.querySelector('#cent-salva').onclick = async () => {
+      const esito = box.querySelector('#cent-esito');
+      const payload = {
+        azienda_id: aziendaId,
+        sede_id: box.querySelector('#cent-sede').value || null,
+        numero_vonage: box.querySelector('#cent-numero').value.trim() || null,
+        saluto: box.querySelector('#cent-saluto').value.trim(),
+        attivo: box.querySelector('#cent-attivo').checked,
+        updated_at: new Date().toISOString(),
+      };
+      const q = cfg
+        ? supa().from('centralino_config').update(payload).eq('id', cfg.id)
+        : supa().from('centralino_config').insert(payload);
+      const { error } = await q;
+      esito.textContent = error ? 'Errore: ' + error.message : '✅ Salvato';
+      esito.style.color = error ? '#dc2626' : '#16a34a';
+      if (!error) setTimeout(() => renderTabCentralino(box), 700);
+    };
+
+    const promptOpz = (o) => {
+      const tasto = prompt('Tasto (1-9):', o?.tasto || '');
+      if (!tasto) return null;
+      const etichetta = prompt('Cosa dice la voce? (es. "per prenotare un tavolo"):', o?.etichetta || '');
+      if (!etichetta) return null;
+      const azione = prompt('Azione: invia_link / inoltra / voce', o?.azione || 'invia_link');
+      if (!azione) return null;
+      const r = { tasto: tasto.trim(), etichetta: etichetta.trim(), azione: azione.trim() };
+      if (r.azione === 'invia_link') {
+        r.link = prompt('Link da inviare:', o?.link || '') || '';
+        r.messaggio = prompt('Testo del messaggio:', o?.messaggio || 'Ecco il link che hai richiesto 👉') || '';
+      } else if (r.azione === 'inoltra') {
+        r.numero_inoltro = prompt('Numero a cui inoltrare (es. 3931234567):', o?.numero_inoltro || '') || '';
+      } else if (r.azione === 'voce') {
+        r.messaggio = prompt('Messaggio da leggere a voce:', o?.messaggio || '') || '';
+      }
+      return r;
+    };
+
+    box.querySelector('#cent-add-opz').onclick = async () => {
+      if (!cfg) return;
+      const r = promptOpz(null);
+      if (!r) return;
+      r.config_id = cfg.id;
+      r.ordine = opzioni.length + 1;
+      const { error } = await supa().from('centralino_opzioni').insert(r);
+      if (error) alert('Errore: ' + error.message); else renderTabCentralino(box);
+    };
+    window.centModOpz = async (id) => {
+      const o = opzioni.find(x => x.id === id);
+      const r = promptOpz(o);
+      if (!r) return;
+      const { error } = await supa().from('centralino_opzioni').update(r).eq('id', id);
+      if (error) alert('Errore: ' + error.message); else renderTabCentralino(box);
+    };
+    window.centDelOpz = async (id) => {
+      if (!confirm('Eliminare questo tasto dal centralino?')) return;
+      const { error } = await supa().from('centralino_opzioni').delete().eq('id', id);
+      if (error) alert('Errore: ' + error.message); else renderTabCentralino(box);
+    };
   }
 
   function renderTabPresto(box, icon, titolo, desc) {

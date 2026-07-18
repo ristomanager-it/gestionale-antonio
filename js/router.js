@@ -195,7 +195,7 @@ const routes = {
   // PRODUZIONE
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
   "bo-comande": () => import("./views/bo/bo-comande.js?v=8"),
-  "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=4"),
+  "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=5"),
   "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
   "bo-consulenti": () => import("./views/bo/bo-consulenti.js"),
   "home-consulente": () => import("./views/home-consulente.js"),
