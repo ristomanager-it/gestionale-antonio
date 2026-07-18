@@ -1002,6 +1002,11 @@ export async function render(container) {
           const base = window.location.origin + '/prenotazione.html?t=';
           buttons = [{ type: 'URL', text: 'Gestisci prenotazione', url: base + '{{1}}', example: base + 'abc123token' }];
         }
+        // --- Conformità Meta: niente campi attaccati, il testo non deve iniziare/finire con un campo ---
+        testoWa = testoWa.replace(/(\}\})([ \t]*\n[ \t]*|[ \t]+)(\{\{)/g, (_m, a, ws, b) => a + (ws.includes('\n') ? '\n' : ' ') + '· ' + b);
+        if (/^\s*\{\{/.test(testoWa)) testoWa = 'Ciao ' + testoWa.replace(/^\s+/, '');
+        if (/\}\}\s*$/.test(testoWa)) testoWa = testoWa.replace(/\s+$/, '') + '\nA presto! 🙏';
+
         const { testoConvertito, map } = convertiWildcard(testoWa);
         const esempi = Object.values(map).map(k => WA_ESEMPI[k] || 'esempio');
         const waName = ('msg_' + (trigger || 'manuale') + '_' + Date.now().toString(36)).toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 60);
