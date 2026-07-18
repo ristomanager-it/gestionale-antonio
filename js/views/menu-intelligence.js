@@ -8,6 +8,7 @@ let _simItemId = null;
 let _saluteSedi = null;
 let _saluteSede = "";
 let _giorniStorico = 0;
+let _menuVoci = [];
 
 const PIANO_QUADRANTI = {
   star: {
@@ -185,6 +186,48 @@ function bindGlobals() {
     alert(`✅ Aggiornati ${fatti} piatti nel listino${errori ? ` (${errori} errori)` : ""}.`);
     await loadData();
   };
+
+  window.miMenuSposta = async function(id, dove) {
+    const item = _items.find(i => String(i.id) === String(id));
+    if (!item) return;
+    if (!item.menuVoci?.length) { alert(`"${item.nome}" non è collegato a nessuna voce del menù.`); return; }
+    const desc = dove === "su" ? "in cima alla sua categoria" : "in fondo alla sua categoria";
+    const ok = confirm(`Tony sposterà "${item.nome}" ${desc} nel menù.\n\nConfermi?`);
+    if (!ok) return;
+    try {
+      for (const v of item.menuVoci) {
+        const fratelli = _menuVoci.filter(x => x.menu_id === v.menu_id && x.categoria_id === v.categoria_id);
+        const ordini = fratelli.map(x => Number(x.ordine) || 0);
+        const nuovo = dove === "su" ? Math.min(...ordini) - 1 : Math.max(...ordini) + 1;
+        const { error } = await supabase.from("menu_voci").update({ ordine: nuovo }).eq("id", v.id);
+        if (error) throw error;
+      }
+      alert(`✅ "${item.nome}" spostato ${desc} nel menù.`);
+      await loadData();
+    } catch (e) {
+      alert("Errore spostamento: " + (e?.message || e));
+    }
+  };
+
+  window.miMenuVisibilita = async function(id) {
+    const item = _items.find(i => String(i.id) === String(id));
+    if (!item) return;
+    if (!item.menuVoci?.length) { alert(`"${item.nome}" non è collegato a nessuna voce del menù.`); return; }
+    const nascondere = item.menuVisibile !== false;
+    const ok = confirm(nascondere
+      ? `Tony nasconderà "${item.nome}" dal menù (la voce resta salvata, non viene cancellata).\n\nConfermi?`
+      : `Tony renderà di nuovo visibile "${item.nome}" nel menù.\n\nConfermi?`);
+    if (!ok) return;
+    try {
+      const ids = item.menuVoci.map(v => v.id);
+      const { error } = await supabase.from("menu_voci").update({ visibile: !nascondere }).in("id", ids);
+      if (error) throw error;
+      alert(nascondere ? `✅ "${item.nome}" nascosto dal menù.` : `✅ "${item.nome}" di nuovo visibile nel menù.`);
+      await loadData();
+    } catch (e) {
+      alert("Errore visibilità: " + (e?.message || e));
+    }
+  };
 }
 
 async function loadData() {
@@ -215,6 +258,21 @@ async function loadData() {
     });
   } catch { /* listino opzionale */ }
 
+  // Voci del menù (per le azioni di Tony: sposta su/giù, nascondi/mostra)
+  _menuVoci = [];
+  const vociMap = new Map();
+  try {
+    const { data: voci } = await supabase.from("menu_voci")
+      .select("id,ricetta_id,menu_id,categoria_id,ordine,visibile")
+      .eq("azienda_id", aziendaId)
+      .not("ricetta_id", "is", null);
+    _menuVoci = voci || [];
+    _menuVoci.forEach(v => {
+      if (!vociMap.has(v.ricetta_id)) vociMap.set(v.ricetta_id, []);
+      vociMap.get(v.ricetta_id).push(v);
+    });
+  } catch { /* menu opzionale */ }
+
   _items = rows.map(r => {
     const prezzo = n(r.prezzo_medio);
     const costo = n(r.costo_piatto);
@@ -236,7 +294,11 @@ async function loadData() {
       prezzoMedioCategoria: r.prezzo_medio_categoria != null ? n(r.prezzo_medio_categoria) : null,
       giorniStorico: n(r.giorni_storico) || 0,
       prezzoListino: listino.has(r.ricetta_id) ? listino.get(r.ricetta_id).prezzo : null,
-      pvIds: listino.has(r.ricetta_id) ? listino.get(r.ricetta_id).ids : []
+      pvIds: listino.has(r.ricetta_id) ? listino.get(r.ricetta_id).ids : [],
+      menuVoci: vociMap.get(r.ricetta_id) || [],
+      menuVisibile: (vociMap.get(r.ricetta_id) || []).length
+        ? (vociMap.get(r.ricetta_id) || []).every(v => v.visibile !== false)
+        : null
     };
   });
   _giorniStorico = _items.length ? Math.max(..._items.map(i => i.giorniStorico), 1) : 0;
@@ -555,7 +617,15 @@ function renderTableRows(rows) {
         <td>${percepito}</td>
         <td style="white-space:nowrap;">${consigliato}</td>
         <td><span class="mi-badge" style="background:${q.bg};color:${q.colore};">${q.icon} ${q.label}</span></td>
-        <td><button class="mi-btn-small" onclick="miSimula('${i.id}')">Simula</button></td>
+        <td>
+          <button class="mi-btn-small" onclick="miSimula('${i.id}')">Simula</button>
+          ${i.menuVoci?.length ? `
+          <div style="display:flex;gap:4px;margin-top:5px;">
+            <button class="mi-btn-small" title="Sposta in cima nel menù" style="padding:5px 8px;" onclick="miMenuSposta('${i.id}','su')">⬆️</button>
+            <button class="mi-btn-small" title="Sposta in fondo nel menù" style="padding:5px 8px;" onclick="miMenuSposta('${i.id}','giu')">⬇️</button>
+            <button class="mi-btn-small" title="${i.menuVisibile === false ? "Mostra nel menù" : "Nascondi dal menù"}" style="padding:5px 8px;${i.menuVisibile === false ? "background:#fee2e2;color:#991b1b;" : ""}" onclick="miMenuVisibilita('${i.id}')">${i.menuVisibile === false ? "🚫" : "👁"}</button>
+          </div>` : ""}
+        </td>
       </tr>
     `;
   }).join("");
@@ -628,20 +698,42 @@ function renderAi() {
 
   const suggerimenti = buildSuggerimenti(_filtered);
 
+  // Azioni che Tony può eseguire subito (sempre con conferma)
+  const azioni = [];
+  _filtered.filter(i => i.quadrante === "star" && i.menuVoci?.length).slice(0, 3).forEach(i => {
+    azioni.push({ icon: "⭐", testo: `Metti "${i.nome}" in cima alla sua categoria: è una Star, più visibilità = più vendite.`, btn: `Sposta in cima`, fn: `miMenuSposta('${i.id}','su')` });
+  });
+  _filtered.filter(i => i.quadrante === "dog" && i.menuVoci?.length && i.menuVisibile !== false).slice(0, 3).forEach(i => {
+    azioni.push({ icon: "🐶", testo: `"${i.nome}" è un Dog (poche vendite, poco margine): valutane la rimozione dal menù.`, btn: `Nascondi dal menù`, fn: `miMenuVisibilita('${i.id}')` });
+  });
+  _filtered.filter(i => i.quadrante === "puzzle" && i.menuVoci?.length).slice(0, 2).forEach(i => {
+    azioni.push({ icon: "🧩", testo: `"${i.nome}" ha ottimo margine ma vende poco: prova a spostarlo più in alto nel menù.`, btn: `Sposta in cima`, fn: `miMenuSposta('${i.id}','su')` });
+  });
+
   el.innerHTML = `
     <div class="mi-card">
-      <div style="font-size:15px;font-weight:900;color:#111827;margin-bottom:4px;">🧠 Suggerimenti AI</div>
-      <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Regole operative automatiche. In futuro possono essere passate a Tony AI.</div>
+      <div style="font-size:15px;font-weight:900;color:#111827;margin-bottom:4px;">🧠 Tony sul menù</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Azioni concrete sul tuo menù. Tony esegue solo dopo la tua conferma.</div>
+      ${
+        azioni.length
+          ? azioni.slice(0, 6).map(a => `
+            <div class="mi-ai-item">
+              <div style="font-size:12.5px;color:#111827;line-height:1.45;">${a.icon} ${esc(a.testo)}</div>
+              <button class="mi-btn-small" style="margin-top:7px;background:#0E5A7A;color:white;" onclick="${a.fn}">${esc(a.btn)}</button>
+            </div>
+          `).join("")
+          : `<div style="font-size:13px;color:#94a3b8;text-align:center;padding:10px;">Nessuna azione suggerita al momento.</div>`
+      }
       ${
         suggerimenti.length
-          ? suggerimenti.slice(0, 8).map(s => `
+          ? `<div style="font-size:12px;font-weight:900;color:#64748b;margin:12px 0 8px;text-transform:uppercase;letter-spacing:.5px;">Altri suggerimenti</div>` + suggerimenti.slice(0, 5).map(s => `
             <div class="mi-ai-item">
               <div style="font-size:13px;font-weight:900;color:#111827;">${s.icon} ${esc(s.titolo)}</div>
               <div style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.45;">${esc(s.testo)}</div>
               ${s.valore ? `<div style="font-size:12px;font-weight:900;color:#059669;margin-top:6px;">${esc(s.valore)}</div>` : ""}
             </div>
           `).join("")
-          : `<div style="font-size:13px;color:#94a3b8;text-align:center;padding:18px;">Nessun suggerimento disponibile con i dati attuali.</div>`
+          : ""
       }
     </div>
   `;

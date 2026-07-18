@@ -139,7 +139,7 @@ const routes = {
   margini: () => import("./views/margini.js"),
   "food-cost-mancanti": () => import("./views/food-cost-mancanti.js?v=1"),
   "spese-fisse": () => import("./views/spese-fisse.js?v=1"),
-  "menu-intelligence": () => import("./views/menu-intelligence.js?v=7"),
+  "menu-intelligence": () => import("./views/menu-intelligence.js?v=8"),
 
   preventivi: () => import("./views/preventivi.js"),
   creaPreventivo: () => import("./views/crea-preventivo.js"),
