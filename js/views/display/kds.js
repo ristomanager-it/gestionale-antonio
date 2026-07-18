@@ -82,14 +82,24 @@ async function carica(sedeId) {
     .select("id, comanda_id, prodotto_vendita_id, nome_snapshot, quantita, note, stato, portata, started_at, completed_at, inviato_cucina_at, created_at")
     .in("comanda_id", ids).order("portata").order("created_at");
 
-  // allergeni per prodotto venduto (critico in cucina)
+  // allergeni + tempi previsti per prodotto venduto
   const pvIds = [...new Set((righe || []).map(r => r.prodotto_vendita_id).filter(Boolean))];
   const allergByPv = {};
+  const tempoByPv = {};
   if (pvIds.length) {
-    const { data: pv } = await supa().from("prodotti_vendita").select("id, allergeni").in("id", pvIds);
-    (pv || []).forEach(p => { if (Array.isArray(p.allergeni) && p.allergeni.length) allergByPv[String(p.id)] = p.allergeni; });
+    const { data: pv } = await supa().from("prodotti_vendita").select("id, allergeni, minutaggio_servizio").in("id", pvIds);
+    (pv || []).forEach(p => {
+      if (Array.isArray(p.allergeni) && p.allergeni.length) allergByPv[String(p.id)] = p.allergeni;
+      if (p.minutaggio_servizio != null) tempoByPv[String(p.id)] = Number(p.minutaggio_servizio);
+    });
+    const { data: rice } = await supa().from("ricette").select("prodotto_vendita_id, tempo_esecuzione_min")
+      .eq("azienda_id", aziendaId).not("tempo_esecuzione_min", "is", null);
+    (rice || []).forEach(r => { if (tempoByPv[String(r.prodotto_vendita_id)] == null && r.prodotto_vendita_id) tempoByPv[String(r.prodotto_vendita_id)] = Number(r.tempo_esecuzione_min); });
   }
-  (righe || []).forEach(r => { r._allergeni = allergByPv[String(r.prodotto_vendita_id)] || []; });
+  (righe || []).forEach(r => {
+    r._allergeni = allergByPv[String(r.prodotto_vendita_id)] || [];
+    r._tempo = tempoByPv[String(r.prodotto_vendita_id)] || 15;
+  });
 
   const righeByComanda = {};
   (righe || []).forEach(r => { (righeByComanda[r.comanda_id] = righeByComanda[r.comanda_id] || []).push(r); });
@@ -142,14 +152,34 @@ function cardHtml(c) {
   const since = new Date(c.created_at).getTime();
   const tavolo = c.tavolo_id ? ("Tav. " + c.tavolo_id) : "Asporto";
   const colonna = colonnaComanda(c.righe);
+  const sinceMin = Math.floor((Date.now() - since) / 60000);
+  // i piatti della stessa portata devono uscire insieme: il piu lungo e' l'ancora
+  const maxByPortata = {};
+  c.righe.forEach(r => { if (r.stato !== "consegnato") { const k = r.portata || 0; maxByPortata[k] = Math.max(maxByPortata[k] || 0, r._tempo || 15); } });
+
   const righeHtml = c.righe.map(r => {
     const st = r.stato || "in_attesa";
     const done = st === "consegnato" || st === "pronto";
     const az = AZIONE[st];
+    const tempo = r._tempo || 15;
+    const tmax = maxByPortata[r.portata || 0] || tempo;
+    const startDelay = Math.max(0, tmax - tempo);
+    let timeInfo = "";
+    if (st === "in_attesa") {
+      const until = startDelay - sinceMin;
+      timeInfo = until <= 0
+        ? `<span style="background:#b91c1c;color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:800;">🔥 AVVIA ORA · ${tempo}′</span>`
+        : `<span style="color:#94a3b8;font-size:11px;">⏳ avvia fra ${until}′ · dura ${tempo}′</span>`;
+    } else if (st === "in_preparazione") {
+      const el = r.started_at ? Math.floor((Date.now() - new Date(r.started_at).getTime()) / 60000) : 0;
+      const late = el > tempo;
+      timeInfo = `<span style="color:${late ? "#f87171" : "#cbd5e1"};font-size:11px;">⏱ ${el}′ / ${tempo}′${late ? " ⚠ in ritardo" : ""}</span>`;
+    }
     return `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #1f2937;">
         <div style="flex:1;${done ? "opacity:.6;" : ""}">
           <div style="font-size:14px;font-weight:600;">${r.quantita > 1 ? r.quantita + "× " : ""}${escapeHtml(r.nome_snapshot || "Piatto")}</div>
+          ${timeInfo ? `<div style="margin-top:2px;">${timeInfo}</div>` : ""}
           ${(r._allergeni && r._allergeni.length) ? `<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px;">${r._allergeni.map(a => `<span style="background:#7f1d1d;color:#fecaca;border-radius:4px;font-size:10px;font-weight:700;padding:1px 6px;text-transform:uppercase;">⚠ ${escapeHtml(a)}</span>`).join("")}</div>` : ""}
           ${r.note ? `<div style="font-size:11px;color:#fbbf24;">✎ ${escapeHtml(r.note)}</div>` : ""}
         </div>
