@@ -5,6 +5,8 @@ let _filtered = [];
 let _periodo = "30";
 let _categoria = "";
 let _simItemId = null;
+let _saluteSedi = null;
+let _saluteSede = "";
 
 const PIANO_QUADRANTI = {
   star: {
@@ -67,6 +69,7 @@ export async function render(container) {
       <div id="mi-content" style="display:none;">
         <div id="mi-kpi"></div>
         <div id="mi-score"></div>
+        <div id="mi-salute" class="mi-card" style="margin-top:16px;"></div>
 
         <div style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:16px;margin-top:16px;" class="mi-grid-main">
           <div>
@@ -161,6 +164,7 @@ async function loadData() {
   _items = normalizeItems(prodotti, ricette, vendite);
   buildCategoryOptions();
   applyFiltersAndRender();
+  renderSalute();
 
   if (loading) loading.style.display = "none";
   if (content) content.style.display = "block";
@@ -731,6 +735,80 @@ function fmt(v) {
   if (Math.abs(num) >= 1000) return Math.round(num).toLocaleString("it-IT");
   return num.toLocaleString("it-IT", { maximumFractionDigits: 1 });
 }
+
+async function renderSalute() {
+  const el = document.getElementById("mi-salute");
+  if (!el) return;
+  const aziendaId = window.state?.azienda?.id;
+  if (!aziendaId) { el.style.display = "none"; return; }
+
+  if (_saluteSedi === null) {
+    try {
+      const { data } = await supabase.from("sedi").select("id,nome").eq("azienda_id", aziendaId).order("nome");
+      _saluteSedi = data || [];
+    } catch { _saluteSedi = []; }
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:900;color:#111827;">🩺 Salute dati</div>
+      <select id="mi-salute-sede" class="input" style="width:auto;min-width:150px;" onchange="miSetSaluteSede(this.value)">
+        <option value="">Tutte le sedi</option>
+        ${_saluteSedi.map(s => `<option value="${esc(s.id)}" ${_saluteSede === s.id ? "selected" : ""}>${esc(s.nome)}</option>`).join("")}
+      </select>
+    </div>
+    <div id="mi-salute-body" style="color:#94a3b8;">Caricamento…</div>`;
+
+  const { data, error } = await supabase.rpc("get_salute_dati", { p_azienda: aziendaId, p_sede: _saluteSede || null });
+  const body = document.getElementById("mi-salute-body");
+  if (!body) return;
+  if (error || !data) { body.innerHTML = `<span style="color:#dc2626;">Salute dati non disponibile</span>`; return; }
+  body.innerHTML = renderSaluteCards(data);
+}
+
+function saluteBarra(ok, tot) {
+  ok = Number(ok) || 0; tot = Number(tot) || 0;
+  const perc = tot > 0 ? Math.round(ok / tot * 100) : 0;
+  const col = perc >= 70 ? "#16a34a" : perc >= 35 ? "#d97706" : "#dc2626";
+  return `<div style="background:#f1f5f9;border-radius:6px;height:8px;overflow:hidden;margin-top:4px;"><div style="width:${perc}%;height:100%;background:${col};"></div></div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px;">${ok} / ${tot} (${perc}%)</div>`;
+}
+
+function saluteCard(titolo, righe) {
+  return `<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;">
+    <div style="font-weight:800;font-size:13px;color:#111827;margin-bottom:8px;">${titolo}</div>${righe}</div>`;
+}
+
+function renderSaluteCards(d) {
+  const r = d.ricette || {}, pv = d.prodotti_vendita || {}, me = d.menu_engineering || {}, c = d.contatti || {}, op = d.operativita || {};
+  const meTot = (Number(me.sul_grafico) || 0) + (Number(me.senza_costo) || 0);
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+      ${saluteCard("📖 Ricette", `
+        <div style="font-size:12px;color:#475569;">Con distinta ingredienti</div>${saluteBarra(r.con_ingredienti, r.tot)}
+        <div style="font-size:12px;color:#475569;margin-top:8px;">Con costo calcolato</div>${saluteBarra(r.con_costo, r.tot)}`)}
+      ${saluteCard("💰 Food cost articoli", `
+        <div style="font-size:12px;color:#475569;">Con food cost manuale</div>${saluteBarra(pv.con_food_cost, pv.con_ricetta || pv.tot)}
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px;">${Number(pv.con_ricetta) || 0} articoli legati a ricetta su ${Number(pv.tot) || 0}</div>`)}
+      ${saluteCard("📊 Menu Engineering", `
+        <div style="font-size:12px;color:#475569;">Piatti in quadrante (con costo)</div>${saluteBarra(me.sul_grafico, meTot)}
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px;">${Number(me.senza_costo) || 0} piatti ancora senza costo</div>`)}
+      ${saluteCard("👥 Contatti", `
+        <div style="font-size:12px;color:#475569;">Con email</div>${saluteBarra(c.con_email, c.tot)}
+        <div style="font-size:12px;color:#475569;margin-top:8px;">Con telefono</div>${saluteBarra(c.con_telefono, c.tot)}
+        <div style="font-size:12px;color:#475569;margin-top:8px;">Con data di nascita <span style="color:#94a3b8;">(compleanni)</span></div>${saluteBarra(c.con_nascita, c.tot)}`)}
+      ${saluteCard("⚙️ Operatività" + (_saluteSede ? " (sede)" : ""), `
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;"><span style="color:#475569;">Vendite ultimi 30gg</span><b>${Number(op.vendite_30gg) || 0}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;"><span style="color:#475569;">Prenotazioni</span><b>${Number(op.prenotazioni) || 0}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;"><span style="color:#475569;">Produzioni aperte</span><b>${Number(op.produzioni_aperte) || 0}</b></div>`)}
+    </div>
+    <div style="font-size:11px;color:#94a3b8;margin-top:10px;">Il filtro sede vale per Operatività (vendite, prenotazioni, produzioni). Ricette, food cost e contatti sono per azienda.</div>`;
+}
+
+if (typeof window !== "undefined") {
+  window.miSetSaluteSede = function (v) { _saluteSede = v; renderSalute(); };
+}
+
 
 function esc(value) {
   return String(value ?? "")
