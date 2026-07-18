@@ -144,6 +144,24 @@ function bindGlobals() {
     if (!output || !item) return;
     output.innerHTML = renderSimOutput(item, Number(value || 0));
   };
+
+  window.miApplicaPrezzo = async function(id) {
+    const item = _items.find(i => String(i.id) === String(id));
+    if (!item || item.prezzoConsigliato == null || !item.pvIds?.length) return;
+    const attuale = item.prezzoListino != null ? item.prezzoListino : item.prezzo;
+    const ok = confirm(`Aggiornare il listino di "${item.nome}"?\n\n${euro(attuale)} → ${euro(item.prezzoConsigliato)}`);
+    if (!ok) return;
+    try {
+      const { error } = await supabase.from("prodotti_vendita")
+        .update({ prezzo_base: item.prezzoConsigliato })
+        .in("id", item.pvIds);
+      if (error) throw error;
+      alert(`✅ "${item.nome}" aggiornato a ${euro(item.prezzoConsigliato)} nel listino.`);
+      await loadData();
+    } catch (e) {
+      alert("Errore aggiornamento prezzo: " + (e?.message || e));
+    }
+  };
 }
 
 async function loadData() {
@@ -161,6 +179,19 @@ async function loadData() {
     rows = (data || []).filter(r => r.quadrante && r.quadrante !== "SENZA_COSTO");
   } catch { rows = []; }
 
+  // Prezzo di listino reale (prodotti_vendita.prezzo_base) per ricetta
+  const listino = new Map();
+  try {
+    const { data: pvs } = await supabase.from("prodotti_vendita")
+      .select("id,ricetta_id,prezzo_base")
+      .eq("azienda_id", aziendaId)
+      .not("ricetta_id", "is", null);
+    (pvs || []).forEach(p => {
+      if (!listino.has(p.ricetta_id)) listino.set(p.ricetta_id, { ids: [], prezzo: n(p.prezzo_base) });
+      listino.get(p.ricetta_id).ids.push(p.id);
+    });
+  } catch { /* listino opzionale */ }
+
   _items = rows.map(r => {
     const prezzo = n(r.prezzo_medio);
     const costo = n(r.costo_piatto);
@@ -177,7 +208,9 @@ async function loadData() {
       quadrante: String(r.quadrante || "dog").toLowerCase(),
       prezzoConsigliato: r.prezzo_consigliato != null ? n(r.prezzo_consigliato) : null,
       margineSpingibile: n(r.margine_spingibile),
-      costoStimato: r.costo_stimato === true
+      costoStimato: r.costo_stimato === true,
+      prezzoListino: listino.has(r.ricetta_id) ? listino.get(r.ricetta_id).prezzo : null,
+      pvIds: listino.has(r.ricetta_id) ? listino.get(r.ricetta_id).ids : []
     };
   });
   buildCategoryOptions();
@@ -432,10 +465,10 @@ function renderTable() {
               <th>Categoria</th>
               <th>Vendite</th>
               <th>Ricavo</th>
-              <th>Prezzo</th>
               <th>Food Cost</th>
               <th>Margine</th>
-              <th>Consigliato</th>
+              <th>Prezzo</th>
+              <th>Proposto</th>
               <th>Classe</th>
               <th></th>
             </tr>
@@ -472,14 +505,24 @@ function renderTableRows(rows) {
         <td>${esc(i.categoria || "—")}</td>
         <td><b>${fmt(i.vendite)}</b></td>
         <td><b>${euro(i.ricavo)}</b></td>
-        <td>${euro(i.prezzo)}</td>
         <td style="color:${i.foodCostPerc > 35 ? "#DC2626" : "#059669"};font-weight:900;">${fmt(i.foodCostPerc)}%</td>
         <td>
           <b>${euro(i.margineTotale)}</b>
           <div style="font-size:11px;color:#64748b;">${fmt(i.marginePerc)}%</div>
         </td>
-        <td>
-          ${i.prezzoConsigliato != null ? `<b style="color:${i.margineSpingibile > 0 ? "#16a34a" : "#111827"};">${euro(i.prezzoConsigliato)}</b>${i.margineSpingibile > 0 ? `<div style="font-size:11px;color:#16a34a;">+${euro(i.margineSpingibile)}</div>` : `<div style="font-size:11px;color:#94a3b8;">ok così</div>`}` : "—"}
+        <td style="white-space:nowrap;">
+          <b>${euro(i.prezzoListino != null ? i.prezzoListino : i.prezzo)}</b>
+          <div style="font-size:11px;color:#94a3b8;">${i.prezzoListino != null ? "listino" : "medio venduto"}</div>
+        </td>
+        <td style="white-space:nowrap;">
+          ${(() => {
+            const attuale = i.prezzoListino != null ? i.prezzoListino : i.prezzo;
+            if (i.prezzoConsigliato != null && i.prezzoConsigliato > attuale + 0.01) {
+              const btn = i.pvIds.length ? `<button class="mi-btn-small" style="background:#dcfce7;color:#166534;margin-top:4px;" onclick="miApplicaPrezzo('${i.id}')">Applica</button>` : "";
+              return `<b style="color:#16a34a;">${euro(i.prezzoConsigliato)}</b><div style="font-size:11px;color:#16a34a;">+${euro(i.prezzoConsigliato - attuale)} a piatto</div>${btn}`;
+            }
+            return `<span style="color:#94a3b8;">ok così</span>`;
+          })()}
         </td>
         <td><span class="mi-badge" style="background:${q.bg};color:${q.colore};">${q.icon} ${q.label}</span></td>
         <td><button class="mi-btn-small" onclick="miSimula('${i.id}')">Simula</button></td>
