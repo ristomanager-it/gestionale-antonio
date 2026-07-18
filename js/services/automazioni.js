@@ -106,7 +106,59 @@ export async function eseguiAutomazioni(evento, pren){
       continue;
     }
 
-    // 🔥 GENERA MESSAGGIO
+    // 💬 WHATSAPP: invio reale via API col template approvato (fallback: apertura manuale)
+    if (t.tipo === "whatsapp") {
+      if (t.invia_whatsapp === false) continue;
+      const tel = pren.cliente_telefono || pren.telefono;
+      if (!tel) continue;
+      try {
+        let sede = {};
+        if (pren.sede_id) {
+          try { const { data:s } = await supabase.from("sedi").select("nome,telefono,indirizzo,citta").eq("id", pren.sede_id).maybeSingle(); sede = s || {}; } catch(e){}
+        }
+        const datiWa = {
+          nome: pren.cliente_nome, cognome: pren.cognome,
+          nome_completo: [pren.cliente_nome, pren.cognome].filter(Boolean).join(" "),
+          data_prenotazione: pren.data, ora_prenotazione: pren.ora,
+          num_persone: pren.coperti,
+          nome_ristorante: sede.nome || "", telefono_ristorante: sede.telefono || "", indirizzo: sede.indirizzo || "",
+          link_gestione: pren.token_pubblico || "",
+        };
+        let map = null;
+        if (t.wa_template_name) {
+          const r = await supabase.from("whatsapp_template_mapping")
+            .select("template_name, wildcard_map").eq("azienda_id", aziendaId)
+            .eq("template_name", t.wa_template_name).maybeSingle();
+          map = r.data || null;
+        }
+        if (t.wa_template_name && map) {
+          const wm = map.wildcard_map || {};
+          const nVar = Object.keys(wm).length;
+          const params = [];
+          for (let i = 1; i <= nVar; i++) params.push(String(datiWa[wm[String(i)]] ?? ""));
+          const { data: sess } = await supabase.auth.getSession();
+          const token = sess?.session?.access_token || ANON_KEY;
+          await fetch(SUPABASE_URL + "/functions/v1/whatsapp-send-ts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": ANON_KEY },
+            body: JSON.stringify({
+              azienda_id: aziendaId, numero_dest: tel,
+              template_name: t.wa_template_name,
+              template_params: params.length ? params : undefined,
+              button_param: pren.token_pubblico || undefined,
+              contesto: evento,
+            })
+          });
+        } else {
+          // template non ancora approvato su Meta: apertura manuale come ripiego
+          const testoFb = await generaMessaggio(t.tipo, { nome: pren.cliente_nome, data: pren.data, ora: pren.ora, coperti: pren.coperti });
+          if (testoFb) apriWhatsApp(tel, testoFb);
+        }
+      } catch(e){ console.error("WhatsApp momento:", e); }
+      continue;
+    }
+
+    // 🔥 GENERA MESSAGGIO (altri tipi)
     const testo = await generaMessaggio(t.tipo, {
       nome: pren.cliente_nome,
       data: pren.data,
