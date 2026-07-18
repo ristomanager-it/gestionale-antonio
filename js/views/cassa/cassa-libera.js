@@ -27,6 +27,7 @@ export async function renderCassaLibera(container, azienda) {
 
   // Stato del carrello in memoria
   let carrello = []; // { prodotto_id, nome, prezzo, qta, aliquota_iva }
+  let coupon = null; // { codice, cliente, promo_nome, tipo, valore } — verificato, annullato all'incasso
   let categorie = [];
   let prodotti = [];
 
@@ -62,14 +63,24 @@ export async function renderCassaLibera(container, azienda) {
   render();
 
   function totali() {
-    let totale = 0, ivaTot = 0;
+    let lordo = 0, ivaTot = 0;
     for (const r of carrello) {
       const imp = r.prezzo * r.qta;
-      totale += imp;
+      lordo += imp;
       const al = r.aliquota_iva || 10;
       ivaTot += imp - (imp / (1 + al / 100));
     }
-    return { totale: round2(totale), iva: round2(ivaTot), imponibile: round2(totale - ivaTot) };
+    // Sconto coupon: percentuale o euro sul totale (2x1/omaggio: gestione manuale in riga)
+    let sconto = 0;
+    if (coupon && lordo > 0) {
+      if (coupon.tipo === 'sconto_perc') sconto = lordo * (Number(coupon.valore) || 0) / 100;
+      else if (coupon.tipo === 'sconto_euro') sconto = Math.min(Number(coupon.valore) || 0, lordo);
+    }
+    sconto = round2(sconto);
+    const totale = round2(lordo - sconto);
+    const fattore = lordo > 0 ? totale / lordo : 1;
+    const iva = round2(ivaTot * fattore);
+    return { lordo: round2(lordo), sconto, totale, iva, imponibile: round2(totale - iva) };
   }
 
   function render() {
@@ -101,9 +112,16 @@ export async function renderCassaLibera(container, azienda) {
             <div style="display:flex;justify-content:space-between;font-size:13px;color:#64748b;margin-top:2px;">
               <span>IVA</span><span>€ ${t.iva.toFixed(2)}</span>
             </div>
+            ${coupon ? `
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:8px 10px;margin-top:8px;">
+              <span>🎟 ${esc(coupon.promo_nome)}${coupon.cliente ? ' · ' + esc(coupon.cliente) : ''}${t.sconto > 0 ? '' : ' <span style=\'color:#b45309\'>(da applicare a mano)</span>'}</span>
+              <span style="display:flex;align-items:center;gap:8px;"><b>${t.sconto > 0 ? '− € ' + t.sconto.toFixed(2) : ''}</b>
+              <button id="cl-coupon-x" style="border:none;background:none;color:#b91c1c;cursor:pointer;font-size:14px;">✕</button></span>
+            </div>` : ''}
             <div style="display:flex;justify-content:space-between;font-weight:800;font-size:22px;color:#0f172a;margin-top:8px;">
               <span>Totale</span><span>€ ${t.totale.toFixed(2)}</span>
             </div>
+            ${coupon ? '' : `<button id="cl-coupon" style="width:100%;margin-top:10px;padding:9px;border:1px dashed #cbd5e1;border-radius:999px;background:white;color:#0E5A7A;font-size:13px;font-weight:600;cursor:pointer;">🎟 Ho un coupon promo</button>`}
             <button id="cl-paga" ${carrello.length ? '' : 'disabled'} style="
               width:100%;margin-top:14px;padding:15px;border:none;border-radius:14px;
               background:${carrello.length ? '#0E5A7A' : '#cbd5e1'};color:white;font-size:16px;font-weight:700;
@@ -182,7 +200,24 @@ export async function renderCassaLibera(container, azienda) {
     };
     // Svuota
     const sv = container.querySelector('#cl-svuota');
-    if (sv) sv.onclick = () => { carrello = []; render(); aggiornaSchermoCliente(); };
+    if (sv) sv.onclick = () => { carrello = []; coupon = null; render(); aggiornaSchermoCliente(); };
+    // Coupon promo: verifica (l'annullo definitivo avviene all'incasso)
+    const btnCp = container.querySelector('#cl-coupon');
+    if (btnCp) btnCp.onclick = async () => {
+      const codice = prompt('Codice coupon (scrivi o scansiona il QR — es. RFC:AB12CD):');
+      if (!codice) return;
+      btnCp.disabled = true; btnCp.textContent = '⏳ Verifica...';
+      const { data, error } = await supabase.rpc('annulla_coupon', { p_codice: codice.trim(), p_solo_verifica: true });
+      if (error || !data || !data.ok) {
+        alert('❌ ' + (data?.errore || error?.message || 'Coupon non valido') + (data?.cliente ? '\nIntestato a: ' + data.cliente : '') + (data?.data_utilizzo ? '\nUsato il: ' + new Date(data.data_utilizzo).toLocaleString('it-IT') : ''));
+        render();
+        return;
+      }
+      coupon = { codice: data.codice, cliente: data.cliente, promo_nome: data.promo_nome, tipo: data.promo_tipo, valore: data.promo_valore };
+      render(); aggiornaSchermoCliente();
+    };
+    const cpX = container.querySelector('#cl-coupon-x');
+    if (cpX) cpX.onclick = () => { coupon = null; render(); aggiornaSchermoCliente(); };
     // Apri pagamento
     const paga = container.querySelector('#cl-paga');
     if (paga) paga.onclick = () => {
@@ -214,7 +249,16 @@ export async function renderCassaLibera(container, azienda) {
         if (!pay.ok) { esito.textContent = '❌ ' + (pay.errore || 'Pagamento non riuscito'); return; }
         esito.textContent = pay.simulato ? '✅ Pagamento simulato' : '✅ Pagamento ok';
       }
-      // 2) Registra la vendita
+      // 2) Annullo definitivo del coupon (se agganciato)
+      if (coupon) {
+        const { data: burn, error: burnErr } = await supabase.rpc('annulla_coupon', { p_codice: coupon.codice, p_solo_verifica: false });
+        if (burnErr || !burn || !burn.ok) {
+          esito.textContent = '❌ Coupon non più valido: ' + (burn?.errore || burnErr?.message || 'errore') + ' — rimosso dal conto.';
+          coupon = null; render();
+          return;
+        }
+      }
+      // 3) Registra la vendita
       await registraVendita(_metodoScelto, t);
       // 3) Scontrino fiscale (scheletro simulato)
       const scontrino = await emettiScontrinoFiscale({
@@ -227,6 +271,7 @@ export async function renderCassaLibera(container, azienda) {
       // 4) Reset dopo un attimo
       setTimeout(() => {
         carrello = [];
+        coupon = null;
         container.querySelector('#cl-modal').style.display = 'none';
         render();
         aggiornaSchermoCliente();
@@ -252,6 +297,18 @@ export async function renderCassaLibera(container, azienda) {
         totale_riga: round2(r.prezzo * r.qta),
         canale: 'cassa_libera',
       }));
+      if (coupon && t.sconto > 0) {
+        righe.push({
+          azienda_id: aziendaId, sede_id: sedeId,
+          data_vendita: oggi,
+          prodotto_id: null,
+          nome_prodotto: 'Sconto promo: ' + coupon.promo_nome + ' (' + coupon.codice + ')',
+          quantita: 1,
+          prezzo_unitario: -t.sconto,
+          totale_riga: -t.sconto,
+          canale: 'cassa_libera',
+        });
+      }
       if (righe.length) await supabase.from('vendite_giornaliere').insert(righe);
     } catch (e) {
       console.warn('registraVendita:', e?.message || e);
