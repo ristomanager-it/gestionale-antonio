@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=19";
+import { initMenu } from "./menu.js?v=20";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -212,6 +212,7 @@ const routes = {
   // =========================
   "display-cucina": () => import("./views/display/display-cucina.js?v=5"),
   "kds": () => import("./views/display/kds.js?v=2"),
+  "kds-produzioni": () => import("./views/display/kds-produzioni.js?v=1"),
 
 }; // 
 
@@ -558,6 +559,7 @@ function hasPermission(area) {
       "registro-messaggi",
       "display-cucina",
       "kds",
+      "kds-produzioni",
 
       // Timbrature e profilo
       "timbrature",
