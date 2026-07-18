@@ -139,6 +139,13 @@ export async function render(container) {
         <div id="xml-vendita-feedback" style="margin-top:10px; font-size:13px;"></div>
       </div>
 
+      <!-- GIORNI CARICATI -->
+      <div style="margin-top:12px; background:#ffffff; border-radius:16px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.15);">
+        <h3 style="margin:0 0 4px;">📅 Giorni caricati (ultimi 60)</h3>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">Ogni riga è un giorno di venduto. Col cestino elimini l'intero giorno (es. import doppio o sbagliato) e puoi ricaricarlo.</div>
+        <div id="venduto-giorni"></div>
+      </div>
+
       <!-- LISTA -->
       <div style="margin-top:12px; background:#ffffff; border-radius:16px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.15);">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -217,6 +224,45 @@ export async function render(container) {
      CARICA VENDITE
   ========================================================= */
 
+  async function caricaGiorni() {
+    const box = document.getElementById("venduto-giorni");
+    if (!box) return;
+    const da = new Date(Date.now() - 60 * 86400000).toISOString().split("T")[0];
+    const { data: rows } = await supabase
+      .from("vendite_giornaliere")
+      .select("data_vendita, quantita, totale_riga")
+      .eq("azienda_id", azienda.id)
+      .gte("data_vendita", da)
+      .limit(10000);
+    const gg = new Map();
+    (rows || []).forEach(r => {
+      const g = gg.get(r.data_vendita) || { righe: 0, pezzi: 0, tot: 0 };
+      g.righe++; g.pezzi += Number(r.quantita) || 0; g.tot += Number(r.totale_riga) || 0;
+      gg.set(r.data_vendita, g);
+    });
+    const giorni = Array.from(gg.entries()).sort((x, y) => y[0].localeCompare(x[0])).slice(0, 20);
+    if (giorni.length === 0) { box.innerHTML = '<div style="font-size:13px;color:#9ca3af;">Nessun venduto negli ultimi 60 giorni.</div>'; return; }
+    box.innerHTML = giorni.map(([g, v]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;padding:7px 0;font-size:13px;gap:8px;">
+        <div><b>${new Date(g + "T00:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}</b>
+          <span style="color:#6b7280;"> · ${v.righe} righe · ${v.pezzi} pezzi</span></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <b>€ ${v.tot.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</b>
+          <button onclick="vendutoEliminaGiorno('${g}', ${v.righe}, '${v.tot.toFixed(2)}')" title="Elimina tutto il venduto di questo giorno"
+            style="background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;padding:5px 9px;cursor:pointer;font-size:13px;">🗑</button>
+        </div>
+      </div>`).join("");
+  }
+
+  window.vendutoEliminaGiorno = async function (giorno, righe, tot) {
+    if (!confirm("Eliminare TUTTO il venduto del " + giorno.split("-").reverse().join("/") + "?\n\n" + righe + " righe · € " + tot + "\n\nL'operazione non si può annullare (ma puoi ricaricare il file).")) return;
+    const { error } = await supabase.from("vendite_giornaliere").delete()
+      .eq("azienda_id", azienda.id).eq("data_vendita", giorno);
+    if (error) { alert("Errore eliminazione: " + error.message); return; }
+    await caricaGiorni();
+    await caricaVendite();
+  };
+
   async function caricaVendite() {
     setFeedback(feedback, "");
     const from = fromInput.value || null;
@@ -290,6 +336,7 @@ export async function render(container) {
         }
 
         await caricaVendite();
+    await caricaGiorni();
       });
 
       right.appendChild(btnDel);
@@ -303,8 +350,9 @@ export async function render(container) {
   }
 
   await caricaVendite();
+    await caricaGiorni();
 
-  document.getElementById("btn-venduto-refresh").addEventListener("click", caricaVendite);
+  document.getElementById("btn-venduto-refresh").addEventListener("click", async () => { await caricaVendite(); await caricaGiorni(); });
 
   document.getElementById("btn-venduto-delete-range").addEventListener("click", async () => {
     const from = fromInput.value || null;
@@ -332,6 +380,7 @@ export async function render(container) {
 
     setFeedback(feedback, "Range eliminato.", "ok");
     await caricaVendite();
+    await caricaGiorni();
   });
 
   /* =========================================================
@@ -396,6 +445,7 @@ export async function render(container) {
 
     // Aggiorna lista con filtri correnti
     await caricaVendite();
+    await caricaGiorni();
   });
 
   /* =========================================================
@@ -481,6 +531,31 @@ export async function render(container) {
     const mapProd = new Map();
     (prodotti || []).forEach(p => mapProd.set(String(p.descrizione || "").trim().toLowerCase(), p));
 
+    // Anti-doppione: se i giorni del file sono gia' caricati, propongo la SOSTITUZIONE
+    const dateFile = new Set();
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCSVLine(lines[i], delimiter);
+      const dv = (cols[idxData] || "").trim();
+      if (dv) dateFile.add(dv);
+    }
+    const dateArr = Array.from(dateFile);
+    if (dateArr.length > 0) {
+      const { count: giaCnt } = await supabase
+        .from("vendite_giornaliere")
+        .select("id", { count: "exact", head: true })
+        .eq("azienda_id", azienda.id)
+        .in("data_vendita", dateArr);
+      if (giaCnt && giaCnt > 0) {
+        const sost = confirm(
+          "⚠️ Per i giorni di questo file risultano già " + giaCnt + " righe caricate.\n\n" +
+          "OK = SOSTITUISCO: elimino le righe esistenti di quei giorni e carico il file (niente doppioni)\n" +
+          "Annulla = annullo l'import"
+        );
+        if (!sost) { setFeedback(csvFeedback, "Import annullato: giorni già presenti.", "warn"); e.target.value = ""; return; }
+        await supabase.from("vendite_giornaliere").delete().eq("azienda_id", azienda.id).in("data_vendita", dateArr);
+      }
+    }
+
     let inseriti = 0;
     let saltati = 0;
     const nonTrovati = new Map(); // nome -> count
@@ -546,6 +621,7 @@ export async function render(container) {
     );
 
     await caricaVendite();
+    await caricaGiorni();
     e.target.value = "";
   });
 
@@ -765,6 +841,7 @@ export async function render(container) {
     );
 
     await caricaVendite();
+    await caricaGiorni();
     e.target.value = "";
   });
 
@@ -866,6 +943,7 @@ export async function render(container) {
 
       setFeedback(xmlVenditaFeedback, `✅ Fattura importata. Righe: ${righe.length} • Totale: € ${totFattura.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`, "ok");
       await caricaVendite();
+    await caricaGiorni();
     } catch (err) {
       setFeedback(xmlVenditaFeedback, "Errore lettura fattura: " + (err?.message || err), "err");
     }
