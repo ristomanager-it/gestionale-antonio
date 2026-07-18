@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ristoflow — Collegamento Meta</title>
+</head>
+<body style="font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;margin:0;">
+  <div style="max-width:440px;text-align:center;padding:36px 28px;background:#fff;border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.08);margin:16px;">
+    <div id="icona" style="font-size:52px;">⏳</div>
+    <h2 id="titolo" style="color:#0f172a;margin:12px 0 8px;">Verifica in corso...</h2>
+    <p id="msg" style="color:#475569;font-size:15px;line-height:1.55;margin:0 0 18px;"></p>
+    <a href="/#bo-configurazione?tab=integrazioni" style="display:inline-block;background:#0E5A7A;color:white;border-radius:12px;padding:12px 22px;font-size:15px;font-weight:600;text-decoration:none;">Torna su Ristoflow</a>
+  </div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const ok = p.get("ok") === "1";
+    document.getElementById("icona").textContent = ok ? "✅" : "❌";
+    document.getElementById("titolo").textContent = ok ? "Meta collegato!" : "Collegamento non riuscito";
+    document.getElementById("titolo").style.color = ok ? "#16a34a" : "#dc2626";
+    document.getElementById("msg").textContent = p.get("msg") || "";
+  </script>
+</body>
+</html>
