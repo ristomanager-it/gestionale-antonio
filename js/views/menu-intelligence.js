@@ -160,6 +160,11 @@ function bindGlobals() {
       if (error) throw error;
       alert(`✅ "${item.nome}" aggiornato a ${euro(item.prezzoConsigliato)} nel listino.`);
       await loadData();
+    } catch (e) {
+      alert("Errore aggiornamento prezzo: " + (e?.message || e));
+    }
+  };
+
   window.miApplicaTutti = async function() {
     const daApplicare = _filtered.filter(i => {
       const attuale = i.prezzoListino != null ? i.prezzoListino : i.prezzo;
@@ -527,9 +532,13 @@ function renderTableRows(rows) {
     }
     let consigliato = `<span style="color:#94a3b8;">ok così ✓</span>`;
     if (i.prezzoConsigliato != null && i.prezzoConsigliato > attuale + 0.01) {
+      const giorni = Math.max(1, i.giorniStorico || _giorniStorico || 1);
+      const extraAnnuo = (i.prezzoConsigliato - attuale) * i.vendite / giorni * 365;
       const btn = i.pvIds.length ? `<button class="mi-btn-small" style="background:#dcfce7;color:#166534;margin-top:4px;" onclick="miApplicaPrezzo('${i.id}')">Applica a menù</button>` : "";
       consigliato = `<b style="color:#16a34a;font-size:14px;">${euro(i.prezzoConsigliato)}</b>
-        <div style="font-size:11px;color:#16a34a;">+${euro(i.prezzoConsigliato - attuale)} a piatto</div>${btn}`;
+        <div style="font-size:11px;color:#16a34a;">+${euro(i.prezzoConsigliato - attuale)} a piatto</div>
+        <div style="font-size:12px;font-weight:900;color:#065f46;background:#dcfce7;border-radius:8px;padding:2px 7px;display:inline-block;margin-top:3px;">📈 +${euro(extraAnnuo)}/anno</div>
+        ${btn ? "<div>" + btn + "</div>" : ""}`;
     }
     return `
       <tr>
