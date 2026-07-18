@@ -174,6 +174,16 @@ export async function render(container) {
   const allMappings = templateMappings || [];
   let allEmail = emailTemplates || [];
 
+  // Meta Ads (campagne self-service) + sedi per momento/campagne
+  const [{ data: metaConnRow }, { data: metaCampRows }, { data: sediRows }] = await Promise.all([
+    supa().from('meta_ads_connessioni').select('ad_account_id, ad_account_nome, page_nome, token_scadenza, attivo').eq('azienda_id', aziendaId).maybeSingle(),
+    supa().from('meta_ads_campagne').select('*').eq('azienda_id', aziendaId).order('created_at', { ascending: false }).limit(10),
+    supa().from('sedi').select('id, nome, citta').eq('azienda_id', aziendaId).order('nome'),
+  ]);
+  const metaConn = metaConnRow || null;
+  const metaCamps = metaCampRows || [];
+  const sediList = sediRows || [];
+
   const momentiHtml = MOMENTI_CAT.map(cat => {
     const items = MOMENTI.filter(m => m.cat === cat);
     return `
@@ -248,6 +258,7 @@ export async function render(container) {
           <button class="rf-nav-btn" data-tab="tab-template">💬 Template</button>
           <button class="rf-nav-btn" data-tab="tab-tag">🏷️ Tag</button>
           <button class="rf-nav-btn" data-tab="tab-regole">⚡ Regole automatiche</button>
+          <button class="rf-nav-btn" data-tab="tab-metaads">📣 Meta Ads</button>
         </div>
 
         <!-- ═══ TAB MOMENTI ══════════════════════════════════════════════════ -->
@@ -257,6 +268,51 @@ export async function render(container) {
             Per ognuno vedi <b>cosa fa</b> e <b>quando parte</b>. Premi <b>Scrivi messaggio</b> per decidere cosa dire.
           </div>
           ${momentiHtml}
+        </div>
+
+        <!-- ═══ TAB META ADS ═════════════════════════════════════════════════ -->
+        <div id="tab-metaads" class="rf-tab">
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#475569;line-height:1.6;">
+            Collega il tuo account pubblicitario Meta <b>una sola volta</b>: da quel momento Tony può creare le campagne per te (es. <b>🎂 Compleanni</b>: intercetta chi compie gli anni nei prossimi 20/30 giorni vicino al tuo locale). Le campagne nascono <b>in pausa</b>: le attivi tu quando vuoi.
+          </div>
+
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px;">🔗 Collegamento</div>
+            ${metaConn && metaConn.attivo ? `
+              <div style="font-size:14px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">
+                ✅ Collegato — Account: <b>${metaConn.ad_account_nome || metaConn.ad_account_id}</b>${metaConn.page_nome ? ` · Pagina: <b>${metaConn.page_nome}</b>` : ''}
+              </div>` : `
+              <div style="font-size:13px;color:#64748b;margin-bottom:10px;">Serve il profilo Facebook che amministra la pagina e l'account pubblicitario del locale.</div>`}
+            <a href="${SUPABASE_URL}/functions/v1/meta-ads-oauth?action=start&azienda_id=${aziendaId}" target="_blank"
+               style="display:inline-block;margin-top:10px;background:#1877f2;color:white;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;text-decoration:none;">
+              ${metaConn && metaConn.attivo ? '🔄 Ricollega Meta' : '🔗 Collega Meta'}
+            </a>
+          </div>
+
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px;">🎂 Campagna Compleanni</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:14px;">Pubblico: chi compie gli anni il mese prossimo, vicino al locale. Annuncio con foto dalla tua libreria e bottone che porta al form "la torta è il nostro regalo".</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;">
+              <div><div class="sezione-label">Sede</div>
+                <select id="meta-sede" class="input" style="width:100%;box-sizing:border-box;">
+                  ${sediList.map(s => `<option value="${s.id}" data-citta="${s.citta || ''}">${s.nome}</option>`).join('')}
+                </select></div>
+              <div><div class="sezione-label">Città (targeting)</div><input id="meta-citta" class="input" style="width:100%;box-sizing:border-box;" placeholder="es. Orte"></div>
+              <div><div class="sezione-label">Raggio km</div><input id="meta-raggio" class="input" type="number" value="30" min="5" max="80" style="width:100%;box-sizing:border-box;"></div>
+              <div><div class="sezione-label">Budget €/giorno</div><input id="meta-budget" class="input" type="number" value="10" min="1" style="width:100%;box-sizing:border-box;"></div>
+            </div>
+            <button id="btn-meta-crea" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">🎂 Crea campagna (in pausa)</button>
+            <div id="meta-esito" style="margin-top:12px;font-size:13px;"></div>
+          </div>
+
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;">
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px;">📋 Campagne create da Ristoflow</div>
+            ${metaCamps.length === 0 ? '<div style="font-size:13px;color:#94a3b8;">Nessuna campagna ancora.</div>' : metaCamps.map(cp => `
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;padding:8px 0;font-size:13px;">
+                <div>🎂 <b>${cp.tipo}</b> · ${(cp.dettagli && cp.dettagli.citta) || ''} · €${(cp.budget_giornaliero_cent || 0) / 100}/gg · ${new Date(cp.created_at).toLocaleDateString('it-IT')}</div>
+                <span style="color:${cp.stato === 'ACTIVE' ? '#16a34a' : '#b45309'};font-weight:600;">${cp.stato}</span>
+              </div>`).join('')}
+          </div>
         </div>
 
         <!-- ═══ TAB EMAIL ══════════════════════════════════════════════════ -->
@@ -277,6 +333,14 @@ export async function render(container) {
               <select id="email-momento" class="input" style="width:100%;box-sizing:border-box;">
                 <option value="">— Scegli un momento —</option>
                 ${MOMENTI.map(m => `<option value="${m.key}">${m.ic} ${m.tit}</option>`).join('')}
+              </select>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <div class="sezione-label">Per quale sede parla? <span style="color:#94a3b8;font-weight:400;">(nome nel messaggio e link prenotazione)</span></div>
+              <select id="email-sede" class="input" style="width:100%;box-sizing:border-box;">
+                <option value="">— Tutta l'azienda —</option>
+                ${sediList.map(s => `<option value="${s.id}">${s.nome}</option>`).join('')}
               </select>
             </div>
 
@@ -812,6 +876,49 @@ export async function render(container) {
   let tagEscludi = new Set();
 
   // ─── TABS ──────────────────────────────────────────────────────────────────
+  // ── Meta Ads: precompila citta dalla sede + creazione campagna
+  const metaSedeSel = container.querySelector('#meta-sede');
+  const metaCitta = container.querySelector('#meta-citta');
+  if (metaSedeSel && metaCitta) {
+    const syncCitta = () => { const o = metaSedeSel.selectedOptions[0]; if (o && o.dataset.citta && !metaCitta.value) metaCitta.value = o.dataset.citta; };
+    syncCitta();
+    metaSedeSel.addEventListener('change', () => { const o = metaSedeSel.selectedOptions[0]; metaCitta.value = (o && o.dataset.citta) || metaCitta.value; });
+  }
+  const btnMetaCrea = container.querySelector('#btn-meta-crea');
+  if (btnMetaCrea) btnMetaCrea.addEventListener('click', async () => {
+    const esito = container.querySelector('#meta-esito');
+    const cittaV = (metaCitta?.value || '').trim();
+    if (!cittaV) { esito.innerHTML = '<span style="color:#dc2626;">Indica la città per il targeting.</span>'; return; }
+    if (!confirm('Tony creerà la campagna Compleanni su Meta IN PAUSA (nessuna spesa finché non la attivi). Procedo?')) return;
+    esito.innerHTML = '<span style="color:#64748b;">⏳ Creazione in corso (30-60 secondi)...</span>';
+    btnMetaCrea.disabled = true;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/tony-meta-campagne`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
+        body: JSON.stringify({
+          azienda_id: aziendaId,
+          sede_id: metaSedeSel?.value || null,
+          tipo: 'compleanni',
+          citta: cittaV,
+          raggio_km: Number(container.querySelector('#meta-raggio')?.value) || 30,
+          budget_cent: Math.round((Number(container.querySelector('#meta-budget')?.value) || 10) * 100),
+        }),
+      });
+      const j = await res.json();
+      if (j.success) {
+        esito.innerHTML = `<div style="color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">
+          ✅ Campagna creata <b>in pausa</b> · Filtro compleanno: ${j.filtro_compleanno} ·
+          <a href="${j.ads_manager}" target="_blank" style="color:#0E5A7A;font-weight:600;">Aprila in Gestione inserzioni</a> per controllarla e attivarla.</div>`;
+      } else {
+        esito.innerHTML = `<span style="color:#dc2626;">Errore: ${j.error?.message || j.error || 'creazione non riuscita'}${j.codice === 'NON_COLLEGATO' ? ' — usa prima il bottone Collega Meta qui sopra.' : ''}</span>`;
+      }
+    } catch (err) {
+      esito.innerHTML = `<span style="color:#dc2626;">Errore di rete: ${err.message}</span>`;
+    }
+    btnMetaCrea.disabled = false;
+  });
+
   container.querySelectorAll('.rf-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       container.querySelectorAll('.rf-nav-btn').forEach(b => b.classList.remove('attiva'));
@@ -888,6 +995,7 @@ export async function render(container) {
     form.style.display = 'block';
     container.querySelector('#email-id').value = e?.id || '';
     container.querySelector('#email-momento').value = e?.trigger_evento || presetMomento || '';
+    const sedSel = container.querySelector('#email-sede'); if (sedSel) sedSel.value = e?.sede_id || '';
     container.querySelector('#email-oggetto').value = e?.oggetto || '';
     container.querySelector('#email-testo').value = e?.contenuto || '';
     container.querySelector('#email-attivo').checked = e ? !!e.attivo : true;
@@ -984,6 +1092,7 @@ export async function render(container) {
       tag_richiesti: tagInc,
       tag_esclusi: tagEsc,
       tag_logica: 'AND',
+      sede_id: (container.querySelector('#email-sede')?.value || null),
     };
     let saved, error;
     if (id) ({ data: saved, error } = await supa().from('messaggi_template').update(payload).eq('id', id).select().single());
