@@ -54,7 +54,7 @@ async function carica() {
 
   const [{ data: haccp }, { data: fasiMeta }, { data: dip }] = await Promise.all([
     window.supabaseClient.from("produzione_log_haccp")
-      .select("lotto_id, ricetta_id, fase_id, fase_ordine, fase_nome, fase_tipo, operatore_id, operatore_nome, firmato_il")
+      .select("lotto_id, ricetta_id, fase_id, fase_ordine, fase_nome, fase_tipo, operatore_id, operatore_nome, firmato_il, firme")
       .in("lotto_id", uuids),
     window.supabaseClient.from("ricette_preparazione_fasi")
       .select("id, lavoro_umano_min, durata_min, tipo_fase").in("ricetta_id", ricetteIds),
@@ -83,12 +83,17 @@ async function carica() {
       const passive = PASSIVE.has((f.fase_tipo || "").toLowerCase());
       // minuti-lavoro: attesa/raffreddamento = lavoro umano previsto (di solito ~0), altrimenti durata reale
       let lavoroMin = passive ? (Number(meta.lavoro_umano_min) || 0) : (durataMin ?? Number(meta.lavoro_umano_min) || 0);
-      const costoOrario = costoById.get(String(f.operatore_id)) || 0;
-      const costoLavoro = lavoroMin * costoOrario / 60;
-      righe.push({
-        lotto_uuid: uuid, ricetta_id: lotto.ricetta_id, ricetta: lotto.ricette?.nome || "Ricetta",
-        fase_nome: f.fase_nome, fase_tipo: f.fase_tipo, operatore_id: f.operatore_id, operatore: f.operatore_nome || "—",
-        durata_min: durataMin, durata_prevista: Number(meta.durata_min) || null, lavoro_min: lavoroMin, costo_lavoro: costoLavoro,
+      // ogni firmatario della fase ha lavorato la fase intera: costo = somma delle ore-uomo
+      const firmatari = (Array.isArray(f.firme) && f.firme.length)
+        ? f.firme
+        : [{ operatore_id: f.operatore_id, operatore_nome: f.operatore_nome }];
+      firmatari.forEach(sig => {
+        const costoOrario = costoById.get(String(sig.operatore_id)) || 0;
+        righe.push({
+          lotto_uuid: uuid, ricetta_id: lotto.ricetta_id, ricetta: lotto.ricette?.nome || "Ricetta",
+          fase_nome: f.fase_nome, fase_tipo: f.fase_tipo, operatore_id: sig.operatore_id, operatore: sig.operatore_nome || "—",
+          durata_min: durataMin, durata_prevista: Number(meta.durata_min) || null, lavoro_min: lavoroMin, costo_lavoro: lavoroMin * costoOrario / 60,
+        });
       });
     });
   }

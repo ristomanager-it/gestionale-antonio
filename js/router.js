@@ -121,7 +121,7 @@ const routes = {
   produzione: () => import("./views/produzione.js"),
   "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=6"),
   "registro-lotti": () => import("./views/registro-lotti.js?v=1"),
-  "produttivita-produzione": () => import("./views/produttivita-produzione.js?v=1"),
+  "produttivita-produzione": () => import("./views/produttivita-produzione.js?v=2"),
   "registro-messaggi": () => import("./views/registro-messaggi.js?v=2"),
   storicoLotto: () => import("./views/storico-lotto.js"),
   ricettario: () => import("./views/ricettario.js?v=5"),
