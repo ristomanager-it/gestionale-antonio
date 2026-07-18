@@ -176,11 +176,11 @@ export async function render(container) {
 
   // Meta Ads (campagne self-service) + sedi per momento/campagne
   const [{ data: metaConnRow }, { data: metaCampRows }, { data: sediRows }] = await Promise.all([
-    supa().from('meta_ads_connessioni').select('ad_account_id, ad_account_nome, page_nome, token_scadenza, attivo').eq('azienda_id', aziendaId).maybeSingle(),
+    supa().from('meta_ads_connessioni').select('account_id, account_nome, pagina_nome, token_scadenza, attivo').eq('azienda_id', aziendaId).eq('attivo', true).limit(5),
     supa().from('meta_ads_campagne').select('*').eq('azienda_id', aziendaId).order('created_at', { ascending: false }).limit(10),
     supa().from('sedi').select('id, nome, citta').eq('azienda_id', aziendaId).order('nome'),
   ]);
-  const metaConn = metaConnRow || null;
+  const metaConn = (Array.isArray(metaConnRow) ? metaConnRow[0] : metaConnRow) || null;
   const metaCamps = metaCampRows || [];
   const sediList = sediRows || [];
 
@@ -278,7 +278,7 @@ export async function render(container) {
 
           <div style="margin-bottom:16px;font-size:13px;">
             ${metaConn && metaConn.attivo
-              ? `<div style="color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">✅ Meta collegato — <b>${metaConn.ad_account_nome || metaConn.ad_account_id}</b>${metaConn.page_nome ? ` · ${metaConn.page_nome}` : ''}</div>`
+              ? `<div style="color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">✅ Meta collegato — <b>${metaConn.account_nome || metaConn.account_id}</b>${metaConn.pagina_nome ? ` · ${metaConn.pagina_nome}` : ''}</div>`
               : `<div style="color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;">⚠️ Meta non collegato — vai in <a href="#bo-configurazione?tab=integrazioni" style="color:#0E5A7A;font-weight:600;">Configurazione → Integrazioni</a> e premi "Collega Meta".</div>`}
           </div>
 

@@ -418,10 +418,12 @@ export async function render(container) {
 
     const sediOpts = (sedi || []).map(function(s){ return '<option value="' + s.id + '"' + (s.id === currentSedeId ? ' selected' : '') + '>' + esc(s.nome) + '</option>'; }).join('');
 
-    const { data: metaConn } = await supa()
+    const { data: metaConnRows } = await supa()
       .from('meta_ads_connessioni')
-      .select('ad_account_id, ad_account_nome, page_nome, token_scadenza, attivo')
-      .eq('azienda_id', aziendaId).maybeSingle();
+      .select('account_id, account_nome, pagina_nome, token_scadenza, attivo')
+      .eq('azienda_id', aziendaId).eq('attivo', true);
+    const metaConn = (metaConnRows || [])[0] || null;
+    const metaPagine = (metaConnRows || []).map(function(r){ return r.pagina_nome; }).filter(Boolean).join(', ');
     const SUPA_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
     const metaAdsCard = `
       <div style="margin-bottom:36px;">
@@ -436,7 +438,7 @@ export async function render(container) {
           </a>
         </div>
         ${metaConn && metaConn.attivo
-          ? `<div style="font-size:13px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">✅ Collegato — Account: <b>${metaConn.ad_account_nome || metaConn.ad_account_id}</b>${metaConn.page_nome ? ` · Pagina: <b>${metaConn.page_nome}</b>` : ''}${metaConn.token_scadenza ? ` · scade ${new Date(metaConn.token_scadenza).toLocaleDateString('it-IT')}` : ''}</div>`
+          ? `<div style="font-size:13px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">✅ Collegato — Account: <b>${metaConn.account_nome || metaConn.account_id}</b>${metaPagine ? ` · Pagine: <b>${metaPagine}</b>` : ''}${metaConn.token_scadenza ? ` · scade ${new Date(metaConn.token_scadenza).toLocaleDateString('it-IT')}` : ''}</div>`
           : `<div style="font-size:13px;color:#94a3b8;">Non collegato. Serve il profilo Facebook che amministra pagina e account pubblicitario del locale.</div>`}
       </div>`;
 
