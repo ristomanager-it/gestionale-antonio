@@ -1,76 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🎂 Prenota il tuo compleanno</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Festeggia il tuo compleanno</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(160deg,#fdf2f8 0%,#fef3c7 100%); min-height: 100vh; }
-    .wrap { max-width: 480px; margin: 0 auto; padding: 18px 16px 40px; }
-    .hero { text-align: center; padding: 26px 14px 18px; }
-    .hero .cake { font-size: 58px; }
-    .hero h1 { font-size: 24px; color: #831843; margin-top: 8px; }
-    .hero .sub { font-size: 14.5px; color: #9d174d; margin-top: 8px; line-height: 1.5; }
-    .regalo { background: white; border: 2px dashed #f472b6; border-radius: 18px; padding: 16px; text-align: center; margin: 14px 0 20px; box-shadow: 0 10px 26px rgba(190,24,93,.08); }
-    .regalo b { color: #be185d; font-size: 16px; }
-    .regalo .small { font-size: 12.5px; color: #9d174d; margin-top: 5px; }
-    .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 12px 30px rgba(15,23,42,.08); }
-    label { display: block; font-size: 12.5px; font-weight: 800; color: #374151; margin: 12px 0 5px; }
-    input, textarea, select { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 12px; font-size: 15px; font-family: inherit; background: #fafafa; }
-    input:focus, textarea:focus { outline: none; border-color: #ec4899; background: white; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .coperti { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 4px; }
-    .coperti button { width: 44px; height: 44px; border-radius: 50%; border: none; background: #fce7f3; color: #be185d; font-size: 22px; font-weight: 900; cursor: pointer; }
-    .coperti .val { font-size: 24px; font-weight: 900; color: #111827; min-width: 40px; text-align: center; }
-    .privacy { display: flex; gap: 9px; align-items: flex-start; margin-top: 14px; font-size: 12px; color: #64748b; }
-    .privacy input { width: auto; margin-top: 2px; }
-    .btn { width: 100%; margin-top: 18px; background: linear-gradient(135deg,#ec4899,#be185d); color: white; border: none; border-radius: 14px; padding: 15px; font-size: 16.5px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 24px rgba(190,24,93,.3); }
-    .btn:disabled { opacity: .6; }
-    .msg { margin-top: 14px; border-radius: 12px; padding: 12px; font-size: 14px; text-align: center; display: none; }
-    .msg.ok { background: #d1fae5; color: #065f46; display: block; }
-    .msg.err { background: #fee2e2; color: #991b1b; display: block; }
-    .footer { text-align: center; font-size: 11.5px; color: #b45309; margin-top: 18px; }
+    :root{
+      --serif:'Playfair Display','Cormorant Garamond',Georgia,serif;
+      --ink:#1f2733; --oro:#b98a3e; --oro-chiaro:#f6efe3;
+      --primario:#0E5A7A; --bordo:rgba(0,0,0,.09);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f6f5f2;color:var(--ink);}
+    .wrap{max-width:520px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 50px rgba(0,0,0,.06);}
+    @media(min-width:768px){.wrap{max-width:760px;}}
+    /* HERO */
+    .hero{position:relative;min-height:320px;display:flex;align-items:flex-end;overflow:hidden;background:linear-gradient(135deg,#243447,#0E5A7A);}
+    @media(min-width:768px){.hero{min-height:420px;}}
+    .hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+    .hero .ombra{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,14,20,.15),rgba(10,14,20,.72));}
+    .hero .contenuto{position:relative;width:100%;padding:30px 24px;text-align:center;color:#fff;}
+    .kicker{font-family:var(--serif);font-style:italic;font-size:13px;letter-spacing:2px;opacity:.92;margin-bottom:8px;}
+    h1{font-family:var(--serif);font-size:32px;line-height:1.15;font-weight:700;text-shadow:0 2px 16px rgba(0,0,0,.4);}
+    @media(min-width:768px){h1{font-size:46px;}}
+    .hero .sub{font-size:14px;opacity:.94;margin-top:10px;}
+    /* FASCIA REGALO */
+    .regalo{margin:0;background:var(--oro-chiaro);border-top:1px solid #eadfc8;border-bottom:1px solid #eadfc8;padding:16px 22px;display:flex;align-items:center;gap:14px;}
+    .regalo .icona{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #eadfc8;display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
+    .regalo b{font-family:var(--serif);font-size:16.5px;color:#6e5322;display:block;}
+    .regalo .small{font-size:12.5px;color:#8a7346;margin-top:2px;}
+    /* GALLERIA */
+    .galleria{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:6px;}
+    .galleria img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;}
+    /* COME FUNZIONA */
+    .punti{display:flex;gap:8px;padding:16px;}
+    .punto{flex:1;text-align:center;background:#faf9f7;border:1px solid var(--bordo);border-radius:12px;padding:13px 6px;}
+    .punto .ic{font-size:22px;margin-bottom:5px;}
+    .punto .tx{font-size:11px;font-weight:700;line-height:1.35;color:var(--ink);}
+    /* TESTIMONIANZE */
+    .testi{padding:4px 16px 6px;}
+    .testi-rating{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 0 12px;}
+    .testi-rating .voto{font-family:var(--serif);font-size:28px;font-weight:700;}
+    .stelle{color:#e0a93e;letter-spacing:1px;}
+    .t-card{background:#fff;border:1px solid var(--bordo);border-radius:12px;padding:13px 15px;margin-bottom:9px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+    .t-top{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+    .t-av{width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
+    .t-nome{font-size:12.5px;font-weight:700;}
+    .t-testo{font-size:12.5px;line-height:1.6;color:#4a5361;font-style:italic;}
+    /* FORM */
+    .card{margin:14px 16px 8px;background:#faf9f7;border:1px solid var(--bordo);border-radius:16px;padding:20px;}
+    .card h3{font-family:var(--serif);font-size:19px;margin-bottom:14px;}
+    label{display:block;font-size:11px;font-weight:700;color:#7a8494;margin:9px 0 4px 2px;letter-spacing:.3px;text-transform:uppercase;}
+    input,textarea{width:100%;padding:11px 13px;border:1.5px solid #e3e1dc;border-radius:10px;font-size:14px;outline:none;background:#fff;transition:border-color .15s;font-family:inherit;}
+    input:focus,textarea:focus{border-color:var(--primario);}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .coperti{display:flex;align-items:center;gap:14px;justify-content:center;background:#fff;border:1.5px solid #e3e1dc;border-radius:10px;padding:7px;}
+    .coperti button{width:38px;height:38px;border-radius:9px;border:none;background:var(--ink);color:#fff;font-size:19px;cursor:pointer;}
+    .coperti .val{font-family:var(--serif);font-size:22px;font-weight:700;min-width:36px;text-align:center;}
+    .privacy{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:#7a8494;margin:12px 0;line-height:1.5;}
+    .privacy input{width:auto;margin-top:2px;accent-color:var(--primario);}
+    .btn{width:100%;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:13px 22px;font-size:14.5px;font-weight:700;letter-spacing:.4px;cursor:pointer;box-shadow:0 3px 14px rgba(31,39,51,.25);transition:transform .12s;}
+    .btn:hover{transform:translateY(-1px);}
+    .btn:disabled{opacity:.6;cursor:not-allowed;}
+    .sotto-btn{text-align:center;font-size:11px;color:#98a1ae;margin-top:8px;}
+    .msg{margin-top:12px;font-size:13.5px;text-align:center;display:none;border-radius:10px;padding:10px;}
+    /* CONDIZIONI */
+    .condizioni{margin:10px 16px 18px;border:1px solid var(--bordo);border-radius:12px;overflow:hidden;}
+    .condizioni summary{padding:12px 15px;font-size:12.5px;font-weight:700;cursor:pointer;background:#faf9f7;list-style:none;display:flex;justify-content:space-between;}
+    .condizioni summary::after{content:'▾';opacity:.55;}
+    .condizioni[open] summary::after{content:'▴';}
+    .condizioni .corpo{padding:12px 15px;font-size:12px;line-height:1.7;color:#5a6270;}
+    .footer{padding:18px;text-align:center;font-size:11px;color:#98a1ae;border-top:1px solid #f0efec;}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="hero">
-      <div class="cake">🎂</div>
-      <h1 id="titolo">Festeggia il tuo compleanno da noi!</h1>
-      <div class="sub" id="sottotitolo">Un giorno speciale merita una tavola speciale.</div>
+    <div class="hero" id="hero">
+      <div class="ombra"></div>
+      <div class="contenuto">
+        <div class="kicker">Un giorno che si ricorda</div>
+        <h1 id="titolo">Festeggia il tuo compleanno da noi</h1>
+        <div class="sub" id="sottotitolo">Tavola apparecchiata, cucina pronta, brindisi incluso.</div>
+      </div>
     </div>
 
     <div class="regalo">
-      <b>🎁 La torta è il nostro regalo</b>
-      <div class="small">Prenota il tuo compleanno: alla torta pensiamo noi.</div>
+      <div class="icona">🎂</div>
+      <div>
+        <b>La torta è il nostro regalo</b>
+        <div class="small">Prenota la tua festa: alla torta per il festeggiato pensiamo noi.</div>
+      </div>
+    </div>
+
+    <div class="galleria" id="galleria"></div>
+
+    <div class="punti">
+      <div class="punto"><div class="ic">📅</div><div class="tx">Scegli data e orario</div></div>
+      <div class="punto"><div class="ic">👥</div><div class="tx">Dicci quanti sarete</div></div>
+      <div class="punto"><div class="ic">🥂</div><div class="tx">Al resto pensiamo noi</div></div>
+    </div>
+
+    <div class="testi">
+      <div class="testi-rating"><span class="voto">4,8</span><span><span class="stelle">★★★★★</span><div style="font-size:11px;color:#98a1ae;">dalle recensioni dei nostri ospiti</div></span></div>
+      <div class="t-card"><div class="t-top"><div class="t-av">LP</div><div><div class="t-nome">Laura P.</div><div class="stelle" style="font-size:11px;">★★★★★</div></div></div><div class="t-testo">"Organizzato il compleanno di mio marito in dodici: tavolo perfetto, torta a sorpresa e personale che ci ha coccolati tutta la sera."</div></div>
+      <div class="t-card"><div class="t-top"><div class="t-av">DM</div><div><div class="t-nome">Davide M.</div><div class="stelle" style="font-size:11px;">★★★★★</div></div></div><div class="t-testo">"Cucina vera e atmosfera giusta per festeggiare. La torta in regalo è stata la ciliegina — letteralmente."</div></div>
     </div>
 
     <div class="card">
+      <h3>Prenota la tua festa</h3>
       <div class="row">
-        <div>
-          <label>Nome *</label>
-          <input id="nome" placeholder="Mario">
-        </div>
-        <div>
-          <label>Cognome</label>
-          <input id="cognome" placeholder="Rossi">
-        </div>
+        <div><label>Nome *</label><input id="nome" placeholder="Mario"></div>
+        <div><label>Cognome</label><input id="cognome" placeholder="Rossi"></div>
       </div>
       <label>Telefono *</label>
       <input id="telefono" type="tel" placeholder="333 1234567">
       <label>Email</label>
       <input id="email" type="email" placeholder="mario@email.it">
       <div class="row">
-        <div>
-          <label>Data della festa *</label>
-          <input id="data" type="date">
-        </div>
-        <div>
-          <label>Orario *</label>
-          <input id="ora" type="time" value="20:30">
-        </div>
+        <div><label>Data della festa *</label><input id="data" type="date"></div>
+        <div><label>Orario *</label><input id="ora" type="time" value="20:30"></div>
       </div>
       <label>Quanti sarete?</label>
       <div class="coperti">
@@ -79,14 +128,22 @@
         <button type="button" id="piu">+</button>
       </div>
       <label>Note (allergie, richieste speciali...)</label>
-      <textarea id="note" rows="2" placeholder="Es. una candelina numero 30 🎈"></textarea>
+      <textarea id="note" rows="2" placeholder="Es. una candelina numero 30"></textarea>
       <div class="privacy">
         <input type="checkbox" id="privacy">
         <span>Acconsento al trattamento dei dati per gestire la prenotazione (GDPR). *</span>
       </div>
-      <button class="btn" id="invia">🎂 Prenota il mio compleanno</button>
+      <button class="btn" id="invia">Prenota il compleanno</button>
+      <div class="sotto-btn">Conferma rapida · nessun pagamento richiesto ora</div>
       <div class="msg" id="msg"></div>
     </div>
+
+    <details class="condizioni">
+      <summary>📜 Come funziona la torta in regalo</summary>
+      <div class="corpo">
+        La torta è offerta dalla casa per il festeggiato prenotando da questa pagina. L'omaggio è nominale, valido una volta per compleanno e per prenotazioni confermate dal locale. Per esigenze particolari (torte personalizzate, intolleranze) scrivilo nelle note: ti ricontattiamo noi. Il locale confermerà la disponibilità di data e orario richiesti.
+      </div>
+    </details>
 
     <div class="footer" id="footer-locale"></div>
   </div>
@@ -100,27 +157,46 @@
     const aziendaId = params.get("a") || params.get("azienda");
     const sedeId = params.get("s") || params.get("sede") || null;
 
-    // Data di default: tra 10 giorni (il messaggio arriva ~10gg prima del compleanno)
+    // data default: oggi + 10 giorni
     (function () {
       const d = new Date(Date.now() + 10 * 86400000);
-      document.getElementById("data").value = d.toISOString().slice(0, 10);
-      document.getElementById("data").min = new Date().toISOString().slice(0, 10);
+      document.getElementById("data").value = d.toISOString().split("T")[0];
     })();
 
-    // Nome del locale nel titolo
+    // titolo con nome sede + footer
     (async function () {
       try {
         if (sedeId) {
           const { data: s } = await db.from("sedi").select("nome,citta").eq("id", sedeId).maybeSingle();
-          if (s?.nome) {
-            document.getElementById("titolo").textContent = "Festeggia il tuo compleanno da " + s.nome + "!";
-            document.getElementById("footer-locale").textContent = [s.nome, s.citta].filter(Boolean).join(" · ");
+          if (s && s.nome) {
+            document.getElementById("titolo").textContent = "Festeggia da " + s.nome;
+            document.getElementById("footer-locale").textContent = s.nome + (s.citta ? " — " + s.citta : "");
           }
         }
       } catch (e) { /* estetico */ }
     })();
 
-    // Stepper coperti
+    // hero + galleria dalla libreria media del locale
+    (async function () {
+      if (!aziendaId) return;
+      try {
+        const r = await fetch(SUPABASE_URL + "/functions/v1/landing-media?a=" + aziendaId + (sedeId ? "&s=" + sedeId : "") + "&limit=7");
+        const j = await r.json();
+        const imgs = (j.images || []).filter(x => x.url);
+        if (imgs[0]) {
+          const im = document.createElement("img");
+          im.src = imgs[0].url; im.alt = ""; im.setAttribute("fetchpriority", "high");
+          document.getElementById("hero").prepend(im);
+        }
+        const resto = imgs.slice(1, 7);
+        if (resto.length >= 3) {
+          document.getElementById("galleria").innerHTML = resto.map(x =>
+            '<img src="' + x.url + '" alt="' + (x.nome || "") + '" loading="lazy" decoding="async">'
+          ).join("");
+        }
+      } catch (e) { /* la galleria e' un plus */ }
+    })();
+
     let coperti = 6;
     document.getElementById("meno").onclick = function () { if (coperti > 1) { coperti--; render(); } };
     document.getElementById("piu").onclick = function () { if (coperti < 120) { coperti++; render(); } };
@@ -128,7 +204,9 @@
 
     function showMsg(t, err) {
       const m = document.getElementById("msg");
-      m.textContent = t; m.className = "msg " + (err ? "err" : "ok");
+      m.style.display = "block"; m.textContent = t;
+      m.style.background = err ? "#fef2f2" : "#f0fdf4";
+      m.style.color = err ? "#b91c1c" : "#15803d";
     }
 
     document.getElementById("invia").onclick = async function () {
@@ -158,13 +236,13 @@
           note: ("🎂 COMPLEANNO — torta in regalo. " + note).trim()
         }]).select("id, token_pubblico").single();
         if (error) throw error;
-        showMsg("🎉 Prenotazione inviata! Ti confermeremo a breve.", false);
+        showMsg("Prenotazione inviata! Ti confermeremo a breve.", false);
         if (pren && pren.token_pubblico) {
           setTimeout(function () { location.href = "/prenotazione.html?token=" + encodeURIComponent(pren.token_pubblico); }, 1200);
         }
       } catch (e) {
         showMsg("Errore: " + (e.message || e), true);
-        btn.disabled = false; btn.textContent = "🎂 Prenota il mio compleanno";
+        btn.disabled = false; btn.textContent = "Prenota il compleanno";
       }
     };
   </script>

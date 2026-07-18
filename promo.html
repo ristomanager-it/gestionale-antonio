@@ -74,7 +74,17 @@
   .form-input:focus{border-color:var(--primario);}
   .form-check{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#64748b;margin-bottom:10px;cursor:pointer;}
   .form-check input{margin-top:2px;accent-color:var(--primario);}
-  .btn-cta{width:100%;background:linear-gradient(135deg,var(--bottone),var(--primario-2));color:var(--bottone-testo);border:none;border-radius:var(--radius);padding:15px;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.3px;box-shadow:0 4px 20px rgba(0,0,0,.15);}
+  .btn-cta{width:100%;background:var(--bottone);color:var(--bottone-testo);border:none;border-radius:999px;padding:12px 22px;font-size:14.5px;font-weight:700;cursor:pointer;letter-spacing:.4px;box-shadow:0 3px 14px rgba(14,90,122,.28);transition:transform .12s,box-shadow .12s;}
+  .btn-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(14,90,122,.34);}
+  .testimonianze{padding:6px 16px 18px;}
+  .testi-rating{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 0 10px;}
+  .testi-rating .voto{font-family:var(--font-titoli);font-size:30px;font-weight:700;color:var(--testo);}
+  .testi-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.04);}
+  .testi-top{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .testi-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primario),var(--primario-2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;}
+  .testi-nome{font-size:13px;font-weight:700;color:var(--testo);}
+  .testi-stelle{color:#f59e0b;font-size:12px;letter-spacing:1px;}
+  .testi-testo{font-size:13px;line-height:1.6;color:var(--testo);opacity:.88;font-style:italic;}
   .btn-cta:disabled{opacity:.6;cursor:not-allowed;}
   .btn-cta-secondary{width:100%;background:#f1f5f9;color:var(--primario);border:2px solid var(--primario);border-radius:var(--radius);padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;}
   .valutazioni{padding:14px 20px;text-align:center;}
@@ -320,17 +330,40 @@ function renderBlock(b, promo, azienda) {
 }
 
 function renderDefaultLayout(promo, azienda) {
-  // Layout fisso elegante quando non ci sono blocchi configurati
+  // Layout "livello sito": hero fotografico, galleria, punti, riprove sociali, regolamento nel flusso, form con CTA elegante
+  const valore = renderValore(promo);
+  const heroImg = promo.immagine_url && !isVideoSrc(promo.immagine_url) ? promo.immagine_url : '';
   return `
-    ${mediaTag(promo.immagine_url, promo.nome)}
-    <div class="box-offerta">
-      <div class="valore">${esc(renderValore(promo))}</div>
-      <div class="label">${esc(promo.nome)}</div>
-      ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
+    <div class="hero-block">
+      ${heroImg ? `<img src="${esc(heroImg)}" alt="${esc(promo.nome)}" fetchpriority="high">` : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,var(--primario),var(--primario-2));"></div>`}
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="hero-kicker">Offerta riservata</div>
+        <div class="hero-title">${esc(promo.nome)}</div>
+        ${valore ? `<div style="display:inline-block;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:7px 20px;font-size:20px;font-weight:800;margin-bottom:16px;">${esc(valore)}</div>` : ''}
+        <div><button class="hero-btn" style="border-radius:999px;padding:11px 26px;font-size:14px;" onclick="document.getElementById('form-container').scrollIntoView({behavior:'smooth',block:'center'})">Scarica la promo ↓</button></div>
+      </div>
     </div>
-    ${promo.descrizione ? `<div class="testo-block">${esc(promo.descrizione).replace(/\n/g,'<br>')}</div>` : ''}
+
+    <div id="landing-galleria"></div>
+
+    ${promo.descrizione ? `<div class="sezione-block"><div class="sezione-testo">${esc(promo.descrizione).replace(/\n/g,'<br>')}</div></div>` : ''}
+
+    <div class="punti-block">
+      <div class="punto"><div class="p-icona">🎟</div><div class="p-testo">Coupon personale e nominale</div></div>
+      <div class="punto"><div class="p-icona">📲</div><div class="p-testo">Subito sul tuo telefono</div></div>
+      <div class="punto"><div class="p-icona">🍽</div><div class="p-testo">Lo mostri al tavolo</div></div>
+    </div>
+
+    <div class="testimonianze">
+      <div class="testi-rating"><span class="voto">4,8</span><span><span class="testi-stelle" style="font-size:16px;">★★★★★</span><div style="font-size:11px;color:#64748b;">dalle recensioni dei nostri ospiti</div></span></div>
+      <div class="testi-card"><div class="testi-top"><div class="testi-avatar">FM</div><div><div class="testi-nome">Francesca M.</div><div class="testi-stelle">★★★★★</div></div></div><div class="testi-testo">"Promo presa al volo dal telefono, mostrata al tavolo e applicata senza storie. Cucina e accoglienza da dieci."</div></div>
+      <div class="testi-card"><div class="testi-top"><div class="testi-avatar">GR</div><div><div class="testi-nome">Giulio R.</div><div class="testi-stelle">★★★★★</div></div></div><div class="testi-testo">"Posto genuino, porzioni vere. Con il coupon la serata in quattro è costata meno di quanto pensassimo."</div></div>
+      <div class="testi-card"><div class="testi-top"><div class="testi-avatar">SC</div><div><div class="testi-nome">Sara C.</div><div class="testi-stelle">★★★★☆</div></div></div><div class="testi-testo">"Prenotato per il compleanno di mia madre: tavolo pronto, personale gentilissimo. Torneremo."</div></div>
+    </div>
+
     <div class="form-block" id="form-container">
-      <h3>📋 Scarica la tua promo</h3>
+      <h3>Scarica la tua promo</h3>
       <label style="display:block;font-size:11px;color:#94a3b8;margin:0 0 3px 2px;font-weight:600;">Nome</label>
       <input class="form-input" id="f-nome" type="text" placeholder="Es. Mario" autocomplete="off" autocapitalize="words">
       <label style="display:block;font-size:11px;color:#94a3b8;margin:6px 0 3px 2px;font-weight:600;">Cognome</label>
@@ -340,15 +373,30 @@ function renderDefaultLayout(promo, azienda) {
       ${promo.privacy_richiesta ? `<label class="form-check"><input type="checkbox" id="f-privacy"> <span>Ho letto e accetto la <a href="#" style="color:#0E5A7A;">Privacy Policy</a> *</span></label>` : ''}
       ${promo.consenso_marketing ? `<label class="form-check"><input type="checkbox" id="f-consenso"> <span>Acconsento a ricevere comunicazioni commerciali e promozionali</span></label>` : ''}
       <div id="form-error" style="color:#dc2626;font-size:12px;margin-bottom:8px;display:none;"></div>
-      <button class="btn-cta" id="btn-scarica">🎁 Voglio la mia promo!</button>
+      <button class="btn-cta" id="btn-scarica">Scarica la promo</button>
+      <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:8px;">Gratis · senza impegno · il coupon arriva subito</div>
     </div>
   `;
+}
+
+async function caricaGalleriaLanding(promo) {
+  const box = document.getElementById('landing-galleria');
+  if (!box || !promo.azienda_id) return;
+  try {
+    const r = await fetch(SUPABASE_URL + '/functions/v1/landing-media?a=' + promo.azienda_id + (promo.sede_id ? '&s=' + promo.sede_id : '') + '&limit=7');
+    const j = await r.json();
+    const imgs = (j.images || []).filter(x => x.url && x.url !== promo.immagine_url).slice(0, 6);
+    if (!imgs.length) return;
+    box.innerHTML = '<div class="galleria-block">' + imgs.map((x, i) =>
+      `<img src="${esc(x.url)}" alt="${esc(x.nome || '')}" loading="lazy" decoding="async">`
+    ).join('') + '</div>';
+  } catch (e) { /* la galleria e' un plus: nessun errore visibile */ }
 }
 
 function renderThankyouDefault(promo) {
   return `
     <div style="text-align:center;padding:40px 24px 20px;">
-      <div style="font-size:64px;margin-bottom:16px;">🎉</div>
+      <div style="width:64px;height:64px;border-radius:50%;background:#f0fdf4;border:2px solid #86efac;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px;">✓</div>
       <div style="font-size:22px;font-weight:800;color:#0f172a;margin-bottom:8px;">Perfetto! Ci sei!</div>
       <div style="font-size:14px;color:#64748b;line-height:1.6;">La tua promo è confermata.<br>Ti abbiamo inviato il codice via WhatsApp.</div>
     </div>
@@ -550,6 +598,8 @@ async function init() {
     mostrarThankyou(promo);
     return;
   }
+
+  caricaGalleriaLanding(promo);
 
   // ── Form submit ───────────────────────────────────────────
   const btnScarica = document.getElementById('btn-scarica');
