@@ -7,6 +7,7 @@ let _categoria = "";
 let _simItemId = null;
 let _saluteSedi = null;
 let _saluteSede = "";
+let _giorniStorico = 0;
 
 const PIANO_QUADRANTI = {
   star: {
@@ -74,6 +75,7 @@ export async function render(container) {
         <div style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:16px;margin-top:16px;" class="mi-grid-main">
           <div>
             <div id="mi-table"></div>
+            <div id="mi-proiezione"></div>
             <div id="mi-simulator"></div>
           </div>
           <div>
@@ -158,9 +160,25 @@ function bindGlobals() {
       if (error) throw error;
       alert(`✅ "${item.nome}" aggiornato a ${euro(item.prezzoConsigliato)} nel listino.`);
       await loadData();
-    } catch (e) {
-      alert("Errore aggiornamento prezzo: " + (e?.message || e));
+  window.miApplicaTutti = async function() {
+    const daApplicare = _filtered.filter(i => {
+      const attuale = i.prezzoListino != null ? i.prezzoListino : i.prezzo;
+      return i.prezzoConsigliato != null && i.prezzoConsigliato > attuale + 0.01 && i.pvIds?.length;
+    });
+    if (!daApplicare.length) return;
+    const ok = confirm(`Aggiornare il listino di ${daApplicare.length} piatti ai prezzi consigliati?\n\nEsempi:\n` + daApplicare.slice(0, 4).map(i => `• ${i.nome}: ${euro(i.prezzoListino != null ? i.prezzoListino : i.prezzo)} → ${euro(i.prezzoConsigliato)}`).join("\n"));
+    if (!ok) return;
+    let fatti = 0, errori = 0;
+    for (const item of daApplicare) {
+      try {
+        const { error } = await supabase.from("prodotti_vendita")
+          .update({ prezzo_base: item.prezzoConsigliato })
+          .in("id", item.pvIds);
+        if (error) errori++; else fatti++;
+      } catch { errori++; }
     }
+    alert(`✅ Aggiornati ${fatti} piatti nel listino${errori ? ` (${errori} errori)` : ""}.`);
+    await loadData();
   };
 }
 
@@ -209,10 +227,14 @@ async function loadData() {
       prezzoConsigliato: r.prezzo_consigliato != null ? n(r.prezzo_consigliato) : null,
       margineSpingibile: n(r.margine_spingibile),
       costoStimato: r.costo_stimato === true,
+      percezione: r.indice_percezione_prezzo != null ? n(r.indice_percezione_prezzo) : null,
+      prezzoMedioCategoria: r.prezzo_medio_categoria != null ? n(r.prezzo_medio_categoria) : null,
+      giorniStorico: n(r.giorni_storico) || 0,
       prezzoListino: listino.has(r.ricetta_id) ? listino.get(r.ricetta_id).prezzo : null,
       pvIds: listino.has(r.ricetta_id) ? listino.get(r.ricetta_id).ids : []
     };
   });
+  _giorniStorico = _items.length ? Math.max(..._items.map(i => i.giorniStorico), 1) : 0;
   buildCategoryOptions();
   applyFiltersAndRender();
   renderSalute();
@@ -365,6 +387,7 @@ function renderAll() {
   renderKpi();
   renderScore();
   renderTable();
+  renderProiezione();
   renderMatrix();
   renderAi();
   renderIngredienti();
@@ -462,13 +485,11 @@ function renderTable() {
           <thead>
             <tr>
               <th>Piatto</th>
-              <th>Categoria</th>
               <th>Vendite</th>
-              <th>Ricavo</th>
               <th>Food Cost</th>
-              <th>Margine</th>
-              <th>Prezzo</th>
-              <th>Proposto</th>
+              <th>Prezzo attuale</th>
+              <th>Percepito dal cliente</th>
+              <th>Prezzo consigliato</th>
               <th>Classe</th>
               <th></th>
             </tr>
@@ -496,34 +517,34 @@ function renderTable() {
 function renderTableRows(rows) {
   return rows.map(i => {
     const q = PIANO_QUADRANTI[i.quadrante];
+    const attuale = i.prezzoListino != null ? i.prezzoListino : i.prezzo;
+    let percepito = `<span style="color:#94a3b8;">—</span>`;
+    if (i.percezione != null && i.prezzoMedioCategoria != null) {
+      const p = i.percezione;
+      const lbl = p < 0.85 ? ["Economico", "#16a34a", "#dcfce7"] : p <= 1.05 ? ["Nella media", "#475569", "#f1f5f9"] : ["Premium", "#b45309", "#fef3c7"];
+      percepito = `<span class="mi-badge" style="background:${lbl[2]};color:${lbl[1]};">${lbl[0]}</span>
+        <div style="font-size:11px;color:#94a3b8;margin-top:3px;">media cat. ${euro(i.prezzoMedioCategoria)}</div>`;
+    }
+    let consigliato = `<span style="color:#94a3b8;">ok così ✓</span>`;
+    if (i.prezzoConsigliato != null && i.prezzoConsigliato > attuale + 0.01) {
+      const btn = i.pvIds.length ? `<button class="mi-btn-small" style="background:#dcfce7;color:#166534;margin-top:4px;" onclick="miApplicaPrezzo('${i.id}')">Applica a menù</button>` : "";
+      consigliato = `<b style="color:#16a34a;font-size:14px;">${euro(i.prezzoConsigliato)}</b>
+        <div style="font-size:11px;color:#16a34a;">+${euro(i.prezzoConsigliato - attuale)} a piatto</div>${btn}`;
+    }
     return `
       <tr>
         <td>
           <div style="font-weight:900;color:#111827;">${esc(i.nome)}</div>
-          <div style="font-size:11px;color:#94a3b8;">${i.tipo}</div>
+          <div style="font-size:11px;color:#94a3b8;">${esc(i.categoria || "")}${i.costoStimato ? " · costo stimato" : ""}</div>
         </td>
-        <td>${esc(i.categoria || "—")}</td>
-        <td><b>${fmt(i.vendite)}</b></td>
-        <td><b>${euro(i.ricavo)}</b></td>
+        <td><b>${fmt(i.vendite)}</b><div style="font-size:11px;color:#94a3b8;">${euro(i.ricavo)}</div></td>
         <td style="color:${i.foodCostPerc > 35 ? "#DC2626" : "#059669"};font-weight:900;">${fmt(i.foodCostPerc)}%</td>
-        <td>
-          <b>${euro(i.margineTotale)}</b>
-          <div style="font-size:11px;color:#64748b;">${fmt(i.marginePerc)}%</div>
-        </td>
         <td style="white-space:nowrap;">
-          <b>${euro(i.prezzoListino != null ? i.prezzoListino : i.prezzo)}</b>
-          <div style="font-size:11px;color:#94a3b8;">${i.prezzoListino != null ? "listino" : "medio venduto"}</div>
+          <b>${i.prezzoListino != null ? euro(i.prezzoListino) : `<span style="color:#d97706;">${euro(i.prezzo)}</span>`}</b>
+          <div style="font-size:11px;color:#94a3b8;">${i.prezzoListino != null ? "listino" : "medio venduto (manca listino)"}</div>
         </td>
-        <td style="white-space:nowrap;">
-          ${(() => {
-            const attuale = i.prezzoListino != null ? i.prezzoListino : i.prezzo;
-            if (i.prezzoConsigliato != null && i.prezzoConsigliato > attuale + 0.01) {
-              const btn = i.pvIds.length ? `<button class="mi-btn-small" style="background:#dcfce7;color:#166534;margin-top:4px;" onclick="miApplicaPrezzo('${i.id}')">Applica</button>` : "";
-              return `<b style="color:#16a34a;">${euro(i.prezzoConsigliato)}</b><div style="font-size:11px;color:#16a34a;">+${euro(i.prezzoConsigliato - attuale)} a piatto</div>${btn}`;
-            }
-            return `<span style="color:#94a3b8;">ok così</span>`;
-          })()}
-        </td>
+        <td>${percepito}</td>
+        <td style="white-space:nowrap;">${consigliato}</td>
         <td><span class="mi-badge" style="background:${q.bg};color:${q.colore};">${q.icon} ${q.label}</span></td>
         <td><button class="mi-btn-small" onclick="miSimula('${i.id}')">Simula</button></td>
       </tr>
@@ -531,9 +552,39 @@ function renderTableRows(rows) {
   }).join("");
 }
 
+function renderProiezione() {
+  const el = document.getElementById("mi-proiezione");
+  if (!el) return;
+
+  const conProposta = _filtered.filter(i => {
+    const attuale = i.prezzoListino != null ? i.prezzoListino : i.prezzo;
+    return i.prezzoConsigliato != null && i.prezzoConsigliato > attuale + 0.01;
+  });
+  const giorni = Math.max(1, _giorniStorico || 1);
+
+  if (!conProposta.length || !giorni) { el.innerHTML = ""; return; }
+
+  // Extra per piatto = (consigliato - attuale) * vendite; annualizzato sui giorni di storico reale
+  const extraStorico = conProposta.reduce((s, i) => {
+    const attuale = i.prezzoListino != null ? i.prezzoListino : i.prezzo;
+    return s + (i.prezzoConsigliato - attuale) * i.vendite;
+  }, 0);
+  const extraAnnuo = extraStorico / giorni * 365;
+  const applicabili = conProposta.filter(i => i.pvIds?.length);
+
+  el.innerHTML = `
+    <div class="mi-card" style="background:linear-gradient(135deg,#065f46,#059669);border:none;color:white;">
+      <div style="font-size:13px;font-weight:800;opacity:.85;letter-spacing:.5px;">📈 PROIEZIONE ANNUALE</div>
+      <div style="font-size:34px;font-weight:900;margin:6px 0 2px;">+${euro(extraAnnuo)}<span style="font-size:16px;font-weight:800;opacity:.85;"> / anno</span></div>
+      <div style="font-size:13px;opacity:.9;">di incasso in più applicando i ${conProposta.length} prezzi consigliati, a parità di vendite.</div>
+      <div style="font-size:11px;opacity:.7;margin-top:6px;">Stima basata su ${giorni} giorni di vendite reali del tuo locale.</div>
+      ${applicabili.length ? `<button onclick="miApplicaTutti()" style="margin-top:12px;background:white;color:#065f46;border:none;border-radius:12px;padding:10px 16px;font-weight:900;cursor:pointer;">Applica tutti a menù (${applicabili.length})</button>` : ""}
+    </div>
+  `;
+}
+
 function renderMatrix() {
   const el = document.getElementById("mi-matrix");
-  if (!el) return;
   const counts = countQuadranti(_filtered);
 
   el.innerHTML = `
