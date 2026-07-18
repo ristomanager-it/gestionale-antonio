@@ -287,7 +287,7 @@ export async function render(container) {
                 Il WhatsApp viene mandato in approvazione a Meta e diventa attivo appena approvato (di solito pochi minuti).
               </div>
               <label id="wa-bottone-wrap" style="display:none;align-items:center;gap:6px;font-size:13px;color:#374151;cursor:pointer;margin-top:8px;">
-                <input type="checkbox" id="wa-bottone-link"> Su WhatsApp, metti il link come <b style="margin:0 3px;">bottone</b> "Gestisci prenotazione"
+                <input type="checkbox" id="wa-bottone-link" checked> Su WhatsApp il link diventa un <b style="margin:0 3px;">bottone</b> "Gestisci prenotazione" <span style="color:#94a3b8;">(consigliato: Meta rifiuta i link scritti nel testo)</span>
               </label>
             </div>
 
@@ -987,12 +987,18 @@ export async function render(container) {
     let waMsg = '';
     if (cWa) {
       try {
-        const conBottone = !!container.querySelector('#wa-bottone-link')?.checked;
+        // Meta rifiuta i link "nudi" nel testo: se c'è {{link_gestione}} usiamo SEMPRE il bottone,
+        // anche senza spunta, cosi il template passa l'approvazione.
+        const conBottone = (!!container.querySelector('#wa-bottone-link')?.checked) || contenuto.includes('{{link_gestione}}');
         let testoWa = contenuto;
         let buttons = [];
         if (conBottone) {
-          // il link diventa bottone: tolgo dal testo la riga con {{link_gestione}}
-          testoWa = contenuto.split('\n').filter(r => !r.includes('{{link_gestione}}')).join('\n').trim();
+          // il link diventa bottone: tolgo il segnaposto {{link_gestione}} dal testo (e ripulisco righe vuote)
+          testoWa = contenuto
+            .replace(/\{\{link_gestione\}\}/g, '')
+            .replace(/[ \t]+\n/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
           const base = window.location.origin + '/prenotazione.html?t=';
           buttons = [{ type: 'URL', text: 'Gestisci prenotazione', url: base + '{{1}}', example: base + 'abc123token' }];
         }
