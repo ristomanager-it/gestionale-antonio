@@ -418,7 +418,29 @@ export async function render(container) {
 
     const sediOpts = (sedi || []).map(function(s){ return '<option value="' + s.id + '"' + (s.id === currentSedeId ? ' selected' : '') + '>' + esc(s.nome) + '</option>'; }).join('');
 
-    box.innerHTML = ` <div style="margin-bottom:36px;">
+    const { data: metaConn } = await supa()
+      .from('meta_ads_connessioni')
+      .select('ad_account_id, ad_account_nome, page_nome, token_scadenza, attivo')
+      .eq('azienda_id', aziendaId).maybeSingle();
+    const SUPA_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+    const metaAdsCard = `
+      <div style="margin-bottom:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">📣 Meta Ads (campagne)</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Collega l'account pubblicitario: le campagne poi si creano da Marketing → Template → Meta Ads</div>
+          </div>
+          <a href="${SUPA_URL}/functions/v1/meta-ads-oauth?action=start&azienda_id=${aziendaId}" target="_blank"
+             style="background:#1877f2;color:white;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;text-decoration:none;">
+            ${metaConn && metaConn.attivo ? '🔄 Ricollega' : '🔗 Collega Meta'}
+          </a>
+        </div>
+        ${metaConn && metaConn.attivo
+          ? `<div style="font-size:13px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">✅ Collegato — Account: <b>${metaConn.ad_account_nome || metaConn.ad_account_id}</b>${metaConn.page_nome ? ` · Pagina: <b>${metaConn.page_nome}</b>` : ''}${metaConn.token_scadenza ? ` · scade ${new Date(metaConn.token_scadenza).toLocaleDateString('it-IT')}` : ''}</div>`
+          : `<div style="font-size:13px;color:#94a3b8;">Non collegato. Serve il profilo Facebook che amministra pagina e account pubblicitario del locale.</div>`}
+      </div>`;
+
+    box.innerHTML = ` ${metaAdsCard}<div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">💬 WhatsApp Business</div>
@@ -859,7 +881,7 @@ export async function render(container) {
   async function renderTabOperativo(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
     await Promise.all([loadSettori(), loadPostazioni(), loadProdotti(), loadCategorie(), loadRicette()]);
-    box.innerHTML = ` <div style="margin-bottom:36px;">
+    box.innerHTML = ` ${metaAdsCard}<div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🍕 Settori cucina</div>
@@ -1129,7 +1151,7 @@ export async function render(container) {
       .eq('azienda_id', aziendaId).eq('sede_id', currentSedeId).order('numero');
     tavoli = tavoliData || [];
 
-    box.innerHTML = ` <div style="margin-bottom:36px;">
+    box.innerHTML = ` ${metaAdsCard}<div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🏠 Sale</div>

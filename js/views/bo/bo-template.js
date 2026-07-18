@@ -276,17 +276,10 @@ export async function render(container) {
             Collega il tuo account pubblicitario Meta <b>una sola volta</b>: da quel momento Tony può creare le campagne per te (es. <b>🎂 Compleanni</b>: intercetta chi compie gli anni nei prossimi 20/30 giorni vicino al tuo locale). Le campagne nascono <b>in pausa</b>: le attivi tu quando vuoi.
           </div>
 
-          <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px;">
-            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px;">🔗 Collegamento</div>
-            ${metaConn && metaConn.attivo ? `
-              <div style="font-size:14px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">
-                ✅ Collegato — Account: <b>${metaConn.ad_account_nome || metaConn.ad_account_id}</b>${metaConn.page_nome ? ` · Pagina: <b>${metaConn.page_nome}</b>` : ''}
-              </div>` : `
-              <div style="font-size:13px;color:#64748b;margin-bottom:10px;">Serve il profilo Facebook che amministra la pagina e l'account pubblicitario del locale.</div>`}
-            <a href="${SUPABASE_URL}/functions/v1/meta-ads-oauth?action=start&azienda_id=${aziendaId}" target="_blank"
-               style="display:inline-block;margin-top:10px;background:#1877f2;color:white;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;text-decoration:none;">
-              ${metaConn && metaConn.attivo ? '🔄 Ricollega Meta' : '🔗 Collega Meta'}
-            </a>
+          <div style="margin-bottom:16px;font-size:13px;">
+            ${metaConn && metaConn.attivo
+              ? `<div style="color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">✅ Meta collegato — <b>${metaConn.ad_account_nome || metaConn.ad_account_id}</b>${metaConn.page_nome ? ` · ${metaConn.page_nome}` : ''}</div>`
+              : `<div style="color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;">⚠️ Meta non collegato — vai in <a href="#bo-configurazione?tab=integrazioni" style="color:#0E5A7A;font-weight:600;">Configurazione → Integrazioni</a> e premi "Collega Meta".</div>`}
           </div>
 
           <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px;">

@@ -181,7 +181,7 @@ const routes = {
   // =========================
   "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
   "bo-tag": () => import("./views/bo/bo-tag.js"),
-  "bo-template": () => import("./views/bo/bo-template.js?v=10"),
+  "bo-template": () => import("./views/bo/bo-template.js?v=11"),
   "bo-candidature": () => import("./views/bo/bo-candidature.js"),
   "bo-bilancio":     () => import("./views/bo/bo-bilancio.js?v=3"),
   "bo-survey":      () => import("./views/bo/bo-survey.js"),
@@ -195,7 +195,7 @@ const routes = {
   // PRODUZIONE
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
   "bo-comande": () => import("./views/bo/bo-comande.js?v=8"),
-  "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=2"),
+  "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=3"),
   "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
   "bo-consulenti": () => import("./views/bo/bo-consulenti.js"),
   "home-consulente": () => import("./views/home-consulente.js"),
