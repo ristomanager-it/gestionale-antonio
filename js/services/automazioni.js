@@ -12,8 +12,13 @@ async function emailDaContatto(contattoId){
 }
 
 export async function eseguiAutomazioni(evento, pren){
+  // Gli invii automatici sono ora gestiti LATO SERVER dal motore-invii,
+  // attivato da un trigger DB su ogni prenotazione (app o online).
+  // Qui non inviamo piu nulla per evitare doppioni.
+  return;
+}
 
-  const supabase = window.supabaseClient;
+async function _eseguiAutomazioniLegacy(evento, pren){
   const aziendaId = window.state?.azienda?.id;
 
   // 🔥 PRENDI TEMPLATE ATTIVI PER EVENTO
