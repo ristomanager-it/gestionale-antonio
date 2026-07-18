@@ -168,7 +168,7 @@ const routes = {
   "prenotazioni-form": () => import("./views/prenotazioni/form.js?v=9"),
   "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
 
-  prenotazioni: () => import("./views/prenotazioni/index.js?v=5"),
+  prenotazioni: () => import("./views/prenotazioni/index.js?v=6"),
   "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js?v=3"),
 
   campagne: () => import("./views/campagne/index.js"),
@@ -181,7 +181,7 @@ const routes = {
   // =========================
   "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
   "bo-tag": () => import("./views/bo/bo-tag.js"),
-  "bo-template": () => import("./views/bo/bo-template.js?v=8"),
+  "bo-template": () => import("./views/bo/bo-template.js?v=9"),
   "bo-candidature": () => import("./views/bo/bo-candidature.js"),
   "bo-bilancio":     () => import("./views/bo/bo-bilancio.js?v=3"),
   "bo-survey":      () => import("./views/bo/bo-survey.js"),

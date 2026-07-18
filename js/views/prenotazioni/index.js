@@ -2147,7 +2147,9 @@ if (onlineModal.classList.contains("open")) {
     const nome = String(p?.cliente_nome || "").trim();
     const cognome = String(p?.cognome || "").trim();
     const full = `${nome} ${cognome}`.trim();
-    return full || "Cliente";
+    const base = full || "Cliente";
+    const occ = String(p?.occasione || p?.tag || "").toLowerCase();
+    return occ.includes("compleanno") ? `🎂 ${base}` : base;
   }
 
   function getTimeSlotLabel(timeValue, slotMinutes) {

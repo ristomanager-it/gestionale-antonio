@@ -28,6 +28,13 @@ const WILDCARD_GRUPPI = [
     ]
   },
   {
+    gruppo: '🎂 Compleanno',
+    items: [
+      { key: 'data_compleanno',  label: 'Data compleanno (gg/mm)' },
+      { key: 'link_compleanno',  label: 'Link prenotazione compleanno' },
+    ]
+  },
+  {
     gruppo: '🎉 Evento',
     items: [
       { key: 'data_evento',  label: 'Data evento' },
@@ -941,7 +948,7 @@ export async function render(container) {
     });
   });
 
-  const WA_ESEMPI = { nome:'Mario', cognome:'Rossi', nome_completo:'Mario Rossi', telefono:'+393331234567', data_prenotazione:'15 Giugno 2026', ora_prenotazione:'20:00', num_persone:'4', nome_sala:'Sala Principale', numero_tavolo:'5', data_evento:'20 Luglio 2026', tipo_evento:'Matrimonio', nome_evento:'Evento Rossi', importo:'1500', ora_ingresso:'08:30', ora_uscita:'17:30', data_oggi: new Date().toLocaleDateString('it-IT'), nome_ristorante:'Ristorante', telefono_ristorante:'+390123456789', indirizzo:'Via Roma 1', link_gestione:'https://app.ristoflow-ai.com/prenotazione.html?t=abc123' };
+  const WA_ESEMPI = { nome:'Mario', cognome:'Rossi', nome_completo:'Mario Rossi', telefono:'+393331234567', data_prenotazione:'15 Giugno 2026', ora_prenotazione:'20:00', num_persone:'4', nome_sala:'Sala Principale', numero_tavolo:'5', data_evento:'20 Luglio 2026', tipo_evento:'Matrimonio', nome_evento:'Evento Rossi', importo:'1500', ora_ingresso:'08:30', ora_uscita:'17:30', data_oggi: new Date().toLocaleDateString('it-IT'), nome_ristorante:'Ristorante', telefono_ristorante:'+390123456789', indirizzo:'Via Roma 1', link_gestione:'https://app.ristoflow-ai.com/prenotazione.html?t=abc123', data_compleanno:'28/07', giorni_al_compleanno:'10', link_compleanno:'https://app.ristoflow-ai.com/prenotazione-compleanno.html?a=esempio' };
 
   container.querySelector('#btn-salva-email').addEventListener('click', async () => {
     const fb = container.querySelector('#email-feedback');
@@ -987,20 +994,29 @@ export async function render(container) {
     let waMsg = '';
     if (cWa) {
       try {
-        // Meta rifiuta i link "nudi" nel testo: se c'è {{link_gestione}} usiamo SEMPRE il bottone,
-        // anche senza spunta, cosi il template passa l'approvazione.
-        const conBottone = (!!container.querySelector('#wa-bottone-link')?.checked) || contenuto.includes('{{link_gestione}}');
+        // Meta rifiuta i link "nudi" nel testo: se c'è {{link_gestione}} o {{link_compleanno}}
+        // usiamo SEMPRE il bottone, anche senza spunta, cosi il template passa l'approvazione.
+        const haLinkGestione  = contenuto.includes('{{link_gestione}}');
+        const haLinkCompleanno = contenuto.includes('{{link_compleanno}}');
+        const conBottone = (!!container.querySelector('#wa-bottone-link')?.checked) || haLinkGestione || haLinkCompleanno;
         let testoWa = contenuto;
         let buttons = [];
         if (conBottone) {
-          // il link diventa bottone: tolgo il segnaposto {{link_gestione}} dal testo (e ripulisco righe vuote)
+          // il link diventa bottone: tolgo i segnaposto link dal testo (e ripulisco righe vuote)
           testoWa = contenuto
             .replace(/\{\{link_gestione\}\}/g, '')
+            .replace(/\{\{link_compleanno\}\}/g, '')
             .replace(/[ \t]+\n/g, '\n')
             .replace(/\n{3,}/g, '\n\n')
             .trim();
-          const base = window.location.origin + '/prenotazione.html?t=';
-          buttons = [{ type: 'URL', text: 'Gestisci prenotazione', url: base + '{{1}}', example: base + 'abc123token' }];
+          if (haLinkCompleanno) {
+            // URL statico: contiene gia' l'azienda, nessun parametro dinamico richiesto
+            const urlCompleanno = window.location.origin + '/prenotazione-compleanno.html?a=' + aziendaId;
+            buttons = [{ type: 'URL', text: 'Prenota ora 🎂', url: urlCompleanno }];
+          } else {
+            const base = window.location.origin + '/prenotazione.html?t=';
+            buttons = [{ type: 'URL', text: 'Gestisci prenotazione', url: base + '{{1}}', example: base + 'abc123token' }];
+          }
         }
         // --- Conformità Meta: niente campi attaccati, il testo non deve iniziare/finire con un campo ---
         testoWa = testoWa.replace(/(\}\})([ \t]*\n[ \t]*|[ \t]+)(\{\{)/g, (_m, a, ws, b) => a + (ws.includes('\n') ? '\n' : ' ') + '· ' + b);
