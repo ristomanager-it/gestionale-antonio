@@ -1879,7 +1879,8 @@ async function loadFasiHaccp(ricettaId) {
       note: "",
       firmato: false,
       firmato_da: "",
-      firmato_il: ""
+      firmato_il: "",
+      firme: []
     };
   });
 
@@ -1967,10 +1968,14 @@ function renderFasiHaccp() {
       </div>
 
       <div>
-        <button type="button" class="app-button small ${log.firmato ? "gray" : ""} haccp-firma" data-idx="${idx}">
-          ${log.firmato ? `✅ Firmato — ${escapeHtml(log.firmato_da)}` : "✍️ Firma fase"}
+        ${(Array.isArray(log.firme) && log.firme.length) ? `
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+            ${log.firme.map((f, i) => `<span style="background:#dcfce7;color:#166534;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:600;">✅ ${escapeHtml(f.operatore_nome)}<span style="color:#16a34a;cursor:pointer;margin-left:6px;" onclick="window.__rimuoviFirmaFase(${idx},${i})">✕</span></span>`).join("")}
+          </div>` : ""}
+        <button type="button" class="app-button small ${(log.firme && log.firme.length) ? "gray" : ""} haccp-firma" data-idx="${idx}">
+          ${(log.firme && log.firme.length) ? "➕ Aggiungi firma" : "✍️ Firma fase"}
         </button>
-        ${log.firmato ? `<span style="font-size:11px;color:#64748b;margin-left:8px;">${escapeHtml(log.firmato_il)}</span>` : ""}
+        ${(Array.isArray(log.firme) && log.firme.length) ? `<span style="font-size:11px;color:#64748b;margin-left:8px;">${escapeHtml(new Date(log.firme[0].firmato_il).toLocaleString("it-IT"))}</span>` : ""}
       </div>
     </div>`;
   }).join("");
@@ -2034,23 +2039,48 @@ function firmaFaseHaccp(idx) {
   const log = logHaccp[idx];
   const fase = fasiCache[idx];
   const nomeFase = fase?.nome_fase || fase?.tipo_fase || "fase";
-  // Ogni fase può essere firmata da una persona diversa: chiedo il PIN di CHI la esegue.
-  const suggerito = operatoreRisolto?.pin ? String(operatoreRisolto.pin) : "";
-  const pin = (prompt(`PIN di chi ha eseguito la fase «${nomeFase}»:`, suggerito) || "").trim();
+  log.firme = Array.isArray(log.firme) ? log.firme : [];
+  const primaFirma = log.firme.length === 0;
+  const suggerito = (primaFirma && operatoreRisolto?.pin) ? String(operatoreRisolto.pin) : "";
+  const msg = primaFirma
+    ? `PIN di chi ha eseguito la fase «${nomeFase}»:`
+    : `PIN del collega che ha lavorato la fase «${nomeFase}» insieme:`;
+  const pin = (prompt(msg, suggerito) || "").trim();
   if (!pin) return;
   const match = dipendentiCache.find((d) => (d.pin ?? "").toString() === pin);
   if (!match) { alert("PIN non valido ❌"); return; }
-  log.firmato = true;
-  log.operatore_id = match.id ?? null;
-  log.operatore_nome = match.nome;
-  log.firmato_da = match.nome;
-  log.firmato_il = new Date().toISOString();
+  if (log.firme.some((f) => String(f.operatore_id) === String(match.id))) { alert(match.nome + " ha già firmato questa fase."); return; }
+  log.firme.push({ operatore_id: match.id ?? null, operatore_nome: match.nome, firmato_il: new Date().toISOString() });
+  applicaFirmePrincipale(log);
   if (!log.ora_fine) {
     log.ora_fine = new Date().toISOString().slice(0, 16);
     calcolaHaccpDurata(idx);
   }
   renderFasiHaccp();
 }
+
+function applicaFirmePrincipale(log) {
+  const firme = Array.isArray(log.firme) ? log.firme : [];
+  if (!firme.length) {
+    log.firmato = false; log.operatore_id = null; log.operatore_nome = ""; log.firmato_da = ""; log.firmato_il = "";
+    return;
+  }
+  const primo = firme[0];
+  log.firmato = true;
+  log.operatore_id = primo.operatore_id;      // il primo firmatario resta il principale (per costo/valutazioni)
+  log.operatore_nome = primo.operatore_nome;
+  log.firmato_da = firme.map((f) => f.operatore_nome).join(" + ");
+  log.firmato_il = primo.firmato_il;
+}
+
+function rimuoviFirmaFase(idx, i) {
+  const log = logHaccp[idx];
+  if (!log || !Array.isArray(log.firme)) return;
+  log.firme.splice(i, 1);
+  applicaFirmePrincipale(log);
+  renderFasiHaccp();
+}
+window.__rimuoviFirmaFase = rimuoviFirmaFase;
 
 async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
   const supabase = window.supabaseClient;
@@ -2072,7 +2102,8 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
           esito: log.esito || "ok",
           note: log.note || null,
           firmato_da: log.firmato_da || null,
-          firmato_il: log.firmato_il || (log.firmato ? new Date().toISOString() : null)
+          firmato_il: log.firmato_il || (log.firmato ? new Date().toISOString() : null),
+          firme: log.firme || []
         }).eq("lotto_id", lottoUUID).eq("fase_id", log.fase_id);
       } catch (e) { console.warn("Update log HACCP fase non riuscito:", e); }
     }
@@ -2101,7 +2132,8 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
     esito: log.esito || "ok",
     note: log.note || null,
     firmato_da: log.firmato_da || null,
-    firmato_il: log.firmato_il || (log.firmato ? new Date().toISOString() : null)
+    firmato_il: log.firmato_il || (log.firmato ? new Date().toISOString() : null),
+    firme: log.firme || []
   }));
 
   try {
@@ -2251,7 +2283,7 @@ async function apriProduzioneAperta() {
       ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
       ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
       esito: log.esito || "ok", note: log.note || null,
-      firmato_da: log.firmato_da || null, firmato_il: log.firmato_il || null,
+      firmato_da: log.firmato_da || null, firmato_il: log.firmato_il || null, firme: log.firme || [],
     }));
     try { await supabase.from("produzione_log_haccp").insert(righe); } catch (e) { console.warn("Fasi lotto:", e); }
   }
@@ -3315,6 +3347,9 @@ async function resumeDaLotto(lottoUuid) {
         log.firmato_il = h.firmato_il
         log.operatore_id = h.operatore_id
         log.operatore_nome = h.operatore_nome
+        log.firme = Array.isArray(h.firme) && h.firme.length
+          ? h.firme
+          : [{ operatore_id: h.operatore_id, operatore_nome: h.operatore_nome, firmato_il: h.firmato_il }]
       }
       if (h.temperatura_rilevata != null) log.temperatura_rilevata = h.temperatura_rilevata
       if (h.temperatura_ok != null) log.temperatura_ok = h.temperatura_ok
