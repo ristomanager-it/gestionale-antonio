@@ -196,7 +196,7 @@ function mostraDettaglio(rid) {
         <div>Venduti: <b>${Number(r.qta_venduta).toLocaleString("it-IT")}</b></div>
         <div>Ricavi: <b>${eur(r.ricavi)}</b></div>
         <div>Prezzo medio: <b>${eur(r.prezzo_medio)}</b></div>
-        <div>Costo piatto: <b>${eur(r.costo_piatto)}</b></div>
+        <div>Costo piatto: <b>${eur(r.costo_piatto)}</b>${r.costo_stimato ? ' <span style="color:#d97706; font-size:11px;">(stima)</span>' : ""}</div>
         <div>Margine: <b>${eur(r.margine_unitario)}</b></div>
         <div>Food cost: <b>${r.food_cost_perc ?? "—"}%</b></div>
         <div>Percezione prezzo: <b>${r.indice_percezione_prezzo}</b> <span style="color:#94a3b8;">(1 = media cat.)</span></div>
@@ -252,13 +252,16 @@ function renderCopertura() {
   const cont = document.getElementById("me-copertura");
   const tot = righe.length;
   const senzaCosto = righe.filter(r => r.quadrante === "SENZA_COSTO").length;
+  const stimati = righe.filter(r => r.costo_stimato && r.quadrante !== "SENZA_COSTO").length;
+  const precisi = (tot - senzaCosto) - stimati;
   cont.innerHTML = `
     <div style="display:grid; gap:6px;">
-      <div>Piatti sul grafico: <b>${tot - senzaCosto}</b> — abbinati ma senza costo ricetta: <b>${senzaCosto}</b></div>
+      <div>Piatti sul grafico: <b>${tot - senzaCosto}</b> <span style="color:#94a3b8;">(${precisi} da distinta, ${stimati} da food cost manuale)</span> — senza costo: <b>${senzaCosto}</b></div>
+      ${stimati ? `<div style="font-size:12px; color:#d97706;">⚠️ ${stimati} piatti usano il food cost <b>manuale</b> come stima: per un dato preciso completa la distinta ingredienti della ricetta.</div>` : ""}
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
         <button class="app-button secondary small" onclick="window.location.hash='#/abbina-articoli'">🔗 Abbina altri articoli</button>
         <button class="app-button secondary small" onclick="window.location.hash='#/ricettario'">📖 Completa ingredienti ricette</button>
       </div>
-      <div style="font-size:12px; color:#94a3b8;">Più articoli abbini e più ricette hanno la distinta ingredienti, più il quadro si completa.</div>
+      <div style="font-size:12px; color:#94a3b8;">Più articoli abbini, più food cost manuali imposti e più distinte completi, più il quadro si completa.</div>
     </div>`;
 }

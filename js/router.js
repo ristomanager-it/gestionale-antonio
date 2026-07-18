@@ -131,7 +131,7 @@ const routes = {
   "crea-ricetta":          () => import("./views/crea-ricetta.js?v=16"),
   "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=16"),
   "abbina-articoli": () => import("./views/abbina-articoli.js"),
-  "menu-engineering": () => import("./views/menu-engineering.js"),
+  "menu-engineering": () => import("./views/menu-engineering.js?v=2"),
   "super-tony": () => import("./views/super-tony.js?v=6"),
   preparazioni: () => import("./views/preparazioni.js?v=7"),
   reparti: () => import("./views/reparti.js"),
