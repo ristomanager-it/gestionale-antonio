@@ -446,6 +446,7 @@ export function initMenu() {
             { label: "💬 Template", route: "bo-template?tab=tab-template" },
             { label: "🏷️ Tag", route: "bo-template?tab=tab-tag" },
             { label: "⚡ Regole automatiche", route: "bo-template?tab=tab-regole" },
+            { label: "📣 Meta Ads", route: "bo-template?tab=tab-metaads" },
           ] },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "🎁 Promo",             route: "bo-promo"          },
