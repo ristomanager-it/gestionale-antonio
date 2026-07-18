@@ -153,15 +153,33 @@ async function loadData() {
   if (content) content.style.display = "none";
 
   const aziendaId = window.state?.azienda?.id;
-  const startIso = new Date(Date.now() - Number(_periodo || 30) * 86400000).toISOString();
 
-  const [prodotti, ricette, vendite] = await Promise.all([
-    fetchSafe("prodotti", "id,nome,descrizione,prezzo,prezzo_vendita,costo,costo_totale,food_cost,categoria,categoria_id,attivo,azienda_id", aziendaId),
-    fetchSafe("ricette", "id,nome,descrizione,prezzo_vendita,costo_porzione,costo_totale,food_cost,categoria,categoria_id,azienda_id", aziendaId),
-    fetchVenditeSafe(aziendaId, startIso)
-  ]);
+  // Fonte unica e affidabile: vw_menu_engineering (stessa del Menu Engineering e della Salute dati).
+  let rows = [];
+  try {
+    const { data } = await supabase.from("vw_menu_engineering").select("*").eq("azienda_id", aziendaId);
+    rows = (data || []).filter(r => r.quadrante && r.quadrante !== "SENZA_COSTO");
+  } catch { rows = []; }
 
-  _items = normalizeItems(prodotti, ricette, vendite);
+  _items = rows.map(r => {
+    const prezzo = n(r.prezzo_medio);
+    const costo = n(r.costo_piatto);
+    const vendite = n(r.qta_venduta);
+    const ricavo = n(r.ricavi);
+    const margineUnitario = r.margine_unitario != null ? n(r.margine_unitario) : Math.max(0, prezzo - costo);
+    const foodCostPerc = r.food_cost_perc != null ? n(r.food_cost_perc) : (prezzo > 0 ? costo / prezzo * 100 : 0);
+    return {
+      id: `r_${r.ricetta_id}`, rawId: r.ricetta_id, tipo: "ricetta",
+      nome: r.nome || "Ricetta", categoria: r.categoria || "Menu",
+      prezzo, costo, vendite, ricavo,
+      margineUnitario, margineTotale: margineUnitario * vendite,
+      foodCostPerc, marginePerc: Math.max(0, 100 - foodCostPerc),
+      quadrante: String(r.quadrante || "dog").toLowerCase(),
+      prezzoConsigliato: r.prezzo_consigliato != null ? n(r.prezzo_consigliato) : null,
+      margineSpingibile: n(r.margine_spingibile),
+      costoStimato: r.costo_stimato === true
+    };
+  });
   buildCategoryOptions();
   applyFiltersAndRender();
   renderSalute();
