@@ -747,6 +747,7 @@ export async function render(container) {
           <option value="cena">🌙 Cena</option>
         </select>
 <button id="pren-richieste-trigger" class="pren-tool-btn">📂 Fila-Fast</button>
+        <button type="button" class="pren-tool-btn" id="btn-stampa-talloncini" title="Stampa i talloncini del giorno (4 per foglio A4)">🖨 Talloncini</button>
         <button type="button" class="pren-tool-btn" id="btn-refresh" title="Aggiorna">↻</button>
       </div>
 
@@ -838,6 +839,8 @@ notificationAudio.volume = 0.6;
 };
   renderDays(true);
   attachDayInfiniteScroll();
+
+  document.getElementById("btn-stampa-talloncini").onclick = () => stampaTalloncniGiorno();
 
   document.getElementById("btn-refresh").onclick = async () => {
     await load();
@@ -1512,6 +1515,122 @@ if (onlineModal.classList.contains("open")) {
     }
 
     return ``;
+  }
+
+  async function stampaTalloncniGiorno() {
+    const dataSel = (document.getElementById("filtro-data")?.value) || new Date().toISOString().split("T")[0];
+    const esclusi = ["rifiutata", "no_show", "annullata"];
+    const lista = (state.prenotazioni || [])
+      .filter((p) => p.data === dataSel && !esclusi.includes(String(p.stato || "").toLowerCase()))
+      .sort((a, b) => String(a.ora || "").localeCompare(String(b.ora || "")));
+    if (!lista.length) { alert("Nessuna prenotazione da stampare per il " + dataSel.split("-").reverse().join("/")); return; }
+
+    const supabase = window.supabaseClient;
+    const aziendaId = window.state?.azienda?.id;
+    let sedeNome = window.state?.sedeAttiva?.nome || window.state?.azienda?.nome || "";
+    let slug = null;
+    try {
+      const sedeId = window.state?.sedeAttiva?.id || lista[0]?.sede_id || null;
+      if (sedeId) {
+        const { data: m1 } = await supabase.from("menu").select("slug").eq("sede_id", sedeId).eq("attivo", true).order("created_at", { ascending: false }).limit(1);
+        slug = m1 && m1[0] ? m1[0].slug : null;
+      }
+      if (!slug && aziendaId) {
+        const { data: m2 } = await supabase.from("menu").select("slug").eq("azienda_id", aziendaId).eq("attivo", true).order("created_at", { ascending: false }).limit(1);
+        slug = m2 && m2[0] ? m2[0].slug : null;
+      }
+    } catch (e) {}
+    const menuUrl = slug ? (window.location.origin + "/menu-pubblico.html?slug=" + encodeURIComponent(slug)) : null;
+
+    // QR unico per tutti (stesso menu)
+    let qrData = null;
+    if (menuUrl && typeof QRCode !== "undefined") {
+      try {
+        const host = document.createElement("div");
+        host.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
+        document.body.appendChild(host);
+        new QRCode(host, { text: menuUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+        await new Promise(r => setTimeout(r, 30));
+        const cv = host.querySelector("canvas");
+        const im = host.querySelector("img");
+        qrData = cv ? cv.toDataURL("image/png") : (im ? im.src : null);
+        host.remove();
+      } catch (e) { qrData = null; }
+    }
+
+    const dataIt = new Date(dataSel + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "2-digit", month: "long" });
+
+    const cella = (p) => {
+      const nomeCliente = [p.cliente_nome, p.cognome].filter(Boolean).join(" ") || p.cliente_nome || "Ospite";
+      const oraP = (p.ora || "").toString().slice(0, 5);
+      const note = (p.note || "").trim();
+      return `<div class="cell">
+        <div class="c-top">
+          <div class="c-locale">${escapeHtml(sedeNome)}</div>
+          <div class="c-riservato">Tavolo riservato per</div>
+          <div class="c-nome">${escapeHtml(nomeCliente)}</div>
+        </div>
+        <div class="c-mid">
+          <div class="c-dati">
+            <div class="c-riga"><b>Orario</b> ${escapeHtml(oraP || "—")}</div>
+            <div class="c-riga"><b>Persone</b> ${Number(p.coperti) || 0}</div>
+            ${note ? `<div class="c-allergie"><div class="t">⚠ Note</div><div class="v">${escapeHtml(note)}</div></div>` : ""}
+          </div>
+          ${qrData ? `<div class="c-qr"><img src="${qrData}"><div class="cap">Menu</div></div>` : ""}
+        </div>
+        <div class="c-foot">${escapeHtml(dataIt)}</div>
+      </div>`;
+    };
+
+    // pagine da 4
+    let pagine = "";
+    for (let i = 0; i < lista.length; i += 4) {
+      pagine += `<div class="sheet">${lista.slice(i, i + 4).map(cella).join("")}</div>`;
+    }
+
+    const html = `<!doctype html><html lang="it"><head><meta charset="utf-8">
+      <title>Talloncini — ${escapeHtml(dataIt)}</title>
+      <style>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:Georgia,'Times New Roman',serif; color:#1c2430; background:#f3f4f6; display:flex; flex-direction:column; align-items:center; gap:16px; padding:20px; }
+        .sheet { background:#fff; width:210mm; height:296mm; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; border:1px solid #e5e7eb; }
+        .cell { border-right:1px dashed #cbd5e1; border-bottom:1px dashed #cbd5e1; padding:9mm 8mm; display:flex; flex-direction:column; overflow:hidden; }
+        .cell:nth-child(2n) { border-right:none; }
+        .cell:nth-child(n+3) { border-bottom:none; }
+        .c-top { text-align:center; border-bottom:1.5px solid #1c2430; padding-bottom:3.5mm; margin-bottom:3.5mm; }
+        .c-locale { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:#6b7280; font-family:Arial,sans-serif; }
+        .c-riservato { font-style:italic; font-size:11px; color:#9ca3af; margin-top:2mm; }
+        .c-nome { font-size:21px; font-weight:700; margin-top:1mm; line-height:1.15; }
+        .c-mid { display:flex; gap:4mm; flex:1; align-items:center; }
+        .c-dati { flex:1; min-width:0; }
+        .c-riga { font-size:13px; margin-bottom:2mm; }
+        .c-riga b { display:inline-block; min-width:18mm; font-family:Arial,sans-serif; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#6b7280; }
+        .c-allergie { margin-top:2.5mm; background:#fff7ed; border:1px solid #fdba74; border-radius:5px; padding:2.5mm; }
+        .c-allergie .t { font-family:Arial,sans-serif; font-size:8px; font-weight:700; letter-spacing:1px; color:#c2410c; text-transform:uppercase; }
+        .c-allergie .v { font-size:11px; margin-top:1mm; line-height:1.35; }
+        .c-qr { text-align:center; width:26mm; flex-shrink:0; }
+        .c-qr img { width:24mm; height:24mm; }
+        .c-qr .cap { font-family:Arial,sans-serif; font-size:8px; color:#6b7280; margin-top:1mm; }
+        .c-foot { text-align:center; font-family:Arial,sans-serif; font-size:8.5px; color:#9ca3af; border-top:1px solid #e5e7eb; padding-top:2mm; margin-top:2mm; text-transform:capitalize; }
+        .no-print { position:fixed; top:12px; right:12px; display:flex; gap:8px; z-index:9; }
+        .no-print button { border:none; border-radius:999px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; font-family:Arial,sans-serif; }
+        @media print {
+          body { background:#fff; padding:0; gap:0; }
+          .sheet { border:none; page-break-after:always; }
+          .no-print { display:none !important; }
+        }
+        @page { size:A4 portrait; margin:0; }
+      </style></head><body>
+      <div class="no-print">
+        <button onclick="window.print()" style="background:#0E5A7A;color:#fff;">🖨 Stampa ${lista.length} talloncini</button>
+        <button onclick="window.close()" style="background:#e2e8f0;color:#334155;">✕ Chiudi</button>
+      </div>
+      ${pagine}
+    </body></html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) { alert("Consenti i popup per la stampa."); return; }
+    win.document.open(); win.document.write(html); win.document.close();
   }
 
   async function stampaTalloncinoLista(p) {
