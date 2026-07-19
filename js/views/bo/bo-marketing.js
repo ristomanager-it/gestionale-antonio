@@ -56,6 +56,7 @@ export async function render(container) {
         </div>
 
         <div class="bo-m-item" data-sec="campagne-meta">📣 Campagne Meta</div>
+        <div class="bo-m-item" data-sec="bacheca-social">📸 Bacheca Social</div>
         <div class="bo-m-item" data-sec="tony-ai">🤖 Tony AI</div>
         <div class="bo-m-item" data-sec="pubblici">👥 Pubblici</div>
         <div class="bo-m-item" data-sec="connessioni">🔗 Connessioni</div>
@@ -755,6 +756,138 @@ export async function render(container) {
     await renderContent();
   }
 
+  async function renderBachecaSocial(content) {
+    const azienda = window.state?.azienda || {};
+    const aziendaId = azienda.id;
+    const sedeAtt = window.state?.sedeAttiva || null;
+    const nomeLocale = (sedeAtt && sedeAtt.nome) || azienda.nome || "Il locale";
+    const ADMIN = SUPABASE_URL + "/functions/v1/fidelity-social-admin";
+    const H = { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY };
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+    content.innerHTML = `
+      <div style="padding:4px 4px 20px;">
+        <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid #e5e7eb;">
+          <button class="bs-tab on" data-t="pubblica" style="border:none;background:none;padding:10px 16px;cursor:pointer;font-size:14px;font-weight:700;color:#0E5A7A;border-bottom:2px solid #0E5A7A;">✍️ Pubblica novità</button>
+          <button class="bs-tab" data-t="modera" style="border:none;background:none;padding:10px 16px;cursor:pointer;font-size:14px;font-weight:700;color:#64748b;border-bottom:2px solid transparent;">🛡️ Modera post</button>
+        </div>
+        <div id="bs-body"></div>
+      </div>`;
+
+    const body = content.querySelector("#bs-body");
+    content.querySelectorAll(".bs-tab").forEach((t) => {
+      t.onclick = () => {
+        content.querySelectorAll(".bs-tab").forEach((x) => { x.classList.remove("on"); x.style.color = "#64748b"; x.style.borderBottomColor = "transparent"; });
+        t.classList.add("on"); t.style.color = "#0E5A7A"; t.style.borderBottomColor = "#0E5A7A";
+        if (t.dataset.t === "pubblica") renderPubblica(); else renderModera();
+      };
+    });
+
+    // ── PUBBLICA ──
+    let fotoB64 = null, fotoTipo = null;
+    function renderPubblica() {
+      fotoB64 = null; fotoTipo = null;
+      body.innerHTML = `
+        <div style="max-width:560px;">
+          <div style="font-size:13px;color:#64748b;margin-bottom:14px;">Quello che pubblichi qui appare nel feed <b>Novità</b> della tessera fidelity dei tuoi clienti — con la spunta ✓ del locale.</div>
+          <div id="bs-foto" style="border:2px dashed #cbd5e1;border-radius:14px;padding:26px;text-align:center;color:#94a3b8;font-size:13px;cursor:pointer;margin-bottom:12px;">📷 Aggiungi una foto (piatto, evento, novità)</div>
+          <input id="bs-file" type="file" accept="image/*" style="display:none;">
+          <textarea id="bs-testo" rows="4" placeholder="Scrivi la novità... (es: Da venerdì il nuovo menu di pesce! 🐟)" style="width:100%;box-sizing:border-box;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;"></textarea>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px;">
+            <label style="font-size:13px;color:#374151;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="bs-storia"> Pubblica come <b>storia</b> (24h)</label>
+          </div>
+          <button id="bs-invia" style="margin-top:14px;background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;">Pubblica nel feed</button>
+          <span id="bs-msg" style="margin-left:12px;font-size:13px;"></span>
+        </div>`;
+      const fileIn = body.querySelector("#bs-file");
+      body.querySelector("#bs-foto").onclick = () => fileIn.click();
+      fileIn.onchange = () => {
+        const f = fileIn.files && fileIn.files[0]; if (!f) return;
+        const img = new Image();
+        img.onload = () => {
+          let max = 1600, w = img.width, h = img.height;
+          if (w > max || h > max) { const k = Math.min(max / w, max / h); w = Math.round(w * k); h = Math.round(h * k); }
+          const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          cv.getContext("2d").drawImage(img, 0, 0, w, h);
+          fotoB64 = cv.toDataURL("image/jpeg", 0.85); fotoTipo = "image/jpeg";
+          body.querySelector("#bs-foto").innerHTML = `<img src="${fotoB64}" style="max-width:100%;max-height:220px;border-radius:10px;">`;
+        };
+        img.src = URL.createObjectURL(f);
+      };
+      body.querySelector("#bs-invia").onclick = async () => {
+        const btn = body.querySelector("#bs-invia"), msg = body.querySelector("#bs-msg");
+        const testo = body.querySelector("#bs-testo").value.trim();
+        if (!testo && !fotoB64) { msg.textContent = "Aggiungi foto o testo."; msg.style.color = "#b45309"; return; }
+        btn.disabled = true; btn.textContent = "Pubblico...";
+        try {
+          const r = await fetch(ADMIN, { method: "POST", headers: H, body: JSON.stringify({
+            azione: "pubblica_locale", azienda_id: aziendaId, sede_id: sedeAtt ? sedeAtt.id : null,
+            nome_locale: nomeLocale, testo, foto_base64: fotoB64, foto_tipo: fotoTipo,
+            storia: body.querySelector("#bs-storia").checked }) });
+          const j = await r.json();
+          if (!j.success) throw new Error(j.error || "Errore");
+          msg.textContent = "✅ Pubblicato!"; msg.style.color = "#15803d";
+          setTimeout(renderPubblica, 900);
+        } catch (e) { msg.textContent = "Errore: " + e.message; msg.style.color = "#b91c1c"; btn.disabled = false; btn.textContent = "Pubblica nel feed"; }
+      };
+    }
+
+    // ── MODERA ──
+    async function renderModera() {
+      body.innerHTML = `<div style="color:#94a3b8;padding:30px;font-size:13px;">Caricamento post...</div>`;
+      let posts = [];
+      try {
+        const r = await fetch(ADMIN, { method: "POST", headers: H, body: JSON.stringify({ azione: "lista_moderazione", azienda_id: aziendaId, sede_id: sedeAtt ? sedeAtt.id : null }) });
+        const j = await r.json(); posts = j.posts || [];
+      } catch (e) { body.innerHTML = `<div style="color:#b91c1c;padding:20px;">Errore caricamento.</div>`; return; }
+      if (!posts.length) { body.innerHTML = `<div style="color:#94a3b8;padding:30px;font-size:13px;">Ancora nessun post pubblicato dai clienti.</div>`; return; }
+
+      const stelle = (v) => v ? "★".repeat(v) + "☆".repeat(5 - v) : "";
+      body.innerHTML = posts.map((p) => {
+        const cliente = p.tipo_autore === "cliente";
+        const puoPunti = cliente && p.fidelity_cliente_id && !(p.punti_assegnati > 0);
+        return `<div class="bs-card" data-id="${p.id}" style="border:1px solid ${p.visibile ? "#e5e7eb" : "#fecaca"};background:${p.visibile ? "#fff" : "#fef2f2"};border-radius:14px;padding:14px;margin-bottom:12px;display:flex;gap:12px;">
+          ${p.media_url ? `<img src="${esc(p.media_url)}" style="width:88px;height:88px;object-fit:cover;border-radius:10px;flex-shrink:0;">` : `<div style="width:88px;height:88px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">${cliente ? "🧑" : "🏪"}</div>`}
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <b style="font-size:14px;">${esc(cliente ? (p.autore_nome || "Ospite") : (p.nome_locale || "Il locale"))}</b>
+              <span style="font-size:11px;padding:2px 8px;border-radius:999px;background:${cliente ? "#eef2ff" : "#ecfeff"};color:${cliente ? "#4338ca" : "#0e7490"};">${cliente ? "cliente" : "locale"}</span>
+              ${p.voto ? `<span style="color:#e0a93e;font-size:13px;">${stelle(p.voto)}</span>` : ""}
+              ${!p.visibile ? `<span style="font-size:11px;color:#b91c1c;font-weight:700;">NASCOSTO</span>` : ""}
+              ${p.punti_assegnati > 0 ? `<span style="font-size:11px;color:#15803d;font-weight:700;">+${p.punti_assegnati} punti ✓</span>` : ""}
+            </div>
+            ${p.testo ? `<div style="font-size:13px;color:#374151;margin-top:5px;line-height:1.5;">${esc(p.testo)}</div>` : ""}
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <button class="bs-toggle" data-vis="${p.visibile ? "0" : "1"}" style="border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;background:${p.visibile ? "#fef3c7" : "#dcfce7"};color:${p.visibile ? "#92400e" : "#166534"};">${p.visibile ? "🙈 Nascondi" : "👁 Mostra"}</button>
+              ${puoPunti ? `<button class="bs-punti" style="border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;background:#0E5A7A;color:#fff;">🎁 Assegna punti</button>` : ""}
+              <button class="bs-del" style="border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;background:#fee2e2;color:#b91c1c;">🗑 Elimina</button>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+
+      body.querySelectorAll(".bs-card").forEach((card) => {
+        const id = card.dataset.id;
+        const apiCall = (payload) => fetch(ADMIN, { method: "POST", headers: H, body: JSON.stringify(payload) }).then((r) => r.json());
+        const tog = card.querySelector(".bs-toggle");
+        if (tog) tog.onclick = async () => { tog.disabled = true; const j = await apiCall({ azione: "modera", post_id: id, visibile: tog.dataset.vis === "1" }); if (j.success) renderModera(); };
+        const del = card.querySelector(".bs-del");
+        if (del) del.onclick = async () => { if (!confirm("Eliminare definitivamente il post?")) return; const j = await apiCall({ azione: "elimina", post_id: id }); if (j.success) renderModera(); };
+        const pnt = card.querySelector(".bs-punti");
+        if (pnt) pnt.onclick = async () => {
+          const v = prompt("Quanti punti fidelity vuoi assegnare a chi ha pubblicato questo post?", "50");
+          if (v == null) return;
+          pnt.disabled = true; pnt.textContent = "...";
+          const j = await apiCall({ azione: "assegna_punti", post_id: id, punti: parseInt(v) || 0 });
+          if (j.success) { alert("Assegnati " + j.punti + " punti. Nuovo saldo cliente: " + j.nuovo_saldo); renderModera(); }
+          else { alert("Errore: " + (j.error || "sconosciuto")); pnt.disabled = false; pnt.textContent = "🎁 Assegna punti"; }
+        };
+      });
+    }
+
+    renderPubblica();
+  }
+
   function renderPlaceholder(content, title) {
     content.innerHTML = `
       <div class="card">
@@ -1329,6 +1462,7 @@ DESC 2: ...`;
       }
 
       if (currentSection === "campagne-meta") { await renderCampagneMeta(content); return; }
+      if (currentSection === "bacheca-social") { await renderBachecaSocial(content); return; }
       if (currentSection === "campagne-google") { await renderCampagneGoogle(content); return; }
       if (currentSection === "tony-ai") { await renderTonyAI(content); return; }
       if (currentSection === "pubblici") { await renderPubblici(content); return; }

@@ -84,7 +84,7 @@ const routes = {
   // =========================
   // MARKETING (globale - lettura)
   // =========================
-  "bo-marketing": () => import("./views/bo/bo-marketing.js?v=4"),
+  "bo-marketing": () => import("./views/bo/bo-marketing.js?v=5"),
   "bo-presenze": () => import("./views/bo/bo-presenze.js?v=7"),
   "bo-analytics": () => import("./views/bo/bo-analytics.js"),
   "bo-onboarding": () => import("./views/bo/bo-onboarding.js?v=2"),
