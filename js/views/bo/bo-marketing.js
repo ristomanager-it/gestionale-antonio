@@ -12,7 +12,15 @@ export async function render(container) {
     return
   }
 
-  let currentSection = "campagne-meta"
+  let currentSection = (function(){
+    try {
+      const h = window.location.hash || "";
+      const qs = h.includes("?") ? h.split("?")[1] : "";
+      const t = new URLSearchParams(qs).get("tab");
+      const ammessi = ["campagne-meta","bacheca-social","tony-ai","pubblici","connessioni","campagne-google","promozioni","fidelity","tags","template"];
+      return ammessi.includes(t) ? t : "campagne-meta";
+    } catch(e) { return "campagne-meta"; }
+  })()
   let tags = []
   let templates = []
   let campagne = []

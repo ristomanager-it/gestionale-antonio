@@ -450,6 +450,7 @@ export function initMenu() {
             { label: "📣 Meta Ads", route: "bo-template?tab=tab-metaads" },
           ] },
           { label: "📣 Campagne",         route: "bo-marketing"      },
+          { label: "📸 Bacheca Social",   route: "bo-marketing?tab=bacheca-social" },
           { label: "🎁 Promo",             route: "bo-promo"          },
           { label: "📨 Registro messaggi",  route: "registro-messaggi" },
           { label: "🎫 Fidelity & Network", route: "bo-fidelity", children: [
