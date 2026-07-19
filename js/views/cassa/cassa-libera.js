@@ -131,6 +131,26 @@ export async function renderCassaLibera(container, azienda) {
         </div>
       </div>
 
+      <!-- Modal coupon: campo (lettore USB/manuale) + fotocamera -->
+      <div id="cl-cp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1250;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:20px;padding:22px;width:min(420px,92vw);">
+          <div style="font-weight:800;font-size:18px;margin-bottom:4px;">🎟 Coupon promo</div>
+          <div style="color:#64748b;font-size:13px;margin-bottom:12px;">Scansiona il QR con la fotocamera, passa il lettore, o scrivi il codice.</div>
+          <input id="cl-cp-input" placeholder="RFC:XXXXXX oppure XXXXXX" autocomplete="off" autocapitalize="characters"
+            style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #d1d5db;border-radius:12px;font-size:16px;letter-spacing:1px;text-transform:uppercase;">
+          <div id="cl-cp-cam" style="display:none;margin-top:10px;border-radius:12px;overflow:hidden;background:#000;position:relative;">
+            <video id="cl-cp-video" playsinline muted style="width:100%;max-height:260px;object-fit:cover;display:block;"></video>
+            <div style="position:absolute;inset:0;border:2px solid rgba(255,255,255,.5);border-radius:12px;pointer-events:none;"></div>
+          </div>
+          <div id="cl-cp-msg" style="font-size:13px;min-height:18px;margin-top:8px;color:#64748b;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="cl-cp-scan" style="flex:1;padding:12px;border:1px solid #0E5A7A;border-radius:999px;background:white;color:#0E5A7A;font-weight:700;cursor:pointer;">📷 Scansiona</button>
+            <button id="cl-cp-ok" style="flex:1;padding:12px;border:none;border-radius:999px;background:#0E5A7A;color:white;font-weight:700;cursor:pointer;">Verifica</button>
+            <button id="cl-cp-close" style="padding:12px 16px;border:1px solid #e5e7eb;border-radius:999px;background:white;color:#64748b;cursor:pointer;">✕</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Modal pagamento -->
       <div id="cl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1200;align-items:center;justify-content:center;">
         <div style="background:white;border-radius:20px;padding:24px;width:min(420px,92vw);">
@@ -201,21 +221,96 @@ export async function renderCassaLibera(container, azienda) {
     // Svuota
     const sv = container.querySelector('#cl-svuota');
     if (sv) sv.onclick = () => { carrello = []; coupon = null; render(); aggiornaSchermoCliente(); };
-    // Coupon promo: verifica (l'annullo definitivo avviene all'incasso)
+    // Coupon promo: modal con campo (lettore USB scrive qui) + fotocamera; annullo definitivo all'incasso
     const btnCp = container.querySelector('#cl-coupon');
-    if (btnCp) btnCp.onclick = async () => {
-      const codice = prompt('Codice coupon (scrivi o scansiona il QR — es. RFC:AB12CD):');
-      if (!codice) return;
-      btnCp.disabled = true; btnCp.textContent = '⏳ Verifica...';
-      const { data, error } = await supabase.rpc('annulla_coupon', { p_codice: codice.trim(), p_solo_verifica: true });
-      if (error || !data || !data.ok) {
-        alert('❌ ' + (data?.errore || error?.message || 'Coupon non valido') + (data?.cliente ? '\nIntestato a: ' + data.cliente : '') + (data?.data_utilizzo ? '\nUsato il: ' + new Date(data.data_utilizzo).toLocaleString('it-IT') : ''));
-        render();
-        return;
-      }
-      coupon = { codice: data.codice, cliente: data.cliente, promo_nome: data.promo_nome, tipo: data.promo_tipo, valore: data.promo_valore };
-      render(); aggiornaSchermoCliente();
-    };
+    if (btnCp) btnCp.onclick = () => apriModalCoupon();
+
+    function apriModalCoupon() {
+      const modal = container.querySelector('#cl-cp-modal');
+      const input = container.querySelector('#cl-cp-input');
+      const msg = container.querySelector('#cl-cp-msg');
+      modal.style.display = 'flex';
+      input.value = ''; msg.textContent = '';
+      setTimeout(() => input.focus(), 50); // il lettore USB "scrive" qui e manda Invio
+
+      let stream = null, scanning = false;
+      const stopCam = () => {
+        scanning = false;
+        if (stream) { stream.getTracks().forEach(tr => tr.stop()); stream = null; }
+        container.querySelector('#cl-cp-cam').style.display = 'none';
+      };
+      const chiudi = () => { stopCam(); modal.style.display = 'none'; };
+
+      const verifica = async (codice) => {
+        if (!codice || !codice.trim()) { msg.textContent = 'Inserisci un codice.'; msg.style.color = '#b45309'; return; }
+        msg.textContent = '⏳ Verifica in corso...'; msg.style.color = '#64748b';
+        const { data, error } = await supabase.rpc('annulla_coupon', { p_codice: codice.trim(), p_solo_verifica: true });
+        if (error || !data || !data.ok) {
+          msg.innerHTML = '❌ ' + esc(data?.errore || error?.message || 'Coupon non valido')
+            + (data?.cliente ? '<br>Intestato a: ' + esc(data.cliente) : '')
+            + (data?.data_utilizzo ? '<br>Usato il: ' + new Date(data.data_utilizzo).toLocaleString('it-IT') : '');
+          msg.style.color = '#b91c1c';
+          return;
+        }
+        coupon = { codice: data.codice, cliente: data.cliente, promo_nome: data.promo_nome, tipo: data.promo_tipo, valore: data.promo_valore };
+        chiudi(); render(); aggiornaSchermoCliente();
+      };
+
+      container.querySelector('#cl-cp-ok').onclick = () => verifica(input.value);
+      container.querySelector('#cl-cp-close').onclick = chiudi;
+      input.onkeydown = (e) => { if (e.key === 'Enter') verifica(input.value); }; // Invio del lettore USB
+
+      // Fotocamera: BarcodeDetector nativo, altrimenti jsQR da CDN
+      container.querySelector('#cl-cp-scan').onclick = async () => {
+        try {
+          const camBox = container.querySelector('#cl-cp-cam');
+          const video = container.querySelector('#cl-cp-video');
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          video.srcObject = stream; await video.play();
+          camBox.style.display = 'block';
+          msg.textContent = 'Inquadra il QR del cliente...'; msg.style.color = '#64748b';
+          scanning = true;
+
+          if ('BarcodeDetector' in window) {
+            const det = new BarcodeDetector({ formats: ['qr_code'] });
+            const loop = async () => {
+              if (!scanning) return;
+              try {
+                const codes = await det.detect(video);
+                if (codes.length) { stopCam(); verifica(codes[0].rawValue); return; }
+              } catch(e) {}
+              requestAnimationFrame(loop);
+            };
+            loop();
+          } else {
+            // fallback: jsQR via canvas
+            if (!window.jsQR) {
+              await new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+                s.onload = res; s.onerror = rej; document.head.appendChild(s);
+              });
+            }
+            const cv = document.createElement('canvas');
+            const ctx = cv.getContext('2d', { willReadFrequently: true });
+            const loop = () => {
+              if (!scanning) return;
+              if (video.videoWidth) {
+                cv.width = video.videoWidth; cv.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+                const img = ctx.getImageData(0, 0, cv.width, cv.height);
+                const qr = window.jsQR(img.data, cv.width, cv.height);
+                if (qr && qr.data) { stopCam(); verifica(qr.data); return; }
+              }
+              requestAnimationFrame(loop);
+            };
+            loop();
+          }
+        } catch (e) {
+          msg.textContent = 'Fotocamera non disponibile: usa il campo di testo o un lettore.'; msg.style.color = '#b45309';
+        }
+      };
+    }
     const cpX = container.querySelector('#cl-coupon-x');
     if (cpX) cpX.onclick = () => { coupon = null; render(); aggiornaSchermoCliente(); };
     // Apri pagamento

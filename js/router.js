@@ -140,7 +140,7 @@ const routes = {
   "food-cost-mancanti": () => import("./views/food-cost-mancanti.js?v=1"),
   "spese-fisse": () => import("./views/spese-fisse.js?v=1"),
   "menu-intelligence": () => import("./views/menu-intelligence.js?v=8"),
-  "cassa-libera": () => import("./views/cassa/cassa-libera.js?v=1"),
+  "cassa-libera": () => import("./views/cassa/cassa-libera.js?v=2"),
 
   preventivi: () => import("./views/preventivi.js"),
   creaPreventivo: () => import("./views/crea-preventivo.js"),
