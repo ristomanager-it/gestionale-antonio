@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <link rel="apple-touch-icon" href="/assets/favicon-192.png"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
@@ -115,9 +116,29 @@
     .error-sub{font-size:13px;color:#64748b;max-width:280px;}
 
     @media(min-width:480px){
-      .tessera-card,.section,.form-card{max-width:480px;margin-left:auto;margin-right:auto;}
+      .tessera-card,.section,.form-card{max-width:480px;margin-left:auto;margin-right:auto;width:100%;}
       body{display:flex;flex-direction:column;align-items:center;}
     }
+
+    /* ── RESTYLE PREMIUM TESSERA (stile sito) ─────────────────── */
+    body{background:#f6f5f2;}
+    .tessera-card{
+      background:linear-gradient(140deg,#161d27,#243040 60%,#2b3950);
+      border:1px solid rgba(201,163,90,.35);
+      box-shadow:0 14px 40px rgba(20,26,35,.35);
+    }
+    .tessera-card::before{background:rgba(201,163,90,.08);}
+    .tessera-card::after{background:rgba(255,255,255,.04);}
+    .tessera-livello{background:rgba(201,163,90,.22);border:1px solid rgba(201,163,90,.5);color:#e9d3a3;}
+    .tessera-locale{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:600;opacity:.85;letter-spacing:.5px;}
+    .tessera-nome{font-family:'Playfair Display',Georgia,serif;font-weight:700;}
+    .tessera-punti{font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#e9d3a3;}
+    .tessera-network{color:#e9d3a3;opacity:.5;}
+    .section{border:1px solid rgba(0,0,0,.07);border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.04);}
+    .btn-full{border-radius:999px;font-weight:700;font-size:14.5px;letter-spacing:.3px;}
+    .btn-install{background:#1f2733;color:#e9d3a3;box-shadow:0 3px 14px rgba(31,39,51,.3);}
+    .livello-step.active{background:#c9a35a;}
+    .offerta-badge{border-radius:999px;}
   </style>
 </head>
 <body>
@@ -157,6 +178,37 @@
     if (!aziendaId) { showError("Link non valido", "Manca il riferimento al locale."); return; }
 
     var FIDELITY_API = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/fidelity-api";
+
+    // PWA: service worker (serve per l'installazione da Chrome/Android)
+    if ("serviceWorker" in navigator) {
+      try { navigator.serviceWorker.register("/sw.js"); } catch(e) {}
+    }
+
+    // Manifest dinamico: l'icona in home apre LA TESSERA del cliente, non il gestionale
+    function impostaManifestTessera(nomeLocale, brand) {
+      if (!qrToken) return;
+      try {
+        var startUrl = window.location.origin + "/fidelity.html?t=" + encodeURIComponent(qrToken) +
+          "&a=" + encodeURIComponent(aziendaId) + (sedeId ? "&s=" + encodeURIComponent(sedeId) : "");
+        var man = {
+          name: "Tessera " + (nomeLocale || "Fidelity"),
+          short_name: "Tessera",
+          start_url: startUrl,
+          scope: window.location.origin + "/",
+          display: "standalone",
+          background_color: "#161d27",
+          theme_color: brand || "#0E5A7A",
+          icons: [
+            { src: window.location.origin + "/favicon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: window.location.origin + "/favicon-192.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+          ]
+        };
+        var blob = new Blob([JSON.stringify(man)], { type: "application/json" });
+        var link = document.querySelector('link[rel="manifest"]');
+        if (!link) { link = document.createElement("link"); link.rel = "manifest"; document.head.appendChild(link); }
+        link.href = URL.createObjectURL(blob);
+      } catch(e) { /* fallback: manifest statico */ }
+    }
 
     caricaBrandSede(function(){ init(); });
 
@@ -199,6 +251,7 @@
         return;
       }
 
+      impostaManifestTessera((_brandSede && _brandSede.nome) || azienda.nome, azienda.colore_brand);
       renderTessera(d.cliente, d.tessera, azienda, cfg, d.movimenti || [], d.offerte || []);
     }
 
