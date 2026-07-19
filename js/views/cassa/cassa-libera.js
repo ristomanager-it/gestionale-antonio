@@ -28,6 +28,9 @@ export async function renderCassaLibera(container, azienda) {
   // Stato del carrello in memoria
   let carrello = []; // { prodotto_id, nome, prezzo, qta, aliquota_iva }
   let coupon = null; // { codice, cliente, promo_nome, tipo, valore } — verificato, annullato all'incasso
+  let fidelityCliente = null; // { id, nome, punti } — agganciato via scan tessera
+  let _displayRow = null;     // riga cassa_display per lo schermo cliente
+  let _ultimoScan = null;     // dedup codici scanner
   let categorie = [];
   let prodotti = [];
 
@@ -121,7 +124,15 @@ export async function renderCassaLibera(container, azienda) {
             <div style="display:flex;justify-content:space-between;font-weight:800;font-size:22px;color:#0f172a;margin-top:8px;">
               <span>Totale</span><span>€ ${t.totale.toFixed(2)}</span>
             </div>
-            ${coupon ? '' : `<button id="cl-coupon" style="width:100%;margin-top:10px;padding:9px;border:1px dashed #cbd5e1;border-radius:999px;background:white;color:#0E5A7A;font-size:13px;font-weight:600;cursor:pointer;">🎟 Ho un coupon promo</button>`}
+            ${fidelityCliente ? `
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#7c5c10;background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;margin-top:8px;">
+              <span>⭐ ${esc(fidelityCliente.nome)} · ${fidelityCliente.punti} punti</span>
+              <button id="cl-fid-x" style="border:none;background:none;color:#b91c1c;cursor:pointer;font-size:14px;">✕</button>
+            </div>` : ''}
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              ${coupon ? '' : `<button id="cl-coupon" style="flex:1;padding:9px;border:1px dashed #cbd5e1;border-radius:999px;background:white;color:#0E5A7A;font-size:13px;font-weight:600;cursor:pointer;">🎟 Coupon</button>`}
+              <button id="cl-scan-cliente" style="flex:1;padding:9px;border:1px dashed #cbd5e1;border-radius:999px;background:white;color:#7c5c10;font-size:13px;font-weight:600;cursor:pointer;">📱 Scan cliente</button>
+            </div>
             <button id="cl-paga" ${carrello.length ? '' : 'disabled'} style="
               width:100%;margin-top:14px;padding:15px;border:none;border-radius:14px;
               background:${carrello.length ? '#0E5A7A' : '#cbd5e1'};color:white;font-size:16px;font-weight:700;
@@ -220,7 +231,7 @@ export async function renderCassaLibera(container, azienda) {
     };
     // Svuota
     const sv = container.querySelector('#cl-svuota');
-    if (sv) sv.onclick = () => { carrello = []; coupon = null; render(); aggiornaSchermoCliente(); };
+    if (sv) sv.onclick = () => { carrello = []; coupon = null; fidelityCliente = null; render(); aggiornaSchermoCliente(); };
     // Coupon promo: modal con campo (lettore USB scrive qui) + fotocamera; annullo definitivo all'incasso
     const btnCp = container.querySelector('#cl-coupon');
     if (btnCp) btnCp.onclick = () => apriModalCoupon();
@@ -244,15 +255,8 @@ export async function renderCassaLibera(container, azienda) {
       const verifica = async (codice) => {
         if (!codice || !codice.trim()) { msg.textContent = 'Inserisci un codice.'; msg.style.color = '#b45309'; return; }
         msg.textContent = '⏳ Verifica in corso...'; msg.style.color = '#64748b';
-        const { data, error } = await supabase.rpc('annulla_coupon', { p_codice: codice.trim(), p_solo_verifica: true });
-        if (error || !data || !data.ok) {
-          msg.innerHTML = '❌ ' + esc(data?.errore || error?.message || 'Coupon non valido')
-            + (data?.cliente ? '<br>Intestato a: ' + esc(data.cliente) : '')
-            + (data?.data_utilizzo ? '<br>Usato il: ' + new Date(data.data_utilizzo).toLocaleString('it-IT') : '');
-          msg.style.color = '#b91c1c';
-          return;
-        }
-        coupon = { codice: data.codice, cliente: data.cliente, promo_nome: data.promo_nome, tipo: data.promo_tipo, valore: data.promo_valore };
+        const r = await verificaCouponCodice(codice);
+        if (!r.ok) { msg.innerHTML = r.msgHtml; msg.style.color = '#b91c1c'; return; }
         chiudi(); render(); aggiornaSchermoCliente();
       };
 
@@ -313,6 +317,10 @@ export async function renderCassaLibera(container, azienda) {
     }
     const cpX = container.querySelector('#cl-coupon-x');
     if (cpX) cpX.onclick = () => { coupon = null; render(); aggiornaSchermoCliente(); };
+    const scB = container.querySelector('#cl-scan-cliente');
+    if (scB) scB.onclick = () => { scB.textContent = '📱 In attesa del cliente...'; chiediScansione(); };
+    const fidX = container.querySelector('#cl-fid-x');
+    if (fidX) fidX.onclick = () => { fidelityCliente = null; render(); aggiornaSchermoCliente(); };
     // Apri pagamento
     const paga = container.querySelector('#cl-paga');
     if (paga) paga.onclick = () => {
@@ -355,6 +363,10 @@ export async function renderCassaLibera(container, azienda) {
       }
       // 3) Registra la vendita
       await registraVendita(_metodoScelto, t);
+      // 3b) Fidelity: accredito punti
+      const puntiDati = await accreditaFidelity(t);
+      if (puntiDati) esito.textContent = '⭐ +' + puntiDati + ' punti a ' + fidelityCliente.nome;
+      aggiornaSchermoCliente(true, _metodoScelto);
       // 3) Scontrino fiscale (scheletro simulato)
       const scontrino = await emettiScontrinoFiscale({
         righe: carrello.map(r => ({ descrizione: r.nome, quantita: r.qta, prezzo_unitario: r.prezzo, aliquota_iva: r.aliquota_iva })),
@@ -367,11 +379,94 @@ export async function renderCassaLibera(container, azienda) {
       setTimeout(() => {
         carrello = [];
         coupon = null;
+        fidelityCliente = null;
         container.querySelector('#cl-modal').style.display = 'none';
         render();
         aggiornaSchermoCliente();
       }, 1400);
     };
+  }
+
+  // ── Verifica coupon (riusata da modal e scanner cliente) ──
+  async function verificaCouponCodice(codice) {
+    const { data, error } = await supabase.rpc('annulla_coupon', { p_codice: String(codice).trim(), p_solo_verifica: true });
+    if (error || !data || !data.ok) {
+      return { ok: false, msgHtml: '❌ ' + esc(data?.errore || error?.message || 'Coupon non valido')
+        + (data?.cliente ? '<br>Intestato a: ' + esc(data.cliente) : '')
+        + (data?.data_utilizzo ? '<br>Usato il: ' + new Date(data.data_utilizzo).toLocaleString('it-IT') : '') };
+    }
+    coupon = { codice: data.codice, cliente: data.cliente, promo_nome: data.promo_nome, tipo: data.promo_tipo, valore: data.promo_valore };
+    return { ok: true };
+  }
+
+  // ── Schermo cliente: riga cassa_display + realtime scanner ──
+  async function assicuraDisplay() {
+    if (_displayRow) return _displayRow;
+    try {
+      let q = supabase.from('cassa_display').select('id').eq('azienda_id', aziendaId);
+      q = sedeId ? q.eq('sede_id', sedeId) : q.is('sede_id', null);
+      const { data: ex } = await q.order('updated_at', { ascending: false }).limit(1);
+      if (ex && ex[0]) { _displayRow = ex[0]; }
+      else {
+        const { data: ins } = await supabase.from('cassa_display')
+          .insert({ azienda_id: aziendaId, sede_id: sedeId, stato: 'attesa', righe: [], totale: 0 })
+          .select('id').maybeSingle();
+        _displayRow = ins || null;
+      }
+      if (_displayRow) {
+        supabase.channel('cassa-scan-' + _displayRow.id)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'cassa_display', filter: 'id=eq.' + _displayRow.id },
+            (payload) => {
+              const cod = payload.new && payload.new.scanner_codice;
+              if (cod && cod !== _ultimoScan) { _ultimoScan = cod; smistaScansione(cod); }
+            })
+          .subscribe();
+      }
+    } catch (e) { console.warn('display:', e?.message || e); }
+    return _displayRow;
+  }
+
+  async function chiediScansione() {
+    const row = await assicuraDisplay();
+    if (!row) { alert('Schermo cliente non configurato.'); return; }
+    await supabase.from('cassa_display').update({ scanner_richiesto: true, scanner_codice: null, updated_at: new Date().toISOString() }).eq('id', row.id);
+  }
+
+  async function smistaScansione(codice) {
+    const cod = String(codice).trim();
+    // pulisco il codice sul display (pronto per la prossima scansione)
+    if (_displayRow) supabase.from('cassa_display').update({ scanner_codice: null }).eq('id', _displayRow.id).then(() => {});
+    if (/^rfc:/i.test(cod)) {
+      const r = await verificaCouponCodice(cod);
+      if (!r.ok) alert(r.msgHtml.replace(/<br>/g, '\n').replace(/<[^>]+>/g, ''));
+      render(); aggiornaSchermoCliente();
+      return;
+    }
+    // altrimenti: tessera fidelity (qr_token)
+    const token = cod.replace(/^fid:/i, '');
+    const { data: fc } = await supabase.from('fidelity_clienti').select('id, nome, cognome, punti_totali').eq('qr_token', token).maybeSingle();
+    if (fc) {
+      fidelityCliente = { id: fc.id, nome: (fc.nome + ' ' + (fc.cognome || '')).trim(), punti: fc.punti_totali || 0 };
+      render(); aggiornaSchermoCliente();
+    } else {
+      alert('Codice non riconosciuto: non risulta un coupon o una tessera fidelity.');
+    }
+  }
+
+  // ── Fidelity: accredito punti all'incasso ──
+  async function accreditaFidelity(t) {
+    if (!fidelityCliente || !t || t.totale <= 0) return null;
+    try {
+      const { data: cfg } = await supabase.from('fidelity_config').select('punti_per_euro').eq('azienda_id', aziendaId).maybeSingle();
+      const ppe = Number(cfg?.punti_per_euro) || 1;
+      const punti = Math.round(t.totale * ppe);
+      await supabase.from('fidelity_movimenti').insert({
+        cliente_id: fidelityCliente.id, azienda_id: aziendaId, sede_id: sedeId,
+        tipo: 'accredito', punti: punti, importo_speso: t.totale, descrizione: 'Cassa libera',
+      });
+      await supabase.from('fidelity_clienti').update({ punti_totali: (fidelityCliente.punti || 0) + punti }).eq('id', fidelityCliente.id);
+      return punti;
+    } catch (e) { console.warn('fidelity:', e?.message || e); return null; }
   }
 
   // Registra la vendita a DB: una riga per prodotto in vendite_giornaliere
@@ -411,14 +506,22 @@ export async function renderCassaLibera(container, azienda) {
   }
 
   // Aggiorna lo schermo cliente in tempo reale via canale realtime (scheletro)
-  function aggiornaSchermoCliente() {
+  async function aggiornaSchermoCliente(pagato, metodo) {
     try {
-      // >>> COLLEGARE QUI <<< : broadcast sul canale che cliente-cassa.html ascolta.
-      // Esempio con Supabase Realtime broadcast:
-      // const ch = supabase.channel('cassa-' + sedeId);
-      // ch.send({ type:'broadcast', event:'conto', payload:{ righe:carrello, totale: totali().totale } });
+      const row = await assicuraDisplay();
+      if (!row) return;
+      const t = totali();
+      const righe = carrello.map(r => ({ nome_prodotto: r.nome, quantita: r.qta, prezzo_snapshot: r.prezzo }));
+      if (coupon && t.sconto > 0) righe.push({ nome_prodotto: '🎟 ' + coupon.promo_nome, quantita: 1, prezzo_snapshot: -t.sconto });
+      await supabase.from('cassa_display').update({
+        stato: pagato ? 'pagato' : (carrello.length ? 'aperta' : 'attesa'),
+        righe: righe, totale: t.totale,
+        metodo_pagamento: pagato ? (metodo || null) : null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', row.id);
     } catch (e) { /* non bloccante */ }
   }
+  assicuraDisplay();
 
   function round2(n) { return Math.round((Number(n)||0)*100)/100; }
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
