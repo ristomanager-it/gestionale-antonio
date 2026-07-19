@@ -2185,37 +2185,63 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
   }
 }
 
-function stampaRegistroHaccp() {
-  if (!fasiCache.length) { alert("Nessuna fase da stampare."); return; }
+async function stampaRegistroHaccp() {
   const azienda = window.state?.azienda;
+  const supabase = window.supabaseClient;
   const nomeRicetta = ricettaSelezionata?.nome || "—";
-  const codLotto = document.getElementById("prod-lotto")?.value || "—";
+  const codLotto = document.getElementById("prod-lotto")?.value || savedLotto?.codice_lotto || "—";
   const dataOggi = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
   const operatore = operatoreRisolto?.nome || "—";
 
-  const righe = logHaccp.map((log, idx) => {
-    const fase = fasiCache[idx];
+  // ── FONTE DATI: DB se il lotto esiste (firme vere salvate), altrimenti stato in pagina ──
+  const lottoRef = (typeof resumeLottoUUID !== "undefined" && resumeLottoUUID) || savedLotto?.lotto_uuid || null;
+  let fonte = [];
+  if (lottoRef && supabase) {
+    const { data } = await supabase.from("produzione_log_haccp")
+      .select("*").eq("lotto_id", lottoRef).order("fase_ordine");
+    if (data && data.length) fonte = data;
+  }
+  if (!fonte.length) {
+    if (!logHaccp.length) { alert("Nessuna fase da stampare."); return; }
+    fonte = logHaccp.map((log, idx) => Object.assign({}, log, {
+      temperatura_prevista: fasiCache[idx]?.temperatura ?? log.temperatura_prevista ?? null,
+    }));
+  }
+
+  const fmtOra = (v) => v ? new Date(v).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "—";
+  const fmtFirmaIl = (v) => {
+    if (!v) return "";
+    const d = new Date(v);
+    return isNaN(d) ? String(v) : d.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const totFasi = fonte.length;
+  const firmate = fonte.filter(l => l.firmato_da).length;
+
+  const righe = fonte.map((log) => {
     const esitoIcon = { ok: "✅", attenzione: "⚠️", nc: "❌" }[log.esito] || "";
-    const tempPrev = fase?.temperatura != null ? `${fase.temperatura}°C` : "—";
-    const tempRil = log.temperatura_rilevata !== "" ? `${log.temperatura_rilevata}°C` : "—";
-    return `<tr style="border-bottom:1px solid #e5e7eb;">
-      <td style="padding:8px;">${log.fase_ordine}</td>
-      <td style="padding:8px;">${escapeHtml(log.fase_nome)}</td>
+    const tempPrev = log.temperatura_prevista != null ? `${log.temperatura_prevista}°C` : "—";
+    const tempRilVal = (log.temperatura_rilevata !== "" && log.temperatura_rilevata != null) ? log.temperatura_rilevata : null;
+    const tempRil = tempRilVal != null ? `${tempRilVal}°C` : "—";
+    const firmaCell = log.firmato_da
+      ? `<div style="font-weight:700;">✍️ ${escapeHtml(log.firmato_da)}</div><div style="font-size:10px;color:#64748b;">${escapeHtml(fmtFirmaIl(log.firmato_il))}</div>`
+      : `<span style="color:#dc2626;font-weight:700;font-size:11px;">NON FIRMATA</span>`;
+    return `<tr style="border-bottom:1px solid #e5e7eb;${log.firmato_da ? "" : "background:#fef2f2;"}">
+      <td style="padding:8px;">${log.fase_ordine ?? ""}</td>
+      <td style="padding:8px;">${escapeHtml(log.fase_nome || "")}</td>
       <td style="padding:8px;font-size:12px;color:#64748b;">${escapeHtml(log.tecnologia_prevista || "—")}</td>
       <td style="padding:8px;text-align:center;">${tempPrev}</td>
       <td style="padding:8px;text-align:center;font-weight:700;color:${log.temperatura_ok === false ? "#dc2626" : "#16a34a"}">${tempRil}</td>
-      <td style="padding:8px;font-size:12px;">${log.ora_inizio ? new Date(log.ora_inizio).toLocaleTimeString("it-IT", {hour:"2-digit",minute:"2-digit"}) : "—"}</td>
-      <td style="padding:8px;font-size:12px;">${log.ora_fine ? new Date(log.ora_fine).toLocaleTimeString("it-IT", {hour:"2-digit",minute:"2-digit"}) : "—"}</td>
+      <td style="padding:8px;font-size:12px;">${fmtOra(log.ora_inizio)}</td>
+      <td style="padding:8px;font-size:12px;">${fmtOra(log.ora_fine)}</td>
       <td style="padding:8px;font-size:12px;">${log.durata_reale_min != null ? `${log.durata_reale_min}min` : "—"}</td>
       <td style="padding:8px;text-align:center;">${esitoIcon}</td>
       <td style="padding:8px;font-size:11px;color:#64748b;">${escapeHtml(log.note || "")}</td>
-      <td style="padding:8px;font-size:11px;">${escapeHtml(log.firmato_da || "—")}</td>
+      <td style="padding:8px;font-size:11px;">${firmaCell}</td>
     </tr>`;
   }).join("");
 
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
     <title>Registro HACCP — ${escapeHtml(nomeRicetta)}</title>
     <style>
       * { box-sizing:border-box; margin:0; padding:0; font-family:Arial,sans-serif; }
@@ -2228,12 +2254,14 @@ function stampaRegistroHaccp() {
       .meta-value { font-size:15px; font-weight:700; margin-top:3px; }
       table { width:100%; border-collapse:collapse; font-size:13px; }
       th { background:#0E5A7A; color:white; padding:8px; text-align:left; font-size:11px; text-transform:uppercase; }
-      .firma-box { margin-top:40px; display:flex; justify-content:flex-end; gap:60px; }
-      .firma-line { border-top:1px solid #1a1a2e; width:200px; text-align:center; padding-top:6px; font-size:11px; color:#64748b; }
-      @media print { .no-print { display:none; } }
+      .firma-box { margin-top:44px; display:flex; justify-content:space-between; gap:40px; align-items:flex-end; }
+      .firma-line { border-top:1px solid #1a1a2e; width:220px; text-align:center; padding-top:6px; font-size:11px; color:#64748b; }
+      .riepilogo { font-size:13px; font-weight:700; color:${firmate === totFasi ? "#16a34a" : "#b45309"}; }
+      @media print { .no-print { display:none !important; } body { padding:14px; } }
     </style></head><body>
-    <div class="no-print" style="text-align:center;padding:12px;background:#f8fafc;margin-bottom:16px;">
+    <div class="no-print" style="display:flex;justify-content:center;gap:10px;padding:12px;background:#f8fafc;margin-bottom:16px;">
       <button onclick="window.print()" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">🖨️ Stampa / Salva PDF</button>
+      <button onclick="window.close()" style="background:#e2e8f0;color:#334155;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">✕ Chiudi</button>
     </div>
     <h1>Registro HACCP Produzione</h1>
     <div class="sub">${escapeHtml(azienda?.nome || "")} — ${dataOggi}</div>
@@ -2246,408 +2274,24 @@ function stampaRegistroHaccp() {
     <table>
       <thead><tr>
         <th>#</th><th>Fase</th><th>Attrezzatura</th><th>T° prev.</th><th>T° rilev.</th>
-        <th>Inizio</th><th>Fine</th><th>Durata</th><th>Esito</th><th>Note</th><th>Firma</th>
+        <th>Inizio</th><th>Fine</th><th>Durata</th><th>Esito</th><th>Note</th><th>Firma operatore</th>
       </tr></thead>
       <tbody>${righe}</tbody>
     </table>
     <div class="firma-box">
-      <div class="firma-line">Resp. produzione</div>
-      <div class="firma-line">Resp. HACCP</div>
+      <div class="riepilogo">Fasi firmate: ${firmate}/${totFasi} ${firmate === totFasi ? "✅" : "⚠️ registro incompleto"}</div>
+      <div style="display:flex;gap:40px;">
+        <div class="firma-line">Responsabile qualità (firma)</div>
+        <div class="firma-line">Data</div>
+      </div>
     </div>
-    </body></html>`);
-  win.document.close();
-  try { win.document.body.insertAdjacentHTML("beforeend", '<button onclick="window.close()" class="rf-no-print" style="position:fixed;top:10px;right:10px;z-index:999;background:#0E5A7A;color:#fff;border:none;border-radius:999px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25);">✕ Chiudi</button><style>@media print{.rf-no-print{display:none!important}}</style>'); } catch(e) {}
+  </body></html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) { alert("Consenti i popup per aprire il registro."); return; }
+  win.document.open(); win.document.write(html); win.document.close();
 }
 
-/* ========================================================= */
-/* HACCP LOG (best-effort) */
-/* ========================================================= */
-
-async function logEventoHaccp({ aziendaId, produzioneId, tipo, payload }) {
-  const supabase = window.supabaseClient;
-  if (!supabase || !aziendaId || !produzioneId || !tipo) return;
-
-  try {
-    await supabase.from("produzione_eventi_log").insert({
-      azienda_id: aziendaId,
-      produzione_id: produzioneId,
-      tipo_evento: tipo,
-      payload: payload ?? null
-    });
-  } catch {
-  }
-}
-
-/* ========================================================= */
-/* SAVE */
-/* ========================================================= */
-
-async function apriProduzioneAperta() {
-  if (!ricettaSelezionata?.id) return alert("Seleziona prima una ricetta.");
-  if (resumeLottoId) return alert("Questa produzione è già aperta: usa 💾 Registra per chiuderla.");
-
-  const supabase = window.supabaseClient;
-  const aziendaId = window.state?.azienda?.id;
-  if (!supabase || !aziendaId) return alert("Azienda non attiva.");
-
-  const dataProd = document.getElementById("prod-data")?.value || new Date().toISOString().slice(0, 10);
-  const peso = getPesoRealeKg();
-  const note = (document.getElementById("prod-note-lotto")?.value || "").trim();
-  const lottoUuid = (crypto?.randomUUID && crypto.randomUUID()) || null;
-
-  const { data: lotto, error } = await supabase.from("produzione_lotti").insert({
-    azienda_id: aziendaId,
-    ricetta_id: ricettaSelezionata.id,
-    data_produzione: dataProd,
-    data_scadenza: null,
-    quantita_output: (Number.isFinite(peso) && peso > 0) ? peso : null,
-    unita_misura: "kg",
-    stato: "aperta",
-    sede_uuid: window.state?.sedeAttiva?.id || null,
-    luogo: window.state?.sedeAttiva?.nome || null,
-    note: note || null,
-    operatore_id: operatoreRisolto?.id || null,
-    lotto_uuid: lottoUuid,
-  }).select("id, lotto_uuid, codice_lotto").single();
-
-  if (error) { alert("Errore apertura: " + error.message); return; }
-  const luuid = lotto.lotto_uuid || lottoUuid;
-
-  // crea le righe fase (con eventuali firme già messe localmente)
-  if (luuid && logHaccp.length) {
-    const righe = logHaccp.map(log => ({
-      azienda_id: aziendaId, lotto_id: luuid, ricetta_id: ricettaSelezionata.id,
-      fase_id: log.fase_id || null, fase_ordine: log.fase_ordine, fase_nome: log.fase_nome, fase_tipo: log.fase_tipo,
-      dispositivo_id: log.dispositivo_id || null, fonte_dato: log.fonte_dato || "manuale",
-      tecnologia_prevista: log.tecnologia_prevista || null, temperatura_prevista: log.temperatura_prevista ?? null,
-      operatore_id: log.operatore_id || null, operatore_nome: log.operatore_nome || null,
-      temperatura_rilevata: log.temperatura_rilevata !== "" ? Number(log.temperatura_rilevata) : null,
-      temperatura_ok: log.temperatura_ok ?? null,
-      ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
-      ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
-      esito: log.esito || "ok", note: log.note || null,
-      firmato_da: log.firmato_da || null, firmato_il: log.firmato_il || null, firme: log.firme || [],
-    }));
-    try { await supabase.from("produzione_log_haccp").insert(righe); } catch (e) { console.warn("Fasi lotto:", e); }
-  }
-
-  resumeLottoId = lotto.id;
-  resumeLottoUUID = luuid;
-  const lottoEl = document.getElementById("prod-lotto");
-  if (lottoEl && lotto.codice_lotto) lottoEl.value = lotto.codice_lotto;
-  const btnApri = document.getElementById("btn-apri-produzione");
-  if (btnApri) { btnApri.disabled = true; btnApri.textContent = "🟢 Aperta ✔"; }
-  const result = document.getElementById("produzione-result");
-  if (result) result.innerHTML = '<span style="color:#16a34a;">🟢 Produzione aperta — la trovi nel monitor "Produzioni aperte". Potrai completare le fasi e chiuderla con 💾 Registra, anche più tardi.</span>';
-}
-
-async function salvaProduzione() {
-  const dati = raccogliDatiForm();
-  const err = validaForm(dati);
-  if (err) return alert(err);
-
-  const supabase = window.supabaseClient;
-  const aziendaId = window.state?.azienda?.id;
-
-  if (!supabase || !aziendaId) {
-    alert("Azienda non attiva o Supabase non disponibile.");
-    return;
-  }
-
-  const result = document.getElementById("produzione-result");
-  if (result) result.innerHTML = "";
-
-  try {
-    const resaTeoKg = getResaTeoricaKg();
-    const pesoRealeKg = dati.pesoRealeKg;
-    const confezionatoKg = getTotaleConfezionatoKg();
-    const differenzaKg = pesoRealeKg - confezionatoKg;
-    const scartoKg = resaTeoKg == null ? null : resaTeoKg - pesoRealeKg;
-
-    const moltiplicatore = getMoltiplicatoreRicetta();
-    const scenario = scenariConservazione.find((s) => String(s.id) === String(dati.scenarioId)) || null;
-
-    const dettaglioConfezionamento = (dati.confezioni || [])
-      .filter((c) => c.porzione_id && c.pezzi_per_confezione > 0 && c.numero_confezioni > 0)
-      .map((c) => {
-        const porz = porzioniCache.find((p) => String(p.id) === String(c.porzione_id)) || null;
-        const pesoPorzKg = porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0;
-        const kgConf = pesoPorzKg * c.pezzi_per_confezione;
-        const kgTot = kgConf * c.numero_confezioni;
-
-        return {
-          porzione_id: c.porzione_id,
-          label: porz?.label ?? "",
-          peso_porzione_kg: pesoPorzKg,
-          pezzi_per_confezione: c.pezzi_per_confezione,
-          numero_confezioni: c.numero_confezioni,
-          kg_per_confezione: kgConf,
-          kg_totali_riga: kgTot,
-          note: c.note || ""
-        };
-      });
-
-    const payloadLotto = {
-      azienda_id: aziendaId,
-      ricetta_id: ricettaSelezionata.id,
-      data_produzione: dati.dataProduzione,
-      data_scadenza: dati.scadenza,
-      quantita_output: pesoRealeKg,
-      unita_misura: "kg",
-      scenario_conservazione_id: dati.scenarioId || null,
-      porzione_id: null,
-      stato: "firmato",
-      note: (dati.noteLotto || "").toString(),
-      operatore_id: dati.operatore.id,
-      firmato_at: new Date().toISOString(),
-      dettaglio_confezionamento: dettaglioConfezionamento,
-      resa_percentuale: (resaTeoKg && resaTeoKg > 0) ? (pesoRealeKg / resaTeoKg) * 100 : null,
-      scarto_percentuale: (resaTeoKg && resaTeoKg > 0) ? ((resaTeoKg - pesoRealeKg) / resaTeoKg) * 100 : null
-    };
-
-    let lotto, errLotto;
-    if (resumeLottoId) {
-      ({ data: lotto, error: errLotto } = await supabase
-        .from("produzione_lotti").update(payloadLotto).eq("id", resumeLottoId).select().single());
-    } else {
-      ({ data: lotto, error: errLotto } = await supabase
-        .from("produzione_lotti").insert(payloadLotto).select().single());
-    }
-
-    if (errLotto) throw errLotto;
-    savedLotto = lotto;
-    savedLottoUUID = getLottoRefId(lotto);
-
-    if (!savedLottoUUID) {
-      throw new Error("lotto_uuid non disponibile: esegui la migrazione UUID su produzione_lotti e verifica la select().");
-    }
-
-    // Salva registro HACCP collegato al lotto (best-effort)
-    await salvaLogHaccpConLotto(savedLottoUUID, aziendaId, !!resumeLottoId);
-
-    await logEventoHaccp({
-      aziendaId,
-      produzioneId: savedLottoUUID,
-      tipo: "LOTTO_CREATO",
-      payload: {
-        ricetta_id: ricettaSelezionata.id,
-        data_produzione: dati.dataProduzione,
-        data_scadenza: dati.scadenza,
-        scenario_id: dati.scenarioId || null,
-        scenario_label: scenario?.scenario_label ?? null,
-        temperatura: scenario?.temperatura ?? null,
-        peso_reale_kg: pesoRealeKg,
-        confezionato_kg: confezionatoKg,
-        differenza_kg: differenzaKg,
-        scarto_kg: scartoKg,
-        moltiplicatore_ricetta: moltiplicatore,
-        operatore_id: dati.operatore.id
-      }
-    });
-
-    const lottoEl = document.getElementById("prod-lotto");
-    if (lottoEl && lotto?.codice_lotto) lottoEl.value = lotto.codice_lotto;
-
-    const righeConfezioniPayload = dettaglioConfezionamento.map((c) => ({
-      azienda_id: aziendaId,
-      produzione_id: savedLottoUUID,
-      ricetta_id: ricettaSelezionata.id,
-      conservazione_id: dati.scenarioId || null,
-      formato_label: c.label || "CONFEZIONE",
-      quantita: c.kg_totali_riga,
-      quantita_equivalente: null,
-      unita: "kg",
-      moltiplicatore_ricetta: moltiplicatore,
-      lotto: lotto.codice_lotto,
-      porzione_id: Number(c.porzione_id),
-      note_confezionamento: `Confezioni=${c.numero_confezioni} | Pezzi/Conf=${c.pezzi_per_confezione} | Kg/Conf=${formatNumber(c.kg_per_confezione)}${c.note ? ` | ${c.note}` : ""}`
-    }));
-
-    const { data: righeIns, error: errRighe } = await supabase
-      .from("schede_produzione_righe")
-      .insert(righeConfezioniPayload)
-      .select("id, porzione_id, formato_label, quantita, unita, note_confezionamento");
-
-    if (errRighe) throw errRighe;
-    savedRighe = righeIns || [];
-
-    await logEventoHaccp({
-      aziendaId,
-      produzioneId: savedLottoUUID,
-      tipo: "CONFEZIONAMENTO_INSERITO",
-      payload: { righe: dettaglioConfezionamento }
-    });
-
-    const { data: ingredienti, error: errIng } = await supabase
-      .from("ricetta_ingredienti")
-      .select("*")
-      .eq("azienda_id", aziendaId)
-      .eq("ricetta_id", ricettaSelezionata.id);
-
-    if (errIng) throw errIng;
-
-    await supabase
-      .from("magazzino_movimenti")
-      .delete()
-      .eq("azienda_id", aziendaId)
-      .eq("riferimento_tipo", "LOTTO_PRODUZIONE")
-      .eq("riferimento_id", savedLottoUUID);
-
-    for (const ing of ingredienti || []) {
-      const prodottoId = ing.prodotto_id;
-      const qBase = toNumber(ing.quantita ?? ing.qta ?? ing.qta_ingrediente ?? 0);
-      if (!prodottoId || qBase <= 0) continue;
-
-      const qScarico = qBase * moltiplicatore;
-
-      const { error: errMov } = await supabase.from("magazzino_movimenti").insert({
-        azienda_id: aziendaId,
-        prodotto_id: prodottoId,
-        tipo_movimento: "SCARICO",
-        quantita: qScarico,
-        data_movimento: dati.dataProduzione,
-        riferimento_tipo: "LOTTO_PRODUZIONE",
-        riferimento_id: savedLottoUUID,
-        note: `Scarico ingredienti lotto ${lotto.codice_lotto}`
-      });
-
-      if (errMov) throw errMov;
-    }
-
-    for (const c of dettaglioConfezionamento) {
-      const noteExtra = (c.note || "").trim();
-      const note = `Carico prodotto finito lotto ${lotto.codice_lotto} — ${c.label} — ${c.numero_confezioni} conf x ${c.pezzi_per_confezione} pz (kg/conf ${formatNumber(c.kg_per_confezione)})${noteExtra ? ` — ${noteExtra}` : ""}`;
-
-      const { error: errCarico } = await supabase.from("magazzino_movimenti").insert({
-        azienda_id: aziendaId,
-        prodotto_id: ricettaSelezionata.prodotto_output_id,
-        tipo_movimento: "CARICO",
-        quantita: c.kg_totali_riga,
-        data_movimento: dati.dataProduzione,
-        riferimento_tipo: "LOTTO_PRODUZIONE",
-        riferimento_id: savedLottoUUID,
-        note
-      });
-
-      if (errCarico) throw errCarico;
-    }
-
-    const coprodottiValidi = (dati.coprodotti || []).filter((c) => c.prodotto_id);
-    if (coprodottiValidi.length) {
-      await logEventoHaccp({
-        aziendaId,
-        produzioneId: savedLottoUUID,
-        tipo: "COPRODOTTI_INSERITI",
-        payload: {
-          righe: coprodottiValidi.map((c) => ({
-            prodotto_id: c.prodotto_id,
-            quantita: toNumber(c.quantita),
-            unita_misura: c.unita_misura || "",
-            data_scadenza: c.data_scadenza || "",
-            note: (c.note || "").trim()
-          }))
-        }
-      });
-    }
-
-    for (const c of coprodottiValidi) {
-      const q = toNumber(c.quantita);
-      if (q <= 0) continue;
-
-      const { error: errRigaCop } = await supabase.from("schede_produzione_righe").insert({
-        azienda_id: aziendaId,
-        produzione_id: savedLottoUUID,
-        ricetta_id: ricettaSelezionata.id,
-        conservazione_id: dati.scenarioId || null,
-        formato_label: "COPRODOTTO",
-        quantita: q,
-        quantita_equivalente: null,
-        unita: c.unita_misura || "kg",
-        moltiplicatore_ricetta: moltiplicatore,
-        lotto: lotto.codice_lotto,
-        porzione_id: null,
-        note_confezionamento: (c.note || "").trim() || null,
-        prodotto_id: Number(c.prodotto_id)
-      });
-
-      if (errRigaCop) throw errRigaCop;
-
-      const prod = prodottiCache.find((p) => String(p.id) === String(c.prodotto_id));
-      const nomeProd = prod?.nome || "Coprodotto";
-      const noteCop = `Carico coprodotto lotto ${lotto.codice_lotto} — ${nomeProd}${c.note ? ` — ${c.note}` : ""}`;
-
-      const { error: errMovCop } = await supabase.from("magazzino_movimenti").insert({
-        azienda_id: aziendaId,
-        prodotto_id: Number(c.prodotto_id),
-        tipo_movimento: "CARICO",
-        quantita: q,
-        data_movimento: dati.dataProduzione,
-        riferimento_tipo: "LOTTO_PRODUZIONE",
-        riferimento_id: savedLottoUUID,
-        note: noteCop
-      });
-
-      if (errMovCop) throw errMovCop;
-    }
-
-    await logEventoHaccp({
-      aziendaId,
-      produzioneId: savedLottoUUID,
-      tipo: "MOVIMENTI_MAGAZZINO_GENERATI",
-      payload: {
-        moltiplicatore_ricetta: moltiplicatore,
-        prodotto_output_id: ricettaSelezionata.prodotto_output_id,
-        confezionato_kg: confezionatoKg,
-        coprodotti_count: coprodottiValidi.length
-      }
-    });
-
-    await logEventoHaccp({
-      aziendaId,
-      produzioneId: savedLottoUUID,
-      tipo: "LOTTO_FIRMATO",
-      payload: {
-        operatore_id: dati.operatore.id,
-        firmato_at: lotto.firmato_at ?? new Date().toISOString()
-      }
-    });
-
-    lockUIAfterSave();
-
-    // ── Calcolo e render riepilogo economico ──
-    calcolaEMostraEconomia({
-      lotto,
-      ingredienti,
-      moltiplicatore,
-      pesoRealeKg,
-      confezionatoKg,
-      fasiCache,
-      scenario
-    });
-
-    if (result) {
-      result.innerHTML = `<span class="success-text">Produzione registrata ✔ — Lotto: ${escapeHtml(lotto.codice_lotto || "")}</span>`;
-    }
-
-    alert(`Produzione registrata ✔️\nLotto: ${lotto.codice_lotto || "(generato)"}`);
-  } catch (error) {
-    console.error("Errore registrazione produzione:", error);
-
-    const result = document.getElementById("produzione-result");
-    if (result) {
-      result.innerHTML = `<span class="error-text">Errore: ${escapeHtml(error?.message || "Operazione non riuscita")}</span>`;
-    }
-
-    alert("Errore durante la registrazione della produzione. Controlla console.");
-  }
-}
-
-
-/* ============================================================
-   💰 RIEPILOGO ECONOMICO PRODUZIONE
-   Calcola costo MP reale, costo manodopera stimato,
-   costo totale per kg/pz. Utile per programmazione settimanale.
-============================================================ */
 function calcolaEMostraEconomia({ lotto, ingredienti, moltiplicatore, pesoRealeKg, confezionatoKg, fasiCache, scenario }) {
   const empty = document.getElementById("econ-empty");
   const wrap = document.getElementById("econ-wrap");

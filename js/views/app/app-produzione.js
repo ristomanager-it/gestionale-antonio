@@ -926,77 +926,111 @@ async function salvaLogHaccp() {
   if (esito) { esito.textContent = "✅ Registro HACCP salvato"; esito.style.color = "#16a34a"; }
 }
 
-function stampaRegistroHaccp() {
+async function stampaRegistroHaccp() {
   const azienda = window.state?.azienda;
+  const supabase = window.supabaseClient;
   const nomeRicetta = state.ricetta?.nome || "—";
+  const codLotto = state.savedLottoRef || "—";
   const dataOggi = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
   const operatore = document.getElementById("app-prod-operatore")?.value?.trim() || "—";
-  const lotto = state.savedLottoRef || "—";
 
-  const righe = state.logHaccp.map((log, idx) => {
-    const fase = state.fasi[idx];
+  // ── FONTE DATI: DB se il lotto esiste (firme vere salvate), altrimenti stato in pagina ──
+  const lottoRef = state.savedLotto?.lotto_uuid || null;
+  let fonte = [];
+  if (lottoRef && supabase) {
+    const { data } = await supabase.from("produzione_log_haccp")
+      .select("*").eq("lotto_id", lottoRef).order("fase_ordine");
+    if (data && data.length) fonte = data;
+  }
+  if (!fonte.length) {
+    if (!state.logHaccp.length) { alert("Nessuna fase da stampare."); return; }
+    fonte = state.logHaccp.map((log, idx) => Object.assign({}, log, {
+      temperatura_prevista: state.fasi[idx]?.temperatura ?? log.temperatura_prevista ?? null,
+    }));
+  }
+
+  const fmtOra = (v) => v ? new Date(v).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "—";
+  const fmtFirmaIl = (v) => {
+    if (!v) return "";
+    const d = new Date(v);
+    return isNaN(d) ? String(v) : d.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const totFasi = fonte.length;
+  const firmate = fonte.filter(l => l.firmato_da).length;
+
+  const righe = fonte.map((log) => {
     const esitoIcon = { ok: "✅", attenzione: "⚠️", nc: "❌" }[log.esito] || "";
-    const tempPrev = fase?.temperatura != null ? `${fase.temperatura}°C` : "—";
-    const tempRil = log.temperatura_rilevata !== "" ? `${log.temperatura_rilevata}°C` : "—";
-    return `
-      <tr style="border-bottom:1px solid #e5e7eb;">
-        <td style="padding:10px 8px;font-weight:600;">${log.fase_ordine}</td>
-        <td style="padding:10px 8px;">${escapeAttr(log.fase_nome)}</td>
-        <td style="padding:10px 8px;font-size:12px;color:#64748b;">${escapeAttr(log.tecnologia_prevista || "—")}</td>
-        <td style="padding:10px 8px;text-align:center;">${tempPrev}</td>
-        <td style="padding:10px 8px;text-align:center;font-weight:700;color:${log.temperatura_ok === false ? '#dc2626' : '#16a34a'}">${tempRil}</td>
-        <td style="padding:10px 8px;font-size:12px;">${log.ora_inizio ? new Date(log.ora_inizio).toLocaleTimeString("it-IT", {hour:"2-digit",minute:"2-digit"}) : "—"}</td>
-        <td style="padding:10px 8px;font-size:12px;">${log.ora_fine ? new Date(log.ora_fine).toLocaleTimeString("it-IT", {hour:"2-digit",minute:"2-digit"}) : "—"}</td>
-        <td style="padding:10px 8px;font-size:12px;">${log.durata_reale_min != null ? `${log.durata_reale_min} min` : "—"}</td>
-        <td style="padding:10px 8px;text-align:center;">${esitoIcon}</td>
-        <td style="padding:10px 8px;font-size:11px;color:#64748b;">${escapeAttr(log.note || "")}</td>
-        <td style="padding:10px 8px;font-size:11px;">${escapeAttr(log.firmato_da || "—")}</td>
-      </tr>`;
+    const tempPrev = log.temperatura_prevista != null ? `${log.temperatura_prevista}°C` : "—";
+    const tempRilVal = (log.temperatura_rilevata !== "" && log.temperatura_rilevata != null) ? log.temperatura_rilevata : null;
+    const tempRil = tempRilVal != null ? `${tempRilVal}°C` : "—";
+    const firmaCell = log.firmato_da
+      ? `<div style="font-weight:700;">✍️ ${escapeAttr(log.firmato_da)}</div><div style="font-size:10px;color:#64748b;">${escapeAttr(fmtFirmaIl(log.firmato_il))}</div>`
+      : `<span style="color:#dc2626;font-weight:700;font-size:11px;">NON FIRMATA</span>`;
+    return `<tr style="border-bottom:1px solid #e5e7eb;${log.firmato_da ? "" : "background:#fef2f2;"}">
+      <td style="padding:8px;">${log.fase_ordine ?? ""}</td>
+      <td style="padding:8px;">${escapeAttr(log.fase_nome || "")}</td>
+      <td style="padding:8px;font-size:12px;color:#64748b;">${escapeAttr(log.tecnologia_prevista || "—")}</td>
+      <td style="padding:8px;text-align:center;">${tempPrev}</td>
+      <td style="padding:8px;text-align:center;font-weight:700;color:${log.temperatura_ok === false ? "#dc2626" : "#16a34a"}">${tempRil}</td>
+      <td style="padding:8px;font-size:12px;">${fmtOra(log.ora_inizio)}</td>
+      <td style="padding:8px;font-size:12px;">${fmtOra(log.ora_fine)}</td>
+      <td style="padding:8px;font-size:12px;">${log.durata_reale_min != null ? `${log.durata_reale_min}min` : "—"}</td>
+      <td style="padding:8px;text-align:center;">${esitoIcon}</td>
+      <td style="padding:8px;font-size:11px;color:#64748b;">${escapeAttr(log.note || "")}</td>
+      <td style="padding:8px;font-size:11px;">${firmaCell}</td>
+    </tr>`;
   }).join("");
 
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
     <title>Registro HACCP — ${escapeAttr(nomeRicetta)}</title>
     <style>
-      * { box-sizing: border-box; margin:0; padding:0; font-family: Arial, sans-serif; }
-      body { padding: 32px; color: #1a1a2e; }
-      h1 { font-size: 20px; margin-bottom: 4px; }
-      .sub { font-size: 13px; color: #64748b; margin-bottom: 20px; }
-      .meta { display:grid; grid-template-columns: repeat(4,1fr); gap:12px; margin-bottom:24px; }
+      * { box-sizing:border-box; margin:0; padding:0; font-family:Arial,sans-serif; }
+      body { padding:32px; color:#1a1a2e; }
+      h1 { font-size:20px; margin-bottom:4px; }
+      .sub { font-size:13px; color:#64748b; margin-bottom:20px; }
+      .meta { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
       .meta-item { background:#f8fafc; border-radius:8px; padding:10px; }
       .meta-label { font-size:10px; text-transform:uppercase; color:#64748b; letter-spacing:1px; }
       .meta-value { font-size:15px; font-weight:700; margin-top:3px; }
       table { width:100%; border-collapse:collapse; font-size:13px; }
-      th { background:#0E5A7A; color:white; padding:10px 8px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; }
-      .firma-box { margin-top:32px; display:flex; justify-content:flex-end; gap:40px; }
-      .firma-line { border-top: 1px solid #1a1a2e; width:200px; text-align:center; padding-top:6px; font-size:11px; color:#64748b; }
-      @media print { body { padding:16px; } .no-print { display:none; } }
+      th { background:#0E5A7A; color:white; padding:8px; text-align:left; font-size:11px; text-transform:uppercase; }
+      .firma-box { margin-top:44px; display:flex; justify-content:space-between; gap:40px; align-items:flex-end; }
+      .firma-line { border-top:1px solid #1a1a2e; width:220px; text-align:center; padding-top:6px; font-size:11px; color:#64748b; }
+      .riepilogo { font-size:13px; font-weight:700; color:${firmate === totFasi ? "#16a34a" : "#b45309"}; }
+      @media print { .no-print { display:none !important; } body { padding:14px; } }
     </style></head><body>
-    <div class="no-print" style="text-align:center;padding:12px;background:#f8fafc;margin-bottom:16px;">
+    <div class="no-print" style="display:flex;justify-content:center;gap:10px;padding:12px;background:#f8fafc;margin-bottom:16px;">
       <button onclick="window.print()" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">🖨️ Stampa / Salva PDF</button>
+      <button onclick="window.close()" style="background:#e2e8f0;color:#334155;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">✕ Chiudi</button>
     </div>
     <h1>Registro HACCP Produzione</h1>
-    <div class="sub">${escapeAttr(azienda?.nome || "")} — Generato il ${dataOggi}</div>
+    <div class="sub">${escapeAttr(azienda?.nome || "")} — ${dataOggi}</div>
     <div class="meta">
       <div class="meta-item"><div class="meta-label">Ricetta</div><div class="meta-value">${escapeAttr(nomeRicetta)}</div></div>
-      <div class="meta-item"><div class="meta-label">Lotto</div><div class="meta-value">${escapeAttr(lotto)}</div></div>
+      <div class="meta-item"><div class="meta-label">Lotto</div><div class="meta-value">${escapeAttr(codLotto)}</div></div>
       <div class="meta-item"><div class="meta-label">Data</div><div class="meta-value">${dataOggi}</div></div>
       <div class="meta-item"><div class="meta-label">Responsabile</div><div class="meta-value">${escapeAttr(operatore)}</div></div>
     </div>
     <table>
       <thead><tr>
-        <th>#</th><th>Fase</th><th>Attrezzatura</th><th>T° prevista</th><th>T° rilevata</th>
-        <th>Inizio</th><th>Fine</th><th>Durata</th><th>Esito</th><th>Note</th><th>Firma</th>
+        <th>#</th><th>Fase</th><th>Attrezzatura</th><th>T° prev.</th><th>T° rilev.</th>
+        <th>Inizio</th><th>Fine</th><th>Durata</th><th>Esito</th><th>Note</th><th>Firma operatore</th>
       </tr></thead>
       <tbody>${righe}</tbody>
     </table>
     <div class="firma-box">
-      <div class="firma-line">Firma responsabile produzione</div>
-      <div class="firma-line">Firma responsabile HACCP</div>
+      <div class="riepilogo">Fasi firmate: ${firmate}/${totFasi} ${firmate === totFasi ? "✅" : "⚠️ registro incompleto"}</div>
+      <div style="display:flex;gap:40px;">
+        <div class="firma-line">Responsabile qualità (firma)</div>
+        <div class="firma-line">Data</div>
+      </div>
     </div>
-    </body></html>`);
-  win.document.close();
+  </body></html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) { alert("Consenti i popup per aprire il registro."); return; }
+  win.document.open(); win.document.write(html); win.document.close();
 }
 
 function aggiornaRicettaInfo() {
