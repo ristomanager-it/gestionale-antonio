@@ -170,7 +170,7 @@ const routes = {
   "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
 
   prenotazioni: () => import("./views/prenotazioni/index.js?v=6"),
-  "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js?v=3"),
+  "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js?v=4"),
 
   campagne: () => import("./views/campagne/index.js"),
   "booking-form-builder": () => import("./views/booking/booking-form-builder.js"),

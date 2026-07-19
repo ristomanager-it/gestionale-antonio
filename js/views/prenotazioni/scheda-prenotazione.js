@@ -456,6 +456,10 @@ export async function render(container) {
             <small>${contattoId ? "Vai al contatto" : "Cliente non collegato"}</small>
           </button>
 
+          <button type="button" id="pren-stampa" class="pren-det-link">
+            <span>🖨 Stampa talloncino</span>
+            <small>Nome, coperti, allergie e QR menu</small>
+          </button>
           <button type="button" id="pren-open-wa" class="pren-det-link" ${telefono ? "" : "disabled"} style="${telefono ? "" : "opacity:.55;cursor:not-allowed;"}">
             <span>Apri WhatsApp</span>
             <small>${telefono ? escapeHtml(telefono) : "Telefono non disponibile"}</small>
@@ -476,11 +480,108 @@ export async function render(container) {
     bindFormEvents();
   }
 
+  async function stampaTalloncino() {
+    const p = pageState.prenotazione || {};
+    const supabase = window.supabaseClient;
+    const aziendaId = window.state?.azienda?.id;
+    const nomeCliente = [p.cliente_nome, p.cognome].filter(Boolean).join(" ") || p.cliente_nome || "Ospite";
+    const dataIt = p.data ? new Date(p.data + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "2-digit", month: "long" }) : "—";
+    const ora = (p.ora || "").toString().slice(0, 5);
+    const note = (p.note || "").trim();
+
+    // sede + menu attivo (per il QR)
+    let sedeNome = window.state?.azienda?.nome || "";
+    let slug = null;
+    try {
+      if (p.sede_id) {
+        const { data: s } = await supabase.from("sedi").select("nome").eq("id", p.sede_id).maybeSingle();
+        if (s?.nome) sedeNome = s.nome;
+        const { data: m1 } = await supabase.from("menu").select("slug").eq("sede_id", p.sede_id).eq("attivo", true).order("created_at", { ascending: false }).limit(1);
+        slug = m1 && m1[0] ? m1[0].slug : null;
+      }
+      if (!slug && aziendaId) {
+        const { data: m2 } = await supabase.from("menu").select("slug").eq("azienda_id", aziendaId).eq("attivo", true).order("created_at", { ascending: false }).limit(1);
+        slug = m2 && m2[0] ? m2[0].slug : null;
+      }
+    } catch (e) { /* il QR e' un plus */ }
+    const menuUrl = slug ? (window.location.origin + "/menu-pubblico.html?slug=" + encodeURIComponent(slug)) : null;
+
+    // QR come dataURL (qrcodejs)
+    let qrData = null;
+    if (menuUrl && typeof QRCode !== "undefined") {
+      try {
+        const host = document.createElement("div");
+        host.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
+        document.body.appendChild(host);
+        new QRCode(host, { text: menuUrl, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
+        await new Promise(r => setTimeout(r, 30));
+        const cv = host.querySelector("canvas");
+        const im = host.querySelector("img");
+        qrData = cv ? cv.toDataURL("image/png") : (im ? im.src : null);
+        host.remove();
+      } catch (e) { qrData = null; }
+    }
+
+    const html = `<!doctype html><html lang="it"><head><meta charset="utf-8">
+      <title>Prenotazione — ${escapeHtml(nomeCliente)}</title>
+      <style>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:Georgia,'Times New Roman',serif; color:#1c2430; display:flex; justify-content:center; padding:24px; background:#f3f4f6; }
+        .tall { background:#fff; width:148mm; min-height:105mm; padding:12mm; border:1px solid #e5e7eb; display:flex; flex-direction:column; }
+        .top { text-align:center; border-bottom:2px solid #1c2430; padding-bottom:6mm; margin-bottom:6mm; }
+        .locale { font-size:13px; letter-spacing:3px; text-transform:uppercase; color:#6b7280; }
+        .riservato { font-style:italic; font-size:14px; color:#9ca3af; margin-top:4mm; }
+        .nome { font-size:34px; font-weight:700; margin-top:2mm; }
+        .mid { display:flex; gap:8mm; align-items:center; flex:1; }
+        .dati { flex:1; }
+        .riga { font-size:16px; margin-bottom:3mm; }
+        .riga b { display:inline-block; min-width:34mm; font-family:Arial,sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#6b7280; }
+        .allergie { margin-top:4mm; background:#fff7ed; border:1.5px solid #fdba74; border-radius:8px; padding:4mm; }
+        .allergie .t { font-family:Arial,sans-serif; font-size:10px; font-weight:700; letter-spacing:1px; color:#c2410c; text-transform:uppercase; }
+        .allergie .v { font-size:14px; margin-top:1.5mm; }
+        .qrbox { text-align:center; width:44mm; }
+        .qrbox img { width:38mm; height:38mm; }
+        .qrbox .cap { font-family:Arial,sans-serif; font-size:10px; color:#6b7280; margin-top:2mm; line-height:1.4; }
+        .footer { text-align:center; font-family:Arial,sans-serif; font-size:10px; color:#9ca3af; border-top:1px solid #e5e7eb; padding-top:3mm; margin-top:4mm; }
+        .no-print { position:fixed; top:12px; right:12px; display:flex; gap:8px; }
+        .no-print button { border:none; border-radius:999px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; font-family:Arial,sans-serif; }
+        @media print { body { background:#fff; padding:0; } .tall { border:none; } .no-print { display:none !important; } }
+      </style></head><body>
+      <div class="no-print">
+        <button onclick="window.print()" style="background:#0E5A7A;color:#fff;">🖨 Stampa</button>
+        <button onclick="window.close()" style="background:#e2e8f0;color:#334155;">✕ Chiudi</button>
+      </div>
+      <div class="tall">
+        <div class="top">
+          <div class="locale">${escapeHtml(sedeNome)}</div>
+          <div class="riservato">Tavolo riservato per</div>
+          <div class="nome">${escapeHtml(nomeCliente)}</div>
+        </div>
+        <div class="mid">
+          <div class="dati">
+            <div class="riga"><b>Data</b> ${escapeHtml(dataIt)}</div>
+            <div class="riga"><b>Orario</b> ${escapeHtml(ora || "—")}</div>
+            <div class="riga"><b>Persone</b> ${Number(p.coperti) || 0}</div>
+            ${note ? `<div class="allergie"><div class="t">⚠ Note / Allergie</div><div class="v">${escapeHtml(note)}</div></div>` : ""}
+          </div>
+          ${qrData ? `<div class="qrbox"><img src="${qrData}"><div class="cap">Inquadra per sfogliare<br><b>il nostro menu</b></div></div>` : ""}
+        </div>
+        <div class="footer">Benvenuti — vi auguriamo una piacevole permanenza</div>
+      </div>
+    </body></html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) { alert("Consenti i popup per la stampa."); return; }
+    win.document.open(); win.document.write(html); win.document.close();
+  }
+
   function bindFormEvents() {
     const btnSave = container.querySelector("#pren-save");
     const btnBackList = container.querySelector("#pren-back-list");
     const btnOpenCliente = container.querySelector("#pren-open-cliente");
     const btnOpenWa = container.querySelector("#pren-open-wa");
+    const btnStampa = container.querySelector("#pren-stampa");
+    if (btnStampa) btnStampa.onclick = () => stampaTalloncino();
 
     if (btnBackList) {
       btnBackList.onclick = () => {
