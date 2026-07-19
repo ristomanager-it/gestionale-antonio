@@ -185,22 +185,30 @@
     }
 
     // Manifest dinamico: l'icona in home apre LA TESSERA del cliente, non il gestionale
-    function impostaManifestTessera(nomeLocale, brand) {
+    function impostaManifestTessera(nomeLocale, brand, logoUrl) {
       if (!qrToken) return;
       try {
         var startUrl = window.location.origin + "/fidelity.html?t=" + encodeURIComponent(qrToken) +
           "&a=" + encodeURIComponent(aziendaId) + (sedeId ? "&s=" + encodeURIComponent(sedeId) : "");
+        // Icona home: logo del LOCALE (sede o azienda); fallback icona Ristoflow
+        var icona = logoUrl || (window.location.origin + "/favicon-192.png");
+        // iOS legge apple-touch-icon al momento dell'aggiunta: lo aggiorno col logo
+        if (logoUrl) {
+          var ati = document.querySelector('link[rel="apple-touch-icon"]');
+          if (!ati) { ati = document.createElement("link"); ati.rel = "apple-touch-icon"; document.head.appendChild(ati); }
+          ati.href = logoUrl;
+        }
         var man = {
           name: "Tessera " + (nomeLocale || "Fidelity"),
-          short_name: "Tessera",
+          short_name: (nomeLocale || "Tessera").slice(0, 12),
           start_url: startUrl,
           scope: window.location.origin + "/",
           display: "standalone",
           background_color: "#161d27",
           theme_color: brand || "#0E5A7A",
           icons: [
-            { src: window.location.origin + "/favicon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-            { src: window.location.origin + "/favicon-192.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+            { src: icona, sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: icona, sizes: "512x512", type: "image/png", purpose: "any maskable" }
           ]
         };
         var blob = new Blob([JSON.stringify(man)], { type: "application/json" });
@@ -251,7 +259,7 @@
         return;
       }
 
-      impostaManifestTessera((_brandSede && _brandSede.nome) || azienda.nome, azienda.colore_brand);
+      impostaManifestTessera((_brandSede && _brandSede.nome) || azienda.nome, azienda.colore_brand, (_brandSede && _brandSede.logo_url) || azienda.logo_url || null);
       renderTessera(d.cliente, d.tessera, azienda, cfg, d.movimenti || [], d.offerte || []);
     }
 
