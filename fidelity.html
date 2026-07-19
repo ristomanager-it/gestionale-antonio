@@ -140,14 +140,30 @@
     .livello-step.active{background:#c9a35a;}
     .offerta-badge{border-radius:999px;}
 
-    /* ── MINI-APP: TAB BAR + SOCIAL ── */
-    body.has-tabbar{padding-bottom:calc(70px + env(safe-area-inset-bottom));}
-    .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:900;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid rgba(0,0,0,.08);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
-    .tabbar button{flex:1;border:none;background:none;cursor:pointer;font-size:10.5px;font-weight:700;color:#94a3b8;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;}
-    .tabbar button .ic{font-size:20px;line-height:1;}
-    .tabbar button.attivo{color:var(--brand);}
+    /* ── MINI-APP: ICONE + PANNELLI + SOCIAL ── */
+    .icone-app{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 16px 8px;}
+    .icona-app{border:none;background:#fff;border-radius:16px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid rgba(0,0,0,.07);box-shadow:0 2px 10px rgba(0,0,0,.04);}
+    .icona-app .ic{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--brand-light);}
+    .icona-app .lb{font-size:10.5px;font-weight:800;color:#374151;}
+    .pane-head{position:sticky;top:0;z-index:50;background:rgba(246,245,242,.94);backdrop-filter:blur(8px);display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(0,0,0,.06);}
+    .pane-head button{border:none;background:#fff;border-radius:999px;width:34px;height:34px;font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+    .pane-head .tt{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;}
     .tab-pane{display:none;}
     .tab-pane.attivo{display:block;}
+    /* stories */
+    .stories-row{display:flex;gap:12px;overflow-x:auto;padding:14px 16px 6px;scrollbar-width:none;}
+    .stories-row::-webkit-scrollbar{display:none;}
+    .story-c{flex:0 0 auto;width:64px;text-align:center;cursor:pointer;}
+    .story-c .cerchio{width:60px;height:60px;border-radius:50%;padding:2.5px;background:linear-gradient(45deg,#f0a13c,#e0577b,#a44fd0);}
+    .story-c .cerchio.mia{background:#d1d5db;}
+    .story-c img,.story-c .plus{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #fff;display:block;background:#fff;}
+    .story-c .plus{display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--brand);font-weight:800;}
+    .story-c .nm{font-size:9.5px;font-weight:700;color:#374151;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .invito-card{margin:10px 16px;background:linear-gradient(135deg,var(--brand),#1c2430);border-radius:16px;padding:16px;color:#fff;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.18);}
+    .invito-card .em{font-size:28px;}
+    .invito-card b{font-size:14.5px;display:block;}
+    .invito-card span{font-size:12px;opacity:.85;}
+    /* feed (come prima) */
     .feed-card{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:16px;margin:12px 16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);}
     .feed-head{display:flex;align-items:center;gap:10px;padding:12px 14px 10px;}
     .feed-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;background:#1f2733;flex-shrink:0;}
@@ -160,10 +176,22 @@
     .feed-azioni{display:flex;gap:14px;padding:10px 14px 12px;align-items:center;}
     .feed-reaz{border:none;background:#f8fafc;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;font-weight:700;color:#374151;}
     .feed-reaz.fatta{background:var(--brand-light);color:var(--brand);}
-    .fab-post{position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:901;width:54px;height:54px;border-radius:50%;border:none;background:var(--brand);color:#fff;font-size:26px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25);}
     .stelle-sel{display:flex;gap:6px;font-size:26px;cursor:pointer;user-select:none;}
     .stelle-sel span{color:#d1d5db;transition:color .1s;}
     .stelle-sel span.on{color:#e0a93e;}
+    /* trip */
+    .trip-card{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:16px;margin:12px 16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);}
+    .trip-cover{width:100%;height:140px;object-fit:cover;display:block;background:linear-gradient(135deg,#243447,#0E5A7A);}
+    .trip-body{padding:12px 14px;display:flex;gap:10px;align-items:flex-start;}
+    .trip-logo{width:44px;height:44px;border-radius:12px;object-fit:cover;border:1px solid rgba(0,0,0,.08);flex-shrink:0;background:#f1f5f9;}
+    .trip-nome{font-family:'Playfair Display',Georgia,serif;font-size:16.5px;font-weight:700;}
+    .trip-sub{font-size:11.5px;color:#7a8494;margin-top:1px;}
+    .trip-voto{font-size:12.5px;margin-top:5px;color:#374151;}
+    .trip-voto .st{color:#e0a93e;letter-spacing:1px;}
+    /* story viewer */
+    .story-view{position:fixed;inset:0;background:#000;z-index:990;display:flex;align-items:center;justify-content:center;}
+    .story-view img{max-width:100%;max-height:100%;}
+    .story-view .sv-head{position:absolute;top:0;left:0;right:0;padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);}
   </style>
 </head>
 <body>
@@ -243,94 +271,114 @@
       } catch(e) { /* fallback: manifest statico */ }
     }
 
-    // ══════════ MINI-APP: TAB BAR + SOCIAL + PRENOTA + LOCALE ══════════
+    // ══════════ MINI-APP: TESSERA HOME + ICONE + SOCIAL IG + TRIP ══════════
     var _fidCliente = null, _fidAzienda = null;
-    var _feedCaricato = false, _localeCaricato = false, _prenotaMontato = false;
+    var _feedCaricato = false, _localeCaricato = false, _prenotaMontato = false, _tripCaricato = false;
 
     function montaMiniApp(cliente, azienda, cfg) {
       _fidCliente = cliente; _fidAzienda = azienda;
-      if (document.getElementById("fid-tabbar")) return;
-      // impacchetto la tessera nel primo tab
-      var wrap = document.createElement("div"); wrap.id = "tab-tessera"; wrap.className = "tab-pane attivo";
-      while (root.firstChild) wrap.appendChild(root.firstChild);
-      root.appendChild(wrap);
-      ["novita","prenota","locale"].forEach(function(t){
-        var d = document.createElement("div"); d.id = "tab-" + t; d.className = "tab-pane"; root.appendChild(d);
+      if (document.getElementById("fid-icone")) return;
+      // 1) impacchetto la tessera nel pannello home
+      var home = document.createElement("div"); home.id = "tab-tessera"; home.className = "tab-pane attivo";
+      while (root.firstChild) home.appendChild(root.firstChild);
+      root.appendChild(home);
+      // 2) icone-app sotto la tessera
+      var grid = document.createElement("div"); grid.className = "icone-app"; grid.id = "fid-icone";
+      grid.innerHTML =
+        '<button data-p="social"><span class="ic">📸</span><span class="lb">Social</span></button>' +
+        '<button data-p="trip"><span class="ic">🌍</span><span class="lb">Locali</span></button>' +
+        '<button data-p="prenota"><span class="ic">📅</span><span class="lb">Prenota</span></button>' +
+        '<button data-p="locale"><span class="ic">📍</span><span class="lb">Il locale</span></button>';
+      grid.querySelectorAll("button").forEach(function(b){ b.className = "icona-app"; });
+      // le inserisco subito dopo la card tessera (primo figlio del pannello)
+      var card = home.querySelector(".tessera-card");
+      if (card && card.nextSibling) home.insertBefore(grid, card.nextSibling); else home.appendChild(grid);
+      // 3) pannelli
+      var titoli = { social: "Novità e recensioni", trip: "Locali Ristoflow", prenota: "Prenota un tavolo", locale: "Il locale" };
+      ["social","trip","prenota","locale"].forEach(function(t){
+        var d = document.createElement("div"); d.id = "pane-" + t; d.className = "tab-pane";
+        d.innerHTML = '<div class="pane-head"><button data-back="1">←</button><div class="tt">' + titoli[t] + '</div></div><div id="pane-' + t + '-body"></div>';
+        d.querySelector("[data-back]").onclick = function(){ apriPannello(null); };
+        root.appendChild(d);
       });
-      var bar = document.createElement("div"); bar.className = "tabbar"; bar.id = "fid-tabbar";
-      bar.innerHTML =
-        '<button data-tab="tessera" class="attivo"><span class="ic">⭐</span>Tessera</button>' +
-        '<button data-tab="novita"><span class="ic">📸</span>Novità</button>' +
-        '<button data-tab="prenota"><span class="ic">📅</span>Prenota</button>' +
-        '<button data-tab="locale"><span class="ic">📍</span>Locale</button>';
-      document.body.appendChild(bar);
-      document.body.classList.add("has-tabbar");
-      bar.querySelectorAll("button").forEach(function(btn){
-        btn.onclick = function(){
-          bar.querySelectorAll("button").forEach(function(x){ x.classList.remove("attivo"); });
-          btn.classList.add("attivo");
-          document.querySelectorAll(".tab-pane").forEach(function(p){ p.classList.remove("attivo"); });
-          var pane = document.getElementById("tab-" + btn.dataset.tab);
-          pane.classList.add("attivo");
-          var fab = document.getElementById("fid-fab");
-          if (fab) fab.style.display = btn.dataset.tab === "novita" ? "block" : "none";
-          if (btn.dataset.tab === "novita" && !_feedCaricato) caricaFeed();
-          if (btn.dataset.tab === "locale" && !_localeCaricato) caricaLocale();
-          if (btn.dataset.tab === "prenota" && !_prenotaMontato) montaPrenota();
-          window.scrollTo(0, 0);
-        };
+      grid.querySelectorAll(".icona-app").forEach(function(b){
+        b.onclick = function(){ apriPannello(b.dataset.p); };
       });
     }
 
-    // ── FEED (stile IG + recensioni) ──
+    function apriPannello(p) {
+      document.querySelectorAll(".tab-pane").forEach(function(x){ x.classList.remove("attivo"); });
+      if (!p) { document.getElementById("tab-tessera").classList.add("attivo"); window.scrollTo(0,0); return; }
+      document.getElementById("pane-" + p).classList.add("attivo");
+      if (p === "social" && !_feedCaricato) caricaSocial();
+      if (p === "trip" && !_tripCaricato) caricaTrip();
+      if (p === "prenota" && !_prenotaMontato) montaPrenota();
+      if (p === "locale" && !_localeCaricato) caricaLocale();
+      window.scrollTo(0,0);
+    }
+
+    // ── SOCIAL (stile IG: storie + invito + feed) ──
     function tempoFa(iso) {
       var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
       if (s < 3600) return Math.max(1, Math.floor(s/60)) + " min fa";
       if (s < 86400) return Math.floor(s/3600) + " h fa";
       return Math.floor(s/86400) + " g fa";
     }
-    function stelleHtml(v) {
-      var out = "";
-      for (var i = 1; i <= 5; i++) out += (i <= v ? "★" : "☆");
-      return out;
-    }
-    async function caricaFeed() {
-      var box = document.getElementById("tab-novita");
-      box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento novità...</div>';
-      if (!document.getElementById("fid-fab")) {
-        var fab = document.createElement("button"); fab.id = "fid-fab"; fab.className = "fab-post"; fab.textContent = "+";
-        fab.onclick = apriComposer; document.body.appendChild(fab);
-      }
-      document.getElementById("fid-fab").style.display = "block";
+    function stelleHtml(v) { var o=""; for (var i=1;i<=5;i++) o += (i<=v?"★":"☆"); return o; }
+    function inizialiDi(nome) { return String(nome||"?").split(" ").map(function(x){return x[0]||"";}).join("").slice(0,2).toUpperCase(); }
+
+    async function caricaSocial() {
+      var box = document.getElementById("pane-social-body");
+      box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento...</div>';
       try {
         var r = await fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ azione: "feed", azienda_id: aziendaId, sede_id: sedeId }) });
         var j = await r.json();
-        var posts = (j.posts || []);
         _feedCaricato = true;
+        var posts = j.posts || [], stories = j.stories || [];
+
+        var html = "";
+        // riga storie: prima "la tua storia" (+), poi le storie attive
+        html += '<div class="stories-row">' +
+          '<div class="story-c" id="story-nuova"><div class="cerchio mia"><div class="plus">+</div></div><div class="nm">La tua storia</div></div>' +
+          stories.map(function(s, i){
+            var nome = s.tipo_autore !== "cliente" ? (s.nome_locale || "Il locale") : (s.autore_nome || "Ospite");
+            return '<div class="story-c" data-story="' + i + '"><div class="cerchio"><img src="' + esc(s.media_url) + '"></div><div class="nm">' + esc(nome.split(" ")[0]) + '</div></div>';
+          }).join("") + '</div>';
+
+        // invito a pubblicare (il cuore IG)
+        html += '<div class="invito-card" id="invito-post"><div class="em">📷</div><div><b>Racconta la tua serata, ' + esc((_fidCliente && _fidCliente.nome) || "") + '</b><span>Una foto del piatto, due righe, le tue stelle ⭐ — e la pubblichi in 10 secondi</span></div></div>';
+
         if (!posts.length) {
-          box.innerHTML = '<div style="text-align:center;padding:50px 30px;color:#94a3b8;"><div style="font-size:40px;margin-bottom:10px;">📸</div><div style="font-size:14px;font-weight:700;color:#374151;">Ancora nessuna novità</div><div style="font-size:12.5px;margin-top:6px;">Pubblica tu la prima foto o recensione col +</div></div>';
-          return;
+          html += '<div style="text-align:center;padding:40px 30px;color:#94a3b8;"><div style="font-size:36px;margin-bottom:8px;">🍽</div><div style="font-size:13px;">Il feed è tutto tuo: pubblica il primo ricordo!</div></div>';
+        } else {
+          html += posts.map(function(p){
+            var isLocale = p.tipo_autore !== "cliente";
+            var nome = isLocale ? (p.nome_locale || (_brandSede && _brandSede.nome) || "Il locale") : (p.autore_nome || "Un ospite");
+            var giaReaz = localStorage.getItem("fid_reaz_" + p.id);
+            return '<div class="feed-card" data-id="' + p.id + '">' +
+              '<div class="feed-head"><div class="feed-av' + (isLocale ? " locale" : "") + '">' + esc(inizialiDi(nome)) + '</div>' +
+                '<div><div class="feed-nome">' + esc(nome) + (isLocale ? ' <span style="color:var(--brand);font-size:11px;">✓</span>' : '') + '</div>' +
+                '<div class="feed-sub">' + (p.voto ? "Recensione · " : "") + tempoFa(p.created_at) + '</div></div></div>' +
+              (p.voto ? '<div class="feed-stelle">' + stelleHtml(p.voto) + '</div>' : '') +
+              (p.media_url ? '<img class="feed-media" src="' + esc(p.media_url) + '" loading="lazy">' : '') +
+              (p.testo ? '<div class="feed-testo">' + esc(p.testo) + '</div>' : '') +
+              '<div class="feed-azioni">' +
+                '<button class="feed-reaz' + (giaReaz === "fuoco" ? " fatta" : "") + '" data-e="fuoco">🔥 <span>' + (p.reaz_fuoco || 0) + '</span></button>' +
+                '<button class="feed-reaz' + (giaReaz === "applauso" ? " fatta" : "") + '" data-e="applauso">👏 <span>' + (p.reaz_applauso || 0) + '</span></button>' +
+                '<button class="feed-reaz' + (giaReaz === "cuore" ? " fatta" : "") + '" data-e="cuore">❤️ <span>' + (p.reaz_cuore || 0) + '</span></button>' +
+              '</div></div>';
+          }).join("");
         }
-        box.innerHTML = posts.map(function(p){
-          var isLocale = p.tipo_autore !== "cliente";
-          var nome = isLocale ? (p.nome_locale || (_brandSede && _brandSede.nome) || "Il locale") : (p.autore_nome || "Un ospite");
-          var iniz = nome.split(" ").map(function(x){ return x[0] || ""; }).join("").slice(0,2).toUpperCase();
-          var giaReaz = localStorage.getItem("fid_reaz_" + p.id);
-          return '<div class="feed-card" data-id="' + p.id + '">' +
-            '<div class="feed-head"><div class="feed-av' + (isLocale ? " locale" : "") + '">' + esc(iniz) + '</div>' +
-              '<div><div class="feed-nome">' + esc(nome) + (isLocale ? ' <span style="color:var(--brand);font-size:11px;">✓</span>' : '') + '</div>' +
-              '<div class="feed-sub">' + (p.voto ? "Recensione · " : "") + tempoFa(p.created_at) + '</div></div></div>' +
-            (p.voto ? '<div class="feed-stelle">' + stelleHtml(p.voto) + '</div>' : '') +
-            (p.media_url ? '<img class="feed-media" src="' + esc(p.media_url) + '" loading="lazy">' : '') +
-            (p.testo ? '<div class="feed-testo">' + esc(p.testo) + '</div>' : '') +
-            '<div class="feed-azioni">' +
-              '<button class="feed-reaz' + (giaReaz === "fuoco" ? " fatta" : "") + '" data-e="fuoco">🔥 <span>' + (p.reaz_fuoco || 0) + '</span></button>' +
-              '<button class="feed-reaz' + (giaReaz === "applauso" ? " fatta" : "") + '" data-e="applauso">👏 <span>' + (p.reaz_applauso || 0) + '</span></button>' +
-              '<button class="feed-reaz' + (giaReaz === "cuore" ? " fatta" : "") + '" data-e="cuore">❤️ <span>' + (p.reaz_cuore || 0) + '</span></button>' +
-            '</div></div>';
-        }).join("");
+        html += '<div style="height:24px;"></div>';
+        box.innerHTML = html;
+
+        document.getElementById("story-nuova").onclick = function(){ apriComposer(true); };
+        document.getElementById("invito-post").onclick = function(){ apriComposer(false); };
+        box.querySelectorAll("[data-story]").forEach(function(el){
+          el.onclick = function(){ apriStoria(stories, parseInt(el.dataset.story)); };
+        });
         box.querySelectorAll(".feed-reaz").forEach(function(btn){
           btn.onclick = function(){
             var card = btn.closest(".feed-card"); var pid = card.dataset.id;
@@ -344,13 +392,30 @@
           };
         });
       } catch(e) {
-        box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Novità non disponibili al momento.</div>';
+        box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Social non disponibile al momento.</div>';
       }
     }
 
-    // ── COMPOSER (foto + testo + voto) ──
-    var _fotoBase64 = null, _fotoTipo = null, _votoSel = 0;
-    function apriComposer() {
+    function apriStoria(stories, i) {
+      var s = stories[i]; if (!s) return;
+      var nome = s.tipo_autore !== "cliente" ? (s.nome_locale || "Il locale") : (s.autore_nome || "Ospite");
+      var v = document.createElement("div"); v.className = "story-view";
+      v.innerHTML = '<div class="sv-head"><div style="font-weight:800;font-size:14px;">' + esc(nome) + ' <span style="opacity:.6;font-weight:400;font-size:12px;">· ' + tempoFa(s.created_at) + '</span></div><button style="border:none;background:none;color:#fff;font-size:22px;cursor:pointer;">✕</button></div>' +
+        '<img src="' + esc(s.media_url) + '">' +
+        (s.testo ? '<div style="position:absolute;bottom:0;left:0;right:0;padding:20px;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent);font-size:14px;">' + esc(s.testo) + '</div>' : '');
+      document.body.appendChild(v);
+      var chiudi = function(){ v.remove(); };
+      v.querySelector("button").onclick = chiudi;
+      v.onclick = function(e){
+        if (e.target.tagName === "BUTTON") return;
+        if (i + 1 < stories.length) { chiudi(); apriStoria(stories, i + 1); } else chiudi();
+      };
+    }
+
+    // ── COMPOSER (post o storia) ──
+    var _fotoBase64 = null, _fotoTipo = null, _votoSel = 0, _modoStoria = false;
+    function apriComposer(storia) {
+      _modoStoria = !!storia;
       var old = document.getElementById("fid-composer"); if (old) old.remove();
       _fotoBase64 = null; _fotoTipo = null; _votoSel = 0;
       var m = document.createElement("div"); m.id = "fid-composer";
@@ -358,14 +423,16 @@
       m.innerHTML =
         '<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:520px;max-height:86vh;overflow:auto;">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
-            '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;font-weight:700;">Racconta la tua esperienza</div>' +
+            '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;font-weight:700;">' + (_modoStoria ? "La tua storia ⚡" : "Racconta la tua esperienza") + '</div>' +
             '<button id="cmp-x" style="border:none;background:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button></div>' +
-          '<div id="cmp-foto-box" style="border:2px dashed #d1d5db;border-radius:14px;padding:22px;text-align:center;color:#94a3b8;font-size:13px;cursor:pointer;margin-bottom:12px;">📷 Tocca per aggiungere una foto</div>' +
+          (_modoStoria ? '<div style="font-size:12px;color:#7a8494;margin-bottom:10px;">Una foto che resta visibile per 24 ore nel cerchio delle storie.</div>' : '') +
+          '<div id="cmp-foto-box" style="border:2px dashed #d1d5db;border-radius:14px;padding:22px;text-align:center;color:#94a3b8;font-size:13px;cursor:pointer;margin-bottom:12px;">📷 Tocca per ' + (_modoStoria ? "scegliere la foto della storia" : "aggiungere una foto") + '</div>' +
           '<input id="cmp-file" type="file" accept="image/*" style="display:none;">' +
-          '<div style="font-size:11px;font-weight:700;color:#7a8494;margin-bottom:4px;">IL TUO VOTO (opzionale — diventa una recensione)</div>' +
-          '<div class="stelle-sel" id="cmp-stelle"><span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span></div>' +
-          '<textarea id="cmp-testo" rows="3" placeholder="Com\'e\' andata? Cosa hai mangiato?" style="width:100%;box-sizing:border-box;margin-top:12px;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;"></textarea>' +
-          '<button id="cmp-invia" style="width:100%;margin-top:12px;background:var(--brand);color:#fff;border:none;border-radius:999px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;">Pubblica</button>' +
+          (_modoStoria ? '' :
+            '<div style="font-size:11px;font-weight:700;color:#7a8494;margin-bottom:4px;">IL TUO VOTO (opzionale — diventa una recensione)</div>' +
+            '<div class="stelle-sel" id="cmp-stelle"><span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span></div>') +
+          '<textarea id="cmp-testo" rows="3" placeholder="' + (_modoStoria ? "Due parole (opzionale)..." : "Com\'e\' andata? Cosa hai mangiato?") + '" style="width:100%;box-sizing:border-box;margin-top:12px;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;"></textarea>' +
+          '<button id="cmp-invia" style="width:100%;margin-top:12px;background:var(--brand);color:#fff;border:none;border-radius:999px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;">' + (_modoStoria ? "Pubblica la storia" : "Pubblica") + '</button>' +
           '<div id="cmp-msg" style="text-align:center;font-size:12.5px;margin-top:8px;min-height:16px;"></div>' +
         '</div>';
       document.body.appendChild(m);
@@ -386,10 +453,11 @@
         };
         img.src = URL.createObjectURL(f);
       };
-      document.querySelectorAll("#cmp-stelle span").forEach(function(s){
+      var stelleBox = document.getElementById("cmp-stelle");
+      if (stelleBox) stelleBox.querySelectorAll("span").forEach(function(s){
         s.onclick = function(){
           _votoSel = parseInt(s.dataset.v);
-          document.querySelectorAll("#cmp-stelle span").forEach(function(x){
+          stelleBox.querySelectorAll("span").forEach(function(x){
             x.classList.toggle("on", parseInt(x.dataset.v) <= _votoSel);
           });
         };
@@ -397,27 +465,63 @@
       document.getElementById("cmp-invia").onclick = async function(){
         var btn = this, msg = document.getElementById("cmp-msg");
         var testo = document.getElementById("cmp-testo").value.trim();
-        if (!testo && !_fotoBase64) { msg.textContent = "Aggiungi una foto o due righe."; msg.style.color = "#b45309"; return; }
+        if (_modoStoria && !_fotoBase64) { msg.textContent = "La storia ha bisogno di una foto."; msg.style.color = "#b45309"; return; }
+        if (!_modoStoria && !testo && !_fotoBase64) { msg.textContent = "Aggiungi una foto o due righe."; msg.style.color = "#b45309"; return; }
         btn.disabled = true; btn.textContent = "Pubblico...";
         try {
           var r = await fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ azione: "posta", qr_token: qrToken, azienda_id: aziendaId, sede_id: sedeId,
-              testo: testo, voto: _votoSel || null, foto_base64: _fotoBase64, foto_tipo: _fotoTipo }) });
+              testo: testo, voto: (_modoStoria ? null : (_votoSel || null)), storia: _modoStoria,
+              foto_base64: _fotoBase64, foto_tipo: _fotoTipo }) });
           var j = await r.json();
           if (!j.success) throw new Error(j.error || "Errore");
-          m.remove(); _feedCaricato = false; caricaFeed();
+          m.remove(); _feedCaricato = false; caricaSocial();
         } catch(e) {
           msg.textContent = "Errore: " + e.message; msg.style.color = "#b91c1c";
-          btn.disabled = false; btn.textContent = "Pubblica";
+          btn.disabled = false; btn.textContent = _modoStoria ? "Pubblica la storia" : "Pubblica";
         }
       };
+    }
+
+    // ── TRIP: locali Ristoflow ──
+    async function caricaTrip() {
+      var box = document.getElementById("pane-trip-body");
+      box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento locali...</div>';
+      try {
+        var r = await fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ azione: "locali" }) });
+        var j = await r.json();
+        _tripCaricato = true;
+        var locali = j.locali || [];
+        if (!locali.length) {
+          box.innerHTML = '<div style="text-align:center;padding:50px 30px;color:#94a3b8;"><div style="font-size:36px;margin-bottom:8px;">🌍</div><div style="font-size:13px;">I locali del circuito Ristoflow appariranno qui.</div></div>';
+          return;
+        }
+        box.innerHTML = '<div style="padding:12px 16px 0;font-size:12.5px;color:#7a8494;">I locali del circuito Ristoflow, con le recensioni vere dei clienti.</div>' +
+          locali.map(function(s){
+            var maps = "https://maps.google.com/?q=" + encodeURIComponent(((s.nome||"") + " " + (s.indirizzo||"") + " " + (s.citta||"")).trim());
+            return '<div class="trip-card">' +
+              (s.cover_url ? '<img class="trip-cover" src="' + esc(s.cover_url) + '" loading="lazy">' : '') +
+              '<div class="trip-body">' +
+                (s.logo_url ? '<img class="trip-logo" src="' + esc(s.logo_url) + '">' : '<div class="trip-logo" style="display:flex;align-items:center;justify-content:center;font-size:18px;">🍽</div>') +
+                '<div style="flex:1;min-width:0;">' +
+                  '<div class="trip-nome">' + esc(s.nome || "") + '</div>' +
+                  '<div class="trip-sub">' + esc([s.citta, s.tipo_cucina, s.fascia_prezzo].filter(Boolean).join(" · ")) + '</div>' +
+                  (s.voto_medio ? '<div class="trip-voto"><span class="st">' + stelleHtml(Math.round(s.voto_medio)) + '</span> <b>' + s.voto_medio + '</b> · ' + s.n_recensioni + ' recensioni</div>' : '<div class="trip-voto" style="color:#94a3b8;">Ancora nessuna recensione</div>') +
+                  '<a href="' + maps + '" target="_blank" style="display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:var(--brand);text-decoration:none;">🗺 Vedi sulla mappa</a>' +
+                '</div></div></div>';
+          }).join("") + '<div style="height:24px;"></div>';
+      } catch(e) {
+        box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Locali non disponibili al momento.</div>';
+      }
     }
 
     // ── PRENOTA ──
     function montaPrenota() {
       _prenotaMontato = true;
-      var box = document.getElementById("tab-prenota");
+      var box = document.getElementById("pane-prenota-body");
       var d = new Date(Date.now() + 86400000);
       box.innerHTML =
         '<div class="section" style="margin-top:20px;">' +
@@ -461,7 +565,7 @@
     // ── LOCALE ──
     async function caricaLocale() {
       _localeCaricato = true;
-      var box = document.getElementById("tab-locale");
+      var box = document.getElementById("pane-locale-body");
       box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento...</div>';
       var s = {};
       try {
