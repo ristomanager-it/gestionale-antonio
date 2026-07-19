@@ -195,7 +195,7 @@ async function refreshLista() {
     const scad = l.data_scadenza ? new Date(l.data_scadenza).toLocaleDateString("it-IT") : "—";
     const complete = tot > 0 && firmate === tot;
     return `
-      <div class="card" style="background:white;border:1px solid ${allarme ? "#fecaca" : "#e5e7eb"};border-left:5px solid ${allarme ? "#dc2626" : "#16a34a"};border-radius:12px;padding:14px 16px;margin-bottom:10px;">
+      <div class="card" data-vai="${l.lotto_uuid}" style="cursor:pointer;background:white;border:1px solid ${allarme ? "#fecaca" : "#e5e7eb"};border-left:5px solid ${allarme ? "#dc2626" : "#16a34a"};border-radius:12px;padding:14px 16px;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
           <div>
             <div style="font-weight:700;font-size:16px;">${escapeHtml(nome)}</div>
@@ -211,14 +211,18 @@ async function refreshLista() {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            ${tot ? `<button data-fasi="${l.lotto_uuid}" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;white-space:nowrap;">▶ Vai alla lavorazione</button>` : ""}
+            <button data-fasi="${l.lotto_uuid}" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;white-space:nowrap;">▶ Vai alla lavorazione</button>
             <button data-chiudi="${l.id}" style="background:${complete ? "#16a34a" : "#e2e8f0"};color:${complete ? "white" : "#334155"};border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;white-space:nowrap;">✔ Chiudi</button>
           </div>
         </div>
       </div>`;
   }).join("");
 
-  cont.querySelectorAll("[data-chiudi]").forEach(b => b.addEventListener("click", () => chiudiProduzione(b.dataset.chiudi)));
+  cont.querySelectorAll("[data-vai]").forEach(card => card.addEventListener("click", (e) => {
+    if (e.target.closest("button")) return; // i bottoni fanno il loro
+    window.location.hash = "#/preparazioni?lotto=" + card.dataset.vai;
+  }));
+  cont.querySelectorAll("[data-chiudi]").forEach(b => b.addEventListener("click", (e) => { e.stopPropagation(); chiudiProduzione(b.dataset.chiudi); }));
   cont.querySelectorAll("[data-fasi]").forEach(b => b.addEventListener("click", () => { window.location.hash = "#/preparazioni?lotto=" + b.dataset.fasi; }));
 }
 

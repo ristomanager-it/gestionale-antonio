@@ -119,7 +119,7 @@ const routes = {
   ordine: () => import("./views/ordine.js?v=7"),
 
   produzione: () => import("./views/produzione.js"),
-  "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=6"),
+  "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=7"),
   "registro-lotti": () => import("./views/registro-lotti.js?v=1"),
   "produttivita-produzione": () => import("./views/produttivita-produzione.js?v=2"),
   "registro-messaggi": () => import("./views/registro-messaggi.js?v=2"),
@@ -133,7 +133,7 @@ const routes = {
   "abbina-articoli": () => import("./views/abbina-articoli.js"),
   "menu-engineering": () => import("./views/menu-engineering.js?v=2"),
   "super-tony": () => import("./views/super-tony.js?v=6"),
-  preparazioni: () => import("./views/preparazioni.js?v=7"),
+  preparazioni: () => import("./views/preparazioni.js?v=8"),
   reparti: () => import("./views/reparti.js"),
   venduto: () => import("./views/venduto.js?v=9"),
   margini: () => import("./views/margini.js"),

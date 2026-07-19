@@ -188,7 +188,11 @@ export async function render(container) {
 
             <div class="form-group">
               <label>Scadenza (automatica)</label>
-              <input id="prod-scadenza" type="date" class="input" readonly />
+              <input id="prod-scadenza" type="date" class="input" ${savedLotto ? "readonly" : ""} />
+              <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;" id="prod-giorni-rapidi">
+                ${[3,7,15,30,60,90].map(g => `<button type="button" data-gg="${g}" class="app-button gray small" style="padding:4px 10px;font-size:12px;">${g} gg</button>`).join("")}
+              </div>
+              <div class="form-help">Scegli lo scenario, un tempo rapido di stoccaggio, o scrivi la scadenza a mano.</div>
             </div>
 
             <div class="form-group">
@@ -616,7 +620,9 @@ function setupAutocompleteRicette() {
       return;
     }
 
-    const risultati = ricetteCache.filter((r) => (r.nome || "").toLowerCase().includes(q)).slice(0, 10);
+    const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const nq = norm(q);
+    const risultati = ricetteCache.filter((r) => norm(r.nome).includes(nq)).slice(0, 10);
 
     risultati.forEach((r) => {
       const div = document.createElement("div");
@@ -1108,6 +1114,7 @@ function renderCoprodottiRows() {
               <label>Prodotto</label>
               <select class="input" data-field="prodotto_id" ${savedLotto ? "disabled" : ""}>
                 <option value="">Seleziona prodotto</option>
+                <option value="__nuovo__">➕ Nuovo prodotto (scrivi il nome)...</option>
                 ${prodottiCache
                   .map((p) => {
                     const selected = String(p.id) === String(row.prodotto_id) ? "selected" : "";
@@ -1174,7 +1181,29 @@ function renderCoprodottiRows() {
     .join("");
 }
 
+async function creaNuovoProdottoCoprodotto(rowId, selectEl) {
+  const nome = prompt("Nome del nuovo prodotto (coprodotto):");
+  if (!nome || !nome.trim()) { selectEl.value = ""; return; }
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  const um = prompt("Unità di misura (kg, pz, lt...):", "kg") || "kg";
+  const { data, error } = await supabase.from("prodotti")
+    .insert({ azienda_id: aziendaId, nome: nome.trim(), unita_misura: um.trim(), attivo: true })
+    .select("id, nome, unita_misura").maybeSingle();
+  if (error || !data) { alert("Errore creazione prodotto: " + (error?.message || "sconosciuto")); selectEl.value = ""; return; }
+  prodottiCache.push(data);
+  prodottiCache.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+  const row = coprodottiRows.find(r => String(r.id) === String(rowId));
+  if (row) { row.prodotto_id = String(data.id); if (!row.unita_misura) row.unita_misura = data.unita_misura; }
+  renderCoprodottiRows();
+}
+
 function onCoprodottiChange(e) {
+  const selNuovo = e.target;
+  if (selNuovo?.getAttribute && selNuovo.getAttribute("data-field") === "prodotto_id" && selNuovo.value === "__nuovo__") {
+    const cardN = selNuovo.closest("[data-coprodotto-id]");
+    if (cardN) { creaNuovoProdottoCoprodotto(cardN.getAttribute("data-coprodotto-id"), selNuovo); return; }
+  }
   const target = e.target;
   if (!(target instanceof HTMLElement)) return;
 
@@ -1597,6 +1626,7 @@ async function stampaSchedaProduzione() {
     </div>
   </body></html>`);
   win.document.close();
+  try { win.document.body.insertAdjacentHTML("beforeend", '<button onclick="window.close()" class="rf-no-print" style="position:fixed;top:10px;right:10px;z-index:999;background:#0E5A7A;color:#fff;border:none;border-radius:999px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25);">✕ Chiudi</button><style>@media print{.rf-no-print{display:none!important}}</style>'); } catch(e) {}
 }
 
 /* ========================================================= */
@@ -1675,6 +1705,7 @@ async function stampaEtichettaProduzione() {
     <div class="grid">${etichetta.repeat(copie)}</div>
   </body></html>`);
   win.document.close();
+  try { win.document.body.insertAdjacentHTML("beforeend", '<button onclick="window.close()" class="rf-no-print" style="position:fixed;top:10px;right:10px;z-index:999;background:#0E5A7A;color:#fff;border:none;border-radius:999px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25);">✕ Chiudi</button><style>@media print{.rf-no-print{display:none!important}}</style>'); } catch(e) {}
 }
 
 function bindEvents() {
@@ -1729,6 +1760,17 @@ function bindEvents() {
   document.getElementById("coprodotti-wrap")?.addEventListener("change", (e) => onCoprodottiChange(e));
   document.getElementById("coprodotti-wrap")?.addEventListener("input", (e) => onCoprodottiChange(e));
   document.getElementById("coprodotti-wrap")?.addEventListener("click", (e) => onCoprodottiClick(e));
+
+  document.getElementById("prod-giorni-rapidi")?.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-gg]");
+    if (!b || savedLotto) return;
+    const dataProd = document.getElementById("prod-data")?.value;
+    if (!dataProd) { alert("Imposta prima la data di produzione."); return; }
+    const d = new Date(dataProd + "T00:00:00");
+    d.setDate(d.getDate() + parseInt(b.dataset.gg));
+    const scadEl = document.getElementById("prod-scadenza");
+    if (scadEl) scadEl.value = d.toISOString().split("T")[0];
+  });
 
   document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
   document.getElementById("btn-apri-produzione")?.addEventListener("click", apriProduzioneAperta);
@@ -2214,6 +2256,7 @@ function stampaRegistroHaccp() {
     </div>
     </body></html>`);
   win.document.close();
+  try { win.document.body.insertAdjacentHTML("beforeend", '<button onclick="window.close()" class="rf-no-print" style="position:fixed;top:10px;right:10px;z-index:999;background:#0E5A7A;color:#fff;border:none;border-radius:999px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25);">✕ Chiudi</button><style>@media print{.rf-no-print{display:none!important}}</style>'); } catch(e) {}
 }
 
 /* ========================================================= */
