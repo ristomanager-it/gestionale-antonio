@@ -1887,6 +1887,20 @@ async function loadFasiHaccp(ricettaId) {
   if (error) { console.error(error); fasiCache = []; renderFasiHaccp(); return; }
   fasiCache = data || [];
 
+  // ── FASI HACCP STANDARD: porzionatura e conservazione sono SEMPRE firmabili,
+  //    anche se la ricetta non le prevede (aggiunte come fasi sintetiche, fase_id null)
+  const nomiEsistenti = fasiCache.map(f => String((f.nome_fase || "") + " " + (f.tipo_fase || "")).toLowerCase());
+  const haTipo = (kw) => nomiEsistenti.some(n => kw.some(k => n.includes(k)));
+  let ordMax = fasiCache.reduce((m, f) => Math.max(m, Number(f.ordine) || 0), 0);
+  if (!haTipo(["porzion", "confezion"])) {
+    ordMax += 1;
+    fasiCache.push({ id: null, ordine: ordMax, nome_fase: "Porzionatura e confezionamento", tipo_fase: "porzionatura", descrizione_operativa: "Porzionare e confezionare rispettando le buone prassi igieniche.", tecnologia: null, temperatura: null, durata_min: null, dispositivo_id: null, sintetica: true });
+  }
+  if (!haTipo(["conserv", "stocc", "abbatt"])) {
+    ordMax += 1;
+    fasiCache.push({ id: null, ordine: ordMax, nome_fase: "Conservazione / stoccaggio", tipo_fase: "conservazione", descrizione_operativa: "Riporre il prodotto etichettato alla temperatura di conservazione prevista.", tecnologia: null, temperatura: null, durata_min: null, dispositivo_id: null, sintetica: true });
+  }
+
   // Carica dispositivi collegati alle fasi
   const dispIds = [...new Set(fasiCache.map(f => f.dispositivo_id).filter(Boolean))];
   dispositividMap = {};
@@ -3026,7 +3040,7 @@ async function resumeDaLotto(lottoUuid) {
     .eq("lotto_id", lottoUuid)
   if (haccp && haccp.length && logHaccp.length) {
     haccp.forEach(h => {
-      const log = logHaccp.find(l => String(l.fase_id) === String(h.fase_id))
+      const log = logHaccp.find(l => (h.fase_id != null && String(l.fase_id) === String(h.fase_id)) || (h.fase_id == null && l.fase_id == null && l.fase_nome === h.fase_nome))
       if (!log) return
       if (h.firmato_da) {
         log.firmato = true

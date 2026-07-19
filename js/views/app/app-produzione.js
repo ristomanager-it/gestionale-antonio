@@ -350,7 +350,16 @@ async function loadFasiRicetta(ricettaId) {
     .eq("azienda_id", state.azienda_id)
     .order("ordine", { ascending: true });
 
-  if (error) { console.error(error); state.fasi = []; return; }
+  if (error) { console.error(error); state.fasi = [];
+
+  // Fasi HACCP standard sempre presenti: porzionatura e conservazione (sintetiche)
+  {
+    const nomi = state.fasi.map(f => String((f.nome_fase || "") + " " + (f.tipo_fase || "")).toLowerCase());
+    const ha = (kw) => nomi.some(n => kw.some(k => n.includes(k)));
+    let om = state.fasi.reduce((x, f) => Math.max(x, Number(f.ordine) || 0), 0);
+    if (!ha(["porzion", "confezion"])) { om += 1; state.fasi.push({ id: null, ordine: om, nome_fase: "Porzionatura e confezionamento", tipo_fase: "porzionatura", descrizione_operativa: "Porzionare e confezionare rispettando le buone prassi igieniche.", tecnologia: null, temperatura: null, durata_min: null, lavoro_umano_min: null, note: null, dispositivo_id: null }); }
+    if (!ha(["conserv", "stocc", "abbatt"])) { om += 1; state.fasi.push({ id: null, ordine: om, nome_fase: "Conservazione / stoccaggio", tipo_fase: "conservazione", descrizione_operativa: "Riporre il prodotto etichettato alla temperatura prevista.", tecnologia: null, temperatura: null, durata_min: null, lavoro_umano_min: null, note: null, dispositivo_id: null }); }
+  } return; }
   state.fasi = data || [];
 
   // Carica info dispositivi unici usati nelle fasi
