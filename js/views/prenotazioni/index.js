@@ -1584,8 +1584,8 @@ if (onlineModal.classList.contains("open")) {
 
     // pagine da 4
     let pagine = "";
-    for (let i = 0; i < lista.length; i += 4) {
-      pagine += `<div class="sheet">${lista.slice(i, i + 4).map(cella).join("")}</div>`;
+    for (let i = 0; i < lista.length; i += 2) {
+      pagine += `<div class="sheet">${lista.slice(i, i + 2).map(cella).join("")}</div>`;
     }
 
     const html = `<!doctype html><html lang="it"><head><meta charset="utf-8">
@@ -1593,25 +1593,24 @@ if (onlineModal.classList.contains("open")) {
       <style>
         * { box-sizing:border-box; margin:0; padding:0; }
         body { font-family:Georgia,'Times New Roman',serif; color:#1c2430; background:#f3f4f6; display:flex; flex-direction:column; align-items:center; gap:16px; padding:20px; }
-        .sheet { background:#fff; width:296mm; height:209mm; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; border:1px solid #e5e7eb; }
-        .cell { border-right:1px dashed #cbd5e1; border-bottom:1px dashed #cbd5e1; padding:9mm 8mm; display:flex; flex-direction:column; overflow:hidden; }
-        .cell:nth-child(2n) { border-right:none; }
-        .cell:nth-child(n+3) { border-bottom:none; }
+        .sheet { background:#fff; width:210mm; height:296mm; display:grid; grid-template-columns:1fr; grid-template-rows:1fr 1fr; border:1px solid #e5e7eb; }
+        .cell { border-bottom:1px dashed #cbd5e1; padding:12mm 14mm; display:flex; flex-direction:column; overflow:hidden; }
+        .cell:last-child { border-bottom:none; }
         .c-top { text-align:center; border-bottom:1.5px solid #1c2430; padding-bottom:3.5mm; margin-bottom:3.5mm; }
-        .c-locale { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:#6b7280; font-family:Arial,sans-serif; }
-        .c-riservato { font-style:italic; font-size:11px; color:#9ca3af; margin-top:2mm; }
-        .c-nome { font-size:24px; font-weight:700; margin-top:1mm; line-height:1.15; }
+        .c-locale { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#6b7280; font-family:Arial,sans-serif; }
+        .c-riservato { font-style:italic; font-size:13px; color:#9ca3af; margin-top:2mm; }
+        .c-nome { font-size:32px; font-weight:700; margin-top:1mm; line-height:1.15; }
         .c-mid { display:flex; gap:4mm; flex:1; align-items:center; }
         .c-dati { flex:1; min-width:0; }
-        .c-riga { font-size:13px; margin-bottom:2mm; }
-        .c-riga b { display:inline-block; min-width:18mm; font-family:Arial,sans-serif; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#6b7280; }
+        .c-riga { font-size:16px; margin-bottom:2mm; }
+        .c-riga b { display:inline-block; min-width:26mm; font-family:Arial,sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#6b7280; }
         .c-allergie { margin-top:2.5mm; background:#fff7ed; border:1px solid #fdba74; border-radius:5px; padding:2.5mm; }
-        .c-allergie .t { font-family:Arial,sans-serif; font-size:8px; font-weight:700; letter-spacing:1px; color:#c2410c; text-transform:uppercase; }
-        .c-allergie .v { font-size:11px; margin-top:1mm; line-height:1.35; }
-        .c-qr { text-align:center; width:30mm; flex-shrink:0; }
-        .c-qr img { width:28mm; height:28mm; }
-        .c-qr .cap { font-family:Arial,sans-serif; font-size:8px; color:#6b7280; margin-top:1mm; }
-        .c-foot { text-align:center; font-family:Arial,sans-serif; font-size:8.5px; color:#9ca3af; border-top:1px solid #e5e7eb; padding-top:2mm; margin-top:2mm; text-transform:capitalize; }
+        .c-allergie .t { font-family:Arial,sans-serif; font-size:10px; font-weight:700; letter-spacing:1px; color:#c2410c; text-transform:uppercase; }
+        .c-allergie .v { font-size:14px; margin-top:1mm; line-height:1.35; }
+        .c-qr { text-align:center; width:42mm; flex-shrink:0; }
+        .c-qr img { width:36mm; height:36mm; }
+        .c-qr .cap { font-family:Arial,sans-serif; font-size:10px; color:#6b7280; margin-top:1mm; }
+        .c-foot { text-align:center; font-family:Arial,sans-serif; font-size:10px; color:#9ca3af; border-top:1px solid #e5e7eb; padding-top:2mm; margin-top:2mm; text-transform:capitalize; }
         .no-print { position:fixed; top:12px; right:12px; display:flex; gap:8px; z-index:9; }
         .no-print button { border:none; border-radius:999px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; font-family:Arial,sans-serif; }
         @media print {
@@ -1619,7 +1618,7 @@ if (onlineModal.classList.contains("open")) {
           .sheet { border:none; page-break-after:always; }
           .no-print { display:none !important; }
         }
-        @page { size:A4 landscape; margin:0; }
+        @page { size:A4 portrait; margin:0; }
       </style></head><body>
       <div class="no-print">
         <button onclick="window.print()" style="background:#0E5A7A;color:#fff;">🖨 Stampa ${lista.length} talloncini</button>
