@@ -1948,6 +1948,7 @@ function renderFasiHaccp() {
   const wrap = document.getElementById("haccp-fasi-wrap");
   const list = document.getElementById("haccp-fasi-list");
   if (!wrap || !list) return;
+  // (l'abilitazione stampe viene ricalcolata a fine funzione)
 
   if (!fasiCache.length) {
     if (emptyEl) emptyEl.style.display = "";
@@ -2067,8 +2068,8 @@ function renderFasiHaccp() {
   list.querySelectorAll(".haccp-firma").forEach(btn => {
     btn.addEventListener("click", () => firmaFaseHaccp(+btn.dataset.idx));
   });
+  aggiornaAbilitazioneStampe();
 }
-
 function calcolaHaccpDurata(idx) {
   const log = logHaccp[idx];
   if (!log.ora_inizio || !log.ora_fine) return;
@@ -2113,6 +2114,18 @@ function firmaFaseHaccp(idx) {
     calcolaHaccpDurata(idx);
   }
   renderFasiHaccp();
+  aggiornaAbilitazioneStampe();
+}
+
+function aggiornaAbilitazioneStampe() {
+  // Le etichette si possono stampare se il lotto e' salvato/ripreso OPPURE
+  // se tutte le fasi HACCP risultano firmate (preparazione di fatto completata).
+  const tutteFirmate = logHaccp.length > 0 && logHaccp.every((l) => l.firmato);
+  const abilita = !!savedLotto || tutteFirmate;
+  const pL = document.getElementById("btn-print-lotto");
+  const pC = document.getElementById("btn-print-coprodotti");
+  if (pL) { if (abilita) pL.removeAttribute("disabled"); else pL.setAttribute("disabled", "disabled"); }
+  if (pC) { if (abilita) pC.removeAttribute("disabled"); else pC.setAttribute("disabled", "disabled"); }
 }
 
 function applicaFirmePrincipale(log) {
@@ -3068,6 +3081,28 @@ async function resumeDaLotto(lottoUuid) {
   if (pesoEl && lotto.quantita_output) pesoEl.value = lotto.quantita_output
   const noteEl = document.getElementById("prod-note-lotto")
   if (noteEl && lotto.note) noteEl.value = lotto.note
+
+  // Ripristino le confezioni salvate (per la stampa etichette) dal dettaglio JSON del lotto
+  try {
+    const det = Array.isArray(lotto.dettaglio_confezionamento) ? lotto.dettaglio_confezionamento : [];
+    if (det.length) {
+      confezioniRows = det.map((d) => ({
+        id: cryptoRandomId(),
+        porzione_id: (d.porzione_id ?? "").toString(),
+        pezzi_per_confezione: d.pezzi_per_confezione ?? "",
+        numero_confezioni: d.numero_confezioni ?? "",
+        note: d.note ?? ""
+      }));
+      renderConfezioniRows();
+    }
+  } catch (e) { console.warn("Ripristino confezioni:", e); }
+
+  // Il lotto e' gia' registrato: rendo disponibili le stampe etichette e blocco i campi
+  savedLotto = { lotto_uuid: lotto.lotto_uuid, id: lotto.id, codice_lotto: lotto.codice_lotto };
+  const pL = document.getElementById("btn-print-lotto");
+  const pC = document.getElementById("btn-print-coprodotti");
+  if (pL) pL.removeAttribute("disabled");
+  if (pC) pC.removeAttribute("disabled");
 
   recalcResaUI()
 }
