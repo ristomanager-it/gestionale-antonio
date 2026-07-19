@@ -139,6 +139,31 @@
     .btn-install{background:#1f2733;color:#e9d3a3;box-shadow:0 3px 14px rgba(31,39,51,.3);}
     .livello-step.active{background:#c9a35a;}
     .offerta-badge{border-radius:999px;}
+
+    /* ── MINI-APP: TAB BAR + SOCIAL ── */
+    body.has-tabbar{padding-bottom:calc(70px + env(safe-area-inset-bottom));}
+    .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:900;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid rgba(0,0,0,.08);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+    .tabbar button{flex:1;border:none;background:none;cursor:pointer;font-size:10.5px;font-weight:700;color:#94a3b8;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;}
+    .tabbar button .ic{font-size:20px;line-height:1;}
+    .tabbar button.attivo{color:var(--brand);}
+    .tab-pane{display:none;}
+    .tab-pane.attivo{display:block;}
+    .feed-card{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:16px;margin:12px 16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);}
+    .feed-head{display:flex;align-items:center;gap:10px;padding:12px 14px 10px;}
+    .feed-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;background:#1f2733;flex-shrink:0;}
+    .feed-av.locale{background:var(--brand);}
+    .feed-nome{font-size:13.5px;font-weight:800;color:#111827;}
+    .feed-sub{font-size:11px;color:#94a3b8;}
+    .feed-media{width:100%;max-height:440px;object-fit:cover;display:block;background:#f1f5f9;}
+    .feed-testo{padding:10px 14px 4px;font-size:13.5px;line-height:1.55;color:#1f2733;}
+    .feed-stelle{color:#e0a93e;font-size:14px;letter-spacing:1px;padding:8px 14px 0;}
+    .feed-azioni{display:flex;gap:14px;padding:10px 14px 12px;align-items:center;}
+    .feed-reaz{border:none;background:#f8fafc;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;font-weight:700;color:#374151;}
+    .feed-reaz.fatta{background:var(--brand-light);color:var(--brand);}
+    .fab-post{position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:901;width:54px;height:54px;border-radius:50%;border:none;background:var(--brand);color:#fff;font-size:26px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+    .stelle-sel{display:flex;gap:6px;font-size:26px;cursor:pointer;user-select:none;}
+    .stelle-sel span{color:#d1d5db;transition:color .1s;}
+    .stelle-sel span.on{color:#e0a93e;}
   </style>
 </head>
 <body>
@@ -218,6 +243,274 @@
       } catch(e) { /* fallback: manifest statico */ }
     }
 
+    // ══════════ MINI-APP: TAB BAR + SOCIAL + PRENOTA + LOCALE ══════════
+    var _fidCliente = null, _fidAzienda = null;
+    var _feedCaricato = false, _localeCaricato = false, _prenotaMontato = false;
+
+    function montaMiniApp(cliente, azienda, cfg) {
+      _fidCliente = cliente; _fidAzienda = azienda;
+      if (document.getElementById("fid-tabbar")) return;
+      // impacchetto la tessera nel primo tab
+      var wrap = document.createElement("div"); wrap.id = "tab-tessera"; wrap.className = "tab-pane attivo";
+      while (root.firstChild) wrap.appendChild(root.firstChild);
+      root.appendChild(wrap);
+      ["novita","prenota","locale"].forEach(function(t){
+        var d = document.createElement("div"); d.id = "tab-" + t; d.className = "tab-pane"; root.appendChild(d);
+      });
+      var bar = document.createElement("div"); bar.className = "tabbar"; bar.id = "fid-tabbar";
+      bar.innerHTML =
+        '<button data-tab="tessera" class="attivo"><span class="ic">⭐</span>Tessera</button>' +
+        '<button data-tab="novita"><span class="ic">📸</span>Novità</button>' +
+        '<button data-tab="prenota"><span class="ic">📅</span>Prenota</button>' +
+        '<button data-tab="locale"><span class="ic">📍</span>Locale</button>';
+      document.body.appendChild(bar);
+      document.body.classList.add("has-tabbar");
+      bar.querySelectorAll("button").forEach(function(btn){
+        btn.onclick = function(){
+          bar.querySelectorAll("button").forEach(function(x){ x.classList.remove("attivo"); });
+          btn.classList.add("attivo");
+          document.querySelectorAll(".tab-pane").forEach(function(p){ p.classList.remove("attivo"); });
+          var pane = document.getElementById("tab-" + btn.dataset.tab);
+          pane.classList.add("attivo");
+          var fab = document.getElementById("fid-fab");
+          if (fab) fab.style.display = btn.dataset.tab === "novita" ? "block" : "none";
+          if (btn.dataset.tab === "novita" && !_feedCaricato) caricaFeed();
+          if (btn.dataset.tab === "locale" && !_localeCaricato) caricaLocale();
+          if (btn.dataset.tab === "prenota" && !_prenotaMontato) montaPrenota();
+          window.scrollTo(0, 0);
+        };
+      });
+    }
+
+    // ── FEED (stile IG + recensioni) ──
+    function tempoFa(iso) {
+      var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+      if (s < 3600) return Math.max(1, Math.floor(s/60)) + " min fa";
+      if (s < 86400) return Math.floor(s/3600) + " h fa";
+      return Math.floor(s/86400) + " g fa";
+    }
+    function stelleHtml(v) {
+      var out = "";
+      for (var i = 1; i <= 5; i++) out += (i <= v ? "★" : "☆");
+      return out;
+    }
+    async function caricaFeed() {
+      var box = document.getElementById("tab-novita");
+      box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento novità...</div>';
+      if (!document.getElementById("fid-fab")) {
+        var fab = document.createElement("button"); fab.id = "fid-fab"; fab.className = "fab-post"; fab.textContent = "+";
+        fab.onclick = apriComposer; document.body.appendChild(fab);
+      }
+      document.getElementById("fid-fab").style.display = "block";
+      try {
+        var r = await fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ azione: "feed", azienda_id: aziendaId, sede_id: sedeId }) });
+        var j = await r.json();
+        var posts = (j.posts || []);
+        _feedCaricato = true;
+        if (!posts.length) {
+          box.innerHTML = '<div style="text-align:center;padding:50px 30px;color:#94a3b8;"><div style="font-size:40px;margin-bottom:10px;">📸</div><div style="font-size:14px;font-weight:700;color:#374151;">Ancora nessuna novità</div><div style="font-size:12.5px;margin-top:6px;">Pubblica tu la prima foto o recensione col +</div></div>';
+          return;
+        }
+        box.innerHTML = posts.map(function(p){
+          var isLocale = p.tipo_autore !== "cliente";
+          var nome = isLocale ? (p.nome_locale || (_brandSede && _brandSede.nome) || "Il locale") : (p.autore_nome || "Un ospite");
+          var iniz = nome.split(" ").map(function(x){ return x[0] || ""; }).join("").slice(0,2).toUpperCase();
+          var giaReaz = localStorage.getItem("fid_reaz_" + p.id);
+          return '<div class="feed-card" data-id="' + p.id + '">' +
+            '<div class="feed-head"><div class="feed-av' + (isLocale ? " locale" : "") + '">' + esc(iniz) + '</div>' +
+              '<div><div class="feed-nome">' + esc(nome) + (isLocale ? ' <span style="color:var(--brand);font-size:11px;">✓</span>' : '') + '</div>' +
+              '<div class="feed-sub">' + (p.voto ? "Recensione · " : "") + tempoFa(p.created_at) + '</div></div></div>' +
+            (p.voto ? '<div class="feed-stelle">' + stelleHtml(p.voto) + '</div>' : '') +
+            (p.media_url ? '<img class="feed-media" src="' + esc(p.media_url) + '" loading="lazy">' : '') +
+            (p.testo ? '<div class="feed-testo">' + esc(p.testo) + '</div>' : '') +
+            '<div class="feed-azioni">' +
+              '<button class="feed-reaz' + (giaReaz === "fuoco" ? " fatta" : "") + '" data-e="fuoco">🔥 <span>' + (p.reaz_fuoco || 0) + '</span></button>' +
+              '<button class="feed-reaz' + (giaReaz === "applauso" ? " fatta" : "") + '" data-e="applauso">👏 <span>' + (p.reaz_applauso || 0) + '</span></button>' +
+              '<button class="feed-reaz' + (giaReaz === "cuore" ? " fatta" : "") + '" data-e="cuore">❤️ <span>' + (p.reaz_cuore || 0) + '</span></button>' +
+            '</div></div>';
+        }).join("");
+        box.querySelectorAll(".feed-reaz").forEach(function(btn){
+          btn.onclick = function(){
+            var card = btn.closest(".feed-card"); var pid = card.dataset.id;
+            if (localStorage.getItem("fid_reaz_" + pid)) return;
+            localStorage.setItem("fid_reaz_" + pid, btn.dataset.e);
+            btn.classList.add("fatta");
+            var n = btn.querySelector("span"); n.textContent = (parseInt(n.textContent) || 0) + 1;
+            fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ azione: "reagisci", qr_token: qrToken, post_id: pid, emoji: btn.dataset.e }) });
+          };
+        });
+      } catch(e) {
+        box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Novità non disponibili al momento.</div>';
+      }
+    }
+
+    // ── COMPOSER (foto + testo + voto) ──
+    var _fotoBase64 = null, _fotoTipo = null, _votoSel = 0;
+    function apriComposer() {
+      var old = document.getElementById("fid-composer"); if (old) old.remove();
+      _fotoBase64 = null; _fotoTipo = null; _votoSel = 0;
+      var m = document.createElement("div"); m.id = "fid-composer";
+      m.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;display:flex;align-items:flex-end;justify-content:center;";
+      m.innerHTML =
+        '<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:520px;max-height:86vh;overflow:auto;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+            '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;font-weight:700;">Racconta la tua esperienza</div>' +
+            '<button id="cmp-x" style="border:none;background:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button></div>' +
+          '<div id="cmp-foto-box" style="border:2px dashed #d1d5db;border-radius:14px;padding:22px;text-align:center;color:#94a3b8;font-size:13px;cursor:pointer;margin-bottom:12px;">📷 Tocca per aggiungere una foto</div>' +
+          '<input id="cmp-file" type="file" accept="image/*" style="display:none;">' +
+          '<div style="font-size:11px;font-weight:700;color:#7a8494;margin-bottom:4px;">IL TUO VOTO (opzionale — diventa una recensione)</div>' +
+          '<div class="stelle-sel" id="cmp-stelle"><span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span></div>' +
+          '<textarea id="cmp-testo" rows="3" placeholder="Com\'e\' andata? Cosa hai mangiato?" style="width:100%;box-sizing:border-box;margin-top:12px;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;"></textarea>' +
+          '<button id="cmp-invia" style="width:100%;margin-top:12px;background:var(--brand);color:#fff;border:none;border-radius:999px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;">Pubblica</button>' +
+          '<div id="cmp-msg" style="text-align:center;font-size:12.5px;margin-top:8px;min-height:16px;"></div>' +
+        '</div>';
+      document.body.appendChild(m);
+      m.onclick = function(e){ if (e.target === m) m.remove(); };
+      document.getElementById("cmp-x").onclick = function(){ m.remove(); };
+      var fileIn = document.getElementById("cmp-file");
+      document.getElementById("cmp-foto-box").onclick = function(){ fileIn.click(); };
+      fileIn.onchange = function(){
+        var f = fileIn.files && fileIn.files[0]; if (!f) return;
+        var img = new Image();
+        img.onload = function(){
+          var max = 1280, w = img.width, h = img.height;
+          if (w > max || h > max) { var k = Math.min(max/w, max/h); w = Math.round(w*k); h = Math.round(h*k); }
+          var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          cv.getContext("2d").drawImage(img, 0, 0, w, h);
+          _fotoBase64 = cv.toDataURL("image/jpeg", 0.82); _fotoTipo = "image/jpeg";
+          document.getElementById("cmp-foto-box").innerHTML = '<img src="' + _fotoBase64 + '" style="max-width:100%;border-radius:10px;">';
+        };
+        img.src = URL.createObjectURL(f);
+      };
+      document.querySelectorAll("#cmp-stelle span").forEach(function(s){
+        s.onclick = function(){
+          _votoSel = parseInt(s.dataset.v);
+          document.querySelectorAll("#cmp-stelle span").forEach(function(x){
+            x.classList.toggle("on", parseInt(x.dataset.v) <= _votoSel);
+          });
+        };
+      });
+      document.getElementById("cmp-invia").onclick = async function(){
+        var btn = this, msg = document.getElementById("cmp-msg");
+        var testo = document.getElementById("cmp-testo").value.trim();
+        if (!testo && !_fotoBase64) { msg.textContent = "Aggiungi una foto o due righe."; msg.style.color = "#b45309"; return; }
+        btn.disabled = true; btn.textContent = "Pubblico...";
+        try {
+          var r = await fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ azione: "posta", qr_token: qrToken, azienda_id: aziendaId, sede_id: sedeId,
+              testo: testo, voto: _votoSel || null, foto_base64: _fotoBase64, foto_tipo: _fotoTipo }) });
+          var j = await r.json();
+          if (!j.success) throw new Error(j.error || "Errore");
+          m.remove(); _feedCaricato = false; caricaFeed();
+        } catch(e) {
+          msg.textContent = "Errore: " + e.message; msg.style.color = "#b91c1c";
+          btn.disabled = false; btn.textContent = "Pubblica";
+        }
+      };
+    }
+
+    // ── PRENOTA ──
+    function montaPrenota() {
+      _prenotaMontato = true;
+      var box = document.getElementById("tab-prenota");
+      var d = new Date(Date.now() + 86400000);
+      box.innerHTML =
+        '<div class="section" style="margin-top:20px;">' +
+          '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:19px;font-weight:700;margin-bottom:4px;">Prenota un tavolo</div>' +
+          '<div style="font-size:12.5px;color:#7a8494;margin-bottom:14px;">Conferma rapida, nessun pagamento richiesto.</div>' +
+          '<input id="pr-nome" class="form-input" placeholder="Nome *" value="' + esc(((_fidCliente && _fidCliente.nome) || "") + " " + ((_fidCliente && _fidCliente.cognome) || "")).trim() + '">' +
+          '<input id="pr-tel" class="form-input" type="tel" placeholder="Telefono *" value="' + esc((_fidCliente && _fidCliente.telefono) || "") + '">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+            '<input id="pr-data" class="form-input" type="date" value="' + d.toISOString().split("T")[0] + '">' +
+            '<input id="pr-ora" class="form-input" type="time" value="20:30"></div>' +
+          '<input id="pr-coperti" class="form-input" type="number" min="1" max="60" value="2" placeholder="Coperti">' +
+          '<textarea id="pr-note" class="form-input" rows="2" placeholder="Note (allergie, occasioni...)"></textarea>' +
+          '<button id="pr-invia" class="btn-full btn-primary">Prenota</button>' +
+          '<div id="pr-msg" style="text-align:center;font-size:13px;margin-top:10px;min-height:16px;"></div>' +
+        '</div>';
+      document.getElementById("pr-invia").onclick = async function(){
+        var btn = this, msg = document.getElementById("pr-msg");
+        var nome = document.getElementById("pr-nome").value.trim();
+        var tel = document.getElementById("pr-tel").value.trim();
+        var data = document.getElementById("pr-data").value;
+        var ora = document.getElementById("pr-ora").value;
+        if (!nome || !tel || !data || !ora) { msg.textContent = "Compila nome, telefono, data e ora."; msg.style.color = "#b45309"; return; }
+        btn.disabled = true; btn.textContent = "Invio...";
+        try {
+          var ins = await supa.from("prenotazioni_tavoli").insert([{
+            azienda_id: aziendaId, sede_id: sedeId, cliente_nome: nome, cliente_telefono: tel,
+            data: data, ora: ora, coperti: parseInt(document.getElementById("pr-coperti").value) || 2,
+            note: document.getElementById("pr-note").value.trim() || null,
+            stato: "in_attesa", canale: "online", source: "fidelity"
+          }]).select("id").maybeSingle();
+          if (ins.error) throw ins.error;
+          msg.textContent = "✅ Richiesta inviata! Ti confermeremo a breve."; msg.style.color = "#15803d";
+          btn.textContent = "Prenotato ✓";
+        } catch(e) {
+          msg.textContent = "Errore: " + (e.message || e); msg.style.color = "#b91c1c";
+          btn.disabled = false; btn.textContent = "Prenota";
+        }
+      };
+    }
+
+    // ── LOCALE ──
+    async function caricaLocale() {
+      _localeCaricato = true;
+      var box = document.getElementById("tab-locale");
+      box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento...</div>';
+      var s = {};
+      try {
+        if (sedeId) {
+          var r = await supa.from("sedi").select("nome,descrizione,indirizzo,citta,telefono,instagram,sito_web,orari_apertura,cover_url,lat,lng,latitudine,longitudine,fascia_prezzo,tipo_cucina").eq("id", sedeId).maybeSingle();
+          s = r.data || {};
+        }
+      } catch(e) {}
+      var lat = s.lat || s.latitudine, lng = s.lng || s.longitudine;
+      var mapsUrl = (lat && lng) ? ("https://maps.google.com/?q=" + lat + "," + lng)
+        : ("https://maps.google.com/?q=" + encodeURIComponent(((s.nome || "") + " " + (s.indirizzo || "") + " " + (s.citta || "")).trim()));
+      var orari = "";
+      if (s.orari_apertura) {
+        try {
+          var o = typeof s.orari_apertura === "string" ? JSON.parse(s.orari_apertura) : s.orari_apertura;
+          if (o && typeof o === "object") orari = Object.keys(o).map(function(g){ return '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;"><span style="font-weight:700;text-transform:capitalize;">' + esc(g) + '</span><span>' + esc(String(o[g])) + '</span></div>'; }).join("");
+          else orari = '<div style="font-size:12.5px;">' + esc(String(s.orari_apertura)) + '</div>';
+        } catch(e) { orari = '<div style="font-size:12.5px;">' + esc(String(s.orari_apertura)) + '</div>'; }
+      }
+      box.innerHTML =
+        (s.cover_url ? '<img src="' + esc(s.cover_url) + '" style="width:100%;max-height:220px;object-fit:cover;">' : '') +
+        '<div class="section" style="margin-top:16px;">' +
+          '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:21px;font-weight:700;">' + esc(s.nome || (_fidAzienda && _fidAzienda.nome) || "Il locale") + '</div>' +
+          (s.tipo_cucina ? '<div style="font-size:12px;color:#7a8494;margin-top:2px;">' + esc(s.tipo_cucina) + (s.fascia_prezzo ? " · " + esc(s.fascia_prezzo) : "") + '</div>' : '') +
+          (s.descrizione ? '<div style="font-size:13.5px;line-height:1.6;color:#374151;margin-top:10px;">' + esc(s.descrizione) + '</div>' : '') +
+        '</div>' +
+        '<div id="loc-galleria"></div>' +
+        '<div class="section">' +
+          '<div class="section-title">📍 Dove siamo</div>' +
+          '<div style="font-size:13px;color:#374151;margin-bottom:10px;">' + esc(((s.indirizzo || "") + (s.citta ? ", " + s.citta : "")) || "—") + '</div>' +
+          '<a href="' + mapsUrl + '" target="_blank" style="display:block;text-align:center;text-decoration:none;" class="btn-full btn-primary">🗺 Apri in Google Maps</a>' +
+          (s.telefono ? '<a href="tel:' + esc(s.telefono) + '" style="display:block;text-align:center;text-decoration:none;margin-top:8px;" class="btn-full btn-sec">📞 Chiama il locale</a>' : '') +
+          (s.instagram ? '<a href="https://instagram.com/' + esc(String(s.instagram).replace(/^@/,"")) + '" target="_blank" style="display:block;text-align:center;text-decoration:none;margin-top:8px;" class="btn-full btn-sec">📷 Instagram</a>' : '') +
+        '</div>' +
+        (orari ? '<div class="section"><div class="section-title">🕐 Orari</div>' + orari + '</div>' : '') +
+        '<div style="height:20px;"></div>';
+      // galleria
+      fetch(SUPABASE_URL + "/functions/v1/landing-media?a=" + aziendaId + (sedeId ? "&s=" + sedeId : "") + "&limit=6")
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var imgs = (j.images || []).filter(function(x){ return x.url; }).slice(0, 6);
+          if (imgs.length >= 3) {
+            document.getElementById("loc-galleria").innerHTML =
+              '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 16px;">' +
+              imgs.map(function(x){ return '<img src="' + esc(x.url) + '" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;">'; }).join("") + '</div>';
+          }
+        }).catch(function(){});
+    }
+
     caricaBrandSede(function(){ init(); });
 
     async function init() {
@@ -261,6 +554,7 @@
 
       impostaManifestTessera((_brandSede && _brandSede.nome) || azienda.nome, azienda.colore_brand, (_brandSede && _brandSede.logo_url) || azienda.logo_url || null);
       renderTessera(d.cliente, d.tessera, azienda, cfg, d.movimenti || [], d.offerte || []);
+      montaMiniApp(d.cliente, azienda, cfg);
     }
 
     // ── FORM ISCRIZIONE ──────────────────────────────────────────
