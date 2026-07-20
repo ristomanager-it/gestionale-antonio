@@ -2765,7 +2765,7 @@ function buildTestoConservazione(scenarioId) {
   }).join(" → ");
 }
 function stampaEtichetteConfezioni() {
-  if (!savedLotto?.codice_lotto) return alert("Salva prima la produzione.");
+  if (!savedLotto?.codice_lotto && !savedLotto?.lotto_uuid) return alert("Registra o riprendi prima la produzione.");
 
   rfChooseLabelFormat().then(async (format) => {
     if (!format) return;
@@ -2808,8 +2808,8 @@ function stampaEtichetteConfezioni() {
       for (let i = 0; i < r.numero_confezioni; i++) {
         labels.push({
           titolo: (ricettaSelezionata?.nome || "Ricetta").toString(),
-          lotto: savedLotto.codice_lotto,
-          lotto_uuid: savedLottoUUID || null,
+          lotto: savedLotto.codice_lotto || ("LOTTO-" + String(savedLotto.lotto_uuid || "").slice(0, 8)),
+          lotto_uuid: savedLottoUUID || savedLotto.lotto_uuid || null,
           dataProduzione: rfFormatDateITA(dataProdISO),
           dataScadenza: rfFormatDateITA(scadenzaISO),
           rows: [
@@ -2837,7 +2837,7 @@ function stampaEtichetteConfezioni() {
 }
 
 function stampaEtichetteCoprodotti() {
-  if (!savedLotto?.codice_lotto) return alert("Salva prima la produzione.");
+  if (!savedLotto?.codice_lotto && !savedLotto?.lotto_uuid) return alert("Registra o riprendi prima la produzione.");
 
   rfChooseLabelFormat().then(async (format) => {
     if (!format) return;
@@ -2868,7 +2868,7 @@ function stampaEtichetteCoprodotti() {
 
       return {
         titolo: (nomeProd || "Coprodotto").toString(),
-        lotto: savedLotto.codice_lotto,
+        lotto: savedLotto.codice_lotto || ("LOTTO-" + String(savedLotto.lotto_uuid || "").slice(0, 8)),
         lotto_uuid: savedLottoUUID || null,
         dataProduzione: rfFormatDateITA(dataProdISO),
         dataScadenza: rfFormatDateITA(scadISO),
@@ -3176,6 +3176,7 @@ async function resumeDaLotto(lottoUuid) {
 
   // Il lotto e' gia' registrato: rendo disponibili le stampe etichette e blocco i campi
   savedLotto = { lotto_uuid: lotto.lotto_uuid, id: lotto.id, codice_lotto: lotto.codice_lotto };
+  savedLottoUUID = lotto.lotto_uuid;
   const pL = document.getElementById("btn-print-lotto");
   const pC = document.getElementById("btn-print-coprodotti");
   if (pL) pL.removeAttribute("disabled");
