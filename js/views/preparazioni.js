@@ -1112,16 +1112,14 @@ function renderCoprodottiRows() {
 
             <div class="form-group">
               <label>Prodotto</label>
-              <select class="input" data-field="prodotto_id" ${savedLotto ? "disabled" : ""}>
-                <option value="">Seleziona prodotto</option>
-                <option value="__nuovo__">➕ Nuovo prodotto (scrivi il nome)...</option>
-                ${prodottiCache
-                  .map((p) => {
-                    const selected = String(p.id) === String(row.prodotto_id) ? "selected" : "";
-                    return `<option value="${escapeAttr(String(p.id))}" ${selected}>${escapeHtml(p.nome)}</option>`;
-                  })
-                  .join("")}
-              </select>
+              <div class="cop-search-wrap" style="position:relative;">
+                <input class="input cop-search" type="text" autocomplete="off"
+                  placeholder="Scrivi per cercare o creare..."
+                  value="${escapeAttr(prodotto ? String(prodotto.nome) : "")}"
+                  ${savedLotto ? "readonly" : ""} />
+                <input type="hidden" data-field="prodotto_id" value="${escapeAttr(String(row.prodotto_id ?? ""))}" />
+                <div class="cop-suggest" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:30;background:#fff;border:1px solid #e2e8f0;border-radius:0 0 10px 10px;max-height:220px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.12);"></div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -1179,6 +1177,85 @@ function renderCoprodottiRows() {
       `;
     })
     .join("");
+
+  bindCoprodottoAutocomplete();
+}
+
+// Autocomplete di ricerca prodotto per ogni riga coprodotto
+function bindCoprodottoAutocomplete() {
+  if (savedLotto) return;
+  const wrap = document.getElementById("coprodotti-wrap");
+  if (!wrap) return;
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  wrap.querySelectorAll(".cop-search-wrap").forEach((box) => {
+    const input = box.querySelector(".cop-search");
+    const hidden = box.querySelector('[data-field="prodotto_id"]');
+    const sug = box.querySelector(".cop-suggest");
+    const card = box.closest("[data-coprodotto-id]");
+    const rowId = card?.getAttribute("data-coprodotto-id");
+    if (!input || input.dataset.bound === "1") return;
+    input.dataset.bound = "1";
+
+    const setRow = (prodId, um) => {
+      const idx = coprodottiRows.findIndex((r) => String(r.id) === String(rowId));
+      if (idx < 0) return;
+      coprodottiRows[idx].prodotto_id = prodId ? String(prodId) : "";
+      if (um && !coprodottiRows[idx].unita_misura) coprodottiRows[idx].unita_misura = um;
+    };
+
+    const chiudi = () => { sug.style.display = "none"; sug.innerHTML = ""; };
+
+    input.addEventListener("input", () => {
+      const q = norm(input.value.trim());
+      hidden.value = ""; setRow("", null);
+      if (q.length < 1) { chiudi(); return; }
+      const ris = prodottiCache.filter((p) => norm(p.nome).includes(q)).slice(0, 12);
+      let html = ris.map((p) =>
+        `<div class="cop-opt" data-id="${escapeAttr(String(p.id))}" data-um="${escapeAttr(String(p.unita_misura || ""))}" data-nome="${escapeAttr(String(p.nome))}" style="padding:9px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid #f1f5f9;">${escapeHtml(p.nome)}</div>`
+      ).join("");
+      html += `<div class="cop-crea" style="padding:9px 12px;cursor:pointer;font-size:14px;font-weight:700;color:#0E5A7A;">➕ Crea nuovo: "${escapeHtml(input.value.trim())}"</div>`;
+      sug.innerHTML = html;
+      sug.style.display = "block";
+
+      sug.querySelectorAll(".cop-opt").forEach((opt) => {
+        opt.onmousedown = (e) => {
+          e.preventDefault();
+          input.value = opt.dataset.nome;
+          hidden.value = opt.dataset.id;
+          setRow(opt.dataset.id, opt.dataset.um);
+          chiudi();
+        };
+      });
+      const creaEl = sug.querySelector(".cop-crea");
+      if (creaEl) creaEl.onmousedown = async (e) => {
+        e.preventDefault();
+        const nuovo = await creaProdottoCoprodottoInline(input.value.trim());
+        if (nuovo) {
+          input.value = nuovo.nome;
+          hidden.value = String(nuovo.id);
+          setRow(nuovo.id, nuovo.unita_misura);
+        }
+        chiudi();
+      };
+    });
+
+    input.addEventListener("blur", () => setTimeout(chiudi, 150));
+  });
+}
+
+async function creaProdottoCoprodottoInline(nome) {
+  if (!nome || nome.length < 2) { alert("Scrivi almeno il nome."); return null; }
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  const um = (prompt("Unità di misura (kg, gr, pz, lt):", "kg") || "kg").trim();
+  const { data, error } = await supabase.from("prodotti")
+    .insert({ azienda_id: aziendaId, nome: nome, descrizione: nome, unita_misura: um, um: um, attivo: true })
+    .select("id, nome, unita_misura").maybeSingle();
+  if (error || !data) { alert("Errore creazione: " + (error?.message || "sconosciuto")); return null; }
+  prodottiCache.push(data);
+  prodottiCache.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+  return data;
 }
 
 async function creaNuovoProdottoCoprodotto(rowId, selectEl) {
