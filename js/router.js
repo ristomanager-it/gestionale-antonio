@@ -197,7 +197,7 @@ const routes = {
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
   "bo-comande": () => import("./views/bo/bo-comande.js?v=8"),
   "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=5"),
-  "alert-haccp-config": () => import("./views/bo/alert-haccp-config.js?v=1"),
+  "alert-haccp-config": () => import("./views/bo/alert-haccp-config.js?v=2"),
   "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
   "bo-consulenti": () => import("./views/bo/bo-consulenti.js"),
   "home-consulente": () => import("./views/home-consulente.js"),

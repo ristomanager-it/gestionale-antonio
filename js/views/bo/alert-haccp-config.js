@@ -25,12 +25,40 @@ export async function render(container) {
           </div>
           <div id="ahc-wrap">Caricamento…</div>
         `
+      }),
+      createCard({
+        title: "🔔 Avvisi ricevuti (ultimi)",
+        body: `
+          <div style="font-size:13px;color:#64748b;margin-bottom:10px;">
+            Gli avvisi di ritardo generati dal sistema. Il controllo gira in automatico ogni 10 minuti.
+          </div>
+          <div id="ahc-notif">Caricamento…</div>
+        `
       })
     ]
   });
 
   await Promise.all([loadSedi(aziendaId), loadManager(aziendaId), loadAssoc(aziendaId)]);
   renderTabella();
+  renderNotifiche();
+}
+
+async function renderNotifiche() {
+  const box = document.getElementById("ahc-notif");
+  if (!box) return;
+  const notif = await caricaNotifiche();
+  if (!notif.length) {
+    box.innerHTML = '<div style="color:#94a3b8;font-size:13px;">Nessun avviso finora. 👍</div>';
+    return;
+  }
+  box.innerHTML = notif.map(function (n) {
+    const quando = new Date(n.created_at).toLocaleString("it-IT");
+    return '<div style="border:1px solid #fed7aa;background:#fff7ed;border-radius:10px;padding:10px 12px;margin-bottom:8px;">' +
+      '<div style="font-weight:700;color:#9a3412;font-size:13px;">⚠️ ' + escapeHtml(n.titolo || "Avviso") + '</div>' +
+      '<div style="font-size:13px;color:#7c2d12;margin-top:2px;">' + escapeHtml(n.messaggio || "") + '</div>' +
+      '<div style="font-size:11px;color:#a8a29e;margin-top:4px;">' + escapeHtml(quando) + '</div>' +
+      '</div>';
+  }).join("");
 }
 
 async function loadSedi(aziendaId) {
@@ -150,3 +178,13 @@ async function toggleAssoc(chk) {
 
 function escapeHtml(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function escapeAttr(s) { return escapeHtml(s).replace(/"/g, "&quot;"); }
+
+// ---- Notifiche ricevute (avvisi ritardo fase) ----
+export async function caricaNotifiche() {
+  const aziendaId = window.state?.azienda?.id;
+  const { data } = await supa().from("notifiche_inapp")
+    .select("*").eq("azienda_id", aziendaId)
+    .eq("tipo", "ritardo_fase_haccp")
+    .order("created_at", { ascending: false }).limit(50);
+  return data || [];
+}
