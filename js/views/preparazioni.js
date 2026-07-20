@@ -2271,6 +2271,15 @@ function renderFasiHaccp() {
         </button>
         ${(Array.isArray(log.firme) && log.firme.length) ? `<span style="font-size:11px;color:#64748b;margin-left:8px;">${escapeHtml(new Date(log.firme[0].firmato_il).toLocaleString("it-IT"))}</span>` : ""}
       </div>
+
+      ${savedLotto ? "" : `
+      <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:11px;color:#94a3b8;">Aggiungi fase qui sotto →</span>
+        <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="abbattimento" style="background:#0891b2;">❄️ + Abbattimento</button>
+        <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="conservazione" style="background:#0ea5e9;">🧊 + Conservazione</button>
+        <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="confezionamento" style="background:#7c3aed;">📦 + Confezionamento</button>
+        <button type="button" class="app-button tiny gray haccp-add-after" data-after="${idx}" data-tipo="__scegli__">➕ Altra</button>
+      </div>`}
     </div>`;
   }).join("");
 
@@ -2305,7 +2314,75 @@ function renderFasiHaccp() {
   list.querySelectorAll(".haccp-firma").forEach(btn => {
     btn.addEventListener("click", () => firmaFaseHaccp(+btn.dataset.idx));
   });
+  list.querySelectorAll(".haccp-add-after").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (savedLotto) return;
+      inserisciFaseDopo(+btn.dataset.after, btn.dataset.tipo);
+    });
+  });
   aggiornaAbilitazioneStampe();
+}
+
+// Inserisce una nuova fase HACCP SUBITO DOPO la fase all'indice `dopoIdx` (non in fondo)
+function inserisciFaseDopo(dopoIdx, tipo) {
+  const nomiTipo = {
+    abbattimento: "Abbattimento",
+    conservazione: "Conservazione / stoccaggio",
+    raffreddamento: "Raffreddamento",
+    cottura: "Cottura",
+    preparazione: "Preparazione",
+    porzionatura: "Porzionatura",
+    confezionamento: "Confezionamento",
+  };
+
+  // "Altra" → chiedo il tipo con un piccolo prompt
+  if (tipo === "__scegli__") {
+    const scelta = (prompt("Tipo fase da aggiungere (abbattimento, conservazione, confezionamento, porzionatura, cottura, preparazione, raffreddamento):", "abbattimento") || "").trim().toLowerCase();
+    if (!scelta || !nomiTipo[scelta]) return;
+    tipo = scelta;
+  }
+
+  const nome = nomiTipo[tipo] || "Fase";
+  const descDefault = {
+    abbattimento: "Abbattere a +3°C entro 90 min (o -18°C se congelamento)",
+    conservazione: "Riporre alla temperatura di conservazione prevista",
+    confezionamento: "Confezionare ed etichettare (lotto e scadenza)",
+  };
+
+  const nuovaFase = {
+    id: null, ordine: 0, nome_fase: nome, tipo_fase: tipo,
+    descrizione_operativa: descDefault[tipo] || null,
+    tecnologia: null, temperatura: null, durata_min: null, dispositivo_id: null, sintetica: true,
+  };
+  const nuovoLog = {
+    fase_id: null, fase_ordine: 0, fase_nome: nome, fase_tipo: tipo,
+    dispositivo_id: null, fonte_dato: "manuale", tecnologia_prevista: "",
+    temperatura_prevista: null, temperatura_min: null, temperatura_max: null,
+    temperatura_rilevata: "", temperatura_ok: null, ora_inizio: "", ora_fine: "",
+    durata_reale_min: null, esito: "ok", note: descDefault[tipo] || "",
+    firmato: false, firmato_da: null, firmato_il: null, firme: [],
+  };
+
+  // inserisco subito dopo la fase indicata
+  const pos = dopoIdx + 1;
+  fasiCache.splice(pos, 0, nuovaFase);
+  logHaccp.splice(pos, 0, nuovoLog);
+
+  // rinumero l'ordine di tutte le fasi
+  fasiCache.forEach((f, i) => { f.ordine = i + 1; if (logHaccp[i]) logHaccp[i].fase_ordine = i + 1; });
+
+  renderFasiHaccp();
+
+  // porto l'operatore sulla fase appena inserita ed evidenziala
+  setTimeout(() => {
+    const card = document.getElementById("haccp-fasi-list")?.querySelector(`[data-idx="${pos}"]`);
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.style.transition = "background .4s";
+      card.style.background = "#ecfeff";
+      setTimeout(() => { card.style.background = ""; }, 1600);
+    }
+  }, 100);
 }
 function calcolaHaccpDurata(idx) {
   const log = logHaccp[idx];
