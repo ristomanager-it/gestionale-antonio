@@ -268,8 +268,7 @@ export async function render(container) {
         title: "Azioni",
         body: `
           <div class="form-actions">
-            <button type="button" id="btn-apri-produzione" class="app-button secondary" ${savedLotto ? "disabled" : ""}>🟢 Apri (continua dopo)</button>
-            <button type="button" id="btn-salva-produzione" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra produzione</button>
+            <button type="button" id="btn-salva-produzione" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra / apri in Produzioni</button>
             <button type="button" id="btn-print-lotto" class="app-button secondary" disabled>🏷 Stampa etichette confezioni</button>
             <button type="button" id="btn-print-coprodotti" class="app-button secondary" disabled>🏷 Stampa etichette coprodotti</button>
             <button type="button" id="btn-print-haccp" class="app-button gray small">📋 Stampa registro HACCP</button>
@@ -1863,7 +1862,6 @@ function bindEvents() {
   });
 
   document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
-  document.getElementById("btn-apri-produzione")?.addEventListener("click", apriProduzioneAperta);
 
   document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichetteConfezioni);
   document.getElementById("btn-print-coprodotti")?.addEventListener("click", stampaEtichetteCoprodotti);
@@ -1982,10 +1980,17 @@ async function loadFasiHaccp(ricettaId) {
   const nomiEsistenti = fasiCache.map(f => String((f.nome_fase || "") + " " + (f.tipo_fase || "")).toLowerCase());
   const haTipo = (kw) => nomiEsistenti.some(n => kw.some(k => n.includes(k)));
   let ordMax = fasiCache.reduce((m, f) => Math.max(m, Number(f.ordine) || 0), 0);
-  if (!haTipo(["porzion", "confezion"])) {
+  // Porzionatura
+  if (!haTipo(["porzion"])) {
     ordMax += 1;
-    fasiCache.push({ id: null, ordine: ordMax, nome_fase: "Porzionatura e confezionamento", tipo_fase: "porzionatura", descrizione_operativa: "Porzionare e confezionare rispettando le buone prassi igieniche.", tecnologia: null, temperatura: null, durata_min: null, dispositivo_id: null, sintetica: true });
+    fasiCache.push({ id: null, ordine: ordMax, nome_fase: "Porzionatura", tipo_fase: "porzionatura", descrizione_operativa: "Porzionare rispettando le buone prassi igieniche.", tecnologia: null, temperatura: null, durata_min: null, dispositivo_id: null, sintetica: true });
   }
+  // Confezionamento (fase firmabile a sé)
+  if (!haTipo(["confezion"])) {
+    ordMax += 1;
+    fasiCache.push({ id: null, ordine: ordMax, nome_fase: "Confezionamento", tipo_fase: "confezionamento", descrizione_operativa: "Confezionare ed etichettare (lotto e scadenza) rispettando le buone prassi igieniche.", tecnologia: null, temperatura: null, durata_min: null, dispositivo_id: null, sintetica: true });
+  }
+  // Conservazione
   if (!haTipo(["conserv", "stocc", "abbatt"])) {
     ordMax += 1;
     fasiCache.push({ id: null, ordine: ordMax, nome_fase: "Conservazione / stoccaggio", tipo_fase: "conservazione", descrizione_operativa: "Riporre il prodotto etichettato alla temperatura di conservazione prevista.", tecnologia: null, temperatura: null, durata_min: null, dispositivo_id: null, sintetica: true });
@@ -2240,6 +2245,89 @@ function rimuoviFirmaFase(idx, i) {
   renderFasiHaccp();
 }
 window.__rimuoviFirmaFase = rimuoviFirmaFase;
+
+async function salvaProduzione() {
+  const esito = document.getElementById("r-esito") || null;
+  const setEsito = (msg, err) => { if (esito) { esito.textContent = msg; esito.style.color = err ? "#b91c1c" : "#15803d"; } };
+
+  if (!ricettaSelezionata?.id) { alert("Seleziona prima una ricetta."); return; }
+  if (savedLotto) { alert("Produzione già registrata."); return; }
+
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  if (!supabase || !aziendaId) { alert("Sessione non valida."); return; }
+
+  const btn = document.getElementById("btn-salva-produzione");
+  if (btn) { btn.disabled = true; btn.textContent = "Salvataggio..."; }
+
+  try {
+    const dataProd = document.getElementById("prod-data")?.value || new Date().toISOString().slice(0, 10);
+    const scadenza = document.getElementById("prod-scadenza")?.value || null;
+    const note = document.getElementById("prod-note-lotto")?.value || null;
+    const pesoReale = getPesoRealeKg();
+    const scenarioId = document.getElementById("prod-conservazione")?.value || null;
+    const lottoUuid = (crypto?.randomUUID && crypto.randomUUID()) || null;
+
+    // 1) crea il lotto in stato "aperta" -> comparirà in Produzioni aperte
+    const { data: nuovo, error } = await supabase.from("produzione_lotti").insert({
+      azienda_id: aziendaId,
+      ricetta_id: ricettaSelezionata.id,
+      data_produzione: dataProd,
+      data_scadenza: scadenza,
+      quantita_output: pesoReale || null,
+      unita_misura: "kg",
+      scenario_conservazione_id: scenarioId,
+      stato: "aperta",
+      sede_uuid: window.state?.sedeAttiva?.id || null,
+      luogo: window.state?.sedeAttiva?.nome || null,
+      note: note,
+      operatore_id: operatoreRisolto?.id || null,
+      lotto_uuid: lottoUuid,
+      dettaglio_confezionamento: buildDettaglioConfezionamento(),
+    }).select("id, lotto_uuid, codice_lotto").single();
+
+    if (error) throw error;
+    const luuid = nuovo?.lotto_uuid || lottoUuid;
+
+    // 2) salva TUTTE le fasi HACCP (incluse porzionatura/confezionamento/conservazione sintetiche)
+    //    con le eventuali firme già apposte in questa schermata
+    await salvaLogHaccpConLotto(luuid, aziendaId, false);
+
+    // 3) aggancio lo stato locale: la produzione è ora "aperta" e stampabile
+    savedLotto = { lotto_uuid: luuid, id: nuovo.id, codice_lotto: nuovo.codice_lotto };
+    savedLottoUUID = luuid;
+    resumeLottoUUID = luuid;
+    aggiornaAbilitazioneStampe();
+    setEsito("✅ Produzione registrata e aperta in Produzioni aperte. Lotto: " + (nuovo.codice_lotto || String(luuid).slice(0, 8)), false);
+    if (btn) btn.textContent = "✅ Registrata";
+  } catch (e) {
+    console.error("salvaProduzione:", e);
+    setEsito("❌ Errore: " + (e.message || "salvataggio non riuscito"), true);
+    if (btn) { btn.disabled = false; btn.textContent = "💾 Registra / apri in Produzioni"; }
+  }
+}
+
+// Costruisce il JSON confezionamento dai row correnti (per la stampa etichette dopo)
+function buildDettaglioConfezionamento() {
+  try {
+    return (confezioniRows || [])
+      .filter(c => c.porzione_id && Number(c.pezzi_per_confezione) > 0 && Number(c.numero_confezioni) > 0)
+      .map(c => {
+        const porz = porzioniCache.find(p => String(p.id) === String(c.porzione_id));
+        const pesoKg = toKg(porz?.peso_porzione, porz?.unita_misura);
+        return {
+          porzione_id: String(c.porzione_id),
+          label: porz?.label || "",
+          pezzi_per_confezione: Number(c.pezzi_per_confezione),
+          numero_confezioni: Number(c.numero_confezioni),
+          peso_porzione_kg: pesoKg,
+          kg_per_confezione: pesoKg * Number(c.pezzi_per_confezione),
+          kg_totali_riga: pesoKg * Number(c.pezzi_per_confezione) * Number(c.numero_confezioni),
+          note: c.note || "",
+        };
+      });
+  } catch (e) { return []; }
+}
 
 async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
   const supabase = window.supabaseClient;
@@ -3196,4 +3284,37 @@ async function resumeDaLotto(lottoUuid) {
   if (pC) pC.removeAttribute("disabled");
 
   recalcResaUI()
+
+  // Porta l'operatore alla PROSSIMA FASE MANCANTE (prima non firmata) ed evidenziala
+  setTimeout(() => vaiAllaProssimaFaseMancante(), 400)
+}
+
+// Trova la prima fase HACCP non firmata, ci scrolla sopra e la evidenzia
+function vaiAllaProssimaFaseMancante() {
+  const idx = logHaccp.findIndex(l => !l.firmato);
+  const list = document.getElementById("haccp-fasi-list");
+  if (!list) return;
+  if (idx < 0) {
+    // tutte firmate: porto al blocco stampa/azioni
+    document.getElementById("btn-print-haccp")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  const card = list.querySelector(`[data-idx="${idx}"]`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+  // flash di evidenziazione
+  const bg0 = card.style.background;
+  card.style.transition = "background .4s";
+  card.style.background = "#fff7ed";
+  card.style.boxShadow = "0 0 0 3px #fdba74";
+  setTimeout(() => { card.style.background = bg0; card.style.boxShadow = ""; }, 2200);
+  // badge "prossima fase"
+  if (!card.querySelector(".rf-next-badge")) {
+    const b = document.createElement("span");
+    b.className = "rf-next-badge";
+    b.textContent = "👉 Prossima fase da firmare";
+    b.style.cssText = "display:inline-block;margin-left:8px;background:#fdba74;color:#7c2d12;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;";
+    const head = card.querySelector("div");
+    if (head) head.appendChild(b);
+  }
 }
