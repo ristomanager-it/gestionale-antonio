@@ -142,6 +142,31 @@ export async function render(container) {
               Registra i parametri di ogni fase prima di confermare la produzione. Il registro viene salvato insieme al lotto.
             </div>
             <div id="haccp-fasi-list"></div>
+
+            <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #e2e8f0;">
+              <div style="font-size:12px;color:#64748b;margin-bottom:8px;">
+                Aggiungi una fase al processo (es. a cottura ultimata → abbattimento; dopo il confezionamento → riabbattimento):
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                <div class="form-group" style="margin:0;min-width:170px;">
+                  <label style="font-size:12px;">Tipo fase</label>
+                  <select id="haccp-nuova-tipo" class="input">
+                    <option value="abbattimento">❄️ Abbattimento</option>
+                    <option value="conservazione">🧊 Conservazione / stoccaggio</option>
+                    <option value="raffreddamento">❄️ Raffreddamento</option>
+                    <option value="cottura">🔥 Cottura</option>
+                    <option value="preparazione">🔪 Preparazione</option>
+                    <option value="porzionatura">🔪 Porzionatura</option>
+                    <option value="confezionamento">📦 Confezionamento</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+                  <label style="font-size:12px;">Cosa fare (descrizione)</label>
+                  <input id="haccp-nuova-desc" class="input" type="text" placeholder="Es: Abbattere a +3°C entro 90 min" />
+                </div>
+                <button type="button" id="btn-add-fase-haccp" class="app-button secondary" ${savedLotto ? "disabled" : ""}>➕ Aggiungi fase</button>
+              </div>
+            </div>
           </div>
         `
       })}
@@ -1851,6 +1876,11 @@ function bindEvents() {
     addCoprodottoRow();
   });
 
+  document.getElementById("btn-add-fase-haccp")?.addEventListener("click", () => {
+    if (savedLotto) return;
+    aggiungiFaseHaccpManuale();
+  });
+
   document.getElementById("coprodotti-wrap")?.addEventListener("change", (e) => onCoprodottiChange(e));
   document.getElementById("coprodotti-wrap")?.addEventListener("input", (e) => onCoprodottiChange(e));
   document.getElementById("coprodotti-wrap")?.addEventListener("click", (e) => onCoprodottiClick(e));
@@ -2048,6 +2078,81 @@ async function loadFasiHaccp(ricettaId) {
   renderFasiHaccp();
 }
 
+function aggiungiFaseHaccpManuale() {
+  const tipoEl = document.getElementById("haccp-nuova-tipo");
+  const descEl = document.getElementById("haccp-nuova-desc");
+  const tipo = (tipoEl?.value || "abbattimento").trim();
+  const desc = (descEl?.value || "").trim();
+
+  const nomiTipo = {
+    abbattimento: "Abbattimento",
+    conservazione: "Conservazione / stoccaggio",
+    raffreddamento: "Raffreddamento",
+    cottura: "Cottura",
+    preparazione: "Preparazione",
+    porzionatura: "Porzionatura",
+    confezionamento: "Confezionamento",
+  };
+  const nome = nomiTipo[tipo] || "Fase";
+
+  // ordine = dopo l'ultima fase attuale
+  const ordMax = fasiCache.reduce((m, f) => Math.max(m, Number(f.ordine) || 0), 0) + 1;
+
+  const nuovaFase = {
+    id: null,
+    ordine: ordMax,
+    nome_fase: nome,
+    tipo_fase: tipo,
+    descrizione_operativa: desc || null,
+    tecnologia: null,
+    temperatura: null,
+    durata_min: null,
+    dispositivo_id: null,
+    sintetica: true,
+  };
+  fasiCache.push(nuovaFase);
+
+  // riga di registrazione corrispondente
+  logHaccp.push({
+    fase_id: null,
+    fase_ordine: ordMax,
+    fase_nome: nome,
+    fase_tipo: tipo,
+    dispositivo_id: null,
+    fonte_dato: "manuale",
+    tecnologia_prevista: "",
+    temperatura_prevista: null,
+    temperatura_min: null,
+    temperatura_max: null,
+    temperatura_rilevata: "",
+    temperatura_ok: null,
+    ora_inizio: "",
+    ora_fine: "",
+    durata_reale_min: null,
+    esito: "ok",
+    note: desc || "",
+    firmato: false,
+    firmato_da: null,
+    firmato_il: null,
+    firme: [],
+  });
+
+  if (descEl) descEl.value = "";
+  renderFasiHaccp();
+
+  // porto l'utente sulla fase appena aggiunta (l'ultima)
+  setTimeout(() => {
+    const list = document.getElementById("haccp-fasi-list");
+    const card = list?.querySelector(`[data-idx="${logHaccp.length - 1}"]`);
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.style.transition = "background .4s";
+      card.style.background = "#ecfeff";
+      setTimeout(() => { card.style.background = ""; }, 1600);
+    }
+  }, 100);
+}
+
 function renderFasiHaccp() {
   const emptyEl = document.getElementById("haccp-empty-msg");
   const wrap = document.getElementById("haccp-fasi-wrap");
@@ -2055,7 +2160,9 @@ function renderFasiHaccp() {
   if (!wrap || !list) return;
   // (l'abilitazione stampe viene ricalcolata a fine funzione)
 
-  if (!fasiCache.length) {
+  // Se non c'è nessuna ricetta selezionata → mostro solo il messaggio.
+  // Se c'è una ricetta (anche senza fasi) → mostro il wrap col bottone "aggiungi fase".
+  if (!ricettaSelezionata) {
     if (emptyEl) emptyEl.style.display = "";
     wrap.style.display = "none";
     return;
@@ -2063,6 +2170,12 @@ function renderFasiHaccp() {
 
   if (emptyEl) emptyEl.style.display = "none";
   wrap.style.display = "";
+
+  if (!fasiCache.length) {
+    list.innerHTML = `<div style="color:#94a3b8;font-size:13px;font-style:italic;padding:8px 0;">Nessuna fase dalla ricetta. Aggiungine una qui sotto (es. abbattimento a cottura ultimata).</div>`;
+    aggiornaAbilitazioneStampe();
+    return;
+  }
 
   const tipoLabel = { preparazione: "🔪 Prep.", cottura: "🔥 Cottura", raffreddamento: "❄️ Raffr.", attesa: "⏳ Attesa", abbattimento: "❄️ Abbatt.", confezionamento: "📦 Confez.", porzionatura: "🔪 Porz.", conservazione: "🧊 Conserv." };
   const borderColor = { cottura: "#f97316", raffreddamento: "#0ea5e9", preparazione: "#0E5A7A", attesa: "#a855f7", abbattimento: "#0891b2", confezionamento: "#7c3aed", porzionatura: "#0E5A7A", conservazione: "#0ea5e9" };
