@@ -1252,6 +1252,12 @@ export async function render(app) {
               </select>
             </div>
 
+            <div class="form-group">
+              <label>Aumento tempo cottura/abbattimento per dose in più (%)</label>
+              <input id="r-scaling-tempo" type="number" step="1" min="0" class="input" placeholder="20" value="20" />
+              <div class="form-help">Es. 20 = ogni dose oltre la prima aggiunge +20% al tempo di cottura/abbattimento (per gli avvisi HACCP). Solo cottura e abbattimento.</div>
+            </div>
+
             <div class="form-group" style="grid-column:1/-1;">
               <div id="r-cost-preview" style="position:sticky;top:0;z-index:15;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;color:#166534;">
                 Food cost: — (aggiungi ingredienti per vedere il calcolo)
@@ -1928,6 +1934,7 @@ function aggiornaFoodCostLive() {
   }
 
   const output_peso = toNumOrNull(getVal("r-output-peso"));
+  const scaling_tempo = toNumOrNull(getVal("r-scaling-tempo"));
   const output_um = getVal("r-output-um");
 
   const computed = computeCostoIndustriale({
@@ -2834,6 +2841,7 @@ async function caricaRicettaCompleta() {
 
   setVal("r-nome", ricetta.nome || "");
   setVal("r-pezzi-base", ricetta.pezzi_base ?? "");
+  setVal("r-scaling-tempo", ricetta.scaling_tempo_pct ?? 20);
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
@@ -3062,6 +3070,7 @@ async function salvaTutto() {
       note_procedimento,
       foto_url,
       pezzi_base,
+      scaling_tempo_pct: scaling_tempo,
       azienda_id: aziendaId,
       sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
@@ -3099,6 +3108,7 @@ async function salvaTutto() {
       note_procedimento,
       foto_url,
       pezzi_base,
+      scaling_tempo_pct: scaling_tempo,
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,

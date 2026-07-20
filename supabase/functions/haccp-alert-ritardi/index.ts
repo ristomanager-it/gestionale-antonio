@@ -51,6 +51,19 @@ Deno.serve(async function (req) {
     });
   }
 
+  // scaling % per ricetta (default 20) e resa base (per calcolare il moltiplicatore del lotto)
+  const scalingByRicetta: any = {};
+  const resaByRicetta: any = {};
+  if (ricetteIds.length) {
+    const { data: ric } = await supabase.from("ricette").select("id, scaling_tempo_pct").in("id", ricetteIds);
+    (ric || []).forEach(function (r: any) { scalingByRicetta[r.id] = (r.scaling_tempo_pct == null ? 20 : Number(r.scaling_tempo_pct)); });
+    const { data: outs } = await supabase.from("ricette_output").select("ricetta_id, peso_finale").in("ricetta_id", ricetteIds);
+    (outs || []).forEach(function (o: any) { if (o.peso_finale > 0) resaByRicetta[o.ricetta_id] = Number(o.peso_finale); });
+  }
+
+  // tipi di fase su cui il tempo scala col volume
+  const TIPI_SCALABILI = ["cottura", "abbattimento"];
+
   // 3) fasi HACCP per lotto
   const uuids = lotti.map(function (l) { return l.lotto_uuid; }).filter(Boolean);
   const fasiByLotto: any = {};
@@ -68,11 +81,25 @@ Deno.serve(async function (req) {
     const fasi = (fasiByLotto[l.lotto_uuid] || []).slice().sort(function (a: any, b: any) { return (a.fase_ordine || 0) - (b.fase_ordine || 0); });
     if (!fasi.length) continue;
 
+    // moltiplicatore del lotto = quantita_output / resa_base ricetta (>=1)
+    const resaBase = resaByRicetta[l.ricetta_id] || 0;
+    let moltiplicatore = 1;
+    if (resaBase > 0 && Number(l.quantita_output) > 0) {
+      moltiplicatore = Number(l.quantita_output) / resaBase;
+      if (!(moltiplicatore > 0)) moltiplicatore = 1;
+    }
+    const scalingPct = (scalingByRicetta[l.ricetta_id] == null ? 20 : scalingByRicetta[l.ricetta_id]);
+
     let cumulativoMin = 0;
     for (const f of fasi) {
-      const durMin = durataByRicettaOrdine[l.ricetta_id + "_" + f.fase_ordine]
+      let durMin = durataByRicettaOrdine[l.ricetta_id + "_" + f.fase_ordine]
         || durataByRicettaTipo[l.ricetta_id + "_" + String(f.fase_tipo || "").toLowerCase()]
         || 0;
+      // scaling: solo cottura/abbattimento, +scalingPct% per ogni dose oltre la prima
+      const tipoF = String(f.fase_tipo || "").toLowerCase();
+      if (durMin > 0 && TIPI_SCALABILI.indexOf(tipoF) >= 0 && moltiplicatore > 1) {
+        durMin = durMin * (1 + (scalingPct / 100) * (moltiplicatore - 1));
+      }
       const inizioFaseMs = aperturaMs + cumulativoMin * 60000;
       cumulativoMin += durMin;
 
