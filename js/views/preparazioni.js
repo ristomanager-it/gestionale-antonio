@@ -225,7 +225,9 @@ export async function render(container) {
               <select id="prod-conservazione" class="input" ${savedLotto ? "disabled" : ""}>
                 <option value="">Seleziona...</option>
               </select>
-              <div id="prod-conservazione-help" class="form-help">Seleziona una ricetta per caricare gli scenari.</div>
+              <div id="prod-conservazione-help" class="form-help">Seleziona uno scenario, oppure scrivi la conservazione qui sotto.</div>
+              <input id="prod-conservazione-libera" class="input" style="margin-top:6px;" placeholder="Es. Frigo +4°C, 3 giorni" ${savedLotto ? "disabled" : ""} value="" />
+              <div class="form-help">Conservazione scritta a mano (se la ricetta non ha uno scenario o vuoi specificarne una diversa).</div>
             </div>
 
             <div class="form-group">
@@ -2545,6 +2547,7 @@ async function salvaProduzione() {
     const note = document.getElementById("prod-note-lotto")?.value || null;
     const pesoReale = getPesoRealeKg();
     const scenarioId = document.getElementById("prod-conservazione")?.value || null;
+    const conservazioneLibera = (document.getElementById("prod-conservazione-libera")?.value || "").trim() || null;
     const lottoUuid = (crypto?.randomUUID && crypto.randomUUID()) || null;
 
     // 1) crea il lotto in stato "aperta" -> comparirà in Produzioni aperte
@@ -2556,6 +2559,7 @@ async function salvaProduzione() {
       quantita_output: pesoReale || null,
       unita_misura: "kg",
       scenario_conservazione_id: scenarioId,
+      conservazione_libera: conservazioneLibera,
       stato: "aperta",
       sede_uuid: window.state?.sedeAttiva?.id || null,
       luogo: window.state?.sedeAttiva?.nome || null,
@@ -3199,7 +3203,7 @@ async function stampaEtichetteSuEtichettatrice() {
   const operatoreNome = operatoreRisolto?.nome || "";
   const scenarioId = document.getElementById("prod-conservazione")?.value || "";
   const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
-  const scenarioLabel = scenario?.scenario_label || "";
+  const scenarioLabel = scenario?.scenario_label || (document.getElementById("prod-conservazione-libera")?.value || "").trim() || "";
 
   const rows = confezioniRows
     .map((r) => {
@@ -3263,7 +3267,7 @@ function stampaEtichetteConfezioni() {
 
     const scenarioId = document.getElementById("prod-conservazione")?.value || "";
     const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
-    const scenarioLabel = scenario?.scenario_label || "";
+    const scenarioLabel = scenario?.scenario_label || (document.getElementById("prod-conservazione-libera")?.value || "").trim() || "";
     const temperatura = (scenario?.temperatura ?? "").toString();
     const fasiText = buildTestoConservazione(scenarioId) || compactText((scenario?.fasi_operativo ?? "").toString(), 260);
 
@@ -3333,7 +3337,7 @@ function stampaEtichetteCoprodotti() {
 
     const scenarioId = document.getElementById("prod-conservazione")?.value || "";
     const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
-    const scenarioLabel = scenario?.scenario_label || "";
+    const scenarioLabel = scenario?.scenario_label || (document.getElementById("prod-conservazione-libera")?.value || "").trim() || "";
     const temperatura = (scenario?.temperatura ?? "").toString();
     const fasiText = buildTestoConservazione(scenarioId) || compactText((scenario?.fasi_operativo ?? "").toString(), 260);
 
@@ -3644,6 +3648,8 @@ async function resumeDaLotto(lottoUuid) {
   if (pesoEl && lotto.quantita_output) pesoEl.value = lotto.quantita_output
   const noteEl = document.getElementById("prod-note-lotto")
   if (noteEl && lotto.note) noteEl.value = lotto.note
+  const consLibEl = document.getElementById("prod-conservazione-libera")
+  if (consLibEl && lotto.conservazione_libera) consLibEl.value = lotto.conservazione_libera
 
   // Ripristino le confezioni salvate (per la stampa etichette) dal dettaglio JSON del lotto
   try {
