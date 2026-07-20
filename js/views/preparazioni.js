@@ -399,20 +399,10 @@ async function preloadRicette() {
   ricetteCache = [];
   if (!supabase || !aziendaId) return;
 
+  // Query semplice SENZA join annidata (piu' robusta: la join a volte tronca/fallisce con molte ricette)
   const { data, error } = await supabase
     .from("ricette")
-    .select(
-      `
-      id,
-      nome,
-      pezzi_base,
-      prodotto_output_id,
-      ricette_output (
-        peso_finale,
-        unita_misura
-      )
-    `
-    )
+    .select("id, nome, pezzi_base, prodotto_output_id")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("nome");
@@ -423,18 +413,30 @@ async function preloadRicette() {
     return;
   }
 
-  ricetteCache = (data || []).map((r) => {
-    const out = Array.isArray(r.ricette_output) ? r.ricette_output[0] || null : r.ricette_output || null;
+  ricetteCache = (data || []).map((r) => ({
+    id: r.id,
+    nome: r.nome,
+    pezzi_base: r.pezzi_base,
+    prodotto_output_id: r.prodotto_output_id ?? null,
+    resa_teorica: null,
+    resa_unita: "kg"
+  }));
 
-    return {
-      id: r.id,
-      nome: r.nome,
-      pezzi_base: r.pezzi_base,
-      prodotto_output_id: r.prodotto_output_id ?? null,
-      resa_teorica: out?.peso_finale ?? null,
-      resa_unita: out?.unita_misura ?? "kg"
-    };
-  });
+  // Carico le rese (ricette_output) a parte e le aggancio; se fallisce, le ricette restano comunque cercabili
+  try {
+    const ids = ricetteCache.map(r => r.id);
+    if (ids.length) {
+      const { data: outs } = await supabase
+        .from("ricette_output")
+        .select("ricetta_id, peso_finale, unita_misura")
+        .in("ricetta_id", ids);
+      const mappa = new Map((outs || []).map(o => [String(o.ricetta_id), o]));
+      ricetteCache.forEach(r => {
+        const o = mappa.get(String(r.id));
+        if (o) { r.resa_teorica = o.peso_finale ?? null; r.resa_unita = o.unita_misura || "kg"; }
+      });
+    }
+  } catch (e) { console.warn("Rese ricette non caricate (non bloccante):", e); }
 }
 
 async function preloadDipendenti() {
