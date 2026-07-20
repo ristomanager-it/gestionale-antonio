@@ -1646,14 +1646,17 @@ function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
       return;
     }
 
+    const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const nq = norm(q);
     const risultati = prodottiCache
-      .filter(p => (p.descrizione || "").toLowerCase().includes(q))
+      .filter(p => norm(p.descrizione).includes(nq))
       .slice(0, 10);
 
     risultati.forEach(p => {
       const div = document.createElement("div");
       div.className = "suggest-item";
-      div.textContent = p.descrizione;
+      // marco i semilavorati (ricette base tipo besciamella) con un'icona
+      div.textContent = (p._semilavorato || p.tipo_prodotto === "semilavorato") ? ("🧪 " + p.descrizione) : p.descrizione;
 
       div.onclick = () => {
         input.value = p.descrizione;
@@ -1666,8 +1669,44 @@ function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
       suggestBox.appendChild(div);
     });
 
+    // Se abilitata la creazione, offro sempre "crea nuovo <testo>"
+    if (input.dataset.allowCreate === "1") {
+      const creaDiv = document.createElement("div");
+      creaDiv.className = "suggest-item";
+      creaDiv.style.cssText = "border-top:1px solid #e5e7eb;color:#0E5A7A;font-weight:700;";
+      creaDiv.textContent = "➕ Crea nuovo prodotto: \"" + input.value.trim() + "\"";
+      creaDiv.onclick = async () => {
+        suggestBox.innerHTML = ""; suggestBox.classList.remove("open");
+        const nuovo = await creaProdottoAlVolo(input.value.trim());
+        if (nuovo) {
+          input.value = nuovo.descrizione;
+          hidden.value = nuovo.id;
+          if (typeof onPick === "function") onPick(nuovo);
+        }
+      };
+      suggestBox.appendChild(creaDiv);
+    }
+
     suggestBox.classList.add("open");
   });
+}
+
+// Crea un prodotto "al volo" (usato dal coprodotto quando non esiste in anagrafica)
+async function creaProdottoAlVolo(nome) {
+  if (!nome || nome.length < 2) { alert("Scrivi almeno il nome del prodotto."); return null; }
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  const um = (prompt("Unità di misura del nuovo prodotto (kg, gr, pz, lt):", "kg") || "kg").toLowerCase().trim();
+  const { data, error } = await supabase.from("prodotti")
+    .insert({ azienda_id: aziendaId, descrizione: nome, um: um, unita_base: um, tipo_prodotto: "materia_prima", attivo: true })
+    .select("id, descrizione, um, unita_base, costo_medio, tipo_prodotto, ricetta_id")
+    .maybeSingle();
+  if (error || !data) { alert("Errore creazione prodotto: " + (error?.message || "sconosciuto")); return null; }
+  data._costo_per_unita = 0; data._um_unitaria = um;
+  prodottiCache.push(data);
+  prodottiCache.sort((a, b) => String(a.descrizione).localeCompare(String(b.descrizione)));
+  if (typeof prodottiMap !== "undefined" && prodottiMap?.set) prodottiMap.set(String(data.id), data);
+  return data;
 }
 
 
@@ -2426,9 +2465,11 @@ function aggiungiOutputSecondario(initial = {}) {
   const s = card.querySelector(".out2-search");
   const hid = card.querySelector(".out2-id");
   const sug = card.querySelector(".out2-suggest");
+  s.dataset.allowCreate = "1"; // il coprodotto puo' creare un prodotto nuovo se non esiste
   setupAutocomplete(s, hid, sug, (p) => {
-    if (p?.um) {
-      const val = String(p.um).toLowerCase();
+    const umv = p?.um || p?._um_unitaria;
+    if (umv) {
+      const val = String(umv).toLowerCase();
       const ok = ["kg", "gr", "pz"].includes(val);
       if (ok) card.querySelector(".out2-um").value = val;
     }
