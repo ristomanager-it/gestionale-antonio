@@ -29,16 +29,13 @@ let porzioniCache = [];
 let dipendentiCache = [];
 let prodottiCache = [];
 let scenariConservazione = [];
-// Scenari di conservazione STANDARD, sempre disponibili (l'operatore SCEGLIE, non scrive).
-// Valori HACCP predefiniti e corretti.
-const SCENARI_STANDARD = [
-  { key: "frigo_3", label: "Frigo (positivo) +2/+4°C — 3 giorni", giorni: 3 },
-  { key: "frigo_5", label: "Frigo lunga +2/+4°C — 5 giorni", giorni: 5 },
-  { key: "congelato", label: "Congelato −18°C — 90 giorni", giorni: 90 },
-  { key: "abbattuto_congelato", label: "Abbattuto e congelato −18°C — 60 giorni", giorni: 60 },
-  { key: "sottovuoto_frigo", label: "Sottovuoto in frigo +2/+4°C — 10 giorni", giorni: 10 },
-  { key: "ambiente", label: "Temperatura ambiente — 1 giorno", giorni: 1 },
-];
+// Il manager definisce gli scenari di conservazione in crea-ricetta (tabella ricette_conservazione).
+// In preparazioni l'operatore li trova nel select scenario (caricati da loadConservazioni).
+// Solo manager/admin ("anagrafante") vedono un campo libero per casi non previsti.
+function isManagerAnagrafante() {
+  const r = String(window.state?.ruolo || "").toLowerCase();
+  return r.includes("manager") || r.includes("admin") || r === "superadmin";
+}
 
 let operatoreRisolto = null;
 
@@ -236,11 +233,10 @@ export async function render(container) {
                 <option value="">Seleziona...</option>
               </select>
               <div id="prod-conservazione-help" class="form-help">Seleziona uno scenario, oppure scrivi la conservazione qui sotto.</div>
-              <select id="prod-conservazione-std" class="input" style="margin-top:6px;" ${savedLotto ? "disabled" : ""}>
-                <option value="">— oppure scegli uno scenario standard —</option>
-                ${SCENARI_STANDARD.map(s => `<option value="${s.key}" data-label="${s.label}" data-giorni="${s.giorni}">${s.label}</option>`).join("")}
-              </select>
-              <div class="form-help">Se la ricetta non ha uno scenario, scegli tra quelli standard (valori HACCP predefiniti).</div>
+              ${isManagerAnagrafante() ? `
+              <input id="prod-conservazione-libera" class="input" style="margin-top:6px;" placeholder="Solo manager: conservazione non prevista in ricetta" ${savedLotto ? "disabled" : ""} value="" />
+              <div class="form-help">Campo libero riservato al manager. Gli scenari si definiscono nella ricetta (Crea ricetta → Conservazione).</div>
+              ` : `<div class="form-help">Se la tendina è vuota, chiedi al manager di aggiungere gli scenari di conservazione nella ricetta.</div>`}
             </div>
 
             <div class="form-group">
@@ -1939,21 +1935,6 @@ function bindEvents() {
     if (scadEl) scadEl.value = d.toISOString().split("T")[0];
   });
 
-  document.getElementById("prod-conservazione-std")?.addEventListener("change", (e) => {
-    if (savedLotto) return;
-    const opt = e.target.selectedOptions && e.target.selectedOptions[0];
-    const gg = opt ? parseInt(opt.getAttribute("data-giorni") || "0") : 0;
-    if (gg > 0) {
-      const dataProd = document.getElementById("prod-data")?.value;
-      if (dataProd) {
-        const d = new Date(dataProd + "T00:00:00");
-        d.setDate(d.getDate() + gg);
-        const scadEl = document.getElementById("prod-scadenza");
-        if (scadEl) scadEl.value = d.toISOString().split("T")[0];
-      }
-    }
-  });
-
   document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
 
   document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichetteConfezioni);
@@ -2575,9 +2556,7 @@ async function salvaProduzione() {
     const note = document.getElementById("prod-note-lotto")?.value || null;
     const pesoReale = getPesoRealeKg();
     const scenarioId = document.getElementById("prod-conservazione")?.value || null;
-    const stdSel = document.getElementById("prod-conservazione-std");
-    const stdOpt = stdSel && stdSel.selectedOptions && stdSel.selectedOptions[0];
-    const conservazioneLibera = (stdOpt && stdSel.value) ? (stdOpt.getAttribute("data-label") || stdOpt.textContent || "").trim() : null;
+    const conservazioneLibera = (document.getElementById("prod-conservazione-libera")?.value || "").trim() || null;
     const lottoUuid = (crypto?.randomUUID && crypto.randomUUID()) || null;
 
     // 1) crea il lotto in stato "aperta" -> comparirà in Produzioni aperte
@@ -2622,10 +2601,7 @@ async function salvaProduzione() {
 
 // Costruisce il JSON confezionamento dai row correnti (per la stampa etichette dopo)
 function getConservazioneStandardLabel() {
-  const sel = document.getElementById("prod-conservazione-std");
-  if (!sel || !sel.value) return "";
-  const opt = sel.selectedOptions && sel.selectedOptions[0];
-  return opt ? (opt.getAttribute("data-label") || opt.textContent || "").trim() : "";
+  return (document.getElementById("prod-conservazione-libera")?.value || "").trim();
 }
 
 function buildDettaglioConfezionamento() {
@@ -3685,11 +3661,8 @@ async function resumeDaLotto(lottoUuid) {
   if (pesoEl && lotto.quantita_output) pesoEl.value = lotto.quantita_output
   const noteEl = document.getElementById("prod-note-lotto")
   if (noteEl && lotto.note) noteEl.value = lotto.note
-  const stdSelEl = document.getElementById("prod-conservazione-std")
-  if (stdSelEl && lotto.conservazione_libera) {
-    const match = SCENARI_STANDARD.find(s => s.label === lotto.conservazione_libera)
-    if (match) stdSelEl.value = match.key
-  }
+  const consLibEl = document.getElementById("prod-conservazione-libera")
+  if (consLibEl && lotto.conservazione_libera) consLibEl.value = lotto.conservazione_libera
 
   // Ripristino le confezioni salvate (per la stampa etichette) dal dettaglio JSON del lotto
   try {

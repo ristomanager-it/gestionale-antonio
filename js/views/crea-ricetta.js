@@ -2531,7 +2531,7 @@ function aggiungiScenarioConservazione(initial = {}, passaggi = []) {
       <div class="form-grid">
         <div class="form-group" style="grid-column:1/-1;">
           <label>Nome scenario *</label>
-          <input class="cons-label input" value="${escapeAttr(titolo)}" placeholder="Es: Abbattimento +3°C / Abbattimento -18°C / Sottovuoto frigo..." />
+          <input class="cons-label input" value="${escapeAttr(titolo)}" placeholder="Es: Abbattimento positivo / Sottovuoto abbatt. positivo / Sottovuoto abbatt. negativo / IQF ambiente / IQF positivo +3" />
         </div>
 
         <div class="form-group">
