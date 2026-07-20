@@ -105,8 +105,8 @@ export async function render(container) {
           <div class="form-grid">
             <div class="form-group">
               <label>Resa teorica batch base</label>
-              <input id="resa-teorica" class="input" readonly />
-              <div class="form-help">Serve per il moltiplicatore e lo scarico ingredienti.</div>
+              <input id="resa-teorica" class="input" type="number" min="0" step="0.001" placeholder="Es: 10,000" ${savedLotto ? "readonly" : ""} />
+              <div class="form-help">Precompilata dalla ricetta; puoi correggerla a mano. Serve per il moltiplicatore e lo scarico ingredienti.</div>
             </div>
 
             <div class="form-group">
@@ -1371,7 +1371,9 @@ function recalcResaUI() {
   const scartoKg = resaTeoKg == null ? null : resaTeoKg - pesoRealeKg;
   const moltiplicatore = getMoltiplicatoreRicetta();
 
-  resaTeoEl.value = resaTeoKg == null ? "" : `${formatNumber(resaTeoKg)} kg`;
+  if (resaTeoEl.dataset.manuale !== "1") {
+    resaTeoEl.value = resaTeoKg == null ? "" : formatNumber(resaTeoKg);
+  }
   pesoAllocEl.value = `${formatNumber(confezionatoKg)} kg`;
   diffEl.value = `${formatNumber(diffKg)} kg`;
   scartoEl.value = scartoKg == null ? "" : `${formatNumber(scartoKg)} kg`;
@@ -1379,6 +1381,12 @@ function recalcResaUI() {
 }
 
 function getResaTeoricaKg() {
+  // Override manuale: se il campo contiene un numero digitato dall'utente, ha priorità
+  const el = document.getElementById("resa-teorica");
+  if (el && el.dataset.manuale === "1") {
+    const n = parseFloat((el.value || "").toString().replace(",", ".").replace(/[^0-9.]/g, ""));
+    if (Number.isFinite(n) && n > 0) return n;
+  }
   if (!ricettaSelezionata) return null;
   if (ricettaSelezionata.resa_teorica == null) return null;
 
@@ -1837,6 +1845,11 @@ function bindEvents() {
   document.getElementById("coprodotti-wrap")?.addEventListener("change", (e) => onCoprodottiChange(e));
   document.getElementById("coprodotti-wrap")?.addEventListener("input", (e) => onCoprodottiChange(e));
   document.getElementById("coprodotti-wrap")?.addEventListener("click", (e) => onCoprodottiClick(e));
+
+  document.getElementById("resa-teorica")?.addEventListener("input", (e) => {
+    e.target.dataset.manuale = (e.target.value || "").trim() ? "1" : "0";
+    recalcResaUI();
+  });
 
   document.getElementById("prod-giorni-rapidi")?.addEventListener("click", (e) => {
     const b = e.target.closest("[data-gg]");
