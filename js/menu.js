@@ -380,6 +380,7 @@ export function initMenu() {
         { label: "🏭 Produzione",          route: "produzione"         },
         { label: "🟢 Produzioni aperte",   route: "produzioni-aperte"  },
         { label: "🧪 Preparazioni",        route: "preparazioni"       },
+        { label: "🔔 Avvisi HACCP (manager)", route: "alert-haccp-config" },
         { label: "📋 Planning",            route: "planner-produzione" },
         { label: "📒 Registro lotti",      route: "registro-lotti"    },
         { label: "📊 Produttività",        route: "produttivita-produzione" },
