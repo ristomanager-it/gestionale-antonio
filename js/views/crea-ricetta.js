@@ -2316,6 +2316,8 @@ function aggiungiFase(initial = {}) {
           <option value="cottura">cottura</option>
           <option value="attesa">attesa</option>
           <option value="raffreddamento">raffreddamento</option>
+          <option value="abbattimento">abbattimento ❄️</option>
+          <option value="confezionamento">confezionamento</option>
         </select>
       </div>
 

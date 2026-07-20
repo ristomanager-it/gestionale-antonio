@@ -183,6 +183,7 @@ export async function render(container) {
               <label>Moltiplicatore produzione</label>
               <input id="moltiplicatore" class="input" readonly />
               <div class="form-help">Moltiplica gli ingredienti per lo scarico magazzino.</div>
+              <div id="molt-avviso" style="display:none;margin-top:6px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600;">⚠️ Manca la resa della ricetta: il moltiplicatore resta 1×. Scrivi la <strong>resa teorica</strong> qui sopra per calcolarlo.</div>
             </div>
           </div>
         `
@@ -1377,6 +1378,15 @@ function recalcResaUI() {
   diffEl.value = `${formatNumber(diffKg)} kg`;
   scartoEl.value = scartoKg == null ? "" : `${formatNumber(scartoKg)} kg`;
   moltEl.value = `${formatNumber(moltiplicatore)} x`;
+
+  // Avviso "manca la resa": compare quando c'è un peso reale ma la resa non c'è → moltiplicatore bloccato a 1
+  const avvisoEl = document.getElementById("molt-avviso");
+  if (avvisoEl) {
+    const resaMancante = (resaTeoKg == null || resaTeoKg <= 0);
+    const haPesoReale = Number.isFinite(pesoRealeKg) && pesoRealeKg > 0;
+    avvisoEl.style.display = (resaMancante && haPesoReale) ? "block" : "none";
+    moltEl.style.color = (resaMancante && haPesoReale) ? "#b45309" : "";
+  }
 }
 
 function getResaTeoricaKg() {
@@ -2054,8 +2064,8 @@ function renderFasiHaccp() {
   if (emptyEl) emptyEl.style.display = "none";
   wrap.style.display = "";
 
-  const tipoLabel = { preparazione: "🔪 Prep.", cottura: "🔥 Cottura", raffreddamento: "❄️ Raffr.", attesa: "⏳ Attesa" };
-  const borderColor = { cottura: "#f97316", raffreddamento: "#0ea5e9", preparazione: "#0E5A7A", attesa: "#a855f7" };
+  const tipoLabel = { preparazione: "🔪 Prep.", cottura: "🔥 Cottura", raffreddamento: "❄️ Raffr.", attesa: "⏳ Attesa", abbattimento: "❄️ Abbatt.", confezionamento: "📦 Confez.", porzionatura: "🔪 Porz.", conservazione: "🧊 Conserv." };
+  const borderColor = { cottura: "#f97316", raffreddamento: "#0ea5e9", preparazione: "#0E5A7A", attesa: "#a855f7", abbattimento: "#0891b2", confezionamento: "#7c3aed", porzionatura: "#0E5A7A", conservazione: "#0ea5e9" };
 
   list.innerHTML = fasiCache.map((f, idx) => {
     const log = logHaccp[idx];
@@ -2770,7 +2780,46 @@ async function rfPrintLabelsPdf({ format, title, labels }) {
   }
 
   const nomeFile = `${(title || "etichette").toString().replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
-  doc.save(nomeFile);
+
+  // ANTEPRIMA a schermo prima di stampare/scaricare
+  const blobUrl = doc.output("bloburl");
+  mostraAnteprimaStampa(blobUrl, nomeFile, title, labels.length, () => doc.save(nomeFile));
+}
+
+// Overlay di anteprima: mostra il PDF e offre Stampa / Scarica / Chiudi
+function mostraAnteprimaStampa(blobUrl, nomeFile, title, count, onScarica) {
+  const back = document.createElement("div");
+  back.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:14px;";
+  back.innerHTML = `
+    <div style="background:#fff;border-radius:14px;width:min(760px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e5e7eb;">
+        <div>
+          <div style="font-weight:800;font-size:16px;">🖨️ Anteprima stampa</div>
+          <div style="font-size:12px;color:#64748b;">${escapeHtml(String(title || "Etichette"))} — ${count} etichett${count === 1 ? "a" : "e"}</div>
+        </div>
+        <button id="rf-prev-close" class="app-button tiny gray">✕</button>
+      </div>
+      <div style="flex:1;overflow:auto;background:#f1f5f9;">
+        <iframe src="${blobUrl}" style="width:100%;height:58vh;border:none;background:#fff;"></iframe>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid #e5e7eb;">
+        <button id="rf-prev-print" class="app-button">🖨️ Stampa</button>
+        <button id="rf-prev-save" class="app-button secondary">⬇️ Scarica PDF</button>
+        <button id="rf-prev-cancel" class="app-button gray">Annulla</button>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+
+  const chiudi = () => { try { document.body.removeChild(back); } catch {} try { URL.revokeObjectURL(blobUrl); } catch {} };
+  back.querySelector("#rf-prev-close").onclick = chiudi;
+  back.querySelector("#rf-prev-cancel").onclick = chiudi;
+  back.querySelector("#rf-prev-save").onclick = () => { onScarica(); };
+  back.querySelector("#rf-prev-print").onclick = () => {
+    const ifr = back.querySelector("iframe");
+    try { ifr.contentWindow.focus(); ifr.contentWindow.print(); }
+    catch { window.open(blobUrl, "_blank"); }
+  };
+  back.addEventListener("click", (e) => { if (e.target === back) chiudi(); });
 }
 
 async function rfRenderLabelPdfPage(doc, format, label) {
