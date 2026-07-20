@@ -100,6 +100,53 @@ export async function render(container) {
       })}
 
       ${createCard({
+        title: "Dati Lotto",
+        body: `
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label>Data produzione</label>
+              <input id="prod-data" type="date" class="input" />
+            </div>
+
+            <div class="form-group">
+              <label>Lotto</label>
+              <input id="prod-lotto" class="input" readonly placeholder="Generato al salvataggio" />
+              <div class="form-help">Lotto unico per azienda. Dopo salvataggio non modificabile.</div>
+            </div>
+
+            <div class="form-group">
+              <label>PIN operatore</label>
+              <input id="prod-operatore-pin" type="password" inputmode="numeric" class="input" placeholder="Inserisci PIN..." ${savedLotto ? "disabled" : ""} />
+              <div id="prod-operatore-info" class="form-help">Nessun operatore identificato</div>
+            </div>
+
+            <div class="form-group">
+              <label>Note lotto / destinatario</label>
+              <input id="prod-note-lotto" class="input" placeholder="Es: Battesimo Lucia" ${savedLotto ? "disabled" : ""} />
+              <div class="form-help">Questa nota apparirà anche in stampa.</div>
+            </div>
+
+          </div>
+        `
+      })}
+
+      ${createCard({
+        title: "Processo HACCP — Registrazione fasi",
+        body: `
+          <div id="haccp-empty-msg" style="color:#94a3b8;font-size:13px;font-style:italic;">
+            Seleziona una ricetta per registrare le fasi di processo.
+          </div>
+          <div id="haccp-fasi-wrap" style="display:none;">
+            <div style="font-size:13px;color:#64748b;margin-bottom:12px;">
+              Registra i parametri di ogni fase prima di confermare la produzione. Il registro viene salvato insieme al lotto.
+            </div>
+            <div id="haccp-fasi-list"></div>
+          </div>
+        `
+      })}
+
+      ${createCard({
         title: "Totale prodotto (peso reale + controllo)",
         body: `
           <div class="form-grid">
@@ -137,38 +184,6 @@ export async function render(container) {
               <input id="moltiplicatore" class="input" readonly />
               <div class="form-help">Moltiplica gli ingredienti per lo scarico magazzino.</div>
             </div>
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "Dati Lotto",
-        body: `
-          <div class="form-grid">
-
-            <div class="form-group">
-              <label>Data produzione</label>
-              <input id="prod-data" type="date" class="input" />
-            </div>
-
-            <div class="form-group">
-              <label>Lotto</label>
-              <input id="prod-lotto" class="input" readonly placeholder="Generato al salvataggio" />
-              <div class="form-help">Lotto unico per azienda. Dopo salvataggio non modificabile.</div>
-            </div>
-
-            <div class="form-group">
-              <label>PIN operatore</label>
-              <input id="prod-operatore-pin" type="password" inputmode="numeric" class="input" placeholder="Inserisci PIN..." ${savedLotto ? "disabled" : ""} />
-              <div id="prod-operatore-info" class="form-help">Nessun operatore identificato</div>
-            </div>
-
-            <div class="form-group">
-              <label>Note lotto / destinatario</label>
-              <input id="prod-note-lotto" class="input" placeholder="Es: Battesimo Lucia" ${savedLotto ? "disabled" : ""} />
-              <div class="form-help">Questa nota apparirà anche in stampa.</div>
-            </div>
-
           </div>
         `
       })}
@@ -216,21 +231,6 @@ export async function render(container) {
 
           <!-- Campo fasi legacy (nascosto, usato internamente) -->
           <input type="hidden" id="prod-fasi" />
-        `
-      })}
-
-      ${createCard({
-        title: "Processo HACCP — Registrazione fasi",
-        body: `
-          <div id="haccp-empty-msg" style="color:#94a3b8;font-size:13px;font-style:italic;">
-            Seleziona una ricetta per registrare le fasi di processo.
-          </div>
-          <div id="haccp-fasi-wrap" style="display:none;">
-            <div style="font-size:13px;color:#64748b;margin-bottom:12px;">
-              Registra i parametri di ogni fase prima di confermare la produzione. Il registro viene salvato insieme al lotto.
-            </div>
-            <div id="haccp-fasi-list"></div>
-          </div>
         `
       })}
 

@@ -1196,6 +1196,27 @@ export async function render(app) {
       })}
 
       ${createCard({
+        title: "Procedimento",
+        body: `
+          <div id="fasi-container"></div>
+
+          <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-tony-fasi"
+              class="app-button"
+              type="button"
+              style="background:#0E5A7A;display:flex;align-items:center;gap:6px;">
+              🤖 Detta a Tony
+            </button>
+            <button id="btn-add-fase"
+              class="app-button secondary"
+              type="button">
+              + Aggiungi manuale
+            </button>
+          </div>
+        `
+      })}
+
+      ${createCard({
         title: "Output (Resa)",
         body: `
           <div class="form-grid">
@@ -1248,18 +1269,17 @@ export async function render(app) {
       })}
 
       ${createCard({
-        title: "Procedimento",
+        title: "Conservazione",
         body: `
-          <div id="fasi-container"></div>
+          <div id="conservazione-container"></div>
 
           <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="btn-tony-fasi"
+            <button id="btn-tony-conservazione" type="button"
               class="app-button"
-              type="button"
               style="background:#0E5A7A;display:flex;align-items:center;gap:6px;">
               🤖 Detta a Tony
             </button>
-            <button id="btn-add-fase"
+            <button id="btn-add-conservazione"
               class="app-button secondary"
               type="button">
               + Aggiungi manuale
@@ -1280,26 +1300,6 @@ export async function render(app) {
               🤖 Detta a Tony
             </button>
             <button id="btn-add-porzione"
-              class="app-button secondary"
-              type="button">
-              + Aggiungi manuale
-            </button>
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "Conservazione",
-        body: `
-          <div id="conservazione-container"></div>
-
-          <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="btn-tony-conservazione" type="button"
-              class="app-button"
-              style="background:#0E5A7A;display:flex;align-items:center;gap:6px;">
-              🤖 Detta a Tony
-            </button>
-            <button id="btn-add-conservazione"
               class="app-button secondary"
               type="button">
               + Aggiungi manuale
