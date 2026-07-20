@@ -1,5 +1,6 @@
 // FILE: js/pages/preparazioni.js
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
+import { getStampanteEtichette, stampaEtichetteEpos } from "../modules/produzione/epos-etichette.js";
 
 /*
   PRODUZIONE (flusso industriale)
@@ -295,7 +296,8 @@ export async function render(container) {
         body: `
           <div class="form-actions">
             <button type="button" id="btn-salva-produzione" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra / apri in Produzioni</button>
-            <button type="button" id="btn-print-lotto" class="app-button secondary" disabled>🏷 Stampa etichette confezioni</button>
+            <button type="button" id="btn-print-lotto" class="app-button secondary" disabled>🏷 Stampa etichette (PDF)</button>
+            <button type="button" id="btn-print-etichettatrice" class="app-button secondary" disabled>🖨️ Stampa su etichettatrice</button>
             <button type="button" id="btn-print-coprodotti" class="app-button secondary" disabled>🏷 Stampa etichette coprodotti</button>
             <button type="button" id="btn-print-haccp" class="app-button gray small">📋 Stampa registro HACCP</button>
           </div>
@@ -1923,6 +1925,7 @@ function bindEvents() {
   document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
 
   document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichetteConfezioni);
+  document.getElementById("btn-print-etichettatrice")?.addEventListener("click", stampaEtichetteSuEtichettatrice);
   document.getElementById("btn-print-coprodotti")?.addEventListener("click", stampaEtichetteCoprodotti);
   document.getElementById("btn-print-haccp")?.addEventListener("click", stampaRegistroHaccp);
 }
@@ -2438,8 +2441,10 @@ function aggiornaAbilitazioneStampe() {
   const abilita = !!savedLotto || tutteFirmate;
   const pL = document.getElementById("btn-print-lotto");
   const pC = document.getElementById("btn-print-coprodotti");
+  const pE = document.getElementById("btn-print-etichettatrice");
   if (pL) { if (abilita) pL.removeAttribute("disabled"); else pL.setAttribute("disabled", "disabled"); }
   if (pC) { if (abilita) pC.removeAttribute("disabled"); else pC.setAttribute("disabled", "disabled"); }
+  if (pE) { if (abilita) pE.removeAttribute("disabled"); else pE.setAttribute("disabled", "disabled"); }
 }
 
 function applicaFirmePrincipale(log) {
@@ -3123,6 +3128,73 @@ function buildTestoConservazione(scenarioId) {
     return `${tipo}${temp}${durata}`;
   }).join(" → ");
 }
+async function stampaEtichetteSuEtichettatrice() {
+  if (!savedLotto?.codice_lotto && !savedLotto?.lotto_uuid) return alert("Registra o riprendi prima la produzione.");
+
+  const stampante = await getStampanteEtichette();
+  if (!stampante) {
+    alert("Nessuna etichettatrice configurata.\n\nVai in Configurazione → Stampanti e aggiungi la TM-L100 (tipo: etichette) con il suo indirizzo IP.");
+    return;
+  }
+
+  // costruisco le label riusando i dati delle confezioni
+  const dataProdISO = document.getElementById("prod-data")?.value || "";
+  const scadenzaISO = document.getElementById("prod-scadenza")?.value || "";
+  const noteLotto = document.getElementById("prod-note-lotto")?.value || "";
+  const operatoreNome = operatoreRisolto?.nome || "";
+  const scenarioId = document.getElementById("prod-conservazione")?.value || "";
+  const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
+  const scenarioLabel = scenario?.scenario_label || "";
+
+  const rows = confezioniRows
+    .map((r) => {
+      const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
+      const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
+      const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
+      if (!porz || pezzi <= 0 || numConf <= 0) return null;
+      const pesoPorzKg = toKg(porz.peso_porzione, porz.unita_misura);
+      return { label: porz.label, pezzi, numConf, kgConf: pesoPorzKg * pezzi, note: (r.note || "").toString() };
+    })
+    .filter(Boolean);
+
+  if (!rows.length) return alert("Nessuna confezione valida da stampare. Aggiungi le confezioni nella sezione Confezionamento.");
+
+  const labels = [];
+  for (const r of rows) {
+    for (let i = 0; i < r.numConf; i++) {
+      labels.push({
+        titolo: (ricettaSelezionata?.nome || "Ricetta").toString(),
+        lotto: savedLotto.codice_lotto || ("LOTTO-" + String(savedLotto.lotto_uuid || "").slice(0, 8)),
+        lotto_uuid: savedLottoUUID || savedLotto.lotto_uuid || null,
+        dataProduzione: rfFormatDateITA(dataProdISO),
+        dataScadenza: rfFormatDateITA(scadenzaISO),
+        rows: [
+          { k: "Porz.", v: r.label || "" },
+          { k: "Peso", v: `${formatNumber(r.kgConf)} kg` },
+          scenarioLabel ? { k: "Conserv.", v: scenarioLabel } : null,
+          operatoreNome ? { k: "Op.", v: operatoreNome } : null,
+          noteLotto ? { k: "Note", v: noteLotto } : null,
+        ].filter(Boolean),
+      });
+    }
+  }
+
+  const btn = document.getElementById("btn-print-etichettatrice");
+  if (btn) { btn.disabled = true; btn.textContent = "🖨️ Stampa in corso..."; }
+  try {
+    const res = await stampaEtichetteEpos(labels, stampante);
+    if (res.ok === res.totale) {
+      alert(`✅ Stampate ${res.ok} etichette su ${stampante.nome}.`);
+    } else {
+      alert(`⚠️ Stampate ${res.ok}/${res.totale}. Alcune non riuscite.\n\nControlla che la stampante ${stampante.nome} (${stampante.ip_address}) sia accesa e sulla stessa rete.\n\nDettaglio: ${(res.errori[0] || "").slice(0, 100)}`);
+    }
+  } catch (e) {
+    alert("❌ Errore stampa: " + (e.message || "sconosciuto") + "\n\nVerifica IP e rete della stampante.");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "🖨️ Stampa su etichettatrice"; }
+  }
+}
+
 function stampaEtichetteConfezioni() {
   if (!savedLotto?.codice_lotto && !savedLotto?.lotto_uuid) return alert("Registra o riprendi prima la produzione.");
 
@@ -3538,8 +3610,10 @@ async function resumeDaLotto(lottoUuid) {
   savedLottoUUID = lotto.lotto_uuid;
   const pL = document.getElementById("btn-print-lotto");
   const pC = document.getElementById("btn-print-coprodotti");
+  const pE = document.getElementById("btn-print-etichettatrice");
   if (pL) pL.removeAttribute("disabled");
   if (pC) pC.removeAttribute("disabled");
+  if (pE) pE.removeAttribute("disabled");
 
   recalcResaUI()
 
