@@ -424,9 +424,9 @@ export function initMenu() {
           { label: "📋 Menu Builder",     route: "bo-menu"           },
           { label: "🧺 Prodotti",         route: "bo-prodotti"       },
           { label: "📂 Categorie",        route: "bo-categorie"      },
-          { label: "🍳 Ricette BO",       route: "bo-ricette"        },
+          { label: "🍳 Ricette BO",       route: "ricettario"        },
           { label: "📦 Magazzino BO",     route: "bo-magazzino"      },
-          { label: "👨‍🍳 Produzione BO",  route: "bo-produzione"     },
+          { label: "👨‍🍳 Produzione BO",  route: "produzioni-aperte"     },
         ]
       });
 
@@ -561,7 +561,7 @@ export function initMenu() {
       sections.push({
         title: "IL MIO PROFILO",
         items: [
-          { label: "👤 Profilo", route: "completa-profilo" },
+          { label: "👤 Profilo", route: "profilo" },
         ]
       });
       return sections;
@@ -588,7 +588,7 @@ export function initMenu() {
       sections.push({
         title: "IL MIO PROFILO",
         items: [
-          { label: "👤 Profilo", route: "completa-profilo" },
+          { label: "👤 Profilo", route: "profilo" },
         ]
       });
       return sections;
@@ -613,7 +613,7 @@ export function initMenu() {
     sections.push({
       title: "IL MIO PROFILO",
       items: [
-        { label: "👤 Profilo",            route: "completa-profilo" },
+        { label: "👤 Profilo",            route: "profilo" },
         { label: "🕒 Timbratura",         route: "timbrature"       },
         { label: "📆 Richiedi ferie",     route: "hr-richieste"     },
         { label: "📁 I miei documenti",   route: "hr-documenti-me"  },
