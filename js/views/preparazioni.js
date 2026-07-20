@@ -656,7 +656,17 @@ function setupAutocompleteRicette() {
 
     const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const nq = norm(q);
-    const risultati = ricetteCache.filter((r) => norm(r.nome).includes(nq)).slice(0, 10);
+    // Ordino i match: prima chi INIZIA con la query (es "rag" -> "Ragù..." prima di "asparagi"), poi gli altri
+    const risultati = ricetteCache
+      .filter((r) => norm(r.nome).includes(nq))
+      .sort((a, b) => {
+        const na = norm(a.nome), nb = norm(b.nome);
+        const ia = na.startsWith(nq) ? 0 : (na.split(/\s+/).some(w => w.startsWith(nq)) ? 1 : 2);
+        const ib = nb.startsWith(nq) ? 0 : (nb.split(/\s+/).some(w => w.startsWith(nq)) ? 1 : 2);
+        if (ia !== ib) return ia - ib;
+        return na.localeCompare(nb, "it");
+      })
+      .slice(0, 10);
 
     risultati.forEach((r) => {
       const div = document.createElement("div");
