@@ -2275,14 +2275,13 @@ function renderFasiHaccp() {
         ${(Array.isArray(log.firme) && log.firme.length) ? `<span style="font-size:11px;color:#64748b;margin-left:8px;">${escapeHtml(new Date(log.firme[0].firmato_il).toLocaleString("it-IT"))}</span>` : ""}
       </div>
 
-      ${savedLotto ? "" : `
       <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         <span style="font-size:11px;color:#94a3b8;">Aggiungi fase qui sotto →</span>
         <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="abbattimento" style="background:#0891b2;">❄️ + Abbattimento</button>
         <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="conservazione" style="background:#0ea5e9;">🧊 + Conservazione</button>
         <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="confezionamento" style="background:#7c3aed;">📦 + Confezionamento</button>
         <button type="button" class="app-button tiny gray haccp-add-after" data-after="${idx}" data-tipo="__scegli__">➕ Altra</button>
-      </div>`}
+      </div>
     </div>`;
   }).join("");
 
@@ -2318,8 +2317,9 @@ function renderFasiHaccp() {
     btn.addEventListener("click", () => firmaFaseHaccp(+btn.dataset.idx));
   });
   list.querySelectorAll(".haccp-add-after").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (savedLotto) return;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       inserisciFaseDopo(+btn.dataset.after, btn.dataset.tipo);
     });
   });
