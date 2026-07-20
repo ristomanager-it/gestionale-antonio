@@ -399,22 +399,25 @@ async function preloadRicette() {
   ricetteCache = [];
   if (!supabase || !aziendaId) return;
 
-  // Query semplice SENZA join annidata (piu' robusta: la join a volte tronca/fallisce con molte ricette)
-  const { data, error } = await supabase
-    .from("ricette")
-    .select("id, nome, pezzi_base, prodotto_output_id")
-    .eq("azienda_id", aziendaId)
-    .eq("attivo", true)
-    .order("nome")
-    .limit(2000);
-
-  if (error) {
-    console.error("Errore preload ricette:", error);
-    ricetteCache = [];
-    return;
+  // Carico TUTTE le ricette a blocchi (range) per evitare troncamenti del limite di default.
+  // Ordino per id (non per nome) cosi' la collation non sposta le maiuscole in coda oltre il limite.
+  let tutte = [];
+  const BLOCCO = 1000;
+  for (let start = 0; start < 20000; start += BLOCCO) {
+    const { data, error } = await supabase
+      .from("ricette")
+      .select("id, nome, pezzi_base, prodotto_output_id")
+      .eq("azienda_id", aziendaId)
+      .eq("attivo", true)
+      .order("id", { ascending: true })
+      .range(start, start + BLOCCO - 1);
+    if (error) { console.error("Errore preload ricette:", error); break; }
+    if (!data || !data.length) break;
+    tutte = tutte.concat(data);
+    if (data.length < BLOCCO) break; // ultimo blocco
   }
 
-  ricetteCache = (data || []).map((r) => ({
+  ricetteCache = tutte.map((r) => ({
     id: r.id,
     nome: r.nome,
     pezzi_base: r.pezzi_base,
@@ -422,6 +425,8 @@ async function preloadRicette() {
     resa_teorica: null,
     resa_unita: "kg"
   }));
+  // riordino alfabetico lato client (per la visualizzazione)
+  ricetteCache.sort((a, b) => String(a.nome).localeCompare(String(b.nome), "it"));
   console.log("[preparazioni] ricette caricate:", ricetteCache.length, "| ragù presente:", ricetteCache.some(r => /rag/i.test(r.nome)));
 
   // Carico le rese (ricette_output) a parte e le aggancio; se fallisce, le ricette restano comunque cercabili
