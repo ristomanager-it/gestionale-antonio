@@ -405,7 +405,8 @@ async function preloadRicette() {
     .select("id, nome, pezzi_base, prodotto_output_id")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
-    .order("nome");
+    .order("nome")
+    .limit(2000);
 
   if (error) {
     console.error("Errore preload ricette:", error);
@@ -421,6 +422,7 @@ async function preloadRicette() {
     resa_teorica: null,
     resa_unita: "kg"
   }));
+  console.log("[preparazioni] ricette caricate:", ricetteCache.length, "| ragù presente:", ricetteCache.some(r => /rag/i.test(r.nome)));
 
   // Carico le rese (ricette_output) a parte e le aggancio; se fallisce, le ricette restano comunque cercabili
   try {
