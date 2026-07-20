@@ -408,7 +408,7 @@ async function preloadRicette() {
   for (let start = 0; start < 20000; start += BLOCCO) {
     const { data, error } = await supabase
       .from("ricette")
-      .select("id, nome, pezzi_base, prodotto_output_id")
+      .select("id, nome, pezzi_base, prodotto_output_id, scaling_tempo_pct")
       .eq("azienda_id", aziendaId)
       .eq("attivo", true)
       .order("id", { ascending: true })
@@ -424,6 +424,7 @@ async function preloadRicette() {
     nome: r.nome,
     pezzi_base: r.pezzi_base,
     prodotto_output_id: r.prodotto_output_id ?? null,
+    scaling_tempo_pct: (r.scaling_tempo_pct == null ? 20 : Number(r.scaling_tempo_pct)),
     resa_teorica: null,
     resa_unita: "kg"
   }));
@@ -1881,6 +1882,7 @@ function bindEvents() {
   document.getElementById("prod-peso-reale")?.addEventListener("input", () => {
     if (savedLotto) return;
     recalcResaUI();
+    aggiornaBadgeTempiFasi();
   });
 
   document.getElementById("btn-add-confezione")?.addEventListener("click", () => {
@@ -2175,6 +2177,52 @@ function aggiungiFaseHaccpManuale() {
   }, 100);
 }
 
+// Calcola il tempo previsto di una fase tenendo conto dello scaling per dose
+// (solo cottura/abbattimento). Ritorna { min, scalato } o null se non c'è durata.
+// Aggiorna solo i badge del tempo previsto (senza re-render, per non perdere i dati digitati)
+function aggiornaBadgeTempiFasi() {
+  const list = document.getElementById("haccp-fasi-list");
+  if (!list) return;
+  fasiCache.forEach((f, idx) => {
+    const card = list.querySelector(`[data-idx="${idx}"]`);
+    if (!card) return;
+    const badge = card.querySelector(".rf-tempo-badge");
+    if (!badge) return;
+    const tp = tempoPrevistoFase(f);
+    if (!tp) { badge.style.display = "none"; return; }
+    badge.style.display = "";
+    if (tp.scalato) {
+      badge.style.cssText = "background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;";
+      badge.textContent = "⏱ " + formattaDurata(tp.min) + " (" + formatNumber(tp.dosi) + "× dosi)";
+    } else {
+      badge.style.cssText = "background:#f0fdf4;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px;";
+      badge.textContent = "⏱ " + formattaDurata(tp.min);
+    }
+  });
+}
+
+function tempoPrevistoFase(f) {
+  const base = Number(f.durata_min) || 0;
+  if (base <= 0) return null;
+  const tipo = String(f.tipo_fase || "").toLowerCase();
+  const scalabile = (tipo === "cottura" || tipo === "abbattimento");
+  const molt = getMoltiplicatoreRicetta();
+  const pct = (ricettaSelezionata && ricettaSelezionata.scaling_tempo_pct != null) ? Number(ricettaSelezionata.scaling_tempo_pct) : 20;
+  if (scalabile && molt > 1) {
+    const scal = base * (1 + (pct / 100) * (molt - 1));
+    return { min: Math.round(scal), scalato: true, base: base, dosi: molt };
+  }
+  return { min: base, scalato: false, base: base, dosi: molt };
+}
+
+// Formatta minuti in "Xh Ym" leggibile
+function formattaDurata(min) {
+  min = Math.round(min);
+  if (min < 60) return min + " min";
+  const h = Math.floor(min / 60), m = min % 60;
+  return m ? (h + "h " + m + "min") : (h + "h");
+}
+
 function renderFasiHaccp() {
   const emptyEl = document.getElementById("haccp-empty-msg");
   const wrap = document.getElementById("haccp-fasi-wrap");
@@ -2228,7 +2276,14 @@ function renderFasiHaccp() {
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           ${dispBadge}
           ${tempLabel ? `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-size:11px;">🌡 ${tempLabel}</span>` : ""}
-          ${f.durata_min ? `<span style="background:#f0fdf4;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px;">⏱ ${f.durata_min}min</span>` : ""}
+          ${(() => {
+            const tp = tempoPrevistoFase(f);
+            if (!tp) return `<span class="rf-tempo-badge" style="display:none;"></span>`;
+            if (tp.scalato) {
+              return `<span class="rf-tempo-badge" style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">⏱ ${formattaDurata(tp.min)} (${formatNumber(tp.dosi)}× dosi)</span>`;
+            }
+            return `<span class="rf-tempo-badge" style="background:#f0fdf4;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px;">⏱ ${formattaDurata(tp.min)}</span>`;
+          })()}
         </div>
       </div>
 
