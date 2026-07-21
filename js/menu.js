@@ -452,7 +452,10 @@ export function initMenu() {
           ] },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "📸 Bacheca Social",   route: "bo-marketing?tab=bacheca-social" },
-          { label: "🎁 Promo",             route: "bo-promo"          },
+          { label: "🎁 Promo", route: "bo-promo", children: [
+            { label: "🎯 Gestisci campagne", route: "bo-promo" },
+            { label: "📊 Analisi Promo",     route: "bo-promo-analisi" },
+          ] },
           { label: "📨 Registro messaggi",  route: "registro-messaggi" },
           { label: "🎫 Fidelity & Network", route: "bo-fidelity", children: [
             { label: "📊 Dashboard", route: "bo-fidelity?tab=dashboard" },

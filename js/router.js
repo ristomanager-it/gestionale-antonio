@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=25";
+import { initMenu } from "./menu.js?v=26";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -89,6 +89,7 @@ const routes = {
   "bo-analytics": () => import("./views/bo/bo-analytics.js"),
   "bo-onboarding": () => import("./views/bo/bo-onboarding.js?v=2"),
   "bo-promo": () => import("./views/bo/bo-promo.js"),
+  "bo-promo-analisi": () => import("./views/bo/bo-promo-analisi.js"),
   "ticket-vendite": () => import("./views/bo/ticket-vendite.js"),
   "ticket-checkin": () => import("./views/bo/ticket-checkin.js"),
   "bo-catenarie": () => import("./views/bo/bo-catenarie.js"),
@@ -280,6 +281,7 @@ const BO_ROUTES = new Set([
   "bo-comande",
   "bo-configurazione",
   "bo-promo",
+  "bo-promo-analisi",
   "bo-catenarie",
   "bo-dispositivi",
   "bo-whatsapp",
@@ -296,7 +298,7 @@ const DISPLAY_ROUTES = new Set([
 // Addetto marketing: ruolo con accesso limitato all'area marketing + prenotazioni
 const ADDETTO_MARKETING_ROUTES = new Set([
   // Marketing core
-  "bo-template", "bo-tag", "bo-marketing", "bo-catenarie", "bo-promo",
+  "bo-template", "bo-tag", "bo-marketing", "bo-catenarie", "bo-promo", "bo-promo-analisi",
   // Fidelity
   "bo-fidelity",
   // Sito / Media
@@ -1642,6 +1644,7 @@ const ruolo = window.normalizeRuolo
 const ROUTE_FEATURES = {
   // Marketing & CRM
   "bo-promo":        "promo",
+  "bo-promo-analisi":"promo",
   "bo-catenarie":    "promo",
   "bo-marketing":    "marketing",
   "bo-chatbot":      "chatbot_whatsapp",
