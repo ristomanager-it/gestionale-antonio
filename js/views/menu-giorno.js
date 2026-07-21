@@ -66,6 +66,16 @@ export async function render(container) {
   const titoloVal = (mgEsistente && mgEsistente.titolo) ? mgEsistente.titolo : "Menu del Giorno";
   const fontFamVal = (mgEsistente && mgEsistente.font_family) ? mgEsistente.font_family : "Georgia, serif";
   const fontSizeVal = (mgEsistente && mgEsistente.font_size) ? mgEsistente.font_size : "medio";
+  const fontColorVal = (mgEsistente && mgEsistente.font_color) ? mgEsistente.font_color : "#1a1a1a";
+  const allineamentoVal = (mgEsistente && mgEsistente.allineamento) ? mgEsistente.allineamento : "center";
+  const mostraLogoVal = mgEsistente ? (mgEsistente.mostra_logo !== false) : true;
+  let logoUrl = (sede && sede.logo_url) || (azienda && azienda.logo_url) || "";
+  if (!logoUrl && azienda?.id) {
+    try {
+      const { data: azLogo } = await s.from("aziende").select("logo_url").eq("id", azienda.id).maybeSingle();
+      if (azLogo && azLogo.logo_url) logoUrl = azLogo.logo_url;
+    } catch (e) {}
+  }
   const escluse = new Set(Array.isArray(mgEsistente?.portate_escluse) ? mgEsistente.portate_escluse : []);
 
   // Storico ultimi 7 giorni (stessa sede) per evitare portate ravvicinate
@@ -156,6 +166,10 @@ export async function render(container) {
     + ['Georgia, serif|Georgia','\'Times New Roman\', serif|Times','\'Helvetica Neue\', Arial, sans-serif|Helvetica','Garamond, serif|Garamond','\'Courier New\', monospace|Courier'].map(o=>{const[v,l]=o.split('|');return '<option value="'+v+'"'+(fontFamVal===v?' selected':'')+'>'+l+'</option>';}).join('') + '</select></label>'
     + '<label style="font-size:13px;color:#334155;">Dim. <select id="mg-fontsize" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;">'
     + [['piccolo','Piccolo'],['medio','Medio'],['grande','Grande']].map(o=>'<option value="'+o[0]+'"'+(fontSizeVal===o[0]?' selected':'')+'>'+o[1]+'</option>').join('') + '</select></label>'
+    + '<label style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;">🎨 Colore <input id="mg-fontcolor" type="color" value="' + esc(fontColorVal) + '" style="width:38px;height:30px;padding:0;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;"></label>'
+    + '<label style="font-size:13px;color:#334155;">Allinea <select id="mg-allinea" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;">'
+    + [['center','Centrato'],['left','A sinistra']].map(o=>'<option value="'+o[0]+'"'+(allineamentoVal===o[0]?' selected':'')+'>'+o[1]+'</option>').join('') + '</select></label>'
+    + (logoUrl ? '<label style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-logo" type="checkbox"' + (mostraLogoVal ? ' checked' : '') + '> 🖼️ Logo</label>' : '<span style="font-size:11px;color:#94a3b8;">Nessun logo caricato (impostazioni azienda)</span>')
     + '<span id="mg-stato" style="font-size:12px;color:#64748b;margin-left:auto;">' + (mgEsistente ? (mgEsistente.pubblicato ? '✅ pubblicato' : '📝 bozza salvata') : 'nuovo') + '</span>'
     + '</div></div>';
 
@@ -326,10 +340,13 @@ export async function render(container) {
     const titolo = (container.querySelector("#mg-titolo")?.value || "").trim() || "Menu del Giorno";
     const font_family = container.querySelector("#mg-font")?.value || "Georgia, serif";
     const font_size = container.querySelector("#mg-fontsize")?.value || "medio";
+    const font_color = container.querySelector("#mg-fontcolor")?.value || "#1a1a1a";
+    const allineamento = container.querySelector("#mg-allinea")?.value || "center";
+    const mostra_logo = container.querySelector("#mg-logo") ? container.querySelector("#mg-logo").checked : true;
     const s2 = supa();
     const { data: sess } = await s2.auth.getUser();
     const uid = sess?.user?.id || null;
-    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzo_fisso: prezzoF, titolo, font_family, font_size, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
+    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
       const { error } = await s2.from("menu_giorno").update(payload).eq("id", mgEsistente.id);
       if (error) throw error;
@@ -349,6 +366,9 @@ export async function render(container) {
     const titolo = (container.querySelector("#mg-titolo")?.value || "").trim() || "Menu del Giorno";
     const fontFam = container.querySelector("#mg-font")?.value || "Georgia, serif";
     const fsKey = container.querySelector("#mg-fontsize")?.value || "medio";
+    const fontColor = container.querySelector("#mg-fontcolor")?.value || "#1a1a1a";
+    const allinea = container.querySelector("#mg-allinea")?.value || "center";
+    const conLogo = container.querySelector("#mg-logo") ? container.querySelector("#mg-logo").checked : false;
     const FS = { piccolo: { base: 14, h1: 24, h2: 14 }, medio: { base: 16, h1: 30, h2: 16 }, grande: { base: 20, h1: 38, h2: 20 } }[fsKey] || { base: 16, h1: 30, h2: 16 };
     const byPortata = {};
     PORTATE.forEach(p => { byPortata[p.key] = []; });
@@ -364,17 +384,23 @@ export async function render(container) {
 
     const titoloPrezzo = prezzoF ? '<div class="prezzo">Menu a € ' + money(prezzoF) + "</div>" : "";
     const sedeNome = sede?.nome ? '<div class="sede">' + esc(sede.nome) + "</div>" : "";
+    const logoImg = (conLogo && logoUrl) ? '<img class="logo" src="' + esc(logoUrl) + '" alt="logo">' : "";
+    // margini automatici per centrare le liste quando l'allineamento è centrato
+    const ulAlign = allinea === "center" ? "text-align:center;" : "text-align:left;";
+    const h2Border = allinea === "center" ? "border-bottom:1px solid #ccc;display:inline-block;padding:0 30px 4px;" : "border-bottom:1px solid #ccc;padding-bottom:4px;";
     const doc = '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(titolo) + '</title><style>'
-      + "body{font-family:" + fontFam + ";color:#1a1a1a;max-width:620px;margin:0 auto;padding:40px 30px;text-align:left;font-size:" + FS.base + "px;}"
-      + "h1{font-size:" + FS.h1 + "px;letter-spacing:1px;margin:0 0 4px;text-transform:uppercase;}"
-      + ".data{color:#666;font-size:14px;}"
-      + ".sede{color:#666;font-size:13px;margin-bottom:6px;}"
+      + "body{font-family:" + fontFam + ";color:" + fontColor + ";max-width:620px;margin:0 auto;padding:40px 30px;text-align:" + allinea + ";font-size:" + FS.base + "px;display:flex;flex-direction:column;justify-content:center;min-height:90vh;box-sizing:border-box;}"
+      + ".logo{max-width:150px;max-height:120px;object-fit:contain;margin:0 auto 18px;display:block;}"
+      + "h1{font-size:" + FS.h1 + "px;letter-spacing:1px;margin:0 0 4px;text-transform:uppercase;color:" + fontColor + ";}"
+      + ".data{opacity:.7;font-size:14px;}"
+      + ".sede{opacity:.7;font-size:13px;margin-bottom:6px;}"
       + ".prezzo{font-size:18px;font-weight:bold;margin:8px 0 18px;}"
-      + "h2{font-size:" + FS.h2 + "px;letter-spacing:2px;text-transform:uppercase;margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px;}"
-      + "ul{list-style:none;padding:0;margin:0 0 6px;} li{font-size:" + FS.base + "px;margin:4px 0;}"
-      + ".incluso{margin-top:26px;font-style:italic;font-size:14px;color:#444;}"
-      + "@media print{body{padding:20px;}}"
+      + "h2{font-size:" + FS.h2 + "px;letter-spacing:2px;text-transform:uppercase;margin:22px 0 6px;" + h2Border + "}"
+      + "ul{list-style:none;padding:0;margin:0 0 6px;" + ulAlign + "} li{font-size:" + FS.base + "px;margin:4px 0;}"
+      + ".incluso{margin-top:26px;font-style:italic;font-size:14px;opacity:.75;}"
+      + "@media print{body{padding:20px;min-height:auto;}}"
       + "</style></head><body>"
+      + logoImg
       + "<h1>" + esc(titolo) + "</h1>"
       + '<div class="data">' + esc(formatDataIta(dataV)) + "</div>"
       + sedeNome + titoloPrezzo + sezioni
