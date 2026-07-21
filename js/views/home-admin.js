@@ -793,8 +793,10 @@ async function refreshDashboard(period) {
     setText("costoLavoroValore", formatCurrency(0));
     setText("margineValore", formatCurrency(0));
 
+    resetPercStyle("materiaPrimaPerc");
     setText("materiaPrimaPerc", "0%");
     setText("speseFissePerc", "0%");
+    resetPercStyle("costoLavoroPerc");
     setText("costoLavoroPerc", "0%");
     setText("marginePerc", "0%");
 
@@ -838,9 +840,10 @@ async function refreshDashboard(period) {
   setText("costoLavoroValore", formatCurrency(metrics.costoLavoro));
   setText("margineValore", formatCurrency(metrics.margine));
 
-  setText("materiaPrimaPerc", metrics.materiaPrimaPerc + "%");
+  // FC e CL con target visivo: verde entro soglia, giallo in tolleranza, rosso oltre
+  setPercTarget("materiaPrimaPerc", metrics.materiaPrimaPerc, 30, "Food cost target ≤ 30%");
   setText("speseFissePerc", metrics.speseFissePerc + "%");
-  setText("costoLavoroPerc", metrics.costoLavoroPerc + "%");
+  setPercTarget("costoLavoroPerc", metrics.costoLavoroPerc, 32, "Costo lavoro target ≤ 32%");
   setText("marginePerc", metrics.marginePerc + "%");
 
   await enrichProductCategories();
@@ -1350,6 +1353,38 @@ async function hydrateWeather() {
 function setText(id, value) {
   const el = document.getElementById(id);
   if (el) el.innerText = value;
+}
+
+// Colora una percentuale KPI in base al target: verde se <= target,
+// giallo se entro +2 punti (zona di attenzione), rosso se oltre.
+function setPercTarget(id, perc, target, titolo) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = Number(perc) || 0;
+  el.innerText = v + "%";
+  let colore, bg, icona;
+  if (v <= target)            { colore = "#15803d"; bg = "#dcfce7"; icona = "✓"; }
+  else if (v <= target + 2)   { colore = "#b45309"; bg = "#fef9c3"; icona = "!"; }
+  else                        { colore = "#dc2626"; bg = "#fee2e2"; icona = "▲"; }
+  el.style.color = colore;
+  el.style.background = bg;
+  el.style.borderRadius = "6px";
+  el.style.padding = "1px 7px";
+  el.style.fontWeight = "700";
+  el.style.display = "inline-block";
+  if (titolo) el.title = titolo + " — attuale " + v + "%";
+  el.innerText = icona + " " + v + "%";
+}
+
+function resetPercStyle(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.color = "";
+  el.style.background = "";
+  el.style.borderRadius = "";
+  el.style.padding = "";
+  el.style.display = "";
+  el.title = "";
 }
 
 function formatCurrency(value) {
