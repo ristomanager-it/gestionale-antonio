@@ -105,20 +105,26 @@ export async function render(container) {
   }
   function infoColor(r) { return (r && usoRecente.get(String(r.id)) != null) ? '#b45309' : '#64748b'; }
   function liberoRow(key, nome, prezzo) {
-    return '<div class="mg-lib-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;background:#fff;">'
+    return '<div class="mg-lib-row mg-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;background:#fff;">'
       + '<span class="mg-drag" draggable="true" title="Trascina per riordinare" style="cursor:grab;color:#94a3b8;font-size:18px;padding:0 4px;user-select:none;">⠿</span>'
       + '<input class="mg-lib-nome" data-portata="' + key + '" value="' + esc(nome || '') + '" placeholder="Piatto non catalogato (scrivilo)" style="flex:1;min-width:160px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
       + '<input class="mg-lib-prezzo" type="number" step="0.5" value="' + (prezzo != null && prezzo !== '' ? prezzo : '') + '" placeholder="€" style="width:78px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
       + '<button class="mg-lib-del" title="Rimuovi" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:7px 10px;cursor:pointer;">✕</button>'
       + '</div>';
   }
+  let _slotSeq = 0;
+  function slotRowVal(key, selId) {
+    const r = selId ? mappaRicetta.get(String(selId)) : null;
+    const uid = key + "_" + (_slotSeq++);
+    return '<div class="mg-slot-row mg-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;background:#fff;">'
+      + '<span class="mg-drag" draggable="true" title="Trascina per riordinare" style="cursor:grab;color:#94a3b8;font-size:18px;padding:0 4px;user-select:none;">⠿</span>'
+      + '<select class="mg-sel" data-portata="' + key + '" data-slot="' + uid + '" style="flex:1;min-width:180px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;">' + optionsFor(key, selId) + '</select>'
+      + '<span class="mg-info" data-portata="' + key + '" data-slot="' + uid + '" style="font-size:11px;color:' + infoColor(r) + ';min-width:120px;">' + infoText(r) + '</span>'
+      + '</div>';
+  }
   function slotRow(key, idx) {
     const selId = sel[key][idx];
-    const r = selId ? mappaRicetta.get(String(selId)) : null;
-    return '<div class="mg-slot-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
-      + '<select class="mg-sel" data-portata="' + key + '" data-slot="' + idx + '" style="flex:1;min-width:180px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;">' + optionsFor(key, selId) + '</select>'
-      + '<span class="mg-info" data-portata="' + key + '" data-slot="' + idx + '" style="font-size:11px;color:' + infoColor(r) + ';min-width:120px;">' + infoText(r) + '</span>'
-      + '</div>';
+    return slotRowVal(key, selId);
   }
 
   let html = '<section class="view" style="padding:16px;max-width:900px;margin:0 auto;">';
@@ -156,8 +162,19 @@ export async function render(container) {
       + '<span style="font-size:11px;color:#94a3b8;">' + disp + ' ricette</span>'
       + '<button class="mg-rm-portata" data-portata="' + p.key + '" title="Rimuovi questa portata dal menu" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;">✕</button>'
       + '</div></div>';
-    for (let i = 0; i < p.slots; i++) html += slotRow(p.key, i);
-    html += '<div class="mg-liberi" data-portata="' + p.key + '">' + (liberiEsistenti[p.key] || []).map(v => liberoRow(p.key, v.nome, v.prezzo)).join("") + '</div>';
+    html += '<div class="mg-lista" data-portata="' + p.key + '">';
+    // voci salvate di questa portata, nell'ordine salvato (misto catalogati/liberi)
+    const vociP = (mgEsistente && Array.isArray(mgEsistente.voci)) ? mgEsistente.voci.filter(v => v.portata === p.key) : [];
+    let slotUsati = 0;
+    if (vociP.length) {
+      vociP.forEach(v => {
+        if (v.ricetta_id) { html += slotRowVal(p.key, String(v.ricetta_id)); slotUsati++; }
+        else html += liberoRow(p.key, v.nome, v.prezzo);
+      });
+    }
+    // slot catalogati vuoti rimanenti (fino a p.slots)
+    for (let i = slotUsati; i < p.slots; i++) html += slotRowVal(p.key, "");
+    html += '</div>';
     html += '<button class="mg-add-libero" data-portata="' + p.key + '" style="font-size:12px;background:#eef2ff;border:1px dashed #c7d2fe;color:#4338ca;border-radius:8px;padding:6px 10px;cursor:pointer;margin-top:2px;">＋ Piatto libero (non catalogato)</button>';
     if (disp === 0) html += '<p style="font-size:12px;color:#b45309;margin:8px 0 0;">Nessuna ricetta con categoria "' + p.key + '" nel ricettario: usa "Piatto libero" oppure catalogala.</p>';
     html += '</div>';
@@ -197,27 +214,26 @@ export async function render(container) {
   }
   container.querySelectorAll(".mg-sel").forEach(selEl => selEl.addEventListener("change", () => aggiornaInfo(selEl)));
 
-  // Riordino piatti NON catalogati con TRASCINAMENTO (drag & drop)
+  // Riordino UNIFICATO con trascinamento: slot catalogati e piatti liberi insieme
   let dragRow = null;
   container.addEventListener("dragstart", (e) => {
     const handle = e.target.closest(".mg-drag");
     if (!handle) return;
-    const row = handle.closest(".mg-lib-row");
+    const row = handle.closest(".mg-row");
     if (!row) return;
     dragRow = row;
     row.style.opacity = "0.4";
     try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); } catch (_) {}
   });
   container.addEventListener("dragend", (e) => {
-    const row = e.target.closest(".mg-lib-row");
+    const row = e.target.closest(".mg-row");
     if (row) row.style.opacity = "";
     dragRow = null;
   });
   container.addEventListener("dragover", (e) => {
     if (!dragRow) return;
-    const over = e.target.closest(".mg-lib-row");
+    const over = e.target.closest(".mg-row");
     if (!over || over === dragRow) return;
-    // solo dentro la stessa portata
     if (over.getAttribute("data-portata") !== dragRow.getAttribute("data-portata")) return;
     e.preventDefault();
     const rect = over.getBoundingClientRect();
@@ -227,12 +243,12 @@ export async function render(container) {
     else parent.insertBefore(dragRow, over);
   });
 
-  // Fallback TOUCH (tablet/telefono): trascina tenendo il dito sulla maniglia
+  // Fallback TOUCH (tablet/telefono)
   let touchRow = null;
   container.addEventListener("touchstart", (e) => {
     const handle = e.target.closest(".mg-drag");
     if (!handle) return;
-    touchRow = handle.closest(".mg-lib-row");
+    touchRow = handle.closest(".mg-row");
     if (touchRow) touchRow.style.opacity = "0.4";
   }, { passive: true });
   container.addEventListener("touchmove", (e) => {
@@ -240,7 +256,7 @@ export async function render(container) {
     e.preventDefault();
     const t = e.touches[0];
     const el = document.elementFromPoint(t.clientX, t.clientY);
-    const over = el && el.closest ? el.closest(".mg-lib-row") : null;
+    const over = el && el.closest ? el.closest(".mg-row") : null;
     if (!over || over === touchRow) return;
     if (over.getAttribute("data-portata") !== touchRow.getAttribute("data-portata")) return;
     const rect = over.getBoundingClientRect();
@@ -279,7 +295,7 @@ export async function render(container) {
   container.querySelectorAll(".mg-add-libero").forEach(btn => {
     btn.addEventListener("click", () => {
       const key = btn.getAttribute("data-portata");
-      const cont = container.querySelector('.mg-liberi[data-portata="' + key + '"]');
+      const cont = container.querySelector('.mg-lista[data-portata="' + key + '"]');
       const tmp = document.createElement("div");
       tmp.innerHTML = liberoRow(key, "", "");
       const row = tmp.firstElementChild;
@@ -313,24 +329,31 @@ export async function render(container) {
     const voci = [];
     PORTATE.forEach(p => {
       if (escluse.has(p.key)) return;
-      container.querySelectorAll('.mg-sel[data-portata="' + p.key + '"]').forEach(selEl => {
-        const rid = selEl.value;
-        if (!rid) return;
-        const r = mappaRicetta.get(String(rid));
-        voci.push({
-          ricetta_id: Number(rid),
-          portata: p.key,
-          nome: r ? r.nome : "Piatto",
-          prezzo: r ? prezzoRicetta(r) : 0,
-          food_cost: r && r.food_cost_percentuale != null ? Number(r.food_cost_percentuale) : null,
-        });
-      });
-      // Piatti liberi
-      container.querySelectorAll('.mg-liberi[data-portata="' + p.key + '"] .mg-lib-row').forEach(row => {
-        const nome = (row.querySelector(".mg-lib-nome")?.value || "").trim();
-        if (!nome) return;
-        const prezzo = Number(row.querySelector(".mg-lib-prezzo")?.value) || 0;
-        voci.push({ ricetta_id: null, portata: p.key, nome, prezzo, food_cost: null, libero: true });
+      // leggo le righe nell'ordine del DOM: catalogate (mg-sel) e libere (mg-lib-nome) mescolate
+      const lista = container.querySelector('.mg-lista[data-portata="' + p.key + '"]');
+      if (!lista) return;
+      lista.querySelectorAll(".mg-row").forEach(row => {
+        const sel = row.querySelector(".mg-sel");
+        if (sel) {
+          const rid = sel.value;
+          if (!rid) return;
+          const r = mappaRicetta.get(String(rid));
+          voci.push({
+            ricetta_id: Number(rid),
+            portata: p.key,
+            nome: r ? r.nome : "Piatto",
+            prezzo: r ? prezzoRicetta(r) : 0,
+            food_cost: r && r.food_cost_percentuale != null ? Number(r.food_cost_percentuale) : null,
+          });
+          return;
+        }
+        const nomeEl = row.querySelector(".mg-lib-nome");
+        if (nomeEl) {
+          const nome = (nomeEl.value || "").trim();
+          if (!nome) return;
+          const prezzo = Number(row.querySelector(".mg-lib-prezzo")?.value) || 0;
+          voci.push({ ricetta_id: null, portata: p.key, nome, prezzo, food_cost: null, libero: true });
+        }
       });
     });
     return voci;
