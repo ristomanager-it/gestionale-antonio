@@ -67,6 +67,7 @@ export async function render(container) {
   let prezzoFisso = mgEsistente && mgEsistente.prezzo_fisso != null ? Number(mgEsistente.prezzo_fisso) : null;
   const titoloVal = (mgEsistente && mgEsistente.titolo) ? mgEsistente.titolo : "Menu gruppo";
   const nomeGruppoVal = (mgEsistente && mgEsistente.nome_gruppo) ? mgEsistente.nome_gruppo : "";
+  const testoInclusoVal = (mgEsistente && mgEsistente.testo_incluso != null) ? mgEsistente.testo_incluso : "Acqua e caffè inclusi";
   const fontFamVal = (mgEsistente && mgEsistente.font_family) ? mgEsistente.font_family : "Georgia, serif";
   const fontSizeVal = (mgEsistente && mgEsistente.font_size) ? mgEsistente.font_size : "medio";
   const fontColorVal = (mgEsistente && mgEsistente.font_color) ? mgEsistente.font_color : "#1a1a1a";
@@ -104,7 +105,11 @@ export async function render(container) {
   }
   function infoColor(r) { return (r && usoRecente.get(String(r.id)) != null) ? '#b45309' : '#64748b'; }
   function liberoRow(key, nome, prezzo) {
-    return '<div class="mg-lib-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
+    return '<div class="mg-lib-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
+      + '<span class="mg-move" style="display:flex;flex-direction:column;gap:1px;">'
+      + '<button class="mg-up" title="Sposta su" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px;font-size:11px;line-height:16px;cursor:pointer;">▲</button>'
+      + '<button class="mg-down" title="Sposta giù" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px;font-size:11px;line-height:16px;cursor:pointer;">▼</button>'
+      + '</span>'
       + '<input class="mg-lib-nome" data-portata="' + key + '" value="' + esc(nome || '') + '" placeholder="Piatto non catalogato (scrivilo)" style="flex:1;min-width:160px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
       + '<input class="mg-lib-prezzo" type="number" step="0.5" value="' + (prezzo != null && prezzo !== '' ? prezzo : '') + '" placeholder="€" style="width:78px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
       + '<button class="mg-lib-del" title="Rimuovi" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:7px 10px;cursor:pointer;">✕</button>'
@@ -113,7 +118,11 @@ export async function render(container) {
   function slotRow(key, idx) {
     const selId = sel[key][idx];
     const r = selId ? mappaRicetta.get(String(selId)) : null;
-    return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
+    return '<div class="mg-slot-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
+      + '<span class="mg-move" style="display:flex;flex-direction:column;gap:1px;">'
+      + '<button class="mg-up" title="Sposta su" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px;font-size:11px;line-height:16px;cursor:pointer;">▲</button>'
+      + '<button class="mg-down" title="Sposta giù" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px;font-size:11px;line-height:16px;cursor:pointer;">▼</button>'
+      + '</span>'
       + '<select class="mg-sel" data-portata="' + key + '" data-slot="' + idx + '" style="flex:1;min-width:180px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;">' + optionsFor(key, selId) + '</select>'
       + '<span class="mg-info" data-portata="' + key + '" data-slot="' + idx + '" style="font-size:11px;color:' + infoColor(r) + ';min-width:120px;">' + infoText(r) + '</span>'
       + '</div>';
@@ -128,6 +137,7 @@ export async function render(container) {
     + '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">'
     + '<label style="font-size:13px;color:#334155;">📝 Titolo <input id="mg-titolo" value="' + esc(titoloVal) + '" placeholder="Menu gruppo" style="width:170px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;">👥 Gruppo/Agenzia <input id="mg-gruppo" value="' + esc(nomeGruppoVal) + '" placeholder="Es. Agenzia Rossi Tours" style="width:200px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
+    + '<label style="font-size:13px;color:#334155;">🍷 Inclusi <input id="mg-incluso" value="' + esc(testoInclusoVal) + '" placeholder="Es. Acqua e vino inclusi" style="width:200px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;">Data <input id="mg-data" type="date" value="' + oggi + '" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;">💶 Prezzo fisso € <input id="mg-prezzo" type="number" step="0.5" min="0" value="' + (prezzoFisso != null ? prezzoFisso : '') + '" placeholder="—" style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-mp" type="checkbox"' + (mezzaPensione ? ' checked' : '') + '> Mezza pensione</label>'
@@ -193,6 +203,36 @@ export async function render(container) {
     if (infoEl) { infoEl.textContent = infoText(r); infoEl.style.color = infoColor(r); }
   }
   container.querySelectorAll(".mg-sel").forEach(selEl => selEl.addEventListener("change", () => aggiornaInfo(selEl)));
+
+  // Riordino piatti dentro la portata (frecce su/giù): scambia i valori con la riga adiacente dello stesso tipo
+  container.addEventListener("click", (e) => {
+    const up = e.target.closest(".mg-up");
+    const down = e.target.closest(".mg-down");
+    if (!up && !down) return;
+    const row = e.target.closest(".mg-slot-row, .mg-lib-row");
+    if (!row) return;
+    const tipoSel = row.classList.contains("mg-slot-row") ? ".mg-slot-row" : ".mg-lib-row";
+    const key = row.getAttribute("data-portata");
+    // righe dello stesso tipo e stessa portata
+    const righe = [...container.querySelectorAll(tipoSel + '[data-portata="' + key + '"]')];
+    const i = righe.indexOf(row);
+    const j = up ? i - 1 : i + 1;
+    if (j < 0 || j >= righe.length) return;
+    const altra = righe[j];
+    if (tipoSel === ".mg-slot-row") {
+      // scambio valore dei select + refresh info
+      const s1 = row.querySelector(".mg-sel"), s2 = altra.querySelector(".mg-sel");
+      const v = s1.value; s1.value = s2.value; s2.value = v;
+      aggiornaInfo(s1); aggiornaInfo(s2);
+      s1.style.borderColor = "#0ea5e9"; setTimeout(() => { s1.style.borderColor = ""; }, 400);
+    } else {
+      // scambio nome+prezzo dei piatti liberi
+      const n1 = row.querySelector(".mg-lib-nome"), n2 = altra.querySelector(".mg-lib-nome");
+      const p1 = row.querySelector(".mg-lib-prezzo"), p2 = altra.querySelector(".mg-lib-prezzo");
+      let t = n1.value; n1.value = n2.value; n2.value = t;
+      t = p1.value; p1.value = p2.value; p2.value = t;
+    }
+  });
 
   // Suggerimento -> riempi il primo slot libero della portata
   container.querySelectorAll(".mg-sugg").forEach(btn => {
@@ -283,6 +323,7 @@ export async function render(container) {
     const prezzoF = Number(container.querySelector("#mg-prezzo")?.value) || null;
     const titolo = (container.querySelector("#mg-titolo")?.value || "").trim() || "Menu gruppo";
     const nome_gruppo = (container.querySelector("#mg-gruppo")?.value || "").trim() || null;
+    const testo_incluso = (container.querySelector("#mg-incluso")?.value || "").trim();
     const font_family = container.querySelector("#mg-font")?.value || "Georgia, serif";
     const font_size = container.querySelector("#mg-fontsize")?.value || "medio";
     const font_color = container.querySelector("#mg-fontcolor")?.value || "#1a1a1a";
@@ -291,7 +332,7 @@ export async function render(container) {
     const s2 = supa();
     const { data: sess } = await s2.auth.getUser();
     const uid = sess?.user?.id || null;
-    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, nome_gruppo, mezza_pensione: mp, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
+    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, nome_gruppo, testo_incluso, mezza_pensione: mp, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
       const { error } = await s2.from("menu_componibile").update(payload).eq("id", mgEsistente.id);
       if (error) throw error;
@@ -311,6 +352,7 @@ export async function render(container) {
     const prezzoF = Number(container.querySelector("#mg-prezzo")?.value) || null;
     const titolo = (container.querySelector("#mg-titolo")?.value || "").trim() || "Menu gruppo";
     const nomeGruppo = (container.querySelector("#mg-gruppo")?.value || "").trim();
+    const testoIncluso = (container.querySelector("#mg-incluso")?.value || "").trim();
     const fontFam = container.querySelector("#mg-font")?.value || "Georgia, serif";
     const fsKey = container.querySelector("#mg-fontsize")?.value || "medio";
     const fontColor = container.querySelector("#mg-fontcolor")?.value || "#1a1a1a";
@@ -352,7 +394,7 @@ export async function render(container) {
       + "<h1>" + esc(titolo) + "</h1>"
       + '<div class="data">' + esc(formatDataIta(dataV)) + "</div>"
       + sedeNome + gruppoRiga + titoloPrezzo + sezioni
-      + '<div class="incluso">Acqua e caffè inclusi</div>'
+      + (testoIncluso ? '<div class="incluso">' + esc(testoIncluso) + '</div>' : "")
       + "</body></html>";
     const w = window.open("", "_blank");
     if (!w) { alert("Consenti i popup per stampare."); return; }
