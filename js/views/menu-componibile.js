@@ -105,11 +105,8 @@ export async function render(container) {
   }
   function infoColor(r) { return (r && usoRecente.get(String(r.id)) != null) ? '#b45309' : '#64748b'; }
   function liberoRow(key, nome, prezzo) {
-    return '<div class="mg-lib-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
-      + '<span class="mg-move" style="display:flex;flex-direction:column;gap:1px;">'
-      + '<button class="mg-up" title="Sposta su" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px;font-size:11px;line-height:16px;cursor:pointer;">▲</button>'
-      + '<button class="mg-down" title="Sposta giù" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px;font-size:11px;line-height:16px;cursor:pointer;">▼</button>'
-      + '</span>'
+    return '<div class="mg-lib-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;background:#fff;">'
+      + '<span class="mg-drag" draggable="true" title="Trascina per riordinare" style="cursor:grab;color:#94a3b8;font-size:18px;padding:0 4px;user-select:none;">⠿</span>'
       + '<input class="mg-lib-nome" data-portata="' + key + '" value="' + esc(nome || '') + '" placeholder="Piatto non catalogato (scrivilo)" style="flex:1;min-width:160px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
       + '<input class="mg-lib-prezzo" type="number" step="0.5" value="' + (prezzo != null && prezzo !== '' ? prezzo : '') + '" placeholder="€" style="width:78px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
       + '<button class="mg-lib-del" title="Rimuovi" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:7px 10px;cursor:pointer;">✕</button>'
@@ -200,24 +197,61 @@ export async function render(container) {
   }
   container.querySelectorAll(".mg-sel").forEach(selEl => selEl.addEventListener("change", () => aggiornaInfo(selEl)));
 
-  // Riordino piatti NON catalogati (frecce su/giù): scambia nome+prezzo con la riga adiacente
-  container.addEventListener("click", (e) => {
-    const up = e.target.closest(".mg-up");
-    const down = e.target.closest(".mg-down");
-    if (!up && !down) return;
-    const row = e.target.closest(".mg-lib-row");
+  // Riordino piatti NON catalogati con TRASCINAMENTO (drag & drop)
+  let dragRow = null;
+  container.addEventListener("dragstart", (e) => {
+    const handle = e.target.closest(".mg-drag");
+    if (!handle) return;
+    const row = handle.closest(".mg-lib-row");
     if (!row) return;
-    const key = row.getAttribute("data-portata");
-    const righe = [...container.querySelectorAll('.mg-lib-row[data-portata="' + key + '"]')];
-    const i = righe.indexOf(row);
-    const j = up ? i - 1 : i + 1;
-    if (j < 0 || j >= righe.length) return;
-    const altra = righe[j];
-    const n1 = row.querySelector(".mg-lib-nome"), n2 = altra.querySelector(".mg-lib-nome");
-    const p1 = row.querySelector(".mg-lib-prezzo"), p2 = altra.querySelector(".mg-lib-prezzo");
-    let t = n1.value; n1.value = n2.value; n2.value = t;
-    t = p1.value; p1.value = p2.value; p2.value = t;
-    n1.style.borderColor = "#0ea5e9"; setTimeout(() => { n1.style.borderColor = ""; }, 400);
+    dragRow = row;
+    row.style.opacity = "0.4";
+    try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); } catch (_) {}
+  });
+  container.addEventListener("dragend", (e) => {
+    const row = e.target.closest(".mg-lib-row");
+    if (row) row.style.opacity = "";
+    dragRow = null;
+  });
+  container.addEventListener("dragover", (e) => {
+    if (!dragRow) return;
+    const over = e.target.closest(".mg-lib-row");
+    if (!over || over === dragRow) return;
+    // solo dentro la stessa portata
+    if (over.getAttribute("data-portata") !== dragRow.getAttribute("data-portata")) return;
+    e.preventDefault();
+    const rect = over.getBoundingClientRect();
+    const dopo = (e.clientY - rect.top) > rect.height / 2;
+    const parent = over.parentNode;
+    if (dopo) parent.insertBefore(dragRow, over.nextSibling);
+    else parent.insertBefore(dragRow, over);
+  });
+
+  // Fallback TOUCH (tablet/telefono): trascina tenendo il dito sulla maniglia
+  let touchRow = null;
+  container.addEventListener("touchstart", (e) => {
+    const handle = e.target.closest(".mg-drag");
+    if (!handle) return;
+    touchRow = handle.closest(".mg-lib-row");
+    if (touchRow) touchRow.style.opacity = "0.4";
+  }, { passive: true });
+  container.addEventListener("touchmove", (e) => {
+    if (!touchRow) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const over = el && el.closest ? el.closest(".mg-lib-row") : null;
+    if (!over || over === touchRow) return;
+    if (over.getAttribute("data-portata") !== touchRow.getAttribute("data-portata")) return;
+    const rect = over.getBoundingClientRect();
+    const dopo = (t.clientY - rect.top) > rect.height / 2;
+    const parent = over.parentNode;
+    if (dopo) parent.insertBefore(touchRow, over.nextSibling);
+    else parent.insertBefore(touchRow, over);
+  }, { passive: false });
+  container.addEventListener("touchend", () => {
+    if (touchRow) touchRow.style.opacity = "";
+    touchRow = null;
   });
 
   // Suggerimento -> riempi il primo slot libero della portata
