@@ -374,6 +374,7 @@ export function initMenu() {
       items: [
         { label: "📖 Ricettario",         route: "ricettario"         },
         { label: "🍽️ Menu del Giorno", route: "menu-giorno" },
+        { label: "🧩 Menu Componibile", route: "menu-componibile" },
         { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
         { label: "🍳 Ristoflow Kitchen",   route: "kds"               },
         { label: "🏭 Schermo Produzioni",   route: "kds-produzioni"    },

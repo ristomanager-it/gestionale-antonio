@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=26";
+import { initMenu } from "./menu.js?v=27";
 window.initMenu = initMenu;
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
@@ -115,6 +115,7 @@ const routes = {
 "scegli-sede": () => import("./views/scegli-sede.js"),
   acquisti: () => import("./views/acquisti/index.js?v=17"),
   "menu-giorno": () => import("./views/menu-giorno.js?v=9"),
+  "menu-componibile": () => import("./views/menu-componibile.js?v=1"),
   magazzino: () => import("./views/magazzino/magazzino.js?v=8"),
   ordini: () => import("./views/ordini.js?v=2"),
   ordine: () => import("./views/ordine.js?v=7"),
@@ -278,6 +279,7 @@ const BO_ROUTES = new Set([
   "food-cost-mancanti",
   "spese-fisse",
   "menu-giorno",
+  "menu-componibile",
   "bo-comande",
   "bo-configurazione",
   "bo-promo",
