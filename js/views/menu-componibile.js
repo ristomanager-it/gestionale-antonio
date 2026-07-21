@@ -119,10 +119,6 @@ export async function render(container) {
     const selId = sel[key][idx];
     const r = selId ? mappaRicetta.get(String(selId)) : null;
     return '<div class="mg-slot-row" data-portata="' + key + '" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
-      + '<span class="mg-move" style="display:flex;flex-direction:column;gap:1px;">'
-      + '<button class="mg-up" title="Sposta su" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px;font-size:11px;line-height:16px;cursor:pointer;">▲</button>'
-      + '<button class="mg-down" title="Sposta giù" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px;font-size:11px;line-height:16px;cursor:pointer;">▼</button>'
-      + '</span>'
       + '<select class="mg-sel" data-portata="' + key + '" data-slot="' + idx + '" style="flex:1;min-width:180px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;">' + optionsFor(key, selId) + '</select>'
       + '<span class="mg-info" data-portata="' + key + '" data-slot="' + idx + '" style="font-size:11px;color:' + infoColor(r) + ';min-width:120px;">' + infoText(r) + '</span>'
       + '</div>';
@@ -204,34 +200,24 @@ export async function render(container) {
   }
   container.querySelectorAll(".mg-sel").forEach(selEl => selEl.addEventListener("change", () => aggiornaInfo(selEl)));
 
-  // Riordino piatti dentro la portata (frecce su/giù): scambia i valori con la riga adiacente dello stesso tipo
+  // Riordino piatti NON catalogati (frecce su/giù): scambia nome+prezzo con la riga adiacente
   container.addEventListener("click", (e) => {
     const up = e.target.closest(".mg-up");
     const down = e.target.closest(".mg-down");
     if (!up && !down) return;
-    const row = e.target.closest(".mg-slot-row, .mg-lib-row");
+    const row = e.target.closest(".mg-lib-row");
     if (!row) return;
-    const tipoSel = row.classList.contains("mg-slot-row") ? ".mg-slot-row" : ".mg-lib-row";
     const key = row.getAttribute("data-portata");
-    // righe dello stesso tipo e stessa portata
-    const righe = [...container.querySelectorAll(tipoSel + '[data-portata="' + key + '"]')];
+    const righe = [...container.querySelectorAll('.mg-lib-row[data-portata="' + key + '"]')];
     const i = righe.indexOf(row);
     const j = up ? i - 1 : i + 1;
     if (j < 0 || j >= righe.length) return;
     const altra = righe[j];
-    if (tipoSel === ".mg-slot-row") {
-      // scambio valore dei select + refresh info
-      const s1 = row.querySelector(".mg-sel"), s2 = altra.querySelector(".mg-sel");
-      const v = s1.value; s1.value = s2.value; s2.value = v;
-      aggiornaInfo(s1); aggiornaInfo(s2);
-      s1.style.borderColor = "#0ea5e9"; setTimeout(() => { s1.style.borderColor = ""; }, 400);
-    } else {
-      // scambio nome+prezzo dei piatti liberi
-      const n1 = row.querySelector(".mg-lib-nome"), n2 = altra.querySelector(".mg-lib-nome");
-      const p1 = row.querySelector(".mg-lib-prezzo"), p2 = altra.querySelector(".mg-lib-prezzo");
-      let t = n1.value; n1.value = n2.value; n2.value = t;
-      t = p1.value; p1.value = p2.value; p2.value = t;
-    }
+    const n1 = row.querySelector(".mg-lib-nome"), n2 = altra.querySelector(".mg-lib-nome");
+    const p1 = row.querySelector(".mg-lib-prezzo"), p2 = altra.querySelector(".mg-lib-prezzo");
+    let t = n1.value; n1.value = n2.value; n2.value = t;
+    t = p1.value; p1.value = p2.value; p2.value = t;
+    n1.style.borderColor = "#0ea5e9"; setTimeout(() => { n1.style.borderColor = ""; }, 400);
   });
 
   // Suggerimento -> riempi il primo slot libero della portata
