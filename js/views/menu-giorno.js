@@ -406,12 +406,32 @@ export async function render(container) {
       + sedeNome + titoloPrezzo + sezioni
       + '<div class="incluso">Acqua e caffè inclusi</div>'
       + "</body></html>";
-    const w = window.open("", "_blank");
-    if (!w) { alert("Consenti i popup per stampare."); return; }
-    w.document.write(doc);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { try { w.print(); } catch (e) {} }, 300);
+    mostraAnteprimaMenu(doc);
+  }
+
+  function mostraAnteprimaMenu(doc) {
+    const vecchio = document.getElementById("mg-anteprima-overlay");
+    if (vecchio) vecchio.remove();
+    const ov = document.createElement("div");
+    ov.id = "mg-anteprima-overlay";
+    ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.75);display:flex;flex-direction:column;";
+    ov.innerHTML =
+      '<div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:10px 14px;background:#0f172a;">'
+      + '<button id="mg-ant-stampa" style="background:#0E5A7A;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Stampa</button>'
+      + '<button id="mg-ant-chiudi" style="background:#fff;color:#0f172a;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer;">✕ Chiudi</button>'
+      + '</div>'
+      + '<div style="flex:1;background:#fff;overflow:auto;"><iframe id="mg-ant-frame" style="width:100%;height:100%;border:none;"></iframe></div>';
+    document.body.appendChild(ov);
+    const frame = ov.querySelector("#mg-ant-frame");
+    const fdoc = frame.contentWindow.document;
+    fdoc.open(); fdoc.write(doc); fdoc.close();
+    const chiudi = () => ov.remove();
+    ov.querySelector("#mg-ant-chiudi").addEventListener("click", chiudi);
+    ov.addEventListener("click", (e) => { if (e.target === ov) chiudi(); });
+    document.addEventListener("keydown", function esc(e) { if (e.key === "Escape") { chiudi(); document.removeEventListener("keydown", esc); } });
+    ov.querySelector("#mg-ant-stampa").addEventListener("click", () => {
+      try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
+    });
   }
 
   const btnStampa = container.querySelector("#mg-stampa");
