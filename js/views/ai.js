@@ -833,7 +833,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
-    const res = await fetch(`${supabaseUrl}/functions/v1/assistente-ai`, {
+    const res = await fetch(`${supabaseUrl}/functions/v1/tony-router`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
