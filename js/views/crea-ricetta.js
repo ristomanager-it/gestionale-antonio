@@ -2245,7 +2245,6 @@ function aggiornaFoodCostLive() {
   }
 
   const output_peso = toNumOrNull(getVal("r-output-peso"));
-  const scaling_tempo = toNumOrNull(getVal("r-scaling-tempo"));
   const output_um = getVal("r-output-um");
 
   const computed = computeCostoIndustriale({
@@ -3333,6 +3332,7 @@ async function salvaTutto() {
   const prodotto_output_id_raw = getVal("r-output-id");
   const prodotto_output_id = toBigIntOrNull(prodotto_output_id_raw);
   const output_peso = toNumOrNull(getVal("r-output-peso"));
+  const scaling_tempo = toNumOrNull(getVal("r-scaling-tempo"));
   const output_um = getVal("r-output-um");
   const output_note = getVal("r-output-note").trim() || null;
 
@@ -4098,7 +4098,16 @@ function bindUI() {
   safeOn("btn-tony-coprodotti", "click", () => apriModalTony("coprodotti"));
   safeOn("btn-add-conservazione", "click", () => aggiungiScenarioConservazione());
   safeOn("btn-add-porzione", "click", () => aggiungiPorzione());
-  safeOn("btn-salva", "click", () => salvaTutto());
+  safeOn("btn-salva", "click", async () => {
+    try {
+      await salvaTutto();
+    } catch (e) {
+      console.error("Salvataggio ricetta fallito:", e);
+      const esito = document.getElementById("r-esito");
+      if (esito) esito.innerHTML = '<span style="color:#dc2626;">❌ Salvataggio non riuscito: ' + escapeHtml(e?.message || String(e)) + '</span>';
+      alert("Salvataggio non riuscito: " + (e?.message || e));
+    }
+  });
   safeOn("btn-foto-ricetta", "click", () => document.getElementById("input-foto-ricetta")?.click());
   const _fotoRic = document.getElementById("input-foto-ricetta");
   if (_fotoRic && !_fotoRic.dataset.bound) {
