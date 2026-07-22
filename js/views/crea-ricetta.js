@@ -360,6 +360,12 @@ INGREDIENTI: "` + testoOperatore + `"`;
 ============================================================ */
 
 const TONY_SEZIONI = {
+  inventa: {
+    titolo: "Inventa una ricetta",
+    modo: "inventa",
+    esempio: 'Es: "ho tante pelli di pomodoro, creami una ricetta per farci delle barchette da riempire con la stracciatella" — oppure "mi avanzano 8 kg di ricotta, cosa ci faccio per il menu di questa settimana?"',
+    prompt: (testo, prodottiCtx) => "Richiesta del titolare: \"" + testo + "\"\n\nIn magazzino ha, tra gli altri: " + (prodottiCtx || "nessun dato magazzino") + "\n\nCreami la ricetta completa nel formato JSON richiesto."
+  },
   anagrafica: {
     titolo: "Anagrafica ricetta",
     esempio: 'Es: "Ragù bolognese, piatto finito, categoria secondi, attrezzatura pentola grande, resa 3 kg, descrizione ragù tradizionale con cottura lenta"',
@@ -403,7 +409,7 @@ DESCRIZIONE: "${testo}"`
   }
 };
 
-async function tonyChiamaEF(prompt) {
+async function tonyChiamaEF(prompt, modo) {
   const aziendaId = window.state?.azienda?.id;
   const supa = window.supabaseClient || window.supabase;
   const sessionData = await supa.auth.getSession();
@@ -414,6 +420,7 @@ async function tonyChiamaEF(prompt) {
       "Authorization": "Bearer " + token, "apikey": token },
     body: JSON.stringify({ azienda_id: aziendaId,
       tipo_messaggio: "estrai_ricetta",
+      modo: modo || "parser",
       messages: [{ role: "user", content: prompt }] })
   });
   if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -523,7 +530,7 @@ function apriModalTony(sezione) {
       const prompt = typeof cfg.prompt === "function"
         ? cfg.prompt(testo, prodottiCtx)
         : cfg.prompt;
-      const data = await tonyChiamaEF(prompt);
+      const data = await tonyChiamaEF(prompt, cfg.modo);
       const result = tonyEstraiReply(data);
       await tonyApplicaSezione(sezione, result, overlay, status);
     } catch(e) {
@@ -534,6 +541,107 @@ function apriModalTony(sezione) {
 }
 
 async function tonyApplicaSezione(sezione, result, overlay, status) {
+  if (sezione === "inventa") {
+    const d = result || {};
+
+    // Anagrafica
+    if (d.nome) setVal("r-nome", d.nome);
+    const tipo = d.tipo_ricetta === "base" ? "base" : "finita";
+    setVal("r-tipo", tipo);
+    const wrapCat = document.getElementById("categoria-wrapper");
+    if (wrapCat) wrapCat.style.display = tipo === "finita" ? "" : "none";
+    if (d.descrizione) setVal("r-descrizione", d.descrizione);
+    if (d.attrezzatura) setVal("r-attrezzatura", d.attrezzatura);
+    if (d.note_chef) setVal("r-note-proc", d.note_chef);
+
+    // Categoria portata (cerca in cache, altrimenti la crea)
+    if (d.categoria_portata && tipo === "finita") {
+      const catInput = document.getElementById("r-categoria-search");
+      const catHidden = document.getElementById("r-categoria-id");
+      if (catInput) catInput.value = d.categoria_portata;
+      const found = categoriePortataCache.find(c =>
+        (c.nome || "").toLowerCase() === String(d.categoria_portata).toLowerCase());
+      if (found && catHidden) catHidden.value = found.id;
+      else {
+        try {
+          const supa = window.supabaseClient || window.supabase;
+          const { data: newCat } = await supa.from("categorie_portata")
+            .insert({ nome: d.categoria_portata, azienda_id: window.state?.azienda?.id })
+            .select("id,nome").single();
+          if (newCat) { categoriePortataCache.push(newCat); if (catHidden) catHidden.value = newCat.id; }
+        } catch (e) { console.warn("Categoria non creata:", e.message); }
+      }
+    }
+
+    // Resa
+    if (d.resa && d.resa.peso_finale) {
+      setVal("r-output-peso", d.resa.peso_finale);
+      if (d.resa.unita_misura) setVal("r-output-um", d.resa.unita_misura);
+    }
+    if (d.porzioni_previste) setVal("r-pezzi-base", d.porzioni_previste);
+
+    // Ingredienti (con aggancio al magazzino dove possibile)
+    let nMatch = 0;
+    if (Array.isArray(d.ingredienti) && d.ingredienti.length) {
+      const cont = document.getElementById("ingredienti-container");
+      if (cont) cont.innerHTML = "";
+      d.ingredienti.forEach(ing => {
+        const cand = trovaProdottiSimili(ing.nome, 1);
+        const match = cand.length > 0 && cand[0].score >= 70 ? cand[0].prodotto : null;
+        if (match) nMatch++;
+        aggiungiIngrediente({
+          prodotto_id: match?.id ?? "",
+          nome_prodotto: match?.descrizione || ing.nome,
+          _nome_tony: match ? null : ing.nome,
+          quantita: ing.quantita,
+          unita_misura: ing.unita_misura || "kg",
+          note: ing.note || ""
+        });
+      });
+    }
+
+    // Fasi di lavorazione
+    if (Array.isArray(d.fasi) && d.fasi.length) {
+      const contF = document.getElementById("fasi-container");
+      if (contF) contF.innerHTML = "";
+      d.fasi.forEach(f => aggiungiFase({
+        tipo_fase: f.tipo_fase || "preparazione",
+        descrizione_operativa: f.descrizione_operativa || "",
+        durata_min: f.durata_min || 0,
+        lavoro_umano_min: f.lavoro_umano_min || 0,
+        temperatura: f.temperatura ?? null,
+        tecnologia: f.tecnologia || ""
+      }));
+    }
+
+    // Porzionatura
+    if (d.peso_porzione_gr) {
+      const contP = document.getElementById("porzioni-container");
+      if (contP) contP.innerHTML = "";
+      aggiungiPorzione({ label: "ristorante", peso_porzione: d.peso_porzione_gr, unita_misura: "gr", note: "" });
+    }
+
+    // Conservazione proposta
+    if (Array.isArray(d.conservazione) && d.conservazione.length) {
+      d.conservazione.forEach(c => {
+        try {
+          aggiungiScenarioConservazione({
+            scenario_label: c.scenario_label || "",
+            shelf_life_giorni: c.shelf_life_giorni || null,
+            note: c.note || ""
+          }, []);
+        } catch (e) { console.warn("Scenario non aggiunto:", e.message); }
+      });
+    }
+
+    const nIng = Array.isArray(d.ingredienti) ? d.ingredienti.length : 0;
+    const nFasi = Array.isArray(d.fasi) ? d.fasi.length : 0;
+    status.innerHTML = '<span style="color:#16a34a;">✅ Ricetta creata: ' + nIng + ' ingredienti (' + nMatch +
+      ' agganciati al magazzino), ' + nFasi + ' fasi. Controlla tutto e premi Salva.</span>';
+    setTimeout(() => overlay.remove(), 2200);
+    return;
+  }
+
   if (sezione === "anagrafica") {
     const d = result;
     if (d.nome) setVal("r-nome", d.nome);
@@ -1158,11 +1266,18 @@ export async function render(app) {
             </div>
 
           </div>
-          <div style="margin-top:12px;">
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
             <button id="btn-tony-anagrafica" type="button"
               style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
               🤖 Compila anagrafica con Tony
             </button>
+            <button id="btn-tony-inventa" type="button"
+              style="background:linear-gradient(135deg,#7c3aed,#c026d3);color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(124,58,237,.3);">
+              ✨ Fatti inventare la ricetta
+            </button>
+          </div>
+          <div style="margin-top:6px;font-size:12px;color:#6b7280;">
+            Hai un'eccedenza o un'idea? Raccontala a Tony e ti costruisce la ricetta completa — ingredienti, dosi, fasi e conservazione.
           </div>
         `
       })}
@@ -3776,6 +3891,7 @@ function bindUI() {
   safeOn("btn-tony-fasi", "click", () => apriModalTonyFasi());
   safeOn("btn-tony-ing", "click", () => apriModalTonyIngredienti());
   safeOn("btn-tony-anagrafica", "click", () => apriModalTony("anagrafica"));
+  safeOn("btn-tony-inventa", "click", () => apriModalTony("inventa"));
   safeOn("btn-tony-output", "click", () => apriModalTony("output"));
   safeOn("btn-tony-porzionature", "click", () => apriModalTony("porzionature"));
   safeOn("btn-tony-conservazione", "click", () => apriModalTony("conservazione"));
