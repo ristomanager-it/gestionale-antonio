@@ -385,6 +385,20 @@ function puliscilReply(raw) {
   return String(val);
 }
 
+// Formattazione leggera delle risposte: grassetto, titoli, elenchi.
+// Il testo viene prima messo in sicurezza (niente HTML dall'esterno).
+function tonyFormatta(testo) {
+  const esc = String(testo == null ? "" : testo)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  let h = esc;
+  h = h.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  h = h.replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g, "$1<em>$2</em>");
+  h = h.replace(/^#{1,4}\s?(.+)$/gm, '<div style="font-weight:700;margin:10px 0 4px;">$1</div>');
+  h = h.replace(/^\s*[-•]\s+(.+)$/gm, '<div style="margin:3px 0 3px 12px;">• $1</div>');
+  h = h.replace(/^\s*(\d+)[.)]\s+(.+)$/gm, '<div style="margin:5px 0 5px 6px;"><strong>$1.</strong> $2</div>');
+  return h.replace(/\n/g, "<br>");
+}
+
 function addMessage(text, type, opts = {}) {
   const container = document.getElementById("chat-messages");
   if (!container) return null;
@@ -408,8 +422,22 @@ function addMessage(text, type, opts = {}) {
   }
 
   const span = document.createElement("span");
-  span.textContent = text;
+  if (type === "ai") span.innerHTML = tonyFormatta(text);
+  else span.textContent = text;
   bubble.appendChild(span);
+
+  if (opts.fonte === "cucina") {
+    const passa = document.createElement("button");
+    passa.textContent = "📋 Porta in Crea Ricetta";
+    passa.style.cssText = "margin-top:10px;background:linear-gradient(135deg,#7c3aed,#c026d3);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;display:block;";
+    passa.onclick = () => {
+      window.__tonyRicettaHandoff = (conversation || [])
+        .filter(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+        .slice(-20);
+      location.hash = "#/crea-ricetta";
+    };
+    bubble.appendChild(passa);
+  }
 
   if (opts.action && opts.actionExecuted) {
     const card = document.createElement("div");
@@ -953,7 +981,7 @@ async function sendVoiceMessage() {
     }
 
     const reply = puliscilReply(data?.reply) || "Non ho capito, puoi ripetere?";
-    addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
+    addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed, fonte: data?.fonte });
     conversation.push({ role: "assistant", content: reply });
     salvaTonyMsg("assistant", reply);
     ttsParla(reply);
@@ -1149,7 +1177,7 @@ async function sendMessageSilent(hiddenPrompt) {
     const data = await callTony(conversation);
     if (loading) loading.parentElement?.remove();
     const reply = data?.reply || "Nessuna risposta.";
-    addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
+    addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed, fonte: data?.fonte });
     conversation.push({ role: "assistant", content: reply });
     salvaTonyMsg("assistant", reply);
     ttsParla(reply);
@@ -1359,7 +1387,7 @@ function initChat(ruolo) {
       if (loading) loading.parentElement?.remove();
 
       const reply = data?.reply || "Nessuna risposta.";
-      addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed });
+      addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed, fonte: data?.fonte });
       conversation.push({ role: "assistant", content: reply });
     salvaTonyMsg("assistant", reply);
 

@@ -568,8 +568,8 @@ async function tonyChatChiama(storia, modo) {
   return await resp.json();
 }
 
-function apriChatRicettaTony() {
-  const storia = [];
+function apriChatRicettaTony(storiaIniziale) {
+  const storia = Array.isArray(storiaIniziale) ? storiaIniziale.slice() : [];
 
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
@@ -612,6 +612,13 @@ function apriChatRicettaTony() {
   box.innerHTML = '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:12px 14px;color:#0369a1;font-size:13px;">'
     + 'Dimmi <strong>cosa hai</strong> (e quanto), <strong>cosa vuoi ottenere</strong> e <strong>con che attrezzatura</strong> lavori.<br>'
     + 'Se manca qualcosa te lo chiedo io. Quando siamo a posto premi <strong>Scrivi la ricetta</strong>: te la scrivo qui per intero, la leggi, e solo se ti convince la porti nella scheda.</div>';
+
+  // Conversazione arrivata dalla chat di Tony: la riprendo da dove eravate
+  if (storia.length) {
+    storia.forEach(m => bolla(m.role === "assistant" ? "assistant" : "user", m.content));
+    bScrivi.style.display = "";
+    stato.innerHTML = 'Ripreso il discorso fatto con Tony. Continua pure, oppure premi <strong>Scrivi la ricetta</strong>.';
+  }
 
   function bolla(ruolo, testo) {
     const mio = ruolo === "user";
@@ -1243,6 +1250,13 @@ function apriModalTonyIngredienti() {
   });
 
   overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function raccogliConsegnaDaTony() {
+  const c = window.__tonyRicettaHandoff;
+  if (!Array.isArray(c) || !c.length) return null;
+  window.__tonyRicettaHandoff = null;
+  return c;
 }
 
 export async function render(app) {
@@ -4074,6 +4088,10 @@ function bindUI() {
   safeOn("btn-tony-ing", "click", () => apriModalTonyIngredienti());
   safeOn("btn-tony-anagrafica", "click", () => apriModalTony("anagrafica"));
   safeOn("btn-tony-inventa", "click", () => apriChatRicettaTony());
+
+  // Se arrivi qui dalla chat di Tony, riprendo la conversazione automaticamente
+  const consegnaTony = raccogliConsegnaDaTony();
+  if (consegnaTony) setTimeout(() => apriChatRicettaTony(consegnaTony), 500);
   safeOn("btn-tony-output", "click", () => apriModalTony("output"));
   safeOn("btn-tony-porzionature", "click", () => apriModalTony("porzionature"));
   safeOn("btn-tony-conservazione", "click", () => apriModalTony("conservazione"));
