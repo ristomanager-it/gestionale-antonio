@@ -592,7 +592,8 @@ function apriChatRicettaTony() {
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
           <button id="rc-mic" style="background:#f3f4f6;border:none;border-radius:12px;padding:11px 14px;font-size:14px;cursor:pointer;">🎤</button>
           <button id="rc-send" style="flex:1;background:#0E5A7A;color:#fff;border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;">Invia</button>
-          <button id="rc-fin" style="background:linear-gradient(135deg,#7c3aed,#c026d3);color:#fff;border:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700;cursor:pointer;display:none;">📋 Porta nella scheda</button>
+          <button id="rc-scrivi" style="background:#0f766e;color:#fff;border:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700;cursor:pointer;display:none;">📄 Scrivi la ricetta</button>
+          <button id="rc-fin" style="background:linear-gradient(135deg,#7c3aed,#c026d3);color:#fff;border:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700;cursor:pointer;display:none;">📋 Portala nella scheda</button>
         </div>
       </div>
     </div>`;
@@ -603,11 +604,12 @@ function apriChatRicettaTony() {
   const stato = ov.querySelector("#rc-stato");
   const bSend = ov.querySelector("#rc-send");
   const bFin = ov.querySelector("#rc-fin");
+  const bScrivi = ov.querySelector("#rc-scrivi");
   const bMic = ov.querySelector("#rc-mic");
 
   box.innerHTML = '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:12px 14px;color:#0369a1;font-size:13px;">'
     + 'Dimmi <strong>cosa hai</strong> (e quanto), <strong>cosa vuoi ottenere</strong> e <strong>con che attrezzatura</strong> lavori.<br>'
-    + 'Se manca qualcosa te lo chiedo io. Quando la ricetta ti convince, premi <strong>Porta nella scheda</strong>.</div>';
+    + 'Se manca qualcosa te lo chiedo io. Quando siamo a posto premi <strong>Scrivi la ricetta</strong>: te la scrivo qui per intero, la leggi, e solo se ti convince la porti nella scheda.</div>';
 
   function bolla(ruolo, testo) {
     const mio = ruolo === "user";
@@ -634,7 +636,7 @@ function apriChatRicettaTony() {
       if (!risposta) throw new Error("Risposta vuota");
       bolla("assistant", risposta);
       storia.push({ role: "assistant", content: risposta });
-      bFin.style.display = "";
+      bScrivi.style.display = "";
       stato.textContent = data.motore ? ("motore: " + data.motore) : "";
     } catch (e) {
       stato.innerHTML = '<span style="color:#dc2626;">Errore: ' + escapeHtml(e.message) + '</span>';
@@ -672,6 +674,26 @@ function apriChatRicettaTony() {
       } catch (e) { stato.innerHTML = '<span style="color:#dc2626;">' + escapeHtml(e.message) + '</span>'; }
       bSend.disabled = false;
     }
+  };
+
+  bScrivi.onclick = async () => {
+    bScrivi.disabled = true; bSend.disabled = true;
+    stato.textContent = "Tony sta scrivendo la ricetta...";
+    const richiesta = "Scrivimi ora la ricetta completa e definitiva, cosi' come l'abbiamo concordata: nome del piatto, resa e numero di pezzi, lista ingredienti con le dosi, procedimento numerato coi tempi e le temperature, conservazione e i punti critici da ricordare. Scrivila in chiaro qui, cosi' la leggo e decido se salvarla.";
+    bolla("user", "Scrivimi la ricetta completa");
+    storia.push({ role: "user", content: richiesta });
+    try {
+      const data = await tonyChatChiama(storia, "consulenza");
+      const risposta = String(data.reply || "").trim();
+      if (!risposta) throw new Error("Risposta vuota");
+      bolla("assistant", risposta);
+      storia.push({ role: "assistant", content: risposta });
+      bFin.style.display = "";
+      stato.innerHTML = 'Se ti convince premi <strong>Portala nella scheda</strong>. Se no, continua a scrivergli cosa cambiare.';
+    } catch (e) {
+      stato.innerHTML = '<span style="color:#dc2626;">Errore: ' + escapeHtml(e.message) + '</span>';
+    }
+    bScrivi.disabled = false; bSend.disabled = false;
   };
 
   bFin.onclick = async () => {
