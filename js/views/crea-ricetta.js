@@ -283,7 +283,7 @@ INGREDIENTI: "` + testoOperatore + `"`;
   const token = sessionData?.data?.session?.access_token || "";
 
   try {
-    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-ricetta-claude", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -408,7 +408,7 @@ async function tonyChiamaEF(prompt) {
   const supa = window.supabaseClient || window.supabase;
   const sessionData = await supa.auth.getSession();
   const token = sessionData?.data?.session?.access_token || "";
-  const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+  const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-ricetta-claude", {
     method: "POST",
     headers: { "Content-Type": "application/json",
       "Authorization": "Bearer " + token, "apikey": token },
