@@ -359,6 +359,8 @@ INGREDIENTI: "` + testoOperatore + `"`;
    (fasi e ingredienti hanno già i loro modal dedicati)
 ============================================================ */
 
+const TONY_AVATAR = "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png";
+
 const TONY_SEZIONI = {
   inventa: {
     titolo: "Inventa una ricetta",
@@ -453,7 +455,7 @@ function apriModalTony(sezione) {
   overlay.innerHTML = `
     <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:24px;box-shadow:0 -8px 40px rgba(0,0,0,0.2);max-height:85vh;overflow-y:auto;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <span style="font-size:26px;">🤖</span>
+        <img src="${TONY_AVATAR}" alt="Tony" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex:none;">
         <div>
           <div style="font-weight:700;font-size:16px;">Tony AI — ${cfg.titolo}</div>
           <div style="font-size:12px;color:#6b7280;">Descrivi a voce o per testo</div>
@@ -574,7 +576,7 @@ function apriChatRicettaTony() {
   ov.innerHTML = `
     <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:640px;height:88vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.2);">
       <div style="display:flex;align-items:center;gap:10px;padding:16px 20px 10px;border-bottom:1px solid #eef2f7;">
-        <span style="font-size:24px;">👨‍🍳</span>
+        <img src="${TONY_AVATAR}" alt="Tony" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;">
         <div style="flex:1;">
           <div style="font-weight:700;font-size:16px;">Ragiona con Tony</div>
           <div style="font-size:12px;color:#6b7280;">Raccontagli cosa hai e cosa vuoi farci. Fa i conti con te.</div>
@@ -614,8 +616,9 @@ function apriChatRicettaTony() {
   function bolla(ruolo, testo) {
     const mio = ruolo === "user";
     const d = document.createElement("div");
-    d.style.cssText = "margin:12px 0;display:flex;" + (mio ? "justify-content:flex-end;" : "");
-    d.innerHTML = '<div style="max-width:88%;padding:10px 14px;border-radius:14px;'
+    d.style.cssText = "margin:12px 0;display:flex;gap:8px;align-items:flex-start;" + (mio ? "justify-content:flex-end;" : "");
+    const avatarTony = mio ? "" : '<img src="' + TONY_AVATAR + '" alt="Tony" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex:none;margin-top:2px;">';
+    d.innerHTML = avatarTony + '<div style="max-width:85%;padding:10px 14px;border-radius:14px;'
       + (mio ? "background:#0E5A7A;color:#fff;" : "background:#f8fafc;border:1px solid #eef2f7;color:#0f172a;")
       + '">' + (mio ? escapeHtml(testo) : tonyMarkdown(testo)) + '</div>';
     box.appendChild(d);
@@ -642,7 +645,7 @@ function apriChatRicettaTony() {
         bFin.style.display = "none";
         bScrivi.textContent = "📄 Riscrivi la ricetta";
       }
-      stato.textContent = data.motore ? ("motore: " + data.motore) : "";
+      stato.textContent = "";
     } catch (e) {
       stato.innerHTML = '<span style="color:#dc2626;">Errore: ' + escapeHtml(e.message) + '</span>';
     }
@@ -951,7 +954,7 @@ function apriModalTonyFasi() {
   overlay.innerHTML = `
     <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:24px;box-shadow:0 -8px 40px rgba(0,0,0,0.2);max-height:85vh;overflow-y:auto;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <span style="font-size:28px;">🤖</span>
+        <img src="${TONY_AVATAR}" alt="Tony" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;">
         <div>
           <div style="font-weight:700;font-size:17px;">Tony AI — Inserisci le fasi</div>
           <div style="font-size:12px;color:#6b7280;">Descrivi il procedimento come lo spiegheresti a un collega</div>
@@ -1089,7 +1092,7 @@ function apriModalTonyIngredienti() {
   overlay.innerHTML = `
     <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:24px;box-shadow:0 -8px 40px rgba(0,0,0,0.2);max-height:85vh;overflow-y:auto;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <span style="font-size:28px;">🤖</span>
+        <img src="${TONY_AVATAR}" alt="Tony" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;">
         <div>
           <div style="font-weight:700;font-size:17px;">Tony AI — Inserisci gli ingredienti</div>
           <div style="font-size:12px;color:#6b7280;">Elenca gli ingredienti come vuoi, Tony li struttura</div>
