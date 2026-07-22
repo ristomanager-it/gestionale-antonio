@@ -637,6 +637,11 @@ function apriChatRicettaTony() {
       bolla("assistant", risposta);
       storia.push({ role: "assistant", content: risposta });
       bScrivi.style.display = "";
+      // hai cambiato qualcosa: la ricetta va riscritta e riletta prima di salvarla
+      if (bFin.style.display !== "none") {
+        bFin.style.display = "none";
+        bScrivi.textContent = "📄 Riscrivi la ricetta";
+      }
       stato.textContent = data.motore ? ("motore: " + data.motore) : "";
     } catch (e) {
       stato.innerHTML = '<span style="color:#dc2626;">Errore: ' + escapeHtml(e.message) + '</span>';
