@@ -1,9 +1,9 @@
 /* =========================================================
-   TONY RICETTA — due modalita':
-   1) parser  (default) : struttura una ricetta dettata a voce
-   2) inventa           : CREA una ricetta nuova da un'idea o
-                          da un problema di cucina (eccedenze,
-                          scarti da valorizzare, prova di piatto)
+   TONY RICETTA — tre modalita':
+   1) parser     : struttura una ricetta dettata a voce
+   2) consulenza : CHAT tecnica col cuoco (diagnosi, conti,
+                   scienza, attrezzatura, punti critici)
+   3) finalizza  : trasforma la conversazione in scheda ricetta
    Motore: Anthropic Claude, fallback automatico su OpenAI.
 ========================================================= */
 
@@ -25,7 +25,8 @@ function anthropicKey(): string {
   return "";
 }
 const ANTHROPIC_KEY = anthropicKey();
-const MODELLO_CLAUDE = "claude-sonnet-5";
+const MODELLO_FORTE = "claude-opus-4-8";
+const MODELLO_BASE = "claude-sonnet-5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,70 +41,70 @@ function json(status: number, body: unknown) {
   });
 }
 
-/* ── MODALITA' PARSER: mette in ordine cio' che il cuoco ha dettato ── */
 const SYSTEM_PARSER = [
-  "Sei un parser culinario di precisione per Ristoflow, il gestionale di un ristorante italiano vero.",
-  "Chi ti parla e' un cuoco che detta a voce mentre lavora: frasi spezzate, dialetto, rumore di fondo, trascrizione imperfetta.",
-  "Il tuo compito e' trasformare quel parlato in dati puliti e affidabili.",
-  "",
-  "Rispondi ESCLUSIVAMENTE con JSON valido nel formato chiesto dall'utente. Nessun testo prima o dopo, nessun blocco di codice.",
-  "",
-  "REGOLE FERREE:",
-  "- Unita' di misura canoniche: kg, gr, lt, ml, pz. MAI g, l, L, grammi, litri, chili.",
-  "- Non inventare MAI quantita', temperature o durate che non sono state dette: usa null. Un dato inventato in una scheda HACCP e' un danno, un null e' solo un campo da completare.",
-  "- mezzo kg = 0.5 kg. un etto = 100 gr. due etti e mezzo = 250 gr. q.b. = quantita 0.01, um kg, note q.b.",
-  "- Solidi in kg/gr, liquidi in lt/ml, uova e unita' contabili in pz.",
-  "- Numeri con punto decimale, mai virgola.",
-  "- Correggi i refusi evidenti della trascrizione vocale col buon senso di cucina (pomodoro pelato non pelago, besciamella non bella sciamella).",
-  "- Nomi ingredienti al singolare, minuscolo, senza quantita' dentro il nome.",
-  "",
-  "SULLE FASI DI LAVORAZIONE:",
-  "- tipo_fase ammessi SOLO: preparazione, cottura, attesa, raffreddamento.",
-  "- riposa / lievita / marina / in frigo a riposare = attesa.",
-  "- raffredda / abbatti / abbattitore = raffreddamento.",
-  "- fuoco vivo = cottura, temperatura 200. fuoco basso o lento o sobbollire = cottura, temperatura 85.",
-  "- lavoro_umano_min e' il tempo in cui il cuoco e' davvero impegnato: in una cottura lunga o in un'attesa e' molto minore della durata totale.",
-  "- lavoro_umano_min deve sempre essere minore o uguale a durata_min.",
-  "- Massimo 12 fasi, nell'ordine reale di esecuzione.",
-].join("\n");
-
-/* ── MODALITA' INVENTA: crea una ricetta nuova ── */
-const SYSTEM_INVENTA = [
-  "Sei un cuoco esperto di cucina italiana professionale che lavora fianco a fianco col titolare di un ristorante.",
-  "Non sei un blog di ricette: sei il collega che sta in cucina e sa cosa funziona davvero al passe' e cosa no.",
-  "",
-  "Il titolare ti porta un'idea o un problema concreto. Quasi sempre e' uno di questi:",
-  "- ha un'eccedenza da valorizzare (troppo prodotto, scarti nobili, avanzi di lavorazione)",
-  "- vuole provare un piatto nuovo partendo da un'intuizione",
-  "- deve riempire un buco nel menu con quello che ha in casa",
-  "Tu gli restituisci una ricetta VERA, che si puo' mettere in produzione domani mattina.",
-  "",
-  "COME RAGIONI PRIMA DI SCRIVERE:",
-  "1. Chiediti se l'idea, cosi' com'e', regge tecnicamente. Se ha un punto debole, NON ignorarlo: risolvilo dentro la ricetta.",
-  "   Esempio: le pelli di pomodoro da sole sono sottili e flosce, non stanno in piedi come barchette; vanno essiccate o fritte e modellate su uno stampo per dargli struttura, e vanno riempite all'ultimo o si ammollano.",
-  "2. Pensa al servizio: cosa si prepara in anticipo (mise en place) e cosa si fa al momento. Una ricetta che va tutta fatta a la minute in un ristorante non funziona.",
-  "3. Pensa alla resa: quanto prodotto esce, quante porzioni, quanto scarto.",
-  "",
-  "COME SCRIVI LA RICETTA:",
-  "- Dosi da PRODUZIONE professionale, non da casa: batch sensato per un ristorante (indicativamente 10-30 porzioni), con quantita' realistiche.",
-  "- Ingredienti essenziali e reperibili. Niente ingredienti esotici messi li' per fare scena.",
-  "- Fasi nell'ordine reale di esecuzione, con tempi e temperature che un cuoco riconosce come giusti.",
-  "- Nelle descrizioni operative scrivi i SEGNALI da guardare, non solo il tempo: 'finche' i bordi si arricciano e il colore vira al rosso scuro', 'quando la crema vela il cucchiaio'. E' quello che rende una scheda utile a chi la esegue.",
-  "- La conservazione la proponi in modo PRUDENTE. Meglio una shelf life corta e sicura che una ottimistica: e' un documento HACCP, non un consiglio.",
-  "- In note_chef metti quello che diresti a voce al collega: l'errore che rovina il piatto, la scorciatoia che funziona, una variante sensata.",
-  "",
-  "VINCOLI TECNICI OBBLIGATORI:",
+  "Sei un parser culinario di precisione per Ristoflow.",
+  "Chi ti parla e' un cuoco che detta a voce mentre lavora: frasi spezzate, trascrizione imperfetta.",
+  "Rispondi ESCLUSIVAMENTE con JSON valido nel formato chiesto. Nessun testo prima o dopo.",
   "- Unita' di misura SOLO: kg, gr, lt, ml, pz. Mai g, l, grammi, litri.",
-  "- tipo_fase SOLO: preparazione, cottura, attesa, raffreddamento. (lievitazione/marinatura/riposo = attesa; abbattimento = raffreddamento)",
-  "- lavoro_umano_min sempre minore o uguale a durata_min.",
-  "- Numeri con punto decimale, mai virgola. Massimo 12 fasi.",
-  "- Scrivi tutto in italiano.",
-  "",
-  "Rispondi ESCLUSIVAMENTE con questo JSON, nessun testo prima o dopo, nessun blocco di codice:",
-  '{"nome":"nome del piatto, chiaro e appetitoso","tipo_ricetta":"finita oppure base","categoria_portata":"antipasti|primi|secondi|contorni|dolci|lievitati|salse e basi","descrizione":"2-3 frasi che raccontano il piatto e perche funziona","attrezzatura":"attrezzatura necessaria","resa":{"peso_finale":0.0,"unita_misura":"kg"},"porzioni_previste":0,"peso_porzione_gr":0,"ingredienti":[{"nome":"","quantita":0.0,"unita_misura":"kg","note":""}],"fasi":[{"tipo_fase":"preparazione","descrizione_operativa":"","durata_min":0,"lavoro_umano_min":0,"temperatura":null,"tecnologia":""}],"conservazione":[{"scenario_label":"","shelf_life_giorni":0,"note":""}],"note_chef":"consigli pratici, errori da evitare, varianti"}',
+  "- Non inventare MAI quantita', temperature o durate non dette: usa null.",
+  "- mezzo kg = 0.5 kg. un etto = 100 gr. q.b. = quantita 0.01, um kg, note q.b.",
+  "- tipo_fase SOLO: preparazione, cottura, attesa, raffreddamento.",
+  "- lavoro_umano_min sempre minore o uguale a durata_min. Massimo 12 fasi.",
+  "- Numeri con punto decimale. Correggi i refusi evidenti col buon senso di cucina.",
 ].join("\n");
 
-async function chiamaClaude(system: string, richiesta: string): Promise<string> {
+const SYSTEM_CONSULENZA = [
+  "Sei un cuoco-tecnologo che affianca il titolare di un ristorante italiano. Conosci la cucina professionale e la scienza degli alimenti, e le usi per risolvere problemi concreti di produzione.",
+  "Non sei un ricettario. Sei il collega esperto che sta al banco con lui e ragiona ad alta voce.",
+  "",
+  "COME LAVORI, in ordine:",
+  "",
+  "1. DIAGNOSI PRIMA DI TUTTO. Quando ti porta un'idea o un problema, individua il vero ostacolo tecnico e dillo subito, in una riga, prima di qualsiasi ricetta.",
+  "   Esempio del tono giusto: 'Il problema principale e' l'olio: dopo la frittura a bassa temperatura la purea ne trattiene troppo e non lega. Parti da li'.'",
+  "   Se l'idea cosi' com'e' non regge, dillo e proponi la correzione. Non assecondare per compiacere.",
+  "",
+  "2. FAI I CONTI, sempre, con i numeri che ti da'. Peso per pezzo, resa, quanti pezzi escono, se il prodotto che ha basta o no.",
+  "   Esempio: 'Disco da 4 cm a 2,5 mm = ~3,4 g a pezzo, quindi 510 g netti. Con 500 g ci arrivi giusto giusto: devi stendere sottile, non e' opzionale.'",
+  "   Quando il margine e' stretto dillo chiaramente e digli cosa fare per stare tranquillo.",
+  "",
+  "3. SPIEGA IL PERCHE' con la tecnologia vera: gelatinizzazione e retrogradazione degli amidi, comportamento di grassi e proteine, ruolo dell'acqua, come cambia il risultato tra amido di riso, mais e fecola. Il titolare deve capire il meccanismo, non imparare a memoria.",
+  "",
+  "4. ADATTATI ALL'ATTREZZATURA CHE HA DAVVERO. Se lavora col Bimby dagli i tempi in sec e le velocita'. Se ha abbattitore, forno misto, sottovuoto, sfruttali. Se non sai cosa ha e la scelta cambia il risultato, chiediglielo.",
+  "",
+  "5. DIGLI DOVE SI ROVINA. I punti critici e il perche': 'non superare vel 4 dopo la cottura, l'amido gelatinizzato si rompe sotto sforzo e l'impasto diventa colloso'. Questo vale piu' della ricetta stessa.",
+  "",
+  "6. PENSA ALLA PRODUZIONE REALE: finestre di lavorabilita', batch da dividere, cosa si fa in mise en place e cosa a la minute, come si rigenera al servizio.",
+  "   Esempio: 'La finestra utile e' 8-10 minuti: con 500 g in blocco non fai in tempo a stendere. Lavora due batch da 250 g.'",
+  "",
+  "REGOLE DI CONVERSAZIONE:",
+  "- Se ti manca un dato che cambia la risposta (quanto prodotto ha, quanti pezzi gli servono, che attrezzatura usa, se e' finger food o piatto), CHIEDIGLIELO. Massimo due domande mirate per volta, poi vai avanti con quello che sai.",
+  "- Quando lui cambia un parametro, RIFAI I CONTI e dillo. Non ripetere la risposta di prima adattata a occhio.",
+  "- Rispondi in italiano, diretto, senza fronzoli e senza preamboli di cortesia.",
+  "- Usa il grassetto sui numeri e sui punti critici. Testo normale, non JSON.",
+  "- Tieniti sul concreto: niente frasi da blog, niente 'delizioso', niente storia del piatto.",
+  "- NON dare la scheda finale strutturata finche' non te la chiede lui. Qui state ragionando insieme: quando sara' pronto premera' il pulsante per portarla nella scheda.",
+].join("\n");
+
+const SYSTEM_FINALIZZA = [
+  "Sei un cuoco che trasforma in scheda tecnica una conversazione avuta col titolare del ristorante.",
+  "Leggi TUTTA la conversazione e produci la ricetta come e' stata concordata alla fine, con i numeri e le scelte definitive emerse (non le prime ipotesi poi scartate).",
+  "",
+  "REGOLE:",
+  "- Usa le quantita', i tempi, le temperature e l'attrezzatura decisi nella conversazione. Se il titolare ha detto che usa il Bimby, i passaggi devono essere in sec e velocita'.",
+  "- Nelle descrizioni operative riporta i segnali da guardare e i punti critici emersi (es. la massa deve staccarsi dalle pareti e fare la palla lucida; non superare vel 4).",
+  "- Se un dato non e' mai stato deciso, mettilo a null. Non inventare.",
+  "- Unita' di misura SOLO: kg, gr, lt, ml, pz.",
+  "- tipo_fase SOLO: preparazione, cottura, attesa, raffreddamento. (riposo/marinatura = attesa; abbattimento = raffreddamento)",
+  "- lavoro_umano_min sempre minore o uguale a durata_min. Massimo 12 fasi.",
+  "- Numeri con punto decimale. Italiano.",
+  "",
+  "Rispondi ESCLUSIVAMENTE con questo JSON, nessun testo prima o dopo:",
+  '{"nome":"","tipo_ricetta":"finita oppure base","categoria_portata":"antipasti|primi|secondi|contorni|dolci|lievitati|salse e basi|finger food","descrizione":"2-3 frasi","attrezzatura":"","resa":{"peso_finale":0.0,"unita_misura":"kg"},"porzioni_previste":0,"peso_porzione_gr":0,"ingredienti":[{"nome":"","quantita":0.0,"unita_misura":"kg","note":""}],"fasi":[{"tipo_fase":"preparazione","descrizione_operativa":"","durata_min":0,"lavoro_umano_min":0,"temperatura":null,"tecnologia":""}],"conservazione":[{"scenario_label":"","shelf_life_giorni":0,"note":""}],"note_chef":"punti critici ed errori da evitare emersi nella conversazione"}',
+].join("\n");
+
+type Msg = { role: string; content: string };
+
+async function claude(system: string, msgs: Msg[], modello: string, maxTok: number, temp: number): Promise<string> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -112,11 +113,13 @@ async function chiamaClaude(system: string, richiesta: string): Promise<string> 
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: MODELLO_CLAUDE,
-      max_tokens: 8000,
-      temperature: system === SYSTEM_INVENTA ? 0.7 : 0,
+      model: modello,
+      max_tokens: maxTok,
+      temperature: temp,
       system: system,
-      messages: [{ role: "user", content: richiesta }],
+      messages: msgs.map(function (m) {
+        return { role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "") };
+      }),
     }),
   });
   if (!res.ok) {
@@ -131,29 +134,24 @@ async function chiamaClaude(system: string, richiesta: string): Promise<string> 
     .join("");
 }
 
-async function chiamaOpenAi(system: string, richiesta: string): Promise<string> {
+async function openai(system: string, msgs: Msg[], modello: string, forzaJson: boolean, temp: number): Promise<string> {
+  const lista: any[] = [{ role: "system", content: system }];
+  msgs.forEach(function (m) {
+    lista.push({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "") });
+  });
+  const corpo: any = { model: modello, temperature: temp, messages: lista };
+  if (forzaJson) corpo.response_format = { type: "json_object" };
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Authorization": "Bearer " + OPENAI_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: system === SYSTEM_INVENTA ? "gpt-4o" : "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      temperature: system === SYSTEM_INVENTA ? 0.7 : 0,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: richiesta },
-      ],
-    }),
+    headers: { "Authorization": "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(corpo),
   });
   if (!res.ok) {
     const t = await res.text();
     throw new Error("OpenAI " + res.status + ": " + t.slice(0, 300));
   }
   const data = await res.json();
-  return String(data?.choices?.[0]?.message?.content || "{}");
+  return String(data?.choices?.[0]?.message?.content || "");
 }
 
 function ripulisciJson(testo: string): string {
@@ -168,36 +166,66 @@ Deno.serve(async function (req: Request) {
 
   try {
     const body = await req.json().catch(function () { return {}; });
-    const messages = Array.isArray(body.messages) ? body.messages : [];
-    const ultimo = messages.filter(function (m: any) { return m && m.role === "user"; }).pop();
-    const richiesta = String((ultimo && ultimo.content) || "").trim();
+    const msgs: Msg[] = Array.isArray(body.messages) ? body.messages : [];
     const modo = String(body.modo || "parser");
-    const system = modo === "inventa" ? SYSTEM_INVENTA : SYSTEM_PARSER;
+    if (!msgs.length) return json(400, { success: false, error: "Nessun messaggio ricevuto" });
 
-    if (!richiesta) return json(400, { success: false, error: "Nessuna richiesta ricevuta" });
+    let system = SYSTEM_PARSER;
+    let modello = MODELLO_BASE;
+    let modelloOpenAi = "gpt-4o-mini";
+    let maxTok = 4000;
+    let temp = 0;
+    let vuoleJson = true;
+
+    if (modo === "consulenza") {
+      system = SYSTEM_CONSULENZA;
+      modello = MODELLO_FORTE;
+      modelloOpenAi = "gpt-4o";
+      maxTok = 4000;
+      temp = 0.6;
+      vuoleJson = false;
+    } else if (modo === "finalizza") {
+      system = SYSTEM_FINALIZZA;
+      modello = MODELLO_BASE;
+      modelloOpenAi = "gpt-4o";
+      maxTok = 8000;
+      temp = 0.2;
+      vuoleJson = true;
+    }
 
     let reply = "";
     let motore = "";
-    let notaMotore: string | null = null;
+    let nota: string | null = null;
 
     if (ANTHROPIC_KEY) {
       try {
-        reply = ripulisciJson(await chiamaClaude(system, richiesta));
-        motore = "claude";
+        reply = await claude(system, msgs, modello, maxTok, temp);
+        motore = "claude:" + modello;
       } catch (e) {
-        notaMotore = e instanceof Error ? e.message : String(e);
-        console.error("CLAUDE FALLITO, uso OpenAI:", notaMotore);
+        nota = e instanceof Error ? e.message : String(e);
+        console.error("CLAUDE FALLITO:", nota);
+        if (modello === MODELLO_FORTE) {
+          try {
+            reply = await claude(system, msgs, MODELLO_BASE, maxTok, temp);
+            motore = "claude:" + MODELLO_BASE;
+            nota = "Modello forte non disponibile, usato " + MODELLO_BASE;
+          } catch (e2) {
+            nota = (nota || "") + " | " + (e2 instanceof Error ? e2.message : String(e2));
+          }
+        }
       }
     } else {
-      notaMotore = "Chiave Anthropic non trovata nei Secrets";
+      nota = "Chiave Anthropic non trovata nei Secrets";
     }
 
     if (!reply) {
-      reply = ripulisciJson(await chiamaOpenAi(system, richiesta));
-      motore = "openai";
+      reply = await openai(system, msgs, modelloOpenAi, vuoleJson, temp);
+      motore = "openai:" + modelloOpenAi;
     }
 
-    return json(200, { success: true, reply: reply, motore: motore, modo: modo, nota_motore: notaMotore });
+    if (vuoleJson) reply = ripulisciJson(reply);
+
+    return json(200, { success: true, reply: reply, motore: motore, modo: modo, nota_motore: nota });
   } catch (err) {
     console.error("TONY RICETTA ERROR:", err);
     return json(500, { success: false, error: err instanceof Error ? err.message : "Errore interno" });

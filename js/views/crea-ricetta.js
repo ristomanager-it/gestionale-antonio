@@ -540,6 +540,158 @@ function apriModalTony(sezione) {
   };
 }
 
+// ─────────────────────────────────────────────────────────────
+// CHAT RICETTA — si ragiona insieme a Tony, poi si porta in scheda
+// ─────────────────────────────────────────────────────────────
+function tonyMarkdown(t) {
+  let h = escapeHtml(String(t || ""));
+  h = h.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  h = h.replace(/^###\s?(.+)$/gm, "<div style=\"font-weight:700;margin:10px 0 4px;\">$1</div>");
+  h = h.replace(/^[-•]\s+(.+)$/gm, "<div style=\"margin:2px 0 2px 14px;\">• $1</div>");
+  h = h.replace(/^(\d+)\.\s+(.+)$/gm, "<div style=\"margin:4px 0 4px 8px;\"><strong>$1.</strong> $2</div>");
+  return h.replace(/\n/g, "<br>");
+}
+
+async function tonyChatChiama(storia, modo) {
+  const aziendaId = window.state?.azienda?.id;
+  const supa = window.supabaseClient || window.supabase;
+  const s = await supa.auth.getSession();
+  const token = s?.data?.session?.access_token || "";
+  const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-ricetta-claude", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": token },
+    body: JSON.stringify({ azienda_id: aziendaId, modo: modo, messages: storia })
+  });
+  if (!resp.ok) throw new Error("HTTP " + resp.status);
+  return await resp.json();
+}
+
+function apriChatRicettaTony() {
+  const storia = [];
+
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:640px;height:88vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.2);">
+      <div style="display:flex;align-items:center;gap:10px;padding:16px 20px 10px;border-bottom:1px solid #eef2f7;">
+        <span style="font-size:24px;">👨‍🍳</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:16px;">Ragiona con Tony</div>
+          <div style="font-size:12px;color:#6b7280;">Raccontagli cosa hai e cosa vuoi farci. Fa i conti con te.</div>
+        </div>
+        <button id="rc-close" style="background:#f3f4f6;border:none;border-radius:10px;padding:8px 12px;font-size:16px;cursor:pointer;">✕</button>
+      </div>
+
+      <div id="rc-msgs" style="flex:1;overflow-y:auto;padding:16px 20px;font-size:14px;line-height:1.55;"></div>
+
+      <div id="rc-stato" style="font-size:12px;color:#6b7280;padding:0 20px 6px;min-height:16px;"></div>
+
+      <div style="padding:10px 16px 16px;border-top:1px solid #eef2f7;">
+        <textarea id="rc-input" rows="2" placeholder="Es: ho 5 kg di bucce di melanzana fritte e frullate, devo farci delle barchette da riempire..."
+          style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:12px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;outline:none;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button id="rc-mic" style="background:#f3f4f6;border:none;border-radius:12px;padding:11px 14px;font-size:14px;cursor:pointer;">🎤</button>
+          <button id="rc-send" style="flex:1;background:#0E5A7A;color:#fff;border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;">Invia</button>
+          <button id="rc-fin" style="background:linear-gradient(135deg,#7c3aed,#c026d3);color:#fff;border:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:700;cursor:pointer;display:none;">📋 Porta nella scheda</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const box = ov.querySelector("#rc-msgs");
+  const inp = ov.querySelector("#rc-input");
+  const stato = ov.querySelector("#rc-stato");
+  const bSend = ov.querySelector("#rc-send");
+  const bFin = ov.querySelector("#rc-fin");
+  const bMic = ov.querySelector("#rc-mic");
+
+  box.innerHTML = '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:12px 14px;color:#0369a1;font-size:13px;">'
+    + 'Dimmi <strong>cosa hai</strong> (e quanto), <strong>cosa vuoi ottenere</strong> e <strong>con che attrezzatura</strong> lavori.<br>'
+    + 'Se manca qualcosa te lo chiedo io. Quando la ricetta ti convince, premi <strong>Porta nella scheda</strong>.</div>';
+
+  function bolla(ruolo, testo) {
+    const mio = ruolo === "user";
+    const d = document.createElement("div");
+    d.style.cssText = "margin:12px 0;display:flex;" + (mio ? "justify-content:flex-end;" : "");
+    d.innerHTML = '<div style="max-width:88%;padding:10px 14px;border-radius:14px;'
+      + (mio ? "background:#0E5A7A;color:#fff;" : "background:#f8fafc;border:1px solid #eef2f7;color:#0f172a;")
+      + '">' + (mio ? escapeHtml(testo) : tonyMarkdown(testo)) + '</div>';
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function invia() {
+    const testo = inp.value.trim();
+    if (!testo) return;
+    inp.value = "";
+    bolla("user", testo);
+    storia.push({ role: "user", content: testo });
+    bSend.disabled = true; bMic.disabled = true;
+    stato.textContent = "Tony sta ragionando...";
+    try {
+      const data = await tonyChatChiama(storia, "consulenza");
+      const risposta = String(data.reply || "").trim();
+      if (!risposta) throw new Error("Risposta vuota");
+      bolla("assistant", risposta);
+      storia.push({ role: "assistant", content: risposta });
+      bFin.style.display = "";
+      stato.textContent = data.motore ? ("motore: " + data.motore) : "";
+    } catch (e) {
+      stato.innerHTML = '<span style="color:#dc2626;">Errore: ' + escapeHtml(e.message) + '</span>';
+    }
+    bSend.disabled = false; bMic.disabled = false;
+  }
+
+  bSend.onclick = invia;
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); invia(); }
+  });
+
+  bMic.onclick = async () => {
+    if (bMic.dataset.rec !== "1") {
+      bMic.dataset.rec = "1";
+      await tonyStartMic(bMic, stato);
+    } else {
+      bMic.dataset.rec = "0";
+      bSend.disabled = true;
+      const audio = await tonyStopMic(bMic);
+      if (!audio) { stato.textContent = "Audio non registrato"; bSend.disabled = false; return; }
+      stato.textContent = "Trascrizione...";
+      try {
+        const supa = window.supabaseClient || window.supabase;
+        const s = await supa.auth.getSession();
+        const tok = s?.data?.session?.access_token || "";
+        const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok, "apikey": tok },
+          body: JSON.stringify({ azienda_id: window.state?.azienda?.id, audio_base64: audio, messages: [{ role: "user", content: "trascrivi" }] })
+        });
+        const d = r.ok ? await r.json() : {};
+        if (d.voice_input) { inp.value = (inp.value ? inp.value + " " : "") + d.voice_input; stato.textContent = "Trascritto — controlla e invia"; }
+        else stato.textContent = "Trascrizione vuota";
+      } catch (e) { stato.innerHTML = '<span style="color:#dc2626;">' + escapeHtml(e.message) + '</span>'; }
+      bSend.disabled = false;
+    }
+  };
+
+  bFin.onclick = async () => {
+    bFin.disabled = true; bSend.disabled = true;
+    stato.textContent = "Preparo la scheda...";
+    try {
+      const conFinale = storia.concat([{ role: "user", content: "Dammi ora la scheda tecnica finale della ricetta come concordata, nel formato JSON richiesto." }]);
+      const data = await tonyChatChiama(conFinale, "finalizza");
+      const parsed = tonyEstraiReply(data);
+      await tonyApplicaSezione("inventa", parsed, ov, stato);
+    } catch (e) {
+      stato.innerHTML = '<span style="color:#dc2626;">Errore: ' + escapeHtml(e.message) + '</span>';
+      bFin.disabled = false; bSend.disabled = false;
+    }
+  };
+
+  ov.querySelector("#rc-close").onclick = () => ov.remove();
+  setTimeout(() => inp.focus(), 100);
+}
+
 async function tonyApplicaSezione(sezione, result, overlay, status) {
   if (sezione === "inventa") {
     const d = result || {};
@@ -3891,7 +4043,7 @@ function bindUI() {
   safeOn("btn-tony-fasi", "click", () => apriModalTonyFasi());
   safeOn("btn-tony-ing", "click", () => apriModalTonyIngredienti());
   safeOn("btn-tony-anagrafica", "click", () => apriModalTony("anagrafica"));
-  safeOn("btn-tony-inventa", "click", () => apriModalTony("inventa"));
+  safeOn("btn-tony-inventa", "click", () => apriChatRicettaTony());
   safeOn("btn-tony-output", "click", () => apriModalTony("output"));
   safeOn("btn-tony-porzionature", "click", () => apriModalTony("porzionature"));
   safeOn("btn-tony-conservazione", "click", () => apriModalTony("conservazione"));
