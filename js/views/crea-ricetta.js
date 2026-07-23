@@ -4142,22 +4142,6 @@ function renderImmaginiPiatto(temporaneo) {
   });
 }
 
-function mostraDisegnoPiattoVecchio(url, temporaneo, eSchizzo) {
-  const box = document.getElementById("r-disegno-box");
-  if (!box || !url) return;
-  box.innerHTML =
-    '<div style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;max-width:420px;">'
-    + '<img src="' + escapeHtml(url) + '" alt="Disegno del piatto" style="width:100%;display:block;background:#f8fafc;">'
-    + '<div style="padding:9px 12px;font-size:11.5px;color:#64748b;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
-    +   '<span>' + (eSchizzo ? 'Schizzo di progetto' : 'Immagine indicativa') + ', dal progetto di montaggio.</span>'
-    +   '<button id="btn-rifai-disegno" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;font-size:11.5px;cursor:pointer;white-space:nowrap;">Rifallo</button>'
-    + '</div>'
-    + (temporaneo ? '<div style="padding:0 12px 9px;font-size:11px;color:#b45309;">Non salvato in archivio: scarica l\'immagine se ti serve.</div>' : "")
-    + '</div>';
-  const b = document.getElementById("btn-rifai-disegno");
-  if (b) b.onclick = () => disegnaPiattoConAi(eSchizzo ? "schizzo" : "foto");
-}
-
 function renderImpiattamento(impiatto) {
   const box = document.getElementById("r-impiattamento-box");
   if (!box) return;
@@ -4169,30 +4153,25 @@ function renderImpiattamento(impiatto) {
     return;
   }
 
-  const zonaLeggibile = {
-    "centro": "al centro", "alto": "in alto", "basso": "in basso",
-    "sinistra": "a sinistra", "destra": "a destra",
-    "alto-sinistra": "in alto a sinistra", "alto-destra": "in alto a destra",
-    "basso-sinistra": "in basso a sinistra", "basso-destra": "in basso a destra",
-  };
+  const forma = impiatto?.forma_piatto ? String(impiatto.forma_piatto) : "";
 
   box.innerHTML =
-    (impiatto?.forma_piatto ? '<div style="font-size:12px;color:#64748b;margin-bottom:10px;">Piatto <strong>' + escapeHtml(impiatto.forma_piatto) + '</strong></div>' : "")
+    (forma ? '<div style="font-size:12px;color:#64748b;margin-bottom:10px;">Piatto <strong style="color:#334155;">' + escapeHtml(forma) + '</strong></div>' : "")
     + (elementi.length ? '<div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Cosa va dove</div>'
         + elementi.map(function (el, i) {
-            const zona = zonaLeggibile[String(el?.zona || "").toLowerCase()] || el?.zona || "";
-            return '<div style="display:flex;gap:8px;margin:5px 0;font-size:13px;align-items:baseline;">'
-              + '<span style="flex:none;color:#0E5A7A;font-weight:700;min-width:16px;">' + (i + 1) + '.</span>'
-              + '<span><strong>' + escapeHtml(el?.nome || "") + '</strong>'
-              + (zona ? ' <span style="color:#64748b;">' + escapeHtml(zona) + '</span>' : "")
-              + (el?.quantita ? ' <span style="color:#94a3b8;">— ' + escapeHtml(el.quantita) + '</span>' : "")
-              + (el?.forma ? ' <span style="color:#94a3b8;font-size:11.5px;">(' + escapeHtml(String(el.forma).replace("_", " ")) + ')</span>' : "")
-              + (el?.note ? '<br><span style="color:#64748b;font-size:12px;">' + escapeHtml(el.note) + '</span>' : "")
-              + '</span></div>';
+            return '<div style="display:flex;gap:9px;margin:6px 0;font-size:13px;align-items:flex-start;">'
+              + '<span style="flex:none;width:20px;height:20px;border-radius:50%;background:#0E5A7A;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">' + (i + 1) + '</span>'
+              + '<span style="color:#0f172a;"><strong>' + escapeHtml(el?.nome || "") + '</strong>'
+              + (el?.quantita ? ' <span style="color:#64748b;">— ' + escapeHtml(el.quantita) + '</span>' : "")
+              + '<br><span style="color:#64748b;font-size:12px;">'
+              +   (el?.zona ? escapeHtml(String(el.zona).replace(/-/g, " ")) : "")
+              +   (el?.forma ? ' · ' + escapeHtml(String(el.forma).replace(/_/g, " ")) : "")
+              +   (el?.note ? ' · ' + escapeHtml(el.note) : "")
+              + '</span></span></div>';
           }).join("") : "")
     + (seq.length ? '<div style="font-size:12px;font-weight:700;color:#334155;margin:14px 0 6px;">Ordine di posa</div>'
         + seq.map(function (p, i) {
-            return '<div style="font-size:13px;margin:4px 0;"><strong style="color:#0E5A7A;">' + (i + 1) + '.</strong> ' + escapeHtml(p) + '</div>';
+            return '<div style="font-size:13px;margin:5px 0;color:#0f172a;"><strong style="color:#0E5A7A;">' + (i + 1) + '.</strong> ' + escapeHtml(p) + '</div>';
           }).join("") : "")
     + (impiatto?.note_finali ? '<div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;font-size:12.5px;color:#78350f;">⚠️ ' + escapeHtml(impiatto.note_finali) + '</div>' : "");
 }
