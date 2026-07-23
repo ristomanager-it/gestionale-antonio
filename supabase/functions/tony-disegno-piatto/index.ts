@@ -107,34 +107,49 @@ Deno.serve(async function (req: Request) {
     const ricettaId = body?.ricetta_id ?? null;
     const prompt = costruisciPrompt(body);
 
-    // 1. genero l'illustrazione
-    const gen = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: prompt,
-        n: 1,
-        size: "1024x1024",
-        quality: "hd",
-        style: "natural",
-      }),
-    });
+    // 1. genero l'illustrazione.
+    // I modelli immagine di OpenAI cambiano parametri nel tempo: provo il classico
+    // e, se rifiuta, passo al piu' recente. Cosi' non si rompe al prossimo giro.
+    const tentativi = [
+      { model: "dall-e-3", prompt: prompt, n: 1, size: "1024x1024", quality: "hd" },
+      { model: "gpt-image-1", prompt: prompt, n: 1, size: "1024x1024", quality: "high" },
+      { model: "dall-e-3", prompt: prompt, n: 1, size: "1024x1024" },
+    ];
 
-    if (!gen.ok) {
+    let genData: any = null;
+    let erroriProva: string[] = [];
+
+    for (const corpo of tentativi) {
+      const gen = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify(corpo),
+      });
+      if (gen.ok) { genData = await gen.json(); break; }
       const t = await gen.text();
-      return json(502, { success: false, error: "Generazione fallita: " + t.slice(0, 300) });
+      erroriProva.push(corpo.model + ": " + t.slice(0, 160));
     }
 
-    const genData = await gen.json();
-    const urlTemporaneo = genData?.data?.[0]?.url;
-    const promptUsato = genData?.data?.[0]?.revised_prompt || prompt;
-    if (!urlTemporaneo) return json(502, { success: false, error: "Nessuna immagine restituita" });
+    if (!genData) {
+      return json(502, { success: false, error: "Generazione fallita. " + erroriProva.join(" | ") });
+    }
 
-    // 2. la scarico e la metto nello storage: l'URL di OpenAI scade
-    const img = await fetch(urlTemporaneo);
-    if (!img.ok) return json(502, { success: false, error: "Immagine non scaricabile" });
-    const bytes = new Uint8Array(await img.arrayBuffer());
+    const primo = genData?.data?.[0] || {};
+    const urlTemporaneo = primo.url || null;
+    const base64 = primo.b64_json || null;
+    const promptUsato = primo.revised_prompt || prompt;
+    if (!urlTemporaneo && !base64) return json(502, { success: false, error: "Nessuna immagine restituita" });
+
+    // 2. porto l'immagine in memoria: da URL (che scade) o da base64
+    let bytes: Uint8Array;
+    if (base64) {
+      const bin = atob(base64);
+      bytes = Uint8Array.from(bin, function (c) { return c.charCodeAt(0); });
+    } else {
+      const img = await fetch(urlTemporaneo as string);
+      if (!img.ok) return json(502, { success: false, error: "Immagine non scaricabile" });
+      bytes = new Uint8Array(await img.arrayBuffer());
+    }
 
     const nomeFile = "disegni/" + (ricettaId || "tmp") + "-" + Date.now() + ".png";
     const { error: upErr } = await supabase.storage
@@ -142,15 +157,19 @@ Deno.serve(async function (req: Request) {
       .upload(nomeFile, bytes, { contentType: "image/png", upsert: true });
 
     if (upErr) {
-      // se lo storage rifiuta, restituisco comunque l'URL temporaneo
-      return json(200, {
-        success: true, url: urlTemporaneo, permanente: false,
-        nota: "Immagine non salvata: " + upErr.message, prompt: promptUsato,
-      });
+      // se lo storage rifiuta: se ho un URL temporaneo lo passo, altrimenti fallisco chiaro
+      if (urlTemporaneo) {
+        return json(200, {
+          success: true, url: urlTemporaneo, permanente: false,
+          nota: "Immagine non salvata: " + upErr.message, prompt: promptUsato,
+        });
+      }
+      return json(502, { success: false, error: "Immagine generata ma non salvata: " + upErr.message });
     }
 
     const { data: pub } = supabase.storage.from("ricette").getPublicUrl(nomeFile);
-    const urlFinale = pub?.publicUrl || urlTemporaneo;
+    const urlFinale = pub?.publicUrl || urlTemporaneo || "";
+    if (!urlFinale) return json(502, { success: false, error: "URL immagine non disponibile" });
 
     // 3. la lego alla ricetta
     if (ricettaId) {
