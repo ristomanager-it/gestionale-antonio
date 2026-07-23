@@ -93,8 +93,13 @@ async function openDrillDown(tipo, from, to) {
       const tot = (data||[]).reduce((s,r)=>s+Number(r.importo||0),0);
       el.innerHTML = '<div style="background:#fffbeb;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;"><span style="color:#92400e;font-weight:500;">Totale spese fisse</span><strong style="color:#92400e;font-size:20px;">€'+Math.round(tot*100)/100+'</strong></div>'+(!data?.length?'<div style="color:#64748b;text-align:center;padding:20px;">Nessuna spesa nel periodo</div>':'<table style="width:100%;border-collapse:collapse;font-size:13px;"><tbody>'+data.map(r=>'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:8px;">'+new Date(r.data).toLocaleDateString("it-IT")+'</td><td style="padding:8px;">'+(r.descrizione||"")+'</td><td style="padding:8px;color:#64748b;">'+(r.categorie_bilancio?.nome||"")+'</td><td style="padding:8px;text-align:right;font-weight:600;">€'+Number(r.importo||0).toFixed(2)+'</td></tr>').join("")+'</tbody></table>');
     } else if (tipo==="cl") {
-      const {data:paghe} = await supabase.from("spese_extra").select("data,descrizione,importo").eq("azienda_id",aziendaId).eq("categoria_bilancio_id",14).gte("data",f).lte("data",t).order("data",{ascending:false});
-      const {data:timb} = await supabase.from("timbrature").select("dipendente_id,dip_nome,ore_lavorate,costo_orario").eq("azienda_id",aziendaId).eq("tipo","fine_turno").gte("timestamp",f).lte("timestamp",t+"T23:59:59").limit(5000);
+      const sedeDrill = window.state?.sedeAttiva?.id ?? null;
+      let pqD = supabase.from("spese_extra").select("data,descrizione,importo").eq("azienda_id",aziendaId).eq("categoria_bilancio_id",14).gte("data",f).lte("data",t).order("data",{ascending:false});
+      if (sedeDrill != null) pqD = pqD.or("sede_id.is.null,sede_id.eq." + sedeDrill);
+      const {data:paghe} = await pqD;
+      let tqD = supabase.from("timbrature").select("dipendente_id,dip_nome,ore_lavorate,costo_orario").eq("azienda_id",aziendaId).eq("tipo","fine_turno").gte("timestamp",f).lte("timestamp",t+"T23:59:59").limit(5000);
+      if (sedeDrill != null) tqD = tqD.eq("sede_id", sedeDrill);
+      const {data:timb} = await tqD;
       const {data:dips} = await supabase.from("dipendenti").select("id,costo_orario").eq("azienda_id",aziendaId);
       const costoDip = new Map((dips||[]).map(d=>[String(d.id),Number(d.costo_orario)||0]));
       const totP = (paghe||[]).reduce((s,r)=>s+Number(r.importo||0),0);
@@ -968,7 +973,8 @@ async function fetchDashboardData(period) {
     try {
       // Fix CL: le timbrature spesso NON hanno costo_orario (sta sui
       // dipendenti). Ricalcolo ore × costo con fallback su dipendenti.
-      const { data: timb } = await supabase
+      // Il costo del lavoro e' PER SEDE: contano solo le ore timbrate in quella sede.
+      let tq = supabase
         .from("timbrature")
         .select("dipendente_id, ore_lavorate, costo_orario")
         .eq("azienda_id", azienda.id)
@@ -976,6 +982,8 @@ async function fetchDashboardData(period) {
         .gte("timestamp", from)
         .lte("timestamp", to + "T23:59:59")
         .limit(5000);
+      if (sede?.id != null) tq = tq.eq("sede_id", sede.id);
+      const { data: timb } = await tq;
       if (timb?.length) {
         // Mappa costo_orario dei dipendenti
         const { data: dips } = await supabase
@@ -992,12 +1000,16 @@ async function fetchDashboardData(period) {
           totCL += ore * costoOra;
         }
         // Aggiungo eventuali paghe extra (spese_extra categoria 14)
-        const { data: paghe } = await supabase
+        // Le paghe spesso non hanno la sede compilata: quelle senza restano
+        // aziendali (visibili ovunque), ma escludo quelle di un'altra sede.
+        let pq = supabase
           .from("spese_extra")
           .select("importo")
           .eq("azienda_id", azienda.id)
           .eq("categoria_bilancio_id", 14)
           .gte("data", from).lte("data", to);
+        if (sede?.id != null) pq = pq.or("sede_id.is.null,sede_id.eq." + sede.id);
+        const { data: paghe } = await pq;
         const totPaghe = (paghe || []).reduce((s, r) => s + Number(r.importo || 0), 0);
         const clCalcolato = Math.round((totCL + totPaghe) * 100) / 100;
         if (clCalcolato > 0) costoLavoro = clCalcolato;
