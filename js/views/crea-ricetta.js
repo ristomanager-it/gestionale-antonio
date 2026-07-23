@@ -3916,8 +3916,168 @@ async function salvaTutto() {
   }
 
   if (esito) esito.innerText = "Ricetta salvata";
-  alert("Ricetta salvata");
-  window.location.hash = "#/ricettario";
+
+  // Costo per porzione: preferisco il totale diviso le porzioni previste,
+  // altrimenti ricavo dal costo unitario per il peso della porzione.
+  let costoPorzione = 0;
+  const nPorz = Number(getVal("r-pezzi-base"));
+  const costoTot = Number(computed?.costoTotaleInput) || 0;
+  if (Number.isFinite(nPorz) && nPorz > 0 && costoTot > 0) {
+    costoPorzione = costoTot / nPorz;
+  } else {
+    const cu = Number(computed?.costoUnitarioPrincipale) || 0;
+    const pesoPorz = Number(document.querySelector(".porz-peso")?.value) || 0;
+    if (cu > 0 && pesoPorz > 0) costoPorzione = cu * (pesoPorz / 1000);
+  }
+
+  mostraProponiMenu({
+    ricettaId: ricettaIdNum || ricettaId,
+    nome: nome,
+    descrizione: getVal("r-descrizione"),
+    costoPorzione: costoPorzione,
+    porzioni: (Number.isFinite(nPorz) && nPorz > 0) ? nPorz : null,
+  });
+}
+
+/* ============================================================
+   DALLA RICETTA AL MENU — primo anello della catena
+============================================================ */
+
+// Prezzo da listino: parte dal food cost e dal target, poi arrotonda
+// a mezzo euro perche' un prezzo da menu non e' mai 13,47.
+function prezzoSuggerito(costoPorzione, targetPct) {
+  const t = (Number(targetPct) || 30) / 100;
+  if (!(costoPorzione > 0) || !(t > 0)) return 0;
+  const grezzo = costoPorzione / t;
+  return Math.round(grezzo * 2) / 2;
+}
+
+function mostraProponiMenu({ ricettaId, nome, descrizione, costoPorzione, porzioni }) {
+  const vecchio = document.getElementById("rc-menu-overlay");
+  if (vecchio) vecchio.remove();
+
+  const prezzo = prezzoSuggerito(costoPorzione, 30);
+  const haCosto = costoPorzione > 0;
+
+  const ov = document.createElement("div");
+  ov.id = "rc-menu-overlay";
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;";
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:18px;max-width:460px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+      <div style="font-size:34px;text-align:center;">✅</div>
+      <h3 style="margin:6px 0 4px;text-align:center;font-size:19px;color:#0f172a;">Ricetta salvata</h3>
+      <p style="margin:0 0 16px;text-align:center;color:#64748b;font-size:13px;">${escapeHtml(nome || "")}</p>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:#334155;margin-bottom:8px;">🍽️ Vuoi metterla in menu?</div>
+        ${haCosto ? `
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin:4px 0;color:#475569;">
+            <span>Costo materia prima a porzione</span><strong>€ ${formatMoney(costoPorzione)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:10px 0 4px;color:#475569;">
+            <span>Prezzo di vendita</span>
+            <span>€ <input id="rc-menu-prezzo" type="number" step="0.5" value="${prezzo}"
+              style="width:88px;padding:6px 8px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;font-weight:700;text-align:right;"></span>
+          </div>
+          <div id="rc-menu-fc" style="font-size:11px;color:#64748b;text-align:right;"></div>
+        ` : `
+          <div style="font-size:12px;color:#b45309;margin-bottom:8px;">Food cost non calcolabile (manca la resa o i costi degli ingredienti). Puoi metterla in menu e sistemare il prezzo dopo.</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+            <span>Prezzo di vendita</span>
+            <span>€ <input id="rc-menu-prezzo" type="number" step="0.5" value=""
+              style="width:88px;padding:6px 8px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;font-weight:700;text-align:right;"></span>
+          </div>
+        `}
+        ${porzioni ? `<div style="font-size:11px;color:#94a3b8;margin-top:8px;">La ricetta rende ${porzioni} porzioni.</div>` : ""}
+      </div>
+
+      <div id="rc-menu-stato" style="font-size:12px;min-height:16px;margin-bottom:10px;text-align:center;"></div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="rc-menu-si" style="flex:1;min-width:150px;background:#0E5A7A;color:#fff;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">🍽️ Mettila in menu</button>
+        <button id="rc-menu-no" style="flex:1;min-width:120px;background:#f1f5f9;color:#334155;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Non ora</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const inpPrezzo = ov.querySelector("#rc-menu-prezzo");
+  const fcLabel = ov.querySelector("#rc-menu-fc");
+  const stato = ov.querySelector("#rc-menu-stato");
+
+  function aggiornaIncidenza() {
+    if (!fcLabel || !haCosto) return;
+    const p = Number(inpPrezzo.value) || 0;
+    if (p <= 0) { fcLabel.textContent = ""; return; }
+    const pct = costoPorzione / p * 100;
+    const colore = pct <= 30 ? "#15803d" : (pct <= 35 ? "#b45309" : "#dc2626");
+    fcLabel.innerHTML = 'incidenza food cost <strong style="color:' + colore + ';">' + pct.toFixed(1) + '%</strong>';
+  }
+  if (inpPrezzo) { inpPrezzo.addEventListener("input", aggiornaIncidenza); aggiornaIncidenza(); }
+
+  ov.querySelector("#rc-menu-no").onclick = () => {
+    ov.remove();
+    window.location.hash = "#/ricettario";
+  };
+
+  ov.querySelector("#rc-menu-si").onclick = async () => {
+    const btn = ov.querySelector("#rc-menu-si");
+    btn.disabled = true;
+    stato.innerHTML = '<span style="color:#0E5A7A;">Creo il piatto in menu...</span>';
+    try {
+      await creaProdottoVendita({
+        ricettaId: ricettaId,
+        nome: nome,
+        descrizione: descrizione,
+        prezzo: Number(inpPrezzo?.value) || null,
+        costoPorzione: costoPorzione,
+      });
+      stato.innerHTML = '<span style="color:#16a34a;">✅ Aggiunto al menu come bozza</span>';
+      setTimeout(() => { ov.remove(); window.location.hash = "#/bo-prodotti"; }, 1200);
+    } catch (e) {
+      console.error("Errore creazione prodotto vendita:", e);
+      stato.innerHTML = '<span style="color:#dc2626;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</span>';
+      btn.disabled = false;
+    }
+  };
+}
+
+async function creaProdottoVendita({ ricettaId, nome, descrizione, prezzo, costoPorzione }) {
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  const sedeId = window.state?.sedeAttiva?.id || null;
+  if (!aziendaId) throw new Error("Azienda non selezionata");
+  if (!ricettaId) throw new Error("Ricetta senza id");
+
+  // Se il piatto esiste gia' per questa ricetta lo aggiorno, non lo duplico.
+  const { data: esistente } = await supabase
+    .from("prodotti_vendita")
+    .select("id")
+    .eq("azienda_id", aziendaId)
+    .eq("ricetta_id", ricettaId)
+    .maybeSingle();
+
+  const payload = {
+    azienda_id: aziendaId,
+    sede_id: sedeId,
+    nome: nome,
+    descrizione: descrizione || null,
+    tipo: "ricetta",
+    ricetta_id: ricettaId,
+    prezzo_base: prezzo,
+    food_cost_snapshot: costoPorzione > 0 ? Number(costoPorzione.toFixed(4)) : null,
+    margine_target: 30,
+    stato: "bozza",
+    updated_at: new Date().toISOString(),
+  };
+
+  if (esistente?.id) {
+    const { error } = await supabase.from("prodotti_vendita").update(payload).eq("id", esistente.id);
+    if (error) throw error;
+    return esistente.id;
+  }
+  const { data, error } = await supabase.from("prodotti_vendita").insert(payload).select("id").single();
+  if (error) throw error;
+  return data?.id;
 }
 
 /* ============================================================
