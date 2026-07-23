@@ -14,6 +14,7 @@
 import { requirePermessi } from "../auth-utils.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 let ricettaId = null;
+let impiattamentoCorrente = null;   // progetto di montaggio del piatto
 
 let prodottiCache = [];
 let prodottiMap = new Map();
@@ -742,6 +743,12 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
     if (d.descrizione) setVal("r-descrizione", d.descrizione);
     if (d.attrezzatura) setVal("r-attrezzatura", d.attrezzatura);
     if (d.note_chef) setVal("r-note-proc", d.note_chef);
+
+    // Progetto di montaggio del piatto
+    if (d.impiattamento && typeof d.impiattamento === "object") {
+      impiattamentoCorrente = d.impiattamento;
+      renderImpiattamento(impiattamentoCorrente);
+    }
 
     // Categoria portata (cerca in cache, altrimenti la crea)
     if (d.categoria_portata && tipo === "finita") {
@@ -1583,6 +1590,24 @@ export async function render(app) {
               style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
               🤖 Compila resa con Tony
             </button>
+          </div>
+        `
+      })}
+
+      ${createCard({
+        title: "Montaggio del piatto",
+        body: `
+          <div id="r-impiattamento-box">
+            <div style="font-size:13px;color:#94a3b8;padding:10px 0;">Nessun progetto di montaggio. Chiedilo a Tony insieme alla ricetta.</div>
+          </div>
+          <div style="margin-top:12px;">
+            <button id="btn-tony-impiatto" type="button"
+              style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+              🍽️ Progetta il montaggio con Tony
+            </button>
+          </div>
+          <div style="margin-top:6px;font-size:12px;color:#6b7280;">
+            Lo schema dice a chi impiatta dove va ogni cosa e in che ordine, così il piatto esce uguale anche quando lo fa un altro.
           </div>
         `
       })}
@@ -3154,6 +3179,10 @@ async function caricaRicettaCompleta() {
   setVal("r-nome", ricetta.nome || "");
   setVal("r-pezzi-base", ricetta.pezzi_base ?? "");
   setVal("r-scaling-tempo", ricetta.scaling_tempo_pct ?? 20);
+  if (ricetta.impiattamento && typeof ricetta.impiattamento === "object") {
+    impiattamentoCorrente = ricetta.impiattamento;
+    renderImpiattamento(impiattamentoCorrente);
+  }
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
@@ -3384,6 +3413,7 @@ async function salvaTutto() {
       foto_url,
       pezzi_base,
       scaling_tempo_pct: scaling_tempo,
+      impiattamento: impiattamentoCorrente,
       azienda_id: aziendaId,
       sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
@@ -3422,6 +3452,7 @@ async function salvaTutto() {
       foto_url,
       pezzi_base,
       scaling_tempo_pct: scaling_tempo,
+      impiattamento: impiattamentoCorrente,
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
@@ -3940,6 +3971,134 @@ async function salvaTutto() {
 }
 
 /* ============================================================
+   PROGETTO DI MONTAGGIO DEL PIATTO
+   Schema dall'alto con le zone + sequenza di posa.
+============================================================ */
+
+// Le 9 zone della griglia, in coordinate relative al piatto (0-1).
+const ZONE_PIATTO = {
+  "centro":         { x: 0.50, y: 0.50 },
+  "alto":           { x: 0.50, y: 0.24 },
+  "basso":          { x: 0.50, y: 0.76 },
+  "sinistra":       { x: 0.24, y: 0.50 },
+  "destra":         { x: 0.76, y: 0.50 },
+  "alto-sinistra":  { x: 0.29, y: 0.29 },
+  "alto-destra":    { x: 0.71, y: 0.29 },
+  "basso-sinistra": { x: 0.29, y: 0.71 },
+  "basso-destra":   { x: 0.71, y: 0.71 },
+};
+
+const COLORI_ELEMENTI = ["#0E5A7A", "#c2410c", "#15803d", "#7c3aed", "#b45309", "#be123c", "#0891b2", "#4d7c0f"];
+
+function disegnaPiatto(impiatto) {
+  const L = 300;                       // lato dell'area di disegno
+  const forma = String(impiatto?.forma_piatto || "tondo").toLowerCase();
+  const elementi = Array.isArray(impiatto?.elementi) ? impiatto.elementi.slice(0, 9) : [];
+
+  // Il contorno cambia con la forma del piatto
+  let contorno = "";
+  if (forma.indexOf("rettangol") >= 0 || forma.indexOf("tagliere") >= 0) {
+    contorno = '<rect x="18" y="52" width="264" height="196" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2.5"/>'
+             + '<rect x="34" y="68" width="232" height="164" rx="10" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>';
+  } else if (forma.indexOf("bicchier") >= 0 || forma.indexOf("monoporzione") >= 0) {
+    contorno = '<path d="M95 55 L205 55 L188 250 L112 250 Z" fill="#fff" stroke="#cbd5e1" stroke-width="2.5"/>'
+             + '<line x1="99" y1="90" x2="201" y2="90" stroke="#e2e8f0" stroke-width="1.5"/>';
+  } else {
+    const rEsterno = forma.indexOf("fondo") >= 0 ? 118 : 122;
+    const rInterno = forma.indexOf("fondo") >= 0 ? 82 : 98;
+    contorno = '<circle cx="150" cy="150" r="' + rEsterno + '" fill="#fff" stroke="#cbd5e1" stroke-width="2.5"/>'
+             + '<circle cx="150" cy="150" r="' + rInterno + '" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>';
+  }
+
+  let punti = "";
+  let legenda = "";
+  elementi.forEach(function (el, i) {
+    const zona = ZONE_PIATTO[String(el?.zona || "centro").toLowerCase()] || ZONE_PIATTO["centro"];
+    const cx = 18 + zona.x * 264;
+    const cy = 52 + zona.y * 196;
+    const col = COLORI_ELEMENTI[i % COLORI_ELEMENTI.length];
+    punti += '<circle cx="' + cx.toFixed(0) + '" cy="' + cy.toFixed(0) + '" r="17" fill="' + col + '" opacity="0.9"/>'
+           + '<text x="' + cx.toFixed(0) + '" y="' + (cy + 5).toFixed(0) + '" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">' + (i + 1) + '</text>';
+    legenda += '<div style="display:flex;align-items:flex-start;gap:8px;margin:5px 0;font-size:12px;">'
+      + '<span style="flex:none;width:19px;height:19px;border-radius:50%;background:' + col + ';color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">' + (i + 1) + '</span>'
+      + '<span style="color:#0f172a;"><strong>' + escapeHtml(el?.nome || "") + '</strong>'
+      + (el?.quantita ? ' <span style="color:#64748b;">— ' + escapeHtml(el.quantita) + '</span>' : "")
+      + (el?.note ? '<br><span style="color:#64748b;font-size:11px;">' + escapeHtml(el.note) + '</span>' : "")
+      + '</span></div>';
+  });
+
+  const svg = '<svg viewBox="0 0 ' + L + ' ' + L + '" style="width:100%;max-width:280px;height:auto;">'
+    + '<text x="150" y="26" text-anchor="middle" font-size="12" fill="#64748b">piatto ' + escapeHtml(forma) + ' — visto dall\'alto</text>'
+    + contorno + punti + '</svg>';
+
+  return { svg: svg, legenda: legenda || '<div style="font-size:12px;color:#94a3b8;">Nessun elemento indicato.</div>' };
+}
+
+async function progettaMontaggioConTony() {
+  const nome = getVal("r-nome").trim();
+  if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
+
+  const box = document.getElementById("r-impiattamento-box");
+  if (box) box.innerHTML = '<div style="font-size:13px;color:#0E5A7A;padding:10px 0;">Tony sta progettando il montaggio...</div>';
+
+  // Gli passo la ricetta com'e' adesso a schermo
+  const ingr = [...document.querySelectorAll("#ingredienti-container .ing-row")].map(r => {
+    const n = r.querySelector(".ing-nome")?.value || r.querySelector(".ing-search")?.value || "";
+    const q = r.querySelector(".ing-qta")?.value || "";
+    const u = r.querySelector(".ing-um")?.value || "";
+    return n ? (n + (q ? " " + q + " " + u : "")) : "";
+  }).filter(Boolean).join(", ");
+
+  const porzioni = getVal("r-pezzi-base");
+  const descr = getVal("r-descrizione");
+
+  const richiesta = "Piatto: " + nome + "\n"
+    + (descr ? "Descrizione: " + descr + "\n" : "")
+    + (ingr ? "Ingredienti: " + ingr + "\n" : "")
+    + (porzioni ? "Porzioni: " + porzioni + "\n" : "")
+    + "\nProgettami il MONTAGGIO di questo piatto. Rispondi solo col JSON del blocco impiattamento: "
+    + '{"impiattamento":{"forma_piatto":"","elementi":[{"nome":"","zona":"","quantita":"","note":""}],"sequenza":[],"note_finali":""}}';
+
+  try {
+    const data = await tonyChatChiama([{ role: "user", content: richiesta }], "finalizza");
+    const parsed = tonyEstraiReply(data);
+    const imp = parsed?.impiattamento || parsed;
+    if (imp && (imp.elementi || imp.sequenza)) {
+      impiattamentoCorrente = imp;
+      renderImpiattamento(imp);
+    } else {
+      throw new Error("Risposta senza schema di montaggio");
+    }
+  } catch (e) {
+    console.error("Montaggio non riuscito:", e);
+    if (box) box.innerHTML = '<div style="font-size:13px;color:#dc2626;padding:10px 0;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</div>';
+  }
+}
+
+function renderImpiattamento(impiatto) {
+  const box = document.getElementById("r-impiattamento-box");
+  if (!box) return;
+  if (!impiatto || (!impiatto.elementi?.length && !impiatto.sequenza?.length)) {
+    box.innerHTML = '<div style="font-size:13px;color:#94a3b8;padding:10px 0;">Nessun progetto di montaggio. Chiedilo a Tony insieme alla ricetta.</div>';
+    return;
+  }
+  const dis = disegnaPiatto(impiatto);
+  const seq = Array.isArray(impiatto.sequenza) ? impiatto.sequenza : [];
+
+  box.innerHTML = '<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">'
+    + '<div style="flex:0 0 280px;">' + dis.svg + '</div>'
+    + '<div style="flex:1;min-width:230px;">'
+    +   '<div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Cosa va dove</div>'
+    +   dis.legenda
+    +   (seq.length ? ('<div style="font-size:12px;font-weight:700;color:#334155;margin:14px 0 6px;">Ordine di montaggio</div>'
+          + seq.map(function (p, i) {
+              return '<div style="font-size:12px;margin:4px 0;color:#0f172a;"><strong style="color:#0E5A7A;">' + (i + 1) + '.</strong> ' + escapeHtml(p) + '</div>';
+            }).join("")) : "")
+    +   (impiatto.note_finali ? ('<div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;font-size:12px;color:#78350f;">⚠️ ' + escapeHtml(impiatto.note_finali) + '</div>') : "")
+    + '</div></div>';
+}
+
+/* ============================================================
    DALLA RICETTA AL MENU — primo anello della catena
 ============================================================ */
 
@@ -3993,10 +4152,14 @@ function mostraProponiMenu({ ricettaId, nome, descrizione, costoPorzione, porzio
 
       <div id="rc-menu-stato" style="font-size:12px;min-height:16px;margin-bottom:10px;text-align:center;"></div>
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
         <button id="rc-menu-si" style="flex:1;min-width:150px;background:#0E5A7A;color:#fff;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">🍽️ Mettila in menu</button>
-        <button id="rc-menu-no" style="flex:1;min-width:120px;background:#f1f5f9;color:#334155;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Non ora</button>
+        <button id="rc-promo-si" style="flex:1;min-width:150px;background:linear-gradient(135deg,#7c3aed,#c026d3);color:#fff;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">🎯 Fanne una promo</button>
       </div>
+      <div style="display:flex;">
+        <button id="rc-menu-no" style="flex:1;background:#f1f5f9;color:#334155;border:none;border-radius:12px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;">Non ora</button>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:8px;">Le due strade sono indipendenti: puoi promuovere un piatto anche senza metterlo a listino.</div>
     </div>`;
   document.body.appendChild(ov);
 
@@ -4019,6 +4182,21 @@ function mostraProponiMenu({ ricettaId, nome, descrizione, costoPorzione, porzio
     window.location.hash = "#/ricettario";
   };
 
+  ov.querySelector("#rc-promo-si").onclick = async () => {
+    const btn = ov.querySelector("#rc-promo-si");
+    btn.disabled = true;
+    stato.innerHTML = '<span style="color:#7c3aed;">Preparo la promo...</span>';
+    try {
+      const promoId = await creaPromoDaRicetta({ nome: nome, descrizione: descrizione, prezzo: Number(inpPrezzo?.value) || null });
+      stato.innerHTML = '<span style="color:#16a34a;">✅ Promo creata come bozza</span>';
+      setTimeout(() => { ov.remove(); window.location.hash = "#/bo-promo?id=" + promoId; }, 1200);
+    } catch (e) {
+      console.error("Errore creazione promo:", e);
+      stato.innerHTML = '<span style="color:#dc2626;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</span>';
+      btn.disabled = false;
+    }
+  };
+
   ov.querySelector("#rc-menu-si").onclick = async () => {
     const btn = ov.querySelector("#rc-menu-si");
     btn.disabled = true;
@@ -4039,6 +4217,52 @@ function mostraProponiMenu({ ricettaId, nome, descrizione, costoPorzione, porzio
       btn.disabled = false;
     }
   };
+}
+
+// Dalla ricetta alla promo, senza passare dal menu: sono due binari diversi.
+// La promo nasce in bozza, con nome/descrizione/foto del piatto gia' dentro.
+async function creaPromoDaRicetta({ nome, descrizione, prezzo }) {
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  if (!aziendaId) throw new Error("Azienda non selezionata");
+  if (!nome) throw new Error("La ricetta non ha un nome");
+
+  // Codice leggibile ricavato dal nome del piatto
+  const codice = (nome.toUpperCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 12) || "PROMO") + Math.floor(Math.random() * 90 + 10);
+
+  const fotoRicetta = getVal("r-foto-url") || null;
+
+  const payload = {
+    azienda_id: aziendaId,
+    nome: "Prova " + nome,
+    descrizione: descrizione || ("Vieni ad assaggiare " + nome + "."),
+    tipo: "omaggio",
+    valore: 0,
+    codice: codice,
+    validita_giorni: 30,
+    canale: "whatsapp",
+    attiva: false,                       // nasce spenta: la accendi tu
+    immagine_url: fotoRicetta,
+    privacy_richiesta: true,
+    consenso_marketing: true,
+    landing_config: {
+      titolo: nome,
+      sottotitolo: descrizione || "",
+      cta: "Prenota il tuo tavolo",
+      origine: "ricetta",
+    },
+    thankyou_config: {
+      titolo: "Ci vediamo presto",
+      testo: "Mostra questo codice quando arrivi: " + codice,
+    },
+  };
+
+  const { data, error } = await supabase.from("promo").insert(payload).select("id").single();
+  if (error) throw error;
+  return data?.id;
 }
 
 async function creaProdottoVendita({ ricettaId, nome, descrizione, prezzo, costoPorzione }) {
@@ -4250,6 +4474,7 @@ function bindUI() {
   safeOn("btn-tony-ing", "click", () => apriModalTonyIngredienti());
   safeOn("btn-tony-anagrafica", "click", () => apriModalTony("anagrafica"));
   safeOn("btn-tony-inventa", "click", () => apriChatRicettaTony());
+  safeOn("btn-tony-impiatto", "click", () => progettaMontaggioConTony());
 
   // Se arrivi qui dalla chat di Tony, riprendo la conversazione automaticamente
   const consegnaTony = raccogliConsegnaDaTony();

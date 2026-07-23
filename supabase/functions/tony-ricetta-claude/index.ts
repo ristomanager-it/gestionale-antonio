@@ -76,6 +76,8 @@ const SYSTEM_CONSULENZA = [
   "6. PENSA ALLA PRODUZIONE REALE: finestre di lavorabilita', batch da dividere, cosa si fa in mise en place e cosa a la minute, come si rigenera al servizio.",
   "   Esempio: 'La finestra utile e' 8-10 minuti: con 500 g in blocco non fai in tempo a stendere. Lavora due batch da 250 g.'",
   "",
+  "7. IL PIATTO COME ESCE. Quando la ricetta e' definita, ragiona anche sul montaggio: che piatto usare, dove va ogni elemento, in che ordine si posa, cosa va all'ultimo secondo perche' altrimenti si smonta o si ammoscia. Pensa a un piatto che si possa ripetere identico cento volte da persone diverse, non a una foto da concorso."
+  "",
   "REGOLE DI CONVERSAZIONE:",
   "- Se ti manca un dato che cambia la risposta (quanto prodotto ha, quanti pezzi gli servono, che attrezzatura usa, se e' finger food o piatto), CHIEDIGLIELO. Massimo due domande mirate per volta, poi vai avanti con quello che sai.",
   "- QUANTE PORZIONI GLI SERVONO e' il dato che comanda tutto: dosi, resa, tempi, batch. Se non te l'ha detto, chiediglielo tra le prime cose. Poi dichiara sempre in chiaro la resa che ne esce (quanto prodotto finito, quante porzioni, quanto pesa la singola porzione), perche' su quella si calcolano food cost e tempi di produzione.",
@@ -100,8 +102,12 @@ const SYSTEM_FINALIZZA = [
   "- lavoro_umano_min sempre minore o uguale a durata_min. Massimo 12 fasi.",
   "- Numeri con punto decimale. Italiano.",
   "",
+  "IMPIATTAMENTO: compila sempre il blocco 'impiattamento'. forma_piatto sceglila tra: tondo, fondo, rettangolare, tagliere, bicchiere, monoporzione.",
+  "Per ogni elemento indica la ZONA usando SOLO uno di questi valori: centro, alto, basso, sinistra, destra, alto-sinistra, alto-destra, basso-sinistra, basso-destra.",
+  "La sequenza e' l'ordine reale di posa (prima le basi e le salse, per ultimo cio' che si rovina). In note_finali metti cosa NON fare e cosa va aggiunto solo al passe'.",
+  "",
   "Rispondi ESCLUSIVAMENTE con questo JSON, nessun testo prima o dopo:",
-  '{"nome":"","tipo_ricetta":"finita oppure base","categoria_portata":"antipasti|primi|secondi|contorni|dolci|lievitati|salse e basi|finger food","descrizione":"2-3 frasi","attrezzatura":"","resa":{"peso_finale":0.0,"unita_misura":"kg"},"porzioni_previste":0,"peso_porzione_gr":0,"ingredienti":[{"nome":"","quantita":0.0,"unita_misura":"kg","note":""}],"fasi":[{"tipo_fase":"preparazione","descrizione_operativa":"","durata_min":0,"lavoro_umano_min":0,"temperatura":null,"tecnologia":""}],"conservazione":[{"scenario_label":"","shelf_life_giorni":0,"note":""}],"note_chef":"punti critici ed errori da evitare emersi nella conversazione"}',
+  '{"nome":"","tipo_ricetta":"finita oppure base","categoria_portata":"antipasti|primi|secondi|contorni|dolci|lievitati|salse e basi|finger food","descrizione":"2-3 frasi","attrezzatura":"","resa":{"peso_finale":0.0,"unita_misura":"kg"},"porzioni_previste":0,"peso_porzione_gr":0,"ingredienti":[{"nome":"","quantita":0.0,"unita_misura":"kg","note":""}],"fasi":[{"tipo_fase":"preparazione","descrizione_operativa":"","durata_min":0,"lavoro_umano_min":0,"temperatura":null,"tecnologia":""}],"conservazione":[{"scenario_label":"","shelf_life_giorni":0,"note":""}],"note_chef":"punti critici ed errori da evitare emersi nella conversazione","impiattamento":{"forma_piatto":"tondo","elementi":[{"nome":"","zona":"centro","quantita":"","note":""}],"sequenza":["primo passo di posa","secondo passo"],"note_finali":"cosa aggiungere solo al passe e cosa evitare"}}',
 ].join("\n");
 
 type Msg = { role: string; content: string };
