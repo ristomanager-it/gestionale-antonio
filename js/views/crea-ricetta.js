@@ -4107,6 +4107,83 @@ function formaSvg(forma, cx, cy, k, col, idx) {
            '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 0.68) + '" ry="' + (r * 0.5) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.2" opacity="0.6"/>' +
            '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 0.34) + '" ry="' + (r * 0.24) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.1" opacity="0.5"/>';
 
+  if (f === "pasta_lunga") {
+    // matassa attorcigliata: cerchi concentrici schiacciati + capi che escono
+    let s = '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.05) + '" ry="' + (r * 0.78) + '" fill="' + col.chiaro + '" ' + bordo + '/>';
+    for (let i = 1; i <= 3; i++) {
+      s += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.05 * (1 - i * 0.22)) + '" ry="' + (r * 0.78 * (1 - i * 0.22)) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.15" opacity="0.55" transform="rotate(' + (i * 14) + ' ' + cx + ' ' + cy + ')"/>';
+    }
+    s += '<path d="M' + (cx - r * 0.95) + ' ' + (cy + r * 0.35) + ' q ' + (-r * 0.35) + ' ' + (r * 0.28) + ' ' + (-r * 0.15) + ' ' + (r * 0.62) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>';
+    s += '<path d="M' + (cx + r * 0.9) + ' ' + (cy - r * 0.3) + ' q ' + (r * 0.38) + ' ' + (-r * 0.2) + ' ' + (r * 0.5) + ' ' + (-r * 0.55) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>';
+    return s;
+  }
+
+  if (f === "pasta_corta") {
+    // tubetti sparsi, ognuno con la sua inclinazione
+    let s = "";
+    const p = [[-0.6, -0.45], [0.15, -0.6], [0.65, -0.05], [-0.45, 0.3], [0.3, 0.5], [-0.05, -0.05], [0.75, 0.6]];
+    p.forEach(function (q, i) {
+      const w = r * 0.5, h = r * 0.3;
+      const px = cx + q[0] * r, py = cy + q[1] * r;
+      s += '<rect x="' + (px - w / 2) + '" y="' + (py - h / 2) + '" width="' + w + '" height="' + h + '" rx="' + (h / 2) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + ((i * 47) % 180 - 90) + ' ' + px + ' ' + py + ')"/>';
+    });
+    return s;
+  }
+
+  if (f === "risotto") {
+    // massa stesa all'onda, superficie mossa
+    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.45) + '" ry="' + (r * 0.95) + '" fill="' + col.chiaro + '" ' + bordo + '/>'
+         + '<path d="M' + (cx - r * 1.05) + ' ' + (cy + r * 0.15) + ' q ' + (r * 0.35) + ' ' + (-r * 0.3) + ' ' + (r * 0.7) + ' 0 q ' + (r * 0.35) + ' ' + (r * 0.3) + ' ' + (r * 0.7) + ' 0" fill="none" stroke="' + col.pieno + '" stroke-width="1.1" opacity="0.5"/>';
+  }
+
+  if (f === "zuppa") {
+    // liquido che riempie il fondo, con riflesso
+    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.75) + '" ry="' + (r * 1.3) + '" fill="' + col.chiaro + '" ' + bordo + ' opacity="0.9"/>'
+         + '<path d="M' + (cx - r * 1.15) + ' ' + (cy - r * 0.35) + ' q ' + (r * 0.5) + ' ' + (-r * 0.22) + ' ' + (r * 1) + ' 0" fill="none" stroke="#fff" stroke-width="2.2" opacity="0.75"/>';
+  }
+
+  if (f === "affettato") {
+    // fette drappeggiate: onde sovrapposte
+    let s = "";
+    for (let i = 0; i < 4; i++) {
+      const px = cx + (i - 1.5) * r * 0.52;
+      s += '<path d="M' + px + ' ' + (cy - r * 0.55) + ' q ' + (r * 0.45) + ' ' + (r * 0.3) + ' 0 ' + (r * 1.1) + ' q ' + (-r * 0.45) + ' ' + (-r * 0.3) + ' 0 ' + (-r * 1.1) + ' Z" fill="' + col.chiaro + '" ' + bordo + ' opacity="0.92"/>';
+    }
+    return s;
+  }
+
+  if (f === "formaggio") {
+    // spicchi a raggiera
+    let s = "";
+    for (let i = 0; i < 3; i++) {
+      const a = (i * 120 - 90) * Math.PI / 180;
+      const px = cx + Math.cos(a) * r * 0.5, py = cy + Math.sin(a) * r * 0.5;
+      s += '<path d="M' + px + ' ' + (py - r * 0.55) + ' L ' + (px + r * 0.55) + ' ' + (py + r * 0.4) + ' L ' + (px - r * 0.55) + ' ' + (py + r * 0.4) + ' Z" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (i * 40) + ' ' + px + ' ' + py + ')"/>';
+    }
+    return s;
+  }
+
+  if (f === "insalata") {
+    // ciuffo di foglie
+    let s = "";
+    for (let i = 0; i < 6; i++) {
+      const a = (i * 60 + 15) * Math.PI / 180;
+      const px = cx + Math.cos(a) * r * 0.55, py = cy + Math.sin(a) * r * 0.42;
+      s += '<ellipse cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" rx="' + (r * 0.48) + '" ry="' + (r * 0.26) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (i * 60) + ' ' + px.toFixed(1) + ' ' + py.toFixed(1) + ')" opacity="0.9"/>';
+    }
+    return s;
+  }
+
+  if (f === "pane") {
+    // fette di pane / crostini
+    let s = "";
+    for (let i = 0; i < 2; i++) {
+      const px = cx + (i - 0.5) * r * 0.95;
+      s += '<rect x="' + (px - r * 0.42) + '" y="' + (cy - r * 0.52) + '" width="' + (r * 0.84) + '" height="' + (r * 1.04) + '" rx="' + (r * 0.16) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (i ? 12 : -9) + ' ' + px + ' ' + cy + ')"/>';
+    }
+    return s;
+  }
+
   // ripiego: forma neutra
   return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.85) + '" fill="' + col.chiaro + '" ' + bordo + '/>';
 }
