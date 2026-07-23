@@ -4000,290 +4000,167 @@ async function salvaTutto() {
    Schema dall'alto con le zone + sequenza di posa.
 ============================================================ */
 
-// Le 9 zone della griglia, in coordinate relative al piatto (0-1).
+// Le 9 zone della griglia, in coordinate relative all'area del piatto (0-1).
 const ZONE_PIATTO = {
   "centro":         { x: 0.50, y: 0.50 },
-  "alto":           { x: 0.50, y: 0.24 },
-  "basso":          { x: 0.50, y: 0.76 },
-  "sinistra":       { x: 0.24, y: 0.50 },
-  "destra":         { x: 0.76, y: 0.50 },
-  "alto-sinistra":  { x: 0.29, y: 0.29 },
-  "alto-destra":    { x: 0.71, y: 0.29 },
-  "basso-sinistra": { x: 0.29, y: 0.71 },
-  "basso-destra":   { x: 0.71, y: 0.71 },
+  "alto":           { x: 0.50, y: 0.26 },
+  "basso":          { x: 0.50, y: 0.74 },
+  "sinistra":       { x: 0.26, y: 0.50 },
+  "destra":         { x: 0.74, y: 0.50 },
+  "alto-sinistra":  { x: 0.31, y: 0.31 },
+  "alto-destra":    { x: 0.69, y: 0.31 },
+  "basso-sinistra": { x: 0.31, y: 0.69 },
+  "basso-destra":   { x: 0.69, y: 0.69 },
 };
 
-const COLORI_ELEMENTI = ["#0E5A7A", "#c2410c", "#15803d", "#7c3aed", "#b45309", "#be123c", "#0891b2", "#4d7c0f"];
+// Palette tenue: il disegno deve leggersi, non abbagliare.
+const COLORI_ELEMENTI = [
+  { pieno: "#b45309", chiaro: "#fde68a" },
+  { pieno: "#15803d", chiaro: "#bbf7d0" },
+  { pieno: "#b91c1c", chiaro: "#fecaca" },
+  { pieno: "#6d28d9", chiaro: "#ddd6fe" },
+  { pieno: "#0e7490", chiaro: "#a5f3fc" },
+  { pieno: "#a16207", chiaro: "#fef08a" },
+  { pieno: "#be185d", chiaro: "#fbcfe8" },
+  { pieno: "#4d7c0f", chiaro: "#d9f99d" },
+];
+
+const SCALA_DIM = { piccolo: 0.7, medio: 1, grande: 1.35 };
+
+// Disegna un elemento con la forma che ha davvero nel piatto.
+function formaSvg(forma, cx, cy, k, col, idx) {
+  const f = String(forma || "pezzo").toLowerCase();
+  const r = 26 * k;
+  const bordo = 'stroke="' + col.pieno + '" stroke-width="1.6"';
+  const rot = (idx * 37) % 360;
+
+  if (f === "specchio")
+    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.7) + '" ry="' + (r * 0.85) + '" fill="' + col.chiaro + '" ' + bordo + ' opacity="0.85"/>';
+
+  if (f === "crema")
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.95) + '" fill="' + col.chiaro + '" ' + bordo + '/>';
+
+  if (f === "quenelle")
+    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 0.95) + '" ry="' + (r * 0.62) + '" fill="' + col.chiaro + '" ' + bordo +
+           ' transform="rotate(-25 ' + cx + ' ' + cy + ')"/>' +
+           '<path d="M' + (cx - r * 0.5) + ' ' + (cy + r * 0.1) + ' Q ' + cx + ' ' + (cy - r * 0.45) + ' ' + (cx + r * 0.55) + ' ' + (cy - r * 0.12) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.1" opacity="0.6"/>';
+
+  if (f === "pezzo")
+    return '<rect x="' + (cx - r * 1.05) + '" y="' + (cy - r * 0.68) + '" width="' + (r * 2.1) + '" height="' + (r * 1.36) + '" rx="' + (r * 0.35) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (rot % 18 - 9) + ' ' + cx + ' ' + cy + ')"/>';
+
+  if (f === "fetta") {
+    let s = "";
+    for (let i = 0; i < 3; i++) {
+      const dx = cx + (i - 1) * r * 0.55;
+      s += '<ellipse cx="' + dx + '" cy="' + (cy + (i - 1) * 3) + '" rx="' + (r * 0.72) + '" ry="' + (r * 0.5) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(-18 ' + dx + ' ' + cy + ')"/>';
+    }
+    return s;
+  }
+
+  if (f === "cubetti") {
+    let s = "";
+    const p = [[-0.7, -0.4], [0.1, -0.7], [0.7, -0.1], [-0.3, 0.4], [0.45, 0.55], [-0.8, 0.25]];
+    p.forEach(function (q, i) {
+      const l = r * 0.34;
+      s += '<rect x="' + (cx + q[0] * r - l / 2) + '" y="' + (cy + q[1] * r - l / 2) + '" width="' + l + '" height="' + l + '" rx="1.5" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (i * 23) + ' ' + (cx + q[0] * r) + ' ' + (cy + q[1] * r) + ')"/>';
+    });
+    return s;
+  }
+
+  if (f === "gocce") {
+    let s = "";
+    const p = [[-0.85, -0.15], [-0.3, 0.35], [0.25, -0.35], [0.8, 0.2], [0.05, 0.75]];
+    p.forEach(function (q, i) {
+      s += '<circle cx="' + (cx + q[0] * r * 1.3) + '" cy="' + (cy + q[1] * r * 1.1) + '" r="' + (r * (0.13 + (i % 3) * 0.045)) + '" fill="' + col.pieno + '" opacity="0.75"/>';
+    });
+    return s;
+  }
+
+  if (f === "filo")
+    return '<path d="M' + (cx - r * 1.5) + ' ' + cy + ' q ' + (r * 0.5) + ' ' + (-r * 0.7) + ' ' + (r * 0.95) + ' 0 q ' + (r * 0.5) + ' ' + (r * 0.7) + ' ' + (r * 0.95) + ' 0" fill="none" stroke="' + col.pieno + '" stroke-width="' + (2.6 * k) + '" stroke-linecap="round" opacity="0.8"/>';
+
+  if (f === "polvere") {
+    let s = "";
+    for (let i = 0; i < 22; i++) {
+      const a = (i * 61) % 360, d = ((i * 37) % 100) / 100;
+      const px = cx + Math.cos(a * Math.PI / 180) * r * 1.25 * d;
+      const py = cy + Math.sin(a * Math.PI / 180) * r * 1.05 * d;
+      s += '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + (1 + (i % 3) * 0.7) + '" fill="' + col.pieno + '" opacity="0.55"/>';
+    }
+    return s;
+  }
+
+  if (f === "erbe") {
+    let s = "";
+    for (let i = 0; i < 5; i++) {
+      const bx = cx + (i - 2) * r * 0.32;
+      s += '<path d="M' + bx + ' ' + (cy + r * 0.5) + ' q ' + (r * 0.2 * (i % 2 ? 1 : -1)) + ' ' + (-r * 0.6) + ' ' + (r * 0.08 * (i % 2 ? 1 : -1)) + ' ' + (-r * 1.05) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.7" stroke-linecap="round"/>';
+    }
+    return s;
+  }
+
+  if (f === "croccante")
+    return '<path d="M' + (cx - r * 0.8) + ' ' + (cy + r * 0.75) + ' L ' + (cx + r * 0.15) + ' ' + (cy - r * 1.15) + ' L ' + (cx + r * 0.9) + ' ' + (cy + r * 0.75) + ' Z" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (rot % 24 - 12) + ' ' + cx + ' ' + cy + ')"/>';
+
+  if (f === "nido")
+    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.05) + '" ry="' + (r * 0.8) + '" fill="' + col.chiaro + '" ' + bordo + '/>' +
+           '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 0.68) + '" ry="' + (r * 0.5) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.2" opacity="0.6"/>' +
+           '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 0.34) + '" ry="' + (r * 0.24) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.1" opacity="0.5"/>';
+
+  // ripiego: forma neutra
+  return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.85) + '" fill="' + col.chiaro + '" ' + bordo + '/>';
+}
 
 function disegnaPiatto(impiatto) {
-  const L = 300;                       // lato dell'area di disegno
+  const L = 340;
   const forma = String(impiatto?.forma_piatto || "tondo").toLowerCase();
   const elementi = Array.isArray(impiatto?.elementi) ? impiatto.elementi.slice(0, 9) : [];
 
-  // Il contorno cambia con la forma del piatto
-  let contorno = "";
+  // Area utile del piatto (dove si posa il cibo)
+  let contorno = "", box;
   if (forma.indexOf("rettangol") >= 0 || forma.indexOf("tagliere") >= 0) {
-    contorno = '<rect x="18" y="52" width="264" height="196" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2.5"/>'
-             + '<rect x="34" y="68" width="232" height="164" rx="10" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>';
+    contorno = '<rect x="16" y="58" width="308" height="226" rx="16" fill="#fdfdfd" stroke="#cbd5e1" stroke-width="2.5"/>'
+             + '<rect x="34" y="76" width="272" height="190" rx="11" fill="none" stroke="#e8edf3" stroke-width="1.4"/>';
+    box = { x: 40, y: 82, w: 260, h: 178 };
   } else if (forma.indexOf("bicchier") >= 0 || forma.indexOf("monoporzione") >= 0) {
-    contorno = '<path d="M95 55 L205 55 L188 250 L112 250 Z" fill="#fff" stroke="#cbd5e1" stroke-width="2.5"/>'
-             + '<line x1="99" y1="90" x2="201" y2="90" stroke="#e2e8f0" stroke-width="1.5"/>';
+    contorno = '<path d="M108 60 L232 60 L214 286 L126 286 Z" fill="#fdfdfd" stroke="#cbd5e1" stroke-width="2.5"/>'
+             + '<line x1="112" y1="96" x2="228" y2="96" stroke="#e8edf3" stroke-width="1.4"/>';
+    box = { x: 122, y: 96, w: 96, h: 176 };
   } else {
-    const rEsterno = forma.indexOf("fondo") >= 0 ? 118 : 122;
-    const rInterno = forma.indexOf("fondo") >= 0 ? 82 : 98;
-    contorno = '<circle cx="150" cy="150" r="' + rEsterno + '" fill="#fff" stroke="#cbd5e1" stroke-width="2.5"/>'
-             + '<circle cx="150" cy="150" r="' + rInterno + '" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>';
+    const fondo = forma.indexOf("fondo") >= 0;
+    contorno = '<circle cx="170" cy="172" r="' + (fondo ? 132 : 138) + '" fill="#fdfdfd" stroke="#cbd5e1" stroke-width="2.5"/>'
+             + '<circle cx="170" cy="172" r="' + (fondo ? 92 : 108) + '" fill="none" stroke="#e8edf3" stroke-width="1.4"/>';
+    const raggio = fondo ? 86 : 100;
+    box = { x: 170 - raggio, y: 172 - raggio, w: raggio * 2, h: raggio * 2 };
   }
 
-  let punti = "";
-  let legenda = "";
+  let disegno = "", legenda = "";
   elementi.forEach(function (el, i) {
-    const zona = ZONE_PIATTO[String(el?.zona || "centro").toLowerCase()] || ZONE_PIATTO["centro"];
-    const cx = 18 + zona.x * 264;
-    const cy = 52 + zona.y * 196;
+    const z = ZONE_PIATTO[String(el?.zona || "centro").toLowerCase()] || ZONE_PIATTO["centro"];
+    const cx = +(box.x + z.x * box.w).toFixed(1);
+    const cy = +(box.y + z.y * box.h).toFixed(1);
     const col = COLORI_ELEMENTI[i % COLORI_ELEMENTI.length];
-    punti += '<circle cx="' + cx.toFixed(0) + '" cy="' + cy.toFixed(0) + '" r="17" fill="' + col + '" opacity="0.9"/>'
-           + '<text x="' + cx.toFixed(0) + '" y="' + (cy + 5).toFixed(0) + '" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">' + (i + 1) + '</text>';
-    legenda += '<div style="display:flex;align-items:flex-start;gap:8px;margin:5px 0;font-size:12px;">'
-      + '<span style="flex:none;width:19px;height:19px;border-radius:50%;background:' + col + ';color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">' + (i + 1) + '</span>'
+    const k = SCALA_DIM[String(el?.dimensione || "medio").toLowerCase()] || 1;
+
+    disegno += formaSvg(el?.forma, cx, cy, k, col, i);
+    // numerino piccolo accanto, non dentro: non deve coprire il disegno
+    disegno += '<circle cx="' + (cx + 22 * k) + '" cy="' + (cy - 20 * k) + '" r="8.5" fill="#fff" stroke="' + col.pieno + '" stroke-width="1.3"/>'
+             + '<text x="' + (cx + 22 * k) + '" y="' + (cy - 20 * k + 3.4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + col.pieno + '">' + (i + 1) + '</text>';
+
+    legenda += '<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;font-size:12px;">'
+      + '<span style="flex:none;width:19px;height:19px;border-radius:50%;border:1.5px solid ' + col.pieno + ';color:' + col.pieno + ';font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">' + (i + 1) + '</span>'
       + '<span style="color:#0f172a;"><strong>' + escapeHtml(el?.nome || "") + '</strong>'
       + (el?.quantita ? ' <span style="color:#64748b;">— ' + escapeHtml(el.quantita) + '</span>' : "")
+      + (el?.forma ? ' <span style="color:#94a3b8;font-size:11px;">(' + escapeHtml(el.forma) + ')</span>' : "")
       + (el?.note ? '<br><span style="color:#64748b;font-size:11px;">' + escapeHtml(el.note) + '</span>' : "")
       + '</span></div>';
   });
 
-  const svg = '<svg viewBox="0 0 ' + L + ' ' + L + '" style="width:100%;max-width:280px;height:auto;">'
-    + '<text x="150" y="26" text-anchor="middle" font-size="12" fill="#64748b">piatto ' + escapeHtml(forma) + ' — visto dall\'alto</text>'
-    + contorno + punti + '</svg>';
+  const svg = '<svg viewBox="0 0 ' + L + ' ' + L + '" style="width:100%;max-width:330px;height:auto;">'
+    + '<text x="170" y="28" text-anchor="middle" font-size="11.5" fill="#94a3b8">piatto ' + escapeHtml(forma) + ' — visto dall\'alto</text>'
+    + contorno + disegno + '</svg>';
 
   return { svg: svg, legenda: legenda || '<div style="font-size:12px;color:#94a3b8;">Nessun elemento indicato.</div>' };
-}
-
-/* ============================================================
-   ABBINAMENTO VINO — solo etichette presenti in carta
-============================================================ */
-
-// Carica la carta della sede attiva. Se le etichette sono tante,
-// ne prende un campione per fascia di prezzo: cosi' Tony vede sia
-// le bottiglie accessibili sia quelle importanti, non solo le prime.
-// Una bottiglia da 0,75 rende 5 calici da 150 ml.
-// Arrotondo a mezzo euro per eccesso: un calice non si vende a 6,60.
-function prezzoAlCalice(prezzoBottiglia) {
-  const p = Number(prezzoBottiglia);
-  if (!(p > 0)) return 0;
-  return Math.ceil((p / 5) * 2) / 2;
-}
-
-async function caricaCartaVini() {
-  const supabase = window.supabaseClient || window.supabase;
-  const aziendaId = window.state?.azienda?.id;
-  const sedeId = window.state?.sedeAttiva?.id || null;
-  if (!aziendaId) throw new Error("Azienda non selezionata");
-
-  const { data: cats } = await supabase
-    .from("categorie_vendita")
-    .select("id, nome")
-    .eq("azienda_id", aziendaId);
-
-  const catVino = (cats || []).filter(c => /vin|bollicin|champagne|spumant|calice/i.test(c.nome || ""));
-  const mappaCat = {};
-  (cats || []).forEach(c => { mappaCat[c.id] = c.nome; });
-  const idCatVino = new Set(catVino.map(c => c.id));
-  const eCalice = (n) => /calice|al bicchiere/i.test(n || "");
-
-  // Prendo i prodotti della sede: i vini per categoria, ma anche i calici che
-  // stanno altrove (alla Trattoria sono dentro "Bevande").
-  let q = supabase
-    .from("prodotti_vendita")
-    .select("nome, prezzo_base, categoria_vendita_id")
-    .eq("azienda_id", aziendaId)
-    .eq("attivo", true)
-    .limit(3000);
-  if (sedeId) q = q.eq("sede_id", sedeId);
-
-  const { data, error } = await q;
-  if (error) throw error;
-
-  let vini = (data || [])
-    .filter(v => v.nome && Number(v.prezzo_base) > 0)
-    .filter(v => idCatVino.has(v.categoria_vendita_id) || eCalice(v.nome))
-    .map(v => {
-      const gia = eCalice(v.nome) || eCalice(mappaCat[v.categoria_vendita_id]);
-      const prezzo = Number(v.prezzo_base);
-      return {
-        nome: v.nome.trim(),
-        prezzo: prezzo,
-        categoria: mappaCat[v.categoria_vendita_id] || "Vini",
-        calice: gia,
-        prezzoCalice: gia ? prezzo : prezzoAlCalice(prezzo),
-      };
-    });
-
-  // Se la sede attiva non ha vini propri, riprovo senza filtro sede
-  if (!vini.length && sedeId) {
-    const { data: tutti } = await supabase
-      .from("prodotti_vendita")
-      .select("nome, prezzo_base, categoria_vendita_id")
-      .eq("azienda_id", aziendaId).eq("attivo", true).limit(3000);
-    vini = (tutti || [])
-      .filter(v => v.nome && Number(v.prezzo_base) > 0)
-      .filter(v => idCatVino.has(v.categoria_vendita_id) || eCalice(v.nome))
-      .map(v => {
-        const gia = eCalice(v.nome) || eCalice(mappaCat[v.categoria_vendita_id]);
-        const prezzo = Number(v.prezzo_base);
-        return {
-          nome: v.nome.trim(),
-          prezzo: prezzo,
-          categoria: mappaCat[v.categoria_vendita_id] || "Vini",
-          calice: gia,
-          prezzoCalice: gia ? prezzo : prezzoAlCalice(prezzo),
-        };
-      });
-  }
-
-  // Tetto: campiono per categoria e per fascia, cosi' resta rappresentativa
-  const TETTO = 260;
-  const calici = vini.filter(v => v.calice);
-  if (vini.length > TETTO) {
-    const perCat = {};
-    vini.forEach(v => { (perCat[v.categoria] = perCat[v.categoria] || []).push(v); });
-    const quote = Math.max(8, Math.floor(TETTO / Object.keys(perCat).length));
-    const scelti = [];
-    Object.values(perCat).forEach(lista => {
-      lista.sort((a, b) => a.prezzo - b.prezzo);
-      const passo = Math.max(1, Math.floor(lista.length / quote));
-      for (let i = 0; i < lista.length && scelti.length < TETTO; i += passo) scelti.push(lista[i]);
-    });
-    const nomiScelti = new Set(scelti.map(v => v.nome));
-    calici.forEach(c => { if (!nomiScelti.has(c.nome)) scelti.push(c); });
-    vini = scelti;
-  }
-
-  return { vini: vini, calici: calici.length, categorie: [...new Set(vini.map(v => v.categoria))] };
-}
-
-async function abbinaVinoConTony() {
-  const nome = getVal("r-nome").trim();
-  if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
-
-  const box = document.getElementById("r-vino-box");
-  const nota = document.getElementById("r-vino-nota");
-  if (box) box.innerHTML = '<div style="font-size:13px;color:#7f1d1d;padding:10px 0;">Leggo la carta e abbino...</div>';
-
-  try {
-    const carta = await caricaCartaVini();
-    if (!carta.vini.length) {
-      if (box) box.innerHTML = '<div style="font-size:13px;color:#b45309;padding:10px 0;">Nella carta di questa sede non trovo vini attivi con prezzo. Controlla il menu bevande.</div>';
-      return;
-    }
-    if (nota) nota.textContent = "Carta letta: " + carta.vini.length + " etichette, tutte disponibili anche al calice (bottiglia diviso 5).";
-
-    const ingr = [...document.querySelectorAll("#ingredienti-container .ing-row")].map(r => {
-      const n = r.querySelector(".ing-nome")?.value || r.querySelector(".ing-search")?.value || "";
-      return n;
-    }).filter(Boolean).slice(0, 20).join(", ");
-
-    const elenco = carta.vini
-      .map(v => v.calice ? ("- " + v.nome + " | " + v.categoria + " | " + v.prezzo.toFixed(2) + " euro | SOLO AL CALICE") : ("- " + v.nome + " | " + v.categoria + " | bottiglia " + v.prezzo.toFixed(0) + " euro | al calice " + v.prezzoCalice.toFixed(2) + " euro"))
-      .join("\n");
-
-    const richiesta = "PIATTO: " + nome + "\n"
-      + (getVal("r-descrizione") ? "Descrizione: " + getVal("r-descrizione") + "\n" : "")
-      + (ingr ? "Ingredienti: " + ingr + "\n" : "")
-      + "\nCARTA DEI VINI DEL LOCALE (usa solo questi, nome esatto):\n" + elenco;
-
-    const data = await tonyChatChiama([{ role: "user", content: richiesta }], "abbinamento");
-    const parsed = tonyEstraiReply(data);
-    if (!parsed?.proposte?.length) throw new Error("Nessuna proposta ricevuta");
-
-    // Controllo che le etichette esistano davvero in carta
-    const inCarta = new Map(carta.vini.map(v => [v.nome.toLowerCase(), v]));
-    parsed.proposte = parsed.proposte.map(p => {
-      const trovato = inCarta.get(String(p.vino || "").trim().toLowerCase());
-      return Object.assign({}, p, {
-        verificato: !!trovato,
-        prezzo: trovato ? trovato.prezzo : p.prezzo,
-        categoria: trovato ? trovato.categoria : p.categoria,
-        al_calice: trovato ? !!trovato.calice : !!p.al_calice,
-        prezzo_calice: trovato ? trovato.prezzoCalice : null,
-      });
-    });
-    parsed.sede = window.state?.sedeAttiva?.nome || null;
-
-    abbinamentoVini = parsed;
-    renderAbbinamento(parsed);
-  } catch (e) {
-    console.error("Abbinamento non riuscito:", e);
-    if (box) box.innerHTML = '<div style="font-size:13px;color:#dc2626;padding:10px 0;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</div>';
-  }
-}
-
-function renderAbbinamento(abb) {
-  const box = document.getElementById("r-vino-box");
-  if (!box) return;
-  const proposte = Array.isArray(abb?.proposte) ? abb.proposte : [];
-  if (!proposte.length) {
-    box.innerHTML = '<div style="font-size:13px;color:#94a3b8;padding:10px 0;">Nessun abbinamento.</div>';
-    return;
-  }
-
-  const coloriFascia = { accessibile: "#15803d", intermedia: "#b45309", importante: "#7f1d1d" };
-
-  box.innerHTML =
-    (abb.profilo ? '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:11px 13px;font-size:13px;color:#7f1d1d;margin-bottom:12px;"><strong>Che vino chiede:</strong> ' + escapeHtml(abb.profilo) + '</div>' : "")
-    + proposte.map(function (p) {
-        const col = coloriFascia[String(p.fascia || "").toLowerCase()] || "#334155";
-        return '<div style="border:1px solid #e2e8f0;border-left:4px solid ' + col + ';border-radius:10px;padding:11px 13px;margin-bottom:9px;background:#fff;">'
-          + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;">'
-          +   '<strong style="font-size:14px;color:#0f172a;">' + escapeHtml(p.vino || "") + (p.verificato === false ? ' <span title="Non trovato in carta" style="color:#dc2626;font-size:12px;">⚠</span>' : "") + '</strong>'
-          +   '<span style="font-size:14px;font-weight:700;color:' + col + ';">€ ' + (Number(p.prezzo) || 0).toFixed(0) + (p.prezzo_calice ? ' <span style="font-size:11px;font-weight:600;color:#6d28d9;">· calice € ' + Number(p.prezzo_calice).toFixed(2).replace('.', ',') + '</span>' : '') + '</span>'
-          + '</div>'
-          + '<div style="font-size:11px;color:#94a3b8;margin:2px 0 6px;">' + escapeHtml(p.categoria || "") + ' · ' + escapeHtml(p.fascia || "") + (p.al_calice ? ' · <span style="background:#f5f3ff;color:#6d28d9;padding:1px 6px;border-radius:20px;font-weight:700;">🍷 al calice</span>' : "") + '</div>'
-          + '<div style="font-size:12.5px;color:#334155;">' + escapeHtml(p.perche || "") + '</div>'
-          + '</div>';
-      }).join("")
-    + (abb.sede ? '<div style="font-size:11px;color:#94a3b8;margin-top:6px;">Carta di ' + escapeHtml(abb.sede) + '</div>' : "");
-}
-
-async function progettaMontaggioConTony() {
-  const nome = getVal("r-nome").trim();
-  if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
-
-  const box = document.getElementById("r-impiattamento-box");
-  if (box) box.innerHTML = '<div style="font-size:13px;color:#0E5A7A;padding:10px 0;">Tony sta progettando il montaggio...</div>';
-
-  // Gli passo la ricetta com'e' adesso a schermo
-  const ingr = [...document.querySelectorAll("#ingredienti-container .ing-row")].map(r => {
-    const n = r.querySelector(".ing-nome")?.value || r.querySelector(".ing-search")?.value || "";
-    const q = r.querySelector(".ing-qta")?.value || "";
-    const u = r.querySelector(".ing-um")?.value || "";
-    return n ? (n + (q ? " " + q + " " + u : "")) : "";
-  }).filter(Boolean).join(", ");
-
-  const porzioni = getVal("r-pezzi-base");
-  const descr = getVal("r-descrizione");
-
-  const richiesta = "Piatto: " + nome + "\n"
-    + (descr ? "Descrizione: " + descr + "\n" : "")
-    + (ingr ? "Ingredienti: " + ingr + "\n" : "")
-    + (porzioni ? "Porzioni: " + porzioni + "\n" : "")
-    + "\nProgettami il MONTAGGIO di questo piatto. Rispondi solo col JSON del blocco impiattamento: "
-    + '{"impiattamento":{"forma_piatto":"","elementi":[{"nome":"","zona":"","quantita":"","note":""}],"sequenza":[],"note_finali":""}}';
-
-  try {
-    const data = await tonyChatChiama([{ role: "user", content: richiesta }], "finalizza");
-    const parsed = tonyEstraiReply(data);
-    const imp = parsed?.impiattamento || parsed;
-    if (imp && (imp.elementi || imp.sequenza)) {
-      impiattamentoCorrente = imp;
-      renderImpiattamento(imp);
-    } else {
-      throw new Error("Risposta senza schema di montaggio");
-    }
-  } catch (e) {
-    console.error("Montaggio non riuscito:", e);
-    if (box) box.innerHTML = '<div style="font-size:13px;color:#dc2626;padding:10px 0;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</div>';
-  }
 }
 
 function renderImpiattamento(impiatto) {
