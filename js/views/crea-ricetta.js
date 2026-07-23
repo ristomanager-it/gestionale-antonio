@@ -4159,7 +4159,7 @@ function mostraProponiMenu({ ricettaId, nome, descrizione, costoPorzione, porzio
       <div style="display:flex;">
         <button id="rc-menu-no" style="flex:1;background:#f1f5f9;color:#334155;border:none;border-radius:12px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;">Non ora</button>
       </div>
-      <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:8px;">Le due strade sono indipendenti: puoi promuovere un piatto anche senza metterlo a listino.</div>
+      <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:8px;">Puoi fare anche tutte e due, o solo una: sono indipendenti.</div>
     </div>`;
   document.body.appendChild(ov);
 
@@ -4177,9 +4177,32 @@ function mostraProponiMenu({ ricettaId, nome, descrizione, costoPorzione, porzio
   }
   if (inpPrezzo) { inpPrezzo.addEventListener("input", aggiornaIncidenza); aggiornaIncidenza(); }
 
-  ov.querySelector("#rc-menu-no").onclick = () => {
+  // Le due strade non si escludono: si possono fare entrambe.
+  const fatto = { menu: false, promoId: null };
+  const btnUscita = ov.querySelector("#rc-menu-no");
+
+  function segnaFatto(btn, testo) {
+    btn.disabled = true;
+    btn.textContent = testo;
+    btn.style.background = "#dcfce7";
+    btn.style.color = "#15803d";
+    btn.style.cursor = "default";
+  }
+
+  function aggiornaUscita() {
+    if (!btnUscita) return;
+    if (fatto.menu || fatto.promoId) {
+      btnUscita.textContent = fatto.promoId ? "Vai alla promo" : "Vai al menu";
+      btnUscita.style.background = "#0E5A7A";
+      btnUscita.style.color = "#fff";
+    }
+  }
+
+  if (btnUscita) btnUscita.onclick = () => {
     ov.remove();
-    window.location.hash = "#/ricettario";
+    if (fatto.promoId) window.location.hash = "#/bo-promo?id=" + fatto.promoId;
+    else if (fatto.menu) window.location.hash = "#/bo-prodotti";
+    else window.location.hash = "#/ricettario";
   };
 
   ov.querySelector("#rc-promo-si").onclick = async () => {
@@ -4187,9 +4210,10 @@ function mostraProponiMenu({ ricettaId, nome, descrizione, costoPorzione, porzio
     btn.disabled = true;
     stato.innerHTML = '<span style="color:#7c3aed;">Preparo la promo...</span>';
     try {
-      const promoId = await creaPromoDaRicetta({ nome: nome, descrizione: descrizione, prezzo: Number(inpPrezzo?.value) || null });
-      stato.innerHTML = '<span style="color:#16a34a;">✅ Promo creata come bozza</span>';
-      setTimeout(() => { ov.remove(); window.location.hash = "#/bo-promo?id=" + promoId; }, 1200);
+      fatto.promoId = await creaPromoDaRicetta({ nome: nome, descrizione: descrizione, prezzo: Number(inpPrezzo?.value) || null });
+      segnaFatto(btn, "✓ Promo creata");
+      stato.innerHTML = '<span style="color:#16a34a;">✅ Promo creata come bozza. Puoi anche metterla in menu.</span>';
+      aggiornaUscita();
     } catch (e) {
       console.error("Errore creazione promo:", e);
       stato.innerHTML = '<span style="color:#dc2626;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</span>';
@@ -4209,8 +4233,10 @@ function mostraProponiMenu({ ricettaId, nome, descrizione, costoPorzione, porzio
         prezzo: Number(inpPrezzo?.value) || null,
         costoPorzione: costoPorzione,
       });
-      stato.innerHTML = '<span style="color:#16a34a;">✅ Aggiunto al menu come bozza</span>';
-      setTimeout(() => { ov.remove(); window.location.hash = "#/bo-prodotti"; }, 1200);
+      fatto.menu = true;
+      segnaFatto(btn, "✓ In menu");
+      stato.innerHTML = '<span style="color:#16a34a;">✅ Aggiunto al menu come bozza. Puoi anche farne una promo.</span>';
+      aggiornaUscita();
     } catch (e) {
       console.error("Errore creazione prodotto vendita:", e);
       stato.innerHTML = '<span style="color:#dc2626;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</span>';
