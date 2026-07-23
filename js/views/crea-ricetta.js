@@ -4019,246 +4019,6 @@ async function salvaTutto() {
    Schema dall'alto con le zone + sequenza di posa.
 ============================================================ */
 
-// Le 9 zone della griglia, in coordinate relative all'area del piatto (0-1).
-const ZONE_PIATTO = {
-  "centro":         { x: 0.50, y: 0.50 },
-  "alto":           { x: 0.50, y: 0.26 },
-  "basso":          { x: 0.50, y: 0.74 },
-  "sinistra":       { x: 0.26, y: 0.50 },
-  "destra":         { x: 0.74, y: 0.50 },
-  "alto-sinistra":  { x: 0.31, y: 0.31 },
-  "alto-destra":    { x: 0.69, y: 0.31 },
-  "basso-sinistra": { x: 0.31, y: 0.69 },
-  "basso-destra":   { x: 0.69, y: 0.69 },
-};
-
-// Palette tenue: il disegno deve leggersi, non abbagliare.
-const COLORI_ELEMENTI = [
-  { pieno: "#b45309", chiaro: "#fde68a" },
-  { pieno: "#15803d", chiaro: "#bbf7d0" },
-  { pieno: "#b91c1c", chiaro: "#fecaca" },
-  { pieno: "#6d28d9", chiaro: "#ddd6fe" },
-  { pieno: "#0e7490", chiaro: "#a5f3fc" },
-  { pieno: "#a16207", chiaro: "#fef08a" },
-  { pieno: "#be185d", chiaro: "#fbcfe8" },
-  { pieno: "#4d7c0f", chiaro: "#d9f99d" },
-];
-
-const SCALA_DIM = { piccolo: 0.7, medio: 1, grande: 1.35 };
-
-// Disegna un elemento con la forma che ha davvero nel piatto.
-function formaSvg(forma, cx, cy, k, col, idx) {
-  const f = String(forma || "pezzo").toLowerCase();
-  const r = 26 * k;
-  const bordo = 'stroke="' + col.pieno + '" stroke-width="1.6"';
-  const rot = (idx * 37) % 360;
-
-  if (f === "specchio")
-    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.7) + '" ry="' + (r * 0.85) + '" fill="' + col.chiaro + '" ' + bordo + ' opacity="0.85"/>';
-
-  if (f === "crema")
-    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.95) + '" fill="' + col.chiaro + '" ' + bordo + '/>';
-
-  if (f === "quenelle")
-    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 0.95) + '" ry="' + (r * 0.62) + '" fill="' + col.chiaro + '" ' + bordo +
-           ' transform="rotate(-25 ' + cx + ' ' + cy + ')"/>' +
-           '<path d="M' + (cx - r * 0.5) + ' ' + (cy + r * 0.1) + ' Q ' + cx + ' ' + (cy - r * 0.45) + ' ' + (cx + r * 0.55) + ' ' + (cy - r * 0.12) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.1" opacity="0.6"/>';
-
-  if (f === "pezzo")
-    return '<rect x="' + (cx - r * 1.05) + '" y="' + (cy - r * 0.68) + '" width="' + (r * 2.1) + '" height="' + (r * 1.36) + '" rx="' + (r * 0.35) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (rot % 18 - 9) + ' ' + cx + ' ' + cy + ')"/>';
-
-  if (f === "fetta") {
-    let s = "";
-    for (let i = 0; i < 3; i++) {
-      const dx = cx + (i - 1) * r * 0.55;
-      s += '<ellipse cx="' + dx + '" cy="' + (cy + (i - 1) * 3) + '" rx="' + (r * 0.72) + '" ry="' + (r * 0.5) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(-18 ' + dx + ' ' + cy + ')"/>';
-    }
-    return s;
-  }
-
-  if (f === "cubetti") {
-    let s = "";
-    const p = [[-0.7, -0.4], [0.1, -0.7], [0.7, -0.1], [-0.3, 0.4], [0.45, 0.55], [-0.8, 0.25]];
-    p.forEach(function (q, i) {
-      const l = r * 0.34;
-      s += '<rect x="' + (cx + q[0] * r - l / 2) + '" y="' + (cy + q[1] * r - l / 2) + '" width="' + l + '" height="' + l + '" rx="1.5" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (i * 23) + ' ' + (cx + q[0] * r) + ' ' + (cy + q[1] * r) + ')"/>';
-    });
-    return s;
-  }
-
-  if (f === "gocce") {
-    let s = "";
-    const p = [[-0.85, -0.15], [-0.3, 0.35], [0.25, -0.35], [0.8, 0.2], [0.05, 0.75]];
-    p.forEach(function (q, i) {
-      s += '<circle cx="' + (cx + q[0] * r * 1.3) + '" cy="' + (cy + q[1] * r * 1.1) + '" r="' + (r * (0.13 + (i % 3) * 0.045)) + '" fill="' + col.pieno + '" opacity="0.75"/>';
-    });
-    return s;
-  }
-
-  if (f === "filo")
-    return '<path d="M' + (cx - r * 1.5) + ' ' + cy + ' q ' + (r * 0.5) + ' ' + (-r * 0.7) + ' ' + (r * 0.95) + ' 0 q ' + (r * 0.5) + ' ' + (r * 0.7) + ' ' + (r * 0.95) + ' 0" fill="none" stroke="' + col.pieno + '" stroke-width="' + (2.6 * k) + '" stroke-linecap="round" opacity="0.8"/>';
-
-  if (f === "polvere") {
-    let s = "";
-    for (let i = 0; i < 22; i++) {
-      const a = (i * 61) % 360, d = ((i * 37) % 100) / 100;
-      const px = cx + Math.cos(a * Math.PI / 180) * r * 1.25 * d;
-      const py = cy + Math.sin(a * Math.PI / 180) * r * 1.05 * d;
-      s += '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + (1 + (i % 3) * 0.7) + '" fill="' + col.pieno + '" opacity="0.55"/>';
-    }
-    return s;
-  }
-
-  if (f === "erbe") {
-    let s = "";
-    for (let i = 0; i < 5; i++) {
-      const bx = cx + (i - 2) * r * 0.32;
-      s += '<path d="M' + bx + ' ' + (cy + r * 0.5) + ' q ' + (r * 0.2 * (i % 2 ? 1 : -1)) + ' ' + (-r * 0.6) + ' ' + (r * 0.08 * (i % 2 ? 1 : -1)) + ' ' + (-r * 1.05) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.7" stroke-linecap="round"/>';
-    }
-    return s;
-  }
-
-  if (f === "croccante")
-    return '<path d="M' + (cx - r * 0.8) + ' ' + (cy + r * 0.75) + ' L ' + (cx + r * 0.15) + ' ' + (cy - r * 1.15) + ' L ' + (cx + r * 0.9) + ' ' + (cy + r * 0.75) + ' Z" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (rot % 24 - 12) + ' ' + cx + ' ' + cy + ')"/>';
-
-  if (f === "nido")
-    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.05) + '" ry="' + (r * 0.8) + '" fill="' + col.chiaro + '" ' + bordo + '/>' +
-           '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 0.68) + '" ry="' + (r * 0.5) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.2" opacity="0.6"/>' +
-           '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 0.34) + '" ry="' + (r * 0.24) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.1" opacity="0.5"/>';
-
-  if (f === "pasta_lunga") {
-    // matassa attorcigliata: cerchi concentrici schiacciati + capi che escono
-    let s = '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.05) + '" ry="' + (r * 0.78) + '" fill="' + col.chiaro + '" ' + bordo + '/>';
-    for (let i = 1; i <= 3; i++) {
-      s += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.05 * (1 - i * 0.22)) + '" ry="' + (r * 0.78 * (1 - i * 0.22)) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.15" opacity="0.55" transform="rotate(' + (i * 14) + ' ' + cx + ' ' + cy + ')"/>';
-    }
-    s += '<path d="M' + (cx - r * 0.95) + ' ' + (cy + r * 0.35) + ' q ' + (-r * 0.35) + ' ' + (r * 0.28) + ' ' + (-r * 0.15) + ' ' + (r * 0.62) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>';
-    s += '<path d="M' + (cx + r * 0.9) + ' ' + (cy - r * 0.3) + ' q ' + (r * 0.38) + ' ' + (-r * 0.2) + ' ' + (r * 0.5) + ' ' + (-r * 0.55) + '" fill="none" stroke="' + col.pieno + '" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>';
-    return s;
-  }
-
-  if (f === "pasta_corta") {
-    // tubetti sparsi, ognuno con la sua inclinazione
-    let s = "";
-    const p = [[-0.6, -0.45], [0.15, -0.6], [0.65, -0.05], [-0.45, 0.3], [0.3, 0.5], [-0.05, -0.05], [0.75, 0.6]];
-    p.forEach(function (q, i) {
-      const w = r * 0.5, h = r * 0.3;
-      const px = cx + q[0] * r, py = cy + q[1] * r;
-      s += '<rect x="' + (px - w / 2) + '" y="' + (py - h / 2) + '" width="' + w + '" height="' + h + '" rx="' + (h / 2) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + ((i * 47) % 180 - 90) + ' ' + px + ' ' + py + ')"/>';
-    });
-    return s;
-  }
-
-  if (f === "risotto") {
-    // massa stesa all'onda, superficie mossa
-    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.45) + '" ry="' + (r * 0.95) + '" fill="' + col.chiaro + '" ' + bordo + '/>'
-         + '<path d="M' + (cx - r * 1.05) + ' ' + (cy + r * 0.15) + ' q ' + (r * 0.35) + ' ' + (-r * 0.3) + ' ' + (r * 0.7) + ' 0 q ' + (r * 0.35) + ' ' + (r * 0.3) + ' ' + (r * 0.7) + ' 0" fill="none" stroke="' + col.pieno + '" stroke-width="1.1" opacity="0.5"/>';
-  }
-
-  if (f === "zuppa") {
-    // liquido che riempie il fondo, con riflesso
-    return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.75) + '" ry="' + (r * 1.3) + '" fill="' + col.chiaro + '" ' + bordo + ' opacity="0.9"/>'
-         + '<path d="M' + (cx - r * 1.15) + ' ' + (cy - r * 0.35) + ' q ' + (r * 0.5) + ' ' + (-r * 0.22) + ' ' + (r * 1) + ' 0" fill="none" stroke="#fff" stroke-width="2.2" opacity="0.75"/>';
-  }
-
-  if (f === "affettato") {
-    // fette drappeggiate: onde sovrapposte
-    let s = "";
-    for (let i = 0; i < 4; i++) {
-      const px = cx + (i - 1.5) * r * 0.52;
-      s += '<path d="M' + px + ' ' + (cy - r * 0.55) + ' q ' + (r * 0.45) + ' ' + (r * 0.3) + ' 0 ' + (r * 1.1) + ' q ' + (-r * 0.45) + ' ' + (-r * 0.3) + ' 0 ' + (-r * 1.1) + ' Z" fill="' + col.chiaro + '" ' + bordo + ' opacity="0.92"/>';
-    }
-    return s;
-  }
-
-  if (f === "formaggio") {
-    // spicchi a raggiera
-    let s = "";
-    for (let i = 0; i < 3; i++) {
-      const a = (i * 120 - 90) * Math.PI / 180;
-      const px = cx + Math.cos(a) * r * 0.5, py = cy + Math.sin(a) * r * 0.5;
-      s += '<path d="M' + px + ' ' + (py - r * 0.55) + ' L ' + (px + r * 0.55) + ' ' + (py + r * 0.4) + ' L ' + (px - r * 0.55) + ' ' + (py + r * 0.4) + ' Z" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (i * 40) + ' ' + px + ' ' + py + ')"/>';
-    }
-    return s;
-  }
-
-  if (f === "insalata") {
-    // ciuffo di foglie
-    let s = "";
-    for (let i = 0; i < 6; i++) {
-      const a = (i * 60 + 15) * Math.PI / 180;
-      const px = cx + Math.cos(a) * r * 0.55, py = cy + Math.sin(a) * r * 0.42;
-      s += '<ellipse cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" rx="' + (r * 0.48) + '" ry="' + (r * 0.26) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (i * 60) + ' ' + px.toFixed(1) + ' ' + py.toFixed(1) + ')" opacity="0.9"/>';
-    }
-    return s;
-  }
-
-  if (f === "pane") {
-    // fette di pane / crostini
-    let s = "";
-    for (let i = 0; i < 2; i++) {
-      const px = cx + (i - 0.5) * r * 0.95;
-      s += '<rect x="' + (px - r * 0.42) + '" y="' + (cy - r * 0.52) + '" width="' + (r * 0.84) + '" height="' + (r * 1.04) + '" rx="' + (r * 0.16) + '" fill="' + col.chiaro + '" ' + bordo + ' transform="rotate(' + (i ? 12 : -9) + ' ' + px + ' ' + cy + ')"/>';
-    }
-    return s;
-  }
-
-  // ripiego: forma neutra
-  return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.85) + '" fill="' + col.chiaro + '" ' + bordo + '/>';
-}
-
-function disegnaPiatto(impiatto) {
-  const L = 340;
-  const forma = String(impiatto?.forma_piatto || "tondo").toLowerCase();
-  const elementi = Array.isArray(impiatto?.elementi) ? impiatto.elementi.slice(0, 9) : [];
-
-  // Area utile del piatto (dove si posa il cibo)
-  let contorno = "", box;
-  if (forma.indexOf("rettangol") >= 0 || forma.indexOf("tagliere") >= 0) {
-    contorno = '<rect x="16" y="58" width="308" height="226" rx="16" fill="#fdfdfd" stroke="#cbd5e1" stroke-width="2.5"/>'
-             + '<rect x="34" y="76" width="272" height="190" rx="11" fill="none" stroke="#e8edf3" stroke-width="1.4"/>';
-    box = { x: 40, y: 82, w: 260, h: 178 };
-  } else if (forma.indexOf("bicchier") >= 0 || forma.indexOf("monoporzione") >= 0) {
-    contorno = '<path d="M108 60 L232 60 L214 286 L126 286 Z" fill="#fdfdfd" stroke="#cbd5e1" stroke-width="2.5"/>'
-             + '<line x1="112" y1="96" x2="228" y2="96" stroke="#e8edf3" stroke-width="1.4"/>';
-    box = { x: 122, y: 96, w: 96, h: 176 };
-  } else {
-    const fondo = forma.indexOf("fondo") >= 0;
-    contorno = '<circle cx="170" cy="172" r="' + (fondo ? 132 : 138) + '" fill="#fdfdfd" stroke="#cbd5e1" stroke-width="2.5"/>'
-             + '<circle cx="170" cy="172" r="' + (fondo ? 92 : 108) + '" fill="none" stroke="#e8edf3" stroke-width="1.4"/>';
-    const raggio = fondo ? 86 : 100;
-    box = { x: 170 - raggio, y: 172 - raggio, w: raggio * 2, h: raggio * 2 };
-  }
-
-  let disegno = "", legenda = "";
-  elementi.forEach(function (el, i) {
-    const z = ZONE_PIATTO[String(el?.zona || "centro").toLowerCase()] || ZONE_PIATTO["centro"];
-    const cx = +(box.x + z.x * box.w).toFixed(1);
-    const cy = +(box.y + z.y * box.h).toFixed(1);
-    const col = COLORI_ELEMENTI[i % COLORI_ELEMENTI.length];
-    const k = SCALA_DIM[String(el?.dimensione || "medio").toLowerCase()] || 1;
-
-    disegno += formaSvg(el?.forma, cx, cy, k, col, i);
-    // numerino piccolo accanto, non dentro: non deve coprire il disegno
-    disegno += '<circle cx="' + (cx + 22 * k) + '" cy="' + (cy - 20 * k) + '" r="8.5" fill="#fff" stroke="' + col.pieno + '" stroke-width="1.3"/>'
-             + '<text x="' + (cx + 22 * k) + '" y="' + (cy - 20 * k + 3.4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + col.pieno + '">' + (i + 1) + '</text>';
-
-    legenda += '<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;font-size:12px;">'
-      + '<span style="flex:none;width:19px;height:19px;border-radius:50%;border:1.5px solid ' + col.pieno + ';color:' + col.pieno + ';font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">' + (i + 1) + '</span>'
-      + '<span style="color:#0f172a;"><strong>' + escapeHtml(el?.nome || "") + '</strong>'
-      + (el?.quantita ? ' <span style="color:#64748b;">— ' + escapeHtml(el.quantita) + '</span>' : "")
-      + (el?.forma ? ' <span style="color:#94a3b8;font-size:11px;">(' + escapeHtml(el.forma) + ')</span>' : "")
-      + (el?.note ? '<br><span style="color:#64748b;font-size:11px;">' + escapeHtml(el.note) + '</span>' : "")
-      + '</span></div>';
-  });
-
-  const svg = '<svg viewBox="0 0 ' + L + ' ' + L + '" style="width:100%;max-width:330px;height:auto;">'
-    + '<text x="170" y="28" text-anchor="middle" font-size="11.5" fill="#94a3b8">piatto ' + escapeHtml(forma) + ' — visto dall\'alto</text>'
-    + contorno + disegno + '</svg>';
-
-  return { svg: svg, legenda: legenda || '<div style="font-size:12px;color:#94a3b8;">Nessun elemento indicato.</div>' };
-}
-
 async function progettaMontaggioConTony() {
   const nome = getVal("r-nome").trim();
   if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
@@ -4401,23 +4161,40 @@ function mostraDisegnoPiattoVecchio(url, temporaneo, eSchizzo) {
 function renderImpiattamento(impiatto) {
   const box = document.getElementById("r-impiattamento-box");
   if (!box) return;
-  if (!impiatto || (!impiatto.elementi?.length && !impiatto.sequenza?.length)) {
+  const elementi = Array.isArray(impiatto?.elementi) ? impiatto.elementi : [];
+  const seq = Array.isArray(impiatto?.sequenza) ? impiatto.sequenza : [];
+
+  if (!elementi.length && !seq.length) {
     box.innerHTML = '<div style="font-size:13px;color:#94a3b8;padding:10px 0;">Nessun progetto di montaggio. Chiedilo a Tony insieme alla ricetta.</div>';
     return;
   }
-  const dis = disegnaPiatto(impiatto);
-  const seq = Array.isArray(impiatto.sequenza) ? impiatto.sequenza : [];
 
-  box.innerHTML = '<div>'
-    + '<div style="flex:1;min-width:230px;">'
-    +   '<div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Cosa va dove</div>'
-    +   dis.legenda
-    +   (seq.length ? ('<div style="font-size:12px;font-weight:700;color:#334155;margin:14px 0 6px;">Ordine di montaggio</div>'
-          + seq.map(function (p, i) {
-              return '<div style="font-size:12px;margin:4px 0;color:#0f172a;"><strong style="color:#0E5A7A;">' + (i + 1) + '.</strong> ' + escapeHtml(p) + '</div>';
-            }).join("")) : "")
-    +   (impiatto.note_finali ? ('<div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;font-size:12px;color:#78350f;">⚠️ ' + escapeHtml(impiatto.note_finali) + '</div>') : "")
-    + '</div></div>';
+  const zonaLeggibile = {
+    "centro": "al centro", "alto": "in alto", "basso": "in basso",
+    "sinistra": "a sinistra", "destra": "a destra",
+    "alto-sinistra": "in alto a sinistra", "alto-destra": "in alto a destra",
+    "basso-sinistra": "in basso a sinistra", "basso-destra": "in basso a destra",
+  };
+
+  box.innerHTML =
+    (impiatto?.forma_piatto ? '<div style="font-size:12px;color:#64748b;margin-bottom:10px;">Piatto <strong>' + escapeHtml(impiatto.forma_piatto) + '</strong></div>' : "")
+    + (elementi.length ? '<div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Cosa va dove</div>'
+        + elementi.map(function (el, i) {
+            const zona = zonaLeggibile[String(el?.zona || "").toLowerCase()] || el?.zona || "";
+            return '<div style="display:flex;gap:8px;margin:5px 0;font-size:13px;align-items:baseline;">'
+              + '<span style="flex:none;color:#0E5A7A;font-weight:700;min-width:16px;">' + (i + 1) + '.</span>'
+              + '<span><strong>' + escapeHtml(el?.nome || "") + '</strong>'
+              + (zona ? ' <span style="color:#64748b;">' + escapeHtml(zona) + '</span>' : "")
+              + (el?.quantita ? ' <span style="color:#94a3b8;">— ' + escapeHtml(el.quantita) + '</span>' : "")
+              + (el?.forma ? ' <span style="color:#94a3b8;font-size:11.5px;">(' + escapeHtml(String(el.forma).replace("_", " ")) + ')</span>' : "")
+              + (el?.note ? '<br><span style="color:#64748b;font-size:12px;">' + escapeHtml(el.note) + '</span>' : "")
+              + '</span></div>';
+          }).join("") : "")
+    + (seq.length ? '<div style="font-size:12px;font-weight:700;color:#334155;margin:14px 0 6px;">Ordine di posa</div>'
+        + seq.map(function (p, i) {
+            return '<div style="font-size:13px;margin:4px 0;"><strong style="color:#0E5A7A;">' + (i + 1) + '.</strong> ' + escapeHtml(p) + '</div>';
+          }).join("") : "")
+    + (impiatto?.note_finali ? '<div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;font-size:12.5px;color:#78350f;">⚠️ ' + escapeHtml(impiatto.note_finali) + '</div>' : "");
 }
 
 /* ============================================================

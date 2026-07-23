@@ -3733,116 +3733,22 @@ function vaiAllaProssimaFaseMancante() {
    Mostra foto reale, disegno e schema di montaggio.
 ============================================================ */
 
-const ZONE_PIATTO_PREP = {
-  "centro": { x: 0.50, y: 0.50 }, "alto": { x: 0.50, y: 0.26 }, "basso": { x: 0.50, y: 0.74 },
-  "sinistra": { x: 0.26, y: 0.50 }, "destra": { x: 0.74, y: 0.50 },
-  "alto-sinistra": { x: 0.31, y: 0.31 }, "alto-destra": { x: 0.69, y: 0.31 },
-  "basso-sinistra": { x: 0.31, y: 0.69 }, "basso-destra": { x: 0.69, y: 0.69 },
-};
-
-const COLORI_PREP = [
-  { pieno: "#b45309", chiaro: "#fde68a" }, { pieno: "#15803d", chiaro: "#bbf7d0" },
-  { pieno: "#b91c1c", chiaro: "#fecaca" }, { pieno: "#6d28d9", chiaro: "#ddd6fe" },
-  { pieno: "#0e7490", chiaro: "#a5f3fc" }, { pieno: "#a16207", chiaro: "#fef08a" },
-  { pieno: "#be185d", chiaro: "#fbcfe8" }, { pieno: "#4d7c0f", chiaro: "#d9f99d" },
-];
-
-function schemaPiattoPrep(imp) {
-  const forma = String(imp?.forma_piatto || "tondo").toLowerCase();
-  const elementi = Array.isArray(imp?.elementi) ? imp.elementi.slice(0, 9) : [];
-  if (!elementi.length) return "";
-
-  let contorno, box;
-  if (forma.indexOf("rettangol") >= 0 || forma.indexOf("tagliere") >= 0) {
-    contorno = '<rect x="16" y="46" width="288" height="208" rx="15" fill="#fff" stroke="#cbd5e1" stroke-width="2.2"/>';
-    box = { x: 36, y: 66, w: 248, h: 168 };
-  } else if (forma.indexOf("bicchier") >= 0 || forma.indexOf("monoporzione") >= 0) {
-    contorno = '<path d="M104 50 L216 50 L200 258 L120 258 Z" fill="#fff" stroke="#cbd5e1" stroke-width="2.2"/>';
-    box = { x: 116, y: 84, w: 88, h: 156 };
-  } else {
-    contorno = '<circle cx="160" cy="150" r="126" fill="#fff" stroke="#cbd5e1" stroke-width="2.2"/>'
-             + '<circle cx="160" cy="150" r="96" fill="none" stroke="#eef2f7" stroke-width="1.3"/>';
-    box = { x: 70, y: 60, w: 180, h: 180 };
-  }
-
-  let dis = "", leg = "";
-  elementi.forEach(function (el, i) {
-    const z = ZONE_PIATTO_PREP[String(el?.zona || "centro").toLowerCase()] || ZONE_PIATTO_PREP["centro"];
-    const cx = +(box.x + z.x * box.w).toFixed(1);
-    const cy = +(box.y + z.y * box.h).toFixed(1);
-    const c = COLORI_PREP[i % COLORI_PREP.length];
-    const f = String(el?.forma || "").toLowerCase();
-    const k = { piccolo: 0.7, medio: 1, grande: 1.3 }[String(el?.dimensione || "medio").toLowerCase()] || 1;
-    const r = 24 * k;
-
-    if (f === "specchio")       dis += '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(r*1.7)+'" ry="'+(r*0.85)+'" fill="'+c.chiaro+'" stroke="'+c.pieno+'" stroke-width="1.5" opacity="0.85"/>';
-    else if (f === "quenelle")  dis += '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(r*0.95)+'" ry="'+(r*0.62)+'" fill="'+c.chiaro+'" stroke="'+c.pieno+'" stroke-width="1.5" transform="rotate(-25 '+cx+' '+cy+')"/>';
-    else if (f === "pezzo")     dis += '<rect x="'+(cx-r*1.05)+'" y="'+(cy-r*0.68)+'" width="'+(r*2.1)+'" height="'+(r*1.36)+'" rx="'+(r*0.35)+'" fill="'+c.chiaro+'" stroke="'+c.pieno+'" stroke-width="1.5"/>';
-    else if (f === "pasta_lunga" || f === "nido") {
-      dis += '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(r*1.05)+'" ry="'+(r*0.78)+'" fill="'+c.chiaro+'" stroke="'+c.pieno+'" stroke-width="1.5"/>';
-      dis += '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(r*0.6)+'" ry="'+(r*0.44)+'" fill="none" stroke="'+c.pieno+'" stroke-width="1.1" opacity="0.6"/>';
-    }
-    else if (f === "pasta_corta") {
-      [[-0.6,-0.45],[0.15,-0.6],[0.65,-0.05],[-0.45,0.3],[0.3,0.5]].forEach(function(q,j){
-        const w=r*0.5,h=r*0.3,px=cx+q[0]*r,py=cy+q[1]*r;
-        dis += '<rect x="'+(px-w/2)+'" y="'+(py-h/2)+'" width="'+w+'" height="'+h+'" rx="'+(h/2)+'" fill="'+c.chiaro+'" stroke="'+c.pieno+'" stroke-width="1.3" transform="rotate('+((j*47)%180-90)+' '+px+' '+py+')"/>';
-      });
-    }
-    else if (f === "affettato") {
-      for (let j = 0; j < 4; j++) {
-        const px = cx + (j - 1.5) * r * 0.52;
-        dis += '<path d="M'+px+' '+(cy-r*0.55)+' q '+(r*0.45)+' '+(r*0.3)+' 0 '+(r*1.1)+' q '+(-r*0.45)+' '+(-r*0.3)+' 0 '+(-r*1.1)+' Z" fill="'+c.chiaro+'" stroke="'+c.pieno+'" stroke-width="1.3"/>';
-      }
-    }
-    else if (f === "polvere") {
-      for (let j = 0; j < 16; j++) {
-        const a=(j*61)%360, d=((j*37)%100)/100;
-        dis += '<circle cx="'+(cx+Math.cos(a*Math.PI/180)*r*1.2*d).toFixed(1)+'" cy="'+(cy+Math.sin(a*Math.PI/180)*r*d).toFixed(1)+'" r="1.5" fill="'+c.pieno+'" opacity="0.55"/>';
-      }
-    }
-    else if (f === "erbe") {
-      for (let j = 0; j < 4; j++) {
-        const bx = cx + (j - 1.5) * r * 0.32;
-        dis += '<path d="M'+bx+' '+(cy+r*0.5)+' q '+(r*0.2*(j%2?1:-1))+' '+(-r*0.6)+' '+(r*0.08*(j%2?1:-1))+' '+(-r*1.05)+'" fill="none" stroke="'+c.pieno+'" stroke-width="1.6" stroke-linecap="round"/>';
-      }
-    }
-    else if (f === "gocce") {
-      [[-0.85,-0.15],[-0.3,0.35],[0.25,-0.35],[0.8,0.2]].forEach(function(q,j){
-        dis += '<circle cx="'+(cx+q[0]*r*1.3)+'" cy="'+(cy+q[1]*r*1.1)+'" r="'+(r*(0.13+(j%3)*0.045))+'" fill="'+c.pieno+'" opacity="0.75"/>';
-      });
-    }
-    else if (f === "croccante") dis += '<path d="M'+(cx-r*0.8)+' '+(cy+r*0.75)+' L '+(cx+r*0.15)+' '+(cy-r*1.15)+' L '+(cx+r*0.9)+' '+(cy+r*0.75)+' Z" fill="'+c.chiaro+'" stroke="'+c.pieno+'" stroke-width="1.5"/>';
-    else                        dis += '<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.9)+'" fill="'+c.chiaro+'" stroke="'+c.pieno+'" stroke-width="1.5"/>';
-
-    dis += '<circle cx="'+(cx+20*k)+'" cy="'+(cy-18*k)+'" r="8" fill="#fff" stroke="'+c.pieno+'" stroke-width="1.2"/>'
-         + '<text x="'+(cx+20*k)+'" y="'+(cy-18*k+3.2)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="'+c.pieno+'">'+(i+1)+'</text>';
-
-    leg += '<div style="display:flex;gap:7px;margin:4px 0;font-size:12px;align-items:flex-start;">'
-        + '<span style="flex:none;width:18px;height:18px;border-radius:50%;border:1.4px solid '+c.pieno+';color:'+c.pieno+';font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;">'+(i+1)+'</span>'
-        + '<span><strong>'+escapeHtml(el?.nome || "")+'</strong>'
-        + (el?.quantita ? ' <span style="color:#64748b;">— '+escapeHtml(el.quantita)+'</span>' : "")
-        + (el?.note ? '<br><span style="color:#64748b;font-size:11px;">'+escapeHtml(el.note)+'</span>' : "")
-        + '</span></div>';
-  });
-
-  const seq = Array.isArray(imp?.sequenza) ? imp.sequenza : [];
-  return '<div>'
-    + '<div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:5px;">Cosa va dove</div>'
-    + '<div>' + leg
-    + (seq.length ? '<div style="font-size:12px;font-weight:700;color:#334155;margin:10px 0 4px;">Ordine di posa</div>'
-        + seq.map(function (p, i) { return '<div style="font-size:12px;margin:3px 0;"><strong style="color:#0E5A7A;">'+(i+1)+'.</strong> '+escapeHtml(p)+'</div>'; }).join("") : "")
-    + (imp?.note_finali ? '<div style="margin-top:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;font-size:12px;color:#78350f;">⚠️ '+escapeHtml(imp.note_finali)+'</div>' : "")
-    + '</div></div>';
-}
-
 function renderComeDeveVenire(ric) {
   if (!ric) return "";
   const imp = ric.impiattamento && typeof ric.impiattamento === "object" ? ric.impiattamento : null;
-  const haSchema = imp && Array.isArray(imp.elementi) && imp.elementi.length;
+  const elementi = imp && Array.isArray(imp.elementi) ? imp.elementi : [];
+  const seq = imp && Array.isArray(imp.sequenza) ? imp.sequenza : [];
   // La foto vera vince sempre: e' il piatto uscito davvero.
   const risultato = ric.foto_url || ric.disegno_url || null;
   const schizzo = ric.schizzo_url || null;
-  if (!haSchema && !risultato && !schizzo) return "";
+  if (!elementi.length && !seq.length && !risultato && !schizzo) return "";
+
+  const zonaLeggibile = {
+    "centro": "al centro", "alto": "in alto", "basso": "in basso",
+    "sinistra": "a sinistra", "destra": "a destra",
+    "alto-sinistra": "in alto a sinistra", "alto-destra": "in alto a destra",
+    "basso-sinistra": "in basso a sinistra", "basso-destra": "in basso a destra",
+  };
 
   function img(url, titolo) {
     return '<div style="flex:1;min-width:200px;max-width:300px;">'
@@ -3858,10 +3764,31 @@ function renderComeDeveVenire(ric) {
       + '</div>'
     : "";
 
+  const cosaVaDove = elementi.length
+    ? '<div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Cosa va dove</div>'
+      + elementi.map(function (el, i) {
+          const zona = zonaLeggibile[String(el?.zona || "").toLowerCase()] || el?.zona || "";
+          return '<div style="display:flex;gap:8px;margin:5px 0;font-size:13px;align-items:baseline;">'
+            + '<span style="flex:none;color:#0E5A7A;font-weight:700;min-width:16px;">' + (i + 1) + '.</span>'
+            + '<span><strong>' + escapeHtml(el?.nome || "") + '</strong>'
+            + (zona ? ' <span style="color:#64748b;">' + escapeHtml(zona) + '</span>' : "")
+            + (el?.quantita ? ' <span style="color:#94a3b8;">— ' + escapeHtml(el.quantita) + '</span>' : "")
+            + (el?.note ? '<br><span style="color:#64748b;font-size:12px;">' + escapeHtml(el.note) + '</span>' : "")
+            + '</span></div>';
+        }).join("")
+    : "";
+
+  const ordine = seq.length
+    ? '<div style="font-size:12px;font-weight:700;color:#334155;margin:14px 0 6px;">Ordine di posa</div>'
+      + seq.map(function (p, i) {
+          return '<div style="font-size:13px;margin:4px 0;"><strong style="color:#0E5A7A;">' + (i + 1) + '.</strong> ' + escapeHtml(p) + '</div>';
+        }).join("")
+    : "";
+
   return '<div class="card" style="border:2px solid #0E5A7A;">'
     + '<div class="form-group">'
     +   '<label style="color:#0E5A7A;font-weight:800;">🍽️ Come deve venire</label>'
-    +   immagini
-    +   (haSchema ? schemaPiattoPrep(imp) : "")
+    +   immagini + cosaVaDove + ordine
+    +   (imp?.note_finali ? '<div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;font-size:12.5px;color:#78350f;">⚠️ ' + escapeHtml(imp.note_finali) + '</div>' : "")
     + '</div></div>';
 }
