@@ -1620,7 +1620,7 @@ export async function render(app) {
           </div>
           <div id="r-disegno-box" style="margin-top:14px;"></div>
           <div style="margin-top:6px;font-size:12px;color:#6b7280;">
-            Lo schema dice a chi impiatta dove va ogni cosa e in che ordine, così il piatto esce uguale anche quando lo fa un altro.
+            Lo schizzo e l'ordine di posa dicono a chi impiatta come deve venire, così il piatto esce uguale anche quando lo fa un altro.
           </div>
         `
       })}
@@ -4408,8 +4408,7 @@ function renderImpiattamento(impiatto) {
   const dis = disegnaPiatto(impiatto);
   const seq = Array.isArray(impiatto.sequenza) ? impiatto.sequenza : [];
 
-  box.innerHTML = '<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;">'
-    + '<div style="flex:0 0 280px;">' + dis.svg + '</div>'
+  box.innerHTML = '<div>'
     + '<div style="flex:1;min-width:230px;">'
     +   '<div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Cosa va dove</div>'
     +   dis.legenda

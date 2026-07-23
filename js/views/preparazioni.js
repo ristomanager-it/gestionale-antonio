@@ -3826,9 +3826,9 @@ function schemaPiattoPrep(imp) {
   });
 
   const seq = Array.isArray(imp?.sequenza) ? imp.sequenza : [];
-  return '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">'
-    + '<svg viewBox="0 0 320 300" style="width:100%;max-width:280px;height:auto;">' + contorno + dis + '</svg>'
-    + '<div style="flex:1;min-width:200px;">' + leg
+  return '<div>'
+    + '<div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:5px;">Cosa va dove</div>'
+    + '<div>' + leg
     + (seq.length ? '<div style="font-size:12px;font-weight:700;color:#334155;margin:10px 0 4px;">Ordine di posa</div>'
         + seq.map(function (p, i) { return '<div style="font-size:12px;margin:3px 0;"><strong style="color:#0E5A7A;">'+(i+1)+'.</strong> '+escapeHtml(p)+'</div>'; }).join("") : "")
     + (imp?.note_finali ? '<div style="margin-top:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;font-size:12px;color:#78350f;">⚠️ '+escapeHtml(imp.note_finali)+'</div>' : "")
