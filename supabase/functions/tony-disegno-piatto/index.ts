@@ -83,15 +83,27 @@ function costruisciPrompt(dati: any): string {
     return dim + " " + String(el?.nome || "") + ", " + forma + ", placed " + zona;
   }).filter(Boolean);
 
+  const schizzo = String(dati?.stile || "foto").toLowerCase() === "schizzo";
+
+  const apertura = schizzo
+    ? [
+        "Hand-drawn pencil sketch of a plated restaurant dish, a chef's plating design study.",
+        "Graphite on white paper, visible pencil strokes, light cross-hatching for shadows and volume, no colour.",
+        "Loose but precise, like a chef sketching the plate on a notebook before service.",
+      ].join(" ")
+    : "Professional food photography of a plated restaurant dish.";
+
   const parti = [
-    "Professional food illustration of a plated restaurant dish.",
+    apertura,
     "Three-quarter perspective view, slightly from above, with visible depth and height.",
     "The dish: " + String(dati?.nome || "plated dish") + ".",
     "Served on " + piatto + ".",
     descrizioni.length ? ("Components, in order: " + descrizioni.join("; ") + ".") : "",
     dati?.descrizione ? ("Style note: " + String(dati.descrizione).slice(0, 200)) : "",
-    "Include the fine finishing touches a chef adds at the pass: microgreens, edible flowers where fitting, oil sheen, delicate garnish.",
-    "Clean neutral background, soft natural light, shallow depth of field, appetising but realistic.",
+    "Include the fine finishing touches a chef adds at the pass: microgreens, edible flowers where fitting, delicate garnish.",
+    schizzo
+      ? "Plain white paper background. It must look drawn by hand with a pencil, not rendered, not a photograph."
+      : "Clean neutral background, soft natural light, shallow depth of field, oil sheen, appetising and realistic.",
     "Italian restaurant cuisine, refined but not artificial. No text, no logos, no cutlery, no hands.",
   ];
   return parti.filter(Boolean).join(" ");
@@ -151,7 +163,8 @@ Deno.serve(async function (req: Request) {
       bytes = new Uint8Array(await img.arrayBuffer());
     }
 
-    const nomeFile = "disegni/" + (ricettaId || "tmp") + "-" + Date.now() + ".png";
+    const tipo = String(body?.stile || "foto").toLowerCase() === "schizzo" ? "schizzi" : "disegni";
+    const nomeFile = tipo + "/" + (ricettaId || "tmp") + "-" + Date.now() + ".png";
     const { error: upErr } = await supabase.storage
       .from("ricette")
       .upload(nomeFile, bytes, { contentType: "image/png", upsert: true });
@@ -173,7 +186,10 @@ Deno.serve(async function (req: Request) {
 
     // 3. la lego alla ricetta
     if (ricettaId) {
-      await supabase.from("ricette").update({ disegno_url: urlFinale }).eq("id", ricettaId);
+      const campo = String(body?.stile || "foto").toLowerCase() === "schizzo" ? "schizzo_url" : "disegno_url";
+      const agg: any = {};
+      agg[campo] = urlFinale;
+      await supabase.from("ricette").update(agg).eq("id", ricettaId);
     }
 
     return json(200, { success: true, url: urlFinale, permanente: true, prompt: promptUsato });

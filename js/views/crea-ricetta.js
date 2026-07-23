@@ -17,6 +17,7 @@ let ricettaId = null;
 let impiattamentoCorrente = null;   // progetto di montaggio del piatto
 let abbinamentoVini = null;        // abbinamenti scelti dalla carta della sede
 let disegnoPiattoUrl = null;       // illustrazione del piatto impiattato
+let schizzoPiattoUrl = null;       // schizzo a matita, fase di progetto
 
 let prodottiCache = [];
 let prodottiMap = new Map();
@@ -1607,9 +1608,13 @@ export async function render(app) {
               style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
               🍽️ Progetta il montaggio con Tony
             </button>
+            <button id="btn-schizzo-piatto" type="button"
+              style="background:#475569;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+              ✏️ Schizzo a matita
+            </button>
             <button id="btn-disegno-piatto" type="button"
               style="background:linear-gradient(135deg,#c2410c,#ea580c);color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
-              🎨 Disegna il piatto
+              🎨 Immagine del piatto
             </button>
           </div>
           <div id="r-disegno-box" style="margin-top:14px;"></div>
@@ -3212,9 +3217,10 @@ async function caricaRicettaCompleta() {
     abbinamentoVini = ricetta.abbinamento_vini;
     renderAbbinamento(abbinamentoVini);
   }
-  if (ricetta.disegno_url) {
-    disegnoPiattoUrl = ricetta.disegno_url;
-    mostraDisegnoPiatto(disegnoPiattoUrl);
+  if (ricetta.schizzo_url) schizzoPiattoUrl = ricetta.schizzo_url;
+  if (ricetta.disegno_url) disegnoPiattoUrl = ricetta.disegno_url;
+  if (ricetta.disegno_url || ricetta.schizzo_url) {
+    mostraDisegnoPiatto(ricetta.disegno_url || ricetta.schizzo_url, false, !ricetta.disegno_url);
   }
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
@@ -3449,6 +3455,7 @@ async function salvaTutto() {
       impiattamento: impiattamentoCorrente,
       abbinamento_vini: abbinamentoVini,
       disegno_url: disegnoPiattoUrl,
+      schizzo_url: schizzoPiattoUrl,
       azienda_id: aziendaId,
       sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
@@ -3490,6 +3497,7 @@ async function salvaTutto() {
       impiattamento: impiattamentoCorrente,
       abbinamento_vini: abbinamentoVini,
       disegno_url: disegnoPiattoUrl,
+      schizzo_url: schizzoPiattoUrl,
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
@@ -4296,7 +4304,8 @@ async function progettaMontaggioConTony() {
    guidato pero' dai dati veri della ricetta.
 ============================================================ */
 
-async function disegnaPiattoConAi() {
+async function disegnaPiattoConAi(stile) {
+  const eSchizzo = String(stile || "foto") === "schizzo";
   const nome = getVal("r-nome").trim();
   if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
 
@@ -4305,9 +4314,10 @@ async function disegnaPiattoConAi() {
   }
 
   const box = document.getElementById("r-disegno-box");
-  const btn = document.getElementById("btn-disegno-piatto");
-  if (btn) { btn.disabled = true; btn.textContent = "🎨 Sto disegnando..."; }
-  if (box) box.innerHTML = '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:16px;font-size:13px;color:#9a3412;">Sto disegnando il piatto: ci vuole una ventina di secondi.</div>';
+  const btn = document.getElementById(eSchizzo ? "btn-schizzo-piatto" : "btn-disegno-piatto");
+  const testoOriginale = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = eSchizzo ? "✏️ Sto schizzando..." : "🎨 Sto disegnando..."; }
+  if (box) box.innerHTML = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;font-size:13px;color:#475569;">' + (eSchizzo ? "Sto facendo lo schizzo" : "Sto disegnando il piatto") + ': ci vuole una ventina di secondi.</div>';
 
   try {
     const supa = window.supabaseClient || window.supabase;
@@ -4322,36 +4332,37 @@ async function disegnaPiattoConAi() {
         nome: nome,
         descrizione: getVal("r-descrizione"),
         impiattamento: impiattamentoCorrente || {},
+        stile: eSchizzo ? "schizzo" : "foto",
       }),
     });
 
     const data = await resp.json();
     if (!data?.success || !data?.url) throw new Error(data?.error || "Disegno non riuscito");
 
-    disegnoPiattoUrl = data.url;
-    mostraDisegnoPiatto(data.url, data.permanente === false);
+    if (eSchizzo) schizzoPiattoUrl = data.url; else disegnoPiattoUrl = data.url;
+    mostraDisegnoPiatto(data.url, data.permanente === false, eSchizzo);
   } catch (e) {
     console.error("Disegno non riuscito:", e);
     if (box) box.innerHTML = '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px;font-size:13px;color:#b91c1c;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</div>';
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "🎨 Disegna il piatto"; }
+    if (btn) { btn.disabled = false; btn.textContent = testoOriginale; }
   }
 }
 
-function mostraDisegnoPiatto(url, temporaneo) {
+function mostraDisegnoPiatto(url, temporaneo, eSchizzo) {
   const box = document.getElementById("r-disegno-box");
   if (!box || !url) return;
   box.innerHTML =
     '<div style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;max-width:420px;">'
     + '<img src="' + escapeHtml(url) + '" alt="Disegno del piatto" style="width:100%;display:block;background:#f8fafc;">'
     + '<div style="padding:9px 12px;font-size:11.5px;color:#64748b;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
-    +   '<span>Disegno indicativo, generato dal progetto di montaggio.</span>'
+    +   '<span>' + (eSchizzo ? 'Schizzo di progetto' : 'Immagine indicativa') + ', dal progetto di montaggio.</span>'
     +   '<button id="btn-rifai-disegno" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;font-size:11.5px;cursor:pointer;white-space:nowrap;">Rifallo</button>'
     + '</div>'
     + (temporaneo ? '<div style="padding:0 12px 9px;font-size:11px;color:#b45309;">Non salvato in archivio: scarica l\'immagine se ti serve.</div>' : "")
     + '</div>';
   const b = document.getElementById("btn-rifai-disegno");
-  if (b) b.onclick = () => disegnaPiattoConAi();
+  if (b) b.onclick = () => disegnaPiattoConAi(eSchizzo ? "schizzo" : "foto");
 }
 
 function renderImpiattamento(impiatto) {
@@ -4781,7 +4792,8 @@ function bindUI() {
   safeOn("btn-tony-inventa", "click", () => apriChatRicettaTony());
   safeOn("btn-tony-impiatto", "click", () => progettaMontaggioConTony());
   safeOn("btn-tony-vino", "click", () => abbinaVinoConTony());
-  safeOn("btn-disegno-piatto", "click", () => disegnaPiattoConAi());
+  safeOn("btn-schizzo-piatto", "click", () => disegnaPiattoConAi("schizzo"));
+  safeOn("btn-disegno-piatto", "click", () => disegnaPiattoConAi("foto"));
 
   // Se arrivi qui dalla chat di Tony, riprendo la conversazione automaticamente
   const consegnaTony = raccogliConsegnaDaTony();
