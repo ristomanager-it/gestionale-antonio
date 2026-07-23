@@ -763,11 +763,13 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
     }
 
     // Resa
-    if (d.resa && d.resa.peso_finale) {
-      setVal("r-output-peso", d.resa.peso_finale);
+    const pesoResa = Number(d?.resa?.peso_finale);
+    if (Number.isFinite(pesoResa) && pesoResa > 0) {
+      setVal("r-output-peso", pesoResa);
       if (d.resa.unita_misura) setVal("r-output-um", d.resa.unita_misura);
     }
-    if (d.porzioni_previste) setVal("r-pezzi-base", d.porzioni_previste);
+    const nPorzioni = Number(d?.porzioni_previste);
+    if (Number.isFinite(nPorzioni) && nPorzioni > 0) setVal("r-pezzi-base", nPorzioni);
 
     // Ingredienti (con aggancio al magazzino dove possibile)
     let nMatch = 0;
@@ -1469,11 +1471,11 @@ export async function render(app) {
             </button>
             <button id="btn-tony-inventa" type="button"
               style="background:linear-gradient(135deg,#7c3aed,#c026d3);color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(124,58,237,.3);">
-              ✨ Fatti inventare la ricetta
+              ✨ Inventiamo una ricetta?
             </button>
           </div>
           <div style="margin-top:6px;font-size:12px;color:#6b7280;">
-            Hai un'eccedenza o un'idea? Raccontala a Tony e ti costruisce la ricetta completa — ingredienti, dosi, fasi e conservazione.
+            Hai un'eccedenza o un'idea? Raccontala a Tony: ragionate insieme e ne esce la ricetta completa — ingredienti, dosi, fasi e conservazione.
           </div>
         `
       })}
