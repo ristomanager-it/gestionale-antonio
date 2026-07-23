@@ -1232,20 +1232,32 @@ export async function render(container) {
     const calici = tutte.filter(p => p.al_calice);
     const bottiglie = tutte.filter(p => !p.al_calice).slice(0, 3);
 
+    function euro(n) { return (Number(n) || 0).toFixed(2).replace('.', ','); }
+
     function bloccoProposte(lista) {
       return lista.map(function (p) {
         const col = coloriFascia[String(p.fascia || '').toLowerCase()] || (p.al_calice ? '#6d28d9' : '#334155');
-        return `<button class="vino-scelta" data-vino="${esc(p.vino)}" style="
-            display:block;width:100%;text-align:left;background:#fff;
-            border:1px solid #e2e8f0;border-left:5px solid ${col};border-radius:12px;
-            padding:12px 14px;margin-bottom:9px;cursor:pointer;">
-            <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
-              <strong style="font-size:14.5px;color:#0f172a;">${esc(p.vino || '')}</strong>
-              <span style="font-size:15px;font-weight:800;color:${col};white-space:nowrap;">€ ${(Number(p.prezzo) || 0).toFixed(2).replace('.', ',')}</span>
+        const soloCalice = !!p.al_calice;
+        const pCalice = Number(p.prezzo_calice) || 0;
+        return `<div style="border:1px solid #e2e8f0;border-left:5px solid ${col};border-radius:12px;padding:12px 14px;margin-bottom:9px;background:#fff;">
+            <strong style="font-size:14.5px;color:#0f172a;display:block;">${esc(p.vino || '')}</strong>
+            <div style="font-size:11px;color:#94a3b8;margin:3px 0 6px;">${esc(p.categoria || '')}${p.fascia ? ' · ' + esc(p.fascia) : ''}</div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.45;margin-bottom:9px;">${esc(p.perche || '')}</div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;">
+              ${(soloCalice || pCalice > 0) ? `
+                <button class="vino-scelta" data-vino="${esc(p.vino)}" data-calice="1" data-prezzo="${soloCalice ? p.prezzo : pCalice}" style="
+                  flex:1;min-width:120px;background:#f5f3ff;border:1.5px solid #ddd6fe;color:#6d28d9;
+                  border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">
+                  🍷 Calice € ${euro(soloCalice ? p.prezzo : pCalice)}
+                </button>` : ''}
+              ${!soloCalice ? `
+                <button class="vino-scelta" data-vino="${esc(p.vino)}" data-calice="0" data-prezzo="${p.prezzo}" style="
+                  flex:1;min-width:120px;background:#fff;border:1.5px solid #e2e8f0;color:#0f172a;
+                  border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">
+                  🍾 Bottiglia € ${euro(p.prezzo)}
+                </button>` : ''}
             </div>
-            <div style="font-size:11px;color:#94a3b8;margin:3px 0 5px;">${esc(p.categoria || '')}${p.fascia ? ' · ' + esc(p.fascia) : ''}</div>
-            <div style="font-size:12.5px;color:#334155;line-height:1.45;">${esc(p.perche || '')}</div>
-          </button>`;
+          </div>`;
       }).join('');
     }
 
@@ -1287,14 +1299,45 @@ export async function render(container) {
     ov.querySelectorAll('.vino-scelta').forEach(function (btn) {
       btn.onclick = async function () {
         const nomeVino = btn.getAttribute('data-vino');
+        const alCalice = btn.getAttribute('data-calice') === '1';
+        const prezzo = Number(btn.getAttribute('data-prezzo')) || 0;
         const vino = prodottiVendita.find(p => (p.nome || '').trim().toLowerCase() === String(nomeVino).trim().toLowerCase());
         if (!vino) {
           mostraToast('Questo vino non e\' in listino su questa sede', 'error');
           return;
         }
         chiudi();
-        await aggiungiProdotto(vino.id, null, true);   // true = niente altri popup a catena
-        mostraToast('🍷 ' + vino.nome + ' aggiunto', 'success');
+
+        if (!alCalice) {
+          await aggiungiProdotto(vino.id, null, true);
+          mostraToast('🍾 ' + vino.nome + ' aggiunto', 'success');
+          return;
+        }
+
+        // Al calice: stessa etichetta ma riga dedicata col prezzo del bicchiere
+        try {
+          const { data, error } = await supa().from('comanda_righe').insert({
+            azienda_id: aziendaId,
+            comanda_id: comandaAttiva.id,
+            prodotto_vendita_id: vino.id,
+            nome_snapshot: vino.nome + ' (calice)',
+            prezzo_snapshot: prezzo,
+            quantita: 1,
+            stato: 'in_attesa',
+            stampante: 'bar',
+            cameriere: cameriereAttivo?.nome || null,
+            uscita_numero: uscitaCorrente,
+          }).select('*').single();
+          if (error) throw error;
+          if (data) righeComanda.push(data);
+          await aggiornaTotale();
+          renderRighe();
+          renderTotale();
+          mostraToast('🍷 Calice di ' + vino.nome + ' aggiunto', 'success');
+        } catch (e) {
+          console.error('calice non aggiunto:', e);
+          mostraToast('Non sono riuscito ad aggiungere il calice', 'error');
+        }
       };
     });
   }

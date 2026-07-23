@@ -4066,6 +4066,14 @@ function disegnaPiatto(impiatto) {
 // Carica la carta della sede attiva. Se le etichette sono tante,
 // ne prende un campione per fascia di prezzo: cosi' Tony vede sia
 // le bottiglie accessibili sia quelle importanti, non solo le prime.
+// Una bottiglia da 0,75 rende 5 calici da 150 ml.
+// Arrotondo a mezzo euro per eccesso: un calice non si vende a 6,60.
+function prezzoAlCalice(prezzoBottiglia) {
+  const p = Number(prezzoBottiglia);
+  if (!(p > 0)) return 0;
+  return Math.ceil((p / 5) * 2) / 2;
+}
+
 async function caricaCartaVini() {
   const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
@@ -4099,12 +4107,17 @@ async function caricaCartaVini() {
   let vini = (data || [])
     .filter(v => v.nome && Number(v.prezzo_base) > 0)
     .filter(v => idCatVino.has(v.categoria_vendita_id) || eCalice(v.nome))
-    .map(v => ({
-      nome: v.nome.trim(),
-      prezzo: Number(v.prezzo_base),
-      categoria: mappaCat[v.categoria_vendita_id] || "Vini",
-      calice: eCalice(v.nome) || eCalice(mappaCat[v.categoria_vendita_id]),
-    }));
+    .map(v => {
+      const gia = eCalice(v.nome) || eCalice(mappaCat[v.categoria_vendita_id]);
+      const prezzo = Number(v.prezzo_base);
+      return {
+        nome: v.nome.trim(),
+        prezzo: prezzo,
+        categoria: mappaCat[v.categoria_vendita_id] || "Vini",
+        calice: gia,
+        prezzoCalice: gia ? prezzo : prezzoAlCalice(prezzo),
+      };
+    });
 
   // Se la sede attiva non ha vini propri, riprovo senza filtro sede
   if (!vini.length && sedeId) {
@@ -4115,12 +4128,17 @@ async function caricaCartaVini() {
     vini = (tutti || [])
       .filter(v => v.nome && Number(v.prezzo_base) > 0)
       .filter(v => idCatVino.has(v.categoria_vendita_id) || eCalice(v.nome))
-      .map(v => ({
-        nome: v.nome.trim(),
-        prezzo: Number(v.prezzo_base),
-        categoria: mappaCat[v.categoria_vendita_id] || "Vini",
-        calice: eCalice(v.nome) || eCalice(mappaCat[v.categoria_vendita_id]),
-      }));
+      .map(v => {
+        const gia = eCalice(v.nome) || eCalice(mappaCat[v.categoria_vendita_id]);
+        const prezzo = Number(v.prezzo_base);
+        return {
+          nome: v.nome.trim(),
+          prezzo: prezzo,
+          categoria: mappaCat[v.categoria_vendita_id] || "Vini",
+          calice: gia,
+          prezzoCalice: gia ? prezzo : prezzoAlCalice(prezzo),
+        };
+      });
   }
 
   // Tetto: campiono per categoria e per fascia, cosi' resta rappresentativa
@@ -4158,7 +4176,7 @@ async function abbinaVinoConTony() {
       if (box) box.innerHTML = '<div style="font-size:13px;color:#b45309;padding:10px 0;">Nella carta di questa sede non trovo vini attivi con prezzo. Controlla il menu bevande.</div>';
       return;
     }
-    if (nota) nota.textContent = "Carta letta: " + carta.vini.length + " etichette" + (carta.calici ? ", di cui " + carta.calici + " al calice" : " (nessun calice in carta)") + ".";
+    if (nota) nota.textContent = "Carta letta: " + carta.vini.length + " etichette, tutte disponibili anche al calice (bottiglia diviso 5).";
 
     const ingr = [...document.querySelectorAll("#ingredienti-container .ing-row")].map(r => {
       const n = r.querySelector(".ing-nome")?.value || r.querySelector(".ing-search")?.value || "";
@@ -4166,7 +4184,7 @@ async function abbinaVinoConTony() {
     }).filter(Boolean).slice(0, 20).join(", ");
 
     const elenco = carta.vini
-      .map(v => "- " + v.nome + " | " + v.categoria + " | " + v.prezzo.toFixed(0) + " euro" + (v.calice ? " | AL CALICE" : ""))
+      .map(v => v.calice ? ("- " + v.nome + " | " + v.categoria + " | " + v.prezzo.toFixed(2) + " euro | SOLO AL CALICE") : ("- " + v.nome + " | " + v.categoria + " | bottiglia " + v.prezzo.toFixed(0) + " euro | al calice " + v.prezzoCalice.toFixed(2) + " euro"))
       .join("\n");
 
     const richiesta = "PIATTO: " + nome + "\n"
@@ -4187,6 +4205,7 @@ async function abbinaVinoConTony() {
         prezzo: trovato ? trovato.prezzo : p.prezzo,
         categoria: trovato ? trovato.categoria : p.categoria,
         al_calice: trovato ? !!trovato.calice : !!p.al_calice,
+        prezzo_calice: trovato ? trovato.prezzoCalice : null,
       });
     });
     parsed.sede = window.state?.sedeAttiva?.nome || null;
@@ -4217,7 +4236,7 @@ function renderAbbinamento(abb) {
         return '<div style="border:1px solid #e2e8f0;border-left:4px solid ' + col + ';border-radius:10px;padding:11px 13px;margin-bottom:9px;background:#fff;">'
           + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;">'
           +   '<strong style="font-size:14px;color:#0f172a;">' + escapeHtml(p.vino || "") + (p.verificato === false ? ' <span title="Non trovato in carta" style="color:#dc2626;font-size:12px;">⚠</span>' : "") + '</strong>'
-          +   '<span style="font-size:14px;font-weight:700;color:' + col + ';">€ ' + (Number(p.prezzo) || 0).toFixed(0) + '</span>'
+          +   '<span style="font-size:14px;font-weight:700;color:' + col + ';">€ ' + (Number(p.prezzo) || 0).toFixed(0) + (p.prezzo_calice ? ' <span style="font-size:11px;font-weight:600;color:#6d28d9;">· calice € ' + Number(p.prezzo_calice).toFixed(2).replace('.', ',') + '</span>' : '') + '</span>'
           + '</div>'
           + '<div style="font-size:11px;color:#94a3b8;margin:2px 0 6px;">' + escapeHtml(p.categoria || "") + ' · ' + escapeHtml(p.fascia || "") + (p.al_calice ? ' · <span style="background:#f5f3ff;color:#6d28d9;padding:1px 6px;border-radius:20px;font-weight:700;">🍷 al calice</span>' : "") + '</div>'
           + '<div style="font-size:12.5px;color:#334155;">' + escapeHtml(p.perche || "") + '</div>'
