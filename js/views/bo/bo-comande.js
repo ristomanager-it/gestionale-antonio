@@ -78,6 +78,7 @@ export async function render(container) {
   let tavoli = [];
   let comande = [];
   let prodottiVendita = [];
+  let abbinamentiVino = {};   // ricetta_id -> abbinamento gia' deciso
   let categorieVendita = [];
   let prenotazioniOggi = [];
   let comandaAttiva = null;
@@ -598,6 +599,24 @@ export async function render(container) {
     } else {
       prodottiVendita = data || [];
     }
+    await loadAbbinamentiVino();
+  }
+
+  // Abbinamenti vino gia' decisi sulla ricetta: servono al cameriere al tavolo.
+  async function loadAbbinamentiVino() {
+    abbinamentiVino = {};
+    try {
+      const ricetteIds = [...new Set(prodottiVendita.map(p => p.ricetta_id).filter(Boolean))];
+      if (!ricetteIds.length) return;
+      const { data } = await supa()
+        .from('ricette')
+        .select('id, abbinamento_vini')
+        .in('id', ricetteIds)
+        .not('abbinamento_vini', 'is', null);
+      (data || []).forEach(r => {
+        if (r.abbinamento_vini?.proposte?.length) abbinamentiVino[String(r.id)] = r.abbinamento_vini;
+      });
+    } catch (e) { console.warn('abbinamenti vino non caricati:', e); }
   }
 
   async function loadCategorie() {
@@ -1146,6 +1165,7 @@ export async function render(container) {
 
     if (!skipUpsell) mostraModalUpsell(prodotto);
     checkCrossSell();
+    if (!skipUpsell) mostraSuggerimentoVino(prodotto);
   }
 
   // ── Scarico magazzino al tap ──
@@ -1185,6 +1205,86 @@ export async function render(container) {
   }
 
   // ── Modal upsell al tap prodotto ──
+  // ── SUGGERIMENTO VINO AL TAVOLO ──
+  // Compare quando il cameriere aggiunge un piatto che ha un abbinamento deciso.
+  // Non e' un upsell generico: sono le etichette scelte per QUEL piatto, con la frase da dire.
+  function mostraSuggerimentoVino(prodotto) {
+    if (!prodotto?.ricetta_id) return;
+    const abb = abbinamentiVino[String(prodotto.ricetta_id)];
+    if (!abb?.proposte?.length) return;
+
+    // Se al tavolo il vino l'hanno gia' preso, non insisto.
+    const haGiaVino = righeComanda.some(r => {
+      if (r.stato === 'annullato') return false;
+      const pv = prodottiVendita.find(p => String(p.id) === String(r.prodotto_vendita_id));
+      if (!pv) return false;
+      const cat = categorieVendita.find(c => String(c.id) === String(pv.categoria_vendita_id));
+      return /vin|bollicin|champagne|spumant/i.test(cat?.nome || '');
+    });
+    if (haGiaVino) return;
+
+    const vecchio = document.getElementById('modal-vino-abbinato');
+    if (vecchio) vecchio.remove();
+
+    const coloriFascia = { accessibile: '#15803d', intermedia: '#b45309', importante: '#7f1d1d' };
+    const proposte = abb.proposte.slice(0, 3);
+
+    const ov = document.createElement('div');
+    ov.id = 'modal-vino-abbinato';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:11000;display:flex;align-items:flex-end;justify-content:center;';
+    ov.innerHTML = `
+      <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:82vh;overflow:auto;box-shadow:0 -8px 40px rgba(0,0,0,.25);">
+        <div style="padding:16px 20px 10px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:26px;">🍷</span>
+          <div style="flex:1;">
+            <div style="font-weight:800;font-size:16px;color:#0f172a;">Vino per ${esc(prodotto.nome)}</div>
+            <div style="font-size:12px;color:#64748b;">Proponilo al tavolo — tocca per aggiungerlo</div>
+          </div>
+          <button id="vino-chiudi" style="background:#f3f4f6;border:none;border-radius:10px;padding:8px 12px;font-size:16px;cursor:pointer;">✕</button>
+        </div>
+
+        ${abb.profilo ? `<div style="margin:12px 16px 4px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#7f1d1d;">${esc(abb.profilo)}</div>` : ''}
+
+        <div style="padding:10px 16px 16px;">
+          ${proposte.map(function (p) {
+            const col = coloriFascia[String(p.fascia || '').toLowerCase()] || '#334155';
+            return `<button class="vino-scelta" data-vino="${esc(p.vino)}" style="
+                display:block;width:100%;text-align:left;background:#fff;
+                border:1px solid #e2e8f0;border-left:5px solid ${col};border-radius:12px;
+                padding:12px 14px;margin-bottom:9px;cursor:pointer;">
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
+                  <strong style="font-size:14.5px;color:#0f172a;">${esc(p.vino || '')}</strong>
+                  <span style="font-size:15px;font-weight:800;color:${col};white-space:nowrap;">€ ${(Number(p.prezzo) || 0).toFixed(0)}</span>
+                </div>
+                <div style="font-size:11px;color:#94a3b8;margin:3px 0 5px;">${esc(p.categoria || '')} · ${esc(p.fascia || '')}</div>
+                <div style="font-size:12.5px;color:#334155;line-height:1.45;">${esc(p.perche || '')}</div>
+              </button>`;
+          }).join('')}
+          <button id="vino-no" style="width:100%;background:#f1f5f9;color:#475569;border:none;border-radius:12px;padding:12px;font-size:13.5px;font-weight:600;cursor:pointer;">Non ora</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const chiudi = () => ov.remove();
+    ov.querySelector('#vino-chiudi').onclick = chiudi;
+    ov.querySelector('#vino-no').onclick = chiudi;
+    ov.addEventListener('click', (e) => { if (e.target === ov) chiudi(); });
+
+    ov.querySelectorAll('.vino-scelta').forEach(function (btn) {
+      btn.onclick = async function () {
+        const nomeVino = btn.getAttribute('data-vino');
+        const vino = prodottiVendita.find(p => (p.nome || '').trim().toLowerCase() === String(nomeVino).trim().toLowerCase());
+        if (!vino) {
+          mostraToast('Questo vino non e\' in listino su questa sede', 'error');
+          return;
+        }
+        chiudi();
+        await aggiungiProdotto(vino.id, null, true);   // true = niente altri popup a catena
+        mostraToast('🍷 ' + vino.nome + ' aggiunto', 'success');
+      };
+    });
+  }
+
   function mostraModalUpsell(prodotto) {
     const cat = categorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id));
     const catNome = (cat?.nome || '').toLowerCase();
