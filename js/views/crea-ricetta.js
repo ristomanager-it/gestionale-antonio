@@ -16,6 +16,7 @@ import { createPageLayout, createCard } from "../utils/pageLayout.js";
 let ricettaId = null;
 let impiattamentoCorrente = null;   // progetto di montaggio del piatto
 let abbinamentoVini = null;        // abbinamenti scelti dalla carta della sede
+let disegnoPiattoUrl = null;       // illustrazione del piatto impiattato
 
 let prodottiCache = [];
 let prodottiMap = new Map();
@@ -1601,12 +1602,17 @@ export async function render(app) {
           <div id="r-impiattamento-box">
             <div style="font-size:13px;color:#94a3b8;padding:10px 0;">Nessun progetto di montaggio. Chiedilo a Tony insieme alla ricetta.</div>
           </div>
-          <div style="margin-top:12px;">
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
             <button id="btn-tony-impiatto" type="button"
               style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
               🍽️ Progetta il montaggio con Tony
             </button>
+            <button id="btn-disegno-piatto" type="button"
+              style="background:linear-gradient(135deg,#c2410c,#ea580c);color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+              🎨 Disegna il piatto
+            </button>
           </div>
+          <div id="r-disegno-box" style="margin-top:14px;"></div>
           <div style="margin-top:6px;font-size:12px;color:#6b7280;">
             Lo schema dice a chi impiatta dove va ogni cosa e in che ordine, così il piatto esce uguale anche quando lo fa un altro.
           </div>
@@ -3206,6 +3212,10 @@ async function caricaRicettaCompleta() {
     abbinamentoVini = ricetta.abbinamento_vini;
     renderAbbinamento(abbinamentoVini);
   }
+  if (ricetta.disegno_url) {
+    disegnoPiattoUrl = ricetta.disegno_url;
+    mostraDisegnoPiatto(disegnoPiattoUrl);
+  }
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
@@ -3438,6 +3448,7 @@ async function salvaTutto() {
       scaling_tempo_pct: scaling_tempo,
       impiattamento: impiattamentoCorrente,
       abbinamento_vini: abbinamentoVini,
+      disegno_url: disegnoPiattoUrl,
       azienda_id: aziendaId,
       sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
@@ -3478,6 +3489,7 @@ async function salvaTutto() {
       scaling_tempo_pct: scaling_tempo,
       impiattamento: impiattamentoCorrente,
       abbinamento_vini: abbinamentoVini,
+      disegno_url: disegnoPiattoUrl,
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
@@ -4240,6 +4252,108 @@ function disegnaPiatto(impiatto) {
   return { svg: svg, legenda: legenda || '<div style="font-size:12px;color:#94a3b8;">Nessun elemento indicato.</div>' };
 }
 
+async function progettaMontaggioConTony() {
+  const nome = getVal("r-nome").trim();
+  if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
+
+  const box = document.getElementById("r-impiattamento-box");
+  if (box) box.innerHTML = '<div style="font-size:13px;color:#0E5A7A;padding:10px 0;">Tony sta progettando il montaggio...</div>';
+
+  const ingr = [...document.querySelectorAll("#ingredienti-container .ing-row")].map(r => {
+    const n = r.querySelector(".ing-nome")?.value || r.querySelector(".ing-search")?.value || "";
+    const q = r.querySelector(".ing-qta")?.value || "";
+    const u = r.querySelector(".ing-um")?.value || "";
+    return n ? (n + (q ? " " + q + " " + u : "")) : "";
+  }).filter(Boolean).join(", ");
+
+  const richiesta = "Piatto: " + nome + "\n"
+    + (getVal("r-descrizione") ? "Descrizione: " + getVal("r-descrizione") + "\n" : "")
+    + (ingr ? "Ingredienti: " + ingr + "\n" : "")
+    + (getVal("r-pezzi-base") ? "Porzioni: " + getVal("r-pezzi-base") + "\n" : "")
+    + "\nProgettami il MONTAGGIO di questo piatto: dove va ogni elemento, con che forma e dimensione, e in che ordine si posa. "
+    + "Rispondi solo col JSON del blocco impiattamento.";
+
+  try {
+    const data = await tonyChatChiama([{ role: "user", content: richiesta }], "finalizza");
+    const parsed = tonyEstraiReply(data);
+    const imp = parsed?.impiattamento || parsed;
+    if (imp && (imp.elementi || imp.sequenza)) {
+      impiattamentoCorrente = imp;
+      renderImpiattamento(imp);
+    } else {
+      throw new Error("Risposta senza schema di montaggio");
+    }
+  } catch (e) {
+    console.error("Montaggio non riuscito:", e);
+    if (box) box.innerHTML = '<div style="font-size:13px;color:#dc2626;padding:10px 0;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</div>';
+  }
+}
+
+/* ============================================================
+   DISEGNO DEL PIATTO
+   Il progetto di montaggio diventa un'illustrazione vera.
+   Claude non genera immagini: per il disegno si usa DALL-E,
+   guidato pero' dai dati veri della ricetta.
+============================================================ */
+
+async function disegnaPiattoConAi() {
+  const nome = getVal("r-nome").trim();
+  if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
+
+  if (!impiattamentoCorrente?.elementi?.length) {
+    if (!confirm("Non hai ancora il progetto di montaggio: il disegno verra' piu' generico.\nVuoi procedere lo stesso?")) return;
+  }
+
+  const box = document.getElementById("r-disegno-box");
+  const btn = document.getElementById("btn-disegno-piatto");
+  if (btn) { btn.disabled = true; btn.textContent = "🎨 Sto disegnando..."; }
+  if (box) box.innerHTML = '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:16px;font-size:13px;color:#9a3412;">Sto disegnando il piatto: ci vuole una ventina di secondi.</div>';
+
+  try {
+    const supa = window.supabaseClient || window.supabase;
+    const s = await supa.auth.getSession();
+    const token = s?.data?.session?.access_token || "";
+
+    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-disegno-piatto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": token },
+      body: JSON.stringify({
+        ricetta_id: ricettaId || null,
+        nome: nome,
+        descrizione: getVal("r-descrizione"),
+        impiattamento: impiattamentoCorrente || {},
+      }),
+    });
+
+    const data = await resp.json();
+    if (!data?.success || !data?.url) throw new Error(data?.error || "Disegno non riuscito");
+
+    disegnoPiattoUrl = data.url;
+    mostraDisegnoPiatto(data.url, data.permanente === false);
+  } catch (e) {
+    console.error("Disegno non riuscito:", e);
+    if (box) box.innerHTML = '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px;font-size:13px;color:#b91c1c;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</div>';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "🎨 Disegna il piatto"; }
+  }
+}
+
+function mostraDisegnoPiatto(url, temporaneo) {
+  const box = document.getElementById("r-disegno-box");
+  if (!box || !url) return;
+  box.innerHTML =
+    '<div style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;max-width:420px;">'
+    + '<img src="' + escapeHtml(url) + '" alt="Disegno del piatto" style="width:100%;display:block;background:#f8fafc;">'
+    + '<div style="padding:9px 12px;font-size:11.5px;color:#64748b;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+    +   '<span>Disegno indicativo, generato dal progetto di montaggio.</span>'
+    +   '<button id="btn-rifai-disegno" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;font-size:11.5px;cursor:pointer;white-space:nowrap;">Rifallo</button>'
+    + '</div>'
+    + (temporaneo ? '<div style="padding:0 12px 9px;font-size:11px;color:#b45309;">Non salvato in archivio: scarica l\'immagine se ti serve.</div>' : "")
+    + '</div>';
+  const b = document.getElementById("btn-rifai-disegno");
+  if (b) b.onclick = () => disegnaPiattoConAi();
+}
+
 function renderImpiattamento(impiatto) {
   const box = document.getElementById("r-impiattamento-box");
   if (!box) return;
@@ -4667,6 +4781,7 @@ function bindUI() {
   safeOn("btn-tony-inventa", "click", () => apriChatRicettaTony());
   safeOn("btn-tony-impiatto", "click", () => progettaMontaggioConTony());
   safeOn("btn-tony-vino", "click", () => abbinaVinoConTony());
+  safeOn("btn-disegno-piatto", "click", () => disegnaPiattoConAi());
 
   // Se arrivi qui dalla chat di Tony, riprendo la conversazione automaticamente
   const consegnaTony = raccogliConsegnaDaTony();
