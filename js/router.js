@@ -77,7 +77,7 @@ const routes = {
   amministrazione: () => import("./views/amministrazione.js"),
   gestione: () => import("./views/gestione.js"),
   "ricette-semplici": () =>
-    import("./views/crea-ricetta.js?v=34"),
+    import("./views/crea-ricetta.js?v=35"),
   "permessi-operatore": () =>
     import("./views/permessi-operatore/index.js"),
 
@@ -129,9 +129,9 @@ const routes = {
   ricettario: () => import("./views/ricettario.js?v=5"),
   "planner-produzione": () => import("./views/planner-produzione.js"),
   // Editor ricette UNICO: modalità semplice/avanzata dentro crea-ricetta.js
-  creaRicetta: () => import("./views/crea-ricetta.js?v=34"),
-  "crea-ricetta":          () => import("./views/crea-ricetta.js?v=34"),
-  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=34"),
+  creaRicetta: () => import("./views/crea-ricetta.js?v=35"),
+  "crea-ricetta":          () => import("./views/crea-ricetta.js?v=35"),
+  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=35"),
   "abbina-articoli": () => import("./views/abbina-articoli.js"),
   "menu-engineering": () => import("./views/menu-engineering.js?v=2"),
   "super-tony": () => import("./views/super-tony.js?v=6"),
@@ -197,7 +197,7 @@ const routes = {
 
   // PRODUZIONE
   "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
-  "bo-comande": () => import("./views/bo/bo-comande.js?v=9"),
+  "bo-comande": () => import("./views/bo/bo-comande.js?v=10"),
   "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=5"),
   "alert-haccp-config": () => import("./views/bo/alert-haccp-config.js?v=2"),
   "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),

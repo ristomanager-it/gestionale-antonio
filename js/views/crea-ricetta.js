@@ -4077,42 +4077,55 @@ async function caricaCartaVini() {
     .select("id, nome")
     .eq("azienda_id", aziendaId);
 
-  const catVino = (cats || []).filter(c => /vin|bollicin|champagne|spumant/i.test(c.nome || ""));
-  if (!catVino.length) return { vini: [], categorie: [] };
+  const catVino = (cats || []).filter(c => /vin|bollicin|champagne|spumant|calice/i.test(c.nome || ""));
+  const mappaCat = {};
+  (cats || []).forEach(c => { mappaCat[c.id] = c.nome; });
+  const idCatVino = new Set(catVino.map(c => c.id));
+  const eCalice = (n) => /calice|al bicchiere/i.test(n || "");
 
+  // Prendo i prodotti della sede: i vini per categoria, ma anche i calici che
+  // stanno altrove (alla Trattoria sono dentro "Bevande").
   let q = supabase
     .from("prodotti_vendita")
     .select("nome, prezzo_base, categoria_vendita_id")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
-    .in("categoria_vendita_id", catVino.map(c => c.id))
-    .limit(1500);
+    .limit(3000);
   if (sedeId) q = q.eq("sede_id", sedeId);
 
   const { data, error } = await q;
   if (error) throw error;
 
-  const mappaCat = {};
-  catVino.forEach(c => { mappaCat[c.id] = c.nome; });
-
   let vini = (data || [])
     .filter(v => v.nome && Number(v.prezzo_base) > 0)
-    .map(v => ({ nome: v.nome.trim(), prezzo: Number(v.prezzo_base), categoria: mappaCat[v.categoria_vendita_id] || "Vini" }));
+    .filter(v => idCatVino.has(v.categoria_vendita_id) || eCalice(v.nome))
+    .map(v => ({
+      nome: v.nome.trim(),
+      prezzo: Number(v.prezzo_base),
+      categoria: mappaCat[v.categoria_vendita_id] || "Vini",
+      calice: eCalice(v.nome) || eCalice(mappaCat[v.categoria_vendita_id]),
+    }));
 
   // Se la sede attiva non ha vini propri, riprovo senza filtro sede
   if (!vini.length && sedeId) {
     const { data: tutti } = await supabase
       .from("prodotti_vendita")
       .select("nome, prezzo_base, categoria_vendita_id")
-      .eq("azienda_id", aziendaId).eq("attivo", true)
-      .in("categoria_vendita_id", catVino.map(c => c.id)).limit(1500);
+      .eq("azienda_id", aziendaId).eq("attivo", true).limit(3000);
     vini = (tutti || [])
       .filter(v => v.nome && Number(v.prezzo_base) > 0)
-      .map(v => ({ nome: v.nome.trim(), prezzo: Number(v.prezzo_base), categoria: mappaCat[v.categoria_vendita_id] || "Vini" }));
+      .filter(v => idCatVino.has(v.categoria_vendita_id) || eCalice(v.nome))
+      .map(v => ({
+        nome: v.nome.trim(),
+        prezzo: Number(v.prezzo_base),
+        categoria: mappaCat[v.categoria_vendita_id] || "Vini",
+        calice: eCalice(v.nome) || eCalice(mappaCat[v.categoria_vendita_id]),
+      }));
   }
 
   // Tetto: campiono per categoria e per fascia, cosi' resta rappresentativa
   const TETTO = 260;
+  const calici = vini.filter(v => v.calice);
   if (vini.length > TETTO) {
     const perCat = {};
     vini.forEach(v => { (perCat[v.categoria] = perCat[v.categoria] || []).push(v); });
@@ -4123,10 +4136,12 @@ async function caricaCartaVini() {
       const passo = Math.max(1, Math.floor(lista.length / quote));
       for (let i = 0; i < lista.length && scelti.length < TETTO; i += passo) scelti.push(lista[i]);
     });
+    const nomiScelti = new Set(scelti.map(v => v.nome));
+    calici.forEach(c => { if (!nomiScelti.has(c.nome)) scelti.push(c); });
     vini = scelti;
   }
 
-  return { vini: vini, categorie: [...new Set(vini.map(v => v.categoria))] };
+  return { vini: vini, calici: calici.length, categorie: [...new Set(vini.map(v => v.categoria))] };
 }
 
 async function abbinaVinoConTony() {
@@ -4143,7 +4158,7 @@ async function abbinaVinoConTony() {
       if (box) box.innerHTML = '<div style="font-size:13px;color:#b45309;padding:10px 0;">Nella carta di questa sede non trovo vini attivi con prezzo. Controlla il menu bevande.</div>';
       return;
     }
-    if (nota) nota.textContent = "Carta letta: " + carta.vini.length + " etichette disponibili.";
+    if (nota) nota.textContent = "Carta letta: " + carta.vini.length + " etichette" + (carta.calici ? ", di cui " + carta.calici + " al calice" : " (nessun calice in carta)") + ".";
 
     const ingr = [...document.querySelectorAll("#ingredienti-container .ing-row")].map(r => {
       const n = r.querySelector(".ing-nome")?.value || r.querySelector(".ing-search")?.value || "";
@@ -4151,7 +4166,7 @@ async function abbinaVinoConTony() {
     }).filter(Boolean).slice(0, 20).join(", ");
 
     const elenco = carta.vini
-      .map(v => "- " + v.nome + " | " + v.categoria + " | " + v.prezzo.toFixed(0) + " euro")
+      .map(v => "- " + v.nome + " | " + v.categoria + " | " + v.prezzo.toFixed(0) + " euro" + (v.calice ? " | AL CALICE" : ""))
       .join("\n");
 
     const richiesta = "PIATTO: " + nome + "\n"
@@ -4171,6 +4186,7 @@ async function abbinaVinoConTony() {
         verificato: !!trovato,
         prezzo: trovato ? trovato.prezzo : p.prezzo,
         categoria: trovato ? trovato.categoria : p.categoria,
+        al_calice: trovato ? !!trovato.calice : !!p.al_calice,
       });
     });
     parsed.sede = window.state?.sedeAttiva?.nome || null;
@@ -4203,7 +4219,7 @@ function renderAbbinamento(abb) {
           +   '<strong style="font-size:14px;color:#0f172a;">' + escapeHtml(p.vino || "") + (p.verificato === false ? ' <span title="Non trovato in carta" style="color:#dc2626;font-size:12px;">⚠</span>' : "") + '</strong>'
           +   '<span style="font-size:14px;font-weight:700;color:' + col + ';">€ ' + (Number(p.prezzo) || 0).toFixed(0) + '</span>'
           + '</div>'
-          + '<div style="font-size:11px;color:#94a3b8;margin:2px 0 6px;">' + escapeHtml(p.categoria || "") + ' · ' + escapeHtml(p.fascia || "") + '</div>'
+          + '<div style="font-size:11px;color:#94a3b8;margin:2px 0 6px;">' + escapeHtml(p.categoria || "") + ' · ' + escapeHtml(p.fascia || "") + (p.al_calice ? ' · <span style="background:#f5f3ff;color:#6d28d9;padding:1px 6px;border-radius:20px;font-weight:700;">🍷 al calice</span>' : "") + '</div>'
           + '<div style="font-size:12.5px;color:#334155;">' + escapeHtml(p.perche || "") + '</div>'
           + '</div>';
       }).join("")

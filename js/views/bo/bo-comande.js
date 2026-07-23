@@ -1226,8 +1226,28 @@ export async function render(container) {
     const vecchio = document.getElementById('modal-vino-abbinato');
     if (vecchio) vecchio.remove();
 
-    const coloriFascia = { accessibile: '#15803d', intermedia: '#b45309', importante: '#7f1d1d' };
-    const proposte = abb.proposte.slice(0, 3);
+    const coloriFascia = { calice: '#6d28d9', accessibile: '#15803d', intermedia: '#b45309', importante: '#7f1d1d' };
+    const tutte = abb.proposte.slice(0, 5);
+    // Il calice viene prima: molti tavoli non vogliono la bottiglia intera.
+    const calici = tutte.filter(p => p.al_calice);
+    const bottiglie = tutte.filter(p => !p.al_calice).slice(0, 3);
+
+    function bloccoProposte(lista) {
+      return lista.map(function (p) {
+        const col = coloriFascia[String(p.fascia || '').toLowerCase()] || (p.al_calice ? '#6d28d9' : '#334155');
+        return `<button class="vino-scelta" data-vino="${esc(p.vino)}" style="
+            display:block;width:100%;text-align:left;background:#fff;
+            border:1px solid #e2e8f0;border-left:5px solid ${col};border-radius:12px;
+            padding:12px 14px;margin-bottom:9px;cursor:pointer;">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
+              <strong style="font-size:14.5px;color:#0f172a;">${esc(p.vino || '')}</strong>
+              <span style="font-size:15px;font-weight:800;color:${col};white-space:nowrap;">€ ${(Number(p.prezzo) || 0).toFixed(2).replace('.', ',')}</span>
+            </div>
+            <div style="font-size:11px;color:#94a3b8;margin:3px 0 5px;">${esc(p.categoria || '')}${p.fascia ? ' · ' + esc(p.fascia) : ''}</div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.45;">${esc(p.perche || '')}</div>
+          </button>`;
+      }).join('');
+    }
 
     const ov = document.createElement('div');
     ov.id = 'modal-vino-abbinato';
@@ -1246,20 +1266,14 @@ export async function render(container) {
         ${abb.profilo ? `<div style="margin:12px 16px 4px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#7f1d1d;">${esc(abb.profilo)}</div>` : ''}
 
         <div style="padding:10px 16px 16px;">
-          ${proposte.map(function (p) {
-            const col = coloriFascia[String(p.fascia || '').toLowerCase()] || '#334155';
-            return `<button class="vino-scelta" data-vino="${esc(p.vino)}" style="
-                display:block;width:100%;text-align:left;background:#fff;
-                border:1px solid #e2e8f0;border-left:5px solid ${col};border-radius:12px;
-                padding:12px 14px;margin-bottom:9px;cursor:pointer;">
-                <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
-                  <strong style="font-size:14.5px;color:#0f172a;">${esc(p.vino || '')}</strong>
-                  <span style="font-size:15px;font-weight:800;color:${col};white-space:nowrap;">€ ${(Number(p.prezzo) || 0).toFixed(0)}</span>
-                </div>
-                <div style="font-size:11px;color:#94a3b8;margin:3px 0 5px;">${esc(p.categoria || '')} · ${esc(p.fascia || '')}</div>
-                <div style="font-size:12.5px;color:#334155;line-height:1.45;">${esc(p.perche || '')}</div>
-              </button>`;
-          }).join('')}
+          ${calici.length ? `
+            <div style="font-size:12px;font-weight:800;color:#6d28d9;margin:2px 0 7px;letter-spacing:.3px;">🍷 AL CALICE</div>
+            ${bloccoProposte(calici)}
+          ` : ''}
+          ${bottiglie.length ? `
+            <div style="font-size:12px;font-weight:800;color:#334155;margin:${calici.length ? '14px' : '2px'} 0 7px;letter-spacing:.3px;">🍾 IN BOTTIGLIA</div>
+            ${bloccoProposte(bottiglie)}
+          ` : ''}
           <button id="vino-no" style="width:100%;background:#f1f5f9;color:#475569;border:none;border-radius:12px;padding:12px;font-size:13.5px;font-weight:600;cursor:pointer;">Non ora</button>
         </div>
       </div>`;
