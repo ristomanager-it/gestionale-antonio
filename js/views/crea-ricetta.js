@@ -751,6 +751,7 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
     if (d.impiattamento && typeof d.impiattamento === "object") {
       impiattamentoCorrente = d.impiattamento;
       renderImpiattamento(impiattamentoCorrente);
+      setTimeout(() => disegnaPiattoConAi("schizzo"), 300);
     }
 
     // Categoria portata (cerca in cache, altrimenti la crea)
@@ -3219,9 +3220,7 @@ async function caricaRicettaCompleta() {
   }
   if (ricetta.schizzo_url) schizzoPiattoUrl = ricetta.schizzo_url;
   if (ricetta.disegno_url) disegnoPiattoUrl = ricetta.disegno_url;
-  if (ricetta.disegno_url || ricetta.schizzo_url) {
-    mostraDisegnoPiatto(ricetta.disegno_url || ricetta.schizzo_url, false, !ricetta.disegno_url);
-  }
+  if (ricetta.disegno_url || ricetta.schizzo_url) renderImmaginiPiatto(false);
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
@@ -4288,6 +4287,8 @@ async function progettaMontaggioConTony() {
     if (imp && (imp.elementi || imp.sequenza)) {
       impiattamentoCorrente = imp;
       renderImpiattamento(imp);
+      // Il progetto senza disegno resta astratto: lo schizzo parte da solo.
+      disegnaPiattoConAi("schizzo");
     } else {
       throw new Error("Risposta senza schema di montaggio");
     }
@@ -4350,6 +4351,38 @@ async function disegnaPiattoConAi(stile) {
 }
 
 function mostraDisegnoPiatto(url, temporaneo, eSchizzo) {
+  if (eSchizzo) schizzoPiattoUrl = url; else disegnoPiattoUrl = url;
+  renderImmaginiPiatto(temporaneo);
+}
+
+// Schizzo e immagine convivono: il primo e' il progetto, la seconda la resa.
+function renderImmaginiPiatto(temporaneo) {
+  const box = document.getElementById("r-disegno-box");
+  if (!box) return;
+  if (!schizzoPiattoUrl && !disegnoPiattoUrl) { box.innerHTML = ""; return; }
+
+  function riquadro(url, titolo, nota, stile) {
+    return '<div style="flex:1;min-width:240px;max-width:340px;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">'
+      + '<div style="padding:7px 11px;font-size:11.5px;font-weight:700;color:#334155;background:#f8fafc;border-bottom:1px solid #eef2f7;">' + titolo + '</div>'
+      + '<img src="' + escapeHtml(url) + '" alt="' + titolo + '" style="width:100%;display:block;background:#f8fafc;">'
+      + '<div style="padding:7px 11px;font-size:11px;color:#64748b;display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      +   '<span>' + nota + '</span>'
+      +   '<button class="rf-rifai" data-stile="' + stile + '" style="background:#f1f5f9;border:none;border-radius:7px;padding:4px 9px;font-size:11px;cursor:pointer;white-space:nowrap;">Rifallo</button>'
+      + '</div></div>';
+  }
+
+  box.innerHTML = '<div style="display:flex;gap:12px;flex-wrap:wrap;">'
+    + (schizzoPiattoUrl ? riquadro(schizzoPiattoUrl, "✏️ Schizzo di progetto", "Come lo pensiamo", "schizzo") : "")
+    + (disegnoPiattoUrl ? riquadro(disegnoPiattoUrl, "🎨 Come deve venire", "Riferimento per la cucina", "foto") : "")
+    + '</div>'
+    + (temporaneo ? '<div style="font-size:11px;color:#b45309;margin-top:6px;">Ultima immagine non salvata in archivio: scaricala se ti serve.</div>' : "");
+
+  box.querySelectorAll(".rf-rifai").forEach(function (b) {
+    b.onclick = function () { disegnaPiattoConAi(b.getAttribute("data-stile")); };
+  });
+}
+
+function mostraDisegnoPiattoVecchio(url, temporaneo, eSchizzo) {
   const box = document.getElementById("r-disegno-box");
   if (!box || !url) return;
   box.innerHTML =

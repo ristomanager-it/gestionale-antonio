@@ -1533,7 +1533,7 @@ async function apriModalRicetta() {
       .order("ordine"),
     supabase
       .from("ricette")
-      .select("descrizione, note_procedimento, impiattamento, disegno_url, foto_url")
+      .select("descrizione, note_procedimento, impiattamento, disegno_url, schizzo_url, foto_url")
       .eq("azienda_id", aziendaId)
       .eq("id", ricettaSelezionata.id)
       .maybeSingle()
@@ -3839,13 +3839,29 @@ function renderComeDeveVenire(ric) {
   if (!ric) return "";
   const imp = ric.impiattamento && typeof ric.impiattamento === "object" ? ric.impiattamento : null;
   const haSchema = imp && Array.isArray(imp.elementi) && imp.elementi.length;
-  const img = ric.foto_url || ric.disegno_url || null;
-  if (!haSchema && !img) return "";
+  // La foto vera vince sempre: e' il piatto uscito davvero.
+  const risultato = ric.foto_url || ric.disegno_url || null;
+  const schizzo = ric.schizzo_url || null;
+  if (!haSchema && !risultato && !schizzo) return "";
+
+  function img(url, titolo) {
+    return '<div style="flex:1;min-width:200px;max-width:300px;">'
+      + '<div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:5px;">' + titolo + '</div>'
+      + '<img src="' + escapeHtml(url) + '" alt="' + titolo + '" style="width:100%;border-radius:10px;display:block;background:#f8fafc;">'
+      + '</div>';
+  }
+
+  const immagini = (risultato || schizzo)
+    ? '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 14px;">'
+      + (risultato ? img(risultato, ric.foto_url ? "Il piatto" : "Come deve venire") : "")
+      + (schizzo ? img(schizzo, "Schizzo di progetto") : "")
+      + '</div>'
+    : "";
 
   return '<div class="card" style="border:2px solid #0E5A7A;">'
     + '<div class="form-group">'
     +   '<label style="color:#0E5A7A;font-weight:800;">🍽️ Come deve venire</label>'
-    +   (img ? '<img src="' + escapeHtml(img) + '" alt="Il piatto finito" style="width:100%;max-width:340px;border-radius:12px;display:block;margin:8px 0 12px;background:#f8fafc;">' : "")
+    +   immagini
     +   (haSchema ? schemaPiattoPrep(imp) : "")
     + '</div></div>';
 }
