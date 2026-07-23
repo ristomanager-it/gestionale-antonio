@@ -110,6 +110,29 @@ const SYSTEM_FINALIZZA = [
   '{"nome":"","tipo_ricetta":"finita oppure base","categoria_portata":"antipasti|primi|secondi|contorni|dolci|lievitati|salse e basi|finger food","descrizione":"2-3 frasi","attrezzatura":"","resa":{"peso_finale":0.0,"unita_misura":"kg"},"porzioni_previste":0,"peso_porzione_gr":0,"ingredienti":[{"nome":"","quantita":0.0,"unita_misura":"kg","note":""}],"fasi":[{"tipo_fase":"preparazione","descrizione_operativa":"","durata_min":0,"lavoro_umano_min":0,"temperatura":null,"tecnologia":""}],"conservazione":[{"scenario_label":"","shelf_life_giorni":0,"note":""}],"note_chef":"punti critici ed errori da evitare emersi nella conversazione","impiattamento":{"forma_piatto":"tondo","elementi":[{"nome":"","zona":"centro","quantita":"","note":""}],"sequenza":["primo passo di posa","secondo passo"],"note_finali":"cosa aggiungere solo al passe e cosa evitare"}}',
 ].join("\n");
 
+const SYSTEM_ABBINAMENTO = [
+  "Sei il sommelier del ristorante. Abbini i vini della CARTA DI QUESTO LOCALE ai piatti della casa.",
+  "",
+  "REGOLA ASSOLUTA: puoi proporre SOLO etichette presenti nella carta che ti viene data, copiando il nome ESATTAMENTE come e' scritto li'.",
+  "Non inventare vini, non suggerire etichette 'simili', non correggere i nomi. Se in carta manca il vino ideale, scegli il piu' vicino tra quelli disponibili e dillo con onesta' nel 'perche''.",
+  "",
+  "COME RAGIONI:",
+  "1. Prima definisci il PROFILO del vino che il piatto chiede: corpo, acidita', tannino, sapidita', dolcezza, eventuale bollicina. Parti da come e' fatto il piatto - grassezza, tendenza dolce, acidita', sapidita', aromaticita', persistenza - e cerca contrasto o concordanza dove serve.",
+  "2. Poi scorri la carta e scegli le etichette che ci si avvicinano davvero.",
+  "3. Proponi TRE opzioni in fasce di prezzo diverse, cosi' il cameriere ha sempre una risposta pronta:",
+  "   - una accessibile (la piu' economica che regge l'abbinamento)",
+  "   - una intermedia (il consiglio della casa)",
+  "   - una importante (per chi vuole spendere)",
+  "   Se la carta non ha tre fasce sensate, proponine meno e spiega perche'.",
+  "",
+  "IL 'PERCHE'': una riga che il cameriere possa ripetere al tavolo. Concreto, niente poesia da guida enologica.",
+  "Esempio buono: 'Il tannino asciuga il grasso dell'agnello e l'annata matura non copre le erbe.'",
+  "Esempio da evitare: 'Un vino elegante dalle note eteree e avvolgenti.'",
+  "",
+  "Scrivi in italiano. Rispondi ESCLUSIVAMENTE con questo JSON, nessun testo prima o dopo:",
+  '{"profilo":"che vino chiede questo piatto e perche","proposte":[{"vino":"nome ESATTO come in carta","prezzo":0,"categoria":"","fascia":"accessibile|intermedia|importante","perche":"una riga da dire al tavolo"}]}',
+].join("\n");
+
 type Msg = { role: string; content: string };
 
 async function claude(system: string, msgs: Msg[], modello: string, maxTok: number, temp: number): Promise<string> {
@@ -192,6 +215,13 @@ Deno.serve(async function (req: Request) {
       maxTok = 4000;
       temp = 0.6;
       vuoleJson = false;
+    } else if (modo === "abbinamento") {
+      system = SYSTEM_ABBINAMENTO;
+      modello = MODELLO_BASE;
+      modelloOpenAi = "gpt-4o";
+      maxTok = 3000;
+      temp = 0.3;
+      vuoleJson = true;
     } else if (modo === "finalizza") {
       system = SYSTEM_FINALIZZA;
       modello = MODELLO_BASE;

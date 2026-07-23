@@ -15,6 +15,7 @@ import { requirePermessi } from "../auth-utils.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 let ricettaId = null;
 let impiattamentoCorrente = null;   // progetto di montaggio del piatto
+let abbinamentoVini = null;        // abbinamenti scelti dalla carta della sede
 
 let prodottiCache = [];
 let prodottiMap = new Map();
@@ -1613,6 +1614,24 @@ export async function render(app) {
       })}
 
       ${createCard({
+        title: "Abbinamento vino",
+        body: `
+          <div id="r-vino-box">
+            <div style="font-size:13px;color:#94a3b8;padding:10px 0;">Nessun abbinamento. Tony sceglie solo tra i vini della vostra carta.</div>
+          </div>
+          <div style="margin-top:12px;">
+            <button id="btn-tony-vino" type="button"
+              style="background:#7f1d1d;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+              🍷 Abbina il vino
+            </button>
+          </div>
+          <div id="r-vino-nota" style="margin-top:6px;font-size:12px;color:#6b7280;">
+            Le proposte arrivano dalla carta della sede attiva, in tre fasce di prezzo.
+          </div>
+        `
+      })}
+
+      ${createCard({
         title: "Conservazione",
         body: `
           <div id="conservazione-container"></div>
@@ -3183,6 +3202,10 @@ async function caricaRicettaCompleta() {
     impiattamentoCorrente = ricetta.impiattamento;
     renderImpiattamento(impiattamentoCorrente);
   }
+  if (ricetta.abbinamento_vini && typeof ricetta.abbinamento_vini === "object") {
+    abbinamentoVini = ricetta.abbinamento_vini;
+    renderAbbinamento(abbinamentoVini);
+  }
   setVal("r-descrizione", ricetta.descrizione || "");
   setVal("r-note-proc", ricetta.note_procedimento || "");
   setVal("r-foto-url", ricetta.foto_url || "");
@@ -3414,6 +3437,7 @@ async function salvaTutto() {
       pezzi_base,
       scaling_tempo_pct: scaling_tempo,
       impiattamento: impiattamentoCorrente,
+      abbinamento_vini: abbinamentoVini,
       azienda_id: aziendaId,
       sede_id: window.state?.sedeAttiva?.id || null,
       attivo: true,
@@ -3453,6 +3477,7 @@ async function salvaTutto() {
       pezzi_base,
       scaling_tempo_pct: scaling_tempo,
       impiattamento: impiattamentoCorrente,
+      abbinamento_vini: abbinamentoVini,
       aggiornato_il: new Date().toISOString(),
       tipo_ricetta,
       categoria_portata_id,
@@ -4034,6 +4059,157 @@ function disegnaPiatto(impiatto) {
   return { svg: svg, legenda: legenda || '<div style="font-size:12px;color:#94a3b8;">Nessun elemento indicato.</div>' };
 }
 
+/* ============================================================
+   ABBINAMENTO VINO — solo etichette presenti in carta
+============================================================ */
+
+// Carica la carta della sede attiva. Se le etichette sono tante,
+// ne prende un campione per fascia di prezzo: cosi' Tony vede sia
+// le bottiglie accessibili sia quelle importanti, non solo le prime.
+async function caricaCartaVini() {
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  const sedeId = window.state?.sedeAttiva?.id || null;
+  if (!aziendaId) throw new Error("Azienda non selezionata");
+
+  const { data: cats } = await supabase
+    .from("categorie_vendita")
+    .select("id, nome")
+    .eq("azienda_id", aziendaId);
+
+  const catVino = (cats || []).filter(c => /vin|bollicin|champagne|spumant/i.test(c.nome || ""));
+  if (!catVino.length) return { vini: [], categorie: [] };
+
+  let q = supabase
+    .from("prodotti_vendita")
+    .select("nome, prezzo_base, categoria_vendita_id")
+    .eq("azienda_id", aziendaId)
+    .eq("attivo", true)
+    .in("categoria_vendita_id", catVino.map(c => c.id))
+    .limit(1500);
+  if (sedeId) q = q.eq("sede_id", sedeId);
+
+  const { data, error } = await q;
+  if (error) throw error;
+
+  const mappaCat = {};
+  catVino.forEach(c => { mappaCat[c.id] = c.nome; });
+
+  let vini = (data || [])
+    .filter(v => v.nome && Number(v.prezzo_base) > 0)
+    .map(v => ({ nome: v.nome.trim(), prezzo: Number(v.prezzo_base), categoria: mappaCat[v.categoria_vendita_id] || "Vini" }));
+
+  // Se la sede attiva non ha vini propri, riprovo senza filtro sede
+  if (!vini.length && sedeId) {
+    const { data: tutti } = await supabase
+      .from("prodotti_vendita")
+      .select("nome, prezzo_base, categoria_vendita_id")
+      .eq("azienda_id", aziendaId).eq("attivo", true)
+      .in("categoria_vendita_id", catVino.map(c => c.id)).limit(1500);
+    vini = (tutti || [])
+      .filter(v => v.nome && Number(v.prezzo_base) > 0)
+      .map(v => ({ nome: v.nome.trim(), prezzo: Number(v.prezzo_base), categoria: mappaCat[v.categoria_vendita_id] || "Vini" }));
+  }
+
+  // Tetto: campiono per categoria e per fascia, cosi' resta rappresentativa
+  const TETTO = 260;
+  if (vini.length > TETTO) {
+    const perCat = {};
+    vini.forEach(v => { (perCat[v.categoria] = perCat[v.categoria] || []).push(v); });
+    const quote = Math.max(8, Math.floor(TETTO / Object.keys(perCat).length));
+    const scelti = [];
+    Object.values(perCat).forEach(lista => {
+      lista.sort((a, b) => a.prezzo - b.prezzo);
+      const passo = Math.max(1, Math.floor(lista.length / quote));
+      for (let i = 0; i < lista.length && scelti.length < TETTO; i += passo) scelti.push(lista[i]);
+    });
+    vini = scelti;
+  }
+
+  return { vini: vini, categorie: [...new Set(vini.map(v => v.categoria))] };
+}
+
+async function abbinaVinoConTony() {
+  const nome = getVal("r-nome").trim();
+  if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
+
+  const box = document.getElementById("r-vino-box");
+  const nota = document.getElementById("r-vino-nota");
+  if (box) box.innerHTML = '<div style="font-size:13px;color:#7f1d1d;padding:10px 0;">Leggo la carta e abbino...</div>';
+
+  try {
+    const carta = await caricaCartaVini();
+    if (!carta.vini.length) {
+      if (box) box.innerHTML = '<div style="font-size:13px;color:#b45309;padding:10px 0;">Nella carta di questa sede non trovo vini attivi con prezzo. Controlla il menu bevande.</div>';
+      return;
+    }
+    if (nota) nota.textContent = "Carta letta: " + carta.vini.length + " etichette disponibili.";
+
+    const ingr = [...document.querySelectorAll("#ingredienti-container .ing-row")].map(r => {
+      const n = r.querySelector(".ing-nome")?.value || r.querySelector(".ing-search")?.value || "";
+      return n;
+    }).filter(Boolean).slice(0, 20).join(", ");
+
+    const elenco = carta.vini
+      .map(v => "- " + v.nome + " | " + v.categoria + " | " + v.prezzo.toFixed(0) + " euro")
+      .join("\n");
+
+    const richiesta = "PIATTO: " + nome + "\n"
+      + (getVal("r-descrizione") ? "Descrizione: " + getVal("r-descrizione") + "\n" : "")
+      + (ingr ? "Ingredienti: " + ingr + "\n" : "")
+      + "\nCARTA DEI VINI DEL LOCALE (usa solo questi, nome esatto):\n" + elenco;
+
+    const data = await tonyChatChiama([{ role: "user", content: richiesta }], "abbinamento");
+    const parsed = tonyEstraiReply(data);
+    if (!parsed?.proposte?.length) throw new Error("Nessuna proposta ricevuta");
+
+    // Controllo che le etichette esistano davvero in carta
+    const inCarta = new Map(carta.vini.map(v => [v.nome.toLowerCase(), v]));
+    parsed.proposte = parsed.proposte.map(p => {
+      const trovato = inCarta.get(String(p.vino || "").trim().toLowerCase());
+      return Object.assign({}, p, {
+        verificato: !!trovato,
+        prezzo: trovato ? trovato.prezzo : p.prezzo,
+        categoria: trovato ? trovato.categoria : p.categoria,
+      });
+    });
+    parsed.sede = window.state?.sedeAttiva?.nome || null;
+
+    abbinamentoVini = parsed;
+    renderAbbinamento(parsed);
+  } catch (e) {
+    console.error("Abbinamento non riuscito:", e);
+    if (box) box.innerHTML = '<div style="font-size:13px;color:#dc2626;padding:10px 0;">Non riuscito: ' + escapeHtml(e?.message || String(e)) + '</div>';
+  }
+}
+
+function renderAbbinamento(abb) {
+  const box = document.getElementById("r-vino-box");
+  if (!box) return;
+  const proposte = Array.isArray(abb?.proposte) ? abb.proposte : [];
+  if (!proposte.length) {
+    box.innerHTML = '<div style="font-size:13px;color:#94a3b8;padding:10px 0;">Nessun abbinamento.</div>';
+    return;
+  }
+
+  const coloriFascia = { accessibile: "#15803d", intermedia: "#b45309", importante: "#7f1d1d" };
+
+  box.innerHTML =
+    (abb.profilo ? '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:11px 13px;font-size:13px;color:#7f1d1d;margin-bottom:12px;"><strong>Che vino chiede:</strong> ' + escapeHtml(abb.profilo) + '</div>' : "")
+    + proposte.map(function (p) {
+        const col = coloriFascia[String(p.fascia || "").toLowerCase()] || "#334155";
+        return '<div style="border:1px solid #e2e8f0;border-left:4px solid ' + col + ';border-radius:10px;padding:11px 13px;margin-bottom:9px;background:#fff;">'
+          + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;">'
+          +   '<strong style="font-size:14px;color:#0f172a;">' + escapeHtml(p.vino || "") + (p.verificato === false ? ' <span title="Non trovato in carta" style="color:#dc2626;font-size:12px;">⚠</span>' : "") + '</strong>'
+          +   '<span style="font-size:14px;font-weight:700;color:' + col + ';">€ ' + (Number(p.prezzo) || 0).toFixed(0) + '</span>'
+          + '</div>'
+          + '<div style="font-size:11px;color:#94a3b8;margin:2px 0 6px;">' + escapeHtml(p.categoria || "") + ' · ' + escapeHtml(p.fascia || "") + '</div>'
+          + '<div style="font-size:12.5px;color:#334155;">' + escapeHtml(p.perche || "") + '</div>'
+          + '</div>';
+      }).join("")
+    + (abb.sede ? '<div style="font-size:11px;color:#94a3b8;margin-top:6px;">Carta di ' + escapeHtml(abb.sede) + '</div>' : "");
+}
+
 async function progettaMontaggioConTony() {
   const nome = getVal("r-nome").trim();
   if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
@@ -4501,6 +4677,7 @@ function bindUI() {
   safeOn("btn-tony-anagrafica", "click", () => apriModalTony("anagrafica"));
   safeOn("btn-tony-inventa", "click", () => apriChatRicettaTony());
   safeOn("btn-tony-impiatto", "click", () => progettaMontaggioConTony());
+  safeOn("btn-tony-vino", "click", () => abbinaVinoConTony());
 
   // Se arrivi qui dalla chat di Tony, riprendo la conversazione automaticamente
   const consegnaTony = raccogliConsegnaDaTony();
