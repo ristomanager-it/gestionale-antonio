@@ -1415,6 +1415,16 @@ export async function render(app) {
         </button>
       </div>
 
+      <div style="margin-bottom:16px;padding:16px;background:linear-gradient(135deg,#faf5ff,#fdf4ff);border:1px solid #e9d5ff;border-radius:14px;">
+        <button id="btn-tony-inventa" type="button"
+          style="background:linear-gradient(135deg,#7c3aed,#c026d3);color:white;border:none;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(124,58,237,.3);">
+          ✨ Inventiamo una ricetta?
+        </button>
+        <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+          Hai un'eccedenza o un'idea? Raccontala a Tony: ragionate insieme e ne esce la ricetta completa — ingredienti, dosi, fasi e conservazione.
+        </div>
+      </div>
+
       ${createCard({
         title: "Anagrafica",
         body: `
@@ -1480,13 +1490,6 @@ export async function render(app) {
               style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
               🤖 Compila anagrafica con Tony
             </button>
-            <button id="btn-tony-inventa" type="button"
-              style="background:linear-gradient(135deg,#7c3aed,#c026d3);color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(124,58,237,.3);">
-              ✨ Inventiamo una ricetta?
-            </button>
-          </div>
-          <div style="margin-top:6px;font-size:12px;color:#6b7280;">
-            Hai un'eccedenza o un'idea? Raccontala a Tony: ragionate insieme e ne esce la ricetta completa — ingredienti, dosi, fasi e conservazione.
           </div>
         `
       })}
