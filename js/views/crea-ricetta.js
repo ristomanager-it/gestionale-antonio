@@ -816,11 +816,19 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
       }));
     }
 
-    // Porzionatura
-    if (d.peso_porzione_gr) {
+    // Porzionatura — supporta piu' contesti (ristorante, asporto, famiglia...)
+    const porzArr = Array.isArray(d.porzionature) && d.porzionature.length
+      ? d.porzionature
+      : (d.peso_porzione_gr ? [{ label: "ristorante", peso_porzione: d.peso_porzione_gr, unita_misura: "gr", note: "" }] : []);
+    if (porzArr.length) {
       const contP = document.getElementById("porzioni-container");
       if (contP) contP.innerHTML = "";
-      aggiungiPorzione({ label: "ristorante", peso_porzione: d.peso_porzione_gr, unita_misura: "gr", note: "" });
+      porzArr.forEach(p => aggiungiPorzione({
+        label: p.label || p.contesto || "ristorante",
+        peso_porzione: p.peso_porzione || p.peso || p.peso_g || 0,
+        unita_misura: p.unita_misura || "gr",
+        note: p.note || ""
+      }));
     }
 
     // Conservazione proposta
@@ -1407,7 +1415,6 @@ export async function render(app) {
 
 </div>
 
-      <div class="form-actions" style="margin-bottom:16px;">
       <div class="form-actions" style="margin-bottom:16px;">
         <button class="app-button secondary"
           onclick="window.location.hash='#/produzione'">
