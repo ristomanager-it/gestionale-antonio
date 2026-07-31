@@ -41,7 +41,7 @@ export async function render(container) {
   const da = new Date(Date.now() - giorni * 24 * 3600 * 1000).toISOString();
   const { data: righe, error } = await supa()
     .from("app_accessi")
-    .select("created_at,user_id,dipendente_id,nome,route,user_agent")
+    .select("created_at,user_id,dipendente_id,nome,route,hash,user_agent")
     .eq("azienda_id", aziendaId)
     .gte("created_at", da)
     .order("created_at", { ascending: false })
@@ -61,8 +61,10 @@ export async function render(container) {
   function filtra() {
     return tutti.filter(r => {
       if (filtri.persona && (r.nome || "(senza nome)") !== filtri.persona) return false;
-      if (filtri.tipo === "nav" && r.route === ROUTE_STORICO) return false;
+      const isAz = (r.route || "").startsWith("azione:");
+      if (filtri.tipo === "nav" && (r.route === ROUTE_STORICO || isAz)) return false;
       if (filtri.tipo === "aperture" && r.route !== ROUTE_STORICO) return false;
+      if (filtri.tipo === "az" && !isAz) return false;
       return true;
     });
   }
@@ -75,6 +77,7 @@ export async function render(container) {
       const u = perUtente.get(k);
       u.tot++;
       if (r.route === ROUTE_STORICO) { u.aperture++; }
+      else if ((r.route || "").startsWith("azione:")) { u.az = (u.az || 0) + 1; }
       else { u.nav++; u.rotte[r.route] = (u.rotte[r.route] || 0) + 1; }
     }
     return [...perUtente.values()]
@@ -89,7 +92,7 @@ export async function render(container) {
               <div style="font-size:12px;color:#64748b;">${esc(u.device)} · ultimo: ${fmtOra(u.ultimo)}</div>
             </div>
             <div style="font-size:12px;color:#475569;margin-top:6px;">
-              ${u.nav} pagine navigate · ${u.aperture} aperture app (storico)
+              ${u.nav} pagine navigate · ⚡ ${u.az || 0} azioni · 🕓 ${u.aperture} aperture app
             </div>
             <div style="font-size:12px;color:#475569;margin-top:4px;">
               ${top ? "Pagine più viste: " + top : "<span style='color:#94a3b8'>Nessuna navigazione dettagliata (il tracciamento pagine parte dal 31/07)</span>"}
@@ -101,11 +104,16 @@ export async function render(container) {
   function htmlTabella(accessi) {
     return accessi.slice(0, 500).map(r => {
       const storico = r.route === ROUTE_STORICO;
+      const isAz = (r.route || "").startsWith("azione:");
+      let cella;
+      if (storico) cella = "<span style='color:#94a3b8'>🕓 app aperta</span>";
+      else if (isAz) cella = "⚡ " + esc(r.route.slice(8)) + (r.hash ? " <span style='color:#64748b'>— " + esc(r.hash) + "</span>" : "");
+      else cella = "📄 " + esc(r.route);
       return `
         <tr style="border-bottom:1px solid #f1f5f9;${storico ? "opacity:.65;" : ""}">
           <td style="padding:6px 10px;white-space:nowrap;">${fmtOra(r.created_at)}</td>
           <td style="padding:6px 10px;">${esc(r.nome)}</td>
-          <td style="padding:6px 10px;">${storico ? "<span style='color:#94a3b8'>🕓 app aperta</span>" : "📄 " + esc(r.route)}</td>
+          <td style="padding:6px 10px;">${cella}</td>
           <td style="padding:6px 10px;color:#64748b;">${esc(deviceLabel(r.user_agent))}</td>
         </tr>`;
     }).join("");
@@ -148,10 +156,11 @@ export async function render(container) {
           <select id="acc-tipo" class="input" style="width:auto;padding:4px 8px;">
             <option value="tutto">Tutto</option>
             <option value="nav">📄 Solo pagine navigate</option>
+            <option value="az">⚡ Solo azioni (timbrature, ricette, menu…)</option>
             <option value="aperture">🕓 Solo aperture app (storico)</option>
           </select>
         </div>
-        <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">🕓 "app aperta" = storico ricostruito dalle sessioni (da aprile). 📄 Il dettaglio pagina per pagina si registra dal 31/07 in poi.</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">🕓 app aperta = storico sessioni (da aprile) · ⚡ azioni = timbrature (da novembre), ricette, menu, lotti, ferie · 📄 pagine navigate dal 31/07 in poi.</div>
 
         <div style="font-size:14px;font-weight:700;color:#0f172a;margin:14px 0 8px;">Per persona</div>
         <div id="acc-riepilogo" style="display:grid;gap:10px;margin-bottom:22px;"></div>
