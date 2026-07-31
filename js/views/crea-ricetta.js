@@ -14,6 +14,7 @@
 import { requirePermessi } from "../auth-utils.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 let ricettaId = null;
+let ricettaCompilataConTony = false; // true se Tony ha compilato (chat/dettatura/foto)
 let impiattamentoCorrente = null;   // progetto di montaggio del piatto
 let abbinamentoVini = null;        // abbinamenti scelti dalla carta della sede
 let disegnoPiattoUrl = null;       // illustrazione del piatto impiattato
@@ -734,6 +735,7 @@ function apriChatRicettaTony(storiaIniziale) {
 }
 
 async function tonyApplicaSezione(sezione, result, overlay, status) {
+  ricettaCompilataConTony = true;
   if (sezione === "inventa") {
     const d = result || {};
 
@@ -1282,6 +1284,7 @@ function raccogliConsegnaDaTony() {
 
 export async function render(app) {
   ricettaId = window.routeParams?.id ? String(window.routeParams.id) : null;
+  ricettaCompilataConTony = false;
   const aziendaId = window.state?.azienda?.id;
 
   if (!aziendaId) {
@@ -2182,6 +2185,7 @@ function setupCategoriaAutocomplete() {
 }
 
 async function compilaRicettaDaFoto(file) {
+  ricettaCompilataConTony = true;
   if (!file) return;
   const stato = document.getElementById("foto-ricetta-stato");
   const setStato = (t) => { if (stato) stato.textContent = t; };
@@ -3472,7 +3476,7 @@ async function salvaTutto() {
       tipo_ricetta,
       categoria_portata_id,
       creato_da: window.state?.user?.id || null,
-      creato_da_tony: false
+      creato_da_tony: ricettaCompilataConTony
     });
 
     // prodotto_output_id è bigint e FK verso prodotti(id).
@@ -3511,6 +3515,7 @@ async function salvaTutto() {
       tipo_ricetta,
       categoria_portata_id,
       modificato_da: window.state?.user?.id || null,
+      ...(ricettaCompilataConTony ? { creato_da_tony: true } : {}),
       modificato_il: new Date().toISOString()
     });
 

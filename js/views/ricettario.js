@@ -304,7 +304,7 @@ async function loadRicette() {
       origine: r.origine || null,
       prodotto_vendita_id: r.prodotto_vendita_id || null,
       creato_da: r.creato_da || null,
-      creato_da_nome: r.creato_da ? (dipendentiMap[r.creato_da] || "Sconosciuto") : (r.creato_da_tony ? "🤖 Tony AI" : null),
+      creato_da_nome: r.creato_da ? ((dipendentiMap[r.creato_da] || "Sconosciuto") + (r.creato_da_tony ? " 🤖" : "")) : (r.creato_da_tony ? "🤖 Tony AI" : null),
       modificato_da_nome: r.modificato_da ? (dipendentiMap[r.modificato_da] || "Sconosciuto") : null,
       modificato_il: r.modificato_il || null,
       created_at: r.created_at || null,
@@ -1144,7 +1144,7 @@ async function mostraStoricoModifiche() {
                 <div style="font-size:11px;color:#94a3b8;">${getBadgeStato(r.stato_strutturale || "bozza")}</div>
               </td>
               <td style="padding:10px;color:#374151;">
-                ${r.creato_da_tony ? "🤖 Tony AI" : (r.creato_da ? escapeHtml(dipMap[r.creato_da] || "Sconosciuto") : "—")}
+                ${r.creato_da ? (escapeHtml(dipMap[r.creato_da] || "Sconosciuto") + (r.creato_da_tony ? " 🤖" : "")) : (r.creato_da_tony ? "🤖 Tony AI" : "—")}
                 ${r.created_at ? `<div style="font-size:11px;color:#94a3b8;">${new Date(r.created_at).toLocaleDateString("it-IT")}</div>` : ""}
               </td>
               <td style="padding:10px;color:#374151;">
