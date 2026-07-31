@@ -5,6 +5,7 @@ export async function render(container){
   const azienda = state.azienda
   const sede = state.sedeAttiva
   const ruolo = state.ruolo
+  const dipendente = state.dipendente
 
   container.innerHTML = `
     <div class="view">
@@ -70,12 +71,17 @@ export async function render(container){
       return
     }
 
+    if(!dipendente?.id){
+      alert("Profilo dipendente non collegato al tuo account: contatta l'amministratore.")
+      return
+    }
+
     const { error } = await window.supabaseClient
       .from("richieste_assenze")
       .insert({
         azienda_id: azienda.id,
         sede_id: sede?.id || null,
-        dipendente_id: user.id,
+        dipendente_id: dipendente.id,
         tipo,
         data_inizio,
         data_fine,
@@ -98,7 +104,7 @@ export async function render(container){
     const { data, error } = await window.supabaseClient
       .from("richieste_assenze")
       .select("*")
-      .eq("dipendente_id", user.id)
+      .eq("dipendente_id", dipendente?.id)
       .order("created_at", { ascending:false })
 
     if(error){
