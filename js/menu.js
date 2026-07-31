@@ -499,6 +499,7 @@ export function initMenu() {
           { label: "🔐 Permessi",         route: "permessi-operatore"},
           { label: "📆 Gestione ferie",   route: "hr-admin"          },
           { label: "📋 Cartellino ore",   route: "bo-presenze"       },
+          { label: "👁️ Accessi app",     route: "accessi-app"       },
           { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
           { label: "📁 Documenti HR",      route: "hr-documenti"      },
           { label: "📘 Manuale",          route: "manuale"           },
