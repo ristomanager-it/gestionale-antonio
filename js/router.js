@@ -1,6 +1,15 @@
 import { supabase } from "./supabaseClient.js";
 import { initMenu } from "./menu.js?v=27";
 window.initMenu = initMenu;
+
+/* =========================================================
+   VERSIONE APP (cache-busting)
+   Bumpare APP_V a ogni deploy: tutti i moduli vengono
+   riscaricati subito dai browser, senza aspettare la cache.
+========================================================= */
+const APP_V = "20260731-1";
+window.APP_V = APP_V;
+function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
 /* =========================================================
@@ -42,181 +51,182 @@ let app = null;
 ========================================================= */
 
 const routes = {
-  login: () => import("./views/login.js"),
-  home: () => import("./views/home.js"),
+  login: () => imp("./views/login.js"),
+  home: () => imp("./views/home.js"),
+  "accessi-app": () => imp("./views/accessi-app.js"),
 
-  "s": () => import("./views/short-link-redirect.js"),
-  "bo-shortlink": () => import("./views/bo/bo-shortlink.js"),
+  "s": () => imp("./views/short-link-redirect.js"),
+  "bo-shortlink": () => imp("./views/bo/bo-shortlink.js"),
 
-  "home-admin": () => import("./views/home-admin.js?v=21"),
-  "home-manager": () => import("./views/home-manager.js?v=2"),
-  "home-operatore": () => import("./views/home-operatore.js?v=3"),
+  "home-admin": () => imp("./views/home-admin.js"),
+  "home-manager": () => imp("./views/home-manager.js"),
+  "home-operatore": () => imp("./views/home-operatore.js"),
 
-  homePiattaforma: () => import("./views/home-piattaforma.js?v=3"),
-  "home-agente": () => import("./views/home-agente.js"),
-  "social-utenti": () => import("./views/social-utenti.js"),
+  homePiattaforma: () => imp("./views/home-piattaforma.js"),
+  "home-agente": () => imp("./views/home-agente.js"),
+  "social-utenti": () => imp("./views/social-utenti.js"),
 
-  creaAzienda: () => import("./views/crea-azienda.js"),
-  gestioneAziende: () => import("./views/gestione-aziende.js"),
-  gestioneWeddingPlanner: () => import("./views/gestione-wedding-planner.js"),
-  modificaAzienda: () => import("./views/modifica-azienda.js"),
-  gestionePiani: () => import("./views/gestione-piani.js"),
+  creaAzienda: () => imp("./views/crea-azienda.js"),
+  gestioneAziende: () => imp("./views/gestione-aziende.js"),
+  gestioneWeddingPlanner: () => imp("./views/gestione-wedding-planner.js"),
+  modificaAzienda: () => imp("./views/modifica-azienda.js"),
+  gestionePiani: () => imp("./views/gestione-piani.js"),
 
-  activate: () => import("./views/activate.js"),
+  activate: () => imp("./views/activate.js"),
 
-  cliente: () => import("./views/cliente.js"),
+  cliente: () => imp("./views/cliente.js"),
 
-  setPassword: () => import("./views/set-password.js"),
-  "set-password": () => import("./views/set-password.js"),
+  setPassword: () => imp("./views/set-password.js"),
+  "set-password": () => imp("./views/set-password.js"),
 
-  sceltaAzienda: () => import("./views/scelta-azienda.js"),
+  sceltaAzienda: () => imp("./views/scelta-azienda.js"),
 
-  "gestione-sedi": () => import("./views/gestione-sedi.js"),
+  "gestione-sedi": () => imp("./views/gestione-sedi.js"),
 
-  operativo: () => import("./views/operativo.js"),
-  amministrazione: () => import("./views/amministrazione.js"),
-  gestione: () => import("./views/gestione.js"),
+  operativo: () => imp("./views/operativo.js"),
+  amministrazione: () => imp("./views/amministrazione.js"),
+  gestione: () => imp("./views/gestione.js"),
   "ricette-semplici": () =>
-    import("./views/crea-ricetta.js?v=44"),
+    imp("./views/crea-ricetta.js"),
   "permessi-operatore": () =>
-    import("./views/permessi-operatore/index.js"),
+    imp("./views/permessi-operatore/index.js"),
 
   // =========================
   // MARKETING (globale - lettura)
   // =========================
-  "bo-marketing": () => import("./views/bo/bo-marketing.js?v=6"),
-  "bo-presenze": () => import("./views/bo/bo-presenze.js?v=7"),
-  "bo-analytics": () => import("./views/bo/bo-analytics.js"),
-  "bo-onboarding": () => import("./views/bo/bo-onboarding.js?v=2"),
-  "bo-promo": () => import("./views/bo/bo-promo.js"),
-  "bo-promo-analisi": () => import("./views/bo/bo-promo-analisi.js"),
-  "ticket-vendite": () => import("./views/bo/ticket-vendite.js"),
-  "ticket-checkin": () => import("./views/bo/ticket-checkin.js"),
-  "bo-catenarie": () => import("./views/bo/bo-catenarie.js"),
-  "bo-whatsapp": () => import("./views/bo/bo-whatsapp.js"),
-  "bo-chatbot": () => import("./views/bo/bo-chatbot.js"),
-  "bo-media": () => import("./views/bo/bo-media.js"),
-  "bo-sito": () => import("./views/bo/bo-sito.js"),
+  "bo-marketing": () => imp("./views/bo/bo-marketing.js"),
+  "bo-presenze": () => imp("./views/bo/bo-presenze.js"),
+  "bo-analytics": () => imp("./views/bo/bo-analytics.js"),
+  "bo-onboarding": () => imp("./views/bo/bo-onboarding.js"),
+  "bo-promo": () => imp("./views/bo/bo-promo.js"),
+  "bo-promo-analisi": () => imp("./views/bo/bo-promo-analisi.js"),
+  "ticket-vendite": () => imp("./views/bo/ticket-vendite.js"),
+  "ticket-checkin": () => imp("./views/bo/ticket-checkin.js"),
+  "bo-catenarie": () => imp("./views/bo/bo-catenarie.js"),
+  "bo-whatsapp": () => imp("./views/bo/bo-whatsapp.js"),
+  "bo-chatbot": () => imp("./views/bo/bo-chatbot.js"),
+  "bo-media": () => imp("./views/bo/bo-media.js"),
+  "bo-sito": () => imp("./views/bo/bo-sito.js"),
 
-  dipendenti: () => import("./views/dipendenti.js?v=6"),
-  dipendente: () => import("./views/dipendente.js?v=4"),
-  "crea-dipendente": () => import("./views/crea-dipendente.js?v=4"),
-"organizzazione": () => import("./views/organizzazione.js?v=4"),
-"persone": () => import("./views/persone.js?v=2"),
-"manuale-operativo": () => import("./views/manuale-operativo.js"),
-  "bo-agenzie": () => import("./views/bo/bo-agenzie.js"),
-  "bo-location-ricevimenti": () => import("./views/bo/bo-location-ricevimenti.js"),
-  timbrature: () => import("./views/timbrature.js?v=1"),
-  "planning-lavoro": () => import("./views/planning-lavoro.js"),
+  dipendenti: () => imp("./views/dipendenti.js"),
+  dipendente: () => imp("./views/dipendente.js"),
+  "crea-dipendente": () => imp("./views/crea-dipendente.js"),
+"organizzazione": () => imp("./views/organizzazione.js"),
+"persone": () => imp("./views/persone.js"),
+"manuale-operativo": () => imp("./views/manuale-operativo.js"),
+  "bo-agenzie": () => imp("./views/bo/bo-agenzie.js"),
+  "bo-location-ricevimenti": () => imp("./views/bo/bo-location-ricevimenti.js"),
+  timbrature: () => imp("./views/timbrature.js"),
+  "planning-lavoro": () => imp("./views/planning-lavoro.js"),
 
-  completaProfilo: () => import("./views/completa-profilo.js"),
-  profilo: () => import("./views/completa-profilo.js"),
-  completaAzienda: () => import("./views/completa-azienda.js"),
-"scegli-sede": () => import("./views/scegli-sede.js"),
-  acquisti: () => import("./views/acquisti/index.js?v=17"),
-  "menu-giorno": () => import("./views/menu-giorno.js?v=10"),
-  "menu-componibile": () => import("./views/menu-componibile.js?v=7"),
-  magazzino: () => import("./views/magazzino/magazzino.js?v=8"),
-  ordini: () => import("./views/ordini.js?v=2"),
-  ordine: () => import("./views/ordine.js?v=7"),
+  completaProfilo: () => imp("./views/completa-profilo.js"),
+  profilo: () => imp("./views/completa-profilo.js"),
+  completaAzienda: () => imp("./views/completa-azienda.js"),
+"scegli-sede": () => imp("./views/scegli-sede.js"),
+  acquisti: () => imp("./views/acquisti/index.js"),
+  "menu-giorno": () => imp("./views/menu-giorno.js"),
+  "menu-componibile": () => imp("./views/menu-componibile.js"),
+  magazzino: () => imp("./views/magazzino/magazzino.js"),
+  ordini: () => imp("./views/ordini.js"),
+  ordine: () => imp("./views/ordine.js"),
 
-  produzione: () => import("./views/produzione.js"),
-  "produzioni-aperte": () => import("./views/produzioni-aperte.js?v=7"),
-  "registro-lotti": () => import("./views/registro-lotti.js?v=1"),
-  "produttivita-produzione": () => import("./views/produttivita-produzione.js?v=2"),
-  "registro-messaggi": () => import("./views/registro-messaggi.js?v=2"),
-  storicoLotto: () => import("./views/storico-lotto.js"),
-  ricettario: () => import("./views/ricettario.js?v=5"),
-  "planner-produzione": () => import("./views/planner-produzione.js"),
+  produzione: () => imp("./views/produzione.js"),
+  "produzioni-aperte": () => imp("./views/produzioni-aperte.js"),
+  "registro-lotti": () => imp("./views/registro-lotti.js"),
+  "produttivita-produzione": () => imp("./views/produttivita-produzione.js"),
+  "registro-messaggi": () => imp("./views/registro-messaggi.js"),
+  storicoLotto: () => imp("./views/storico-lotto.js"),
+  ricettario: () => imp("./views/ricettario.js"),
+  "planner-produzione": () => imp("./views/planner-produzione.js"),
   // Editor ricette UNICO: modalità semplice/avanzata dentro crea-ricetta.js
-  creaRicetta: () => import("./views/crea-ricetta.js?v=44"),
-  "crea-ricetta":          () => import("./views/crea-ricetta.js?v=44"),
-  "crea-ricetta-avanzata": () => import("./views/crea-ricetta.js?v=44"),
-  "abbina-articoli": () => import("./views/abbina-articoli.js"),
-  "menu-engineering": () => import("./views/menu-engineering.js?v=2"),
-  "super-tony": () => import("./views/super-tony.js?v=6"),
-  preparazioni: () => import("./views/preparazioni.js?v=35"),
-  reparti: () => import("./views/reparti.js"),
-  venduto: () => import("./views/venduto.js?v=9"),
-  margini: () => import("./views/margini.js"),
-  "food-cost-mancanti": () => import("./views/food-cost-mancanti.js?v=1"),
-  "spese-fisse": () => import("./views/spese-fisse.js?v=1"),
-  "menu-intelligence": () => import("./views/menu-intelligence.js?v=8"),
-  "cassa-libera": () => import("./views/cassa/cassa-libera.js?v=3"),
+  creaRicetta: () => imp("./views/crea-ricetta.js"),
+  "crea-ricetta":          () => imp("./views/crea-ricetta.js"),
+  "crea-ricetta-avanzata": () => imp("./views/crea-ricetta.js"),
+  "abbina-articoli": () => imp("./views/abbina-articoli.js"),
+  "menu-engineering": () => imp("./views/menu-engineering.js"),
+  "super-tony": () => imp("./views/super-tony.js"),
+  preparazioni: () => imp("./views/preparazioni.js"),
+  reparti: () => imp("./views/reparti.js"),
+  venduto: () => imp("./views/venduto.js"),
+  margini: () => imp("./views/margini.js"),
+  "food-cost-mancanti": () => imp("./views/food-cost-mancanti.js"),
+  "spese-fisse": () => imp("./views/spese-fisse.js"),
+  "menu-intelligence": () => imp("./views/menu-intelligence.js"),
+  "cassa-libera": () => imp("./views/cassa/cassa-libera.js"),
 
-  preventivi: () => import("./views/preventivi.js"),
-  creaPreventivo: () => import("./views/crea-preventivo.js"),
-  ai: () => import("./views/ai.js?v=14"),
+  preventivi: () => imp("./views/preventivi.js"),
+  creaPreventivo: () => imp("./views/crea-preventivo.js"),
+  ai: () => imp("./views/ai.js"),
 
-  permessi: () => import("./views/permessi-ferie.js"),
+  permessi: () => imp("./views/permessi-ferie.js"),
 
   // ── HR — Gestione personale ──
-  "hr-richieste":    () => import("./views/hr-richieste.js"),
-  "hr-admin":        () => import("./views/hr-admin.js"),
-  "hr-fascicolo":    () => import("./views/hr-fascicolo.js"),
-  "hr-documenti":    () => import("./views/hr-documenti.js"),
-  "hr-documenti-me": () => import("./views/hr-documenti.js"),
-  manuale: () => import("./views/manuale.js"),
+  "hr-richieste":    () => imp("./views/hr-richieste.js"),
+  "hr-admin":        () => imp("./views/hr-admin.js"),
+  "hr-fascicolo":    () => imp("./views/hr-fascicolo.js"),
+  "hr-documenti":    () => imp("./views/hr-documenti.js"),
+  "hr-documenti-me": () => imp("./views/hr-documenti.js"),
+  manuale: () => imp("./views/manuale.js"),
 
-  sala: () => import("./views/sala.js"),
-  "mansionario-sala":      () => import("./views/bo-sala-mansionario.js?v=3"),
-  "mansionario-cucina":    () => import("./views/bo-sala-mansionario.js?v=3"),
-  "mansionario-tasting":   () => import("./views/bo-sala-mansionario.js?v=3"),
-  "mansionario-operatore": () => import("./views/mansionario-operatore.js?v=3"),
-  "mansionario-controllo": () => import("./views/mansionario-controllo.js?v=3"),
+  sala: () => imp("./views/sala.js"),
+  "mansionario-sala":      () => imp("./views/bo-sala-mansionario.js"),
+  "mansionario-cucina":    () => imp("./views/bo-sala-mansionario.js"),
+  "mansionario-tasting":   () => imp("./views/bo-sala-mansionario.js"),
+  "mansionario-operatore": () => imp("./views/mansionario-operatore.js"),
+  "mansionario-controllo": () => imp("./views/mansionario-controllo.js"),
 
-  "prenotazione-online": () => import("./views/prenotazioni/prenotazione-online.js"),
-  "prenotazioni-tavoli": () => import("./views/prenotazioni-tavoli.js?v=2"),
-  "prenotazione-tavolo-form": () => import("./views/prenotazioni/form.js?v=9"),
-  "prenotazioni-form": () => import("./views/prenotazioni/form.js?v=9"),
-  "prenotazioni-rifiutate": () => import("./views/prenotazioni/rifiutate.js"),
+  "prenotazione-online": () => imp("./views/prenotazioni/prenotazione-online.js"),
+  "prenotazioni-tavoli": () => imp("./views/prenotazioni-tavoli.js"),
+  "prenotazione-tavolo-form": () => imp("./views/prenotazioni/form.js"),
+  "prenotazioni-form": () => imp("./views/prenotazioni/form.js"),
+  "prenotazioni-rifiutate": () => imp("./views/prenotazioni/rifiutate.js"),
 
-  prenotazioni: () => import("./views/prenotazioni/index.js?v=10"),
-  "prenotazioni-dettaglio": () => import("./views/prenotazioni/scheda-prenotazione.js?v=4"),
+  prenotazioni: () => imp("./views/prenotazioni/index.js"),
+  "prenotazioni-dettaglio": () => imp("./views/prenotazioni/scheda-prenotazione.js"),
 
-  campagne: () => import("./views/campagne/index.js"),
-  "booking-form-builder": () => import("./views/booking/booking-form-builder.js"),
+  campagne: () => imp("./views/campagne/index.js"),
+  "booking-form-builder": () => imp("./views/booking/booking-form-builder.js"),
 
-  comanda: () => import("./views/comanda.js"),
+  comanda: () => imp("./views/comanda.js"),
 
   // =========================
   // BACK OFFICE (COSTRUZIONE)
   // =========================
-  "bo-dashboard": () => import("./views/bo/bo-dashboard.js"),
-  "bo-tag": () => import("./views/bo/bo-tag.js"),
-  "bo-template": () => import("./views/bo/bo-template.js?v=12"),
-  "bo-candidature": () => import("./views/bo/bo-candidature.js"),
-  "bo-bilancio":     () => import("./views/bo/bo-bilancio.js?v=3"),
-  "bo-survey":      () => import("./views/bo/bo-survey.js"),
+  "bo-dashboard": () => imp("./views/bo/bo-dashboard.js"),
+  "bo-tag": () => imp("./views/bo/bo-tag.js"),
+  "bo-template": () => imp("./views/bo/bo-template.js"),
+  "bo-candidature": () => imp("./views/bo/bo-candidature.js"),
+  "bo-bilancio":     () => imp("./views/bo/bo-bilancio.js"),
+  "bo-survey":      () => imp("./views/bo/bo-survey.js"),
 
   // MENU
-  "bo-menu": () => import("./views/bo/bo-menu-builder.js?v=12"),
-  "bo-fidelity": () => import("./views/bo/bo-fidelity.js"),
-  "bo-categorie": () => import("./views/bo/categorie.js?v=2"),
-  "bo-prodotti": () => import("./views/bo/prodotti.js?v=5"),
+  "bo-menu": () => imp("./views/bo/bo-menu-builder.js"),
+  "bo-fidelity": () => imp("./views/bo/bo-fidelity.js"),
+  "bo-categorie": () => imp("./views/bo/categorie.js"),
+  "bo-prodotti": () => imp("./views/bo/prodotti.js"),
 
   // PRODUZIONE
-  "bo-magazzino": () => import("./views/bo/bo-magazzino.js"),
-  "bo-comande": () => import("./views/bo/bo-comande.js?v=11"),
-  "bo-configurazione": () => import("./views/bo/bo-configurazione.js?v=5"),
-  "alert-haccp-config": () => import("./views/bo/alert-haccp-config.js?v=2"),
-  "bo-dispositivi": () => import("./views/bo/bo-dispositivi.js"),
-  "bo-consulenti": () => import("./views/bo/bo-consulenti.js"),
-  "home-consulente": () => import("./views/home-consulente.js"),
-  "home-commercialista": () => import("./views/home-commercialista.js"),
+  "bo-magazzino": () => imp("./views/bo/bo-magazzino.js"),
+  "bo-comande": () => imp("./views/bo/bo-comande.js"),
+  "bo-configurazione": () => imp("./views/bo/bo-configurazione.js"),
+  "alert-haccp-config": () => imp("./views/bo/alert-haccp-config.js"),
+  "bo-dispositivi": () => imp("./views/bo/bo-dispositivi.js"),
+  "bo-consulenti": () => imp("./views/bo/bo-consulenti.js"),
+  "home-consulente": () => imp("./views/home-consulente.js"),
+  "home-commercialista": () => imp("./views/home-commercialista.js"),
 
 
     // =========================================================
   // APP (OPERATIVO)
   // =========================================================
-  "app-produzione": () => import("./views/app/app-produzione.js?v=3"),
+  "app-produzione": () => imp("./views/app/app-produzione.js"),
 
   // =========================
   // DISPLAY (tablet fissi)
   // =========================
-  "display-cucina": () => import("./views/display/display-cucina.js?v=5"),
-  "kds": () => import("./views/display/kds.js?v=3"),
-  "kds-produzioni": () => import("./views/display/kds-produzioni.js?v=1"),
+  "display-cucina": () => imp("./views/display/display-cucina.js"),
+  "kds": () => imp("./views/display/kds.js"),
+  "kds-produzioni": () => imp("./views/display/kds-produzioni.js"),
 
 }; // 
 
@@ -380,6 +390,31 @@ async function renderView(routeName) {
   }
 
   await module.render(app);
+
+  // Registro accessi (admin): una riga per ogni pagina aperta da utente loggato.
+  // Fire-and-forget: non rallenta e non blocca mai la navigazione.
+  try {
+    const u = window.state?.user;
+    if (u && routeName !== "login") {
+      const chiave = routeName + "|" + u.id;
+      if (window.__lastAccessLog !== chiave || (Date.now() - (window.__lastAccessLogTs || 0)) > 60000) {
+        window.__lastAccessLog = chiave;
+        window.__lastAccessLogTs = Date.now();
+        const d = window.state?.dipendente;
+        const sb = window.supabaseClient || supabase;
+        sb.from("app_accessi").insert({
+          azienda_id: window.state?.azienda?.id || null,
+          user_id: u.id,
+          dipendente_id: d?.id || null,
+          nome: d ? ((d.nome || "") + " " + (d.cognome || "")).trim() : (u.email || ""),
+          route: routeName,
+          hash: String(window.location.hash || "").slice(0, 200),
+          user_agent: String(navigator.userAgent || "").slice(0, 250),
+          schermo: (window.screen?.width || 0) + "x" + (window.screen?.height || 0)
+        }).then(() => {}, () => {});
+      }
+    }
+  } catch (e) { /* no-op */ }
 
   // Deep-link generico alle tab: se l'hash contiene ?tab=X, seleziona quella tab
   // cliccando il bottone [data-tab="X"] (convenzione comune a tutte le view, con
@@ -1209,7 +1244,7 @@ async function resolve() {
     const slug = segments[1];
     if (!slug) { app.innerHTML = "Link non valido"; return; }
     try {
-      const { renderMenuPubblico } = await import("./views/menu-pubblico.js");
+      const { renderMenuPubblico } = await imp("./views/menu-pubblico.js");
       await renderMenuPubblico(app, slug);
       return;
     } catch(e) {

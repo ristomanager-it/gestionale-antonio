@@ -26,7 +26,7 @@ export async function render(container) {
   const { data: richieste } = await supa()
     .from('richieste_assenze')
     .select('*')
-    .eq('dipendente_id', user.id)
+    .eq('dipendente_id', me.id)
     .order('created_at', { ascending: false });
 
   const STATI = {
@@ -210,7 +210,7 @@ export async function render(container) {
       .insert({
         azienda_id: aziendaId,
         sede_id: null, // sede_id è integer nel DB, UUID non compatibile
-        dipendente_id: user.id,
+        dipendente_id: me.id,
         tipo,
         data_inizio: dataInizio,
         data_fine: dataFine,
