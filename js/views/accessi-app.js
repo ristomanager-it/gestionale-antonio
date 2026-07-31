@@ -33,7 +33,8 @@ export async function render(container) {
 
   container.innerHTML = "<div style='padding:40px;text-align:center;color:#64748b;'>Carico gli accessi…</div>";
 
-  const giorni = 7;
+  const q = new URLSearchParams((window.location.hash.split("?")[1] || ""));
+  const giorni = Math.min(Number(q.get("giorni")) || 7, 120);
   const da = new Date(Date.now() - giorni * 24 * 3600 * 1000).toISOString();
   const { data: righe, error } = await supa()
     .from("app_accessi")
@@ -93,7 +94,16 @@ export async function render(container) {
             <div style="font-size:13px;color:#64748b;">Ultimi ${giorni} giorni · ${accessi.length} navigazioni registrate</div>
           </div>
         </div>
-        <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Il registro parte da oggi: vedrai i movimenti fatti da questo aggiornamento in poi.</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <label style="font-size:12px;color:#64748b;">Periodo:</label>
+          <select id="acc-giorni" class="input" style="width:auto;padding:4px 8px;">
+            <option value="7"${giorni===7?" selected":""}>Ultimi 7 giorni</option>
+            <option value="30"${giorni===30?" selected":""}>Ultimi 30 giorni</option>
+            <option value="60"${giorni===60?" selected":""}>Ultimi 60 giorni</option>
+            <option value="90"${giorni===90?" selected":""}>Ultimi 90 giorni</option>
+          </select>
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Lo storico "app-aperta" (ricostruito dalle sessioni) parte da aprile; il dettaglio pagina per pagina parte dal 31/07.</div>
 
         <div style="font-size:14px;font-weight:700;color:#0f172a;margin:14px 0 8px;">Per persona</div>
         <div style="display:grid;gap:10px;margin-bottom:22px;">${cardsUtenti || "<div style='color:#64748b'>Ancora nessun accesso registrato.</div>"}</div>
@@ -114,4 +124,8 @@ export async function render(container) {
         </div>
       </div>
     </div>`;
+
+  container.querySelector("#acc-giorni")?.addEventListener("change", (e) => {
+    window.location.hash = "#/accessi-app?giorni=" + e.target.value;
+  });
 }
