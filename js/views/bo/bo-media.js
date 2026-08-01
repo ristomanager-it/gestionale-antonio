@@ -194,19 +194,58 @@ export async function render(container) {
     } else {
       allMedia = data || [];
       renderGriglia();
+      avviaCodaThumb(); // genera in background le miniature mancanti
     }
   }
 
   // ── RENDER GRIGLIA ───────────────────────────────────────────
-  // Miniatura via Supabase image transform (400px, qualita' 60):
-  // molto piu' leggera dell'originale. Se il render non e' disponibile,
-  // onerror ricade sull'URL originale.
-  function thumbUrl(url, w) {
+  // Miniature generate DALL'APP (canvas) e salvate nello storage:
+  // il servizio di resize di Supabase non e' incluso nel piano, quindi
+  // le creiamo noi alla prima apertura e le riusiamo per sempre.
+  function urlAnteprima(m) { return m.thumb_url || m.url; }
+
+  async function generaThumb(m) {
     try {
-      if (!url.includes("/storage/v1/object/public/")) return url;
-      return url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/")
-        + (url.includes("?") ? "&" : "?") + "width=" + (w || 400) + "&quality=60&resize=cover";
-    } catch { return url; }
+      const resp = await fetch(m.url);
+      if (!resp.ok) return false;
+      const blob = await resp.blob();
+      if (!/^image\//.test(blob.type)) return false;
+      const bmp = await createImageBitmap(blob);
+      const MAX = 420;
+      const scala = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+      const w = Math.max(1, Math.round(bmp.width * scala));
+      const h = Math.max(1, Math.round(bmp.height * scala));
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(bmp, 0, 0, w, h);
+      bmp.close && bmp.close();
+      const thumbBlob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.72));
+      if (!thumbBlob) return false;
+      const path = `${aziendaId}/thumbs/${m.id}.jpg`;
+      const { error: upErr } = await sc.storage.from(STORAGE_BUCKET)
+        .upload(path, thumbBlob, { contentType: "image/jpeg", cacheControl: "31536000", upsert: true });
+      if (upErr) return false;
+      const { data: { publicUrl } } = sc.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      await sc.from("media_library").update({ thumb_url: publicUrl }).eq("id", m.id);
+      m.thumb_url = publicUrl;
+      const img = document.querySelector(`img[data-mid="${m.id}"]`);
+      if (img) img.src = publicUrl;
+      return true;
+    } catch { return false; }
+  }
+
+  // Coda in background: genera le miniature mancanti (3 alla volta)
+  let thumbQueueAttiva = false;
+  async function avviaCodaThumb() {
+    if (thumbQueueAttiva) return;
+    thumbQueueAttiva = true;
+    try {
+      const daFare = allMedia.filter(m => m.tipo === "immagine" && !m.thumb_url);
+      const PARALLELI = 3;
+      for (let i = 0; i < daFare.length; i += PARALLELI) {
+        await Promise.all(daFare.slice(i, i + PARALLELI).map(generaThumb));
+      }
+    } finally { thumbQueueAttiva = false; }
   }
 
   function renderGriglia() {
@@ -234,7 +273,7 @@ export async function render(container) {
         <div class="media-card" onclick="apriModal('${m.id}')">
           ${isVideo
             ? `<video src="${escHtml(m.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`
-            : `<img src="${escHtml(thumbUrl(m.url, 400))}" alt="${escHtml(m.nome)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=&#39;${escHtml(m.url)}&#39;">`
+            : `<img src="${escHtml(urlAnteprima(m))}" data-mid="${m.id}" alt="${escHtml(m.nome)}" loading="lazy" decoding="async">`
           }
           <div class="media-card-type">${isVideo ? "🎬" : "🖼️"}</div>
           <div class="media-card-overlay">
@@ -368,7 +407,7 @@ export async function render(container) {
       const { data: { publicUrl } } = sc.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
       // Salva in media_library
-      await sc.from("media_library").insert({
+      const { data: nuovo } = await sc.from("media_library").insert({
         azienda_id: aziendaId,
         sede_id: getSedeId() || null,
         nome,
@@ -378,7 +417,8 @@ export async function render(container) {
         tag: "Altro",
         dimensione: file.size,
         created_at: new Date().toISOString()
-      });
+      }).select("id,url,tipo,thumb_url").single();
+      if (nuovo && nuovo.tipo === "immagine") generaThumb(nuovo); // thumb subito, in background
 
       completati++;
     }
@@ -401,7 +441,7 @@ export async function render(container) {
     if (prev) {
       prev.innerHTML = m.tipo === "video"
         ? "<video src=\"" + escHtml(m.url) + "\" controls style=\"max-width:100%;max-height:45vh;display:block;margin:0 auto;\"></video>"
-        : "<img src=\"" + escHtml(thumbUrl(m.url, 900)) + "\" onerror=\"this.onerror=null;this.src=&#39;" + escHtml(m.url) + "&#39;\" style=\"max-width:100%;max-height:45vh;object-fit:contain;display:block;margin:0 auto;\">";
+        : "<img src=\"" + escHtml(m.url) + "\" style=\"max-width:100%;max-height:45vh;object-fit:contain;display:block;margin:0 auto;\">";
       prev.onclick = () => window.open(m.url, "_blank");
     }
     document.getElementById("media-modal").style.display = "flex";
