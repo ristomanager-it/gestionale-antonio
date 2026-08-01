@@ -15,6 +15,7 @@ export async function render(container) {
       <div id="ev-tot" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;"></div>
       <div id="ev-cfg" style="margin-bottom:24px;"></div>
       <div id="ev-linkbox"></div>
+      <div id="ev-promemoria" style="margin-top:24px;"></div>
       <div id="ev-aggiungi" style="margin-top:30px;"></div>
       <div id="ev-lista" style="margin-top:20px;"></div>
     </div>
@@ -33,6 +34,7 @@ export async function render(container) {
     disegnaTotali(iscritti || []);
     disegnaConfig(cfg || null, iscritti || []);
     disegnaLink(inviti || [], agenti || []);
+    disegnaPromemoria(iscritti || [], cfg || null);
     disegnaAggiungi();
     disegnaIscritti(iscritti || []);
    } catch (e) {
@@ -205,6 +207,55 @@ export async function render(container) {
     });
   }
 
+  function disegnaPromemoria(righe, cfg) {
+    const box = document.getElementById("ev-promemoria");
+    const quando = cfg && cfg.data_ora ? new Date(cfg.data_ora) : new Date("2026-09-23T19:30:00+02:00");
+    const oreMancanti = (quando - Date.now()) / 3600000;
+
+    // fase attiva: 48h prima, poi 24h prima
+    const fase = oreMancanti <= 26 ? "24h" : (oreMancanti <= 50 ? "48h" : null);
+    const campo = fase === "24h" ? "promemoria_24h_il" : "promemoria_48h_il";
+
+    const attesi = righe.filter(r => ["confermato", "iscritto"].includes(r.stato));
+    const daFare = fase ? attesi.filter(r => !r[campo]) : [];
+    const fatti = fase ? attesi.filter(r => r[campo]).length : 0;
+
+    if (!fase) {
+      const giorni = Math.max(Math.ceil(oreMancanti / 24), 0);
+      box.innerHTML = `
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;">
+          <h2 style="font-size:17px;margin:0 0 6px;">Promemoria</h2>
+          <p style="font-size:13px;color:#64748b;margin:0;line-height:1.55;">
+            Si accendono da soli due giorni prima: prima tornata a <b>48 ore</b>, seconda a <b>24 ore</b>.
+            Mancano ${giorni} giorni. Chi conferma da qui in poi entra in lista in automatico.</p>
+        </div>`;
+      return;
+    }
+
+    box.innerHTML = `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:16px 18px;">
+        <h2 style="font-size:17px;margin:0 0 6px;">Promemoria ${fase} — ${daFare.length} da mandare</h2>
+        <p style="font-size:13px;color:#92400e;margin:0 0 12px;line-height:1.55;">
+          ${fatti} già mandati. Ogni pulsante apre WhatsApp col messaggio pronto e segna l'invio.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${daFare.length ? daFare.map(r => `
+            <a class="ev-prom" data-id="${r.id}" data-campo="${campo}" href="${waPromemoria(r, fase)}"
+               target="_blank" rel="noopener"
+               style="background:#25D366;color:#fff;text-decoration:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;">
+              💬 ${esc((r.nome || "").split(" ")[0])} · ${r.persone}</a>`).join("")
+            : `<span style="font-size:14px;color:#15803d;font-weight:600;">Tutti avvisati ✓</span>`}
+        </div>
+      </div>`;
+
+    container.querySelectorAll(".ev-prom").forEach(a => {
+      a.addEventListener("click", async () => {
+        const patch = {}; patch[a.dataset.campo] = new Date().toISOString();
+        await supabase.from("evento_iscrizioni").update(patch).eq("id", a.dataset.id);
+        setTimeout(ricarica, 1200);
+      });
+    });
+  }
+
   function disegnaAggiungi() {
     document.getElementById("ev-aggiungi").innerHTML = `
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
@@ -335,6 +386,22 @@ function waLink(r) {
       + `Ci vediamo mercoledì 23 settembre dalle 19:30 a Campo Antico, Orte — ${cop} a nome tuo.\n\n`
       + `Tutti i dettagli qui: ${link}`;
   }
+  return "https://wa.me/" + numero + "?text=" + encodeURIComponent(testo);
+}
+
+function waPromemoria(r, fase) {
+  const tel = (r.telefono || "").replace(/\D/g, "");
+  const numero = tel.startsWith("39") ? tel : ("39" + tel.replace(/^0+/, ""));
+  const link = BASE + "#/evento-prenotazione?t=" + r.token_pubblico;
+  const cop = r.persone === 1 ? "1 coperto" : r.persone + " coperti";
+  const nome = (r.nome || "").split(" ")[0];
+
+  const testo = fase === "24h"
+    ? `Ciao ${nome}, ci vediamo domani sera dalle 19:30 a Campo Antico, Orte — ${cop} a nome tuo.\n\n`
+      + `Mappa e dettagli qui: ${link}\n\nA domani!`
+    : `Ciao ${nome}, ci siamo: dopodomani sera, mercoledì 23, dalle 19:30 a Campo Antico di Orte.\n\n`
+      + `Ti aspetto con ${cop}. Se nel frattempo è cambiato qualcosa dimmelo pure, così passo il posto a un altro.\n\n`
+      + `Dettagli e mappa: ${link}`;
   return "https://wa.me/" + numero + "?text=" + encodeURIComponent(testo);
 }
 
