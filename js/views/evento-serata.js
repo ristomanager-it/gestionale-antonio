@@ -132,7 +132,7 @@ export async function render(container) {
 
       <div class="ev-marchio"><img src="assets/ristoflow-logo.png" alt="Ristoflow.AI"></div>
 
-      <div class="ev-occhiello">Mercoledì 23 settembre 2026 · Campo Antico Ricevimenti</div>
+      <div class="ev-occhiello">Mercoledì 23 settembre 2026 · Campo Antico, Orte</div>
       <h1>Ho smesso di<span>chiamarlo gestionale.</span></h1>
       <p class="ev-occhiofine">Il 23 settembre vi faccio vedere perché.<br>A tavola da me, sui numeri veri del mio locale.</p>
       ${daParte}
@@ -246,7 +246,7 @@ export async function render(container) {
       <div class="ev-ok" id="ev-ok">
         <h2>Tavolo prenotato</h2>
         <p>Vi arriva un messaggio di conferma e un promemoria nei giorni prima.<br><br>
-        <b>Mercoledì 23 settembre, dalle 19:30<br>Campo Antico Ricevimenti</b></p>
+        <b>Mercoledì 23 settembre, dalle 19:30<br>Campo Antico — Orte</b></p>
         <div class="cod" id="ev-riepilogo"></div>
       </div>
 

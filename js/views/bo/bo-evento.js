@@ -11,7 +11,7 @@ export async function render(container) {
   container.innerHTML = `
     <div class="bo-evento" style="max-width:1100px;margin:0 auto;padding:18px 14px 60px;">
       <h1 style="font-size:24px;margin:0 0 4px;">Serata di presentazione</h1>
-      <p style="color:#64748b;font-size:14px;margin:0 0 20px;">Mercoledì 23 settembre 2026 — Campo Antico</p>
+      <p style="color:#64748b;font-size:14px;margin:0 0 20px;">Mercoledì 23 settembre 2026 — Campo Antico, Orte</p>
       <div id="ev-tot" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:24px;"></div>
       <div id="ev-linkbox"></div>
       <div id="ev-lista" style="margin-top:30px;"></div>
