@@ -81,7 +81,7 @@ export async function render(container) {
       <div class="ev-info">
         <div><span>📅</span><span><b>Mercoledì 23 settembre 2026</b>, dalle 19:30</span></div>
         <div><span>📍</span><span>Campo Antico Ricevimenti</span></div>
-        <div><span>🍽️</span><span>Cena offerta — nessun costo di partecipazione</span></div>
+        <div><span>🍽️</span><span>Si parla a tavola: siete miei ospiti</span></div>
         <div><span>⏱️</span><span>Si finisce entro le 23:30</span></div>
       </div>
 
