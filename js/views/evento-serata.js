@@ -155,16 +155,16 @@ export async function render(container) {
       </div>
 
       <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : (pochi ? "pochi" : "")}" id="ev-posti-box">
-        <div class="et">Solo su richiesta</div>
+        <div class="et">Su invito · posti contati</div>
         <div class="num">${
           chiuso || liberi === 0 ? "Tavoli al completo"
           : pochi ? `<b>Ultimi ${liberi}</b> coperti`
-          : "Una serata sola, posti contati"}</div>
+          : "Una sera sola.<br>E il tavolo non si allunga."}</div>
         ${pochi ? `<div class="ev-barrap"><i style="width:${Math.min(100, Math.round((capienza - liberi) / capienza * 100))}%"></i></div>` : ""}
         <small>${
           chiuso || liberi === 0
             ? "Scrivetemi e vi metto in lista d'attesa: se qualcuno rinuncia, il posto passa a voi."
-            : "Non ci sarà una seconda data, e ogni richiesta la valuto io una per una. Chi prima chiede, prima siede."}</small>
+            : "Chi prima chiede, prima siede. Quando i posti finiscono non c'è una seconda data: la serata è una."}</small>
         ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Richiedi il posto</a>`}
       </div>
 
@@ -206,8 +206,8 @@ export async function render(container) {
 
       <form class="ev-form" id="ev-form" novalidate>
         <h2>Richiedi il tuo posto</h2>
-        <p class="intro">La serata è per chi ha un'attività: per questo chiediamo locale e partita IVA.
-        Ricevuta la richiesta vi confermo io il tavolo.</p>
+        <p class="intro">La serata è per chi ha un'attività: per questo servono locale e partita IVA.
+        Vi rispondo su WhatsApp con la conferma del tavolo.</p>
 
         <label for="ev-nome">Nome e cognome *</label>
         <input id="ev-nome" type="text" autocomplete="name">
@@ -299,7 +299,7 @@ export async function render(container) {
     slot.className = "ev-slot ok";
     slot.textContent = liberiOra <= SOGLIA
       ? `Ci stanno ancora: ultimi ${liberiOra} coperti`
-      : "Ci stanno: la richiesta la valuto io e vi rispondo su WhatsApp";
+      : "Ci stanno: vi confermo il tavolo su WhatsApp";
     btn.disabled = false;
   }
   aggiornaSlot();
