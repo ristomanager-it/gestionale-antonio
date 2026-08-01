@@ -133,8 +133,9 @@ export async function render(container) {
       <div class="ev-marchio"><img src="assets/ristoflow-logo.png" alt="Ristoflow.AI"></div>
 
       <div class="ev-occhiello">Mercoledì 23 settembre 2026 · Campo Antico Ricevimenti</div>
-      <h1>Il modo di tenere un locale<span>sta per cambiare.</span></h1>
-      <p class="ev-occhiofine">Una sera, a tavola da me, per farvelo vedere prima che ve lo racconti qualcun altro.</p>
+      <h1>Ho smesso di<span>chiamarlo gestionale.</span></h1>
+      <p class="ev-occhiofine">Il 23 settembre vi faccio vedere perché. A tavola da me, sui numeri veri
+      del mio locale — non su una presentazione.</p>
       ${daParte}
 
       <div class="ev-sera">
@@ -193,8 +194,8 @@ export async function render(container) {
       </div>
 
       <div class="ev-ultima">
-        <p>E alla fine c'è <span class="amb">un'ultima cosa</span>, che qui non scrivo.</p>
-        <p>È il motivo per cui ho smesso di chiamarlo "un gestionale".</p>
+        <p>E allora <span class="amb">cos'è?</span></p>
+        <p>Quello lo dico solo a chi c'è. È l'ultima cosa della serata, e in una pagina non si racconta.</p>
       </div>
 
       <form class="ev-form" id="ev-form" novalidate>
