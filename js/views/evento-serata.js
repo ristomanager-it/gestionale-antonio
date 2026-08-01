@@ -28,6 +28,26 @@ export async function render(container) {
     if (codice) supabase.rpc("evento_registra_click", { p_codice: codice }).then(() => {}).catch(() => {});
   } catch (e) { /* si prosegue comunque */ }
 
+  // Tre aperture diverse: il link porta il problema, il resto della pagina non cambia.
+  const APERTURE = {
+    conti: {
+      titolo: "Quanto vi è costato il piatto che avete appena mandato in sala?",
+      sub: "Se la risposta è «lo saprò a fine mese», siamo uguali. Ci sono stato anch'io, per anni.",
+      risposta: "adesso quella risposta ce l'ho mentre il piatto è ancora sul tavolo del cliente.",
+    },
+    personale: {
+      titolo: "Sapete quale turno vi fa guadagnare e quale vi costa e basta?",
+      sub: "Io lo scoprivo a fine mese, quando ormai il turno era andato.",
+      risposta: "adesso il conto di un servizio lo vedo mentre il servizio sta finendo.",
+    },
+    marketing: {
+      titolo: "Chi vi fa le campagne sa qual è il vostro cliente migliore?",
+      sub: "La mia agenzia non lo sapeva. Quel dato ce l'avevo già in casa, e non lo guardava nessuno.",
+      risposta: "adesso so chi torna, chi spende davvero e chi non si vede da sei mesi.",
+    },
+  };
+  const ap = APERTURE[(qs.get("p") || "").toLowerCase()] || APERTURE.conti;
+
   const liberi = disp ? Number(disp.liberi) : null;
   const capienza = disp ? Number(disp.capienza) : 60;
   const SOGLIA = 20;                       // sotto questa soglia il numero lavora a favore
@@ -146,59 +166,24 @@ export async function render(container) {
       <div class="ev-marchio"><img src="assets/ristoflow-logo.png" alt="Ristoflow.AI"></div>
 
       <div class="ev-occhiello">23 settembre 2026 · Campo Antico, Orte</div>
-      <h1>Per anni ho lavorato al buio.<span>Il 23 vi mostro cosa vedo adesso.</span></h1>
+      <h1>${esc(ap.titolo)}</h1>
+      <p class="ev-occhiofine">${esc(ap.sub)}</p>
       ${daParte}
 
-      <p class="ev-chisono">Mi chiamo <b>Antonio Carullo</b>. Trattoria, centro cottura e catering:
-      tre attività, tredici persone, tutti i giorni. Non vendo software — ne avevo bisogno io.</p>
+      <p class="ev-chisono">Sono <b>Antonio Carullo</b>, ristoratore come voi.
+      Mi sono fatto costruire lo strumento che cercavo e non trovavo: ${esc(ap.risposta)}</p>
 
-      <div class="ev-passo p1">
-        <div class="et">Com'è cominciata</div>
-        <h2>Il piatto che vendevo di più mi faceva perdere 2,20 € a porzione</h2>
-        <p>L'ho scoperto per caso, dopo due anni. Non ero disorganizzato:
-        non avevo modo di saperlo.</p>
-      </div>
-
-      <div class="ev-passo p2">
-        <div class="et">Cosa vedrete</div>
-        <h2>Quattro cose, dal vivo, sul mio locale</h2>
-        <div class="ev-elenco">
-          <div class="ev-el"><i>①</i><div>Una fattura del fornitore che <b>entra da sola</b> e cambia i costi mentre ne parliamo</div></div>
-          <div class="ev-el"><i>②</i><div>Un piatto <b>dettato a voce</b> che diventa ricetta, col costo al centesimo</div></div>
-          <div class="ev-el"><i>③</i><div>Il conto di una serata <b>mentre la serata finisce</b>: quanto in merce, quanto in persone</div></div>
-          <div class="ev-el"><i>④</i><div>I clienti che non entrano da sei mesi, <b>con il messaggio già pronto</b></div></div>
-        </div>
-
-        <div class="ev-piu">
-          <p class="cap">E poi cose che quella sera si vedono e basta.</p>
-          <ul>
-            <li>Cosa si prepara domani, e quanto</li>
-            <li>Il bilancio senza aspettare marzo</li>
-            <li>Quanto rende ogni persona</li>
-            <li>Il telefono che risponde per voi</li>
-            <li>Sito e campagne sui vostri numeri</li>
-            <li>Come si sceglie chi assumere</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="ev-sera">
-        <div class="r"><i>🕢</i><div>Dalle 19:30. Prima la dimostrazione, poi la cena: siete miei ospiti.</div></div>
-      </div>
-
-      <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : (pochi ? "pochi" : "")}" id="ev-posti-box">
-        <div class="num">${
-          chiuso || liberi === 0 ? "Tavoli al completo" : "Ci vediamo il 23?"}</div>
+      <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : ""}" id="ev-posti-box">
+        <div class="num">${chiuso || liberi === 0 ? "Tavoli al completo" : "Il 23 lo mettiamo sul tavolo<br>e lo guardiamo insieme."}</div>
         <small>${
           chiuso || liberi === 0
             ? "Scrivetemi e vi metto in lista d'attesa: se qualcuno rinuncia, il posto passa a voi."
-            : "Tenetevi la sera. Mi fa piacere avervi a tavola, e credo che vi porterete a casa qualcosa."}</small>
-        ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Voglio esserci</a>`}
+            : "Poche persone, tra colleghi. Dalle 19:30: prima guardiamo, poi si cena — siete miei ospiti."}</small>
+        ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Ci sarò</a>`}
       </div>
 
       <div class="ev-ultima">
         <p>E poi c'è <span class="amb">un'ultima cosa</span>, che qui non scrivo.</p>
-        <p>È quella per cui ho smesso di chiamarlo gestionale.</p>
       </div>
 
       <form class="ev-form" id="ev-form" novalidate>
@@ -332,7 +317,8 @@ export async function render(container) {
       note: val("ev-note") || null,
       fonte: "landing",
       invito_codice: codice || null,
-      utm_source: utm.utm_source, utm_medium: utm.utm_medium, utm_campaign: utm.utm_campaign,
+      utm_source: utm.utm_source, utm_medium: utm.utm_medium,
+      utm_campaign: utm.utm_campaign || ((qs.get("p") || "").toLowerCase() || null),
     };
 
     if (!d.nome) return errore("Manca il nome.");
