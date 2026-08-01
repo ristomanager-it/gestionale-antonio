@@ -98,11 +98,15 @@ export async function render(container) {
         <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px;">📁 Importa foto/video da Google Drive</div>
         <div style="font-size:12px;color:#64748b;margin-bottom:10px;">
           1. Su Drive: tasto destro sulla cartella → <b>Condividi</b> → "Chiunque abbia il link".<br>
-          2. Copia il link della cartella e incollalo qui (vanno bene anche link di singoli file).
+          2. Copia il link della cartella e incollalo qui (vanno bene anche link di singoli file).<br>
+          Le <b>sottocartelle</b> vengono lette automaticamente: se una si chiama come una categoria (es. "Vini", "Dolci"), le sue foto prendono quel tag.
         </div>
         <textarea id="drive-link" rows="2" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" placeholder="https://drive.google.com/drive/folders/..."></textarea>
         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
           <select id="drive-tag" class="media-tag-select" style="width:auto;"></select>
+          <label style="font-size:12px;color:#374151;display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="drive-ai" checked> 🤖 Dai un nome alle foto senza nome
+          </label>
           <button class="media-upload-btn" id="btn-drive-avvia">⬇️ Importa</button>
           <button class="media-upload-btn" id="btn-drive-chiudi" style="background:#e5e7eb;color:#374151;">Annulla</button>
           <span id="drive-esito" style="font-size:12px;color:#64748b;"></span>
@@ -266,7 +270,9 @@ export async function render(container) {
           testo,
           azienda_id: aziendaId,
           sede_id: window.state?.sedeAttiva?.id || null,
-          tag: driveTagSel?.value || "Altro"
+          tag: driveTagSel?.value || "Altro",
+          tags_disponibili: TAGS.filter(t => t !== "Tutti"),
+          usa_ai: document.getElementById("drive-ai")?.checked !== false
         })
       });
       const data = await resp.json();
@@ -275,7 +281,8 @@ export async function render(container) {
       } else {
         const falliti = (data.risultati || []).filter(r => !r.success);
         esito.textContent = `✅ Importati ${data.importati} su ${data.totale}` +
-          (falliti.length ? ` — ${falliti.length} non importati (controlla la condivisione)` : "");
+          (data.rinominati_ai ? ` · 🤖 ${data.rinominati_ai} nominati dall'AI` : "") +
+          (falliti.length ? ` — ${falliti.length} non importati (condivisione o dimensione)` : "");
         document.getElementById("drive-link").value = "";
         await caricaMedia();
       }
