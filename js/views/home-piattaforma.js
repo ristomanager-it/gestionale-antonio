@@ -275,6 +275,14 @@ export async function render(container) {
           <div class="icon">🏢</div>
         </div>
 
+        <div class="card" data-route="bo-evento">
+          <div>
+            <div class="label">Eventi</div>
+            <div class="title">Serata 23 settembre</div>
+          </div>
+          <div class="icon">🎪</div>
+        </div>
+
         <div class="card" data-route="demo-leads">
           <div>
             <div class="label">Acquisizione</div>
