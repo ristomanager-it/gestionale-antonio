@@ -21,6 +21,7 @@ export async function render(container) {
   await ricarica();
 
   async function ricarica() {
+   try {
     const [{ data: inviti }, { data: iscritti }, { data: agenti }] = await Promise.all([
       supabase.from("evento_riepilogo_inviti").select("*").eq("evento_slug", EVENTO).order("iscritti", { ascending: false }),
       supabase.from("evento_iscrizioni").select("*").eq("evento_slug", EVENTO).order("created_at", { ascending: false }),
@@ -29,6 +30,12 @@ export async function render(container) {
     disegnaTotali(iscritti || []);
     disegnaLink(inviti || [], agenti || []);
     disegnaIscritti(iscritti || []);
+   } catch (e) {
+    console.error("bo-evento:", e);
+    document.getElementById("ev-lista").innerHTML =
+      '<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:12px;padding:14px;font-size:14px;">'
+      + 'Non sono riuscito a caricare i dati dell\'evento: ' + (e && e.message ? e.message : e) + '</div>';
+   }
   }
 
   function disegnaTotali(righe) {
@@ -142,7 +149,7 @@ export async function render(container) {
 
     container.querySelectorAll(".ev-copia").forEach(b => {
       b.addEventListener("click", async () => {
-        const url = BASE + "#evento-serata?r=" + b.dataset.cod;
+        const url = BASE + "#/evento-serata?r=" + b.dataset.cod;
         try { await navigator.clipboard.writeText(url); b.textContent = "Copiato ✓"; }
         catch { prompt("Copia il link:", url); }
         setTimeout(() => { b.textContent = "Copia"; }, 1600);
