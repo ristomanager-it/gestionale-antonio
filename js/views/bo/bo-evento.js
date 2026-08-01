@@ -12,7 +12,8 @@ export async function render(container) {
     <div class="bo-evento" style="max-width:1100px;margin:0 auto;padding:18px 14px 60px;">
       <h1 style="font-size:24px;margin:0 0 4px;">Serata di presentazione</h1>
       <p style="color:#64748b;font-size:14px;margin:0 0 20px;">Mercoledì 23 settembre 2026 — Campo Antico, Orte</p>
-      <div id="ev-tot" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:24px;"></div>
+      <div id="ev-tot" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;"></div>
+      <div id="ev-cfg" style="margin-bottom:24px;"></div>
       <div id="ev-linkbox"></div>
       <div id="ev-lista" style="margin-top:30px;"></div>
     </div>
@@ -22,12 +23,14 @@ export async function render(container) {
 
   async function ricarica() {
    try {
-    const [{ data: inviti }, { data: iscritti }, { data: agenti }] = await Promise.all([
+    const [{ data: inviti }, { data: iscritti }, { data: agenti }, { data: cfg }] = await Promise.all([
       supabase.from("evento_riepilogo_inviti").select("*").eq("evento_slug", EVENTO).order("iscritti", { ascending: false }),
       supabase.from("evento_iscrizioni").select("*").eq("evento_slug", EVENTO).order("created_at", { ascending: false }),
       supabase.from("agenti").select("id, nome, cognome").order("nome"),
+      supabase.from("evento_config").select("*").eq("evento_slug", EVENTO).maybeSingle(),
     ]);
     disegnaTotali(iscritti || []);
+    disegnaConfig(cfg || null, iscritti || []);
     disegnaLink(inviti || [], agenti || []);
     disegnaIscritti(iscritti || []);
    } catch (e) {
@@ -54,6 +57,48 @@ export async function render(container) {
         <div style="font-size:26px;font-weight:800;color:#023C59;">${v}</div>
         <div style="font-size:12px;color:#64748b;margin-top:2px;">${k}</div>
       </div>`).join("");
+  }
+
+  function disegnaConfig(cfg, righe) {
+    if (!cfg) return;
+    const occupati = righe.filter(r => ["richiesta","iscritto","confermato","presente"].includes(r.stato))
+                          .reduce((t, r) => t + (r.persone || 1), 0);
+    const liberiPubblico = Math.max(cfg.capienza - (cfg.posti_riservati || 0) - occupati, 0);
+    document.getElementById("ev-cfg").innerHTML = `
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 18px;">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="min-width:120px;">
+            <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;">Capienza sala</label>
+            <input id="ev-cap" type="number" min="1" value="${cfg.capienza}"
+              style="width:100%;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;">
+          </div>
+          <div style="min-width:150px;">
+            <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;">Posti tenuti da parte</label>
+            <input id="ev-ris" type="number" min="0" value="${cfg.posti_riservati || 0}"
+              style="width:100%;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;">
+          </div>
+          <button id="ev-salva-cfg" style="background:#023C59;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;">Salva</button>
+          <label style="font-size:13px;display:flex;align-items:center;gap:7px;margin-bottom:9px;">
+            <input type="checkbox" id="ev-chiuso" ${cfg.chiuso ? "checked" : ""}> Chiudi le richieste
+          </label>
+        </div>
+        <p style="font-size:12.5px;color:#64748b;margin:12px 0 0;line-height:1.5;">
+          I posti tenuti da parte sono quelli che inviti personalmente tu (agenti, fornitori, ospiti):
+          restano fuori dal conteggio pubblico, quindi la pagina mostra <b>${liberiPubblico}</b> coperti
+          ancora richiedibili invece di ${Math.max(cfg.capienza - occupati, 0)}.
+        </p>
+      </div>`;
+
+    document.getElementById("ev-salva-cfg").addEventListener("click", async () => {
+      const { error } = await supabase.from("evento_config").update({
+        capienza: parseInt(document.getElementById("ev-cap").value, 10) || cfg.capienza,
+        posti_riservati: parseInt(document.getElementById("ev-ris").value, 10) || 0,
+        chiuso: document.getElementById("ev-chiuso").checked,
+        aggiornato_il: new Date().toISOString(),
+      }).eq("evento_slug", EVENTO);
+      if (error) return alert("Errore: " + error.message);
+      await ricarica();
+    });
   }
 
   function disegnaLink(inviti, agenti) {
