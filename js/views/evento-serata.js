@@ -39,65 +39,65 @@ export async function render(container) {
         --carta:#FBFAF7;--riga:#E4E0D8;--testo:#12232E;--muto:#6B7A83;
         background:var(--carta);color:var(--testo);min-height:100vh;
         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
-      .ev-in{max-width:660px;margin:0 auto;padding:34px 22px 90px;}
+      .ev-in{max-width:640px;margin:0 auto;padding:30px 20px 90px;}
 
       .ev-marchio{text-align:center;margin-bottom:32px;}
       .ev-marchio img{width:148px;height:auto;}
 
-      .ev-occhiello{text-align:center;font-size:11px;font-weight:800;letter-spacing:.22em;
+      .ev-occhiello{text-align:center;font-size:12.5px;font-weight:800;letter-spacing:.22em;
         text-transform:uppercase;color:var(--arancio);margin-bottom:18px;}
       .ev-page h1{font-family:Georgia,"Times New Roman",serif;font-weight:700;text-align:center;
-        font-size:clamp(30px,6.4vw,45px);line-height:1.15;letter-spacing:-.01em;margin:0 0 16px;}
+        font-size:clamp(34px,8vw,48px);line-height:1.12;letter-spacing:-.01em;margin:0 0 16px;}
       .ev-page h1 span{display:block;color:var(--navy);}
-      .ev-occhiofine{text-align:center;font-size:17px;line-height:1.6;color:#3D4C55;max-width:520px;margin:0 auto 10px;}
+      .ev-occhiofine{text-align:center;font-size:19px;line-height:1.55;color:#3D4C55;max-width:520px;margin:0 auto 10px;}
       .ev-daparte{text-align:center;margin:16px auto 0;font-size:13.5px;color:var(--navy);background:#EEF5F9;
         border:1px solid #D3E4EE;border-radius:100px;padding:8px 16px;display:table;}
 
-      .ev-sera{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:22px 22px 8px;margin:34px 0 26px;}
-      .ev-sera h2{font-family:Georgia,serif;font-size:19px;margin:0 0 14px;color:var(--navy);}
-      .ev-sera .r{display:flex;gap:12px;padding:9px 0;border-top:1px solid #F0EDE6;font-size:15.5px;line-height:1.5;}
+      .ev-sera{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:8px 20px;margin:28px 0 22px;}
+      .ev-sera h2{display:none;}
+      .ev-sera .r{display:flex;gap:12px;padding:11px 0;border-top:1px solid #F0EDE6;font-size:17.5px;line-height:1.45;}
       .ev-sera .r:first-of-type{border-top:none;}
       .ev-sera .r i{font-style:normal;flex:0 0 22px;}
 
       .ev-posti{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
         background:#F3F8EF;border:1px solid #CFE4C2;border-radius:14px;padding:15px 18px;margin-bottom:30px;}
       .ev-posti.pieno{background:#FEF2F2;border-color:#FECACA;}
-      .ev-posti b{font-size:16px;}
-      .ev-posti small{display:block;color:var(--muto);font-size:13px;margin-top:3px;}
-      .ev-posti a{background:var(--navy);color:#fff;text-decoration:none;font-weight:700;font-size:15px;
+      .ev-posti b{font-size:18px;}
+      .ev-posti small{display:block;color:var(--muto);font-size:14.5px;margin-top:3px;}
+      .ev-posti a{background:var(--navy);color:#fff;text-decoration:none;font-weight:700;font-size:16.5px;
         padding:12px 22px;border-radius:100px;white-space:nowrap;}
 
-      .ev-passo{margin-bottom:38px;padding-left:20px;border-left:3px solid var(--riga);}
+      .ev-passo{margin-bottom:32px;padding-left:20px;border-left:3px solid var(--riga);}
       .ev-passo.p1{border-color:var(--arancio);}
       .ev-passo.p2{border-color:var(--azzurro);}
-      .ev-passo .et{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--muto);margin-bottom:9px;}
-      .ev-passo h2{font-family:Georgia,serif;font-size:clamp(20px,3.7vw,26px);line-height:1.3;margin:0 0 12px;color:var(--navy);}
-      .ev-passo p{font-size:16px;line-height:1.68;color:#3D4C55;margin:0;}
+      .ev-passo .et{font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--muto);margin-bottom:9px;}
+      .ev-passo h2{font-family:Georgia,serif;font-size:clamp(23px,4.6vw,29px);line-height:1.3;margin:0 0 12px;color:var(--navy);}
+      .ev-passo p{font-size:18px;line-height:1.6;color:#3D4C55;margin:0;}
       .ev-passo p + p{margin-top:11px;}
 
       .ev-elenco{margin-top:16px;}
       .ev-el{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--riga);}
       .ev-el:last-child{border-bottom:1px solid var(--riga);}
       .ev-el i{font-style:normal;color:var(--azzurro);font-weight:800;}
-      .ev-el div{font-size:15.5px;line-height:1.5;}
+      .ev-el div{font-size:18px;line-height:1.45;}
       .ev-el small{display:block;color:var(--muto);font-size:13.5px;margin-top:4px;line-height:1.5;}
 
       .ev-piu{margin-top:24px;}
-      .ev-piu .cap{font-size:14px;color:var(--muto);margin:0 0 13px;line-height:1.55;}
+      .ev-piu .cap{font-size:15.5px;color:var(--muto);margin:0 0 13px;line-height:1.55;}
       .ev-piu ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;}
       @media(max-width:540px){.ev-piu ul{grid-template-columns:1fr;}}
-      .ev-piu li{font-size:14.5px;line-height:1.45;color:#3D4C55;padding-left:15px;position:relative;}
+      .ev-piu li{font-size:16.5px;line-height:1.4;color:#3D4C55;padding-left:15px;position:relative;}
       .ev-piu li:before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--ambra);}
 
-      .ev-ultima{background:var(--navy);color:#fff;border-radius:16px;padding:26px 24px;margin:40px 0;}
-      .ev-ultima p{font-size:17px;line-height:1.6;margin:0;}
-      .ev-ultima p + p{margin-top:11px;font-size:15px;color:#CFE0E8;}
+      .ev-ultima{background:var(--navy);color:#fff;border-radius:16px;padding:24px 22px;margin:32px 0;}
+      .ev-ultima p{font-size:20px;line-height:1.5;margin:0;}
+      .ev-ultima p + p{margin-top:11px;font-size:17px;color:#CFE0E8;}
       .ev-ultima .amb{color:var(--ambra);font-weight:700;}
 
       .ev-form{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:24px 22px;}
-      .ev-form h2{font-family:Georgia,serif;font-size:21px;margin:0 0 5px;color:var(--navy);}
-      .ev-form .intro{font-size:14px;color:var(--muto);margin-bottom:16px;line-height:1.55;}
-      .ev-form label{display:block;font-size:12.5px;font-weight:700;margin:14px 0 5px;}
+      .ev-form h2{font-family:Georgia,serif;font-size:23px;margin:0 0 5px;color:var(--navy);}
+      .ev-form .intro{font-size:15.5px;color:var(--muto);margin-bottom:16px;line-height:1.55;}
+      .ev-form label{display:block;font-size:13.5px;font-weight:700;margin:14px 0 5px;}
       .ev-form input,.ev-form select,.ev-form textarea{width:100%;padding:12px;border:1.5px solid #D9D5CD;
         border-radius:10px;font-size:16px;font-family:inherit;background:#fff;color:var(--testo);box-sizing:border-box;}
       .ev-form input:focus,.ev-form select:focus,.ev-form textarea:focus{outline:none;border-color:var(--navy);}
@@ -106,14 +106,14 @@ export async function render(container) {
       .ev-form button{width:100%;margin-top:22px;background:var(--navy);color:#fff;border:none;font-weight:700;
         font-size:16.5px;padding:16px;border-radius:12px;cursor:pointer;}
       .ev-form button:disabled{opacity:.55;}
-      .ev-slot{margin-top:14px;border-radius:10px;padding:11px 13px;font-size:14px;font-weight:600;}
+      .ev-slot{margin-top:14px;border-radius:10px;padding:12px 14px;font-size:15.5px;font-weight:600;}
       .ev-slot.ok{background:#F3F8EF;border:1px solid #CFE4C2;color:#2F6B1E;}
       .ev-slot.ko{background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;}
       .ev-privacy{font-size:12px;color:var(--muto);margin-top:13px;text-align:center;line-height:1.55;}
       .ev-errore{display:none;background:#FEF2F2;border:1.5px solid #FECACA;color:#B91C1C;border-radius:10px;padding:11px;font-size:14px;margin-top:12px;}
       .ev-ok{display:none;background:#fff;border:1px solid var(--riga);border-radius:16px;padding:34px 24px;text-align:center;}
       .ev-ok h2{font-family:Georgia,serif;color:var(--navy);margin:0 0 12px;font-size:24px;}
-      .ev-ok p{font-size:15.5px;color:#3D4C55;line-height:1.7;margin:0;}
+      .ev-ok p{font-size:17.5px;color:#3D4C55;line-height:1.7;margin:0;}
       .ev-ok .cod{display:inline-block;margin-top:16px;background:#F3F8EF;border:1px solid #CFE4C2;
         border-radius:10px;padding:10px 16px;font-size:14px;color:#2F6B1E;font-weight:700;}
       .ev-foot{text-align:center;margin-top:46px;font-size:12.5px;color:var(--muto);line-height:1.9;}
@@ -123,8 +123,8 @@ export async function render(container) {
         justify-content:space-between;gap:12px;box-shadow:0 -6px 20px rgba(0,0,0,.06);}
       .ev-barra.on{display:flex;}
       .ev-barra span{font-size:13px;color:var(--muto);line-height:1.35;}
-      .ev-barra b{display:block;color:var(--testo);font-size:14px;}
-      .ev-barra a{background:var(--navy);color:#fff;text-decoration:none;font-weight:700;font-size:14.5px;
+      .ev-barra b{display:block;color:var(--testo);font-size:15.5px;}
+      .ev-barra a{background:var(--navy);color:#fff;text-decoration:none;font-weight:700;font-size:16px;
         padding:11px 20px;border-radius:100px;white-space:nowrap;}
     </style>
 
@@ -134,16 +134,13 @@ export async function render(container) {
 
       <div class="ev-occhiello">Mercoledì 23 settembre 2026 · Campo Antico Ricevimenti</div>
       <h1>Ho smesso di<span>chiamarlo gestionale.</span></h1>
-      <p class="ev-occhiofine">Il 23 settembre vi faccio vedere perché. A tavola da me, sui numeri veri
-      del mio locale — non su una presentazione.</p>
+      <p class="ev-occhiofine">Il 23 settembre vi faccio vedere perché.<br>A tavola da me, sui numeri veri del mio locale.</p>
       ${daParte}
 
       <div class="ev-sera">
-        <h2>Cosa succede quella sera</h2>
-        <div class="r"><i>🕢</i><div>Si comincia alle 19:30 e si finisce entro le 23:30.</div></div>
-        <div class="r"><i>🍽️</i><div>Si parla a tavola: siete miei ospiti, a casa mia.</div></div>
-        <div class="r"><i>💻</i><div>Si guarda dal vivo: incassi, costi, magazzino e sala della giornata appena finita.</div></div>
-        <div class="r"><i>👥</i><div>Venite in due: portate chi decide insieme a voi.</div></div>
+        <div class="r"><i>🕢</i><div>19:30 – 23:30, si parla a tavola. Siete miei ospiti.</div></div>
+        <div class="r"><i>💻</i><div>Niente slide: apro il mio locale, con i numeri della giornata.</div></div>
+        <div class="r"><i>👥</i><div>Venite in due: portate chi decide con voi.</div></div>
       </div>
 
       <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : ""}" id="ev-posti-box">
@@ -160,47 +157,40 @@ export async function render(container) {
       <div class="ev-passo p1">
         <div class="et">Perché lo faccio</div>
         <h2>Il piatto che vendevo di più mi faceva perdere 2,20 € a porzione</h2>
-        <p>Non un piatto qualsiasi: quello che consigliavamo noi. Più ne vendevo, più ci rimettevo,
-        e non avevo modo di accorgermene.</p>
-        <p>Ci ho messo anni a capire che non ero disorganizzato. Mi mancavano i numeri nel momento
-        esatto in cui servivano — non tre mesi dopo, quando ormai il conto era fatto.</p>
+        <p>Quello che consigliavamo noi. Più ne vendevo, più ci rimettevo, e non avevo
+        modo di saperlo.</p>
       </div>
 
       <div class="ev-passo p2">
         <div class="et">Cosa ci si porta a casa</div>
         <h2>Sapere prima, invece di scoprire dopo</h2>
         <div class="ev-elenco">
-          <div class="ev-el"><i>①</i><div>Quanto rende davvero un piatto, <b>mentre lo state vendendo</b>
-            <small>Non a fine mese: nel momento in cui decidete se tenerlo in carta.</small></div></div>
-          <div class="ev-el"><i>②</i><div>Quanto costa un servizio, tra <b>merce e persone</b>
-            <small>Sabato sera vi è convenuto? La risposta esiste, e non è una sensazione.</small></div></div>
-          <div class="ev-el"><i>③</i><div>Chi torna da voi e <b>chi non si vede da sei mesi</b>
-            <small>Con nome e numero. Riportarlo dentro costa molto meno che trovarne uno nuovo.</small></div></div>
+          <div class="ev-el"><i>①</i><div>Quanto rende un piatto, <b>mentre lo vendete</b></div></div>
+          <div class="ev-el"><i>②</i><div>Quanto costa un servizio, <b>tra merce e persone</b></div></div>
+          <div class="ev-el"><i>③</i><div>Chi torna, e <b>chi non si vede da sei mesi</b></div></div>
         </div>
 
         <div class="ev-piu">
-          <p class="cap">E poi, senza farne l'elenco: ci sono cose che quella sera si vedono e basta.</p>
+          <p class="cap">E poi cose che quella sera si vedono e basta.</p>
           <ul>
-            <li>Cosa si prepara domani, e in che quantità</li>
-            <li>Le ricette che si scrivono quasi da sole</li>
-            <li>Il bilancio del locale, senza aspettare marzo</li>
-            <li>Quanto rende ogni persona in squadra</li>
-            <li>Come si sceglie chi assumere</li>
-            <li>Il telefono che risponde mentre siete in servizio</li>
-            <li>Il vostro sito, che si aggiorna da solo</li>
-            <li>Le campagne fatte sui vostri numeri</li>
+            <li>Cosa si prepara domani, e quanto</li>
+            <li>Ricette che si scrivono quasi da sole</li>
+            <li>Il bilancio senza aspettare marzo</li>
+            <li>Quanto rende ogni persona</li>
+            <li>Il telefono che risponde per voi</li>
+            <li>Sito e campagne sui vostri numeri</li>
           </ul>
         </div>
       </div>
 
       <div class="ev-ultima">
         <p>E allora <span class="amb">cos'è?</span></p>
-        <p>Quello lo dico solo a chi c'è. È l'ultima cosa della serata, e in una pagina non si racconta.</p>
+        <p>Lo dico solo a chi c'è. In una pagina non si racconta.</p>
       </div>
 
       <form class="ev-form" id="ev-form" novalidate>
         <h2>Prenota il tavolo</h2>
-        <p class="intro">Il posto è vostro appena confermate: niente attesa, niente richiamata.</p>
+        <p class="intro">Il posto è vostro appena confermate.</p>
 
         <label for="ev-nome">Nome e cognome *</label>
         <input id="ev-nome" type="text" autocomplete="name">
@@ -243,22 +233,20 @@ export async function render(container) {
         <label for="ev-email">Email</label>
         <input id="ev-email" type="email" autocomplete="email">
 
-        <label for="ev-note">Intolleranze, allergie o cose che vorreste vedere</label>
-        <textarea id="ev-note" rows="3" placeholder="Es: niente glutine · vorrei capire i costi dei piatti"></textarea>
+        <label for="ev-note">Intolleranze o cose che vorreste vedere</label>
+        <textarea id="ev-note" rows="2" placeholder="Es: niente glutine · i costi dei piatti"></textarea>
 
         <div class="ev-slot ${liberi === null || liberi > 0 ? "ok" : "ko"}" id="ev-slot"></div>
 
         <button type="submit" id="ev-invia">Confermo la prenotazione</button>
         <div class="ev-errore" id="ev-errore"></div>
-        <p class="ev-privacy">Usiamo i vostri dati solo per la serata: conferma e promemoria.
-        Nessuna newsletter, nessuna cessione a terzi.</p>
+        <p class="ev-privacy">I dati servono solo per la serata. Nessuna newsletter.</p>
       </form>
 
       <div class="ev-ok" id="ev-ok">
         <h2>Tavolo prenotato</h2>
-        <p>Il posto è vostro. Vi arriva un messaggio di conferma e un promemoria nei giorni prima
-        della serata: se cambiano i programmi basta rispondere a quello.<br><br>
-        <b>Mercoledì 23 settembre, dalle 19:30 — Campo Antico Ricevimenti.</b></p>
+        <p>Vi arriva un messaggio di conferma e un promemoria nei giorni prima.<br><br>
+        <b>Mercoledì 23 settembre, dalle 19:30<br>Campo Antico Ricevimenti</b></p>
         <div class="cod" id="ev-riepilogo"></div>
       </div>
 
