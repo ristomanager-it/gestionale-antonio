@@ -2274,8 +2274,13 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     if (!prodId) return 'red';
     return _statoRiga(_catBilancioOk(mappaCatProd.get(String(prodId))), _catInternaOk(mappaIntProd.get(String(prodId))));
   }
+  const ESCLUSE = new Set(['non_prodotto', 'descrittiva']);
   const statiRiga = {};
-  righe.forEach(r => { statiRiga[r.id] = r.match_metodo === 'non_prodotto' ? 'green' : statoDaProd(r.prodotto_id); });
+  righe.forEach(r => { statiRiga[r.id] = ESCLUSE.has(r.match_metodo) ? 'green' : statoDaProd(r.prodotto_id); });
+
+  function btnElimina(rigaId) {
+    return '<button class="fisc-elimina" data-riga="' + rigaId + '" title="Elimina questa riga dalla fattura" style="background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:6px 9px;font-size:12px;font-weight:600;cursor:pointer;">🗑</button>';
+  }
 
   function applyDot(el, stato) { if (!el) return; el.style.background = COL[stato] || '#94a3b8'; el.setAttribute('title', LBL[stato] || ''); }
   function dotEl(rid) { return box.querySelector('.fisc-dot[data-riga="' + rid + '"]'); }
@@ -2325,8 +2330,11 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     html += '</div>';
     html += '<div style="font-size:12px;color:#64748b;margin-bottom:8px;padding-left:20px;">' + (r.quantita ?? "-") + ' ' + escapeHtml(r.unita_misura || "") + ' · € ' + formatMoney(r.prezzo_unitario || 0) + '/u · tot € ' + formatMoney(r.totale_riga || 0) + '</div>';
 
-    if (r.match_metodo === 'non_prodotto') {
-      html += '<div style="display:flex;align-items:center;gap:10px;padding-left:20px;flex-wrap:wrap;"><span style="font-size:12px;color:#be123c;font-weight:600;">🚫 Non è un prodotto — esclusa dal magazzino</span><button class="fisc-ripristina" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;">Ripristina</button></div>';
+    if (ESCLUSE.has(r.match_metodo)) {
+      const etichetta = r.match_metodo === 'descrittiva'
+        ? '📄 Riga descrittiva (riferimento documento / sconto) — esclusa dal magazzino'
+        : '🚫 Non è un prodotto — esclusa dal magazzino';
+      html += '<div style="display:flex;align-items:center;gap:10px;padding-left:20px;flex-wrap:wrap;"><span style="font-size:12px;color:#64748b;font-weight:600;">' + etichetta + '</span><button class="fisc-ripristina" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;">Ripristina</button>' + btnElimina(r.id) + '</div>';
       html += '</div>';
       continue;
     }
@@ -2340,6 +2348,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       html += '<button class="fisc-conferma" data-riga="' + r.id + '" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">Abbina</button>';
       html += '<button class="fisc-crea" data-riga="' + r.id + '" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">＋ Crea prodotto</button>';
       html += '<button class="fisc-nonprod" data-riga="' + r.id + '" style="background:#fff1f2;border:1px solid #fecdd3;color:#be123c;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;">🚫 Non è un prodotto</button>';
+      html += btnElimina(r.id);
       html += '</div>';
     } else {
       const nomeVis = mappaNomeInt.get(String(r.prodotto_id)) || nomeProd || "non abbinato";
@@ -2347,6 +2356,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:2px;padding-left:20px;flex-wrap:wrap;">';
       html += '<span style="font-size:11px;color:#64748b;">🏷️ Nome interno</span>';
       html += '<input class="fisc-nome-interno" data-riga="' + r.id + '" data-prod="' + r.prodotto_id + '" value="' + escapeHtml(mappaNomeInt.get(String(r.prodotto_id)) || "") + '" placeholder="' + escapeHtml(nomeProd || "nome comodo per voi") + '" style="flex:1;min-width:180px;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;" />';
+      html += btnElimina(r.id);
       html += '</div>';
     }
 
@@ -2496,6 +2506,21 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       const { error } = await supa.from("fiscale_documenti_righe")
         .update({ prodotto_id: null, match_confermato: true, match_metodo: "non_prodotto" }).eq("id", rid);
       if (error) { btn.disabled = false; alert("Errore: " + error.message); return; }
+      await renderRigheFiscali(box, documentoId, azienda);
+    });
+  });
+
+  box.querySelectorAll(".fisc-elimina").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const rid = btn.getAttribute("data-riga");
+      const riga = righe.find(x => x.id === rid);
+      const nome = riga ? (riga.descrizione_originale || "questa riga") : "questa riga";
+      if (!confirm('Eliminare definitivamente la riga:\n\n' + nome + '\n\nSe era già stata caricata, il movimento di magazzino corrispondente viene rimosso.')) return;
+      btn.disabled = true; btn.textContent = "…";
+      const d = await fiscaleFetch(FISCALE_CONFERMA_URL, { azione: "elimina_riga", azienda_id: azienda.id, riga_id: rid });
+      if (!d.success) { btn.disabled = false; btn.textContent = "🗑"; alert("Errore: " + (d.error || "riprova")); return; }
+      box.dataset.caricato = "";
       await renderRigheFiscali(box, documentoId, azienda);
     });
   });
