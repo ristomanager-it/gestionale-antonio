@@ -14,9 +14,9 @@ export async function render(container) {
     {
       key: "menu-intelligence",
       feature: "menu_intelligence",
-      label: "Menu Intelligence AI",
-      icon: "🍽️",
-      desc: "Menu engineering, margini piatti, simulatore prezzi e suggerimenti AI."
+      label: "Menu Engineering",
+      icon: "📊",
+      desc: "Quadranti popolarità/margine, prezzi consigliati e simulatore prezzo."
     },
     {
       key: "report",

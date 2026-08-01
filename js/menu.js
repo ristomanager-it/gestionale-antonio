@@ -415,7 +415,7 @@ export function initMenu() {
           { label: "📈 Margini",          route: "margini"           },
           { label: "🍝 Food cost mancanti", route: "food-cost-mancanti" },
           { label: "💸 Spese fisse", route: "spese-fisse" },
-          { label: "🍽️ Menu Intelligence AI", route: "menu-intelligence" },
+          { label: "📊 Menu Engineering", route: "menu-intelligence" },
         ]
       });
 
