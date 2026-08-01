@@ -89,7 +89,7 @@ export async function render(container) {
         <h2>Cosa vedrete, in concreto</h2>
         <div class="ev-voce"><span class="n">1</span><p><b>Il costo vero di un piatto</b>Aggiornato da solo a ogni fattura che arriva dai fornitori.</p></div>
         <div class="ev-voce"><span class="n">2</span><p><b>Una ricetta dettata a voce</b>Quaranta secondi, senza toccare un computer.</p></div>
-        <div class="ev-voce"><span class="n">3</span><p><b>Un piatto inventato con gli avanzi</b>Gli dite cosa vi è rimasto in cella, vi propone come venderlo.</p></div>
+        <div class="ev-voce"><span class="n">3</span><p><b>Il piatto del giorno dalle vostre giacenze</b>Gli dite cosa avete in cella, vi costruisce il piatto e ve lo mette a menù.</p></div>
         <div class="ev-voce"><span class="n">4</span><p><b>Personale e turni</b>Timbrature dal telefono e costo del lavoro per servizio.</p></div>
         <div class="ev-voce"><span class="n">5</span><p><b>Il vostro sito e le prenotazioni</b>Con i messaggi che partono da soli al cliente.</p></div>
         <div class="ev-voce"><span class="n">6</span><p><b>Marketing sui vostri numeri</b>Promozioni sul piatto che ha davvero margine, non su quello che viene bene in foto.</p></div>
