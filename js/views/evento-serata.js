@@ -67,6 +67,12 @@ export async function render(container) {
       .ev-el div{font-size:15.5px;line-height:1.5;}
       .ev-el small{display:block;color:var(--muto);font-size:13.5px;margin-top:4px;line-height:1.5;}
 
+      .ev-piu{margin-top:26px;}
+      .ev-piu .cap{font-size:14px;color:var(--muto);margin:0 0 14px;line-height:1.55;}
+      .ev-piu ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;}
+      @media(max-width:540px){.ev-piu ul{grid-template-columns:1fr;}}
+      .ev-piu li{font-size:14.5px;line-height:1.45;color:#3D4C55;padding-left:15px;position:relative;}
+      .ev-piu li:before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--ambra);}
       .ev-ultima{background:var(--navy);color:#fff;border-radius:16px;padding:26px 24px;margin:44px 0;}
       .ev-ultima p{font-size:17px;line-height:1.6;margin:0;}
       .ev-ultima p + p{margin-top:11px;font-size:15px;color:#CFE0E8;}
@@ -112,7 +118,7 @@ export async function render(container) {
       <div class="ev-marchio"><img src="assets/ristoflow-logo.png" alt="Ristoflow.AI"></div>
 
       <div class="ev-testata">
-        <div class="ev-occhiello">Invito · Campo Antico Ricevimenti</div>
+        <div class="ev-occhiello">Mercoledì 23 settembre 2026 · Campo Antico Ricevimenti</div>
         <h1>Nessuno chiude perché cucina male.<span>Si chiude perché si scopre tutto tardi.</span></h1>
         <div class="ev-data">Mercoledì 23 settembre 2026 · dalle 19:30</div>
         ${daParte}
@@ -158,6 +164,20 @@ export async function render(container) {
             <small>Sabato sera vi è convenuto? La risposta esiste, e non è una sensazione.</small></div></div>
           <div class="ev-el"><i>③</i><div>Chi torna da voi e <b>chi non si vede da sei mesi</b>
             <small>Con nome e numero. Riportarlo dentro costa molto meno che trovarne uno nuovo.</small></div></div>
+        </div>
+
+        <div class="ev-piu">
+          <p class="cap">E poi, senza farne l'elenco: ci sono cose che quella sera si vedono e basta.</p>
+          <ul>
+            <li>Cosa si prepara domani, e in che quantità</li>
+            <li>Le ricette che si scrivono quasi da sole</li>
+            <li>Il bilancio del locale, senza aspettare marzo</li>
+            <li>Quanto rende ogni persona in squadra</li>
+            <li>Come si sceglie chi assumere</li>
+            <li>Il telefono che risponde mentre siete in servizio</li>
+            <li>Il vostro sito, che si aggiorna da solo</li>
+            <li>Le campagne fatte sui vostri numeri</li>
+          </ul>
         </div>
       </div>
 
