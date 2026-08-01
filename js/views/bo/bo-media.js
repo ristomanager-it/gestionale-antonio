@@ -132,6 +132,7 @@ export async function render(container) {
           <button class="media-modal-close" onclick="chiudiModal()">✕</button>
         </div>
         <div class="media-modal-body">
+          <div id="modal-preview" style="margin-bottom:12px;border-radius:10px;overflow:hidden;background:#f1f5f9;text-align:center;cursor:zoom-in;" title="Clicca per aprire l'originale"></div>
           <div style="margin-bottom:12px;">
             <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Tag</label>
             <select class="media-tag-select" id="modal-tag-select" onchange="salvaTag()">
@@ -197,6 +198,17 @@ export async function render(container) {
   }
 
   // ── RENDER GRIGLIA ───────────────────────────────────────────
+  // Miniatura via Supabase image transform (400px, qualita' 60):
+  // molto piu' leggera dell'originale. Se il render non e' disponibile,
+  // onerror ricade sull'URL originale.
+  function thumbUrl(url, w) {
+    try {
+      if (!url.includes("/storage/v1/object/public/")) return url;
+      return url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/")
+        + (url.includes("?") ? "&" : "?") + "width=" + (w || 400) + "&quality=60&resize=cover";
+    } catch { return url; }
+  }
+
   function renderGriglia() {
     const search = (document.getElementById("media-search")?.value || "").toLowerCase();
     const grid   = document.getElementById("media-grid");
@@ -222,7 +234,7 @@ export async function render(container) {
         <div class="media-card" onclick="apriModal('${m.id}')">
           ${isVideo
             ? `<video src="${escHtml(m.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`
-            : `<img src="${escHtml(m.url)}" alt="${escHtml(m.nome)}" loading="lazy">`
+            : `<img src="${escHtml(thumbUrl(m.url, 400))}" alt="${escHtml(m.nome)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=&#39;${escHtml(m.url)}&#39;">`
           }
           <div class="media-card-type">${isVideo ? "🎬" : "🖼️"}</div>
           <div class="media-card-overlay">
@@ -385,8 +397,14 @@ export async function render(container) {
     const m = mediaSelezionato;
     document.getElementById("modal-nome-input").value = m.nome;
     document.getElementById("modal-tag-select").value = m.tag || "Altro";
+    const prev = document.getElementById("modal-preview");
+    if (prev) {
+      prev.innerHTML = m.tipo === "video"
+        ? "<video src=\"" + escHtml(m.url) + "\" controls style=\"max-width:100%;max-height:45vh;display:block;margin:0 auto;\"></video>"
+        : "<img src=\"" + escHtml(thumbUrl(m.url, 900)) + "\" onerror=\"this.onerror=null;this.src=&#39;" + escHtml(m.url) + "&#39;\" style=\"max-width:100%;max-height:45vh;object-fit:contain;display:block;margin:0 auto;\">";
+      prev.onclick = () => window.open(m.url, "_blank");
+    }
     document.getElementById("media-modal").style.display = "flex";
-    setTimeout(() => document.getElementById("modal-nome-input").focus(), 100);
   };
 
   window.salvaNome = async function() {
