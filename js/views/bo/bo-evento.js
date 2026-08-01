@@ -15,7 +15,8 @@ export async function render(container) {
       <div id="ev-tot" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;"></div>
       <div id="ev-cfg" style="margin-bottom:24px;"></div>
       <div id="ev-linkbox"></div>
-      <div id="ev-lista" style="margin-top:30px;"></div>
+      <div id="ev-aggiungi" style="margin-top:30px;"></div>
+      <div id="ev-lista" style="margin-top:20px;"></div>
     </div>
   `;
 
@@ -32,6 +33,7 @@ export async function render(container) {
     disegnaTotali(iscritti || []);
     disegnaConfig(cfg || null, iscritti || []);
     disegnaLink(inviti || [], agenti || []);
+    disegnaAggiungi();
     disegnaIscritti(iscritti || []);
    } catch (e) {
     console.error("bo-evento:", e);
@@ -200,6 +202,50 @@ export async function render(container) {
         catch { prompt("Copia il link:", url); }
         setTimeout(() => { b.textContent = "Copia"; }, 1600);
       });
+    });
+  }
+
+  function disegnaAggiungi() {
+    document.getElementById("ev-aggiungi").innerHTML = `
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;">
+        <h2 style="font-size:17px;margin:0 0 6px;">Aggiungi una prenotazione a mano</h2>
+        <p style="font-size:13px;color:#64748b;margin:0 0 14px;">
+          Per chi inviti tu a voce: entra come già confermato e occupa il posto come tutti gli altri.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end;">
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;">Nome *</label>
+            <input id="am-nome" style="width:100%;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;">Locale</label>
+            <input id="am-locale" style="width:100%;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;">Telefono</label>
+            <input id="am-tel" style="width:100%;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;">Coperti</label>
+            <input id="am-cop" type="number" min="1" value="2" style="width:100%;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;"></div>
+          <div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;">Invitato da</label>
+            <input id="am-da" placeholder="Antonio" style="width:100%;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;"></div>
+          <button id="am-salva" style="background:#023C59;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;">Aggiungi</button>
+        </div>
+        <div id="am-esito" style="font-size:13px;margin-top:10px;"></div>
+      </div>`;
+
+    document.getElementById("am-salva").addEventListener("click", async () => {
+      const nome = document.getElementById("am-nome").value.trim();
+      if (!nome) return alert("Serve almeno il nome.");
+      const riga = {
+        evento_slug: EVENTO,
+        nome,
+        locale: document.getElementById("am-locale").value.trim() || null,
+        telefono: document.getElementById("am-tel").value.trim() || "-",
+        persone: parseInt(document.getElementById("am-cop").value, 10) || 1,
+        invitato_da: document.getElementById("am-da").value.trim() || "Antonio",
+        fonte: "invito diretto",
+        stato: "confermato",
+        confermato_il: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("evento_iscrizioni").insert(riga);
+      const esito = document.getElementById("am-esito");
+      if (error) { esito.style.color = "#b91c1c"; esito.textContent = "Errore: " + error.message; return; }
+      ["am-nome", "am-locale", "am-tel", "am-da"].forEach(id => { document.getElementById(id).value = ""; });
+      await ricarica();
     });
   }
 
