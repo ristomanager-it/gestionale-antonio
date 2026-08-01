@@ -268,7 +268,11 @@ export async function render(container) {
             <tr style="border-bottom:1px solid #f1f5f9;">
               <td style="padding:9px 6px;"><b>${esc(r.nome)}</b><div style="color:#94a3b8;font-size:11px;">${esc(r.locale || "")}</div></td>
               <td>${esc(r.tipo_attivita || "-")}<div style="color:#94a3b8;font-size:11px;">${esc(r.citta || "")}${r.partita_iva ? " · " + esc(r.partita_iva) : ""}</div></td>
-              <td><a href="https://wa.me/${(r.telefono || "").replace(/\D/g, "")}" target="_blank" rel="noopener" style="color:#0369a1;">${esc(r.telefono)}</a></td>
+              <td>
+                <a href="${waLink(r)}" target="_blank" rel="noopener"
+                   style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;border-radius:6px;padding:5px 9px;font-size:12px;font-weight:700;">💬 ${r.stato === "richiesta" ? "Conferma" : "Scrivi"}</a>
+                <div style="color:#94a3b8;font-size:11px;margin-top:3px;">${esc(r.telefono)}</div>
+              </td>
               <td>${r.persone}</td>
               <td>${esc(r.invitato_da || r.canale || "diretto")}</td>
               <td>${badge(r.stato)}</td>
@@ -311,6 +315,27 @@ export async function render(container) {
       });
     });
   }
+}
+
+function waLink(r) {
+  const tel = (r.telefono || "").replace(/\D/g, "");
+  const numero = tel.startsWith("39") ? tel : ("39" + tel.replace(/^0+/, ""));
+  const link = BASE + "#/evento-prenotazione?t=" + r.token_pubblico;
+  const cop = r.persone === 1 ? "1 coperto" : r.persone + " coperti";
+  const nome = (r.nome || "").split(" ")[0];
+
+  let testo;
+  if (r.stato === "richiesta") {
+    testo = `Ciao ${nome}, sono Antonio Carullo.\n\n`
+      + `Ti confermo il posto per mercoledì 23 settembre, dalle 19:30, a Campo Antico di Orte — ${cop} a nome tuo.\n\n`
+      + `Qui trovi tutto, mappa compresa: ${link}\n\n`
+      + `Alla cena pensiamo noi, tu porta solo la fame. A presto!`;
+  } else {
+    testo = `Ciao ${nome}, sono Antonio.\n\n`
+      + `Ci vediamo mercoledì 23 settembre dalle 19:30 a Campo Antico, Orte — ${cop} a nome tuo.\n\n`
+      + `Tutti i dettagli qui: ${link}`;
+  }
+  return "https://wa.me/" + numero + "?text=" + encodeURIComponent(testo);
 }
 
 function generaCodice(etichetta, esistenti) {
