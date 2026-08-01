@@ -42,6 +42,7 @@ export async function render(container) {
     const attive = righe.filter(r => r.stato !== "annullato");
     const persone = attive.reduce((t, r) => t + (r.persone || 1), 0);
     const dati = [
+      ["Richieste da valutare", righe.filter(r => r.stato === "richiesta").length],
       ["Iscritti", attive.length],
       ["Persone attese", persone],
       ["Confermati", righe.filter(r => r.stato === "confermato").length],
@@ -159,7 +160,7 @@ export async function render(container) {
 
   function disegnaIscritti(righe) {
     const badge = (s) => {
-      const c = { iscritto: "#64748b", confermato: "#0369a1", presente: "#15803d", no_show: "#b91c1c", annullato: "#94a3b8" }[s] || "#64748b";
+      const c = { richiesta: "#b45309", iscritto: "#64748b", confermato: "#0369a1", presente: "#15803d", no_show: "#b91c1c", annullato: "#94a3b8", rifiutato: "#94a3b8" }[s] || "#64748b";
       return `<span style="background:${c}1a;color:${c};border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">${esc(s)}</span>`;
     };
     document.getElementById("ev-lista").innerHTML = `
@@ -175,7 +176,7 @@ export async function render(container) {
           ${righe.length ? righe.map(r => `
             <tr style="border-bottom:1px solid #f1f5f9;">
               <td style="padding:9px 6px;"><b>${esc(r.nome)}</b><div style="color:#94a3b8;font-size:11px;">${esc(r.locale || "")}</div></td>
-              <td>${esc(r.tipo_attivita || "-")}<div style="color:#94a3b8;font-size:11px;">${esc(r.citta || "")}</div></td>
+              <td>${esc(r.tipo_attivita || "-")}<div style="color:#94a3b8;font-size:11px;">${esc(r.citta || "")}${r.partita_iva ? " · " + esc(r.partita_iva) : ""}</div></td>
               <td><a href="https://wa.me/${(r.telefono || "").replace(/\D/g, "")}" target="_blank" rel="noopener" style="color:#0369a1;">${esc(r.telefono)}</a></td>
               <td>${r.persone}</td>
               <td>${esc(r.invitato_da || r.canale || "diretto")}</td>
@@ -190,9 +191,10 @@ export async function render(container) {
                 </select>
               </td>
               <td style="white-space:nowrap;">
-                <button class="ev-stato" data-id="${r.id}" data-s="confermato" title="Conferma" style="border:1px solid #bae6fd;background:#f0f9ff;border-radius:6px;padding:4px 7px;cursor:pointer;">✓</button>
+                <button class="ev-stato" data-id="${r.id}" data-s="confermato" title="Accetta la richiesta" style="border:1px solid #bae6fd;background:#f0f9ff;border-radius:6px;padding:4px 7px;cursor:pointer;">✓</button>
+                <button class="ev-stato" data-id="${r.id}" data-s="rifiutato" title="Rifiuta" style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;padding:4px 7px;cursor:pointer;">✕</button>
                 <button class="ev-stato" data-id="${r.id}" data-s="presente" title="Presente in sala" style="border:1px solid #bbf7d0;background:#f0fdf4;border-radius:6px;padding:4px 7px;cursor:pointer;">🚪</button>
-                <button class="ev-stato" data-id="${r.id}" data-s="no_show" title="Non venuto" style="border:1px solid #fecaca;background:#fef2f2;border-radius:6px;padding:4px 7px;cursor:pointer;">✕</button>
+                <button class="ev-stato" data-id="${r.id}" data-s="no_show" title="Non venuto" style="border:1px solid #fecaca;background:#fef2f2;border-radius:6px;padding:4px 7px;cursor:pointer;">🚫</button>
               </td>
             </tr>`).join("")
           : `<tr><td colspan="8" style="padding:16px;color:#94a3b8;">Nessun iscritto. Aggiungili tu man mano, oppure manda in giro un link.</td></tr>`}
