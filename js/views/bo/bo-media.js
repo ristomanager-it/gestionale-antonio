@@ -99,7 +99,7 @@ export async function render(container) {
         <div style="font-size:12px;color:#64748b;margin-bottom:10px;">
           1. Su Drive: tasto destro sulla cartella → <b>Condividi</b> → "Chiunque abbia il link".<br>
           2. Copia il link della cartella e incollalo qui (vanno bene anche link di singoli file).<br>
-          Le <b>sottocartelle</b> vengono lette automaticamente: se una si chiama come una categoria (es. "Vini", "Dolci"), le sue foto prendono quel tag.
+          Le <b>sottocartelle</b> vengono lette automaticamente: se una si chiama come una <b>categoria</b> (es. "Vini", "Dolci") le foto prendono quel tag; se si chiama come una <b>sede</b> (es. "Trattoria", "Catering") le foto vanno a quella sede. Vale anche combinato: "Catering/Vini".
         </div>
         <textarea id="drive-link" rows="2" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" placeholder="https://drive.google.com/drive/folders/..."></textarea>
         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
@@ -272,6 +272,7 @@ export async function render(container) {
           sede_id: window.state?.sedeAttiva?.id || null,
           tag: driveTagSel?.value || "Altro",
           tags_disponibili: TAGS.filter(t => t !== "Tutti"),
+          sedi_disponibili: (window.state?.sedi || []).map(s => ({ id: s.id, nome: s.nome })),
           usa_ai: document.getElementById("drive-ai")?.checked !== false
         })
       });
