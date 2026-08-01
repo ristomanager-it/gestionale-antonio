@@ -185,7 +185,7 @@ export async function render(container) {
 
       <div class="ev-ultima">
         <p>E allora <span class="amb">cos'è?</span></p>
-        <p>Lo dico solo a chi c'è. In una pagina non si racconta.</p>
+        <p>A parole non rende. Il 23 ve lo faccio vedere.</p>
       </div>
 
       <form class="ev-form" id="ev-form" novalidate>
