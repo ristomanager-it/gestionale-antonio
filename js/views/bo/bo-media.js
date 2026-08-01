@@ -75,9 +75,14 @@ export async function render(container) {
     <div class="media-wrap">
       <div class="media-header">
         <div class="media-title">🖼️ Media Library</div>
-        <button class="media-upload-btn" id="btn-upload-media">
-          ➕ Aggiungi foto/video
-        </button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="media-upload-btn" id="btn-upload-media">
+            ➕ Aggiungi foto/video
+          </button>
+          <button class="media-upload-btn" id="btn-import-drive" style="background:#1a73e8;">
+            📁 Importa da Google Drive
+          </button>
+        </div>
       </div>
 
       <!-- Drop zone -->
@@ -87,6 +92,22 @@ export async function render(container) {
         <div class="drop-sub">JPG, PNG, WEBP, MP4 · Max 50MB per file<br>Oppure clicca per sfogliare dal telefono o dal computer</div>
       </div>
       <input type="file" id="file-input" multiple accept="${ACCEPT_TYPES}" style="display:none">
+
+      <!-- Pannello import da Google Drive -->
+      <div id="drive-panel" style="display:none;background:white;border:1px solid #dbeafe;border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px;">📁 Importa foto/video da Google Drive</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">
+          1. Su Drive: tasto destro sulla cartella → <b>Condividi</b> → "Chiunque abbia il link".<br>
+          2. Copia il link della cartella e incollalo qui (vanno bene anche link di singoli file).
+        </div>
+        <textarea id="drive-link" rows="2" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" placeholder="https://drive.google.com/drive/folders/..."></textarea>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+          <select id="drive-tag" class="media-tag-select" style="width:auto;"></select>
+          <button class="media-upload-btn" id="btn-drive-avvia">⬇️ Importa</button>
+          <button class="media-upload-btn" id="btn-drive-chiudi" style="background:#e5e7eb;color:#374151;">Annulla</button>
+          <span id="drive-esito" style="font-size:12px;color:#64748b;"></span>
+        </div>
+      </div>
 
       <!-- Filtri -->
       <input class="media-search" id="media-search" placeholder="🔍 Cerca per nome…" oninput="filterMedia()">
@@ -218,6 +239,52 @@ export async function render(container) {
 
   dropZone.onclick = () => fileInput.click();
   document.getElementById("btn-upload-media").onclick = () => fileInput.click();
+
+  // ── IMPORT DA GOOGLE DRIVE ──────────────────────────────────
+  const drivePanel = document.getElementById("drive-panel");
+  const driveTagSel = document.getElementById("drive-tag");
+  if (driveTagSel) driveTagSel.innerHTML = TAGS.filter(t => t !== "Tutti")
+    .map(t => `<option value="${t}">${t}</option>`).join("");
+
+  document.getElementById("btn-import-drive").onclick = () => {
+    drivePanel.style.display = drivePanel.style.display === "none" ? "block" : "none";
+  };
+  document.getElementById("btn-drive-chiudi").onclick = () => { drivePanel.style.display = "none"; };
+
+  document.getElementById("btn-drive-avvia").onclick = async () => {
+    const testo = document.getElementById("drive-link").value.trim();
+    const esito = document.getElementById("drive-esito");
+    if (!testo) { esito.textContent = "Incolla prima un link Drive."; return; }
+    const btn = document.getElementById("btn-drive-avvia");
+    btn.disabled = true;
+    esito.textContent = "⏳ Importazione in corso… con molte foto può volerci un minuto.";
+    try {
+      const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/import-da-drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          testo,
+          azienda_id: aziendaId,
+          sede_id: window.state?.sedeAttiva?.id || null,
+          tag: driveTagSel?.value || "Altro"
+        })
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        esito.textContent = "❌ " + (data.error || "Errore importazione");
+      } else {
+        const falliti = (data.risultati || []).filter(r => !r.success);
+        esito.textContent = `✅ Importati ${data.importati} su ${data.totale}` +
+          (falliti.length ? ` — ${falliti.length} non importati (controlla la condivisione)` : "");
+        document.getElementById("drive-link").value = "";
+        await caricaMedia();
+      }
+    } catch (e) {
+      esito.textContent = "❌ Errore di rete: " + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  };
 
   fileInput.addEventListener("change", e => gestisciFiles(Array.from(e.target.files)));
 
