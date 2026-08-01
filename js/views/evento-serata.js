@@ -142,7 +142,7 @@ export async function render(container) {
         <h2>Cosa succede quella sera</h2>
         <div class="r"><i>🕢</i><div>Si comincia alle 19:30 e si finisce entro le 23:30.</div></div>
         <div class="r"><i>🍽️</i><div>Si parla a tavola: siete miei ospiti, a casa mia.</div></div>
-        <div class="r"><i>💻</i><div>Niente presentazioni: apro il mio locale davanti a voi, con i numeri di quella giornata.</div></div>
+        <div class="r"><i>💻</i><div>Si guarda dal vivo: incassi, costi, magazzino e sala della giornata appena finita.</div></div>
         <div class="r"><i>👥</i><div>Venite in due: portate chi decide insieme a voi.</div></div>
       </div>
 
