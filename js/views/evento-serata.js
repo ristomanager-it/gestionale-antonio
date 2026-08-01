@@ -144,12 +144,12 @@ export async function render(container) {
 
       <div class="ev-occhiello">Mercoledì 23 settembre 2026 · Campo Antico, Orte</div>
       <h1>Ho smesso di<span>chiamarlo gestionale.</span></h1>
-      <p class="ev-occhiofine">Il 23 settembre vi faccio vedere perché.<br>A tavola da me, sui numeri veri del mio locale.</p>
+      <p class="ev-occhiofine">Il 23 settembre vi faccio vedere perché.<br>Una dimostrazione dal vivo, sui numeri veri del mio locale.</p>
       ${daParte}
 
       <div class="ev-sera">
-        <div class="r"><i>🕢</i><div>Dalle 19:30, a cena. Siete miei ospiti.</div></div>
-        <div class="r"><i>💻</i><div>Vi porto dentro il mio locale: i numeri di quella giornata, dal vivo.</div></div>
+        <div class="r"><i>🕢</i><div>Dalle 19:30. Prima la dimostrazione, poi la cena: siete miei ospiti.</div></div>
+        <div class="r"><i>💻</i><div>Il mio locale aperto davanti a voi, con i numeri di quella giornata.</div></div>
         <div class="r"><i>👥</i><div>Venite in due: portate chi decide con voi.</div></div>
         <div class="r"><i>🧾</i><div>Serata per chi ha un'attività: serve la partita IVA.</div></div>
       </div>
