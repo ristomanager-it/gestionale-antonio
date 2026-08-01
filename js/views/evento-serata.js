@@ -30,6 +30,8 @@ export async function render(container) {
 
   const liberi = disp ? Number(disp.liberi) : null;
   const capienza = disp ? Number(disp.capienza) : 60;
+  const SOGLIA = 20;                       // sotto questa soglia il numero lavora a favore
+  const pochi = liberi !== null && liberi > 0 && liberi <= SOGLIA;
   const chiuso = disp ? !!disp.chiuso : false;
   const daParte = invito && invito.tipo === "agente"
     ? `<p class="ev-daparte">Invito consegnato da <b>${esc(invito.etichetta)}</b></p>` : "";
@@ -152,18 +154,17 @@ export async function render(container) {
         <div class="r"><i>🧾</i><div>Serata per chi ha un'attività: serve la partita IVA.</div></div>
       </div>
 
-      <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : (liberi !== null && liberi <= 15 ? "pochi" : "")}" id="ev-posti-box">
+      <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : (pochi ? "pochi" : "")}" id="ev-posti-box">
         <div class="et">Solo su richiesta</div>
         <div class="num">${
           chiuso || liberi === 0 ? "Tavoli al completo"
-          : liberi === null ? "Sessanta coperti in tutto"
-          : liberi <= 15 ? `<b>Ultimi ${liberi}</b> coperti`
-          : `<b>${liberi}</b> coperti liberi <span style="color:#6B7A83;font-size:19px;">su ${capienza}</span>`}</div>
-        ${liberi === null || chiuso ? "" : `<div class="ev-barrap"><i style="width:${Math.min(100, Math.round((capienza - liberi) / capienza * 100))}%"></i></div>`}
+          : pochi ? `<b>Ultimi ${liberi}</b> coperti`
+          : "Una serata sola, posti contati"}</div>
+        ${pochi ? `<div class="ev-barrap"><i style="width:${Math.min(100, Math.round((capienza - liberi) / capienza * 100))}%"></i></div>` : ""}
         <small>${
           chiuso || liberi === 0
             ? "Scrivetemi e vi metto in lista d'attesa: se qualcuno rinuncia, il posto passa a voi."
-            : "Una sola serata, e non ci sarà una seconda data. Ogni richiesta la valuto io, una per una."}</small>
+            : "Non ci sarà una seconda data, e ogni richiesta la valuto io una per una. Chi prima chiede, prima siede."}</small>
         ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Richiedi il posto</a>`}
       </div>
 
@@ -201,7 +202,7 @@ export async function render(container) {
         <p>A parole non rende. <span class="amb">Non fatevelo raccontare:</span> il 23 venite a vederlo.</p>
       </div>
 
-      <p class="ev-spinta">Una sera sola, sessanta coperti.<br>Chi c'è lo vede, agli altri toccherà farselo raccontare.</p>
+      <p class="ev-spinta">Una sera sola, e i posti sono contati.<br>Chi c'è lo vede, agli altri toccherà farselo raccontare.</p>
 
       <form class="ev-form" id="ev-form" novalidate>
         <h2>Richiedi il tuo posto</h2>
@@ -292,18 +293,21 @@ export async function render(container) {
   function aggiornaSlot() {
     const n = parseInt(selPersone.value, 10) || 1;
     if (chiuso) { slot.className = "ev-slot ko"; slot.textContent = "Prenotazioni chiuse."; btn.disabled = true; return; }
-    if (liberiOra === null) { slot.className = "ev-slot ok"; slot.textContent = "Posti limitati alla capienza della sala."; return; }
-    if (liberiOra <= 0) { slot.className = "ev-slot ko"; slot.textContent = "Tavoli al completo. Scriveteci per la lista d'attesa."; btn.disabled = true; return; }
-    if (n > liberiOra) { slot.className = "ev-slot ko"; slot.textContent = `Restano solo ${liberiOra} coperti: riducete il numero o scriveteci.`; btn.disabled = true; return; }
+    if (liberiOra === null) { slot.className = "ev-slot ok"; slot.textContent = "Posti limitati: la richiesta viene valutata una per una."; return; }
+    if (liberiOra <= 0) { slot.className = "ev-slot ko"; slot.textContent = "Tavoli al completo. Scrivetemi per la lista d'attesa."; btn.disabled = true; return; }
+    if (n > liberiOra) { slot.className = "ev-slot ko"; slot.textContent = `Restano solo ${liberiOra} coperti: riducete il numero o scrivetemi.`; btn.disabled = true; return; }
     slot.className = "ev-slot ok";
-    slot.textContent = `Disponibile — ${liberiOra} coperti liberi su ${disp ? disp.capienza : "-"}`;
+    slot.textContent = liberiOra <= SOGLIA
+      ? `Ci stanno ancora: ultimi ${liberiOra} coperti`
+      : "Ci stanno: la richiesta la valuto io e vi rispondo su WhatsApp";
     btn.disabled = false;
   }
   aggiornaSlot();
   selPersone.addEventListener("change", aggiornaSlot);
 
   const barraPosti = document.getElementById("ev-barra-posti");
-  if (barraPosti) barraPosti.textContent = liberiOra === null ? "Campo Antico" : `restano ${liberiOra} posti`;
+  if (barraPosti) barraPosti.textContent =
+    (liberiOra !== null && liberiOra > 0 && liberiOra <= SOGLIA) ? `ultimi ${liberiOra} coperti` : "Campo Antico, Orte";
 
   const vai = (e) => { if (e) e.preventDefault(); form.scrollIntoView({ behavior: "smooth", block: "start" }); };
   ["ev-vai", "ev-vai2"].forEach((id) => { const el = document.getElementById(id); if (el) el.addEventListener("click", vai); });
