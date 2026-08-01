@@ -75,6 +75,9 @@ export async function render(container) {
       .ev-posti a{display:block;text-align:center;background:var(--navy);color:#fff;text-decoration:none;
         font-weight:700;font-size:17px;padding:15px;border-radius:12px;margin-top:16px;}
 
+      .ev-chisono{font-size:17.5px;line-height:1.6;color:#3D4C55;text-align:center;
+        max-width:540px;margin:0 auto 34px;padding-bottom:26px;border-bottom:1px solid var(--riga);}
+      .ev-chisono b{color:var(--testo);}
       .ev-passo{margin-bottom:32px;padding-left:20px;border-left:3px solid var(--riga);}
       .ev-passo.p1{border-color:var(--arancio);}
       .ev-passo.p2{border-color:var(--azzurro);}
@@ -142,16 +145,46 @@ export async function render(container) {
 
       <div class="ev-marchio"><img src="assets/ristoflow-logo.png" alt="Ristoflow.AI"></div>
 
-      <div class="ev-occhiello">Mercoledì 23 settembre 2026 · Campo Antico, Orte</div>
-      <h1>Ho smesso di<span>chiamarlo gestionale.</span></h1>
-      <p class="ev-occhiofine">Il 23 settembre vi faccio vedere perché.<br>Una dimostrazione dal vivo, sui numeri veri del mio locale.</p>
+      <div class="ev-occhiello">23 settembre 2026 · Campo Antico, Orte</div>
+      <h1>Per anni ho lavorato al buio.<span>Il 23 vi mostro cosa vedo adesso.</span></h1>
       ${daParte}
+
+      <p class="ev-chisono">Mi chiamo <b>Antonio Carullo</b>. Trattoria, centro cottura e catering:
+      tre attività, tredici persone, tutti i giorni. Non vendo software — ne avevo bisogno io.</p>
+
+      <div class="ev-passo p1">
+        <div class="et">Com'è cominciata</div>
+        <h2>Il piatto che vendevo di più mi faceva perdere 2,20 € a porzione</h2>
+        <p>L'ho scoperto per caso, dopo due anni. Non ero disorganizzato:
+        non avevo modo di saperlo.</p>
+      </div>
+
+      <div class="ev-passo p2">
+        <div class="et">Cosa vedrete</div>
+        <h2>Quattro cose, dal vivo, sul mio locale</h2>
+        <div class="ev-elenco">
+          <div class="ev-el"><i>①</i><div>Una fattura del fornitore che <b>entra da sola</b> e cambia i costi mentre ne parliamo</div></div>
+          <div class="ev-el"><i>②</i><div>Un piatto <b>dettato a voce</b> che diventa ricetta, col costo al centesimo</div></div>
+          <div class="ev-el"><i>③</i><div>Il conto di una serata <b>mentre la serata finisce</b>: quanto in merce, quanto in persone</div></div>
+          <div class="ev-el"><i>④</i><div>I clienti che non entrano da sei mesi, <b>con il messaggio già pronto</b></div></div>
+        </div>
+
+        <div class="ev-piu">
+          <p class="cap">E poi cose che quella sera si vedono e basta.</p>
+          <ul>
+            <li>Cosa si prepara domani, e quanto</li>
+            <li>Il bilancio senza aspettare marzo</li>
+            <li>Quanto rende ogni persona</li>
+            <li>Il telefono che risponde per voi</li>
+            <li>Sito e campagne sui vostri numeri</li>
+            <li>Come si sceglie chi assumere</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="ev-sera">
         <div class="r"><i>🕢</i><div>Dalle 19:30. Prima la dimostrazione, poi la cena: siete miei ospiti.</div></div>
-        <div class="r"><i>💻</i><div>Il mio locale aperto davanti a voi, con i numeri di quella giornata.</div></div>
         <div class="r"><i>👥</i><div>Venite in due: portate chi decide con voi.</div></div>
-        <div class="r"><i>🧾</i><div>Serata per chi ha un'attività: serve la partita IVA.</div></div>
       </div>
 
       <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : (pochi ? "pochi" : "")}" id="ev-posti-box">
@@ -168,46 +201,15 @@ export async function render(container) {
         ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Richiedi il posto</a>`}
       </div>
 
-      <div class="ev-passo p1">
-        <div class="et">Perché lo faccio</div>
-        <h2>Il piatto che vendevo di più mi faceva perdere 2,20 € a porzione</h2>
-        <p>Quello che consigliavamo noi. Più ne vendevo, più ci rimettevo, e non avevo
-        modo di saperlo.</p>
-      </div>
-
-      <div class="ev-passo p2">
-        <div class="et">Cosa ci si porta a casa</div>
-        <h2>Sapere prima, invece di scoprire dopo</h2>
-        <div class="ev-elenco">
-          <div class="ev-el"><i>①</i><div>Quanto rende un piatto, <b>mentre lo vendete</b></div></div>
-          <div class="ev-el"><i>②</i><div>Quanto costa un servizio, <b>tra merce e persone</b></div></div>
-          <div class="ev-el"><i>③</i><div>Chi torna, e <b>chi non si vede da sei mesi</b></div></div>
-        </div>
-
-        <div class="ev-piu">
-          <p class="cap">E poi cose che quella sera si vedono e basta.</p>
-          <ul>
-            <li>Cosa si prepara domani, e quanto</li>
-            <li>Ricette che si scrivono quasi da sole</li>
-            <li>Il bilancio senza aspettare marzo</li>
-            <li>Quanto rende ogni persona</li>
-            <li>Il telefono che risponde per voi</li>
-            <li>Sito e campagne sui vostri numeri</li>
-          </ul>
-        </div>
-      </div>
-
       <div class="ev-ultima">
-        <p>E allora <span class="amb">cos'è?</span></p>
-        <p>A parole non rende. <span class="amb">Non fatevelo raccontare:</span> il 23 venite a vederlo.</p>
+        <p>E poi c'è <span class="amb">un'ultima cosa</span>, che qui non scrivo.</p>
+        <p>È quella per cui ho smesso di chiamarlo gestionale.</p>
       </div>
-
-      <p class="ev-spinta">Una sera sola, e i posti sono contati.<br>Chi c'è lo vede, agli altri toccherà farselo raccontare.</p>
 
       <form class="ev-form" id="ev-form" novalidate>
         <h2>Richiedi il tuo posto</h2>
-        <p class="intro">La serata è per chi ha un'attività: per questo servono locale e partita IVA.
-        Vi rispondo su WhatsApp con la conferma del tavolo.</p>
+        <p class="intro">Due dati sulla vostra attività, così so chi ho a tavola.
+        Vi rispondo su WhatsApp con la conferma.</p>
 
         <label for="ev-nome">Nome e cognome *</label>
         <input id="ev-nome" type="text" autocomplete="name">
@@ -220,7 +222,7 @@ export async function render(container) {
 
         <div class="ev-due">
           <div>
-            <label for="ev-tipo">Che attività avete *</label>
+            <label for="ev-tipo">Che attività *</label>
             <select id="ev-tipo">
               <option value="">Scegli…</option>
               <option>ristorante</option><option>pizzeria</option><option>trattoria</option>
@@ -264,7 +266,7 @@ export async function render(container) {
       </form>
 
       <div class="ev-ok" id="ev-ok">
-        <h2>Tavolo prenotato</h2>
+        <h2>Ci vediamo il 23</h2>
         <p>Vi arriva un messaggio di conferma e un promemoria nei giorni prima.<br><br>
         <b>Mercoledì 23 settembre, dalle 19:30<br>Campo Antico — Orte</b></p>
         <div class="cod" id="ev-riepilogo"></div>
