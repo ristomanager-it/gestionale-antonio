@@ -20,6 +20,9 @@ export async function render(container) {
       .pr-esito{text-align:center;margin-bottom:26px;}
       .pr-esito .segno{width:56px;height:56px;border-radius:50%;background:#EAF5E3;color:#2F6B1E;
         display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px;}
+      .pr-esito .segno.attesa{background:#FEF6E0;color:#9A6A00;}
+      .pr-attesa{background:#FEF6E0;border:1px solid #F5DFA0;color:#7A5300;border-radius:12px;
+        padding:13px 15px;font-size:15.5px;line-height:1.55;margin-top:14px;text-align:left;}
       .pr-esito h1{font-family:Georgia,serif;font-size:27px;margin:0 0 8px;color:var(--navy);}
       .pr-esito p{margin:0;font-size:17px;color:#3D4C55;line-height:1.55;}
       .pr-card{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:20px;margin-bottom:16px;}
@@ -74,7 +77,8 @@ export async function render(container) {
   const dt = ev.data_ora ? new Date(ev.data_ora) : null;
   const giorno = dt ? dt.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
   const ora = dt ? dt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "";
-  const annullata = d.stato === "annullato";
+  const annullata = d.stato === "annullato" || d.stato === "rifiutato";
+  const inAttesa = d.stato === "richiesta";
   const maps = "https://maps.google.com/?q=" + encodeURIComponent(ev.maps_query || ev.luogo || "");
   const tel = (ev.telefono || "").replace(/\D/g, "");
 
@@ -85,18 +89,26 @@ export async function render(container) {
     + "&details=" + encodeURIComponent("Prenotazione a nome di " + d.nome)) : "#";
 
   container.innerHTML = guscio(`
-    ${annullata ? `<div class="pr-annullata">Questa prenotazione è stata annullata. Se hai cambiato idea, scrivici: il posto lo rimettiamo.</div>` : `
+    ${annullata ? `<div class="pr-annullata">Questa richiesta non è più attiva. Se hai cambiato idea scrivimi: se c'è posto lo rimettiamo.</div>` : (inAttesa ? `
+    <div class="pr-esito">
+      <div class="segno attesa">🕐</div>
+      <h1>Grazie, richiesta ricevuta</h1>
+      <p>A nome di <b>${esc(d.nome)}</b>${d.locale ? " · " + esc(d.locale) : ""}</p>
+      <div class="pr-attesa">Il tavolo è messo da parte. Vi confermo io entro poche ore
+      con un messaggio su WhatsApp: da lì in poi il posto è vostro.</div>
+    </div>` : `
     <div class="pr-esito">
       <div class="segno">✓</div>
-      <h1>Tavolo prenotato</h1>
+      <h1>Tavolo confermato</h1>
       <p>A nome di <b>${esc(d.nome)}</b>${d.locale ? " · " + esc(d.locale) : ""}</p>
-    </div>`}
+    </div>`)}
 
     <div class="pr-card">
       <h2>La serata</h2>
       <div class="pr-riga"><i>📅</i><div><b>${cap(giorno)}</b><br>dalle ${ora}</div></div>
       <div class="pr-riga"><i>📍</i><div>${esc(ev.luogo || "")}${ev.indirizzo ? "<br>" + esc(ev.indirizzo) : ""}</div></div>
       <div class="pr-riga"><i>👥</i><div><b>${d.persone}</b> ${d.persone === 1 ? "coperto" : "coperti"}</div></div>
+      ${d.locale ? `<div class="pr-riga"><i>🏠</i><div>${esc(d.locale)}${d.partita_iva ? " · P.IVA " + esc(d.partita_iva) : ""}</div></div>` : ""}
       ${d.note ? `<div class="pr-riga"><i>📝</i><div>${esc(d.note)}</div></div>` : ""}
       <a class="pr-btn pr-primario" href="${maps}" target="_blank" rel="noopener">🗺️ Apri in Google Maps</a>
       <a class="pr-btn pr-secondario" href="${gcal}" target="_blank" rel="noopener">📆 Aggiungi al calendario</a>
@@ -104,7 +116,7 @@ export async function render(container) {
 
     ${annullata ? "" : `
     <div class="pr-card pr-form">
-      <h2>Cambiare qualcosa</h2>
+      <h2>${inAttesa ? "Correggere la richiesta" : "Cambiare qualcosa"}</h2>
       <label for="pr-persone">Coperti</label>
       <select id="pr-persone">
         ${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}"${n === d.persone ? " selected" : ""}>${n} ${n === 1 ? "coperto" : "coperti"}</option>`).join("")}
@@ -113,7 +125,7 @@ export async function render(container) {
       <textarea id="pr-note" rows="2">${esc(d.note || "")}</textarea>
       <button class="pr-btn pr-primario" id="pr-salva">Salva le modifiche</button>
       <div class="pr-avviso" id="pr-avviso"></div>
-      <button class="pr-btn pr-rosso" id="pr-annulla">Non posso venire</button>
+      <button class="pr-btn pr-rosso" id="pr-annulla">${inAttesa ? "Ritiro la richiesta" : "Non posso venire"}</button>
       <p class="pr-mini">Se disdici liberi il posto per qualcun altro: è la cosa più utile che puoi fare.</p>
     </div>`}
 

@@ -141,6 +141,7 @@ export async function render(container) {
         <div class="r"><i>🕢</i><div>19:30 – 23:30, si parla a tavola. Siete miei ospiti.</div></div>
         <div class="r"><i>💻</i><div>Niente slide: apro il mio locale, con i numeri della giornata.</div></div>
         <div class="r"><i>👥</i><div>Venite in due: portate chi decide con voi.</div></div>
+        <div class="r"><i>🧾</i><div>Serata per chi ha un'attività: serve la partita IVA.</div></div>
       </div>
 
       <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : ""}" id="ev-posti-box">
@@ -151,7 +152,7 @@ export async function render(container) {
             : liberi > 0 ? `Restano ${liberi} posti a tavola` : "Tavoli al completo"}</b>
           <small>${chiuso || liberi === 0 ? "Scriveteci: vi teniamo in lista d'attesa." : "La sala è quella che è: quando finisce, finisce."}</small>
         </div>
-        ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Prenota il tavolo</a>`}
+        ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Richiedi il posto</a>`}
       </div>
 
       <div class="ev-passo p1">
@@ -189,14 +190,18 @@ export async function render(container) {
       </div>
 
       <form class="ev-form" id="ev-form" novalidate>
-        <h2>Prenota il tavolo</h2>
-        <p class="intro">Il posto è vostro appena confermate.</p>
+        <h2>Richiedi il tuo posto</h2>
+        <p class="intro">La serata è per chi ha un'attività: per questo chiediamo locale e partita IVA.
+        Ricevuta la richiesta vi confermo io il tavolo.</p>
 
         <label for="ev-nome">Nome e cognome *</label>
         <input id="ev-nome" type="text" autocomplete="name">
 
-        <label for="ev-locale">Nome del locale</label>
+        <label for="ev-locale">Nome del locale *</label>
         <input id="ev-locale" type="text">
+
+        <label for="ev-piva">Partita IVA *</label>
+        <input id="ev-piva" type="text" inputmode="numeric" placeholder="11 cifre">
 
         <div class="ev-due">
           <div>
@@ -238,7 +243,7 @@ export async function render(container) {
 
         <div class="ev-slot ${liberi === null || liberi > 0 ? "ok" : "ko"}" id="ev-slot"></div>
 
-        <button type="submit" id="ev-invia">Confermo la prenotazione</button>
+        <button type="submit" id="ev-invia">Invia la richiesta</button>
         <div class="ev-errore" id="ev-errore"></div>
         <p class="ev-privacy">I dati servono solo per la serata. Nessuna newsletter.</p>
       </form>
@@ -254,7 +259,7 @@ export async function render(container) {
 
       <div class="ev-barra" id="ev-barra">
         <span><b>23 settembre, ore 19:30</b><span id="ev-barra-posti"></span></span>
-        <a href="#/evento-serata" id="ev-vai2">Prenota</a>
+        <a href="#/evento-serata" id="ev-vai2">Richiedi</a>
       </div>
 
     </div></div>
@@ -305,7 +310,8 @@ export async function render(container) {
     const d = {
       evento_slug: EVENTO,
       nome: val("ev-nome"),
-      locale: val("ev-locale") || null,
+      locale: val("ev-locale"),
+      partita_iva: val("ev-piva").replace(/\s/g, ""),
       tipo_attivita: val("ev-tipo") || null,
       citta: val("ev-citta") || null,
       telefono: val("ev-tel"),
@@ -318,7 +324,9 @@ export async function render(container) {
     };
 
     if (!d.nome) return errore("Manca il nome.");
+    if (!d.locale) return errore("Manca il nome del locale.");
     if (!d.tipo_attivita) return errore("Dicci che tipo di attività avete.");
+    if (!/^[0-9]{11}$/.test(d.partita_iva)) return errore("La partita IVA deve essere di 11 cifre.");
     if (d.telefono.replace(/\D/g, "").length < 8) return errore("Il numero di telefono non sembra completo.");
 
     btn.disabled = true; btn.textContent = "Un attimo…";
@@ -326,7 +334,7 @@ export async function render(container) {
       .from("evento_iscrizioni").insert(d).select("token_pubblico").maybeSingle();
     if (error) {
       console.error(error);
-      btn.disabled = false; btn.textContent = "Confermo la prenotazione";
+      btn.disabled = false; btn.textContent = "Invia la richiesta";
       // la capienza e' controllata anche dal database: se nel frattempo si e' riempita, si dice qui
       if (/esaurit|chius/i.test(error.message || "")) {
         try {
