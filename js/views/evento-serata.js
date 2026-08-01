@@ -29,6 +29,7 @@ export async function render(container) {
   } catch (e) { /* si prosegue comunque */ }
 
   const liberi = disp ? Number(disp.liberi) : null;
+  const capienza = disp ? Number(disp.capienza) : 60;
   const chiuso = disp ? !!disp.chiuso : false;
   const daParte = invito && invito.tipo === "agente"
     ? `<p class="ev-daparte">Invito consegnato da <b>${esc(invito.etichetta)}</b></p>` : "";
@@ -59,13 +60,18 @@ export async function render(container) {
       .ev-sera .r:first-of-type{border-top:none;}
       .ev-sera .r i{font-style:normal;flex:0 0 22px;}
 
-      .ev-posti{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-        background:#F3F8EF;border:1px solid #CFE4C2;border-radius:14px;padding:15px 18px;margin-bottom:30px;}
-      .ev-posti.pieno{background:#FEF2F2;border-color:#FECACA;}
-      .ev-posti b{font-size:18px;}
-      .ev-posti small{display:block;color:var(--muto);font-size:14.5px;margin-top:3px;}
-      .ev-posti a{background:var(--navy);color:#fff;text-decoration:none;font-weight:700;font-size:16.5px;
-        padding:12px 22px;border-radius:100px;white-space:nowrap;}
+      .ev-posti{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:18px 20px;margin-bottom:30px;}
+      .ev-posti.pochi{border-color:#F5DFA0;background:#FFFBF0;}
+      .ev-posti.pieno{border-color:#FECACA;background:#FEF2F2;}
+      .ev-posti .et{font-size:11.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
+        color:var(--arancio);margin-bottom:10px;}
+      .ev-posti .num{font-family:Georgia,serif;font-size:26px;line-height:1.25;color:var(--navy);margin-bottom:4px;}
+      .ev-posti .num b{font-size:34px;}
+      .ev-posti small{display:block;color:var(--muto);font-size:15px;line-height:1.5;margin-top:4px;}
+      .ev-barrap{height:8px;border-radius:6px;background:#EDE9E0;overflow:hidden;margin:14px 0 4px;}
+      .ev-barrap i{display:block;height:100%;background:linear-gradient(90deg,var(--ambra),var(--arancio));}
+      .ev-posti a{display:block;text-align:center;background:var(--navy);color:#fff;text-decoration:none;
+        font-weight:700;font-size:17px;padding:15px;border-radius:12px;margin-top:16px;}
 
       .ev-passo{margin-bottom:32px;padding-left:20px;border-left:3px solid var(--riga);}
       .ev-passo.p1{border-color:var(--arancio);}
@@ -146,14 +152,18 @@ export async function render(container) {
         <div class="r"><i>🧾</i><div>Serata per chi ha un'attività: serve la partita IVA.</div></div>
       </div>
 
-      <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : ""}" id="ev-posti-box">
-        <div>
-          <b id="ev-posti-testo">${
-            chiuso ? "Prenotazioni chiuse"
-            : liberi === null ? "Posti limitati alla capienza della sala"
-            : liberi > 0 ? `Restano ${liberi} posti a tavola` : "Tavoli al completo"}</b>
-          <small>${chiuso || liberi === 0 ? "Scriveteci: vi teniamo in lista d'attesa." : "La sala è quella che è: quando finisce, finisce."}</small>
-        </div>
+      <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : (liberi !== null && liberi <= 15 ? "pochi" : "")}" id="ev-posti-box">
+        <div class="et">Solo su richiesta</div>
+        <div class="num">${
+          chiuso || liberi === 0 ? "Tavoli al completo"
+          : liberi === null ? "Sessanta coperti in tutto"
+          : liberi <= 15 ? `<b>Ultimi ${liberi}</b> coperti`
+          : `<b>${liberi}</b> coperti liberi <span style="color:#6B7A83;font-size:19px;">su ${capienza}</span>`}</div>
+        ${liberi === null || chiuso ? "" : `<div class="ev-barrap"><i style="width:${Math.min(100, Math.round((capienza - liberi) / capienza * 100))}%"></i></div>`}
+        <small>${
+          chiuso || liberi === 0
+            ? "Scrivetemi e vi metto in lista d'attesa: se qualcuno rinuncia, il posto passa a voi."
+            : "Una sola serata, e non ci sarà una seconda data. Ogni richiesta la valuto io, una per una."}</small>
         ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Richiedi il posto</a>`}
       </div>
 
