@@ -94,6 +94,8 @@ export async function render(container) {
       .ev-ultima p + p{margin-top:11px;font-size:17px;color:#CFE0E8;}
       .ev-ultima .amb{color:var(--ambra);font-weight:700;}
 
+      .ev-spinta{text-align:center;font-family:Georgia,serif;font-size:19px;line-height:1.5;
+        color:var(--navy);margin:0 0 16px;}
       .ev-form{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:24px 22px;}
       .ev-form h2{font-family:Georgia,serif;font-size:23px;margin:0 0 5px;color:var(--navy);}
       .ev-form .intro{font-size:15.5px;color:var(--muto);margin-bottom:16px;line-height:1.55;}
@@ -186,8 +188,10 @@ export async function render(container) {
 
       <div class="ev-ultima">
         <p>E allora <span class="amb">cos'è?</span></p>
-        <p>A parole non rende. Il 23 ve lo faccio vedere.</p>
+        <p>A parole non rende. <span class="amb">Non fatevelo raccontare:</span> il 23 venite a vederlo.</p>
       </div>
+
+      <p class="ev-spinta">Una sera sola, sessanta coperti.<br>Chi c'è lo vede, agli altri toccherà farselo raccontare.</p>
 
       <form class="ev-form" id="ev-form" novalidate>
         <h2>Richiedi il tuo posto</h2>
