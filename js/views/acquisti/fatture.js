@@ -2330,6 +2330,16 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     html += '</div>';
     html += '<div style="font-size:12px;color:#64748b;margin-bottom:8px;padding-left:20px;">' + (r.quantita ?? "-") + ' ' + escapeHtml(r.unita_misura || "") + ' · € ' + formatMoney(r.prezzo_unitario || 0) + '/u · tot € ' + formatMoney(r.totale_riga || 0) + '</div>';
 
+    // Riga a valore negativo (omaggio/sconto): indica quale riga della fattura sta compensando
+    const totR = Number(r.totale_riga);
+    if (Number.isFinite(totR) && totR < 0) {
+      const compensata = righe.find(x => x.id !== r.id && Math.abs(Number(x.totale_riga) + totR) < 0.005);
+      if (compensata) {
+        const nomeC = compensata.prodotto_id ? (mappaProd.get(String(compensata.prodotto_id)) || "") : "";
+        html += '<div style="font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 8px;margin:0 0 8px 20px;">🎁 Compensa la riga ' + (compensata.numero_riga || "?") + ': ' + escapeHtml(compensata.descrizione_originale || "") + (nomeC ? ' → ' + escapeHtml(nomeC) : '') + ' — la merce è già caricata da quella riga</div>';
+      }
+    }
+
     if (ESCLUSE.has(r.match_metodo)) {
       const etichetta = r.match_metodo === 'descrittiva'
         ? '📄 Riga descrittiva (riferimento documento / sconto) — esclusa dal magazzino'
