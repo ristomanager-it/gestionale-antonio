@@ -261,32 +261,58 @@ export async function render(container) {
     if (!testo) { esito.textContent = "Incolla prima un link Drive."; return; }
     const btn = document.getElementById("btn-drive-avvia");
     btn.disabled = true;
-    esito.textContent = "⏳ Importazione in corso… con molte foto può volerci un minuto.";
-    try {
-      const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/import-da-drive", {
+
+    const EF_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/import-da-drive";
+    const base = {
+      azienda_id: aziendaId,
+      sede_id: window.state?.sedeAttiva?.id || null,
+      tag: driveTagSel?.value || "Altro",
+      tags_disponibili: TAGS.filter(t => t !== "Tutti"),
+      sedi_disponibili: (window.state?.sedi || []).map(s => ({ id: s.id, nome: s.nome })),
+      usa_ai: document.getElementById("drive-ai")?.checked !== false
+    };
+    const chiama = async (payload) => {
+      const r = await fetch(EF_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          testo,
-          azienda_id: aziendaId,
-          sede_id: window.state?.sedeAttiva?.id || null,
-          tag: driveTagSel?.value || "Altro",
-          tags_disponibili: TAGS.filter(t => t !== "Tutti"),
-          sedi_disponibili: (window.state?.sedi || []).map(s => ({ id: s.id, nome: s.nome })),
-          usa_ai: document.getElementById("drive-ai")?.checked !== false
-        })
+        body: JSON.stringify(Object.assign({}, base, payload))
       });
-      const data = await resp.json();
-      if (!data.success) {
-        esito.textContent = "❌ " + (data.error || "Errore importazione");
-      } else {
-        const falliti = (data.risultati || []).filter(r => !r.success);
-        esito.textContent = `✅ Importati ${data.importati} su ${data.totale}` +
-          (data.rinominati_ai ? ` · 🤖 ${data.rinominati_ai} nominati dall'AI` : "") +
-          (falliti.length ? ` — ${falliti.length} non importati (condivisione o dimensione)` : "");
-        document.getElementById("drive-link").value = "";
-        await caricaMedia();
+      return await r.json();
+    };
+
+    try {
+      // 1) Elenco dei file (veloce, non scarica nulla)
+      esito.textContent = "🔎 Leggo la cartella…";
+      const lista = await chiama({ testo, solo_lista: true });
+      if (!lista.success || !lista.file?.length) {
+        esito.textContent = "❌ " + (lista.error || "Nessun file trovato nella cartella");
+        return;
       }
+
+      // 2) Import a blocchi da 8: nessun timeout anche con AI e tante foto
+      const BATCH = 8;
+      let importati = 0, falliti = 0, conAI = 0;
+      for (let i = 0; i < lista.file.length; i += BATCH) {
+        esito.textContent = `⏳ Importate ${importati} di ${lista.file.length}…` + (conAI ? ` · 🤖 ${conAI}` : "");
+        const blocco = lista.file.slice(i, i + BATCH);
+        try {
+          const r = await chiama({ file_batch: blocco });
+          if (r.success) {
+            importati += r.importati || 0;
+            conAI += r.rinominati_ai || 0;
+            falliti += (r.risultati || []).filter(x => !x.success).length;
+          } else {
+            falliti += blocco.length;
+          }
+        } catch { falliti += blocco.length; }
+        renderGriglia && await caricaMedia(); // la griglia si riempie man mano
+      }
+
+      esito.textContent = `✅ Importate ${importati} su ${lista.file.length}` +
+        (conAI ? ` · 🤖 ${conAI} nominate dall'AI` : "") +
+        (falliti ? ` — ${falliti} non importate (condivisione o dimensione)` : "");
+      document.getElementById("drive-link").value = "";
+      await caricaMedia();
     } catch (e) {
       esito.textContent = "❌ Errore di rete: " + e.message;
     } finally {
