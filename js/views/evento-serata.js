@@ -94,6 +94,17 @@ export async function render(container) {
       .ev-ok h2{font-family:Georgia,serif;color:var(--navy);margin:0 0 12px;font-size:24px;}
       .ev-ok p{font-size:15.5px;color:#3D4C55;line-height:1.7;margin:0;}
       .ev-foot{text-align:center;margin-top:46px;font-size:12.5px;color:var(--muto);line-height:1.9;}
+      .ev-sub{display:inline-block;margin-top:6px;font-size:14.5px;font-weight:700;color:var(--navy);
+        text-decoration:none;border-bottom:2px solid var(--ambra);padding-bottom:2px;}
+      .ev-barra{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(251,250,247,.97);
+        border-top:1px solid var(--riga);padding:10px 16px;display:none;
+        align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -6px 20px rgba(0,0,0,.06);}
+      .ev-barra.on{display:flex;}
+      .ev-barra span{font-size:13px;color:var(--muto);line-height:1.35;}
+      .ev-barra b{display:block;color:var(--testo);font-size:14px;}
+      .ev-barra a{background:var(--navy);color:#fff;text-decoration:none;font-weight:700;font-size:14.5px;
+        padding:11px 20px;border-radius:100px;white-space:nowrap;}
+      .ev-page{padding-bottom:0;}
     </style>
 
     <div class="ev-page"><div class="ev-in">
@@ -114,6 +125,8 @@ export async function render(container) {
         le mie cucine.
         <span class="nome">Antonio Carullo — Campo Antico Ricevimenti</span>
       </p>
+
+      <p style="margin:-30px 0 44px;"><a href="#/evento-serata" class="ev-sub" id="ev-vai">Tengo il posto ↓</a></p>
 
       <div class="ev-passo p1">
         <div class="et">Perché</div>
@@ -225,8 +238,35 @@ export async function render(container) {
 
       <div class="ev-foot">Ristoflow.AI — Nato in cucina. Non in laboratorio.</div>
 
+      <div class="ev-barra" id="ev-barra">
+        <span><b>Mercoledì 23 settembre</b>Campo Antico, dalle 19:30</span>
+        <a href="#/evento-serata" id="ev-vai2">Tengo il posto</a>
+      </div>
+
     </div></div>
   `;
+
+  const vaiAlModulo = (e) => {
+    if (e) e.preventDefault();
+    const f = document.getElementById("ev-form");
+    if (f) f.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  ["ev-vai", "ev-vai2"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("click", vaiAlModulo);
+  });
+
+  const barra = document.getElementById("ev-barra");
+  const modulo = document.getElementById("ev-form");
+  const aggiornaBarra = () => {
+    if (!barra || !modulo) return;
+    const y = window.scrollY || 0;
+    const moduloVisibile = modulo.getBoundingClientRect().top < window.innerHeight - 80;
+    const inviato = modulo.style.display === "none";
+    barra.classList.toggle("on", y > 320 && !moduloVisibile && !inviato);
+  };
+  window.addEventListener("scroll", aggiornaBarra, { passive: true });
+  aggiornaBarra();
 
   const form = document.getElementById("ev-form");
   const btn = document.getElementById("ev-invia");
@@ -264,6 +304,7 @@ export async function render(container) {
       return errore("Non è andata. Riprova, oppure scrivici su WhatsApp al 333 948 7644.");
     }
     form.style.display = "none";
+    if (barra) barra.classList.remove("on");
     document.getElementById("ev-ok").style.display = "block";
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
