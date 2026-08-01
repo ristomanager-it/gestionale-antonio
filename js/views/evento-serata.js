@@ -322,7 +322,8 @@ export async function render(container) {
     if (d.telefono.replace(/\D/g, "").length < 8) return errore("Il numero di telefono non sembra completo.");
 
     btn.disabled = true; btn.textContent = "Un attimo…";
-    const { error } = await supabase.from("evento_iscrizioni").insert(d);
+    const { data: creata, error } = await supabase
+      .from("evento_iscrizioni").insert(d).select("token_pubblico").maybeSingle();
     if (error) {
       console.error(error);
       btn.disabled = false; btn.textContent = "Confermo la prenotazione";
@@ -338,6 +339,11 @@ export async function render(container) {
       return errore("Non è andata. Riprova, oppure scrivici su WhatsApp al 333 948 7644.");
     }
 
+    // si atterra sulla scheda della propria prenotazione: mappa, calendario, modifica, disdetta
+    if (creata && creata.token_pubblico) {
+      window.location.hash = "#/evento-prenotazione?t=" + creata.token_pubblico;
+      return;
+    }
     document.getElementById("ev-riepilogo").textContent =
       `${d.persone} ${d.persone === 1 ? "coperto" : "coperti"} a nome di ${d.nome}`;
     form.style.display = "none";
