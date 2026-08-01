@@ -148,8 +148,8 @@ export async function render(container) {
       ${daParte}
 
       <div class="ev-sera">
-        <div class="r"><i>🕢</i><div>Dalle 19:30, si parla a tavola. Siete miei ospiti.</div></div>
-        <div class="r"><i>💻</i><div>Poche slide, e poi il locale dal vivo con i numeri della giornata.</div></div>
+        <div class="r"><i>🕢</i><div>Dalle 19:30, a cena. Siete miei ospiti.</div></div>
+        <div class="r"><i>💻</i><div>Vi porto dentro il mio locale: i numeri di quella giornata, dal vivo.</div></div>
         <div class="r"><i>👥</i><div>Venite in due: portate chi decide con voi.</div></div>
         <div class="r"><i>🧾</i><div>Serata per chi ha un'attività: serve la partita IVA.</div></div>
       </div>
