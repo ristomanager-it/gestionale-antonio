@@ -263,7 +263,8 @@ export async function render(container) {
       contatto = await trovaOCreaContatto({ nome, cognome, telefono });
     }
     let contattoId = clienteSelezionato || contatto?.id || null;
-    if (contattoId && contattoId.length < 20) contattoId = null;
+    contattoId = (contattoId === null || contattoId === "") ? null : Number(contattoId);
+    if (!Number.isFinite(contattoId)) contattoId = null;
 
     // Upload allegati su storage (bucket media-aziende)
     let allegatiSalvati = [];
