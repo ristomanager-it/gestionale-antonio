@@ -184,21 +184,16 @@ export async function render(container) {
 
       <div class="ev-sera">
         <div class="r"><i>🕢</i><div>Dalle 19:30. Prima la dimostrazione, poi la cena: siete miei ospiti.</div></div>
-        <div class="r"><i>👥</i><div>Venite in due: portate chi decide con voi.</div></div>
       </div>
 
       <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : (pochi ? "pochi" : "")}" id="ev-posti-box">
-        <div class="et">Su invito · posti contati</div>
         <div class="num">${
-          chiuso || liberi === 0 ? "Tavoli al completo"
-          : pochi ? `<b>Ultimi ${liberi}</b> coperti`
-          : "Una sera sola.<br>E il tavolo non si allunga."}</div>
-        ${pochi ? `<div class="ev-barrap"><i style="width:${Math.min(100, Math.round((capienza - liberi) / capienza * 100))}%"></i></div>` : ""}
+          chiuso || liberi === 0 ? "Tavoli al completo" : "Ci vediamo il 23?"}</div>
         <small>${
           chiuso || liberi === 0
             ? "Scrivetemi e vi metto in lista d'attesa: se qualcuno rinuncia, il posto passa a voi."
-            : "Chi prima chiede, prima siede. Quando i posti finiscono non c'è una seconda data: la serata è una."}</small>
-        ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Richiedi il posto</a>`}
+            : "Tenetevi la sera. Mi fa piacere avervi a tavola, e credo che vi porterete a casa qualcosa."}</small>
+        ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Voglio esserci</a>`}
       </div>
 
       <div class="ev-ultima">
@@ -207,7 +202,7 @@ export async function render(container) {
       </div>
 
       <form class="ev-form" id="ev-form" novalidate>
-        <h2>Richiedi il tuo posto</h2>
+        <h2>Tenetemi un posto</h2>
         <p class="intro">Due dati sulla vostra attività, così so chi ho a tavola.
         Vi rispondo su WhatsApp con la conferma.</p>
 
@@ -260,7 +255,7 @@ export async function render(container) {
 
         <div class="ev-slot ${liberi === null || liberi > 0 ? "ok" : "ko"}" id="ev-slot"></div>
 
-        <button type="submit" id="ev-invia">Invia la richiesta</button>
+        <button type="submit" id="ev-invia">Ci sarò</button>
         <div class="ev-errore" id="ev-errore"></div>
         <p class="ev-privacy">I dati servono solo per la serata. Nessuna newsletter.</p>
       </form>
@@ -276,7 +271,7 @@ export async function render(container) {
 
       <div class="ev-barra" id="ev-barra">
         <span><b>23 settembre, ore 19:30</b><span id="ev-barra-posti"></span></span>
-        <a href="#/evento-serata" id="ev-vai2">Richiedi</a>
+        <a href="#/evento-serata" id="ev-vai2">Ci sarò</a>
       </div>
 
     </div></div>
@@ -299,17 +294,14 @@ export async function render(container) {
     if (liberiOra <= 0) { slot.className = "ev-slot ko"; slot.textContent = "Tavoli al completo. Scrivetemi per la lista d'attesa."; btn.disabled = true; return; }
     if (n > liberiOra) { slot.className = "ev-slot ko"; slot.textContent = `Restano solo ${liberiOra} coperti: riducete il numero o scrivetemi.`; btn.disabled = true; return; }
     slot.className = "ev-slot ok";
-    slot.textContent = liberiOra <= SOGLIA
-      ? `Ci stanno ancora: ultimi ${liberiOra} coperti`
-      : "Ci stanno: vi confermo il tavolo su WhatsApp";
+    slot.textContent = "Vi confermo il tavolo su WhatsApp";
     btn.disabled = false;
   }
   aggiornaSlot();
   selPersone.addEventListener("change", aggiornaSlot);
 
   const barraPosti = document.getElementById("ev-barra-posti");
-  if (barraPosti) barraPosti.textContent =
-    (liberiOra !== null && liberiOra > 0 && liberiOra <= SOGLIA) ? `ultimi ${liberiOra} coperti` : "Campo Antico, Orte";
+  if (barraPosti) barraPosti.textContent = "Campo Antico, Orte";
 
   const vai = (e) => { if (e) e.preventDefault(); form.scrollIntoView({ behavior: "smooth", block: "start" }); };
   ["ev-vai", "ev-vai2"].forEach((id) => { const el = document.getElementById(id); if (el) el.addEventListener("click", vai); });
@@ -354,7 +346,7 @@ export async function render(container) {
       .from("evento_iscrizioni").insert(d).select("token_pubblico").maybeSingle();
     if (error) {
       console.error(error);
-      btn.disabled = false; btn.textContent = "Invia la richiesta";
+      btn.disabled = false; btn.textContent = "Ci sarò";
       // la capienza e' controllata anche dal database: se nel frattempo si e' riempita, si dice qui
       if (/esaurit|chius/i.test(error.message || "")) {
         try {
