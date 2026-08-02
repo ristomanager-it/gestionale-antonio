@@ -63,6 +63,7 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       .from("prodotti")
       .select("id, codice_interno, descrizione, unita_base")
       .eq("azienda_id", azienda.id)
+      .or("categoria_bilancio_id.in.(7,9),categoria_bilancio_id.is.null")
       .or(`codice_interno.ilike.%${term}%,descrizione.ilike.%${term}%`)
       .order("descrizione", { ascending: true })
       .limit(10);
@@ -148,6 +149,8 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       .from("prodotti")
       .select("id, nome, descrizione, categoria_bilancio_id, categoria_interna")
       .eq("azienda_id", azienda.id).eq("attivo", true)
+      // consulenze, software e corsi non sono magazzino: qui non devono comparire
+      .or("categoria_bilancio_id.in.(7,9),categoria_bilancio_id.is.null")
       .or("categoria_bilancio_id.is.null,categoria_interna.is.null")
       .order("created_at", { ascending: false })
       .limit(50);
