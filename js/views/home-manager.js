@@ -50,8 +50,7 @@ export async function render(container) {
       .from("timbrature")
       .select("*")
       .eq("azienda_id", azienda.id)
-      .gte("timestamp", `${today}T00:00:00`)
-      .lt("timestamp", `${tomorrowStr}T00:00:00`);
+      .eq("data_turno", today);
 
     if (sedeUuid) {
       timbratureQuery = timbratureQuery.eq("sede_id", sedeUuid);

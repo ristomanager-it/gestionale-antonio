@@ -97,7 +97,7 @@ async function openDrillDown(tipo, from, to) {
       let pqD = supabase.from("spese_extra").select("data,descrizione,importo").eq("azienda_id",aziendaId).eq("categoria_bilancio_id",14).gte("data",f).lte("data",t).order("data",{ascending:false});
       if (sedeDrill != null) pqD = pqD.or("sede_id.is.null,sede_id.eq." + sedeDrill);
       const {data:paghe} = await pqD;
-      let tqD = supabase.from("timbrature").select("dipendente_id,dip_nome,ore_lavorate,costo_orario").eq("azienda_id",aziendaId).eq("tipo","fine_turno").gte("timestamp",f).lte("timestamp",t+"T23:59:59").limit(5000);
+      let tqD = supabase.from("timbrature").select("dipendente_id,dip_nome,ore_lavorate,costo_orario").eq("azienda_id",aziendaId).eq("tipo","fine_turno").gte("data_turno",f).lte("data_turno",t).limit(5000);
       if (sedeDrill != null) tqD = tqD.eq("sede_id", sedeDrill);
       const {data:timb} = await tqD;
       const {data:dips} = await supabase.from("dipendenti").select("id,costo_orario").eq("azienda_id",aziendaId);

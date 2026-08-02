@@ -211,10 +211,10 @@ export async function render(container) {
 
     let q = supa()
       .from('timbrature')
-      .select('id, dipendente_id, dip_nome, tipo, timestamp, ore_lavorate, sede_id, canale, geo_esito, geo_motivo, lat, lon, accuracy_m')
+      .select('id, dipendente_id, dip_nome, tipo, timestamp, data_turno, ore_lavorate, sede_id, canale, geo_esito, geo_motivo, lat, lon, accuracy_m')
       .eq('azienda_id', aziendaId)
-      .gte('timestamp', `${dataInizio}T00:00:00`)
-      .lte('timestamp', `${dataFine}T23:59:59`)
+      .gte('data_turno', dataInizio)
+      .lte('data_turno', dataFine)
       .order('dip_nome')
       .order('timestamp');
 

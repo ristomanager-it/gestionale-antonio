@@ -67,7 +67,8 @@ export async function render(container) {
         .select('dipendente_id, ore_lavorate, costo_orario')
         .eq('azienda_id', aziendaId)
         .eq('tipo', 'fine_turno');
-      if (dataDa) qt = qt.gte('timestamp', dataDa).lte('timestamp', dataA + 'T23:59:59');
+      // la giornata di lavoro e' quella dell'ingresso: un turno che finisce alle 3 di notte resta sul giorno prima
+      if (dataDa) qt = qt.gte('data_turno', dataDa).lte('data_turno', dataA);
       const { data: timb } = await qt;
       if (timb?.length) {
         const { data: dips } = await supa().from('dipendenti')
