@@ -1595,7 +1595,7 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
 
           <div class="rf-field">
             <label>Categoria bilancio</label>
-            <input id="rf-cat-bilancio-text" class="input" list="rf-cat-bilancio-list" placeholder="Cerca categoria bilancio..." autocomplete="off" />
+            <input id="rf-cat-bilancio-text" class="input" list="rf-cat-bilancio-list" placeholder="Scrivi o seleziona categoria bilancio..." autocomplete="off" />
             <input type="hidden" id="rf-cat-bilancio-id" value="" />
             <datalist id="rf-cat-bilancio-list">
               ${catsBilancio.map((c) => `<option value="${escapeHtml(c.nome || "")}"></option>`).join("")}
@@ -1686,6 +1686,7 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
   const inputQuantitaRiordino = modalRoot.querySelector("#rf-quantita-riordino");
   const feedback = modalRoot.querySelector("#rf-prod-feedback");
   const datalistInterna = modalRoot.querySelector("#rf-cat-interna-list");
+  const datalistBilancio = modalRoot.querySelector("#rf-cat-bilancio-list");
 
   const bilancioByLabel = new Map(
     catsBilancio.map((c) => [String(c.nome || "").trim().toLowerCase(), String(c.id)])
@@ -1753,9 +1754,44 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
         return;
       }
 
-      if (!categoriaBilancioId) {
-        setFeedback("Seleziona una categoria bilancio valida.", true);
-        return;
+      let categoriaBilancioIdFinale = categoriaBilancioId;
+
+      if (!categoriaBilancioIdFinale) {
+        const nomeCategoriaBilancio = String(inputBilancioText.value || "").trim();
+
+        if (!nomeCategoriaBilancio) {
+          setFeedback("Inserisci o seleziona una categoria bilancio.", true);
+          return;
+        }
+
+        // nome nuovo: si crea la categoria, come si fa con quella interna
+        const normalizzata = nomeCategoriaBilancio.toLowerCase();
+        const esistente = bilancioByLabel.get(normalizzata);
+
+        if (esistente) {
+          categoriaBilancioIdFinale = esistente;
+        } else {
+          if (!confirm(`La categoria di bilancio "${nomeCategoriaBilancio}" non esiste ancora.\n\nLa creo? Sarà disponibile da qui in avanti per tutti i prodotti.`)) {
+            return;
+          }
+
+          const { data: creataBil, error: errBil } = await supabase
+            .from("categorie_bilancio")
+            .insert({ nome: nomeCategoriaBilancio, tipo: "costo", attivo: true, ordine: 999 })
+            .select("id, nome")
+            .single();
+
+          if (errBil || !creataBil?.id) {
+            setFeedback(errBil?.message || "Errore creazione categoria bilancio.", true);
+            return;
+          }
+
+          categoriaBilancioIdFinale = String(creataBil.id);
+          bilancioByLabel.set(creataBil.nome.trim().toLowerCase(), categoriaBilancioIdFinale);
+          datalistBilancio.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(creataBil.nome)}"></option>`);
+          inputBilancioText.value = creataBil.nome;
+          hiddenBilancioId.value = categoriaBilancioIdFinale;
+        }
       }
 
       if (!categoriaInternaId) {
@@ -1815,7 +1851,7 @@ async function openCreateProductModal({ azienda, descrizioneFattura }) {
         codice_interno: codiceInterno,
         nome: nomeInterno,
         descrizione: descrizioneOriginale || nomeInterno,
-        categoria_bilancio_id: Number(categoriaBilancioId),
+        categoria_bilancio_id: Number(categoriaBilancioIdFinale),
         categoria_interna_id: categoriaInternaId,
         scorta_minima: Number.isFinite(scortaMinima) ? scortaMinima : 0,
         quantita_riordino: Number.isFinite(quantitaRiordino) ? quantitaRiordino : 0,
