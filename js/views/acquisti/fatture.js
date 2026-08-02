@@ -2295,6 +2295,8 @@ async function renderRigheFiscali(box, documentoId, azienda) {
   const mappaNomeInt = new Map(prodotti.map(p => [String(p.id), p.nome_interno || ""]));
   const mappaCatProd = new Map(prodotti.map(p => [String(p.id), p.categoria_bilancio_id]));
   const mappaIntProd = new Map(prodotti.map(p => [String(p.id), p.categoria_interna]));
+  const mappaNomeProd = mappaProd;
+  const mappaNomeCat = new Map(categorie.map(c => [String(c.id), c.nome]));
   const optionsProdotti = prodotti.map(p => '<option value="' + p.id + '">' + escapeHtml(p.nome) + '</option>').join("");
   const optionsCategorie = categorie.map(c => '<option value="' + c.id + '">' + escapeHtml(c.nome) + (c.solo_costo ? ' (solo costo)' : '') + '</option>').join("");
 
@@ -2443,6 +2445,22 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       const pid = (righe.find(x => x.id === rigaId) || {}).prodotto_id;
       if (!pid) { alert("Prima abbina un prodotto a questa riga."); sel.value = ""; return; }
       const nuova = sel.value ? Number(sel.value) : null;
+      const precedente = mappaCatProd.get(String(pid));
+
+      // cambiare una categoria gia' impostata sposta il prodotto in un'altra voce
+      // di bilancio in tutti i report: meglio chiederlo prima di farlo
+      if (precedente != null && String(precedente) !== String(nuova ?? "")) {
+        const nomeProd = (mappaNomeProd.get(String(pid)) || "questo prodotto");
+        const nomeVecchia = (mappaNomeCat.get(String(precedente)) || "categoria attuale");
+        const nomeNuova = nuova != null ? (mappaNomeCat.get(String(nuova)) || "nuova categoria") : "nessuna categoria";
+        const ok = confirm(
+          nomeProd + " è già classificato come \"" + nomeVecchia + "\".\n\n" +
+          "Vuoi spostarlo su \"" + nomeNuova + "\"?\n\n" +
+          "La modifica vale per il prodotto ovunque, anche nelle fatture già caricate e nei report."
+        );
+        if (!ok) { sel.value = String(precedente); return; }
+      }
+
       sel.disabled = true;
       const supaDir = window.supabaseClient || window.supabase;
       const { error } = await supaDir.from("prodotti").update({ categoria_bilancio_id: nuova }).eq("id", pid).eq("azienda_id", azienda.id);
