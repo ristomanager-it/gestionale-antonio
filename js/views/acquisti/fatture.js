@@ -2412,7 +2412,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     html += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">';
     html += '<span style="font-size:11px;color:#64748b;">📊 Bilancio</span>';
     html += '<select class="fisc-cat" data-riga="' + r.id + '" style="flex:1;min-width:150px;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;">';
-    html += '<option value="">— da classificare —</option>' + optionsCategorie;
+    html += '<option value="">— da classificare —</option>' + optionsCategorie + '<option value="__new__">＋ Nuova categoria…</option>';
     html += '</select>';
     html += '<span style="font-size:11px;color:#64748b;">🏷️ Interna</span>';
     html += '<select class="fisc-interna" data-riga="' + r.id + '" style="flex:1;min-width:150px;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;">';
@@ -2444,6 +2444,42 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     sel.addEventListener("change", async () => {
       const pid = (righe.find(x => x.id === rigaId) || {}).prodotto_id;
       if (!pid) { alert("Prima abbina un prodotto a questa riga."); sel.value = ""; return; }
+      // "nuova categoria": si chiede il nome e si crea al volo
+      if (sel.value === "__new__") {
+        const nome = (prompt("Nome della nuova categoria di bilancio:") || "").trim();
+        if (!nome) { sel.value = mappaCatProd.get(String(pid)) != null ? String(mappaCatProd.get(String(pid))) : ""; return; }
+
+        const supaNew = window.supabaseClient || window.supabase;
+        const esistente = categorie.find(c => String(c.nome || "").trim().toLowerCase() === nome.toLowerCase());
+
+        let idNuova = esistente ? esistente.id : null;
+        if (!idNuova) {
+          sel.disabled = true;
+          const { data: creata, error: errCat } = await supaNew
+            .from("categorie_bilancio")
+            .insert({ nome, tipo: "costo", attivo: true, ordine: 999 })
+            .select("id, nome, tipo, solo_costo, ordine")
+            .single();
+          sel.disabled = false;
+          if (errCat || !creata) {
+            alert("Errore creazione categoria: " + (errCat ? errCat.message : "riprova"));
+            sel.value = mappaCatProd.get(String(pid)) != null ? String(mappaCatProd.get(String(pid))) : "";
+            return;
+          }
+          idNuova = creata.id;
+          categorie.push(creata);
+          mappaNomeCat.set(String(creata.id), creata.nome);
+          // la nuova voce compare in tutte le tendine gia' disegnate
+          box.querySelectorAll("select.fisc-cat").forEach(altra => {
+            const opt = document.createElement("option");
+            opt.value = String(creata.id);
+            opt.textContent = creata.nome;
+            altra.insertBefore(opt, altra.querySelector('option[value="__new__"]'));
+          });
+        }
+        sel.value = String(idNuova);
+      }
+
       const nuova = sel.value ? Number(sel.value) : null;
       const precedente = mappaCatProd.get(String(pid));
 
