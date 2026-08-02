@@ -1,3 +1,4 @@
+import { comprimiImmagine } from "../../utils/immagini.js";
 export async function render(container) {
   const prenotazioneId = window.routeParams?.id || null;
   const aziendaId = window.state?.azienda?.id || null;
@@ -695,7 +696,7 @@ if (nuoviFile.length) {
     try {
       const est = file.name.split(".").pop();
       const path = `prenotazioni/${azId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${est}`;
-      const { error: upErr } = await window.supabaseClient.storage.from("media-aziende").upload(path, file, { upsert: false });
+      const { error: upErr } = await window.supabaseClient.storage.from("media-aziende").upload(path, await comprimiImmagine(file), { upsert: false, cacheControl: "31536000" });
       if (upErr) { console.warn("Upload allegato fallito:", upErr.message); continue; }
       const { data: pub } = window.supabaseClient.storage.from("media-aziende").getPublicUrl(path);
       allegatiFinali.push({ nome: file.name, url: pub?.publicUrl || "", tipo: file.type || est, caricato_il: new Date().toISOString() });

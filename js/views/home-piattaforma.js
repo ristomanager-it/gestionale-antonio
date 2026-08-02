@@ -275,6 +275,14 @@ export async function render(container) {
           <div class="icon">🏢</div>
         </div>
 
+        <div class="card" id="card-pulizia-storage" style="cursor:pointer;">
+          <div>
+            <div class="label">Manutenzione</div>
+            <div class="title">Pulizia doppioni storage</div>
+          </div>
+          <div class="icon">🧹</div>
+        </div>
+
         <div class="card" data-route="bo-evento">
           <div>
             <div class="label">Eventi</div>
@@ -623,6 +631,44 @@ function renderRoleButton(role, current) {
 
 // ── EVENTS ────────────────────────────────────────────────────────────────────
 function bindEvents() {
+
+  const cardPulizia = document.getElementById("card-pulizia-storage");
+  if (cardPulizia) cardPulizia.onclick = async () => {
+    const sc = window.supabase || window.supabaseClient;
+    const titolo = cardPulizia.querySelector(".title");
+    const originale = titolo.textContent;
+    try {
+      const { data: sess } = await sc.auth.getSession();
+      const token = sess?.session?.access_token;
+      const chiama = async (corpo) => {
+        const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/storage-pulizia", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify(corpo),
+        });
+        return r.json();
+      };
+
+      titolo.textContent = "Conto i doppioni…";
+      const stima = await chiama({ solo_conteggio: true });
+      if (!stima.success) throw new Error(stima.error || "errore");
+      if (!stima.da_eliminare) { titolo.textContent = "Nessun doppione ✓"; setTimeout(() => titolo.textContent = originale, 3000); return; }
+
+      titolo.textContent = originale;
+      if (!confirm(`Trovati ${stima.da_eliminare} file duplicati (${stima.mb_recuperabili} MB).\n\nDi ogni foto resta una copia e i riferimenti sono già stati spostati su quella. Procedo a cancellare le copie in più?`)) return;
+
+      titolo.textContent = "Cancello…";
+      const esito = await chiama({});
+      if (!esito.success) throw new Error(esito.error || "errore");
+      titolo.textContent = `Liberati ${esito.mb_liberati} MB ✓`;
+      alert(`Fatto: ${esito.eliminati} file eliminati, ${esito.mb_liberati} MB liberati.` + (esito.ancora_in_coda ? `\nRestano ${esito.ancora_in_coda} file: rilancia per finire.` : ""));
+      setTimeout(() => titolo.textContent = originale, 4000);
+    } catch (e) {
+      console.error(e);
+      titolo.textContent = originale;
+      alert("Pulizia non riuscita: " + e.message);
+    }
+  };
 
   document.querySelectorAll(".card[data-route]").forEach(card => {
     card.onclick = () => {

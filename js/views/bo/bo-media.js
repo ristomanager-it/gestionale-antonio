@@ -1,3 +1,4 @@
+import { comprimiImmagine } from "../../utils/immagini.js";
 // ============================================================
 //  bo-media.js — Media Manager Ristoflow
 //  Carica, organizza e usa foto/video per sito, menu, promo
@@ -400,7 +401,9 @@ export async function render(container) {
       document.getElementById("upload-label").textContent = `Caricamento ${file.name}…`;
       document.getElementById("upload-fill").style.width = `${(completati / files.length) * 100}%`;
 
-      const { error: uploadError } = await sc.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
+      // le foto pesanti si ridimensionano prima di partire: banda e tempi di caricamento
+      const daCaricare = isVideo ? file : await comprimiImmagine(file);
+      const { error: uploadError } = await sc.storage.from(STORAGE_BUCKET).upload(path, daCaricare, { cacheControl: "31536000", contentType: daCaricare.type, upsert: false });
 
       if (uploadError) { console.error("Upload error:", uploadError); completati++; continue; }
 
@@ -415,7 +418,7 @@ export async function render(container) {
         path,
         tipo: isVideo ? "video" : "immagine",
         tag: "Altro",
-        dimensione: file.size,
+        dimensione: daCaricare.size,
         created_at: new Date().toISOString()
       }).select("id,url,tipo,thumb_url").single();
       if (nuovo && nuovo.tipo === "immagine") generaThumb(nuovo); // thumb subito, in background

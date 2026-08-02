@@ -1,3 +1,4 @@
+import { comprimiImmagine } from "../../utils/immagini.js";
 // js/views/bo/bo-menu-builder.js  v4
 // Fix: mockup intero menu, click categoria → prodotti, elimina categoria, scroll drag
 const supa = () => window.supabaseClient || window.supabase;
@@ -401,7 +402,8 @@ export async function render(container) {
       for (const file of files) {
         const ext = file.name.split(".").pop();
         const path = azienda_id + "/menu-cover-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + "." + ext;
-        const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+        const _f = await comprimiImmagine(file);
+      const { error } = await supa().storage.from("media-aziende").upload(path, _f, { upsert: true, contentType: _f.type, cacheControl: "31536000" });
         if (error) { alert("Errore upload " + file.name + ": " + error.message); continue; }
         const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
         coverGalleryUrls.push(pub.publicUrl);
@@ -456,7 +458,8 @@ export async function render(container) {
       const prog = qs("#cfg-logo-prog"); if (prog) prog.style.display = "";
       const ext = file.name.split(".").pop();
       const path = azienda_id + "/menu-logo-" + Date.now() + "." + ext;
-      const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+      const _f = await comprimiImmagine(file);
+      const { error } = await supa().storage.from("media-aziende").upload(path, _f, { upsert: true, contentType: _f.type, cacheControl: "31536000" });
       if (prog) prog.style.display = "none";
       if (error) { alert("Errore upload: " + error.message); return; }
       const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
@@ -1206,7 +1209,8 @@ export async function render(container) {
       status.style.color = "#64748b";
       const ext = file.name.split(".").pop() || "jpg";
       const path = azienda_id + "/voce-" + voceId + "-" + Date.now() + "." + ext;
-      const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+      const _f = await comprimiImmagine(file);
+      const { error } = await supa().storage.from("media-aziende").upload(path, _f, { upsert: true, contentType: _f.type, cacheControl: "31536000" });
       if (error) { status.textContent = "❌ Errore upload: " + error.message; status.style.color = "#dc2626"; return; }
       const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
       qs("#voce-foto-edit").value = pub.publicUrl;
@@ -1282,7 +1286,8 @@ export async function render(container) {
       status.style.color = "#64748b";
       const ext = file.name.split(".").pop() || "jpg";
       const path = azienda_id + "/categoria-" + mc.id + "-" + Date.now() + "." + ext;
-      const { error } = await supa().storage.from("media-aziende").upload(path, file, { upsert: true, contentType: file.type });
+      const _f = await comprimiImmagine(file);
+      const { error } = await supa().storage.from("media-aziende").upload(path, _f, { upsert: true, contentType: _f.type, cacheControl: "31536000" });
       if (error) { status.textContent = "❌ Errore upload: " + error.message; status.style.color = "#dc2626"; return; }
       const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
       qs("#cfg-cat-foto-url").value = pub.publicUrl;

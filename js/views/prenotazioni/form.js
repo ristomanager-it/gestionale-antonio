@@ -1,6 +1,7 @@
 import { trovaOCreaContatto } from "../../services/contatti.js";
 import { eseguiAutomazioni } from "../../services/automazioni.js?v=6";
 
+import { comprimiImmagine } from "../../utils/immagini.js";
 const supa = () => window.supabaseClient || window.supabase;
 
 export async function render(container) {
@@ -276,7 +277,7 @@ export async function render(container) {
         try {
           const estensione = file.name.split(".").pop();
           const path = `prenotazioni/${aziendaId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${estensione}`;
-          const { error: upErr } = await supa().storage.from("media-aziende").upload(path, file, { upsert: false });
+          const { error: upErr } = await supa().storage.from("media-aziende").upload(path, await comprimiImmagine(file), { upsert: false, cacheControl: "31536000" });
           if (upErr) { console.warn("Upload allegato fallito:", upErr.message); continue; }
           const { data: pub } = supa().storage.from("media-aziende").getPublicUrl(path);
           allegatiSalvati.push({
