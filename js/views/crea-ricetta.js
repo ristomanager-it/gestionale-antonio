@@ -753,7 +753,6 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
     if (d.impiattamento && typeof d.impiattamento === "object") {
       impiattamentoCorrente = d.impiattamento;
       renderImpiattamento(impiattamentoCorrente);
-      setTimeout(() => disegnaPiattoConAi("schizzo"), 300);
     }
 
     // Categoria portata (cerca in cache, altrimenti la crea)
@@ -1618,22 +1617,14 @@ export async function render(app) {
             <div style="font-size:13px;color:#94a3b8;padding:10px 0;">Nessun progetto di montaggio. Chiedilo a Tony insieme alla ricetta.</div>
           </div>
           <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="btn-tony-impiatto" type="button"
-              style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;">
-              🍽️ Progetta il montaggio con Tony
-            </button>
-            <button id="btn-schizzo-piatto" type="button"
-              style="background:#475569;color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
-              ✏️ Schizzo a matita
-            </button>
             <button id="btn-disegno-piatto" type="button"
               style="background:linear-gradient(135deg,#c2410c,#ea580c);color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
-              🎨 Immagine del piatto
+              🎨 Crea immagine
             </button>
           </div>
           <div id="r-disegno-box" style="margin-top:14px;"></div>
           <div style="margin-top:6px;font-size:12px;color:#6b7280;">
-            Lo schizzo e l'ordine di posa dicono a chi impiatta come deve venire, così il piatto esce uguale anche quando lo fa un altro.
+            Il montaggio lo prepara Tony da solo: l'ordine di posa dice a chi impiatta come deve venire, così il piatto esce uguale anche quando lo fa un altro.
           </div>
         `
       })}
@@ -4080,13 +4071,28 @@ async function progettaMontaggioConTony() {
    guidato pero' dai dati veri della ricetta.
 ============================================================ */
 
+// Un pulsante solo: se il montaggio non c'e' lo prepara Tony, poi disegna.
+async function creaImmaginePiatto() {
+  const btn = document.getElementById("btn-disegno-piatto");
+  if (!impiattamentoCorrente) {
+    if (btn) { btn.disabled = true; btn.textContent = "🍽️ Preparo il montaggio..."; }
+    try {
+      await progettaMontaggioConTony();
+    } catch (e) {
+      console.warn("montaggio automatico non riuscito:", e);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = "🎨 Crea immagine"; }
+  }
+  await disegnaPiattoConAi("foto");
+}
+
 async function disegnaPiattoConAi(stile) {
   const eSchizzo = String(stile || "foto") === "schizzo";
   const nome = getVal("r-nome").trim();
   if (!nome) { alert("Dai prima un nome alla ricetta."); return; }
 
   if (!impiattamentoCorrente?.elementi?.length) {
-    if (!confirm("Non hai ancora il progetto di montaggio: il disegno verra' piu' generico.\nVuoi procedere lo stesso?")) return;
+    console.info("Nessun progetto di montaggio: l'immagine sara' piu' generica.");
   }
 
   const box = document.getElementById("r-disegno-box");
@@ -4593,10 +4599,8 @@ function bindUI() {
   safeOn("btn-tony-ing", "click", () => apriModalTonyIngredienti());
   safeOn("btn-tony-anagrafica", "click", () => apriModalTony("anagrafica"));
   safeOn("btn-tony-inventa", "click", () => apriChatRicettaTony());
-  safeOn("btn-tony-impiatto", "click", () => progettaMontaggioConTony());
   safeOn("btn-tony-vino", "click", () => abbinaVinoConTony());
-  safeOn("btn-schizzo-piatto", "click", () => disegnaPiattoConAi("schizzo"));
-  safeOn("btn-disegno-piatto", "click", () => disegnaPiattoConAi("foto"));
+  safeOn("btn-disegno-piatto", "click", () => creaImmaginePiatto());
 
   // Se arrivi qui dalla chat di Tony, riprendo la conversazione automaticamente
   const consegnaTony = raccogliConsegnaDaTony();
