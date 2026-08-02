@@ -2534,6 +2534,20 @@ async function renderRigheFiscali(box, documentoId, azienda) {
         sel.value = nome; valore = nome;
       }
       const nuova = valore ? valore : null;
+      const precedenteInt = (mappaIntProd.get(String(pid)) || "").trim();
+
+      // stessa cautela della categoria bilancio: se ne aveva gia' una, si chiede
+      if (precedenteInt && precedenteInt.toLowerCase() !== "varie" &&
+          precedenteInt.toLowerCase() !== String(nuova || "").trim().toLowerCase()) {
+        const nomeProd = mappaNomeProd.get(String(pid)) || "questo prodotto";
+        const ok = confirm(
+          nomeProd + " è già in \"" + precedenteInt + "\".\n\n" +
+          "Vuoi spostarlo in \"" + (nuova || "nessuna categoria") + "\"?\n\n" +
+          "La modifica vale per il prodotto ovunque, anche nelle fatture già caricate."
+        );
+        if (!ok) { sel.value = precedenteInt; return; }
+      }
+
       sel.disabled = true;
       const supaDir = window.supabaseClient || window.supabase;
       const { error } = await supaDir.from("prodotti").update({ categoria_interna: nuova }).eq("id", pid).eq("azienda_id", azienda.id);
