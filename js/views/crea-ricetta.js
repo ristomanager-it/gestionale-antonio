@@ -1513,6 +1513,14 @@ export async function render(app) {
             <span style="font-size:12px;color:#7c3aed;margin-left:8px;">Fotografa una ricetta (anche scritta a mano): Tony la legge e compila nome, ingredienti e procedimento.</span>
             <input id="input-foto-ricetta" type="file" accept="image/*" capture="environment" style="display:none;" />
             <div id="foto-ricetta-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
+
+            <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #ddd6fe;">
+              <button id="btn-foto-piatto" class="app-button" type="button" style="background:#c2410c;color:#fff;display:inline-flex;align-items:center;gap:6px;">🍽️ Ricetta dalla foto del piatto</button>
+              <span style="font-size:12px;color:#c2410c;margin-left:8px;">Fotografa un piatto impiattato: Tony capisce cos'è, ricostruisce gli ingredienti e lo valorizza sui vostri prezzi.</span>
+              <input id="input-foto-piatto" type="file" accept="image/*" capture="environment" style="display:none;" />
+              <div id="foto-piatto-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
+              <div id="foto-piatto-costo" style="margin-top:10px;"></div>
+            </div>
           </div>
 
           <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -2173,6 +2181,72 @@ function setupCategoriaAutocomplete() {
     suggestBox.innerHTML = "";
     suggestBox.classList.remove("open");
   });
+}
+
+async function compilaRicettaDaPiatto(file) {
+  ricettaCompilataConTony = true;
+  if (!file) return;
+  const stato = document.getElementById("foto-piatto-stato");
+  const box = document.getElementById("foto-piatto-costo");
+  const setStato = (t) => { if (stato) stato.textContent = t; };
+  const btn = document.getElementById("btn-foto-piatto");
+  if (btn) btn.disabled = true;
+  if (box) box.innerHTML = "";
+  setStato("🍽️ Guardo il piatto…");
+
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result));
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const supa = window.supabaseClient || window.supabase;
+    const token = (await supa.auth.getSession())?.data?.session?.access_token || "";
+    const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-foto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": token },
+      body: JSON.stringify({ azione: "piatto", image_base64: b64, azienda_id: window.state?.azienda?.id })
+    });
+    const data = await resp.json();
+    if (!data.success) { setStato("⚠️ " + (data.error || "Non sono riuscito a leggere il piatto.")); return; }
+
+    const p = data.piatto || {};
+    if (p.nome) setVal("r-nome", p.nome);
+    if (p.descrizione) setVal("r-descrizione", p.descrizione);
+    if (p.procedimento) setVal("r-note-proc", p.procedimento);
+    setVal("r-tipo", "finita");
+    document.getElementById("r-tipo")?.dispatchEvent(new Event("change"));
+
+    if (Array.isArray(p.ingredienti)) {
+      const cont = document.getElementById("ingredienti-container");
+      if (cont) cont.innerHTML = "";
+      p.ingredienti.forEach((i) => aggiungiIngrediente({
+        _nome_tony: i.nome, prodotto_id: i.prodotto_id || null,
+        quantita: i.quantita, unita_misura: i.unita_misura,
+      }));
+    }
+
+    // il numero che fa alzare la testa: quanto costa, sui prezzi veri
+    const c = data.costo || {};
+    if (box) {
+      const dubbi = (p.ingredienti || []).filter(i => i.certezza === "bassa").map(i => i.nome);
+      box.innerHTML = `
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;">
+          <div style="font-size:13px;color:#9a3412;font-weight:700;">Costo stimato sui vostri prezzi</div>
+          <div style="font-family:Georgia,serif;font-size:30px;color:#c2410c;margin:4px 0;">€ ${Number(c.totale || 0).toFixed(2)}</div>
+          <div style="font-size:12.5px;color:#7c2d12;">${c.valorizzati || 0} ingredienti su ${c.totali || 0} agganciati ai prodotti in anagrafica.</div>
+          ${dubbi.length ? `<div style="font-size:12.5px;color:#92400e;margin-top:6px;">Da confermare: ${dubbi.join(", ")}</div>` : ""}
+          <div style="font-size:12px;color:#a16207;margin-top:8px;">È una stima da foto: controlla quantità e ingredienti prima di salvare.</div>
+        </div>`;
+    }
+    setStato("✅ Fatto. Controlla gli ingredienti e salva.");
+  } catch (e) {
+    console.error(e);
+    setStato("⚠️ Errore: " + (e.message || e));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function compilaRicettaDaFoto(file) {
@@ -4594,10 +4668,13 @@ function bindUI() {
     }
   });
   safeOn("btn-foto-ricetta", "click", () => document.getElementById("input-foto-ricetta")?.click());
+  safeOn("btn-foto-piatto", "click", () => document.getElementById("input-foto-piatto")?.click());
   const _fotoRic = document.getElementById("input-foto-ricetta");
   if (_fotoRic && !_fotoRic.dataset.bound) {
     _fotoRic.dataset.bound = "1";
     _fotoRic.addEventListener("change", (e) => compilaRicettaDaFoto(e.target.files && e.target.files[0]));
+    const _fotoPia = document.getElementById("input-foto-piatto");
+    if (_fotoPia) _fotoPia.addEventListener("change", (e) => compilaRicettaDaPiatto(e.target.files && e.target.files[0]));
   }
 
   // Tipo ricetta -> mostra/nasconde categoria
