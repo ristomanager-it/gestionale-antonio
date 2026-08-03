@@ -457,7 +457,7 @@ export function initMenu() {
             { label: "🎯 Gestisci campagne", route: "bo-promo" },
             { label: "📊 Analisi Promo",     route: "bo-promo-analisi" },
           ] },
-          { label: "⭐ Recensioni", route: "recensioni" },
+          { label: "⭐ Recensioni", route: "recensioni" },   // impostazioni + statistiche (admin)
           { label: "📨 Registro messaggi",  route: "registro-messaggi" },
           { label: "🎫 Fidelity & Network", route: "bo-fidelity", children: [
             { label: "📊 Dashboard", route: "bo-fidelity?tab=dashboard" },
@@ -624,6 +624,7 @@ export function initMenu() {
         { label: "🕒 Timbratura",         route: "timbrature"       },
         { label: "📆 Richiedi ferie",     route: "hr-richieste"     },
         { label: "📁 I miei documenti",   route: "hr-documenti-me"  },
+        { label: "⭐ Il mio QR recensioni", route: "recensioni"      },
 
       ]
     });

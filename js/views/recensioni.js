@@ -21,7 +21,8 @@ export async function render(container) {
     <div style="max-width:820px;margin:0 auto;padding:16px 14px 60px;">
       <h1 style="font-size:23px;margin:0 0 4px;">⭐ Richiedi una recensione</h1>
       <p style="color:#64748b;font-size:14px;margin:0 0 20px;">
-        Fai inquadrare il codice al cliente: la pagina lo porta dove decide la direzione.</p>
+        Fai inquadrare il codice al cliente: la pagina lo porta dove decide la direzione.${
+          isAdmin ? "" : "<br>Le impostazioni le gestisce la direzione."}</p>
       <div id="rec-qr"></div>
       <div id="rec-stat" style="margin-top:20px;"></div>
       <div id="rec-cfg" style="margin-top:24px;"></div>
