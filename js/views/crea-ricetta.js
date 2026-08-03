@@ -1434,6 +1434,30 @@ export async function render(app) {
         </div>
       </div>
 
+      <div style="margin-bottom:16px;padding:16px;background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1px solid #fed7aa;border-radius:14px;">
+        <button id="btn-foto-piatto" type="button"
+          style="background:linear-gradient(135deg,#c2410c,#ea580c);color:white;border:none;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(194,65,12,.3);">
+          🍽️ Ricetta dalla foto del piatto
+        </button>
+        <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+          Scatta o carica la foto di un piatto impiattato: Tony capisce cos'è, ricostruisce gli ingredienti e lo valorizza sui vostri prezzi.
+        </div>
+        <!-- senza capture il telefono offre sia la fotocamera sia la galleria -->
+        <input id="input-foto-piatto" type="file" accept="image/*" style="display:none;" />
+        <div id="foto-piatto-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
+        <div id="foto-piatto-costo" style="margin-top:10px;"></div>
+
+        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #fed7aa;">
+          <button id="btn-foto-ricetta" type="button"
+            style="background:#7c3aed;color:white;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            📷 Ho la ricetta scritta
+          </button>
+          <span style="font-size:12px;color:#6b7280;margin-left:8px;">Anche a mano: Tony la legge e compila la scheda.</span>
+          <input id="input-foto-ricetta" type="file" accept="image/*" style="display:none;" />
+          <div id="foto-ricetta-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
+        </div>
+      </div>
+
       ${createCard({
         title: "Anagrafica",
         body: `
@@ -1507,21 +1531,6 @@ export async function render(app) {
         title: "Ingredienti",
         body: `
           <div id="ingredienti-container"></div>
-
-          <div style="margin:6px 0 12px;padding:12px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;">
-            <button id="btn-foto-ricetta" class="app-button" type="button" style="background:#7c3aed;color:#fff;display:inline-flex;align-items:center;gap:6px;">📷 Compila ricetta da foto</button>
-            <span style="font-size:12px;color:#7c3aed;margin-left:8px;">Fotografa una ricetta (anche scritta a mano): Tony la legge e compila nome, ingredienti e procedimento.</span>
-            <input id="input-foto-ricetta" type="file" accept="image/*" capture="environment" style="display:none;" />
-            <div id="foto-ricetta-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
-
-            <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #ddd6fe;">
-              <button id="btn-foto-piatto" class="app-button" type="button" style="background:#c2410c;color:#fff;display:inline-flex;align-items:center;gap:6px;">🍽️ Ricetta dalla foto del piatto</button>
-              <span style="font-size:12px;color:#c2410c;margin-left:8px;">Fotografa un piatto impiattato: Tony capisce cos'è, ricostruisce gli ingredienti e lo valorizza sui vostri prezzi.</span>
-              <input id="input-foto-piatto" type="file" accept="image/*" capture="environment" style="display:none;" />
-              <div id="foto-piatto-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
-              <div id="foto-piatto-costo" style="margin-top:10px;"></div>
-            </div>
-          </div>
 
           <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
             <button id="btn-tony-ing"
@@ -2246,6 +2255,8 @@ async function compilaRicettaDaPiatto(file) {
     setStato("⚠️ Errore: " + (e.message || e));
   } finally {
     if (btn) btn.disabled = false;
+    // azzero il campo: altrimenti riscegliendo la stessa foto non parte niente
+    const inp = document.getElementById("input-foto-piatto"); if (inp) inp.value = "";
   }
 }
 
