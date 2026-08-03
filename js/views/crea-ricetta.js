@@ -2272,6 +2272,9 @@ async function compilaRicettaDaPiatto(file, note = "") {
         tipo_fase: f.tipo_fase,
         durata_min: f.durata_min,
         lavoro_umano_min: f.lavoro_umano_min ?? 0,
+        ruolo: f.ruolo || "",
+        dispositivo_id: f.dispositivo_id || "",
+        tecnologia: f.dispositivo_id ? "" : (f.attrezzatura || ""),
         temperatura: f.temperatura,
       }));
     }
