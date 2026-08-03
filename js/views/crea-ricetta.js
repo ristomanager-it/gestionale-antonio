@@ -2260,6 +2260,7 @@ async function compilaRicettaDaPiatto(file) {
         descrizione_operativa: f.descrizione_operativa,
         tipo_fase: f.tipo_fase,
         durata_min: f.durata_min,
+        lavoro_umano_min: f.lavoro_umano_min ?? 0,
         temperatura: f.temperatura,
       }));
     }
@@ -2299,7 +2300,8 @@ async function compilaRicettaDaPiatto(file) {
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;">
           <div style="font-size:13px;color:#9a3412;font-weight:700;">Costo stimato sui vostri prezzi</div>
           <div style="font-family:Georgia,serif;font-size:30px;color:#c2410c;margin:4px 0;">€ ${Number(c.totale || 0).toFixed(2)}</div>
-          <div style="font-size:12.5px;color:#7c2d12;">${c.valorizzati || 0} ingredienti su ${c.totali || 0} agganciati ai prodotti in anagrafica.</div>
+          <div style="font-size:12.5px;color:#7c2d12;">${c.valorizzati || 0} ingredienti su ${c.totali || 0} valorizzati sui prodotti in anagrafica.</div>
+          ${c.stimati ? `<div style="font-size:12.5px;color:#92400e;margin-top:4px;">${c.stimati} prezzi stimati: quei prodotti non hanno l'unità di misura compilata.</div>` : ""}
           ${dubbi.length ? `<div style="font-size:12.5px;color:#92400e;margin-top:6px;">Da confermare: ${dubbi.join(", ")}</div>` : ""}
           <div style="font-size:12px;color:#a16207;margin-top:8px;">È una stima da foto: controlla quantità, fasi e conservazione prima di salvare.</div>
         </div>`;
@@ -2358,6 +2360,7 @@ async function compilaRicettaDaFoto(file) {
         descrizione_operativa: f.descrizione_operativa,
         tipo_fase: f.tipo_fase,
         durata_min: f.durata_min,
+        lavoro_umano_min: f.lavoro_umano_min ?? 0,
         temperatura: f.temperatura,
       }));
     }
