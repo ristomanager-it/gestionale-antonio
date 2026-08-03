@@ -23,7 +23,10 @@ export async function render(container) {
     dip = data || null;
     if (dip) window.state.dipendente = { ...(window.state.dipendente || {}), ...dip };
   }
-  const nome = (dip?.nome || window.state?.profilo?.displayName || "").split(" ")[0] || "";
+  const nome = (dip?.nome
+    || window.state?.profilo?.displayName
+    || window.state?.profilo?.nome
+    || (user?.email ? user.email.split("@")[0] : "")).split(" ")[0] || "";
   const iniziali = ((dip?.nome || nome || "?")[0] + (dip?.cognome ? dip.cognome[0] : "")).toUpperCase();
 
   container.innerHTML = `<div class="op-home"><div class="op-caric">Un attimo…</div></div>${stile()}`;
@@ -56,7 +59,15 @@ export async function render(container) {
         <span>${oggi.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}</span>
       </div>
 
-      ${boxTimbratura(stato)}
+      ${dip?.id ? boxTimbratura(stato) : `
+        <div class="op-timb">
+          <div class="stato fuori"><i class="dot"></i> Timbratura non disponibile</div>
+          <div class="dalle">Il tuo accesso non è collegato a una scheda dipendente, quindi la
+          timbratura non verrebbe attribuita a nessuno.</div>
+          <div class="bottoni">
+            <a href="#/dipendenti" class="b esci" style="display:block;text-align:center;text-decoration:none;">Apri Dipendenti</a>
+          </div>
+        </div>`}
 
       <div class="op-righe">
         <div class="r"><i>📅</i><span class="lab">Oggi</span><b>${turnoOggi
