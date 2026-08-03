@@ -2326,8 +2326,8 @@ async function compilaRicettaDaPiatto(file, note = "") {
           <div style="margin-top:10px;font-size:13px;">
             ${(p.ingredienti || []).map(i => `
               <div style="display:flex;gap:8px;padding:4px 0;border-top:1px solid #fed7aa;">
-                <span style="flex:1;${i.sospetto ? "color:#b91c1c;" : ""}">${esc(i.nome)}
-                  <span style="color:#a16207;font-size:12px;">${i.quantita} ${esc(i.unita_misura)}${i.prodotto ? " · " + esc(i.prodotto) : " · nessun prodotto"}</span>
+                <span style="flex:1;${i.sospetto ? "color:#b91c1c;" : ""}">${escapeHtml(i.nome)}
+                  <span style="color:#a16207;font-size:12px;">${i.quantita} ${escapeHtml(i.unita_misura)}${i.prodotto ? " · " + escapeHtml(i.prodotto) : " · nessun prodotto"}</span>
                 </span>
                 <b style="${i.sospetto ? "color:#b91c1c;text-decoration:line-through;" : "color:#7c2d12;"}">${i.sospetto ? "€ " + Number(i.prezzo_unitario || 0).toFixed(2) + "/u" : "€ " + Number(i.costo || 0).toFixed(2)}</b>
               </div>`).join("")}
