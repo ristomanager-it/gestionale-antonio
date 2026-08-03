@@ -95,19 +95,73 @@ export async function render(container) {
 
 /* ── numeri ────────────────────────────────────────────────────────────── */
 
+// I numeri si calcolano dal venduto, non dalla funzione dashboard-kpi:
+// e' la stessa logica della dashboard completa, cosi' i due schermi coincidono.
 async function kpi(supabase, aziendaId, sedeId, range) {
-  const vuoto = { incasso: 0, materiaPrima: 0, costoLavoro: 0 };
+  const out = { incasso: 0, materiaPrima: 0, costoLavoro: 0 };
+  const norm = (x) => String(x == null ? "" : x).trim().toLowerCase();
+
   try {
-    const body = { azienda_id: aziendaId, data_da: range.da, data_a: range.a };
-    if (sedeId != null) body.sede_id = sedeId;
-    const { data, error } = await supabase.functions.invoke("dashboard-kpi", { body });
-    if (error || !data) return vuoto;
-    return {
-      incasso: Number(data.incasso) || 0,
-      materiaPrima: Number(data.materia_prima) || 0,
-      costoLavoro: Number(data.costo_lavoro) || 0,
-    };
-  } catch (e) { console.error("dashboard-kpi:", e); return vuoto; }
+    // ── incasso e materia prima, dal venduto giornaliero ──
+    let vq = supabase.from("vendite_giornaliere")
+      .select("nome_prodotto, nome_articolo, quantita, totale_incassato, totale_riga")
+      .eq("azienda_id", aziendaId)
+      .gte("data_vendita", range.da).lte("data_vendita", range.a).limit(50000);
+    if (sedeId != null) vq = vq.eq("sede_uuid", sedeId);
+    const { data: vendite } = await vq;
+
+    if (vendite && vendite.length) {
+      out.incasso = vendite.reduce((s, r) => s + Number(r.totale_incassato ?? r.totale_riga ?? 0), 0);
+
+      const { data: pvsAll } = await supabase.from("prodotti_vendita")
+        .select("nome, sede_id, food_cost_manuale, ricette(costo_porzione)")
+        .eq("azienda_id", aziendaId).limit(20000);
+      const cur = sedeId != null ? String(sedeId) : null;
+      const pvs = (pvsAll || []).filter(p => cur == null || p.sede_id == null || String(p.sede_id) === cur);
+
+      const fc = new Map();
+      const setFc = (p) => {
+        const rc = p.ricette?.costo_porzione != null ? Number(p.ricette.costo_porzione) : 0;
+        const v = rc > 0 ? rc : (p.food_cost_manuale != null ? Number(p.food_cost_manuale) : 0);
+        if (v > 0) fc.set(norm(p.nome), v);
+      };
+      pvs.filter(p => p.sede_id == null).forEach(setFc);   // prima il generico
+      pvs.filter(p => p.sede_id != null).forEach(setFc);   // poi la sede, che prevale
+
+      const { data: ov } = await supabase.from("food_cost_venduto")
+        .select("sede_uuid, nome_norm, costo").eq("azienda_id", aziendaId);
+      (ov || []).filter(o => cur == null || o.sede_uuid == null || String(o.sede_uuid) === cur)
+        .forEach(o => { if (Number(o.costo) > 0 && !fc.has(o.nome_norm)) fc.set(o.nome_norm, Number(o.costo)); });
+
+      out.materiaPrima = vendite.reduce((s, r) => {
+        const c = fc.get(norm(r.nome_prodotto || r.nome_articolo)) || 0;
+        return s + c * (Number(r.quantita) || 0);
+      }, 0);
+    }
+  } catch (e) { console.warn("kpi venduto:", e); }
+
+  try {
+    // ── costo del lavoro: ore per costo orario, col ripiego sull'anagrafica ──
+    let tq = supabase.from("timbrature")
+      .select("dipendente_id, ore_lavorate, costo_orario")
+      .eq("azienda_id", aziendaId).eq("tipo", "fine_turno")
+      .gte("data_turno", range.da).lte("data_turno", range.a).limit(5000);
+    if (sedeId != null) tq = tq.eq("sede_id", sedeId);
+    const { data: timb } = await tq;
+
+    if (timb && timb.length) {
+      const { data: dips } = await supabase.from("dipendenti")
+        .select("id, costo_orario").eq("azienda_id", aziendaId);
+      const costoDip = new Map((dips || []).map(d => [String(d.id), Number(d.costo_orario) || 0]));
+      out.costoLavoro = timb.reduce((s, r) => {
+        const ore = Number(r.ore_lavorate) || 0;
+        const co = Number(r.costo_orario) > 0 ? Number(r.costo_orario) : (costoDip.get(String(r.dipendente_id)) || 0);
+        return s + ore * co;
+      }, 0);
+    }
+  } catch (e) { console.warn("kpi lavoro:", e); }
+
+  return out;
 }
 
 /* ── cose che aspettano te ─────────────────────────────────────────────── */
