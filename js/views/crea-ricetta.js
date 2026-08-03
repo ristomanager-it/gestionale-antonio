@@ -3197,13 +3197,21 @@ function aggiungiPorzione(initial = {}) {
 async function caricaRicettaCompleta() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
+  const rid = Number(ricettaId);
 
-  const { data: ricetta, error: errRic } = await supabase
-    .from("ricette")
-    .select("*")
-    .eq("id", ricettaId)
-    .eq("azienda_id", aziendaId)
-    .single();
+  // Otto letture che dipendono solo dall'id della ricetta: partono tutte insieme.
+  // Prima erano in fila e aprire una ricetta costava otto viaggi al database.
+  const pRicetta = supabase.from("ricette").select("*").eq("id", ricettaId).eq("azienda_id", aziendaId).single();
+  const pIngredienti = supabase.from("ricetta_ingredienti").select("*").eq("ricetta_id", rid).eq("azienda_id", aziendaId);
+  const pFasi = supabase.from("ricette_preparazione_fasi").select("*").eq("ricetta_id", rid).eq("azienda_id", aziendaId).order("ordine", { ascending: true });
+  const pCons = supabase.from("ricette_conservazione").select("*").eq("ricetta_id", rid).eq("azienda_id", aziendaId).order("id", { ascending: true });
+  const pOutput = supabase.from("ricette_output").select("*").eq("ricetta_id", rid).eq("azienda_id", aziendaId).maybeSingle();
+  const pSecondari = supabase.from("ricette_output_secondari").select("*").eq("ricetta_id", rid).eq("azienda_id", aziendaId).order("id", { ascending: true });
+  const pConsPass = supabase.from("ricette_conservazione_passaggi").select("*").eq("ricetta_id", rid).eq("azienda_id", aziendaId)
+    .order("ricette_conservazione_id", { ascending: true }).order("posizione", { ascending: true }).order("gruppo_alternativa", { ascending: true });
+  const pPorzioni = supabase.from("ricette_porzione").select("*").eq("ricetta_id", rid).eq("azienda_id", aziendaId).order("id", { ascending: true });
+
+  const { data: ricetta, error: errRic } = await pRicetta;
 
   if (errRic || !ricetta) {
     console.error(errRic);
@@ -3257,11 +3265,7 @@ async function caricaRicettaCompleta() {
   aggiornaOutputInfo();
 
   // ingredienti
-  const { data: ingredienti } = await supabase
-    .from("ricetta_ingredienti")
-    .select("*")
-    .eq("ricetta_id", Number(ricettaId))
-    .eq("azienda_id", aziendaId);
+  const { data: ingredienti } = await pIngredienti;
 
   ingredientiCache = ingredienti || [];
   document.getElementById("ingredienti-container").innerHTML = "";
@@ -3269,12 +3273,7 @@ async function caricaRicettaCompleta() {
   else aggiungiIngrediente();
 
   // fasi
-  const { data: fasi } = await supabase
-    .from("ricette_preparazione_fasi")
-    .select("*")
-    .eq("ricetta_id", Number(ricettaId))
-    .eq("azienda_id", aziendaId)
-    .order("ordine", { ascending: true });
+  const { data: fasi } = await pFasi;
 
   fasiCache = fasi || [];
   document.getElementById("fasi-container").innerHTML = "";
@@ -3282,24 +3281,12 @@ async function caricaRicettaCompleta() {
   else aggiungiFase({ ordine: 1, tipo_fase: "preparazione", durata_min: 0, lavoro_umano_min: 0 });
 
   // conservazione
-  const { data: cons } = await supabase
-    .from("ricette_conservazione")
-    .select("*")
-    .eq("ricetta_id", Number(ricettaId))
-    .eq("azienda_id", aziendaId)
-    .order("id", { ascending: true });
+  const { data: cons } = await pCons;
 
   conservazioniCache = cons || [];
   // passaggi conservazione (nuovo modello a fasi)
   conservazionePassaggiMap = new Map();
-  const { data: consPass } = await supabase
-    .from("ricette_conservazione_passaggi")
-    .select("*")
-    .eq("ricetta_id", Number(ricettaId))
-    .eq("azienda_id", aziendaId)
-    .order("ricette_conservazione_id", { ascending: true })
-    .order("posizione", { ascending: true })
-    .order("gruppo_alternativa", { ascending: true });
+  const { data: consPass } = await pConsPass;
 
   (consPass || []).forEach(p => {
     const sid = String(p.ricette_conservazione_id);
@@ -3318,12 +3305,7 @@ async function caricaRicettaCompleta() {
   else aggiungiScenarioConservazione();
 
   // output (1 record)
-  const { data: output } = await supabase
-    .from("ricette_output")
-    .select("*")
-    .eq("ricetta_id", Number(ricettaId))
-    .eq("azienda_id", aziendaId)
-    .maybeSingle();
+  const { data: output } = await pOutput;
 
   outputCache = output || null;
   if (outputCache) {
@@ -3337,12 +3319,7 @@ async function caricaRicettaCompleta() {
   }
 
   // output secondari
-  const { data: out2 } = await supabase
-    .from("ricette_output_secondari")
-    .select("*")
-    .eq("ricetta_id", Number(ricettaId))
-    .eq("azienda_id", aziendaId)
-    .order("id", { ascending: true });
+  const { data: out2 } = await pSecondari;
 
   outputSecondariCache = out2 || [];
   const out2Container = document.getElementById("output-secondari-container");
@@ -3352,12 +3329,7 @@ async function caricaRicettaCompleta() {
   }
 
   // porzioni
-  const { data: porzioni } = await supabase
-    .from("ricette_porzione")
-    .select("*")
-    .eq("ricetta_id", Number(ricettaId))
-    .eq("azienda_id", aziendaId)
-    .order("id", { ascending: true });
+  const { data: porzioni } = await pPorzioni;
 
   porzioniCache = porzioni || [];
   document.getElementById("porzioni-container").innerHTML = "";
