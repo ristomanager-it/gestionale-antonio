@@ -2321,7 +2321,17 @@ async function compilaRicettaDaPiatto(file, note = "") {
             <span>👨‍🍳 Manodopera <b>€ ${Number(cp.manodopera || 0).toFixed(2)}</b></span>
           </div>
           <div style="font-size:12.5px;color:#7c2d12;">${c.valorizzati || 0} ingredienti su ${c.totali || 0} valorizzati sui prodotti in anagrafica.</div>
-          ${c.stimati ? `<div style="font-size:12.5px;color:#92400e;margin-top:4px;">${c.stimati} prezzi stimati: quei prodotti non hanno l'unità di misura compilata.</div>` : ""}
+          ${c.scartati ? `<div style="font-size:12.5px;color:#b91c1c;margin-top:4px;">${c.scartati} esclusi dal conto: il prezzo in anagrafica non è credibile (di solito è il totale della fattura finito nel campo costo).</div>` : ""}
+
+          <div style="margin-top:10px;font-size:13px;">
+            ${(p.ingredienti || []).map(i => `
+              <div style="display:flex;gap:8px;padding:4px 0;border-top:1px solid #fed7aa;">
+                <span style="flex:1;${i.sospetto ? "color:#b91c1c;" : ""}">${esc(i.nome)}
+                  <span style="color:#a16207;font-size:12px;">${i.quantita} ${esc(i.unita_misura)}${i.prodotto ? " · " + esc(i.prodotto) : " · nessun prodotto"}</span>
+                </span>
+                <b style="${i.sospetto ? "color:#b91c1c;text-decoration:line-through;" : "color:#7c2d12;"}">${i.sospetto ? "€ " + Number(i.prezzo_unitario || 0).toFixed(2) + "/u" : "€ " + Number(i.costo || 0).toFixed(2)}</b>
+              </div>`).join("")}
+          </div>
           ${dubbi.length ? `<div style="font-size:12.5px;color:#92400e;margin-top:4px;">Ingredienti da confermare: ${dubbi.join(", ")}</div>` : ""}
 
           ${md ? `
