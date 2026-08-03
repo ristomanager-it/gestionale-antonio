@@ -5,6 +5,7 @@
 // la dashboard completa di prima resta su #/dashboard-dettaglio.
 
 let periodo = "settimana";
+let daPers = null, aPers = null;   // intervallo scelto a mano
 
 export async function render(container) {
   const supabase = window.supabaseClient || window.supabase;
@@ -39,13 +40,25 @@ export async function render(container) {
   container.innerHTML = `
     <div class="ad-home">
 
-      <div class="ad-salve">Come va
-        <span>${oggi.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}${sede?.nome ? " · " + esc(sede.nome) : " · tutte le sedi"}</span>
+      <div class="ad-salve">${esc(azienda?.nome || "")}
+        <span>${sede?.nome ? esc(sede.nome) : "tutte le sedi"}</span>
       </div>
 
       <div class="ad-per">
-        ${["oggi", "settimana", "mese"].map(p =>
-          `<button data-per="${p}" class="${p === periodo ? "on" : ""}">${p[0].toUpperCase() + p.slice(1)}</button>`).join("")}
+        ${[["oggi","Oggi"],["settimana","Settimana"],["mese","Mese"],["anno","Anno"],["pers","Scegli"]].map(([p,l]) =>
+          `<button data-per="${p}" class="${p === periodo ? "on" : ""}">${l}</button>`).join("")}
+      </div>
+
+      ${periodo === "pers" ? `
+        <div class="ad-date">
+          <input type="date" id="ad-da" value="${per.da}">
+          <span>→</span>
+          <input type="date" id="ad-a" value="${per.a}">
+        </div>` : ""}
+
+      <div class="ad-quando">
+        <b>${etichettaPeriodo(per)}</b>
+        <span>confronto con ${etichettaPeriodo(prec)}</span>
       </div>
 
       <div class="ad-num">
@@ -54,6 +67,11 @@ export async function render(container) {
         ${riga("Costo del lavoro", euro(ora.costoLavoro),
                scost(ora.costoLavoro, prima.costoLavoro, "giu"),
                lavPerc == null ? null : perc(lavPerc) + " sull'incassato")}
+      </div>
+
+      <div class="ad-legenda">
+        Le variazioni sono rispetto a ${etichettaPeriodo(prec)}. Il food cost si confronta
+        in punti percentuali, non in percentuale.
       </div>
 
       <div class="ad-sez">Aspettano una tua decisione</div>
@@ -89,7 +107,24 @@ export async function render(container) {
     ${stile()}`;
 
   container.querySelectorAll("[data-per]").forEach(b => {
-    b.addEventListener("click", () => { periodo = b.getAttribute("data-per"); render(container); });
+    b.addEventListener("click", () => {
+      periodo = b.getAttribute("data-per");
+      if (periodo === "pers" && !daPers) {
+        const d = new Date(); d.setDate(d.getDate() - 30);
+        daPers = iso(d); aPers = iso(new Date());
+      }
+      render(container);
+    });
+  });
+
+  ["ad-da", "ad-a"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("change", () => {
+      daPers = document.getElementById("ad-da").value;
+      aPers = document.getElementById("ad-a").value;
+      if (daPers && aPers && daPers <= aPers) render(container);
+    });
   });
 }
 
@@ -263,14 +298,33 @@ function perc(n) { return (Number(n) || 0).toFixed(1).replace(".", ",") + ' <sma
 /* ── periodi ───────────────────────────────────────────────────────────── */
 
 function intervallo(p, oggi) {
+  if (p === "pers" && daPers && aPers) return { da: daPers, a: aPers };
   const a = new Date(oggi);
   const da = new Date(oggi);
   if (p === "settimana") da.setDate(da.getDate() - ((da.getDay() + 6) % 7));
   if (p === "mese") da.setDate(1);
+  if (p === "anno") { da.setMonth(0); da.setDate(1); }
   return { da: iso(da), a: iso(a) };
 }
 
+function etichettaPeriodo(r) {
+  const f = (x) => new Date(x + "T12:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+  const anno = (x) => new Date(x + "T12:00:00").getFullYear();
+  if (r.da === r.a) return f(r.da) + " " + anno(r.da);
+  if (anno(r.da) !== anno(r.a)) return f(r.da) + " " + anno(r.da) + " → " + f(r.a) + " " + anno(r.a);
+  return f(r.da) + " → " + f(r.a) + " " + anno(r.a);
+}
+
 function intervalloPrecedente(p, oggi) {
+  // periodo a mano o anno: si guarda indietro dello stesso numero di giorni
+  if (p === "pers" || p === "anno") {
+    const r = intervallo(p, oggi);
+    const d1 = new Date(r.da + "T12:00:00"), d2 = new Date(r.a + "T12:00:00");
+    const giorni = Math.round((d2 - d1) / 86400000) + 1;
+    const fine = new Date(d1); fine.setDate(fine.getDate() - 1);
+    const inizio = new Date(fine); inizio.setDate(inizio.getDate() - giorni + 1);
+    return { da: iso(inizio), a: iso(fine) };
+  }
   if (p === "oggi") {
     const d = new Date(oggi); d.setDate(d.getDate() - 1);
     return { da: iso(d), a: iso(d) };
@@ -324,6 +378,14 @@ function stile() {
   .ad-num .sc.giu{background:#FEF2F2;color:var(--rosso);}
   .ad-num .sc.pari{background:#F4F6F8;color:var(--muto);}
 
+  .ad-date{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .ad-date input{flex:1;padding:9px;border:1px solid var(--riga);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;}
+  .ad-date span{color:var(--muto);}
+  .ad-quando{background:#fff;border:1px solid var(--riga);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;}
+  .ad-quando b{color:var(--navy);}
+  .ad-quando span{display:block;color:var(--muto);font-size:12.5px;margin-top:2px;}
+  .ad-legenda{font-size:12.5px;color:var(--muto);line-height:1.5;margin:-6px 4px 18px;}
+  .ad-per button{white-space:nowrap;}
   .ad-sez{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muto);margin:0 0 9px 4px;}
   .ad-dec{background:#fff;border:1px solid var(--riga);border-radius:16px;overflow:hidden;margin-bottom:20px;}
   .ad-dec .d{display:flex;align-items:center;gap:12px;padding:14px 15px;border-top:1px solid #F1F4F6;text-decoration:none;color:var(--testo);}
