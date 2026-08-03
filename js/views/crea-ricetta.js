@@ -2195,7 +2195,9 @@ function setupCategoriaAutocomplete() {
   });
 }
 
-async function compilaRicettaDaPiatto(file) {
+let _ultimaFotoPiatto = null;   // serve per rileggere la stessa foto con le precisazioni
+
+async function compilaRicettaDaPiatto(file, note = "") {
   ricettaCompilataConTony = true;
   if (!file) return;
   const stato = document.getElementById("foto-piatto-stato");
@@ -2204,21 +2206,27 @@ async function compilaRicettaDaPiatto(file) {
   const btn = document.getElementById("btn-foto-piatto");
   if (btn) btn.disabled = true;
   if (box) box.innerHTML = "";
-  setStato("🍽️ Guardo il piatto…");
+  setStato(note ? "🍽️ Rileggo il piatto con le tue precisazioni…" : "🍽️ Guardo il piatto…");
 
   try {
-    const b64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(String(r.result));
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
+    let b64 = _ultimaFotoPiatto;
+    if (file) {
+      b64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+      _ultimaFotoPiatto = b64;
+    }
+    if (!b64) { setStato("⚠️ Nessuna foto: scattane una o caricala."); return; }
+
     const supa = window.supabaseClient || window.supabase;
     const token = (await supa.auth.getSession())?.data?.session?.access_token || "";
     const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-foto", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": token },
-      body: JSON.stringify({ azione: "piatto", image_base64: b64, azienda_id: window.state?.azienda?.id })
+      body: JSON.stringify({ azione: "piatto", image_base64: b64, azienda_id: window.state?.azienda?.id, note })
     });
     const data = await resp.json();
     if (!data.success) { setStato("⚠️ " + (data.error || "Non sono riuscito a leggere il piatto.")); return; }
@@ -2333,10 +2341,31 @@ async function compilaRicettaDaPiatto(file) {
           </div>` : ""}
 
           <div style="font-size:12px;color:#a16207;margin-top:10px;">È una stima da foto: controlla quantità, fasi e conservazione prima di salvare.</div>
+
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #fed7aa;">
+            <div style="font-size:13px;color:#9a3412;font-weight:700;margin-bottom:6px;">Manca qualcosa? Diglielo tu</div>
+            <div style="font-size:12.5px;color:#7c2d12;margin-bottom:8px;">
+              Dalla foto il ripieno non si vede e a volte sbaglia. Scrivi cosa c'è davvero:
+              quello che dici tu vince su quello che vede.
+            </div>
+            <textarea id="foto-piatto-note" rows="2" placeholder="Es: il ripieno è di branzino e patate, non ricotta. Sotto c'è una crema di zucca."
+              style="width:100%;padding:10px;border:1.5px solid #fed7aa;border-radius:10px;font-size:14px;font-family:inherit;box-sizing:border-box;"></textarea>
+            <button id="btn-foto-piatto-note" type="button"
+              style="margin-top:8px;background:#c2410c;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">
+              🔄 Rileggi con queste indicazioni
+            </button>
+          </div>
         </div>`;
+
+      const btnNote = document.getElementById("btn-foto-piatto-note");
+      if (btnNote) btnNote.addEventListener("click", () => {
+        const t = (document.getElementById("foto-piatto-note")?.value || "").trim();
+        if (!t) { alert("Scrivi cosa c'è nel piatto che non si vede."); return; }
+        compilaRicettaDaPiatto(null, t);
+      });
     }
 
-    setStato("✅ Fatto. Controlla gli ingredienti e salva.");
+    setStato(data.note_applicate ? "✅ Rifatto con le tue indicazioni. Controlla e salva." : "✅ Fatto. Controlla gli ingredienti e salva.");
   } catch (e) {
     console.error(e);
     setStato("⚠️ Errore: " + (e.message || e));
