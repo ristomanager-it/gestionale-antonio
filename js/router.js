@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260802-10";
+const APP_V = "20260802-11";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -64,6 +64,7 @@ const routes = {
   "bo-shortlink": () => imp("./views/bo/bo-shortlink.js"),
 
   "home-admin": () => imp("./views/home-admin.js"),
+  "dashboard-dettaglio": () => imp("./views/home-admin-dettaglio.js"),
   "home-manager": () => imp("./views/home-manager.js"),
   "home-operatore": () => imp("./views/home-operatore.js"),
 
