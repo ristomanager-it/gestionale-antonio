@@ -2230,10 +2230,24 @@ async function compilaRicettaDaPiatto(file) {
     if (Array.isArray(p.ingredienti)) {
       const cont = document.getElementById("ingredienti-container");
       if (cont) cont.innerHTML = "";
-      p.ingredienti.forEach((i) => aggiungiIngrediente({
-        _nome_tony: i.nome, prodotto_id: i.prodotto_id || null,
-        quantita: i.quantita, unita_misura: i.unita_misura,
-      }));
+      p.ingredienti.forEach((i) => {
+        if (i.prodotto_id) {
+          // gia' agganciato al magazzino: scrivo nome visibile e id nascosto
+          aggiungiIngrediente({
+            nome_prodotto: i.prodotto || i.nome,
+            prodotto_id: i.prodotto_id,
+            quantita: i.quantita,
+            unita_misura: i.unita_misura,
+          });
+        } else {
+          // nessun aggancio sicuro: la riga cerca da sola tra i prodotti
+          aggiungiIngrediente({
+            _nome_tony: i.nome,
+            quantita: i.quantita,
+            unita_misura: i.unita_misura,
+          });
+        }
+      });
     }
 
     // il numero che fa alzare la testa: quanto costa, sui prezzi veri
