@@ -37,17 +37,13 @@ export async function render(container) {
     return;
   }
 
-  const { data: pianiDB } = await supabase
-    .from("piani_abbonamento")
-    .select("id, nome")
-    .order("nome", { ascending: true });
-
-  const { data: abbonamento } = await supabase
-    .from("abbonamenti")
-    .select("*")
-    .eq("azienda_id", id)
-    .eq("stato", "attivo")
-    .maybeSingle();
+  // piani e abbonamento non dipendono l'uno dall'altro: si chiedono insieme
+  const [piani, abb] = await Promise.all([
+    supabase.from("piani_abbonamento").select("id, nome").order("nome", { ascending: true }),
+    supabase.from("abbonamenti").select("*").eq("azienda_id", id).eq("stato", "attivo").maybeSingle(),
+  ]);
+  const pianiDB = piani.data;
+  const abbonamento = abb.data;
 
   let pianoCorrente = azienda.piano || null;
 

@@ -81,47 +81,29 @@ export async function render(container) {
 
     const oggi = new Date().toISOString().split("T")[0];
 
-    const { data: tavoliData, error: tavoliError } = await window.supabaseClient
-      .from("tavoli")
-      .select("*")
-      .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId)
-      .eq("attivo", true)
-      .order("nome", { ascending: true });
+    // le tre letture partono insieme: prima erano in fila e la sala ci metteva il triplo
+    const [tav, sta, pre] = await Promise.all([
+      window.supabaseClient.from("tavoli").select("*")
+        .eq("azienda_id", aziendaId).eq("sede_id", sedeId).eq("attivo", true)
+        .order("nome", { ascending: true }),
+      window.supabaseClient.from("tavoli_stato").select("*")
+        .eq("azienda_id", aziendaId),
+      window.supabaseClient.from("prenotazioni_tavoli").select("*")
+        .eq("azienda_id", aziendaId).eq("sede_id", sedeId).eq("data", oggi),
+    ]);
 
-    if (tavoliError) {
-      console.error("Errore tavoli:", tavoliError);
+    if (tav.error) {
+      console.error("Errore tavoli:", tav.error);
       box.innerHTML = "Errore caricamento tavoli";
       return;
     }
+    tavoli = tav.data || [];
 
-    tavoli = tavoliData || [];
+    if (sta.error) console.error("Errore stati tavoli:", sta.error);
+    stati = sta.data || [];
 
-    const { data: statiData, error: statiError } = await window.supabaseClient
-      .from("tavoli_stato")
-      .select("*")
-      .eq("azienda_id", aziendaId);
-
-    if (statiError) {
-      console.error("Errore stati tavoli:", statiError);
-      stati = [];
-    } else {
-      stati = statiData || [];
-    }
-
-    const { data: prenData, error: prenError } = await window.supabaseClient
-      .from("prenotazioni_tavoli")
-      .select("*")
-      .eq("azienda_id", aziendaId)
-      .eq("sede_id", sedeId)
-      .eq("data", oggi);
-
-    if (prenError) {
-      console.error("Errore prenotazioni sala:", prenError);
-      prenotazioni = [];
-    } else {
-      prenotazioni = prenData || [];
-    }
+    if (pre.error) console.error("Errore prenotazioni sala:", pre.error);
+    prenotazioni = pre.data || [];
 
     renderSala();
   }

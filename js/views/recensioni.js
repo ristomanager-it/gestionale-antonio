@@ -28,9 +28,12 @@ export async function render(container) {
       <div id="rec-cfg" style="margin-top:24px;"></div>
     </div>`;
 
-  await mostraQr();
-  await mostraStatistiche();
-  if (isAdmin) await mostraImpostazioni();
+  // i tre pannelli si caricano insieme: erano in fila e si aspettavano a vicenda
+  await Promise.all([
+    mostraQr(),
+    mostraStatistiche(),
+    isAdmin ? mostraImpostazioni() : Promise.resolve(),
+  ]);
 
   /* ── Il QR del collaboratore ─────────────────────────────────────────── */
   async function mostraQr() {
