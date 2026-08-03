@@ -117,15 +117,17 @@ export async function render(container) {
   }
 
   if (formId) {
+    // form e sua ultima versione partono insieme: la versione dipende solo dall'id
+    const versionePromise = window.supabaseClient
+      .from("booking_form_versions").select("*").eq("form_id", formId)
+      .order("versione", { ascending: false }).limit(1).maybeSingle();
     const { data: formData, error: formError } = await window.supabaseClient
       .from("booking_forms").select("*").eq("id", formId).eq("attivo", true).maybeSingle();
     if (formError || !formData) { container.innerHTML = `<div style="padding:40px;text-align:center;color:#64748b;">Form non trovato</div>`; return; }
     form = formData;
     aziendaId = aziendaId || form.azienda_id;
     sedeId    = sedeId    || form.sede_id;
-    const { data: versionData } = await window.supabaseClient
-      .from("booking_form_versions").select("*").eq("form_id", form.id)
-      .order("versione", { ascending: false }).limit(1).maybeSingle();
+    const { data: versionData } = await versionePromise;
     version = versionData || null;
     config  = version?.config || form.config || {};
   }
@@ -152,8 +154,13 @@ export async function render(container) {
   let indirizzo = null, telefono = null;
 
   try {
+    // sede e azienda si leggono insieme: sono due schede diverse
+    const [sedeRes, azRes] = await Promise.all([
+      sedeId ? window.supabaseClient.from("sedi").select("*").eq("id", sedeId).maybeSingle() : Promise.resolve({ data: null }),
+      window.supabaseClient.from("aziende").select("*").eq("id", aziendaId).maybeSingle(),
+    ]);
     if (sedeId) {
-      const { data: sede } = await window.supabaseClient.from("sedi").select("*").eq("id", sedeId).maybeSingle();
+      const sede = sedeRes.data;
       if (sede) {
         nomeLocale = sede.nome || nomeLocale;
         logo  = sede.logo_url  || logo;
@@ -162,7 +169,7 @@ export async function render(container) {
         telefono  = sede.telefono || null;
       }
     }
-    const { data: az } = await window.supabaseClient.from("aziende").select("*").eq("id", aziendaId).maybeSingle();
+    const az = azRes.data;
     if (az) {
       if (!logo)   logo  = az.logo_url;
       if (!cover)  cover = az.cover_url;

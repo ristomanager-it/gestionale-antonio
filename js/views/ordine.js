@@ -23,10 +23,12 @@ export async function render(container) {
   container.innerHTML = `<div class="view"><div class="small-muted">Caricamento ordine…</div></div>`;
 
   // Carico ordine + righe + fornitori + prodotti (per autocomplete)
-  const [ordRes, fornRes, prodRes] = await Promise.all([
+  const [ordRes, fornRes, prodRes, righeRes] = await Promise.all([
     ordineId ? supa().from("ordini_fornitore").select("*, fornitori(ragione_sociale, telefono, telefono_referente_ordini, email_amministrativa, email_referente_ordini)").eq("id", ordineId).single() : Promise.resolve({ data: null }),
     supa().from("fornitori").select("id, ragione_sociale").eq("azienda_id", aziendaId).eq("attivo", true).order("ragione_sociale"),
-    supa().from("prodotti").select("id, nome, nome_interno, unita_base, costo_ultimo").eq("azienda_id", aziendaId).eq("stato", "attivo").order("nome").limit(2000)
+    supa().from("prodotti").select("id, nome, nome_interno, unita_base, costo_ultimo").eq("azienda_id", aziendaId).eq("stato", "attivo").order("nome").limit(2000),
+    // le righe si chiedono con l'id che abbiamo gia' nell'indirizzo: non serve aspettare l'ordine
+    ordineId ? supa().from("ordini_fornitore_righe").select("*").eq("ordine_id", ordineId) : Promise.resolve({ data: [] })
   ]);
 
   const ordine = ordRes.data;
@@ -36,7 +38,7 @@ export async function render(container) {
 
   let righe = [];
   if (ordine) {
-    const { data: r } = await supa().from("ordini_fornitore_righe").select("*").eq("ordine_id", ordine.id);
+    const r = righeRes.data;
     righe = (r || []).map(x => ({
       prodotto_id: x.prodotto_id,
       nome: (prodById[String(x.prodotto_id)]?.nome_interno || prodById[String(x.prodotto_id)]?.nome || ""),
