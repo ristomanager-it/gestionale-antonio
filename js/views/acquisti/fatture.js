@@ -2269,6 +2269,20 @@ function badgeConf(conf, confermato) {
   return '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">nessun match</span>';
 }
 
+// Le fatture ricorrenti cambiano testo ogni mese ("... - Comp. novembre '25 2773286"):
+// per riconoscerle si guarda la radice, senza periodo e senza numeri di pratica.
+function radiceDescrizione(desc) {
+  let t = String(desc || "").toLowerCase();
+  t = t.split(/\s[-–]\s*comp\.?\s/)[0];                 // via " - Comp. novembre '25"
+  t = t.replace(/\b(comp\.?|competenza|periodo|dal|al|mese di)\b.*$/i, "");
+  t = t.replace(/\b(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\b/gi, "");
+  t = t.replace(/'?\d{2,4}\b/g, "");                      // anni e numeri lunghi
+  t = t.replace(/\b\d{4,}\b/g, "");                       // numeri pratica/contratto
+  t = t.replace(/\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}/g, ""); // date
+  t = t.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  return t;
+}
+
 async function renderRigheFiscali(box, documentoId, azienda) {
   const supa = window.supabaseClient || window.supabase;
   box.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px;">Caricamento righe...</div>';
@@ -2404,6 +2418,7 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:2px;padding-left:20px;flex-wrap:wrap;">';
       html += '<span style="font-size:11px;color:#64748b;">🏷️ Nome interno</span>';
       html += '<input class="fisc-nome-interno" data-riga="' + r.id + '" data-prod="' + r.prodotto_id + '" value="' + escapeHtml(mappaNomeInt.get(String(r.prodotto_id)) || "") + '" placeholder="' + escapeHtml(nomeProd || "nome comodo per voi") + '" style="flex:1;min-width:180px;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;" />';
+      html += '<button class="fisc-salva-nome" data-riga="' + r.id + '" data-prod="' + r.prodotto_id + '" style="background:#0E5A7A;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">💾 Salva</button>';
       html += btnElimina(r.id);
       html += '</div>';
     }
@@ -2651,19 +2666,60 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     });
   });
 
+  async function salvaNomeInterno(inp, btn) {
+    const prodId = inp.getAttribute("data-prod");
+    if (!prodId) return;
+    const rigaId = inp.getAttribute("data-riga");
+    const val = inp.value.trim();
+    const supaDir = window.supabaseClient || window.supabase;
+
+    inp.disabled = true;
+    if (btn) { btn.disabled = true; btn.textContent = "…"; }
+
+    const { error } = await supaDir.from("prodotti")
+      .update({ nome_interno: val || null }).eq("id", Number(prodId)).eq("azienda_id", azienda.id);
+
+    // l'alias fa riconoscere la stessa voce alla prossima fattura, anche se il
+    // fornitore ci attacca il mese o il numero pratica
+    if (!error) {
+      const riga = righe.find(x => String(x.id) === String(rigaId));
+      const testo = radiceDescrizione(riga ? riga.descrizione_originale : "");
+      if (testo) {
+        const { data: giaCe } = await supaDir.from("prodotti_alias_ocr")
+          .select("id").eq("azienda_id", azienda.id).eq("testo_ocr", testo).maybeSingle();
+        if (!giaCe) {
+          await supaDir.from("prodotti_alias_ocr")
+            .insert({ azienda_id: azienda.id, testo_ocr: testo, prodotto_id: Number(prodId) });
+        }
+      }
+    }
+
+    inp.disabled = false;
+    if (btn) { btn.disabled = false; btn.textContent = error ? "Riprova" : "✓ Salvato"; }
+    if (error) { alert("Errore salvataggio nome interno: " + error.message); return; }
+    mappaNomeInt.set(String(prodId), val);
+    inp.style.borderColor = "#16a34a";
+    if (btn) setTimeout(() => { btn.textContent = "💾 Salva"; }, 2000);
+  }
+
   box.querySelectorAll(".fisc-nome-interno").forEach(inp => {
     inp.addEventListener("click", (e) => e.stopPropagation());
-    inp.addEventListener("change", async () => {
-      const prodId = inp.getAttribute("data-prod");
-      if (!prodId) return;
-      const val = inp.value.trim();
-      inp.disabled = true;
-      const supaDir = window.supabaseClient || window.supabase;
-      const { error } = await supaDir.from("prodotti").update({ nome_interno: val || null }).eq("id", Number(prodId)).eq("azienda_id", azienda.id);
-      inp.disabled = false;
-      if (error) { alert("Errore salvataggio nome interno: " + error.message); return; }
-      mappaNomeInt.set(String(prodId), val);
-      inp.style.borderColor = "#16a34a";
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        salvaNomeInterno(inp, box.querySelector('.fisc-salva-nome[data-riga="' + inp.getAttribute("data-riga") + '"]'));
+      }
+    });
+    inp.addEventListener("change", () => {
+      salvaNomeInterno(inp, box.querySelector('.fisc-salva-nome[data-riga="' + inp.getAttribute("data-riga") + '"]'));
+    });
+  });
+
+  box.querySelectorAll(".fisc-salva-nome").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const inp = box.querySelector('.fisc-nome-interno[data-riga="' + btn.getAttribute("data-riga") + '"]');
+      if (inp) salvaNomeInterno(inp, btn);
     });
   });
 
