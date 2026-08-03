@@ -457,6 +457,7 @@ export function initMenu() {
             { label: "🎯 Gestisci campagne", route: "bo-promo" },
             { label: "📊 Analisi Promo",     route: "bo-promo-analisi" },
           ] },
+          { label: "⭐ Recensioni", route: "recensioni" },
           { label: "📨 Registro messaggi",  route: "registro-messaggi" },
           { label: "🎫 Fidelity & Network", route: "bo-fidelity", children: [
             { label: "📊 Dashboard", route: "bo-fidelity?tab=dashboard" },

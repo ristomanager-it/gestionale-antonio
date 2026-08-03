@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=28";
+import { initMenu } from "./menu.js?v=29";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260802-3";
+const APP_V = "20260802-4";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -57,6 +57,8 @@ const routes = {
 
   "s": () => imp("./views/short-link-redirect.js"),
   "evento-serata": () => imp("./views/evento-serata.js"),
+  "recensione": () => imp("./views/recensione.js"),
+  "recensioni": () => imp("./views/recensioni.js"),
   "evento-prenotazione": () => imp("./views/evento-prenotazione.js"),
   "bo-evento": () => imp("./views/bo/bo-evento.js"),
   "bo-shortlink": () => imp("./views/bo/bo-shortlink.js"),
@@ -248,7 +250,8 @@ const PUBLIC_ROUTES = new Set([
   "prenotazione",
   "s",
   "evento-serata",
-  "evento-prenotazione"
+  "evento-prenotazione",
+  "recensione"
 ]);
 
 const PLATFORM_ROUTES = new Set([
@@ -604,6 +607,7 @@ function hasPermission(area) {
       "produzioni-aperte",
       "registro-lotti",
       "registro-messaggi",
+      "recensioni",
       "display-cucina",
       "kds",
       "kds-produzioni",
