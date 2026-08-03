@@ -2291,19 +2291,45 @@ async function compilaRicettaDaPiatto(file) {
       }));
     }
 
-    // il numero che fa alzare la testa: quanto costa, sui prezzi veri
+    // i due costi: materia prima sui prezzi veri e manodopera sui costi orari reali
     const c = data.costo || {};
+    const md = data.manodopera || null;
+    const cp = data.costo_pieno || {};
     const box2 = document.getElementById("foto-piatto-costo");
     if (box2) {
       const dubbi = (p.ingredienti || []).filter(i => i.certezza === "bassa").map(i => i.nome);
       box2.innerHTML = `
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;">
-          <div style="font-size:13px;color:#9a3412;font-weight:700;">Costo stimato sui vostri prezzi</div>
-          <div style="font-family:Georgia,serif;font-size:30px;color:#c2410c;margin:4px 0;">€ ${Number(c.totale || 0).toFixed(2)}</div>
+          <div style="font-size:13px;color:#9a3412;font-weight:700;">Costo pieno a porzione</div>
+          <div style="font-family:Georgia,serif;font-size:32px;color:#c2410c;margin:4px 0;">€ ${Number(cp.totale || 0).toFixed(2)}</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#7c2d12;margin-bottom:8px;">
+            <span>🥩 Materia prima <b>€ ${Number(cp.materia_prima || 0).toFixed(2)}</b></span>
+            <span>👨‍🍳 Manodopera <b>€ ${Number(cp.manodopera || 0).toFixed(2)}</b></span>
+          </div>
           <div style="font-size:12.5px;color:#7c2d12;">${c.valorizzati || 0} ingredienti su ${c.totali || 0} valorizzati sui prodotti in anagrafica.</div>
           ${c.stimati ? `<div style="font-size:12.5px;color:#92400e;margin-top:4px;">${c.stimati} prezzi stimati: quei prodotti non hanno l'unità di misura compilata.</div>` : ""}
-          ${dubbi.length ? `<div style="font-size:12.5px;color:#92400e;margin-top:6px;">Da confermare: ${dubbi.join(", ")}</div>` : ""}
-          <div style="font-size:12px;color:#a16207;margin-top:8px;">È una stima da foto: controlla quantità, fasi e conservazione prima di salvare.</div>
+          ${dubbi.length ? `<div style="font-size:12.5px;color:#92400e;margin-top:4px;">Ingredienti da confermare: ${dubbi.join(", ")}</div>` : ""}
+
+          ${md ? `
+          <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #fed7aa;">
+            <div style="font-size:13px;color:#9a3412;font-weight:700;margin-bottom:6px;">Quanto cambia se ne fate di più</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13.5px;">
+              <div style="background:#fff;border:1px solid #fed7aa;border-radius:10px;padding:10px;">
+                <div style="color:#7c2d12;font-size:12px;">Una porzione sola</div>
+                <div style="font-size:19px;font-weight:700;color:#c2410c;">€ ${Number(md.costo_una_porzione || 0).toFixed(2)}</div>
+                <div style="font-size:11.5px;color:#a16207;">${md.minuti_una_porzione} min di lavoro</div>
+              </div>
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;">
+                <div style="color:#15803d;font-size:12px;">In lotto da ${md.lotto_porzioni}</div>
+                <div style="font-size:19px;font-weight:700;color:#15803d;">€ ${Number(md.costo_porzione_in_lotto || 0).toFixed(2)}</div>
+                <div style="font-size:11.5px;color:#15803d;">${md.minuti_lotto} min per tutto il lotto</div>
+              </div>
+            </div>
+            ${md.risparmio_percentuale > 0 ? `<div style="font-size:13px;color:#15803d;font-weight:700;margin-top:8px;">Producendo ${md.lotto_porzioni} porzioni insieme, la manodopera per piatto scende del ${md.risparmio_percentuale}%.</div>` : ""}
+            <div style="font-size:11.5px;color:#a16207;margin-top:6px;">Costi orari usati: ${Object.entries(md.costi_orari || {}).map(([r, v]) => r + " € " + v).join(" · ")}</div>
+          </div>` : ""}
+
+          <div style="font-size:12px;color:#a16207;margin-top:10px;">È una stima da foto: controlla quantità, fasi e conservazione prima di salvare.</div>
         </div>`;
     }
 
