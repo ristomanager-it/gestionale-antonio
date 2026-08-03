@@ -13,6 +13,7 @@
 // ============================================================
 import { requirePermessi } from "../auth-utils.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
+import { caricaCostiOrari, caricaEnergia, calcolaCostiProduzione } from "../utils/costiProduzione.js";
 let ricettaId = null;
 let ricettaCompilataConTony = false; // true se Tony ha compilato (chat/dettatura/foto)
 let impiattamentoCorrente = null;   // progetto di montaggio del piatto
@@ -1553,6 +1554,8 @@ export async function render(app) {
         body: `
           <div id="fasi-container"></div>
 
+          <div id="costi-produzione" style="margin:14px 0;"></div>
+
           <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
             <button id="btn-tony-fasi"
               class="app-button"
@@ -2795,6 +2798,81 @@ function rinumeraOrdineIngredienti() {
 /* ============================================================
    FASI
 ============================================================ */
+let _costiOrari = null, _energia = null, _lottoStandard = 10;
+
+async function aggiornaCostiProduzione() {
+  const box = document.getElementById("costi-produzione");
+  if (!box) return;
+  const supabase = window.supabaseClient;
+  const aziendaId = window.state?.azienda?.id;
+  if (!aziendaId) return;
+
+  if (!_costiOrari) _costiOrari = await caricaCostiOrari(supabase, aziendaId);
+  if (!_energia) _energia = await caricaEnergia(supabase, aziendaId);
+
+  const fasi = [];
+  document.querySelectorAll("#fasi-container .azienda-card").forEach((r) => {
+    const h = Number(r.querySelector(".fase-lavoro-h")?.value) || 0;
+    const m = Number(r.querySelector(".fase-lavoro-m")?.value) || 0;
+    const dh = Number(r.querySelector(".fase-durata-h")?.value) || 0;
+    const dm = Number(r.querySelector(".fase-durata-m")?.value) || 0;
+    fasi.push({
+      descrizione: (r.querySelector(".fase-descrizione")?.value || "").slice(0, 60),
+      lavoro_umano_min: h * 60 + m,
+      durata_min: dh * 60 + dm,
+      ruolo: r.querySelector(".fase-ruolo")?.value || "",
+      dispositivo_id: r.querySelector(".fase-dispositivo")?.value || "",
+    });
+  });
+
+  if (!fasi.length) { box.innerHTML = ""; return; }
+
+  const c = calcolaCostiProduzione(fasi, {
+    costi: _costiOrari, energia: _energia,
+    lotto: _lottoStandard, porzioni: Number(document.getElementById("r-porzioni")?.value) || 1,
+  });
+
+  box.innerHTML = `
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:15px;">⚙️ Costo di produzione</div>
+        <label style="font-size:13px;color:#64748b;margin-left:auto;">Porzioni per sessione</label>
+        <input id="costi-lotto" type="number" min="1" value="${_lottoStandard}"
+          style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;">
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
+          <div style="font-size:12px;color:#64748b;">👨‍🍳 Manodopera</div>
+          <div style="font-size:20px;font-weight:800;color:#0E5A7A;">€ ${c.lavoro_porzione.toFixed(2)}</div>
+          <div style="font-size:11.5px;color:#94a3b8;">a porzione · ${c.minuti_totali} min per ${c.lotto}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
+          <div style="font-size:12px;color:#64748b;">⚡ Energia</div>
+          <div style="font-size:20px;font-weight:800;color:#c2410c;">€ ${c.energia_porzione.toFixed(2)}</div>
+          <div style="font-size:11.5px;color:#94a3b8;">${c.kwh_lotto} kWh · ${c.costo_kwh} €/kWh</div>
+        </div>
+        <div style="background:#0E5A7A;border-radius:10px;padding:12px;color:#fff;">
+          <div style="font-size:12px;opacity:.85;">Produzione a porzione</div>
+          <div style="font-size:20px;font-weight:800;">€ ${c.totale_porzione.toFixed(2)}</div>
+          <div style="font-size:11.5px;opacity:.8;">€ ${c.totale_lotto.toFixed(2)} per ${c.lotto} porzioni</div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:#64748b;margin-top:10px;line-height:1.5;">
+        Le fasi descrivono una sessione di lavoro: cambiando le porzioni per sessione vedi
+        quanto scende il costo producendo di più. Manodopera dai costi orari dei vostri
+        dipendenti, energia dalla potenza delle attrezzature scelte in ogni fase.
+      </div>
+    </div>`;
+
+  const inp = document.getElementById("costi-lotto");
+  if (inp) inp.addEventListener("change", () => {
+    _lottoStandard = Math.max(Number(inp.value) || 1, 1);
+    aggiornaCostiProduzione();
+  });
+}
+
 function aggiungiFase(initial = {}) {
   const container = document.getElementById("fasi-container");
   if (!container) return;
@@ -2850,6 +2928,14 @@ function aggiungiFase(initial = {}) {
       </div>
 
       <div class="form-group">
+        <label>Chi la esegue</label>
+        <select class="fase-ruolo input">
+          ${["", "chef", "cuoco", "aiuto cuoco", "chef pasticcere", "aiuto pasticceria", "plonge"]
+            .map(r => `<option value="${r}"${String(initial.ruolo || "") === r ? " selected" : ""}>${r || "—"}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="form-group">
         <label>Attrezzatura (testo libero)</label>
         <input class="fase-tecnologia input" value="${escapeAttr(initial.tecnologia || "")}" placeholder="Es. teglia inox, sac à poche..." />
       </div>
@@ -2900,10 +2986,18 @@ function aggiungiFase(initial = {}) {
   if (btnDel) btnDel.addEventListener("click", () => {
     card.remove();
     renumberFasi();
+    aggiornaCostiProduzione();
   });
 
   container.appendChild(card);
   renumberFasi();
+
+  // ogni modifica alla fase ricalcola manodopera ed energia
+  ["change", "input"].forEach((ev) => {
+    [".fase-lavoro-h", ".fase-lavoro-m", ".fase-durata-h", ".fase-durata-m", ".fase-ruolo", ".fase-dispositivo"]
+      .forEach((sel) => card.querySelector(sel)?.addEventListener(ev, () => aggiornaCostiProduzione()));
+  });
+  setTimeout(() => aggiornaCostiProduzione(), 60);
 
   // Badge ibrido dispositivo
   const selDisp = card.querySelector(".fase-dispositivo");
@@ -3842,6 +3936,7 @@ async function salvaTutto() {
       const temperatura = toNumOrNull(r.querySelector(".fase-temperatura")?.value);
       const note = (r.querySelector(".fase-note")?.value || "").trim() || null;
       const dispositivo_id = r.querySelector(".fase-dispositivo")?.value || null;
+      const ruolo = (r.querySelector(".fase-ruolo")?.value || "").trim() || null;
 
       rows.push({
         ricetta_id: ricettaIdNum,
@@ -3855,6 +3950,7 @@ async function salvaTutto() {
         note,
         descrizione_operativa,
         dispositivo_id: dispositivo_id || null,
+        ruolo,
         richiede_conferma: false,
         fase_template_id: null,
         parametri: {},
