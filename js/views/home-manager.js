@@ -1,566 +1,355 @@
-const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+// js/views/home-manager.js
+// La home di chi guida il servizio. Una domanda sola: "stasera regge?"
+// Timbratura (timbra anche lui), tre numeri, la riga di domani,
+// gli avvisi da guardare adesso, e i sei posti dove va davvero.
 
 export async function render(container) {
-
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const azienda = window.state?.azienda;
   const user = window.state?.user;
+  const sede = window.state?.sedeAttiva;
 
-  if (!window.state?.sedeAttiva) {
-    window.location.hash = "#/scegli-sede";
-    return;
+  if (!sede) { window.location.hash = "#/scegli-sede"; return; }
+
+  const oggi = new Date();
+  const oggiISO = dataLocale(oggi);
+  const domaniISO = dataLocale(new Date(oggi.getTime() + 86400000));
+
+  let dip = window.state?.dipendente || null;
+  if ((!dip || !dip.id) && azienda?.id && user?.id) {
+    const { data } = await supabase.from("dipendenti")
+      .select("id, nome, cognome").eq("azienda_id", azienda.id).eq("user_id", user.id).limit(1).maybeSingle();
+    dip = data || null;
   }
+  const nome = (dip?.nome || window.state?.profilo?.displayName
+    || (user?.email ? user.email.split("@")[0] : "")).split(" ")[0] || "";
 
-  const today = new Date()
-    .toISOString()
-    .slice(0,10);
+  container.innerHTML = `<div class="mg-home"><div class="mg-caric">Un attimo…</div></div>${stile()}`;
 
-  const sedeUuid = window.state?.sedeAttiva?.id || null;
+  const [mie, coperti, copertiDom, squadra, produzioni, prodDom, avvisi, comandamenti] = await Promise.all([
+    mieTimbrature(supabase, azienda?.id, dip?.id),
+    copertiDelGiorno(supabase, azienda?.id, sede?.id, oggiISO),
+    copertiDelGiorno(supabase, azienda?.id, sede?.id, domaniISO),
+    statoSquadra(supabase, azienda?.id, sede?.id, oggiISO),
+    produzioniDelGiorno(supabase, azienda?.id, oggiISO),
+    produzioniDelGiorno(supabase, azienda?.id, domaniISO),
+    listaAvvisi(supabase, azienda?.id, sede?.id, oggiISO),
+    listaComandamenti(supabase, azienda?.id),
+  ]);
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // stesso pensiero per tutti, nello stesso giorno: se ne parla in servizio
+  const indiceCom = comandamenti.length ? giornoDellAnno(oggi) % comandamenti.length : 0;
+  const com = comandamenti.length ? comandamenti[indiceCom] : null;
 
-  const tomorrowStr = tomorrow
-    .toISOString()
-    .slice(0,10);
-
-  let servizi = [];
-  let staff = [];
-  let timbrature = [];
-
-  try {
-
-    const { data: serviziData } = await supabase
-      .from("servizi")
-      .select("*")
-      .eq("azienda_id", azienda.id)
-      .eq("data_servizio", today)
-      .order("ora_inizio");
-
-    servizi = serviziData || [];
-
-    const { data: staffData } = await supabase
-      .from("servizio_staff")
-      .select("*")
-      .eq("azienda_id", azienda.id);
-
-    staff = staffData || [];
-
-    let timbratureQuery = supabase
-      .from("timbrature")
-      .select("*")
-      .eq("azienda_id", azienda.id)
-      .eq("data_turno", today);
-
-    if (sedeUuid) {
-      timbratureQuery = timbratureQuery.eq("sede_id", sedeUuid);
-    }
-
-    const { data: tData } = await timbratureQuery;
-
-    timbrature = tData || [];
-
-  } catch(e) {
-    console.error(e);
-  }
-
-  // =========================
-  // STATO STAFF LIVE
-  // =========================
-
-  const statoDip = {};
-
-  timbrature.forEach(t => {
-    statoDip[t.dipendente_id] = t.tipo;
-  });
-
-  const inTurno = Object
-    .values(statoDip)
-    .filter(t =>
-      t === "inizio_turno" ||
-      t === "fine_pausa"
-    ).length;
-
-  const inPausa = Object
-    .values(statoDip)
-    .filter(t => t === "inizio_pausa")
-    .length;
-
-  const fuori = Math.max(
-    0,
-    staff.length - inTurno - inPausa
-  );
-
-  // =========================
-  // STATO SERVIZIO
-  // =========================
-
-  const copertiTotali = servizi.reduce(
-    (acc, s) =>
-      acc + (s.coperti_previsti || 0),
-    0
-  );
-
-  let alertServizio =
-    "✔ Tutto sotto controllo";
-
-  if (copertiTotali > 50 && inTurno < 4) {
-    alertServizio =
-      "⚠️ Staff insufficiente";
-  }
-
-  if (servizi.length === 0) {
-    alertServizio =
-      "⚠️ Nessun servizio pianificato";
-  }
-
-  const serviziHtml = servizi.map(s => {
-
-    const staffCount = staff.filter(
-      st => st.servizio_id === s.id
-    ).length;
-
-    return `
-      <div class="servizio-row">
-
-        <div>
-          ${s.tipo_servizio}
-        </div>
-
-        <div>
-          ${s.coperti_previsti || 0} coperti
-        </div>
-
-        <div>
-          👥 ${staffCount}
-        </div>
-
-      </div>
-    `;
-
-  }).join("");
-
-  // =========================
-  // RENDER
-  // =========================
+  const stato = statoDaTimbrature(mie);
+  const capienza = Number(sede?.coperti_max) || null;
+  const mancanti = squadra.previsti ? Math.max(squadra.previsti - squadra.inTurno, 0) : 0;
 
   container.innerHTML = `
+    <div class="mg-home">
 
-  <div class="view manager-home">
-
-    <!-- HEADER -->
-    <div class="header">
-
-      <div>
-
-        <div
-          class="saluto"
-          id="home-saluto"
-        >
-        </div>
-
-        <div class="utente">
-          ${user?.email || ""}
-        </div>
-
+      <div class="mg-salve">Ciao ${esc(nome)}
+        <span>${oggi.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} · ${esc(sede?.nome || "")}</span>
       </div>
 
-      <div class="header-right">
+      ${dip?.id ? boxTimbratura(stato) : ""}
 
-        <div id="home-data"></div>
-
-        <div id="home-weather">
-          ☁️
+      <div class="mg-tre">
+        <div class="k">
+          <div class="n">${coperti.coperti}${capienza ? `<small>/${capienza}</small>` : ""}</div>
+          <div class="l">Coperti<br>prenotati</div>
         </div>
-
+        <div class="k ${mancanti ? "att" : ""}">
+          <div class="n">${squadra.inTurno}${squadra.previsti ? `<small>/${squadra.previsti}</small>` : ""}</div>
+          <div class="l">In turno<br>${squadra.previsti ? "su previsti" : "adesso"}</div>
+        </div>
+        <div class="k">
+          <div class="l">Produzioni<br>aperte</div>
+        </div>
       </div>
 
+      <div class="mg-dom">
+        <i>➡️</i><b>Domani</b>
+        ${copertiDom.coperti} coperti · ${prodDom.totali} produzioni
+        ${copertiDom.prenotazioni ? `<span>${copertiDom.prenotazioni} prenotazioni</span>` : ""}
+      </div>
+
+      <div class="mg-sez">Da guardare adesso</div>
+      <div class="mg-avvisi">
+        ${avvisi.length
+          ? avvisi.map(a => `
+            <a href="${a.link}" class="a ${a.livello}">
+              <i class="pun"></i>
+              <div class="t">${esc(a.titolo)}<span>${esc(a.sotto)}</span></div>
+              <b>›</b>
+            </a>`).join("")
+          : `<div class="vuoto">Tutto in ordine: niente che richieda attenzione adesso.</div>`}
+      </div>
+
+      ${com ? `
+        <div class="mg-com">
+          <div class="et">Il pensiero di oggi</div>
+          <p>${esc(com.testo)}</p>
+        </div>` : ""}
+
+      <div class="mg-sez">Vai a</div>
+      <div class="mg-griglia">
+        <a href="#/prenotazioni" class="p"><i>🪑</i><b>Prenotazioni</b><span>Sala e tavoli</span></a>
+        <a href="#/ordini" class="p"><i>📦</i><b>Ordini</b><span>Fornitori</span></a>
+        <a href="#/magazzino" class="p"><i>🧊</i><b>Magazzino</b><span>Giacenze e scorte</span></a>
+        <a href="#/planning-lavoro" class="p"><i>📆</i><b>Turni</b><span>Planning squadra</span></a>
+        <a href="#/dipendenti" class="p"><i>👥</i><b>Brigata</b><span>Chi c'è oggi</span></a>
+        <a href="#/timbrature" class="p"><i>🕒</i><b>Timbrature</b><span>Entrate e uscite</span></a>
+      </div>
+
+      <div class="mg-pie">${esc(azienda?.nome || "")}</div>
     </div>
-
-    <!-- 👥 STATO STAFF -->
-    <div class="card">
-
-      <div class="card-title">
-        👥 Stato squadra
-      </div>
-
-      <div class="staff-grid">
-
-        <div class="staff-box green">
-
-          <div class="num">
-            ${inTurno}
-          </div>
-
-          <div class="label">
-            In turno
-          </div>
-
-        </div>
-
-        <div class="staff-box yellow">
-
-          <div class="num">
-            ${inPausa}
-          </div>
-
-          <div class="label">
-            In pausa
-          </div>
-
-        </div>
-
-        <div class="staff-box red">
-
-          <div class="num">
-            ${fuori}
-          </div>
-
-          <div class="label">
-            Fuori
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- 🍽 SERVIZIO -->
-    <div class="card">
-
-      <div class="card-title">
-        🍽 Servizio oggi
-      </div>
-
-      <div class="card-sub">
-        ${copertiTotali} coperti previsti
-      </div>
-
-      <div class="card-sub">
-        ${servizi.length} servizi
-      </div>
-
-      <div class="alert">
-        ${alertServizio}
-      </div>
-
-      <div style="margin-top:10px;">
-        ${serviziHtml || "Nessun servizio"}
-      </div>
-
-    </div>
-
-    <!-- ⚡ AZIONI -->
-    <div class="grid">
-
-      <div
-        class="card action-card"
-        data-route="prenotazioni"
-      >
-        <div class="card-title">
-          Prenotazioni
-        </div>
-
-        <div class="card-sub">
-          Gestisci tavoli
-        </div>
-      </div>
-
-      <div
-        class="card action-card"
-        data-route="planning-lavoro"
-      >
-        <div class="card-title">
-          Planning
-        </div>
-
-        <div class="card-sub">
-          Turni e orari
-        </div>
-      </div>
-
-      <div
-        class="card action-card"
-        data-route="dipendenti"
-      >
-        <div class="card-title">
-          Brigata
-        </div>
-
-        <div class="card-sub">
-          ${staff.length} assegnati
-        </div>
-      </div>
-
-      <div
-        class="card action-card"
-        data-route="timbrature"
-      >
-        <div class="card-title">
-          Timbrature
-        </div>
-
-        <div class="card-sub">
-          Controllo presenze
-        </div>
-      </div>
-
-      <div
-        class="card action-card"
-        data-route="mansionario-sala"
-      >
-        <div class="card-title">
-          🪑 Mansionario Sala
-        </div>
-
-        <div class="card-sub">
-          Procedure & formazione
-        </div>
-      </div>
-
-      <div
-        class="card action-card"
-        data-route="mansionario-controllo"
-      >
-        <div class="card-title">
-          📊 Controllo Sala
-        </div>
-
-        <div class="card-sub">
-          Esecuzioni & valutazioni
-        </div>
-      </div>
-
-    </div>
-
-
-  </div>
-
-  <style>
-
-  .manager-home{
-    padding:16px;
-    padding-bottom:100px;
-  }
-
-  .header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:12px;
-    margin-bottom:20px;
-  }
-
-  .saluto{
-    font-size:22px;
-    font-weight:800;
-    line-height:1.1;
-  }
-
-  .utente{
-    margin-top:4px;
-    font-size:13px;
-    color:#6b7280;
-  }
-
-  .header-right{
-    text-align:right;
-    font-size:13px;
-    color:#6b7280;
-    font-weight:600;
-  }
-
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-    gap:12px;
-    margin-top:12px;
-  }
-
-  .card{
-    background:white;
-    padding:16px;
-    border-radius:14px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.05);
-  }
-
-  .card-title{
-    font-weight:700;
-  }
-
-  .card-sub{
-    font-size:12px;
-    color:#6b7280;
-    margin-top:4px;
-  }
-
-  .staff-grid{
-    display:flex;
-    gap:10px;
-    margin-top:10px;
-  }
-
-  .staff-box{
-    flex:1;
-    border-radius:12px;
-    padding:12px;
-    text-align:center;
-    color:white;
-  }
-
-  .staff-box.green{
-    background:#16a34a;
-  }
-
-  .staff-box.yellow{
-    background:#eab308;
-  }
-
-  .staff-box.red{
-    background:#dc2626;
-  }
-
-  .staff-box .num{
-    font-size:20px;
-    font-weight:800;
-  }
-
-  .alert{
-    margin-top:6px;
-    font-size:13px;
-    font-weight:600;
-  }
-
-  .servizio-row{
-    display:flex;
-    justify-content:space-between;
-    font-size:13px;
-    padding:6px 0;
-    gap:10px;
-  }
-
-  .action-card{
-    cursor:pointer;
-    transition:0.15s;
-  }
-
-  .action-card:active{
-    transform:scale(0.97);
-    opacity:0.7;
-  }
-
-  @media (max-width:767px){
-
-    .manager-home{
-      padding:12px;
-      padding-bottom:100px;
-    }
-
-    .grid{
-      grid-template-columns:1fr;
-    }
-
-    .staff-grid{
-      flex-direction:column;
-    }
-
-    .saluto{
-      font-size:20px;
-    }
-
-  }
-
-  </style>
-  `;
-
-  initHeader();
-  hydrateWeather();
-  initActions();
-}
-
-// =========================
-// HEADER
-// =========================
-
-function initHeader(){
-
-  const salutoBox =
-    document.getElementById("home-saluto");
-
-  const dataBox =
-    document.getElementById("home-data");
-
-  const ora = new Date().getHours();
-
-  let saluto = "Buongiorno";
-
-  if (ora >= 12 && ora < 18) {
-    saluto = "Buon pomeriggio";
-  }
-
-  if (ora >= 18) {
-    saluto = "Buonasera";
-  }
-
-  if (salutoBox) {
-    salutoBox.innerText = saluto;
-  }
-
-  if (dataBox) {
-
-    dataBox.innerText = new Date()
-      .toLocaleDateString(
-        "it-IT",
-        {
-          weekday:"long",
-          day:"numeric",
-          month:"long",
-          year:"numeric"
-        }
-      );
-
-  }
-}
-
-// =========================
-// ACTIONS
-// =========================
-
-function initActions(){
-
-  document
-    .querySelectorAll(".action-card")
-    .forEach(card => {
-
-      card.onclick = () => {
-
-        const route =
-          card.dataset.route;
-
-        if (route) {
-          window.location.hash =
-            "#/" + route;
-        }
-
-      };
-
+    ${stile()}`;
+
+  container.querySelectorAll("[data-timbra]").forEach(b => {
+    b.addEventListener("click", async () => {
+      const tipo = b.getAttribute("data-timbra");
+      b.disabled = true; b.textContent = "…";
+      const { error } = await supabase.from("timbrature").insert({
+        azienda_id: azienda.id, sede_id: sede.id, dipendente_id: dip?.id,
+        dip_nome: [dip?.nome, dip?.cognome].filter(Boolean).join(" "),
+        tipo, canale: "web", timestamp: new Date().toISOString(),
+      });
+      if (error) { alert("Non è andata: " + error.message); b.disabled = false; return; }
+      render(container);
     });
-
+  });
 }
 
-// =========================
-// METEO
-// =========================
+/* ── blocchi ───────────────────────────────────────────────────────────── */
 
-async function hydrateWeather(){
-
-  const box =
-    document.getElementById("home-weather");
-
-  if(!box) return;
-
-  box.innerHTML = "☁️";
-
+function boxTimbratura(stato) {
+  if (stato.dentro) {
+    return `
+      <div class="mg-timb">
+        <div class="stato"><i class="dot"></i> In servizio da ${esc(stato.entrata)}</div>
+        <div class="conta">${stato.ore}<small>h</small> ${stato.minuti}<small>m</small></div>
+        <button class="b esci" data-timbra="fine_turno">Esci</button>
+      </div>`;
+  }
+  return `
+    <div class="mg-timb">
+      <div class="stato fuori"><i class="dot"></i> Non sei in servizio</div>
+      <button class="b entra" data-timbra="inizio_turno">Entra</button>
+    </div>`;
 }
 
+/* ── dati ──────────────────────────────────────────────────────────────── */
+
+async function mieTimbrature(supabase, aziendaId, dipId) {
+  if (!aziendaId || !dipId) return [];
+  const da = new Date(Date.now() - 36 * 3600000).toISOString();
+  const { data } = await supabase.from("timbrature").select("tipo, timestamp")
+    .eq("azienda_id", aziendaId).eq("dipendente_id", dipId)
+    .gte("timestamp", da).order("timestamp", { ascending: false }).limit(5);
+  return data || [];
+}
+
+function statoDaTimbrature(righe) {
+  const ultima = righe[0];
+  if (ultima && ultima.tipo === "inizio_turno") {
+    const inizio = new Date(ultima.timestamp);
+    const min = Math.max(Math.floor((Date.now() - inizio.getTime()) / 60000), 0);
+    return { dentro: true, entrata: oraDa(inizio), ore: Math.floor(min / 60), minuti: min % 60 };
+  }
+  return { dentro: false };
+}
+
+async function copertiDelGiorno(supabase, aziendaId, sedeId, giorno) {
+  if (!aziendaId) return { coperti: 0, prenotazioni: 0, daConfermare: 0 };
+  let q = supabase.from("prenotazioni_tavoli").select("coperti, stato")
+    .eq("azienda_id", aziendaId).eq("data", giorno);
+  if (sedeId) q = q.eq("sede_id", sedeId);
+  const { data } = await q;
+  const righe = (data || []).filter(r => !["annullata", "annullato", "rifiutata"].includes(String(r.stato || "").toLowerCase()));
+  return {
+    coperti: righe.reduce((t, r) => t + (Number(r.coperti) || 0), 0),
+    prenotazioni: righe.length,
+    daConfermare: righe.filter(r => ["in attesa", "in_attesa", "richiesta"].includes(String(r.stato || "").toLowerCase())).length,
+  };
+}
+
+async function statoSquadra(supabase, aziendaId, sedeId, giorno) {
+  if (!aziendaId) return { inTurno: 0, previsti: 0, senzaTimbratura: [] };
+  const { data: timb } = await supabase.from("timbrature")
+    .select("dipendente_id, dip_nome, tipo, timestamp")
+    .eq("azienda_id", aziendaId).eq("data_turno", giorno)
+    .order("timestamp", { ascending: true });
+
+  const ultimo = new Map();
+  (timb || []).forEach(t => ultimo.set(t.dipendente_id, t));
+  const inTurno = [...ultimo.values()].filter(t => t.tipo === "inizio_turno").length;
+
+  let q = supabase.from("turni_dipendenti")
+    .select("dipendente_id, ora_inizio_prevista").eq("azienda_id", aziendaId).eq("data", giorno);
+  if (sedeId) q = q.eq("sede_uuid", sedeId);
+  const { data: previstiRows } = await q;
+
+  const adesso = new Date();
+  const senzaTimbratura = (previstiRows || []).filter(p => {
+    const t = ultimo.get(p.dipendente_id);
+    if (t && t.tipo === "inizio_turno") return false;
+    if (!p.ora_inizio_prevista) return false;
+    const [h, m] = String(p.ora_inizio_prevista).split(":");
+    const attesa = new Date(adesso); attesa.setHours(Number(h), Number(m), 0, 0);
+    return adesso > new Date(attesa.getTime() + 15 * 60000);
+  });
+
+  return { inTurno, previsti: (previstiRows || []).length, senzaTimbratura };
+}
+
+async function produzioniDelGiorno(supabase, aziendaId, giorno) {
+  if (!aziendaId) return { totali: 0, aperte: 0 };
+  const { data } = await supabase.from("produzione_lotti")
+    .select("stato").eq("azienda_id", aziendaId).eq("data_produzione", giorno);
+  const righe = data || [];
+  return {
+    totali: righe.length,
+    aperte: righe.filter(r => !String(r.stato || "").toLowerCase().startsWith("chius")).length,
+  };
+}
+
+async function listaComandamenti(supabase, aziendaId) {
+  if (!aziendaId) return [];
+  const { data } = await supabase.from("comandamenti")
+    .select("testo").eq("azienda_id", aziendaId).eq("attivo", true).order("ordine");
+  return data || [];
+}
+
+async function listaAvvisi(supabase, aziendaId, sedeId, oggiISO) {
+  const out = [];
+  if (!aziendaId) return out;
+
+  const squadra = await statoSquadra(supabase, aziendaId, sedeId, oggiISO);
+  if (squadra.senzaTimbratura.length) {
+    out.push({
+      livello: "rosso", link: "#/timbrature",
+      titolo: squadra.senzaTimbratura.length === 1 ? "1 persona non ha timbrato" : squadra.senzaTimbratura.length + " persone non hanno timbrato",
+      sotto: "Turno già iniziato",
+    });
+  }
+
+  // sotto scorta: si guarda solo chi ha una soglia impostata
+  const { data: prod } = await supabase.from("prodotti")
+    .select("id, nome, scorta_minima").eq("azienda_id", aziendaId)
+    .eq("attivo", true).gt("scorta_minima", 0).limit(200);
+  const conSoglia = prod || [];
+  if (conSoglia.length) {
+    const ids = conSoglia.map(p => p.id);
+    const { data: mov } = await supabase.from("magazzino_movimenti")
+      .select("prodotto_id, tipo_movimento, quantita").eq("azienda_id", aziendaId).in("prodotto_id", ids);
+    const giac = new Map();
+    (mov || []).forEach(m => {
+      const seg = String(m.tipo_movimento || "").toLowerCase().startsWith("caric") ? 1 : -1;
+      giac.set(m.prodotto_id, (giac.get(m.prodotto_id) || 0) + seg * (Number(m.quantita) || 0));
+    });
+    const sotto = conSoglia.filter(p => (giac.get(p.id) || 0) < Number(p.scorta_minima));
+    if (sotto.length) {
+      out.push({
+        livello: "rosso", link: "#/magazzino",
+        titolo: sotto.length + (sotto.length === 1 ? " prodotto sotto scorta" : " prodotti sotto scorta"),
+        sotto: sotto.slice(0, 3).map(p => p.nome).join(", "),
+      });
+    }
+  }
+
+  const { data: ordini } = await supabase.from("ordini_fornitore")
+    .select("id, stato, data_consegna_prevista").eq("azienda_id", aziendaId)
+    .is("inviato_at", null).limit(20);
+  if ((ordini || []).length) {
+    out.push({
+      livello: "giallo", link: "#/ordini",
+      titolo: ordini.length + (ordini.length === 1 ? " ordine da inviare" : " ordini da inviare"),
+      sotto: "Preparati ma non ancora partiti",
+    });
+  }
+
+  const coperti = await copertiDelGiorno(supabase, aziendaId, sedeId, oggiISO);
+  if (coperti.daConfermare) {
+    out.push({
+      livello: "giallo", link: "#/prenotazioni",
+      titolo: coperti.daConfermare + (coperti.daConfermare === 1 ? " prenotazione da confermare" : " prenotazioni da confermare"),
+      sotto: "In attesa di risposta",
+    });
+  }
+
+  return out;
+}
+
+/* ── utilità ───────────────────────────────────────────────────────────── */
+
+function giornoDellAnno(d) {
+  return Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+}
+function dataLocale(d) {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+function oraDa(d) { return d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function stile() {
+  return `<style>
+  .mg-home{--navy:#023C59;--arancio:#E66101;--ambra:#F1B302;--verde:#348127;--rosso:#B91C1C;
+    --riga:#E2E6EA;--testo:#12232E;--muto:#6B7A83;
+    padding:16px 14px 90px;max-width:560px;margin:0 auto;color:var(--testo);}
+  .mg-caric{padding:40px 0;text-align:center;color:#94a3b8;}
+  .mg-salve{font-size:21px;font-weight:800;margin-bottom:14px;}
+  .mg-salve span{display:block;color:var(--muto);font-weight:500;font-size:14px;margin-top:3px;text-transform:capitalize;}
+
+  .mg-timb{background:#fff;border:1px solid var(--riga);border-radius:18px;padding:16px 18px;margin-bottom:14px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 14px rgba(2,60,89,.06);}
+  .mg-timb .stato{font-size:13.5px;font-weight:700;color:var(--verde);display:flex;align-items:center;gap:8px;flex:1;min-width:150px;}
+  .mg-timb .stato.fuori{color:var(--muto);}
+  .mg-timb .dot{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px rgba(52,129,39,.15);}
+  .mg-timb .conta{font-family:Georgia,serif;font-size:26px;color:var(--navy);}
+  .mg-timb .conta small{font-size:13px;color:var(--muto);}
+  .mg-timb .b{border:none;border-radius:12px;padding:13px 24px;font-size:15.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .mg-timb .b.esci{background:var(--navy);color:#fff;}
+  .mg-timb .b.entra{background:var(--verde);color:#fff;}
+
+  .mg-tre{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:10px;}
+  .mg-tre .k{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:14px 8px;text-align:center;}
+  .mg-tre .n{font-family:Georgia,serif;font-size:29px;line-height:1;color:var(--navy);}
+  .mg-tre .n small{font-size:14px;color:var(--muto);}
+  .mg-tre .l{font-size:11.5px;color:var(--muto);margin-top:6px;line-height:1.3;}
+  .mg-tre .k.att{border-color:#F5DFA0;background:#FFFCF3;}
+  .mg-tre .k.att .n{color:#9A6A00;}
+
+  .mg-dom{background:#fff;border:1px solid var(--riga);border-radius:14px;padding:12px 15px;
+    display:flex;align-items:center;gap:9px;font-size:14.5px;margin-bottom:20px;}
+  .mg-dom i{font-style:normal;}
+  .mg-dom b{color:var(--navy);}
+  .mg-dom span{color:var(--muto);font-size:13px;margin-left:auto;}
+
+  .mg-sez{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muto);margin:0 0 9px 4px;}
+  .mg-avvisi{background:#fff;border:1px solid var(--riga);border-radius:16px;overflow:hidden;margin-bottom:20px;}
+  .mg-avvisi .a{display:flex;align-items:center;gap:12px;padding:14px 15px;border-top:1px solid #F1F4F6;text-decoration:none;color:var(--testo);}
+  .mg-avvisi .a:first-child{border-top:none;}
+  .mg-avvisi .pun{width:9px;height:9px;border-radius:50%;flex:0 0 9px;font-style:normal;}
+  .mg-avvisi .a.rosso .pun{background:var(--rosso);}
+  .mg-avvisi .a.giallo .pun{background:var(--ambra);}
+  .mg-avvisi .t{flex:1;font-size:15px;line-height:1.3;}
+  .mg-avvisi .t span{display:block;font-size:12.5px;color:var(--muto);margin-top:2px;}
+  .mg-avvisi b{color:#CBD5DB;font-size:19px;}
+  .mg-avvisi .vuoto{padding:18px 15px;font-size:14px;color:var(--verde);background:#F6FBF3;}
+
+  .mg-com{background:var(--navy);color:#fff;border-radius:16px;padding:18px;margin:0 0 20px;}
+  .mg-com .et{font-size:10.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--ambra);margin-bottom:8px;}
+  .mg-com p{font-family:Georgia,serif;font-size:18px;line-height:1.45;margin:0;}
+  .mg-griglia{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .mg-griglia .p{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:16px 14px;text-decoration:none;color:var(--navy);}
+  .mg-griglia .p i{font-style:normal;font-size:20px;display:block;margin-bottom:8px;}
+  .mg-griglia .p b{display:block;font-size:15.5px;}
+  .mg-griglia .p span{font-size:12.5px;color:var(--muto);}
+
+  .mg-pie{text-align:center;font-size:11.5px;color:#9AA7AF;margin-top:22px;}
+  </style>`;
+}

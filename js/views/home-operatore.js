@@ -93,7 +93,6 @@ export async function render(container) {
         <div class="op-com">
           <div class="et">Il pensiero di oggi</div>
           <p>${esc(com.testo)}</p>
-          <div class="n">${(giornoDellAnno(oggi) % comandamenti.length) + 1} di ${comandamenti.length}</div>
         </div>` : ""}
 
       <div class="op-scorc">
@@ -274,7 +273,6 @@ function stile() {
   .op-com{background:var(--navy);color:#fff;border-radius:16px;padding:18px;margin-top:22px;}
   .op-com .et{font-size:10.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--ambra);margin-bottom:8px;}
   .op-com p{font-family:Georgia,serif;font-size:18px;line-height:1.45;margin:0;}
-  .op-com .n{font-size:11.5px;color:#9FC0D2;margin-top:8px;}
 
   .op-scorc{margin-top:14px;background:#fff;border:1px solid var(--riga);border-radius:16px;overflow:hidden;}
   .op-scorc .s{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid #F1F4F6;
