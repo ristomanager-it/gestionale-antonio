@@ -60,14 +60,16 @@ export async function render(container) {
       const { data } = await supabase.rpc("genera_codice_recensione", { p_dipendente: dip.id });
       codice = data;
     }
-    const url = BASE + "#/recensione?c=" + codice;
+    // la sede la porta il link: chi e' loggato in Trattoria manda i clienti alla Trattoria
+    const url = BASE + "#/recensione?c=" + codice + (sede?.id ? "&s=" + sede.id : "");
     const qr = "https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data=" + encodeURIComponent(url);
 
     box.innerHTML = `
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px;text-align:center;">
-        <div style="font-size:13px;color:#64748b;margin-bottom:12px;">Il QR di <b>${esc(dip.nome || "")} ${esc(dip.cognome || "")}</b></div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:12px;">Il QR di <b>${esc(dip.nome || "")} ${esc(dip.cognome || "")}</b>${sede?.nome ? " · " + esc(sede.nome) : ""}</div>
         <img src="${qr}" alt="QR recensione" style="width:100%;max-width:280px;border-radius:12px;">
         <div style="font-size:12px;color:#94a3b8;margin-top:10px;word-break:break-all;">${esc(url)}</div>
+        <div style="font-size:12.5px;color:#64748b;margin-top:8px;">Questo codice porta alla sede su cui sei collegato adesso. Se cambi sede, cambia anche il QR.</div>
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;">
           <button id="rec-copia" style="background:#023C59;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;">Copia link</button>
           <button id="rec-stampa" style="background:#fff;border:1.5px solid #cbd5e1;border-radius:10px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;">Stampa</button>

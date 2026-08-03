@@ -7,6 +7,7 @@ export async function render(container) {
   const supabase = window.supabase || window.supabaseClient;
   const qs = new URLSearchParams((window.location.hash || "").split("?")[1] || "");
   const codice = (qs.get("c") || qs.get("r") || "").trim();
+  const sedeQr = (qs.get("s") || "").trim() || null;   // la sede su cui era loggato chi ha mostrato il QR
 
   const guscio = (dentro) => `
     <style>
@@ -41,7 +42,7 @@ export async function render(container) {
 
   let d = null;
   try {
-    const { data } = await supabase.rpc("recensione_pagina", { p_codice: codice });
+    const { data } = await supabase.rpc("recensione_pagina", { p_codice: codice, p_sede: sedeQr });
     d = data || null;
   } catch (e) { console.error(e); }
 
@@ -75,7 +76,7 @@ export async function render(container) {
 
   container.querySelectorAll("a[data-p]").forEach(a => {
     a.addEventListener("click", () => {
-      try { supabase.rpc("recensione_click", { p_codice: codice, p_piattaforma: a.dataset.p }); } catch (e) { /* non blocca */ }
+      try { supabase.rpc("recensione_click", { p_codice: codice, p_piattaforma: a.dataset.p, p_sede: sedeQr }); } catch (e) { /* non blocca */ }
       if (a.dataset.p !== "privato") {
         setTimeout(() => {
           const box = container.querySelector(".rc-in");
