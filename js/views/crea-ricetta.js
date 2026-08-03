@@ -2227,12 +2227,15 @@ async function compilaRicettaDaPiatto(file) {
     setVal("r-tipo", "finita");
     document.getElementById("r-tipo")?.dispatchEvent(new Event("change"));
 
-    if (Array.isArray(p.ingredienti)) {
+    // il cambio di tipo ricetta ridisegna le sezioni: si compila dopo,
+    // altrimenti le righe appena inserite vengono spazzate via
+    await new Promise((r) => setTimeout(r, 120));
+
+    if (Array.isArray(p.ingredienti) && p.ingredienti.length) {
       const cont = document.getElementById("ingredienti-container");
       if (cont) cont.innerHTML = "";
       p.ingredienti.forEach((i) => {
         if (i.prodotto_id) {
-          // gia' agganciato al magazzino: scrivo nome visibile e id nascosto
           aggiungiIngrediente({
             nome_prodotto: i.prodotto || i.nome,
             prodotto_id: i.prodotto_id,
@@ -2240,7 +2243,6 @@ async function compilaRicettaDaPiatto(file) {
             unita_misura: i.unita_misura,
           });
         } else {
-          // nessun aggancio sicuro: la riga cerca da sola tra i prodotti
           aggiungiIngrediente({
             _nome_tony: i.nome,
             quantita: i.quantita,
@@ -2250,19 +2252,59 @@ async function compilaRicettaDaPiatto(file) {
       });
     }
 
+    if (Array.isArray(p.fasi) && p.fasi.length && typeof aggiungiFase === "function") {
+      const cf = document.getElementById("fasi-container");
+      if (cf) cf.innerHTML = "";
+      p.fasi.forEach((f, idx) => aggiungiFase({
+        ordine: idx + 1,
+        descrizione_operativa: f.descrizione_operativa,
+        tipo_fase: f.tipo_fase,
+        durata_min: f.durata_min,
+        temperatura: f.temperatura,
+      }));
+    }
+
+    if (Array.isArray(p.conservazione) && p.conservazione.length && typeof aggiungiScenarioConservazione === "function") {
+      const cc = document.getElementById("conservazione-container");
+      if (cc) cc.innerHTML = "";
+      p.conservazione.forEach((c) => aggiungiScenarioConservazione({
+        scenario_label: c.scenario_label,
+        shelf_life_giorni: c.shelf_life_giorni || null,
+        note: [c.note, c.temperatura != null ? "Temperatura " + c.temperatura + "°C" : ""].filter(Boolean).join(" · "),
+        attivo: true,
+      }, c.temperatura != null ? [{
+        posizione: 1,
+        tipo_passaggio: "conservazione",
+        titolo: c.scenario_label,
+        temperatura_c: c.temperatura,
+        durata_min: null,
+      }] : []));
+    }
+
+    if (Array.isArray(p.porzionature) && p.porzionature.length && typeof aggiungiPorzione === "function") {
+      p.porzionature.forEach((x) => aggiungiPorzione({
+        label: x.label,
+        peso_porzione: x.peso_porzione,
+        unita_misura: x.unita_misura,
+        note: x.note,
+      }));
+    }
+
     // il numero che fa alzare la testa: quanto costa, sui prezzi veri
     const c = data.costo || {};
-    if (box) {
+    const box2 = document.getElementById("foto-piatto-costo");
+    if (box2) {
       const dubbi = (p.ingredienti || []).filter(i => i.certezza === "bassa").map(i => i.nome);
-      box.innerHTML = `
+      box2.innerHTML = `
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;">
           <div style="font-size:13px;color:#9a3412;font-weight:700;">Costo stimato sui vostri prezzi</div>
           <div style="font-family:Georgia,serif;font-size:30px;color:#c2410c;margin:4px 0;">€ ${Number(c.totale || 0).toFixed(2)}</div>
           <div style="font-size:12.5px;color:#7c2d12;">${c.valorizzati || 0} ingredienti su ${c.totali || 0} agganciati ai prodotti in anagrafica.</div>
           ${dubbi.length ? `<div style="font-size:12.5px;color:#92400e;margin-top:6px;">Da confermare: ${dubbi.join(", ")}</div>` : ""}
-          <div style="font-size:12px;color:#a16207;margin-top:8px;">È una stima da foto: controlla quantità e ingredienti prima di salvare.</div>
+          <div style="font-size:12px;color:#a16207;margin-top:8px;">È una stima da foto: controlla quantità, fasi e conservazione prima di salvare.</div>
         </div>`;
     }
+
     setStato("✅ Fatto. Controlla gli ingredienti e salva.");
   } catch (e) {
     console.error(e);
