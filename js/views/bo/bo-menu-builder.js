@@ -81,6 +81,7 @@ export async function render(container) {
       <select id="mb-sede-sel" style="padding:7px 12px;border:none;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;display:none;">
       </select>
       <button id="btn-nuovo-menu" class="mb-btn" style="background:#fff;color:#0E5A7A;font-weight:800;">+ Nuovo menu</button>
+      <button id="btn-duplica-menu" class="mb-btn" style="background:#fff;color:#0E5A7A;font-weight:800;">⧉ Duplica questo</button>
     </div>
 
     <!-- TABS MENU -->
@@ -346,6 +347,7 @@ export async function render(container) {
 
   qs("#btn-back").onclick = () => window.location.hash = "#/home";
   qs("#btn-nuovo-menu").onclick = aprireModalNuovoMenu;
+  qs("#btn-duplica-menu").onclick = duplicaMenuAttivo;
   qs("#chiudi-modal-nuovo").onclick = chiudiModalNuovoMenu;
   qs("#chiudi-modal-voce").onclick = chiudiModalVoce;
   qs("#modal-nuovo-menu").onclick = (e) => { if (e.target === e.currentTarget) chiudiModalNuovoMenu(); };
@@ -640,6 +642,25 @@ export async function render(container) {
     box.querySelectorAll(".menu-tab").forEach(el => {
       el.onclick = () => selezionaMenu(menus.find(m => m.id === el.dataset.id));
     });
+  }
+
+  // ── DUPLICA MENU ──────────────────────────────────────────────
+  // Serve per partire da un menu che funziona invece che da un foglio bianco:
+  // stessa struttura, categorie e voci, ma spento finche' non e' pronto.
+  async function duplicaMenuAttivo() {
+    if (!menuAttivo) { alert("Scegli prima il menu da duplicare."); return; }
+    const nome = prompt("Nome della copia:", (menuAttivo.nome || "Menu") + " — copia");
+    if (!nome) return;
+
+    const { data, error } = await supa().rpc("duplica_menu", { p_menu: menuAttivo.id, p_nome: nome });
+    if (error || !data?.ok) {
+      alert("Non è andata: " + (error?.message || data?.errore || ""));
+      return;
+    }
+    await loadMenus();
+    const nuovo = menus.find(m => String(m.id) === String(data.menu_id));
+    if (nuovo) await selezionaMenu(nuovo);
+    alert(`Copiato: ${data.categorie} categorie e ${data.voci} voci.\nIl menu nuovo nasce SPENTO: accendilo quando è pronto.`);
   }
 
   // ── SELEZIONA MENU ────────────────────────────────────────────

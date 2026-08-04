@@ -530,12 +530,47 @@ export async function render(container) {
           <div style="font-weight:600;">${escapeHtml(f.nome || "Form senza nome")}</div>
           <div style="font-size:11px;color:#6b7280;">${f.attivo === false ? "Disattivo" : "Attivo"}</div>
         </div>
-        <div style="font-size:18px;">✏️</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button data-duplica="${escapeAttribute(f.id)}" title="Duplica per un'altra provenienza"
+            style="background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;padding:6px 10px;
+                   font-size:13px;cursor:pointer;">⧉ Duplica</button>
+          <div style="font-size:18px;">✏️</div>
+        </div>
       </div>
     `).join("");
 
     document.querySelectorAll("#forms-list [data-id]").forEach((el) => {
-      el.onclick = () => loadForm(el.dataset.id);
+      el.onclick = (ev) => {
+        if (ev.target.closest("[data-duplica]")) return;   // il duplica non apre il form
+        loadForm(el.dataset.id);
+      };
+    });
+
+    document.querySelectorAll("#forms-list [data-duplica]").forEach((b) => {
+      b.onclick = async (ev) => {
+        ev.stopPropagation();
+        const orig = data.find((x) => String(x.id) === b.dataset.duplica);
+        const nome = prompt(
+          "Nome della copia — conviene che dica da dove arriva:",
+          (orig?.nome || "Form") + " — "
+        );
+        if (!nome) return;
+        const sorgente = prompt(
+          "Sorgente da tracciare (Instagram, Google, volantino, sito…):",
+          ""
+        );
+        b.disabled = true; b.textContent = "…";
+        const { data: res, error } = await window.supabaseClient.rpc("duplica_form_prenotazione", {
+          p_form: b.dataset.duplica, p_nome: nome, p_sorgente: sorgente || null,
+        });
+        if (error || !res?.ok) {
+          alert("Non è andata: " + (error?.message || res?.errore || ""));
+          b.disabled = false; b.textContent = "⧉ Duplica";
+          return;
+        }
+        await loadForms();
+        loadForm(res.form_id);
+      };
     });
   }
 
