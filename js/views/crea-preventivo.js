@@ -44,7 +44,7 @@ export async function render(container, params = {}) {
   container.innerHTML = `<div class="pv2"><div class="pv2-caric">Un attimo…</div></div>${stile()}`;
 
   const [ric, loc, serv] = await Promise.all([
-    supabase.from("ricette").select("id, nome, costo_porzione").eq("azienda_id", azienda.id).limit(3000),
+    supabase.from("ricette").select("id, nome, costo_porzione, costo_materia_prima, porzioni").eq("azienda_id", azienda.id).limit(3000),
     supabase.from("location_ricevimenti").select("id, nome, capienza_min, capienza_max, prezzo_affitto_base")
       .eq("azienda_id", azienda.id).eq("attiva", true).order("nome"),
     supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).eq("attivo", true).order("categoria"),
@@ -106,8 +106,16 @@ async function calcolaPersonale(supabase, azienda) {
 function costoDi(r) {
   if (r.ricetta_id) {
     const ric = ricette.find(x => String(x.id) === String(r.ricetta_id));
-    const c = Number(ric?.costo_porzione) || 0;
-    if (c > 0) return { costo: c, stimato: false };
+    if (ric) {
+      // il campo costo_porzione e' vuoto su quasi tutte le ricette:
+      // si ripiega sul costo materia prima diviso le porzioni
+      const cp = Number(ric.costo_porzione) || 0;
+      if (cp > 0) return { costo: cp, stimato: false, fonte: "ricetta" };
+      const mp = Number(ric.costo_materia_prima) || 0;
+      const por = Math.max(Number(ric.porzioni) || 0, 0);
+      if (mp > 0 && por > 0) return { costo: mp / por, stimato: false, fonte: "ricetta" };
+      if (mp > 0) return { costo: mp, stimato: false, fonte: "ricetta (per l'intera resa)" };
+    }
   }
   const s = stime[norm(r.nome)];
   if (s) return { costo: Number(s.food_cost) || 0, stimato: true };
@@ -339,7 +347,9 @@ function rigaPortata(r, i) {
     <div class="riga">
       <div class="n">
         <input class="nome" value="${esc(r.nome)}" data-portata="${i}" placeholder="Scrivi il piatto…" list="pv2-ricette">
-        ${vedoICosti ? `<small>${!r.nome ? "" : c.mancante ? "nessun costo" : "costo " + euro(c.costo) + (c.stimato ? " · stimato" : "")}</small>` : ""}
+        ${vedoICosti ? `<small>${!r.nome ? ""
+          : c.mancante ? (r.ricetta_id ? "ricetta collegata ma senza costo" : "nessuna ricetta collegata")
+          : "costo " + euro(c.costo) + " · " + (c.stimato ? "stimato da Tony" : esc(c.fonte || "da ricetta"))}</small>` : ""}
       </div>
       <input class="pz" type="number" step="0.01" value="${prezzo}" data-prezzo="${i}" title="prezzo a persona">
       ${vedoICosti ? `<div class="mg ${marg == null ? "" : marg >= 55 ? "ok" : "ko"}">${marg == null ? "—" : marg.toFixed(0) + "%"}</div>` : ""}
