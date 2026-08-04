@@ -330,6 +330,7 @@ function disegna(container, supabase, azienda, sede) {
         ${P.id ? `
           <button class="pv2-btn sec" id="pv2-link">🔗 Link per il cliente</button>
           <button class="pv2-btn wa" id="pv2-wa">💬 WhatsApp</button>
+          <button class="pv2-btn sec" id="pv2-mail">✉️ Email</button>
           <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>` : ""}
       </div>
       <div id="pv2-esito" class="pv2-esito"></div>
@@ -532,6 +533,23 @@ function aggancia(container, supabase, azienda, sede) {
     const url = linkCliente();
     try { await navigator.clipboard.writeText(url); msg(container, "Link copiato: " + url); }
     catch { prompt("Link per il cliente:", url); }
+  });
+
+  container.querySelector("#pv2-mail")?.addEventListener("click", () => {
+    if (!P.cliente_email) { msg(container, "Manca l'email del cliente.", true); return; }
+    const oggetto = `Proposta per ${P.titolo_evento || "il vostro evento"} — ${nomeCliente()}`;
+    const corpo = [
+      `Gentili ${nomeCliente() || "clienti"},`, "",
+      `ecco la proposta per ${P.titolo_evento || "il vostro evento"} del ${dataLunga(P.data_evento)}.`,
+      "",
+      "La trovate qui, sempre aggiornata:",
+      linkCliente(),
+      "",
+      "Da quella pagina potete vedere il menu, aggiungere servizi e dirci cosa cambiare.",
+      "", "A presto!",
+    ].join("\n");
+    window.location.href = "mailto:" + encodeURIComponent(P.cliente_email)
+      + "?subject=" + encodeURIComponent(oggetto) + "&body=" + encodeURIComponent(corpo);
   });
 
   container.querySelector("#pv2-wa")?.addEventListener("click", () => {
