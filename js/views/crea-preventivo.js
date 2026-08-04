@@ -17,6 +17,14 @@ let listinoServizi = [];
 let richieste = [];
 let vedoICosti = true;   // falso per le agenzie
 
+const TIPI_EVENTO = ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Battesimo", "Comunione",
+  "Cresima", "Compleanno", "Laurea", "Anniversario", "Cena aziendale", "Buffet", "Altro"];
+
+// matrimoni e anniversari hanno due intestatari
+function dueNomi() {
+  return ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Anniversario"].includes(P.titolo_evento);
+}
+
 export async function render(container, params = {}) {
   const supabase = window.supabaseClient || window.supabase;
   const azienda = window.state?.azienda;
@@ -53,7 +61,7 @@ export async function render(container, params = {}) {
 
 function nuovo(azienda, sede) {
   P = {
-    id: null, azienda_id: azienda.id, sede_id: sede?.id || null,
+    id: null, azienda_id: azienda.id, sede_uuid: sede?.id || null,
     stato: "trattativa", titolo_evento: "", tipo_servizio: "",
     cliente_nome: "", cliente_cognome: "", cliente_email: "", cliente_telefono: "",
     nome_festeggiato: "", intolleranze: "", note: "",
@@ -175,11 +183,21 @@ function disegna(container, supabase, azienda, sede) {
       <div class="pv2-card">
         <h2>Cliente ed evento</h2>
         <div class="griglia">
-          ${campo("Nome", "cliente_nome")}
-          ${campo("Cognome", "cliente_cognome")}
+          ${campo(dueNomi() ? "Lui — nome" : "Nome", "cliente_nome")}
+          ${campo(dueNomi() ? "Lui — cognome" : "Cognome", "cliente_cognome")}
+          ${dueNomi() ? campo("Lei — nome", "cliente2_nome") : ""}
+          ${dueNomi() ? campo("Lei — cognome", "cliente2_cognome") : ""}
           ${campo("Telefono", "cliente_telefono")}
           ${campo("Email", "cliente_email", "email")}
-          ${campo("Evento", "titolo_evento")}
+          <div>
+            <label>Evento</label>
+            <select class="in" data-campo="titolo_evento">
+              <option value="">— scegli —</option>
+              ${TIPI_EVENTO.map(t => `<option value="${esc(t)}"${P.titolo_evento === t ? " selected" : ""}>${esc(t)}</option>`).join("")}
+              ${P.titolo_evento && !TIPI_EVENTO.includes(P.titolo_evento)
+                ? `<option value="${esc(P.titolo_evento)}" selected>${esc(P.titolo_evento)}</option>` : ""}
+            </select>
+          </div>
           ${campo("Festeggiato", "nome_festeggiato")}
           ${campo("Data", "data_evento", "date")}
           ${campo("Ora", "ora_evento", "time")}
@@ -232,7 +250,17 @@ function disegna(container, supabase, azienda, sede) {
                 ${listinoServizi.map(s => `<option value="${s.id}">${esc(s.categoria)} · ${esc(s.nome)} — ${euro(s.prezzo_cliente)}</option>`).join("")}
               </select>
               <button class="pv2-btn" id="pv2-add-serv">Aggiungi</button>
-            </div>` : `<div class="add">Il listino servizi è ancora vuoto.</div>`}
+            </div>` : ""}
+          <div class="add-serv">
+            <input id="pv2-serv-nome" class="in" placeholder="Servizio (fotografo, auto, musica…)">
+            <input id="pv2-serv-prezzo" class="in" type="number" step="0.01" placeholder="€" style="max-width:110px;">
+            <button class="pv2-btn" id="pv2-add-serv-manuale">Aggiungi</button>
+          </div>
+          <div class="add" style="cursor:default;color:#6B7A83;">
+            ${listinoServizi.length
+              ? "Il listino contiene " + listinoServizi.length + " voci. Quelle aggiunte a mano non ci finiscono dentro."
+              : "Il listino servizi è vuoto: qui li aggiungi a mano, oppure li censisci una volta sola in Servizi evento."}
+          </div>
         </div>
       </div>
 
@@ -257,6 +285,7 @@ function disegna(container, supabase, azienda, sede) {
 
       <div class="pv2-azioni">
         <button class="pv2-btn grande" id="pv2-salva">💾 Salva</button>
+        ${vedoICosti && righe.some(r => r.nome) ? `<button class="pv2-btn arancio" id="pv2-stima2">🤖 Stima i costi</button>` : ""}
         ${P.id ? `
           <button class="pv2-btn sec" id="pv2-link">🔗 Link per il cliente</button>
           <button class="pv2-btn wa" id="pv2-wa">💬 WhatsApp</button>
@@ -357,6 +386,14 @@ function aggancia(container, supabase, azienda, sede) {
   container.querySelectorAll("[data-del-extra]").forEach(el => {
     el.addEventListener("click", () => { extra.splice(Number(el.dataset.delExtra), 1); ri(); });
   });
+  container.querySelector("#pv2-add-serv-manuale")?.addEventListener("click", () => {
+    const n = (document.getElementById("pv2-serv-nome")?.value || "").trim();
+    const pz = Number(document.getElementById("pv2-serv-prezzo")?.value) || 0;
+    if (!n) { msg(container, "Scrivi il nome del servizio.", true); return; }
+    extra.push({ descrizione: n, prezzo: pz });
+    ri();
+  });
+
   container.querySelector("#pv2-add-serv")?.addEventListener("click", () => {
     const id = document.getElementById("pv2-serv")?.value;
     const s = listinoServizi.find(x => String(x.id) === String(id));
@@ -369,13 +406,14 @@ function aggancia(container, supabase, azienda, sede) {
     ri();
   });
 
-  container.querySelector("#pv2-stima")?.addEventListener("click", async () => {
-    const btn = container.querySelector("#pv2-stima");
+  async function lanciaStima(btn) {
     const daFare = righe.filter(r => r.nome && costoDi(r).mancante);
+    if (!daFare.length) { msg(container, "Tutte le portate hanno già un costo."); return; }
     const token = (await supabase.auth.getSession())?.data?.session?.access_token || "";
-    btn.disabled = true;
+    const testoOriginale = btn ? btn.textContent : "";
+    if (btn) btn.disabled = true;
     for (let i = 0; i < daFare.length; i++) {
-      btn.textContent = `Stimo ${i + 1} di ${daFare.length}…`;
+      if (btn) btn.textContent = `Stimo ${i + 1} di ${daFare.length}…`;
       try {
         const resp = await fetch(EF_STIMA, {
           method: "POST",
@@ -390,7 +428,10 @@ function aggancia(container, supabase, azienda, sede) {
       } catch (e) { console.error(e); }
     }
     ri();
-  });
+  }
+
+  container.querySelector("#pv2-stima")?.addEventListener("click", (e) => lanciaStima(e.currentTarget));
+  container.querySelector("#pv2-stima2")?.addEventListener("click", (e) => lanciaStima(e.currentTarget));
 
   container.querySelectorAll("[data-rich]").forEach(el => {
     el.addEventListener("click", async () => {
@@ -423,7 +464,7 @@ function aggancia(container, supabase, azienda, sede) {
 async function salva(container, supabase, azienda, sede) {
   const c = conti();
   const testata = {
-    azienda_id: azienda.id, sede_id: sede?.id || null,
+    azienda_id: azienda.id, sede_uuid: sede?.id || null,
     stato: P.stato, titolo_evento: P.titolo_evento, tipo_servizio: P.tipo_servizio || null,
     cliente_nome: P.cliente_nome, cliente_cognome: P.cliente_cognome,
     cliente_email: P.cliente_email, cliente_telefono: P.cliente_telefono,
@@ -457,7 +498,7 @@ async function salva(container, supabase, azienda, sede) {
     await supabase.from("preventivi_righe").insert(daSalvare.map(r => {
       const co = costoDi(r);
       return {
-        azienda_id: azienda.id, sede_id: sede?.id || null, preventivo_id: id,
+        azienda_id: azienda.id, sede_uuid: sede?.id || null, preventivo_id: id,
         ricetta_id: r.ricetta_id || null, nome_portata: r.nome, sezione_menu: r.sezione || "Menu",
         quantita: c.inv, prezzo_unitario: Number(r.prezzo) || 0,
         totale: (Number(r.prezzo) || 0) * c.inv,
@@ -468,7 +509,7 @@ async function salva(container, supabase, azienda, sede) {
   }
   if (extra.length) {
     await supabase.from("preventivi_extra").insert(extra.map(x => ({
-      azienda_id: azienda.id, sede_id: sede?.id || null, preventivo_id: id,
+      azienda_id: azienda.id, sede_uuid: sede?.id || null, preventivo_id: id,
       descrizione: x.descrizione, quantita: 1,
       prezzo_unitario: Number(x.prezzo) || 0, prezzo_totale: Number(x.prezzo) || 0,
     })));
