@@ -9,14 +9,19 @@ export async function render(container) {
   const qs = new URLSearchParams((window.location.hash || "").split("?")[1] || "");
   const token = (qs.get("t") || "").trim();
 
-  const guscio = (dentro) => `
+  const guscio = (dentro, tema) => `
     <style>
       .pv{--navy:#023C59;--arancio:#E66101;--ambra:#F1B302;--carta:#FBFAF7;--riga:#E4E0D8;
           --testo:#12232E;--muto:#6B7A83;background:#DFE3E7;min-height:100vh;padding:20px 10px 60px;
           font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--testo);}
       .pv-foglio{max-width:640px;margin:0 auto;background:var(--carta);border-radius:8px;
         box-shadow:0 12px 40px rgba(0,0,0,.14);overflow:hidden;}
-      .pv-testa{text-align:center;padding:34px 30px 24px;border-bottom:3px solid var(--ambra);}
+      .pv-testa{text-align:center;padding:34px 30px 26px;position:relative;
+        border-bottom:3px solid ${tema?.colore2 || "#F1B302"};
+        background:${tema?.immagine ? `linear-gradient(180deg, rgba(0,0,0,.42), rgba(0,0,0,.62)), url('${tema.immagine}') center/cover` : `linear-gradient(160deg, ${tema?.colore || "#023C59"}, ${tema?.colore2 || "#7FA3B8"})`};
+        color:#fff;}
+      .pv-testa h1,.pv-quando{color:#fff !important;}
+      .pv-oc{color:${tema?.immagine ? "#fff" : "rgba(255,255,255,.85)"} !important;}
       .pv-testa img{height:66px;margin-bottom:14px;}
       .pv-oc{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--arancio);font-weight:700;}
       .pv-testa h1{font-family:Georgia,serif;font-size:29px;margin:9px 0 5px;font-weight:normal;color:var(--navy);}
@@ -109,14 +114,16 @@ export async function render(container) {
 
   // le portate arrivano piatte: si raggruppano per sezione mantenendo l'ordine
   const perSezione = new Map();
+  const aParte = new Map();
   (d.portate || []).forEach((p) => {
     const k = p.sezione || "Menu";
-    if (!perSezione.has(k)) perSezione.set(k, []);
-    perSezione.get(k).push(p.nome);
+    const dove = p.separata ? aParte : perSezione;
+    if (!dove.has(k)) dove.set(k, []);
+    dove.get(k).push(p.nome);
   });
 
   if (d.scaduto) {
-    container.innerHTML = guscio(`<div class="pv-errore">${esc(d.testo_scaduto || "Questa proposta è scaduta.")}</div>`);
+    container.innerHTML = guscio(`<div class="pv-errore">${esc(d.testo_scaduto || "Questa proposta è scaduta.")}</div>`, d.tema);
     return;
   }
 
@@ -129,7 +136,7 @@ export async function render(container) {
     <div class="pv-foglio">
       <div class="pv-testa">
         ${d.logo ? `<img src="${esc(d.logo)}" alt="">` : ""}
-        <div class="pv-oc">Proposta per il vostro ricevimento</div>
+        <div class="pv-oc">${esc(d.tema?.occhiello || "Proposta per il vostro ricevimento")}</div>
         <h1>${esc(d.cliente || "")}</h1>
         <div class="pv-quando">${esc(dataLunga(d.data_evento))}${invitati ? " · " + invitati + " invitati" : ""}</div>
         ${d.confermato
@@ -157,6 +164,12 @@ export async function render(container) {
                 ${piatti.map(n => `<div class="pv-p">${esc(n)}</div>`).join("")}
               </div>`).join("")}
           </div>` : ""}
+
+        ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
+          <h2>${esc(sez)}</h2>
+          <div class="pv-blocco"><div class="pv-sez">
+            ${piatti.map(n => `<div class="pv-p">${esc(n)}</div>`).join("")}
+          </div></div>`).join("") : ""}
 
         ${(d.servizi || []).length ? `
           <h2>Servizi compresi</h2>
@@ -240,7 +253,7 @@ export async function render(container) {
 
       <div class="pv-pie"><b>${esc(d.locale || "")}</b></div>
     </div>
-  `);
+  `, d.tema);
 
   // ── caricamento foto degli sposi ────────────────────────────────────────
   const inp = document.getElementById("pv-file");
