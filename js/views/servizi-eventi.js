@@ -104,9 +104,18 @@ export async function render(container) {
                 <option value="a persona">a persona</option>
                 <option value="a ora">a ora</option>
               </select>
+              <select id="s-conta" class="in">
+                <option value="fisso">quantità fissa</option>
+                <option value="ospiti">uno ogni tot ospiti</option>
+                <option value="bambini">uno ogni tot bambini</option>
+              </select>
+              <input id="s-ogni" class="in" type="number" min="1" placeholder="ogni quanti">
+              <input id="s-min" class="in" type="number" min="0" placeholder="minimo" value="1">
               <button class="se-btn" id="s-add">Aggiungi</button>
             </div>
-            <div class="aiuto">Quanto lo paghi non esce mai dal locale: nella pagina del cliente compare solo il prezzo di vendita.</div>
+            <div class="aiuto">Quanto lo paghi non esce mai dal locale: nella pagina del cliente compare solo il prezzo di vendita.
+              I servizi "uno ogni tot" — baby sitter, hostess, sommelier — si contano da soli sul numero di ospiti o di bambini
+              del preventivo, e quelli sui bambini spariscono quando i bambini sono zero.</div>
           </div>
 
           ${servizi.length ? `
@@ -118,7 +127,8 @@ export async function render(container) {
                 <div class="se-riga ${s.attivo ? "" : "spento"}">
                   <div class="t">
                     <b>${esc(s.nome)}</b>
-                    <span>${esc(s.categoria)}${s.fornitore_nome ? " · " + esc(s.fornitore_nome) : ""} · ${esc(s.unita)}</span>
+                    <span>${esc(s.categoria)}${s.fornitore_nome ? " · " + esc(s.fornitore_nome) : ""} · ${esc(s.unita)}${
+                      s.conta_su !== "fisso" ? ` · uno ogni ${s.ogni} ${s.conta_su}${s.minimo ? ", minimo " + s.minimo : ""}` : ""}</span>
                   </div>
                   <div class="pz">
                     <div class="v">${euro(p)}</div>
@@ -187,6 +197,9 @@ export async function render(container) {
         costo_fornitore: Number(document.getElementById("s-costo")?.value) || null,
         prezzo_cliente: Number(document.getElementById("s-prezzo")?.value) || null,
         unita: document.getElementById("s-unita")?.value || "forfait",
+        conta_su: document.getElementById("s-conta")?.value || "fisso",
+        ogni: Number(document.getElementById("s-ogni")?.value) || null,
+        minimo: Number(document.getElementById("s-min")?.value) || 1,
       });
       if (error) return msg("Errore: " + error.message, true);
       disegna();

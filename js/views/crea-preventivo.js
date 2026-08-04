@@ -99,7 +99,7 @@ async function caricaPreventivo(supabase, id) {
   (r.data || []).forEach(x => {
     if (x.stima_dettaglio) stime[norm(x.nome_portata)] = x.stima_dettaglio;
   });
-  extra = (e.data || []).map(x => ({ descrizione: x.descrizione, prezzo: Number(x.prezzo_totale) || 0 }));
+  extra = (e.data || []).map(x => ({ descrizione: x.descrizione, prezzo: Number(x.prezzo_totale) || 0, costo: Number(x.costo_totale) || 0 }));
   richieste = q.data || [];
   foto = f.data || [];
 }
@@ -139,6 +139,15 @@ function costoDi(r) {
   return { costo: 0, stimato: false, mancante: true };
 }
 
+// I servizi a conteggio (baby sitter, hostess) sanno da soli quanti ne servono
+function quantitaServizio(s) {
+  const inv = Math.max(Number(P.n_invitati) || 0, 0);
+  const bimbi = Math.max(Number(P.n_bambini) || 0, 0);
+  if (s.conta_su === "bambini") return bimbi === 0 ? 0 : Math.max(Math.ceil(bimbi / (s.ogni || 1)), s.minimo || 1);
+  if (s.conta_su === "ospiti") return Math.max(Math.ceil(inv / (s.ogni || 1)), s.minimo || 1);
+  return 1;
+}
+
 function perBambini(sez) {
   return Boolean(sezioniInfo.find(x => norm(x.nome) === norm(sez))?.per_bambini);
 }
@@ -160,15 +169,16 @@ function conti() {
 
   const costoPersonale = Number(personale?.costo) || 0;
   const serviziTot = extra.reduce((s, x) => s + (Number(x.prezzo) || 0), 0);
+  const costoServizi = extra.reduce((s, x) => s + (Number(x.costo) || 0), 0);
   const location = Number(P.location_prezzo) || 0;
   const lordo = menu + serviziTot + location;
   const scontoE = (Number(P.sconto_euro) || 0) + lordo * (Number(P.sconto_perc) || 0) / 100;
   const totale = Math.max(lordo - scontoE, 0);
-  const costoTotale = costoMenu + costoPersonale;
+  const costoTotale = costoMenu + costoPersonale + costoServizi;
   const margine = totale - costoTotale;
 
   return {
-    inv, bimbi, menu, serviziTot, location, totale, costoMenu, costoPersonale, costoTotale, margine,
+    inv, bimbi, menu, serviziTot, costoServizi, location, totale, costoMenu, costoPersonale, costoTotale, margine,
     marginePerc: totale > 0 ? (margine / totale) * 100 : 0,
     aPersona: totale / inv, costoPersona: costoTotale / inv,
     stimati, senzaCosto, acconto: Number(P.acconto) || 0,
@@ -303,7 +313,11 @@ function disegna(container, supabase, azienda, sede) {
             <div class="add-serv">
               <select id="pv2-serv" class="in">
                 <option value="">Scegli dal listino…</option>
-                ${listinoServizi.map(s => `<option value="${s.id}">${esc(s.categoria)} · ${esc(s.nome)} — ${euro(s.prezzo_cliente)}</option>`).join("")}
+                ${listinoServizi.map(s => {
+                  const q = quantitaServizio(s);
+                  return `<option value="${s.id}">${esc(s.categoria)} · ${esc(s.nome)}${
+                    s.conta_su !== "fisso" ? ` (ne servono ${q})` : ""} — ${euro((Number(s.prezzo_cliente) || 0) * (s.unita === "a persona" ? 1 : q))}</option>`;
+                }).join("")}
               </select>
               <button class="pv2-btn" id="pv2-add-serv">Aggiungi</button>
             </div>` : ""}
@@ -381,6 +395,7 @@ function disegna(container, supabase, azienda, sede) {
           ${vedoICosti ? `
             <div class="r costo"><span>Costo cibo</span><b>− ${euro(c.costoMenu)}</b></div>
             ${c.costoPersonale ? `<div class="r costo"><span>Costo personale</span><b>− ${euro(c.costoPersonale)}</b></div>` : ""}
+            ${c.costoServizi ? `<div class="r costo"><span>Costo servizi e fornitori</span><b>− ${euro(c.costoServizi)}</b></div>` : ""}
             <div class="r marg"><span>Margine stimato</span><span>${euro(c.margine)} · ${c.marginePerc.toFixed(1)}%</span></div>` : ""}
           <div class="r"><span>Acconto</span>
             <span><input class="mini largo" type="number" step="0.01" data-campo="acconto" value="${P.acconto || 0}"> €</span></div>
@@ -557,9 +572,13 @@ function aggancia(container, supabase, azienda, sede) {
     const s = listinoServizi.find(x => String(x.id) === String(id));
     if (!s) return;
     const inv = Math.max(Number(P.n_invitati) || 1, 1);
+    const q = quantitaServizio(s);
+    if (q === 0) { msg(container, "Questo servizio si calcola sui bambini: indica quanti sono.", true); return; }
+    const prezzoU = Number(s.prezzo_cliente) || 0;
     extra.push({
-      descrizione: s.nome,
-      prezzo: s.unita === "a persona" ? (Number(s.prezzo_cliente) || 0) * inv : Number(s.prezzo_cliente) || 0,
+      descrizione: s.conta_su === "fisso" ? s.nome : `${s.nome} × ${q}`,
+      prezzo: s.unita === "a persona" ? prezzoU * inv : prezzoU * q,
+      costo: (Number(s.costo_fornitore) || 0) * (s.unita === "a persona" ? inv : q),
     });
     ri();
   });
@@ -783,6 +802,7 @@ async function salva(container, supabase, azienda, sede) {
       azienda_id: azienda.id, sede_uuid: sede?.id || null, preventivo_id: id,
       descrizione: x.descrizione, quantita: 1,
       prezzo_unitario: Number(x.prezzo) || 0, prezzo_totale: Number(x.prezzo) || 0,
+      costo_totale: Number(x.costo) || 0,
     })));
   }
 
