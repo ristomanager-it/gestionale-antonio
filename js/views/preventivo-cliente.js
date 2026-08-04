@@ -236,9 +236,12 @@ export async function render(container) {
                 <div class="et">Importo</div>
                 <div class="val"><b>${euro(pag.importo)}</b></div>
               </div>` : ""}
-            ${pag.link ? `
+            ${pag.stripe ? `
+              <button class="carta" id="pv-carta">💳 Paga l'acconto con carta</button>
+              <div class="nota">Pagamento sicuro con Stripe: i dati della carta non passano da noi.</div>`
+            : pag.link ? `
               <a class="carta" href="${esc(pag.link)}" target="_blank" rel="noopener">💳 Paga con carta</a>
-              <div class="nota">Pagamento sicuro: non trattiamo noi i dati della vostra carta.</div>` : ""}
+              <div class="nota">Pagamento sicuro: i dati della carta non passano da noi.</div>` : ""}
             <div id="pv-copiato" class="copiato"></div>
           </div>` : ""}
 
@@ -333,6 +336,33 @@ export async function render(container) {
   });
 
   document.getElementById("pv-print")?.addEventListener("click", () => window.print());
+
+  document.getElementById("pv-carta")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true; b.textContent = "Un attimo…";
+    try {
+      const res = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stripe-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create_session",
+          azienda_id: pag.azienda_id,
+          tipo: "preventivo",
+          riferimento_id: pag.preventivo_id,
+          importo_centesimi: Math.round(Number(pag.importo || 0) * 100),
+          descrizione: pag.causale,
+          cliente_nome: d.cliente || "",
+          metadata: { token: token },
+        }),
+      });
+      const r = await res.json();
+      if (r?.checkout_url) { window.location.href = r.checkout_url; return; }
+      alert("Il pagamento con carta non è disponibile in questo momento: potete usare il bonifico.");
+    } catch (err) {
+      alert("Il pagamento con carta non è disponibile in questo momento: potete usare il bonifico.");
+    }
+    b.disabled = false; b.textContent = "💳 Paga l'acconto con carta";
+  });
 
   container.querySelectorAll("[data-copia]").forEach((b) => {
     b.addEventListener("click", async () => {
