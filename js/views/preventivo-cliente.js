@@ -92,6 +92,20 @@ export async function render(container) {
         .pv-mod,.pv-carica,.pv-cta,.pv-stampa,.pv-timer{display:none !important;}
         .pv h2{page-break-after:avoid;}
       }
+      .pv-iban{background:#fff;border:1px solid var(--riga);border-radius:12px;padding:16px 18px;}
+      .pv-iban .testo{font-size:14px;color:#3D4C55;line-height:1.6;margin-bottom:14px;}
+      .pv-iban .riga-iban{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #F1EEE8;flex-wrap:wrap;}
+      .pv-iban .riga-iban:first-of-type{border-top:none;}
+      .pv-iban .et{width:96px;font-size:11.5px;color:var(--muto);text-transform:uppercase;letter-spacing:.07em;}
+      .pv-iban .val{flex:1;min-width:150px;font-size:15px;}
+      .pv-iban .val.mono{font-family:ui-monospace,Menlo,monospace;font-size:14.5px;letter-spacing:.02em;}
+      .pv-iban .riga-iban.importo .val b{font-size:18px;color:var(--navy);}
+      .pv-iban .copia{background:#fff;border:1.5px solid var(--riga);border-radius:8px;padding:7px 12px;
+        font-size:12.5px;font-weight:700;color:var(--navy);cursor:pointer;font-family:inherit;}
+      .pv-iban .carta{display:block;text-align:center;margin-top:14px;background:var(--navy);color:#fff;
+        text-decoration:none;padding:14px;border-radius:11px;font-weight:700;font-size:15.5px;}
+      .pv-iban .nota{font-size:12px;color:var(--muto);text-align:center;margin-top:7px;}
+      .pv-iban .copiato{font-size:13px;color:#2F6B24;margin-top:9px;}
       .pv-errore{max-width:520px;margin:60px auto;background:#fff;border-radius:14px;padding:26px;text-align:center;font-size:16px;color:#3D4C55;}
     </style>
     <div class="pv">${dentro}</div>`;
@@ -101,10 +115,14 @@ export async function render(container) {
     return;
   }
 
-  let d = null;
+  let d = null, pag = null;
   try {
-    const { data } = await supabase.rpc("preventivo_pubblico", { p_token: token });
-    d = data || null;
+    const [r1, r2] = await Promise.all([
+      supabase.rpc("preventivo_pubblico", { p_token: token }),
+      supabase.rpc("preventivo_pagamento", { p_token: token }),
+    ]);
+    d = r1.data || null;
+    pag = r2.data?.ok ? r2.data : null;
   } catch (e) { console.error(e); }
 
   if (!d || !d.ok) {
@@ -192,6 +210,36 @@ export async function render(container) {
           <div class="pv-pag">
             <div class="r"><span>Acconto alla conferma</span><b>${euro(acconto)}</b></div>
             <div class="r"><span>Saldo il giorno dell'evento</span><b>${euro(totale - acconto)}</b></div>
+          </div>` : ""}
+
+        ${pag ? `
+          <h2>Come versare l'acconto</h2>
+          <div class="pv-iban">
+            <p class="testo">${esc(pag.testo || "")}</p>
+            ${pag.iban ? `
+              <div class="riga-iban">
+                <div class="et">Intestatario</div>
+                <div class="val">${esc(pag.intestatario || d.locale)}</div>
+              </div>
+              <div class="riga-iban">
+                <div class="et">IBAN</div>
+                <div class="val mono" id="pv-iban">${esc(pag.iban)}</div>
+                <button class="copia" data-copia="${esc(pag.iban)}">Copia</button>
+              </div>
+              ${pag.banca ? `<div class="riga-iban"><div class="et">Banca</div><div class="val">${esc(pag.banca)}</div></div>` : ""}
+              <div class="riga-iban">
+                <div class="et">Causale</div>
+                <div class="val">${esc(pag.causale)}</div>
+                <button class="copia" data-copia="${esc(pag.causale)}">Copia</button>
+              </div>
+              <div class="riga-iban importo">
+                <div class="et">Importo</div>
+                <div class="val"><b>${euro(pag.importo)}</b></div>
+              </div>` : ""}
+            ${pag.link ? `
+              <a class="carta" href="${esc(pag.link)}" target="_blank" rel="noopener">💳 Paga con carta</a>
+              <div class="nota">Pagamento sicuro: non trattiamo noi i dati della vostra carta.</div>` : ""}
+            <div id="pv-copiato" class="copiato"></div>
           </div>` : ""}
 
         ${d.confermato ? "" : `
@@ -285,6 +333,16 @@ export async function render(container) {
   });
 
   document.getElementById("pv-print")?.addEventListener("click", () => window.print());
+
+  container.querySelectorAll("[data-copia]").forEach((b) => {
+    b.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(b.dataset.copia);
+        const e = document.getElementById("pv-copiato");
+        if (e) { e.textContent = "Copiato."; setTimeout(() => { e.textContent = ""; }, 2000); }
+      } catch { prompt("Copiate questo:", b.dataset.copia); }
+    });
+  });
 
   async function manda(tipo, valore, nota) {
     const esito = document.getElementById("pv-mod-esito");

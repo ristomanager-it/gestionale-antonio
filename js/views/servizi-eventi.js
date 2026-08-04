@@ -17,17 +17,19 @@ export async function render(container) {
   await disegna();
 
   async function disegna() {
-    const [srv, reg, forn, dip, tem] = await Promise.all([
+    const [srv, reg, forn, dip, tem, cf] = await Promise.all([
       supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).order("categoria").order("nome"),
       supabase.from("regole_personale").select("*").eq("azienda_id", azienda.id).eq("attiva", true).order("tipo_evento"),
       supabase.from("fornitori").select("id, ragione_sociale").eq("azienda_id", azienda.id).order("ragione_sociale").limit(500),
       supabase.from("dipendenti").select("mansione, ruolo, costo_orario").eq("azienda_id", azienda.id).eq("attivo", true),
       supabase.from("preventivi_temi").select("*").eq("azienda_id", azienda.id).order("tipo_evento"),
+      supabase.from("preventivi_config").select("*").eq("azienda_id", azienda.id).maybeSingle(),
     ]);
     const servizi = srv.data || [];
     const regole = reg.data || [];
     const fornitori = forn.data || [];
     const temi = tem.data || [];
+    const cfg = cf.data || {};
 
     // costo orario medio per mansione: serve per far vedere quanto pesa una regola
     const perMansione = {};
@@ -53,9 +55,52 @@ export async function render(container) {
           <button data-vista="servizi" class="${vista === "servizi" ? "on" : ""}">Listino servizi</button>
           <button data-vista="personale" class="${vista === "personale" ? "on" : ""}">Personale per evento</button>
           <button data-vista="temi" class="${vista === "temi" ? "on" : ""}">Aspetto del documento</button>
+          <button data-vista="pagamenti" class="${vista === "pagamenti" ? "on" : ""}">Pagamenti e testi</button>
         </div>
 
-        ${vista === "temi" ? `
+        ${vista === "pagamenti" ? `
+          <div class="se-card">
+            <h2>Come il cliente versa l'acconto</h2>
+            <div class="aiuto">Compaiono nella pagina del cliente solo quando il preventivo ha un acconto.
+              Un acconto che richiede una telefonata spesso non arriva.</div>
+            <div class="se-form" style="margin-top:12px;">
+              <input class="in" placeholder="Intestatario del conto" value="${esc(cfg.intestatario || "")}" data-cfg="intestatario">
+              <input class="in" placeholder="IBAN" value="${esc(cfg.iban || "")}" data-cfg="iban">
+              <input class="in" placeholder="Banca" value="${esc(cfg.banca || "")}" data-cfg="banca">
+              <input class="in" placeholder="Link per pagare con carta" value="${esc(cfg.link_pagamento || "")}" data-cfg="link_pagamento">
+            </div>
+            <label style="display:block;margin-top:12px;">
+              <span class="aiuto">Causale — {evento} {cliente} {data} vengono sostituiti</span>
+              <input class="in" value="${esc(cfg.causale_modello || "")}" data-cfg="causale_modello">
+            </label>
+            <label style="display:block;margin-top:12px;">
+              <span class="aiuto">Cosa scrivere sopra i dati di pagamento</span>
+              <textarea class="in" rows="3" data-cfg="testo_pagamento">${esc(cfg.testo_pagamento || "")}</textarea>
+            </label>
+          </div>
+
+          <div class="se-card">
+            <h2>I testi del documento</h2>
+            <label style="display:block;">
+              <span class="aiuto">Messaggio iniziale</span>
+              <textarea class="in" rows="4" data-cfg="intro">${esc(cfg.intro || "")}</textarea>
+            </label>
+            <label style="display:block;margin-top:12px;">
+              <span class="aiuto">Condizioni in fondo</span>
+              <textarea class="in" rows="3" data-cfg="condizioni">${esc(cfg.condizioni || "")}</textarea>
+            </label>
+            <label style="display:block;margin-top:12px;">
+              <span class="aiuto">Testo quando la proposta è scaduta</span>
+              <textarea class="in" rows="2" data-cfg="testo_scaduto">${esc(cfg.testo_scaduto || "")}</textarea>
+            </label>
+            <div class="se-form" style="margin-top:12px;">
+              <label class="aiuto">Validità di serie (giorni)
+                <input class="in" type="number" min="1" value="${cfg.giorni_validita_default || 15}" data-cfg="giorni_validita_default"></label>
+              <label class="aiuto">Variazione invitati accettata da sola
+                <input class="in" type="number" min="0" value="${cfg.invitati_variazione_max ?? 20}" data-cfg="invitati_variazione_max"></label>
+            </div>
+          </div>
+        ` : vista === "temi" ? `
           <div class="se-card">
             <h2>Come si presenta la proposta</h2>
             <div class="aiuto">La testata del documento che riceve il cliente cambia col tipo di evento:
@@ -229,6 +274,16 @@ export async function render(container) {
         if (!confirm("Tolgo questo servizio dal listino?")) return;
         await supabase.from("servizi_evento").delete().eq("id", b.dataset.del);
         disegna();
+      }));
+
+    container.querySelectorAll("[data-cfg]").forEach(el =>
+      el.addEventListener("change", async () => {
+        const patch = {};
+        const v = el.value;
+        patch[el.dataset.cfg] = el.type === "number" ? (Number(v) || 0) : (v || null);
+        const { error } = await supabase.from("preventivi_config")
+          .upsert({ azienda_id: azienda.id, ...patch }, { onConflict: "azienda_id" });
+        msg(error ? "Errore: " + error.message : "Salvato.", Boolean(error));
       }));
 
     container.querySelectorAll("[data-foto-tema]").forEach(inp =>
