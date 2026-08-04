@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=30";
+import { initMenu } from "./menu.js?v=31";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260802-27";
+const APP_V = "20260803-1";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -169,6 +169,7 @@ const routes = {
   // ── HR — Gestione personale ──
   "hr-richieste":    () => imp("./views/hr-richieste.js"),
   "hr-admin":        () => imp("./views/hr-admin.js"),
+  "hr-buste-paga":   () => imp("./views/hr-buste-paga.js"),
   "hr-fascicolo":    () => imp("./views/hr-fascicolo.js"),
   "hr-documenti":    () => imp("./views/hr-documenti.js"),
   "hr-documenti-me": () => imp("./views/hr-documenti.js"),
@@ -626,6 +627,7 @@ function hasPermission(area) {
 
       // HR personale
       "hr-richieste",
+      "hr-buste-paga",
       "hr-documenti-me",
 
       "mansionario-operatore",
