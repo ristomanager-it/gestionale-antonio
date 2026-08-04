@@ -57,6 +57,36 @@ export async function render(container) {
       .pv-cta p{font-size:13px;color:var(--muto);margin-top:9px;}
       .pv-note{font-size:12.5px;color:var(--muto);line-height:1.6;margin-top:24px;padding-top:16px;border-top:1px solid var(--riga);}
       .pv-pie{background:#fff;border-top:1px solid var(--riga);padding:16px 30px;text-align:center;font-size:12px;color:var(--muto);line-height:1.7;}
+      .pv-timer{margin-top:12px;display:inline-block;background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;
+        font-size:13px;font-weight:700;padding:7px 14px;border-radius:100px;}
+      .pv-timer.ok{background:#F1F8ED;border-color:#CFE4C2;color:#2F6B24;}
+      .pv-stampa{display:block;margin:14px auto 0;background:#fff;border:1.5px solid var(--riga);color:var(--navy);
+        border-radius:10px;padding:9px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+      .pv-mod{background:#fff;border:1px solid var(--riga);border-radius:12px;padding:16px 18px;}
+      .pv-mod .r{padding:12px 0;border-top:1px solid #F1EEE8;}
+      .pv-mod .r:first-child{border-top:none;padding-top:0;}
+      .pv-mod label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+      .pv-mod small{display:block;font-size:12.5px;color:var(--muto);margin-top:6px;line-height:1.45;}
+      .pv-mod .riga2{display:flex;gap:8px;}
+      .pv-mod input,.pv-mod textarea{flex:1;width:100%;padding:10px;border:1.5px solid var(--riga);border-radius:10px;
+        font-size:15px;font-family:inherit;background:#fff;}
+      .pv-mod textarea{margin-bottom:8px;}
+      .pv-btn.piccolo{padding:10px 15px;font-size:14px;white-space:nowrap;}
+      .pv-serv{display:flex;align-items:center;gap:12px;padding:12px 17px;border-top:1px solid #F1EEE8;flex-wrap:wrap;}
+      .pv-serv:first-child{border-top:none;}
+      .pv-serv .t{flex:1;min-width:150px;}
+      .pv-serv .t b{display:block;font-size:15px;}
+      .pv-serv .t span{font-size:12.5px;color:var(--muto);}
+      .pv-serv .pz{font-weight:700;color:var(--navy);}
+      .pv-avviso{background:#F1F8ED;border:1px solid #CFE4C2;color:#2F6B24;border-radius:10px;
+        padding:11px 13px;font-size:13.5px;margin-top:10px;line-height:1.5;}
+      .pv-avviso.attesa{background:#FFF7ED;border-color:#FED7AA;color:#9A3412;}
+      @media print{
+        body{background:#fff;padding:0;}
+        .pv-foglio{box-shadow:none;max-width:none;}
+        .pv-mod,.pv-carica,.pv-cta,.pv-stampa,.pv-timer{display:none !important;}
+        .pv h2{page-break-after:avoid;}
+      }
       .pv-errore{max-width:520px;margin:60px auto;background:#fff;border-radius:14px;padding:26px;text-align:center;font-size:16px;color:#3D4C55;}
     </style>
     <div class="pv">${dentro}</div>`;
@@ -85,6 +115,11 @@ export async function render(container) {
     perSezione.get(k).push(p.nome);
   });
 
+  if (d.scaduto) {
+    container.innerHTML = guscio(`<div class="pv-errore">${esc(d.testo_scaduto || "Questa proposta è scaduta.")}</div>`);
+    return;
+  }
+
   const invitati = Number(d.invitati) || 0;
   const totale = Number(d.totale) || 0;
   const acconto = Number(d.acconto) || 0;
@@ -97,6 +132,10 @@ export async function render(container) {
         <div class="pv-oc">Proposta per il vostro ricevimento</div>
         <h1>${esc(d.cliente || "")}</h1>
         <div class="pv-quando">${esc(dataLunga(d.data_evento))}${invitati ? " · " + invitati + " invitati" : ""}</div>
+        ${d.confermato
+          ? `<div class="pv-timer ok">✅ Proposta confermata — grazie!</div>`
+          : `<div class="pv-timer">${esc(scadenzaTesto(d.scadenza))}</div>`}
+        <button class="pv-stampa" id="pv-print">🖨️ Stampa o salva in PDF</button>
       </div>
 
       <div class="pv-corpo">
@@ -141,6 +180,45 @@ export async function render(container) {
             <div class="r"><span>Acconto alla conferma</span><b>${euro(acconto)}</b></div>
             <div class="r"><span>Saldo il giorno dell'evento</span><b>${euro(totale - acconto)}</b></div>
           </div>` : ""}
+
+        ${d.confermato ? "" : `
+        <h2>Volete cambiare qualcosa?</h2>
+        <div class="pv-mod">
+          <div class="r">
+            <label>Quante persone sarete</label>
+            <div class="riga2">
+              <input id="pv-invitati" type="number" min="1" value="${invitati || 1}">
+              <button class="pv-btn piccolo" data-mod="invitati">Aggiorna</button>
+            </div>
+            <small>Fino a ${d.variazione_max} persone in più o in meno si aggiorna da solo.</small>
+          </div>
+          <div class="r">
+            <label>A che ora iniziamo</label>
+            <div class="riga2">
+              <input id="pv-ora" type="time" value="${esc((d.ora_evento || "").slice(0,5))}">
+              <button class="pv-btn piccolo" data-mod="orario">Aggiorna</button>
+            </div>
+          </div>
+          <div class="r">
+            <label>Avete una richiesta particolare?</label>
+            <textarea id="pv-nota" rows="3" placeholder="Una torta diversa, un allestimento su misura, un'esigenza dei vostri ospiti..."></textarea>
+            <button class="pv-btn" data-mod="personalizzazione">Mandaci la richiesta</button>
+            <small>Le richieste che cambiano il prezzo le valutiamo noi e vi rispondiamo.</small>
+          </div>
+          <div id="pv-mod-esito"></div>
+        </div>
+
+        ${(d.servizi_disponibili || []).length ? `
+        <h2>Volete aggiungere altro?</h2>
+        <div class="pv-blocco">
+          ${d.servizi_disponibili.map(s => `
+            <div class="pv-serv">
+              <div class="t"><b>${esc(s.nome)}</b><span>${esc(s.descrizione || s.categoria)}</span></div>
+              <div class="pz">${euro(s.prezzo)}${s.unita === "a persona" ? " <small>a persona</small>" : ""}</div>
+              <button class="pv-btn piccolo" data-servizio="${esc(s.id)}">Aggiungi</button>
+            </div>`).join("")}
+        </div>` : ""}
+        `}
 
         <h2>Le vostre idee</h2>
         <div class="pv-carica">
@@ -193,13 +271,59 @@ export async function render(container) {
     inp.value = "";
   });
 
-  document.getElementById("pv-conferma")?.addEventListener("click", (e) => {
+  document.getElementById("pv-print")?.addEventListener("click", () => window.print());
+
+  async function manda(tipo, valore, nota) {
+    const esito = document.getElementById("pv-mod-esito");
+    if (esito) esito.innerHTML = `<div class="pv-avviso attesa">Un attimo…</div>`;
+    try {
+      const { data } = await supabase.rpc("preventivo_richiesta", {
+        p_token: token, p_tipo: tipo, p_valore: String(valore ?? ""), p_nota: nota ?? null,
+      });
+      if (esito) {
+        esito.innerHTML = data?.ok
+          ? `<div class="pv-avviso ${data.applicata ? "" : "attesa"}">${esc(data.messaggio || "Fatto.")}</div>`
+          : `<div class="pv-avviso attesa">${esc(data?.errore || "Non è andata, riprovate.")}</div>`;
+      }
+      if (data?.applicata) setTimeout(() => render(container), 1400);
+    } catch (e) {
+      if (esito) esito.innerHTML = `<div class="pv-avviso attesa">Non è andata, riprovate.</div>`;
+    }
+  }
+
+  container.querySelectorAll("[data-mod]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const tipo = b.dataset.mod;
+      if (tipo === "invitati") return manda("invitati", document.getElementById("pv-invitati")?.value);
+      if (tipo === "orario") return manda("orario", document.getElementById("pv-ora")?.value);
+      const nota = (document.getElementById("pv-nota")?.value || "").trim();
+      if (!nota) { alert("Scrivete cosa vi serve."); return; }
+      manda("personalizzazione", nota, nota);
+    });
+  });
+
+  container.querySelectorAll("[data-servizio]").forEach((b) => {
+    b.addEventListener("click", () => manda("servizio", b.dataset.servizio));
+  });
+
+  document.getElementById("pv-conferma")?.addEventListener("click", async (e) => {
     e.preventDefault();
-    alert("Grazie! Vi ricontattiamo subito per chiudere i dettagli.");
+    if (!confirm("Confermate la proposta così com'è?")) return;
+    const { data } = await supabase.rpc("preventivo_conferma", { p_token: token });
+    if (data?.ok) render(container);
+    else alert(data?.errore || "Non è andata, riprovate.");
   });
 }
 
 /* ── utilità ─────────────────────────────────────────────────────────── */
+function scadenzaTesto(iso) {
+  if (!iso) return "";
+  const giorni = Math.ceil((new Date(iso) - Date.now()) / 86400000);
+  if (giorni <= 0) return "Scade oggi";
+  if (giorni === 1) return "Valida ancora 1 giorno";
+  return "Valida ancora " + giorni + " giorni";
+}
+
 const MESI = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
   "luglio","agosto","settembre","ottobre","novembre","dicembre"];
 
