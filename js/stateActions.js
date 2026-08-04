@@ -9,6 +9,8 @@
     manager_sala: "manager",
     operatore_cucina: "operatore",
     operatore_sala: "operatore",
+    wedding_planner: "agenzia",
+    partner: "agenzia",
   });
 
   function normalizeRuolo(ruolo) {

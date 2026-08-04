@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=33";
+import { initMenu } from "./menu.js?v=34";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260804-25";
+const APP_V = "20260804-26";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -592,6 +592,28 @@ function hasPermission(area) {
   }
 
   // =====================================
+  // AGENZIA (wedding planner e simili)
+  // Non e' personale interno: vede solo la parte eventi, e nel database
+  // le regole la limitano ai preventivi della sua agenzia.
+  // =====================================
+
+  if (ruolo === "agenzia") {
+
+    const permesse = [
+      "home",
+      "preventivi",
+      "creaPreventivo",
+      "crea-preventivo",
+      "bo-location-ricevimenti",
+      "profilo",
+      "completa-profilo",
+    ];
+
+    return permesse.includes(area);
+
+  }
+
+  // =====================================
   // OPERATORE BASE
   // =====================================
 
@@ -631,12 +653,8 @@ function hasPermission(area) {
       "prenotazioni-dettaglio",
       "prenotazioni-tavoli",
 
-      // HR personale
+      // HR personale: solo le SUE cose, non i costi ne' le buste degli altri
       "hr-richieste",
-      "hr-buste-paga",
-      "hr-costi",
-      "ricette-da-verificare",
-      "servizi-eventi",
       "hr-documenti-me",
 
       "mansionario-operatore",

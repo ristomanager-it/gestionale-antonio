@@ -321,6 +321,19 @@ export function initMenu() {
     const sections = [];
     const ruolo = getRuoloAttivo();
 
+    // La wedding planner non e' personale interno: vede solo gli eventi.
+    // Il resto e' chiuso anche nel database, questo e' solo il menu.
+    if (String(ruolo || "").toLowerCase() === "agenzia") {
+      return [{
+        key: "eventi",
+        title: "🎪 EVENTI",
+        items: [
+          { label: "📑 Preventivi", route: "preventivi" },
+          { label: "🏛️ Location",   route: "bo-location-ricevimenti" },
+        ]
+      }];
+    }
+
     // ── PIATTAFORMA (solo superadmin) — visibile anche con viewAs attivo ──
     const isSa = window.state?.isSuperadmin === true
       || window.state?.ruolo === "superadmin"
@@ -360,11 +373,18 @@ export function initMenu() {
         { label: "💳 Cassa libera",       route: "cassa-libera"       },
         { label: "📅 Prenotazioni",      route: "prenotazioni"       },
         { label: "🗓️ Tavoli",           route: "prenotazioni-tavoli"},
-        { label: "🏛️ Location Ricevimenti", route: "bo-location-ricevimenti" },
-        { label: "📑 Preventivi",        route: "preventivi"         },
-        { label: "🎪 Servizi e personale eventi", route: "servizi-eventi" },
         { label: "📋 Mansionario Sala",  route: "mansionario-sala"   },
         { label: "🗺️ Mappa Sala",       route: "sala"               },
+      ]
+    });
+
+    sections.push({
+      key: "eventi",
+      title: "🎪 EVENTI",
+      items: [
+        { label: "📑 Preventivi",        route: "preventivi"         },
+        { label: "🏛️ Location",          route: "bo-location-ricevimenti" },
+        { label: "🎪 Servizi e personale", route: "servizi-eventi"    },
       ]
     });
 
