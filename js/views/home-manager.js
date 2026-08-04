@@ -269,6 +269,16 @@ async function listaAvvisi(supabase, aziendaId, sedeId, oggiISO) {
     });
   }
 
+  try {
+    const { data } = await supabase.from("ricette")
+      .select("id, nome").eq("azienda_id", aziendaId).eq("da_verificare", true).limit(50);
+    if ((data || []).length) out.push({
+      livello: "giallo", link: "#/ricette-da-verificare",
+      titolo: data.length + (data.length === 1 ? " ricetta da controllare" : " ricette da controllare"),
+      sotto: "Scritte da Tony: quantità e ingredienti da confermare",
+    });
+  } catch (e) { /* niente */ }
+
   const coperti = await copertiDelGiorno(supabase, aziendaId, sedeId, oggiISO);
   if (coperti.daConfermare) {
     out.push({

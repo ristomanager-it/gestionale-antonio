@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260804-12";
+const APP_V = "20260804-13";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -173,6 +173,7 @@ const routes = {
   "hr-admin":        () => imp("./views/hr-admin.js"),
   "hr-buste-paga":   () => imp("./views/hr-buste-paga.js"),
   "hr-costi":        () => imp("./views/hr-costi.js"),
+  "ricette-da-verificare": () => imp("./views/ricette-da-verificare.js"),
   "hr-fascicolo":    () => imp("./views/hr-fascicolo.js"),
   "hr-documenti":    () => imp("./views/hr-documenti.js"),
   "hr-documenti-me": () => imp("./views/hr-documenti.js"),
@@ -633,6 +634,7 @@ function hasPermission(area) {
       "hr-richieste",
       "hr-buste-paga",
       "hr-costi",
+      "ricette-da-verificare",
       "hr-documenti-me",
 
       "mansionario-operatore",

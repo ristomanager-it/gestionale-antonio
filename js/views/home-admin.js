@@ -240,6 +240,16 @@ async function listaDecisioni(supabase, aziendaId) {
   } catch (e) { /* niente */ }
 
   try {
+    const { data } = await supabase.from("ricette")
+      .select("id, nome").eq("azienda_id", aziendaId).eq("da_verificare", true).limit(200);
+    if ((data || []).length) out.push({
+      livello: "giallo", link: "#/ricette-da-verificare",
+      titolo: data.length + (data.length === 1 ? " ricetta scritta da Tony" : " ricette scritte da Tony"),
+      sotto: "Da controllare prima di usarne il costo: " + data.slice(0, 3).map(r => r.nome).join(", "),
+    });
+  } catch (e) { /* niente */ }
+
+  try {
     const { data } = await supabase.from("hr_richieste")
       .select("id, tipo, data_inizio, dipendenti(nome, cognome)")
       .eq("azienda_id", aziendaId).eq("stato", "in_attesa").limit(20);
