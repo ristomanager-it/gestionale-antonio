@@ -647,9 +647,34 @@ async function salva(container, supabase, azienda, sede) {
     })));
   }
 
+  // I piatti stimati diventano ricette bozza da soli: hanno gia' ingredienti e
+  // costo, quindi la scheda nasce utile invece che vuota come faceva la vecchia.
+  let create = 0;
+  for (const r of daSalvare) {
+    if (r.ricetta_id) continue;
+    const st = stime[norm(r.nome)];
+    if (!st || !(st.ingredienti || []).length) continue;
+    const { data: nr } = await supabase.rpc("ricetta_da_stima", {
+      p_azienda: azienda.id, p_nome: r.nome, p_ingredienti: st.ingredienti, p_porzioni: 1,
+    });
+    if (nr?.ok) {
+      create++;
+      await supabase.from("preventivi_righe")
+        .update({ ricetta_id: nr.ricetta_id })
+        .eq("preventivo_id", id).eq("nome_portata", r.nome);
+    }
+  }
+
   await caricaPreventivo(supabase, id);
+  if (create) {
+    const { data: rr } = await supabase.from("ricette")
+      .select("id, nome, costo_porzione, costo_materia_prima, porzioni").eq("azienda_id", azienda.id).limit(3000);
+    ricette = rr || ricette;
+  }
   disegna(container, supabase, azienda, sede);
-  msg(container, "Salvato.");
+  msg(container, create
+    ? `Salvato. ${create === 1 ? "Un piatto è entrato" : create + " piatti sono entrati"} in ricettario come bozza.`
+    : "Salvato.");
 }
 
 /* ── utilità ─────────────────────────────────────────────────────────── */
