@@ -87,6 +87,10 @@ async function caricaPreventivo(supabase, id) {
     nome: x.nome_portata, ricetta_id: x.ricetta_id, sezione: x.sezione_menu || "Menu",
     prezzo: Number(x.prezzo_unitario) || 0, costoSalvato: Number(x.food_cost_snapshot) || 0,
   }));
+  // le stime tornano com'erano: numero E ragionamento
+  (r.data || []).forEach(x => {
+    if (x.stima_dettaglio) stime[norm(x.nome_portata)] = x.stima_dettaglio;
+  });
   extra = (e.data || []).map(x => ({ descrizione: x.descrizione, prezzo: Number(x.prezzo_totale) || 0 }));
   richieste = q.data || [];
 }
@@ -381,6 +385,8 @@ function dettaglioStima(r) {
       </div>` : `<div class="vuoto">Nessun dettaglio salvato per questa stima.</div>`}
       ${s.note ? `<div class="note">Da chiarire: ${esc(s.note)}</div>` : ""}
       <div class="note">È una stima da nome: controlla le quantità prima di firmare l'evento.</div>
+      ${ing.length ? `<button class="pv2-btn piccolo" data-crea-ricetta="${esc(r.nome)}"
+        style="margin-top:9px;">📋 Salva come ricetta bozza</button>` : ""}
     </div>`;
 }
 
@@ -519,6 +525,28 @@ function aggancia(container, supabase, azienda, sede) {
     });
   });
 
+  container.querySelectorAll("[data-crea-ricetta]").forEach(el => {
+    el.addEventListener("click", async () => {
+      const nome = el.dataset.creaRicetta;
+      const s = stime[norm(nome)];
+      if (!s) return;
+      el.disabled = true; el.textContent = "Creo…";
+      const { data, error } = await supabase.rpc("ricetta_da_stima", {
+        p_azienda: azienda.id, p_nome: nome,
+        p_ingredienti: s.ingredienti || [], p_porzioni: 1,
+      });
+      if (error || !data?.ok) { msg(container, "Non è andata: " + (error?.message || data?.errore || ""), true); el.disabled = false; return; }
+      // da adesso quel piatto ha una ricetta vera: il costo non e' piu' stimato
+      const i = righe.findIndex(x => norm(x.nome) === norm(nome));
+      if (i >= 0) righe[i].ricetta_id = data.ricetta_id;
+      const { data: rr } = await supabase.from("ricette")
+        .select("id, nome, costo_porzione, costo_materia_prima, porzioni").eq("id", data.ricetta_id).maybeSingle();
+      if (rr) ricette.push(rr);
+      msg(container, `Ricetta creata con ${data.ingredienti} ingredienti. Completala nel ricettario per avere il costo esatto.`);
+      ri();
+    });
+  });
+
   container.querySelectorAll("[data-rich]").forEach(el => {
     el.addEventListener("click", async () => {
       await supabase.from("preventivi_richieste")
@@ -607,6 +635,7 @@ async function salva(container, supabase, azienda, sede) {
         totale: (Number(r.prezzo) || 0) * c.inv,
         food_cost_snapshot: co.costo || 0,
         ricetta_placeholder: Boolean(co.stimato || co.mancante),
+        stima_dettaglio: stime[norm(r.nome)] || null,
       };
     }));
   }
