@@ -2314,7 +2314,7 @@ async function compilaRicettaDaPiatto(file, note = "") {
       const dubbi = (p.ingredienti || []).filter(i => i.certezza === "bassa").map(i => i.nome);
       box2.innerHTML = `
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;">
-          <div style="font-size:13px;color:#9a3412;font-weight:700;">Costo pieno a porzione</div>
+          <div style="font-size:13px;color:#9a3412;font-weight:700;">Stima iniziale dalla foto</div>
           <div style="font-family:Georgia,serif;font-size:32px;color:#c2410c;margin:4px 0;">€ ${Number(cp.totale || 0).toFixed(2)}</div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#7c2d12;margin-bottom:8px;">
             <span>🥩 Materia prima <b>€ ${Number(cp.materia_prima || 0).toFixed(2)}</b></span>
@@ -2353,7 +2353,10 @@ async function compilaRicettaDaPiatto(file, note = "") {
             <div style="font-size:11.5px;color:#a16207;margin-top:6px;">Costi orari usati: ${Object.entries(md.costi_orari || {}).map(([r, v]) => r + " € " + v).join(" · ")}</div>
           </div>` : ""}
 
-          <div style="font-size:12px;color:#a16207;margin-top:10px;">È una stima da foto: controlla quantità, fasi e conservazione prima di salvare.</div>
+          <div style="font-size:12px;color:#a16207;margin-top:10px;">
+            È una stima da foto. <b>Quando correggi un ingrediente nelle righe, questo riquadro non cambia:
+            il costo aggiornato è nel pannello ⚙️ Costo di produzione, più in basso.</b>
+          </div>
 
           <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #fed7aa;">
             <div style="font-size:13px;color:#9a3412;font-weight:700;margin-bottom:6px;">Manca qualcosa? Diglielo tu</div>
@@ -2809,6 +2812,10 @@ function aggiungiIngrediente(initial = {}) {
   });
 
   ingSearch.addEventListener("input", aggiornaBadge);
+  ["change", "input"].forEach((ev) => {
+    [".ing-qta", ".ing-um", ".ing-id"].forEach((sel) =>
+      card.querySelector(sel)?.addEventListener(ev, () => aggiornaCostiProduzione()));
+  });
   aggiornaBadge();
 
   // Se viene da Tony con nome non trovato → fuzzy precompila
@@ -2874,6 +2881,26 @@ async function aggiornaCostiProduzione() {
     lotto: _lottoStandard, porzioni: Number(document.getElementById("r-porzioni")?.value) || 1,
   });
 
+  // materia prima dalle righe ingredienti: se correggi un prodotto, qui cambia subito
+  const righeIng = [];
+  document.querySelectorAll("#ingredienti-container .azienda-card").forEach((r) => {
+    const pid = (r.querySelector(".ing-id")?.value || "").trim();
+    const qta = toNumOrNull(r.querySelector(".ing-qta")?.value);
+    if (!pid || !qta || qta <= 0) return;
+    const pr = prodottiMap.get(String(pid));
+    righeIng.push({ prodotto_id: Number(pid), quantita: qta, unita_misura: (r.querySelector(".ing-um")?.value || pr?.um || "pz") });
+  });
+  let mpTotale = 0;
+  if (righeIng.length) {
+    const calc = computeCostoIndustriale({
+      outputPrincipale: { peso: 1, um: "kg" }, ingredienti: righeIng, outputSecondariDom: [],
+    });
+    mpTotale = Number(calc.costoTotaleInput) || 0;
+  }
+  const porzioniRicetta = Math.max(Number(document.getElementById("r-porzioni")?.value) || 1, 1);
+  const mpPorzione = mpTotale / porzioniRicetta;
+  const pienoPorzione = mpPorzione + c.totale_porzione;
+
   box.innerHTML = `
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
@@ -2885,6 +2912,11 @@ async function aggiornaCostiProduzione() {
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
+          <div style="font-size:12px;color:#64748b;">🥩 Materia prima</div>
+          <div style="font-size:20px;font-weight:800;color:#9a3412;">€ ${mpPorzione.toFixed(2)}</div>
+          <div style="font-size:11.5px;color:#94a3b8;">a porzione · dalle righe</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
           <div style="font-size:12px;color:#64748b;">👨‍🍳 Manodopera</div>
           <div style="font-size:20px;font-weight:800;color:#0E5A7A;">€ ${c.lavoro_porzione.toFixed(2)}</div>
           <div style="font-size:11.5px;color:#94a3b8;">a porzione · ${c.minuti_totali} min per ${c.lotto}</div>
@@ -2895,9 +2927,9 @@ async function aggiornaCostiProduzione() {
           <div style="font-size:11.5px;color:#94a3b8;">${c.kwh_lotto} kWh · ${c.costo_kwh} €/kWh</div>
         </div>
         <div style="background:#0E5A7A;border-radius:10px;padding:12px;color:#fff;">
-          <div style="font-size:12px;opacity:.85;">Produzione a porzione</div>
-          <div style="font-size:20px;font-weight:800;">€ ${c.totale_porzione.toFixed(2)}</div>
-          <div style="font-size:11.5px;opacity:.8;">€ ${c.totale_lotto.toFixed(2)} per ${c.lotto} porzioni</div>
+          <div style="font-size:12px;opacity:.85;">Costo pieno a porzione</div>
+          <div style="font-size:20px;font-weight:800;">€ ${pienoPorzione.toFixed(2)}</div>
+          <div style="font-size:11.5px;opacity:.8;">produzione € ${c.totale_porzione.toFixed(2)} · lotto da ${c.lotto}</div>
         </div>
       </div>
 
