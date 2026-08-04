@@ -54,7 +54,7 @@ export async function render(container) {
         </div>
         <div class="k"><span>Lavorato</span><b>€ ${fmt(tot.costo_lavorato)}</b><small>${fmt(tot.ore_lavorate)} ore</small></div>
         <div class="k"><span>Assenze</span><b>€ ${fmt(tot.costo_assenze)}</b><small>${fmt(tot.giorni_assenza)} giorni</small></div>
-        <div class="k"><span>Costo orario medio</span><b>€ ${tot.ore_lavorate ? (tot.costo_lavorato / tot.ore_lavorate).toFixed(2) : "—"}</b></div>
+        <div class="k"><span>Incidenza oraria</span><b>€ ${tot.ore_lavorate ? (tot.costo_totale / tot.ore_lavorate).toFixed(2) : "—"}</b><small>costo per ora lavorata</small></div>
       </div>
 
       ${senzaCosto.length ? `
@@ -75,8 +75,9 @@ export async function render(container) {
           return `
           <div class="hc-riga">
             <div class="hc-lab">
-              <b>${esc(g.chiave)}</b>
-              <span>${fmt(g.ore_lavorate)} h${g.giorni_assenza ? " · " + fmt(g.giorni_assenza) + " gg assenza" : ""}</span>
+              <b>${esc(g.chiave)}${g.fisso ? ` <i class="hc-fisso">fisso</i>` : ""}</b>
+              <span>${fmt(g.ore_lavorate)} h${g.giorni_assenza ? " · " + fmt(g.giorni_assenza) + " gg assenza" : ""}${
+                g.ore_lavorate > 0 ? " · € " + (g.costo_totale / g.ore_lavorate).toFixed(2) + "/h" : ""}</span>
             </div>
             <div class="hc-barra">
               <div class="lav" style="width:${wl}%"></div>
@@ -95,6 +96,8 @@ export async function render(container) {
       <div class="hc-nota">
         Il lavorato arriva dalle timbrature, valorizzate sulla giornata di lavoro.
         Le assenze contano solo se registrate come richieste approvate: quelle prese a voce non compaiono.
+        Per chi ha la <b>paga fissa</b> il costo è la quota del mensile sul periodo, e l'incidenza oraria
+        è calcolata sulle ore davvero timbrate: più ore fa, meno costa l'ora.
       </div>
     </div>
     ${stile()}`;
@@ -123,7 +126,8 @@ function raggruppa(righe, chiave) {
   const m = new Map();
   for (const r of righe) {
     const k = r[chiave] || "—";
-    const cur = m.get(k) || { chiave: k, costo_totale: 0, costo_lavorato: 0, costo_assenze: 0, ore_lavorate: 0, giorni_assenza: 0 };
+    const cur = m.get(k) || { chiave: k, costo_totale: 0, costo_lavorato: 0, costo_assenze: 0, ore_lavorate: 0, giorni_assenza: 0, fisso: false };
+    if (r.tipo_compenso === "fisso") cur.fisso = true;
     cur.costo_totale += Number(r.costo_totale) || 0;
     cur.costo_lavorato += Number(r.costo_lavorato) || 0;
     cur.costo_assenze += Number(r.costo_assenze) || 0;
@@ -207,6 +211,8 @@ function stile() {
   .hc-lab{width:34%;min-width:110px;}
   .hc-lab b{display:block;font-size:14.5px;}
   .hc-lab span{display:block;font-size:11.5px;color:var(--muto);margin-top:1px;}
+  .hc-fisso{font-style:normal;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+    background:#EEF2F5;color:var(--muto);padding:2px 6px;border-radius:100px;margin-left:5px;}
   .hc-barra{flex:1;height:22px;background:#F1F4F6;border-radius:6px;overflow:hidden;display:flex;}
   .hc-barra .lav{background:var(--navy);height:100%;}
   .hc-barra .ass{background:var(--ambra);height:100%;}
