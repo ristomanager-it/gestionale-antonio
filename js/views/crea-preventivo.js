@@ -16,6 +16,8 @@ let locations = [];
 let listinoServizi = [];
 let richieste = [];
 let vedoICosti = true;   // falso per le agenzie
+let personale = null;    // quanti camerieri servono e quanto costano
+let apertoDettaglio = null;  // riga di cui si stanno guardando i conti di Tony
 
 const TIPI_EVENTO = ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Battesimo", "Comunione",
   "Cresima", "Compleanno", "Laurea", "Anniversario", "Cena aziendale", "Buffet", "Altro"];
@@ -54,6 +56,7 @@ export async function render(container, params = {}) {
   if (id) await caricaPreventivo(supabase, id);
   else nuovo(azienda, sede);
 
+  await calcolaPersonale(supabase, azienda);
   disegna(container, supabase, azienda, sede);
 }
 
@@ -88,6 +91,16 @@ async function caricaPreventivo(supabase, id) {
   richieste = q.data || [];
 }
 
+async function calcolaPersonale(supabase, azienda) {
+  try {
+    const { data } = await supabase.rpc("personale_evento", {
+      p_azienda: azienda.id, p_tipo: P.titolo_evento || "Altro",
+      p_invitati: Math.max(Number(P.n_invitati) || 1, 1),
+    });
+    personale = data?.ok ? data : null;
+  } catch (e) { personale = null; }
+}
+
 /* ── conti ───────────────────────────────────────────────────────────── */
 
 function costoDi(r) {
@@ -115,17 +128,19 @@ function conti() {
     if (c.mancante) senzaCosto++;
   });
 
+  const costoPersonale = Number(personale?.costo) || 0;
   const serviziTot = extra.reduce((s, x) => s + (Number(x.prezzo) || 0), 0);
   const location = Number(P.location_prezzo) || 0;
   const lordo = menu + serviziTot + location;
   const scontoE = (Number(P.sconto_euro) || 0) + lordo * (Number(P.sconto_perc) || 0) / 100;
   const totale = Math.max(lordo - scontoE, 0);
-  const margine = totale - costoMenu;
+  const costoTotale = costoMenu + costoPersonale;
+  const margine = totale - costoTotale;
 
   return {
-    inv, menu, serviziTot, location, totale, costoMenu, margine,
+    inv, menu, serviziTot, location, totale, costoMenu, costoPersonale, costoTotale, margine,
     marginePerc: totale > 0 ? (margine / totale) * 100 : 0,
-    aPersona: totale / inv, costoPersona: costoMenu / inv,
+    aPersona: totale / inv, costoPersona: costoTotale / inv,
     stimati, senzaCosto, acconto: Number(P.acconto) || 0,
   };
 }
@@ -155,7 +170,7 @@ function disegna(container, supabase, azienda, sede) {
       <div class="pv2-barra">
         <div class="k"><span>Totale</span><b>${euro(c.totale)}</b><small>${euro(c.aPersona)} a persona</small></div>
         ${vedoICosti ? `
-          <div class="k oro"><span>Costo stimato</span><b>${euro(c.costoMenu)}</b><small>${euro(c.costoPersona)} a persona</small></div>
+          <div class="k oro"><span>Costo stimato</span><b>${euro(c.costoTotale)}</b><small>cibo ${euro(c.costoMenu)} · personale ${euro(c.costoPersonale)}</small></div>
           <div class="k ${c.marginePerc >= 60 ? "verde" : c.marginePerc >= 40 ? "" : "rosso"}">
             <span>Margine</span><b>${c.marginePerc.toFixed(1)}%</b><small>${euro(c.margine)}</small></div>` : ""}
         <div class="k"><span>Acconto</span><b>${euro(c.acconto)}</b><small>saldo ${euro(c.totale - c.acconto)}</small></div>
@@ -264,6 +279,21 @@ function disegna(container, supabase, azienda, sede) {
         </div>
       </div>
 
+      ${vedoICosti && personale ? `
+        <div class="pv2-card">
+          <h2>Personale in servizio</h2>
+          <div class="aiuto">Calcolato sulle vostre regole: si cambia in Regole personale.</div>
+          <div class="pv2-pers">
+            <div class="n"><b>${personale.addetti}</b><span>${esc(personale.mansione)}${personale.addetti === 1 ? "" : "i"}</span></div>
+            <div class="d">
+              <div>Un ${esc(personale.mansione)} ogni <b>${personale.ospiti_per_addetto}</b> ospiti${personale.minimo ? `, mai meno di <b>${personale.minimo}</b>` : ""}</div>
+              <div>${personale.ore} ore a testa · ${euro(personale.costo_orario)} l'ora</div>
+              ${personale.per_minimo ? `<div class="min">Con ${c.inv} invitati basterebbero meno persone: vale il minimo di ${personale.minimo}.</div>` : ""}
+            </div>
+            <div class="c">${euro(personale.costo)}</div>
+          </div>
+        </div>` : ""}
+
       <div class="pv2-card">
         <h2>Il conto</h2>
         <div class="pv2-conto">
@@ -276,7 +306,10 @@ function disegna(container, supabase, azienda, sede) {
                   <input class="mini" type="number" step="0.01" data-campo="sconto_euro" value="${P.sconto_euro || 0}"> €</span>
           </div>
           <div class="r tot"><span>Totale</span><span>${euro(c.totale)}</span></div>
-          ${vedoICosti ? `<div class="r marg"><span>Margine stimato</span><span>${euro(c.margine)} · ${c.marginePerc.toFixed(1)}%</span></div>` : ""}
+          ${vedoICosti ? `
+            <div class="r costo"><span>Costo cibo</span><b>− ${euro(c.costoMenu)}</b></div>
+            ${c.costoPersonale ? `<div class="r costo"><span>Costo personale</span><b>− ${euro(c.costoPersonale)}</b></div>` : ""}
+            <div class="r marg"><span>Margine stimato</span><span>${euro(c.margine)} · ${c.marginePerc.toFixed(1)}%</span></div>` : ""}
           <div class="r"><span>Acconto</span>
             <span><input class="mini largo" type="number" step="0.01" data-campo="acconto" value="${P.acconto || 0}"> €</span></div>
           <div class="r"><span>Saldo</span><b>${euro(c.totale - c.acconto)}</b></div>
@@ -310,7 +343,30 @@ function rigaPortata(r, i) {
       </div>
       <input class="pz" type="number" step="0.01" value="${prezzo}" data-prezzo="${i}" title="prezzo a persona">
       ${vedoICosti ? `<div class="mg ${marg == null ? "" : marg >= 55 ? "ok" : "ko"}">${marg == null ? "—" : marg.toFixed(0) + "%"}</div>` : ""}
+      ${vedoICosti && c.stimato ? `<button class="lente" data-dettaglio="${i}" title="Come ha fatto il conto">${apertoDettaglio === i ? "▲" : "🔍"}</button>` : ""}
       <button class="x" data-del-portata="${i}">✕</button>
+    </div>
+    ${vedoICosti && apertoDettaglio === i ? dettaglioStima(r) : ""}`;
+}
+
+// Il ragionamento di Tony, in chiaro: ingredienti, quantita' e cosa non sapeva
+function dettaglioStima(r) {
+  const s = stime[norm(r.nome)];
+  if (!s) return "";
+  const ing = s.ingredienti || [];
+  return `
+    <div class="pv2-dett">
+      <div class="tit">Come Tony è arrivato a ${euro(s.food_cost || 0)} a porzione</div>
+      ${ing.length ? `<div class="ing">
+        ${ing.map(x => `
+          <div class="i ${x.sospetto ? "ko" : ""}">
+            <span>${esc(x.nome)} <small>${x.quantita} ${esc(x.unita_misura || "")}${x.certezza === "bassa" ? " · ipotesi" : ""}</small></span>
+            <span>${x.prodotto ? esc(x.prodotto) : "nessun prodotto"}</span>
+            <b>${x.sospetto ? "escluso" : euro(x.costo || 0)}</b>
+          </div>`).join("")}
+      </div>` : `<div class="vuoto">Nessun dettaglio salvato per questa stima.</div>`}
+      ${s.note ? `<div class="note">Da chiarire: ${esc(s.note)}</div>` : ""}
+      <div class="note">È una stima da nome: controlla le quantità prima di firmare l'evento.</div>
     </div>`;
 }
 
@@ -341,12 +397,15 @@ function aggancia(container, supabase, azienda, sede) {
   }
 
   container.querySelectorAll("[data-campo]").forEach(el => {
-    el.addEventListener("change", () => {
+    el.addEventListener("change", async () => {
       const k = el.dataset.campo;
       P[k] = el.type === "number" ? Number(el.value) || 0 : el.value;
       if (k === "location_id") {
         const l = locations.find(x => String(x.id) === String(P.location_id));
         if (l) { P.location = l.nome; P.location_prezzo = Number(l.prezzo_affitto_base) || 0; }
+      }
+      if (k === "titolo_evento" || k === "n_invitati") {
+        await calcolaPersonale(supabase, azienda);
       }
       ri();
     });
@@ -424,7 +483,12 @@ function aggancia(container, supabase, azienda, sede) {
           }),
         });
         const d = await resp.json();
-        if (d.success) stime[norm(daFare[i].nome)] = { food_cost: d.costo?.food_cost || 0, note: d.piatto?.note || "" };
+        if (d.success) stime[norm(daFare[i].nome)] = {
+          food_cost: d.costo?.food_cost || 0,
+          note: d.piatto?.note || "",
+          affidabilita: d.costo?.affidabilita || 0,
+          ingredienti: d.piatto?.ingredienti || [],
+        };
       } catch (e) { console.error(e); }
     }
     ri();
@@ -432,6 +496,14 @@ function aggancia(container, supabase, azienda, sede) {
 
   container.querySelector("#pv2-stima")?.addEventListener("click", (e) => lanciaStima(e.currentTarget));
   container.querySelector("#pv2-stima2")?.addEventListener("click", (e) => lanciaStima(e.currentTarget));
+
+  container.querySelectorAll("[data-dettaglio]").forEach(el => {
+    el.addEventListener("click", () => {
+      const i = Number(el.dataset.dettaglio);
+      apertoDettaglio = apertoDettaglio === i ? null : i;
+      ri();
+    });
+  });
 
   container.querySelectorAll("[data-rich]").forEach(el => {
     el.addEventListener("click", async () => {
@@ -621,6 +693,25 @@ function stile() {
   .pv2-conto .r{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14.5px;}
   .pv2-conto .r.tot{border-top:1px solid var(--riga);margin-top:6px;padding-top:10px;font-size:18px;font-weight:800;color:var(--navy);}
   .pv2-conto .r.marg{color:var(--verde);font-weight:700;}
+  .pv2-conto .r.costo{color:var(--muto);font-size:13.5px;}
+  .pv2-pers{display:flex;align-items:center;gap:14px;background:#F7F9FB;border-radius:12px;padding:14px 16px;flex-wrap:wrap;}
+  .pv2-pers .n{text-align:center;min-width:74px;}
+  .pv2-pers .n b{display:block;font-family:Georgia,serif;font-size:30px;color:var(--navy);line-height:1;}
+  .pv2-pers .n span{font-size:12px;color:var(--muto);}
+  .pv2-pers .d{flex:1;min-width:170px;font-size:13.5px;color:#3D4C55;line-height:1.6;}
+  .pv2-pers .d .min{color:#9A6A00;}
+  .pv2-pers .c{font-family:Georgia,serif;font-size:22px;color:#9A6A00;}
+  .pv2 .riga .lente{background:none;border:none;font-size:14px;cursor:pointer;color:var(--muto);}
+  .pv2-dett{background:#FFFCF3;border-top:1px solid #F5DFA0;padding:12px 14px;font-size:13px;}
+  .pv2-dett .tit{font-weight:700;color:#9A6A00;margin-bottom:7px;}
+  .pv2-dett .i{display:flex;gap:8px;padding:4px 0;border-top:1px solid #F3EBD8;}
+  .pv2-dett .i:first-child{border-top:none;}
+  .pv2-dett .i span:first-child{flex:1;}
+  .pv2-dett .i span:nth-child(2){flex:1;color:var(--muto);}
+  .pv2-dett .i small{color:var(--muto);}
+  .pv2-dett .i.ko{color:var(--rosso);}
+  .pv2-dett .note{margin-top:8px;color:#7C2D12;line-height:1.5;}
+  .pv2-dett .vuoto{color:var(--muto);}
   .pv2 .mini{width:74px;padding:6px;border:1.5px solid var(--riga);border-radius:8px;font-size:14px;text-align:right;font-family:inherit;}
   .pv2 .mini.largo{width:96px;}
 
