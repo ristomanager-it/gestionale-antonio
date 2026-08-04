@@ -17,15 +17,17 @@ export async function render(container) {
   await disegna();
 
   async function disegna() {
-    const [srv, reg, forn, dip] = await Promise.all([
+    const [srv, reg, forn, dip, tem] = await Promise.all([
       supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).order("categoria").order("nome"),
       supabase.from("regole_personale").select("*").eq("azienda_id", azienda.id).order("ospiti_per_addetto"),
       supabase.from("fornitori").select("id, ragione_sociale").eq("azienda_id", azienda.id).order("ragione_sociale").limit(500),
       supabase.from("dipendenti").select("mansione, ruolo, costo_orario").eq("azienda_id", azienda.id).eq("attivo", true),
+      supabase.from("preventivi_temi").select("*").eq("azienda_id", azienda.id).order("tipo_evento"),
     ]);
     const servizi = srv.data || [];
     const regole = reg.data || [];
     const fornitori = forn.data || [];
+    const temi = tem.data || [];
 
     // costo orario medio per mansione: serve per far vedere quanto pesa una regola
     const perMansione = {};
@@ -50,9 +52,40 @@ export async function render(container) {
         <div class="se-tab">
           <button data-vista="servizi" class="${vista === "servizi" ? "on" : ""}">Listino servizi</button>
           <button data-vista="personale" class="${vista === "personale" ? "on" : ""}">Personale per evento</button>
+          <button data-vista="temi" class="${vista === "temi" ? "on" : ""}">Aspetto del documento</button>
         </div>
 
-        ${vista === "servizi" ? `
+        ${vista === "temi" ? `
+          <div class="se-card">
+            <h2>Come si presenta la proposta</h2>
+            <div class="aiuto">La testata del documento che riceve il cliente cambia col tipo di evento:
+              i due colori fanno la sfumatura, la frase è quella che legge per prima.
+              Se metti l'indirizzo di una foto, quella prende il posto dei colori.</div>
+          </div>
+
+          <div class="se-lista">
+            ${temi.map(t => `
+              <div class="se-tema">
+                <div class="anteprima" style="background:${t.immagine_url
+                    ? `linear-gradient(180deg,rgba(0,0,0,.42),rgba(0,0,0,.62)), url('${esc(t.immagine_url)}') center/cover`
+                    : `linear-gradient(160deg, ${esc(t.colore || "#023C59")}, ${esc(t.colore2 || "#7FA3B8")})`};">
+                  <span class="occ">${esc(t.occhiello || "")}</span>
+                  <span class="nomi">Nome &amp; Nome</span>
+                </div>
+                <div class="campi">
+                  <div class="tipo">${esc(t.tipo_evento)}</div>
+                  <label>Frase<input class="in" value="${esc(t.occhiello || "")}" data-tema="${t.id}" data-campo="occhiello"></label>
+                  <div class="colori">
+                    <label>Colore<input type="color" value="${esc(t.colore || "#023C59")}" data-tema="${t.id}" data-campo="colore"></label>
+                    <label>Sfumatura<input type="color" value="${esc(t.colore2 || "#7FA3B8")}" data-tema="${t.id}" data-campo="colore2"></label>
+                  </div>
+                  <label>Foto (indirizzo, facoltativa)
+                    <input class="in" value="${esc(t.immagine_url || "")}" placeholder="https://…"
+                      data-tema="${t.id}" data-campo="immagine_url"></label>
+                </div>
+              </div>`).join("")}
+          </div>
+        ` : vista === "servizi" ? `
           <div class="se-card">
             <h2>Aggiungi un servizio</h2>
             <div class="se-form">
@@ -172,6 +205,15 @@ export async function render(container) {
         disegna();
       }));
 
+    container.querySelectorAll("[data-tema]").forEach(el =>
+      el.addEventListener("change", async () => {
+        const patch = {};
+        patch[el.dataset.campo] = el.value || null;
+        const { error } = await supabase.from("preventivi_temi").update(patch).eq("id", el.dataset.tema);
+        if (error) return msg("Errore: " + error.message, true);
+        disegna();
+      }));
+
     container.querySelectorAll("[data-reg]").forEach(el =>
       el.addEventListener("change", async () => {
         const patch = {};
@@ -256,6 +298,18 @@ function stile() {
   .se-regola .esempio{font-size:12.5px;color:#9A6A00;background:#FFFCF3;border:1px solid #F5DFA0;
     border-radius:8px;padding:7px 10px;display:inline-block;}
   .se-vuoto{background:#fff;border:1px solid var(--riga);border-radius:14px;padding:18px;color:var(--muto);font-size:14px;}
+  .se-tema{display:flex;gap:14px;padding:14px 15px;border-top:1px solid #F1F4F6;flex-wrap:wrap;}
+  .se-tema:first-child{border-top:none;}
+  .se-tema .anteprima{width:190px;min-height:96px;border-radius:12px;color:#fff;padding:14px;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;}
+  .se-tema .anteprima .occ{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.9;}
+  .se-tema .anteprima .nomi{font-family:Georgia,serif;font-size:19px;margin-top:5px;}
+  .se-tema .campi{flex:1;min-width:230px;}
+  .se-tema .tipo{font-weight:700;font-size:15px;margin-bottom:7px;}
+  .se-tema label{display:block;font-size:12px;color:var(--muto);margin-bottom:7px;}
+  .se-tema .colori{display:flex;gap:14px;}
+  .se-tema input[type=color]{width:52px;height:34px;border:1px solid var(--riga);border-radius:8px;
+    background:#fff;padding:2px;cursor:pointer;display:block;margin-top:3px;}
   .se-esito{margin-top:10px;font-size:14px;}
   .se-esito.ok{color:var(--verde);} .se-esito.ko{color:var(--rosso);}
   </style>`;
