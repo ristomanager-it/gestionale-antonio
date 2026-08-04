@@ -14,6 +14,7 @@ let ricette = [];        // catalogo per l'aggancio dei costi
 let stime = {};          // nome normalizzato -> stima di Tony
 let locations = [];
 let listinoServizi = [];
+let sezioniNote = [];    // le sezioni gia' usate: diventano una tendina
 let richieste = [];
 let vedoICosti = true;   // falso per le agenzie
 let personale = null;    // quanti camerieri servono e quanto costano
@@ -43,15 +44,18 @@ export async function render(container, params = {}) {
 
   container.innerHTML = `<div class="pv2"><div class="pv2-caric">Un attimo…</div></div>${stile()}`;
 
-  const [ric, loc, serv] = await Promise.all([
+  const [ric, loc, serv, sez] = await Promise.all([
     supabase.from("ricette").select("id, nome, costo_porzione, costo_materia_prima, porzioni").eq("azienda_id", azienda.id).limit(3000),
     supabase.from("location_ricevimenti").select("id, nome, capienza_min, capienza_max, prezzo_affitto_base")
       .eq("azienda_id", azienda.id).eq("attiva", true).order("nome"),
     supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).eq("attivo", true).order("categoria"),
+    supabase.from("sezioni_menu").select("nome, ordine, usata_volte").eq("azienda_id", azienda.id)
+      .eq("attiva", true).order("ordine").order("usata_volte", { ascending: false }),
   ]);
   ricette = ric.data || [];
   locations = loc.data || [];
   listinoServizi = serv.data || [];
+  sezioniNote = (sez.data || []).map(x => x.nome);
 
   if (id) await caricaPreventivo(supabase, id);
   else nuovo(azienda, sede);
@@ -257,9 +261,15 @@ function disegna(container, supabase, azienda, sede) {
             <div class="add" data-add-portata="${esc(sez)}">+ aggiungi portata</div>
           </div>`).join("") : `<div class="aiuto">Nessuna portata: crea la prima sezione qui sotto.</div>`}
         <div class="pv2-nuovasez">
-          <input id="pv2-sez-nome" class="in" placeholder="Nuova sezione (Antipasti, Primi…)">
-          <button class="pv2-btn" id="pv2-add-sez">Aggiungi sezione</button>
+          <select id="pv2-sez-scelta" class="in">
+            <option value="">— scegli una sezione —</option>
+            ${sezioniNote.filter(n => !sezioni.includes(n)).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}
+            <option value="__nuova__">➕ Nuova sezione…</option>
+          </select>
+          <input id="pv2-sez-nome" class="in" placeholder="Come si chiama" style="display:none;">
+          <button class="pv2-btn" id="pv2-add-sez">Aggiungi</button>
         </div>
+        <div class="aiuto" style="margin-top:6px;">Le sezioni che scrivi restano in elenco per i preventivi successivi.</div>
       </div>
 
       <div class="pv2-card">
@@ -452,10 +462,23 @@ function aggancia(container, supabase, azienda, sede) {
     el.addEventListener("click", () => { righe.push({ nome: "", sezione: el.dataset.addPortata, prezzo: 0, ricetta_id: null }); ri(); });
   });
 
-  container.querySelector("#pv2-add-sez")?.addEventListener("click", () => {
-    const n = (document.getElementById("pv2-sez-nome")?.value || "").trim();
-    if (!n) return;
+  const selSez = container.querySelector("#pv2-sez-scelta");
+  const inpSez = container.querySelector("#pv2-sez-nome");
+  selSez?.addEventListener("change", () => {
+    const nuova = selSez.value === "__nuova__";
+    if (inpSez) { inpSez.style.display = nuova ? "block" : "none"; if (nuova) inpSez.focus(); }
+  });
+
+  container.querySelector("#pv2-add-sez")?.addEventListener("click", async () => {
+    const scelta = selSez?.value || "";
+    const n = scelta === "__nuova__" ? (inpSez?.value || "").trim() : scelta;
+    if (!n) { msg(container, "Scegli o scrivi il nome della sezione.", true); return; }
     righe.push({ nome: "", sezione: n, prezzo: 0, ricetta_id: null });
+    // la sezione nuova entra subito in elenco, anche prima di salvare
+    if (!sezioniNote.some(x => norm(x) === norm(n))) {
+      sezioniNote.push(n);
+      try { await supabase.rpc("sezione_menu_usata", { p_azienda: azienda.id, p_nome: n }); } catch (e) { /* niente */ }
+    }
     ri();
   });
 
@@ -663,6 +686,11 @@ async function salva(container, supabase, azienda, sede) {
         .update({ ricetta_id: nr.ricetta_id })
         .eq("preventivo_id", id).eq("nome_portata", r.nome);
     }
+  }
+
+  // le sezioni usate restano in memoria per la prossima volta
+  for (const sez of [...new Set(daSalvare.map(r => r.sezione).filter(Boolean))]) {
+    try { await supabase.rpc("sezione_menu_usata", { p_azienda: azienda.id, p_nome: sez }); } catch (e) { /* niente */ }
   }
 
   await caricaPreventivo(supabase, id);
