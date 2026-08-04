@@ -15,6 +15,7 @@ let stime = {};          // nome normalizzato -> stima di Tony
 let locations = [];
 let listinoServizi = [];
 let sezioniNote = [];    // le sezioni gia' usate: diventano una tendina
+let sezioniInfo = [];    // nome -> categoria di piatti e se va a parte nel documento
 let richieste = [];
 let vedoICosti = true;   // falso per le agenzie
 let personale = null;    // quanti camerieri servono e quanto costano
@@ -45,17 +46,18 @@ export async function render(container, params = {}) {
   container.innerHTML = `<div class="pv2"><div class="pv2-caric">Un attimo…</div></div>${stile()}`;
 
   const [ric, loc, serv, sez] = await Promise.all([
-    supabase.from("ricette").select("id, nome, costo_porzione, costo_materia_prima, porzioni").eq("azienda_id", azienda.id).limit(3000),
+    supabase.from("ricette").select("id, nome, costo_porzione, costo_materia_prima, porzioni, categoria_portata_id").eq("azienda_id", azienda.id).limit(3000),
     supabase.from("location_ricevimenti").select("id, nome, capienza_min, capienza_max, prezzo_affitto_base")
       .eq("azienda_id", azienda.id).eq("attiva", true).order("nome"),
     supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).eq("attivo", true).order("categoria"),
-    supabase.from("sezioni_menu").select("nome, ordine, usata_volte").eq("azienda_id", azienda.id)
+    supabase.from("sezioni_menu").select("nome, ordine, usata_volte, categoria_portata_id, separata").eq("azienda_id", azienda.id)
       .eq("attiva", true).order("ordine").order("usata_volte", { ascending: false }),
   ]);
   ricette = ric.data || [];
   locations = loc.data || [];
   listinoServizi = serv.data || [];
-  sezioniNote = (sez.data || []).map(x => x.nome);
+  sezioniInfo = sez.data || [];
+  sezioniNote = sezioniInfo.map(x => x.nome);
 
   if (id) await caricaPreventivo(supabase, id);
   else nuovo(azienda, sede);
@@ -254,9 +256,12 @@ function disegna(container, supabase, azienda, sede) {
         <div class="aiuto">Scrivi il piatto: se è in ricettario porta con sé il suo costo.</div>
         ${sezioni.length ? sezioni.map(sez => `
           <div class="pv2-sez">
+            ${datalistSezione(sez)}
             <div class="top"><b>${esc(sez)}</b>
+              ${sezioniInfo.find(x => norm(x.nome) === norm(sez))?.separata ? `<i class="tag">a parte</i>` : ""}
               <span>${righe.filter(r => (r.sezione || "Menu") === sez).length} portate ·
-                ${euro(righe.filter(r => (r.sezione || "Menu") === sez).reduce((s, r) => s + (Number(r.prezzo) || 0), 0))} a persona</span></div>
+                ${euro(righe.filter(r => (r.sezione || "Menu") === sez).reduce((s, r) => s + (Number(r.prezzo) || 0), 0))} a persona
+                ${catDiSezione(sez) ? "· propone solo questa categoria" : "· propone tutto il ricettario"}</span></div>
             ${righe.map((r, i) => (r.sezione || "Menu") !== sez ? "" : rigaPortata(r, i)).join("")}
             <div class="add" data-add-portata="${esc(sez)}">+ aggiungi portata</div>
           </div>`).join("") : `<div class="aiuto">Nessuna portata: crea la prima sezione qui sotto.</div>`}
@@ -345,8 +350,8 @@ function disegna(container, supabase, azienda, sede) {
         ${vedoICosti && righe.some(r => r.nome) ? `<button class="pv2-btn arancio" id="pv2-stima2">🤖 Stima i costi</button>` : ""}
         ${P.id ? `
           <button class="pv2-btn sec" id="pv2-link">🔗 Link per il cliente</button>
-          <button class="pv2-btn wa" id="pv2-wa">💬 WhatsApp</button>
-          <button class="pv2-btn sec" id="pv2-mail">✉️ Email</button>
+          <button class="pv2-btn wa" id="pv2-invia">📤 Manda al cliente</button>
+          <button class="pv2-btn sec" id="pv2-wa">💬 WhatsApp a mano</button>
           <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>` : ""}
       </div>
       <div id="pv2-esito" class="pv2-esito"></div>
@@ -356,6 +361,22 @@ function disegna(container, supabase, azienda, sede) {
   aggancia(container, supabase, azienda, sede);
 }
 
+// I piatti proposti sono solo quelli della categoria di quella sezione:
+// una tendina con 500 voci non si usa.
+function catDiSezione(sez) {
+  const info = sezioniInfo.find(x => norm(x.nome) === norm(sez));
+  return info?.categoria_portata_id || null;
+}
+function idListaSezione(sez) { return "dl-" + norm(sez).replace(/ /g, "-"); }
+
+function datalistSezione(sez) {
+  const cat = catDiSezione(sez);
+  const piatti = cat ? ricette.filter(r => String(r.categoria_portata_id) === String(cat)) : ricette;
+  return `<datalist id="${idListaSezione(sez)}">
+    ${piatti.slice(0, 600).map(r => `<option value="${esc(r.nome)}">`).join("")}
+  </datalist>`;
+}
+
 function rigaPortata(r, i) {
   const c = costoDi(r);
   const prezzo = Number(r.prezzo) || 0;
@@ -363,7 +384,7 @@ function rigaPortata(r, i) {
   return `
     <div class="riga">
       <div class="n">
-        <input class="nome" value="${esc(r.nome)}" data-portata="${i}" placeholder="Scrivi il piatto…" list="pv2-ricette">
+        <input class="nome" value="${esc(r.nome)}" data-portata="${i}" placeholder="Scrivi il piatto…" list="${idListaSezione(r.sezione || "Menu")}">
         ${vedoICosti ? `<small>${!r.nome ? ""
           : c.mancante ? (c.resaSenzaPorzioni ? "la ricetta ha il costo totale ma non le porzioni"
                           : r.ricetta_id ? "ricetta collegata ma senza costo" : "nessuna ricetta collegata")
@@ -417,14 +438,6 @@ function avvisoCapienza(inv) {
 
 function aggancia(container, supabase, azienda, sede) {
   const ri = () => disegna(container, supabase, azienda, sede);
-
-  // elenco ricette per l'autocompletamento del browser
-  if (!document.getElementById("pv2-ricette")) {
-    const dl = document.createElement("datalist");
-    dl.id = "pv2-ricette";
-    dl.innerHTML = ricette.slice(0, 1500).map(r => `<option value="${esc(r.nome)}">`).join("");
-    document.body.appendChild(dl);
-  }
 
   container.querySelectorAll("[data-campo]").forEach(el => {
     el.addEventListener("change", async () => {
@@ -581,12 +594,37 @@ function aggancia(container, supabase, azienda, sede) {
   });
 
   container.querySelector("#pv2-salva")?.addEventListener("click", () => salva(container, supabase, azienda, sede));
-  container.querySelector("#pv2-stampa")?.addEventListener("click", () => window.print());
+  container.querySelector("#pv2-stampa")?.addEventListener("click", () => {
+    // stampare la scheda interna non ha senso: si stampa il documento del cliente
+    if (!P.token_pubblico) { msg(container, "Salva prima il preventivo.", true); return; }
+    const w = window.open(linkCliente(), "_blank");
+    if (!w) { msg(container, "Il browser ha bloccato la finestra: apri il link cliente e stampa da lì.", true); return; }
+    msg(container, "Si apre la pagina del cliente: da lì usa Stampa o salva in PDF.");
+  });
 
   container.querySelector("#pv2-link")?.addEventListener("click", async () => {
     const url = linkCliente();
     try { await navigator.clipboard.writeText(url); msg(container, "Link copiato: " + url); }
     catch { prompt("Link per il cliente:", url); }
+  });
+
+  container.querySelector("#pv2-invia")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true; b.textContent = "Mando…";
+    try {
+      const token = (await supabase.auth.getSession())?.data?.session?.access_token || "";
+      const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/invia-preventivo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, apikey: token },
+        body: JSON.stringify({ preventivo_id: P.id, canali: ["email", "whatsapp"] }),
+      });
+      const d = await resp.json();
+      const righe = Object.entries(d.esiti || {}).map(([k, v]) => k + ": " + v).join(" · ");
+      msg(container, d.success ? righe || "Mandato." : (d.error || "Non è andata."), !d.success);
+    } catch (err) {
+      msg(container, "Non è andata: " + err.message, true);
+    }
+    b.disabled = false; b.textContent = "📤 Manda al cliente";
   });
 
   container.querySelector("#pv2-mail")?.addEventListener("click", () => {
@@ -787,6 +825,8 @@ function stile() {
   .pv2-sez .top{background:#F7F9FB;padding:9px 13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .pv2-sez .top b{flex:1;font-size:14.5px;}
   .pv2-sez .top span{font-size:12px;color:var(--muto);}
+  .pv2-sez .top .tag{font-style:normal;font-size:10.5px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.06em;background:#EEF2F5;color:var(--muto);padding:2px 7px;border-radius:100px;}
   .pv2 .riga{display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid #F1F4F6;}
   .pv2 .riga .n{flex:1;min-width:120px;}
   .pv2 .riga .n .nome{width:100%;border:none;font-size:15px;font-family:inherit;padding:2px 0;background:transparent;}
