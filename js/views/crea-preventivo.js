@@ -114,7 +114,9 @@ function costoDi(r) {
       const mp = Number(ric.costo_materia_prima) || 0;
       const por = Math.max(Number(ric.porzioni) || 0, 0);
       if (mp > 0 && por > 0) return { costo: mp / por, stimato: false, fonte: "ricetta" };
-      if (mp > 0) return { costo: mp, stimato: false, fonte: "ricetta (per l'intera resa)" };
+      // costo della resa senza sapere quante porzioni fa: non e' un costo a
+      // porzione, quindi si lascia stimare a Tony invece di mostrarlo sbagliato
+      if (mp > 0) return { costo: 0, mancante: true, resaSenzaPorzioni: true };
     }
   }
   const s = stime[norm(r.nome)];
@@ -349,7 +351,8 @@ function rigaPortata(r, i) {
       <div class="n">
         <input class="nome" value="${esc(r.nome)}" data-portata="${i}" placeholder="Scrivi il piatto…" list="pv2-ricette">
         ${vedoICosti ? `<small>${!r.nome ? ""
-          : c.mancante ? (r.ricetta_id ? "ricetta collegata ma senza costo" : "nessuna ricetta collegata")
+          : c.mancante ? (c.resaSenzaPorzioni ? "la ricetta ha il costo totale ma non le porzioni"
+                          : r.ricetta_id ? "ricetta collegata ma senza costo" : "nessuna ricetta collegata")
           : "costo " + euro(c.costo) + " · " + (c.stimato ? "stimato da Tony" : esc(c.fonte || "da ricetta"))}</small>` : ""}
       </div>
       <input class="pz" type="number" step="0.01" value="${prezzo}" data-prezzo="${i}" title="prezzo a persona">
