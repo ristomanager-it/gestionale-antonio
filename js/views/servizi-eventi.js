@@ -79,9 +79,16 @@ export async function render(container) {
                     <label>Colore<input type="color" value="${esc(t.colore || "#023C59")}" data-tema="${t.id}" data-campo="colore"></label>
                     <label>Sfumatura<input type="color" value="${esc(t.colore2 || "#7FA3B8")}" data-tema="${t.id}" data-campo="colore2"></label>
                   </div>
-                  <label>Foto (indirizzo, facoltativa)
-                    <input class="in" value="${esc(t.immagine_url || "")}" placeholder="https://…"
-                      data-tema="${t.id}" data-campo="immagine_url"></label>
+                  <div class="foto-riga">
+                    <label class="carica-foto">
+                      <input type="file" accept="image/*" data-foto-tema="${t.id}" style="display:none;">
+                      <span>${t.immagine_url ? "🖼️ Cambia foto" : "🖼️ Carica una foto"}</span>
+                    </label>
+                    ${t.immagine_url ? `<button class="x del" data-togli-foto="${t.id}">Togli</button>` : ""}
+                  </div>
+                  <div class="aiuto" style="margin-top:5px;">${t.immagine_url
+                    ? "La foto copre i colori. Toglila per tornare alla sfumatura."
+                    : "Senza foto vale la sfumatura dei due colori."}</div>
                 </div>
               </div>`).join("")}
           </div>
@@ -224,6 +231,30 @@ export async function render(container) {
         disegna();
       }));
 
+    container.querySelectorAll("[data-foto-tema]").forEach(inp =>
+      inp.addEventListener("change", async (e) => {
+        const f = (e.target.files || [])[0];
+        if (!f) return;
+        msg("Carico la foto…");
+        try {
+          const path = `${azienda.id}/temi-preventivo/${inp.dataset.fotoTema}-${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
+          const up = await supabase.storage.from("media-aziende").upload(path, f, { contentType: f.type, upsert: true });
+          if (up.error) return msg("Non è andata: " + up.error.message, true);
+          const { data: pub } = supabase.storage.from("media-aziende").getPublicUrl(path);
+          const { error } = await supabase.from("preventivi_temi")
+            .update({ immagine_url: pub.publicUrl }).eq("id", inp.dataset.fotoTema);
+          if (error) return msg("Errore: " + error.message, true);
+          msg("Foto messa.");
+          disegna();
+        } catch (err) { msg("Non è andata: " + err.message, true); }
+      }));
+
+    container.querySelectorAll("[data-togli-foto]").forEach(b =>
+      b.addEventListener("click", async () => {
+        await supabase.from("preventivi_temi").update({ immagine_url: null }).eq("id", b.dataset.togliFoto);
+        disegna();
+      }));
+
     container.querySelectorAll("[data-tema]").forEach(el =>
       el.addEventListener("change", async () => {
         const patch = {};
@@ -337,6 +368,11 @@ function stile() {
   .se-tema .tipo{font-weight:700;font-size:15px;margin-bottom:7px;}
   .se-tema label{display:block;font-size:12px;color:var(--muto);margin-bottom:7px;}
   .se-tema .colori{display:flex;gap:14px;}
+  .se-tema .foto-riga{display:flex;gap:8px;align-items:center;margin-top:4px;}
+  .se-tema .carica-foto{margin:0;cursor:pointer;background:#fff;border:1.5px solid var(--riga);
+    border-radius:9px;padding:9px 13px;font-size:13.5px;color:var(--navy);font-weight:700;display:inline-block;}
+  .se-tema .x.del{background:#fff;border:1.5px solid #FECACA;color:var(--rosso);border-radius:9px;
+    padding:9px 12px;font-size:13px;cursor:pointer;font-family:inherit;}
   .se-tema input[type=color]{width:52px;height:34px;border:1px solid var(--riga);border-radius:8px;
     background:#fff;padding:2px;cursor:pointer;display:block;margin-top:3px;}
   .se-esito{margin-top:10px;font-size:14px;}
