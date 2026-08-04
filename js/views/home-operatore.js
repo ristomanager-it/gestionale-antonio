@@ -32,8 +32,9 @@ export async function render(container) {
   container.innerHTML = `<div class="op-home"><div class="op-caric">Un attimo…</div></div>${stile()}`;
 
   // ── dati, tutti in parallelo e tutti tolleranti agli errori ─────────────
-  const [timbr, oreSett, turni, lavorazioni, comandamenti] = await Promise.all([
+  const [timbr, pausa, oreSett, turni, lavorazioni, comandamenti] = await Promise.all([
     ultimeTimbrature(supabase, azienda?.id, dip?.id),
+    pausaAperta(supabase, azienda?.id, dip?.id),
     oreSettimana(supabase, azienda?.id, dip?.id, oggi),
     turniVicini(supabase, azienda?.id, dip?.id, oggiISO),
     lavorazioniOggi(supabase, azienda?.id, dip?.id, oggiISO),
@@ -41,6 +42,7 @@ export async function render(container) {
   ]);
 
   const stato = statoDaTimbrature(timbr);
+  stato.pausa = pausa;   // pausa aperta: cambia il blocco in cima
   const turnoOggi = turni.find(t => t.data === oggiISO) || null;
   const prossimo = turni.find(t => t.data > oggiISO) || null;
 
@@ -106,6 +108,28 @@ export async function render(container) {
     ${stile()}`;
 
   // ── timbratura: un tap, niente conferme ────────────────────────────────
+  container.querySelectorAll("[data-pausa]").forEach(b => {
+    b.addEventListener("click", async () => {
+      const azione = b.getAttribute("data-pausa");
+      b.disabled = true; b.textContent = "…";
+      if (azione === "inizio") {
+        const { error } = await supabase.from("timbrature_pause").insert({
+          azienda_id: azienda.id, dipendente_id: dip?.id, inizio_pausa: new Date().toISOString(),
+        });
+        if (error) { alert("Non è andata: " + error.message); b.disabled = false; return; }
+      } else {
+        const p = await pausaAperta(supabase, azienda.id, dip?.id);
+        if (p) {
+          const minuti = Math.max(Math.round((Date.now() - new Date(p.inizio_pausa).getTime()) / 60000), 0);
+          const { error } = await supabase.from("timbrature_pause")
+            .update({ fine_pausa: new Date().toISOString(), minuti_pausa: minuti }).eq("id", p.id);
+          if (error) { alert("Non è andata: " + error.message); b.disabled = false; return; }
+        }
+      }
+      render(container);
+    });
+  });
+
   container.querySelectorAll("[data-timbra]").forEach(b => {
     b.addEventListener("click", async () => {
       const tipo = b.getAttribute("data-timbra");
@@ -124,13 +148,26 @@ export async function render(container) {
 /* ── blocchi ───────────────────────────────────────────────────────────── */
 
 function boxTimbratura(stato) {
+  // in pausa: l'unica cosa che deve poter fare e' rientrare
+  if (stato.dentro && stato.pausa) {
+    const min = Math.max(Math.floor((Date.now() - new Date(stato.pausa.inizio_pausa).getTime()) / 60000), 0);
+    return `
+      <div class="op-timb">
+        <div class="stato pausa"><i class="dot"></i> In pausa da ${min} min</div>
+        <div class="dalle">Entrato alle ${esc(stato.entrata)}</div>
+        <div class="bottoni">
+          <button class="b rientra" data-pausa="fine">Rientro dalla pausa</button>
+        </div>
+      </div>`;
+  }
   if (stato.dentro) {
     return `
       <div class="op-timb">
         <div class="stato"><i class="dot"></i> In servizio</div>
         <div class="conta">${stato.ore}<small>h</small> ${stato.minuti}<small>m</small></div>
         <div class="dalle">Entrato alle ${esc(stato.entrata)}</div>
-        <div class="bottoni">
+        <div class="bottoni due">
+          <button class="b pausa" data-pausa="inizio">Pausa</button>
           <button class="b esci" data-timbra="fine_turno">Esci</button>
         </div>
       </div>`;
@@ -154,6 +191,14 @@ async function ultimeTimbrature(supabase, aziendaId, dipId) {
     .select("tipo, timestamp").eq("azienda_id", aziendaId).eq("dipendente_id", dipId)
     .gte("timestamp", da).order("timestamp", { ascending: false }).limit(10);
   return data || [];
+}
+
+async function pausaAperta(supabase, aziendaId, dipId) {
+  if (!aziendaId || !dipId) return null;
+  const { data } = await supabase.from("timbrature_pause")
+    .select("id, inizio_pausa").eq("azienda_id", aziendaId).eq("dipendente_id", dipId)
+    .is("fine_pausa", null).order("inizio_pausa", { ascending: false }).limit(1).maybeSingle();
+  return data || null;
 }
 
 function statoDaTimbrature(righe) {
@@ -248,6 +293,10 @@ function stile() {
   .op-timb .conta small{font-size:15px;color:var(--muto);}
   .op-timb .dalle{font-size:13px;color:var(--muto);margin-bottom:16px;}
   .op-timb .bottoni{display:grid;gap:10px;}
+  .op-timb .bottoni.due{grid-template-columns:1fr 1fr;}
+  .op-timb .stato.pausa{color:var(--arancio);}
+  .op-timb .b.pausa{background:#fff;border:1.5px solid var(--riga);color:var(--navy);}
+  .op-timb .b.rientra{background:var(--arancio);color:#fff;padding:20px;font-size:18px;}
   .op-timb .b{border:none;border-radius:14px;padding:17px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;}
   .op-timb .b.esci{background:var(--navy);color:#fff;}
   .op-timb .b.entra{background:var(--verde);color:#fff;padding:20px;font-size:18px;}
