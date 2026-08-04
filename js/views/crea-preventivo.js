@@ -11,6 +11,7 @@ let extraRows = [];
 let serviziRows = []; // [{ descrizione, prezzo_totale }]
 
 let ricetteCache = [];
+let _stimeTony = {};   // nome normalizzato -> stima di costo fatta da Tony
 let prezziByRicettaId = new Map();
 
 let lastDiscountEdited = "perc";
@@ -156,6 +157,8 @@ export async function render(container) {
             <!-- Sezioni dinamiche -->
             <div id="sezioni-menu-container" style="margin-bottom:16px;"></div>
 
+            <div id="stima-tony-box" style="margin-bottom:14px;"></div>
+
             <!-- Azioni sezioni -->
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
               <input id="nuova-sezione-nome" class="input" placeholder="Nome sezione (es. Antipasti, Primi...)" style="flex:1;min-width:180px;padding:8px 12px;font-size:14px;">
@@ -253,6 +256,90 @@ export async function render(container) {
   renderTutteSezioni();
   renderExtraRows();
   recalcPreventivoTotali();
+
+// I piatti scritti a mano che non esistono in ricettario non hanno food cost:
+// invece di crearli vuoti, si fa stimare il costo a Tony dal nome dettagliato.
+async function stimaPiattiSenzaRicetta() {
+  const box = document.getElementById("stima-tony-box");
+  if (!box) return;
+
+  const senza = [];
+  document.querySelectorAll("#sezioni-menu-container input.portata-input").forEach((inp) => {
+    const nome = String(inp.value || "").trim();
+    if (!nome) return;
+    if (findRicettaByNome(nome)) return;
+    if (_stimeTony[normalizeNome(nome)]) return;
+    senza.push(nome);
+  });
+
+  if (!senza.length) { box.innerHTML = ""; return; }
+
+  box.innerHTML = `
+    <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:14px 16px;">
+      <div style="font-size:14px;font-weight:700;color:#9A3412;">
+        ${senza.length === 1 ? "Un piatto non è in ricettario" : senza.length + " piatti non sono in ricettario"}
+      </div>
+      <div style="font-size:13px;color:#7C2D12;margin:5px 0 10px;">
+        ${senza.map(esc2).join(" · ")}<br>
+        Senza ricetta il loro costo è zero e il margine risulta più alto del vero.
+      </div>
+      <button type="button" id="btn-stima-tony"
+        style="background:#c2410c;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">
+        🤖 Fatti stimare il costo da Tony
+      </button>
+      <div id="stima-tony-esito" style="font-size:13px;color:#7C2D12;margin-top:8px;"></div>
+    </div>`;
+
+  document.getElementById("btn-stima-tony").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-stima-tony");
+    const esito = document.getElementById("stima-tony-esito");
+    btn.disabled = true;
+
+    const supa = window.supabaseClient;
+    const token = (await supa.auth.getSession())?.data?.session?.access_token || "";
+    const evento = document.getElementById("preventivo-titolo")?.value || "";
+    let fatti = 0;
+
+    for (let i = 0; i < senza.length; i++) {
+      const nome = senza[i];
+      btn.textContent = `Stimo ${i + 1} di ${senza.length}…`;
+      try {
+        const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stima-piatto", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, apikey: token },
+          body: JSON.stringify({
+            azienda_id: window.state?.azienda?.id, nome,
+            contesto: evento ? evento + ", servizio per banchetto" : "servizio per banchetto",
+          }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          _stimeTony[normalizeNome(nome)] = {
+            food_cost: Number(data.costo?.food_cost) || 0,
+            affidabilita: Number(data.costo?.affidabilita) || 0,
+            note: data.piatto?.note || "",
+            descrizione: data.piatto?.descrizione || "",
+            ingredienti: data.piatto?.ingredienti || [],
+          };
+          fatti++;
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    btn.disabled = false;
+    btn.textContent = "🤖 Fatti stimare il costo da Tony";
+    esito.textContent = fatti
+      ? `Stimati ${fatti} piatti. I costi sono ipotesi: nel margine sono segnati come "da confermare".`
+      : "Non sono riuscito a stimarli. Prova a scrivere il nome più dettagliato (taglio, peso, condimento).";
+    recalcPreventivoTotali();
+    stimaPiattiSenzaRicetta();
+  });
+}
+
+function esc2(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
 function aggiornaDatalist() {
   // Datalist non usata — autocomplete custom gestisce tutto
@@ -755,6 +842,10 @@ function selezionaRicetta(ricettaId, ricettaNome, ricettaPrezzo) {
 }
 
 function onSezioniInput(e) {
+  // ogni modifica ai nomi delle portate rimette in gioco l'avviso delle stime
+  clearTimeout(window.__stimaTimer);
+  window.__stimaTimer = setTimeout(() => { try { stimaPiattiSenzaRicetta(); } catch (_) {} }, 700);
+
   const target = e.target;
   if (!(target instanceof HTMLElement)) return;
   const field = target.getAttribute("data-field");
