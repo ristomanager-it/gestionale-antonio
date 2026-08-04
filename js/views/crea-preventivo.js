@@ -201,6 +201,7 @@ function disegna(container, supabase, azienda, sede) {
           <h1>${esc(nomeCliente() || "Senza nome")}</h1>
           <div class="sub">${esc(dataLunga(P.data_evento))}${c.inv ? " · " + c.inv + " invitati" : ""}${P.location ? " · " + esc(P.location) : ""}</div>
         </div>
+        ${P.id ? `<div class="pv2-scad ${scaduto() ? "ko" : ""}">${esc(testoScadenza())}</div>` : ""}
         <select id="pv2-stato" class="pv2-stato">
           ${["trattativa", "confermato", "perso"].map(s =>
             `<option value="${s}"${P.stato === s ? " selected" : ""}>${s === "trattativa" ? "In trattativa" : s === "confermato" ? "Confermato" : "Perso"}</option>`).join("")}
@@ -268,6 +269,13 @@ function disegna(container, supabase, azienda, sede) {
           ${P.location_id ? "" : campo("Nome location", "location")}
           ${campo("Prezzo location", "location_prezzo", "number")}
           ${campo("Intolleranze", "intolleranze")}
+          <div>
+            <label>Valida per</label>
+            <select class="in" data-campo="giorni_validita">
+              ${[7, 10, 15, 20, 30, 45, 60, 90].map(g =>
+                `<option value="${g}"${Number(P.giorni_validita || 15) === g ? " selected" : ""}>${g} giorni</option>`).join("")}
+            </select>
+          </div>
         </div>
         ${avvisoCapienza(c.inv)}
       </div>
@@ -410,7 +418,8 @@ function disegna(container, supabase, azienda, sede) {
           <button class="pv2-btn sec" id="pv2-link">🔗 Link per il cliente</button>
           <button class="pv2-btn wa" id="pv2-invia">📤 Manda al cliente</button>
           <button class="pv2-btn sec" id="pv2-wa">💬 WhatsApp a mano</button>
-          <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>` : ""}
+          <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>
+          <button class="pv2-btn sec" id="pv2-proroga">📅 ${scaduto() ? "Riapri" : "Proroga"}</button>` : ""}
       </div>
       <div id="pv2-esito" class="pv2-esito"></div>
     </div>
@@ -690,6 +699,18 @@ function aggancia(container, supabase, azienda, sede) {
     }));
 
   container.querySelector("#pv2-salva")?.addEventListener("click", () => salva(container, supabase, azienda, sede));
+  container.querySelector("#pv2-proroga")?.addEventListener("click", async () => {
+    const g = Number(prompt("Per quanti giorni la riapro, da oggi?", String(P.giorni_validita || 15)));
+    if (!g || g <= 0) return;
+    const nuova = new Date(Date.now() + g * 86400000).toISOString();
+    const { error } = await supabase.from("preventivi")
+      .update({ scadenza_il: nuova, giorni_validita: g }).eq("id", P.id);
+    if (error) return msg(container, "Errore: " + error.message, true);
+    P.scadenza_il = nuova; P.giorni_validita = g;
+    msg(container, "Valida ancora " + g + (g === 1 ? " giorno." : " giorni."));
+    ri();
+  });
+
   container.querySelector("#pv2-stampa")?.addEventListener("click", () => {
     // stampare la scheda interna non ha senso: si stampa il documento del cliente
     if (!P.token_pubblico) { msg(container, "Salva prima il preventivo.", true); return; }
@@ -764,6 +785,10 @@ async function salva(container, supabase, azienda, sede) {
     subtotale_menu: c.menu, subtotale_extra: c.serviziTot,
     costo_stimato: c.costoMenu, totale: c.totale, acconto: c.acconto,
     giorni_validita: Number(P.giorni_validita) || 15,
+    // la scadenza si ricalcola dalla creazione: cambiando i giorni si sposta
+    scadenza_il: new Date(
+      (P.created_at ? new Date(P.created_at).getTime() : Date.now())
+      + (Number(P.giorni_validita) || 15) * 86400000).toISOString(),
   };
 
   let id = P.id;
@@ -847,6 +872,19 @@ function campo(label, key, tipo = "text") {
   return `<div><label>${label}</label>
     <input class="in" type="${tipo}" data-campo="${key}" value="${esc(P[key] ?? "")}"></div>`;
 }
+function scaduto() {
+  return P.scadenza_il && new Date(P.scadenza_il) < new Date() && !P.confermato_il;
+}
+function testoScadenza() {
+  if (P.confermato_il) return "Confermato";
+  if (!P.scadenza_il) return "";
+  const giorni = Math.ceil((new Date(P.scadenza_il) - Date.now()) / 86400000);
+  const quando = new Date(P.scadenza_il).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+  if (giorni < 0) return "Scaduta il " + quando;
+  if (giorni === 0) return "Scade oggi";
+  return "Valida fino al " + quando + " · " + giorni + (giorni === 1 ? " giorno" : " giorni");
+}
+
 function nomeCliente() { return [P.cliente_nome, P.cliente_cognome].filter(Boolean).join(" "); }
 function linkCliente() {
   const base = (location.origin + location.pathname).replace(/index\.html$/, "");
@@ -889,6 +927,9 @@ function stile() {
   .pv2-testata .et{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#9FC0D2;}
   .pv2-testata h1{font-family:Georgia,serif;font-size:24px;margin:3px 0 4px;font-weight:normal;}
   .pv2-testata .sub{font-size:13.5px;color:#CFE0E8;}
+  .pv2-scad{background:rgba(255,255,255,.16);color:#fff;border-radius:100px;padding:7px 13px;
+    font-size:12.5px;font-weight:700;white-space:nowrap;}
+  .pv2-scad.ko{background:#7F1D1D;}
   .pv2-stato{background:var(--ambra);border:none;border-radius:100px;padding:8px 14px;font-size:12.5px;
     font-weight:800;font-family:inherit;color:#3A2B00;cursor:pointer;}
 
