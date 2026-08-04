@@ -1,0 +1,262 @@
+// js/views/servizi-eventi.js
+// Le due cose che rendono i preventivi veloci: il listino dei servizi che
+// vendi (col fornitore dietro e i due prezzi) e quante persone servono in sala
+// per ogni tipo di festa. Si compilano una volta, poi il preventivo pesca da qui.
+
+let vista = "servizi";
+
+export async function render(container) {
+  const supabase = window.supabaseClient || window.supabase;
+  const azienda = window.state?.azienda;
+  if (!azienda?.id) {
+    container.innerHTML = `<section class="view"><h3>Nessuna azienda attiva</h3></section>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="se"><div class="se-caric">Un attimo…</div></div>${stile()}`;
+  await disegna();
+
+  async function disegna() {
+    const [srv, reg, forn, dip] = await Promise.all([
+      supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).order("categoria").order("nome"),
+      supabase.from("regole_personale").select("*").eq("azienda_id", azienda.id).order("ospiti_per_addetto"),
+      supabase.from("fornitori").select("id, ragione_sociale").eq("azienda_id", azienda.id).order("ragione_sociale").limit(500),
+      supabase.from("dipendenti").select("mansione, ruolo, costo_orario").eq("azienda_id", azienda.id).eq("attivo", true),
+    ]);
+    const servizi = srv.data || [];
+    const regole = reg.data || [];
+    const fornitori = forn.data || [];
+
+    // costo orario medio per mansione: serve per far vedere quanto pesa una regola
+    const perMansione = {};
+    (dip.data || []).forEach(d => {
+      const c = Number(d.costo_orario) || 0;
+      if (c <= 0) return;
+      const k = norm(d.mansione || d.ruolo || "");
+      if (!k) return;
+      (perMansione[k] = perMansione[k] || []).push(c);
+    });
+    const mediaDi = (m) => {
+      const k = norm(m);
+      const v = perMansione[k] || Object.entries(perMansione).find(([kk]) => kk.includes(k) || k.includes(kk))?.[1];
+      return v && v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+    };
+
+    container.innerHTML = `
+      <div class="se">
+        <h1>🎪 Servizi e personale eventi</h1>
+        <p class="se-sub">Da qui il preventivo pesca i servizi da vendere e calcola quante persone servono in sala.</p>
+
+        <div class="se-tab">
+          <button data-vista="servizi" class="${vista === "servizi" ? "on" : ""}">Listino servizi</button>
+          <button data-vista="personale" class="${vista === "personale" ? "on" : ""}">Personale per evento</button>
+        </div>
+
+        ${vista === "servizi" ? `
+          <div class="se-card">
+            <h2>Aggiungi un servizio</h2>
+            <div class="se-form">
+              <select id="s-cat" class="in">
+                ${CATEGORIE.map(c => `<option value="${c}">${c}</option>`).join("")}
+              </select>
+              <input id="s-nome" class="in" placeholder="Nome (es. Servizio fotografico)">
+              <select id="s-forn" class="in">
+                <option value="">— fornitore, se c'è —</option>
+                ${fornitori.map(f => `<option value="${f.id}">${esc(f.ragione_sociale)}</option>`).join("")}
+              </select>
+              <input id="s-costo" class="in" type="number" step="0.01" placeholder="Quanto lo paghi">
+              <input id="s-prezzo" class="in" type="number" step="0.01" placeholder="Quanto lo vendi">
+              <select id="s-unita" class="in">
+                <option value="forfait">a forfait</option>
+                <option value="a persona">a persona</option>
+                <option value="a ora">a ora</option>
+              </select>
+              <button class="se-btn" id="s-add">Aggiungi</button>
+            </div>
+            <div class="aiuto">Quanto lo paghi non esce mai dal locale: nella pagina del cliente compare solo il prezzo di vendita.</div>
+          </div>
+
+          ${servizi.length ? `
+            <div class="se-lista">
+              ${servizi.map(s => {
+                const c = Number(s.costo_fornitore) || 0, p = Number(s.prezzo_cliente) || 0;
+                const marg = p > 0 && c > 0 ? ((p - c) / p) * 100 : null;
+                return `
+                <div class="se-riga ${s.attivo ? "" : "spento"}">
+                  <div class="t">
+                    <b>${esc(s.nome)}</b>
+                    <span>${esc(s.categoria)}${s.fornitore_nome ? " · " + esc(s.fornitore_nome) : ""} · ${esc(s.unita)}</span>
+                  </div>
+                  <div class="pz">
+                    <div class="v">${euro(p)}</div>
+                    ${c ? `<small>costo ${euro(c)}${marg != null ? " · " + marg.toFixed(0) + "%" : ""}</small>` : `<small>costo non indicato</small>`}
+                  </div>
+                  <button class="x" data-toggle="${s.id}" data-attivo="${s.attivo}">${s.attivo ? "Disattiva" : "Riattiva"}</button>
+                  <button class="x del" data-del="${s.id}">✕</button>
+                </div>`;
+              }).join("")}
+            </div>` : `<div class="se-vuoto">Il listino è vuoto: aggiungi il primo servizio qui sopra.</div>`}
+        ` : `
+          <div class="se-card">
+            <h2>Quante persone servono in sala</h2>
+            <div class="aiuto">Un addetto ogni tot ospiti, con una base minima sotto cui non si scende.
+              Il preventivo usa la riga del tipo evento scelto, altrimenti quella chiamata "Altro".</div>
+          </div>
+
+          <div class="se-lista">
+            ${regole.map(r => {
+              const oraria = mediaDi(r.mansione) || 15;
+              return `
+              <div class="se-regola">
+                <div class="t"><b>${esc(r.tipo_evento)}</b><span>${esc(r.mansione)} · ${euro(oraria)} l'ora</span></div>
+                <div class="campi">
+                  <label>1 ogni<input class="mini" type="number" min="1" value="${r.ospiti_per_addetto}" data-reg="${r.id}" data-campo="ospiti_per_addetto"></label>
+                  <label>minimo<input class="mini" type="number" min="0" value="${r.minimo_addetti}" data-reg="${r.id}" data-campo="minimo_addetti"></label>
+                  <label>ore<input class="mini" type="number" step="0.5" min="0" value="${r.ore_servizio}" data-reg="${r.id}" data-campo="ore_servizio"></label>
+                </div>
+                <div class="esempio">
+                  100 ospiti → <b>${Math.max(Math.ceil(100 / (r.ospiti_per_addetto || 1)), r.minimo_addetti)}</b> in sala ·
+                  ${euro(Math.max(Math.ceil(100 / (r.ospiti_per_addetto || 1)), r.minimo_addetti) * (Number(r.ore_servizio) || 0) * oraria)}
+                </div>
+              </div>`;
+            }).join("")}
+          </div>
+
+          <div class="se-card">
+            <h2>Aggiungi un tipo di evento</h2>
+            <div class="se-form">
+              <input id="r-tipo" class="in" placeholder="Tipo evento (deve combaciare col preventivo)">
+              <input id="r-mansione" class="in" placeholder="Mansione (cameriere, sommelier…)" value="cameriere">
+              <input id="r-ogni" class="in" type="number" min="1" placeholder="1 ogni quanti ospiti">
+              <input id="r-min" class="in" type="number" min="0" placeholder="Minimo">
+              <input id="r-ore" class="in" type="number" step="0.5" placeholder="Ore">
+              <button class="se-btn" id="r-add">Aggiungi</button>
+            </div>
+          </div>
+        `}
+        <div id="se-esito" class="se-esito"></div>
+      </div>
+      ${stile()}`;
+
+    container.querySelectorAll("[data-vista]").forEach(b =>
+      b.addEventListener("click", () => { vista = b.dataset.vista; disegna(); }));
+
+    container.querySelector("#s-add")?.addEventListener("click", async () => {
+      const nome = (document.getElementById("s-nome")?.value || "").trim();
+      if (!nome) return msg("Scrivi il nome del servizio.", true);
+      const fid = document.getElementById("s-forn")?.value || null;
+      const { error } = await supabase.from("servizi_evento").insert({
+        azienda_id: azienda.id,
+        categoria: document.getElementById("s-cat")?.value || "altro",
+        nome,
+        fornitore_id: fid ? Number(fid) : null,
+        fornitore_nome: fid ? (fornitori.find(f => String(f.id) === String(fid))?.ragione_sociale || null) : null,
+        costo_fornitore: Number(document.getElementById("s-costo")?.value) || null,
+        prezzo_cliente: Number(document.getElementById("s-prezzo")?.value) || null,
+        unita: document.getElementById("s-unita")?.value || "forfait",
+      });
+      if (error) return msg("Errore: " + error.message, true);
+      disegna();
+    });
+
+    container.querySelectorAll("[data-toggle]").forEach(b =>
+      b.addEventListener("click", async () => {
+        await supabase.from("servizi_evento").update({ attivo: b.dataset.attivo !== "true" }).eq("id", b.dataset.toggle);
+        disegna();
+      }));
+
+    container.querySelectorAll("[data-del]").forEach(b =>
+      b.addEventListener("click", async () => {
+        if (!confirm("Tolgo questo servizio dal listino?")) return;
+        await supabase.from("servizi_evento").delete().eq("id", b.dataset.del);
+        disegna();
+      }));
+
+    container.querySelectorAll("[data-reg]").forEach(el =>
+      el.addEventListener("change", async () => {
+        const patch = {};
+        patch[el.dataset.campo] = Number(el.value) || 0;
+        const { error } = await supabase.from("regole_personale").update(patch).eq("id", el.dataset.reg);
+        if (error) return msg("Errore: " + error.message, true);
+        disegna();
+      }));
+
+    container.querySelector("#r-add")?.addEventListener("click", async () => {
+      const tipo = (document.getElementById("r-tipo")?.value || "").trim();
+      if (!tipo) return msg("Scrivi il tipo di evento.", true);
+      const { error } = await supabase.from("regole_personale").insert({
+        azienda_id: azienda.id, tipo_evento: tipo,
+        mansione: (document.getElementById("r-mansione")?.value || "cameriere").trim(),
+        ospiti_per_addetto: Number(document.getElementById("r-ogni")?.value) || 25,
+        minimo_addetti: Number(document.getElementById("r-min")?.value) || 0,
+        ore_servizio: Number(document.getElementById("r-ore")?.value) || 6,
+      });
+      if (error) return msg("Errore: " + error.message, true);
+      disegna();
+    });
+
+    function msg(t, ko) {
+      const e = container.querySelector("#se-esito");
+      if (e) { e.textContent = t; e.className = "se-esito " + (ko ? "ko" : "ok"); }
+    }
+  }
+}
+
+const CATEGORIE = ["fotografia", "video", "auto", "allestimenti", "fiori", "musica",
+  "animazione", "noleggi", "sala", "trasporti", "altro"];
+
+function euro(n) { return (Number(n) || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €"; }
+function norm(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+}
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function stile() {
+  return `<style>
+  .se{--navy:#023C59;--arancio:#E66101;--verde:#348127;--rosso:#B91C1C;--riga:#E2E6EA;--muto:#6B7A83;
+      max-width:820px;margin:0 auto;padding:16px 14px 70px;color:#12232E;}
+  .se-caric{padding:40px;text-align:center;color:#94a3b8;}
+  .se h1{font-size:22px;margin:0 0 4px;}
+  .se-sub{font-size:13.5px;color:var(--muto);margin-bottom:16px;}
+  .se-tab{display:flex;gap:7px;margin-bottom:14px;}
+  .se-tab button{flex:1;border:1px solid var(--riga);background:#fff;border-radius:10px;padding:10px;
+    font-size:14px;font-family:inherit;color:var(--muto);cursor:pointer;}
+  .se-tab button.on{background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700;}
+  .se-card{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:16px;margin-bottom:14px;}
+  .se-card h2{font-size:16px;margin-bottom:10px;}
+  .se .aiuto{font-size:12.5px;color:var(--muto);line-height:1.5;margin-top:9px;}
+  .se-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;}
+  .se .in{width:100%;padding:10px;border:1.5px solid var(--riga);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;}
+  .se-btn{background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:15px;
+    font-weight:700;cursor:pointer;font-family:inherit;}
+  .se-lista{background:#fff;border:1px solid var(--riga);border-radius:16px;overflow:hidden;margin-bottom:14px;}
+  .se-riga{display:flex;align-items:center;gap:11px;padding:12px 15px;border-top:1px solid #F1F4F6;flex-wrap:wrap;}
+  .se-riga:first-child{border-top:none;}
+  .se-riga.spento{opacity:.5;}
+  .se-riga .t{flex:1;min-width:150px;}
+  .se-riga .t b{font-size:15px;}
+  .se-riga .t span{display:block;font-size:12.5px;color:var(--muto);}
+  .se-riga .pz{text-align:right;}
+  .se-riga .pz .v{font-weight:700;color:var(--navy);font-size:15.5px;}
+  .se-riga .pz small{font-size:11.5px;color:var(--muto);}
+  .se-riga .x{background:#fff;border:1.5px solid var(--riga);border-radius:9px;padding:7px 11px;
+    font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--muto);}
+  .se-riga .x.del{color:var(--rosso);border-color:#FECACA;}
+  .se-regola{padding:13px 15px;border-top:1px solid #F1F4F6;}
+  .se-regola:first-child{border-top:none;}
+  .se-regola .t b{font-size:15px;}
+  .se-regola .t span{display:block;font-size:12.5px;color:var(--muto);}
+  .se-regola .campi{display:flex;gap:12px;margin:9px 0 7px;flex-wrap:wrap;}
+  .se-regola label{font-size:12.5px;color:var(--muto);display:flex;align-items:center;gap:6px;}
+  .se .mini{width:72px;padding:7px;border:1.5px solid var(--riga);border-radius:8px;font-size:14px;text-align:right;font-family:inherit;}
+  .se-regola .esempio{font-size:12.5px;color:#9A6A00;background:#FFFCF3;border:1px solid #F5DFA0;
+    border-radius:8px;padding:7px 10px;display:inline-block;}
+  .se-vuoto{background:#fff;border:1px solid var(--riga);border-radius:14px;padding:18px;color:var(--muto);font-size:14px;}
+  .se-esito{margin-top:10px;font-size:14px;}
+  .se-esito.ok{color:var(--verde);} .se-esito.ko{color:var(--rosso);}
+  </style>`;
+}

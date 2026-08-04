@@ -362,6 +362,7 @@ export function initMenu() {
         { label: "🗓️ Tavoli",           route: "prenotazioni-tavoli"},
         { label: "🏛️ Location Ricevimenti", route: "bo-location-ricevimenti" },
         { label: "📑 Preventivi",        route: "preventivi"         },
+        { label: "🎪 Servizi e personale eventi", route: "servizi-eventi" },
         { label: "📋 Mansionario Sala",  route: "mansionario-sala"   },
         { label: "🗺️ Mappa Sala",       route: "sala"               },
       ]
