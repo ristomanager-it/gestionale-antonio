@@ -20,6 +20,7 @@ let richieste = [];
 let vedoICosti = true;   // falso per le agenzie
 let personale = null;    // quanti camerieri servono e quanto costano
 let apertoDettaglio = null;  // riga di cui si stanno guardando i conti di Tony
+let foto = [];           // immagini del preventivo: le nostre e quelle degli sposi
 
 const TIPI_EVENTO = ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Battesimo", "Comunione",
   "Cresima", "Compleanno", "Laurea", "Anniversario", "Cena aziendale", "Buffet", "Altro"];
@@ -50,7 +51,7 @@ export async function render(container, params = {}) {
     supabase.from("location_ricevimenti").select("id, nome, capienza_min, capienza_max, prezzo_affitto_base")
       .eq("azienda_id", azienda.id).eq("attiva", true).order("nome"),
     supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).eq("attivo", true).order("categoria"),
-    supabase.from("sezioni_menu").select("nome, ordine, usata_volte, categoria_portata_id, separata").eq("azienda_id", azienda.id)
+    supabase.from("sezioni_menu").select("nome, ordine, usata_volte, categoria_portata_id, separata, per_bambini").eq("azienda_id", azienda.id)
       .eq("attiva", true).order("ordine").order("usata_volte", { ascending: false }),
   ]);
   ricette = ric.data || [];
@@ -74,19 +75,20 @@ function nuovo(azienda, sede) {
     stato: "trattativa", titolo_evento: "", tipo_servizio: "",
     cliente_nome: "", cliente_cognome: "", cliente_email: "", cliente_telefono: "",
     nome_festeggiato: "", intolleranze: "", note: "",
-    data_evento: "", ora_evento: "", n_invitati: 50,
+    data_evento: "", ora_evento: "", n_invitati: 50, n_bambini: 0,
     location: "", location_id: null, location_prezzo: 0,
     sconto_perc: 0, sconto_euro: 0, acconto: 0, giorni_validita: 15,
   };
-  righe = []; extra = []; richieste = []; stime = {};
+  righe = []; extra = []; richieste = []; stime = {}; foto = [];
 }
 
 async function caricaPreventivo(supabase, id) {
-  const [p, r, e, q] = await Promise.all([
+  const [p, r, e, q, f] = await Promise.all([
     supabase.from("preventivi").select("*").eq("id", id).maybeSingle(),
     supabase.from("preventivi_righe").select("*").eq("preventivo_id", id).order("id"),
     supabase.from("preventivi_extra").select("*").eq("preventivo_id", id).order("id"),
     supabase.from("preventivi_richieste").select("*").eq("preventivo_id", id).order("creata_il", { ascending: false }),
+    supabase.from("preventivi_allegati").select("*").eq("preventivo_id", id).order("ordine"),
   ]);
   P = p.data || null;
   righe = (r.data || []).map(x => ({
@@ -99,6 +101,7 @@ async function caricaPreventivo(supabase, id) {
   });
   extra = (e.data || []).map(x => ({ descrizione: x.descrizione, prezzo: Number(x.prezzo_totale) || 0 }));
   richieste = q.data || [];
+  foto = f.data || [];
 }
 
 async function calcolaPersonale(supabase, azienda) {
@@ -106,6 +109,7 @@ async function calcolaPersonale(supabase, azienda) {
     const { data } = await supabase.rpc("personale_evento", {
       p_azienda: azienda.id, p_tipo: P.titolo_evento || "Altro",
       p_invitati: Math.max(Number(P.n_invitati) || 1, 1),
+      p_bambini: Math.max(Number(P.n_bambini) || 0, 0),
     });
     personale = data?.ok ? data : null;
   } catch (e) { personale = null; }
@@ -135,15 +139,21 @@ function costoDi(r) {
   return { costo: 0, stimato: false, mancante: true };
 }
 
+function perBambini(sez) {
+  return Boolean(sezioniInfo.find(x => norm(x.nome) === norm(sez))?.per_bambini);
+}
+
 function conti() {
   const inv = Math.max(Number(P.n_invitati) || 1, 1);
   let menu = 0, costoMenu = 0, stimati = 0, senzaCosto = 0;
 
+  const bimbi = Math.max(Number(P.n_bambini) || 0, 0);
   righe.forEach(r => {
     if (!r.nome) return;
-    menu += (Number(r.prezzo) || 0) * inv;
+    const quanti = perBambini(r.sezione) ? bimbi : inv;
+    menu += (Number(r.prezzo) || 0) * quanti;
     const c = costoDi(r);
-    costoMenu += c.costo * inv;
+    costoMenu += c.costo * quanti;
     if (c.stimato) stimati++;
     if (c.mancante) senzaCosto++;
   });
@@ -158,7 +168,7 @@ function conti() {
   const margine = totale - costoTotale;
 
   return {
-    inv, menu, serviziTot, location, totale, costoMenu, costoPersonale, costoTotale, margine,
+    inv, bimbi, menu, serviziTot, location, totale, costoMenu, costoPersonale, costoTotale, margine,
     marginePerc: totale > 0 ? (margine / totale) * 100 : 0,
     aPersona: totale / inv, costoPersona: costoTotale / inv,
     stimati, senzaCosto, acconto: Number(P.acconto) || 0,
@@ -237,6 +247,7 @@ function disegna(container, supabase, azienda, sede) {
           ${campo("Data", "data_evento", "date")}
           ${campo("Ora", "ora_evento", "time")}
           ${campo("Invitati", "n_invitati", "number")}
+          ${campo("di cui bambini", "n_bambini", "number")}
           <div>
             <label>Location</label>
             <select class="in" data-campo="location_id">
@@ -259,6 +270,7 @@ function disegna(container, supabase, azienda, sede) {
             ${datalistSezione(sez)}
             <div class="top"><b>${esc(sez)}</b>
               ${sezioniInfo.find(x => norm(x.nome) === norm(sez))?.separata ? `<i class="tag">a parte</i>` : ""}
+              ${perBambini(sez) ? `<i class="tag">bambini</i>` : ""}
               <span>${righe.filter(r => (r.sezione || "Menu") === sez).length} portate ·
                 ${euro(righe.filter(r => (r.sezione || "Menu") === sez).reduce((s, r) => s + (Number(r.prezzo) || 0), 0))} a persona
                 ${catDiSezione(sez) ? "· propone solo questa categoria" : "· propone tutto il ricettario"}</span></div>
@@ -308,25 +320,56 @@ function disegna(container, supabase, azienda, sede) {
         </div>
       </div>
 
-      ${vedoICosti && personale ? `
+      ${vedoICosti && personale?.figure?.length ? `
         <div class="pv2-card">
           <h2>Personale in servizio</h2>
-          <div class="aiuto">Calcolato sulle vostre regole: si cambia in Regole personale.</div>
-          <div class="pv2-pers">
-            <div class="n"><b>${personale.addetti}</b><span>${esc(personale.mansione)}${personale.addetti === 1 ? "" : "i"}</span></div>
-            <div class="d">
-              <div>Un ${esc(personale.mansione)} ogni <b>${personale.ospiti_per_addetto}</b> ospiti${personale.minimo ? `, mai meno di <b>${personale.minimo}</b>` : ""}</div>
-              <div>${personale.ore} ore a testa · ${euro(personale.costo_orario)} l'ora</div>
-              ${personale.per_minimo ? `<div class="min">Con ${c.inv} invitati basterebbero meno persone: vale il minimo di ${personale.minimo}.</div>` : ""}
-            </div>
-            <div class="c">${euro(personale.costo)}</div>
+          <div class="aiuto">Calcolato sulle vostre regole: si cambiano in Servizi e personale eventi.</div>
+          ${personale.figure.map(f => `
+            <div class="pv2-pers">
+              <div class="n"><b>${f.addetti}</b><span>${esc(f.mansione)}</span></div>
+              <div class="d">
+                <div>Uno ogni <b>${f.ogni}</b> ${f.conta_su === "bambini" ? "bambini" : "ospiti"}${f.minimo ? `, mai meno di <b>${f.minimo}</b>` : ""}</div>
+                <div>${f.ore} ore a testa · ${euro(f.costo_orario)} l'ora</div>
+                ${f.per_minimo ? `<div class="min">Ne basterebbero meno: vale il minimo di ${f.minimo}.</div>` : ""}
+              </div>
+              <div class="c">${euro(f.costo)}</div>
+            </div>`).join("")}
+        </div>` : ""}
+
+      ${P.id ? `
+        <div class="pv2-card">
+          <h2>Foto della proposta</h2>
+          <div class="aiuto">Torta, allestimenti, mise en place: quelle che carichi tu finiscono nel documento
+            del cliente. Le ispirazioni che mandano gli sposi restano qui, per te.</div>
+
+          <div class="pv2-foto">
+            ${foto.map(f => `
+              <div class="f ${f.caricato_da === "cliente" ? "loro" : ""}">
+                <img src="${esc(f.url)}" alt="">
+                <div class="et">${f.caricato_da === "cliente" ? "dagli sposi" : esc(f.sezione || "proposta")}</div>
+                <button class="x" data-del-foto="${f.id}">✕</button>
+              </div>`).join("")}
+            <label class="carica">
+              <input type="file" accept="image/*" multiple id="pv2-foto-file" style="display:none;">
+              <span>＋</span><small>carica</small>
+            </label>
           </div>
+
+          <div class="pv2-fotosez">
+            <label>Le prossime le metto in
+              <select id="pv2-foto-sez" class="in">
+                ${["proposta", "torta", "allestimento", "mise en place", "location"]
+                  .map(x => `<option value="${x}">${x}</option>`).join("")}
+              </select>
+            </label>
+          </div>
+          <div id="pv2-foto-esito" class="aiuto"></div>
         </div>` : ""}
 
       <div class="pv2-card">
         <h2>Il conto</h2>
         <div class="pv2-conto">
-          <div class="r"><span>Menu · ${c.inv} invitati</span><b>${euro(c.menu)}</b></div>
+          <div class="r"><span>Menu · ${c.inv} invitati${c.bimbi ? ` (di cui ${c.bimbi} bambini)` : ""}</span><b>${euro(c.menu)}</b></div>
           <div class="r"><span>Servizi ed extra</span><b>${euro(c.serviziTot)}</b></div>
           ${c.location ? `<div class="r"><span>Location</span><b>${euro(c.location)}</b></div>` : ""}
           <div class="r">
@@ -447,7 +490,7 @@ function aggancia(container, supabase, azienda, sede) {
         const l = locations.find(x => String(x.id) === String(P.location_id));
         if (l) { P.location = l.nome; P.location_prezzo = Number(l.prezzo_affitto_base) || 0; }
       }
-      if (k === "titolo_evento" || k === "n_invitati") {
+      if (k === "titolo_evento" || k === "n_invitati" || k === "n_bambini") {
         await calcolaPersonale(supabase, azienda);
       }
       ri();
@@ -593,6 +636,40 @@ function aggancia(container, supabase, azienda, sede) {
     });
   });
 
+  container.querySelector("#pv2-foto-file")?.addEventListener("change", async (e) => {
+    const files = [...(e.target.files || [])];
+    if (!files.length) return;
+    const sez = document.getElementById("pv2-foto-sez")?.value || "proposta";
+    const esito = document.getElementById("pv2-foto-esito");
+    if (esito) esito.textContent = "Carico…";
+    let ok = 0;
+    for (const f of files.slice(0, 10)) {
+      try {
+        const path = `${azienda.id}/preventivi/${P.id}/${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
+        const up = await supabase.storage.from("media-aziende").upload(path, f, { contentType: f.type, upsert: false });
+        if (up.error) continue;
+        const { data: pub } = supabase.storage.from("media-aziende").getPublicUrl(path);
+        await supabase.from("preventivi_allegati").insert({
+          azienda_id: azienda.id, preventivo_id: P.id, sezione: sez,
+          titolo: f.name, url: pub.publicUrl, caricato_da: "noi",
+          visibile_al_cliente: true, ordine: foto.length + ok + 1,
+        });
+        ok++;
+      } catch (err) { console.error(err); }
+    }
+    if (esito) esito.textContent = ok ? `${ok} ${ok === 1 ? "foto caricata" : "foto caricate"}.` : "Non è andata.";
+    await caricaPreventivo(supabase, P.id);
+    ri();
+  });
+
+  container.querySelectorAll("[data-del-foto]").forEach(b =>
+    b.addEventListener("click", async () => {
+      if (!confirm("Tolgo questa foto?")) return;
+      await supabase.from("preventivi_allegati").delete().eq("id", b.dataset.delFoto);
+      await caricaPreventivo(supabase, P.id);
+      ri();
+    }));
+
   container.querySelector("#pv2-salva")?.addEventListener("click", () => salva(container, supabase, azienda, sede));
   container.querySelector("#pv2-stampa")?.addEventListener("click", () => {
     // stampare la scheda interna non ha senso: si stampa il documento del cliente
@@ -662,7 +739,7 @@ async function salva(container, supabase, azienda, sede) {
     cliente_email: P.cliente_email, cliente_telefono: P.cliente_telefono,
     nome_festeggiato: P.nome_festeggiato, intolleranze: P.intolleranze, note: P.note,
     data_evento: P.data_evento || null, ora_evento: P.ora_evento || null,
-    n_invitati: c.inv, location: P.location, location_id: P.location_id || null,
+    n_invitati: c.inv, n_bambini: c.bimbi, location: P.location, location_id: P.location_id || null,
     location_prezzo: Number(P.location_prezzo) || 0,
     sconto_perc: Number(P.sconto_perc) || 0, sconto_euro: Number(P.sconto_euro) || 0,
     subtotale_menu: c.menu, subtotale_extra: c.serviziTot,
@@ -692,8 +769,9 @@ async function salva(container, supabase, azienda, sede) {
       return {
         azienda_id: azienda.id, sede_uuid: sede?.id || null, preventivo_id: id,
         ricetta_id: r.ricetta_id || null, nome_portata: r.nome, sezione_menu: r.sezione || "Menu",
-        quantita: c.inv, prezzo_unitario: Number(r.prezzo) || 0,
-        totale: (Number(r.prezzo) || 0) * c.inv,
+        quantita: perBambini(r.sezione) ? c.bimbi : c.inv,
+        prezzo_unitario: Number(r.prezzo) || 0,
+        totale: (Number(r.prezzo) || 0) * (perBambini(r.sezione) ? c.bimbi : c.inv),
         food_cost_snapshot: co.costo || 0,
         ricetta_placeholder: Boolean(co.stimato || co.mancante),
         stima_dettaglio: stime[norm(r.nome)] || null,
@@ -868,6 +946,20 @@ function stile() {
   .pv2 .mini{width:74px;padding:6px;border:1.5px solid var(--riga);border-radius:8px;font-size:14px;text-align:right;font-family:inherit;}
   .pv2 .mini.largo{width:96px;}
 
+  .pv2-foto{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:9px;}
+  .pv2-foto .f{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--riga);}
+  .pv2-foto .f.loro{border-color:#F5DFA0;box-shadow:0 0 0 2px #FFFCF3;}
+  .pv2-foto .f img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pv2-foto .f .et{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);color:#fff;
+    font-size:10.5px;padding:3px 6px;text-align:center;}
+  .pv2-foto .f .x{position:absolute;top:4px;right:4px;background:rgba(255,255,255,.9);border:none;
+    border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;color:#B91C1C;}
+  .pv2-foto .carica{aspect-ratio:1;border:1.5px dashed #CBD5DB;border-radius:10px;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--muto);}
+  .pv2-foto .carica span{font-size:26px;line-height:1;}
+  .pv2-foto .carica small{font-size:11.5px;}
+  .pv2-fotosez{margin-top:11px;font-size:12.5px;color:var(--muto);}
+  .pv2-fotosez select{max-width:190px;display:inline-block;margin-left:6px;}
   .pv2-azioni{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;}
   .pv2-btn{background:var(--navy);color:#fff;border:none;border-radius:11px;padding:12px 18px;font-size:15px;
     font-weight:700;cursor:pointer;font-family:inherit;}
