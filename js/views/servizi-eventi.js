@@ -19,7 +19,7 @@ export async function render(container) {
   async function disegna() {
     const [srv, reg, forn, dip, tem] = await Promise.all([
       supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).order("categoria").order("nome"),
-      supabase.from("regole_personale").select("*").eq("azienda_id", azienda.id).order("ospiti_per_addetto"),
+      supabase.from("regole_personale").select("*").eq("azienda_id", azienda.id).eq("attiva", true).order("tipo_evento"),
       supabase.from("fornitori").select("id, ragione_sociale").eq("azienda_id", azienda.id).order("ragione_sociale").limit(500),
       supabase.from("dipendenti").select("mansione, ruolo, costo_orario").eq("azienda_id", azienda.id).eq("attivo", true),
       supabase.from("preventivi_temi").select("*").eq("azienda_id", azienda.id).order("tipo_evento"),
@@ -143,7 +143,9 @@ export async function render(container) {
           <div class="se-card">
             <h2>Quante persone servono in sala</h2>
             <div class="aiuto">Un addetto ogni tot ospiti, con una base minima sotto cui non si scende.
-              Il preventivo usa la riga del tipo evento scelto, altrimenti quella chiamata "Altro".</div>
+              Il preventivo usa la riga del tipo evento scelto, altrimenti quella chiamata "Altro".
+              Qui va solo il personale <b>compreso nel prezzo</b>: le figure che vendi a parte — baby sitter,
+              sommelier, hostess — stanno nel listino servizi, dove hanno un prezzo per il cliente.</div>
           </div>
 
           <div class="se-lista">
@@ -151,7 +153,11 @@ export async function render(container) {
               const oraria = mediaDi(r.mansione) || 15;
               return `
               <div class="se-regola">
-                <div class="t"><b>${esc(r.tipo_evento)}</b><span>${esc(r.mansione)} · ${euro(oraria)} l'ora</span></div>
+                <div class="t">
+                  <b>${esc(r.tipo_evento)}</b>
+                  <span>${esc(r.mansione)} · ${euro(oraria)} l'ora</span>
+                  <button class="x del" data-del-reg="${r.id}" title="Togli questa regola">✕</button>
+                </div>
                 <div class="campi">
                   <label>1 ogni<input class="mini" type="number" min="1" value="${r.ospiti_per_addetto}" data-reg="${r.id}" data-campo="ospiti_per_addetto"></label>
                   <label>minimo<input class="mini" type="number" min="0" value="${r.minimo_addetti}" data-reg="${r.id}" data-campo="minimo_addetti"></label>
@@ -224,6 +230,13 @@ export async function render(container) {
         patch[el.dataset.campo] = el.value || null;
         const { error } = await supabase.from("preventivi_temi").update(patch).eq("id", el.dataset.tema);
         if (error) return msg("Errore: " + error.message, true);
+        disegna();
+      }));
+
+    container.querySelectorAll("[data-del-reg]").forEach(b =>
+      b.addEventListener("click", async () => {
+        if (!confirm("Tolgo questa regola? Il preventivo non conterà più questa figura per quel tipo di evento.")) return;
+        await supabase.from("regole_personale").delete().eq("id", b.dataset.delReg);
         disegna();
       }));
 
@@ -303,7 +316,10 @@ function stile() {
   .se-riga .x.del{color:var(--rosso);border-color:#FECACA;}
   .se-regola{padding:13px 15px;border-top:1px solid #F1F4F6;}
   .se-regola:first-child{border-top:none;}
+  .se-regola .t{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
   .se-regola .t b{font-size:15px;}
+  .se-regola .t .del{margin-left:auto;background:#fff;border:1.5px solid #FECACA;color:var(--rosso);
+    border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;font-family:inherit;}
   .se-regola .t span{display:block;font-size:12.5px;color:var(--muto);}
   .se-regola .campi{display:flex;gap:12px;margin:9px 0 7px;flex-wrap:wrap;}
   .se-regola label{font-size:12.5px;color:var(--muto);display:flex;align-items:center;gap:6px;}
