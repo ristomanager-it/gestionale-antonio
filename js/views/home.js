@@ -138,6 +138,7 @@ export async function render(container){
   `
 
   bindEvents()
+  initNotificheTab()
   initFooter()
   loadTony(ruolo)
 
