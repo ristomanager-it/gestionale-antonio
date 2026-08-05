@@ -314,7 +314,7 @@ function apriGiorno(k) {
       ? '<img class="cal-img" src="' + esc(g.media_url) + '" alt="">' : '') + '</div>' +
     prom.map(p => '<div class="cal-m-riga">⏳ ' + esc(p) + '</div>').join('') +
     '<div class="cal-m-riga">Stato: <b>' + esc(g.stato) + '</b></div>' +
-    '<textarea class="cal-ta" id="cal-testo" placeholder="Testo del post…">' + esc(g.titolo || '') + '</textarea>' +
+    '<textarea class="cal-ta" id="cal-testo" placeholder="Testo del post…">' + esc(g.testo || '') + '</textarea>' +
     '<div class="cal-m-azioni">' +
       '<button class="cal-a pri" id="cal-salva">Salva bozza</button>' +
       '<button class="cal-a pri" id="cal-tony">✨ Scrivilo con Tony</button>' +
