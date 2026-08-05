@@ -12,6 +12,8 @@ export async function render(container){
 
         ${renderHeader(ruolo)}
 
+        <div id="notifiche-tab"></div>
+
         <div id="tony-container"></div>
 
         <div class="home-content">
