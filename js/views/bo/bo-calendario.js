@@ -244,6 +244,38 @@ function disegna() {
     html += '<div class="cal-riga">' + celle.slice(i, i + 7).join('') + '</div>';
   }
   document.getElementById('cal-grid').innerHTML = html;
+  elenco();
+}
+
+// Sotto la griglia: giorni con una ricorrenza o un promemoria, per esteso.
+function elenco() {
+  const box = document.getElementById('cal-elenco');
+  if (!box) return;
+  const righe = GIORNI_DATI.filter(g => g.ricorrenza || (PROMEMORIA[g.data] || []).length);
+  if (!righe.length) {
+    box.innerHTML = '<div class="cal-el-t">Nessuna data segnata questo mese</div>';
+    return;
+  }
+  box.innerHTML = '<div class="cal-el-t">Date di '  + MESI[MESE] + '</div>' +
+    righe.map(g => {
+      const tipo = TIPI[g.tipo_giorno] || TIPI.quotidiano;
+      const es = ESITI[g.esito] || ESITI.futuro;
+      const prom = PROMEMORIA[g.data] || [];
+      const gg = Number(g.data.slice(8, 10));
+      return '<button class="cal-el-r" data-data="' + g.data + '" style="border-left-color:' + tipo.c + '">' +
+        '<span class="cal-el-g">' + gg + '</span>' +
+        '<span><span class="cal-el-n">' + esc(g.ricorrenza || 'Promemoria') +
+          (g.verificata === false ? ' <span class="cal-dubbia">?</span>' : '') + '</span>' +
+          (g.tema && g.ricorrenza ? '<span class="cal-el-s">' + esc(g.tema.split(' — ').slice(1).join(' — ')) + '</span>' : '') +
+          prom.map(p => '<span class="cal-el-s">⏳ ' + esc(p) + '</span>').join('') +
+        '</span>' +
+        '<span class="cal-el-e">' + es.i + '</span>' +
+      '</button>';
+    }).join('');
+  box.onclick = (e) => {
+    const b = e.target.closest('.cal-el-r');
+    if (b) apriGiorno(b.dataset.data);
+  };
 }
 
 function bind() {
