@@ -16,6 +16,7 @@ let locations = [];
 let listinoServizi = [];
 let sezioniNote = [];    // le sezioni gia' usate: diventano una tendina
 let sezioniInfo = [];    // nome -> categoria di piatti e se va a parte nel documento
+let modelli = [];        // schemi di menu predefiniti per tipo evento e formula
 let richieste = [];
 let vedoICosti = true;   // falso per le agenzie
 let personale = null;    // quanti camerieri servono e quanto costano
@@ -46,18 +47,20 @@ export async function render(container, params = {}) {
 
   container.innerHTML = `<div class="pv2"><div class="pv2-caric">Un attimo…</div></div>${stile()}`;
 
-  const [ric, loc, serv, sez] = await Promise.all([
+  const [ric, loc, serv, sez, mod] = await Promise.all([
     supabase.from("ricette").select("id, nome, costo_porzione, costo_materia_prima, porzioni, categoria_portata_id").eq("azienda_id", azienda.id).limit(3000),
     supabase.from("location_ricevimenti").select("id, nome, capienza_min, capienza_max, prezzo_affitto_base")
       .eq("azienda_id", azienda.id).eq("attiva", true).order("nome"),
     supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).eq("attivo", true).order("categoria"),
     supabase.from("sezioni_menu").select("nome, ordine, usata_volte, categoria_portata_id, separata, per_bambini").eq("azienda_id", azienda.id)
       .eq("attiva", true).order("ordine").order("usata_volte", { ascending: false }),
+    supabase.from("modelli_menu").select("*").eq("azienda_id", azienda.id).eq("attivo", true),
   ]);
   ricette = ric.data || [];
   locations = loc.data || [];
   listinoServizi = serv.data || [];
   sezioniInfo = sez.data || [];
+  modelli = mod.data || [];
   sezioniNote = sezioniInfo.map(x => x.nome);
 
   if (id) await caricaPreventivo(supabase, id);
@@ -78,6 +81,7 @@ function nuovo(azienda, sede) {
     data_evento: "", ora_evento: "", n_invitati: 50, n_bambini: 0,
     location: "", location_id: null, location_prezzo: 0,
     sconto_perc: 0, sconto_euro: 0, acconto: 0, giorni_validita: 15,
+    formula_servizio: "servito",
   };
   righe = []; extra = []; richieste = []; stime = {}; foto = [];
 }
@@ -146,6 +150,19 @@ function quantitaServizio(s) {
   if (s.conta_su === "bambini") return bimbi === 0 ? 0 : Math.max(Math.ceil(bimbi / (s.ogni || 1)), s.minimo || 1);
   if (s.conta_su === "ospiti") return Math.max(Math.ceil(inv / (s.ogni || 1)), s.minimo || 1);
   return 1;
+}
+
+// Lo schema pronto per questo tipo di evento e questa formula.
+// Si propone solo se il menu e' ancora vuoto: non si sovrascrive il lavoro fatto.
+function schemaProposto() {
+  if (righe.some(r => r.nome)) return null;
+  if (!P.titolo_evento) return null;
+  const f = P.formula_servizio === "buffet" ? "buffet" : "servito";
+  const m = modelli.find(x => norm(x.tipo_evento) === norm(P.titolo_evento) && x.formula === f)
+        || modelli.find(x => norm(x.tipo_evento) === "altro" && x.formula === f);
+  if (!m) return null;
+  const sez = Array.isArray(m.sezioni) ? m.sezioni : [];
+  return sez.length ? [...sez].sort((a, b) => (a.ordine || 0) - (b.ordine || 0)) : null;
 }
 
 function perBambini(sez) {
@@ -254,6 +271,13 @@ function disegna(container, supabase, azienda, sede) {
                 ? `<option value="${esc(P.titolo_evento)}" selected>${esc(P.titolo_evento)}</option>` : ""}
             </select>
           </div>
+          <div>
+            <label>Come si serve</label>
+            <select class="in" data-campo="formula_servizio">
+              <option value="servito"${P.formula_servizio !== "buffet" ? " selected" : ""}>Servito al tavolo</option>
+              <option value="buffet"${P.formula_servizio === "buffet" ? " selected" : ""}>Al buffet</option>
+            </select>
+          </div>
           ${campo("Festeggiato", "nome_festeggiato")}
           ${campo("Data", "data_evento", "date")}
           ${campo("Ora", "ora_evento", "time")}
@@ -283,6 +307,13 @@ function disegna(container, supabase, azienda, sede) {
       <div class="pv2-card">
         <h2>Il menu</h2>
         <div class="aiuto">Scrivi il piatto: se è in ricettario porta con sé il suo costo.</div>
+        ${schemaProposto() ? `
+          <div class="pv2-schema">
+            <div class="t"><b>Schema ${esc(P.titolo_evento || "evento")} · ${P.formula_servizio === "buffet" ? "al buffet" : "servito"}</b>
+              <span>${schemaProposto().map(x => esc(x.nome)).join(" · ")}</span></div>
+            <button class="pv2-btn" id="pv2-applica-schema">Usa questo schema</button>
+          </div>` : ""}
+
         ${sezioni.length ? sezioni.map(sez => `
           <div class="pv2-sez">
             ${datalistSezione(sez)}
@@ -514,7 +545,7 @@ function aggancia(container, supabase, azienda, sede) {
         const l = locations.find(x => String(x.id) === String(P.location_id));
         if (l) { P.location = l.nome; P.location_prezzo = Number(l.prezzo_affitto_base) || 0; }
       }
-      if (k === "titolo_evento" || k === "n_invitati" || k === "n_bambini") {
+      if (k === "titolo_evento" || k === "n_invitati" || k === "n_bambini" || k === "formula_servizio") {
         await calcolaPersonale(supabase, azienda);
       }
       ri();
@@ -547,6 +578,20 @@ function aggancia(container, supabase, azienda, sede) {
   selSez?.addEventListener("change", () => {
     const nuova = selSez.value === "__nuova__";
     if (inpSez) { inpSez.style.display = nuova ? "block" : "none"; if (nuova) inpSez.focus(); }
+  });
+
+  container.querySelector("#pv2-applica-schema")?.addEventListener("click", () => {
+    const schema = schemaProposto();
+    if (!schema) return;
+    // una riga vuota per ogni portata prevista: si riempiono scrivendo il piatto
+    schema.forEach(s => {
+      const quante = Math.max(Number(s.quante) || 1, 1);
+      for (let i = 0; i < quante; i++) {
+        righe.push({ nome: "", sezione: s.nome, prezzo: 0, ricetta_id: null });
+      }
+    });
+    msg(container, "Schema pronto: scrivi i piatti, le righe che avanzano si tolgono con la ✕.");
+    ri();
   });
 
   container.querySelector("#pv2-add-sez")?.addEventListener("click", async () => {
@@ -779,7 +824,8 @@ async function salva(container, supabase, azienda, sede) {
     cliente_email: P.cliente_email, cliente_telefono: P.cliente_telefono,
     nome_festeggiato: P.nome_festeggiato, intolleranze: P.intolleranze, note: P.note,
     data_evento: P.data_evento || null, ora_evento: P.ora_evento || null,
-    n_invitati: c.inv, n_bambini: c.bimbi, location: P.location, location_id: P.location_id || null,
+    n_invitati: c.inv, n_bambini: c.bimbi, formula_servizio: P.formula_servizio || "servito",
+    location: P.location, location_id: P.location_id || null,
     location_prezzo: Number(P.location_prezzo) || 0,
     sconto_perc: Number(P.sconto_perc) || 0, sconto_euro: Number(P.sconto_euro) || 0,
     subtotale_menu: c.menu, subtotale_extra: c.serviziTot,
@@ -977,6 +1023,11 @@ function stile() {
   .pv2 .add,.pv2 .add-serv{padding:9px 13px;border-top:1px dashed var(--riga);font-size:13.5px;color:var(--navy);cursor:pointer;}
   .pv2 .add-serv{display:flex;gap:8px;cursor:default;}
   .pv2-nuovasez{display:flex;gap:8px;margin-top:8px;}
+  .pv2-schema{background:#FFFCF3;border:1px solid #F5DFA0;border-radius:12px;padding:14px 16px;
+    margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .pv2-schema .t{flex:1;min-width:190px;}
+  .pv2-schema .t b{display:block;font-size:14.5px;color:#9A6A00;}
+  .pv2-schema .t span{display:block;font-size:12.5px;color:#7C5800;margin-top:3px;line-height:1.5;}
 
   .pv2-cap{margin-top:11px;background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:10px;padding:10px 12px;font-size:13.5px;}
   .pv2-cap.ko{background:#FEF2F2;border-color:#FECACA;color:var(--rosso);font-weight:700;}
