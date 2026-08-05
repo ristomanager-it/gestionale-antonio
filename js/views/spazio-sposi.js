@@ -4,7 +4,7 @@
 // Il token degli sposi è diverso da quello degli invitati: da qui si vede tutto
 // del proprio evento, da lì nessun prezzo.
 
-let D = null, T = null, M = null, sez = "invitati", token = "", tavoloAperto = null;
+let D = null, T = null, M = null, sez = "invitati", token = "", tavoloAperto = null, piano = null;
 
 // nomi pronti per i tavoli: la domanda che fanno tutti
 const TEMI_NOMI = {
@@ -25,7 +25,7 @@ export async function render(container) {
   try {
     const [a, b, c] = await Promise.all([
       supabase.rpc("spazio_sposi", { p_token: token }),
-      supabase.rpc("spazio_tableau", { p_token: token }),
+      supabase.rpc("spazio_tableau", { p_token: token, p_piano: piano }),
       supabase.rpc("spazio_menu", { p_token: token }),
     ]);
     D = a.data; T = b.data?.ok ? b.data : null; M = c.data?.ok ? c.data : null;
@@ -98,8 +98,19 @@ function disegna(container, supabase) {
       const seduti = (T.tavoli || []).reduce((a, t) => a + (t.seduti || 0), 0);
       const restano = (T.da_sedere || []).reduce((a, i) => a + (i.quanti || 0), 0);
       return `
-      <div class="sott">La brutta copia del tableau. Ci si mettono solo gli invitati che hanno
-        <b>già confermato</b>: gli altri compaiono man mano che rispondono.</div>
+      <div class="sp-piani">
+        ${["A","B"].map(x => `
+          <button data-piano="${x}" class="${(T.piano || "A") === x ? "on" : ""}">
+            Piano ${x}${(T.piano_attivo || "A") === x ? " ✓" : ""}</button>`).join("")}
+        ${T.modificabile ? `<button class="copia" data-copia-piano="${T.piano === "B" ? "B|A" : "A|B"}">
+          ⧉ Copia in ${T.piano === "B" ? "A" : "B"}</button>` : ""}
+      </div>
+      <div class="sott">
+        Il piano con la spunta è quello che va in sala.
+        ${(T.piano_attivo || "A") !== (T.piano || "A")
+          ? `<button class="sp-mini" data-attiva-piano="${T.piano}">Fai valere questo</button>` : ""}
+        <br>Ci si mettono solo gli invitati che hanno <b>già confermato</b>.
+      </div>
 
       ${!T.modificabile ? `<div class="sp-chiuso">Il tableau è chiuso: mancano meno di 48 ore.
         Per un cambio scriveteci.</div>` : ""}
@@ -317,7 +328,26 @@ function aggancia(container, supabase) {
   const v = (id) => (document.getElementById(id)?.value || "").trim();
 
   const tableau = (cosa, dati) => supabase.rpc("spazio_tableau_scrivi", {
-    p_token: token, p_cosa: cosa, p_dati: dati });
+    p_token: token, p_cosa: cosa, p_dati: { ...dati, piano: T?.piano || "A" } });
+
+  container.querySelectorAll("[data-piano]").forEach(b =>
+    b.addEventListener("click", () => { piano = b.dataset.piano; render(container); }));
+
+  container.querySelectorAll("[data-copia-piano]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const [da, a] = b.dataset.copiaPiano.split("|");
+      if (!confirm(`Copio il piano ${da} nel piano ${a}?\n\n` +
+        `Quello che c'è ora nel piano ${a} viene sostituito.`)) return;
+      const { data } = await supabase.rpc("spazio_copia_piano", { p_token: token, p_da: da, p_a: a });
+      if (data?.ok) { piano = a; render(container); }
+      else alert(data?.errore || "Non è andata.");
+    }));
+
+  container.querySelectorAll("[data-attiva-piano]").forEach(b =>
+    b.addEventListener("click", async () => {
+      await supabase.rpc("spazio_piano_attivo", { p_token: token, p_piano: b.dataset.attivaPiano });
+      render(container);
+    }));
 
   container.querySelector("#tv-add")?.addEventListener("click", async () => {
     const forma = v("tv-forma") || "rotondo";
@@ -573,6 +603,13 @@ function guscio(dentro, tema) {
     padding:12px 14px;font-size:13.5px;margin-bottom:12px;line-height:1.5;}
   .sp-ok{background:#F1F8ED;border:1px solid #CFE4C2;color:var(--verde);border-radius:12px;
     padding:12px 14px;font-size:13.5px;}
+  .sp-piani{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;}
+  .sp-piani button{background:#fff;border:1.5px solid var(--riga);border-radius:10px;padding:9px 16px;
+    font-size:14px;font-family:inherit;color:var(--muto);font-weight:700;cursor:pointer;}
+  .sp-piani button.on{background:var(--vino);border-color:var(--vino);color:#fff;}
+  .sp-piani .copia{margin-left:auto;font-weight:400;font-size:13px;color:var(--vino);}
+  .sp-mini{background:#fff;border:1.5px solid var(--vino);color:var(--vino);border-radius:8px;
+    padding:4px 10px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;margin-left:6px;}
   .sp-temi{display:flex;flex-wrap:wrap;gap:7px;}
   .sp-temi button{background:#fff;border:1.5px solid var(--riga);border-radius:100px;padding:8px 14px;
     font-size:13px;color:var(--vino);font-family:inherit;cursor:pointer;}
