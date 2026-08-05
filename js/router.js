@@ -112,6 +112,7 @@ const routes = {
   "ticket-vendite": () => imp("./views/bo/ticket-vendite.js"),
   "ticket-checkin": () => imp("./views/bo/ticket-checkin.js"),
   "bo-catenarie": () => imp("./views/bo/bo-catenarie.js"),
+  "bo-calendario": () => imp("./views/bo/bo-calendario.js"),
   "bo-whatsapp": () => imp("./views/bo/bo-whatsapp.js"),
   "bo-chatbot": () => imp("./views/bo/bo-chatbot.js"),
   "bo-media": () => imp("./views/bo/bo-media.js"),
