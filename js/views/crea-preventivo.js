@@ -450,7 +450,8 @@ function disegna(container, supabase, azienda, sede) {
           <button class="pv2-btn wa" id="pv2-invia">📤 Manda al cliente</button>
           <button class="pv2-btn sec" id="pv2-wa">💬 WhatsApp a mano</button>
           <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>
-          <button class="pv2-btn sec" id="pv2-proroga">📅 ${scaduto() ? "Riapri" : "Proroga"}</button>` : ""}
+          <button class="pv2-btn sec" id="pv2-proroga">📅 ${scaduto() ? "Riapri" : "Proroga"}</button>
+          ${P.stato === "confermato" ? `<button class="pv2-btn arancio" id="pv2-spazio">🎪 Spazio degli sposi</button>` : ""}` : ""}
       </div>
       <div id="pv2-esito" class="pv2-esito"></div>
     </div>
@@ -754,6 +755,22 @@ function aggancia(container, supabase, azienda, sede) {
     P.scadenza_il = nuova; P.giorni_validita = g;
     msg(container, "Valida ancora " + g + (g === 1 ? " giorno." : " giorni."));
     ri();
+  });
+
+  container.querySelector("#pv2-spazio")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true; b.textContent = "Apro…";
+    const { data, error } = await supabase.rpc("crea_spazio_evento", { p_preventivo: P.id });
+    b.disabled = false; b.textContent = "🎪 Spazio degli sposi";
+    if (error || !data?.ok) return msg(container, error?.message || data?.errore || "Non è andata.", true);
+
+    const { data: sp } = await supabase.from("spazio_evento")
+      .select("token_sposi").eq("id", data.spazio_id).maybeSingle();
+    const base = (location.origin + location.pathname).replace(/index\.html$/, "");
+    const url = base + "#/spazio?t=" + sp?.token_sposi;
+    try { await navigator.clipboard.writeText(url); } catch (_) {}
+    msg(container, (data.gia_esisteva ? "Spazio già aperto. " : "Spazio creato" +
+      (data.voci_checklist ? " con " + data.voci_checklist + " cose da fare. " : ". ")) + "Link copiato: " + url);
   });
 
   container.querySelector("#pv2-stampa")?.addEventListener("click", () => {
