@@ -235,8 +235,7 @@ function disegna(container, supabase, azienda, sede) {
 
       <div class="pv2-testata">
         <div class="t">
-          <div class="et">${P.id ? "Preventivo " + P.id : "Nuovo preventivo"}${
-            P.gruppo_proposta ? " · " + esc(P.variante_nome || (P.formula_servizio === "buffet" ? "Al buffet" : "Servito")) : ""}</div>
+          <div class="et">${P.id ? "Preventivo " + P.id : "Nuovo preventivo"}</div>
           <h1>${esc(nomeCliente() || "Senza nome")}</h1>
           <div class="sub">${esc(dataLunga(P.data_evento))}${c.inv ? " · " + c.inv + " invitati" : ""}${P.location ? " · " + esc(P.location) : ""}</div>
         </div>
@@ -495,7 +494,7 @@ function disegna(container, supabase, azienda, sede) {
           <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>
           <button class="pv2-btn sec" id="pv2-proroga">📅 ${scaduto() ? "Riapri" : "Proroga"}</button>
           ${P.stato === "confermato" ? `<button class="pv2-btn arancio" id="pv2-spazio">🎪 Spazio degli sposi</button>` : ""}
-          <button class="pv2-btn sec" id="pv2-variante">⇄ Proposta ${P.formula_servizio === "buffet" ? "servita" : "al buffet"}</button>` : ""}
+          <button class="pv2-btn sec" id="pv2-duplica">⧉ Duplica</button>` : ""}
       </div>
       <div id="pv2-esito" class="pv2-esito"></div>
     </div>
@@ -813,14 +812,14 @@ function aggancia(container, supabase, azienda, sede) {
     ri();
   });
 
-  container.querySelector("#pv2-variante")?.addEventListener("click", async (e) => {
-    const altra = P.formula_servizio === "buffet" ? "servito" : "buffet";
-    if (!confirm(`Creo la stessa proposta in versione ${altra === "buffet" ? "al buffet" : "servita"}?\n\n` +
-      "Cliente, data e invitati vengono copiati. Il menu no: i piatti cambiano, lo componi da zero.")) return;
-    const b = e.currentTarget; b.disabled = true; b.textContent = "Creo…";
-    const { data, error } = await supabase.rpc("crea_variante_preventivo", {
-      p_preventivo: P.id, p_formula: altra });
-    b.disabled = false;
+  // Duplica: serve quando il cliente non ha ancora deciso che tipo di festa fare.
+  // Copia solo l'anagrafica, il menu si compone da zero. I due preventivi restano
+  // indipendenti: nessun collegamento, nessuna chiusura automatica.
+  container.querySelector("#pv2-duplica")?.addEventListener("click", async (e) => {
+    if (!confirm("Duplico questo preventivo?\n\nCliente, data e invitati vengono copiati. Il menu no.")) return;
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Duplico…";
+    const { data, error } = await supabase.rpc("duplica_preventivo", { p_preventivo: P.id });
+    b.disabled = false; b.textContent = "⧉ Duplica";
     if (error || !data?.ok) return msg(container, error?.message || data?.errore || "Non è andata.", true);
     location.hash = "#/creaPreventivo?id=" + data.preventivo_id;
     location.reload();
