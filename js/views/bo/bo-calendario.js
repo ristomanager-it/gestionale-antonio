@@ -142,6 +142,8 @@ function layout() {
       .cal-m-t{font-size:16px;font-weight:700;margin-bottom:3px}
       .cal-m-s{font-size:12.5px;color:#6b7280;margin-bottom:12px}
       .cal-m-riga{font-size:13px;padding:8px 0;border-bottom:1px solid #f3f4f6;line-height:1.45}
+      .cal-img{width:100%;border-radius:8px;margin-top:10px;display:block}
+      .cal-foto-n{font-size:12px;color:#6b7280;line-height:1.4;margin-top:6px}
       .cal-m-azioni{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
       .cal-a{border:none;border-radius:7px;padding:9px 13px;font-size:13px;cursor:pointer;font-weight:600}
       .cal-a.pri{background:#111827;color:#fff}
