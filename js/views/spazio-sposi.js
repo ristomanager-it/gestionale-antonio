@@ -4,7 +4,7 @@
 // Il token degli sposi è diverso da quello degli invitati: da qui si vede tutto
 // del proprio evento, da lì nessun prezzo.
 
-let D = null, T = null, M = null, sez = "invitati", token = "", tavoloAperto = null, piano = null;
+let D = null, T = null, M = null, X = null, sez = "invitati", token = "", tavoloAperto = null, piano = null;
 
 // nomi pronti per i tavoli: la domanda che fanno tutti
 const TEMI_NOMI = {
@@ -23,12 +23,14 @@ export async function render(container) {
 
   container.innerHTML = guscio(`<div class="sp-caric">Un attimo…</div>`);
   try {
-    const [a, b, c] = await Promise.all([
+    const [a, b, c, x] = await Promise.all([
       supabase.rpc("spazio_sposi", { p_token: token }),
       supabase.rpc("spazio_tableau", { p_token: token, p_piano: piano }),
       supabase.rpc("spazio_menu", { p_token: token }),
+      supabase.rpc("spazio_dettagli", { p_token: token }),
     ]);
     D = a.data; T = b.data?.ok ? b.data : null; M = c.data?.ok ? c.data : null;
+    X = x.data?.ok ? x.data : {};
   } catch (e) { console.error(e); }
 
   if (!D?.ok) { container.innerHTML = guscio(`<div class="sp-err">${esc(D?.errore || "Non riesco a caricare lo spazio.")}</div>`); return; }
@@ -293,6 +295,66 @@ function disegna(container, supabase) {
             <div class="t">${tit}<span>${sub}</span></div>
             <div class="tg ${String(S[k]) === "true" || S[k] === true ? "on" : ""}" data-sez-toggle="${k}"></div></div>`).join("")}
       </div>
+      <h2>Componete la pagina</h2>
+      <div class="sp-mod">
+        <div class="tit">La foto in alto</div>
+        <div class="sp-cop" style="${X.foto_copertina
+          ? `background-image:linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.55)),url('${esc(X.foto_copertina)}')` : ""}">
+          ${X.foto_copertina ? "" : "<span>nessuna foto</span>"}
+        </div>
+        <label class="sp-btn ch" style="display:block;text-align:center;margin-top:8px;">
+          <input type="file" accept="image/*" id="cop-file" style="display:none;">
+          ${X.foto_copertina ? "Cambia foto" : "Carica una foto"}
+        </label>
+      </div>
+
+      <div class="sp-mod">
+        <div class="tit">Cosa scrivete agli invitati</div>
+        <textarea id="dt-invito" rows="3" placeholder="Ci farebbe piacere averti con noi…">${esc(X.testo_invito || "")}</textarea>
+      </div>
+
+      <div class="sp-mod">
+        <div class="tit">La cerimonia</div>
+        <div class="g">
+          <input id="dt-ora-cer" type="time" value="${esc((X.ora_cerimonia || "").slice(0,5))}">
+          <input id="dt-luogo-cer" placeholder="Chiesa o comune" value="${esc(X.luogo_cerimonia || "")}">
+        </div>
+        <input id="dt-ind-cer" placeholder="Indirizzo" value="${esc(X.indirizzo_cerimonia || "")}" style="margin-top:8px;">
+      </div>
+
+      <div class="sp-mod">
+        <div class="tit">Il ricevimento</div>
+        <div class="g">
+          <input id="dt-ora-ric" type="time" value="${esc((X.ora_ricevimento || "").slice(0,5))}">
+          <input id="dt-luogo-ric" placeholder="Dove" value="${esc(X.luogo_ricevimento || "")}">
+        </div>
+        <input id="dt-ind-ric" placeholder="Indirizzo" value="${esc(X.indirizzo_ricevimento || "")}" style="margin-top:8px;">
+      </div>
+
+      <div class="sp-mod">
+        <div class="tit">Come vestirsi</div>
+        <textarea id="dt-dress" rows="2" placeholder="Elegante, senza esagerare…">${esc(X.dress_code || "")}</textarea>
+        <div class="tit" style="margin-top:12px;">Se piove</div>
+        <textarea id="dt-pioggia" rows="2" placeholder="Cosa succede se piove">${esc(X.piano_pioggia || "")}</textarea>
+        <button class="sp-btn" id="dt-salva">Salva la pagina</button>
+      </div>
+
+      <div class="sp-mod">
+        <div class="tit">Cosa chiedete agli invitati</div>
+        ${(X.domande || []).map(q => `
+          <div class="sp-dom"><span>${esc(q.testo)}</span>
+            <button class="x" data-togli-domanda="${esc(q.id)}">✕</button></div>`).join("")}
+        <div class="g" style="margin-top:8px;">
+          <input id="dm-testo" placeholder="Es. ti serve il pullman?">
+          <select id="dm-tipo">
+            <option value="si_no">Sì / No</option>
+            <option value="numero">Un numero</option>
+            <option value="testo">Testo libero</option>
+          </select>
+        </div>
+        <button class="sp-btn ch" id="dm-add">Aggiungi la domanda</button>
+      </div>
+
       <button class="sp-btn" id="sp-apri-invito">Guarda com'è venuta</button>
       <button class="sp-btn ch" id="sp-link-invito2">🔗 Copia il link per gli invitati</button>
 
@@ -391,6 +453,41 @@ function aggancia(container, supabase) {
       await tableau("tema_nomi", { tema, nomi: TEMI_NOMI[tema] });
       ricarica();
     }));
+
+  container.querySelector("#dt-salva")?.addEventListener("click", async () => {
+    await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "dettagli", p_dati: {
+      testo_invito: v("dt-invito"), dress_code: v("dt-dress"), piano_pioggia: v("dt-pioggia"),
+      ora_cerimonia: v("dt-ora-cer"), luogo_cerimonia: v("dt-luogo-cer"), indirizzo_cerimonia: v("dt-ind-cer"),
+      ora_ricevimento: v("dt-ora-ric"), luogo_ricevimento: v("dt-luogo-ric"), indirizzo_ricevimento: v("dt-ind-ric"),
+    }});
+    ricarica();
+  });
+
+  container.querySelector("#dm-add")?.addEventListener("click", async () => {
+    if (!v("dm-testo")) return;
+    await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "domanda", p_dati: {
+      testo: v("dm-testo"), tipo: v("dm-tipo") }});
+    ricarica();
+  });
+
+  container.querySelectorAll("[data-togli-domanda]").forEach(b =>
+    b.addEventListener("click", async () => {
+      await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "togli_domanda",
+        p_dati: { id: b.dataset.togliDomanda }});
+      ricarica();
+    }));
+
+  document.getElementById("cop-file")?.addEventListener("change", async (e) => {
+    const f = (e.target.files || [])[0];
+    if (!f) return;
+    const path = `spazi/${token}/copertina-${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
+    const up = await supabase.storage.from("media-aziende").upload(path, f, { contentType: f.type });
+    if (up.error) return alert("Non è andata: " + up.error.message);
+    const { data: pub } = supabase.storage.from("media-aziende").getPublicUrl(path);
+    await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "dettagli",
+      p_dati: { foto_copertina: pub.publicUrl }});
+    ricarica();
+  });
 
   container.querySelector("#in-add")?.addEventListener("click", async () => {
     if (!v("in-nome")) return;
@@ -570,6 +667,13 @@ function guscio(dentro, tema) {
   .tg.on{background:var(--verde);}
   .tg:after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;}
   .tg.on:after{left:20px;}
+  .sp-cop{height:130px;border-radius:11px;background:#EDE2E6 center/cover;border:1px solid var(--riga);
+    display:flex;align-items:center;justify-content:center;color:#9B7F8A;font-size:12.5px;}
+  .sp-dom{display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px solid #F1EEE8;font-size:14px;}
+  .sp-dom:first-of-type{border-top:none;}
+  .sp-dom span{flex:1;}
+  .sp-dom .x{background:#fff;border:1.5px solid var(--riga);border-radius:8px;padding:4px 9px;
+    font-size:12px;color:var(--muto);cursor:pointer;}
   .sp-idee{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
   .sp-idee div{aspect-ratio:1;border-radius:9px;background-size:cover;background-position:center;
     background-color:#EDE2E6;border:1px solid var(--riga);}
