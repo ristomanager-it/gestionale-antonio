@@ -17,7 +17,7 @@ export async function render(container) {
   await disegna();
 
   async function disegna() {
-    const [srv, reg, forn, dip, tem, cf, sal] = await Promise.all([
+    const [srv, reg, forn, dip, tem, cf, sal, loc] = await Promise.all([
       supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).order("categoria").order("nome"),
       supabase.from("regole_personale").select("*").eq("azienda_id", azienda.id).eq("attiva", true).order("tipo_evento"),
       supabase.from("fornitori").select("id, ragione_sociale").eq("azienda_id", azienda.id).order("ragione_sociale").limit(500),
@@ -25,6 +25,7 @@ export async function render(container) {
       supabase.from("preventivi_temi").select("*").eq("azienda_id", azienda.id).order("tipo_evento"),
       supabase.from("preventivi_config").select("*").eq("azienda_id", azienda.id).maybeSingle(),
       supabase.from("sala_piantina").select("*").eq("azienda_id", azienda.id).order("nome"),
+      supabase.from("location_ricevimenti").select("id, nome").eq("azienda_id", azienda.id).order("nome"),
     ]);
     const servizi = srv.data || [];
     const regole = reg.data || [];
@@ -32,6 +33,7 @@ export async function render(container) {
     const temi = tem.data || [];
     const cfg = cf.data || {};
     const sale = sal.data || [];
+    const locations = loc.data || [];
 
     // costo orario medio per mansione: serve per far vedere quanto pesa una regola
     const perMansione = {};
@@ -75,6 +77,12 @@ export async function render(container) {
                 <label class="max">Tavoli che ci stanno
                   <input class="in" type="number" min="1" value="${sa.max_tavoli || ""}"
                     data-sala="${sa.id}" data-campo="max_tavoli"></label>
+                ${locations.length ? `<label class="max">Location
+                  <select class="in" data-sala="${sa.id}" data-campo="location_id">
+                    <option value="">— tutte —</option>
+                    ${locations.map(l => `<option value="${l.id}"${
+                      String(sa.location_id) === String(l.id) ? " selected" : ""}>${esc(l.nome)}</option>`).join("")}
+                  </select></label>` : ""}
               </div>
 
               <div class="mappa" data-mappa="${sa.id}"
@@ -82,13 +90,18 @@ export async function render(container) {
                 ${(sa.elementi || []).map((el, i) => `
                   <div class="el" data-el="${sa.id}|${i}"
                     style="left:${el.x}%;top:${el.y}%;">${esc(el.etichetta || el.tipo)}</div>`).join("")}
-                ${!sa.sfondo_url ? `<div class="senza">Nessuna piantina caricata</div>` : ""}
+                ${!sa.sfondo_url ? `<div class="senza">
+                  <div>
+                    <div style="font-size:26px;">🗺️</div>
+                    Nessuna piantina<br>
+                    <small style="font-size:12px;">Caricatela qui sotto: basta una foto o un disegno</small>
+                  </div></div>` : ""}
               </div>
 
               <div class="azioni">
-                <label class="se-btn piccolo">
+                <label class="se-btn ${sa.sfondo_url ? "piccolo chiaro" : ""}">
                   <input type="file" accept="image/*" data-sfondo="${sa.id}" style="display:none;">
-                  ${sa.sfondo_url ? "Cambia piantina" : "Carica la piantina"}
+                  🗺️ ${sa.sfondo_url ? "Cambia planimetria" : "Carica la planimetria"}
                 </label>
                 ${["Ingresso","Musica","Buffet","Torta","Bar","Palco","Torta nuziale"].map(t =>
                   `<button class="se-btn piccolo chiaro" data-aggiungi="${sa.id}|${t}">+ ${t}</button>`).join("")}
@@ -570,7 +583,7 @@ function stile() {
     border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;color:var(--muto);
     text-transform:uppercase;letter-spacing:.06em;cursor:grab;white-space:nowrap;user-select:none;}
   .se-sala .senza{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    color:#B9C2C8;font-size:13.5px;pointer-events:none;}
+    color:#9AA7AF;font-size:13.5px;pointer-events:none;text-align:center;line-height:1.5;}
   .se-sala .azioni{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;}
   .se-btn.piccolo{padding:8px 13px;font-size:12.5px;cursor:pointer;display:inline-block;}
   .se-btn.chiaro{background:#fff;border:1.5px solid var(--riga);color:var(--navy);}
