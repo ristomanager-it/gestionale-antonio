@@ -310,6 +310,8 @@ function apriGiorno(k) {
     (g.ricorrenza ? '<div class="cal-m-riga"><b>' + esc(g.ricorrenza) + '</b>' +
       (g.verificata === false ? ' <span class="cal-dubbia">data da confermare</span>' : '') + '</div>' : '') +
     (g.tema ? '<div class="cal-m-riga">' + esc(g.tema) + '</div>' : '') +
+    '<div id="cal-foto">' + (g.media_url
+      ? '<img class="cal-img" src="' + esc(g.media_url) + '" alt="">' : '') + '</div>' +
     prom.map(p => '<div class="cal-m-riga">⏳ ' + esc(p) + '</div>').join('') +
     '<div class="cal-m-riga">Stato: <b>' + esc(g.stato) + '</b></div>' +
     '<textarea class="cal-ta" id="cal-testo" placeholder="Testo del post…">' + esc(g.titolo || '') + '</textarea>' +
