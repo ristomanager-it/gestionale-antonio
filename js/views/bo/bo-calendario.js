@@ -67,6 +67,8 @@ function layout() {
       <div id="cal-grid"></div>
     </div>
 
+    <div class="cal-elenco" id="cal-elenco"></div>
+
     <div class="cal-legenda">
       <div class="cal-lg">
         <div class="cal-lg-t">Bordo sinistro — che giorno è</div>
