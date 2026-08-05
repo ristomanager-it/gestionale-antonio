@@ -352,7 +352,7 @@ async function scriviConTony() {
     }
     mostraToast('Bozza scritta');
   } catch (e) {
-    mostraToast('Tony non ce l\\'ha fatta: ' + (e.message || e), 'error');
+    mostraToast('Tony non ha risposto: ' + (e.message || e), 'error');
   } finally {
     if (b) { b.disabled = false; b.textContent = testoOrig; }
   }
