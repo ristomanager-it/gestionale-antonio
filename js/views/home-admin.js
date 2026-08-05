@@ -110,6 +110,8 @@ export async function render(container) {
     </div>
     ${stile()}`;
 
+  initNotificheTab();
+
   container.querySelectorAll("[data-per]").forEach(b => {
     b.addEventListener("click", () => {
       periodo = b.getAttribute("data-per");
