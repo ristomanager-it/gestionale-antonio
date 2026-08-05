@@ -326,7 +326,7 @@ function apriGiorno(k) {
   document.getElementById('cal-salva').onclick = () => aggiorna({ titolo: valTesto(), stato: 'bozza' });
   document.getElementById('cal-fatto').onclick = () => aggiorna({ stato: 'pubblicato', pubblicato_at: new Date().toISOString() });
   document.getElementById('cal-salta').onclick = () => aggiorna({ stato: 'saltato' });
-  document.getElementById('cal-tony').onclick = () => mostraToast('Tony su questa vista arriva col prossimo passo', 'info');
+  document.getElementById('cal-tony').onclick = scriviConTony;
 }
 
 function valTesto() {
