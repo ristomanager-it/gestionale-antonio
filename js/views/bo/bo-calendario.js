@@ -329,6 +329,35 @@ function apriGiorno(k) {
   document.getElementById('cal-tony').onclick = scriviConTony;
 }
 
+async function scriviConTony() {
+  if (!SEL) return;
+  const b = document.getElementById('cal-tony');
+  const testoOrig = b ? b.textContent : '';
+  if (b) { b.disabled = true; b.textContent = 'Tony sta scrivendo…'; }
+  try {
+    const { data, error } = await supa().functions.invoke('tony-post', {
+      body: { azienda_id: aziendaId(), giorno_id: SEL.id }
+    });
+    if (error) throw error;
+    if (!data || !data.success) throw new Error((data && data.error) || 'Nessuna risposta');
+
+    const ta = document.getElementById('cal-testo');
+    if (ta) ta.value = data.testo || '';
+    if (data.idea_foto) {
+      const box = document.getElementById('cal-modal-box');
+      const nota = document.createElement('div');
+      nota.className = 'cal-m-riga';
+      nota.textContent = '📷 ' + data.idea_foto;
+      if (ta && box) box.insertBefore(nota, ta);
+    }
+    mostraToast('Bozza scritta');
+  } catch (e) {
+    mostraToast('Tony non ce l\\'ha fatta: ' + (e.message || e), 'error');
+  } finally {
+    if (b) { b.disabled = false; b.textContent = testoOrig; }
+  }
+}
+
 function valTesto() {
   const t = document.getElementById('cal-testo');
   return t ? t.value.trim() : null;
