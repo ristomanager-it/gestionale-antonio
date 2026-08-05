@@ -125,6 +125,15 @@ function layout() {
       .cal-lg-t{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:6px}
       .cal-lg-v{display:flex;flex-wrap:wrap;gap:6px}
       .cal-chip{font-size:12px;padding:5px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:4px}
+      .cal-elenco{margin-top:16px}
+      .cal-el-t{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:8px}
+      .cal-el-r{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #e5e7eb;
+                border-left:5px solid #c3c3bb;border-radius:6px;padding:9px 11px;margin-bottom:6px;
+                width:100%;text-align:left;cursor:pointer}
+      .cal-el-g{font-weight:700;font-size:14px;min-width:26px}
+      .cal-el-n{font-size:13px;font-weight:600;line-height:1.3}
+      .cal-el-s{font-size:12px;color:#6b7280;line-height:1.35;margin-top:1px}
+      .cal-el-e{margin-left:auto;font-size:15px}
       .cal-modal[hidden]{display:none}
       .cal-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;
                  justify-content:center;padding:16px;z-index:900}
