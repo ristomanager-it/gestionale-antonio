@@ -167,12 +167,15 @@ function schemaProposto() {
 
 // Le sezioni che non stanno nello schema base ma capita spesso che le chiedano:
 // un battesimo non ha l'aperitivo di serie, ma se lo chiedono deve bastare un tocco.
+function modelloAttivo() {
+  const f = P.formula_servizio === "buffet" ? "buffet" : "servito";
+  return modelli.find(x => norm(x.tipo_evento) === norm(P.titolo_evento || "") && x.formula === f)
+      || modelli.find(x => norm(x.tipo_evento) === "altro" && x.formula === f) || null;
+}
+
 function sezioniConsigliate() {
   if (!P.titolo_evento) return [];
-  const f = P.formula_servizio === "buffet" ? "buffet" : "servito";
-  const m = modelli.find(x => norm(x.tipo_evento) === norm(P.titolo_evento) && x.formula === f)
-        || modelli.find(x => norm(x.tipo_evento) === "altro" && x.formula === f);
-  const extra = Array.isArray(m?.sezioni_extra) ? m.sezioni_extra : [];
+  const extra = Array.isArray(modelloAttivo()?.sezioni_extra) ? modelloAttivo().sezioni_extra : [];
   const gia = new Set(righe.map(r => norm(r.sezione)));
   return extra.filter(x => !gia.has(norm(x.nome)));
 }
@@ -186,10 +189,15 @@ function conti() {
   let menu = 0, costoMenu = 0, stimati = 0, senzaCosto = 0;
 
   const bimbi = Math.max(Number(P.n_bambini) || 0, 0);
+  let menuAdulti = 0, menuBimbi = 0;
   righe.forEach(r => {
     if (!r.nome) return;
-    const quanti = perBambini(r.sezione) ? bimbi : inv;
-    menu += (Number(r.prezzo) || 0) * quanti;
+    const perB = perBambini(r.sezione);
+    // gli adulti sono gli invitati meno i bambini: nessuno paga due volte
+    const quanti = perB ? bimbi : Math.max(inv - bimbi, 0);
+    const riga = (Number(r.prezzo) || 0) * quanti;
+    menu += riga;
+    if (perB) menuBimbi += riga; else menuAdulti += riga;
     const c = costoDi(r);
     costoMenu += c.costo * quanti;
     if (c.stimato) stimati++;
@@ -207,7 +215,8 @@ function conti() {
   const margine = totale - costoTotale;
 
   return {
-    inv, bimbi, menu, serviziTot, costoServizi, location, totale, costoMenu, costoPersonale, costoTotale, margine,
+    inv, bimbi, menu, menuAdulti, menuBimbi, serviziTot, costoServizi, location, totale,
+    costoMenu, costoPersonale, costoTotale, margine,
     marginePerc: totale > 0 ? (margine / totale) * 100 : 0,
     aPersona: totale / inv, costoPersona: costoTotale / inv,
     stimati, senzaCosto, acconto: Number(P.acconto) || 0,
@@ -226,7 +235,8 @@ function disegna(container, supabase, azienda, sede) {
 
       <div class="pv2-testata">
         <div class="t">
-          <div class="et">${P.id ? "Preventivo " + P.id : "Nuovo preventivo"}</div>
+          <div class="et">${P.id ? "Preventivo " + P.id : "Nuovo preventivo"}${
+            P.gruppo_proposta ? " · " + esc(P.variante_nome || (P.formula_servizio === "buffet" ? "Al buffet" : "Servito")) : ""}</div>
           <h1>${esc(nomeCliente() || "Senza nome")}</h1>
           <div class="sub">${esc(dataLunga(P.data_evento))}${c.inv ? " · " + c.inv + " invitati" : ""}${P.location ? " · " + esc(P.location) : ""}</div>
         </div>
@@ -245,6 +255,19 @@ function disegna(container, supabase, azienda, sede) {
             <span>Margine</span><b>${c.marginePerc.toFixed(1)}%</b><small>${euro(c.margine)}</small></div>` : ""}
         <div class="k"><span>Acconto</span><b>${euro(c.acconto)}</b><small>saldo ${euro(c.totale - c.acconto)}</small></div>
       </div>
+
+      ${c.bimbi > 0 && !righe.some(r => perBambini(r.sezione)) ? `
+        <div class="pv2-avviso">
+          <b>Ci sono ${c.bimbi} bambini ma non c'è il menu bambini</b>
+          <span>Senza, li stai contando come adulti: il totale è più alto del vero e in cucina manca la loro preparazione.</span>
+          <button class="pv2-btn arancio" data-extra="Menu bambini" data-quante="3">+ Aggiungi il menu bambini</button>
+        </div>` : ""}
+
+      ${c.bimbi === 0 && righe.some(r => perBambini(r.sezione)) ? `
+        <div class="pv2-avviso">
+          <b>C'è il menu bambini ma i bambini sono zero</b>
+          <span>Quelle portate non entrano nel conto finché non indichi quanti sono.</span>
+        </div>` : ""}
 
       ${vedoICosti && (c.senzaCosto || c.stimati) ? `
         <div class="pv2-avviso">
@@ -338,7 +361,7 @@ function disegna(container, supabase, azienda, sede) {
             ${datalistSezione(sez)}
             <div class="top"><b>${esc(sez)}</b>
               ${sezioniInfo.find(x => norm(x.nome) === norm(sez))?.separata ? `<i class="tag">a parte</i>` : ""}
-              ${perBambini(sez) ? `<i class="tag">bambini</i>` : ""}
+              ${perBambini(sez) ? `<i class="tag bimbi">${c.bimbi || 0} bambini</i>` : ""}
               <span>${righe.filter(r => (r.sezione || "Menu") === sez).length} portate ·
                 ${euro(righe.filter(r => (r.sezione || "Menu") === sez).reduce((s, r) => s + (Number(r.prezzo) || 0), 0))} a persona
                 ${catDiSezione(sez) ? "· propone solo questa categoria" : "· propone tutto il ricettario"}</span></div>
@@ -441,7 +464,8 @@ function disegna(container, supabase, azienda, sede) {
       <div class="pv2-card">
         <h2>Il conto</h2>
         <div class="pv2-conto">
-          <div class="r"><span>Menu · ${c.inv} invitati${c.bimbi ? ` (di cui ${c.bimbi} bambini)` : ""}</span><b>${euro(c.menu)}</b></div>
+          <div class="r"><span>Menu adulti · ${Math.max(c.inv - c.bimbi, 0)}</span><b>${euro(c.menuAdulti)}</b></div>
+          ${c.bimbi ? `<div class="r"><span>Menu bambini · ${c.bimbi}</span><b>${euro(c.menuBimbi)}</b></div>` : ""}
           <div class="r"><span>Servizi ed extra</span><b>${euro(c.serviziTot)}</b></div>
           ${c.location ? `<div class="r"><span>Location</span><b>${euro(c.location)}</b></div>` : ""}
           <div class="r">
@@ -470,7 +494,8 @@ function disegna(container, supabase, azienda, sede) {
           <button class="pv2-btn sec" id="pv2-wa">💬 WhatsApp a mano</button>
           <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>
           <button class="pv2-btn sec" id="pv2-proroga">📅 ${scaduto() ? "Riapri" : "Proroga"}</button>
-          ${P.stato === "confermato" ? `<button class="pv2-btn arancio" id="pv2-spazio">🎪 Spazio degli sposi</button>` : ""}` : ""}
+          ${P.stato === "confermato" ? `<button class="pv2-btn arancio" id="pv2-spazio">🎪 Spazio degli sposi</button>` : ""}
+          <button class="pv2-btn sec" id="pv2-variante">⇄ Proposta ${P.formula_servizio === "buffet" ? "servita" : "al buffet"}</button>` : ""}
       </div>
       <div id="pv2-esito" class="pv2-esito"></div>
     </div>
@@ -613,6 +638,8 @@ function aggancia(container, supabase, azienda, sede) {
   container.querySelector("#pv2-applica-schema")?.addEventListener("click", () => {
     const schema = schemaProposto();
     if (!schema) return;
+    const sugg = modelloAttivo()?.prezzo_bambino_suggerito;
+    if (sugg && !Number(P.prezzo_bambino)) P.prezzo_bambino = Number(sugg);
     // una riga vuota per ogni portata prevista: si riempiono scrivendo il piatto
     schema.forEach(s => {
       const quante = Math.max(Number(s.quante) || 1, 1);
@@ -784,6 +811,19 @@ function aggancia(container, supabase, azienda, sede) {
     P.scadenza_il = nuova; P.giorni_validita = g;
     msg(container, "Valida ancora " + g + (g === 1 ? " giorno." : " giorni."));
     ri();
+  });
+
+  container.querySelector("#pv2-variante")?.addEventListener("click", async (e) => {
+    const altra = P.formula_servizio === "buffet" ? "servito" : "buffet";
+    if (!confirm(`Creo la stessa proposta in versione ${altra === "buffet" ? "al buffet" : "servita"}?\n\n` +
+      "Cliente, data e invitati vengono copiati. Il menu no: i piatti cambiano, lo componi da zero.")) return;
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Creo…";
+    const { data, error } = await supabase.rpc("crea_variante_preventivo", {
+      p_preventivo: P.id, p_formula: altra });
+    b.disabled = false;
+    if (error || !data?.ok) return msg(container, error?.message || data?.errore || "Non è andata.", true);
+    location.hash = "#/creaPreventivo?id=" + data.preventivo_id;
+    location.reload();
   });
 
   container.querySelector("#pv2-spazio")?.addEventListener("click", async (e) => {
@@ -1056,6 +1096,7 @@ function stile() {
   .pv2-sez .top{background:#F7F9FB;padding:9px 13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .pv2-sez .top b{flex:1;font-size:14.5px;}
   .pv2-sez .top span{font-size:12px;color:var(--muto);}
+  .pv2-sez .top .tag.bimbi{background:#FFF7ED;color:#9A3412;}
   .pv2-sez .top .tag{font-style:normal;font-size:10.5px;font-weight:800;text-transform:uppercase;
     letter-spacing:.06em;background:#EEF2F5;color:var(--muto);padding:2px 7px;border-radius:100px;}
   .pv2 .riga{display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid #F1F4F6;}
