@@ -4,7 +4,7 @@
 // Il token degli sposi è diverso da quello degli invitati: da qui si vede tutto
 // del proprio evento, da lì nessun prezzo.
 
-let D = null, T = null, sez = "invitati", token = "", tavoloAperto = null;
+let D = null, T = null, M = null, sez = "invitati", token = "", tavoloAperto = null;
 
 // nomi pronti per i tavoli: la domanda che fanno tutti
 const TEMI_NOMI = {
@@ -23,11 +23,12 @@ export async function render(container) {
 
   container.innerHTML = guscio(`<div class="sp-caric">Un attimo…</div>`);
   try {
-    const [a, b] = await Promise.all([
+    const [a, b, c] = await Promise.all([
       supabase.rpc("spazio_sposi", { p_token: token }),
       supabase.rpc("spazio_tableau", { p_token: token }),
+      supabase.rpc("spazio_menu", { p_token: token }),
     ]);
-    D = a.data; T = b.data?.ok ? b.data : null;
+    D = a.data; T = b.data?.ok ? b.data : null; M = c.data?.ok ? c.data : null;
   } catch (e) { console.error(e); }
 
   if (!D?.ok) { container.innerHTML = guscio(`<div class="sp-err">${esc(D?.errore || "Non riesco a caricare lo spazio.")}</div>`); return; }
@@ -234,6 +235,17 @@ function disegna(container, supabase) {
         <div class="r"><div class="t"><b>Acconto versato</b></div><em>${euro(r.acconto)}</em></div>
         <div class="r"><div class="t"><b>Saldo il giorno dell'evento</b></div><em>${euro((r.totale || 0) - (r.acconto || 0))}</em></div>
       </div>` : `<div class="vuoto">Non c'è ancora un preventivo collegato.</div>`}
+      ${(M?.portate || []).length ? `
+        <h2>Il vostro menu</h2>
+        <div class="sp-menu">
+          ${[...new Set(M.portate.map(x => x.sezione))].map(s2 => `
+            <div class="s">
+              <div class="tit">${esc(s2)}${M.portate.find(x => x.sezione === s2 && x.per_bambini) ? " · bambini" : ""}</div>
+              ${M.portate.filter(x => x.sezione === s2).map(x => `
+                <div class="pi">${esc(x.nome)}${x.descrizione ? `<span>${esc(x.descrizione)}</span>` : ""}</div>`).join("")}
+            </div>`).join("")}
+        </div>` : ""}
+
       <div class="sott" style="margin-top:16px;">Per aggiungere o cambiare qualcosa, scriveteci: vi rispondiamo con il prezzo aggiornato.</div>`;
     }
 
@@ -533,6 +545,13 @@ function guscio(dentro, tema) {
     background-color:#EDE2E6;border:1px solid var(--riga);}
   .sp-idee .piu{aspect-ratio:1;border:1.5px dashed #CBD5DB;border-radius:9px;display:flex;
     align-items:center;justify-content:center;color:var(--muto);font-size:20px;cursor:pointer;}
+  .sp-menu{background:#fff;border:1px solid var(--riga);border-radius:13px;overflow:hidden;}
+  .sp-menu .s{padding:12px 15px;border-top:1px solid #F1EEE8;}
+  .sp-menu .s:first-child{border-top:none;}
+  .sp-menu .tit{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--vino);
+    font-weight:800;margin-bottom:6px;}
+  .sp-menu .pi{font-size:14.5px;line-height:1.45;padding:2px 0;}
+  .sp-menu .pi span{display:block;font-size:12.5px;color:var(--muto);font-style:italic;}
   .sp-note{background:#FFFDF5;border:1px solid #F0E3C0;border-radius:11px;padding:13px;
     font-size:13.5px;line-height:1.7;color:#5A4A2A;}
   .sp-pie{background:#fff;border-top:1px solid var(--riga);padding:14px;text-align:center;

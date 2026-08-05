@@ -494,7 +494,8 @@ function disegna(container, supabase, azienda, sede) {
           <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>
           <button class="pv2-btn sec" id="pv2-proroga">📅 ${scaduto() ? "Riapri" : "Proroga"}</button>
           ${P.stato === "confermato" ? `<button class="pv2-btn arancio" id="pv2-spazio">🎪 Spazio degli sposi</button>` : ""}
-          <button class="pv2-btn sec" id="pv2-duplica">⧉ Duplica</button>` : ""}
+          <button class="pv2-btn sec" id="pv2-duplica">⧉ Duplica</button>
+          ${vedoICosti ? `<button class="pv2-btn sec" id="pv2-fabbisogno">🧾 Cosa serve in cucina</button>` : ""}` : ""}
       </div>
       <div id="pv2-esito" class="pv2-esito"></div>
     </div>
@@ -815,6 +816,54 @@ function aggancia(container, supabase, azienda, sede) {
   // Duplica: serve quando il cliente non ha ancora deciso che tipo di festa fare.
   // Copia solo l'anagrafica, il menu si compone da zero. I due preventivi restano
   // indipendenti: nessun collegamento, nessuna chiusura automatica.
+  container.querySelector("#pv2-fabbisogno")?.addEventListener("click", async () => {
+    const { data, error } = await supabase.rpc("fabbisogno_evento", { p_preventivo: P.id });
+    if (error || !data?.ok) return msg(container, error?.message || data?.errore || "Non è andata.", true);
+
+    const senza = (data.piatti || []).filter(x => x.senza_ricetta).length;
+    const w = window.open("", "_blank");
+    if (!w) return msg(container, "Il browser ha bloccato la finestra.", true);
+    w.document.write(`
+      <html><head><meta charset="utf-8"><title>Cosa serve — ${esc(nomeCliente())}</title>
+      <style>
+        body{font-family:-apple-system,system-ui,sans-serif;color:#12232E;padding:26px;max-width:760px;margin:auto;}
+        h1{font-family:Georgia,serif;font-size:24px;font-weight:normal;color:#023C59;margin-bottom:4px;}
+        .sub{color:#6B7A83;font-size:14px;margin-bottom:20px;}
+        h2{font-size:15px;margin:22px 0 8px;color:#023C59;}
+        table{width:100%;border-collapse:collapse;font-size:14px;}
+        th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6B7A83;
+           border-bottom:1px solid #E2E6EA;padding:6px 0;}
+        td{padding:7px 0;border-bottom:1px solid #F1F4F6;}
+        td.n{text-align:right;white-space:nowrap;}
+        .ko{color:#B91C1C;}
+        .avv{background:#FFF7ED;border:1px solid #FED7AA;color:#7C2D12;border-radius:10px;
+             padding:11px 13px;font-size:13.5px;margin-bottom:18px;line-height:1.5;}
+        @media print{.noprint{display:none;}}
+      </style></head><body>
+      <h1>${esc(nomeCliente() || "Evento")}</h1>
+      <div class="sub">${esc(dataLunga(P.data_evento))} · ${data.adulti} adulti e ${data.bambini} bambini
+        ${data.da_conferme ? "(dalle conferme degli invitati)" : "(dal preventivo)"}</div>
+      ${senza ? `<div class="avv"><b>${senza} ${senza === 1 ? "piatto non ha" : "piatti non hanno"} una ricetta collegata</b><br>
+        Le loro materie prime non sono nella lista qui sotto.</div>` : ""}
+      <h2>Porzioni da produrre</h2>
+      <table><tr><th>Sezione</th><th>Piatto</th><th style="text-align:right">Porzioni</th></tr>
+        ${(data.piatti || []).map(x => `<tr><td>${esc(x.sezione || "")}</td>
+          <td class="${x.senza_ricetta ? "ko" : ""}">${esc(x.piatto)}${x.senza_ricetta ? " (senza ricetta)" : ""}</td>
+          <td class="n">${x.porzioni}</td></tr>`).join("")}
+      </table>
+      <h2>Materia prima</h2>
+      <table><tr><th>Prodotto</th><th style="text-align:right">Serve</th><th style="text-align:right">In magazzino</th></tr>
+        ${(data.ingredienti || []).map(i => `<tr>
+          <td>${esc(i.prodotto || "—")}</td>
+          <td class="n">${i.quantita} ${esc(i.unita || "")}</td>
+          <td class="n ${Number(i.in_magazzino) < Number(i.quantita) ? "ko" : ""}">${i.in_magazzino}</td></tr>`).join("")}
+      </table>
+      ${!(data.ingredienti || []).length ? "<p style=\"color:#6B7A83;font-size:14px;\">Nessun ingrediente: le ricette collegate non hanno la distinta.</p>" : ""}
+      <p class="noprint" style="margin-top:24px;"><button onclick="window.print()">Stampa</button></p>
+      </body></html>`);
+    w.document.close();
+  });
+
   container.querySelector("#pv2-duplica")?.addEventListener("click", async (e) => {
     if (!confirm("Duplico questo preventivo?\n\nCliente, data e invitati vengono copiati. Il menu no.")) return;
     const b = e.currentTarget; b.disabled = true; b.textContent = "Duplico…";
