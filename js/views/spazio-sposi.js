@@ -96,7 +96,9 @@ function disegna(container, supabase) {
       <button class="sp-btn ch" id="sp-link-invito">🔗 Copia il link dell'invito</button>`;
 
     if (sez === "tavoli") {
-      if (!T) return `<div class="sott">Un attimo…</div>`;
+      if (!T) return `
+        <div class="sp-chiuso">Non riesco a caricare i tavoli.
+          Riprova tra poco: se resta così, scriveteci.</div>`;
       const seduti = (T.tavoli || []).reduce((a, t) => a + (t.seduti || 0), 0);
       const restano = (T.da_sedere || []).reduce((a, i) => a + (i.quanti || 0), 0);
       return `
@@ -209,7 +211,13 @@ function disegna(container, supabase) {
         ${(D.fornitori || []).length ? D.fornitori.map(f => `
           <div class="r">
             <div class="t"><b>${esc(f.nome)}</b><span>${esc(f.categoria)}${f.referente ? " · " + esc(f.referente) : ""}${
-              f.telefono ? " · " + esc(f.telefono) : ""}</span></div>
+              f.telefono ? " · " + esc(f.telefono) : ""}</span>
+              <span class="soldi">
+                <input type="number" step="0.01" placeholder="costo" value="${f.importo ?? ""}"
+                  data-forn="${esc(f.id)}" data-campo="importo"> €
+                <input type="number" step="0.01" placeholder="acconto" value="${f.acconto ?? ""}"
+                  data-forn="${esc(f.id)}" data-campo="acconto"> versati
+              </span></div>
             <em>${f.ora_arrivo ? String(f.ora_arrivo).slice(0, 5) : "—"}</em>
           </div>`).join("") : `<div class="vuoto">Nessun fornitore ancora.</div>`}
       </div>
@@ -259,15 +267,34 @@ function disegna(container, supabase) {
             </div>`).join("")}
         </div>` : ""}
 
+      ${(D.extra_presi || []).length ? `
+        <h2>Servizi compresi</h2>
+        <div class="sp-card">
+          ${D.extra_presi.map(x => `<div class="r"><div class="t"><b>${esc(x.descrizione)}</b></div>
+            <em>${euro(x.prezzo)}</em></div>`).join("")}
+        </div>` : ""}
+
+      ${(D.extra_disponibili || []).length ? `
+        <h2>Potete ancora aggiungere</h2>
+        <div class="sp-card">
+          ${D.extra_disponibili.map(x => `
+            <div class="r"><div class="t"><b>${esc(x.nome)}</b>
+              <span>${esc(x.descrizione || x.categoria)}</span></div>
+              <em>${euro(x.prezzo)}${x.unita === "a persona" ? " a persona" : ""}</em></div>`).join("")}
+        </div>
+        <div class="sott" style="margin-top:9px;">Se ne volete uno, scriveteci: ve lo confermiamo con il prezzo aggiornato.</div>` : ""}
+
       <div class="sott" style="margin-top:16px;">Per aggiungere o cambiare qualcosa, scriveteci: vi rispondiamo con il prezzo aggiornato.</div>`;
     }
 
     if (sez === "idee") return `
       <h2>Le foto che vi piacciono</h2>
+      <div class="sott">Torta, fiori, allestimenti: caricate quello che avete in mente.</div>
       <div class="sp-idee">
         ${(D.idee || []).map(i => `<div style="background-image:url('${esc(i.url)}')" title="${esc(i.nota || "")}"></div>`).join("")}
-        <label class="piu"><input type="file" accept="image/*" id="id-file" style="display:none;">＋</label>
+        <label class="piu"><input type="file" accept="image/*" multiple id="id-file" style="display:none;">＋</label>
       </div>
+      <div id="id-esito" class="sott" style="margin-top:8px;"></div>
       <h2>I vostri appunti</h2>
       ${(D.appunti || []).length ? `<div class="sp-note">
         ${D.appunti.map(a => `· ${esc(a.testo)}`).join("<br>")}</div>` : ""}
@@ -557,15 +584,32 @@ function aggancia(container, supabase) {
   container.querySelector("#sp-apri-invito")?.addEventListener("click", () => window.open(linkInvito(), "_blank"));
 
   document.getElementById("id-file")?.addEventListener("change", async (e) => {
-    const f = (e.target.files || [])[0];
-    if (!f) return;
-    const path = `spazi/${token}/${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
-    const up = await supabase.storage.from("media-aziende").upload(path, f, { contentType: f.type });
-    if (up.error) return alert("Non è andata: " + up.error.message);
-    const { data: pub } = supabase.storage.from("media-aziende").getPublicUrl(path);
-    await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "idea", p_dati: { url: pub.publicUrl } });
+    const files = [...(e.target.files || [])];
+    if (!files.length) return;
+    const esito = document.getElementById("id-esito");
+    if (esito) esito.textContent = "Carico…";
+    let ok = 0;
+    for (const f of files.slice(0, 10)) {
+      try {
+        const path = `spazi/${token}/${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
+        const up = await supabase.storage.from("media-aziende").upload(path, f, { contentType: f.type });
+        if (up.error) { console.error(up.error); continue; }
+        const { data: pub } = supabase.storage.from("media-aziende").getPublicUrl(path);
+        await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "idea", p_dati: { url: pub.publicUrl } });
+        ok++;
+      } catch (err) { console.error(err); }
+    }
+    if (esito) esito.textContent = ok ? `${ok} ${ok === 1 ? "foto caricata" : "foto caricate"}.` : "Non è andata.";
     render(container);
   });
+
+  container.querySelectorAll("[data-forn]").forEach(el =>
+    el.addEventListener("change", async () => {
+      const patch = {};
+      patch[el.dataset.campo] = el.value;
+      await supabase.rpc("spazio_fornitore_aggiorna", {
+        p_token: token, p_id: el.dataset.forn, p_dati: patch });
+    }));
 }
 
 /* ── utilità ─────────────────────────────────────────────────── */
@@ -669,6 +713,8 @@ function guscio(dentro, tema) {
   .tg.on:after{left:20px;}
   .sp-cop{height:130px;border-radius:11px;background:#EDE2E6 center/cover;border:1px solid var(--riga);
     display:flex;align-items:center;justify-content:center;color:#9B7F8A;font-size:12.5px;}
+  .sp-card .r .t .soldi{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11.5px;color:var(--muto);}
+  .sp-card .r .t .soldi input{width:76px;padding:5px 7px;border:1.5px solid var(--riga);border-radius:7px;font-size:13px;}
   .sp-dom{display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px solid #F1EEE8;font-size:14px;}
   .sp-dom:first-of-type{border-top:none;}
   .sp-dom span{flex:1;}
