@@ -474,6 +474,7 @@ export function initMenu() {
           ] },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "📸 Bacheca Social",   route: "bo-marketing?tab=bacheca-social" },
+          { label: "📅 Calendario editoriale", route: "bo-calendario" },
           { label: "🎁 Promo", route: "bo-promo", children: [
             { label: "🎯 Gestisci campagne", route: "bo-promo" },
             { label: "📊 Analisi Promo",     route: "bo-promo-analisi" },
