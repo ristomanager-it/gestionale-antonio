@@ -46,6 +46,8 @@ export async function render(container) {
         <span>${sede?.nome ? esc(sede.nome) : "tutte le sedi"}</span>
       </div>
 
+      <div id="notifiche-tab"></div>
+
       <div class="ad-per">
         ${[["oggi","Oggi"],["settimana","Settimana"],["mese","Mese"],["anno","Anno"],["pers","Scegli"]].map(([p,l]) =>
           `<button data-per="${p}" class="${p === periodo ? "on" : ""}">${l}</button>`).join("")}
