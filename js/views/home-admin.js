@@ -110,7 +110,9 @@ export async function render(container) {
     </div>
     ${stile()}`;
 
-  initNotificheTab();
+  import("../components/notifiche-tab.js?v=" + (window.APP_V || "1"))
+    .then(m => m.initNotificheTab())
+    .catch(e => console.warn("tab notifiche non caricato:", e));
 
   container.querySelectorAll("[data-per]").forEach(b => {
     b.addEventListener("click", () => {
