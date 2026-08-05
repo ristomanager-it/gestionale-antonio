@@ -2897,7 +2897,12 @@ async function aggiornaCostiProduzione() {
     });
     mpTotale = Number(calc.costoTotaleInput) || 0;
   }
-  const porzioniRicetta = Math.max(Number(document.getElementById("r-porzioni")?.value) || 1, 1);
+  // Le quantita' degli ingredienti sono di TUTTA la sessione, non di una porzione:
+  // se la resa non e' compilata si divideva per 1 e usciva il costo dell'intera
+  // infornata spacciato per costo a porzione (il pollo a 29 € invece che a 2,90).
+  const porzioniResa = Math.max(Number(document.getElementById("r-porzioni")?.value) || 0, 0);
+  const porzioniRicetta = porzioniResa > 0 ? porzioniResa : Math.max(Number(_lottoStandard) || 1, 1);
+  const resaMancante = porzioniResa <= 0;
   const mpPorzione = mpTotale / porzioniRicetta;
   const pienoPorzione = mpPorzione + c.totale_porzione;
 
@@ -2910,11 +2915,18 @@ async function aggiornaCostiProduzione() {
           style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;">
       </div>
 
+      ${resaMancante ? `
+        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:11px 13px;
+                    margin-bottom:12px;font-size:12.5px;color:#7C2D12;line-height:1.5;">
+          <b>Manca la resa della ricetta.</b> Sto dividendo per le porzioni per sessione (${porzioniRicetta}).
+          Compila <b>Porzioni</b> più in alto: è quel numero che rende esatto il food cost qui e in tutta l'app.
+        </div>` : ""}
+
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
           <div style="font-size:12px;color:#64748b;">🥩 Materia prima</div>
           <div style="font-size:20px;font-weight:800;color:#9a3412;">€ ${mpPorzione.toFixed(2)}</div>
-          <div style="font-size:11.5px;color:#94a3b8;">a porzione · dalle righe</div>
+          <div style="font-size:11.5px;color:#94a3b8;">a porzione · ${formatMoney(mpTotale)} per ${porzioniRicetta}</div>
         </div>
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
           <div style="font-size:12px;color:#64748b;">👨‍🍳 Manodopera</div>
