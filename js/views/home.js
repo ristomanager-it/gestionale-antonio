@@ -1,4 +1,5 @@
 import { renderFooter, initFooter } from "../components/footer.js"
+import { initNotificheTab } from "../components/notifiche-tab.js"
 
 export async function render(container){
 
