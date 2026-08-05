@@ -496,7 +496,7 @@ function disegna(container, supabase, azienda, sede) {
           ${P.stato === "confermato" ? `<button class="pv2-btn arancio" id="pv2-spazio">🎪 Spazio degli sposi</button>` : ""}
           <button class="pv2-btn sec" id="pv2-duplica">⧉ Duplica</button>
           ${vedoICosti ? `<button class="pv2-btn sec" id="pv2-fabbisogno">🧾 Cosa serve in cucina</button>` : ""}
-          ${vedoICosti && P.stato === "confermato" ? `<button class="pv2-btn arancio" id="pv2-produzione">🍳 Manda in produzione</button>` : ""}` : ""}
+` : ""}
       </div>
       <div id="pv2-esito" class="pv2-esito"></div>
     </div>
@@ -598,7 +598,13 @@ function aggancia(container, supabase, azienda, sede) {
     });
   });
 
-  container.querySelector("#pv2-stato")?.addEventListener("change", (e) => { P.stato = e.target.value; });
+  container.querySelector("#pv2-stato")?.addEventListener("change", (e) => {
+    P.stato = e.target.value;
+    if (P.stato === "confermato") {
+      msg(container, "Salvando, l'evento entra in produzione da solo: un lotto per piatto, " +
+        "con la data calcolata sulla conservazione. Le porzioni si aggiornano man mano che gli invitati confermano.");
+    }
+  });
 
   container.querySelectorAll("[data-portata]").forEach(el => {
     el.addEventListener("change", () => {
@@ -817,17 +823,6 @@ function aggancia(container, supabase, azienda, sede) {
   // Duplica: serve quando il cliente non ha ancora deciso che tipo di festa fare.
   // Copia solo l'anagrafica, il menu si compone da zero. I due preventivi restano
   // indipendenti: nessun collegamento, nessuna chiusura automatica.
-  container.querySelector("#pv2-produzione")?.addEventListener("click", async (e) => {
-    if (!confirm("Creo i lotti di produzione per questo evento?\n\n" +
-      "Nascono in bozza, uno per piatto, con la data calcolata sulla conservazione della ricetta. " +
-      "In cucina li trovano nel planner.")) return;
-    const b = e.currentTarget; b.disabled = true; b.textContent = "Creo…";
-    const { data, error } = await supabase.rpc("genera_produzione_evento", { p_preventivo: P.id });
-    b.disabled = false; b.textContent = "🍳 Manda in produzione";
-    if (error || !data?.ok) return msg(container, error?.message || data?.errore || "Non è andata.", true);
-    msg(container, `${data.lotti} lotti creati in bozza.` + (data.nota ? " " + data.nota + "." : ""));
-  });
-
   container.querySelector("#pv2-fabbisogno")?.addEventListener("click", async () => {
     const { data, error } = await supabase.rpc("fabbisogno_evento", { p_preventivo: P.id });
     if (error || !data?.ok) return msg(container, error?.message || data?.errore || "Non è andata.", true);
