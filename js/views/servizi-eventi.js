@@ -17,19 +17,21 @@ export async function render(container) {
   await disegna();
 
   async function disegna() {
-    const [srv, reg, forn, dip, tem, cf] = await Promise.all([
+    const [srv, reg, forn, dip, tem, cf, sal] = await Promise.all([
       supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).order("categoria").order("nome"),
       supabase.from("regole_personale").select("*").eq("azienda_id", azienda.id).eq("attiva", true).order("tipo_evento"),
       supabase.from("fornitori").select("id, ragione_sociale").eq("azienda_id", azienda.id).order("ragione_sociale").limit(500),
       supabase.from("dipendenti").select("mansione, ruolo, costo_orario").eq("azienda_id", azienda.id).eq("attivo", true),
       supabase.from("preventivi_temi").select("*").eq("azienda_id", azienda.id).order("tipo_evento"),
       supabase.from("preventivi_config").select("*").eq("azienda_id", azienda.id).maybeSingle(),
+      supabase.from("sala_piantina").select("*").eq("azienda_id", azienda.id).order("nome"),
     ]);
     const servizi = srv.data || [];
     const regole = reg.data || [];
     const fornitori = forn.data || [];
     const temi = tem.data || [];
     const cfg = cf.data || {};
+    const sale = sal.data || [];
 
     // costo orario medio per mansione: serve per far vedere quanto pesa una regola
     const perMansione = {};
@@ -56,9 +58,53 @@ export async function render(container) {
           <button data-vista="personale" class="${vista === "personale" ? "on" : ""}">Personale per evento</button>
           <button data-vista="temi" class="${vista === "temi" ? "on" : ""}">Aspetto del documento</button>
           <button data-vista="pagamenti" class="${vista === "pagamenti" ? "on" : ""}">Pagamenti e testi</button>
+          <button data-vista="sale" class="${vista === "sale" ? "on" : ""}">Sale e piantine</button>
         </div>
 
-        ${vista === "pagamenti" ? `
+        ${vista === "sale" ? `
+          <div class="se-card">
+            <h2>Le vostre sale</h2>
+            <div class="aiuto">Caricate la piantina della sala e segnate dove stanno le cose fisse:
+              ingresso, musica, buffet, torta. Gli sposi ci sistemano i tavoli sopra, ma quelle non le spostano.</div>
+          </div>
+
+          ${sale.map(sa => `
+            <div class="se-sala">
+              <div class="testa">
+                <input class="in nome" value="${esc(sa.nome)}" data-sala="${sa.id}" data-campo="nome">
+                <label class="max">Tavoli che ci stanno
+                  <input class="in" type="number" min="1" value="${sa.max_tavoli || ""}"
+                    data-sala="${sa.id}" data-campo="max_tavoli"></label>
+              </div>
+
+              <div class="mappa" data-mappa="${sa.id}"
+                style="${sa.sfondo_url ? `background-image:url('${esc(sa.sfondo_url)}');background-size:cover;background-position:center;` : ""}">
+                ${(sa.elementi || []).map((el, i) => `
+                  <div class="el" data-el="${sa.id}|${i}"
+                    style="left:${el.x}%;top:${el.y}%;">${esc(el.etichetta || el.tipo)}</div>`).join("")}
+                ${!sa.sfondo_url ? `<div class="senza">Nessuna piantina caricata</div>` : ""}
+              </div>
+
+              <div class="azioni">
+                <label class="se-btn piccolo">
+                  <input type="file" accept="image/*" data-sfondo="${sa.id}" style="display:none;">
+                  ${sa.sfondo_url ? "Cambia piantina" : "Carica la piantina"}
+                </label>
+                ${["Ingresso","Musica","Buffet","Torta","Bar","Palco","Torta nuziale"].map(t =>
+                  `<button class="se-btn piccolo chiaro" data-aggiungi="${sa.id}|${t}">+ ${t}</button>`).join("")}
+              </div>
+              <div class="aiuto">Gli elementi si aggiungono al centro: trascinateli dove stanno davvero.</div>
+            </div>`).join("")}
+
+          <div class="se-card">
+            <h2>Aggiungi una sala</h2>
+            <div class="se-form">
+              <input id="sa-nome" class="in" placeholder="Nome della sala">
+              <input id="sa-max" class="in" type="number" min="1" placeholder="Quanti tavoli ci stanno">
+              <button class="se-btn" id="sa-add">Aggiungi</button>
+            </div>
+          </div>
+        ` : vista === "pagamenti" ? `
           <div class="se-card">
             <h2>Come il cliente versa l'acconto</h2>
             <div class="aiuto">Compaiono nella pagina del cliente solo quando il preventivo ha un acconto.
@@ -276,6 +322,87 @@ export async function render(container) {
         disegna();
       }));
 
+    container.querySelector("#sa-add")?.addEventListener("click", async () => {
+      const nome = (document.getElementById("sa-nome")?.value || "").trim();
+      if (!nome) return msg("Scrivi il nome della sala.", true);
+      const { error } = await supabase.from("sala_piantina").insert({
+        azienda_id: azienda.id, nome,
+        max_tavoli: Number(document.getElementById("sa-max")?.value) || null,
+        elementi: [] });
+      if (error) return msg("Errore: " + error.message, true);
+      disegna();
+    });
+
+    container.querySelectorAll("[data-sala]").forEach(el =>
+      el.addEventListener("change", async () => {
+        const patch = {};
+        patch[el.dataset.campo] = el.type === "number" ? (Number(el.value) || null) : el.value;
+        await supabase.from("sala_piantina").update(patch).eq("id", el.dataset.sala);
+        msg("Salvato.");
+      }));
+
+    container.querySelectorAll("[data-sfondo]").forEach(inp =>
+      inp.addEventListener("change", async (ev) => {
+        const f = (ev.target.files || [])[0];
+        if (!f) return;
+        msg("Carico la piantina…");
+        const path = `${azienda.id}/piantine/${inp.dataset.sfondo}-${Date.now()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
+        const up = await supabase.storage.from("media-aziende").upload(path, f, { contentType: f.type, upsert: true });
+        if (up.error) return msg("Non è andata: " + up.error.message, true);
+        const { data: pub } = supabase.storage.from("media-aziende").getPublicUrl(path);
+        await supabase.from("sala_piantina").update({ sfondo_url: pub.publicUrl }).eq("id", inp.dataset.sfondo);
+        disegna();
+      }));
+
+    container.querySelectorAll("[data-aggiungi]").forEach(b =>
+      b.addEventListener("click", async () => {
+        const [id, tipo] = b.dataset.aggiungi.split("|");
+        const sa = sale.find(x => String(x.id) === id);
+        const el = [...(sa?.elementi || []), { tipo: tipo.toLowerCase(), etichetta: tipo, x: 50, y: 50 }];
+        await supabase.from("sala_piantina").update({ elementi: el }).eq("id", id);
+        disegna();
+      }));
+
+    // trascinamento degli elementi fissi sulla piantina
+    container.querySelectorAll("[data-el]").forEach(el => {
+      let muovendo = false;
+      const mappa = el.closest(".mappa");
+      const sposta = (ev) => {
+        if (!muovendo) return;
+        const r = mappa.getBoundingClientRect();
+        const p = ev.touches ? ev.touches[0] : ev;
+        const x = Math.min(Math.max(((p.clientX - r.left) / r.width) * 100, 2), 98);
+        const y = Math.min(Math.max(((p.clientY - r.top) / r.height) * 100, 2), 98);
+        el.style.left = x + "%"; el.style.top = y + "%";
+        ev.preventDefault();
+      };
+      const fine = async () => {
+        if (!muovendo) return;
+        muovendo = false;
+        const [id, i] = el.dataset.el.split("|");
+        const sa = sale.find(x => String(x.id) === id);
+        const elementi = [...(sa?.elementi || [])];
+        elementi[Number(i)] = { ...elementi[Number(i)],
+          x: Math.round(parseFloat(el.style.left)), y: Math.round(parseFloat(el.style.top)) };
+        await supabase.from("sala_piantina").update({ elementi }).eq("id", id);
+        msg("Posizione salvata.");
+      };
+      el.addEventListener("mousedown", () => { muovendo = true; });
+      el.addEventListener("touchstart", () => { muovendo = true; }, { passive: true });
+      mappa?.addEventListener("mousemove", sposta);
+      mappa?.addEventListener("touchmove", sposta, { passive: false });
+      document.addEventListener("mouseup", fine);
+      document.addEventListener("touchend", fine);
+      el.addEventListener("dblclick", async () => {
+        if (!confirm("Tolgo questo elemento?")) return;
+        const [id, i] = el.dataset.el.split("|");
+        const sa = sale.find(x => String(x.id) === id);
+        const elementi = (sa?.elementi || []).filter((_, n) => n !== Number(i));
+        await supabase.from("sala_piantina").update({ elementi }).eq("id", id);
+        disegna();
+      });
+    });
+
     container.querySelectorAll("[data-cfg]").forEach(el =>
       el.addEventListener("change", async () => {
         const patch = {};
@@ -430,6 +557,23 @@ function stile() {
     padding:9px 12px;font-size:13px;cursor:pointer;font-family:inherit;}
   .se-tema input[type=color]{width:52px;height:34px;border:1px solid var(--riga);border-radius:8px;
     background:#fff;padding:2px;cursor:pointer;display:block;margin-top:3px;}
+  .se-sala{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:16px;margin-bottom:14px;}
+  .se-sala .testa{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
+  .se-sala .testa .nome{flex:1;min-width:160px;font-weight:700;}
+  .se-sala .testa .max{font-size:12px;color:var(--muto);}
+  .se-sala .testa .max input{width:110px;margin-top:4px;}
+  .se-sala .mappa{position:relative;height:320px;border:1px solid var(--riga);border-radius:12px;
+    background-color:#fff;overflow:hidden;touch-action:none;
+    background-image:linear-gradient(#F3F5F7 1px,transparent 1px),linear-gradient(90deg,#F3F5F7 1px,transparent 1px);
+    background-size:26px 26px;}
+  .se-sala .el{position:absolute;transform:translate(-50%,-50%);background:#EEF0F2;border:1px dashed #C7CDD2;
+    border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;color:var(--muto);
+    text-transform:uppercase;letter-spacing:.06em;cursor:grab;white-space:nowrap;user-select:none;}
+  .se-sala .senza{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:#B9C2C8;font-size:13.5px;pointer-events:none;}
+  .se-sala .azioni{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;}
+  .se-btn.piccolo{padding:8px 13px;font-size:12.5px;cursor:pointer;display:inline-block;}
+  .se-btn.chiaro{background:#fff;border:1.5px solid var(--riga);color:var(--navy);}
   .se-esito{margin-top:10px;font-size:14px;}
   .se-esito.ok{color:var(--verde);} .se-esito.ko{color:var(--rosso);}
   </style>`;
