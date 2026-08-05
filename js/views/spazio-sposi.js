@@ -4,7 +4,17 @@
 // Il token degli sposi è diverso da quello degli invitati: da qui si vede tutto
 // del proprio evento, da lì nessun prezzo.
 
-let D = null, sez = "invitati", token = "";
+let D = null, T = null, sez = "invitati", token = "", tavoloAperto = null;
+
+// nomi pronti per i tavoli: la domanda che fanno tutti
+const TEMI_NOMI = {
+  "Città": ["Roma","Parigi","Lisbona","Vienna","Praga","Siviglia","Atene","Oslo","Dublino","Berlino","Napoli","Amsterdam"],
+  "Isole": ["Ponza","Ischia","Capri","Ustica","Favignana","Pantelleria","Lipari","Salina","Elba","Giglio","Procida","Stromboli"],
+  "Vini": ["Barolo","Amarone","Brunello","Etna Rosso","Franciacorta","Verdicchio","Falanghina","Sagrantino","Cesanese","Vermentino","Nero d'Avola","Timorasso"],
+  "Fiori": ["Peonia","Rosa","Lavanda","Girasole","Glicine","Ortensia","Mimosa","Tulipano","Iris","Camelia","Gelsomino","Magnolia"],
+  "Film": ["Casablanca","Amarcord","Titanic","Notting Hill","La La Land","Il Postino","Ratatouille","Amélie","Cinema Paradiso","Grease","Rocky","Su e giù"],
+  "Musica": ["Adagio","Allegro","Bolero","Notturno","Serenata","Ninna nanna","Ouverture","Ritornello","Rapsodia","Sonata","Valzer","Tango"],
+};
 
 export async function render(container) {
   const supabase = window.supabaseClient || window.supabase;
@@ -12,8 +22,13 @@ export async function render(container) {
   if (!token) { container.innerHTML = guscio(`<div class="sp-err">Collegamento incompleto.</div>`); return; }
 
   container.innerHTML = guscio(`<div class="sp-caric">Un attimo…</div>`);
-  try { const { data } = await supabase.rpc("spazio_sposi", { p_token: token }); D = data; }
-  catch (e) { console.error(e); }
+  try {
+    const [a, b] = await Promise.all([
+      supabase.rpc("spazio_sposi", { p_token: token }),
+      supabase.rpc("spazio_tableau", { p_token: token }),
+    ]);
+    D = a.data; T = b.data?.ok ? b.data : null;
+  } catch (e) { console.error(e); }
 
   if (!D?.ok) { container.innerHTML = guscio(`<div class="sp-err">${esc(D?.errore || "Non riesco a caricare lo spazio.")}</div>`); return; }
   disegna(container, supabase);
@@ -22,7 +37,7 @@ export async function render(container) {
 function disegna(container, supabase) {
   const t = D.tema || {};
   const c = D.conteggi || {};
-  const linguette = [["invitati","Invitati"],["dafare","Da fare"],["fornitori","Fornitori"],
+  const linguette = [["invitati","Invitati"],["tavoli","Tavoli"],["dafare","Da fare"],["fornitori","Fornitori"],
                      ["ricevimento","Ricevimento"],["idee","Idee"],["pagina","La pagina"]];
 
   container.innerHTML = guscio(`
@@ -76,6 +91,78 @@ function disegna(container, supabase) {
         <button class="sp-btn" id="in-add">Aggiungi</button>
       </div>
       <button class="sp-btn ch" id="sp-link-invito">🔗 Copia il link dell'invito</button>`;
+
+    if (sez === "tavoli") {
+      if (!T) return `<div class="sott">Un attimo…</div>`;
+      const seduti = (T.tavoli || []).reduce((a, t) => a + (t.seduti || 0), 0);
+      const restano = (T.da_sedere || []).reduce((a, i) => a + (i.quanti || 0), 0);
+      return `
+      <div class="sott">La brutta copia del tableau. Ci si mettono solo gli invitati che hanno
+        <b>già confermato</b>: gli altri compaiono man mano che rispondono.</div>
+
+      ${!T.modificabile ? `<div class="sp-chiuso">Il tableau è chiuso: mancano meno di 48 ore.
+        Per un cambio scriveteci.</div>` : ""}
+
+      <div class="sp-k3">
+        <div><b>${seduti}</b><span>seduti</span></div>
+        <div><b>${restano}</b><span>da sistemare</span></div>
+        <div><b>${T.in_attesa || 0}</b><span>non hanno risposto</span></div>
+      </div>
+
+      ${(T.da_sedere || []).length ? `
+        <h2>Da sistemare</h2>
+        <div class="sp-card">
+          ${T.da_sedere.map(i => `
+            <div class="r">
+              <div class="t"><b>${esc(i.nome)}</b><span>${i.quanti} ${i.quanti === 1 ? "persona" : "persone"}${
+                i.gruppo ? " · " + esc(i.gruppo) : ""}${(i.allergie || []).length ? " · " + i.allergie.map(esc).join(", ") : ""}</span></div>
+              ${T.modificabile && (T.tavoli || []).length ? `<button class="mini" data-siedi="${esc(i.id)}">Siedi ›</button>` : ""}
+            </div>`).join("")}
+        </div>` : `<div class="sp-ok">Tutti i confermati hanno un posto.</div>`}
+
+      <h2>I tavoli</h2>
+      ${(T.tavoli || []).length ? T.tavoli.map(t => `
+        <div class="sp-tavolo ${t.seduti > t.posti ? "pieno" : ""}">
+          <div class="cap">
+            <b>${esc(t.nome)}</b>
+            <span>${t.seduti}/${t.posti}${t.composto_da ? " · composto da " + t.composto_da : ""}</span>
+            ${T.modificabile ? `<button class="x" data-togli-tavolo="${esc(t.id)}">✕</button>` : ""}
+          </div>
+          ${(t.persone || []).map(pz => `
+            <div class="p">
+              <div class="t">${esc(pz.nome)}${pz.quanti > 1 ? ` <small>×${pz.quanti}</small>` : ""}${
+                (pz.allergie || []).length ? `<span class="all">${pz.allergie.map(esc).join(", ")}</span>` : ""}</div>
+              ${T.modificabile ? `<button class="x" data-alza="${esc(pz.id)}">alza</button>` : ""}
+            </div>`).join("")}
+          ${!(t.persone || []).length ? `<div class="vuotino">nessuno seduto</div>` : ""}
+        </div>`).join("") : `<div class="sp-card"><div class="vuoto">Nessun tavolo. Createne uno qui sotto.</div></div>`}
+
+      ${T.modificabile ? `
+        <div class="sp-mod">
+          <div class="tit">Crea un tavolo</div>
+          <div class="g">
+            <input id="tv-nome" placeholder="Nome o numero">
+            <select id="tv-forma">
+              <option value="rotondo">Rotondo</option>
+              <option value="rettangolare">Rettangolare</option>
+              <option value="imperiale">Imperiale</option>
+              <option value="composto">Composto (gruppo grande)</option>
+              <option value="sposi">Tavolo degli sposi</option>
+            </select>
+            <input id="tv-posti" type="number" min="1" value="10" placeholder="posti">
+            <input id="tv-comp" type="number" min="2" placeholder="quanti tavoli uniti">
+          </div>
+          <button class="sp-btn" id="tv-add">Aggiungi il tavolo</button>
+          <div class="aiutino">Per amici o colleghi in quindici o venti, scegli <b>composto</b> e indica
+            quanti tavoli si uniscono: serve a noi per la sala.</div>
+        </div>
+
+        <h2>Come chiamare i tavoli</h2>
+        <div class="sp-temi">
+          ${Object.keys(TEMI_NOMI).map(k => `<button data-tema="${k}">${k}</button>`).join("")}
+        </div>
+        <div class="aiutino">Rinomina tutti i tavoli con il tema scelto. Il tavolo degli sposi non si tocca.</div>` : ""}`;
+    }
 
     if (sez === "dafare") {
       const fatte = (D.checklist || []).filter(x => x.fatta).length;
@@ -216,6 +303,52 @@ function disegna(container, supabase) {
 function aggancia(container, supabase) {
   const ricarica = () => render(container);
   const v = (id) => (document.getElementById(id)?.value || "").trim();
+
+  const tableau = (cosa, dati) => supabase.rpc("spazio_tableau_scrivi", {
+    p_token: token, p_cosa: cosa, p_dati: dati });
+
+  container.querySelector("#tv-add")?.addEventListener("click", async () => {
+    const forma = v("tv-forma") || "rotondo";
+    await tableau("tavolo", {
+      nome: v("tv-nome"), forma,
+      posti: Number(v("tv-posti")) || 10,
+      composto_da: forma === "composto" ? (Number(v("tv-comp")) || 2) : null });
+    ricarica();
+  });
+
+  container.querySelectorAll("[data-togli-tavolo]").forEach(b =>
+    b.addEventListener("click", async () => {
+      if (!confirm("Tolgo questo tavolo? Chi era seduto torna tra quelli da sistemare.")) return;
+      await tableau("togli_tavolo", { tavolo_id: b.dataset.togliTavolo });
+      ricarica();
+    }));
+
+  container.querySelectorAll("[data-alza]").forEach(b =>
+    b.addEventListener("click", async () => {
+      await tableau("alza", { invitato_id: b.dataset.alza });
+      ricarica();
+    }));
+
+  // sedere a tocchi: si sceglie il tavolo da un elenco, niente trascinamenti
+  container.querySelectorAll("[data-siedi]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const lista = (T?.tavoli || []).map((t, i) =>
+        `${i + 1}. ${t.nome} (${t.seduti}/${t.posti})`).join("\n");
+      const scelta = prompt("A che tavolo lo mettiamo?\n\n" + lista + "\n\nScrivi il numero:");
+      const n = Number(scelta);
+      if (!n || !T.tavoli[n - 1]) return;
+      const r = await tableau("siedi", { invitato_id: b.dataset.siedi, tavolo_id: T.tavoli[n - 1].id });
+      if (r.data?.pieno) alert(`Attenzione: ${T.tavoli[n - 1].nome} ha ${r.data.seduti} persone su ${r.data.posti} posti.`);
+      ricarica();
+    }));
+
+  container.querySelectorAll("[data-tema]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const tema = b.dataset.tema;
+      if (!confirm(`Rinomino tutti i tavoli con i nomi "${tema}"?`)) return;
+      await tableau("tema_nomi", { tema, nomi: TEMI_NOMI[tema] });
+      ricarica();
+    }));
 
   container.querySelector("#in-add")?.addEventListener("click", async () => {
     if (!v("in-nome")) return;
@@ -404,6 +537,27 @@ function guscio(dentro, tema) {
     font-size:13.5px;line-height:1.7;color:#5A4A2A;}
   .sp-pie{background:#fff;border-top:1px solid var(--riga);padding:14px;text-align:center;
     font-size:11px;color:var(--muto);}
+  .sp-tavolo{background:#fff;border:1px solid var(--riga);border-radius:13px;overflow:hidden;margin-bottom:9px;}
+  .sp-tavolo.pieno{border-color:#FECACA;}
+  .sp-tavolo .cap{background:#F7F2F4;padding:10px 14px;display:flex;align-items:center;gap:9px;}
+  .sp-tavolo .cap b{flex:1;font-size:14.5px;}
+  .sp-tavolo .cap span{font-size:12px;color:var(--muto);}
+  .sp-tavolo.pieno .cap span{color:#B91C1C;font-weight:700;}
+  .sp-tavolo .p{display:flex;align-items:center;gap:9px;padding:9px 14px;border-top:1px solid #F1EEE8;font-size:14px;}
+  .sp-tavolo .p .t{flex:1;}
+  .sp-tavolo .p .all{display:block;font-size:11.5px;color:#9A3412;}
+  .sp-tavolo .vuotino{padding:11px 14px;font-size:12.5px;color:var(--muto);}
+  .sp-tavolo .x,.sp-card .mini{background:#fff;border:1.5px solid var(--riga);border-radius:8px;
+    padding:5px 10px;font-size:12px;color:var(--muto);font-family:inherit;cursor:pointer;}
+  .sp-card .mini{color:var(--vino);font-weight:700;}
+  .sp-chiuso{background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:12px;
+    padding:12px 14px;font-size:13.5px;margin-bottom:12px;line-height:1.5;}
+  .sp-ok{background:#F1F8ED;border:1px solid #CFE4C2;color:var(--verde);border-radius:12px;
+    padding:12px 14px;font-size:13.5px;}
+  .sp-temi{display:flex;flex-wrap:wrap;gap:7px;}
+  .sp-temi button{background:#fff;border:1.5px solid var(--riga);border-radius:100px;padding:8px 14px;
+    font-size:13px;color:var(--vino);font-family:inherit;cursor:pointer;}
+  .aiutino{font-size:12px;color:var(--muto);line-height:1.55;margin-top:9px;}
   .sp-caric,.sp-err{max-width:440px;margin:60px auto;background:#fff;border-radius:14px;padding:24px;
     text-align:center;font-size:15.5px;color:#3D4C55;}
   </style><div class="sp">${dentro}</div>`;
