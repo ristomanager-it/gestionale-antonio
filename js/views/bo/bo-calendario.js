@@ -345,14 +345,19 @@ async function scriviConTony() {
 
     const ta = document.getElementById('cal-testo');
     if (ta) ta.value = data.testo || '';
-    if (data.idea_foto) {
-      const box = document.getElementById('cal-modal-box');
-      const nota = document.createElement('div');
-      nota.className = 'cal-m-riga';
-      nota.textContent = '📷 ' + data.idea_foto;
-      if (ta && box) box.insertBefore(nota, ta);
+
+    const boxFoto = document.getElementById('cal-foto');
+    if (boxFoto) {
+      if (data.foto) {
+        boxFoto.innerHTML =
+          '<img class="cal-img" src="' + esc(data.foto.thumb_url || data.foto.url) + '" alt="">' +
+          (data.foto.perche ? '<div class="cal-foto-n">📷 ' + esc(data.foto.perche) + '</div>' : '');
+      } else {
+        boxFoto.innerHTML = '<div class="cal-foto-n">📷 Nessuna foto adatta in galleria' +
+          (data.idea_foto ? ': ' + esc(data.idea_foto) : '') + '</div>';
+      }
     }
-    mostraToast('Bozza scritta');
+    mostraToast(data.foto ? 'Bozza e foto pronte' : 'Bozza scritta, foto da fare');
   } catch (e) {
     mostraToast('Tony non ha risposto: ' + (e.message || e), 'error');
   } finally {
