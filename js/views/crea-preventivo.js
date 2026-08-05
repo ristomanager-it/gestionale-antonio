@@ -165,6 +165,18 @@ function schemaProposto() {
   return sez.length ? [...sez].sort((a, b) => (a.ordine || 0) - (b.ordine || 0)) : null;
 }
 
+// Le sezioni che non stanno nello schema base ma capita spesso che le chiedano:
+// un battesimo non ha l'aperitivo di serie, ma se lo chiedono deve bastare un tocco.
+function sezioniConsigliate() {
+  if (!P.titolo_evento) return [];
+  const f = P.formula_servizio === "buffet" ? "buffet" : "servito";
+  const m = modelli.find(x => norm(x.tipo_evento) === norm(P.titolo_evento) && x.formula === f)
+        || modelli.find(x => norm(x.tipo_evento) === "altro" && x.formula === f);
+  const extra = Array.isArray(m?.sezioni_extra) ? m.sezioni_extra : [];
+  const gia = new Set(righe.map(r => norm(r.sezione)));
+  return extra.filter(x => !gia.has(norm(x.nome)));
+}
+
 function perBambini(sez) {
   return Boolean(sezioniInfo.find(x => norm(x.nome) === norm(sez))?.per_bambini);
 }
@@ -312,6 +324,13 @@ function disegna(container, supabase, azienda, sede) {
             <div class="t"><b>Schema ${esc(P.titolo_evento || "evento")} · ${P.formula_servizio === "buffet" ? "al buffet" : "servito"}</b>
               <span>${schemaProposto().map(x => esc(x.nome)).join(" · ")}</span></div>
             <button class="pv2-btn" id="pv2-applica-schema">Usa questo schema</button>
+          </div>` : ""}
+
+        ${(sezioniConsigliate() || []).length ? `
+          <div class="pv2-consigli">
+            <span class="et">Si aggiungono spesso</span>
+            ${sezioniConsigliate().map(x => `
+              <button class="c" data-extra="${esc(x.nome)}" data-quante="${x.quante || 1}">+ ${esc(x.nome)}</button>`).join("")}
           </div>` : ""}
 
         ${sezioni.length ? sezioni.map(sez => `
@@ -580,6 +599,16 @@ function aggancia(container, supabase, azienda, sede) {
     const nuova = selSez.value === "__nuova__";
     if (inpSez) { inpSez.style.display = nuova ? "block" : "none"; if (nuova) inpSez.focus(); }
   });
+
+  container.querySelectorAll("[data-extra]").forEach(b =>
+    b.addEventListener("click", () => {
+      const nome = b.dataset.extra;
+      const quante = Math.max(Number(b.dataset.quante) || 1, 1);
+      for (let i = 0; i < quante; i++) righe.push({ nome: "", sezione: nome, prezzo: 0, ricetta_id: null });
+      // resta in elenco per i preventivi successivi
+      supabase.rpc("sezione_menu_usata", { p_azienda: azienda.id, p_nome: nome }).catch(() => {});
+      ri();
+    }));
 
   container.querySelector("#pv2-applica-schema")?.addEventListener("click", () => {
     const schema = schemaProposto();
@@ -1045,6 +1074,12 @@ function stile() {
   .pv2-schema .t{flex:1;min-width:190px;}
   .pv2-schema .t b{display:block;font-size:14.5px;color:#9A6A00;}
   .pv2-schema .t span{display:block;font-size:12.5px;color:#7C5800;margin-top:3px;line-height:1.5;}
+  .pv2-consigli{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:12px;}
+  .pv2-consigli .et{font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muto);margin-right:3px;}
+  .pv2-consigli .c{background:#fff;border:1.5px solid var(--riga);border-radius:100px;padding:7px 13px;
+    font-size:13px;color:var(--navy);font-family:inherit;cursor:pointer;}
+  .pv2-consigli .c:hover{border-color:var(--arancio);color:var(--arancio);}
 
   .pv2-cap{margin-top:11px;background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:10px;padding:10px 12px;font-size:13.5px;}
   .pv2-cap.ko{background:#FEF2F2;border-color:#FECACA;color:var(--rosso);font-weight:700;}
