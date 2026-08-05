@@ -155,9 +155,11 @@ function renderPreventiviList() {
   preventiviListContainer.innerHTML = html;
 
   preventiviListContainer.querySelectorAll('.preventivo-list-item').forEach((el) => {
+    el.style.cursor = 'pointer';
     el.addEventListener('click', () => {
       const id = Number(el.getAttribute('data-id'));
-      openPreventivo(id);  // Funzione per aprire il preventivo
+      // si apre la scheda vera, non la scheda di sola lettura
+      window.location.hash = '#/creaPreventivo?id=' + id;
     });
   });
 }
