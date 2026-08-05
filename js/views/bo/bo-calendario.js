@@ -123,6 +123,7 @@ function layout() {
       .cal-lg-t{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:6px}
       .cal-lg-v{display:flex;flex-wrap:wrap;gap:6px}
       .cal-chip{font-size:12px;padding:5px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:4px}
+      .cal-modal[hidden]{display:none}
       .cal-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;
                  justify-content:center;padding:16px;z-index:900}
       .cal-modal-box{background:#fff;border-radius:12px;padding:18px;max-width:460px;width:100%;
