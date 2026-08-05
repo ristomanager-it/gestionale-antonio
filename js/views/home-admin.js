@@ -4,6 +4,8 @@
 // le cose che aspettano una decisione. Tutto il resto sta nei moduli:
 // la dashboard completa di prima resta su #/dashboard-dettaglio.
 
+import { initNotificheTab } from "../components/notifiche-tab.js";
+
 let periodo = "settimana";
 let daPers = null, aPers = null;   // intervallo scelto a mano
 
