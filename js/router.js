@@ -334,6 +334,7 @@ const DISPLAY_ROUTES = new Set([
 const ADDETTO_MARKETING_ROUTES = new Set([
   // Marketing core
   "bo-template", "bo-tag", "bo-marketing", "bo-catenarie", "bo-promo", "bo-promo-analisi",
+  "bo-calendario",
   // Fidelity
   "bo-fidelity",
   // Sito / Media
