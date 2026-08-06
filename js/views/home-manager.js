@@ -119,6 +119,14 @@ export async function render(container) {
       render(container);
     });
   });
+
+  import("../components/camera.js?v=" + (window.APP_V || "1"))
+    .then(m => m.montaBottoneCamera())
+    .catch(e => console.warn("camera non caricata:", e));
+
+  import("../components/messaggi-personale.js?v=" + (window.APP_V || "1"))
+    .then(m => m.montaMessaggiHome())
+    .catch(e => console.warn("messaggi non caricati:", e));
 }
 
 /* ── blocchi ───────────────────────────────────────────────────────────── */
