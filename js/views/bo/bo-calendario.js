@@ -543,22 +543,11 @@ async function cambiaModoGrafica(modo) {
   const box = document.getElementById('cal-foto');
   if (box) box.innerHTML = '<div class="cal-foto-n">Monto la cornice…</div>';
   try {
-    const { data, error } = await supa().functions.invoke('tony-grafica', {
-      body: { azienda_id: aziendaId(), giorno_id: SEL.id, titolo: valTesto() ? SEL.titolo : SEL.titolo }
-    });
-    if (error) throw error;
-    if (!data || !data.success) {
-      if (data && data.canva_da_collegare) {
-        mostraToast('Canva non e ancora collegato: per ora esce la foto sola', 'error');
-      } else {
-        mostraToast((data && data.error) || 'Cornice non disponibile', 'error');
-      }
-      await aggiorna({ grafica_modo: 'foto' }, '', true);
-      return;
-    }
-    await aggiorna({ grafica_modo: 'template' }, 'Cornice ' + (data.template || '') + ' applicata', true);
+    const mod = await import('../../components/cornice.js?v=' + (window.APP_V || '1'));
+    const url = await mod.creaGrafica(aziendaId(), SEL, 'verticale');
+    await aggiorna({ grafica_url: url, grafica_modo: 'template' }, 'Cornice applicata', true);
   } catch (e) {
-    mostraToast(String(e.message || e), 'error');
+    mostraToast('Cornice non riuscita: ' + (e.message || e), 'error');
     await aggiorna({ grafica_modo: 'foto' }, '', true);
   }
 }
