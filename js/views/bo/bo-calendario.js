@@ -164,6 +164,11 @@ function layout() {
       .cal-m-riga{font-size:13px;padding:7px 0;border-bottom:1px solid #f3f4f6;line-height:1.45}
       .cal-img{width:100%;border-radius:8px;margin-top:10px;display:block}
       .cal-foto-n{font-size:12px;color:#6b7280;line-height:1.4;margin-top:6px}
+      .cal-scelta{display:flex;gap:6px;margin-top:8px}
+      .cal-sc{flex:1;border:1px solid #e5e7eb;background:#fff;border-radius:7px;padding:8px;
+              font-size:12.5px;font-weight:600;cursor:pointer;color:#6b7280}
+      .cal-sc.sel{border-color:#111827;background:#111827;color:#fff}
+      .cal-sc:disabled{opacity:.45;cursor:default}
       .cal-ta{width:100%;min-height:120px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;
               font:14px/1.5 inherit;margin-top:10px;resize:vertical}
       .cal-conta{font-size:11.5px;color:#9ca3af;text-align:right;margin-top:3px}
