@@ -436,7 +436,7 @@ async function salva() {
 
     const a = autore();
     const ins = await supa().from('media_library').insert({
-      azienda_id: az,
+      azienda_id: az, sede_id: sedeId(),
       nome: 'Scatto di ' + a.nome + ' del ' + new Date().toLocaleDateString('it-IT') + ' ' +
             new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
       url: pub.publicUrl, path: path, tipo: 'immagine', tag: 'Piatti', origine: 'camera',
