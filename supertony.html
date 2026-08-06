@@ -123,6 +123,25 @@ const $ = (id) => document.getElementById(id);
 let chat = [];
 let proposte = [];
 let occupato = false;
+let regole = "";
+
+// Le regole del progetto stanno in progetto_conoscenza: si caricano una volta
+// e viaggiano davanti a ogni richiesta, cosi Super Tony non riparte da zero
+// e non ripete gli errori gia scoperti.
+async function caricaRegole() {
+  try {
+    const { data } = await sb.from("progetto_conoscenza")
+      .select("argomento,titolo,contenuto").eq("attiva", true)
+      .lte("priorita", 3).order("priorita");
+    if (data && data.length) {
+      regole = "REGOLE DEL PROGETTO RISTOFLOW — valgono sempre, sono state pagate con errori veri:\n\n" +
+        data.map(r => "[" + r.argomento + "] " + r.titolo + "\n" + r.contenuto).join("\n\n") +
+        "\n\nMETODO: guarda i dati veri prima di costruire. Fai il minimo che risolve. " +
+        "Verifica dopo il deploy con una query o una prova, non fidarti della risposta della funzione. " +
+        "Se una cosa non la puoi fare, dillo invece di girarci intorno.";
+    }
+  } catch (e) { }
+}
 
 function salva() {
   try { localStorage.setItem("st-chat", JSON.stringify(chat.slice(-40))); } catch (e) { }
