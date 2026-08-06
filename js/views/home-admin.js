@@ -123,6 +123,10 @@ export async function render(container) {
     .then(m => m.montaSuperTony())
     .catch(e => console.warn("super tony non caricato:", e));
 
+  import("../components/messaggi-personale.js?v=" + (window.APP_V || "1"))
+    .then(m => m.montaMessaggiHome())
+    .catch(e => console.warn("messaggi non caricati:", e));
+
   container.querySelectorAll("[data-per]").forEach(b => {
     b.addEventListener("click", () => {
       periodo = b.getAttribute("data-per");
