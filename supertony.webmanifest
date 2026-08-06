@@ -1,0 +1,14 @@
+{
+  "name": "Super Tony",
+  "short_name": "Super Tony",
+  "description": "Accesso diretto a Super Tony di Ristoflow",
+  "start_url": "/supertony.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1f2937",
+  "theme_color": "#1f2937",
+  "icons": [
+    { "src": "/icona-supertony.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
