@@ -61,7 +61,7 @@ function interfaccia() {
       <video id="cam-video" autoplay playsinline muted></video>
       <canvas id="cam-canvas" hidden></canvas>
       <img id="cam-anteprima" hidden alt="">
-      <video id="cam-video-fatto" hidden controls playsinline></video>
+      <video id="cam-video-fatto" class="fatto" hidden controls playsinline></video>
       <div class="cam-guida" id="cam-guida"></div>
       <div class="cam-rec" id="cam-rec" hidden>● REC <span id="cam-tempo">0:00</span></div>
     </div>
