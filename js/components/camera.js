@@ -322,7 +322,9 @@ function rifai() {
 }
 
 function applicaFirma(canvas) {
-  if (!firma || firma.attiva === false) return;
+  // di default niente logo appiccicato sopra: imbruttisce la foto e non si toglie piu.
+  // Chi lo vuole lo accende da media_firma.
+  if (!firma || firma.attiva !== true) return;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const margine = Math.round(Math.min(W, H) * (Number(firma.margine || 4) / 100));
