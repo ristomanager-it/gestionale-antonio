@@ -369,8 +369,17 @@ function disegnaPannello() {
     prom.map(p => '<div class="cal-m-riga">⏳ ' + esc(p) + '</div>').join('') +
 
     '<div id="cal-foto">' + (g.media_url
-      ? '<img class="cal-img" src="' + esc(g.media_url) + '" alt="">'
+      ? '<img class="cal-img" src="' + esc(g.grafica_modo === 'template' && g.grafica_url ? g.grafica_url : g.media_url) + '" alt="">'
       : '<div class="cal-foto-n">Nessuna foto scelta</div>') + '</div>' +
+
+    (g.media_url ? '<div class="cal-scelta">' +
+      '<button class="cal-sc' + (g.grafica_modo !== 'template' ? ' sel' : '') + '" data-modo="foto"' +
+        (pubblicato ? ' disabled' : '') + '>Foto sola</button>' +
+      '<button class="cal-sc' + (g.grafica_modo === 'template' ? ' sel' : '') + '" data-modo="template"' +
+        (pubblicato ? ' disabled' : '') + '>Con cornice' +
+        (g.tema_grafico ? ' ' + esc(g.tema_grafico) : '') + '</button>' +
+      '</div>' : '') +
+
     '<div class="cal-m-azioni">' +
       '<button class="cal-a sec" id="cal-cambia-foto"' + (pubblicato ? ' disabled' : '') + '>🖼 Cambia foto</button>' +
     '</div>' +
