@@ -297,6 +297,7 @@ async function avvia() {
   if (!data || !data.session) { $("login").style.display = "flex"; return; }
   $("login").style.display = "none";
   $("stato").textContent = data.session.user.email || "collegato";
+  await caricaRegole();
   ripristina();
   if (!chat.length) aggiungi("assistant", "Ciao Antonio. Dimmi cosa non va e lo guardo.");
   else disegna();
