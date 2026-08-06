@@ -1,20 +1,22 @@
 // js/views/bo/bo-calendario.js
-// Calendario editoriale social — griglia mensile, angolo del giorno, esito, promemoria
+// Calendario editoriale social — griglia mensile, angolo del giorno, esito, promemoria.
+// Il pannello del giorno permette di rivedere tutto prima che vada online:
+// niente pubblicazione automatica, decide sempre una persona.
 
 const supa = () => window.supabaseClient || window.supabase;
-function esc(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-function mostraToast(msg, tipo = 'success') { if (window.mostraToast) window.mostraToast(msg, tipo); }
+function esc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function mostraToast(msg, tipo) { if (window.mostraToast) window.mostraToast(msg, tipo || 'success'); }
 
 const ANGOLI = {
   perche: { l: 'PERCHE', c: '#C98A0B', d: 'Il motivo, la storia, i valori' },
   come:   { l: 'COME',   c: '#0E7C86', d: 'Il metodo, la lavorazione, il dietro le quinte' },
-  cosa:   { l: 'COSA',   c: '#6B4EA8', d: 'Il piatto, il prodotto, l\'offerta' },
+  cosa:   { l: 'COSA',   c: '#6B4EA8', d: 'Il piatto, il prodotto, l offerta' },
 };
 const TIPI = {
-  festa:         { l: 'Festa comandata',   c: '#B3261E' },
-  giornata_food: { l: 'Giornata food',     c: '#2F7D32' },
-  ricorrenza:    { l: 'Ricorrenza',        c: '#2B5EA7' },
-  quotidiano:    { l: 'Giorno normale',    c: '#c3c3bb' },
+  festa:         { l: 'Festa comandata', c: '#B3261E' },
+  giornata_food: { l: 'Giornata food',   c: '#2F7D32' },
+  ricorrenza:    { l: 'Ricorrenza',      c: '#2B5EA7' },
+  quotidiano:    { l: 'Giorno normale',  c: '#c3c3bb' },
 };
 const ESITI = {
   fatto:   { i: '✅', l: 'Pubblicato' },
@@ -23,6 +25,14 @@ const ESITI = {
   pronto:  { i: '🕐', l: 'Pronto da pubblicare' },
   oggi:    { i: '●',  l: 'Oggi' },
   futuro:  { i: '',   l: '' },
+};
+const STATI = {
+  da_generare: 'Da scrivere',
+  bozza:       'Bozza',
+  approvato:   'Approvato',
+  programmato: 'Programmato',
+  pubblicato:  'Pubblicato',
+  saltato:     'Saltato',
 };
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -33,6 +43,7 @@ let ANNO = new Date().getFullYear();
 let GIORNI_DATI = [];
 let PROMEMORIA = {};
 let SEL = null;
+let META_PRONTO = null;
 
 function iso(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -44,6 +55,7 @@ export async function render(container) {
   await carica();
   disegna();
   bind();
+  verificaMeta();
 }
 
 function layout() {
@@ -52,7 +64,7 @@ function layout() {
     <div class="cal-head">
       <div>
         <h2 class="cal-h2">📅 Calendario editoriale</h2>
-        <div class="cal-sub">Un contenuto al giorno. Il colore sopra dice il taglio, quello a sinistra che giorno è.</div>
+        <div class="cal-sub">Un contenuto al giorno. Niente va online senza che tu lo veda.</div>
       </div>
       <div class="cal-nav">
         <button class="cal-btn" id="cal-prev">‹</button>
@@ -61,7 +73,9 @@ function layout() {
       </div>
     </div>
 
+    <div id="cal-meta"></div>
     <div class="cal-score" id="cal-score"></div>
+
     <div class="cal-grid-wrap">
       <div class="cal-riga cal-testa">${GIORNI.map(g => '<div class="cal-dow">' + g + '</div>').join('')}</div>
       <div id="cal-grid"></div>
@@ -78,7 +92,7 @@ function layout() {
       <div class="cal-lg">
         <div class="cal-lg-t">Bordo sopra — che taglio ha il post</div>
         <div class="cal-lg-v">${Object.values(ANGOLI).map(a =>
-          '<span class="cal-chip" style="border-top:4px solid ' + a.c + '">' + a.l + ' — ' + a.d + '</span>').join('')}</div>
+          '<span class="cal-chip" style="border-top:4px solid ' + a.c + '">' + a.l + '</span>').join('')}</div>
       </div>
       <div class="cal-lg">
         <div class="cal-lg-t">Segno in basso</div>
@@ -97,6 +111,8 @@ function layout() {
       .cal-nav{display:flex;align-items:center;gap:8px;font-weight:600}
       .cal-btn{background:#fff;border:1px solid #e5e7eb;border-radius:6px;width:32px;height:32px;
                font-size:17px;cursor:pointer;line-height:1}
+      .cal-warn{background:#fff8e6;border:1px solid #f0dca8;border-left:5px solid #C98A0B;
+                border-radius:8px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.45}
       .cal-score{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
       .cal-box{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;min-width:96px}
       .cal-box .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:#6b7280}
@@ -120,11 +136,6 @@ function layout() {
       .cal-prom{font-size:9px;line-height:1.15;color:#6b7280}
       .cal-es{position:absolute;right:4px;bottom:3px;font-size:15px;line-height:1}
       .cal-dubbia{color:#B3261E;font-weight:700}
-      .cal-legenda{border-top:1px solid #e5e7eb;margin-top:18px;padding-top:14px}
-      .cal-lg{margin-bottom:12px}
-      .cal-lg-t{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:6px}
-      .cal-lg-v{display:flex;flex-wrap:wrap;gap:6px}
-      .cal-chip{font-size:12px;padding:5px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:4px}
       .cal-elenco{margin-top:16px}
       .cal-el-t{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:8px}
       .cal-el-r{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #e5e7eb;
@@ -132,24 +143,42 @@ function layout() {
                 width:100%;text-align:left;cursor:pointer}
       .cal-el-g{font-weight:700;font-size:14px;min-width:26px}
       .cal-el-n{font-size:13px;font-weight:600;line-height:1.3}
-      .cal-el-s{font-size:12px;color:#6b7280;line-height:1.35;margin-top:1px}
+      .cal-el-s{font-size:12px;color:#6b7280;line-height:1.35;margin-top:1px;display:block}
       .cal-el-e{margin-left:auto;font-size:15px}
+      .cal-legenda{border-top:1px solid #e5e7eb;margin-top:18px;padding-top:14px}
+      .cal-lg{margin-bottom:12px}
+      .cal-lg-t{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:6px}
+      .cal-lg-v{display:flex;flex-wrap:wrap;gap:6px}
+      .cal-chip{font-size:12px;padding:5px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:4px}
       .cal-modal[hidden]{display:none}
       .cal-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;
                  justify-content:center;padding:16px;z-index:900}
-      .cal-modal-box{background:#fff;border-radius:12px;padding:18px;max-width:460px;width:100%;
-                     max-height:86vh;overflow:auto}
+      .cal-modal-box{background:#fff;border-radius:12px;padding:18px;max-width:480px;width:100%;
+                     max-height:88vh;overflow:auto}
       .cal-m-t{font-size:16px;font-weight:700;margin-bottom:3px}
-      .cal-m-s{font-size:12.5px;color:#6b7280;margin-bottom:12px}
-      .cal-m-riga{font-size:13px;padding:8px 0;border-bottom:1px solid #f3f4f6;line-height:1.45}
+      .cal-m-s{font-size:12.5px;color:#6b7280;margin-bottom:10px}
+      .cal-stato{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;
+                 background:#f3f4f6;color:#374151;margin-bottom:10px}
+      .cal-stato.pubblicato{background:#e8f5e9;color:#2F7D32}
+      .cal-stato.approvato{background:#e7f0fb;color:#2B5EA7}
+      .cal-m-riga{font-size:13px;padding:7px 0;border-bottom:1px solid #f3f4f6;line-height:1.45}
       .cal-img{width:100%;border-radius:8px;margin-top:10px;display:block}
       .cal-foto-n{font-size:12px;color:#6b7280;line-height:1.4;margin-top:6px}
+      .cal-ta{width:100%;min-height:120px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;
+              font:14px/1.5 inherit;margin-top:10px;resize:vertical}
+      .cal-conta{font-size:11.5px;color:#9ca3af;text-align:right;margin-top:3px}
       .cal-m-azioni{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
       .cal-a{border:none;border-radius:7px;padding:9px 13px;font-size:13px;cursor:pointer;font-weight:600}
       .cal-a.pri{background:#111827;color:#fff}
+      .cal-a.pub{background:#2F7D32;color:#fff}
       .cal-a.sec{background:#f3f4f6;color:#111827}
-      .cal-ta{width:100%;min-height:96px;border:1px solid #e5e7eb;border-radius:8px;padding:9px;
-              font:14px inherit;margin-top:8px;resize:vertical}
+      .cal-a:disabled{opacity:.45;cursor:default}
+      .cal-gal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;
+               max-height:280px;overflow:auto}
+      .cal-gal button{border:2px solid transparent;border-radius:6px;padding:0;cursor:pointer;
+                      background:none;overflow:hidden;aspect-ratio:1/1}
+      .cal-gal button.sel{border-color:#111827}
+      .cal-gal img{width:100%;height:100%;object-fit:cover;display:block}
       @media (max-width:640px){
         .bo-calendario{padding:10px}
         .cal-riga{gap:3px}
@@ -161,6 +190,27 @@ function layout() {
       }
     </style>
   </div>`;
+}
+
+async function verificaMeta() {
+  const box = document.getElementById('cal-meta');
+  if (!box) return;
+  try {
+    const { data } = await supa().functions.invoke('calendario-pubblica', {
+      body: { azione: 'verifica', azienda_id: aziendaId() }
+    });
+    META_PRONTO = data && data.success ? data.pronto === true : false;
+    if (data && data.success && !data.pronto) {
+      const manca = (data.permessi_mancanti || []).join(', ');
+      box.innerHTML = '<div class="cal-warn">Collegamento Meta incompleto' +
+        (manca ? ' — manca il permesso <b>' + esc(manca) + '</b>' : '') +
+        '. Puoi scrivere e approvare i post, ma non pubblicarli. Rifai il collegamento Meta dalle impostazioni.</div>';
+    } else if (data && !data.success) {
+      box.innerHTML = '<div class="cal-warn">' + esc(data.error || 'Meta non collegato') + '</div>';
+    }
+  } catch (e) {
+    META_PRONTO = false;
+  }
 }
 
 async function carica() {
@@ -249,7 +299,6 @@ function disegna() {
   elenco();
 }
 
-// Sotto la griglia: giorni con una ricorrenza o un promemoria, per esteso.
 function elenco() {
   const box = document.getElementById('cal-elenco');
   if (!box) return;
@@ -258,7 +307,7 @@ function elenco() {
     box.innerHTML = '<div class="cal-el-t">Nessuna data segnata questo mese</div>';
     return;
   }
-  box.innerHTML = '<div class="cal-el-t">Date di '  + MESI[MESE] + '</div>' +
+  box.innerHTML = '<div class="cal-el-t">Date di ' + MESI[MESE] + '</div>' +
     righe.map(g => {
       const tipo = TIPI[g.tipo_giorno] || TIPI.quotidiano;
       const es = ESITI[g.esito] || ESITI.futuro;
@@ -268,7 +317,6 @@ function elenco() {
         '<span class="cal-el-g">' + gg + '</span>' +
         '<span><span class="cal-el-n">' + esc(g.ricorrenza || 'Promemoria') +
           (g.verificata === false ? ' <span class="cal-dubbia">?</span>' : '') + '</span>' +
-          (g.tema && g.ricorrenza ? '<span class="cal-el-s">' + esc(g.tema.split(' — ').slice(1).join(' — ')) + '</span>' : '') +
           prom.map(p => '<span class="cal-el-s">⏳ ' + esc(p) + '</span>').join('') +
         '</span>' +
         '<span class="cal-el-e">' + es.i + '</span>' +
@@ -302,39 +350,114 @@ function apriGiorno(k) {
   const g = GIORNI_DATI.find(x => x.data === k);
   if (!g) return;
   SEL = g;
+  disegnaPannello();
+  document.getElementById('cal-modal').hidden = false;
+}
+
+function disegnaPannello() {
+  const g = SEL;
   const ang = ANGOLI[g.angolo] || ANGOLI.cosa;
-  const prom = PROMEMORIA[k] || [];
-  const d = new Date(k + 'T00:00:00');
+  const prom = PROMEMORIA[g.data] || [];
+  const d = new Date(g.data + 'T00:00:00');
+  const pubblicato = g.stato === 'pubblicato';
 
   document.getElementById('cal-modal-box').innerHTML =
     '<div class="cal-m-t">' + d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear() + '</div>' +
     '<div class="cal-m-s">' + ang.l + ' — ' + ang.d + '</div>' +
-    (g.ricorrenza ? '<div class="cal-m-riga"><b>' + esc(g.ricorrenza) + '</b>' +
-      (g.verificata === false ? ' <span class="cal-dubbia">data da confermare</span>' : '') + '</div>' : '') +
-    (g.tema ? '<div class="cal-m-riga">' + esc(g.tema) + '</div>' : '') +
-    '<div id="cal-foto">' + (g.media_url
-      ? '<img class="cal-img" src="' + esc(g.media_url) + '" alt="">' : '') + '</div>' +
+    '<span class="cal-stato ' + esc(g.stato) + '">' + (STATI[g.stato] || g.stato) + '</span>' +
+    (g.ricorrenza ? '<div class="cal-m-riga"><b>' + esc(g.ricorrenza) + '</b></div>' : '') +
     prom.map(p => '<div class="cal-m-riga">⏳ ' + esc(p) + '</div>').join('') +
-    '<div class="cal-m-riga">Stato: <b>' + esc(g.stato) + '</b></div>' +
-    '<textarea class="cal-ta" id="cal-testo" placeholder="Testo del post…">' + esc(g.testo || '') + '</textarea>' +
+
+    '<div id="cal-foto">' + (g.media_url
+      ? '<img class="cal-img" src="' + esc(g.media_url) + '" alt="">'
+      : '<div class="cal-foto-n">Nessuna foto scelta</div>') + '</div>' +
     '<div class="cal-m-azioni">' +
-      '<button class="cal-a pri" id="cal-salva">Salva bozza</button>' +
-      '<button class="cal-a pri" id="cal-tony">✨ Scrivilo con Tony</button>' +
-      '<button class="cal-a sec" id="cal-fatto">✅ Segna pubblicato</button>' +
-      '<button class="cal-a sec" id="cal-salta">Salta il giorno</button>' +
+      '<button class="cal-a sec" id="cal-cambia-foto"' + (pubblicato ? ' disabled' : '') + '>🖼 Cambia foto</button>' +
+    '</div>' +
+    '<div id="cal-galleria"></div>' +
+
+    '<textarea class="cal-ta" id="cal-testo" placeholder="Testo del post…"' +
+      (pubblicato ? ' readonly' : '') + '>' + esc(g.testo || '') + '</textarea>' +
+    '<div class="cal-conta" id="cal-conta"></div>' +
+
+    '<div class="cal-m-azioni">' +
+      (pubblicato ? '' :
+        '<button class="cal-a pri" id="cal-tony">✨ Riscrivi con Tony</button>' +
+        '<button class="cal-a sec" id="cal-salva">Salva</button>' +
+        '<button class="cal-a sec" id="cal-approva">👍 Approva</button>') +
+    '</div>' +
+    '<div class="cal-m-azioni">' +
+      (pubblicato ? '' :
+        '<button class="cal-a sec" id="cal-prova">👁 Anteprima su Facebook</button>' +
+        '<button class="cal-a pub" id="cal-pubblica">Pubblica ora</button>' +
+        '<button class="cal-a sec" id="cal-salta">Salta il giorno</button>') +
       '<button class="cal-a sec" id="cal-chiudi">Chiudi</button>' +
     '</div>';
 
-  document.getElementById('cal-modal').hidden = false;
+  contaParole();
+  const ta = document.getElementById('cal-testo');
+  if (ta) ta.oninput = contaParole;
+
   document.getElementById('cal-chiudi').onclick = chiudi;
-  document.getElementById('cal-salva').onclick = () => aggiorna({ titolo: valTesto(), stato: 'bozza' });
-  document.getElementById('cal-fatto').onclick = () => aggiorna({ stato: 'pubblicato', pubblicato_at: new Date().toISOString() });
-  document.getElementById('cal-salta').onclick = () => aggiorna({ stato: 'saltato' });
+  if (pubblicato) return;
+
+  document.getElementById('cal-cambia-foto').onclick = mostraGalleria;
   document.getElementById('cal-tony').onclick = scriviConTony;
+  document.getElementById('cal-salva').onclick = () => aggiorna({ testo: valTesto(), stato: 'bozza' }, 'Salvato');
+  document.getElementById('cal-approva').onclick = () => aggiorna({ testo: valTesto(), stato: 'approvato' }, 'Approvato');
+  document.getElementById('cal-salta').onclick = () => aggiorna({ stato: 'saltato' }, 'Giorno saltato');
+  document.getElementById('cal-prova').onclick = () => pubblica(true);
+  document.getElementById('cal-pubblica').onclick = () => pubblica(false);
+}
+
+function contaParole() {
+  const ta = document.getElementById('cal-testo');
+  const c = document.getElementById('cal-conta');
+  if (!ta || !c) return;
+  const p = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+  c.textContent = p + ' parole' + (p > 0 && (p < 30 || p > 110) ? ' — fuori dalla misura giusta' : '');
+}
+
+async function mostraGalleria() {
+  const box = document.getElementById('cal-galleria');
+  if (box.innerHTML) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="cal-foto-n">Carico le foto…</div>';
+
+  const { data, error } = await supa().from('media_library')
+    .select('id,nome,url,thumb_url,descrizione,qualita,adatta_a')
+    .eq('azienda_id', aziendaId())
+    .eq('tipo', 'immagine')
+    .not('analizzata_at', 'is', null)
+    .gte('qualita', 2)
+    .order('qualita', { ascending: false })
+    .limit(60);
+
+  if (error || !data || !data.length) {
+    box.innerHTML = '<div class="cal-foto-n">Nessuna foto disponibile in galleria</div>';
+    return;
+  }
+
+  const adatte = data.filter(f => (f.adatta_a || []).indexOf(SEL.angolo) !== -1);
+  const altre = data.filter(f => (f.adatta_a || []).indexOf(SEL.angolo) === -1);
+  const ordinate = adatte.concat(altre);
+
+  box.innerHTML = '<div class="cal-foto-n">Le prime sono quelle adatte al taglio ' +
+    (ANGOLI[SEL.angolo] || ANGOLI.cosa).l + '</div>' +
+    '<div class="cal-gal">' + ordinate.map(f =>
+      '<button data-url="' + esc(f.url) + '" title="' + esc(f.nome || '') + '"' +
+        (f.url === SEL.media_url ? ' class="sel"' : '') + '>' +
+        '<img src="' + esc(f.thumb_url || f.url) + '" alt="' + esc(f.nome || '') + '">' +
+      '</button>').join('') + '</div>';
+
+  box.querySelector('.cal-gal').onclick = async (e) => {
+    const b = e.target.closest('[data-url]');
+    if (!b) return;
+    await aggiorna({ media_url: b.dataset.url }, 'Foto cambiata', true);
+    box.innerHTML = '';
+  };
 }
 
 async function scriviConTony() {
-  if (!SEL) return;
   const b = document.getElementById('cal-tony');
   const testoOrig = b ? b.textContent : '';
   if (b) { b.disabled = true; b.textContent = 'Tony sta scrivendo…'; }
@@ -343,27 +466,66 @@ async function scriviConTony() {
       body: { azienda_id: aziendaId(), giorno_id: SEL.id }
     });
     if (error) throw error;
-    if (!data || !data.success) throw new Error((data && data.error) || 'Nessuna risposta');
+    if (!data || !data.success) {
+      if (data && data.crediti_esauriti) {
+        mostraToast('Crediti esauriti: vai su Crediti Tony per ricaricare', 'error');
+        return;
+      }
+      throw new Error((data && data.error) || 'Nessuna risposta');
+    }
 
     const ta = document.getElementById('cal-testo');
-    if (ta) ta.value = data.testo || '';
+    if (ta) { ta.value = data.testo || ''; contaParole(); }
+    SEL.testo = data.testo || '';
 
     const boxFoto = document.getElementById('cal-foto');
     if (boxFoto) {
       if (data.foto) {
+        SEL.media_url = data.foto.url;
         boxFoto.innerHTML =
           '<img class="cal-img" src="' + esc(data.foto.thumb_url || data.foto.url) + '" alt="">' +
           (data.foto.perche ? '<div class="cal-foto-n">📷 ' + esc(data.foto.perche) + '</div>' : '');
       } else {
-        boxFoto.innerHTML = '<div class="cal-foto-n">📷 Nessuna foto adatta in galleria' +
+        boxFoto.innerHTML = '<div class="cal-foto-n">Nessuna foto adatta in galleria' +
           (data.idea_foto ? ': ' + esc(data.idea_foto) : '') + '</div>';
       }
     }
-    mostraToast(data.foto ? 'Bozza e foto pronte' : 'Bozza scritta, foto da fare');
+    mostraToast(data.saldo_crediti != null
+      ? 'Bozza pronta — restano ' + data.saldo_crediti + ' crediti'
+      : 'Bozza pronta');
   } catch (e) {
     mostraToast('Tony non ha risposto: ' + (e.message || e), 'error');
   } finally {
     if (b) { b.disabled = false; b.textContent = testoOrig; }
+  }
+}
+
+async function pubblica(prova) {
+  if (!prova) {
+    const testo = valTesto();
+    if (!testo) { mostraToast('Non ce ancora un testo', 'error'); return; }
+    if (!window.confirm('Il post va online adesso sulla pagina Facebook. Confermi?')) return;
+  }
+  const b = document.getElementById(prova ? 'cal-prova' : 'cal-pubblica');
+  const orig = b ? b.textContent : '';
+  if (b) { b.disabled = true; b.textContent = prova ? 'Preparo…' : 'Pubblico…'; }
+
+  try {
+    await supa().from('calendario_editoriale')
+      .update({ testo: valTesto() }).eq('id', SEL.id);
+
+    const { data, error } = await supa().functions.invoke('calendario-pubblica', {
+      body: { azione: 'pubblica', azienda_id: aziendaId(), giorno_id: SEL.id, prova: prova === true }
+    });
+    if (error) throw error;
+    if (!data || !data.success) throw new Error((data && data.error) || 'Pubblicazione non riuscita');
+
+    mostraToast(data.messaggio || 'Fatto');
+    if (!prova) { chiudi(); await carica(); disegna(); }
+  } catch (e) {
+    mostraToast(String(e.message || e), 'error');
+  } finally {
+    if (b) { b.disabled = false; b.textContent = orig; }
   }
 }
 
@@ -372,14 +534,20 @@ function valTesto() {
   return t ? t.value.trim() : null;
 }
 
-async function aggiorna(campi) {
+async function aggiorna(campi, messaggio, restaAperto) {
   if (!SEL) return;
   const { error } = await supa().from('calendario_editoriale').update(campi).eq('id', SEL.id);
   if (error) { mostraToast('Non salvato: ' + error.message, 'error'); return; }
-  mostraToast('Salvato');
-  chiudi();
+  mostraToast(messaggio || 'Salvato');
+  Object.assign(SEL, campi);
   await carica();
   disegna();
+  if (restaAperto) {
+    const agg = GIORNI_DATI.find(x => x.id === SEL.id);
+    if (agg) { SEL = agg; disegnaPannello(); }
+  } else {
+    chiudi();
+  }
 }
 
 function chiudi() {
