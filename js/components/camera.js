@@ -403,12 +403,14 @@ async function salva() {
     if (up.error) throw up.error;
     const { data: pub } = supa().storage.from('media-aziende').getPublicUrl(path);
 
+    const a = autore();
     const ins = await supa().from('media_library').insert({
       azienda_id: az,
-      nome: 'Scatto del ' + new Date().toLocaleDateString('it-IT') + ' ' +
+      nome: 'Scatto di ' + a.nome + ' del ' + new Date().toLocaleDateString('it-IT') + ' ' +
             new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
       url: pub.publicUrl, tipo: 'immagine', tag: 'Piatti', origine: 'camera',
-      larghezza: scatto.w, altezza: scatto.h
+      larghezza: scatto.w, altezza: scatto.h,
+      caricata_da: a.id, caricata_nome: a.nome
     }).select('id').single();
     if (ins.error) throw ins.error;
     const mediaId = ins.data.id;
