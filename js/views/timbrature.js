@@ -209,6 +209,13 @@ async function insertTimbratura(payload) {
 
   const { error } = await window.supabaseClient.from("timbrature").insert([payload]);
   if (error) throw error;
+
+  // se ce un messaggio per questa persona, lo vede adesso che sta guardando lo schermo
+  if (payload.tipo === "entrata") {
+    import("../components/messaggi-personale.js?v=" + (window.APP_V || "1"))
+      .then(m => m.mostraMessaggiTimbro())
+      .catch(e => console.warn("messaggi non caricati:", e));
+  }
 }
 
 async function fetchLastTipo(aziendaId, dipendenteId) {
