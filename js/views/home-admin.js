@@ -127,6 +127,11 @@ export async function render(container) {
     .then(m => m.montaMessaggiHome())
     .catch(e => console.warn("messaggi non caricati:", e));
 
+  // scorciatoia al calendario: e la cosa che si guarda ogni giorno
+  import("../components/scorciatoie.js?v=" + (window.APP_V || "1"))
+    .then(m => m.montaScorciatoie())
+    .catch(e => console.warn("scorciatoie non caricate:", e));
+
   container.querySelectorAll("[data-per]").forEach(b => {
     b.addEventListener("click", () => {
       periodo = b.getAttribute("data-per");
