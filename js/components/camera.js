@@ -97,7 +97,8 @@ function interfaccia() {
     .cam-modo.attivo{background:#fff;color:#111;opacity:1}
     #cam-overlay [hidden]{display:none !important}
     .cam-palco{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    .cam-palco video,.cam-palco img{width:100%;height:100%;object-fit:contain;display:block}
+    .cam-palco video{width:100%;height:100%;object-fit:cover;display:block}
+    .cam-palco img,.cam-palco video.fatto{width:100%;height:100%;object-fit:contain;display:block}
     .cam-guida{position:absolute;inset:0;pointer-events:none;
                background:
                  linear-gradient(to right,transparent 33.3%,rgba(255,255,255,.18) 33.3%,rgba(255,255,255,.18) 33.5%,transparent 33.5%),
