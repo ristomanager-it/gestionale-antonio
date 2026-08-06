@@ -568,8 +568,16 @@ async function scriviConTony() {
   const testoOrig = b ? b.textContent : '';
   if (b) { b.disabled = true; b.textContent = 'Tony sta scrivendo…'; }
   try {
+    const nota = document.getElementById('cal-istruzioni');
+    const istruzioni = nota ? nota.value.trim() : '';
+    if (istruzioni !== (SEL.istruzioni || '')) {
+      await supa().from('calendario_editoriale')
+        .update({ istruzioni: istruzioni || null }).eq('id', SEL.id);
+      SEL.istruzioni = istruzioni;
+    }
+
     const { data, error } = await supa().functions.invoke('tony-post', {
-      body: { azienda_id: aziendaId(), giorno_id: SEL.id }
+      body: { azienda_id: aziendaId(), giorno_id: SEL.id, istruzioni: istruzioni }
     });
     if (error) throw error;
     if (!data || !data.success) {
