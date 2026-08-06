@@ -487,15 +487,46 @@ async function formatiInBackground(mediaId, az, base) {
   } catch (e) { }
 }
 
-function chiediPost(mediaId, url, isVideo) {
+async function chiediPost(mediaId, url, isVideo) {
   const wrap = document.querySelector('.cam-sotto');
+
+  // se somiglia a un piatto del menu senza foto, si propone subito:
+  // e il momento in cui uno se lo ricorda, non dopo tre giorni
+  let piatto = null;
+  if (!isVideo) {
+    try {
+      const { data } = await supa().rpc('proponi_da_foto', { p_media: mediaId });
+      if (data && data.length) piatto = data[0];
+    } catch (e) { }
+  }
+
   wrap.innerHTML =
     '<div class="cam-esito">Salvato in galleria' +
-      (isVideo ? '.' : ' con i formati per Instagram, Facebook e le storie.') + '</div>' +
+      (isVideo ? '.' : ' con i formati per i social.') + '</div>' +
+    (piatto
+      ? '<div class="cam-barra cam-azioni" style="margin-bottom:10px">' +
+          '<button class="cam-a pri" id="cam-menu">🍽 Metti a menu: ' + esc(piatto.piatto) + '</button>' +
+        '</div>'
+      : '') +
     '<div class="cam-barra cam-azioni">' +
       '<button class="cam-a sec" id="cam-fine">Solo galleria</button>' +
       '<button class="cam-a pri" id="cam-post">Fanne un post</button>' +
     '</div>';
+
+  if (piatto) {
+    document.getElementById('cam-menu').onclick = async (e) => {
+      const b = e.currentTarget;
+      b.disabled = true; b.textContent = 'Metto…';
+      try {
+        const { data: prop } = await supa().from('proposte_sistema')
+          .select('id').eq('media_id', mediaId).eq('stato', 'aperta').limit(1).maybeSingle();
+        if (prop) await supa().rpc('accetta_proposta', { p_id: prop.id });
+        b.textContent = '✅ Messa a menu';
+      } catch (err) {
+        b.textContent = 'Non riuscito';
+      }
+    };
+  }
 
   document.getElementById('cam-fine').onclick = () => { chiudiCamera(); };
   document.getElementById('cam-post').onclick = () => {
