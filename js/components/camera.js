@@ -446,18 +446,10 @@ async function formatiInBackground(mediaId, az, base) {
         });
       } catch (e) { }
     }
-
-    esito.textContent = 'Tony sta guardando la foto…';
     try {
       await supa().functions.invoke('media-descrivi', { body: { azienda_id: az, limite: 1 } });
     } catch (e) { }
-
-    chiediPost(mediaId, pub.publicUrl, false);
-
-  } catch (e) {
-    toast('Non sono riuscito a salvare: ' + (e.message || e), 'error');
-    btn.disabled = false;
-  }
+  } catch (e) { }
 }
 
 function chiediPost(mediaId, url, isVideo) {
