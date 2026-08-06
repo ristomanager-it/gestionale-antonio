@@ -138,7 +138,7 @@ export async function componiCornice(opzioni) {
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  const nome = (window.state?.azienda?.nome || '').toUpperCase();
+  const nome = String(locale || '').toUpperCase();
   if (nome) {
     const dimN = Math.round(m.w * 0.025);
     ctx.font = '600 ' + dimN + 'px -apple-system, Segoe UI, Roboto, sans-serif';
