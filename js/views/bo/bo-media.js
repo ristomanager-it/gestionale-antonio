@@ -181,11 +181,14 @@ export async function render(container) {
       return;
     }
 
+    // le foto senza sede devono restare visibili: altrimenti chi carica
+    // senza sede attiva le perde e non le ritrova piu
+    const sedeCorrente = getSedeId();
     let q = sc.from("media_library")
       .select("*")
       .eq("azienda_id", aziendaId)
-      .eq("sede_id", getSedeId())
       .order("created_at", { ascending: false });
+    if (sedeCorrente) q = q.or("sede_id.eq." + sedeCorrente + ",sede_id.is.null");
 
     const { data, error } = await q;
 
