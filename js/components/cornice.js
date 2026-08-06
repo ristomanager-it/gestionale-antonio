@@ -50,6 +50,19 @@ async function coloriAzienda(aziendaId) {
   }
 }
 
+// L azienda e la ragione sociale, la sede e il locale che i clienti conoscono.
+// Nelle grafiche ci va il secondo: nessuno cerca Campo Antico Ricevimenti
+// quando vuole andare alla Trattoria dell Aquila.
+async function nomeLocale(sedeId) {
+  if (sedeId) {
+    try {
+      const { data } = await supa().from('sedi').select('nome').eq('id', sedeId).maybeSingle();
+      if (data && data.nome) return String(data.nome);
+    } catch (e) { }
+  }
+  return window.state?.sedeAttiva?.nome || window.state?.azienda?.nome || '';
+}
+
 export async function componiCornice(opzioni) {
   const {
     aziendaId, fotoUrl, titolo, riga2, formato = 'verticale', occasione
