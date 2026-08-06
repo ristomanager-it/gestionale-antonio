@@ -288,10 +288,11 @@ function daFile(e) {
       c.width = i.width; c.height = i.height;
       c.getContext('2d').drawImage(i, 0, 0);
       applicaFirma(c);
-      c.toBlob(b => {
-        scatto = { blob: b, w: c.width, h: c.height };
-        mostraAnteprima(c.toDataURL('image/jpeg', 0.92));
-      }, 'image/jpeg', 0.92);
+      const r2 = rimpicciolisci(c, 1600);
+      r2.toBlob(b => {
+        scatto = { blob: b, w: r2.width, h: r2.height };
+        mostraAnteprima(r2.toDataURL('image/jpeg', 0.85));
+      }, 'image/jpeg', 0.85);
     };
     i.src = r.result;
   };
