@@ -358,6 +358,14 @@ function ritaglia(sorgente, larg, alt) {
   return c;
 }
 
+// chi sta scattando: resta scritto in galleria accanto alla foto
+function autore() {
+  const u = window.state?.utente || window.state?.user || {};
+  const nome = u.nome || u.nome_completo || u.full_name || u.email ||
+               window.state?.nomeUtente || 'staff';
+  return { id: u.id || window.state?.user_id || null, nome: String(nome).split('@')[0] };
+}
+
 function aBlob(canvas, q) {
   return new Promise(res => canvas.toBlob(res, 'image/jpeg', q || 0.9));
 }
