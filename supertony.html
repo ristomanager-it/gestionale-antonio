@@ -186,6 +186,10 @@ async function invia() {
           if (b && b.error) det = b.error;
         }
       } catch (e) { }
+      if (String(det).indexOf("Failed to send") !== -1) {
+        det = "la richiesta era troppo lunga e la connessione e caduta. " +
+              "Prova a spezzarla: chiedimi una cosa per volta.";
+      }
       aggiungi("assistant", "Non ci sono riuscito: " + det);
     } else {
       aggiungi("assistant", data.reply || "(nessuna risposta)");
