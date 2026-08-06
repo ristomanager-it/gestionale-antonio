@@ -95,6 +95,7 @@ function interfaccia() {
     .cam-modo{background:none;border:none;color:#fff;padding:6px 16px;border-radius:16px;
               font-size:13px;font-weight:600;cursor:pointer;opacity:.65}
     .cam-modo.attivo{background:#fff;color:#111;opacity:1}
+    #cam-overlay [hidden]{display:none !important}
     .cam-palco{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
     .cam-palco video,.cam-palco img{width:100%;height:100%;object-fit:contain;display:block}
     .cam-guida{position:absolute;inset:0;pointer-events:none;
