@@ -542,14 +542,20 @@ async function searchDocumenti(azienda, filters) {
       fattureRaw.map((f) => f.import_external_id).filter(Boolean).map(String)
     );
 
+    // Una nota di credito e un rimborso: nei totali va sottratta, non sommata.
+    // L importo resta positivo sul documento, il segno si mette qui.
+    const eNotaCredito = (t) =>
+      ["nota_credito", "nota_di_credito", "TD04", "TD08"].indexOf(String(t || "")) !== -1;
+
     const fatture = fattureRaw.map((f) => ({
       id: f.id,
       tipo: "fattura",
       fonte: "fattura",
+      notaCredito: eNotaCredito(f.tipo_documento),
       data: f.data_documento || "",
       fornitore: f.fornitori?.ragione_sociale || "",
       numero: f.numero_documento || "",
-      totale: f.totale || 0,
+      totale: (eNotaCredito(f.tipo_documento) ? -1 : 1) * (f.totale || 0),
       stato: f.stato || "",
       origine: f.origine || "",
       documentoFiscaleId: f.import_external_id || null,
