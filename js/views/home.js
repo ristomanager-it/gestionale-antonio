@@ -140,6 +140,14 @@ export async function render(container){
   bindEvents()
   initNotificheTab()
   initFooter()
+
+  import("../components/messaggi-personale.js?v=" + (window.APP_V || "1"))
+    .then(m => m.montaMessaggiHome())
+    .catch(e => console.warn("messaggi non caricati:", e))
+
+  import("../components/camera.js?v=" + (window.APP_V || "1"))
+    .then(m => m.montaBottoneCamera())
+    .catch(e => console.warn("camera non caricata:", e))
   loadTony(ruolo)
 
   // ✅ FIX CRITICO
