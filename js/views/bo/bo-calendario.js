@@ -444,6 +444,31 @@ function disegnaPannello() {
   document.getElementById('cal-pubblica').onclick = () => pubblica(false);
 }
 
+// Il post come lo vedra un cliente sul telefono. Sta qui dentro apposta:
+// aprire Business Suite dal cellulare e un ostacolo, e chi deve approvare
+// deve vedere il risultato dove sta gia lavorando.
+function anteprimaFacebook() {
+  const box = document.getElementById('cal-anteprima');
+  if (!box || !SEL) return;
+
+  const ta = document.getElementById('cal-testo');
+  const testo = ta ? ta.value : (SEL.testo || '');
+  const img = SEL.grafica_modo === 'template' && SEL.grafica_url ? SEL.grafica_url : SEL.media_url;
+  const nome = (window.state?.azienda?.nome || 'La tua pagina');
+  const d = new Date(SEL.data + 'T00:00:00');
+  const quando = d.getDate() + ' ' + MESI[d.getMonth()].slice(0, 3).toLowerCase() + ' · 🌐';
+
+  box.innerHTML =
+    '<div class="fb-testa">' +
+      '<div class="fb-logo">' + esc(nome.charAt(0).toUpperCase()) + '</div>' +
+      '<div><div class="fb-nome">' + esc(nome) + '</div>' +
+      '<div class="fb-quando">' + quando + '</div></div>' +
+    '</div>' +
+    (testo ? '<div class="fb-testo">' + esc(testo) + '</div>' : '') +
+    (img ? '<img class="fb-img" src="' + esc(img) + '" alt="">' : '') +
+    '<div class="fb-azioni"><span>👍 Mi piace</span><span>💬 Commenta</span><span>↗ Condividi</span></div>';
+}
+
 function contaParole() {
   const ta = document.getElementById('cal-testo');
   const c = document.getElementById('cal-conta');
