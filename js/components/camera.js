@@ -436,7 +436,7 @@ async function salva() {
       azienda_id: az,
       nome: 'Scatto di ' + a.nome + ' del ' + new Date().toLocaleDateString('it-IT') + ' ' +
             new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
-      url: pub.publicUrl, tipo: 'immagine', tag: 'Piatti', origine: 'camera',
+      url: pub.publicUrl, path: path, tipo: 'immagine', tag: 'Piatti', origine: 'camera',
       larghezza: scatto.w, altezza: scatto.h,
       caricata_da: a.id, caricata_nome: a.nome
     }).select('id').single();
