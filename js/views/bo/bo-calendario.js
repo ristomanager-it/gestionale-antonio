@@ -175,6 +175,10 @@ function layout() {
       .fb-azioni{display:flex;border-top:1px solid #e4e6eb;padding:5px 0}
       .fb-azioni span{flex:1;text-align:center;font-size:12.5px;color:#65676b;padding:6px 0;font-weight:600}
       .fb-tit{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin:14px 0 0}
+      .cal-tony-nota{margin-top:12px}
+      .cal-tony-nota label{font-size:11.5px;color:#6b7280;display:block;margin-bottom:4px}
+      .cal-tony-nota textarea{width:100%;border:1px dashed #C98A0B;border-radius:8px;padding:9px 11px;
+        font:13.5px/1.45 inherit;resize:vertical;background:#fffdf7}
       .cal-scelta{display:flex;gap:6px;margin-top:8px}
       .cal-sc{flex:1;border:1px solid #e5e7eb;background:#fff;border-radius:7px;padding:8px;
               font-size:12.5px;font-weight:600;cursor:pointer;color:#6b7280}
