@@ -411,10 +411,23 @@ async function salva() {
     if (ins.error) throw ins.error;
     const mediaId = ins.data.id;
 
-    esito.textContent = 'Preparo i formati per i social…';
+    // l utente e libero da qui: il resto continua da solo
+    chiediPost(mediaId, pub.publicUrl, false);
+    formatiInBackground(mediaId, az, base);
+    return;
+  } catch (e) {
+    toast('Non sono riuscito a salvare: ' + (e.message || e), 'error');
+    btn.disabled = false;
+  }
+}
+
+async function formatiInBackground(mediaId, az, base) {
+  try {
+    const src = document.getElementById('cam-anteprima');
+    if (!src) return;
     const img = await new Promise(res => {
       const i = new Image(); i.onload = () => res(i);
-      i.src = document.getElementById('cam-anteprima').src;
+      i.src = src.src;
     });
 
     for (const k of Object.keys(FORMATI)) {
