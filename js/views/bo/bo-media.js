@@ -324,7 +324,10 @@ export async function render(container) {
       return `
         <div class="media-card" onclick="apriModal('${m.id}')">
           ${isVideo
-            ? `<video src="${escHtml(m.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`
+            ? (m.thumb_url
+                ? `<img data-mid="${m.id}" src="${escHtml(m.thumb_url)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;">
+                   <span style="position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;border-radius:4px;padding:2px 6px;font-size:11px;">▶ video</span>`
+                : `<video src="${escHtml(m.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`)
             : `<img src="${escHtml(urlAnteprima(m))}" data-mid="${m.id}" alt="${escHtml(m.nome)}" loading="lazy" decoding="async">`
           }
           <div class="media-card-type">${isVideo ? "🎬" : "🖼️"}</div>
