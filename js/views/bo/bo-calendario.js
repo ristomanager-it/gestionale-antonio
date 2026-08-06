@@ -408,6 +408,14 @@ function disegnaPannello() {
       (pubblicato ? ' readonly' : '') + '>' + esc(g.testo || '') + '</textarea>' +
     '<div class="cal-conta" id="cal-conta"></div>' +
 
+    (pubblicato ? '' :
+      '<div class="cal-tony-nota">' +
+        '<label>Cosa vuoi cambiare? (Tony ne terra conto)</label>' +
+        '<textarea id="cal-istruzioni" rows="2" ' +
+          'placeholder="es. parla anche dell aperitivo, togli il prezzo, tono piu diretto">' +
+          esc(g.istruzioni || '') + '</textarea>' +
+      '</div>') +
+
     '<div class="cal-m-azioni">' +
       (pubblicato ? '' :
         '<button class="cal-a pri" id="cal-tony">✨ Riscrivi con Tony</button>' +
