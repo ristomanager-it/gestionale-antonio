@@ -201,10 +201,27 @@ async function scatta() {
   c.getContext('2d').drawImage(v, 0, 0);
   applicaFirma(c);
 
-  c.toBlob(b => {
-    scatto = { blob: b, w: c.width, h: c.height };
-    mostraAnteprima(c.toDataURL('image/jpeg', 0.92));
-  }, 'image/jpeg', 0.92);
+  const r = rimpicciolisci(c, 1600);
+  r.toBlob(b => {
+    scatto = { blob: b, w: r.width, h: r.height };
+    mostraAnteprima(r.toDataURL('image/jpeg', 0.85));
+  }, 'image/jpeg', 0.85);
+}
+
+// Sul telefono lo scatto esce anche da 4000px e pesa un mega: su una connessione
+// da locale sono decine di secondi. A 1600 di lato lungo si vede uguale e pesa un quinto.
+function rimpicciolisci(canvas, latoMax) {
+  const w = canvas.width, h = canvas.height;
+  const lato = Math.max(w, h);
+  if (lato <= latoMax) return canvas;
+  const k = latoMax / lato;
+  const c2 = document.createElement('canvas');
+  c2.width = Math.round(w * k);
+  c2.height = Math.round(h * k);
+  const ctx = c2.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(canvas, 0, 0, c2.width, c2.height);
+  return c2;
 }
 
 function registra() {
