@@ -65,11 +65,12 @@ async function nomeLocale(sedeId) {
 
 export async function componiCornice(opzioni) {
   const {
-    aziendaId, fotoUrl, titolo, riga2, formato = 'verticale', occasione
+    aziendaId, sedeId, fotoUrl, titolo, riga2, formato = 'verticale', occasione
   } = opzioni;
 
   const m = MISURE[formato] || MISURE.verticale;
   const col = await coloriAzienda(aziendaId);
+  const locale = await nomeLocale(sedeId);
 
   const c = document.createElement('canvas');
   c.width = m.w; c.height = m.h;
