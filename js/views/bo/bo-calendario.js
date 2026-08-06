@@ -422,9 +422,10 @@ function disegnaPannello() {
       '<button class="cal-a sec" id="cal-chiudi">Chiudi</button>' +
     '</div>';
 
+  anteprimaFacebook();
   contaParole();
   const ta = document.getElementById('cal-testo');
-  if (ta) ta.oninput = contaParole;
+  if (ta) ta.oninput = () => { contaParole(); anteprimaFacebook(); };
 
   document.getElementById('cal-chiudi').onclick = chiudi;
   if (pubblicato) return;
