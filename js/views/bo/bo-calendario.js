@@ -401,6 +401,9 @@ function disegnaPannello() {
     '</div>' +
     '<div id="cal-galleria"></div>' +
 
+    '<div class="fb-tit">Come si vedra</div>' +
+    '<div class="fb-prev" id="cal-anteprima"></div>' +
+
     '<textarea class="cal-ta" id="cal-testo" placeholder="Testo del post…"' +
       (pubblicato ? ' readonly' : '') + '>' + esc(g.testo || '') + '</textarea>' +
     '<div class="cal-conta" id="cal-conta"></div>' +
