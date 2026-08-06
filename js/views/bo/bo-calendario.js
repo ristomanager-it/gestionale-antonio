@@ -476,6 +476,41 @@ async function mostraGalleria() {
   };
 }
 
+// La cornice non e un obbligo: una bella foto di un piatto spesso rende di piu.
+// Si sceglie guardando, e la grafica si monta solo se serve davvero.
+async function cambiaModoGrafica(modo) {
+  if (!SEL) return;
+  if (modo !== 'template') {
+    await aggiorna({ grafica_modo: 'foto' }, 'Esce la foto', true);
+    return;
+  }
+  if (SEL.grafica_url) {
+    await aggiorna({ grafica_modo: 'template' }, 'Esce con la cornice', true);
+    return;
+  }
+  const box = document.getElementById('cal-foto');
+  if (box) box.innerHTML = '<div class="cal-foto-n">Monto la cornice…</div>';
+  try {
+    const { data, error } = await supa().functions.invoke('tony-grafica', {
+      body: { azienda_id: aziendaId(), giorno_id: SEL.id, titolo: valTesto() ? SEL.titolo : SEL.titolo }
+    });
+    if (error) throw error;
+    if (!data || !data.success) {
+      if (data && data.canva_da_collegare) {
+        mostraToast('Canva non e ancora collegato: per ora esce la foto sola', 'error');
+      } else {
+        mostraToast((data && data.error) || 'Cornice non disponibile', 'error');
+      }
+      await aggiorna({ grafica_modo: 'foto' }, '', true);
+      return;
+    }
+    await aggiorna({ grafica_modo: 'template' }, 'Cornice ' + (data.template || '') + ' applicata', true);
+  } catch (e) {
+    mostraToast(String(e.message || e), 'error');
+    await aggiorna({ grafica_modo: 'foto' }, '', true);
+  }
+}
+
 async function scriviConTony() {
   const b = document.getElementById('cal-tony');
   const testoOrig = b ? b.textContent : '';
