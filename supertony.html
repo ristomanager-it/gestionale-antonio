@@ -2,53 +2,259 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <title>Super Tony</title>
-
-<!-- si comporta come un app quando e aggiunta alla schermata del telefono -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Super Tony">
-<meta name="theme-color" content="#1f2937">
-<link rel="apple-touch-icon" href="/icona-supertony.png">
-<link rel="icon" href="/icona-supertony.png">
-<link rel="manifest" href="/supertony.webmanifest">
-
+<meta name="theme-color" content="#111827">
+<link rel="apple-touch-icon" href="icona-supertony.png">
+<link rel="icon" href="icona-supertony.png">
+<link rel="manifest" href="supertony.webmanifest">
 <style>
-  html,body{margin:0;height:100%;background:#1f2937;color:#f5f3ee;
-    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    display:flex;align-items:center;justify-content:center;text-align:center}
-  .box{padding:24px}
-  .tondo{width:86px;height:86px;border-radius:43px;background:#111827;border:3px solid #C98A0B;
-    display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 18px}
-  h1{font-size:20px;margin:0 0 6px;letter-spacing:.5px}
-  p{font-size:13.5px;color:#b0bec5;margin:0}
-  a{color:#C98A0B}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#0f172a;color:#e8eef4}
+  #app{display:flex;flex-direction:column;height:100dvh}
+
+  header{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+    background:#111827;border-bottom:1px solid #1f2f45;flex-shrink:0}
+  .logo{width:34px;height:34px;border-radius:17px;background:#1f2937;border:2px solid #C98A0B;
+    display:flex;align-items:center;justify-content:center;font-size:17px}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header .sub{font-size:11.5px;color:#7d93a8}
+  header button{margin-left:auto;background:#1f2937;color:#93a7ba;border:none;border-radius:8px;
+    padding:7px 11px;font-size:12px;cursor:pointer}
+
+  #chat{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+  .m{max-width:86%;padding:10px 13px;border-radius:15px;margin-bottom:9px;
+    white-space:pre-wrap;word-wrap:break-word;font-size:15px;line-height:1.45}
+  .u{background:#1d4ed8;color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+  .a{background:#1b2735;border:1px solid #24354a;border-bottom-left-radius:4px}
+  .sys{background:none;color:#7d93a8;font-size:12.5px;text-align:center;max-width:100%}
+
+  .prop{background:#1b2735;border:1px solid #C98A0B;border-radius:12px;padding:11px 13px;margin-bottom:9px}
+  .prop .t{font-size:11px;color:#C98A0B;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+  .prop .d{font-size:13.5px;margin-bottom:9px;word-break:break-all}
+  .prop button{background:#C98A0B;color:#111827;border:none;border-radius:8px;padding:9px 15px;
+    font-size:13.5px;font-weight:700;cursor:pointer}
+  .prop button.no{background:#24354a;color:#93a7ba;margin-left:7px}
+
+  footer{padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);background:#111827;
+    border-top:1px solid #1f2f45;flex-shrink:0}
+  .riga{display:flex;gap:8px;align-items:flex-end}
+  textarea{flex:1;background:#1b2735;color:#e8eef4;border:1px solid #24354a;border-radius:20px;
+    padding:11px 15px;font:15px inherit;resize:none;max-height:120px;min-height:44px}
+  .invia{width:44px;height:44px;border-radius:22px;background:#C98A0B;color:#111827;border:none;
+    font-size:19px;cursor:pointer;flex-shrink:0}
+  .invia:disabled{opacity:.4}
+
+  #login{position:absolute;inset:0;background:#0f172a;display:flex;align-items:center;
+    justify-content:center;padding:24px;z-index:10}
+  #login .box{width:100%;max-width:330px;text-align:center}
+  #login input{width:100%;background:#1b2735;color:#e8eef4;border:1px solid #24354a;
+    border-radius:10px;padding:13px;font:15px inherit;margin-bottom:9px}
+  #login button{width:100%;background:#C98A0B;color:#111827;border:none;border-radius:10px;
+    padding:13px;font-size:15px;font-weight:700;cursor:pointer}
+  #login .err{color:#f87171;font-size:13px;margin-top:10px;min-height:18px}
+  .logo-g{width:64px;height:64px;border-radius:32px;background:#1f2937;border:3px solid #C98A0B;
+    display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px}
 </style>
 </head>
 <body>
+
+<div id="app">
+  <header>
+    <div class="logo">🧠</div>
+    <div>
+      <h1>Super Tony</h1>
+      <div class="sub" id="stato">collegamento…</div>
+    </div>
+    <button id="pulisci">Nuova</button>
+  </header>
+  <div id="chat"></div>
+  <footer>
+    <div class="riga">
+      <textarea id="testo" rows="1" placeholder="Scrivi a Super Tony…"></textarea>
+      <button class="invia" id="invia">➤</button>
+    </div>
+  </footer>
+</div>
+
+<div id="login">
   <div class="box">
-    <div class="tondo">🧠</div>
-    <h1>Super Tony</h1>
-    <p id="msg">Apro…</p>
+    <div class="logo-g">🧠</div>
+    <h2 style="font-size:18px;margin:0 0 4px">Super Tony</h2>
+    <p style="font-size:13px;color:#7d93a8;margin:0 0 18px">Accedi una volta sola</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" inputmode="email">
+    <input id="pwd" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="entra">Entra</button>
+    <div class="err" id="errore"></div>
   </div>
+</div>
 
-<script>
-  // Porta dritto a Super Tony dentro il gestionale, saltando la home
-  // e senza passare da Piattaforma.
-  var dove = "/index.html#/super-tony";
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+
+// sessione salvata sul telefono: si accede una volta e basta
+const sb = createClient(URL, KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: "supertony-auth" }
+});
+
+const $ = (id) => document.getElementById(id);
+let chat = [];
+let proposte = [];
+let occupato = false;
+
+function salva() {
+  try { localStorage.setItem("st-chat", JSON.stringify(chat.slice(-40))); } catch (e) { }
+}
+function ripristina() {
   try {
-    sessionStorage.setItem("st_diretto", "1");
-  } catch (e) { }
-  setTimeout(function () {
-    window.location.replace(dove);
-  }, 250);
+    const s = localStorage.getItem("st-chat");
+    if (s) chat = JSON.parse(s) || [];
+  } catch (e) { chat = []; }
+}
 
-  // se qualcosa va storto resta un modo per proseguire a mano
-  setTimeout(function () {
-    var m = document.getElementById("msg");
-    if (m) m.innerHTML = 'Se non si apre da solo, <a href="' + dove + '">tocca qui</a>.';
-  }, 2500);
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function disegna() {
+  const c = $("chat");
+  c.innerHTML =
+    chat.map(m => '<div class="m ' + (m.role === "user" ? "u" : (m.role === "sys" ? "sys" : "a")) + '">' +
+      esc(m.content) + "</div>").join("") +
+    proposte.map((p, i) =>
+      '<div class="prop"><div class="t">' + esc(p.type || "azione") + '</div>' +
+      '<div class="d">' + esc(p.path || p.name || p.slug || p.to || p.sql || "").slice(0, 200) + '</div>' +
+      '<button data-si="' + i + '">Conferma</button>' +
+      '<button class="no" data-no="' + i + '">Scarta</button></div>'
+    ).join("");
+  c.scrollTop = c.scrollHeight;
+}
+
+function aggiungi(role, content) {
+  chat.push({ role, content });
+  salva();
+  disegna();
+}
+
+async function invia() {
+  const t = $("testo").value.trim();
+  if (!t || occupato) return;
+  $("testo").value = "";
+  $("testo").style.height = "auto";
+  aggiungi("user", t);
+
+  occupato = true;
+  $("invia").disabled = true;
+  aggiungi("sys", "sto pensando…");
+
+  try {
+    try { await sb.auth.refreshSession(); } catch (e) { }
+    const storia = chat.filter(m => m.role !== "sys").slice(-16)
+      .map(m => ({ role: m.role, content: m.content }));
+
+    const { data, error } = await sb.functions.invoke("super-tony", { body: { messages: storia } });
+    chat = chat.filter(m => m.role !== "sys");
+
+    if (error || !data || !data.success) {
+      let det = (data && data.error) || (error && error.message) || "errore sconosciuto";
+      try {
+        if (error && error.context) {
+          const b = await error.context.json();
+          if (b && b.error) det = b.error;
+        }
+      } catch (e) { }
+      aggiungi("assistant", "Non ci sono riuscito: " + det);
+    } else {
+      aggiungi("assistant", data.reply || "(nessuna risposta)");
+      if (Array.isArray(data.proposals) && data.proposals.length) {
+        proposte.push.apply(proposte, data.proposals);
+        disegna();
+      }
+    }
+  } catch (e) {
+    chat = chat.filter(m => m.role !== "sys");
+    aggiungi("assistant", "Errore di rete: " + e.message);
+  } finally {
+    occupato = false;
+    $("invia").disabled = false;
+  }
+}
+
+async function esegui(i) {
+  const p = proposte[i];
+  if (!p) return;
+  if (!confirm("Eseguire questa azione sul sistema in produzione?")) return;
+  aggiungi("sys", "eseguo…");
+  try {
+    try { await sb.auth.refreshSession(); } catch (e) { }
+    const { data, error } = await sb.functions.invoke("super-tony", { body: { confirm_action: p } });
+    chat = chat.filter(m => m.role !== "sys");
+    if (error || !data || !data.success) {
+      aggiungi("assistant", "Non eseguito: " + ((data && data.error) || (error && error.message) || "errore"));
+    } else {
+      proposte.splice(i, 1);
+      aggiungi("assistant", "Fatto.");
+    }
+  } catch (e) {
+    chat = chat.filter(m => m.role !== "sys");
+    aggiungi("assistant", "Errore: " + e.message);
+  }
+  disegna();
+}
+
+$("chat").addEventListener("click", (e) => {
+  const si = e.target.getAttribute("data-si");
+  const no = e.target.getAttribute("data-no");
+  if (si !== null && si !== undefined) esegui(Number(si));
+  if (no !== null && no !== undefined) { proposte.splice(Number(no), 1); disegna(); }
+});
+
+$("invia").onclick = invia;
+$("testo").addEventListener("input", function () {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 120) + "px";
+});
+$("testo").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 760) { e.preventDefault(); invia(); }
+});
+$("pulisci").onclick = () => {
+  if (!confirm("Ricominciare da capo?")) return;
+  chat = []; proposte = [];
+  localStorage.removeItem("st-chat");
+  disegna();
+};
+
+$("entra").onclick = async () => {
+  $("errore").textContent = "";
+  $("entra").disabled = true;
+  const { error } = await sb.auth.signInWithPassword({
+    email: $("email").value.trim(), password: $("pwd").value
+  });
+  $("entra").disabled = false;
+  if (error) { $("errore").textContent = error.message; return; }
+  avvia();
+};
+
+async function avvia() {
+  const { data } = await sb.auth.getSession();
+  if (!data || !data.session) { $("login").style.display = "flex"; return; }
+  $("login").style.display = "none";
+  $("stato").textContent = data.session.user.email || "collegato";
+  ripristina();
+  if (!chat.length) aggiungi("assistant", "Ciao Antonio. Dimmi cosa non va e lo guardo.");
+  else disegna();
+}
+
+avvia();
 </script>
 </body>
 </html>
