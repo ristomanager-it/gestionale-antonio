@@ -154,6 +154,13 @@ async function avvia(facing) {
     const v = document.getElementById('cam-video');
     v.srcObject = stream;
     v.muted = true;
+    v.playsInline = true;
+    try { await v.play(); } catch (e) { }
+    await new Promise(res => {
+      if (v.videoWidth) return res(true);
+      v.onloadedmetadata = () => res(true);
+      setTimeout(() => res(false), 2500);
+    });
     document.getElementById('cam-esito').textContent =
       modo === 'foto' ? 'Inquadra e scatta. Le righe aiutano a tenere dritto.' : 'Premi il tasto per iniziare e per fermare.';
   } catch (e) {
