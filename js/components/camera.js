@@ -6,6 +6,8 @@ const supa = () => window.supabaseClient || window.supabase;
 function esc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function toast(m, t) { if (window.mostraToast) window.mostraToast(m, t || 'success'); }
 function aziendaId() { return window.state?.azienda?.id || window.state?.azienda_id || window.state?.aziendaId; }
+// la galleria filtra per sede: senza questa la foto non compare a nessuno
+function sedeId() { return window.state?.sedeAttiva?.id || window.state?.sede_id || null; }
 
 const FORMATI = {
   quadrata:    { w: 1080, h: 1080, l: 'Quadrata 1:1', usi: 'Instagram, Facebook' },
