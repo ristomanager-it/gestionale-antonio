@@ -242,6 +242,7 @@ function daFile(e) {
     const vf = document.getElementById('cam-video-fatto');
     vf.src = URL.createObjectURL(f); vf.hidden = false;
     document.getElementById('cam-video').hidden = true;
+    document.getElementById('cam-guida').hidden = true;
     document.getElementById('cam-barra-scatto').hidden = true;
     document.getElementById('cam-barra-salva').hidden = false;
     return;
