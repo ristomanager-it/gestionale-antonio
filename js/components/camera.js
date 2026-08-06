@@ -423,7 +423,7 @@ async function salva() {
 
     if (!scatto) { toast('Niente da salvare', 'error'); btn.disabled = false; return; }
 
-    esito.textContent = 'Carico la foto…';
+    esito.textContent = 'Carico la foto, un secondo…';
     const path = base + '.jpg';
     const up = await supa().storage.from('media-aziende').upload(path, scatto.blob, {
       contentType: 'image/jpeg', upsert: false
