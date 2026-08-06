@@ -174,11 +174,19 @@ function cambiaModo(m) {
   avvia(facingAttuale);
 }
 
-function scatta() {
+async function scatta() {
   if (modo === 'video') return registra();
 
   const v = document.getElementById('cam-video');
-  if (!v.videoWidth) { toast('Fotocamera non pronta', 'error'); return; }
+  // su iPhone le misure arrivano un attimo dopo: aspetto invece di rifiutare
+  for (let i = 0; i < 12 && !v.videoWidth; i++) {
+    try { await v.play(); } catch (e) { }
+    await new Promise(r => setTimeout(r, 150));
+  }
+  if (!v.videoWidth) {
+    toast('La fotocamera non parte: usa il tasto immagine per prendere una foto dal telefono', 'error');
+    return;
+  }
 
   const c = document.getElementById('cam-canvas');
   c.width = v.videoWidth;
