@@ -416,6 +416,11 @@ function disegnaPannello() {
   if (pubblicato) return;
 
   document.getElementById('cal-cambia-foto').onclick = mostraGalleria;
+  const scelta = document.querySelector('.cal-scelta');
+  if (scelta) scelta.onclick = (e) => {
+    const b = e.target.closest('[data-modo]');
+    if (b) cambiaModoGrafica(b.dataset.modo);
+  };
   document.getElementById('cal-tony').onclick = scriviConTony;
   document.getElementById('cal-salva').onclick = () => aggiorna({ testo: valTesto(), stato: 'bozza' }, 'Salvato');
   document.getElementById('cal-approva').onclick = () => aggiorna({ testo: valTesto(), stato: 'approvato' }, 'Approvato');
