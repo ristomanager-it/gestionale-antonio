@@ -440,7 +440,7 @@ async function salva() {
       larghezza: scatto.w, altezza: scatto.h,
       caricata_da: a.id, caricata_nome: a.nome
     }).select('id').single();
-    if (ins.error) throw ins.error;
+    if (ins.error) throw new Error('La foto e salita ma non entra in galleria: ' + ins.error.message);
     const mediaId = ins.data.id;
 
     // l utente e libero da qui: il resto continua da solo
