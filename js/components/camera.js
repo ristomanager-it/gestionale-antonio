@@ -381,9 +381,11 @@ async function salva() {
       if (up.error) throw up.error;
       const { data: pub } = supa().storage.from('media-aziende').getPublicUrl(path);
 
+      const a = autore();
       const ins = await supa().from('media_library').insert({
-        azienda_id: az, nome: 'Video del ' + new Date().toLocaleDateString('it-IT'),
-        url: pub.publicUrl, tipo: 'video', tag: 'Altro', origine: 'camera'
+        azienda_id: az, nome: 'Video di ' + a.nome + ' del ' + new Date().toLocaleDateString('it-IT'),
+        url: pub.publicUrl, tipo: 'video', tag: 'Altro', origine: 'camera',
+        caricata_da: a.id, caricata_nome: a.nome
       }).select('id').single();
       if (ins.error) throw ins.error;
 
