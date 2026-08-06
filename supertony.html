@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Super Tony</title>
+
+<!-- si comporta come un app quando e aggiunta alla schermata del telefono -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Super Tony">
+<meta name="theme-color" content="#1f2937">
+<link rel="apple-touch-icon" href="/icona-supertony.png">
+<link rel="icon" href="/icona-supertony.png">
+<link rel="manifest" href="/supertony.webmanifest">
+
+<style>
+  html,body{margin:0;height:100%;background:#1f2937;color:#f5f3ee;
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex;align-items:center;justify-content:center;text-align:center}
+  .box{padding:24px}
+  .tondo{width:86px;height:86px;border-radius:43px;background:#111827;border:3px solid #C98A0B;
+    display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 18px}
+  h1{font-size:20px;margin:0 0 6px;letter-spacing:.5px}
+  p{font-size:13.5px;color:#b0bec5;margin:0}
+  a{color:#C98A0B}
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="tondo">🧠</div>
+    <h1>Super Tony</h1>
+    <p id="msg">Apro…</p>
+  </div>
+
+<script>
+  // Porta dritto a Super Tony dentro il gestionale, saltando la home
+  // e senza passare da Piattaforma.
+  var dove = "/index.html#/super-tony";
+  try {
+    sessionStorage.setItem("st_diretto", "1");
+  } catch (e) { }
+  setTimeout(function () {
+    window.location.replace(dove);
+  }, 250);
+
+  // se qualcosa va storto resta un modo per proseguire a mano
+  setTimeout(function () {
+    var m = document.getElementById("msg");
+    if (m) m.innerHTML = 'Se non si apre da solo, <a href="' + dove + '">tocca qui</a>.';
+  }, 2500);
+</script>
+</body>
+</html>
