@@ -286,7 +286,7 @@ export async function renderFatture(container, azienda) {
             <div class="rf-doc-title">${escapeHtml(row.fornitore || "Fornitore non definito")}</div>
             <div class="rf-doc-meta">
               <span>Numero: ${escapeHtml(row.numero || "-")}</span>
-              ${row.tipo === "fattura" ? `<span>Totale: € ${escapeHtml(formatMoney(row.totale || 0))}</span>` : ""}
+              ${row.tipo === "fattura" ? `<span${row.notaCredito ? ' style="color:#2F7D32;font-weight:700"' : ""}>${row.notaCredito ? "Nota di credito: " : "Totale: "}€ ${escapeHtml(formatMoney(row.totale || 0))}</span>` : ""}
               ${row.stato ? `<span>Stato: ${escapeHtml(row.stato)}</span>` : ""}
               ${row.tipo === "fattura" && row.id ? `<span style="color:#0f766e;font-weight:600;">▸ Vedi righe</span>` : ""}
             </div>
