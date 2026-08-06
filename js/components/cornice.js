@@ -156,6 +156,7 @@ export async function creaGrafica(aziendaId, giorno, formato) {
 
   const blob = await componiCornice({
     aziendaId: aziendaId,
+    sedeId: giorno.sede_id || (window.state?.sedeAttiva?.id),
     fotoUrl: foto,
     titolo: giorno.titolo || '',
     riga2: null,
