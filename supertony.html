@@ -166,7 +166,16 @@ async function invia() {
     const storia = chat.filter(m => m.role !== "sys").slice(-16)
       .map(m => ({ role: m.role, content: m.content }));
 
-    const { data, error } = await sb.functions.invoke("super-tony", { body: { messages: storia } });
+    let { data, error } = await sb.functions.invoke("super-tony", { body: { messages: storia } });
+
+    // le richieste lunghe a volte cadono in rete: si riprova una volta sola
+    if (error && String(error.message || "").indexOf("Failed to send") !== -1) {
+      chat = chat.filter(m => m.role !== "sys");
+      aggiungi("sys", "ci sta mettendo un po, riprovo…");
+      await new Promise(r => setTimeout(r, 1500));
+      const r2 = await sb.functions.invoke("super-tony", { body: { messages: storia } });
+      data = r2.data; error = r2.error;
+    }
     chat = chat.filter(m => m.role !== "sys");
 
     if (error || !data || !data.success) {
