@@ -497,6 +497,7 @@ async function searchDocumenti(azienda, filters) {
           numero_documento,
           data_documento,
           totale,
+          tipo_documento,
           stato,
           origine,
           import_external_id,
