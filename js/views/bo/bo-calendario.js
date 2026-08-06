@@ -164,6 +164,17 @@ function layout() {
       .cal-m-riga{font-size:13px;padding:7px 0;border-bottom:1px solid #f3f4f6;line-height:1.45}
       .cal-img{width:100%;border-radius:8px;margin-top:10px;display:block}
       .cal-foto-n{font-size:12px;color:#6b7280;line-height:1.4;margin-top:6px}
+      .fb-prev{border:1px solid #dbe1e8;border-radius:10px;overflow:hidden;margin-top:12px;background:#fff}
+      .fb-testa{display:flex;gap:9px;align-items:center;padding:10px 12px}
+      .fb-logo{width:38px;height:38px;border-radius:19px;background:#1877F2;color:#fff;
+               display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0}
+      .fb-nome{font-size:13.5px;font-weight:700;color:#050505;line-height:1.2}
+      .fb-quando{font-size:11.5px;color:#65676b}
+      .fb-testo{padding:2px 12px 11px;font-size:14px;line-height:1.45;color:#050505;white-space:pre-wrap}
+      .fb-img{width:100%;display:block;background:#f0f2f5}
+      .fb-azioni{display:flex;border-top:1px solid #e4e6eb;padding:5px 0}
+      .fb-azioni span{flex:1;text-align:center;font-size:12.5px;color:#65676b;padding:6px 0;font-weight:600}
+      .fb-tit{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin:14px 0 0}
       .cal-scelta{display:flex;gap:6px;margin-top:8px}
       .cal-sc{flex:1;border:1px solid #e5e7eb;background:#fff;border-radius:7px;padding:8px;
               font-size:12.5px;font-weight:600;cursor:pointer;color:#6b7280}
