@@ -411,7 +411,8 @@ async function salva() {
 
       const a = autore();
       const ins = await supa().from('media_library').insert({
-        azienda_id: az, nome: 'Video di ' + a.nome + ' del ' + new Date().toLocaleDateString('it-IT'),
+        azienda_id: az, sede_id: sedeId(),
+        nome: 'Video di ' + a.nome + ' del ' + new Date().toLocaleDateString('it-IT'),
         url: pub.publicUrl, path: path, tipo: 'video', tag: 'Altro', origine: 'camera',
         caricata_da: a.id, caricata_nome: a.nome
       }).select('id').single();
