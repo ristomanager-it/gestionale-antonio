@@ -115,6 +115,10 @@ export async function render(container) {
     .then(m => m.initNotificheTab())
     .catch(e => console.warn("tab notifiche non caricato:", e));
 
+  import("../components/camera.js?v=" + (window.APP_V || "1"))
+    .then(m => m.montaBottoneCamera())
+    .catch(e => console.warn("camera non caricata:", e));
+
   container.querySelectorAll("[data-per]").forEach(b => {
     b.addEventListener("click", () => {
       periodo = b.getAttribute("data-per");
