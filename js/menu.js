@@ -348,6 +348,7 @@ export function initMenu() {
           { label: "💍 Wedding Planner",   route: "gestioneWeddingPlanner" },
           { label: "➕ Crea Azienda",      route: "creaAzienda"     },
           { label: "💳 Piani Abbonamento", route: "gestionePiani"   },
+          { label: "⚡ Consumi AI",        route: "consumiAI"      },
         ]
       });
     }
