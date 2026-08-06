@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Super Tony</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Super Tony">
+<meta name="theme-color" content="#023C59">
+<link rel="apple-touch-icon" href="/tony.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/tony.png">
+<link rel="icon" href="/tony.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  /* palette Ristoflow: blu #023C59, arancio #E16304, azzurro #0E76A3, verde #449531 */
+  html,body{margin:0;height:100%;overflow:hidden;
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#012639;color:#eef4f8}
+  #app{display:flex;flex-direction:column;height:100dvh}
+
+  header{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+    background:#023C59;flex-shrink:0}
+  /* i quattro colori del logo Ristoflow */
+  .banda{height:4px;flex-shrink:0;background:linear-gradient(90deg,
+    #E16304 0 25%, #ECA41C 25% 50%, #449531 50% 75%, #0E76A3 75% 100%)}
+  .logo{width:38px;height:38px;border-radius:19px;background:#012639;border:2px solid #E16304;
+    display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .logo img{width:100%;height:100%;object-fit:cover}
+  header h1{font-size:16px;margin:0;font-weight:600;color:#fff}
+  header h1 span{color:#ECA41C}
+  header .sub{font-size:11.5px;color:#7fb3cc}
+  header button{margin-left:auto;background:#0E76A3;color:#fff;border:none;border-radius:8px;
+    padding:7px 11px;font-size:12px;cursor:pointer}
+
+  #chat{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+  .m{max-width:92%;padding:13px 16px;border-radius:15px;margin-bottom:11px;
+    white-space:pre-wrap;word-wrap:break-word;font-size:18px;line-height:1.5}
+  .u{background:#0E76A3;color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+  .a{background:#023C59;border:1px solid #0E76A3;border-left:3px solid #E16304;
+     border-bottom-left-radius:4px}
+  .sys{background:none;color:#7fb3cc;font-size:14px;text-align:center;max-width:100%}
+
+  .prop{background:#023C59;border:1px solid #E16304;border-radius:12px;padding:11px 13px;margin-bottom:9px}
+  .prop .t{font-size:11px;color:#ECA41C;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+  .prop .d{font-size:15px;margin-bottom:10px;word-break:break-all}
+  .prop button{background:#449531;color:#fff;border:none;border-radius:8px;padding:9px 15px;
+    font-size:13.5px;font-weight:700;cursor:pointer}
+  .prop button.no{background:#08517A;color:#bcd8e6;margin-left:7px}
+
+  footer{padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);background:#023C59;
+    border-top:1px solid #0E76A3;flex-shrink:0}
+  .riga{display:flex;gap:8px;align-items:flex-end}
+  textarea{flex:1;background:#012639;color:#eef4f8;border:1px solid #0E76A3;border-radius:22px;
+    padding:13px 17px;font:18px inherit;resize:none;max-height:140px;min-height:50px}
+  .invia{width:44px;height:44px;border-radius:22px;background:#E16304;color:#fff;border:none;
+    font-size:19px;cursor:pointer;flex-shrink:0}
+  .invia:disabled{opacity:.4}
+
+  #login{position:absolute;inset:0;background:#012639;display:flex;align-items:center;
+    justify-content:center;padding:24px;z-index:10}
+  #login .box{width:100%;max-width:330px;text-align:center}
+  #login input{width:100%;background:#023C59;color:#eef4f8;border:1px solid #0E76A3;
+    border-radius:10px;padding:13px;font:15px inherit;margin-bottom:9px}
+  #login button{width:100%;background:#E16304;color:#fff;border:none;border-radius:10px;
+    padding:13px;font-size:15px;font-weight:700;cursor:pointer}
+  #login .err{color:#f87171;font-size:13px;margin-top:10px;min-height:18px}
+  .logo-g{width:96px;height:96px;border-radius:48px;background:#023C59;border:3px solid #E16304;
+    display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 16px;overflow:hidden}
+  .logo-g img{width:100%;height:100%;object-fit:cover}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="logo"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png" alt=""
+      onerror="this.src='/favicon-192.png'"></div>
+    <div>
+      <h1><span>Super</span> Tony</h1>
+      <div class="sub" id="stato">collegamento…</div>
+    </div>
+    <button id="pulisci">Nuova</button>
+  </header>
+  <div class="banda"></div>
+  <div id="chat"></div>
+  <footer>
+    <div class="riga">
+      <textarea id="testo" rows="1" placeholder="Scrivi a Super Tony…"></textarea>
+      <button class="invia" id="invia">➤</button>
+    </div>
+  </footer>
+</div>
+
+<div id="login">
+  <div class="box">
+    <div class="logo-g"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/Avatar/Tony.png" alt=""
+      onerror="this.src='/favicon-192.png'"></div>
+    <h2 style="font-size:18px;margin:0 0 4px">Super Tony</h2>
+    <p style="font-size:13px;color:#7d93a8;margin:0 0 18px">Accedi una volta sola</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" inputmode="email">
+    <input id="pwd" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="entra">Entra</button>
+    <div class="err" id="errore"></div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+
+// sessione salvata sul telefono: si accede una volta e basta
+const sb = createClient(URL, KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: "supertony-auth" }
+});
+
+const $ = (id) => document.getElementById(id);
+let chat = [];
+let proposte = [];
+let occupato = false;
+let regole = "";
+
+// Le regole del progetto stanno in progetto_conoscenza: si caricano una volta
+// e viaggiano davanti a ogni richiesta, cosi Super Tony non riparte da zero
+// e non ripete gli errori gia scoperti.
+async function caricaRegole() {
+  try {
+    const { data } = await sb.from("progetto_conoscenza")
+      .select("argomento,titolo,contenuto").eq("attiva", true)
+      .lte("priorita", 3).order("priorita");
+    if (data && data.length) {
+      regole = "REGOLE DEL PROGETTO RISTOFLOW — valgono sempre, sono state pagate con errori veri:\n\n" +
+        data.map(r => "[" + r.argomento + "] " + r.titolo + "\n" + r.contenuto).join("\n\n") +
+        "\n\nMETODO: guarda i dati veri prima di costruire. Fai il minimo che risolve. " +
+        "Verifica dopo il deploy con una query o una prova, non fidarti della risposta della funzione. " +
+        "Se una cosa non la puoi fare, dillo invece di girarci intorno.";
+    }
+  } catch (e) { }
+}
+
+function salva() {
+  try { localStorage.setItem("st-chat", JSON.stringify(chat.slice(-40))); } catch (e) { }
+}
+function ripristina() {
+  try {
+    const s = localStorage.getItem("st-chat");
+    if (s) chat = JSON.parse(s) || [];
+  } catch (e) { chat = []; }
+}
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function disegna() {
+  const c = $("chat");
+  c.innerHTML =
+    chat.map(m => '<div class="m ' + (m.role === "user" ? "u" : (m.role === "sys" ? "sys" : "a")) + '">' +
+      esc(m.content) + "</div>").join("") +
+    proposte.map((p, i) =>
+      '<div class="prop"><div class="t">' + esc(p.type || "azione") + '</div>' +
+      '<div class="d">' + esc(p.path || p.name || p.slug || p.to || p.sql || "").slice(0, 200) + '</div>' +
+      '<button data-si="' + i + '">Conferma</button>' +
+      '<button class="no" data-no="' + i + '">Scarta</button></div>'
+    ).join("");
+  c.scrollTop = c.scrollHeight;
+}
+
+function aggiungi(role, content) {
+  chat.push({ role, content });
+  salva();
+  disegna();
+}
+
+async function invia() {
+  const t = $("testo").value.trim();
+  if (!t || occupato) return;
+  $("testo").value = "";
+  $("testo").style.height = "auto";
+  aggiungi("user", t);
+
+  occupato = true;
+  $("invia").disabled = true;
+  aggiungi("sys", "sto pensando…");
+
+  try {
+    try { await sb.auth.refreshSession(); } catch (e) { }
+    const storia = chat.filter(m => m.role !== "sys").slice(-16)
+      .map(m => ({ role: m.role, content: m.content }));
+    // le regole in testa alla conversazione
+    if (regole) storia.unshift({ role: "user", content: regole });
+
+    let { data, error } = await sb.functions.invoke("super-tony", { body: { messages: storia } });
+
+    // le richieste lunghe a volte cadono in rete: si riprova una volta sola
+    if (error && String(error.message || "").indexOf("Failed to send") !== -1) {
+      chat = chat.filter(m => m.role !== "sys");
+      aggiungi("sys", "ci sta mettendo un po, riprovo…");
+      await new Promise(r => setTimeout(r, 1500));
+      const r2 = await sb.functions.invoke("super-tony", { body: { messages: storia } });
+      data = r2.data; error = r2.error;
+    }
+    chat = chat.filter(m => m.role !== "sys");
+
+    if (error || !data || !data.success) {
+      let det = (data && data.error) || (error && error.message) || "errore sconosciuto";
+      try {
+        if (error && error.context) {
+          const b = await error.context.json();
+          if (b && b.error) det = b.error;
+        }
+      } catch (e) { }
+      if (String(det).indexOf("Failed to send") !== -1) {
+        det = "la richiesta era troppo lunga e la connessione e caduta. " +
+              "Prova a spezzarla: chiedimi una cosa per volta.";
+      }
+      aggiungi("assistant", "Non ci sono riuscito: " + det);
+    } else {
+      aggiungi("assistant", data.reply || "(nessuna risposta)");
+      if (Array.isArray(data.proposals) && data.proposals.length) {
+        proposte.push.apply(proposte, data.proposals);
+        disegna();
+      }
+    }
+  } catch (e) {
+    chat = chat.filter(m => m.role !== "sys");
+    aggiungi("assistant", "Errore di rete: " + e.message);
+  } finally {
+    occupato = false;
+    $("invia").disabled = false;
+  }
+}
+
+async function esegui(i) {
+  const p = proposte[i];
+  if (!p) return;
+  if (!confirm("Eseguire questa azione sul sistema in produzione?")) return;
+  aggiungi("sys", "eseguo…");
+  try {
+    try { await sb.auth.refreshSession(); } catch (e) { }
+    const { data, error } = await sb.functions.invoke("super-tony", { body: { confirm_action: p } });
+    chat = chat.filter(m => m.role !== "sys");
+    if (error || !data || !data.success) {
+      aggiungi("assistant", "Non eseguito: " + ((data && data.error) || (error && error.message) || "errore"));
+    } else {
+      proposte.splice(i, 1);
+      aggiungi("assistant", "Fatto.");
+    }
+  } catch (e) {
+    chat = chat.filter(m => m.role !== "sys");
+    aggiungi("assistant", "Errore: " + e.message);
+  }
+  disegna();
+}
+
+$("chat").addEventListener("click", (e) => {
+  const si = e.target.getAttribute("data-si");
+  const no = e.target.getAttribute("data-no");
+  if (si !== null && si !== undefined) esegui(Number(si));
+  if (no !== null && no !== undefined) { proposte.splice(Number(no), 1); disegna(); }
+});
+
+$("invia").onclick = invia;
+$("testo").addEventListener("input", function () {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 120) + "px";
+});
+$("testo").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 760) { e.preventDefault(); invia(); }
+});
+$("pulisci").onclick = () => {
+  if (!confirm("Ricominciare da capo?")) return;
+  chat = []; proposte = [];
+  localStorage.removeItem("st-chat");
+  disegna();
+};
+
+$("entra").onclick = async () => {
+  $("errore").textContent = "";
+  $("entra").disabled = true;
+  const { error } = await sb.auth.signInWithPassword({
+    email: $("email").value.trim(), password: $("pwd").value
+  });
+  $("entra").disabled = false;
+  if (error) { $("errore").textContent = error.message; return; }
+  avvia();
+};
+
+async function avvia() {
+  const { data } = await sb.auth.getSession();
+  if (!data || !data.session) { $("login").style.display = "flex"; return; }
+  $("login").style.display = "none";
+  $("stato").textContent = data.session.user.email || "collegato";
+  await caricaRegole();
+  ripristina();
+  if (!chat.length) aggiungi("assistant", "Ciao Antonio. Dimmi cosa non va e lo guardo.");
+  else disegna();
+}
+
+avvia();
+</script>
+</body>
+</html>
