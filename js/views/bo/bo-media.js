@@ -238,6 +238,54 @@ export async function render(container) {
     } catch { return false; }
   }
 
+  // Il video in griglia senza miniatura resta un rettangolo nero: gli si prende
+  // un fotogramma un secondo dentro, dove di solito la scena e gia stabile.
+  async function generaThumbVideo(m) {
+    return new Promise(res => {
+      try {
+        const v = document.createElement("video");
+        v.crossOrigin = "anonymous";
+        v.muted = true;
+        v.playsInline = true;
+        v.preload = "metadata";
+        v.src = m.url;
+
+        let fatto = false;
+        const fallita = () => { if (!fatto) { fatto = true; res(false); } };
+        setTimeout(fallita, 12000);
+
+        v.onloadedmetadata = () => {
+          v.currentTime = Math.min(1, (v.duration || 2) / 3);
+        };
+        v.onseeked = async () => {
+          if (fatto) return;
+          try {
+            const MAX = 420;
+            const scala = Math.min(1, MAX / Math.max(v.videoWidth, v.videoHeight));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(v.videoWidth * scala));
+            canvas.height = Math.max(1, Math.round(v.videoHeight * scala));
+            canvas.getContext("2d").drawImage(v, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.72));
+            if (!blob) return fallita();
+
+            const path = aziendaId + "/thumbs/" + m.id + ".jpg";
+            const { error: upErr } = await sc.storage.from(STORAGE_BUCKET)
+              .upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000", upsert: true });
+            if (upErr) return fallita();
+            const { data: { publicUrl } } = sc.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+            await sc.from("media_library").update({ thumb_url: publicUrl }).eq("id", m.id);
+            m.thumb_url = publicUrl;
+            fatto = true;
+            renderGriglia();
+            res(true);
+          } catch (e) { fallita(); }
+        };
+        v.onerror = fallita;
+      } catch (e) { res(false); }
+    });
+  }
+
   // Coda in background: genera le miniature mancanti (3 alla volta)
   let thumbQueueAttiva = false;
   async function avviaCodaThumb() {
