@@ -119,6 +119,10 @@ export async function render(container) {
     .then(m => m.montaBottoneCamera())
     .catch(e => console.warn("camera non caricata:", e));
 
+  import("../components/supertony-fab.js?v=" + (window.APP_V || "1"))
+    .then(m => m.montaSuperTony())
+    .catch(e => console.warn("super tony non caricato:", e));
+
   container.querySelectorAll("[data-per]").forEach(b => {
     b.addEventListener("click", () => {
       periodo = b.getAttribute("data-per");
