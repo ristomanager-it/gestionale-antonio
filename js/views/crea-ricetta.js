@@ -5057,7 +5057,7 @@ function bindUI() {
       const r = await fetch(arrivata.url);
       const blob = await r.blob();
       const file = new File([blob], "scatto.jpg", { type: blob.type || "image/jpeg" });
-      await compilaRicettaDaPiatto(file);
+      await guardaEDecidi(file);
     } catch (e) {
       if (s) s.textContent = "Non sono riuscito a rileggere la foto: riprova con Dalla foto.";
     }
