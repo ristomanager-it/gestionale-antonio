@@ -245,7 +245,9 @@ async function invia() {
   try {
     try { await sb.auth.refreshSession(); } catch (e) { }
     const storia = chat.filter(m => m.role !== "sys").slice(-16)
-      .map(m => ({ role: m.role, content: m.content }));
+      .map(m => m.images && m.images.length
+        ? { role: m.role, content: m.content, images: m.images }
+        : { role: m.role, content: m.content });
     // le regole in testa alla conversazione
     if (regole) storia.unshift({ role: "user", content: regole });
 
