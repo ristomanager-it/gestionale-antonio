@@ -511,6 +511,19 @@ function contaParole() {
 }
 
 let FOTO_TUTTE = [];
+let PAGINA_NOME = '';
+
+// Su quale pagina finisce davvero questo post: la decide la sede,
+// e chi guarda l anteprima deve vederlo scritto.
+async function nomePaginaDelGiorno() {
+  PAGINA_NOME = '';
+  if (!SEL || !SEL.sede_id) return;
+  try {
+    const { data } = await supa().from('sedi')
+      .select('nome, meta_pagina_nome').eq('id', SEL.sede_id).maybeSingle();
+    if (data) PAGINA_NOME = data.meta_pagina_nome || data.nome || '';
+  } catch (e) { }
+}
 
 // Quale cartella c entra con questo post: si legge dal testo e dal titolo.
 // Se il post parla di pesce, la cartella Pesce viene proposta per prima.
