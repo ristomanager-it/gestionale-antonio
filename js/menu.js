@@ -478,6 +478,7 @@ export function initMenu() {
           { label: "📸 Bacheca Social",   route: "bo-marketing?tab=bacheca-social" },
           { label: "📅 Calendario editoriale", route: "bo-calendario" },
           { label: "📱 Storie", route: "bo-storie" },
+          { label: "🎁 Buoni regalo", route: "bo-voucher" },
           { label: "📸 Chi ci tagga", route: "bo-menzioni" },
           { label: "⚡ Crediti Tony", route: "bo-crediti" },
           { label: "🎁 Promo", route: "bo-promo", children: [
