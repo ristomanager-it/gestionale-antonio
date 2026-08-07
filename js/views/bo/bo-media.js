@@ -81,7 +81,7 @@ export async function render(container) {
           <button class="media-upload-btn" id="btn-upload-media">
             ➕ Aggiungi foto/video
           </button>
-          <span class="media-drive-nota">📁 Il Drive si importa da solo</span>
+          <!-- il Drive importa da solo: niente pulsante, niente nota -->
         </div>
       </div>
 
