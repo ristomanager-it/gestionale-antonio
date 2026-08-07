@@ -2253,14 +2253,42 @@ async function guardaEDecidi(file) {
       if (!b) return;
       const r = (d.ricette || [])[Number(b.dataset.i)];
       if (!r) return;
-      // si parte da qui: nome compilato, il resto lo si scrive o lo si chiede a Tony
+
       const n = document.getElementById("r-nome");
       if (n) { n.value = r.nome; n.dispatchEvent(new Event("input")); }
       const desc = document.getElementById("r-descrizione");
       if (desc && r.perche) desc.value = r.perche;
-      box.innerHTML = "";
-      set("✅ Partiamo da " + r.nome + ". Completa la scheda o chiedi a Tony di scriverla.");
-      n?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Tony sa gia cosa ce nel frigo e quanto: la richiesta parte da li
+      const contesto =
+        "Ho appena fotografato: " + (d.cosa || "materia prima") +
+        (d.quantita_stimata ? ", " + d.quantita_stimata : "") +
+        (d.stato ? ", " + d.stato : "") + ".\\n" +
+        "Voglio farci: " + r.nome + "." +
+        (r.perche ? " " + r.perche : "") +
+        (r.altri_ingredienti && r.altri_ingredienti.length
+          ? "\\nAltro che serve: " + r.altri_ingredienti.join(", ") + "." : "") +
+        "\\n\\nScrivimi la ricetta completa: ingredienti con le dosi, procedimento in fasi, " +
+        "tempi e temperature di cottura, resa in porzioni e conservazione.";
+
+      box.innerHTML =
+        '<div class="tv-box">' +
+          '<div class="tv-cosa">' + r.nome + '</div>' +
+          '<div class="tv-scelta">' + (r.perche || "") + '</div>' +
+          '<button class="tv-go" id="tv-scrivi">✨ Falla scrivere a Tony</button>' +
+          '<button class="tv-man" id="tv-mano">La scrivo io</button>' +
+        '</div>';
+
+      document.getElementById("tv-scrivi").onclick = () => {
+        box.innerHTML = "";
+        set("");
+        apriChatRicettaTony([{ role: "user", content: contesto }]);
+      };
+      document.getElementById("tv-mano").onclick = () => {
+        box.innerHTML = "";
+        set("✅ Partiamo da " + r.nome + ".");
+        n?.scrollIntoView({ behavior: "smooth", block: "center" });
+      };
     };
     return;
   }
