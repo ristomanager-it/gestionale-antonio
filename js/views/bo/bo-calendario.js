@@ -752,12 +752,31 @@ async function pubblica(prova) {
       .update({ testo: valTesto() }).eq('id', SEL.id);
 
     const { data, error } = await supa().functions.invoke('calendario-pubblica', {
-      body: { azione: 'pubblica', azienda_id: aziendaId(), giorno_id: SEL.id, prova: prova === true }
+      body: {
+        azione: 'pubblica',
+        azienda_id: aziendaId(),
+        giorno_id: SEL.id,
+        conferma: true,          // il server la pretende, e ha ragione
+        dove: SEL.canali && SEL.canali.length === 1 ? SEL.canali[0] : 'entrambi'
+      }
     });
     if (error) throw error;
-    if (!data || !data.success) throw new Error((data && data.error) || 'Pubblicazione non riuscita');
+    if (!data || !data.success) {
+      // se una delle due destinazioni ha fallito, si dice quale
+      let det = (data && data.error) || 'Pubblicazione non riuscita';
+      if (data && data.esiti) {
+        const parti = [];
+        if (data.esiti.facebook && !data.esiti.facebook.ok) parti.push('Facebook: ' + data.esiti.facebook.errore);
+        if (data.esiti.instagram && !data.esiti.instagram.ok) parti.push('Instagram: ' + data.esiti.instagram.errore);
+        if (parti.length) det = parti.join(' — ');
+      }
+      throw new Error(det);
+    }
 
-    mostraToast(data.messaggio || 'Fatto');
+    let dove = [];
+    if (data.esiti && data.esiti.facebook && data.esiti.facebook.ok) dove.push('Facebook');
+    if (data.esiti && data.esiti.instagram && data.esiti.instagram.ok) dove.push('Instagram');
+    mostraToast(dove.length ? 'Pubblicato su ' + dove.join(' e ') : (data.messaggio || 'Fatto'));
     if (!prova) { chiudi(); await carica(); disegna(); }
   } catch (e) {
     mostraToast(String(e.message || e), 'error');
