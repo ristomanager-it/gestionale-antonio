@@ -1425,39 +1425,29 @@ export async function render(app) {
         </button>
       </div>
 
-      <div style="margin-bottom:16px;padding:16px;background:linear-gradient(135deg,#faf5ff,#fdf4ff);border:1px solid #e9d5ff;border-radius:14px;">
-        <button id="btn-tony-inventa" type="button"
-          style="background:linear-gradient(135deg,#7c3aed,#c026d3);color:white;border:none;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(124,58,237,.3);">
-          ✨ Inventiamo una ricetta?
-        </button>
-        <div style="margin-top:8px;font-size:12px;color:#6b7280;">
-          Hai un'eccedenza o un'idea? Raccontala a Tony: ragionate insieme e ne esce la ricetta completa — ingredienti, dosi, fasi e conservazione.
-        </div>
+      <div class="cr-aiuti">
+        <button id="btn-tony-inventa" type="button" class="cr-aiuto viola">✨ Inventiamo</button>
+        <button id="btn-foto-piatto" type="button" class="cr-aiuto arancio">🍽️ Dalla foto</button>
+        <button id="btn-foto-ricetta" type="button" class="cr-aiuto blu">📷 Ricetta scritta</button>
       </div>
+      <div class="cr-spiega" id="cr-spiega"></div>
 
-      <div style="margin-bottom:16px;padding:16px;background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1px solid #fed7aa;border-radius:14px;">
-        <button id="btn-foto-piatto" type="button"
-          style="background:linear-gradient(135deg,#c2410c,#ea580c);color:white;border:none;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(194,65,12,.3);">
-          🍽️ Ricetta dalla foto del piatto
-        </button>
-        <div style="margin-top:8px;font-size:12px;color:#6b7280;">
-          Scatta o carica la foto di un piatto impiattato: Tony capisce cos'è, ricostruisce gli ingredienti e lo valorizza sui vostri prezzi.
-        </div>
-        <!-- senza capture il telefono offre sia la fotocamera sia la galleria -->
-        <input id="input-foto-piatto" type="file" accept="image/*" style="display:none;" />
-        <div id="foto-piatto-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
-        <div id="foto-piatto-costo" style="margin-top:10px;"></div>
+      <input id="input-foto-piatto" type="file" accept="image/*" style="display:none;" />
+      <input id="input-foto-ricetta" type="file" accept="image/*" style="display:none;" />
+      <div id="foto-piatto-stato" style="font-size:12.5px;color:#64748b;margin:8px 0;"></div>
+      <div id="foto-piatto-costo" style="margin-bottom:10px;"></div>
+      <div id="foto-ricetta-stato" style="font-size:12.5px;color:#64748b;margin-bottom:10px;"></div>
 
-        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #fed7aa;">
-          <button id="btn-foto-ricetta" type="button"
-            style="background:#7c3aed;color:white;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-            📷 Ho la ricetta scritta
-          </button>
-          <span style="font-size:12px;color:#6b7280;margin-left:8px;">Anche a mano: Tony la legge e compila la scheda.</span>
-          <input id="input-foto-ricetta" type="file" accept="image/*" style="display:none;" />
-          <div id="foto-ricetta-stato" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
-        </div>
-      </div>
+      <style>
+        .cr-aiuti{display:flex;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+        .cr-aiuto{flex:1;min-width:104px;border:none;border-radius:10px;padding:11px 8px;
+                  font-size:13px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap}
+        .cr-aiuto:active{transform:scale(.97)}
+        .cr-aiuto.viola{background:#7c3aed}
+        .cr-aiuto.arancio{background:#ea580c}
+        .cr-aiuto.blu{background:#0E76A3}
+        .cr-spiega{font-size:12px;color:#6b7280;min-height:17px;margin-bottom:14px;padding:0 2px}
+      </style>
 
       ${createCard({
         title: "Anagrafica",
