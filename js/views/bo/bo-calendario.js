@@ -222,11 +222,19 @@ async function verificaMeta() {
     META_PRONTO = data && data.success ? data.pronto === true : false;
     if (data && data.success && !data.pronto) {
       const manca = (data.permessi_mancanti || []).join(', ');
-      box.innerHTML = '<div class="cal-warn">Collegamento Meta incompleto' +
-        (manca ? ' — manca il permesso <b>' + esc(manca) + '</b>' : '') +
-        '. Puoi scrivere e approvare i post, ma non pubblicarli. Rifai il collegamento Meta dalle impostazioni.</div>';
+      if (data.pubblicazione_aperta === false) {
+        box.innerHTML = '<div class="cal-warn">La pubblicazione e chiusa a chiave per questa azienda. ' +
+          'Puoi scrivere e approvare i post, ma non escono. Si riapre dalle impostazioni di piattaforma.</div>';
+      } else if (manca) {
+        box.innerHTML = '<div class="cal-warn">Manca il permesso Meta <b>' + esc(manca) + '</b>. ' +
+          'Rifai il collegamento dalle impostazioni.</div>';
+      } else {
+        box.innerHTML = '';
+      }
     } else if (data && !data.success) {
       box.innerHTML = '<div class="cal-warn">' + esc(data.error || 'Meta non collegato') + '</div>';
+    } else {
+      box.innerHTML = '';
     }
   } catch (e) {
     META_PRONTO = false;
