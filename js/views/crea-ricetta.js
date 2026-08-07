@@ -2246,6 +2246,11 @@ async function guardaEDecidi(file) {
       '.tv-r em{font-size:11px;color:#449531;font-style:normal;font-weight:700}' +
       '.tv-r span{display:block;font-size:12.5px;color:#6b7280;margin-top:2px;line-height:1.4}' +
       '.tv-r .tv-ing{font-size:11.5px;color:#9ca3af;margin-top:4px}' +
+      '.tv-scelta{font-size:12.5px;color:#6b7280;margin:3px 0 11px;line-height:1.4}' +
+      '.tv-go{width:100%;background:#7c3aed;color:#fff;border:none;border-radius:9px;' +
+      'padding:12px;font-size:14px;font-weight:700;cursor:pointer}' +
+      '.tv-man{width:100%;background:none;border:none;color:#6b7280;font-size:12.5px;' +
+      'padding:9px;cursor:pointer;margin-top:3px}' +
       '</style>';
 
     box.onclick = (e) => {
