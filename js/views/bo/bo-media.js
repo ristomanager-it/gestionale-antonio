@@ -80,9 +80,7 @@ export async function render(container) {
           <button class="media-upload-btn" id="btn-upload-media">
             ➕ Aggiungi foto/video
           </button>
-          <button class="media-upload-btn" id="btn-import-drive" style="background:#1a73e8;">
-            📁 Importa da Google Drive
-          </button>
+          <span class="media-drive-nota">📁 Il Drive si importa da solo</span>
         </div>
       </div>
 
