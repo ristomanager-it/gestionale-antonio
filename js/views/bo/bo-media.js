@@ -249,7 +249,19 @@ export async function render(container) {
         .upload(path, thumbBlob, { contentType: "image/jpeg", cacheControl: "31536000", upsert: true });
       if (upErr) return false;
       const { data: { publicUrl } } = sc.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      await sc.from("media_library").update({ thumb_url: publicUrl }).eq("id", m.id);
+
+      // stessa immagine gia in memoria: misurarla non costa niente
+      const q = misuraQualita(canvas);
+      const agg = { thumb_url: publicUrl };
+      if (q) {
+        agg.punteggio_tecnico = q.voto;
+        agg.nitidezza = q.nitidezza;
+        agg.luminosita = q.luminosita;
+        agg.contrasto = q.contrasto;
+        agg.valutata_at = new Date().toISOString();
+        m.punteggio_tecnico = q.voto;
+      }
+      await sc.from("media_library").update(agg).eq("id", m.id);
       m.thumb_url = publicUrl;
       const img = document.querySelector(`img[data-mid="${m.id}"]`);
       if (img) img.src = publicUrl;
