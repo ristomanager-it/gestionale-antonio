@@ -359,6 +359,8 @@ $("entra").onclick = async () => {
   avvia();
 };
 
+preparaAllegati();
+
 async function avvia() {
   const { data } = await sb.auth.getSession();
   if (!data || !data.session) { $("login").style.display = "flex"; return; }
