@@ -119,6 +119,7 @@ const routes = {
   "bo-chatbot": () => imp("./views/bo/bo-chatbot.js"),
   "bo-media": () => imp("./views/bo/bo-media.js"),
   "bo-storie": () => imp("./views/bo/bo-storie.js"),
+  "bo-voucher": () => imp("./views/bo/bo-voucher.js"),
   "bo-menzioni": () => imp("./views/bo/bo-menzioni.js"),
   "bo-sito": () => imp("./views/bo/bo-sito.js"),
 
