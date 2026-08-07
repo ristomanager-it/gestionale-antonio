@@ -46,7 +46,7 @@ export async function render(container) {
     .media-card-type { position:absolute; top:8px; left:8px; background:rgba(0,0,0,.5); color:white; font-size:10px; padding:3px 6px; border-radius:6px; }
     .media-empty { text-align:center; padding:60px 20px; color:#94a3b8; font-size:14px; grid-column:1/-1; }
     .media-empty .empty-icon { font-size:48px; margin-bottom:12px; }
-    .media-drive-nota { font-size:12px; color:#6b7280; align-self:center; padding-left:4px }
+    /* nota Drive rimossa */
     .media-drop-zone { border:2px dashed #e5e7eb; border-radius:16px; padding:40px 20px; text-align:center; margin-bottom:20px; transition:all .2s; cursor:pointer; background:white; }
     .media-drop-zone.drag-over { border-color:#0E5A7A; background:#f0f9ff; }
     .media-drop-zone .drop-icon { font-size:40px; margin-bottom:12px; }
