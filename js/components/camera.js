@@ -532,6 +532,20 @@ async function chiediPost(mediaId, url, isVideo) {
     };
   }
 
+  const bRic = document.getElementById('cam-ricetta');
+  if (bRic) bRic.onclick = () => {
+    // la foto si porta dietro: la ricetta parte da quello che si vede,
+    // non da un foglio bianco
+    try {
+      sessionStorage.setItem('ricetta_da_foto', JSON.stringify({
+        media_id: mediaId, url: url, quando: Date.now()
+      }));
+    } catch (e) { }
+    chiudiCamera();
+    if (window.router && window.router.go) window.router.go('crea-ricetta');
+    else window.location.hash = '#/crea-ricetta';
+  };
+
   const bSto = document.getElementById('cam-storia');
   if (bSto) bSto.onclick = async (e) => {
     const b = e.currentTarget;
