@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buono regalo</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+       background:#0d2330;color:#fff;min-height:100vh;
+       display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:#fff;color:#122A38;border-radius:18px;max-width:400px;width:100%;
+        padding:28px 24px;box-shadow:0 14px 50px rgba(0,0,0,.35);text-align:center}
+  .icona{font-size:52px;line-height:1;margin-bottom:10px}
+  h1{font-size:20px;margin:0 0 6px}
+  .cosa{font-size:16px;font-weight:700;color:#023C59;margin:14px 0 4px}
+  .righe{font-size:14px;color:#4b5563;line-height:1.6;margin-top:10px}
+  .righe b{color:#122A38}
+  .dedica{font-style:italic;color:#6b7280;margin-top:10px;font-size:14px;
+          border-left:3px solid #C9A227;padding-left:11px;text-align:left}
+  .cod{font-family:ui-monospace,Menlo,monospace;font-size:15px;letter-spacing:1px;
+       color:#6b7280;margin-top:16px}
+  button{width:100%;border:none;border-radius:11px;padding:15px;font-size:16px;
+         font-weight:700;cursor:pointer;margin-top:20px}
+  .usa{background:#449531;color:#fff}
+  .usa:disabled{opacity:.5}
+  .ko{color:#B3261E;font-weight:700;font-size:17px;margin-top:8px}
+  .ok{color:#2F7D32}
+  .nota{font-size:12px;color:#9ca3af;margin-top:14px;line-height:1.5}
+  .login{background:#023C59;color:#fff;text-decoration:none;display:block;
+         border-radius:11px;padding:14px;margin-top:16px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="card" id="c"><div class="icona">🎁</div><h1>Un attimo…</h1></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const sb = createClient(
+  "https://cuhcscpvhypoaplcmtjk.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1ODY0NDgsImV4cCI6MjA1NjE2MjQ0OH0.jJZ1zFRYQPYQGJfkzHZKKzXNLbBkjfBbjKPLfXpBLdE"
+);
+
+const c = document.getElementById("c");
+const codice = new URLSearchParams(location.search).get("c") || "";
+const esc = (s) => String(s == null ? "" : s).replace(/[<>&]/g, "");
+
+function mostra(html) { c.innerHTML = html; }
+
+if (!codice) {
+  mostra('<div class="icona">❓</div><h1>Manca il codice</h1>' +
+         '<div class="nota">Inquadra il QR del buono.</div>');
+} else {
+  const { data, error } = await sb.rpc("verifica_voucher", { p_codice: codice });
+  const v = Array.isArray(data) ? data[0] : data;
+
+  if (error || !v) {
+    mostra('<div class="icona">⚠️</div><h1>Buono non trovato</h1>' +
+           '<div class="cod">' + esc(codice) + '</div>' +
+           '<div class="nota">Controlla il codice o chiama il locale.</div>');
+  } else if (!v.valido) {
+    mostra('<div class="icona">⛔</div><h1>Non utilizzabile</h1>' +
+           '<div class="ko">' + esc(v.motivo) + '</div>' +
+           '<div class="cosa">' + esc(v.cosa) + '</div>' +
+           '<div class="cod">' + esc(codice) + '</div>');
+  } else {
+    // valido: chi e del locale puo segnarlo usato, gli altri lo vedono e basta
+    const sess = (await sb.auth.getSession()).data.session;
+    mostra(
+      '<div class="icona">🎁</div><h1>Buono valido</h1>' +
+      '<div class="cosa">' + esc(v.cosa) + '</div>' +
+      '<div class="righe">' +
+        (v.per_nome ? 'per <b>' + esc(v.per_nome) + '</b><br>' : '') +
+        (v.da_nome ? 'da ' + esc(v.da_nome) + '<br>' : '') +
+        'valido fino al <b>' + new Date(v.scade_il).toLocaleDateString("it-IT") + '</b>' +
+      '</div>' +
+      (v.dedica ? '<div class="dedica">' + esc(v.dedica) + '</div>' : '') +
+      '<div class="cod">' + esc(codice) + '</div>' +
+      (sess
+        ? '<button class="usa" id="usa">Segna come usato</button>' +
+          '<div class="nota">Da fare solo quando il buono viene consumato: ' +
+          'e una cosa sola e non si torna indietro.</div>'
+        : '<a class="login" href="/index.html">Accedi per usarlo</a>' +
+          '<div class="nota">Chi ha ricevuto il buono lo mostra cosi al locale.</div>')
+    );
+
+    const b = document.getElementById("usa");
+    if (b) b.onclick = async () => {
+      if (!confirm("Segnare questo buono come usato? Non si torna indietro.")) return;
+      b.disabled = true; b.textContent = "Un momento…";
+      const { data: r } = await sb.rpc("usa_voucher", { p_codice: codice });
+      if (r === "ok") {
+        mostra('<div class="icona">✅</div><h1 class="ok">Fatto</h1>' +
+               '<div class="cosa">' + esc(v.cosa) + '</div>' +
+               '<div class="nota">Buono consumato. Buon servizio.</div>');
+      } else {
+        b.disabled = false; b.textContent = "Segna come usato";
+        alert(r || "Non riuscito");
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
