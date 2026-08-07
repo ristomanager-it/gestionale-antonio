@@ -571,10 +571,12 @@ export async function render(container) {
   window.salvaTag = async function() {
     if (!mediaSelezionato) return;
     const tag = document.getElementById("modal-tag-select").value;
-    await sc.from("media_library").update({ tag }).eq("id", mediaSelezionato.id);
+    const { error } = await sc.from("media_library").update({ tag }).eq("id", mediaSelezionato.id);
+    if (error) { alert("Tag non salvato: " + error.message); return; }
     mediaSelezionato.tag = tag;
     const idx = allMedia.findIndex(m => m.id === mediaSelezionato.id);
     if (idx >= 0) allMedia[idx].tag = tag;
+    disegnaCartelle();
     renderGriglia();
   };
 
