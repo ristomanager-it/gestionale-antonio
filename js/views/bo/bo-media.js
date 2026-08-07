@@ -292,7 +292,7 @@ export async function render(container) {
     thumbQueueAttiva = true;
     try {
       const daFare = allMedia.filter(m => !m.thumb_url);
-      const PARALLELI = 3;
+      const PARALLELI = 8;
       for (let i = 0; i < daFare.length; i += PARALLELI) {
         await Promise.all(daFare.slice(i, i + PARALLELI)
           .map(m => m.tipo === "video" ? generaThumbVideo(m) : generaThumb(m)));
