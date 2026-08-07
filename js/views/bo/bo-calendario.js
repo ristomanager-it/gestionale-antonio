@@ -193,6 +193,13 @@ function layout() {
       .cal-a.pub{background:#2F7D32;color:#fff}
       .cal-a.sec{background:#f3f4f6;color:#111827}
       .cal-a:disabled{opacity:.45;cursor:default}
+      .cal-cart{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+      .cal-cb{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:6px 12px;
+              font-size:12.5px;font-weight:600;color:#6b7280;cursor:pointer}
+      .cal-cb span{opacity:.55;font-size:11px}
+      .cal-cb.sugg{border-color:#E16304;color:#E16304}
+      .cal-cb.on{background:#023C59;color:#fff;border-color:#023C59}
+      .cal-cb.on span{opacity:.7}
       .cal-gal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;
                max-height:280px;overflow:auto}
       .cal-gal button{border:2px solid transparent;border-radius:6px;padding:0;cursor:pointer;
