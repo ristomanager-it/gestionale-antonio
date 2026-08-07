@@ -404,8 +404,11 @@ export async function render(container) {
         !m.thumb_url || (m.tipo === "immagine" && m.punteggio_tecnico == null));
       const PARALLELI = 8;
       for (let i = 0; i < daFare.length; i += PARALLELI) {
-        await Promise.all(daFare.slice(i, i + PARALLELI)
-          .map(m => m.tipo === "video" ? generaThumbVideo(m) : generaThumb(m)));
+        await Promise.all(daFare.slice(i, i + PARALLELI).map(m => {
+          if (m.tipo === "video") return generaThumbVideo(m);
+          if (m.thumb_url) return valutaSoltanto(m);   // ce gia: solo il voto
+          return generaThumb(m);
+        }));
       }
     } finally { thumbQueueAttiva = false; }
   }
