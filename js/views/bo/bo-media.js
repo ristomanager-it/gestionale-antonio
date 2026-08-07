@@ -227,6 +227,39 @@ export async function render(container) {
   // le creiamo noi alla prima apertura e le riusiamo per sempre.
   function urlAnteprima(m) { return m.thumb_url || m.url; }
 
+  // Se la miniatura ce gia ma manca il voto, si misura sull immagine
+  // senza ricaricare e senza risalvare niente.
+  async function valutaSoltanto(m) {
+    return new Promise(res => {
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = async () => {
+          try {
+            const MAX = 420;
+            const scala = Math.min(1, MAX / Math.max(img.width, img.height));
+            const c = document.createElement("canvas");
+            c.width = Math.max(1, Math.round(img.width * scala));
+            c.height = Math.max(1, Math.round(img.height * scala));
+            c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+            const q = misuraQualita(c);
+            if (q) {
+              await sc.from("media_library").update({
+                punteggio_tecnico: q.voto, nitidezza: q.nitidezza,
+                luminosita: q.luminosita, contrasto: q.contrasto,
+                valutata_at: new Date().toISOString()
+              }).eq("id", m.id);
+              m.punteggio_tecnico = q.voto;
+            }
+            res(true);
+          } catch (e) { res(false); }
+        };
+        img.onerror = () => res(false);
+        img.src = m.thumb_url || m.url;
+      } catch (e) { res(false); }
+    });
+  }
+
   async function generaThumb(m) {
     try {
       const resp = await fetch(m.url);
