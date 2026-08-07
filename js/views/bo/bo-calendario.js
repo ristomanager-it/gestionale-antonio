@@ -486,7 +486,8 @@ function anteprimaFacebook() {
   const ta = document.getElementById('cal-testo');
   const testo = ta ? ta.value : (SEL.testo || '');
   const img = SEL.grafica_modo === 'template' && SEL.grafica_url ? SEL.grafica_url : SEL.media_url;
-  const nome = (window.state?.azienda?.nome || 'La tua pagina');
+  const nome = PAGINA_NOME || window.state?.sedeAttiva?.nome ||
+               window.state?.azienda?.nome || 'La tua pagina';
   const d = new Date(SEL.data + 'T00:00:00');
   const quando = d.getDate() + ' ' + MESI[d.getMonth()].slice(0, 3).toLowerCase() + ' · 🌐';
 
