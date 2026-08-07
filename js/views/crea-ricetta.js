@@ -2187,6 +2187,87 @@ function setupCategoriaAutocomplete() {
 
 let _ultimaFotoPiatto = null;   // serve per rileggere la stessa foto con le precisazioni
 
+// Guarda la foto e capisce che domanda ce dietro: una cassa di pomodori
+// vuole "cosa ci faccio", un piatto finito vuole "quanto mi costa".
+async function guardaEDecidi(file) {
+  const stato = document.getElementById("foto-piatto-stato");
+  const set = (t) => { if (stato) stato.textContent = t; };
+  set("👀 Guardo cosa ce nella foto…");
+
+  const b64 = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+
+  const supa = window.supabaseClient || window.supabase;
+  const token = (await supa.auth.getSession())?.data?.session?.access_token || "";
+  const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-vedi", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": token },
+    body: JSON.stringify({ image_base64: b64, azienda_id: window.state?.azienda?.id })
+  });
+  const d = await resp.json();
+
+  if (!d.success) { set("⚠️ " + (d.error || "Non ho capito la foto")); return; }
+
+  // e un piatto: si va sulla scheda tecnica col food cost
+  if (d.tipo === "piatto") { await compilaRicettaDaPiatto(file); return; }
+
+  // e materia prima: si propone cosa farci
+  if (d.tipo === "materia") {
+    set("");
+    const box = document.getElementById("foto-piatto-costo");
+    if (!box) return;
+    box.innerHTML =
+      '<div class="tv-box">' +
+        '<div class="tv-cosa">🥬 ' + (d.cosa || "materia prima") +
+          (d.quantita_stimata ? ' <span>· ' + d.quantita_stimata + '</span>' : "") +
+          (d.stato ? ' <span>· ' + d.stato + '</span>' : "") + '</div>' +
+        '<div class="tv-tit">Cosa ci puoi fare</div>' +
+        (d.ricette || []).map((r, i) =>
+          '<button class="tv-r" data-i="' + i + '">' +
+            '<b>' + r.nome + '</b>' +
+            (r.gia_a_menu ? ' <em>gia a menu</em>' : "") +
+            '<span>' + r.perche + '</span>' +
+            (r.altri_ingredienti && r.altri_ingredienti.length
+              ? '<span class="tv-ing">serve anche: ' + r.altri_ingredienti.join(", ") + '</span>' : "") +
+          '</button>').join("") +
+      '</div>' +
+      '<style>' +
+      '.tv-box{background:#f6fbf4;border:1px solid #cfe8c4;border-radius:12px;padding:13px;margin-top:8px}' +
+      '.tv-cosa{font-size:15px;font-weight:700;color:#2c5c1e;margin-bottom:3px}' +
+      '.tv-cosa span{font-weight:400;color:#6b7280;font-size:12.5px}' +
+      '.tv-tit{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;margin:9px 0 7px}' +
+      '.tv-r{display:block;width:100%;text-align:left;background:#fff;border:1px solid #e5e7eb;' +
+      'border-radius:9px;padding:10px 12px;margin-bottom:7px;cursor:pointer;font:inherit}' +
+      '.tv-r b{display:block;font-size:14px;color:#023C59}' +
+      '.tv-r em{font-size:11px;color:#449531;font-style:normal;font-weight:700}' +
+      '.tv-r span{display:block;font-size:12.5px;color:#6b7280;margin-top:2px;line-height:1.4}' +
+      '.tv-r .tv-ing{font-size:11.5px;color:#9ca3af;margin-top:4px}' +
+      '</style>';
+
+    box.onclick = (e) => {
+      const b = e.target.closest("[data-i]");
+      if (!b) return;
+      const r = (d.ricette || [])[Number(b.dataset.i)];
+      if (!r) return;
+      // si parte da qui: nome compilato, il resto lo si scrive o lo si chiede a Tony
+      const n = document.getElementById("r-nome");
+      if (n) { n.value = r.nome; n.dispatchEvent(new Event("input")); }
+      const desc = document.getElementById("r-descrizione");
+      if (desc && r.perche) desc.value = r.perche;
+      box.innerHTML = "";
+      set("✅ Partiamo da " + r.nome + ". Completa la scheda o chiedi a Tony di scriverla.");
+      n?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    return;
+  }
+
+  set("Non ho riconosciuto ne ingredienti ne un piatto. Riprova con una foto piu chiara.");
+}
+
 async function compilaRicettaDaPiatto(file, note = "") {
   ricettaCompilataConTony = true;
   if (!file) return;
