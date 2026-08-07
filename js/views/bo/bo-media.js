@@ -215,6 +215,7 @@ export async function render(container) {
       allMedia = [];
     } else {
       allMedia = data || [];
+      disegnaCartelle();
       renderGriglia();
       avviaCodaThumb(); // genera in background le miniature mancanti
     }
