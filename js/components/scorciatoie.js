@@ -51,8 +51,18 @@ export async function montaScorciatoie() {
     else window.location.hash = '#/' + r;
   };
 
+  // sotto l intestazione, non dietro: si misura quanto e alta e si scende
   const dove = document.querySelector('.view') || document.body;
   dove.insertBefore(box, dove.firstChild);
+
+  const header = document.querySelector('header, .app-header, #app-header, .topbar');
+  if (header) {
+    const h = header.getBoundingClientRect();
+    const fissa = getComputedStyle(header).position;
+    if ((fissa === 'fixed' || fissa === 'sticky') && h.height > 0) {
+      box.style.marginTop = Math.round(h.height + 12) + 'px';
+    }
+  }
 
   const s = document.createElement('style');
   s.textContent =
