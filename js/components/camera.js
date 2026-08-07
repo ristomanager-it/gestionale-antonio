@@ -512,6 +512,7 @@ async function chiediPost(mediaId, url, isVideo) {
     '<div class="cam-barra cam-azioni">' +
       '<button class="cam-a sec" id="cam-fine">Solo galleria</button>' +
       (isVideo ? '' : '<button class="cam-a sto" id="cam-storia">📱 Storia</button>') +
+      (isVideo ? '' : '<button class="cam-a ric" id="cam-ricetta">📖 Ricetta</button>') +
       '<button class="cam-a pri" id="cam-post">Fanne un post</button>' +
     '</div>';
 
