@@ -84,7 +84,7 @@ function layout() {
                       color:#fff;font-size:10.5px;padding:4px 6px;border-radius:0 0 7px 7px;
                       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .vc-mis{background:#fffdf5;border:1px solid #f0e2b8;border-radius:10px;padding:12px;
-              font-size:12.5px;color:#6b5b २d;white-space:pre-wrap;line-height:1.55;margin-top:11px}
+              font-size:12.5px;color:#6b5b2d;white-space:pre-wrap;line-height:1.55;margin-top:11px}
       .vc-em{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:11px 13px;
              margin-bottom:8px;display:flex;align-items:center;gap:12px}
       .vc-em .c{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#6b7280}
