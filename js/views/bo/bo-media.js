@@ -154,20 +154,39 @@ export async function render(container) {
   let tagAttivo = "Tutti";
   let mediaSelezionato = null;
 
-  // ── TAGS ────────────────────────────────────────────────────
-  const tagsEl = document.getElementById("media-tags");
-  TAGS.forEach(tag => {
-    const btn = document.createElement("button");
-    btn.className = "media-tag" + (tag === "Tutti" ? " active" : "");
-    btn.textContent = tag;
-    btn.onclick = () => {
-      tagAttivo = tag;
-      document.querySelectorAll(".media-tag").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      renderGriglia();
+  // ── CARTELLE ────────────────────────────────────────────────
+  // Non una lista fissa: le cartelle sono quelle che esistono davvero,
+  // in ordine di quante foto contengono, col numero accanto.
+  function disegnaCartelle() {
+    const tagsEl = document.getElementById("media-tags");
+    if (!tagsEl) return;
+
+    const conta = {};
+    (allMedia || []).forEach(m => {
+      const t = m.tag || "Altro";
+      conta[t] = (conta[t] || 0) + 1;
+    });
+
+    const cartelle = Object.keys(conta).sort((a, b) => conta[b] - conta[a]);
+    tagsEl.innerHTML = "";
+
+    const fai = (nome, etichetta, quante) => {
+      const btn = document.createElement("button");
+      btn.className = "media-tag" + (nome === tagAttivo ? " active" : "");
+      btn.innerHTML = escHtml(etichetta) +
+        (quante != null ? ' <span style="opacity:.6;font-size:11px">' + quante + "</span>" : "");
+      btn.onclick = () => {
+        tagAttivo = nome;
+        document.querySelectorAll(".media-tag").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderGriglia();
+      };
+      tagsEl.appendChild(btn);
     };
-    tagsEl.appendChild(btn);
-  });
+
+    fai("Tutti", "Tutti", (allMedia || []).length);
+    cartelle.forEach(c => fai(c, c, conta[c]));
+  }
 
   // ── CARICA MEDIA ─────────────────────────────────────────────
   async function caricaMedia() {
