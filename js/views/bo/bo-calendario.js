@@ -599,12 +599,39 @@ function mostraFotoCartella(cartella) {
   // dentro la cartella: prima quelle adatte al taglio del giorno
   const adatte = foto.filter(f => (f.adatta_a || []).indexOf(SEL.angolo) !== -1);
   const altre = foto.filter(f => (f.adatta_a || []).indexOf(SEL.angolo) === -1);
+  const ordinate = adatte.concat(altre);
 
-  lista.innerHTML = '<div class="cal-gal">' + adatte.concat(altre).map(f =>
-    '<button data-url="' + esc(f.url) + '" title="' + esc(f.nome || '') + '"' +
-      (f.url === SEL.media_url ? ' class="sel"' : '') + '>' +
-      '<img src="' + esc(f.thumb_url || f.url) + '" alt="" loading="lazy">' +
-    '</button>').join('') + '</div>';
+  // poche per volta: chiederne 159 insieme le fa arrivare a pezzi
+  const PASSO = 24;
+  let mostrate = PASSO;
+
+  function disegna() {
+    const parte = ordinate.slice(0, mostrate);
+    lista.innerHTML =
+      '<div class="cal-gal">' + parte.map(f =>
+        '<button data-url="' + esc(f.url) + '" title="' + esc(f.nome || '') + '"' +
+          (f.url === SEL.media_url ? ' class="sel"' : '') + '>' +
+          '<img src="' + esc(f.thumb_url || f.url) + '" alt="" loading="lazy" decoding="async">' +
+        '</button>').join('') + '</div>' +
+      (mostrate < ordinate.length
+        ? '<button class="cal-altre" id="cal-altre">Vedine altre ' +
+          Math.min(PASSO, ordinate.length - mostrate) +
+          ' <span>(' + (ordinate.length - mostrate) + ' rimaste)</span></button>'
+        : '');
+
+    const piu = document.getElementById('cal-altre');
+    if (piu) piu.onclick = () => { mostrate += PASSO; disegna(); };
+
+    lista.querySelector('.cal-gal').onclick = async (e) => {
+      const b = e.target.closest('[data-url]');
+      if (!b) return;
+      await aggiorna({ media_url: b.dataset.url }, 'Foto cambiata', true);
+      const g = document.getElementById('cal-galleria');
+      if (g) g.innerHTML = '';
+    };
+  }
+  disegna();
+  return;
 
   lista.querySelector('.cal-gal').onclick = async (e) => {
     const b = e.target.closest('[data-url]');
