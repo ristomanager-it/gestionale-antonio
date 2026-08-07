@@ -529,6 +529,34 @@ async function chiediPost(mediaId, url, isVideo) {
     };
   }
 
+  const bSto = document.getElementById('cam-storia');
+  if (bSto) bSto.onclick = async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true; b.textContent = 'Preparo…';
+    try {
+      const { data, error } = await supa().from('storie').insert({
+        azienda_id: aziendaId(),
+        sede_id: window.state?.sedeAttiva?.id || null,
+        media_id: mediaId,
+        immagine_url: url,
+        origine: 'nostra',
+        stato: 'bozza',
+        canale: 'entrambi'
+      }).select('id').single();
+      if (error) throw error;
+      b.textContent = '✅ Fra le storie';
+      setTimeout(() => {
+        chiudiCamera();
+        if (window.router && window.router.go) window.router.go('bo-storie');
+        else window.location.hash = '#/bo-storie';
+      }, 700);
+    } catch (err) {
+      b.disabled = false;
+      b.textContent = '📱 Storia';
+      alert('Non riuscito: ' + (err.message || err));
+    }
+  };
+
   document.getElementById('cam-fine').onclick = () => { chiudiCamera(); };
   document.getElementById('cam-post').onclick = () => {
     chiudiCamera();
