@@ -186,8 +186,10 @@ function disegna() {
   c.scrollTop = c.scrollHeight;
 }
 
-function aggiungi(role, content) {
-  chat.push({ role, content });
+function aggiungi(role, content, images) {
+  const m = { role, content };
+  if (images && images.length) m.images = images;
+  chat.push(m);
   salva();
   disegna();
 }
