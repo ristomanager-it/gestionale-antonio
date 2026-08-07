@@ -305,6 +305,50 @@ export async function render(container) {
     });
   }
 
+  // Quanto e nitida, quanto e luminosa, quanto stacca: si misura sui pixel
+  // dell anteprima appena disegnata. Serve a scartare il mosso e il buio.
+  function misuraQualita(canvas) {
+    try {
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width, h = canvas.height;
+      const d = ctx.getImageData(0, 0, w, h).data;
+
+      const gr = new Float32Array(w * h);
+      let somma = 0;
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        gr[p] = v; somma += v;
+      }
+      const media = somma / (w * h);
+
+      // scarto quadratico: quanto stacca fra chiaro e scuro
+      let varianza = 0;
+      for (let p = 0; p < gr.length; p++) { const s = gr[p] - media; varianza += s * s; }
+      const contrasto = Math.sqrt(varianza / gr.length);
+
+      // nitidezza: differenza fra pixel vicini. Una foto mossa ha bordi molli.
+      let bordi = 0, n = 0;
+      for (let y = 1; y < h - 1; y += 2) {
+        for (let x = 1; x < w - 1; x += 2) {
+          const i = y * w + x;
+          const lap = Math.abs(4 * gr[i] - gr[i - 1] - gr[i + 1] - gr[i - w] - gr[i + w]);
+          bordi += lap * lap; n++;
+        }
+      }
+      const nitidezza = n ? Math.sqrt(bordi / n) : 0;
+
+      // voto da 0 a 100: nitidezza pesa piu di tutto, poi il contrasto,
+      // e si penalizza chi e troppo buio o troppo bruciato
+      const pN = Math.min(nitidezza / 22, 1) * 55;
+      const pC = Math.min(contrasto / 62, 1) * 30;
+      const pL = (media > 55 && media < 205) ? 15 : Math.max(0, 15 - Math.abs(130 - media) / 9);
+      const voto = Math.round(Math.max(0, Math.min(100, pN + pC + pL)));
+
+      return { voto: voto, nitidezza: +nitidezza.toFixed(2),
+               luminosita: +media.toFixed(2), contrasto: +contrasto.toFixed(2) };
+    } catch (e) { return null; }
+  }
+
   // Coda in background: genera le miniature mancanti (3 alla volta)
   let thumbQueueAttiva = false;
   async function avviaCodaThumb() {
