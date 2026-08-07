@@ -454,6 +454,7 @@ function disegnaPannello() {
       '<button class="cal-a sec" id="cal-chiudi">Chiudi</button>' +
     '</div>';
 
+  nomePaginaDelGiorno().then(anteprimaFacebook);
   anteprimaFacebook();
   contaParole();
   const ta = document.getElementById('cal-testo');
