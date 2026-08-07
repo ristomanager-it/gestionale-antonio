@@ -203,7 +203,12 @@ function layout() {
       .cal-gal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;
                max-height:280px;overflow:auto}
       .cal-gal button{border:2px solid transparent;border-radius:6px;padding:0;cursor:pointer;
-                      background:none;overflow:hidden;aspect-ratio:1/1}
+                      background:#eef1f4;overflow:hidden;aspect-ratio:1/1;
+                      display:block;position:relative}
+      .cal-altre{width:100%;margin-top:9px;background:#fff;border:1px solid #e5e7eb;
+                 border-radius:9px;padding:10px;font-size:13px;font-weight:600;
+                 color:#023C59;cursor:pointer}
+      .cal-altre span{opacity:.55;font-weight:400}
       .cal-gal button.sel{border-color:#111827}
       .cal-gal img{width:100%;height:100%;object-fit:cover;display:block}
       @media (max-width:640px){
