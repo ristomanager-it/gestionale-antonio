@@ -365,7 +365,8 @@ export async function render(container) {
   const btnChiudi = document.getElementById("btn-drive-chiudi");
   if (btnChiudi) btnChiudi.onclick = () => { drivePanel.style.display = "none"; };
 
-  document.getElementById("btn-drive-avvia").onclick = async () => {
+  const btnAvvia = document.getElementById("btn-drive-avvia");
+  if (btnAvvia) btnAvvia.onclick = async () => {
     const testo = document.getElementById("drive-link").value.trim();
     const esito = document.getElementById("drive-esito");
     if (!testo) { esito.textContent = "Incolla prima un link Drive."; return; }
