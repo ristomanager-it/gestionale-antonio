@@ -367,7 +367,8 @@ export async function render(container) {
     if (thumbQueueAttiva) return;
     thumbQueueAttiva = true;
     try {
-      const daFare = allMedia.filter(m => !m.thumb_url);
+      const daFare = allMedia.filter(m =>
+        !m.thumb_url || (m.tipo === "immagine" && m.punteggio_tecnico == null));
       const PARALLELI = 8;
       for (let i = 0; i < daFare.length; i += PARALLELI) {
         await Promise.all(daFare.slice(i, i + PARALLELI)
