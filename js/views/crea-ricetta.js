@@ -5067,7 +5067,7 @@ function bindUI() {
     _fotoRic.dataset.bound = "1";
     _fotoRic.addEventListener("change", (e) => compilaRicettaDaFoto(e.target.files && e.target.files[0]));
     const _fotoPia = document.getElementById("input-foto-piatto");
-    if (_fotoPia) _fotoPia.addEventListener("change", (e) => compilaRicettaDaPiatto(e.target.files && e.target.files[0]));
+    if (_fotoPia) _fotoPia.addEventListener("change", (e) => guardaEDecidi(e.target.files && e.target.files[0]));
   }
 
   // Tipo ricetta -> mostra/nasconde categoria
