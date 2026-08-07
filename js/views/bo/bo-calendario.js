@@ -497,42 +497,114 @@ function contaParole() {
   c.textContent = p + ' parole' + (p > 0 && (p < 30 || p > 110) ? ' — fuori dalla misura giusta' : '');
 }
 
+let FOTO_TUTTE = [];
+
+// Quale cartella c entra con questo post: si legge dal testo e dal titolo.
+// Se il post parla di pesce, la cartella Pesce viene proposta per prima.
+function cartellaProbabile(cartelle) {
+  const testo = ((SEL.titolo || '') + ' ' + (SEL.testo || '') + ' ' + (SEL.tema || ''))
+    .toLowerCase();
+  let miglior = null, punti = 0;
+  cartelle.forEach(c => {
+    const parola = c.toLowerCase();
+    let p = 0;
+    if (testo.indexOf(parola) !== -1) p += 3;
+    // sinonimi: il post dice "spada" o "vongole", la cartella si chiama Pesce
+    const giro = {
+      Pesce: ['pesce','spada','polpo','gamber','cozze','vongole','salmone','seppia','calamar','alici','mare'],
+      Carne: ['carne','bistecc','coniglio','agnell','maial','pollo','coratell','brasat','spiedin'],
+      Pasta: ['pasta','spaghett','gnocch','raviol','tagliatell','carbonara','amatriciana','gricia','cacio'],
+      Primi: ['primo','risott','zuppa','minestr'],
+      Burger: ['burger','hamburger','panino'],
+      Insalate: ['insalat','verdur','contorn'],
+      Dolci: ['dolce','torta','crostata','semifreddo','tiramis'],
+      Pane: ['pane','bruschett','focacc'],
+      Personale: ['chef','camerier','cucina','brigata','staff','mani','ragazzi','squadra'],
+      'Il locale': ['sala','tavol','piscina','giardino','locale','esterno']
+    };
+    (giro[c] || []).forEach(s => { if (testo.indexOf(s) !== -1) p += 2; });
+    if (p > punti) { punti = p; miglior = c; }
+  });
+  return punti > 0 ? miglior : null;
+}
+
 async function mostraGalleria() {
   const box = document.getElementById('cal-galleria');
   if (box.innerHTML) { box.innerHTML = ''; return; }
   box.innerHTML = '<div class="cal-foto-n">Carico le foto…</div>';
 
   const { data, error } = await supa().from('media_library')
-    .select('id,nome,url,thumb_url,descrizione,qualita,adatta_a')
+    .select('id,nome,url,thumb_url,descrizione,qualita,adatta_a,tag,punteggio_tecnico')
     .eq('azienda_id', aziendaId())
     .eq('tipo', 'immagine')
-    .not('analizzata_at', 'is', null)
-    .gte('qualita', 2)
-    .order('qualita', { ascending: false })
-    .limit(60);
+    .order('punteggio_tecnico', { ascending: false, nullsFirst: false })
+    .limit(400);
 
   if (error || !data || !data.length) {
-    box.innerHTML = '<div class="cal-foto-n">Nessuna foto disponibile in galleria</div>';
+    box.innerHTML = '<div class="cal-foto-n">Nessuna foto in galleria</div>';
     return;
   }
 
-  const adatte = data.filter(f => (f.adatta_a || []).indexOf(SEL.angolo) !== -1);
-  const altre = data.filter(f => (f.adatta_a || []).indexOf(SEL.angolo) === -1);
-  const ordinate = adatte.concat(altre);
+  FOTO_TUTTE = data;
+  const conta = {};
+  data.forEach(f => { const t = f.tag || 'Altro'; conta[t] = (conta[t] || 0) + 1; });
+  const cartelle = Object.keys(conta).sort((a, b) => conta[b] - conta[a]);
 
-  box.innerHTML = '<div class="cal-foto-n">Le prime sono quelle adatte al taglio ' +
-    (ANGOLI[SEL.angolo] || ANGOLI.cosa).l + '</div>' +
-    '<div class="cal-gal">' + ordinate.map(f =>
-      '<button data-url="' + esc(f.url) + '" title="' + esc(f.nome || '') + '"' +
-        (f.url === SEL.media_url ? ' class="sel"' : '') + '>' +
-        '<img src="' + esc(f.thumb_url || f.url) + '" alt="' + esc(f.nome || '') + '">' +
-      '</button>').join('') + '</div>';
+  const suggerita = cartellaProbabile(cartelle);
+  disegnaCartelleFoto(cartelle, conta, suggerita);
+  if (suggerita) mostraFotoCartella(suggerita);
+}
 
-  box.querySelector('.cal-gal').onclick = async (e) => {
+function disegnaCartelleFoto(cartelle, conta, suggerita) {
+  const box = document.getElementById('cal-galleria');
+  box.innerHTML =
+    (suggerita
+      ? '<div class="cal-foto-n">Per questo post servono probabilmente foto di <b>' +
+        esc(suggerita) + '</b></div>'
+      : '<div class="cal-foto-n">Scegli prima la cartella</div>') +
+    '<div class="cal-cart" id="cal-cart">' +
+      cartelle.map(c =>
+        '<button class="cal-cb' + (c === suggerita ? ' sugg' : '') + '" data-cart="' + esc(c) + '">' +
+        esc(c) + ' <span>' + conta[c] + '</span></button>').join('') +
+    '</div>' +
+    '<div id="cal-foto-lista"></div>';
+
+  document.getElementById('cal-cart').onclick = (e) => {
+    const b = e.target.closest('[data-cart]');
+    if (!b) return;
+    document.querySelectorAll('.cal-cb').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    mostraFotoCartella(b.dataset.cart);
+  };
+}
+
+function mostraFotoCartella(cartella) {
+  const lista = document.getElementById('cal-foto-lista');
+  if (!lista) return;
+
+  document.querySelectorAll('.cal-cb').forEach(x => {
+    x.classList.toggle('on', x.dataset.cart === cartella);
+  });
+
+  const foto = FOTO_TUTTE.filter(f => (f.tag || 'Altro') === cartella);
+  if (!foto.length) { lista.innerHTML = '<div class="cal-foto-n">Cartella vuota</div>'; return; }
+
+  // dentro la cartella: prima quelle adatte al taglio del giorno
+  const adatte = foto.filter(f => (f.adatta_a || []).indexOf(SEL.angolo) !== -1);
+  const altre = foto.filter(f => (f.adatta_a || []).indexOf(SEL.angolo) === -1);
+
+  lista.innerHTML = '<div class="cal-gal">' + adatte.concat(altre).map(f =>
+    '<button data-url="' + esc(f.url) + '" title="' + esc(f.nome || '') + '"' +
+      (f.url === SEL.media_url ? ' class="sel"' : '') + '>' +
+      '<img src="' + esc(f.thumb_url || f.url) + '" alt="" loading="lazy">' +
+    '</button>').join('') + '</div>';
+
+  lista.querySelector('.cal-gal').onclick = async (e) => {
     const b = e.target.closest('[data-url]');
     if (!b) return;
     await aggiorna({ media_url: b.dataset.url }, 'Foto cambiata', true);
-    box.innerHTML = '';
+    const g = document.getElementById('cal-galleria');
+    if (g) g.innerHTML = '';
   };
 }
 
