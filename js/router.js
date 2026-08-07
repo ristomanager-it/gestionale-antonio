@@ -345,7 +345,7 @@ const ADDETTO_MARKETING_ROUTES = new Set([
   // Fidelity
   "bo-fidelity",
   // Sito / Media
-  "bo-sito", "bo-media", "bo-storie", "bo-menzioni",
+  "bo-sito", "bo-media", "bo-storie", "bo-menzioni", "bo-voucher",
   // Prenotazioni / clienti
   "prenotazioni", "prenotazioni-tavoli",
   // Essenziali
