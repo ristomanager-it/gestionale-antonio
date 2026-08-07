@@ -4937,6 +4937,50 @@ function bindUI() {
   });
   safeOn("btn-foto-ricetta", "click", () => document.getElementById("input-foto-ricetta")?.click());
   safeOn("btn-foto-piatto", "click", () => document.getElementById("input-foto-piatto")?.click());
+
+  // la spiegazione si legge solo quando serve, senza occupare mezzo schermo
+  const _spiega = {
+    "btn-tony-inventa": "Hai un eccedenza o un idea? Raccontala a Tony: ne esce la ricetta completa, dosi e conservazione comprese.",
+    "btn-foto-piatto": "Foto di un piatto impiattato: Tony capisce cos e, ricostruisce gli ingredienti e lo valorizza sui vostri prezzi.",
+    "btn-foto-ricetta": "Anche scritta a mano: Tony la legge e compila la scheda."
+  };
+  Object.keys(_spiega).forEach((id) => {
+    const b = document.getElementById(id);
+    const s = document.getElementById("cr-spiega");
+    if (!b || !s) return;
+    const mostra = () => { s.textContent = _spiega[id]; };
+    b.addEventListener("mouseenter", mostra);
+    b.addEventListener("touchstart", mostra, { passive: true });
+    b.addEventListener("focus", mostra);
+  });
+
+  // Se si arriva dalla camera, la foto e gia stata scattata: si guarda subito
+  // invece di chiedere di rifarla.
+  (async () => {
+    let arrivata = null;
+    try {
+      const grezzo = sessionStorage.getItem("ricetta_da_foto");
+      if (grezzo) {
+        const d = JSON.parse(grezzo);
+        // vale solo se e appena stata scattata
+        if (d && d.url && (Date.now() - Number(d.quando || 0)) < 300000) arrivata = d;
+        sessionStorage.removeItem("ricetta_da_foto");
+      }
+    } catch (e) { }
+    if (!arrivata) return;
+
+    const s = document.getElementById("cr-spiega");
+    if (s) s.textContent = "Guardo la foto che hai appena scattato…";
+
+    try {
+      const r = await fetch(arrivata.url);
+      const blob = await r.blob();
+      const file = new File([blob], "scatto.jpg", { type: blob.type || "image/jpeg" });
+      await compilaRicettaDaPiatto(file);
+    } catch (e) {
+      if (s) s.textContent = "Non sono riuscito a rileggere la foto: riprova con Dalla foto.";
+    }
+  })();
   const _fotoRic = document.getElementById("input-foto-ricetta");
   if (_fotoRic && !_fotoRic.dataset.bound) {
     _fotoRic.dataset.bound = "1";
