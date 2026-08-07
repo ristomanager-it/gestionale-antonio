@@ -182,12 +182,61 @@ function aggiungi(role, content) {
   disegna();
 }
 
+// Le schermate che gli si mostrano: restano qui finche non parte il messaggio.
+var daInviare = [];
+
+function disegnaAllegati() {
+  const box = $("allegati");
+  if (!box) return;
+  box.innerHTML = daInviare.map((d, i) =>
+    '<div class="all"><img src="' + d + '" alt=""><button data-i="' + i + '">✕</button></div>'
+  ).join("");
+  box.onclick = (e) => {
+    const b = e.target.closest("[data-i]");
+    if (!b) return;
+    daInviare.splice(Number(b.dataset.i), 1);
+    disegnaAllegati();
+  };
+}
+
+function preparaAllegati() {
+  const g = $("graffa"), f = $("file");
+  if (!g || !f) return;
+  g.onclick = () => f.click();
+  f.onchange = () => {
+    const scelti = Array.from(f.files || []).slice(0, 4);
+    scelti.forEach(file => {
+      // si rimpicciolisce prima di mandarla: una foto da 8MB non serve a nessuno
+      const img = new Image();
+      const lettore = new FileReader();
+      lettore.onload = () => {
+        img.onload = () => {
+          const MAX = 1400;
+          const s = Math.min(1, MAX / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.width * s);
+          c.height = Math.round(img.height * s);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          if (daInviare.length < 4) daInviare.push(c.toDataURL("image/jpeg", 0.82));
+          disegnaAllegati();
+        };
+        img.src = lettore.result;
+      };
+      lettore.readAsDataURL(file);
+    });
+    f.value = "";
+  };
+}
+
 async function invia() {
   const t = $("testo").value.trim();
-  if (!t || occupato) return;
+  if ((!t && !daInviare.length) || occupato) return;
+  const foto = daInviare.slice();
+  daInviare = [];
+  disegnaAllegati();
   $("testo").value = "";
   $("testo").style.height = "auto";
-  aggiungi("user", t);
+  aggiungi("user", t || "(guarda questa schermata)", foto);
 
   occupato = true;
   $("invia").disabled = true;
