@@ -356,10 +356,14 @@ export async function render(container) {
   if (driveTagSel) driveTagSel.innerHTML = TAGS.filter(t => t !== "Tutti")
     .map(t => `<option value="${t}">${t}</option>`).join("");
 
-  document.getElementById("btn-import-drive").onclick = () => {
+  // il pulsante Drive non esiste piu: l importazione e automatica.
+  // Gli agganci restano protetti, cosi se un giorno torna non si rompe niente.
+  const btnDrive = document.getElementById("btn-import-drive");
+  if (btnDrive) btnDrive.onclick = () => {
     drivePanel.style.display = drivePanel.style.display === "none" ? "block" : "none";
   };
-  document.getElementById("btn-drive-chiudi").onclick = () => { drivePanel.style.display = "none"; };
+  const btnChiudi = document.getElementById("btn-drive-chiudi");
+  if (btnChiudi) btnChiudi.onclick = () => { drivePanel.style.display = "none"; };
 
   document.getElementById("btn-drive-avvia").onclick = async () => {
     const testo = document.getElementById("drive-link").value.trim();
