@@ -122,6 +122,7 @@ function interfaccia() {
     .cam-a.pri{background:#fff;color:#111}
     .cam-a.sec{background:rgba(255,255,255,.16);color:#fff}
     .cam-a.sto{background:#0E76A3;color:#fff}
+    .cam-a.ric{background:#449531;color:#fff}
     .cam-a:disabled{opacity:.5}
   </style>`;
 }
