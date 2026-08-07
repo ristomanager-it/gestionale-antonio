@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prenota il tuo tavolo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --serif:'Playfair Display','Cormorant Garamond',Georgia,serif;
+      --ink:#1f2733; --oro:#b98a3e; --oro-chiaro:#f6efe3;
+      --primario:#0E5A7A; --bordo:rgba(0,0,0,.09);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f6f5f2;color:var(--ink);}
+    .wrap{max-width:520px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 50px rgba(0,0,0,.06);}
+    @media(min-width:768px){.wrap{max-width:760px;}}
+    /* HERO */
+    .hero{position:relative;min-height:320px;display:flex;align-items:flex-end;overflow:hidden;
+      background:radial-gradient(120% 80% at 50% 86%, #14688a 0%, #0b4560 44%, #072a3a 100%);}
+    @media(min-width:768px){.hero{min-height:400px;}}
+    .hero .sfondo{position:absolute;inset:0;width:100%;height:100%;opacity:.8;}
+    .hero .alone{position:absolute;left:50%;top:50%;width:250px;height:250px;transform:translate(-50%,-50%);
+      background:radial-gradient(circle, rgba(255,196,110,.26) 0%, rgba(255,196,110,.08) 45%, transparent 70%);pointer-events:none;}
+    .hero .contenuto{position:relative;width:100%;padding:26px 24px 30px;text-align:center;color:#fff;}
+    .calice{display:block;margin:0 auto 14px;}
+    .kicker{font-family:var(--serif);font-style:italic;font-size:13px;letter-spacing:2.5px;color:#f3d9a6;margin-bottom:9px;}
+    h1{font-family:var(--serif);font-size:32px;line-height:1.15;font-weight:700;text-shadow:0 2px 18px rgba(0,0,0,.35);}
+    @media(min-width:768px){h1{font-size:44px;}}
+    .hero .sub{font-size:14px;opacity:.93;margin-top:11px;}
+    .filo{width:54px;height:1px;background:linear-gradient(90deg,transparent,var(--oro),transparent);margin:16px auto 0;}
+    /* FASCIA */
+    .fascia{background:var(--oro-chiaro);border-top:1px solid #eadfc8;border-bottom:1px solid #eadfc8;padding:16px 22px;display:flex;align-items:center;gap:14px;}
+    .fascia .icona{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #eadfc8;display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
+    .fascia b{font-family:var(--serif);font-size:16.5px;color:#6e5322;display:block;}
+    .fascia .small{font-size:12.5px;color:#8a7346;margin-top:2px;}
+    /* PUNTI */
+    .punti{display:flex;gap:8px;padding:16px;}
+    .punto{flex:1;text-align:center;background:#faf9f7;border:1px solid var(--bordo);border-radius:12px;padding:13px 6px;}
+    .punto .ic{font-size:22px;margin-bottom:5px;}
+    .punto .tx{font-size:11px;font-weight:700;line-height:1.35;color:var(--ink);}
+    /* FORM */
+    .card{margin:14px 16px 8px;background:#faf9f7;border:1px solid var(--bordo);border-radius:16px;padding:20px;}
+    .card h3{font-family:var(--serif);font-size:19px;margin-bottom:14px;}
+    label{display:block;font-size:11px;font-weight:700;color:#7a8494;margin:9px 0 4px 2px;letter-spacing:.3px;text-transform:uppercase;}
+    input,textarea,select{width:100%;padding:11px 13px;border:1.5px solid #e3e1dc;border-radius:10px;font-size:14px;outline:none;background:#fff;transition:border-color .15s;font-family:inherit;color:var(--ink);}
+    input:focus,textarea:focus,select:focus{border-color:var(--primario);}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .orari{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px;}
+    .orario{border:1.5px solid #e3e1dc;background:#fff;border-radius:999px;padding:7px 15px;font-size:13.5px;cursor:pointer;font-family:inherit;color:var(--ink);}
+    .orario.attivo{background:var(--ink);color:#fff;border-color:var(--ink);}
+    .coperti{display:flex;align-items:center;gap:14px;justify-content:center;background:#fff;border:1.5px solid #e3e1dc;border-radius:10px;padding:7px;}
+    .coperti button{width:38px;height:38px;border-radius:9px;border:none;background:var(--ink);color:#fff;font-size:19px;cursor:pointer;}
+    .coperti .val{font-family:var(--serif);font-size:22px;font-weight:700;min-width:36px;text-align:center;}
+    .privacy{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:#7a8494;margin:12px 0;line-height:1.5;}
+    .privacy input{width:auto;margin-top:2px;accent-color:var(--primario);}
+    .btn{width:100%;background:var(--ink);color:#fff;border:none;border-radius:999px;padding:13px 22px;font-size:14.5px;font-weight:700;letter-spacing:.4px;cursor:pointer;box-shadow:0 3px 14px rgba(31,39,51,.25);transition:transform .12s;}
+    .btn:hover{transform:translateY(-1px);}
+    .btn:disabled{opacity:.6;cursor:not-allowed;}
+    .sotto-btn{text-align:center;font-size:11px;color:#98a1ae;margin-top:8px;}
+    .msg{margin-top:12px;font-size:13.5px;text-align:center;display:none;border-radius:10px;padding:10px;}
+    .footer{padding:18px;text-align:center;font-size:11px;color:#98a1ae;border-top:1px solid #f0efec;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="hero">
+      <svg class="sfondo" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g stroke="#e8b96a" stroke-width="1.2" fill="none" opacity=".3" stroke-linecap="round">
+          <path d="M0 118 h150"/><path d="M250 118 h150"/>
+          <path d="M0 196 h108"/><path d="M292 196 h108"/>
+        </g>
+        <g fill="#f3d9a6" opacity=".55">
+          <circle cx="64" cy="54" r="1.9"/><circle cx="336" cy="66" r="1.7"/>
+          <circle cx="150" cy="34" r="1.5"/><circle cx="262" cy="42" r="1.6"/>
+          <circle cx="38" cy="150" r="1.5"/><circle cx="368" cy="164" r="1.8"/>
+        </g>
+      </svg>
+      <div class="alone"></div>
+      <div class="contenuto">
+        <svg class="calice" width="62" height="80" viewBox="0 0 62 80" aria-hidden="true">
+          <path d="M17 8h28c0 14-3 22-9 25v27h7a3 3 0 0 1 0 6H19a3 3 0 0 1 0-6h7V33c-6-3-9-11-9-25z" fill="none" stroke="#f6efe3" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M18.6 14h24.8c-.5 8-2.9 13.4-7.2 15.6h-10.4C21.5 27.4 19.1 22 18.6 14z" fill="#b98a3e" opacity=".9"/>
+          <ellipse cx="31" cy="14" rx="12.4" ry="1.9" fill="#d9b978" opacity=".75"/>
+          <path d="M24 19c.6 3.4 1.8 5.9 3.6 7.4" stroke="#ffe6b5" stroke-width="1.5" fill="none" opacity=".6" stroke-linecap="round"/>
+        </svg>
+        <div class="kicker">VINO E TRADIZIONE</div>
+        <h1 id="titolo">Prenota il tuo tavolo</h1>
+        <div class="sub">Dicci quando e in quanti. Al resto pensiamo noi.</div>
+        <div class="filo"></div>
+      </div>
+    </div>
+
+    <div class="fascia">
+      <div class="icona">🍷</div>
+      <div>
+        <b>Ti confermiamo noi</b>
+        <div class="small">Ricevi la richiesta, controlliamo la sala e ti rispondiamo al più presto.</div>
+      </div>
+    </div>
+
+    <div class="punti">
+      <div class="punto"><div class="ic">📅</div><div class="tx">Scegli giorno e ora</div></div>
+      <div class="punto"><div class="ic">👥</div><div class="tx">Dicci quanti sarete</div></div>
+      <div class="punto"><div class="ic">🍽️</div><div class="tx">Trovi il tavolo pronto</div></div>
+    </div>
+
+    <div class="card">
+      <h3>La tua prenotazione</h3>
+      <div class="row">
+        <div><label>Nome *</label><input id="nome" placeholder="Mario"></div>
+        <div><label>Cognome</label><input id="cognome" placeholder="Rossi"></div>
+      </div>
+      <label>Telefono *</label>
+      <input id="telefono" type="tel" placeholder="333 1234567">
+      <label>Email</label>
+      <input id="email" type="email" placeholder="mario@email.it">
+      <div class="row">
+        <div><label>Giorno *</label><input id="data" type="date"></div>
+        <div><label>Orario *</label><input id="ora" type="time" value="20:30"></div>
+      </div>
+      <div class="orari" id="orari"></div>
+      <label>Quanti sarete?</label>
+      <div class="coperti">
+        <button type="button" id="meno">−</button>
+        <div class="val" id="coperti-val">2</div>
+        <button type="button" id="piu">+</button>
+      </div>
+      <label>Occasione</label>
+      <select id="occasione">
+        <option value="">Una cena normale</option>
+        <option value="romantica">Cena romantica</option>
+        <option value="famiglia">In famiglia</option>
+        <option value="amici">Con gli amici</option>
+        <option value="lavoro">Cena di lavoro</option>
+        <option value="compleanno">Compleanno</option>
+      </select>
+      <label>Note (allergie, seggiolone, tavolo fuori...)</label>
+      <textarea id="note" rows="2" placeholder="Es. un ospite celiaco"></textarea>
+      <div class="privacy">
+        <input type="checkbox" id="privacy">
+        <span>Acconsento al trattamento dei dati per gestire la prenotazione (GDPR). *</span>
+      </div>
+      <button class="btn" id="invia">Prenota il tavolo</button>
+      <div class="sotto-btn">Conferma rapida · nessun pagamento richiesto ora</div>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="footer" id="footer-locale"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+    const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+    const db = window.supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+    const params = new URLSearchParams(location.search);
+    const aziendaId = params.get("a") || params.get("azienda");
+    const sedeId = params.get("s") || params.get("sede") || null;
+
+    // giorno default: oggi. Chi chiama il centralino di solito prenota per stasera.
+    (function () {
+      const d = new Date();
+      document.getElementById("data").value = d.toISOString().split("T")[0];
+    })();
+
+    // orari rapidi: un tocco invece della tastiera dell'orologio
+    (function () {
+      const scelte = ["12:30", "13:00", "13:30", "19:30", "20:00", "20:30", "21:00", "21:30"];
+      const box = document.getElementById("orari");
+      const campo = document.getElementById("ora");
+      box.innerHTML = scelte.map(function (o) {
+        return '<button type="button" class="orario' + (o === campo.value ? ' attivo' : '') + '" data-o="' + o + '">' + o + '</button>';
+      }).join("");
+      box.addEventListener("click", function (e) {
+        const b = e.target.closest(".orario");
+        if (!b) return;
+        campo.value = b.dataset.o;
+        box.querySelectorAll(".orario").forEach(function (x) { x.classList.remove("attivo"); });
+        b.classList.add("attivo");
+      });
+      campo.addEventListener("change", function () {
+        box.querySelectorAll(".orario").forEach(function (x) {
+          x.classList.toggle("attivo", x.dataset.o === campo.value);
+        });
+      });
+    })();
+
+    // titolo con nome sede + footer
+    (async function () {
+      try {
+        if (sedeId) {
+          const { data: s } = await db.from("sedi").select("nome,citta").eq("id", sedeId).maybeSingle();
+          if (s && s.nome) {
+            document.getElementById("titolo").textContent = "Prenota da " + s.nome;
+            document.getElementById("footer-locale").textContent = s.nome + (s.citta ? " — " + s.citta : "");
+          }
+        }
+      } catch (e) { /* estetico */ }
+    })();
+
+    let coperti = 2;
+    document.getElementById("meno").onclick = function () { if (coperti > 1) { coperti--; render(); } };
+    document.getElementById("piu").onclick = function () { if (coperti < 120) { coperti++; render(); } };
+    function render() { document.getElementById("coperti-val").textContent = coperti; }
+
+    function showMsg(t, err) {
+      const m = document.getElementById("msg");
+      m.style.display = "block"; m.textContent = t;
+      m.style.background = err ? "#fef2f2" : "#f0fdf4";
+      m.style.color = err ? "#b91c1c" : "#15803d";
+    }
+
+    document.getElementById("invia").onclick = async function () {
+      const btn = this;
+      const nome = document.getElementById("nome").value.trim();
+      const cognome = document.getElementById("cognome").value.trim();
+      const telefono = document.getElementById("telefono").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const data = document.getElementById("data").value;
+      const ora = document.getElementById("ora").value;
+      const occasione = document.getElementById("occasione").value;
+      const note = document.getElementById("note").value.trim();
+      const privacy = document.getElementById("privacy").checked;
+
+      if (!aziendaId) { showMsg("Link non valido: contatta il ristorante.", true); return; }
+      if (!nome || !telefono || !data || !ora) { showMsg("Compila nome, telefono, giorno e orario.", true); return; }
+      if (!privacy) { showMsg("Serve il consenso privacy per prenotare.", true); return; }
+
+      btn.disabled = true; btn.textContent = "Invio in corso...";
+      try {
+        const { data: pren, error } = await db.from("prenotazioni_tavoli").insert([{
+          azienda_id: aziendaId, sede_id: sedeId,
+          cliente_nome: (nome + " " + cognome).trim(),
+          cliente_telefono: telefono, cliente_email: email || null,
+          data: data, ora: ora, coperti: coperti,
+          stato: "in_attesa", canale: "online", source: "tavolo",
+          occasione: occasione || null,
+          note: note || null
+        }]).select("id, token_pubblico").single();
+        if (error) throw error;
+        showMsg("Prenotazione inviata! Ti confermiamo a breve.", false);
+        if (pren && pren.token_pubblico) {
+          setTimeout(function () { location.href = "/prenotazione.html?token=" + encodeURIComponent(pren.token_pubblico); }, 1200);
+        }
+      } catch (e) {
+        showMsg("Errore: " + (e.message || e), true);
+        btn.disabled = false; btn.textContent = "Prenota il tavolo";
+      }
+    };
+  </script>
+</body>
+</html>
