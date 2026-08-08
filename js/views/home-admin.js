@@ -101,18 +101,6 @@ ${cruscotto(ora, prima, fissi)}
     </div>
     ${stile()}`;
 
-  container.querySelectorAll(".cr-ordina button").forEach(b => {
-    b.onclick = () => {
-      const lista = container.querySelector("#cr-lista");
-      if (!lista) return;
-      const campo = b.dataset.ord === "pezzi" ? "pezzi" : "incasso";
-      container.querySelectorAll(".cr-ordina button").forEach(x => x.classList.toggle("on", x === b));
-      [...lista.children]
-        .sort((a, z) => Number(z.dataset[campo]) - Number(a.dataset[campo]))
-        .forEach(n => lista.appendChild(n));
-    };
-  });
-
   import("../components/notifiche-tab.js?v=" + (window.APP_V || "1"))
     .then(m => m.initNotificheTab())
     .catch(e => console.warn("tab notifiche non caricato:", e));
@@ -198,11 +186,14 @@ async function kpi(supabase, aziendaId, sedeId, range) {
       vendite.forEach(r => {
         if (eCoperto(r)) return;
         const n = r.nome_prodotto || r.nome_articolo || "—";
-        const o = perPiatto.get(n) || { nome: n, pezzi: 0, incasso: 0 };
-        o.pezzi += Number(r.quantita) || 0;
+        const o = perPiatto.get(n) || { nome: n, pezzi: 0, incasso: 0, costo: 0 };
+        const q = Number(r.quantita) || 0;
+        o.pezzi += q;
         o.incasso += Number(r.totale_incassato ?? r.totale_riga ?? 0);
+        o.costo += (fc.get(norm(r.nome_prodotto || r.nome_articolo)) || 0) * q;
         perPiatto.set(n, o);
       });
+      perPiatto.forEach(o => { o.margine = o.incasso - o.costo; });
       out.venduto = [...perPiatto.values()].sort((a, b) => b.incasso - a.incasso).slice(0, 40);
 
       const { data: pvsAll } = await supabase.from("prodotti_vendita")
@@ -326,7 +317,6 @@ function cruscotto(ora, prima, fissi) {
   const mediaG = gg.length ? Math.round(coperti / gg.length) : 0;
 
   const vend = ora.venduto || [];
-  const maxV = Math.max(1, ...vend.map(v => v.incasso));
 
   return `
     <div class="cr-testa">
@@ -424,23 +414,42 @@ function cruscotto(ora, prima, fissi) {
     <div class="cr-tit">Venduto del periodo</div>
     <div class="cr-ordina">
       <span>Ordina per</span>
-      <button data-ord="pezzi">Quantità</button>
-      <button data-ord="incasso" class="on">Incasso</button>
+      <select onchange="window.__ordinaVenduto(this.value)">
+        <option value="incasso">Incasso</option>
+        <option value="pezzi">Quantità</option>
+        <option value="margine">Margine</option>
+      </select>
     </div>
-    <div class="cr-intest"><span>Piatto</span><span>Nr</span><span>Venduto</span></div>
+    <div class="cr-intest"><span>Piatto</span><span>Nr</span><span id="cr-col">Venduto</span></div>
     <div class="cr-lista" id="cr-lista">
-      ${vend.map(v => rigaVenduto(v, maxV)).join("")}
+      ${vend.map(v => rigaVenduto(v)).join("")}
     </div>` : ""}
   `;
 }
 
-function rigaVenduto(v, maxV) {
-  return `<a class="v" href="#/menu-intelligence" data-pezzi="${v.pezzi}" data-incasso="${v.incasso}">
+function rigaVenduto(v) {
+  const mar = Number(v.margine) || 0;
+  return `<a class="v" href="#/menu-intelligence"
+     data-pezzi="${v.pezzi}" data-incasso="${v.incasso}" data-margine="${mar}">
     <span class="nm">${esc(v.nome)}</span>
     <span class="qt">${Math.round(v.pezzi)}</span>
-    <span class="im">${euro(v.incasso)}</span><b>›</b>
+    <span class="im" data-eu-incasso="${euro(v.incasso)}" data-eu-margine="${mar ? euro(mar) : "—"}">${euro(v.incasso)}</span><b>›</b>
   </a>`;
 }
+
+// definita sul modulo: cosi' funziona sia in home admin sia nella pagina Cruscotto
+window.__ordinaVenduto = function (campo) {
+  const lista = document.querySelector("#cr-lista");
+  if (!lista) return;
+  const col = document.querySelector("#cr-col");
+  if (col) col.textContent = campo === "margine" ? "Margine" : "Venduto";
+  lista.querySelectorAll(".im").forEach(el => {
+    el.textContent = campo === "margine" ? el.dataset.euMargine : el.dataset.euIncasso;
+  });
+  [...lista.children]
+    .sort((a, z) => Number(z.dataset[campo]) - Number(a.dataset[campo]))
+    .forEach(n => lista.appendChild(n));
+};
 
 function giornoBreve(iso) {
   const gg = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
@@ -670,9 +679,8 @@ function stile() {
     text-decoration:none;padding-top:2px}
   .cr-ordina{display:flex;align-items:center;gap:6px;padding:10px 16px 0}
   .cr-ordina span{font-size:11px;color:#8a94a2;margin-right:2px}
-  .cr-ordina button{border:1px solid #e8ecf0;background:#fff;border-radius:8px;padding:5px 11px;
-    font-size:11.5px;font-weight:600;color:#8a94a2;font-family:inherit}
-  .cr-ordina button.on{background:#b98a3e;color:#fff;border-color:#b98a3e}
+  .cr-ordina select{border:1px solid #e8ecf0;background:#fff;border-radius:8px;padding:6px 10px;
+    font-size:12px;font-weight:600;color:#132029;font-family:inherit}
   .cr-intest{display:flex;gap:10px;padding:14px 16px 6px;font-size:9.5px;letter-spacing:1.4px;
     color:#b6c1cb;text-transform:uppercase}
   .cr-intest span:first-child{flex:1}
