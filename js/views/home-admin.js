@@ -300,7 +300,12 @@ function sintesi(ora) {
     </div>
 
     ${gg.length ? `
-    <div class="cr-tit">Giorno per giorno <em>tocca per aprire</em></div>
+    <details class="cr-apri">
+      <summary>
+        <span>Giorno per giorno</span>
+        <em>${gg.length} giorni</em>
+        <b>›</b>
+      </summary>
     <div class="cr-giorni">
       ${gg.map(g => {
         const cm = g.coperti ? g.incasso / g.coperti : 0;
@@ -319,7 +324,8 @@ function sintesi(ora) {
           </div>
         </details>`;
       }).join("")}
-    </div>` : ""}
+    </div>
+    </details>` : ""}
   `;
 }
 
@@ -665,7 +671,16 @@ function esc(s) {
 
 function stile() {
   return `<style>
-  .cr-vuoto{margin:14px 16px;padding:22px;text-align:center;color:#8a94a2;background:#faf9f7;
+  .cr-apri{background:#fff;border:1px solid #e8ecef;border-radius:14px;margin:0 0 14px;overflow:hidden}
+.cr-apri>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
+  padding:15px 16px;font-weight:800;font-size:15px;color:#122A38}
+.cr-apri>summary::-webkit-details-marker{display:none}
+.cr-apri>summary em{margin-left:auto;font-style:normal;font-weight:600;font-size:13px;color:#94a3b8}
+.cr-apri>summary b{color:#94a3b8;transition:transform .18s}
+.cr-apri[open]>summary b{transform:rotate(90deg)}
+.cr-apri[open]>summary{border-bottom:1px solid #f1f3f5}
+.cr-apri .cr-giorni{padding:4px 10px 10px}
+.cr-vuoto{margin:14px 16px;padding:22px;text-align:center;color:#8a94a2;background:#faf9f7;
     border:1px solid #e8ecf0;border-radius:14px;font-size:13.5px}
   .cr-arco{padding:6px 16px 0;text-align:center}
   .cr-arco svg{max-width:330px;width:100%}
