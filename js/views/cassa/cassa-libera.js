@@ -362,7 +362,11 @@ export async function renderCassaLibera(container, azienda) {
         }
       }
       // 3) Registra la vendita
-      await registraVendita(_metodoScelto, t);
+      const reg = await registraVendita(_metodoScelto, t);
+      if (!reg.ok) {
+        esito.textContent = 'Incasso NON registrato: ' + reg.errore + ' - segna il conto a mano e avvisa.';
+        return;
+      }
       // 3b) Fidelity: accredito punti
       const puntiDati = await accreditaFidelity(t);
       if (puntiDati) esito.textContent = '⭐ +' + puntiDati + ' punti a ' + fidelityCliente.nome;
@@ -469,40 +473,46 @@ export async function renderCassaLibera(container, azienda) {
     } catch (e) { console.warn('fidelity:', e?.message || e); return null; }
   }
 
-  // Registra la vendita a DB: una riga per prodotto in vendite_giornaliere
-  // (schema reale: data_vendita, prodotto_id, nome_prodotto, quantita,
-  //  prezzo_unitario, totale_riga, canale, sede_id).
-  // Il metodo di pagamento andrà su una tabella incassi dedicata quando la
-  // colleghi: qui lo passo nel canale per traccia futura.
+  // Registra la vendita a DB: una riga per prodotto in vendite_giornaliere.
+  // Attenzione allo schema: la sede va in sede_uuid (sede_id e' integer, resto
+  // di quando le sedi erano numeriche) e riga_uuid tiene l'id del prodotto di
+  // vendita, che e' un uuid e non entra in prodotto_id (bigint).
+  // Se la scrittura fallisce l'operatore deve saperlo: un incasso perso in
+  // silenzio non si recupera piu'.
   async function registraVendita(metodo, t) {
-    try {
-      const oggi = new Date().toISOString().slice(0,10);
-      const righe = carrello.map(r => ({
-        azienda_id: aziendaId, sede_id: sedeId,
+    const oggi = new Date().toISOString().slice(0,10);
+    const righe = carrello.map(r => ({
+      azienda_id: aziendaId, sede_uuid: sedeId,
+      data_vendita: oggi,
+      riga_uuid: r.prodotto_id,
+      nome_prodotto: r.nome,
+      nome_articolo: r.nome,
+      quantita: r.qta,
+      prezzo_unitario: r.prezzo,
+      totale_riga: round2(r.prezzo * r.qta),
+      totale_incassato: round2(r.prezzo * r.qta),
+      canale: 'cassa_libera',
+    }));
+    if (coupon && t.sconto > 0) {
+      righe.push({
+        azienda_id: aziendaId, sede_uuid: sedeId,
         data_vendita: oggi,
-        prodotto_id: r.prodotto_id,
-        nome_prodotto: r.nome,
-        quantita: r.qta,
-        prezzo_unitario: r.prezzo,
-        totale_riga: round2(r.prezzo * r.qta),
+        nome_prodotto: 'Sconto promo: ' + coupon.promo_nome + ' (' + coupon.codice + ')',
+        nome_articolo: 'Sconto promo',
+        quantita: 1,
+        prezzo_unitario: -t.sconto,
+        totale_riga: -t.sconto,
+        totale_incassato: -t.sconto,
         canale: 'cassa_libera',
-      }));
-      if (coupon && t.sconto > 0) {
-        righe.push({
-          azienda_id: aziendaId, sede_id: sedeId,
-          data_vendita: oggi,
-          prodotto_id: null,
-          nome_prodotto: 'Sconto promo: ' + coupon.promo_nome + ' (' + coupon.codice + ')',
-          quantita: 1,
-          prezzo_unitario: -t.sconto,
-          totale_riga: -t.sconto,
-          canale: 'cassa_libera',
-        });
-      }
-      if (righe.length) await supabase.from('vendite_giornaliere').insert(righe);
-    } catch (e) {
-      console.warn('registraVendita:', e?.message || e);
+      });
     }
+    if (!righe.length) return { ok: true };
+    const { error } = await supabase.from('vendite_giornaliere').insert(righe);
+    if (error) {
+      console.error('registraVendita:', error);
+      return { ok: false, errore: error.message };
+    }
+    return { ok: true };
   }
 
   // Aggiorna lo schermo cliente in tempo reale via canale realtime (scheletro)
