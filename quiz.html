@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test — Ristoflow</title>
+<link rel="icon" href="favicon-32.png">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f1f5f9;color:#122A38;
+       font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+       padding:18px 14px 60px;line-height:1.55}
+  .w{max-width:560px;margin:0 auto}
+  .card{background:#fff;border-radius:16px;padding:20px 18px;box-shadow:0 2px 14px rgba(15,23,42,.07);margin-bottom:14px}
+  h1{font-size:21px;margin:0 0 4px}
+  .sub{color:#64748b;font-size:14px;margin:0}
+  .cat{display:inline-block;background:#e0f2fe;color:#0369a1;border-radius:999px;
+       padding:4px 11px;font-size:12px;font-weight:700;margin-bottom:10px}
+  .dom{font-size:16px;font-weight:700;margin:0 0 12px}
+  .num{color:#94a3b8;font-size:13px;font-weight:700;margin-bottom:6px}
+  label{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border:2px solid #e2e8f0;
+        border-radius:12px;margin-bottom:9px;cursor:pointer;font-size:15px;background:#fff}
+  label:has(input:checked){border-color:#0E5A7A;background:#f0f9ff}
+  input[type=radio]{margin:2px 0 0;width:19px;height:19px;accent-color:#0E5A7A;flex:none}
+  button{width:100%;border:none;border-radius:12px;padding:16px;font-size:16px;
+         font-weight:800;cursor:pointer;background:#0E5A7A;color:#fff}
+  button:disabled{opacity:.5}
+  .avviso{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;
+          padding:12px 14px;font-size:13px;margin-bottom:14px}
+  .errore{color:#b91c1c;font-weight:700;text-align:center;padding:8px 0}
+  .esito{text-align:center;padding:12px 0}
+  .esito .big{font-size:42px;font-weight:800;margin:8px 0}
+  .ok{color:#15803d}.ko{color:#b45309}
+  .pie{text-align:center;color:#94a3b8;font-size:12px;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="w" id="app">
+  <div class="card"><p class="sub">Carico il test…</p></div>
+</div>
+
+<script>
+const API = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/quiz-api";
+const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+
+const app = document.getElementById("app");
+const token = new URLSearchParams(location.search).get("t");
+
+function esc(v){ return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function schermata(html){ app.innerHTML = html; window.scrollTo(0,0); }
+
+function messaggio(titolo, testo){
+  schermata('<div class="card"><h1>'+esc(titolo)+'</h1><p class="sub">'+esc(testo)+'</p></div>');
+}
+
+async function avvia(){
+  if(!token){
+    messaggio("Link incompleto","Apri il test dal link che ti è stato inviato: manca il codice personale.");
+    return;
+  }
+  let dati;
+  try{
+    const r = await fetch(API+"?t="+encodeURIComponent(token), {
+      headers:{ "apikey":ANON, "Authorization":"Bearer "+ANON }
+    });
+    dati = await r.json();
+  }catch(e){
+    messaggio("Connessione assente","Non riesco a caricare il test. Controlla la linea e riprova.");
+    return;
+  }
+  if(!dati || !dati.ok){
+    messaggio(dati && dati.gia_fatto ? "Test già completato" : "Test non disponibile",
+              (dati && dati.errore) ? dati.errore : "Riprova più tardi.");
+    return;
+  }
+  mostraDomande(dati);
+}
+
+function mostraDomande(dati){
+  const dom = dati.domande || [];
+  if(!dom.length){ messaggio("Test vuoto","Questo test non ha ancora domande."); return; }
+
+  let html = '<div class="card">'
+    + (dati.categoria ? '<span class="cat">'+esc(dati.categoria)+'</span>' : '')
+    + '<h1>'+esc(dati.titolo)+'</h1>'
+    + '<p class="sub">'+(dati.nome ? "Ciao "+esc(dati.nome)+", " : "")+dom.length+' domande, ci vogliono due minuti.</p>'
+    + '</div>'
+    + '<div class="avviso">Si risponde una volta sola. Prenditi il tempo che serve: non è un esame, serve a capire dove possiamo aiutarti.</div>';
+
+  dom.forEach(function(d, i){
+    const opz = Array.isArray(d.opzioni) ? d.opzioni : [];
+    html += '<div class="card"><div class="num">Domanda '+(i+1)+' di '+dom.length+'</div>'
+         +  '<p class="dom">'+esc(d.domanda)+'</p>';
+    opz.forEach(function(o, j){
+      html += '<label><input type="radio" name="d_'+esc(d.id)+'" value="'+esc(o)+'"><span>'+esc(o)+'</span></label>';
+    });
+    html += '</div>';
+  });
+
+  html += '<div id="msg" class="errore" style="display:none;"></div>'
+       +  '<button id="invia">Invia le risposte</button>'
+       +  '<div class="pie">Ristoflow</div>';
+
+  schermata(html);
+
+  document.getElementById("invia").onclick = async function(){
+    const btn = this;
+    const msg = document.getElementById("msg");
+    const risposte = {};
+    let mancanti = 0;
+    dom.forEach(function(d){
+      const sel = document.querySelector('input[name="d_'+d.id+'"]:checked');
+      if(sel) risposte[d.id] = sel.value; else mancanti++;
+    });
+    if(mancanti > 0){
+      msg.textContent = "Manca la risposta a "+mancanti+(mancanti===1?" domanda.":" domande.");
+      msg.style.display = "";
+      return;
+    }
+    msg.style.display = "none";
+    btn.disabled = true; btn.textContent = "Invio…";
+    try{
+      const r = await fetch(API, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "apikey":ANON, "Authorization":"Bearer "+ANON },
+        body: JSON.stringify({ token: token, risposte: risposte })
+      });
+      const out = await r.json();
+      if(out && out.ok) mostraEsito(out);
+      else{
+        btn.disabled = false; btn.textContent = "Invia le risposte";
+        msg.textContent = (out && out.errore) ? out.errore : "Non sono riuscito a registrare le risposte. Riprova.";
+        msg.style.display = "";
+      }
+    }catch(e){
+      btn.disabled = false; btn.textContent = "Invia le risposte";
+      msg.textContent = "Connessione assente. Riprova tra un attimo.";
+      msg.style.display = "";
+    }
+  };
+}
+
+function mostraEsito(out){
+  const buono = out.percentuale >= 70;
+  schermata('<div class="card esito">'
+    + '<h1>Risposte inviate</h1>'
+    + '<div class="big '+(buono?"ok":"ko")+'">'+out.percentuale+'%</div>'
+    + '<p class="sub">'+out.corrette+' risposte giuste su '+out.totali+'</p>'
+    + '<p class="sub" style="margin-top:14px;">'
+    + (buono ? "Bene così. Grazie del tempo."
+             : "Qualche punto da rivedere insieme: ne parliamo al prossimo turno, senza problemi.")
+    + '</p></div><div class="pie">Ristoflow</div>');
+}
+
+avvia();
+</script>
+</body>
+</html>
