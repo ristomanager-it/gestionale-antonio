@@ -67,7 +67,7 @@ export async function render(container) {
         <span>confronto con ${etichettaPeriodo(prec)}</span>
       </div>
 
-${cruscotto(ora, prima, fissi)}
+${sintesi(ora)}
 
       <div class="ad-sez">Aspettano una tua decisione</div>
       <div class="ad-dec">
@@ -281,6 +281,50 @@ export async function bloccoCruscotto(supabase, aziendaId, sedeId, range) {
 
 // L'arco mostra dove va l'incasso: lavoro, materia prima, fissi e cio' che resta.
 // La lancetta si ferma sul risultato, la tacca dorata sul punto di pareggio.
+// In home si mostra l'essenziale: quanto e entrato e l'andamento dei giorni.
+// Arco del margine, ripartizione dei costi, coperti e venduto stanno nel
+// Cruscotto, che si apre dal pulsante: in home erano troppa roba da leggere
+// con il telefono in mano durante il servizio.
+function sintesi(ora) {
+  const inc = Number(ora.incasso) || 0;
+  if (inc <= 0) {
+    return `<div class="cr-vuoto">Nessun incasso registrato in questo periodo.</div>`;
+  }
+  const gg = ora.giorni || [];
+  const maxG = Math.max(1, ...gg.map(g => g.incasso));
+
+  return `
+    <div class="cr-testa">
+      <span>Incasso</span><b>${euro(inc)}</b>
+      <i>IVA non scorporata</i>
+    </div>
+
+    ${gg.length ? `
+    <div class="cr-tit">Giorno per giorno <em>tocca per aprire</em></div>
+    <div class="cr-giorni">
+      ${gg.map(g => {
+        const cm = g.coperti ? g.incasso / g.coperti : 0;
+        return `
+        <details class="g">
+          <summary>
+            <span class="dd">${giornoBreve(g.data)}</span>
+            <span class="bar"><i style="width:${Math.max(2, (g.incasso / maxG) * 100).toFixed(1)}%"></i></span>
+            <b>${euro(g.incasso)}</b>
+            <span class="cop">${g.coperti || ""}</span>
+          </summary>
+          <div class="gd">
+            <div><span>Coperto medio</span><b>${cm ? euro(cm) : "—"}</b></div>
+            <div><span>Coperti</span><b>${g.coperti || "—"}</b></div>
+            <div><span>Incasso</span><b>${euro(g.incasso)}</b></div>
+          </div>
+        </details>`;
+      }).join("")}
+    </div>` : ""}
+  `;
+}
+
+// NON PIU' USATA IN HOME: il cruscotto completo vive in #/dashboard-dettaglio.
+// Resta qui perche' rimetterlo in home e' questione di una riga.
 function cruscotto(ora, prima, fissi) {
   const inc = Number(ora.incasso) || 0;
   const lav = Number(ora.costoLavoro) || 0;
