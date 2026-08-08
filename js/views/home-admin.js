@@ -181,21 +181,6 @@ async function kpi(supabase, aziendaId, sedeId, range) {
       });
       out.giorni = [...perGiorno.values()].sort((a, b) => a.data < b.data ? -1 : 1);
 
-      // venduto per piatto, coperti esclusi
-      const perPiatto = new Map();
-      vendite.forEach(r => {
-        if (eCoperto(r)) return;
-        const n = r.nome_prodotto || r.nome_articolo || "—";
-        const o = perPiatto.get(n) || { nome: n, pezzi: 0, incasso: 0, costo: 0 };
-        const q = Number(r.quantita) || 0;
-        o.pezzi += q;
-        o.incasso += Number(r.totale_incassato ?? r.totale_riga ?? 0);
-        o.costo += (fc.get(norm(r.nome_prodotto || r.nome_articolo)) || 0) * q;
-        perPiatto.set(n, o);
-      });
-      perPiatto.forEach(o => { o.margine = o.incasso - o.costo; });
-      out.venduto = [...perPiatto.values()].sort((a, b) => b.incasso - a.incasso).slice(0, 40);
-
       const { data: pvsAll } = await supabase.from("prodotti_vendita")
         .select("nome, sede_id, food_cost_manuale, ricette(costo_porzione)")
         .eq("azienda_id", aziendaId).limit(20000);
@@ -215,6 +200,21 @@ async function kpi(supabase, aziendaId, sedeId, range) {
         .select("sede_uuid, nome_norm, costo").eq("azienda_id", aziendaId);
       (ov || []).filter(o => cur == null || o.sede_uuid == null || String(o.sede_uuid) === cur)
         .forEach(o => { if (Number(o.costo) > 0 && !fc.has(o.nome_norm)) fc.set(o.nome_norm, Number(o.costo)); });
+
+      // venduto per piatto, coperti esclusi
+      const perPiatto = new Map();
+      vendite.forEach(r => {
+        if (eCoperto(r)) return;
+        const n = r.nome_prodotto || r.nome_articolo || "—";
+        const o = perPiatto.get(n) || { nome: n, pezzi: 0, incasso: 0, costo: 0 };
+        const q = Number(r.quantita) || 0;
+        o.pezzi += q;
+        o.incasso += Number(r.totale_incassato ?? r.totale_riga ?? 0);
+        o.costo += (fc.get(norm(r.nome_prodotto || r.nome_articolo)) || 0) * q;
+        perPiatto.set(n, o);
+      });
+      perPiatto.forEach(o => { o.margine = o.incasso - o.costo; });
+      out.venduto = [...perPiatto.values()].sort((a, b) => b.incasso - a.incasso).slice(0, 40);
 
       out.materiaPrima = vendite.reduce((s, r) => {
         const c = fc.get(norm(r.nome_prodotto || r.nome_articolo)) || 0;
