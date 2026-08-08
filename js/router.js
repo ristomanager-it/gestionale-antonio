@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260808-11";
+const APP_V = "20260808-12";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -1211,7 +1211,11 @@ async function ensureSedeContext(routeName) {
 
 async function doLogout() {
   try {
-    await supabase.auth.signOut();
+    // scope 'local': esce SOLO da questo dispositivo.
+    // Il default di signOut e' 'global' e revoca le sessioni dell'utente
+    // ovunque: chi usava lo stesso account su un altro computer si ritrovava
+    // buttato fuori e con ogni salvataggio in 401, senza capire perche'.
+    await supabase.auth.signOut({ scope: "local" });
   } catch (e) {
     console.error("Errore logout:", e);
   }
