@@ -217,19 +217,35 @@ export async function render(container) {
     const dipEmail = richiestaAttiva.dipendenti?.email;
     const dipNome = `${richiestaAttiva.dipendenti?.nome} ${richiestaAttiva.dipendenti?.cognome}`;
     if (dipEmail) {
-      await fetch(`${window.SUPABASE_URL}/functions/v1/send-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` },
-        body: JSON.stringify({
-          to: [dipEmail],
-          subject: nuovoStato === 'approvato' ? '✅ Richiesta approvato' : '❌ Richiesta rifiutato',
-          html: `
-            <h2>Ciao ${dipNome},</h2>
-            <p>La tua richiesta di <strong>${TIPI[richiestaAttiva.tipo]}</strong> per il <strong>${richiestaAttiva.data_inizio}</strong> è stata <strong>${nuovoStato === 'approvato' ? 'APPROVATA ✅' : 'RIFIUTATA ❌'}</strong>.</p>
-            ${noteAdmin ? `<p>Note: ${noteAdmin}</p>` : ''}
-          `
-        })
-      }).catch(() => {});
+      // La funzione si chiama Invia-email e vuole destinatario/oggetto/corpo_html:
+      // qui si chiamava "send-email" con to/subject/html, cioe' una funzione che
+      // non esiste. Tornava 404, il catch lo ingoiava e il dipendente non
+      // riceveva mai la risposta alla sua richiesta di ferie o permesso.
+      const esitoLabel = nuovoStato === 'approvato' ? 'approvata' : 'rifiutata';
+      try {
+        const rMail = await fetch(`${window.SUPABASE_URL}/functions/v1/Invia-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({
+            destinatario: dipEmail,
+            oggetto: `Richiesta ${esitoLabel}: ${TIPI[richiestaAttiva.tipo]} del ${richiestaAttiva.data_inizio}`,
+            corpo_html: `
+              <h2>Ciao ${dipNome},</h2>
+              <p>La tua richiesta di <strong>${TIPI[richiestaAttiva.tipo]}</strong> per il <strong>${richiestaAttiva.data_inizio}</strong> è stata <strong>${esitoLabel.toUpperCase()}</strong>.</p>
+              ${noteAdmin ? `<p>Note: ${noteAdmin}</p>` : ''}
+            `,
+            mittente_nome: window.state?.azienda?.nome || 'Ristoflow'
+          })
+        });
+        const esitoMail = await rMail.json().catch(() => null);
+        if (!rMail.ok || (esitoMail && esitoMail.success === false)) {
+          console.error('Email risposta richiesta non inviata:', esitoMail);
+          alert('Richiesta salvata, ma l\'email al dipendente non è partita: avvisalo tu.');
+        }
+      } catch (e) {
+        console.error('Email risposta richiesta non inviata:', e);
+        alert('Richiesta salvata, ma l\'email al dipendente non è partita: avvisalo tu.');
+      }
     }
 
     container.querySelector('#modal-risposta').style.display = 'none';
