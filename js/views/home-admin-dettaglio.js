@@ -122,20 +122,9 @@ export async function render(container) {
   updateHeader(azienda, sede);
   hideLegacyTopbar();
 
-  // il cruscotto arriva da home-admin.js: una sola versione, due schermi
-  setTimeout(async () => {
-    try {
-      const box = container.querySelector("#cruscotto-periodo");
-      if (!box || !azienda?.id) return;
-      const m = await import("./home-admin.js?v=" + (window.APP_V || "1"));
-      const supabase = window.supabaseClient || window.supabase;
-      box.innerHTML = await m.bloccoCruscotto(supabase, azienda.id, sede?.id, { da: _drillFrom, a: _drillTo });
-    } catch (e) { console.warn("cruscotto non caricato:", e); }
-  }, 0);
 
   container.innerHTML = `
   <div class="view home-admin">
-    <div id="cruscotto-periodo"></div>
     <div class="home-grid">
       <section class="card admin-kpi-card">
         <div class="admin-kpi-top">
