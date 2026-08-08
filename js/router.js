@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=39";
+import { initMenu } from "./menu.js?v=40";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260808-28";
+const APP_V = "20260808-29";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -148,6 +148,7 @@ const routes = {
 
   produzione: () => imp("./views/produzione.js"),
   "produzioni-storico": () => imp("./views/produzioni-storico.js"),
+  "briefing-servizio": () => imp("./views/briefing-servizio.js"),
   "produzioni-aperte": () => imp("./views/produzioni-aperte.js"),
   "registro-lotti": () => imp("./views/registro-lotti.js"),
   "produttivita-produzione": () => imp("./views/produttivita-produzione.js"),
@@ -655,6 +656,7 @@ function hasPermission(area) {
       "produzione",
       "produzioni-aperte",
       "produzioni-storico",
+      "briefing-servizio",
       "registro-lotti",
       "registro-messaggi",
       "recensioni",
