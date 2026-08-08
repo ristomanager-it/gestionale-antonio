@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:FatturaElettronica versione="FPR12" xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2">
+  <FatturaElettronicaHeader>
+    <DatiTrasmissione>
+      <IdTrasmittente>
+        <IdPaese>IT</IdPaese>
+        <IdCodice>04871230968</IdCodice>
+      </IdTrasmittente>
+      <ProgressivoInvio>RF2026A</ProgressivoInvio>
+      <FormatoTrasmissione>FPR12</FormatoTrasmissione>
+      <CodiceDestinatario>ABCDEF1</CodiceDestinatario>
+    </DatiTrasmissione>
+    <CedentePrestatore>
+      <DatiAnagrafici>
+        <IdFiscaleIVA>
+          <IdPaese>IT</IdPaese>
+          <IdCodice>04871230968</IdCodice>
+        </IdFiscaleIVA>
+        <Anagrafica>
+          <Denominazione>Alimentari Lombardi S.r.l.</Denominazione>
+        </Anagrafica>
+        <RegimeFiscale>RF01</RegimeFiscale>
+      </DatiAnagrafici>
+      <Sede>
+        <Indirizzo>Via dell Ortomercato 18</Indirizzo>
+        <CAP>20139</CAP>
+        <Comune>Milano</Comune>
+        <Provincia>MI</Provincia>
+        <Nazione>IT</Nazione>
+      </Sede>
+    </CedentePrestatore>
+    <CessionarioCommittente>
+      <DatiAnagrafici>
+        <IdFiscaleIVA>
+          <IdPaese>IT</IdPaese>
+          <IdCodice>12345670158</IdCodice>
+        </IdFiscaleIVA>
+        <Anagrafica>
+          <Denominazione>Ristorante Centro</Denominazione>
+        </Anagrafica>
+      </DatiAnagrafici>
+      <Sede>
+        <Indirizzo>Via Dante 12</Indirizzo>
+        <CAP>20121</CAP>
+        <Comune>Milano</Comune>
+        <Provincia>MI</Provincia>
+        <Nazione>IT</Nazione>
+      </Sede>
+    </CessionarioCommittente>
+  </FatturaElettronicaHeader>
+  <FatturaElettronicaBody>
+    <DatiGenerali>
+      <DatiGeneraliDocumento>
+        <TipoDocumento>TD01</TipoDocumento>
+        <Divisa>EUR</Divisa>
+        <Data>2026-08-06</Data>
+        <Numero>2026/3317</Numero>
+        <ImportoTotaleDocumento>2225.25</ImportoTotaleDocumento>
+      </DatiGeneraliDocumento>
+    </DatiGenerali>
+    <DatiBeniServizi>
+
+      <DettaglioLinee>
+        <NumeroLinea>1</NumeroLinea>
+        <Descrizione>Ns. Doc. DDT 8842 del 05/08/2026</Descrizione>
+        <PrezzoUnitario>0.00</PrezzoUnitario>
+        <PrezzoTotale>0.00</PrezzoTotale>
+        <AliquotaIVA>0.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DettaglioLinee>
+        <NumeroLinea>2</NumeroLinea>
+        <Descrizione>PROSCIUTTO CRUDO DISOSSATO SV KG</Descrizione>
+        <Quantita>4.20</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>21.50</PrezzoUnitario>
+        <PrezzoTotale>90.30</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>3</NumeroLinea>
+        <Descrizione>SALAME MILANO INTERO KG</Descrizione>
+        <Quantita>3.50</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>13.90</PrezzoUnitario>
+        <PrezzoTotale>48.65</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>4</NumeroLinea>
+        <Descrizione>COPPA STAGIONATA SV KG</Descrizione>
+        <Quantita>2.80</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>16.40</PrezzoUnitario>
+        <PrezzoTotale>45.92</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>5</NumeroLinea>
+        <Descrizione>PECORINO ROMANO DOP KG</Descrizione>
+        <Quantita>2.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>15.20</PrezzoUnitario>
+        <PrezzoTotale>30.40</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>6</NumeroLinea>
+        <Descrizione>PANE CASERECCIO PEZZATURA 1 KG</Descrizione>
+        <Quantita>15.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>3.60</PrezzoUnitario>
+        <PrezzoTotale>54.00</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DettaglioLinee>
+        <NumeroLinea>7</NumeroLinea>
+        <Descrizione>TAGLIATELLE ALL UOVO FRESCHE CF 500 GR</Descrizione>
+        <Quantita>20.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>5.80</PrezzoUnitario>
+        <PrezzoTotale>116.00</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>8</NumeroLinea>
+        <Descrizione>MACINATO DI BOVINO ADULTO KG</Descrizione>
+        <Quantita>12.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>9.80</PrezzoUnitario>
+        <PrezzoTotale>117.60</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>9</NumeroLinea>
+        <Descrizione>POMODORO PELATO LATTA 3 KG</Descrizione>
+        <Quantita>18.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>2.55</PrezzoUnitario>
+        <PrezzoTotale>45.90</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>10</NumeroLinea>
+        <Descrizione>SEDANO CAROTE CIPOLLE MISTO SOFFRITTO KG</Descrizione>
+        <Quantita>8.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>2.20</PrezzoUnitario>
+        <PrezzoTotale>17.60</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>11</NumeroLinea>
+        <Descrizione>GRANA PADANO DOP GRATTUGIATO KG</Descrizione>
+        <Quantita>5.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>11.90</PrezzoUnitario>
+        <PrezzoTotale>59.50</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DettaglioLinee>
+        <NumeroLinea>12</NumeroLinea>
+        <Descrizione>RISO CARNAROLI SUPERFINO CF 1 KG</Descrizione>
+        <Quantita>15.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>3.40</PrezzoUnitario>
+        <PrezzoTotale>51.00</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>13</NumeroLinea>
+        <Descrizione>FUNGHI PORCINI SURGELATI A CUBETTI KG</Descrizione>
+        <Quantita>6.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>14.50</PrezzoUnitario>
+        <PrezzoTotale>87.00</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>14</NumeroLinea>
+        <Descrizione>BURRO PANETTO 250 GR</Descrizione>
+        <Quantita>4.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>8.90</PrezzoUnitario>
+        <PrezzoTotale>35.60</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>15</NumeroLinea>
+        <Descrizione>BRODO VEGETALE GRANULARE BARATTOLO KG</Descrizione>
+        <Quantita>2.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>12.30</PrezzoUnitario>
+        <PrezzoTotale>24.60</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DettaglioLinee>
+        <NumeroLinea>16</NumeroLinea>
+        <Descrizione>CONTROFILETTO DI MANZO SCOTTONA KG</Descrizione>
+        <Quantita>14.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>24.90</PrezzoUnitario>
+        <PrezzoTotale>348.60</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>17</NumeroLinea>
+        <Descrizione>RUCOLA SELVATICA BUSTA 500 GR</Descrizione>
+        <Quantita>3.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>9.40</PrezzoUnitario>
+        <PrezzoTotale>28.20</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>18</NumeroLinea>
+        <Descrizione>OLIO EXTRAVERGINE DI OLIVA LT 5</Descrizione>
+        <Quantita>15.00</Quantita>
+        <UnitaMisura>LT</UnitaMisura>
+        <PrezzoUnitario>8.70</PrezzoUnitario>
+        <PrezzoTotale>130.50</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DettaglioLinee>
+        <NumeroLinea>19</NumeroLinea>
+        <Descrizione>MASCARPONE SECCHIELLO 1 KG</Descrizione>
+        <Quantita>10.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>7.90</PrezzoUnitario>
+        <PrezzoTotale>79.00</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>20</NumeroLinea>
+        <Descrizione>SAVOIARDI CF 400 GR</Descrizione>
+        <Quantita>6.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>6.20</PrezzoUnitario>
+        <PrezzoTotale>37.20</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>21</NumeroLinea>
+        <Descrizione>UOVA FRESCHE CAT A CF 30 PZ</Descrizione>
+        <Quantita>12.00</Quantita>
+        <UnitaMisura>CF</UnitaMisura>
+        <PrezzoUnitario>7.50</PrezzoUnitario>
+        <PrezzoTotale>90.00</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>22</NumeroLinea>
+        <Descrizione>CAFFE MISCELA BAR GRANI KG</Descrizione>
+        <Quantita>4.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>16.80</PrezzoUnitario>
+        <PrezzoTotale>67.20</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>23</NumeroLinea>
+        <Descrizione>CACAO AMARO IN POLVERE CF 1 KG</Descrizione>
+        <Quantita>1.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>11.40</PrezzoUnitario>
+        <PrezzoTotale>11.40</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>24</NumeroLinea>
+        <Descrizione>ZUCCHERO SEMOLATO CF 1 KG</Descrizione>
+        <Quantita>10.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>1.15</PrezzoUnitario>
+        <PrezzoTotale>11.50</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DettaglioLinee>
+        <NumeroLinea>25</NumeroLinea>
+        <Descrizione>SCONTO MERCE: GRANA PADANO DOP GRATTUGIATO KG</Descrizione>
+        <Quantita>1.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>0.00</PrezzoUnitario>
+        <PrezzoTotale>0.00</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DettaglioLinee>
+        <NumeroLinea>26</NumeroLinea>
+        <Descrizione>ACQUA MINERALE NATURALE BT 0,75 CF 12</Descrizione>
+        <Quantita>40.00</Quantita>
+        <UnitaMisura>CF</UnitaMisura>
+        <PrezzoUnitario>4.80</PrezzoUnitario>
+        <PrezzoTotale>192.00</PrezzoTotale>
+        <AliquotaIVA>22.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>27</NumeroLinea>
+        <Descrizione>VINO ROSSO DELLA CASA BT 0,75 LT</Descrizione>
+        <Quantita>48.00</Quantita>
+        <UnitaMisura>BT</UnitaMisura>
+        <PrezzoUnitario>3.05</PrezzoUnitario>
+        <PrezzoTotale>146.40</PrezzoTotale>
+        <AliquotaIVA>22.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DettaglioLinee>
+        <NumeroLinea>28</NumeroLinea>
+        <Descrizione>Contributo trasporto e imballi</Descrizione>
+        <Quantita>1.00</Quantita>
+        <UnitaMisura>PZ</UnitaMisura>
+        <PrezzoUnitario>18.00</PrezzoUnitario>
+        <PrezzoTotale>18.00</PrezzoTotale>
+        <AliquotaIVA>22.00</AliquotaIVA>
+      </DettaglioLinee>
+
+      <DatiRiepilogo>
+        <AliquotaIVA>10.00</AliquotaIVA>
+        <ImponibileImporto>1627.67</ImponibileImporto>
+        <Imposta>162.77</Imposta>
+        <EsigibilitaIVA>I</EsigibilitaIVA>
+      </DatiRiepilogo>
+      <DatiRiepilogo>
+        <AliquotaIVA>22.00</AliquotaIVA>
+        <ImponibileImporto>356.40</ImponibileImporto>
+        <Imposta>78.41</Imposta>
+        <EsigibilitaIVA>I</EsigibilitaIVA>
+      </DatiRiepilogo>
+    </DatiBeniServizi>
+    <DatiPagamento>
+      <CondizioniPagamento>TP02</CondizioniPagamento>
+      <DettaglioPagamento>
+        <ModalitaPagamento>MP05</ModalitaPagamento>
+        <DataScadenzaPagamento>2026-09-05</DataScadenzaPagamento>
+        <ImportoPagamento>2225.25</ImportoPagamento>
+      </DettaglioPagamento>
+    </DatiPagamento>
+  </FatturaElettronicaBody>
+</p:FatturaElettronica>
