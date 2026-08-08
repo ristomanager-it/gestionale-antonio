@@ -277,6 +277,17 @@ async function fissiPeriodo(supabase, aziendaId, sedeId, range) {
 
 /* ── cruscotto ─────────────────────────────────────────────────────────── */
 
+// Usata anche da #/dashboard-dettaglio (il pulsante "Andamento"),
+// cosi' il cruscotto e' identico nei due schermi e si mantiene in un posto solo.
+export async function bloccoCruscotto(supabase, aziendaId, sedeId, range) {
+  const [ora, fissi] = await Promise.all([
+    kpi(supabase, aziendaId, sedeId, range),
+    fissiPeriodo(supabase, aziendaId, sedeId, range),
+  ]);
+  return cruscotto(ora, null, fissi) + stile();
+}
+
+
 // L'arco mostra dove va l'incasso: lavoro, materia prima, fissi e cio' che resta.
 // La lancetta si ferma sul risultato, la tacca dorata sul punto di pareggio.
 function cruscotto(ora, prima, fissi) {
