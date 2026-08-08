@@ -620,7 +620,7 @@ async function listaDecisioni(supabase, aziendaId) {
     const basse = (data || []).filter(r => Number(r.voto) <= 3);
     if ((data || []).length) out.push({
       livello: basse.length ? "rosso" : "giallo",
-      link: "#/recensioni",
+      link: "#/recensioni-ricevute",
       titolo: basse.length
         ? basse.length + (basse.length === 1 ? " recensione critica da gestire" : " recensioni critiche da gestire")
         : data.length + (data.length === 1 ? " recensione senza risposta" : " recensioni senza risposta"),
