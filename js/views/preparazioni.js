@@ -3058,15 +3058,23 @@ async function rfMakeQrDataUrl(text, sizePx = 220) {
       correctLevel: QRCode.CorrectLevel.M
     });
 
-    // allow render
-    await new Promise(r => setTimeout(r, 0));
-
-    const img = host.querySelector("img");
-    const canvas = host.querySelector("canvas");
-
+    // qrcodejs disegna in modo asincrono: con un'attesa di 0 ms su iPhone il
+    // canvas e' ancora vuoto, la funzione tornava null e l'etichetta usciva
+    // senza QR. Aspetto che ci sia davvero, fino a un secondo.
     let dataUrl = null;
-    if (img?.src) dataUrl = img.src;
-    else if (canvas?.toDataURL) dataUrl = canvas.toDataURL("image/png");
+    for (let tentativo = 0; tentativo < 20 && !dataUrl; tentativo++) {
+      await new Promise(r => setTimeout(r, 50));
+      const img = host.querySelector("img");
+      const canvas = host.querySelector("canvas");
+      if (img?.src && img.src.indexOf("data:") === 0) dataUrl = img.src;
+      else if (canvas?.toDataURL) {
+        try {
+          const prova = canvas.toDataURL("image/png");
+          // un canvas vuoto produce una stringa cortissima
+          if (prova && prova.length > 500) dataUrl = prova;
+        } catch (_e) { /* riprovo */ }
+      }
+    }
 
     try { qr.clear(); } catch {}
     document.body.removeChild(host);
@@ -3686,6 +3694,10 @@ async function resumeDaLotto(lottoUuid) {
   // Prefill data / peso / note
   const dataEl = document.getElementById("prod-data")
   if (dataEl && lotto.data_produzione) dataEl.value = lotto.data_produzione
+  // la scadenza non veniva ripristinata: riprendendo un lotto le etichette
+  // uscivano con "Scad:" vuoto anche se a database la data c'era
+  const scadRipEl = document.getElementById("prod-scadenza")
+  if (scadRipEl && lotto.data_scadenza) scadRipEl.value = lotto.data_scadenza
   const pesoEl = document.getElementById("prod-peso-reale")
   if (pesoEl && lotto.quantita_output) pesoEl.value = lotto.quantita_output
   const noteEl = document.getElementById("prod-note-lotto")
