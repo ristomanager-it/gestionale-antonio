@@ -251,7 +251,7 @@ export async function render(container) {
           <div class="r">
             <label>Quante persone sarete</label>
             <div class="riga2">
-              <input id="pv-invitati" type="number" min="1" value="${invitati || 1}">
+              <input id="pv-invitati" type="number" min="1" value="${invitati || 1}" data-attuali="${invitati || 1}">
               <button class="pv-btn piccolo" data-mod="invitati">Aggiorna</button>
             </div>
             <small>Fino a ${d.variazione_max} persone in più o in meno si aggiorna da solo.</small>
@@ -409,7 +409,33 @@ export async function render(container) {
 
   document.getElementById("pv-conferma")?.addEventListener("click", async (e) => {
     e.preventDefault();
-    if (!confirm("Confermate la proposta così com'è?")) return;
+
+    // Il campo invitati ha un suo pulsante: se il cliente scrive il numero
+    // nuovo e poi preme direttamente Conferma, quel numero veniva buttato via
+    // senza dire niente e in cucina arrivava il conteggio vecchio.
+    const campoInv = document.getElementById("pv-invitati");
+    const nuovoInv = campoInv ? parseInt(campoInv.value, 10) : NaN;
+    const attualiInv = campoInv ? parseInt(campoInv.dataset.attuali || campoInv.defaultValue || "", 10) : NaN;
+
+    if (Number.isFinite(nuovoInv) && Number.isFinite(attualiInv) && nuovoInv !== attualiInv) {
+      if (!confirm("Avete scritto " + nuovoInv + " invitati invece di " + attualiInv +
+                   ".\n\nConfermo la proposta con " + nuovoInv + " invitati?")) return;
+      const { data: modificato } = await supabase.rpc("preventivo_richiesta", {
+        p_token: token, p_tipo: "invitati", p_valore: String(nuovoInv), p_nota: null,
+      });
+      if (modificato && modificato.ok === false) {
+        alert(modificato.errore || "Non sono riuscito ad aggiornare il numero di invitati.");
+        return;
+      }
+      if (modificato && modificato.applicata === false) {
+        alert(modificato.messaggio ||
+          "Il cambio di invitati va valutato da noi: vi rispondiamo prima di chiudere la proposta.");
+        return;
+      }
+    } else if (!confirm("Confermate la proposta così com'è?")) {
+      return;
+    }
+
     const { data } = await supabase.rpc("preventivo_conferma", { p_token: token });
     if (data?.ok) render(container);
     else alert(data?.errore || "Non è andata, riprovate.");
