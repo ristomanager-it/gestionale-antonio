@@ -67,6 +67,14 @@ async function loadPreventivi() {
       data_evento,
       totale,
       stato,
+      n_invitati,
+      cliente_nome,
+      cliente_cognome,
+      cliente_telefono,
+      scadenza_il,
+      confermato_il,
+      costo_stimato,
+      costo_lavoro,
       cliente_id (
         nome,
         cognome
@@ -126,26 +134,55 @@ function renderPreventiviList() {
     return;
   }
 
+  const oggi = new Date().toISOString().slice(0, 10);
+
   const html = filteredPreventivi
     .map((p) => {
-      const clienteNome = p.cliente_id
-        ? `${p.cliente_id.nome || ''} ${p.cliente_id.cognome || ''}`.trim()
-        : 'Senza cliente';
+      // il nome sta quasi sempre sul preventivo, non nell'anagrafica collegata:
+      // prima si leggeva solo cliente_id e usciva "Senza cliente"
+      const clienteNome = [p.cliente_nome, p.cliente_cognome].filter(Boolean).join(" ")
+        || (p.cliente_id ? `${p.cliente_id.nome || ""} ${p.cliente_id.cognome || ""}`.trim() : "")
+        || "Cliente da completare";
+
       const dataEvento = p.data_evento
-        ? new Date(p.data_evento).toLocaleDateString()
-        : '—';
-      const totale = Number(p.totale || 0).toFixed(2);
+        ? new Date(p.data_evento + "T12:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "long" })
+        : "data da fissare";
+
+      const totale = Number(p.totale || 0);
+      const costi = Number(p.costo_stimato || 0) + Number(p.costo_lavoro || 0);
+      const margine = totale - costi;
+      const marginePerc = totale > 0 ? Math.round((margine / totale) * 100) : null;
+
+      const scaduto = p.stato === "inviato" && p.scadenza_il && String(p.scadenza_il).slice(0, 10) < oggi;
+      const colore = p.confermato_il ? "#16a34a" : (scaduto ? "#dc2626" : (p.stato === "inviato" ? "#f59e0b" : "#94a3b8"));
+      const statoTxt = p.confermato_il ? "confermato" : (scaduto ? "scaduto" : (p.stato || "bozza"));
 
       return `
-        <div class="preventivo-list-item" data-id="${p.id}">
-          <div class="preventivo-list-main">
-            <span class="preventivo-data">${dataEvento}</span>
-            <span class="preventivo-titolo">${p.titolo_evento || '(Senza tipologia)'}</span>
-          </div>
-          <div class="preventivo-list-sub">
-            <span class="preventivo-cliente">${clienteNome}</span>
-            <span class="preventivo-totale">€ ${totale}</span>
-            <span class="preventivo-stato badge stato-${p.stato}">${p.stato}</span>
+        <div class="preventivo-list-item" data-id="${p.id}"
+          style="background:#fff;border:1px solid #e5e7eb;border-left:5px solid ${colore};
+                 border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+            <div style="min-width:0;flex:1;">
+              <div style="font-weight:800;font-size:16px;line-height:1.3;">
+                ${p.titolo_evento || "(evento senza nome)"}
+              </div>
+              <div style="color:#64748b;font-size:14px;margin-top:3px;">
+                ${dataEvento}${p.n_invitati ? " · " + p.n_invitati + " invitati" : ""}
+              </div>
+              <div style="color:#64748b;font-size:14px;margin-top:2px;">
+                ${clienteNome}${p.cliente_telefono ? " · " + p.cliente_telefono : ""}
+              </div>
+              <div style="margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;">
+                <span style="font-size:19px;font-weight:800;">€ ${totale.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                ${marginePerc !== null && costi > 0
+                  ? `<span style="font-size:13px;color:${margine > 0 ? "#166534" : "#b91c1c"};font-weight:700;">
+                       margine ${marginePerc}% · € ${margine.toLocaleString("it-IT", { maximumFractionDigits: 0 })}</span>`
+                  : `<span style="font-size:13px;color:#b45309;">costi non stimati</span>`}
+                <span style="background:${colore}1a;color:${colore};padding:2px 10px;border-radius:999px;
+                             font-size:12px;font-weight:700;">${statoTxt}</span>
+              </div>
+            </div>
+            <button class="app-button small" data-apri="${p.id}" style="flex:none;">Apri</button>
           </div>
         </div>
       `;
@@ -154,13 +191,15 @@ function renderPreventiviList() {
 
   preventiviListContainer.innerHTML = html;
 
+  const apri = (id) => { window.location.hash = '#/creaPreventivo?id=' + id; };
+
+  preventiviListContainer.querySelectorAll('[data-apri]').forEach((b) => {
+    b.addEventListener('click', (e) => { e.stopPropagation(); apri(Number(b.dataset.apri)); });
+  });
+
   preventiviListContainer.querySelectorAll('.preventivo-list-item').forEach((el) => {
     el.style.cursor = 'pointer';
-    el.addEventListener('click', () => {
-      const id = Number(el.getAttribute('data-id'));
-      // si apre la scheda vera, non la scheda di sola lettura
-      window.location.hash = '#/creaPreventivo?id=' + id;
-    });
+    el.addEventListener('click', () => apri(Number(el.getAttribute('data-id'))));
   });
 }
 
