@@ -26,11 +26,12 @@ export async function render(container) {
   const per = intervallo(periodo, oggi);
   const prec = intervalloPrecedente(periodo, oggi);
 
-  const [ora, prima, decisioni, comandamenti] = await Promise.all([
+  const [ora, prima, decisioni, comandamenti, fissi] = await Promise.all([
     kpi(supabase, azienda.id, sede?.id, per),
     kpi(supabase, azienda.id, sede?.id, prec),
     listaDecisioni(supabase, azienda.id),
     listaComandamenti(supabase, azienda.id),
+    fissiPeriodo(supabase, azienda.id, sede?.id, per),
   ]);
 
   const com = comandamenti.length
@@ -66,18 +67,7 @@ export async function render(container) {
         <span>confronto con ${etichettaPeriodo(prec)}</span>
       </div>
 
-      <div class="ad-num">
-        ${riga("Incassato", euro(ora.incasso), scost(ora.incasso, prima.incasso, "su"), null)}
-        ${riga("Food cost", fcOra == null ? "—" : perc(fcOra), scostPunti(fcOra, fcPrima), null)}
-        ${riga("Costo del lavoro", euro(ora.costoLavoro),
-               scost(ora.costoLavoro, prima.costoLavoro, "giu"),
-               lavPerc == null ? null : perc(lavPerc) + " sull'incassato")}
-      </div>
-
-      <div class="ad-legenda">
-        Le variazioni sono rispetto a ${etichettaPeriodo(prec)}. Il food cost si confronta
-        in punti percentuali, non in percentuale.
-      </div>
+${cruscotto(ora, prima, fissi)}
 
       <div class="ad-sez">Aspettano una tua decisione</div>
       <div class="ad-dec">
@@ -110,6 +100,18 @@ export async function render(container) {
       <div class="ad-pie">${esc(azienda?.nome || "")}</div>
     </div>
     ${stile()}`;
+
+  container.querySelectorAll(".cr-ordina button").forEach(b => {
+    b.onclick = () => {
+      const lista = container.querySelector("#cr-lista");
+      if (!lista) return;
+      const campo = b.dataset.ord === "pezzi" ? "pezzi" : "incasso";
+      container.querySelectorAll(".cr-ordina button").forEach(x => x.classList.toggle("on", x === b));
+      [...lista.children]
+        .sort((a, z) => Number(z.dataset[campo]) - Number(a.dataset[campo]))
+        .forEach(n => lista.appendChild(n));
+    };
+  });
 
   import("../components/notifiche-tab.js?v=" + (window.APP_V || "1"))
     .then(m => m.initNotificheTab())
@@ -159,13 +161,13 @@ export async function render(container) {
 // I numeri si calcolano dal venduto, non dalla funzione dashboard-kpi:
 // e' la stessa logica della dashboard completa, cosi' i due schermi coincidono.
 async function kpi(supabase, aziendaId, sedeId, range) {
-  const out = { incasso: 0, materiaPrima: 0, costoLavoro: 0 };
+  const out = { incasso: 0, materiaPrima: 0, costoLavoro: 0, coperti: 0, giorni: [], venduto: [] };
   const norm = (x) => String(x == null ? "" : x).trim().toLowerCase();
 
   try {
     // ── incasso e materia prima, dal venduto giornaliero ──
     let vq = supabase.from("vendite_giornaliere")
-      .select("nome_prodotto, nome_articolo, quantita, totale_incassato, totale_riga")
+      .select("data_vendita, nome_prodotto, nome_articolo, quantita, totale_incassato, totale_riga")
       .eq("azienda_id", aziendaId)
       .gte("data_vendita", range.da).lte("data_vendita", range.a).limit(50000);
     if (sedeId != null) vq = vq.eq("sede_uuid", sedeId);
@@ -173,6 +175,35 @@ async function kpi(supabase, aziendaId, sedeId, range) {
 
     if (vendite && vendite.length) {
       out.incasso = vendite.reduce((s, r) => s + Number(r.totale_incassato ?? r.totale_riga ?? 0), 0);
+
+      // I coperti si battono in cassa come articolo: sono la fonte piu' affidabile
+      // che abbiamo, molto piu' della tabella coperti_giornalieri che nessuno compila.
+      const eCoperto = (r) => norm(r.nome_prodotto || r.nome_articolo).startsWith("coperto");
+      out.coperti = vendite.filter(eCoperto).reduce((s, r) => s + (Number(r.quantita) || 0), 0);
+
+      // giorno per giorno
+      const perGiorno = new Map();
+      vendite.forEach(r => {
+        const g = r.data_vendita;
+        if (!g) return;
+        const o = perGiorno.get(g) || { data: g, incasso: 0, coperti: 0 };
+        o.incasso += Number(r.totale_incassato ?? r.totale_riga ?? 0);
+        if (eCoperto(r)) o.coperti += Number(r.quantita) || 0;
+        perGiorno.set(g, o);
+      });
+      out.giorni = [...perGiorno.values()].sort((a, b) => a.data < b.data ? -1 : 1);
+
+      // venduto per piatto, coperti esclusi
+      const perPiatto = new Map();
+      vendite.forEach(r => {
+        if (eCoperto(r)) return;
+        const n = r.nome_prodotto || r.nome_articolo || "—";
+        const o = perPiatto.get(n) || { nome: n, pezzi: 0, incasso: 0 };
+        o.pezzi += Number(r.quantita) || 0;
+        o.incasso += Number(r.totale_incassato ?? r.totale_riga ?? 0);
+        perPiatto.set(n, o);
+      });
+      out.venduto = [...perPiatto.values()].sort((a, b) => b.incasso - a.incasso).slice(0, 40);
 
       const { data: pvsAll } = await supabase.from("prodotti_vendita")
         .select("nome, sede_id, food_cost_manuale, ricette(costo_porzione)")
@@ -223,6 +254,178 @@ async function kpi(supabase, aziendaId, sedeId, range) {
   } catch (e) { console.warn("kpi lavoro:", e); }
 
   return out;
+}
+
+// Costi fissi: in tabella stanno come importo annuo, qui servono a giornata.
+// Attenzione: costi_fissi e' una tabella vecchia, la sede si filtra con sede_uuid.
+async function fissiPeriodo(supabase, aziendaId, sedeId, range) {
+  try {
+    let q = supabase.from("costi_fissi")
+      .select("importo_annuo, sede_uuid, attivo, anno_riferimento")
+      .eq("azienda_id", aziendaId).eq("attivo", true);
+    const { data } = await q;
+    if (!data || !data.length) return { giorno: 0, periodo: 0 };
+    const righe = sedeId == null ? data
+      : data.filter(r => r.sede_uuid == null || String(r.sede_uuid) === String(sedeId));
+    const annuo = righe.reduce((s, r) => s + (Number(r.importo_annuo) || 0), 0);
+    const giorno = annuo / 365;
+    const gg = Math.max(1, Math.round((new Date(range.a) - new Date(range.da)) / 86400000) + 1);
+    return { giorno, periodo: giorno * gg, giorni: gg };
+  } catch (e) { console.warn("costi fissi:", e); return { giorno: 0, periodo: 0 }; }
+}
+
+
+/* ── cruscotto ─────────────────────────────────────────────────────────── */
+
+// L'arco mostra dove va l'incasso: lavoro, materia prima, fissi e cio' che resta.
+// La lancetta si ferma sul risultato, la tacca dorata sul punto di pareggio.
+function cruscotto(ora, prima, fissi) {
+  const inc = Number(ora.incasso) || 0;
+  const lav = Number(ora.costoLavoro) || 0;
+  const foo = Number(ora.materiaPrima) || 0;
+  const fis = Number(fissi.periodo) || 0;
+  const costi = lav + foo + fis;
+  const margine = inc - costi;
+
+  if (inc <= 0) {
+    return `<div class="cr-vuoto">Nessun incasso registrato in questo periodo.</div>`;
+  }
+
+  const pLav = (lav / inc) * 100, pFoo = (foo / inc) * 100;
+  const pFis = (fis / inc) * 100, pMar = (margine / inc) * 100;
+  const R = 118, C = Math.PI * R;
+  const cum = (p) => Math.max(0, Math.min(100, p)) / 100 * C;
+  const d1 = cum(pLav), d2 = cum(pLav + pFoo), d3 = cum(pLav + pFoo + pFis);
+
+  const frazioneCosti = Math.max(0, Math.min(1, costi / inc));
+  const punto = (frazione, raggio) => {
+    const a = Math.PI * Math.max(0, Math.min(1, frazione));
+    return { x: 150 - raggio * Math.cos(a), y: 150 - raggio * Math.sin(a) };
+  };
+  // lancetta a meta' del margine: e' li' che sta il risultato del periodo
+  const pl = punto(frazioneCosti + (1 - frazioneCosti) / 2, 88);
+  const t1 = punto(frazioneCosti, 108), t2 = punto(frazioneCosti, 130);
+
+  const coperti = Math.round(Number(ora.coperti) || 0);
+  const medio = coperti ? inc / coperti : 0;
+  const copPareggio = medio > 0 ? Math.ceil(costi / medio) : 0;
+  const gg = ora.giorni || [];
+  const maxG = Math.max(1, ...gg.map(g => g.incasso));
+  const migliore = Math.max(0, ...gg.map(g => g.coperti));
+  const mediaG = gg.length ? Math.round(coperti / gg.length) : 0;
+
+  const vend = ora.venduto || [];
+  const maxV = Math.max(1, ...vend.map(v => v.incasso));
+
+  return `
+    <div class="cr-arco">
+      <svg viewBox="0 0 300 168" width="100%">
+        <defs>
+          <linearGradient id="gLav" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#f2a09a"/><stop offset="100%" stop-color="#cf3f36"/></linearGradient>
+          <linearGradient id="gFoo" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#f3bd8a"/><stop offset="100%" stop-color="#d97a25"/></linearGradient>
+          <linearGradient id="gFis" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#ecd98c"/><stop offset="100%" stop-color="#c9a81f"/></linearGradient>
+          <linearGradient id="gMar" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#8ed3b0"/><stop offset="100%" stop-color="#1c8a56"/></linearGradient>
+        </defs>
+        <path d="M32 150 A118 118 0 0 1 268 150" fill="none" stroke="#f1f3f5" stroke-width="19" stroke-linecap="round"/>
+        <path d="M32 150 A118 118 0 0 1 268 150" fill="none" stroke="url(#gMar)" stroke-width="19" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)} ${C.toFixed(1)}"/>
+        <path d="M32 150 A118 118 0 0 1 268 150" fill="none" stroke="url(#gFis)" stroke-width="19" stroke-dasharray="${d3.toFixed(1)} ${C.toFixed(1)}"/>
+        <path d="M32 150 A118 118 0 0 1 268 150" fill="none" stroke="url(#gFoo)" stroke-width="19" stroke-dasharray="${d2.toFixed(1)} ${C.toFixed(1)}"/>
+        <path d="M32 150 A118 118 0 0 1 268 150" fill="none" stroke="url(#gLav)" stroke-width="19" stroke-linecap="round" stroke-dasharray="${d1.toFixed(1)} ${C.toFixed(1)}"/>
+        <line x1="${t1.x.toFixed(1)}" y1="${t1.y.toFixed(1)}" x2="${t2.x.toFixed(1)}" y2="${t2.y.toFixed(1)}" stroke="#b98a3e" stroke-width="3" stroke-linecap="round"/>
+        <line x1="150" y1="150" x2="${pl.x.toFixed(1)}" y2="${pl.y.toFixed(1)}" stroke="#132029" stroke-width="4.5" stroke-linecap="round"/>
+        <circle cx="150" cy="150" r="12" fill="#132029"/><circle cx="150" cy="150" r="4.5" fill="#fff"/>
+      </svg>
+    </div>
+
+    <div class="cr-esiti">
+      <div class="e"><span>Margine</span><b class="${margine >= 0 ? "su" : "giu"}">${euro(margine)}</b>
+        <i>${perc(pMar)} dell'incasso</i></div>
+      <div class="sep"></div>
+      <div class="e"><span>Pareggio</span><b class="pari">${euro(costi)}</b>
+        <i>incassato ${euro(inc)}</i></div>
+    </div>
+
+    <div class="cr-tit">Dove va l'incasso</div>
+    <div class="cr-barra">
+      <i style="width:${Math.max(0,pLav).toFixed(1)}%;background:linear-gradient(90deg,#f2a09a,#cf3f36)"></i>
+      <i style="width:${Math.max(0,pFoo).toFixed(1)}%;background:linear-gradient(90deg,#f3bd8a,#d97a25)"></i>
+      <i style="width:${Math.max(0,pFis).toFixed(1)}%;background:linear-gradient(90deg,#ecd98c,#c9a81f)"></i>
+      <i style="width:${Math.max(0,pMar).toFixed(1)}%;background:linear-gradient(90deg,#8ed3b0,#1c8a56)"></i>
+    </div>
+    <div class="cr-chiavi">
+      <span><s style="background:linear-gradient(135deg,#f2a09a,#cf3f36)"></s>Lavoro <b>${perc(pLav)}</b></span>
+      <span><s style="background:linear-gradient(135deg,#f3bd8a,#d97a25)"></s>Food cost <b>${perc(pFoo)}</b></span>
+      <span><s style="background:linear-gradient(135deg,#ecd98c,#c9a81f)"></s>Fissi <b>${perc(pFis)}</b></span>
+      <span><s style="background:linear-gradient(135deg,#8ed3b0,#1c8a56)"></s>Margine <b>${perc(pMar)}</b></span>
+    </div>
+
+    ${coperti ? `
+    <div class="cr-cop">
+      <div class="t">
+        <div><span>Coperti</span><b>${coperti}</b></div>
+        <div class="d">${copPareggio ? `ne servivano <b>${copPareggio}</b><br>${coperti - copPareggio >= 0
+          ? (coperti - copPareggio) + " in più del pareggio"
+          : Math.abs(coperti - copPareggio) + " sotto il pareggio"}` : ""}</div>
+      </div>
+      <div class="pista">
+        <div class="fatto" style="width:${copPareggio ? Math.min(100, (coperti / Math.max(coperti, copPareggio)) * 100).toFixed(1) : 0}%"></div>
+        ${copPareggio ? `<div class="tacca" style="left:${Math.min(99, (copPareggio / Math.max(coperti, copPareggio)) * 100).toFixed(1)}%"></div>` : ""}
+      </div>
+      <div class="pie">
+        <div>Coperto medio<b>${euro(medio)}</b></div>
+        <div style="text-align:center">Media al giorno<b>${mediaG}</b></div>
+        <div style="text-align:right">Giorno migliore<b>${migliore}</b></div>
+      </div>
+    </div>` : ""}
+
+    ${gg.length ? `
+    <div class="cr-tit">Giorno per giorno <em>tocca per aprire</em></div>
+    <div class="cr-giorni">
+      ${gg.map(g => {
+        const cm = g.coperti ? g.incasso / g.coperti : 0;
+        return `<details class="g">
+          <summary>
+            <span class="dt">${giornoBreve(g.data)}</span>
+            <span class="bar"><i style="width:${((g.incasso / maxG) * 100).toFixed(0)}%"></i></span>
+            <span class="vl">${euro(g.incasso)}</span>
+            <span class="cp">${g.coperti || "—"}</span>
+          </summary>
+          <div class="dett">
+            <div><span>Coperto medio</span><b>${cm ? euro(cm) : "—"}</b></div>
+            <div><span>Coperti</span><b>${g.coperti || "—"}</b></div>
+            <div><span>Incasso</span><b>${euro(g.incasso)}</b></div>
+            <a href="#/venduto">Vedi il venduto del giorno ›</a>
+          </div>
+        </details>`;
+      }).join("")}
+    </div>` : ""}
+
+    ${vend.length ? `
+    <div class="cr-tit">Venduto del periodo</div>
+    <div class="cr-ordina">
+      <span>Ordina per</span>
+      <button data-ord="pezzi">Quantità</button>
+      <button data-ord="incasso" class="on">Incasso</button>
+    </div>
+    <div class="cr-intest"><span>Piatto</span><span>Nr</span><span>Venduto</span></div>
+    <div class="cr-lista" id="cr-lista">
+      ${vend.map(v => rigaVenduto(v, maxV)).join("")}
+    </div>` : ""}
+  `;
+}
+
+function rigaVenduto(v, maxV) {
+  return `<a class="v" href="#/menu-intelligence" data-pezzi="${v.pezzi}" data-incasso="${v.incasso}">
+    <span class="nm">${esc(v.nome)}</span>
+    <span class="qt">${Math.round(v.pezzi)}</span>
+    <span class="im">${euro(v.incasso)}</span><b>›</b>
+  </a>`;
+}
+
+function giornoBreve(iso) {
+  const gg = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
+  const d = new Date(iso + "T12:00:00");
+  return gg[d.getDay()] + " " + d.getDate();
 }
 
 /* ── cose che aspettano te ─────────────────────────────────────────────── */
@@ -389,6 +592,71 @@ function esc(s) {
 
 function stile() {
   return `<style>
+  .cr-vuoto{margin:14px 16px;padding:22px;text-align:center;color:#8a94a2;background:#faf9f7;
+    border:1px solid #e8ecf0;border-radius:14px;font-size:13.5px}
+  .cr-arco{padding:6px 16px 0;text-align:center}
+  .cr-arco svg{max-width:330px;width:100%}
+  .cr-esiti{display:flex;margin:2px 16px 0;background:#faf9f7;border:1px solid #e8ecf0;
+    border-radius:14px;padding:14px 6px}
+  .cr-esiti .e{flex:1;text-align:center}
+  .cr-esiti .sep{width:1px;background:#e8ecf0}
+  .cr-esiti span{display:block;font-size:9.5px;letter-spacing:2.2px;color:#8a94a2;text-transform:uppercase}
+  .cr-esiti b{display:block;font-size:24px;font-weight:700;margin-top:3px;letter-spacing:-.5px}
+  .cr-esiti b.su{color:#2fa36b} .cr-esiti b.giu{color:#e05d55} .cr-esiti b.pari{color:#b98a3e}
+  .cr-esiti i{display:block;font-style:normal;font-size:11.5px;color:#8a94a2;margin-top:4px}
+  .cr-tit{padding:18px 16px 0;font-size:9.5px;letter-spacing:2px;color:#8a94a2;text-transform:uppercase;font-weight:700}
+  .cr-tit em{font-style:normal;color:#b6c1cb;letter-spacing:.6px;margin-left:6px;font-size:9px;font-weight:400}
+  .cr-barra{display:flex;height:12px;border-radius:999px;overflow:hidden;margin:10px 16px 0;background:#f1f3f5}
+  .cr-barra i{display:block;height:100%}
+  .cr-chiavi{display:flex;flex-wrap:wrap;gap:6px 14px;padding:11px 16px 0}
+  .cr-chiavi span{display:flex;align-items:center;gap:6px;font-size:12px;color:#8a94a2}
+  .cr-chiavi s{width:9px;height:9px;border-radius:3px;display:block;text-decoration:none}
+  .cr-chiavi b{color:#132029;font-weight:700}
+  .cr-cop{margin:16px 16px 0;background:#faf9f7;border:1px solid #e8ecf0;border-radius:14px;padding:16px}
+  .cr-cop .t{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:13px}
+  .cr-cop .t span{font-size:9.5px;letter-spacing:2.2px;color:#8a94a2;text-transform:uppercase}
+  .cr-cop .t b{display:block;font-size:26px;font-weight:700}
+  .cr-cop .d{font-size:11.5px;color:#8a94a2;text-align:right;line-height:1.5}
+  .cr-cop .d b{color:#b98a3e;font-size:inherit;display:inline}
+  .cr-cop .pista{position:relative;height:9px;background:#eceae5;border-radius:999px}
+  .cr-cop .fatto{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#8fd0ae,#2fa36b)}
+  .cr-cop .tacca{position:absolute;top:-6px;bottom:-6px;width:2px;background:#b98a3e}
+  .cr-cop .pie{display:flex;justify-content:space-between;margin-top:14px;font-size:11.5px;color:#8a94a2}
+  .cr-cop .pie b{display:block;color:#132029;font-size:15px;margin-top:2px}
+  .cr-giorni{margin:8px 16px 0}
+  .cr-giorni .g{border-bottom:1px solid #eef1f4}
+  .cr-giorni .g:last-child{border-bottom:none}
+  .cr-giorni summary{display:flex;align-items:center;gap:10px;padding:11px 0;cursor:pointer;list-style:none}
+  .cr-giorni summary::-webkit-details-marker{display:none}
+  .cr-giorni .dt{font-size:12px;color:#8a94a2;width:46px}
+  .cr-giorni .bar{flex:1;height:6px;background:#f1f3f5;border-radius:999px;overflow:hidden}
+  .cr-giorni .bar i{display:block;height:100%;background:linear-gradient(90deg,#9dc4d8,#3f7f9e)}
+  .cr-giorni .vl{font-size:12px;font-weight:700;width:68px;text-align:right}
+  .cr-giorni .cp{font-size:11px;color:#8a94a2;width:32px;text-align:right}
+  .cr-giorni .dett{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:2px 0 14px}
+  .cr-giorni .dett div{background:#faf9f7;border:1px solid #e8ecf0;border-radius:10px;padding:9px 6px;text-align:center}
+  .cr-giorni .dett span{display:block;font-size:10px;color:#8a94a2}
+  .cr-giorni .dett b{font-size:14px}
+  .cr-giorni .dett a{grid-column:1/-1;text-align:center;font-size:12px;color:#2c6f8f;font-weight:600;
+    text-decoration:none;padding-top:2px}
+  .cr-ordina{display:flex;align-items:center;gap:6px;padding:10px 16px 0}
+  .cr-ordina span{font-size:11px;color:#8a94a2;margin-right:2px}
+  .cr-ordina button{border:1px solid #e8ecf0;background:#fff;border-radius:8px;padding:5px 11px;
+    font-size:11.5px;font-weight:600;color:#8a94a2;font-family:inherit}
+  .cr-ordina button.on{background:#b98a3e;color:#fff;border-color:#b98a3e}
+  .cr-intest{display:flex;gap:10px;padding:14px 16px 6px;font-size:9.5px;letter-spacing:1.4px;
+    color:#b6c1cb;text-transform:uppercase}
+  .cr-intest span:first-child{flex:1}
+  .cr-intest span:nth-child(2){width:34px;text-align:right}
+  .cr-intest span:nth-child(3){width:76px;text-align:right;padding-right:14px}
+  .cr-lista{padding:0 16px}
+  .cr-lista .v{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #eef1f4;
+    text-decoration:none;color:inherit}
+  .cr-lista .v:last-child{border-bottom:none}
+  .cr-lista .nm{flex:1;font-size:13px}
+  .cr-lista .qt{width:34px;text-align:right;font-size:12.5px;color:#8a94a2}
+  .cr-lista .im{width:76px;text-align:right;font-size:13px;font-weight:700}
+  .cr-lista .v b{color:#c3ccd4;font-weight:400}
   .ad-home{--navy:#023C59;--arancio:#E66101;--ambra:#F1B302;--verde:#348127;--rosso:#B91C1C;
     --riga:#E2E6EA;--testo:#12232E;--muto:#6B7A83;
     padding:16px 14px 90px;max-width:560px;margin:0 auto;color:var(--testo);}
