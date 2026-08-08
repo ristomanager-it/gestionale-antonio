@@ -3580,7 +3580,9 @@ async function preloadFromPlanner(plannerId){
   // RICETTA
   if(data.ricetta_id){
 
-    const ricetta = ricetteCache.find(r => r.id === data.ricetta_id)
+    // confronto come stringhe: l'id arriva numerico dal database ma puo
+    // tornare come testo, e con === non combaciava mai
+    const ricetta = ricetteCache.find(r => String(r.id) === String(data.ricetta_id))
 
     if(ricetta){
 
