@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260808-10";
+const APP_V = "20260808-11";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -1913,6 +1913,18 @@ window.addEventListener("DOMContentLoaded", () => {
         window.stateActions.setUser(null);
       }
       window.state._isAgenteAttivo = false;
+
+      // La sessione e' caduta mentre si lavorava: se non lo diciamo, l'utente
+      // resta su una schermata che sembra viva ma ogni salvataggio torna 401
+      // con messaggi diversi a seconda della vista. Meglio dirlo una volta sola.
+      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED" || event === "USER_DELETED") {
+        const suLogin = String(location.hash || "").indexOf("login") >= 0;
+        if (!suLogin && !window.__rfSessioneAvvisata) {
+          window.__rfSessioneAvvisata = true;
+          alert("La sessione e' scaduta. Rientra per continuare: quello che non hai salvato va rifatto.");
+          location.hash = "#/login";
+        }
+      }
     }
   });
 
