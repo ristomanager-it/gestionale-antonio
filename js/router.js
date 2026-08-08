@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=37";
+import { initMenu } from "./menu.js?v=38";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260808-16";
+const APP_V = "20260808-17";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -218,6 +218,7 @@ const routes = {
   "bo-candidature": () => imp("./views/bo/bo-candidature.js"),
   "bo-bilancio":     () => imp("./views/bo/bo-bilancio.js"),
   "bo-survey":      () => imp("./views/bo/bo-survey.js"),
+  "bo-test":        () => imp("./views/bo/bo-test.js"),
 
   // MENU
   "bo-menu": () => imp("./views/bo/bo-menu-builder.js"),
@@ -303,6 +304,7 @@ const BO_ROUTES = new Set([
   "bo-candidature",
   "bo-bilancio",
   "bo-survey",
+  "bo-test",
 
   // MENU
   "bo-menu",
@@ -584,6 +586,7 @@ function hasPermission(area) {
     "bo-candidature",
   "bo-bilancio",
     "bo-survey",
+    "bo-test",
     // Produzione — dati di controllo/produttività (solo admin)
     "produttivita-produzione",
   ]);
