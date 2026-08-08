@@ -202,6 +202,12 @@ export async function renderFatture(container, azienda) {
         const supa = window.supabaseClient || window.supabase;
         const { data: sess } = await supa.auth.getSession();
         const token = sess?.session?.access_token;
+        // fiscale-parse verifica il JWT dell'utente: senza sessione valida
+        // rispondeva 401 e l'operatore leggeva solo "Non autorizzato".
+        if (!token) {
+          alert("La sessione e' scaduta. Esci e rientra, poi ricarica il file.");
+          return;
+        }
         const res = await fetch(FISCALE_PARSE_URL, {
           method: "POST",
           headers: {
@@ -212,7 +218,7 @@ export async function renderFatture(container, azienda) {
           body: JSON.stringify({
             azione: "parse_xml",
             azienda_id: azienda.id,
-            sede_id: window.state?.sede?.id || null,
+            sede_id: window.state?.sedeAttiva?.id || null,
             origine: "manuale",
             xml_text: xmlText
           })
@@ -234,6 +240,8 @@ export async function renderFatture(container, azienda) {
           }
         } else if (res.status === 409) {
           alert("ℹ️ Questa fattura è già stata importata.");
+        } else if (res.status === 401) {
+          alert("La sessione e' scaduta mentre caricavi. Esci e rientra, poi riprova: il file non e' stato importato.");
         } else {
           alert("❌ " + (d.error || "Errore durante l'import."));
         }
