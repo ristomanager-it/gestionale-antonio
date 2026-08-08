@@ -129,6 +129,28 @@ export async function render(container) {
       if (catRic) aggiungi(catRic, Math.round(ricaviVenduto * 100) / 100);
     }
 
+    // Costi fissi (affitto, utenze, assicurazioni): stanno come importo ANNUO in
+    // costi_fissi e vanno riproporzionati sul periodo, come fa gia' la home.
+    // Mancavano del tutto qui: il conto economico dava un utile piu' alto della
+    // home dello stesso identico periodo, e i due schermi non tornavano.
+    // Nota: costi_fissi e' una tabella vecchia, la sede si filtra su sede_uuid.
+    try {
+      const { data: fissi } = await supa().from('costi_fissi')
+        .select('importo_annuo, sede_uuid, attivo')
+        .eq('azienda_id', aziendaId).eq('attivo', true);
+      const sedeCorrente = window.state?.sedeAttiva?.id || null;
+      const righeFisse = (fissi || []).filter(r =>
+        sedeCorrente == null || r.sede_uuid == null || String(r.sede_uuid) === String(sedeCorrente));
+      const annuo = righeFisse.reduce((s, r) => s + (Number(r.importo_annuo) || 0), 0);
+      if (annuo > 0 && dataDa && dataA) {
+        const gg = Math.max(1, Math.round((new Date(dataA) - new Date(dataDa)) / 86400000) + 1);
+        const quota = (annuo / 365) * gg;
+        const { data: catFissi } = await supa().from('categorie_bilancio')
+          .select('id,nome,codice_conto,tipo,ordine').eq('id', 19).maybeSingle();
+        if (catFissi) aggiungi(catFissi, Math.round(quota * 100) / 100);
+      }
+    } catch (e) { console.warn('Errore costi fissi:', e); }
+
     const costi  = Object.values(aggregato).filter(a => a.cat.tipo !== 'ricavo').sort((a,b) => (a.cat.ordine||99)-(b.cat.ordine||99));
     const ricavi = Object.values(aggregato).filter(a => a.cat.tipo === 'ricavo').sort((a,b) => (a.cat.ordine||99)-(b.cat.ordine||99));
 
