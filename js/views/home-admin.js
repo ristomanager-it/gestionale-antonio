@@ -569,6 +569,103 @@ async function listaDecisioni(supabase, aziendaId) {
     });
   } catch (e) { /* la tabella puo' avere un altro nome */ }
 
+  // ── PRODUZIONI APERTE ───────────────────────────────────────────────────
+  // Un lotto aperto e cibo che sta lavorando senza che nessuno lo chiuda:
+  // dopo un giorno diventa un problema di HACCP, non di ordine.
+  try {
+    const { data } = await supabase.from("produzione_lotti")
+      .select("id, codice_lotto, created_at, ricette(nome)")
+      .eq("azienda_id", aziendaId).eq("stato", "aperta").limit(50);
+    if ((data || []).length) {
+      const vecchie = (data || []).filter(l =>
+        (Date.now() - new Date(l.created_at).getTime()) / 3600000 >= 24);
+      out.push({
+        livello: vecchie.length ? "rosso" : "giallo",
+        link: "#/produzioni-aperte",
+        titolo: data.length + (data.length === 1 ? " produzione aperta" : " produzioni aperte"),
+        sotto: vecchie.length
+          ? vecchie.length + " ferme da piu di un giorno: " + vecchie.slice(0, 2).map(l => l.ricette?.nome || l.codice_lotto).join(", ")
+          : data.slice(0, 2).map(l => l.ricette?.nome || l.codice_lotto).join(", "),
+      });
+    }
+  } catch (e) { /* niente */ }
+
+  // ── LOTTI IN SCADENZA ───────────────────────────────────────────────────
+  try {
+    const oggi = new Date();
+    const fra3 = new Date(oggi.getTime() + 3 * 86400000).toISOString().slice(0, 10);
+    const { data } = await supabase.from("produzione_lotti")
+      .select("codice_lotto, data_scadenza, ricette(nome)")
+      .eq("azienda_id", aziendaId).not("data_scadenza", "is", null)
+      .lte("data_scadenza", fra3).neq("stato", "aperta").limit(50);
+    const scaduti = (data || []).filter(l => l.data_scadenza < oggi.toISOString().slice(0, 10));
+    if ((data || []).length) out.push({
+      livello: scaduti.length ? "rosso" : "giallo",
+      link: "#/produzioni-storico",
+      titolo: scaduti.length
+        ? scaduti.length + (scaduti.length === 1 ? " lotto scaduto" : " lotti scaduti")
+        : data.length + (data.length === 1 ? " lotto in scadenza" : " lotti in scadenza"),
+      sotto: (scaduti.length ? scaduti : data).slice(0, 3)
+        .map(l => (l.ricette?.nome || l.codice_lotto) + " · " + l.data_scadenza.split("-").reverse().join("/")).join(" · "),
+    });
+  } catch (e) { /* niente */ }
+
+  // ── RECENSIONI SENZA RISPOSTA ───────────────────────────────────────────
+  // Una recensione bassa lasciata li la leggono tutti, per sempre.
+  try {
+    const { data } = await supabase.from("recensioni")
+      .select("id, voto, testo, created_at")
+      .eq("azienda_id", aziendaId).is("risposta_titolare", null)
+      .order("created_at", { ascending: false }).limit(50);
+    const basse = (data || []).filter(r => Number(r.voto) <= 3);
+    if ((data || []).length) out.push({
+      livello: basse.length ? "rosso" : "giallo",
+      link: "#/recensioni",
+      titolo: basse.length
+        ? basse.length + (basse.length === 1 ? " recensione critica da gestire" : " recensioni critiche da gestire")
+        : data.length + (data.length === 1 ? " recensione senza risposta" : " recensioni senza risposta"),
+      sotto: (basse.length ? basse : data)[0]?.testo
+        ? String((basse.length ? basse : data)[0].testo).slice(0, 90)
+        : "Rispondere conta piu di quanto sembri",
+    });
+  } catch (e) { /* niente */ }
+
+  // ── PREVENTIVI IN ATTESA DI RISPOSTA ────────────────────────────────────
+  try {
+    const { data } = await supabase.from("preventivi")
+      .select("id, titolo_evento, data_evento, scadenza_il, totale")
+      .eq("azienda_id", aziendaId).eq("stato", "inviato").limit(50);
+    if ((data || []).length) {
+      const oggi = new Date().toISOString().slice(0, 10);
+      const inScadenza = (data || []).filter(p => p.scadenza_il && String(p.scadenza_il).slice(0, 10) <= oggi);
+      out.push({
+        livello: inScadenza.length ? "rosso" : "giallo",
+        link: "#/preventivi",
+        titolo: data.length + (data.length === 1 ? " preventivo in attesa" : " preventivi in attesa"),
+        sotto: inScadenza.length
+          ? inScadenza.length + " gia scaduti: " + inScadenza.slice(0, 2).map(p => p.titolo_evento).join(", ")
+          : data.slice(0, 2).map(p => p.titolo_evento).join(", "),
+      });
+    }
+  } catch (e) { /* niente */ }
+
+  // ── TEST DI COMPETENZA NON COMPLETATI ───────────────────────────────────
+  try {
+    const { data } = await supabase.from("test_competenze_invii")
+      .select("id, stato, scadenza, dipendenti(nome)")
+      .eq("azienda_id", aziendaId).in("stato", ["inviato", "aperto"]).limit(100);
+    if ((data || []).length) {
+      const oggi = new Date().toISOString();
+      const scaduti = (data || []).filter(i => i.scadenza && i.scadenza < oggi);
+      out.push({
+        livello: scaduti.length ? "rosso" : "giallo",
+        link: "#/bo-test",
+        titolo: data.length + (data.length === 1 ? " test non ancora fatto" : " test non ancora fatti"),
+        sotto: scaduti.length ? scaduti.length + " oltre la scadenza" : "In attesa di risposta",
+      });
+    }
+  } catch (e) { /* niente */ }
+
   return out;
 }
 
