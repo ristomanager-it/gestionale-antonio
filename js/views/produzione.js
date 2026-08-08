@@ -48,6 +48,12 @@ export async function render(app) {
           🏷️ Preparazioni / Lotti
         </button>
 
+        <button class="app-button"
+          style="padding:16px; font-size:16px;"
+          onclick="window.location.hash='#/produzioni-storico'">
+          📚 Storico produzioni
+        </button>
+
       </div>
 
     </section>
