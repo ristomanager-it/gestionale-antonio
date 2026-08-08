@@ -77,6 +77,24 @@ async function avvia(){
   mostraDomande(dati);
 }
 
+const tempi = {};      // secondi spesi su ogni domanda
+let uscite = 0;        // quante volte si esce dalla scheda del test
+let ultimoTocco = Date.now();
+let domandaCorrente = null;
+
+function segnaTempo(){
+  if(domandaCorrente){
+    const s = (Date.now() - ultimoTocco) / 1000;
+    tempi[domandaCorrente] = Math.round((tempi[domandaCorrente] || 0) + s);
+  }
+  ultimoTocco = Date.now();
+}
+
+document.addEventListener("visibilitychange", function(){
+  if(document.hidden){ segnaTempo(); uscite++; }
+  else { ultimoTocco = Date.now(); }
+});
+
 function mostraDomande(dati){
   const dom = dati.domande || [];
   if(!dom.length){ messaggio("Test vuoto","Questo test non ha ancora domande."); return; }
@@ -104,6 +122,18 @@ function mostraDomande(dati){
 
   schermata(html);
 
+  // il cronometro parte sulla prima domanda e si sposta a ogni risposta data
+  domandaCorrente = dom[0].id;
+  ultimoTocco = Date.now();
+  document.querySelectorAll('input[type=radio]').forEach(function(inp){
+    inp.addEventListener("change", function(){
+      segnaTempo();
+      const nome = inp.name.replace(/^d_/, "");
+      const i = dom.findIndex(function(d){ return String(d.id) === nome; });
+      domandaCorrente = (i >= 0 && dom[i+1]) ? dom[i+1].id : nome;
+    });
+  });
+
   document.getElementById("invia").onclick = async function(){
     const btn = this;
     const msg = document.getElementById("msg");
@@ -118,13 +148,14 @@ function mostraDomande(dati){
       msg.style.display = "";
       return;
     }
+    segnaTempo();
     msg.style.display = "none";
     btn.disabled = true; btn.textContent = "Invio…";
     try{
       const r = await fetch(API, {
         method:"POST",
         headers:{ "Content-Type":"application/json", "apikey":ANON, "Authorization":"Bearer "+ANON },
-        body: JSON.stringify({ token: token, risposte: risposte })
+        body: JSON.stringify({ token: token, risposte: risposte, tempi: tempi, uscite: uscite })
       });
       const out = await r.json();
       if(out && out.ok) mostraEsito(out);
