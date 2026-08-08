@@ -677,12 +677,22 @@ async function init() {
       firePixel(evento, pixelId);
       if (window.dataLayer) window.dataLayer.push({ event: evento, promo_id: promoId, promo_nome: promo.nome });
 
+      // 2b. Nome del locale: arriva dal server, perche' un visitatore anonimo
+      //     non puo' leggere la tabella aziende. Senza, si firmava "Il tuo locale".
+      if (esitoLead.nome_locale) nomeDaComunicare = esitoLead.nome_locale;
+
+      // 2c. QR una volta sola: PNG su Storage, poi lo stesso file va a WhatsApp e email
+      let qrPubblico = null;
+      try {
+        qrPubblico = await generaECaricaQR(promoId, 'RFC:' + couponCode, promo.azienda_id);
+      } catch(e) { console.error('QR non generato:', e); }
+
       // 3. Invia WA — testo con link promo + coupon
-      await inviaPromoWA({ promo, nome: nomeSaluto, telefono, aziendaId: promo.azienda_id, coupon: couponCode, nomeLocale: nomeDaComunicare });
+      await inviaPromoWA({ promo, nome: nomeSaluto, telefono, aziendaId: promo.azienda_id, coupon: couponCode, nomeLocale: nomeDaComunicare, qrUrl: qrPubblico });
 
       // 4. Invia email con coupon (email ora obbligatoria)
       if (email) {
-        await inviaPromoEmail({ promo, nome: nomeSaluto, cognome, email, coupon: couponCode, azienda, nomeLocale: nomeDaComunicare });
+        await inviaPromoEmail({ promo, nome: nomeSaluto, cognome, email, coupon: couponCode, azienda, nomeLocale: nomeDaComunicare, qrUrl: qrPubblico });
       }
 
       window._rfTrack && window._rfTrack('submit', 'promo_scaricata', { completato: true, valore: promo.nome, step: 'success', coupon: couponCode });
@@ -716,7 +726,7 @@ function buildRegolamentoTesto(promo) {
   return righe;
 }
 
-async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azienda, nomeLocale }) {
+async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azienda, nomeLocale, qrUrl = null }) {
   const nomeAzienda = nomeLocale || azienda?.nome_azienda || azienda?.nome || 'Il tuo locale';
   const accent = promo.stile?.colore_primario || '#0E5A7A';
 
@@ -726,13 +736,18 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
     : `${location.origin}${location.pathname}?id=${promoId}&ty=1`;
   const linkPrenota = `${location.origin}/#/prenotazione-online?azienda=${promo.azienda_id}${promo.sede_id ? '&sede='+promo.sede_id : ''}${coupon ? '&coupon='+coupon : ''}`;
 
-  // QR come IMMAGINE (nelle email il JS non gira) — generato dalla NOSTRA Edge Function (in casa)
-  const qrData = coupon ? `RFC:${coupon}` : linkCoupon;
-  const qrImgUrl = `${SUPABASE_URL}/functions/v1/genera-qr?size=240&data=${encodeURIComponent(qrData)}`;
+  // QR come IMMAGINE: nelle email il JS non gira, serve un file gia' pronto.
+  // Prima puntava a /functions/v1/genera-qr, che NON esiste: 404 e riquadro vuoto.
+  // Ora usa il PNG caricato su Storage, lo stesso che va su WhatsApp.
+  const qrImgUrl = qrUrl || null;
 
-  const valoreLabel = promo.tipo==='sconto_perc' ? promo.valore+'%'
-                    : promo.tipo==='sconto_euro' ? '€'+promo.valore
-                    : promo.tipo==='2x1' ? '2×1' : 'Omaggio';
+  // I valori veri in tabella sono 'sconto_percentuale', 'sconto_euro', '2x1', 'omaggio'.
+  // Il confronto cercava 'sconto_perc' e non trovava mai niente: ogni sconto
+  // percentuale usciva etichettato "Omaggio".
+  const tipoPromo = String(promo.tipo || '').toLowerCase();
+  const valoreLabel = tipoPromo.startsWith('sconto_perc') ? promo.valore+'%'
+                    : (tipoPromo === 'sconto_euro' || tipoPromo === 'sconto_fisso') ? '€'+promo.valore
+                    : tipoPromo === '2x1' ? '2×1' : 'Omaggio';
 
   const regoleRighe = buildRegolamentoTesto(promo);
   const regolamentoHtml = regoleRighe.length || promo.regolamento
@@ -764,10 +779,10 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
         ${regolamentoHtml}
 
         <!-- 3. QR code (immagine) -->
-        <div style="text-align:center;margin:0 0 24px;">
+        ${qrImgUrl ? `<div style="text-align:center;margin:0 0 24px;">
           <div style="font-size:13px;color:#64748b;margin-bottom:10px;">📱 Mostra questo QR al nostro staff per usare la promo</div>
           <img src="${qrImgUrl}" alt="QR coupon" width="180" height="180" style="border:1px solid #e5e7eb;border-radius:12px;padding:8px;background:#fff;">
-        </div>
+        </div>` : ''}
 
         <!-- 4. Bottone Prenota tavolo -->
         <a href="${linkPrenota}" style="display:block;background:${accent};color:#fff;text-decoration:none;text-align:center;border-radius:12px;padding:15px;font-size:16px;font-weight:800;margin-bottom:10px;">🍽 Prenota il tavolo</a>
@@ -792,7 +807,7 @@ async function inviaPromoEmail({ promo, nome, cognome, email, coupon = null, azi
 }
 
 // ── Invio WhatsApp promo ───────────────────────────────────────
-async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null, nomeLocale = null }) {
+async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null, nomeLocale = null, qrUrl = null }) {
   // Link thank you personale: mostra coupon + QR riaprendo il link
   const landingUrl = coupon
     ? `${location.origin}${location.pathname}?id=${promoId}&ty=1&c=${coupon}`
@@ -846,15 +861,15 @@ async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null, n
   // Con coupon: il QR codifica "RFC:CODICE" → è quello che verrà scansionato in cassa
   try {
     const qrPayload = coupon ? `RFC:${coupon}` : landingUrl;
-    const qrUrl = await generaECaricaQR(promoId, qrPayload, aziendaId);
-    if (qrUrl) {
+    const qrDaUsare = qrUrl || await generaECaricaQR(promoId, qrPayload, aziendaId);
+    if (qrDaUsare) {
       await fetch(WA_URL, {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+SUPABASE_KEY },
         body: JSON.stringify({
           azienda_id: aziendaId,
           numero_dest: telefono,
-          media_url: qrUrl,
+          media_url: qrDaUsare,
           media_type: 'image',
           media_caption: '📱 Mostra questo QR al cameriere per riscattare la tua promo!',
           contesto: 'promo_qr',
