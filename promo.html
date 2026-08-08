@@ -499,7 +499,7 @@ async function init() {
     promo = Array.isArray(pRes.data) ? pRes.data[0] : null;
     if (promo?.azienda_id) {
       // Identità (nome_azienda, logo, pixel) — filtro su azienda_id
-      const aRes = await api(`azienda_identita?azienda_id=eq.${promo.azienda_id}&select=nome_azienda,logo_url,meta_pixel_id,gtm_id&limit=1`);
+      const aRes = await api(`azienda_identita?azienda_id=eq.${promo.azienda_id}&select=meta_pixel_id,gtm_id&limit=1`);
       azienda = Array.isArray(aRes.data) && aRes.data[0] ? aRes.data[0] : null;
       // Fallback: se manca il nome, lo prendo dalla tabella aziende
       if (!azienda || !azienda.nome_azienda) {
@@ -630,47 +630,47 @@ async function init() {
     btnScarica.textContent = '⏳ Invio in corso...';
 
     try {
-      // 0. Controllo anti-doppione: stesso telefono o email per QUESTA promo?
-      try {
-        const emailEsc = encodeURIComponent(email);
-        const telEsc = encodeURIComponent(telefono);
-        const dupRes = await api(`promo_lead?promo_id=eq.${promoId}&or=(telefono.eq.${telEsc},email.eq.${emailEsc})&select=id&limit=1`);
-        if (Array.isArray(dupRes.data) && dupRes.data.length > 0) {
-          btnScarica.disabled = false;
-          btnScarica.textContent = '🎁 Voglio la mia promo!';
-          errEl.innerHTML = 'Hai già richiesto questa promozione con questo contatto. 🎁<br>Controlla WhatsApp o la tua email per il coupon.';
-          errEl.style.display = '';
-          window._rfTrack && window._rfTrack('error', 'gia_scaricata', { valore: promo.nome });
-          return;
-        }
-      } catch(e) { console.warn('Controllo doppione non riuscito, proseguo:', e); }
+      // 0. Il controllo anti-doppione ora e' dentro promo-lead-crea, a server:
+      //    dal browser avrebbe richiesto una SELECT anonima su promo_lead,
+      //    cioe' esporre nome, telefono ed email di tutti i lead.
 
-      // 1. Salva lead con coupon univoco (retry ×3 su collisione codice)
-      const scadenzaCoupon = calcScadenzaCoupon(promo);
-      let salvato = false;
-      for (let tentativo = 0; tentativo < 3 && !salvato; tentativo++) {
-        couponCode = genCouponCode();
-        const res = await api('promo_lead?select=id', {
-          method:'POST',
-          headers:{ 'Prefer':'return=minimal' },
+      // 1. Salva lead e genera coupon LATO SERVER (promo-lead-crea).
+      //    Prima si scriveva su promo_lead con la chiave anon: dal browser
+      //    tornava 401, l'errore finiva in console e il cliente riceveva
+      //    mail e WhatsApp senza codice. Ora se fallisce lo diciamo.
+      let esitoLead = null;
+      try {
+        const rLead = await fetch(SUPABASE_URL + '/functions/v1/promo-lead-crea', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY, 'apikey': SUPABASE_KEY },
           body: JSON.stringify({
             promo_id: promoId,
-            azienda_id: promo.azienda_id,
             nome, cognome, telefono, email,
             consenso_marketing: consenso,
             privacy_accettata: privacy,
             user_agent: navigator.userAgent,
-            data_scaricamento: new Date().toISOString(),
-            codice_coupon: couponCode,
-            stato_coupon: 'emesso',
-            scadenza_coupon: scadenzaCoupon,
           })
         });
-        if (res.ok) { salvato = true; }
-        else if (res.data?.code === '23505') { continue; }        // codice duplicato → rigenera
-        else { console.error('Lead insert error:', res.status, res.data); break; }
+        esitoLead = await rLead.json().catch(() => null);
+      } catch(e) { console.error('promo-lead-crea:', e); }
+
+      if (esitoLead && esitoLead.gia_scaricata) {
+        btnScarica.disabled = false;
+        btnScarica.textContent = '\ud83c\udf81 Voglio la mia promo!';
+        errEl.innerHTML = 'Hai gi\u00e0 richiesto questa promozione con questo contatto. \ud83c\udf81<br>Controlla WhatsApp o la tua email per il coupon.';
+        errEl.style.display = '';
+        window._rfTrack && window._rfTrack('error', 'gia_scaricata', { valore: promo.nome });
+        return;
       }
-      if (!salvato) couponCode = null; // fallback: flusso vecchio senza coupon
+      if (!esitoLead || !esitoLead.ok || !esitoLead.codice) {
+        btnScarica.disabled = false;
+        btnScarica.textContent = '\ud83c\udf81 Voglio la mia promo!';
+        errEl.textContent = 'Non siamo riusciti a registrare la richiesta. Riprova tra un attimo.';
+        errEl.style.display = '';
+        window._rfTrack && window._rfTrack('error', 'lead_non_salvato', { valore: (esitoLead && esitoLead.errore) || 'rete' });
+        return;
+      }
+      couponCode = esitoLead.codice;
 
       // 2. Fire pixel
       const evento = promo.meta_pixel_evento_scaricamento || 'Lead';
