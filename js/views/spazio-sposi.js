@@ -64,6 +64,14 @@ function disegna(container, supabase) {
   container.querySelectorAll("[data-sez]").forEach(b =>
     b.addEventListener("click", () => { sez = b.dataset.sez; disegna(container, supabase); window.scrollTo(0, 0); }));
 
+  // Le linguette scorrono in orizzontale: sul telefono le ultime restano
+  // fuori schermo e sembra che non ci siano. Porto in vista quella attiva.
+  const nav = container.querySelector(".sp-nav");
+  const att = nav?.querySelector("button.on");
+  if (nav && att) {
+    nav.scrollLeft = Math.max(0, att.offsetLeft - (nav.clientWidth - att.clientWidth) / 2);
+  }
+
   aggancia(container, supabase);
 
   function pagina() {
@@ -658,7 +666,11 @@ function guscio(dentro, tema) {
   .sp-q{font-size:13.5px;opacity:.92;}
   .sp-conto{display:inline-block;margin-top:10px;background:rgba(255,255,255,.18);
     border:1px solid rgba(255,255,255,.3);border-radius:100px;padding:5px 12px;font-size:12px;font-weight:700;}
-  .sp-nav{display:flex;background:#fff;border-bottom:1px solid var(--riga);overflow-x:auto;}
+  .sp-nav{display:flex;background:#fff;border-bottom:1px solid var(--riga);overflow-x:auto;
+    position:relative;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent 100%);
+    mask-image:linear-gradient(90deg,#000 88%,transparent 100%);}
+  .sp-nav::-webkit-scrollbar{display:none;}
   .sp-nav button{flex:0 0 auto;background:none;border:none;padding:13px 14px;font-size:13.5px;
     font-family:inherit;color:var(--muto);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;}
   .sp-nav button.on{color:var(--vino);font-weight:800;border-bottom-color:var(--vino);}
