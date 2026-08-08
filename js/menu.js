@@ -532,6 +532,7 @@ export function initMenu() {
           { label: "👥 Costo personale",  route: "hr-costi"          },
           { label: "⭐ Persone & KPI",     route: "persone"           },
           { label: "📝 Test competenze",   route: "bo-test"           },
+          { label: "📋 Briefing servizio", route: "briefing-servizio" },
           { label: "📋 Cartellino ore",   route: "bo-presenze"       },
           { label: "👁️ Accessi app",     route: "accessi-app"       },
           { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
