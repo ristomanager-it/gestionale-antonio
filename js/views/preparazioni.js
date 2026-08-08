@@ -2696,9 +2696,26 @@ async function stampaRegistroHaccp() {
   const dataOggi = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
   const operatore = operatoreRisolto?.nome || "—";
 
-  // ── FONTE DATI: DB se il lotto esiste (firme vere salvate), altrimenti stato in pagina ──
-  const lottoRef = (typeof resumeLottoUUID !== "undefined" && resumeLottoUUID) || savedLotto?.lotto_uuid || null;
+  // ── FONTE DATI ──
+  // Il registro HACCP e un documento: se porta un numero di lotto deve
+  // riportare le firme VERE di quel lotto. Prima, se il lotto non era stato
+  // registrato o ripreso in questa sessione, si stampava l'intestazione del
+  // lotto scritto a schermo con le fasi non firmate della pagina: un foglio
+  // che contraddice il database e che davanti a un controllo non sta in piedi.
+  let lottoRef = (typeof resumeLottoUUID !== "undefined" && resumeLottoUUID) || savedLotto?.lotto_uuid || null;
+
+  // se ho il codice ma non l'uuid, il lotto lo cerco a database
+  if (!lottoRef && supabase && codLotto && codLotto !== "—" && azienda?.id) {
+    const { data: lot } = await supabase.from("produzione_lotti")
+      .select("lotto_uuid")
+      .eq("azienda_id", azienda.id)
+      .eq("codice_lotto", codLotto)
+      .maybeSingle();
+    if (lot?.lotto_uuid) lottoRef = lot.lotto_uuid;
+  }
+
   let fonte = [];
+  let bozza = false;
   if (lottoRef && supabase) {
     const { data } = await supabase.from("produzione_log_haccp")
       .select("*").eq("lotto_id", lottoRef).order("fase_ordine");
@@ -2706,6 +2723,11 @@ async function stampaRegistroHaccp() {
   }
   if (!fonte.length) {
     if (!logHaccp.length) { alert("Nessuna fase da stampare."); return; }
+    if (lottoRef) {
+      alert("Il lotto " + codLotto + " esiste ma non ha nessuna fase registrata a sistema.\n\n" +
+            "Stampo la bozza di lavorazione, che NON vale come registro HACCP.");
+    }
+    bozza = true;
     fonte = logHaccp.map((log, idx) => Object.assign({}, log, {
       temperatura_prevista: fasiCache[idx]?.temperatura ?? log.temperatura_prevista ?? null,
     }));
@@ -2766,8 +2788,13 @@ async function stampaRegistroHaccp() {
       <button onclick="window.print()" style="background:#0E5A7A;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">🖨️ Stampa / Salva PDF</button>
       <button onclick="window.close()" style="background:#e2e8f0;color:#334155;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">✕ Chiudi</button>
     </div>
-    <h1>Registro HACCP Produzione</h1>
+    <h1>${bozza ? "Bozza di lavorazione" : "Registro HACCP Produzione"}</h1>
     <div class="sub">${escapeHtml(azienda?.nome || "")} — ${dataOggi}</div>
+    ${bozza ? `<div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:12px 14px;margin-bottom:18px;font-size:13px;">
+      <b>Questo foglio NON e un registro HACCP.</b> Le fasi qui sotto non sono ancora state
+      registrate a sistema: nessuna firma e stata salvata. Registra la produzione e firma le
+      fasi, poi ristampa per avere il documento valido.
+    </div>` : ""}
     <div class="meta">
       <div class="meta-item"><div class="meta-label">Ricetta</div><div class="meta-value">${escapeHtml(nomeRicetta)}</div></div>
       <div class="meta-item"><div class="meta-label">Lotto</div><div class="meta-value">${escapeHtml(codLotto)}</div></div>
