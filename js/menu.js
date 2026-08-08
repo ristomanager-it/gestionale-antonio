@@ -529,7 +529,7 @@ export function initMenu() {
           { label: "📆 Gestione ferie",   route: "hr-admin"          },
           { label: "💶 Buste paga",       route: "hr-buste-paga"     },
           { label: "👥 Costo personale",  route: "hr-costi"          },
-          { label: "👥 Costo personale",  route: "hr-costi"          },
+          { label: "⭐ Persone & KPI",     route: "persone"           },
           { label: "📋 Cartellino ore",   route: "bo-presenze"       },
           { label: "👁️ Accessi app",     route: "accessi-app"       },
           { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
