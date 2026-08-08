@@ -318,6 +318,11 @@ function cruscotto(ora, prima, fissi) {
   const maxV = Math.max(1, ...vend.map(v => v.incasso));
 
   return `
+    <div class="cr-testa">
+      <span>Incasso</span><b>${euro(inc)}</b>
+      <i>IVA non scorporata</i>
+    </div>
+
     <div class="cr-arco">
       <svg viewBox="0 0 300 168" width="100%">
         <defs>
@@ -337,12 +342,12 @@ function cruscotto(ora, prima, fissi) {
       </svg>
     </div>
 
-    <div class="cr-esiti">
-      <div class="e"><span>Margine</span><b class="${margine >= 0 ? "su" : "giu"}">${euro(margine)}</b>
-        <i>${perc(pMar)} dell'incasso</i></div>
-      <div class="sep"></div>
-      <div class="e"><span>Pareggio</span><b class="pari">${euro(costi)}</b>
-        <i>incassato ${euro(inc)}</i></div>
+    <div class="cr-bep"><span>Pareggio</span><b>${euro(costi)}</b></div>
+
+    <div class="cr-margine ${margine >= 0 ? "su" : "giu"}">
+      <span>Margine</span>
+      <b>${margine >= 0 ? "+" : ""}${euro(margine)}</b>
+      <i>${perc(pMar)} dell'incasso</i>
     </div>
 
     <div class="cr-tit">Dove va l'incasso</div>
@@ -353,10 +358,14 @@ function cruscotto(ora, prima, fissi) {
       <i style="width:${Math.max(0,pMar).toFixed(1)}%;background:linear-gradient(90deg,#8ed3b0,#1c8a56)"></i>
     </div>
     <div class="cr-chiavi">
-      <span><s style="background:linear-gradient(135deg,#f2a09a,#cf3f36)"></s>Lavoro <b>${perc(pLav)}</b></span>
-      <span><s style="background:linear-gradient(135deg,#f3bd8a,#d97a25)"></s>Food cost <b>${perc(pFoo)}</b></span>
-      <span><s style="background:linear-gradient(135deg,#ecd98c,#c9a81f)"></s>Fissi <b>${perc(pFis)}</b></span>
-      <span><s style="background:linear-gradient(135deg,#8ed3b0,#1c8a56)"></s>Margine <b>${perc(pMar)}</b></span>
+      <span><s style="background:linear-gradient(135deg,#f2a09a,#cf3f36)"></s>
+        <em>Lavoro</em><b>${euro(lav)}</b><u>${perc(pLav)}</u></span>
+      <span><s style="background:linear-gradient(135deg,#f3bd8a,#d97a25)"></s>
+        <em>Food cost</em><b>${euro(foo)}</b><u>${perc(pFoo)}</u></span>
+      <span><s style="background:linear-gradient(135deg,#ecd98c,#c9a81f)"></s>
+        <em>Fissi</em><b>${euro(fis)}</b><u>${perc(pFis)}</u></span>
+      <span><s style="background:linear-gradient(135deg,#8ed3b0,#1c8a56)"></s>
+        <em>Margine</em><b>${euro(margine)}</b><u>${perc(pMar)}</u></span>
     </div>
 
     ${coperti ? `
@@ -596,22 +605,31 @@ function stile() {
     border:1px solid #e8ecf0;border-radius:14px;font-size:13.5px}
   .cr-arco{padding:6px 16px 0;text-align:center}
   .cr-arco svg{max-width:330px;width:100%}
-  .cr-esiti{display:flex;margin:2px 16px 0;background:#faf9f7;border:1px solid #e8ecf0;
-    border-radius:14px;padding:14px 6px}
-  .cr-esiti .e{flex:1;text-align:center}
-  .cr-esiti .sep{width:1px;background:#e8ecf0}
-  .cr-esiti span{display:block;font-size:9.5px;letter-spacing:2.2px;color:#8a94a2;text-transform:uppercase}
-  .cr-esiti b{display:block;font-size:24px;font-weight:700;margin-top:3px;letter-spacing:-.5px}
-  .cr-esiti b.su{color:#2fa36b} .cr-esiti b.giu{color:#e05d55} .cr-esiti b.pari{color:#b98a3e}
-  .cr-esiti i{display:block;font-style:normal;font-size:11.5px;color:#8a94a2;margin-top:4px}
+  .cr-testa{text-align:center;padding:14px 16px 0}
+  .cr-testa span{display:block;font-size:9.5px;letter-spacing:2.2px;color:#8a94a2;text-transform:uppercase}
+  .cr-testa b{display:block;font-size:30px;font-weight:700;letter-spacing:-.6px;margin-top:2px}
+  .cr-testa i{display:block;font-style:normal;font-size:10px;color:#b6c1cb;margin-top:2px}
+  .cr-bep{text-align:center;margin:-14px 16px 0}
+  .cr-bep span{font-size:9.5px;letter-spacing:2.2px;color:#8a94a2;text-transform:uppercase;margin-right:7px}
+  .cr-bep b{font-size:17px;font-weight:700;color:#b98a3e}
+  .cr-margine{margin:12px 16px 0;border-radius:14px;padding:13px;text-align:center;border:1px solid}
+  .cr-margine.su{background:#eefaf3;border-color:#c3e9d5}
+  .cr-margine.giu{background:#fdf0ef;border-color:#f3ccc9}
+  .cr-margine span{display:block;font-size:9.5px;letter-spacing:2.2px;text-transform:uppercase;color:#8a94a2}
+  .cr-margine b{display:block;font-size:27px;font-weight:700;letter-spacing:-.5px;margin-top:2px}
+  .cr-margine.su b{color:#1c8a56} .cr-margine.giu b{color:#cf3f36}
+  .cr-margine i{display:block;font-style:normal;font-size:11.5px;color:#8a94a2;margin-top:3px}
   .cr-tit{padding:18px 16px 0;font-size:9.5px;letter-spacing:2px;color:#8a94a2;text-transform:uppercase;font-weight:700}
   .cr-tit em{font-style:normal;color:#b6c1cb;letter-spacing:.6px;margin-left:6px;font-size:9px;font-weight:400}
   .cr-barra{display:flex;height:12px;border-radius:999px;overflow:hidden;margin:10px 16px 0;background:#f1f3f5}
   .cr-barra i{display:block;height:100%}
-  .cr-chiavi{display:flex;flex-wrap:wrap;gap:6px 14px;padding:11px 16px 0}
-  .cr-chiavi span{display:flex;align-items:center;gap:6px;font-size:12px;color:#8a94a2}
-  .cr-chiavi s{width:9px;height:9px;border-radius:3px;display:block;text-decoration:none}
-  .cr-chiavi b{color:#132029;font-weight:700}
+  .cr-chiavi{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;padding:13px 16px 0}
+  .cr-chiavi span{display:grid;grid-template-columns:11px 1fr;grid-template-rows:auto auto auto;
+    column-gap:8px;align-items:center}
+  .cr-chiavi s{width:9px;height:9px;border-radius:3px;display:block;text-decoration:none;grid-row:1/4}
+  .cr-chiavi em{font-style:normal;font-size:10px;letter-spacing:1.1px;text-transform:uppercase;color:#8a94a2}
+  .cr-chiavi b{font-size:14px;font-weight:700;color:#132029;line-height:1.25}
+  .cr-chiavi u{text-decoration:none;font-size:11px;color:#8a94a2}
   .cr-cop{margin:16px 16px 0;background:#faf9f7;border:1px solid #e8ecf0;border-radius:14px;padding:16px}
   .cr-cop .t{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:13px}
   .cr-cop .t span{font-size:9.5px;letter-spacing:2.2px;color:#8a94a2;text-transform:uppercase}
