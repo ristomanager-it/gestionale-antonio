@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:FatturaElettronica versione="FPR12" xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2">
+  <FatturaElettronicaHeader>
+    <DatiTrasmissione>
+      <IdTrasmittente><IdPaese>IT</IdPaese><IdCodice>04871230968</IdCodice></IdTrasmittente>
+      <ProgressivoInvio>RF2026B</ProgressivoInvio>
+      <FormatoTrasmissione>FPR12</FormatoTrasmissione>
+      <CodiceDestinatario>ABCDEF1</CodiceDestinatario>
+    </DatiTrasmissione>
+    <CedentePrestatore>
+      <DatiAnagrafici>
+        <IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>04871230968</IdCodice></IdFiscaleIVA>
+        <Anagrafica><Denominazione>Alimentari Lombardi S.r.l.</Denominazione></Anagrafica>
+        <RegimeFiscale>RF01</RegimeFiscale>
+      </DatiAnagrafici>
+      <Sede><Indirizzo>Via dell Ortomercato 18</Indirizzo><CAP>20139</CAP><Comune>Milano</Comune><Provincia>MI</Provincia><Nazione>IT</Nazione></Sede>
+    </CedentePrestatore>
+    <CessionarioCommittente>
+      <DatiAnagrafici>
+        <IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>12345670158</IdCodice></IdFiscaleIVA>
+        <Anagrafica><Denominazione>Ristorante Centro</Denominazione></Anagrafica>
+      </DatiAnagrafici>
+      <Sede><Indirizzo>Via Dante 12</Indirizzo><CAP>20121</CAP><Comune>Milano</Comune><Provincia>MI</Provincia><Nazione>IT</Nazione></Sede>
+    </CessionarioCommittente>
+  </FatturaElettronicaHeader>
+  <FatturaElettronicaBody>
+    <DatiGenerali>
+      <DatiGeneraliDocumento>
+        <TipoDocumento>TD01</TipoDocumento>
+        <Divisa>EUR</Divisa>
+        <Data>2026-08-09</Data>
+        <Numero>2026/3402</Numero>
+        <ImportoTotaleDocumento>1880.31</ImportoTotaleDocumento>
+      </DatiGeneraliDocumento>
+    </DatiGenerali>
+    <DatiBeniServizi>
+      <DettaglioLinee>
+        <NumeroLinea>1</NumeroLinea>
+        <Descrizione>Vs. Ordine ORD-2026-0001 del 08/08/2026</Descrizione>
+        <PrezzoUnitario>0.00</PrezzoUnitario>
+        <PrezzoTotale>0.00</PrezzoTotale>
+        <AliquotaIVA>0.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>2</NumeroLinea>
+        <Descrizione>PROSCIUTTO CRUDO DISOSSATO SV KG</Descrizione>
+        <Quantita>7.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>21.50</PrezzoUnitario>
+        <PrezzoTotale>150.50</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>3</NumeroLinea>
+        <Descrizione>SALAME MILANO INTERO KG</Descrizione>
+        <Quantita>6.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>13.90</PrezzoUnitario>
+        <PrezzoTotale>83.40</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>4</NumeroLinea>
+        <Descrizione>COPPA STAGIONATA SV KG</Descrizione>
+        <Quantita>6.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>16.40</PrezzoUnitario>
+        <PrezzoTotale>98.40</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>5</NumeroLinea>
+        <Descrizione>CONTROFILETTO DI MANZO SCOTTONA KG</Descrizione>
+        <Quantita>31.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>24.90</PrezzoUnitario>
+        <PrezzoTotale>771.90</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>6</NumeroLinea>
+        <Descrizione>RUCOLA SELVATICA BUSTA 500 GR</Descrizione>
+        <Quantita>3.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>9.40</PrezzoUnitario>
+        <PrezzoTotale>28.20</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>7</NumeroLinea>
+        <Descrizione>FUNGHI PORCINI SURGELATI A CUBETTI KG</Descrizione>
+        <Quantita>7.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>14.50</PrezzoUnitario>
+        <PrezzoTotale>101.50</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>8</NumeroLinea>
+        <Descrizione>MASCARPONE SECCHIELLO 1 KG</Descrizione>
+        <Quantita>13.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>7.90</PrezzoUnitario>
+        <PrezzoTotale>102.70</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>9</NumeroLinea>
+        <Descrizione>SAVOIARDI CF 400 GR</Descrizione>
+        <Quantita>7.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>6.20</PrezzoUnitario>
+        <PrezzoTotale>43.40</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>10</NumeroLinea>
+        <Descrizione>CACAO AMARO IN POLVERE CF 1 KG</Descrizione>
+        <Quantita>1.00</Quantita>
+        <UnitaMisura>KG</UnitaMisura>
+        <PrezzoUnitario>11.40</PrezzoUnitario>
+        <PrezzoTotale>11.40</PrezzoTotale>
+        <AliquotaIVA>10.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DettaglioLinee>
+        <NumeroLinea>11</NumeroLinea>
+        <Descrizione>VINO ROSSO DELLA CASA BT 0,75 LT</Descrizione>
+        <Quantita>94.00</Quantita>
+        <UnitaMisura>BT</UnitaMisura>
+        <PrezzoUnitario>3.05</PrezzoUnitario>
+        <PrezzoTotale>286.70</PrezzoTotale>
+        <AliquotaIVA>22.00</AliquotaIVA>
+      </DettaglioLinee>
+      <DatiRiepilogo><AliquotaIVA>10.00</AliquotaIVA><ImponibileImporto>1391.40</ImponibileImporto><Imposta>139.14</Imposta><EsigibilitaIVA>I</EsigibilitaIVA></DatiRiepilogo>
+      <DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>286.70</ImponibileImporto><Imposta>63.07</Imposta><EsigibilitaIVA>I</EsigibilitaIVA></DatiRiepilogo>
+    </DatiBeniServizi>
+    <DatiPagamento>
+      <CondizioniPagamento>TP02</CondizioniPagamento>
+      <DettaglioPagamento><ModalitaPagamento>MP05</ModalitaPagamento><DataScadenzaPagamento>2026-09-08</DataScadenzaPagamento><ImportoPagamento>1880.31</ImportoPagamento></DettaglioPagamento>
+    </DatiPagamento>
+  </FatturaElettronicaBody>
+</p:FatturaElettronica>
