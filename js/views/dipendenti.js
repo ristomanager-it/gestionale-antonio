@@ -374,6 +374,11 @@ async function caricaDipendenti() {
     return;
   }
 
+  // Chi assegnato alla sede ha ANCHE un account app: serve solo per la colonna
+  // ruolo, non per decidere chi esiste. Prima l'elenco partiva da qui e filtrava
+  // i dipendenti con .in("user_id", ...): chi non aveva l'app spariva, cioe'
+  // stagionali, lavapiatti ed extra. In una sede senza nessun invito l'elenco
+  // usciva vuoto anche con i dipendenti regolarmente in tabella.
   let utentiSedeQuery = supabase
     .from("utenti_sedi")
     .select("user_id, sede_id")
@@ -386,9 +391,7 @@ async function caricaDipendenti() {
   const { data: utentiSede, error: utentiSedeError } = await utentiSedeQuery;
 
   if (utentiSedeError) {
-    console.error(utentiSedeError);
-    if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore caricamento assegnazioni sedi</span>`;
-    return;
+    console.warn("Assegnazioni sedi non caricate:", utentiSedeError);
   }
 
   const userIds = Array.from(
@@ -399,15 +402,6 @@ async function caricaDipendenti() {
         .map((id) => String(id))
     )
   );
-
-  if (!userIds.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="10" class="small-muted">Nessun dipendente assegnato a questa sede</td>
-      </tr>
-    `;
-    return;
-  }
 
   let query = supabase
     .from("dipendenti")
@@ -425,10 +419,13 @@ async function caricaDipendenti() {
       user_id,
       tipo_contratto,
       agenzia_nome,
-      costo_orario_agenzia
+      costo_orario_agenzia,
+      sede_id
     `)
     .eq("azienda_id", azienda.id)
-    .in("user_id", userIds)
+    // i dipendenti si filtrano per SEDE. Chi non ha sede assegnata gira su piu'
+    // sedi e resta visibile ovunque: meglio vederlo due volte che non vederlo mai.
+    .or("sede_id.eq." + sedeAttivaUuid + ",sede_id.is.null")
     .order("nome");
 
   if (onlyAttivi) query = query.eq("attivo", true);
