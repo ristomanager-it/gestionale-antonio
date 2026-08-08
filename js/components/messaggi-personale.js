@@ -105,5 +105,18 @@ export async function montaMessaggiHome(contenitore) {
 
   const dove = contenitore || document.querySelector('.view') || document.body;
   dove.insertBefore(box, dove.firstChild);
+
+  // sotto l intestazione, non dietro: si misura quanto e alta e si scende.
+  // Se ci sono gia le scorciatoie, ci si mette sotto quelle.
+  const header = document.querySelector('header, .app-header, #app-header, .topbar');
+  const sc = document.getElementById('sc-barra');
+  if (header && !sc) {
+    const h = header.getBoundingClientRect();
+    const pos = getComputedStyle(header).position;
+    if ((pos === 'fixed' || pos === 'sticky') && h.height > 0) {
+      box.style.marginTop = Math.round(h.height + 12) + 'px';
+    }
+  }
+  if (sc) sc.after(box);
   return msg.length;
 }
