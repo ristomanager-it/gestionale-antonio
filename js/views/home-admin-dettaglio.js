@@ -122,6 +122,20 @@ export async function render(container) {
   updateHeader(azienda, sede);
   hideLegacyTopbar();
 
+  // stesso cruscotto della home admin: il codice sta in un posto solo
+  const montaCruscotto = async () => {
+    try {
+      const box = container.querySelector("#cruscotto-periodo");
+      if (!box || !azienda?.id) return;
+      box.innerHTML = `<div style="padding:26px;text-align:center;color:#8a94a2;font-size:13px">Calcolo…</div>`;
+      const m = await import("./home-admin.js?v=" + (window.APP_V || "1"));
+      const supabase = window.supabaseClient || window.supabase;
+      box.innerHTML = await m.bloccoCruscotto(supabase, azienda.id, sede?.id, { da: _drillFrom, a: _drillTo });
+    } catch (e) { console.warn("cruscotto:", e); }
+  };
+  window.__montaCruscotto = montaCruscotto;
+  setTimeout(montaCruscotto, 0);
+
 
   container.innerHTML = `
   <div class="view home-admin">
@@ -176,11 +190,8 @@ export async function render(container) {
           </div>
         </div>
 
-        <div class="admin-gauge-wrap">
-          <canvas id="admin-gauge"></canvas>
-        </div>
-
-        <div class="admin-bep">
+        <div id="cruscotto-periodo"></div>
+        <div class="admin-bep" style="display:none">
           BEP <span id="bepValore">€ 0</span>
         </div>
 
@@ -784,6 +795,10 @@ async function refreshDashboard(period) {
   const { from: _f, to: _t } = getDateRange(period);
   _drillFrom = _f || _drillFrom;
   _drillTo = _t || _drillTo;
+
+  // il cruscotto segue i pulsanti del periodo
+  if (typeof window.__montaCruscotto === "function") window.__montaCruscotto();
+
   const metrics = await fetchDashboardData(period);
 
   if (!metrics) {
