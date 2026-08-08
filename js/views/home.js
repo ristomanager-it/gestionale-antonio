@@ -150,8 +150,12 @@ export async function render(container){
     .catch(e => console.warn("camera non caricata:", e))
   loadTony(ruolo)
 
-  // ✅ FIX CRITICO
-  await loadProduzioniHome()
+  // la wedding planner non ha produzioni da caricare: ha i suoi eventi
+  if (ruolo === "agenzia") {
+    await loadEventiAgenzia()
+  } else {
+    await loadProduzioniHome()
+  }
 }
 
 
@@ -348,6 +352,31 @@ function bindTonyActions(){
 // =====================================
 
 function renderByRole(ruolo){
+
+  // La wedding planner non lavora in cucina: le venivano mostrate le
+  // produzioni di oggi e il pulsante del planner, che per lei e una rotta
+  // negata. Vede i suoi eventi e il pulsante per farne uno nuovo.
+  if (ruolo === "agenzia") {
+    return `
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">Nuova proposta</div>
+          <button class="btn" data-route="creaPreventivo">+ Crea un preventivo</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📋 I tuoi eventi</div>
+          <div id="ag-eventi">Caricamento...</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">💍 Le location</div>
+          <button class="btn" data-route="bo-location-ricevimenti">Apri le location</button>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="grid">
 
@@ -372,6 +401,59 @@ function renderByRole(ruolo){
   `
 }
 
+
+// =====================================
+// EVENTI DELL'AGENZIA
+// =====================================
+
+async function loadEventiAgenzia(){
+  const box = document.getElementById("ag-eventi")
+  if (!box) return
+  const supabase = window.supabaseClient
+  const aziendaId = window.state?.azienda?.id
+  if (!supabase || !aziendaId) { box.textContent = "—"; return }
+
+  const oggi = new Date().toISOString().slice(0,10)
+  const { data, error } = await supabase
+    .from("preventivi")
+    .select("id, titolo_evento, data_evento, n_invitati, totale, stato, confermato_il, provvigione_importo")
+    .eq("azienda_id", aziendaId)
+    .gte("data_evento", oggi)
+    .order("data_evento")
+    .limit(20)
+
+  if (error) { box.innerHTML = '<div style="color:#b91c1c;font-size:13px;">' + error.message + '</div>'; return }
+  const ev = data || []
+  if (!ev.length) { box.innerHTML = '<div style="color:#64748b;font-size:14px;">Nessun evento in programma.</div>'; return }
+
+  box.innerHTML = ev.map(e => {
+    const quando = e.data_evento
+      ? new Date(e.data_evento + "T12:00:00").toLocaleDateString("it-IT", { day:"numeric", month:"long" })
+      : "data da fissare"
+    const confermato = !!e.confermato_il
+    return `
+      <div style="padding:9px 0;border-top:1px solid #f1f5f9;cursor:pointer;" data-route="creaPreventivo?id=${e.id}">
+        <div style="font-weight:700;font-size:14.5px;">${e.titolo_evento || "Evento"}</div>
+        <div style="font-size:13px;color:#64748b;">
+          ${quando}${e.n_invitati ? " · " + e.n_invitati + " invitati" : ""}
+          ${confermato ? ' · <span style="color:#166534;font-weight:700;">confermato</span>'
+                       : ' · <span style="color:#b45309;font-weight:700;">in attesa</span>'}
+        </div>
+        ${e.provvigione_importo ? `<div style="font-size:13px;color:#0E5A7A;font-weight:700;">
+          tua provvigione € ${Number(e.provvigione_importo).toLocaleString("it-IT",{minimumFractionDigits:2})}</div>` : ""}
+      </div>`
+  }).join("")
+
+  // questi elementi nascono dopo che i pulsanti sono stati agganciati:
+  // senza questo, toccare un evento non apre niente
+  box.querySelectorAll("[data-route]").forEach(el => {
+    el.onclick = () => {
+      const route = el.dataset.route
+      if (window.router?.go) window.router.go(route)
+      else window.location.hash = "#/" + route
+    }
+  })
+}
 
 // =====================================
 // PRODUZIONI (FIX)
