@@ -91,7 +91,7 @@ ${sintesi(ora)}
       <div class="ad-griglia">
         <a href="#/bo-bilancio" class="p"><i>📊</i><b>Bilancio</b><span>Conto economico</span></a>
         <a href="#/menu-intelligence" class="p"><i>🍽️</i><b>Menu engineering</b><span>Cosa rende davvero</span></a>
-        <a href="#/bo-fatture" class="p"><i>🧾</i><b>Fatture</b><span>Acquisti e costi</span></a>
+        <a href="#/acquisti" class="p"><i>🧾</i><b>Fatture</b><span>Acquisti e costi</span></a>
         <a href="#/persone" class="p"><i>👥</i><b>Personale</b><span>Ore e costi</span></a>
         <a href="#/dashboard-dettaglio" class="p spicca"><i>📈</i><b>Cruscotto</b><span>Grafici del periodo</span></a>
         <a href="#/venduto" class="p spicca"><i>🧾</i><b>Venduto</b><span>Prodotti e quantità</span></a>
