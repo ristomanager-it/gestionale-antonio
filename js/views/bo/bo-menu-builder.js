@@ -439,14 +439,32 @@ export async function render(container) {
   })();
 
   qs("#cfg-ordinabile").onchange = (e) => { qs("#ordinabile-panel").style.display = e.target.checked ? "block" : "none"; };
-  qs("#cfg-consegna").onchange = (e) => { qs("#consegna-panel").style.display = e.target.checked ? "block" : "none"; };
-  qs("#modo-fisso").onclick = () => cambiaModo("fisso");
-  qs("#modo-zone").onclick = () => cambiaModo("zone");
-  qs("#btn-zona").onclick = () => { zone.push({ nome: "Nuova zona", costo: 0, cap: [], distanza_max_km: null, gratis_sopra: null, ordine_minimo: 0 }); renderZone(); };
-  qs("#btn-fascia").onclick = () => {
-    fasce.push({ giorni: [1,2,3,4,5,6,0], ora_da: "19:00", ora_a: "22:00", passo_minuti: 30, max_ordini: 4, tipo: "entrambi" });
-    renderFasce();
-  };
+
+  // Delega sul contenitore: i pulsanti del pannello consegna vivono dentro
+  // pezzi di pagina che vengono ridisegnati quando si cambia menu. Agganciandoli
+  // una volta sola all'avvio, il collegamento si perdeva e non succedeva niente.
+  container.addEventListener("click", (e) => {
+    const b = e.target.closest("#btn-fascia, #btn-zona, #modo-fisso, #modo-zone");
+    if (!b || !container.contains(b)) return;
+    e.preventDefault();
+    if (b.id === "modo-fisso") return cambiaModo("fisso");
+    if (b.id === "modo-zone") return cambiaModo("zone");
+    if (b.id === "btn-zona") {
+      zone.push({ nome: "Nuova zona", costo: 0, cap: [], distanza_max_km: null, gratis_sopra: null, ordine_minimo: 0 });
+      return renderZone();
+    }
+    if (b.id === "btn-fascia") {
+      fasce.push({ giorni: [1,2,3,4,5,6,0], ora_da: "19:00", ora_a: "22:00", passo_minuti: 30, max_ordini: 4, tipo: "entrambi" });
+      return renderFasce();
+    }
+  });
+
+  container.addEventListener("change", (e) => {
+    if (e.target && e.target.id === "cfg-consegna") {
+      const pan = qs("#consegna-panel");
+      if (pan) pan.style.display = e.target.checked ? "block" : "none";
+    }
+  });
   qs("#cfg-raccolta").onchange = (e) => { qs("#raccolta-campi-panel").style.display = e.target.checked ? "block" : "none"; };
 
   qs("#cfg-nome").oninput = () => {
