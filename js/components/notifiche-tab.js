@@ -6,6 +6,25 @@ function esc(v) {
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// Dove porta una notifica. Il campo riferimento_id e' vuoto su tutte le righe
+// esistenti, quindi si va sulla schermata giusta e non sul singolo elemento:
+// meglio la lista che un vicolo cieco.
+function rottaNotifica(n) {
+  const tipo = String(n && n.tipo || "").toLowerCase();
+
+  if (tipo.indexOf("prenotazion") >= 0) return "#/prenotazioni";
+  if (tipo.indexOf("timbratur") >= 0) return "#/timbrature";
+  if (tipo.indexOf("turni") >= 0) return "#/timbrature";
+  if (tipo.indexOf("calendario") >= 0) return "#/bo-calendario";
+  if (tipo.indexOf("produzion") >= 0) return "#/produzioni-aperte";
+  if (tipo.indexOf("fattur") >= 0) return "#/acquisti";
+  if (tipo.indexOf("preventiv") >= 0) return "#/preventivi";
+  if (tipo.indexOf("recension") >= 0) return "#/recensioni-ricevute";
+  if (tipo.indexOf("ferie") >= 0 || tipo.indexOf("assenz") >= 0) return "#/hr-richieste";
+  if (tipo.indexOf("ordin") >= 0) return "#/ordini";
+  return null;
+}
+
 export async function initNotificheTab() {
 
   const supabase = window.supabaseClient || window.supabase;
@@ -16,7 +35,7 @@ export async function initNotificheTab() {
 
   const { data, error } = await supabase
     .from("notifiche")
-    .select("id,titolo,messaggio,letto,created_at")
+    .select("id,titolo,messaggio,letto,created_at,tipo,riferimento_tipo,riferimento_id")
     .eq("azienda_id", aziendaId)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -35,9 +54,13 @@ export async function initNotificheTab() {
           : '<span class="ntf-letto">letto</span>') +
       '</div>' +
       '<ul class="ntf-lista" id="ntf-lista" hidden>' +
-        data.map(n =>
-          '<li><b>' + esc(n.titolo) + '</b>\n' + esc(n.messaggio) + '</li>'
-        ).join("") +
+        data.map(n => {
+          const rotta = rottaNotifica(n);
+          return '<li' + (rotta ? ' class="ntf-va" data-rotta="' + esc(rotta) + '"' : '') + '>' +
+                   '<b>' + esc(n.titolo) + '</b>\n' + esc(n.messaggio) +
+                   (rotta ? '<span class="ntf-freccina">&#8250;</span>' : '') +
+                 '</li>';
+        }).join("") +
       '</ul>' +
     '</div>' +
     '<style>' +
@@ -53,7 +76,21 @@ export async function initNotificheTab() {
       '.ntf-lista li{font-size:13px;padding:8px 0;border-bottom:1px solid #f6f6f4;' +
         'line-height:1.4;white-space:pre-line}' +
       '.ntf-lista li:last-child{border-bottom:none}' +
+      '.ntf-va{cursor:pointer;position:relative;padding-right:18px}' +
+      '.ntf-va:active{background:#f8fafc}' +
+      '.ntf-freccina{position:absolute;right:0;top:8px;color:#9ca3af;font-size:18px;font-weight:700}' +
     '</style>';
+
+  // Handler agganciato alla lista, non alle singole voci: il contenuto viene
+  // riscritto e i gestori sui figli smetterebbero di rispondere in silenzio.
+  const listaEl = document.getElementById("ntf-lista");
+  if (listaEl) {
+    listaEl.onclick = (ev) => {
+      const voce = ev.target.closest(".ntf-va");
+      if (!voce || !voce.dataset.rotta) return;
+      window.location.hash = voce.dataset.rotta;
+    };
+  }
 
   document.getElementById("ntf-barra").onclick = async () => {
 
