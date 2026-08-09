@@ -477,7 +477,16 @@ function disegnaPannello() {
   };
   document.getElementById('cal-tony').onclick = scriviConTony;
   document.getElementById('cal-salva').onclick = () => aggiorna({ testo: valTesto(), stato: 'bozza' }, 'Salvato');
-  document.getElementById('cal-approva').onclick = () => aggiorna({ testo: valTesto(), stato: 'approvato' }, 'Approvato');
+  document.getElementById('cal-approva').onclick = async () => {
+    // serve il nome di chi approva, non solo lo stato
+    const u = await supa().auth.getUser();
+    await aggiorna({
+      testo: valTesto(),
+      stato: 'approvato',
+      approvato_da: u.data?.user?.id || null,
+      approvato_at: new Date().toISOString()
+    }, 'Approvato');
+  };
   document.getElementById('cal-salta').onclick = () => aggiorna({ stato: 'saltato' }, 'Giorno saltato');
   document.getElementById('cal-prova').onclick = () => pubblica(true);
   document.getElementById('cal-pubblica').onclick = () => pubblica(false);
