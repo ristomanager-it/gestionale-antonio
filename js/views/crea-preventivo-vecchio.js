@@ -591,7 +591,7 @@ function renderSezione(sezioneId) {
         ${collegata ? `<span style="font-size:11px;color:#16a34a;font-weight:600;">✓ In ricettario</span>` : ''}
         ${placeholder ? `
           <span style="font-size:11px;color:#f59e0b;font-weight:600;">⚠ Non in ricettario</span>
-          <a href="#/ricette-editor" style="font-size:11px;color:#0E5A7A;text-decoration:underline;">→ Completa scheda ricetta</a>
+          <a href="#/ricettario" style="font-size:11px;color:#0E5A7A;text-decoration:underline;">→ Completa scheda ricetta</a>
         ` : ''}
         ${!collegata && !placeholder && row.ricetta_nome ? `<span style="font-size:11px;color:#94a3b8;">Portata libera — verrà creata in ricettario</span>` : ''}
         ${!haPrezzo && row.ricetta_nome ? `<span style="font-size:11px;color:#dc2626;">⚠ Inserisci prezzo pp</span>` : ''}
