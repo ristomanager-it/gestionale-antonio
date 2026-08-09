@@ -138,6 +138,8 @@
         '<div class="soldi ' + (pagato ? "pagato" : "riscuoti") + '">' +
           '<span class="q">' + (pagato ? "✅ Già pagato" : euro(c.totale)) + '</span>' +
           '<span class="l">' + (pagato ? "non riscuotere niente" : "da riscuotere alla consegna") + '</span>' +
+          (Number(c.mancia) > 0 ? '<span class="l" style="display:block;margin-top:6px;font-size:13px;font-weight:800;">🎁 ' +
+            euro(c.mancia) + ' di mancia per te' + (pagato ? " — te la dà il locale" : " — sono compresi nel totale") + '</span>' : '') +
         '</div>' +
         '<div class="azioni">' +
           '<a class="btn scuro" href="' + maps + '" target="_blank" rel="noopener">🗺 Naviga</a>' +
