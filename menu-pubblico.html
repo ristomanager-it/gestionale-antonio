@@ -1167,7 +1167,7 @@
       }
 
       document.getElementById("checkout-content").innerHTML =
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin:-24px -20px 10px;padding:14px 20px 10px;position:sticky;top:-24px;background:#fff;z-index:5;border-bottom:1px solid #f1f5f9;">' +
           '<button id="chk-indietro" style="background:none;border:none;padding:6px 0;font-size:14px;font-weight:700;color:var(--brand);">← Il tuo ordine</button>' +
           '<button id="chk-chiudi" style="background:none;border:none;padding:6px;font-size:20px;color:#94a3b8;line-height:1;">✕</button>' +
         '</div>' +
@@ -1324,6 +1324,7 @@
         spillo.on("dragend", function() {
           var p = spillo.getLatLng();
           pos = { lat: p.lat, lng: p.lng, gps: false };
+          indirizzoDaPosizione(p.lat, p.lng);   // via e civico si riempiono da soli
           calcolaConsegna();
         });
       } else {
@@ -1389,7 +1390,11 @@
         dati.piano = document.getElementById("chk-piano").value.trim();
         dati.note_consegna = document.getElementById("chk-note-consegna").value.trim();
         dati.lat = pos.lat; dati.lng = pos.lng; dati.posizione_da_gps = pos.gps;
-        if (!dati.indirizzo || !dati.civico) { erroreBox.textContent = "Servono via e numero civico."; return; }
+        if (!dati.indirizzo && pos.lat == null) {
+          erroreBox.textContent = "Scrivi la via oppure metti lo spillo sulla mappa.";
+          return;
+        }
+        if (!dati.indirizzo) dati.indirizzo = "Punto sulla mappa";
         if (consegna.errore) { erroreBox.textContent = consegna.errore; return; }
       }
 
