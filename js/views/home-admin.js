@@ -666,6 +666,49 @@ async function listaDecisioni(supabase, aziendaId) {
     }
   } catch (e) { /* niente */ }
 
+  // ── PRODOTTI CON CONVERSIONE INVENTATA ──────────────────────────────────
+  // Comprati a pezzo o a cassa ma usati in ricetta a grammi: senza sapere
+  // quanto contiene un pezzo, il costo viene calcolato come se pesasse un chilo.
+  // Non da' errore, da' un numero credibile e sbagliato.
+  // Il controllo guarda i dati, non un elenco fisso: un prodotto caricato
+  // domani compare qui da solo il giorno stesso.
+  try {
+    const { data } = await supabase.rpc("prodotti_da_correggere", { p_azienda_id: aziendaId });
+    if ((data || []).length) {
+      const primi = data.slice(0, 3).map(r => r.prodotto).join(", ");
+      const ricette = data.reduce((s, r) => s + (Number(r.ricette_coinvolte) || 0), 0);
+      out.push({
+        livello: "rosso",
+        link: "#/bo-prodotti",
+        titolo: data.length + (data.length === 1
+          ? " prodotto con costo non attendibile"
+          : " prodotti con costo non attendibile"),
+        sotto: "Comprati a pezzo, usati a peso: manca quanto contiene un pezzo. "
+          + "Toccano " + ricette + (ricette === 1 ? " ricetta" : " ricette") + ". " + primi,
+      });
+    }
+  } catch (e) { /* niente */ }
+
+  // ── CONFIGURAZIONE DELL'AZIENDA ─────────────────────────────────────────
+  // La percentuale e' calcolata sui dati veri, non sul flag profilo_completato,
+  // che risultava vero anche per aziende senza partita IVA ne' indirizzo.
+  try {
+    const { data } = await supabase.rpc("stato_requisiti", { p_azienda_id: aziendaId });
+    const obbligatori = (data || []).filter(r => r.obbligatorio);
+    const mancanti = obbligatori.filter(r => !r.completato);
+    if (obbligatori.length && mancanti.length) {
+      const perc = Math.round(((obbligatori.length - mancanti.length) * 100) / obbligatori.length);
+      out.push({
+        livello: perc < 60 ? "rosso" : "giallo",
+        link: "#/completaAzienda",
+        titolo: "Configurazione al " + perc + "%",
+        sotto: "Mancano " + mancanti.length + (mancanti.length === 1 ? " voce: " : " voci: ")
+          + mancanti.slice(0, 3).map(r => r.etichetta).join(", ")
+          + (mancanti.length > 3 ? " e altre" : ""),
+      });
+    }
+  } catch (e) { /* niente */ }
+
   return out;
 }
 
