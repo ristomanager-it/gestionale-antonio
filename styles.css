@@ -2163,13 +2163,17 @@ min-width:0;
   }
 }
 
+/* Stampa della scheda timbratura: si nasconde il resto SOLO se quella scheda
+   e' davvero aperta. Senza il :has, questa regola rendeva invisibile qualunque
+   stampa dell'app — proposta al cliente compresa: pagine bianche, numero di
+   pagine giusto, nessun errore. */
 @media print {
-  body * {
+  body:has(.tb-modal-card) * {
     visibility: hidden;
   }
 
-  .tb-modal-card,
-  .tb-modal-card * {
+  body:has(.tb-modal-card) .tb-modal-card,
+  body:has(.tb-modal-card) .tb-modal-card * {
     visibility: visible;
   }
 
