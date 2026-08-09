@@ -4051,7 +4051,7 @@ export async function render(container) {
               <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">
                 Chiave pubblicabile (pk_…)
               </label>
-              <input id="stripe-pk" class="input" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;"
+              <input id="stripe-pk" class="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="rf-stripe-pk" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;"
                 placeholder="pk_test_…  oppure  pk_live_…"
                 value="${esc(c.stripe_publishable_key || '')}">
             </div>
@@ -4061,7 +4061,7 @@ export async function render(container) {
                 Chiave segreta (sk_…)
               </label>
               <div style="position:relative;">
-                <input id="stripe-sk" type="password" class="input" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;padding-right:80px;"
+                <input id="stripe-sk" type="password" class="input" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="rf-stripe-sk" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;padding-right:80px;"
                   placeholder="sk_test_…  oppure  sk_live_…"
                   value="${esc(c.stripe_secret_key || '')}">
                 <button id="btn-mostra-sk" type="button" style="
@@ -4080,7 +4080,7 @@ export async function render(container) {
                 Webhook Secret (whsec_…)
               </label>
               <div style="position:relative;">
-                <input id="stripe-wh" type="password" class="input" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;padding-right:80px;"
+                <input id="stripe-wh" type="password" class="input" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="rf-stripe-wh" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;padding-right:80px;"
                   placeholder="whsec_…"
                   value="${esc(c.stripe_webhook_secret || '')}">
                 <button id="btn-mostra-wh" type="button" style="
