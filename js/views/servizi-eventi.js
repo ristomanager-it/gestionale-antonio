@@ -285,7 +285,10 @@ export async function render(container) {
           <div class="se-card">
             <h2>Aggiungi un tipo di evento</h2>
             <div class="se-form">
-              <input id="r-tipo" class="in" placeholder="Tipo evento (deve combaciare col preventivo)">
+              <select id="r-tipo" class="in">
+                <option value="">— tipo evento —</option>
+                ${TIPI_EVENTO.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}
+              </select>
               <input id="r-mansione" class="in" placeholder="Mansione (cameriere, sommelier…)" value="cameriere">
               <input id="r-ogni" class="in" type="number" min="1" placeholder="1 ogni quanti ospiti">
               <input id="r-min" class="in" type="number" min="0" placeholder="Minimo">
@@ -495,6 +498,9 @@ export async function render(container) {
     }
   }
 }
+
+const TIPI_EVENTO = ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Battesimo", "Comunione",
+  "Cresima", "Compleanno", "Laurea", "Anniversario", "Cena aziendale", "Buffet", "Altro"];
 
 const CATEGORIE = ["fotografia", "video", "auto", "allestimenti", "fiori", "musica",
   "animazione", "noleggi", "sala", "trasporti", "altro"];
