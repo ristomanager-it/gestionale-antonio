@@ -167,11 +167,11 @@
       // ── Carica prenotazione in base al tipo ──────────────────────
       var res;
       if (tipo === "hotel") {
-        res = await supa
-          .from("hotel_prenotazioni")
-          .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, font_family, font_size)")
-          .eq("token_pubblico", token)
-          .maybeSingle();
+        var rpcH = await supa.rpc("hotel_prenotazione_pubblica", { p_token: token });
+        var datiH = (rpcH.data && rpcH.data.ok) ? rpcH.data.prenotazione : null;
+        // la pagina si aspetta il ramo "aziende": la funzione lo chiama aziende_pubbliche
+        if (datiH && datiH.aziende_pubbliche) datiH.aziende = datiH.aziende_pubbliche;
+        res = { data: datiH, error: rpcH.error };
       } else {
         // la tabella non si legge piu' in diretta: il token deve valere qualcosa
         var rpc = await supa.rpc("prenotazione_pubblica", { p_token: token });
@@ -217,8 +217,8 @@
         await aggiornaStatoPagamento(sessionId);
         // Ricarica per avere stato aggiornato
         if (tipo === "hotel") {
-          var res2 = await supa.from("hotel_prenotazioni").select("*").eq("token_pubblico", token).maybeSingle();
-          if (res2.data) prenotazione = Object.assign(prenotazione, res2.data);
+          var rpcH2 = await supa.rpc("hotel_prenotazione_pubblica", { p_token: token });
+          if (rpcH2.data && rpcH2.data.ok) prenotazione = Object.assign(prenotazione, rpcH2.data.prenotazione);
         } else {
           var rpc2 = await supa.rpc("prenotazione_pubblica", { p_token: token });
           if (rpc2.data && rpc2.data.ok) prenotazione = Object.assign(prenotazione, rpc2.data.prenotazione);
@@ -557,11 +557,11 @@
       var btn = document.getElementById("btn-conferma-cancella");
       btn.disabled = true; btn.textContent = "Cancellazione...";
       var azione = tipo === "hotel"
-        ? supa.from("hotel_prenotazioni").update({ stato: "annullata" }).eq("token_pubblico", token)
+        ? supa.rpc("hotel_prenotazione_cancella", { p_token: token, p_motivo: null })
         : supa.rpc("prenotazione_cancella", { p_token: token });
       azione.then(function(res) {
         var out = res.data || {};
-        var andata = tipo === "hotel" ? !res.error : (!res.error && out.ok);
+        var andata = !res.error && out.ok;
         if (!andata) {
           btn.disabled = false; btn.textContent = "Sì, cancella";
           alert(out.errore || "Errore nella cancellazione. Riprova.");
