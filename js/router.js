@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260809-15";
+const APP_V = "20260809-16";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -1125,7 +1125,7 @@ async function loadPianoForAzienda(azienda) {
 async function loadSediForAzienda(aziendaId) {
   const { data, error } = await supabase
     .from("sedi")
-    .select("id, nome, indirizzo, latitudine, longitudine")
+    .select("id, nome, indirizzo, latitudine, longitudine, raggio_geofence_m")
     .eq("azienda_id", aziendaId)
     .order("nome", { ascending: true });
 
