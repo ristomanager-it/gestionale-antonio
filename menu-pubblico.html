@@ -968,7 +968,9 @@
     function disegnaOpzioni() {
       var v = vociById[opzVoce];
       var gruppi = opzPerVoce[opzVoce] || [];
-      var html = '<div class="raccolta-title">' + esc(v.nome) + '</div>';
+      var html = '<div style="display:flex;justify-content:flex-end;margin-bottom:2px;">' +
+        '<button id="opz-chiudi" style="background:none;border:none;padding:4px;font-size:20px;color:#94a3b8;line-height:1;">✕</button></div>' +
+        '<div class="raccolta-title">' + esc(v.nome) + '</div>';
       if (v.descrizione) html += '<div class="raccolta-sub">' + esc(v.descrizione) + '</div>';
 
       gruppi.forEach(function(g) {
@@ -1006,6 +1008,9 @@
 
       document.getElementById("opz-content").innerHTML = html;
 
+      document.getElementById("opz-chiudi").onclick = function() {
+        document.getElementById("opz-overlay").style.display = "none";
+      };
       document.querySelectorAll("#opz-content [data-opz]").forEach(function(inp) {
         inp.onchange = function() {
           var gruppo = inp.dataset.gruppo, id = inp.dataset.opz, tipo = inp.dataset.tipo;
@@ -1068,6 +1073,10 @@
       }).join("");
 
       document.getElementById("cart-content").innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<button id="cart-indietro" style="background:none;border:none;padding:6px 0;font-size:14px;font-weight:700;color:var(--brand);">← Torna al menu</button>' +
+          '<button id="cart-chiudi" style="background:none;border:none;padding:6px;font-size:20px;color:#94a3b8;line-height:1;">✕</button>' +
+        '</div>' +
         '<div class="raccolta-title">🛒 Il tuo ordine</div>' +
         '<div style="margin:12px 0;">' + (righeHtml || '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px 0;">Il carrello è vuoto.<br>Torna al menu e aggiungi qualcosa.</div>') + '</div>' +
         '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding-top:12px;border-top:2px solid #111827;margin-bottom:16px;">' +
@@ -1075,6 +1084,12 @@
         '</div>' +
         '<button class="raccolta-btn" id="btn-vai-checkout"' + (r.count === 0 ? ' disabled style="opacity:.5;"' : '') + '>Procedi all\'ordine →</button>';
 
+      document.getElementById("cart-indietro").onclick = function() {
+        document.getElementById("cart-overlay").style.display = "none";
+      };
+      document.getElementById("cart-chiudi").onclick = function() {
+        document.getElementById("cart-overlay").style.display = "none";
+      };
       document.querySelectorAll("#cart-content [data-cart-inc]").forEach(function(b) {
         b.onclick = function() { modificaLinea(b.dataset.cartInc, 1); apriCarrello(); };
       });
@@ -1152,6 +1167,10 @@
       }
 
       document.getElementById("checkout-content").innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+          '<button id="chk-indietro" style="background:none;border:none;padding:6px 0;font-size:14px;font-weight:700;color:var(--brand);">← Il tuo ordine</button>' +
+          '<button id="chk-chiudi" style="background:none;border:none;padding:6px;font-size:20px;color:#94a3b8;line-height:1;">✕</button>' +
+        '</div>' +
         '<div class="raccolta-title">I tuoi dati</div>' +
         modi +
         '<div class="checkout-field"><label>Nome e cognome *</label><input id="chk-nome" class="raccolta-input" placeholder="Mario Rossi"></div>' +
@@ -1165,6 +1184,13 @@
         '<button class="raccolta-btn" id="btn-paga">💳 Paga con carta</button>' +
         '<button class="raccolta-btn" id="btn-consegna" style="background:#fff;color:var(--brand);border:1.5px solid #cbd5e1;margin-top:8px;">💶 Pago alla consegna</button>';
 
+      document.getElementById("chk-indietro").onclick = function() {
+        document.getElementById("checkout-overlay").style.display = "none";
+        apriCarrello();
+      };
+      document.getElementById("chk-chiudi").onclick = function() {
+        document.getElementById("checkout-overlay").style.display = "none";
+      };
       document.querySelectorAll("#checkout-content [data-modo]").forEach(function(b) {
         b.onclick = function() { tipoOrdine = b.dataset.modo; consegna = { costo: 0, zona: null, errore: null }; apriCheckout(); };
       });
@@ -1375,7 +1401,9 @@
         var res = await fetch(ORDINI_EDGE_URL, {
           method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(dati)
         });
-        var out = JSON.parse(await res.text());
+        var testo = await res.text();
+        var out;
+        try { out = JSON.parse(testo); } catch (e) { throw new Error("Risposta non leggibile dal server"); }
         if (!out.success) throw new Error(out.error || "Errore nella creazione dell'ordine");
         if (out.checkout_url) { window.location.href = out.checkout_url; return; }
         // pagamento alla consegna: si va alla pagina di stato dell'ordine
