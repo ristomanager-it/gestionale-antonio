@@ -442,9 +442,9 @@ export async function render(container) {
       return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
     };
 
+    // solo il conteggio dei coperti gia' presi, senza leggere le prenotazioni altrui
     const { data: prenSlot } = await window.supabaseClient
-      .from("prenotazioni_tavoli").select("ora, coperti")
-      .eq("azienda_id", aziendaId).eq("data", data).in("stato", ["nuova","confermata","arrivata"]);
+      .rpc("slot_occupati", { p_azienda: aziendaId, p_data: data, p_sede: sedeId || null });
 
     // Filtra orari per disponibilità config
     const orariDisponibili = orariBase.filter(slot => {
@@ -644,12 +644,12 @@ export async function render(container) {
       });
       const result = await res.json();
       if (!res.ok || !result.checkout_url) {
-        await window.supabaseClient.from("prenotazioni_tavoli").update({ stato:"in_attesa" }).eq("token_pubblico", nuovoToken);
+        await window.supabaseClient.rpc("prenotazione_pagamento_fallito", { p_token: nuovoToken });
         _mostraSuccesso(consensoNetwork, msg); clearForm(); return;
       }
       window.location.href = result.checkout_url;
     } catch(e) {
-      await window.supabaseClient.from("prenotazioni_tavoli").update({ stato:"in_attesa" }).eq("token_pubblico", nuovoToken);
+      await window.supabaseClient.rpc("prenotazione_pagamento_fallito", { p_token: nuovoToken });
       _mostraSuccesso(consensoNetwork, msg); clearForm();
     }
   }
