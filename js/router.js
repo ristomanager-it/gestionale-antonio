@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260809-25";
+const APP_V = "20260809-26";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -1829,12 +1829,16 @@ function renderUpgradeWall(app, feature, route) {
       <strong>${featureLabel}</strong> non è incluso nel tuo piano <em>${nomePiano}</em>.
     </p>
     <p style="font-size:13px;color:#94a3b8;margin-bottom:28px;">
-      Fai l'upgrade per sbloccare questa funzione e molte altre.
+      Scrivici per attivarla: te la apriamo noi.
     </p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-      <a href="#/portale-cliente" style="padding:13px 24px;background:#0E5A7A;color:#fff;
+      <!-- Il pulsante puntava a #/portale-cliente, una rotta che non esiste:
+           chi ci arrivava premeva e non succedeva niente. Finche' non c'e' una
+           schermata dove cambiare piano da soli, si scrive a un indirizzo vero. -->
+      <a href="mailto:info@ristoflow-ai.com?subject=Attivazione%20${encodeURIComponent(featureLabel)}"
+        style="padding:13px 24px;background:#0E5A7A;color:#fff;
         border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;">
-        🚀 Upgrade piano
+        Richiedi l'attivazione
       </a>
       <a href="#/home" style="padding:13px 24px;background:#f1f5f9;color:#374151;
         border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;">
