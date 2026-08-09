@@ -1445,9 +1445,17 @@ export async function render(container) {
           <b>Non a domicilio</b>: si ordina al tavolo e da asporto, ma non si consegna a casa — la tagliata in motorino non ci va.
         </div>
       </div>
+      <div style="border-top:1px solid #e2e8f0;margin:14px 0 12px;padding-top:12px;">
+        <div style="font-size:12px;font-weight:800;color:#166534;margin-bottom:6px;">➕ Aggiunte e varianti</div>
+        <div style="font-size:11.5px;color:#64748b;line-height:1.5;margin-bottom:8px;">
+          Un gruppo si scrive una volta e si aggancia a tutti i piatti che lo usano: "Aggiunte pizza" non va ricopiata su trenta pizze.
+        </div>
+        <div id="voce-gruppi"></div>
+      </div>
       <button id="btn-salva-voce-edit" class="mb-btn mb-btn-primary" style="width:100%;">💾 Salva</button>
       <div id="msg-voce-edit" style="margin-top:8px;font-size:12px;text-align:center;"></div>
     `;
+    renderGruppiVoce(voce.id);
     if (fc) {
       const prezzoInput = qs("#voce-prezzo-edit");
       const updateFC = () => {
@@ -1578,6 +1586,94 @@ export async function render(container) {
   }
 
   // ── MOCKUP COMPLETO MENU ──────────────────────────────────────
+  // ── AGGIUNTE E VARIANTI ───────────────────────────────────────
+  // I gruppi sono dell'azienda; ai piatti si agganciano con una spunta.
+  let gruppiOpz = [], gruppiVoceCorrente = new Set(), voceOpzCorrente = null;
+
+  async function renderGruppiVoce(voceId) {
+    voceOpzCorrente = voceId;
+    const box = qs("#voce-gruppi"); if (!box) return;
+    const [g, l] = await Promise.all([
+      supa().from("menu_opzioni_gruppi").select("*, menu_opzioni(*)").eq("azienda_id", azienda_id).order("ordine"),
+      supa().from("menu_voci_gruppi").select("gruppo_id").eq("voce_id", voceId),
+    ]);
+    gruppiOpz = g.data || [];
+    gruppiVoceCorrente = new Set((l.data || []).map(x => x.gruppo_id));
+
+    box.innerHTML = gruppiOpz.map(gr => {
+      const on = gruppiVoceCorrente.has(gr.id);
+      const opz = (gr.menu_opzioni || []).sort((a,b) => (a.ordine||0)-(b.ordine||0));
+      return `
+        <div style="border:1px solid ${on ? "#86efac" : "#e2e8f0"};background:${on ? "#f0fdf4" : "#fff"};border-radius:11px;padding:10px;margin-bottom:8px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" data-gvoce="${gr.id}" ${on ? "checked" : ""} style="accent-color:#16a34a;width:17px;height:17px;">
+            <b style="font-size:13.5px;flex:1;">${esc(gr.nome)}</b>
+            <span style="font-size:11px;color:#64748b;">${gr.tipo === "togli" ? "rimozioni" : gr.tipo === "singola" ? "una scelta" : "più scelte"}</span>
+            <button type="button" class="mb-x" data-gx="${gr.id}">🗑</button>
+          </label>
+          <div style="font-size:12px;color:#475569;margin:6px 0 0 25px;">
+            ${opz.map(o => `${esc(o.nome)}${Number(o.prezzo) > 0 ? " +" + Number(o.prezzo).toFixed(2).replace(".", ",") + " €" : ""}`).join(" · ") || "<i>nessuna opzione</i>"}
+          </div>
+          <div style="margin:8px 0 0 25px;display:flex;gap:6px;flex-wrap:wrap;">
+            <input class="mb-input" data-onome="${gr.id}" placeholder="Prosciutto cotto" style="flex:1;min-width:130px;">
+            <input class="mb-input" data-oprezzo="${gr.id}" type="number" step="0.5" min="0" placeholder="€" style="width:80px;">
+            <button type="button" class="mb-add" data-oadd="${gr.id}" style="width:auto;padding:8px 14px;margin:0;">+ opzione</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    box.innerHTML += `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+        <input class="mb-input" id="gr-nome" placeholder="Nome del gruppo — es. Aggiunte" style="flex:1;min-width:150px;">
+        <select class="mb-input" id="gr-tipo" style="width:140px;">
+          <option value="multi">Più scelte</option>
+          <option value="singola">Una scelta sola</option>
+          <option value="togli">Rimozioni</option>
+        </select>
+        <button type="button" class="mb-add" id="gr-add" style="width:auto;padding:8px 14px;margin:0;">+ gruppo</button>
+      </div>`;
+
+    box.querySelectorAll("[data-gvoce]").forEach(c => {
+      c.onchange = async () => {
+        const gid = c.dataset.gvoce;
+        if (c.checked) await supa().from("menu_voci_gruppi").insert({ voce_id: voceId, gruppo_id: gid });
+        else await supa().from("menu_voci_gruppi").delete().eq("voce_id", voceId).eq("gruppo_id", gid);
+        renderGruppiVoce(voceId);
+      };
+    });
+    box.querySelectorAll("[data-gx]").forEach(b => {
+      b.onclick = async (e) => {
+        e.preventDefault();
+        if (!confirm("Tolgo questo gruppo? Sparisce da tutti i piatti che lo usano.")) return;
+        await supa().from("menu_opzioni_gruppi").delete().eq("id", b.dataset.gx);
+        renderGruppiVoce(voceId);
+      };
+    });
+    box.querySelectorAll("[data-oadd]").forEach(b => {
+      b.onclick = async (e) => {
+        e.preventDefault();
+        const gid = b.dataset.oadd;
+        const nome = box.querySelector(`[data-onome="${gid}"]`).value.trim();
+        if (!nome) return;
+        const prezzo = parseFloat(box.querySelector(`[data-oprezzo="${gid}"]`).value) || 0;
+        await supa().from("menu_opzioni").insert({ gruppo_id: gid, nome, prezzo });
+        renderGruppiVoce(voceId);
+      };
+    });
+    const add = box.querySelector("#gr-add");
+    if (add) add.onclick = async (e) => {
+      e.preventDefault();
+      const nome = box.querySelector("#gr-nome").value.trim();
+      if (!nome) return;
+      const tipo = box.querySelector("#gr-tipo").value;
+      const { data } = await supa().from("menu_opzioni_gruppi")
+        .insert({ azienda_id: azienda_id, nome, tipo, max_scelte: tipo === "singola" ? 1 : null })
+        .select("id").single();
+      if (data) await supa().from("menu_voci_gruppi").insert({ voce_id: voceId, gruppo_id: data.id });
+      renderGruppiVoce(voceId);
+    };
+  }
+
   function renderMockupCompleto() {
     const box = qs("#mockup-live");
     if (!box) return;
