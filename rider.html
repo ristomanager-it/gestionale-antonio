@@ -108,7 +108,8 @@
     var daFare = consegne.filter(function(c) { return c.stato_consegna !== "consegnato"; });
     var html = '<div class="wrap">' +
       '<div class="testa"><div><div class="n">' + esc(nomeRider || "Le mie consegne") + '</div>' +
-      '<div class="s">' + daFare.length + (daFare.length === 1 ? " consegna" : " consegne") + ' da fare</div></div>' +
+      '<div class="s">' + daFare.length + (daFare.length === 1 ? " consegna" : " consegne") + ' da fare</div>' +
+      '<div id="contanti-turno" style="font-size:12px;color:#6ee7b7;margin-top:2px;"></div></div>' +
       '<div class="gps-stato' + (gpsAttivo ? " on" : "") + '" id="gps-stato">' + (gpsAttivo ? "📍 posizione attiva" : "📍 spenta") + '</div></div>';
 
     if (!daFare.length) {
@@ -146,6 +147,7 @@
           (!ritirato ? '<button class="btn" data-stato="ritirato" data-id="' + c.id + '">📦 Ritirato, parto</button>' : '') +
           (ritirato ? '<button class="btn verde" data-stato="consegnato" data-id="' + c.id + '">✅ Consegnato</button>' : '') +
           (!pagato ? '<button class="btn chiaro" data-qr="' + esc(c.token_ordine) + '" data-tot="' + c.totale + '">📱 Fai pagare col QR</button>' : '') +
+          (!pagato ? '<button class="btn scuro" data-contanti="' + c.id + '" data-tot="' + c.totale + '">💶 Riscosso in contanti</button>' : '') +
         '</div>' +
       '</div>';
     });
@@ -169,12 +171,33 @@
         carica();
       };
     });
+    document.querySelectorAll("[data-contanti]").forEach(function(b) {
+      b.onclick = async function() {
+        if (!confirm("Hai riscosso " + euro(b.dataset.tot) + " in contanti?\n\nResta segnato a tuo nome per la chiusura di cassa.")) return;
+        b.disabled = true; b.textContent = "…";
+        var r = await supa.rpc("rider_incassa_contanti", { p_token: token, p_ordine: b.dataset.contanti });
+        if (!r.data || !r.data.ok) {
+          alert((r.data && r.data.errore) || "Non è andata, riprova.");
+          b.disabled = false; b.textContent = "💶 Riscosso in contanti";
+          return;
+        }
+        carica();
+      };
+    });
     document.querySelectorAll("[data-qr]").forEach(function(b) {
       b.onclick = function() { mostraQr(b.dataset.qr, b.dataset.tot); };
     });
     document.getElementById("qr-chiudi").onclick = function() {
       document.getElementById("qr-ov").style.display = "none";
     };
+
+    // quanto ha in tasca: serve a lui e serve alla chiusura di cassa
+    supa.rpc("rider_contanti_turno", { p_token: token }).then(function(r) {
+      var el = document.getElementById("contanti-turno");
+      if (!el || !r.data || !r.data.ok || !Number(r.data.contanti)) return;
+      el.textContent = "💶 " + euro(r.data.contanti) + " in contanti oggi · " + r.data.ordini +
+        (r.data.ordini === 1 ? " ordine" : " ordini");
+    });
   }
 
   function mostraQr(tokenOrdine, totale) {
