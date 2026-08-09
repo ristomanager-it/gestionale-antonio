@@ -26,9 +26,15 @@ let foto = [];           // immagini del preventivo: le nostre e quelle degli sp
 const TIPI_EVENTO = ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Battesimo", "Comunione",
   "Cresima", "Compleanno", "Laurea", "Anniversario", "Cena aziendale", "Buffet", "Altro"];
 
+// Il tipo di evento sta in tipo_servizio. I preventivi vecchi lo tenevano nel titolo:
+// per quelli si ripiega su titolo_evento, cosi' non perdono le regole e gli schemi.
+function tipoEvento() {
+  return P.tipo_servizio || P.titolo_evento || "";
+}
+
 // matrimoni e anniversari hanno due intestatari
 function dueNomi() {
-  return ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Anniversario"].includes(P.titolo_evento);
+  return ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Anniversario"].includes(tipoEvento());
 }
 
 export async function render(container, params = {}) {
@@ -111,7 +117,7 @@ async function caricaPreventivo(supabase, id) {
 async function calcolaPersonale(supabase, azienda) {
   try {
     const { data } = await supabase.rpc("personale_evento", {
-      p_azienda: azienda.id, p_tipo: P.titolo_evento || "Altro",
+      p_azienda: azienda.id, p_tipo: tipoEvento() || "Altro",
       p_invitati: Math.max(Number(P.n_invitati) || 1, 1),
       p_bambini: Math.max(Number(P.n_bambini) || 0, 0),
     });
@@ -156,9 +162,9 @@ function quantitaServizio(s) {
 // Si propone solo se il menu e' ancora vuoto: non si sovrascrive il lavoro fatto.
 function schemaProposto() {
   if (righe.some(r => r.nome)) return null;
-  if (!P.titolo_evento) return null;
+  if (!tipoEvento()) return null;
   const f = P.formula_servizio === "buffet" ? "buffet" : "servito";
-  const m = modelli.find(x => norm(x.tipo_evento) === norm(P.titolo_evento) && x.formula === f)
+  const m = modelli.find(x => norm(x.tipo_evento) === norm(tipoEvento()) && x.formula === f)
         || modelli.find(x => norm(x.tipo_evento) === "altro" && x.formula === f);
   if (!m) return null;
   const sez = Array.isArray(m.sezioni) ? m.sezioni : [];
@@ -169,12 +175,12 @@ function schemaProposto() {
 // un battesimo non ha l'aperitivo di serie, ma se lo chiedono deve bastare un tocco.
 function modelloAttivo() {
   const f = P.formula_servizio === "buffet" ? "buffet" : "servito";
-  return modelli.find(x => norm(x.tipo_evento) === norm(P.titolo_evento || "") && x.formula === f)
+  return modelli.find(x => norm(x.tipo_evento) === norm(tipoEvento()) && x.formula === f)
       || modelli.find(x => norm(x.tipo_evento) === "altro" && x.formula === f) || null;
 }
 
 function sezioniConsigliate() {
-  if (!P.titolo_evento) return [];
+  if (!tipoEvento()) return [];
   const extra = Array.isArray(modelloAttivo()?.sezioni_extra) ? modelloAttivo().sezioni_extra : [];
   const gia = new Set(righe.map(r => norm(r.sezione)));
   return extra.filter(x => !gia.has(norm(x.nome)));
@@ -298,12 +304,17 @@ function disegna(container, supabase, azienda, sede) {
           ${campo("Email", "cliente_email", "email")}
           <div>
             <label>Evento</label>
-            <select class="in" data-campo="titolo_evento">
+            <select class="in" data-campo="tipo_servizio">
               <option value="">— scegli —</option>
-              ${TIPI_EVENTO.map(t => `<option value="${esc(t)}"${P.titolo_evento === t ? " selected" : ""}>${esc(t)}</option>`).join("")}
-              ${P.titolo_evento && !TIPI_EVENTO.includes(P.titolo_evento)
-                ? `<option value="${esc(P.titolo_evento)}" selected>${esc(P.titolo_evento)}</option>` : ""}
+              ${TIPI_EVENTO.map(t => `<option value="${esc(t)}"${tipoEvento() === t ? " selected" : ""}>${esc(t)}</option>`).join("")}
+              ${tipoEvento() && !TIPI_EVENTO.includes(tipoEvento())
+                ? `<option value="${esc(tipoEvento())}" selected>${esc(tipoEvento())}</option>` : ""}
             </select>
+          </div>
+          <div>
+            <label>Titolo</label>
+            <input class="in" data-campo="titolo_evento" value="${esc(P.titolo_evento || "")}"
+                   placeholder="Come si chiama questo evento">
           </div>
           <div>
             <label>Come si serve</label>
@@ -343,7 +354,7 @@ function disegna(container, supabase, azienda, sede) {
         <div class="aiuto">Scrivi il piatto: se è in ricettario porta con sé il suo costo.</div>
         ${schemaProposto() ? `
           <div class="pv2-schema">
-            <div class="t"><b>Schema ${esc(P.titolo_evento || "evento")} · ${P.formula_servizio === "buffet" ? "al buffet" : "servito"}</b>
+            <div class="t"><b>Schema ${esc(tipoEvento() || "evento")} · ${P.formula_servizio === "buffet" ? "al buffet" : "servito"}</b>
               <span>${schemaProposto().map(x => esc(x.nome)).join(" · ")}</span></div>
             <button class="pv2-btn" id="pv2-applica-schema">Usa questo schema</button>
           </div>` : ""}
@@ -591,7 +602,7 @@ function aggancia(container, supabase, azienda, sede) {
         const l = locations.find(x => String(x.id) === String(P.location_id));
         if (l) { P.location = l.nome; P.location_prezzo = Number(l.prezzo_affitto_base) || 0; }
       }
-      if (k === "titolo_evento" || k === "n_invitati" || k === "n_bambini" || k === "formula_servizio") {
+      if (k === "tipo_servizio" || k === "titolo_evento" || k === "n_invitati" || k === "n_bambini" || k === "formula_servizio") {
         await calcolaPersonale(supabase, azienda);
       }
       ri();
@@ -715,7 +726,7 @@ function aggancia(container, supabase, azienda, sede) {
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, apikey: token },
           body: JSON.stringify({
             azienda_id: azienda.id, nome: daFare[i].nome,
-            contesto: (P.titolo_evento || "") + ", servizio per banchetto",
+            contesto: (tipoEvento() || "") + ", servizio per banchetto",
           }),
         });
         const d = await resp.json();
@@ -932,10 +943,10 @@ function aggancia(container, supabase, azienda, sede) {
 
   container.querySelector("#pv2-mail")?.addEventListener("click", () => {
     if (!P.cliente_email) { msg(container, "Manca l'email del cliente.", true); return; }
-    const oggetto = `Proposta per ${P.titolo_evento || "il vostro evento"} — ${nomeCliente()}`;
+    const oggetto = `Proposta per ${P.titolo_evento || tipoEvento() || "il vostro evento"} — ${nomeCliente()}`;
     const corpo = [
       `Gentili ${nomeCliente() || "clienti"},`, "",
-      `ecco la proposta per ${P.titolo_evento || "il vostro evento"} del ${dataLunga(P.data_evento)}.`,
+      `ecco la proposta per ${P.titolo_evento || tipoEvento() || "il vostro evento"} del ${dataLunga(P.data_evento)}.`,
       "",
       "La trovate qui, sempre aggiornata:",
       linkCliente(),
@@ -949,7 +960,7 @@ function aggancia(container, supabase, azienda, sede) {
 
   container.querySelector("#pv2-wa")?.addEventListener("click", () => {
     const tel = String(P.cliente_telefono || "").replace(/\D/g, "");
-    const testo = `Ciao ${P.cliente_nome || ""}, ecco la proposta per ${P.titolo_evento || "il vostro evento"}:\n${linkCliente()}\n\nDa lì potete vedere tutto e dirci cosa cambiare.`;
+    const testo = `Ciao ${P.cliente_nome || ""}, ecco la proposta per ${P.titolo_evento || tipoEvento() || "il vostro evento"}:\n${linkCliente()}\n\nDa lì potete vedere tutto e dirci cosa cambiare.`;
     window.open("https://wa.me/" + (tel.startsWith("39") ? tel : "39" + tel) + "?text=" + encodeURIComponent(testo), "_blank");
   });
 }
