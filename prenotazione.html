@@ -173,11 +173,9 @@
           .eq("token_pubblico", token)
           .maybeSingle();
       } else {
-        res = await supa
-          .from("prenotazioni_tavoli")
-          .select("*, aziende(nome, logo_url, cover_url, foto_galleria, link_menu, telefono, indirizzo, citta, colore_brand, tema_landing_id, font_family, font_size), sedi(nome, logo_url, cover_url, indirizzo, citta, telefono)")
-          .eq("token_pubblico", token)
-          .maybeSingle();
+        // la tabella non si legge piu' in diretta: il token deve valere qualcosa
+        var rpc = await supa.rpc("prenotazione_pubblica", { p_token: token });
+        res = { data: (rpc.data && rpc.data.ok) ? rpc.data.prenotazione : null, error: rpc.error };
       }
 
       var data = res.data; var error = res.error;
@@ -218,12 +216,13 @@
       if (sessionId) {
         await aggiornaStatoPagamento(sessionId);
         // Ricarica per avere stato aggiornato
-        var res2 = await supa
-          .from(tipo === "hotel" ? "hotel_prenotazioni" : "prenotazioni_tavoli")
-          .select("*")
-          .eq("token_pubblico", token)
-          .maybeSingle();
-        if (res2.data) prenotazione = Object.assign(prenotazione, res2.data);
+        if (tipo === "hotel") {
+          var res2 = await supa.from("hotel_prenotazioni").select("*").eq("token_pubblico", token).maybeSingle();
+          if (res2.data) prenotazione = Object.assign(prenotazione, res2.data);
+        } else {
+          var rpc2 = await supa.rpc("prenotazione_pubblica", { p_token: token });
+          if (rpc2.data && rpc2.data.ok) prenotazione = Object.assign(prenotazione, rpc2.data.prenotazione);
+        }
       }
 
       // ── Render ───────────────────────────────────────────────────
@@ -541,8 +540,15 @@
       var coperti = parseInt(document.getElementById("mod-coperti").value) || prenotazione.coperti;
       var ora = document.getElementById("mod-ora").value || prenotazione.ora;
       var note = document.getElementById("mod-note").value.trim();
-      supa.from("prenotazioni_tavoli").update({ data: data, coperti: coperti, ora: ora, note: note, richieste_speciali: note, modificata_dal_cliente: true, modificata_il: new Date().toISOString() }).eq("token_pubblico", token).then(function(res) {
-        if (res.error) { btn.disabled = false; btn.textContent = "Salva modifiche"; alert("Errore nel salvataggio. Riprova."); return; }
+      supa.rpc("prenotazione_modifica", {
+        p_token: token, p_data: data, p_ora: ora, p_coperti: coperti, p_note: note
+      }).then(function(res) {
+        var out = res.data || {};
+        if (res.error || !out.ok) {
+          btn.disabled = false; btn.textContent = "Salva modifiche";
+          alert(out.errore || "Errore nel salvataggio. Riprova.");
+          return;
+        }
         closeModal("modifica"); init();
       });
     }
@@ -550,9 +556,17 @@
     function cancellaPrenotazione() {
       var btn = document.getElementById("btn-conferma-cancella");
       btn.disabled = true; btn.textContent = "Cancellazione...";
-      var tabella = tipo === "hotel" ? "hotel_prenotazioni" : "prenotazioni_tavoli";
-      supa.from(tabella).update({ stato: "annullata" }).eq("token_pubblico", token).then(function(res) {
-        if (res.error) { btn.disabled = false; btn.textContent = "Sì, cancella"; alert("Errore nella cancellazione. Riprova."); return; }
+      var azione = tipo === "hotel"
+        ? supa.from("hotel_prenotazioni").update({ stato: "annullata" }).eq("token_pubblico", token)
+        : supa.rpc("prenotazione_cancella", { p_token: token });
+      azione.then(function(res) {
+        var out = res.data || {};
+        var andata = tipo === "hotel" ? !res.error : (!res.error && out.ok);
+        if (!andata) {
+          btn.disabled = false; btn.textContent = "Sì, cancella";
+          alert(out.errore || "Errore nella cancellazione. Riprova.");
+          return;
+        }
         closeModal("cancella"); renderCancellata();
       });
     }
