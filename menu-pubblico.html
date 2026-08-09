@@ -1167,15 +1167,18 @@
       var chiediOrario = menu.richiedi_orario_consegna !== false;
       var puoiConsegna = !!menu.consegna_attiva;
       var puoiAsporto = !!menu.ritiro_attivo;
+      var puoiTavolo = menu.tavolo_attivo !== false;
+      // un menu da solo asporto e consegne non deve mostrare "Tavolo"
+      if (!puoiTavolo && tipoOrdine === "tavolo") tipoOrdine = puoiConsegna ? "domicilio" : "asporto";
       var mem = ricordato();
       if (mem && mem.tipo && !apriCheckout._giaScelto) {
         tipoOrdine = mem.tipo; apriCheckout._giaScelto = true;
       }
-      if (!puoiConsegna && tipoOrdine === "domicilio") tipoOrdine = "tavolo";
-      if (!puoiAsporto && tipoOrdine === "asporto") tipoOrdine = "tavolo";
+      if (!puoiConsegna && tipoOrdine === "domicilio") tipoOrdine = puoiTavolo ? "tavolo" : "asporto";
+      if (!puoiAsporto && tipoOrdine === "asporto") tipoOrdine = puoiTavolo ? "tavolo" : "domicilio";
 
       var modi = "";
-      if (puoiConsegna || puoiAsporto) {
+      if ((puoiConsegna || puoiAsporto) && [puoiTavolo, puoiAsporto, puoiConsegna].filter(Boolean).length > 1) {
         function bottoneModo(v, ic, testo) {
           var on = tipoOrdine === v;
           return '<button data-modo="' + v + '" style="flex:1;border:2px solid ' + (on ? "var(--brand)" : "#e2e8f0") +
@@ -1184,7 +1187,7 @@
             '<span style="display:block;font-size:20px;">' + ic + '</span>' + testo + '</button>';
         }
         modi = '<div style="display:flex;gap:8px;margin:6px 0 16px;">' +
-          bottoneModo("tavolo", "🍽", esc(luogoLabel)) +
+          (puoiTavolo ? bottoneModo("tavolo", "🍽", esc(luogoLabel)) : "") +
           (puoiAsporto ? bottoneModo("asporto", "🛍", "Asporto") : "") +
           (puoiConsegna ? bottoneModo("domicilio", "🛵", "A casa") : "") +
           '</div>';
