@@ -1249,6 +1249,7 @@
       document.getElementById("btn-consegna").onclick = function() { inviaOrdine("alla_consegna"); };
       if (tipoOrdine === "domicilio") preparaIndirizzo();
       riempiRicordato();
+      preparaRiconoscimento();
       disegnaMancia();
       caricaSlot();
       if (tipoOrdine === "domicilio" && pos.lat != null) { mostraMappa(); calcolaConsegna(); }
@@ -1311,6 +1312,52 @@
         }).catch(function() {
           if (libero) libero.style.display = "block";
         });
+    }
+
+    // Se ha svuotato la memoria o cambiato telefono, il numero basta a
+    // ritrovare i suoi dati: li cerca sull'ultimo ordine fatto in questo locale.
+    function preparaRiconoscimento() {
+      var tel = document.getElementById("chk-tel"); if (!tel) return;
+      var avviso = document.createElement("div");
+      avviso.id = "chk-riconosciuto";
+      avviso.style.cssText = "font-size:12.5px;margin-top:5px;";
+      tel.parentNode.appendChild(avviso);
+
+      var timer = null;
+      tel.oninput = function() {
+        clearTimeout(timer);
+        var n = tel.value.replace(/\D/g, "");
+        if (n.length < 8) { avviso.innerHTML = ""; return; }
+        timer = setTimeout(function() { cercaCliente(n, avviso); }, 700);
+      };
+    }
+
+    function cercaCliente(numero, avviso) {
+      // se i campi sono gia' pieni non si disturba nessuno
+      var via = document.getElementById("chk-via");
+      var nome = document.getElementById("chk-nome");
+      if (nome && nome.value && (!via || via.value)) return;
+
+      avviso.innerHTML = '<span style="color:#94a3b8;">Cerco i tuoi dati…</span>';
+      rpc("cliente_ricorda", { p_menu: menu.id, p_telefono: numero }).then(function(d) {
+        if (!d || !d.ok) { avviso.innerHTML = ""; return; }
+        avviso.innerHTML = '<span style="color:var(--brand);font-weight:700;">Bentornato' +
+          (d.nome ? " " + esc(d.nome.split(" ")[0]) : "") + '!</span> ' +
+          '<button id="chk-usa-dati" style="background:none;border:none;padding:0;color:var(--brand);font-weight:700;font-size:12.5px;text-decoration:underline;">Usa i dati dell\'ultima volta</button>';
+        document.getElementById("chk-usa-dati").onclick = function(e) {
+          e.preventDefault();
+          [["chk-nome","nome"],["chk-email","email"],["chk-via","indirizzo"],["chk-civico","civico"],
+           ["chk-cap","cap"],["chk-citta","citta"],["chk-campanello","campanello"],
+           ["chk-piano","piano"],["chk-note-consegna","note_consegna"]].forEach(function(x) {
+            var el = document.getElementById(x[0]);
+            if (el && d[x[1]]) el.value = d[x[1]];
+          });
+          if (d.lat) { pos = { lat: Number(d.lat), lng: Number(d.lng), gps: false }; mostraMappa(); }
+          ricorda();
+          calcolaConsegna();
+          avviso.innerHTML = '<span style="color:#15803d;font-weight:700;">Dati compilati ✓</span>';
+        };
+      }).catch(function() { avviso.innerHTML = ""; });
     }
 
     // La mancia e' del rider, non del locale: si sceglie qui e si vede a parte.
