@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Le mie consegne</title>
+<link rel="icon" href="assets/favicon-192.png?v=9" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{--brand:#0E5A7A;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;}
+  .wrap{max-width:520px;margin:0 auto;padding:0 0 calc(30px + env(safe-area-inset-bottom));}
+  .testa{padding:16px 16px 12px;display:flex;justify-content:space-between;align-items:center;}
+  .testa .n{font-size:17px;font-weight:800;}
+  .testa .s{font-size:12px;color:#94a3b8;}
+  .gps-stato{font-size:11px;padding:5px 10px;border-radius:99px;background:#1e293b;color:#94a3b8;}
+  .gps-stato.on{background:#064e3b;color:#6ee7b7;}
+  .card{background:#1e293b;border-radius:16px;margin:10px 14px;padding:14px 16px;}
+  .cap{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .cliente{font-size:17px;font-weight:800;color:#f8fafc;}
+  .orario{font-size:12px;color:#94a3b8;}
+  .indirizzo{font-size:16px;font-weight:700;color:#f8fafc;line-height:1.3;}
+  .dettagli{font-size:13px;color:#cbd5e1;margin-top:3px;}
+  .note{background:#422006;color:#fed7aa;border-radius:9px;padding:8px 10px;font-size:13px;margin-top:8px;}
+  .piatti{font-size:13px;color:#cbd5e1;margin-top:8px;line-height:1.5;}
+  .soldi{border-radius:12px;padding:12px 14px;margin-top:12px;text-align:center;}
+  .soldi.pagato{background:#064e3b;color:#6ee7b7;}
+  .soldi.riscuoti{background:#7f1d1d;color:#fecaca;}
+  .soldi .q{font-size:24px;font-weight:800;display:block;}
+  .soldi .l{font-size:12px;opacity:.9;}
+  .azioni{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .btn{flex:1;min-width:130px;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;background:var(--brand);color:#fff;text-decoration:none;text-align:center;}
+  .btn.scuro{background:#334155;color:#e2e8f0;}
+  .btn.verde{background:#15803d;}
+  .btn.chiaro{background:#f8fafc;color:#0f172a;}
+  .vuoto{text-align:center;color:#94a3b8;padding:60px 24px;font-size:15px;}
+  .accesso{max-width:340px;margin:80px auto;background:#1e293b;border-radius:18px;padding:24px;text-align:center;}
+  .accesso h1{font-size:18px;margin-bottom:6px;}
+  .accesso p{font-size:13.5px;color:#94a3b8;margin-bottom:16px;}
+  .pin{width:100%;border:none;border-radius:12px;padding:14px;font-size:22px;text-align:center;letter-spacing:8px;background:#0f172a;color:#f8fafc;margin-bottom:12px;}
+  .qr-ov{position:fixed;inset:0;background:rgba(2,6,23,.94);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .qr-box{background:#fff;color:#0f172a;border-radius:20px;padding:22px;text-align:center;max-width:340px;width:100%;}
+  .qr-box h2{font-size:17px;margin-bottom:4px;}
+  .qr-box p{font-size:13px;color:#475569;margin-bottom:14px;}
+  .qr-box #qr{display:flex;justify-content:center;margin-bottom:14px;}
+  .qr-box .tot{font-size:26px;font-weight:800;color:#0E5A7A;margin-bottom:10px;}
+  .esito{font-size:13px;margin-top:10px;}
+  .privacy{font-size:11px;color:#64748b;text-align:center;padding:14px 24px 0;line-height:1.5;}
+</style>
+</head>
+<body>
+<div id="root"><div class="vuoto">Carico…</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+(function() {
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var supa = window.supabase.createClient(URL_SB, ANON);
+  var root = document.getElementById("root");
+  var params = new URLSearchParams(window.location.search);
+  var token = (params.get("t") || params.get("token") || "").trim();
+  var pin = null, consegne = [], nomeRider = "", idRider = null, gpsAttivo = false, watchId = null;
+
+  if (!token) { root.innerHTML = '<div class="vuoto">Questo collegamento non è valido.<br>Chiedi il tuo link personale.</div>'; return; }
+  try { pin = sessionStorage.getItem("rf_rider_pin_" + token); } catch (e) {}
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c) {
+      return ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" })[c];
+    });
+  }
+  function euro(n) { return (Number(n)||0).toFixed(2).replace(".", ",") + " €"; }
+  function ora(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);
+  }
+
+  async function carica() {
+    var r = await supa.rpc("rider_consegne", { p_token: token, p_pin: pin });
+    var d = r.data;
+    if (!d || !d.ok) { chiediPin(d && d.errore); return; }
+    if (d.serve_pin) { chiediPin(null, d.rider); return; }
+    nomeRider = d.rider; idRider = d.rider_id;
+    consegne = d.consegne || [];
+    disegna();
+    gestisciPosizione();
+  }
+
+  function chiediPin(errore, chi) {
+    root.innerHTML = '<div class="accesso">' +
+      '<h1>' + (chi ? "Ciao " + esc(chi) : "Le tue consegne") + '</h1>' +
+      '<p>Scrivi il tuo PIN per vedere i giri di oggi.</p>' +
+      '<input class="pin" id="pin" inputmode="numeric" maxlength="8" placeholder="••••">' +
+      '<button class="btn" id="entra" style="width:100%;">Entra</button>' +
+      (errore ? '<div class="esito" style="color:#fca5a5;">' + esc(errore) + '</div>' : '') +
+      '</div>';
+    document.getElementById("entra").onclick = function() {
+      pin = document.getElementById("pin").value.trim();
+      try { sessionStorage.setItem("rf_rider_pin_" + token, pin); } catch (e) {}
+      carica();
+    };
+  }
+
+  function disegna() {
+    var daFare = consegne.filter(function(c) { return c.stato_consegna !== "consegnato"; });
+    var html = '<div class="wrap">' +
+      '<div class="testa"><div><div class="n">' + esc(nomeRider || "Le mie consegne") + '</div>' +
+      '<div class="s">' + daFare.length + (daFare.length === 1 ? " consegna" : " consegne") + ' da fare</div></div>' +
+      '<div class="gps-stato' + (gpsAttivo ? " on" : "") + '" id="gps-stato">' + (gpsAttivo ? "📍 posizione attiva" : "📍 spenta") + '</div></div>';
+
+    if (!daFare.length) {
+      html += '<div class="vuoto">Nessuna consegna in attesa.<br>Quando arriva un ordine compare qui.</div>';
+    }
+
+    daFare.forEach(function(c) {
+      var pagato = c.stato_pagamento === "pagato";
+      var ritirato = c.stato_consegna === "ritirato";
+      var assegnato = c.stato_consegna === "assegnato";
+      var maps = "https://www.google.com/maps/dir/?api=1&destination=" +
+        (c.lat ? c.lat + "," + c.lng : encodeURIComponent((c.indirizzo||"") + " " + (c.civico||"") + " " + (c.citta||"")));
+
+      html += '<div class="card">' +
+        '<div class="cap"><span class="cliente">' + esc(c.cliente_nome || "Cliente") + '</span>' +
+        '<span class="orario">ordine ' + ora(c.creato) + (c.orario_consegna ? ' · per ' + esc(c.orario_consegna) : '') + '</span></div>' +
+        '<div class="indirizzo">' + esc((c.indirizzo || "") + " " + (c.civico || "")) + '</div>' +
+        '<div class="dettagli">' + esc([c.cap, c.citta].filter(Boolean).join(" ")) +
+          (c.campanello ? ' · campanello ' + esc(c.campanello) : '') +
+          (c.piano ? ' · piano ' + esc(c.piano) : '') + '</div>' +
+        (c.note_consegna ? '<div class="note">📝 ' + esc(c.note_consegna) + '</div>' : '') +
+        (c.allergie_note ? '<div class="note">⚠️ Allergie: ' + esc(c.allergie_note) + '</div>' : '') +
+        '<div class="piatti">' + (c.piatti || []).map(function(p) {
+            return p.quantita + '× ' + esc(p.piatto);
+          }).join('<br>') + '</div>' +
+        '<div class="soldi ' + (pagato ? "pagato" : "riscuoti") + '">' +
+          '<span class="q">' + (pagato ? "✅ Già pagato" : euro(c.totale)) + '</span>' +
+          '<span class="l">' + (pagato ? "non riscuotere niente" : "da riscuotere alla consegna") + '</span>' +
+        '</div>' +
+        '<div class="azioni">' +
+          '<a class="btn scuro" href="' + maps + '" target="_blank" rel="noopener">🗺 Naviga</a>' +
+          (c.cliente_telefono ? '<a class="btn scuro" href="tel:' + esc(c.cliente_telefono) + '">📞 Chiama</a>' : '') +
+        '</div>' +
+        '<div class="azioni">' +
+          (!ritirato ? '<button class="btn" data-stato="ritirato" data-id="' + c.id + '">📦 Ritirato, parto</button>' : '') +
+          (ritirato ? '<button class="btn verde" data-stato="consegnato" data-id="' + c.id + '">✅ Consegnato</button>' : '') +
+          (!pagato ? '<button class="btn chiaro" data-qr="' + esc(c.token_ordine) + '" data-tot="' + c.totale + '">📱 Fai pagare col QR</button>' : '') +
+        '</div>' +
+      '</div>';
+    });
+
+    html += '<div class="privacy">La tua posizione viene registrata solo mentre una consegna è in corso, ' +
+      'serve a far vedere al cliente dove sei, e viene cancellata ogni notte. Chiudendo questa pagina si ferma.</div>';
+    html += '</div>' +
+      '<div class="qr-ov" id="qr-ov"><div class="qr-box">' +
+        '<h2>Paga con la tua carta</h2><p>Il cliente inquadra il codice col suo telefono.</p>' +
+        '<div class="tot" id="qr-tot"></div><div id="qr"></div>' +
+        '<button class="btn scuro" id="qr-chiudi" style="width:100%;">Chiudi</button>' +
+        '<div class="esito" id="qr-esito"></div>' +
+      '</div></div>';
+
+    root.innerHTML = html;
+
+    document.querySelectorAll("[data-stato]").forEach(function(b) {
+      b.onclick = async function() {
+        b.disabled = true; b.textContent = "…";
+        await supa.rpc("rider_aggiorna", { p_token: token, p_ordine: b.dataset.id, p_stato: b.dataset.stato });
+        carica();
+      };
+    });
+    document.querySelectorAll("[data-qr]").forEach(function(b) {
+      b.onclick = function() { mostraQr(b.dataset.qr, b.dataset.tot); };
+    });
+    document.getElementById("qr-chiudi").onclick = function() {
+      document.getElementById("qr-ov").style.display = "none";
+    };
+  }
+
+  function mostraQr(tokenOrdine, totale) {
+    var box = document.getElementById("qr");
+    box.innerHTML = "";
+    document.getElementById("qr-tot").textContent = euro(totale);
+    document.getElementById("qr-esito").textContent = "";
+    var link = window.location.origin + "/ordine.html?t=" + encodeURIComponent(tokenOrdine);
+    new QRCode(box, { text: link, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+    document.getElementById("qr-ov").style.display = "flex";
+
+    // si controlla da solo se il pagamento arriva, cosi' il rider non deve chiedere
+    var contr = setInterval(async function() {
+      if (document.getElementById("qr-ov").style.display !== "flex") { clearInterval(contr); return; }
+      var r = await supa.rpc("ordine_stato_pubblico", { p_token: tokenOrdine });
+      if (r.data && r.data.ok && r.data.stato_pagamento === "pagato") {
+        clearInterval(contr);
+        document.getElementById("qr-esito").innerHTML =
+          '<b style="color:#15803d;font-size:16px;">✅ Pagamento effettuato</b>';
+        setTimeout(function() {
+          document.getElementById("qr-ov").style.display = "none";
+          carica();
+        }, 2500);
+      }
+    }, 4000);
+  }
+
+  // La posizione parte solo quando c'e' almeno una consegna ritirata, e si
+  // ferma da sola quando non ce ne sono piu'. Nessun tracciamento a vuoto.
+  function gestisciPosizione() {
+    var inCorso = consegne.filter(function(c) { return c.stato_consegna === "ritirato"; });
+    if (!inCorso.length) {
+      if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      gpsAttivo = false;
+      var s = document.getElementById("gps-stato");
+      if (s) { s.className = "gps-stato"; s.textContent = "📍 spenta"; }
+      return;
+    }
+    if (watchId != null || !navigator.geolocation) return;
+    watchId = navigator.geolocation.watchPosition(function(p) {
+      gpsAttivo = true;
+      var s = document.getElementById("gps-stato");
+      if (s) { s.className = "gps-stato on"; s.textContent = "📍 posizione attiva"; }
+      consegne.filter(function(c) { return c.stato_consegna === "ritirato"; }).forEach(function(c) {
+        supa.rpc("rider_posizione", {
+          p_token: token, p_ordine: c.id,
+          p_lat: p.coords.latitude, p_lng: p.coords.longitude
+        });
+      });
+    }, function() {
+      gpsAttivo = false;
+      var s = document.getElementById("gps-stato");
+      if (s) { s.className = "gps-stato"; s.textContent = "📍 non disponibile"; }
+    }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 });
+  }
+
+  carica();
+  setInterval(carica, 30000);
+})();
+</script>
+</body>
+</html>
