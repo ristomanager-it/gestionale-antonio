@@ -861,7 +861,13 @@ export async function render(container) {
       }
     }
 
-    await salvaZoneEFasce();
+    let avvisoZone = "";
+    try {
+      await salvaZoneEFasce();
+    } catch (e) {
+      console.error("ZONE/FASCE:", e);
+      avvisoZone = " (zone e fasce non salvate: " + (e.message || e) + ")";
+    }
 
     const { error } = await supa().from("menu").update({
       nome:            qs("#cfg-nome").value.trim(),
@@ -892,7 +898,11 @@ export async function render(container) {
     }).eq("id", menuAttivo.id).eq("azienda_id", azienda_id);
     btn.disabled = false; btn.textContent = "💾 Salva configurazione";
     if (error) { msg.innerHTML = `<span style="color:#dc2626;">${error.message}</span>`; return; }
-    if (!msg.innerHTML) msg.innerHTML = `<span style="color:#16a34a;">✅ Salvato</span>`;
+    if (!msg.innerHTML || avvisoZone) {
+      msg.innerHTML = avvisoZone
+        ? `<span style="color:#b45309;">⚠️ Menu salvato${avvisoZone}</span>`
+        : `<span style="color:#16a34a;">✅ Salvato</span>`;
+    }
     await loadMenus();
     menuAttivo = menus.find(m => m.id === menuAttivo.id);
     renderTabsMenu();
@@ -1021,17 +1031,18 @@ export async function render(container) {
 
   async function salvaZoneEFasce() {
     // si riscrive tutto: sono poche righe e cosi' non restano orfani
-    await supa().from("consegna_zone").delete().eq("azienda_id", azienda_id);
+    const err = (r) => { if (r && r.error) throw new Error(r.error.message); return r; };
+    err(await supa().from("consegna_zone").delete().eq("azienda_id", azienda_id));
     if (modoConsegna === "zone" && zone.length) {
-      await supa().from("consegna_zone").insert(zone.map(z => ({
+      err(await supa().from("consegna_zone").insert(zone.map(z => ({
         azienda_id: azienda_id, nome: z.nome || "Zona", costo: z.costo || 0,
         gratis_sopra: z.gratis_sopra == null ? null : z.gratis_sopra,
         cap: (z.cap && z.cap.length) ? z.cap : null,
         distanza_max_km: z.distanza_max_km == null ? null : z.distanza_max_km,
         ordine_minimo: z.ordine_minimo || 0, attiva: true,
-      })));
+      }))));
     }
-    await supa().from("consegna_slot_config").delete().eq("azienda_id", azienda_id);
+    err(await supa().from("consegna_slot_config").delete().eq("azienda_id", azienda_id));
     const righe = [];
     fasce.forEach(f => (f.giorni || []).forEach(g => righe.push({
       azienda_id: azienda_id, giorno_settimana: g,
@@ -1039,7 +1050,7 @@ export async function render(container) {
       passo_minuti: f.passo_minuti || 30, max_ordini: f.max_ordini || 4,
       tipo: f.tipo || "entrambi", attivo: true,
     })));
-    if (righe.length) await supa().from("consegna_slot_config").insert(righe);
+    if (righe.length) err(await supa().from("consegna_slot_config").insert(righe));
   }
 
   // ── RENDER CAT SX ─────────────────────────────────────────────
