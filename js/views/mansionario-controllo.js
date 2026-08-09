@@ -113,7 +113,7 @@ export async function render(container) {
                     .filter(([,d]) => d.eseguite > 0 || d.studiate > 0 || d.quizMedia != null)
                     .sort(([,a],[,b]) => b.eseguite - a.eseguite)
                     .map(([id, d]) => `
-                      <tr style="border-bottom:1px solid #f1f5f9;" onclick="location.hash='#/mansionario-dip-${id}'" style="cursor:pointer;">
+                      <tr style="border-bottom:1px solid #f1f5f9;">
                         <td style="padding:10px 12px;font-weight:600;">${esc(d.nome)}</td>
                         <td style="padding:10px 12px;text-align:center;">
                           ${d.studiate > 0 ? `<span style="background:#f3e8ff;color:#7c3aed;border-radius:20px;padding:2px 10px;font-weight:600;">${d.studiate}</span>` : "—"}
