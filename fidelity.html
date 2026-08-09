@@ -551,7 +551,7 @@
             data: data, ora: ora, coperti: parseInt(document.getElementById("pr-coperti").value) || 2,
             note: document.getElementById("pr-note").value.trim() || null,
             stato: "in_attesa", canale: "online", source: "fidelity"
-          }]).select("id").maybeSingle();
+          }]);
           if (ins.error) throw ins.error;
           msg.textContent = "✅ Richiesta inviata! Ti confermeremo a breve."; msg.style.color = "#15803d";
           btn.textContent = "Prenotato ✓";
