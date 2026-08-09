@@ -35,6 +35,26 @@ function normalizeMatchText(value) {
   return s;
 }
 
+// Parole che NON dicono che prodotto e': unita' di misura, confezioni, categorie
+// merceologiche, provenienze. Sono la causa degli abbinamenti assurdi:
+// "TROFIE GR500" e "farina mais gialla prec GR500" avevano in comune solo gr500,
+// e tanto bastava per agganciarli.
+const PAROLE_VUOTE = new Set([
+  "g", "kg", "l", "ml", "cl", "pz", "confezione", "conf", "cf", "ct", "bt", "bst",
+  "vasc", "brick", "sv", "s", "f", "c", "n", "nr", "nl", "porz", "cat", "ii", "iii",
+  "italia", "italiano", "italiana", "sfusa", "sfuso", "circa", "the", "di", "da",
+  "al", "il", "la", "le", "lo", "un", "una", "per", "con", "in", "e"
+]);
+
+function paroleUtili(parole) {
+  return parole.filter((p) => {
+    if (PAROLE_VUOTE.has(p)) return false;
+    if (/^\d/.test(p)) return false;          // 500, 1kg, 6x24
+    if (p.length < 3) return false;
+    return true;
+  });
+}
+
 function tokenizeMatchText(value) {
   return normalizeMatchText(value)
     .split(" ")
@@ -42,15 +62,30 @@ function tokenizeMatchText(value) {
 }
 
 function computeWordOverlapScore(queryWords, targetWords) {
-  if (!queryWords.length || !targetWords.length) return 0;
+  const q = paroleUtili(queryWords);
+  const t = paroleUtili(targetWords);
+  if (!q.length || !t.length) return 0;
 
   let matches = 0;
+  q.forEach((word) => { if (t.includes(word)) matches += 1; });
 
-  queryWords.forEach((word) => {
-    if (targetWords.includes(word)) matches += 1;
-  });
+  return matches / q.length;
+}
 
-  return matches / queryWords.length;
+// Senza almeno una parola sostanziale in comune non si aggancia niente, a
+// nessun punteggio: e' il controllo che impedisce a un salmone di diventare
+// una bottiglia d'olio perche' condividono la pezzatura.
+function haParolaInComune(queryWords, targetWords) {
+  const q = paroleUtili(queryWords);
+  const t = paroleUtili(targetWords);
+  if (!q.length || !t.length) return false;
+  for (const w of q) {
+    if (t.includes(w)) return true;
+    for (const w2 of t) {
+      if (w.length >= 5 && w2.length >= 5 && (w.startsWith(w2.slice(0, 5)) || w2.startsWith(w.slice(0, 5)))) return true;
+    }
+  }
+  return false;
 }
 
 /* =========================
@@ -130,22 +165,22 @@ export function findBestProductMatch(nome, prodottiCache, aliasCache = []) {
       }
 
       const targetWords = tokenizeMatchText(target);
-      const overlapScore = computeWordOverlapScore(
-        queryWords,
-        targetWords
-      );
 
-      if (overlapScore >= 0.45) {
-        score = Math.max(score, overlapScore * 70);
-      }
+      // Nessuna parola sostanziale in comune: non si aggancia, punto.
+      if (haParolaInComune(queryWords, targetWords)) {
+        const overlapScore = computeWordOverlapScore(queryWords, targetWords);
 
-      const distance = levenshteinDistance(query, target);
-      const maxLen = Math.max(query.length, target.length) || 1;
+        if (overlapScore >= 0.45) {
+          score = Math.max(score, overlapScore * 90);
+        }
 
-      const similarity = 1 - distance / maxLen;
+        const distance = levenshteinDistance(query, target);
+        const maxLen = Math.max(query.length, target.length) || 1;
+        const similarity = 1 - distance / maxLen;
 
-      if (similarity >= 0.72) {
-        score = Math.max(score, similarity * 60);
+        if (similarity >= 0.72) {
+          score = Math.max(score, similarity * 90);
+        }
       }
     }
 
@@ -176,7 +211,7 @@ export function findBestProductMatch(nome, prodottiCache, aliasCache = []) {
       );
 
       if (overlapScore >= 0.6) {
-        score = Math.max(score, overlapScore * 75);
+        score = Math.max(score, overlapScore * 95);
       }
     });
 
@@ -186,7 +221,10 @@ export function findBestProductMatch(nome, prodottiCache, aliasCache = []) {
     }
   });
 
-  return bestScore >= 30 ? best : null;
+  // Soglia a 65 su una scala ora omogenea: prima i criteri arrivavano a massimi
+  // diversi (70 le parole, 60 la distanza) e 30 significava agganciare con il
+  // 43% di parole in comune, contando anche gr500 e cat II.
+  return bestScore >= 65 ? best : null;
 }
 
 /* =========================
