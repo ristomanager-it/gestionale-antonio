@@ -130,6 +130,7 @@ async function renderWizard(container, azienda) {
       <button class="wz-tab" data-step="2" style="flex:1;padding:14px 8px;border:none;background:none;font-weight:700;font-size:13px;cursor:pointer;color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;">2. Sede</button>
       <button class="wz-tab" data-step="3" style="flex:1;padding:14px 8px;border:none;background:none;font-weight:700;font-size:13px;cursor:pointer;color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;">3. Fiscale</button>
       <button class="wz-tab" data-step="4" style="flex:1;padding:14px 8px;border:none;background:none;font-weight:700;font-size:13px;cursor:pointer;color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;">4. Contatti</button>
+      <button class="wz-tab" data-step="5" style="flex:1;padding:14px 8px;border:none;background:none;font-weight:700;font-size:13px;cursor:pointer;color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;">5. Verifica</button>
     </div>
 
     <!-- Step 1 — Info locale -->
@@ -183,6 +184,24 @@ async function renderWizard(container, azienda) {
         <label style="font-size:12px;font-weight:600;color:#64748b;">Provincia</label>
         <input id="wz-provincia" class="input" value="${esc(s.provincia)}" placeholder="RM">
       </div>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-top:12px;">
+        <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Posizione sulla mappa</div>
+        <div style="font-size:12px;color:#64748b;line-height:1.5;margin-bottom:10px;">
+          Serve alla timbratura per riconoscere chi &egrave; sul posto. Se sei nel locale usa la posizione attuale: &egrave; molto pi&ugrave; precisa dell&apos;indirizzo.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="wz-gps" type="button" class="app-button small primary">&#128205; Usa posizione attuale</button>
+          <button id="wz-geocode" type="button" class="app-button small gray">Cerca dall&apos;indirizzo</button>
+        </div>
+        <div id="wz-geo-esito" style="font-size:12px;margin-top:10px;color:#64748b;">
+          ${(s.latitudine != null && s.longitudine != null && !(Number(s.latitudine) === 0 && Number(s.longitudine) === 0))
+            ? "Posizione registrata: " + Number(s.latitudine).toFixed(6) + ", " + Number(s.longitudine).toFixed(6)
+            : "Nessuna posizione registrata"}
+        </div>
+        <input id="wz-lat" type="hidden" value="${esc(s.latitudine)}">
+        <input id="wz-lon" type="hidden" value="${esc(s.longitudine)}">
+      </div>
     </div>
 
     <!-- Step 3 — Dati fiscali -->
@@ -226,7 +245,18 @@ async function renderWizard(container, azienda) {
         <input id="wz-instagram" class="input" value="${esc(p.instagram)}" placeholder="@mioristorante">
       </div>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin-top:8px;font-size:13px;color:#15803d;">
-        ✅ Quasi fatto! Clicca <strong>Salva e vai alla dashboard</strong> per completare la configurazione.
+        Ancora un passaggio: su <strong>Verifica</strong> controlliamo insieme cosa manca.
+      </div>
+    </div>
+
+    <!-- STEP 5: verifica dei requisiti, calcolata sui dati salvati -->
+    <div class="wz-step" data-step="5" style="padding:24px;display:none;">
+      <h3 style="margin:0 0 6px;font-size:16px;">Cosa manca per lavorare bene</h3>
+      <div style="font-size:13px;color:#64748b;line-height:1.55;margin-bottom:16px;">
+        Ogni voce si accende da sola quando il dato c&apos;&egrave;. Puoi entrare comunque e completare pi&ugrave; avanti: le voci rosse ti aspettano in home.
+      </div>
+      <div id="wz-requisiti">
+        <div style="font-size:13px;color:#94a3b8;">Controllo in corso...</div>
       </div>
     </div>
 
@@ -236,7 +266,7 @@ async function renderWizard(container, azienda) {
       <div style="flex:1;"></div>
       <div id="wz-error" style="font-size:13px;color:#dc2626;margin-right:12px;"></div>
       <button id="wz-next" class="app-button primary">Avanti →</button>
-      <button id="wz-save" class="app-button primary" style="display:none;">💾 Salva e vai alla dashboard</button>
+      <button id="wz-save" class="app-button primary" style="display:none;">Entra nella dashboard →</button>
     </div>
 
   </div>
@@ -244,7 +274,7 @@ async function renderWizard(container, azienda) {
 
   // ── Logica navigazione step ──
   let currentStep = 1;
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   function showStep(n) {
     currentStep = n;
@@ -267,20 +297,105 @@ async function renderWizard(container, azienda) {
     tab.onclick = () => showStep(parseInt(tab.dataset.step));
   });
 
-  // Avanti
-  container.querySelector("#wz-next").onclick = () => {
+  // Avanti. Passando al 5 si salva davvero: la verifica deve leggere i dati
+  // dal database, non i campi del modulo, altrimenti certifica cio' che spera.
+  container.querySelector("#wz-next").onclick = async () => {
     const err = validateStep(currentStep);
     if (err) { container.querySelector("#wz-error").textContent = err; return; }
-    if (currentStep < totalSteps) showStep(currentStep + 1);
+    if (currentStep >= totalSteps) return;
+
+    if (currentStep === 4) {
+      const btn = container.querySelector("#wz-next");
+      btn.disabled = true;
+      const testo = btn.textContent;
+      btn.textContent = "Salvataggio...";
+      const esito = await salvaDatiWizard(container, az);
+      btn.disabled = false;
+      btn.textContent = testo;
+      if (!esito.ok) { container.querySelector("#wz-error").textContent = esito.errore; return; }
+      showStep(5);
+      mostraRequisiti(container, az.id);
+      return;
+    }
+
+    showStep(currentStep + 1);
   };
+
+  // Posizione della sede: presa dal GPS o cercata dall'indirizzo appena scritto
+  const setGeo = (lat, lon, testo) => {
+    const latEl = container.querySelector("#wz-lat");
+    const lonEl = container.querySelector("#wz-lon");
+    const esitoEl = container.querySelector("#wz-geo-esito");
+    if (latEl) latEl.value = lat;
+    if (lonEl) lonEl.value = lon;
+    if (esitoEl) esitoEl.textContent = testo;
+  };
+
+  const gpsBtn = container.querySelector("#wz-gps");
+  if (gpsBtn) {
+    gpsBtn.onclick = () => {
+      const esitoEl = container.querySelector("#wz-geo-esito");
+      if (!navigator.geolocation) {
+        if (esitoEl) esitoEl.textContent = "Questo dispositivo non sa dire dove si trova.";
+        return;
+      }
+      if (esitoEl) esitoEl.textContent = "Lettura posizione...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = Number(pos.coords.latitude);
+          const lon = Number(pos.coords.longitude);
+          const prec = Math.round(Number(pos.coords.accuracy) || 0);
+          setGeo(lat, lon, "Posizione presa sul posto: " + lat.toFixed(6) + ", " + lon.toFixed(6) + " (precisione " + prec + " m)");
+        },
+        () => {
+          if (esitoEl) esitoEl.textContent = "Posizione non disponibile: controlla che il telefono possa usare il GPS, oppure cercala dall'indirizzo.";
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+    };
+  }
+
+  const geoBtn = container.querySelector("#wz-geocode");
+  if (geoBtn) {
+    geoBtn.onclick = async () => {
+      const esitoEl = container.querySelector("#wz-geo-esito");
+      const parti = [
+        container.querySelector("#wz-indirizzo")?.value?.trim(),
+        container.querySelector("#wz-cap")?.value?.trim(),
+        container.querySelector("#wz-citta")?.value?.trim(),
+        container.querySelector("#wz-provincia")?.value?.trim(),
+      ].filter(Boolean);
+      if (!parti.length) {
+        if (esitoEl) esitoEl.textContent = "Scrivi prima l'indirizzo.";
+        return;
+      }
+      if (esitoEl) esitoEl.textContent = "Ricerca in corso...";
+      try {
+        const res = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(parti.join(", ")));
+        const lista = await res.json();
+        const trovato = lista && lista[0];
+        if (!trovato) {
+          if (esitoEl) esitoEl.textContent = "Indirizzo non trovato. Se sei nel locale usa la posizione attuale.";
+          return;
+        }
+        const lat = Number(trovato.lat);
+        const lon = Number(trovato.lon);
+        setGeo(lat, lon, "Posizione dall'indirizzo: " + lat.toFixed(6) + ", " + lon.toFixed(6) + " - da correggere sul posto quando puoi.");
+      } catch (e) {
+        console.error("wizard geocode:", e);
+        if (esitoEl) esitoEl.textContent = "Ricerca non riuscita. Se sei nel locale usa la posizione attuale.";
+      }
+    };
+  }
 
   // Indietro
   container.querySelector("#wz-prev").onclick = () => {
     if (currentStep > 1) showStep(currentStep - 1);
   };
 
-  // Salva
-  container.querySelector("#wz-save").onclick = () => salvaWizard(container, az);
+  // Il pulsante finale non salva piu': i dati sono gia' stati scritti entrando
+  // nella verifica. Qui si entra e basta.
+  container.querySelector("#wz-save").onclick = () => vaiInDashboard(az);
 
   showStep(1);
 }
@@ -294,97 +409,189 @@ function validateStep(step) {
     if (!document.getElementById("wz-indirizzo")?.value.trim()) return "Inserisci l'indirizzo";
     if (!document.getElementById("wz-citta")?.value.trim()) return "Inserisci la città";
   }
+  // Blocco duro solo qui: senza partita IVA non si emette un documento fiscale,
+  // e chi entra senza pensa di poter fatturare. Tutto il resto si completa dopo.
+  if (step === 3) {
+    if (!document.getElementById("wz-piva")?.value.trim()) return "La partita IVA serve per fatture e preventivi: senza, l'attività non può emettere documenti.";
+  }
   return null;
 }
 
-async function salvaWizard(container, az) {
-  const btn = container.querySelector("#wz-save");
-  const errEl = container.querySelector("#wz-error");
-  btn.disabled = true;
-  btn.textContent = "Salvataggio...";
-  errEl.textContent = "";
-
+/* Salva i dati del modulo. Tre correzioni rispetto a prima:
+   - l'indirizzo va anche su aziende: le colonne aziende.indirizzo/citta/cap/provincia
+     sono quelle che finiscono su fatture e preventivi, e restavano vuote per sempre
+   - email e Instagram su entrambe le colonne doppie, finche' non le unifichiamo:
+     il modulo riempiva una faccia e il resto dell'app leggeva l'altra
+   - profilo_completato NON si mette piu' a true per decreto: lo decide
+     stato_requisiti() guardando i dati appena scritti. */
+async function salvaDatiWizard(container, az) {
   try {
-    const nome = document.getElementById("wz-nome").value.trim();
+    const val = (id) => (document.getElementById(id)?.value || "").trim();
+    const nome = val("wz-nome");
     const tipo_locale = document.getElementById("wz-tipo").value;
-    const descrizione = document.getElementById("wz-desc").value.trim();
-    const coperti_totali = parseInt(document.getElementById("wz-coperti").value) || null;
-    const ragione_sociale = document.getElementById("wz-ragione").value.trim();
-    const partita_iva = document.getElementById("wz-piva").value.trim();
-    const codice_fiscale = document.getElementById("wz-cf").value.trim();
-    const codice_sdi = document.getElementById("wz-sdi").value.trim();
-    const telefono = document.getElementById("wz-telefono").value.trim();
-    const email_pubblica = document.getElementById("wz-email").value.trim();
-    const sito_web = document.getElementById("wz-sito").value.trim();
-    const instagram = document.getElementById("wz-instagram").value.trim();
+    const coperti_totali = parseInt(val("wz-coperti")) || null;
+    const email = val("wz-email");
+    const instagram = val("wz-instagram");
 
-    const sedNome = document.getElementById("wz-sede-nome").value.trim();
-    const indirizzo = document.getElementById("wz-indirizzo").value.trim();
-    const citta = document.getElementById("wz-citta").value.trim();
-    const cap = document.getElementById("wz-cap").value.trim();
-    const provincia = document.getElementById("wz-provincia").value.trim();
+    const indirizzo = val("wz-indirizzo");
+    const citta = val("wz-citta");
+    const cap = val("wz-cap");
+    const provincia = val("wz-provincia");
+    const lat = Number(val("wz-lat"));
+    const lon = Number(val("wz-lon"));
+    const haCoordinate = Number.isFinite(lat) && Number.isFinite(lon) && !(lat === 0 && lon === 0) && val("wz-lat") !== "";
 
-    // 1. Aggiorna azienda
     const { error: azErr } = await supabase
       .from("aziende")
       .update({
         nome,
         tipo_locale,
-        descrizione: descrizione || null,
+        descrizione: val("wz-desc") || null,
         coperti_totali,
-        ragione_sociale: ragione_sociale || null,
-        partita_iva: partita_iva || null,
-        codice_fiscale: codice_fiscale || null,
-        codice_sdi: codice_sdi || null,
-        telefono: telefono || null,
-        email_pubblica: email_pubblica || null,
-        sito_web: sito_web || null,
+        ragione_sociale: val("wz-ragione") || null,
+        partita_iva: val("wz-piva") || null,
+        codice_fiscale: val("wz-cf") || null,
+        codice_sdi: val("wz-sdi") || null,
+        telefono: val("wz-telefono") || null,
+        email: email || null,
+        email_pubblica: email || null,
+        sito_web: val("wz-sito") || null,
         instagram: instagram || null,
-        profilo_completato: true,
-        stato_attivazione: "attivo",
+        instagram_url: instagram || null,
+        indirizzo: indirizzo || null,
+        citta: citta || null,
+        cap: cap || null,
+        provincia: provincia || null,
+        stato_attivazione: "attiva",
       })
       .eq("id", az.id);
 
     if (azErr) throw azErr;
 
-    // 2. Upsert sede principale
     const { data: sedeEsistente } = await supabase
-      .from("sedi")
-      .select("id")
-      .eq("azienda_id", az.id)
-      .order("created_at")
-      .limit(1)
-      .maybeSingle();
+      .from("sedi").select("id").eq("azienda_id", az.id)
+      .order("created_at").limit(1).maybeSingle();
 
     const sedeDati = {
       azienda_id: az.id,
-      nome: sedNome || nome,
+      nome: val("wz-sede-nome") || nome,
       indirizzo: indirizzo || null,
       citta: citta || null,
       cap: cap || null,
       provincia: provincia || null,
     };
+    if (haCoordinate) { sedeDati.latitudine = lat; sedeDati.longitudine = lon; }
 
     if (sedeEsistente) {
-      await supabase.from("sedi").update(sedeDati).eq("id", sedeEsistente.id);
+      const { error: sErr } = await supabase.from("sedi").update(sedeDati).eq("id", sedeEsistente.id);
+      if (sErr) throw sErr;
     } else {
-      await supabase.from("sedi").insert(sedeDati);
+      const { error: sErr } = await supabase.from("sedi").insert(sedeDati);
+      if (sErr) throw sErr;
     }
 
-    // 3. Aggiorna state e vai alla home
+    // Ora che i dati ci sono, il completamento si CALCOLA
+    let completo = false;
+    try {
+      const { data: req } = await supabase.rpc("stato_requisiti", { p_azienda_id: az.id });
+      const obbligatori = (req || []).filter((r) => r.obbligatorio);
+      completo = obbligatori.length > 0 && obbligatori.every((r) => r.completato);
+    } catch (e) {
+      console.error("wizard stato_requisiti:", e);
+    }
+    await supabase.from("aziende").update({ profilo_completato: completo }).eq("id", az.id);
+
     if (window.stateActions?.setAzienda) {
-      window.stateActions.setAzienda({ ...az, nome, profilo_completato: true, stato_attivazione: "attivo" });
+      window.stateActions.setAzienda({ ...az, nome, profilo_completato: completo, stato_attivazione: "attiva" });
     }
-    localStorage.removeItem("active_azienda_id"); // reset per far scegliere l'azienda corretta
-    document.querySelector(".app-header")?.style.removeProperty("display");
-    document.querySelector(".topbar-global")?.style.removeProperty("display");
-    window.location.hash = "#/home";
 
+    return { ok: true, completo };
   } catch (err) {
-    errEl.textContent = err.message || "Errore salvataggio";
-    btn.disabled = false;
-    btn.textContent = "💾 Salva e vai alla dashboard";
+    console.error("WIZARD salvataggio:", err);
+    return { ok: false, errore: err.message || "Errore salvataggio" };
   }
+}
+
+/* La verifica legge il database, non i campi del modulo. Ogni voce rossa
+   porta con se' la strada per risolverla: un elenco di mancanze senza il
+   percorso e' solo un rimprovero. */
+async function mostraRequisiti(container, aziendaId) {
+  const box = container.querySelector("#wz-requisiti");
+  if (!box) return;
+
+  const { data, error } = await supabase.rpc("stato_requisiti", { p_azienda_id: aziendaId });
+  if (error) {
+    console.error("stato_requisiti:", error);
+    box.innerHTML = '<div style="font-size:13px;color:#b45309;">Non sono riuscito a controllare i requisiti. Puoi entrare comunque.</div>';
+    return;
+  }
+
+  const righe = data || [];
+  const obbligatori = righe.filter((r) => r.obbligatorio);
+  const fatti = obbligatori.filter((r) => r.completato).length;
+  const perc = obbligatori.length ? Math.round((fatti * 100) / obbligatori.length) : 0;
+
+  const etichetteModuli = {
+    base: "Dati dell'attivit\u00e0", persone: "Personale", cucina: "Cucina",
+    sala: "Sala e servizio", marketing: "Marketing", fatturazione: "Fatturazione elettronica",
+    pagamenti: "Incassi online",
+  };
+
+  const mancanti = righe.filter((r) => !r.completato);
+  const gruppi = {};
+  mancanti.forEach((r) => { (gruppi[r.modulo] = gruppi[r.modulo] || []).push(r); });
+
+  let html = '<div style="margin-bottom:18px;">'
+    + '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#334155;margin-bottom:6px;">'
+    + '<span>Configurazione</span><span>' + perc + '%</span></div>'
+    + '<div style="height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;">'
+    + '<div style="height:100%;width:' + perc + '%;background:' + (perc === 100 ? "#16a34a" : "#0E5A7A") + ';"></div></div>'
+    + '<div style="font-size:12px;color:#64748b;margin-top:6px;">' + fatti + ' voci su ' + obbligatori.length + ' necessarie sono a posto.</div>'
+    + '</div>';
+
+  if (!mancanti.length) {
+    html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;font-size:14px;color:#15803d;font-weight:600;">Tutto a posto. Puoi entrare.</div>';
+    box.innerHTML = html;
+    return;
+  }
+
+  Object.keys(gruppi).forEach((modulo) => {
+    html += '<div style="margin-bottom:16px;">'
+      + '<div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#94a3b8;margin-bottom:8px;">'
+      + (etichetteModuli[modulo] || modulo) + '</div>';
+
+    gruppi[modulo].forEach((r) => {
+      const colore = r.obbligatorio ? "#dc2626" : "#d97706";
+      const sfondo = r.obbligatorio ? "#fef2f2" : "#fffbeb";
+      const bordo = r.obbligatorio ? "#fecaca" : "#fde68a";
+      html += '<div style="background:' + sfondo + ';border:1px solid ' + bordo + ';border-radius:10px;padding:12px;margin-bottom:8px;">'
+        + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:14px;font-weight:700;color:' + colore + ';">' + escapeTesto(r.etichetta) + '</div>'
+        + '<div style="font-size:12px;color:#64748b;line-height:1.45;margin-top:2px;">' + escapeTesto(r.descrizione || "") + '</div>'
+        + '</div>'
+        + '<a href="#/' + escapeTesto(r.rotta) + '" class="app-button small gray" style="white-space:nowrap;text-decoration:none;">'
+        + escapeTesto(r.etichetta_azione) + '</a>'
+        + '</div></div>';
+    });
+
+    html += '</div>';
+  });
+
+  box.innerHTML = html;
+}
+
+function escapeTesto(v) {
+  return String(v == null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function vaiInDashboard(az) {
+  localStorage.removeItem("active_azienda_id");
+  document.querySelector(".app-header")?.style.removeProperty("display");
+  document.querySelector(".topbar-global")?.style.removeProperty("display");
+  window.location.hash = "#/home";
 }
 
 /* ══════════════════════════════════════════════
