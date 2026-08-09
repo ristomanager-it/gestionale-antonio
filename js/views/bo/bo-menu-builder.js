@@ -1438,6 +1438,12 @@ export async function render(container) {
       <div style="display:flex;gap:10px;margin-bottom:12px;">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="voce-disp-edit" ${voce.disponibile!==false?"checked":""} style="accent-color:#0E5A7A;"> Disponibile</label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="voce-vis-edit" ${voce.visibile!==false?"checked":""} style="accent-color:#0E5A7A;"> Visibile</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="voce-ord-edit" ${voce.ordinabile!==false?"checked":""} style="accent-color:#16a34a;"> Ordinabile</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="voce-nodom-edit" ${voce.no_domicilio?"checked":""} style="accent-color:#b45309;"> Non a domicilio</label>
+        <div style="font-size:11.5px;color:#64748b;width:100%;line-height:1.5;">
+          <b>Ordinabile</b>: se lo togli il piatto si legge sul menu ma non entra nel carrello.
+          <b>Non a domicilio</b>: si ordina al tavolo e da asporto, ma non si consegna a casa — la tagliata in motorino non ci va.
+        </div>
       </div>
       <button id="btn-salva-voce-edit" class="mb-btn mb-btn-primary" style="width:100%;">💾 Salva</button>
       <div id="msg-voce-edit" style="margin-top:8px;font-size:12px;text-align:center;"></div>
@@ -1481,7 +1487,9 @@ export async function render(container) {
         descrizione: qs("#voce-desc-edit").value.trim()||null,
         tags: tagsSelezionati,
         disponibile: qs("#voce-disp-edit").checked,
-        visibile: qs("#voce-vis-edit").checked
+        visibile: qs("#voce-vis-edit").checked,
+        ordinabile: qs("#voce-ord-edit").checked,
+        no_domicilio: qs("#voce-nodom-edit").checked
       }).eq("id", voceId).eq("azienda_id", azienda_id);
       const msg = qs("#msg-voce-edit");
       if (error) { msg.innerHTML = `<span style="color:#dc2626;">${error.message}</span>`; return; }
