@@ -477,7 +477,6 @@ export function initMenu() {
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "📸 Bacheca Social",   route: "bo-marketing?tab=bacheca-social" },
           { label: "📅 Calendario editoriale", route: "bo-calendario" },
-          { label: "🎪 Eventi in zona", route: "eventi-territorio" },
           { label: "📱 Storie", route: "bo-storie" },
           { label: "🎁 Buoni regalo", route: "bo-voucher" },
           { label: "📸 Chi ci tagga", route: "bo-menzioni" },
