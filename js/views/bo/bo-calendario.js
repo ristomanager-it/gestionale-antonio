@@ -172,6 +172,12 @@ function layout() {
       .fb-quando{font-size:11.5px;color:#65676b}
       .fb-testo{padding:2px 12px 11px;font-size:14px;line-height:1.45;color:#050505;white-space:pre-wrap}
       .fb-img{width:100%;display:block;background:#f0f2f5}
+      .fb-caro{display:flex;gap:3px;overflow-x:auto;background:#f0f2f5;
+               scroll-snap-type:x mandatory}
+      .fb-caro>div{flex:0 0 88%;position:relative;scroll-snap-align:start}
+      .fb-caro img{width:100%;display:block}
+      .fb-caro span{position:absolute;top:7px;right:9px;background:rgba(0,0,0,.6);
+                    color:#fff;border-radius:11px;padding:2px 8px;font-size:11px;font-weight:600}
       .fb-azioni{display:flex;border-top:1px solid #e4e6eb;padding:5px 0}
       .fb-azioni span{flex:1;text-align:center;font-size:12.5px;color:#65676b;padding:6px 0;font-weight:600}
       .fb-tit{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin:14px 0 0}
