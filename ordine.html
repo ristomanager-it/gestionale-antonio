@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Il tuo ordine</title>
+<link rel="icon" href="assets/favicon-192.png?v=9" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{--brand:#0E5A7A;--brand-light:#e8f4f8;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f0f6fa;min-height:100vh;color:#111827;}
+  .wrap{max-width:480px;margin:0 auto;padding:0 0 calc(28px + env(safe-area-inset-bottom));}
+  .testa{background:var(--brand);color:#fff;padding:22px 18px 18px;text-align:center;}
+  .testa img{height:44px;margin-bottom:8px;}
+  .testa h1{font-size:19px;font-weight:800;}
+  .testa .s{font-size:13px;opacity:.9;margin-top:2px;}
+  .card{background:#fff;border-radius:16px;margin:12px;padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,.05);}
+  .passi{display:flex;gap:6px;margin:4px 0 14px;}
+  .passo{flex:1;text-align:center;font-size:11px;font-weight:700;color:#94a3b8;}
+  .passo .p{height:5px;border-radius:99px;background:#e2e8f0;margin-bottom:6px;}
+  .passo.on{color:var(--brand);} .passo.on .p{background:var(--brand);}
+  .stima{text-align:center;padding:10px 0 4px;}
+  .stima .n{font-size:34px;font-weight:800;color:var(--brand);line-height:1;}
+  .stima .l{font-size:12.5px;color:#64748b;margin-top:4px;}
+  .riga{display:flex;justify-content:space-between;padding:5px 0;font-size:14.5px;}
+  .riga.tot{border-top:1px solid #e2e8f0;margin-top:8px;padding-top:10px;font-weight:800;font-size:16.5px;}
+  .op{font-size:12px;color:#7c2d12;background:#fff7ed;border-radius:6px;padding:1px 6px;display:inline-block;margin-left:2px;}
+  .btn{display:block;width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:800;text-align:center;text-decoration:none;}
+  .pagato{background:#f0fdf4;border:1px solid #86efac;color:#15803d;border-radius:12px;padding:14px;text-align:center;font-weight:800;font-size:15px;}
+  .attesa{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;padding:12px 14px;font-size:13.5px;}
+  #mappa{height:190px;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;}
+  .agg{font-size:11.5px;color:#64748b;text-align:center;margin-top:6px;}
+  .tit{font-size:13px;font-weight:800;color:#374151;margin-bottom:8px;}
+  .err{max-width:420px;margin:70px auto;text-align:center;padding:24px;font-size:16px;color:#475569;}
+  .telefono{display:block;text-align:center;margin-top:12px;font-size:14px;color:var(--brand);font-weight:700;text-decoration:none;}
+</style>
+</head>
+<body>
+<div id="root"><div class="err">Carico l'ordine…</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function() {
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var supa = window.supabase.createClient(URL_SB, ANON);
+  var root = document.getElementById("root");
+  var params = new URLSearchParams(window.location.search);
+  var token = (params.get("t") || params.get("token") || "").trim();
+  if (!token) { root.innerHTML = '<div class="err">Questo collegamento non è completo.</div>'; return; }
+
+  var mappa = null, mRider = null, mCasa = null, statoPrec = null;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c) {
+      return ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" })[c];
+    });
+  }
+  function euro(n) { return (Number(n)||0).toFixed(2).replace(".", ",") + " €"; }
+  function ora(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);
+  }
+
+  async function carica() {
+    var s = await supa.rpc("ordine_stato_pubblico", { p_token: token });
+    var d = s.data;
+    if (!d || !d.ok) { root.innerHTML = '<div class="err">Ordine non trovato.<br>Il collegamento potrebbe essere scaduto.</div>'; return; }
+    var o = await supa.rpc("ordine_pubblico", { p_token: token });
+    disegna(d, (o.data && o.data.ok) ? o.data : null);
+  }
+
+  function disegna(d, dett) {
+    var domicilio = d.tipo_consegna === "domicilio";
+    var st = d.stato_consegna || "in_preparazione";
+    var consegnato = st === "consegnato" || d.stato_ordine === "consegnato";
+    var inViaggio = st === "ritirato";
+    var pagato = d.stato_pagamento === "pagato";
+    var stima = d.stima || {};
+
+    var passi = domicilio
+      ? [["In preparazione", !consegnato], ["In consegna", inViaggio || consegnato], ["Consegnato", consegnato]]
+      : [["Ricevuto", true], ["In preparazione", !consegnato], ["Pronto", consegnato]];
+
+    var html = '<div class="wrap">' +
+      '<div class="testa">' +
+        (d.logo ? '<img src="' + esc(d.logo) + '" alt="">' : '') +
+        '<h1>' + esc(d.locale || "Il tuo ordine") + '</h1>' +
+        '<div class="s">' + (domicilio ? "Consegna a " + esc(d.indirizzo || "") : "Ordine ricevuto") + '</div>' +
+      '</div>';
+
+    html += '<div class="card"><div class="passi">' +
+      passi.map(function(p) {
+        return '<div class="passo' + (p[1] ? " on" : "") + '"><div class="p"></div>' + esc(p[0]) + '</div>';
+      }).join("") + '</div>';
+
+    if (consegnato) {
+      html += '<div class="stima"><div class="n">✅</div><div class="l">Consegnato' +
+        (d.consegnato_il ? " alle " + ora(d.consegnato_il) : "") + '. Buon appetito.</div></div>';
+    } else if (stima.minuti) {
+      html += '<div class="stima"><div class="n">' + stima.minuti + '\u2032</div>' +
+        '<div class="l">' + (inViaggio ? "Il rider sta arrivando" : "Tempo stimato") +
+        (stima.ordini_in_coda ? ' · ' + stima.ordini_in_coda + ' ordini prima del tuo' : '') +
+        '</div><div class="agg">È una stima: dipende da quanti ordini ci sono e dal traffico.</div></div>';
+    }
+    html += '</div>';
+
+    if (domicilio && inViaggio && d.rider_lat) {
+      html += '<div class="card"><div class="tit">Dov\'è il rider</div><div id="mappa"></div>' +
+        '<div class="agg">Ultima posizione alle ' + ora(d.rider_posizione_il) + '</div></div>';
+    }
+
+    if (dett && dett.piatti && dett.piatti.length) {
+      html += '<div class="card"><div class="tit">Il tuo ordine</div>' +
+        dett.piatti.map(function(p) {
+          return '<div class="riga"><span>' + p.quantita + '× ' + esc(p.piatto) + '</span>' +
+            '<span>' + euro(p.prezzo * p.quantita) + '</span></div>';
+        }).join("");
+      if (Number(d.costo_consegna) > 0) {
+        html += '<div class="riga"><span>Consegna</span><span>' + euro(d.costo_consegna) + '</span></div>';
+      }
+      html += '<div class="riga tot"><span>Totale</span><span>' + euro(d.totale) + '</span></div></div>';
+    }
+
+    html += '<div class="card">';
+    if (pagato) {
+      html += '<div class="pagato">✅ Pagamento effettuato</div>';
+    } else {
+      html += '<div class="attesa">Da pagare alla consegna: <b>' + euro(d.totale) + '</b>. ' +
+        'Puoi pagare adesso con la tua carta, oppure in contanti a chi consegna.</div>' +
+        '<button class="btn" id="paga" style="margin-top:12px;">💳 Paga ' + euro(d.totale) + ' con carta</button>' +
+        '<div id="esito" style="font-size:13px;color:#b91c1c;margin-top:8px;text-align:center;"></div>';
+    }
+    if (d.telefono_locale) {
+      html += '<a class="telefono" href="tel:' + esc(d.telefono_locale) + '">📞 Chiama il locale</a>';
+    }
+    html += '</div></div>';
+
+    root.innerHTML = html;
+
+    var b = document.getElementById("paga");
+    if (b) b.onclick = paga;
+    if (domicilio && inViaggio && d.rider_lat) disegnaMappa(d);
+    statoPrec = st + "|" + d.stato_pagamento;
+  }
+
+  function disegnaMappa(d) {
+    function vai() {
+      if (!window.L) return;
+      if (!mappa) {
+        mappa = L.map("mappa").setView([d.rider_lat, d.rider_lng], 15);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(mappa);
+        mRider = L.marker([d.rider_lat, d.rider_lng]).addTo(mappa).bindPopup("Il rider");
+        if (d.destinazione_lat) mCasa = L.marker([d.destinazione_lat, d.destinazione_lng]).addTo(mappa).bindPopup("Casa tua");
+      } else {
+        mRider.setLatLng([d.rider_lat, d.rider_lng]);
+      }
+      if (d.destinazione_lat) {
+        mappa.fitBounds([[d.rider_lat, d.rider_lng], [d.destinazione_lat, d.destinazione_lng]], { padding: [30, 30] });
+      }
+      setTimeout(function() { mappa.invalidateSize(); }, 150);
+    }
+    if (!window.L) {
+      var css = document.createElement("link"); css.rel = "stylesheet";
+      css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(css);
+      var js = document.createElement("script");
+      js.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; js.onload = vai;
+      document.head.appendChild(js);
+    } else { vai(); }
+  }
+
+  async function paga() {
+    var b = document.getElementById("paga");
+    var e = document.getElementById("esito");
+    b.disabled = true; b.textContent = "⏳ Un attimo…";
+    try {
+      var res = await fetch(URL_SB + "/functions/v1/ordine-paga", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token, base_url: window.location.origin })
+      });
+      var d = await res.json();
+      if (d.gia_pagato) { carica(); return; }
+      if (!d.success) throw new Error(d.error || "Pagamento non disponibile");
+      window.location.href = d.checkout_url;
+    } catch (err) {
+      e.textContent = err.message;
+      b.disabled = false; b.textContent = "💳 Riprova";
+    }
+  }
+
+  // La pagina si aggiorna da sola: il cliente non deve ricaricare per sapere
+  // se il rider è partito o se il pagamento è arrivato.
+  carica();
+  setInterval(carica, 20000);
+})();
+</script>
+</body>
+</html>
