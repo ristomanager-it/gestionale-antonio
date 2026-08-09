@@ -714,6 +714,7 @@ async function scriviConTony() {
     const ta = document.getElementById('cal-testo');
     if (ta) { ta.value = data.testo || ''; contaParole(); }
     SEL.testo = data.testo || '';
+    anteprimaFacebook();
 
     const boxFoto = document.getElementById('cal-foto');
     if (boxFoto) {
