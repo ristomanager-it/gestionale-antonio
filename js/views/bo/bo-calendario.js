@@ -90,9 +90,11 @@ function layout() {
           '<span class="cal-chip" style="border-left:6px solid ' + t.c + '">' + t.l + '</span>').join('')}</div>
       </div>
       <div class="cal-lg">
-        <div class="cal-lg-t">Bordo sopra — che taglio ha il post</div>
+        <div class="cal-lg-t">Bordo sopra e pallino — che taglio ha il post</div>
         <div class="cal-lg-v">${Object.values(ANGOLI).map(a =>
-          '<span class="cal-chip" style="border-top:4px solid ' + a.c + '">' + a.l + '</span>').join('')}</div>
+          '<span class="cal-chip" style="border-top:4px solid ' + a.c + '">' +
+          '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + a.c +
+          ';margin-right:6px;vertical-align:middle"></span>' + a.l + '</span>').join('')}</div>
       </div>
       <div class="cal-lg">
         <div class="cal-lg-t">Segno in basso</div>
@@ -130,9 +132,13 @@ function layout() {
       .cal-g.bg-fatto{background:#f5faf5}
       .cal-g.bg-mancato{background:#fdf5f4}
       .cal-g.bg-oggi{outline:2px solid #111827;outline-offset:-1px}
+      .cal-testa{display:flex;align-items:center;gap:4px}
       .cal-n{font-size:15px;font-weight:600;line-height:1}
-      .cal-lab{font-size:9px;letter-spacing:.9px;font-weight:700}
-      .cal-ric{font-size:10px;line-height:1.2;font-weight:600;margin-top:2px}
+      .cal-pal{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+      .cal-ric{font-size:10px;line-height:1.15;font-weight:700;margin-top:1px;
+               display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      .cal-post{font-size:9px;line-height:1.15;color:#4b5563;margin-top:1px;
+                display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
       .cal-prom{font-size:9px;line-height:1.15;color:#6b7280}
       .cal-es{position:absolute;right:4px;bottom:3px;font-size:15px;line-height:1}
       .cal-dubbia{color:#B3261E;font-weight:700}
@@ -222,8 +228,9 @@ function layout() {
         .cal-riga{gap:3px}
         .cal-g{padding:2px 3px;border-left-width:4px;border-top-width:3px}
         .cal-n{font-size:11px}
-        .cal-lab{font-size:6.5px;letter-spacing:.2px}
-        .cal-ric,.cal-prom{display:none}
+        .cal-pal{width:5px;height:5px}
+        .cal-ric{font-size:7.5px;-webkit-line-clamp:2}
+        .cal-post,.cal-prom{display:none}
         .cal-es{font-size:12px;right:2px;bottom:1px}
       }
     </style>
@@ -326,11 +333,18 @@ function disegna() {
     celle.push(
       '<button class="cal-g bg-' + g.esito + '" data-data="' + k + '"' +
       ' style="border-left-color:' + tipo.c + ';border-top-color:' + ang.c + '">' +
-        '<span class="cal-n">' + d + '</span>' +
-        '<span class="cal-lab" style="color:' + ang.c + '">' + ang.l + '</span>' +
+        // L'angolo (cosa/come/perche) non si scrive piu': lo dice il colore
+        // del bordo e del pallino. Lo spazio serve a quello che cambia ogni
+        // giorno: che ricorrenza e', e quale post e' pronto.
+        '<span class="cal-testa">' +
+          '<span class="cal-n">' + d + '</span>' +
+          '<span class="cal-pal" style="background:' + ang.c + '" title="' + esc(ang.l) + '"></span>' +
+        '</span>' +
         (g.ricorrenza ? '<span class="cal-ric">' + esc(g.ricorrenza) +
           (g.verificata === false ? ' <span class="cal-dubbia">?</span>' : '') + '</span>' : '') +
-        (prom.length ? '<span class="cal-prom">' + esc(prom[0].split(' — ')[0]) + '</span>' : '') +
+        (g.titolo && ['approvato','programmato','pubblicato'].indexOf(g.stato) >= 0
+          ? '<span class="cal-post">' + esc(g.titolo) + '</span>' : '') +
+        (prom.length && !g.ricorrenza ? '<span class="cal-prom">' + esc(prom[0].split(' — ')[0]) + '</span>' : '') +
         '<span class="cal-es">' + es.i + '</span>' +
       '</button>'
     );
