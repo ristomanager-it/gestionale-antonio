@@ -46,6 +46,11 @@ function canSeeAll(ruolo) {
   return ruolo === "admin" || ruolo === "manager" || ruolo === "superadmin";
 }
 
+// Quanto si concede al GPS prima di dire "sei fuori". Oltre i 500 m la posizione
+// non dice piu' niente di utile e la timbratura si marca come imprecisa.
+const TOLLERANZA_MAX_M = 75;
+const ACCURACY_INAFFIDABILE_M = 500;
+
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const toRad = (d) => (d * Math.PI) / 180;
@@ -187,7 +192,9 @@ async function fetchActiveGeofences(aziendaId, sedeUuid = null) {
   const lon = toNum(sede?.longitudine);
   const raggio = toNum(sede?.raggio_geofence_m) || 120;
 
-  if (lat == null || lon == null) {
+  // Il punto 0,0 sta in mezzo all'oceano: non e' una posizione, e' una sede
+  // mai configurata. Trattarlo come valido produceva "OUT 4.885 km".
+  if (lat == null || lon == null || (lat === 0 && lon === 0)) {
     return [];
   }
 
@@ -1336,12 +1343,26 @@ const pinOk = await verificaPinTimbrature({
           if (!best) {
             geo_esito = "KO";
             geo_motivo = "GEOFENCE_INVALID_CONFIG";
-          } else if (best.dist <= best.raggio) {
-            geo_esito = "OK";
-            geo_motivo = `IN (${Math.round(best.dist)}m <= ${best.raggio}m) ${best.f.nome || ""}`.trim();
           } else {
-            geo_esito = "KO";
-            geo_motivo = `OUT (${Math.round(best.dist)}m > ${best.raggio}m) ${best.f.nome || ""}`.trim();
+            // Il telefono non dice "sei qui": dice "sei qui, piu' o meno X metri".
+            // Senza tenerne conto, un raggio stretto boccia chi ha il GPS scarso
+            // anche se e' dentro il locale. La tolleranza ha un tetto, altrimenti
+            // una precisione pessima aprirebbe il perimetro a chiunque.
+            const precisione = Number.isFinite(Number(accuracy_m)) ? Number(accuracy_m) : 0;
+            const tolleranza = Math.min(Math.max(precisione, 0), TOLLERANZA_MAX_M);
+            const distMinima = Math.max(0, best.dist - tolleranza);
+            const sedeNome = best.f.nome || "";
+
+            if (precisione > ACCURACY_INAFFIDABILE_M) {
+              geo_esito = "KO";
+              geo_motivo = `POSIZIONE_IMPRECISA (${Math.round(precisione)}m) ${sedeNome}`.trim();
+            } else if (distMinima <= best.raggio) {
+              geo_esito = "OK";
+              geo_motivo = `IN (${Math.round(best.dist)}m, precisione ${Math.round(precisione)}m <= ${best.raggio}m) ${sedeNome}`.trim();
+            } else {
+              geo_esito = "KO";
+              geo_motivo = `OUT (${Math.round(best.dist)}m, precisione ${Math.round(precisione)}m > ${best.raggio}m) ${sedeNome}`.trim();
+            }
           }
         }
       } catch (e) {
