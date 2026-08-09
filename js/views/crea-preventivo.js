@@ -18,6 +18,7 @@ let sezioniNote = [];    // le sezioni gia' usate: diventano una tendina
 let sezioniInfo = [];    // nome -> categoria di piatti e se va a parte nel documento
 let modelli = [];        // schemi di menu predefiniti per tipo evento e formula
 let richieste = [];
+let pagamenti = [];   // contabili caricate dal cliente, da verificare
 let vedoICosti = true;   // falso per le agenzie
 let personale = null;    // quanti camerieri servono e quanto costano
 let apertoDettaglio = null;  // riga di cui si stanno guardando i conti di Tony
@@ -89,16 +90,17 @@ function nuovo(azienda, sede) {
     sconto_perc: 0, sconto_euro: 0, acconto: 0, giorni_validita: 15,
     formula_servizio: "servito",
   };
-  righe = []; extra = []; richieste = []; stime = {}; foto = [];
+  righe = []; extra = []; richieste = []; pagamenti = []; stime = {}; foto = [];
 }
 
 async function caricaPreventivo(supabase, id) {
-  const [p, r, e, q, f] = await Promise.all([
+  const [p, r, e, q, f, pg] = await Promise.all([
     supabase.from("preventivi").select("*").eq("id", id).maybeSingle(),
     supabase.from("preventivi_righe").select("*").eq("preventivo_id", id).order("id"),
     supabase.from("preventivi_extra").select("*").eq("preventivo_id", id).order("id"),
     supabase.from("preventivi_richieste").select("*").eq("preventivo_id", id).order("creata_il", { ascending: false }),
     supabase.from("preventivi_allegati").select("*").eq("preventivo_id", id).order("ordine"),
+    supabase.from("preventivi_pagamenti").select("*").eq("preventivo_id", id).order("creato_il", { ascending: false }),
   ]);
   P = p.data || null;
   righe = (r.data || []).map(x => ({
@@ -111,6 +113,7 @@ async function caricaPreventivo(supabase, id) {
   });
   extra = (e.data || []).map(x => ({ descrizione: x.descrizione, prezzo: Number(x.prezzo_totale) || 0, costo: Number(x.costo_totale) || 0 }));
   richieste = q.data || [];
+  pagamenti = pg.data || [];
   foto = f.data || [];
 }
 
@@ -235,6 +238,7 @@ function disegna(container, supabase, azienda, sede) {
   const c = conti();
   const sezioni = [...new Set(righe.map(r => r.sezione || "Menu"))];
   const inAttesa = richieste.filter(x => x.stato === "da_valutare");
+  const daVerificare = pagamenti.filter(x => x.stato === "in_attesa");
 
   container.innerHTML = `
     <div class="pv2">
@@ -281,6 +285,22 @@ function disegna(container, supabase, azienda, sede) {
             <button class="pv2-btn arancio" id="pv2-stima">🤖 Stima i costi mancanti</button>` : ""}
           ${c.stimati ? `<div class="stimati">${c.stimati} ${c.stimati === 1 ? "portata ha un costo stimato" : "portate hanno un costo stimato"}: da confermare prima di firmare.</div>` : ""}
         </div>` : ""}
+
+      ${daVerificare.length ? `
+        <div class="pv2-richieste">
+          <div class="tit">💶 ${daVerificare.length === 1 ? "Un versamento da controllare" : daVerificare.length + " versamenti da controllare"}</div>
+          ${daVerificare.map(v => `
+            <div class="r">
+              <div class="t"><b>${esc(v.metodo === "carta" ? "Pagamento con carta" : "Bonifico")} · ${euro(v.importo)}</b>
+                <span>${quando(v.creato_il)}${v.nota ? " · " + esc(v.nota) : ""}</span></div>
+              ${v.contabile_url ? `<a class="pv2-btn piccolo grigio" href="${esc(v.contabile_url)}" target="_blank" rel="noopener">Apri</a>` : ""}
+              <button class="pv2-btn piccolo" data-pag="${v.id}" data-ok="1">Incassato</button>
+              <button class="pv2-btn piccolo grigio" data-pag="${v.id}" data-ok="0">Non lo trovo</button>
+            </div>`).join("")}
+        </div>` : ""}
+
+      ${P.acconto_versato_il ? `
+        <div class="pv2-avviso">Acconto incassato il ${quando(P.acconto_versato_il)}.</div>` : ""}
 
       ${inAttesa.length ? `
         <div class="pv2-richieste">
@@ -770,6 +790,20 @@ function aggancia(container, supabase, azienda, sede) {
         .select("id, nome, costo_porzione, costo_materia_prima, porzioni").eq("id", data.ricetta_id).maybeSingle();
       if (rr) ricette.push(rr);
       msg(container, `Ricetta creata con ${data.ingredienti} ingredienti. Completala nel ricettario per avere il costo esatto.`);
+      ri();
+    });
+  });
+
+  container.querySelectorAll("[data-pag]").forEach(el => {
+    el.addEventListener("click", async () => {
+      const ok = el.dataset.ok === "1";
+      if (!ok && !confirm("Segnalo che il versamento non risulta?\n\nIl cliente potra' ricaricare la contabile e il promemoria riparte.")) return;
+      el.disabled = true;
+      const { data, error } = await supabase.rpc("preventivo_pagamento_verifica",
+        { p_id: Number(el.dataset.pag), p_ok: ok });
+      el.disabled = false;
+      if (error || !data?.ok) return msg(container, error?.message || data?.errore || "Non e' andata.", true);
+      await caricaPreventivo(supabase, P.id);
       ri();
     });
   });
