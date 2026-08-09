@@ -690,6 +690,52 @@ async function listaDecisioni(supabase, aziendaId) {
     }
   } catch (e) { /* niente */ }
 
+  // ── POST PRONTI E NON ANCORA USCITI ─────────────────────────────────────
+  // Non c'e' e non ci sara' una pubblicazione automatica: dopo i nove post
+  // usciti per sbaglio il 6 agosto, calendario-pubblica pretende un utente,
+  // una conferma esplicita e il nome di chi ha approvato. Un lavoro pianificato
+  // non puo' avere nessuna delle tre cose. Quindi non si pubblica da soli:
+  // si avvisa chi deve premere.
+  try {
+    const oggi = new Date().toISOString().slice(0, 10);
+    const domani = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
+    const { data } = await supabase.from("calendario_editoriale")
+      .select("id, data, ora_pubblicazione, titolo, stato")
+      .eq("azienda_id", aziendaId)
+      .in("stato", ["approvato", "programmato", "bozza"])
+      .lte("data", domani)
+      .order("data", { ascending: true })
+      .limit(60);
+
+    const righe = data || [];
+    const pronti = righe.filter(r => ["approvato", "programmato"].includes(r.stato) && r.data <= oggi);
+    const daApprovare = righe.filter(r => r.stato === "bozza" && r.data <= domani);
+
+    if (pronti.length) {
+      const primo = pronti[0];
+      out.push({
+        livello: "rosso",
+        link: "#/bo-calendario",
+        titolo: pronti.length === 1
+          ? "1 post approvato e non ancora uscito"
+          : pronti.length + " post approvati e non ancora usciti",
+        sotto: (primo.ora_pubblicazione ? "L'ora era le " + String(primo.ora_pubblicazione).slice(0, 5) + ". " : "")
+          + "Vanno pubblicati a mano: " + (primo.titolo || "senza titolo"),
+      });
+    }
+
+    if (daApprovare.length) {
+      out.push({
+        livello: "giallo",
+        link: "#/bo-calendario",
+        titolo: daApprovare.length + (daApprovare.length === 1 ? " post da approvare" : " post da approvare"),
+        sotto: "Ancora in bozza: senza approvazione non si possono pubblicare. "
+          + (daApprovare[0].titolo || ""),
+      });
+    }
+  } catch (e) { /* niente */ }
+
   // ── CONFIGURAZIONE DELL'AZIENDA ─────────────────────────────────────────
   // La percentuale e' calcolata sui dati veri, non sul flag profilo_completato,
   // che risultava vero anche per aziende senza partita IVA ne' indirizzo.
