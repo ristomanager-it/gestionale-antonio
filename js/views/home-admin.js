@@ -736,6 +736,39 @@ async function listaDecisioni(supabase, aziendaId) {
     }
   } catch (e) { /* niente */ }
 
+  // ── EVENTI IN ZONA DA GUARDARE ──────────────────────────────────────────
+  // Trovati dalla ricerca settimanale e ancora da confermare. Sono PROPOSTE:
+  // una ricerca automatica puo' sbagliare data o inventare, quindi finche'
+  // nessuno le guarda non valgono.
+  try {
+    const oggi = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase.from("eventi_territorio")
+      .select("nome, data_inizio, comune, distanza_km, impatto")
+      .eq("azienda_id", aziendaId)
+      .eq("stato", "proposto")
+      .gte("data_inizio", oggi)
+      .order("data_inizio", { ascending: true })
+      .limit(20);
+
+    const eventi = data || [];
+    if (eventi.length) {
+      const portanoGente = eventi.filter(e => e.impatto === "porta_gente").length;
+      const primo = eventi[0];
+      const quando = primo.data_inizio
+        ? primo.data_inizio.slice(8, 10) + "/" + primo.data_inizio.slice(5, 7) : "";
+      out.push({
+        // solo giallo e rosso sono resi: "info" non esisteva e sarebbe
+        // finito senza stile, invisibile fra gli altri avvisi
+        livello: "giallo",
+        link: "#/bo-calendario",
+        titolo: eventi.length + (eventi.length === 1 ? " evento in zona da guardare" : " eventi in zona da guardare"),
+        sotto: primo.nome + (quando ? " dal " + quando : "")
+          + (primo.distanza_km != null ? " a " + primo.distanza_km + " km" : "")
+          + (portanoGente ? " · " + portanoGente + " portano gente" : ""),
+      });
+    }
+  } catch (e) { /* niente */ }
+
   // ── CONFIGURAZIONE DELL'AZIENDA ─────────────────────────────────────────
   // La percentuale e' calcolata sui dati veri, non sul flag profilo_completato,
   // che risultava vero anche per aziende senza partita IVA ne' indirizzo.
