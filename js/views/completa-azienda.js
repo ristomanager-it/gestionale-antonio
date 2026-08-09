@@ -472,13 +472,15 @@ async function salvaDatiWizard(container, az) {
       .from("sedi").select("id").eq("azienda_id", az.id)
       .order("created_at").limit(1).maybeSingle();
 
+    // ATTENZIONE: sedi NON ha le colonne cap e provincia. Scriverle faceva
+    // fallire l'intero salvataggio della sede, e prima l'errore non veniva
+    // raccolto: l'indirizzo della sede non e' mai stato salvato da qui.
+    // CAP e provincia restano sull'azienda, dove le colonne esistono.
     const sedeDati = {
       azienda_id: az.id,
       nome: val("wz-sede-nome") || nome,
       indirizzo: indirizzo || null,
       citta: citta || null,
-      cap: cap || null,
-      provincia: provincia || null,
     };
     if (haCoordinate) { sedeDati.latitudine = lat; sedeDati.longitudine = lon; }
 
