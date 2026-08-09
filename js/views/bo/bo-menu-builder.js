@@ -1062,7 +1062,10 @@ export async function render(container) {
           <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.nome)}</div>
           ${c.descrizione?`<div style="font-size:11px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.descrizione)}</div>`:""}
         </div>
-        ${nelMenu.has(c.id)?`<span style="font-size:10px;color:#16a34a;font-weight:700;">✓</span>`:`<span style="font-size:16px;color:#d1d5db;">⠿</span>`}
+        ${nelMenu.has(c.id)
+          ? `<span style="font-size:10px;color:#16a34a;font-weight:700;">✓</span>`
+          : `<button type="button" class="btn-add-cat" data-add-cat="${c.id}" title="Aggiungi al menu"
+               style="background:#16a34a;color:#fff;border:none;border-radius:7px;width:24px;height:24px;font-size:15px;font-weight:800;line-height:1;cursor:pointer;">+</button>`}
       </div>`).join("");
 
     box.querySelectorAll(".cat-sx-item").forEach(el => {
@@ -1070,8 +1073,15 @@ export async function render(container) {
         dragSrcId = el.dataset.id;
         el.classList.add("dragging");
         e.dataTransfer.effectAllowed = "copy";
+        // senza setData Firefox e Safari non avviano nemmeno il trascinamento
+        try { e.dataTransfer.setData("text/plain", el.dataset.id); } catch (err) {}
       });
       el.addEventListener("dragend", () => { el.classList.remove("dragging"); dragSrcId = null; });
+      const piu = el.querySelector("[data-add-cat]");
+      if (piu) piu.addEventListener("click", (e) => {
+        e.stopPropagation(); e.preventDefault();
+        aggiungiCategoria(piu.dataset.addCat);
+      });
       el.addEventListener("dblclick", () => aggiungiCategoria(el.dataset.id));
     });
   }
@@ -1172,13 +1182,15 @@ export async function render(container) {
     dropzone.ondrop = async (e) => {
       e.preventDefault();
       dropzone.classList.remove("drag-over");
-      if (dragSrcId) await aggiungiCategoria(dragSrcId);
+      const id = dragSrcId || (e.dataTransfer && e.dataTransfer.getData("text/plain"));
+      if (id) await aggiungiCategoria(id);
     };
 
     // Riordino categorie nel menu (drag & drop)
     let catDragSrc = null;
     lista.querySelectorAll(".cat-centro-item").forEach(row => {
       row.addEventListener("dragstart", (e) => {
+        try { e.dataTransfer.setData("text/plain", row.dataset.mcId || "1"); } catch (err) {}
         catDragSrc = row;
         row.classList.add("dragging");
         e.dataTransfer.effectAllowed = "move";
@@ -1312,6 +1324,7 @@ export async function render(container) {
         prodDragSrc = row;
         row.classList.add("dragging");
         e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", row.dataset.prodId || "1"); } catch (err) {}
       });
       row.addEventListener("dragend", () => {
         row.classList.remove("dragging");
