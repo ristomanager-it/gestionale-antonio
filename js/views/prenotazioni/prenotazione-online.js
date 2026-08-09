@@ -138,6 +138,11 @@ export async function render(container) {
   initRFTrack(aziendaId, sedeId, formId);
   window._rfTrack?.('view', 'prenotazione_online', { completato: false });
 
+  // i 14 allergeni dell'allegato II. Prima c'era una spunta sola: diceva
+  // "c'e' un'allergia" senza dire quale, e in cucina non serviva a niente.
+  const ALLERGENI = ["Glutine","Crostacei","Uova","Pesce","Arachidi","Soia","Latte",
+    "Frutta a guscio","Sedano","Senape","Sesamo","Solfiti","Lupini","Molluschi"];
+
   const defaultConfig = {
     branding:     { logo_enabled:true, logo_url:null, background_color:"#f7f9fc", background_image:null },
     text:         { title:"Prenota il tuo tavolo", subtitle:"" },
@@ -349,10 +354,18 @@ export async function render(container) {
       <!-- Allergie -->
       <div class="pren-section-title">🥗 Allergie/intolleranze</div>
       <div style="margin-bottom:20px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;">
-          <input type="checkbox" id="allergie" style="accent-color:${colore};width:16px;height:16px;">
-          Segnala allergie o intolleranze
-        </label>
+        <div style="font-size:12.5px;color:#6b7280;margin-bottom:8px;">Tocca quelle che vi riguardano: la cucina le vede insieme alla prenotazione.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;">
+          ${ALLERGENI.map((a, i) => `
+            <label style="display:inline-flex;align-items:center;gap:6px;border:1.5px solid #e5e7eb;border-radius:999px;
+                          padding:7px 12px;font-size:13px;color:#374151;cursor:pointer;background:#fff;">
+              <input type="checkbox" class="pren-allergene" value="${escapeAttribute(a)}" id="alg_${i}"
+                     style="accent-color:${colore};width:15px;height:15px;">
+              ${escapeHtml(a)}
+            </label>`).join("")}
+        </div>
+        <input type="text" id="allergie_altro" class="pren-input" placeholder="Altro (scrivetelo qui)"
+               style="margin-top:10px;">
       </div>` : ""}
 
       ${config.fields?.note ? `
@@ -536,7 +549,9 @@ export async function render(container) {
     const coperti= Number(document.getElementById("coperti").value);
     const emailVal = document.getElementById("email")?.value.trim() || "";
     const noteCliente = document.getElementById("note_cliente")?.value?.trim() || "";
-    const allergie = document.getElementById("allergie")?.checked || false;
+    const allergeniScelti = [...document.querySelectorAll(".pren-allergene:checked")].map(x => x.value);
+    const allergeniAltro = document.getElementById("allergie_altro")?.value?.trim() || "";
+    const allergie = [allergeniScelti.join(", "), allergeniAltro].filter(Boolean).join(" — ");
     const customValues = collectCustomValues();
     const consensoNetwork = document.getElementById("consenso-network")?.checked || false;
 
@@ -570,39 +585,43 @@ export async function render(container) {
 
     const statoIniziale = pagamentoRichiesto ? "in_attesa_pagamento" : "in_attesa";
 
+    // allergeni e note vanno nella colonna note: e' quella che la sala legge
+    // e che finisce sulla scheda stampata. Nel riferimento restavano invisibili.
+    const notePrenotazione = [allergie ? "Allergie: " + allergie : "", noteCliente]
+      .filter(Boolean).join(" · ");
+
+    // il token lo genera la pagina: niente rilettura della riga appena scritta
+    const nuovoToken = (window.crypto && window.crypto.randomUUID)
+      ? window.crypto.randomUUID().replace(/-/g, "")
+      : (Date.now().toString(16) + Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2)).slice(0, 32);
+
     const { data: pren, error } = await window.supabaseClient.from("prenotazioni_tavoli").insert([{
       azienda_id: aziendaId, sede_id: sedeId,
       form_id: form?.id || formId || null, form_version_id: version?.id || null,
       cliente_nome: `${nome} ${cognome}`.trim(), cliente_telefono: telefono2,
       cliente_email: emailVal || null,
       data, ora, coperti, stato: statoIniziale, canale: "online",
+      note: notePrenotazione || null, richieste_speciali: notePrenotazione || null,
+      token_pubblico: nuovoToken,
       source, riferimento: JSON.stringify(riferimentoPayload), tag: finalTag
-    }]).select("id, token_pubblico").single();
+    }]);
 
     btn.disabled = false; btn.textContent = config.pagamento?.attivo ? escapeHtml(config.pagamento?.label_btn || 'Paga e conferma') : '🦅 Prenota ora';
 
     if (error) { showMessage(error.message, true); window._rfTrack?.('error', 'submit_db_error', { step: 'submit', valore: error.message }); return; }
 
-    // Notifica WhatsApp + Email (fire & forget)
-    if (pren?.id) {
-      fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/prenotazione-notifica-tavolo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0" },
-        body: JSON.stringify({ prenotazione_id: pren.id })
-      }).catch(e => console.warn("Notifica:", e));
-    }
+    // Notifica WhatsApp + Email (fire & forget): la funzione accetta il token
+    fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/prenotazione-notifica-tavolo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0" },
+      body: JSON.stringify({ token_pubblico: nuovoToken })
+    }).catch(e => console.warn("Notifica:", e));
 
     if (!pagamentoRichiesto) {
       window._rfTrack?.('submit', 'prenotazione_completata', { step: 'success', completato: true, valore: `${coperti} coperti - ${data} ${ora}` });
       _bookingCompletata = true;
-      const tokenPub = pren?.token_pubblico;
-      if (tokenPub) {
-        showMessage("✅ Prenotazione inviata! Reindirizzamento...", false);
-        setTimeout(() => { window.location.href = `/prenotazione.html?token=${encodeURIComponent(tokenPub)}`; }, 800);
-      } else {
-        _mostraSuccesso(consensoNetwork, msg);
-        clearForm();
-      }
+      showMessage("✅ Prenotazione inviata! Reindirizzamento...", false);
+      setTimeout(() => { window.location.href = `/prenotazione.html?token=${encodeURIComponent(nuovoToken)}`; }, 800);
       return;
     }
 
@@ -610,21 +629,27 @@ export async function render(container) {
     showMessage("⏳ Reindirizzamento al pagamento...", false);
     window._rfTrack?.('step', 'redirect_pagamento', { step: 'stripe_checkout', valore: String(importoCentesimi) });
     _bookingCompletata = true;
+    let prenId = null;
+    try {
+      const r = await window.supabaseClient.rpc("prenotazione_pubblica", { p_token: nuovoToken });
+      if (r.data?.ok) prenId = r.data.prenotazione.id;
+    } catch (e) { console.warn("id prenotazione:", e); }
+
     try {
       const descrizione = pag.descrizione || `Caparra — ${new Date(data).toLocaleDateString("it-IT")} ore ${ora} · ${coperti} coperti`;
       const res = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stripe-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action:"create_session", azienda_id:aziendaId, tipo:"tavolo", riferimento_id:pren.id, importo_centesimi:importoCentesimi, descrizione, cliente_nome:`${nome} ${cognome}`.trim(), metadata:{ form_id:form?.id||formId||"", data, ora, coperti:String(coperti) } })
+        body: JSON.stringify({ action:"create_session", azienda_id:aziendaId, tipo:"tavolo", riferimento_id:prenId, importo_centesimi:importoCentesimi, descrizione, cliente_nome:`${nome} ${cognome}`.trim(), metadata:{ form_id:form?.id||formId||"", data, ora, coperti:String(coperti) } })
       });
       const result = await res.json();
       if (!res.ok || !result.checkout_url) {
-        await window.supabaseClient.from("prenotazioni_tavoli").update({ stato:"in_attesa" }).eq("id", pren.id);
+        await window.supabaseClient.from("prenotazioni_tavoli").update({ stato:"in_attesa" }).eq("token_pubblico", nuovoToken);
         _mostraSuccesso(consensoNetwork, msg); clearForm(); return;
       }
       window.location.href = result.checkout_url;
     } catch(e) {
-      await window.supabaseClient.from("prenotazioni_tavoli").update({ stato:"in_attesa" }).eq("id", pren.id);
+      await window.supabaseClient.from("prenotazioni_tavoli").update({ stato:"in_attesa" }).eq("token_pubblico", nuovoToken);
       _mostraSuccesso(consensoNetwork, msg); clearForm();
     }
   }
@@ -708,17 +733,27 @@ export async function render(container) {
 
   function renderPolicyModal() {
     if (!config.policy?.enabled) return "";
-    return `<div id="policy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-      <div style="width:100%;max-width:460px;max-height:80vh;overflow-y:auto;background:#fff;border-radius:18px;padding:18px;box-shadow:0 20px 40px rgba(0,0,0,0.25);">
-        <h3 style="margin:0 0 10px;">Policy prenotazione</h3>
-        <div style="font-size:13px;line-height:1.5;color:#374151;white-space:pre-wrap;margin-bottom:14px;">${escapeHtml(config.policy.text||"")}</div>
-        <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:14px;cursor:pointer;">
-          <input type="checkbox" id="policy_accept" style="margin-top:3px;accent-color:${colore};">
-          <span>Ho letto e accetto la booking policy</span>
-        </label>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button type="button" id="policy-cancel" class="app-button">Annulla</button>
-          <button type="button" id="policy-confirm" class="app-button primary">Conferma</button>
+    // Sul telefono la finestra usciva dallo schermo: era centrata e alta 80vh,
+    // e con la barra del browser i bottoni finivano sotto il bordo. Ora scorre
+    // il contenitore, la policy ha il suo spazio e i bottoni restano attaccati in fondo.
+    return `<div id="policy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;
+              align-items:flex-start;justify-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch;
+              padding:16px 16px calc(16px + env(safe-area-inset-bottom));">
+      <div style="width:100%;max-width:460px;margin:auto;background:#fff;border-radius:18px;
+                  box-shadow:0 20px 40px rgba(0,0,0,0.25);display:flex;flex-direction:column;
+                  max-height:calc(100dvh - 32px);">
+        <h3 style="margin:0;padding:18px 18px 10px;font-size:17px;">Policy prenotazione</h3>
+        <div style="font-size:13px;line-height:1.5;color:#374151;white-space:pre-wrap;
+                    padding:0 18px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;">${escapeHtml(config.policy.text||"")}</div>
+        <div style="padding:14px 18px 18px;border-top:1px solid #f1f5f9;background:#fff;border-radius:0 0 18px 18px;">
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:12px;cursor:pointer;">
+            <input type="checkbox" id="policy_accept" style="margin-top:3px;accent-color:${colore};flex-shrink:0;">
+            <span>Ho letto e accetto la booking policy</span>
+          </label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" id="policy-cancel" class="app-button" style="flex:1;min-width:120px;">Annulla</button>
+            <button type="button" id="policy-confirm" class="app-button primary" style="flex:1;min-width:120px;">Conferma</button>
+          </div>
         </div>
       </div>
     </div>`;
