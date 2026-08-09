@@ -87,10 +87,53 @@ export async function render(container) {
         padding:11px 13px;font-size:13.5px;margin-top:10px;line-height:1.5;}
       .pv-avviso.attesa{background:#FFF7ED;border-color:#FED7AA;color:#9A3412;}
       @media print{
+        @page{size:A4;margin:9mm;}
         body{background:#fff;padding:0;}
-        .pv-foglio{box-shadow:none;max-width:none;}
-        .pv-mod,.pv-carica,.pv-cta,.pv-stampa,.pv-timer{display:none !important;}
-        .pv h2{page-break-after:avoid;}
+        .pv{background:#fff;padding:0;font-size:11.5px;}
+        .pv-foglio{box-shadow:none;max-width:none;border-radius:0;}
+
+        /* via tutto cio' che serve solo a schermo (h2 compresi) */
+        .pv-mod,.pv-carica,.pv-cta,.pv-stampa,.pv-timer,.pv-serv,.pv-foto,
+        .pv-iban .copia,.pv-iban .carta,.pv-iban .nota,.pv-iban .copiato,
+        .pv-avviso,#pv-mod-esito,#pv-esito{display:none !important;}
+        .pv h2:has(+ .pv-mod),
+        .pv h2:has(+ .pv-carica),
+        .pv h2:has(+ .pv-foto),
+        .pv h2:has(+ .pv-blocco .pv-serv){display:none !important;}
+
+        /* niente sfondi pieni: su carta diventano testo bianco su bianco */
+        .pv-testa{background:#fff !important;padding:14px 20px 12px;border-bottom:2px solid var(--ambra);}
+        .pv-testa h1{color:var(--testo) !important;font-size:21px;margin:4px 0 2px;}
+        .pv-quando{color:#3D4C55 !important;font-size:12px;}
+        .pv-oc{color:var(--arancio) !important;font-size:9px;}
+        .pv-testa img{height:38px;margin-bottom:6px;}
+        .pv-conto{background:#fff !important;border:1px solid var(--riga);color:var(--testo) !important;
+          padding:10px 13px;margin-top:11px;}
+        .pv-conto .r,.pv-tot span{color:#3D4C55 !important;}
+        .pv-conto .r b,.pv-tot b{color:var(--testo) !important;}
+        .pv-tot b{font-size:19px;}
+
+        /* corpo compatto */
+        .pv-corpo{padding:14px 20px 12px;}
+        .pv-intro{font-size:11.5px;line-height:1.4;margin-bottom:10px;}
+        .pv-dati{padding:8px 11px;margin-bottom:10px;gap:5px 14px;}
+        .pv-dati span{font-size:8.5px;}
+        .pv-dati b{font-size:11.5px;}
+        .pv h2{font-size:13px;margin:11px 0 5px;page-break-after:avoid;}
+        .pv-sez{padding:6px 11px;}
+        .pv-tit{font-size:8.5px;margin-bottom:3px;}
+        .pv-p{font-size:11.5px;line-height:1.3;padding:1px 0;}
+        .pv-r{padding:5px 11px;font-size:11.5px;}
+        .pv-pag{padding:8px 11px;margin-top:7px;font-size:11.5px;}
+        .pv-iban{padding:9px 11px;}
+        .pv-iban .testo{font-size:10.5px;margin-bottom:7px;}
+        .pv-iban .riga-iban{padding:4px 0;}
+        .pv-iban .val{font-size:11.5px;}
+        .pv-iban .et{font-size:9px;width:80px;}
+        .pv-note{font-size:9px;line-height:1.4;margin-top:11px;padding-top:8px;}
+        .pv-pie{padding:8px 20px;font-size:9px;}
+
+        .pv-blocco,.pv-sez,.pv-conto,.pv-pag,.pv-iban{page-break-inside:avoid;}
       }
       .pv-iban{background:#fff;border:1px solid var(--riga);border-radius:12px;padding:16px 18px;}
       .pv-iban .testo{font-size:14px;color:#3D4C55;line-height:1.6;margin-bottom:14px;}
@@ -437,8 +480,14 @@ export async function render(container) {
     }
 
     const { data } = await supabase.rpc("preventivo_conferma", { p_token: token });
-    if (data?.ok) render(container);
-    else alert(data?.errore || "Non è andata, riprovate.");
+    if (!data?.ok) { alert(data?.errore || "Non è andata, riprovate."); return; }
+    // se l'acconto non risulta ancora incassato, si passa dalla pagina di pagamento
+    const { data: pg } = await supabase.rpc("preventivo_pagamento", { p_token: token });
+    if (pg?.ok && !pg.gia_versato) {
+      window.location.hash = "#/pagamento?t=" + encodeURIComponent(token);
+      return;
+    }
+    render(container);
   });
 }
 
