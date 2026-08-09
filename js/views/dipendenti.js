@@ -693,6 +693,25 @@ async function renderForm(dip) {
           <input type="text" id="dip-cognome" class="input-pill" value="${dip?.cognome || ""}" />
         </label>
 
+        <label style="display:flex;align-items:flex-start;gap:9px;background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:11px 13px;cursor:pointer;">
+          <input type="checkbox" id="dip-rider" ${dip?.rider ? "checked" : ""} style="accent-color:#16a34a;width:18px;height:18px;margin-top:2px;" />
+          <span>
+            <b style="font-size:14px;">🛵 Fa le consegne a domicilio</b>
+            <span style="display:block;font-size:12px;color:#166534;line-height:1.5;margin-top:2px;">
+              Si aggiunge alla mansione, non la sostituisce: un cameriere può fare le consegne il venerdì sera e restare cameriere.
+            </span>
+            ${dip?.token_operatore ? `
+              <span style="display:block;margin-top:8px;font-size:12px;color:#374151;">
+                Il suo link personale:<br>
+                <code style="font-size:11.5px;word-break:break-all;">${location.origin}/rider.html?t=${dip.token_operatore}</code>
+                <button type="button" id="dip-copia-rider" style="display:block;margin-top:6px;background:#fff;border:1.5px solid #86efac;color:#15803d;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">Copia il link</button>
+              </span>` : `
+              <span style="display:block;margin-top:8px;font-size:12px;color:#7c2d12;">
+                Il link personale compare dopo il primo salvataggio.
+              </span>`}
+          </span>
+        </label>
+
         <label>Mansione
           <input type="text" id="dip-mansione" class="input-pill" value="${dip?.mansione || ""}" list="dip-mansioni-list" placeholder="Es. Cameriere, Cuoco, Receptionist..." />
           <datalist id="dip-mansioni-list">
@@ -704,6 +723,7 @@ async function renderForm(dip) {
             <option value="Pizzaiolo">
             <option value="Pasticcere">
             <option value="Cameriere">
+            <option value="Rider">
             <option value="Cameriere di sala">
             <option value="Barista">
             <option value="Sommelier">
@@ -896,6 +916,20 @@ async function renderForm(dip) {
 
   await renderSediSelector(sediAssociate);
 
+  // Il link del rider si copia e si manda su WhatsApp: e' l'unico modo
+  // che ha per entrare, non c'e' nessuna password da ricordare.
+  const btnCopia = document.getElementById("dip-copia-rider");
+  if (btnCopia) {
+    btnCopia.onclick = async () => {
+      const link = btnCopia.previousElementSibling?.textContent?.trim() || "";
+      try {
+        await navigator.clipboard.writeText(link);
+        btnCopia.textContent = "Copiato ✓";
+        setTimeout(() => { btnCopia.textContent = "Copia il link"; }, 2000);
+      } catch (e) { prompt("Copia questo link:", link); }
+    };
+  }
+
   setTimeout(() => {
     const ruoloSel = document.getElementById("dip-ruolo-app");
     if (ruoloSel) {
@@ -1034,6 +1068,7 @@ async function salvaDipendente(isEdit) {
           email,
           telefono,
           mansione,
+          rider: document.getElementById("dip-rider")?.checked || false,
           ruolo_organizzativo_id: document.getElementById("dip-ruolo-org")?.value || null,
           reparto_id: repartoId,
           tipo_compenso: tipoCompenso,
@@ -1103,6 +1138,7 @@ async function salvaDipendente(isEdit) {
         telefono,
         ruolo,
         mansione,
+        rider: document.getElementById("dip-rider")?.checked || false,
         ruolo_organizzativo_id: document.getElementById("dip-ruolo-org")?.value || null,
         reparto_id: repartoId,
         azienda_id: azienda.id,
