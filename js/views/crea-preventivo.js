@@ -19,6 +19,7 @@ let sezioniInfo = [];    // nome -> categoria di piatti e se va a parte nel docu
 let modelli = [];        // schemi di menu predefiniti per tipo evento e formula
 let richieste = [];
 let pagamenti = [];   // contabili caricate dal cliente, da verificare
+let lotti = 0;        // quanti lotti di produzione sono nati da questo evento
 let vedoICosti = true;   // falso per le agenzie
 let personale = null;    // quanti camerieri servono e quanto costano
 let apertoDettaglio = null;  // riga di cui si stanno guardando i conti di Tony
@@ -90,17 +91,18 @@ function nuovo(azienda, sede) {
     sconto_perc: 0, sconto_euro: 0, acconto: 0, giorni_validita: 15,
     formula_servizio: "servito",
   };
-  righe = []; extra = []; richieste = []; pagamenti = []; stime = {}; foto = [];
+  righe = []; extra = []; richieste = []; pagamenti = []; lotti = 0; stime = {}; foto = [];
 }
 
 async function caricaPreventivo(supabase, id) {
-  const [p, r, e, q, f, pg] = await Promise.all([
+  const [p, r, e, q, f, pg, lot] = await Promise.all([
     supabase.from("preventivi").select("*").eq("id", id).maybeSingle(),
     supabase.from("preventivi_righe").select("*").eq("preventivo_id", id).order("id"),
     supabase.from("preventivi_extra").select("*").eq("preventivo_id", id).order("id"),
     supabase.from("preventivi_richieste").select("*").eq("preventivo_id", id).order("creata_il", { ascending: false }),
     supabase.from("preventivi_allegati").select("*").eq("preventivo_id", id).order("ordine"),
     supabase.from("preventivi_pagamenti").select("*").eq("preventivo_id", id).order("creato_il", { ascending: false }),
+    supabase.from("produzione_lotti").select("id", { count: "exact", head: true }).eq("preventivo_id", id),
   ]);
   P = p.data || null;
   righe = (r.data || []).map(x => ({
@@ -114,6 +116,7 @@ async function caricaPreventivo(supabase, id) {
   extra = (e.data || []).map(x => ({ descrizione: x.descrizione, prezzo: Number(x.prezzo_totale) || 0, costo: Number(x.costo_totale) || 0 }));
   richieste = q.data || [];
   pagamenti = pg.data || [];
+  lotti = Number(lot.count) || 0;
   foto = f.data || [];
 }
 
@@ -239,6 +242,8 @@ function disegna(container, supabase, azienda, sede) {
   const sezioni = [...new Set(righe.map(r => r.sezione || "Menu"))];
   const inAttesa = richieste.filter(x => x.stato === "da_valutare");
   const daVerificare = pagamenti.filter(x => x.stato === "in_attesa");
+  const conRicetta = righe.filter(x => x.ricetta_id).length;
+  const senzaRicetta = righe.filter(x => x.nome && !x.ricetta_id).length;
 
   container.innerHTML = `
     <div class="pv2">
@@ -284,6 +289,18 @@ function disegna(container, supabase, azienda, sede) {
             <span>Il margine qui sopra è più alto del vero. Falle stimare a Tony, o collega la ricetta.</span>
             <button class="pv2-btn arancio" id="pv2-stima">🤖 Stima i costi mancanti</button>` : ""}
           ${c.stimati ? `<div class="stimati">${c.stimati} ${c.stimati === 1 ? "portata ha un costo stimato" : "portate hanno un costo stimato"}: da confermare prima di firmare.</div>` : ""}
+        </div>` : ""}
+
+      ${P.stato === "confermato" ? `
+        <div class="pv2-avviso">
+          ${lotti > 0
+            ? `<b>Produzione avviata: ${lotti} ${lotti === 1 ? "lotto" : "lotti"}</b>
+               ${senzaRicetta > 0 ? `<span>${senzaRicetta} ${senzaRicetta === 1 ? "piatto non è collegato" : "piatti non sono collegati"} a una ricetta: ${senzaRicetta === 1 ? "non entra" : "non entrano"} in produzione e ${senzaRicetta === 1 ? "non porta" : "non portano"} via materia prima.</span>` : ""}`
+            : `<b>Questo evento non ha ancora nessuna produzione</b>
+               <span>${conRicetta > 0
+                  ? "I piatti ci sono: la produzione si può creare adesso."
+                  : "Collega i piatti del menu alle ricette, poi crea la produzione."}</span>
+               ${conRicetta > 0 ? `<button class="pv2-btn piccolo" id="pv2-rigenera">Crea la produzione</button>` : ""}`}
         </div>` : ""}
 
       ${daVerificare.length ? `
@@ -632,8 +649,15 @@ function aggancia(container, supabase, azienda, sede) {
   container.querySelector("#pv2-stato")?.addEventListener("change", (e) => {
     P.stato = e.target.value;
     if (P.stato === "confermato") {
-      msg(container, "Salvando, l'evento entra in produzione da solo: un lotto per piatto, " +
-        "con la data calcolata sulla conservazione. Le porzioni si aggiornano man mano che gli invitati confermano.");
+      // senza piatti collegati alle ricette non nasce nessun lotto, e il trigger
+      // non riparte piu' da solo: meglio dirlo prima di salvare
+      if (!righe.some(x => x.ricetta_id)) {
+        msg(container, "Attenzione: nessun piatto è collegato a una ricetta, quindi non nascerà nessuna " +
+          "produzione. Puoi confermare lo stesso e crearla dopo, dal riquadro in cima alla scheda.", true);
+      } else {
+        msg(container, "Salvando, l'evento entra in produzione da solo: un lotto per piatto, " +
+          "con la data calcolata sulla conservazione. Le porzioni si aggiornano man mano che gli invitati confermano.");
+      }
     }
   });
 
@@ -792,6 +816,16 @@ function aggancia(container, supabase, azienda, sede) {
       msg(container, `Ricetta creata con ${data.ingredienti} ingredienti. Completala nel ricettario per avere il costo esatto.`);
       ri();
     });
+  });
+
+  container.querySelector("#pv2-rigenera")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = "Creo…";
+    const { data, error } = await supabase.rpc("rigenera_produzione", { p_preventivo: P.id });
+    b.disabled = false; b.textContent = "Crea la produzione";
+    if (error || !data?.ok) return msg(container, error?.message || data?.errore || "Non e' andata.", true);
+    await caricaPreventivo(supabase, P.id);
+    ri();
+    msg(container, "Produzione creata: " + data.lotti + (data.lotti === 1 ? " lotto." : " lotti."));
   });
 
   container.querySelectorAll("[data-pag]").forEach(el => {
