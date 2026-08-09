@@ -499,7 +499,17 @@ function anteprimaFacebook() {
       '<div class="fb-quando">' + quando + '</div></div>' +
     '</div>' +
     (testo ? '<div class="fb-testo">' + esc(testo) + '</div>' : '') +
-    (img ? '<img class="fb-img" src="' + esc(img) + '" alt="">' : '') +
+    (() => {
+      const extra = Array.isArray(SEL.media_extra) ? SEL.media_extra.filter(Boolean) : [];
+      if (!img) return '';
+      if (!extra.length) return '<img class="fb-img" src="' + esc(img) + '" alt="">';
+      // carosello: si vedono affiancate, come su Facebook scorrendo
+      return '<div class="fb-caro">' +
+        [img].concat(extra).map((u, i) =>
+          '<div><img src="' + esc(u) + '" alt="">' +
+          '<span>' + (i + 1) + '/' + (extra.length + 1) + '</span></div>').join('') +
+        '</div>';
+    })() +
     '<div class="fb-azioni"><span>👍 Mi piace</span><span>💬 Commenta</span><span>↗ Condividi</span></div>';
 }
 
