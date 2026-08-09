@@ -95,6 +95,7 @@ export async function render(container) {
       <div class="mg-sez">Vai a</div>
       <div class="mg-griglia">
         <a href="#/prenotazioni" class="p"><i>🪑</i><b>Prenotazioni</b><span>Sala e tavoli</span></a>
+        <a href="#/eventi-territorio" class="p"><i>🎪</i><b>Eventi in zona</b><span>Cosa succede intorno</span></a>
         <a href="#/ordini" class="p"><i>📦</i><b>Ordini</b><span>Fornitori</span></a>
         <a href="#/magazzino" class="p"><i>🧊</i><b>Magazzino</b><span>Giacenze e scorte</span></a>
         <a href="#/planning-lavoro" class="p"><i>📆</i><b>Turni</b><span>Planning squadra</span></a>
