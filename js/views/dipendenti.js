@@ -1156,8 +1156,12 @@ async function salvaDipendente(isEdit) {
     }
 
     if (!res.ok || !json?.success) {
+      // Prima qui compariva solo "Errore creazione dipendente": il motivo vero
+      // (PIN gia' usato, sede non valida, permessi, email) restava in console
+      // e chi invitava non poteva farci niente.
       console.error("Errore creazione dipendente:", json);
-      if (msg) msg.innerHTML = `<span style="color:#dc2626;">Errore creazione dipendente</span>`;
+      const motivo = json?.error || `Errore HTTP ${res.status}`;
+      if (msg) msg.innerHTML = `<span style="color:#dc2626;">${escapeHtml(motivo)}</span>`;
       return;
     }
 
@@ -1394,8 +1398,24 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipend
     const supabaseUrl = supabase?.supabaseUrl || window.SUPABASE_URL;
     const endpoint = `${supabaseUrl}/functions/v1/invita-dipendente`;
 
+    // Il nome e' obbligatorio lato funzione: senza, ogni reinvito rispondeva
+    // "Parametri mancanti". Lo si recupera dal dipendente in archivio.
+    let nomeDipendente = "";
+    let cognomeDipendente = "";
+    if (dipendenteId) {
+      const { data: dipRec } = await supabase
+        .from("dipendenti")
+        .select("nome, cognome")
+        .eq("id", dipendenteId)
+        .maybeSingle();
+      nomeDipendente = dipRec?.nome || "";
+      cognomeDipendente = dipRec?.cognome || "";
+    }
+
     const body = JSON.stringify({
       email,
+      nome: nomeDipendente,
+      cognome: cognomeDipendente,
       azienda_id: aziendaId,
       ruolo,
       dipendente_id: dipendenteId,
@@ -1411,10 +1431,12 @@ async function inviaInvitoDipendenteWhiteLabel({ email, aziendaId, ruolo, dipend
       body,
     });
 
-    if (!r.ok) {
-      const t = await r.text();
-      console.error("Edge function invita-dipendente error:", r.status, t);
-      return { ok: false, message: t || `Errore invio (HTTP ${r.status})` };
+    let esito = null;
+    try { esito = await r.json(); } catch (e) { esito = null; }
+
+    if (!r.ok || !esito?.success) {
+      console.error("Edge function invita-dipendente error:", r.status, esito);
+      return { ok: false, message: esito?.error || `Errore invio (HTTP ${r.status})` };
     }
 
     return { ok: true };
