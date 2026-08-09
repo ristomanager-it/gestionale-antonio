@@ -530,7 +530,7 @@ async function listaDecisioni(supabase, aziendaId) {
     const daFare = (data || []).filter(r => !["non_prodotto", "descrittiva"].includes(r.match_metodo));
     const doc = new Set(daFare.map(r => r.documento_id));
     if (doc.size) out.push({
-      livello: "rosso", link: "#/bo-fatture",
+      livello: "rosso", link: "#/acquisti",   // bo-fatture non esiste come rotta: il click non portava da nessuna parte
       titolo: doc.size + (doc.size === 1 ? " fattura da completare" : " fatture da completare"),
       sotto: daFare.length + " righe senza prodotto o categoria",
     });
@@ -679,7 +679,7 @@ async function listaDecisioni(supabase, aziendaId) {
       const ricette = data.reduce((s, r) => s + (Number(r.ricette_coinvolte) || 0), 0);
       out.push({
         livello: "rosso",
-        link: "#/bo-prodotti",
+        link: "#/prodotti-da-correggere",
         titolo: data.length + (data.length === 1
           ? " prodotto con costo non attendibile"
           : " prodotti con costo non attendibile"),
