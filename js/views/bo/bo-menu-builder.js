@@ -222,7 +222,52 @@ export async function render(container) {
                 </label>
               </div>
             </div>
-            <div style="font-size:11px;color:#166534;">Il cliente pagherà con carta al momento dell'ordine (Stripe). Riceverai l'ordine in tempo reale in Comande e via WhatsApp.</div>
+            <div style="font-size:11px;color:#166534;">Il cliente paga con carta al momento dell'ordine, oppure alla consegna se Stripe non è configurato. L'ordine arriva in Comande.</div>
+
+            <!-- Cosa accetta questo menu -->
+            <div style="border-top:1px solid #86efac;margin-top:12px;padding-top:12px;">
+              <div style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px;">🛵 Asporto e consegna</div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;">
+                  <input type="checkbox" id="cfg-ritiro" style="accent-color:#16a34a;width:16px;height:16px;"> 🛍 Asporto
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;">
+                  <input type="checkbox" id="cfg-consegna" style="accent-color:#16a34a;width:16px;height:16px;"> 🛵 Consegna a domicilio
+                </label>
+              </div>
+
+              <div id="consegna-panel" style="display:none;">
+                <div style="display:flex;gap:6px;margin-bottom:10px;">
+                  <button type="button" id="modo-fisso" class="mb-modo">Costo fisso</button>
+                  <button type="button" id="modo-zone" class="mb-modo">Per zona o distanza</button>
+                </div>
+
+                <div id="blocco-fisso" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
+                  <div><label class="mb-label">Costo consegna €</label><input id="cfg-cons-costo" type="number" step="0.5" min="0" class="mb-input" placeholder="3"></div>
+                  <div><label class="mb-label">Gratis sopra €</label><input id="cfg-cons-gratis" type="number" step="1" min="0" class="mb-input" placeholder="vuoto = mai"></div>
+                  <div><label class="mb-label">Ordine minimo €</label><input id="cfg-cons-minimo" type="number" step="1" min="0" class="mb-input" placeholder="0"></div>
+                  <div><label class="mb-label">Tempo dichiarato (min)</label><input id="cfg-cons-tempo" type="number" step="5" min="5" class="mb-input" placeholder="25"></div>
+                </div>
+
+                <div id="blocco-zone" style="display:none;">
+                  <div id="lista-zone"></div>
+                  <button type="button" id="btn-zona" class="mb-add">+ Aggiungi una zona</button>
+                  <div class="mb-avviso">Prima si guarda il CAP; se non combacia si misura la distanza dalla sede. Fuori zona il cliente vede "non consegniamo qui" e può ordinare da asporto.</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                    <div><label class="mb-label">Ordine minimo € (generale)</label><input id="cfg-cons-minimo2" type="number" step="1" min="0" class="mb-input" placeholder="0"></div>
+                    <div><label class="mb-label">Tempo dichiarato (min)</label><input id="cfg-cons-tempo2" type="number" step="5" min="5" class="mb-input" placeholder="25"></div>
+                  </div>
+                </div>
+
+                <div style="border-top:1px solid #86efac;margin-top:12px;padding-top:12px;">
+                  <div style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px;">🕐 Fasce orarie</div>
+                  <div id="lista-fasce"></div>
+                  <button type="button" id="btn-fascia" class="mb-add">+ Aggiungi una fascia</button>
+                  <div class="mb-avviso">Le fasce piene spariscono da sole. Quelle troppo vicine non si propongono: se sono le 19:50 e dichiari 25 minuti, le 20:00 non compare.</div>
+                  <div id="anteprima-slot" style="margin-top:10px;"></div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Cover (galleria a slide) e Logo menu -->
@@ -372,7 +417,33 @@ export async function render(container) {
 
   qs("#cfg-attivo").onchange = (e) => { qs("#cfg-attivo-label").textContent = e.target.checked ? "Attivo" : "Non attivo"; };
   qs("#cfg-caparra").onchange = (e) => { qs("#caparra-panel").style.display = e.target.checked ? "block" : "none"; };
+  (function stiliConsegna() {
+    if (document.getElementById("stili-consegna")) return;
+    const st = document.createElement("style");
+    st.id = "stili-consegna";
+    st.textContent = ".mb-modo{flex:1;border:1.5px solid #e2e8f0;background:#fff;border-radius:10px;padding:8px;font-size:13px;font-weight:700;color:#475569;cursor:pointer;}" +
+      ".mb-modo.on{border-color:#16a34a;background:#dcfce7;color:#15803d;}" +
+      ".mb-add{width:100%;background:#fff;border:1.5px dashed #86efac;color:#15803d;border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;}" +
+      ".mb-avviso{font-size:11.5px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;padding:8px 10px;margin-top:8px;line-height:1.5;}" +
+      ".mb-riga{display:flex;gap:8px;align-items:flex-end;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px;margin-bottom:8px;flex-wrap:wrap;}" +
+      ".mb-riga .mb-input{min-width:0;}" +
+      ".mb-x{background:none;border:none;color:#b91c1c;font-size:15px;cursor:pointer;padding:6px;}" +
+      ".mb-g{width:38px;height:32px;border-radius:9px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:700;color:#475569;cursor:pointer;}" +
+      ".mb-g.on{border-color:#16a34a;background:#dcfce7;color:#15803d;}" +
+      ".mb-slot{display:inline-block;border:1px solid #e2e8f0;border-radius:8px;padding:5px 9px;font-size:12px;background:#fff;margin:0 5px 5px 0;}" +
+      ".mb-slot.pieno{background:#fef2f2;color:#b91c1c;border-color:#fecaca;text-decoration:line-through;}";
+    document.head.appendChild(st);
+  })();
+
   qs("#cfg-ordinabile").onchange = (e) => { qs("#ordinabile-panel").style.display = e.target.checked ? "block" : "none"; };
+  qs("#cfg-consegna").onchange = (e) => { qs("#consegna-panel").style.display = e.target.checked ? "block" : "none"; };
+  qs("#modo-fisso").onclick = () => cambiaModo("fisso");
+  qs("#modo-zone").onclick = () => cambiaModo("zone");
+  qs("#btn-zona").onclick = () => { zone.push({ nome: "Nuova zona", costo: 0, cap: [], distanza_max_km: null, gratis_sopra: null, ordine_minimo: 0 }); renderZone(); };
+  qs("#btn-fascia").onclick = () => {
+    fasce.push({ giorni: [1,2,3,4,5,6,0], ora_da: "19:00", ora_a: "22:00", passo_minuti: 30, max_ordini: 4, tipo: "entrambi" });
+    renderFasce();
+  };
   qs("#cfg-raccolta").onchange = (e) => { qs("#raccolta-campi-panel").style.display = e.target.checked ? "block" : "none"; };
 
   qs("#cfg-nome").oninput = () => {
@@ -706,6 +777,17 @@ export async function render(container) {
     qs("#caparra-importo").value = caparra.importo || "";
     qs("#caparra-note").value = caparra.note || "";
     qs("#cfg-ordinabile").checked = !!m.ordinabile;
+    qs("#cfg-ritiro").checked = !!m.ritiro_attivo;
+    qs("#cfg-consegna").checked = !!m.consegna_attiva;
+    qs("#consegna-panel").style.display = m.consegna_attiva ? "block" : "none";
+    qs("#cfg-cons-costo").value = m.consegna_costo || "";
+    qs("#cfg-cons-gratis").value = m.consegna_gratis_sopra == null ? "" : m.consegna_gratis_sopra;
+    qs("#cfg-cons-minimo").value = m.ordine_minimo || "";
+    qs("#cfg-cons-minimo2").value = m.ordine_minimo || "";
+    qs("#cfg-cons-tempo").value = m.tempo_consegna_min || "";
+    qs("#cfg-cons-tempo2").value = m.tempo_consegna_min || "";
+    cambiaModo(m.consegna_modo === "zone" ? "zone" : "fisso");
+    caricaZoneEFasce();
     qs("#ordinabile-panel").style.display = m.ordinabile ? "block" : "none";
     qs("#cfg-luogo-label").value = m.luogo_consegna_label || "Tavolo";
     qs("#cfg-richiedi-orario").checked = m.richiedi_orario_consegna !== false;
@@ -757,6 +839,8 @@ export async function render(container) {
       }
     }
 
+    await salvaZoneEFasce();
+
     const { error } = await supa().from("menu").update({
       nome:            qs("#cfg-nome").value.trim(),
       slug:            slugFinale || null,
@@ -774,7 +858,14 @@ export async function render(container) {
       caparra_formula: caparraAttiva ? { tipo: qs("#caparra-tipo").value, importo: parseFloat(qs("#caparra-importo").value)||0, note: qs("#caparra-note").value.trim() } : null,
       ordinabile: qs("#cfg-ordinabile").checked,
       luogo_consegna_label: qs("#cfg-luogo-label").value,
-      richiedi_orario_consegna: qs("#cfg-richiedi-orario").checked
+      richiedi_orario_consegna: qs("#cfg-richiedi-orario").checked,
+      ritiro_attivo: qs("#cfg-ritiro").checked,
+      consegna_attiva: qs("#cfg-consegna").checked,
+      consegna_modo: modoConsegna,
+      consegna_costo: parseFloat(qs("#cfg-cons-costo").value) || 0,
+      consegna_gratis_sopra: qs("#cfg-cons-gratis").value === "" ? null : parseFloat(qs("#cfg-cons-gratis").value),
+      ordine_minimo: parseFloat(modoConsegna === "zone" ? qs("#cfg-cons-minimo2").value : qs("#cfg-cons-minimo").value) || 0,
+      tempo_consegna_min: parseInt(modoConsegna === "zone" ? qs("#cfg-cons-tempo2").value : qs("#cfg-cons-tempo").value) || null
     }).eq("id", menuAttivo.id).eq("azienda_id", azienda_id);
     btn.disabled = false; btn.textContent = "💾 Salva configurazione";
     if (error) { msg.innerHTML = `<span style="color:#dc2626;">${error.message}</span>`; return; }
@@ -783,6 +874,149 @@ export async function render(container) {
     menuAttivo = menus.find(m => m.id === menuAttivo.id);
     renderTabsMenu();
     setTimeout(() => msg.innerHTML = "", 4000);
+  }
+
+  // ── CONSEGNA: zone, fasce orarie, anteprima ───────────────────
+  // Il costo e la capienza li ricontrolla comunque il database a ogni ordine:
+  // qui si decide, non si calcola.
+  let modoConsegna = "fisso", zone = [], fasce = [];
+  const GIORNI = [["Lun",1],["Mar",2],["Mer",3],["Gio",4],["Ven",5],["Sab",6],["Dom",0]];
+
+  function cambiaModo(m) {
+    modoConsegna = m;
+    qs("#modo-fisso").classList.toggle("on", m === "fisso");
+    qs("#modo-zone").classList.toggle("on", m === "zone");
+    qs("#blocco-fisso").style.display = m === "fisso" ? "grid" : "none";
+    qs("#blocco-zone").style.display = m === "zone" ? "block" : "none";
+  }
+
+  async function caricaZoneEFasce() {
+    const [z, f] = await Promise.all([
+      supa().from("consegna_zone").select("*").eq("azienda_id", azienda_id).order("costo"),
+      supa().from("consegna_slot_config").select("*").eq("azienda_id", azienda_id).order("ora_da"),
+    ]);
+    zone = z.data || [];
+    // le fasce uguali su piu' giorni si mostrano come una riga sola
+    const mappa = {};
+    (f.data || []).forEach(r => {
+      const k = r.ora_da + "|" + r.ora_a + "|" + r.passo_minuti + "|" + r.max_ordini + "|" + r.tipo;
+      if (!mappa[k]) mappa[k] = { giorni: [], ora_da: r.ora_da.slice(0,5), ora_a: r.ora_a.slice(0,5),
+        passo_minuti: r.passo_minuti, max_ordini: r.max_ordini, tipo: r.tipo };
+      mappa[k].giorni.push(r.giorno_settimana);
+    });
+    fasce = Object.values(mappa);
+    renderZone(); renderFasce();
+  }
+
+  function renderZone() {
+    qs("#lista-zone").innerHTML = zone.map((z, i) => `
+      <div class="mb-riga">
+        <div style="flex:1;min-width:110px;"><label class="mb-label">Nome</label>
+          <input class="mb-input" data-z="${i}" data-c="nome" value="${(z.nome||"").replace(/"/g,"&quot;")}"></div>
+        <div style="width:90px;"><label class="mb-label">Costo €</label>
+          <input class="mb-input" type="number" step="0.5" min="0" data-z="${i}" data-c="costo" value="${z.costo||0}"></div>
+        <div style="width:100px;"><label class="mb-label">Gratis sopra</label>
+          <input class="mb-input" type="number" step="1" min="0" data-z="${i}" data-c="gratis_sopra" value="${z.gratis_sopra==null?"":z.gratis_sopra}"></div>
+        <div style="width:95px;"><label class="mb-label">Minimo €</label>
+          <input class="mb-input" type="number" step="1" min="0" data-z="${i}" data-c="ordine_minimo" value="${z.ordine_minimo||0}"></div>
+        <div style="flex:1;min-width:120px;"><label class="mb-label">CAP serviti</label>
+          <input class="mb-input" data-z="${i}" data-c="cap" placeholder="01028, 01100" value="${(z.cap||[]).join(", ")}"></div>
+        <div style="width:95px;"><label class="mb-label">…o entro km</label>
+          <input class="mb-input" type="number" step="0.5" min="0" data-z="${i}" data-c="distanza_max_km" value="${z.distanza_max_km==null?"":z.distanza_max_km}"></div>
+        <button type="button" class="mb-x" data-zx="${i}">🗑</button>
+      </div>`).join("") || '<div style="font-size:12.5px;color:#64748b;">Nessuna zona: aggiungine almeno una.</div>';
+
+    container.querySelectorAll("#lista-zone [data-z]").forEach(el => {
+      el.onchange = () => {
+        const z = zone[Number(el.dataset.z)], c = el.dataset.c;
+        if (c === "cap") z.cap = el.value.split(",").map(x => x.trim()).filter(Boolean);
+        else if (c === "nome") z.nome = el.value.trim();
+        else z[c] = el.value === "" ? null : parseFloat(el.value);
+      };
+    });
+    container.querySelectorAll("#lista-zone [data-zx]").forEach(b => {
+      b.onclick = () => { zone.splice(Number(b.dataset.zx), 1); renderZone(); };
+    });
+  }
+
+  function renderFasce() {
+    qs("#lista-fasce").innerHTML = fasce.map((f, i) => `
+      <div class="mb-riga" style="align-items:flex-start;">
+        <div style="width:100%;display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
+          ${GIORNI.map(([et, n]) => `<button type="button" class="mb-g${f.giorni.includes(n)?" on":""}" data-f="${i}" data-g="${n}">${et}</button>`).join("")}
+        </div>
+        <div style="width:88px;"><label class="mb-label">Dalle</label>
+          <input class="mb-input" type="time" data-f="${i}" data-c="ora_da" value="${f.ora_da}"></div>
+        <div style="width:88px;"><label class="mb-label">Alle</label>
+          <input class="mb-input" type="time" data-f="${i}" data-c="ora_a" value="${f.ora_a}"></div>
+        <div style="width:92px;"><label class="mb-label">Ogni (min)</label>
+          <input class="mb-input" type="number" step="5" min="5" data-f="${i}" data-c="passo_minuti" value="${f.passo_minuti}"></div>
+        <div style="width:92px;"><label class="mb-label">Per fascia</label>
+          <input class="mb-input" type="number" min="1" data-f="${i}" data-c="max_ordini" value="${f.max_ordini}"></div>
+        <div style="width:120px;"><label class="mb-label">Vale per</label>
+          <select class="mb-input" data-f="${i}" data-c="tipo">
+            <option value="entrambi"${f.tipo==="entrambi"?" selected":""}>Tutti</option>
+            <option value="domicilio"${f.tipo==="domicilio"?" selected":""}>Solo domicilio</option>
+            <option value="asporto"${f.tipo==="asporto"?" selected":""}>Solo asporto</option>
+          </select></div>
+        <button type="button" class="mb-x" data-fx="${i}">🗑</button>
+      </div>`).join("") || '<div style="font-size:12.5px;color:#64748b;">Nessuna fascia: il cliente scrive l\'orario a mano.</div>';
+
+    container.querySelectorAll("#lista-fasce [data-c]").forEach(el => {
+      el.onchange = () => {
+        const f = fasce[Number(el.dataset.f)], c = el.dataset.c;
+        f[c] = (c === "passo_minuti" || c === "max_ordini") ? (parseInt(el.value) || 1) : el.value;
+        anteprimaSlot();
+      };
+    });
+    container.querySelectorAll("#lista-fasce [data-g]").forEach(b => {
+      b.onclick = () => {
+        const f = fasce[Number(b.dataset.f)], g = Number(b.dataset.g);
+        f.giorni = f.giorni.includes(g) ? f.giorni.filter(x => x !== g) : f.giorni.concat(g);
+        renderFasce();
+      };
+    });
+    container.querySelectorAll("#lista-fasce [data-fx]").forEach(b => {
+      b.onclick = () => { fasce.splice(Number(b.dataset.fx), 1); renderFasce(); };
+    });
+    anteprimaSlot();
+  }
+
+  // Cosa vedra' il cliente: si calcola qui, senza salvare niente.
+  function anteprimaSlot() {
+    const box = qs("#anteprima-slot"); if (!box) return;
+    if (!fasce.length) { box.innerHTML = ""; return; }
+    const f = fasce[0];
+    let out = "", t = f.ora_da;
+    const aMin = (h) => Number(h.split(":")[0]) * 60 + Number(h.split(":")[1]);
+    const daMin = (m) => String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0");
+    for (let m = aMin(f.ora_da); m < aMin(f.ora_a); m += (f.passo_minuti || 30)) {
+      out += `<span class="mb-slot">${daMin(m)}</span>`;
+    }
+    box.innerHTML = '<div class="mb-label">Come le vede il cliente</div>' + out;
+  }
+
+  async function salvaZoneEFasce() {
+    // si riscrive tutto: sono poche righe e cosi' non restano orfani
+    await supa().from("consegna_zone").delete().eq("azienda_id", azienda_id);
+    if (modoConsegna === "zone" && zone.length) {
+      await supa().from("consegna_zone").insert(zone.map(z => ({
+        azienda_id: azienda_id, nome: z.nome || "Zona", costo: z.costo || 0,
+        gratis_sopra: z.gratis_sopra == null ? null : z.gratis_sopra,
+        cap: (z.cap && z.cap.length) ? z.cap : null,
+        distanza_max_km: z.distanza_max_km == null ? null : z.distanza_max_km,
+        ordine_minimo: z.ordine_minimo || 0, attiva: true,
+      })));
+    }
+    await supa().from("consegna_slot_config").delete().eq("azienda_id", azienda_id);
+    const righe = [];
+    fasce.forEach(f => (f.giorni || []).forEach(g => righe.push({
+      azienda_id: azienda_id, giorno_settimana: g,
+      ora_da: f.ora_da, ora_a: f.ora_a,
+      passo_minuti: f.passo_minuti || 30, max_ordini: f.max_ordini || 4,
+      tipo: f.tipo || "entrambi", attivo: true,
+    })));
+    if (righe.length) await supa().from("consegna_slot_config").insert(righe);
   }
 
   // ── RENDER CAT SX ─────────────────────────────────────────────
