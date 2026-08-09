@@ -267,8 +267,7 @@ async function carica() {
 
   const { data: giorni, error } = await supa()
     .from('v_calendario_esito')
-    .select('id,data,angolo,stato,tema,titolo,testo,media_url,grafica_url,grafica_modo,tema_grafico,immagine_finale,istruzioni,sede_id,ricorrenza,tipo_giorno,verificata,esito')
-    /* le foto in piu stanno sulla tabella, non sulla vista */
+    .select('id,data,angolo,stato,tema,titolo,testo,media_url,media_extra,grafica_url,grafica_modo,tema_grafico,immagine_finale,istruzioni,sede_id,ricorrenza,tipo_giorno,verificata,esito')
     .eq('azienda_id', az)
     .eq('canale', 'facebook')
     .gte('data', iso(dal))
