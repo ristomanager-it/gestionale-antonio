@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260809-23";
+const APP_V = "20260809-24";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -1873,7 +1873,22 @@ function renderUpgradeWall(app, feature, route) {
     return;
   }
 
-  await renderView("home");
+  // Rotta sconosciuta: si torna alla home DEL RUOLO, non alla vecchia home.js.
+  // renderView("home") caricava direttamente quella vista, saltando lo
+  // smistamento per ruolo che sta piu' sopra: chi e' admin finiva su una
+  // dashboard vuota e senza uscite, con l'impressione che il click non
+  // avesse fatto niente.
+  const ruoloOra = window.normalizeRuolo
+    ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo)
+    : (window.state?.viewAs || window.state?.ruolo);
+
+  if (ruoloOra === "admin" || ruoloOra === "superadmin") {
+    await renderView("home-admin");
+  } else if (ruoloOra === "manager") {
+    await renderView("home-manager");
+  } else {
+    await renderView("home-operatore");
+  }
 }
 
 /* =========================================================
