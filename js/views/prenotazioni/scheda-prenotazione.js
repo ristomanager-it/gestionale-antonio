@@ -594,7 +594,7 @@ export async function render(container) {
       btnOpenCliente.onclick = () => {
         const contattoId = pageState.prenotazione?.contatto_id || "";
         if (!contattoId) return;
-        window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(contattoId);
+        window.location.hash = "#/cliente?id=" + encodeURIComponent(contattoId);
       };
     }
 
