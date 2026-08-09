@@ -226,6 +226,40 @@
       }).then(function(r) { return r.json(); });
     }
     var slotScelto = null, dataScelta = null, slotDisponibili = [];
+    var mancia = 0;
+
+    // Memoria del cliente: resta sul suo telefono, non sui nostri server.
+    // Chi ordina la pizza il venerdi non deve riscrivere l'indirizzo ogni volta.
+    function ricorda() {
+      try {
+        localStorage.setItem("rf_cliente", JSON.stringify({
+          nome: (document.getElementById("chk-nome")||{}).value || "",
+          tel: (document.getElementById("chk-tel")||{}).value || "",
+          email: (document.getElementById("chk-email")||{}).value || "",
+          via: (document.getElementById("chk-via")||{}).value || "",
+          civico: (document.getElementById("chk-civico")||{}).value || "",
+          cap: (document.getElementById("chk-cap")||{}).value || "",
+          citta: (document.getElementById("chk-citta")||{}).value || "",
+          campanello: (document.getElementById("chk-campanello")||{}).value || "",
+          piano: (document.getElementById("chk-piano")||{}).value || "",
+          note: (document.getElementById("chk-note-consegna")||{}).value || "",
+          lat: pos.lat, lng: pos.lng, tipo: tipoOrdine
+        }));
+      } catch (e) {}
+    }
+    function ricordato() {
+      try { return JSON.parse(localStorage.getItem("rf_cliente") || "null"); } catch (e) { return null; }
+    }
+    function riempiRicordato() {
+      var r = ricordato(); if (!r) return;
+      [["chk-nome","nome"],["chk-tel","tel"],["chk-email","email"],["chk-via","via"],
+       ["chk-civico","civico"],["chk-cap","cap"],["chk-citta","citta"],
+       ["chk-campanello","campanello"],["chk-piano","piano"],["chk-note-consegna","note"]].forEach(function(x) {
+        var el = document.getElementById(x[0]);
+        if (el && !el.value && r[x[1]]) el.value = r[x[1]];
+      });
+      if (r.lat && pos.lat == null) { pos = { lat: r.lat, lng: r.lng, gps: false }; }
+    }
     var TAG_LABELS = {
       vegetariano: "🌱 Vegetariano", vegano: "🥦 Vegano", senza_glutine: "🌾 Senza glutine",
       pesce: "🐟 Pesce", carne: "🥩 Carne",
@@ -1133,7 +1167,12 @@
       var chiediOrario = menu.richiedi_orario_consegna !== false;
       var puoiConsegna = !!menu.consegna_attiva;
       var puoiAsporto = !!menu.ritiro_attivo;
+      var mem = ricordato();
+      if (mem && mem.tipo && !apriCheckout._giaScelto) {
+        tipoOrdine = mem.tipo; apriCheckout._giaScelto = true;
+      }
       if (!puoiConsegna && tipoOrdine === "domicilio") tipoOrdine = "tavolo";
+      if (!puoiAsporto && tipoOrdine === "asporto") tipoOrdine = "tavolo";
 
       var modi = "";
       if (puoiConsegna || puoiAsporto) {
@@ -1190,6 +1229,7 @@
         (chiediOrario ? '<div class="checkout-field"><label>Quando lo vuoi</label><div id="chk-slot"></div>' +
           '<input id="chk-orario" class="raccolta-input" placeholder="Es. 20:30 oppure appena pronto"></div>' : '') +
         '<div class="checkout-field"><label>Allergie o intolleranze</label><textarea id="chk-allergie" class="raccolta-input" style="min-height:50px;resize:vertical;" placeholder="Se non ce ne sono lascia vuoto"></textarea></div>' +
+        (tipoOrdine === "domicilio" ? '<div class="checkout-field"><label>Mancia per chi consegna</label><div id="chk-mancia"></div></div>' : '') +
         '<div id="chk-conto" style="background:#f8fafc;border-radius:12px;padding:12px 14px;font-size:14px;margin:12px 0;"></div>' +
         '<div id="chk-errore" style="color:#dc2626;font-size:13px;margin-bottom:10px;"></div>' +
         '<button class="raccolta-btn" id="btn-paga">💳 Paga con carta</button>' +
@@ -1208,7 +1248,10 @@
       document.getElementById("btn-paga").onclick = function() { inviaOrdine("carta"); };
       document.getElementById("btn-consegna").onclick = function() { inviaOrdine("alla_consegna"); };
       if (tipoOrdine === "domicilio") preparaIndirizzo();
+      riempiRicordato();
+      disegnaMancia();
       caricaSlot();
+      if (tipoOrdine === "domicilio" && pos.lat != null) { mostraMappa(); calcolaConsegna(); }
       disegnaConto();
       document.getElementById("checkout-overlay").style.display = "flex";
     }
@@ -1270,6 +1313,25 @@
         });
     }
 
+    // La mancia e' del rider, non del locale: si sceglie qui e si vede a parte.
+    function disegnaMancia() {
+      var box = document.getElementById("chk-mancia"); if (!box) return;
+      var voci = [0, 1, 2, 3, 5];
+      box.innerHTML = '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        voci.map(function(v) {
+          var on = mancia === v;
+          return '<button data-mancia="' + v + '" style="flex:1;min-width:62px;border:1.5px solid ' +
+            (on ? "var(--brand)" : "#e2e8f0") + ';background:' + (on ? "var(--brand-light)" : "#fff") +
+            ';color:' + (on ? "var(--brand)" : "#475569") +
+            ';border-radius:10px;padding:9px 6px;font-size:13.5px;font-weight:700;">' +
+            (v === 0 ? "No" : v + " €") + '</button>';
+        }).join("") + '</div>' +
+        '<div style="font-size:11.5px;color:#64748b;margin-top:5px;">Va tutta a chi porta l\'ordine.</div>';
+      box.querySelectorAll("[data-mancia]").forEach(function(b) {
+        b.onclick = function(e) { e.preventDefault(); mancia = Number(b.dataset.mancia); disegnaMancia(); disegnaConto(); };
+      });
+    }
+
     function disegnaConto() {
       var box = document.getElementById("chk-conto"); if (!box) return;
       var r = totaleCarrello();
@@ -1285,8 +1347,12 @@
             '</span></div>';
         }
       }
+      if (tipoOrdine === "domicilio" && mancia > 0) {
+        html += '<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Mancia al rider</span><span>' +
+          mancia.toFixed(2).replace(".", ",") + ' €</span></div>';
+      }
       html += '<div style="display:flex;justify-content:space-between;border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;font-weight:800;font-size:16px;">' +
-        '<span>Totale</span><span>' + (r.tot + (tipoOrdine === "domicilio" ? consegna.costo : 0)).toFixed(2).replace(".", ",") + ' €</span></div>';
+        '<span>Totale</span><span>' + (r.tot + (tipoOrdine === "domicilio" ? consegna.costo + mancia : 0)).toFixed(2).replace(".", ",") + ' €</span></div>';
       box.innerHTML = html;
     }
 
@@ -1438,6 +1504,7 @@
         orario_consegna: slotScelto || orario, allergie_note: allergie,
         data_consegna: slotScelto ? dataScelta : null, slot_inizio: slotScelto || null,
         pagamento: modo === "alla_consegna" ? "alla_consegna" : "carta",
+        mancia: tipoOrdine === "domicilio" ? mancia : 0,
         righe: linee.map(function(l) {
           return { menu_voce_id: l.voce_id, quantita: l.qta,
                    opzioni: (l.opz || []).map(function(o){ return o.id; }) };
@@ -1469,6 +1536,7 @@
         if (consegna.errore) { erroreBox.textContent = consegna.errore; return; }
       }
 
+      ricorda();
       var btn = document.getElementById(modo === "alla_consegna" ? "btn-consegna" : "btn-paga");
       var testoBtn = btn.textContent;
       btn.disabled = true; btn.textContent = "⏳ Un attimo…";
