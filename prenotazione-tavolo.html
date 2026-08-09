@@ -231,20 +231,24 @@
 
       btn.disabled = true; btn.textContent = "Invio in corso...";
       try {
-        const { data: pren, error } = await db.from("prenotazioni_tavoli").insert([{
+      // il token se lo fa la pagina: cosi' non serve rileggere la riga appena scritta,
+      // e la tabella puo' restare chiusa in lettura a chi non e' del ristorante
+      var nuovoToken = (window.crypto && window.crypto.randomUUID)
+        ? window.crypto.randomUUID().replace(/-/g, "")
+        : (Date.now().toString(16) + Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2)).slice(0, 32);
+        const { error } = await db.from("prenotazioni_tavoli").insert([{
           azienda_id: aziendaId, sede_id: sedeId,
           cliente_nome: (nome + " " + cognome).trim(),
           cliente_telefono: telefono, cliente_email: email || null,
           data: data, ora: ora, coperti: coperti,
           stato: "in_attesa", canale: "online", source: "tavolo",
           occasione: occasione || null,
-          note: note || null
-        }]).select("id, token_pubblico").single();
+          note: note || null,
+          token_pubblico: nuovoToken
+        }]);
         if (error) throw error;
         showMsg("Prenotazione inviata! Ti confermiamo a breve.", false);
-        if (pren && pren.token_pubblico) {
-          setTimeout(function () { location.href = "/prenotazione.html?token=" + encodeURIComponent(pren.token_pubblico); }, 1200);
-        }
+        setTimeout(function () { location.href = "/prenotazione.html?token=" + encodeURIComponent(nuovoToken); }, 1200);
       } catch (e) {
         showMsg("Errore: " + (e.message || e), true);
         btn.disabled = false; btn.textContent = "Prenota il tavolo";
