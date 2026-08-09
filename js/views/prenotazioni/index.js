@@ -1737,7 +1737,7 @@ if (onlineModal.classList.contains("open")) {
           return;
         }
 
-        window.location.hash = "#/contatti-dettaglio?id=" + encodeURIComponent(id);
+        window.location.hash = "#/cliente?id=" + encodeURIComponent(id);
       };
     });
 
