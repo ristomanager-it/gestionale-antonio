@@ -754,6 +754,41 @@ async function openDocumentoUploadModal(azienda) {
   const btnCloseBottom = modal.querySelector("#rf-close-bottom");
   const righeContainer = modal.querySelector("#righe-container");
 
+  // Elenco dei prodotti gia' in anagrafica, agganciato al campo Descrizione.
+  // Sta fuori da #righe-container di proposito: quel nodo viene riscritto a
+  // ogni modifica e si porterebbe via i suggerimenti.
+  const datalistProdotti = document.createElement("datalist");
+  datalistProdotti.id = "rf-prodotti-list";
+  modal.appendChild(datalistProdotti);
+
+  // Riempirlo con tutti i prodotti sarebbe un elenco di oltre mille voci a ogni
+  // tasto premuto: si riempie solo con quelli che contengono cio' che si scrive.
+  function aggiornaSuggerimenti(testo) {
+    const q = String(testo || "").trim().toLowerCase();
+    if (q.length < 2) { datalistProdotti.innerHTML = ""; return; }
+
+    const trovati = [];
+    for (const p of prodottiCache) {
+      const nome = String(p.nome || "");
+      if (nome.toLowerCase().includes(q)) {
+        trovati.push(nome);
+        if (trovati.length >= 30) break;
+      }
+    }
+    datalistProdotti.innerHTML = trovati
+      .map((n) => '<option value="' + escapeHtml(n) + '"></option>')
+      .join("");
+  }
+
+  // Se quello che si e' scritto e' esattamente il nome di un prodotto, il
+  // collegamento e' certo: si salta il match a somiglianza, che e' proprio
+  // quello che aggancia il salmone all'olio.
+  function prodottoEsatto(testo) {
+    const q = String(testo || "").trim().toLowerCase();
+    if (!q) return null;
+    return prodottiCache.find((p) => String(p.nome || "").trim().toLowerCase() === q) || null;
+  }
+
   let righe = [];
   let isUploadingOcr = false;
 
@@ -898,9 +933,11 @@ async function openDocumentoUploadModal(azienda) {
     };
 
     if ("descrizione" in patch && !("prodotto_id" in patch)) {
-      const matched = findProdottoByDescrizione(patch.descrizione);
+      const esatto = prodottoEsatto(patch.descrizione);
+      const matched = esatto || findProdottoByDescrizione(patch.descrizione);
       righe[index].prodotto_id = matched?.id || null;
       righe[index].prodotto_nome = matched?.nome || "";
+      righe[index].prodotto_scelto = !!esatto;
       righe[index].um = righe[index].um || matched?.um || "pz";
     }
 
@@ -944,6 +981,10 @@ async function openDocumentoUploadModal(azienda) {
       if (!row.prodotto_id) {
         matchedClass = "missing";
         matched = "⚠️ Prodotto non agganciato";
+      } else if (!row.prodotto_scelto && nCat === 2) {
+        // Agganciato per somiglianza: e' giusto quasi sempre, ma va guardato.
+        matchedClass = "ok";
+        matched = "✅ Sistemato (indovinato)";
       } else if (nCat === 2) {
         matchedClass = "ok";
         matched = "✅ Sistemato";
@@ -960,7 +1001,7 @@ async function openDocumentoUploadModal(azienda) {
           <div class="rf-riga-grid">
             <div class="rf-field">
               <label>Descrizione</label>
-              <input class="input riga-descrizione" data-i="${i}" value="${escapeHtml(row.descrizione || "")}" />
+              <input class="input riga-descrizione" data-i="${i}" list="rf-prodotti-list" autocomplete="off" value="${escapeHtml(row.descrizione || "")}" />
             </div>
             <div class="rf-field">
               <label>Quantità</label>
@@ -994,8 +1035,11 @@ async function openDocumentoUploadModal(azienda) {
     righeContainer.querySelectorAll(".riga-descrizione").forEach((el) => {
       el.addEventListener("input", (e) => {
         const idx = Number(e.currentTarget.dataset.i);
+        aggiornaSuggerimenti(e.currentTarget.value);
         updateRiga(idx, { descrizione: e.currentTarget.value });
       });
+      // Il primo tocco riempie gia' l'elenco se il campo ha del testo
+      el.addEventListener("focus", (e) => aggiornaSuggerimenti(e.currentTarget.value));
     });
 
     righeContainer.querySelectorAll(".riga-quantita").forEach((el) => {
