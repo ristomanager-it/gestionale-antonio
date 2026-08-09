@@ -23,7 +23,10 @@ export async function render(container) {
   // a mano URL lunghe con tutti i parametri.
   const presets = [
     { label: "📅 Prenotazione online", url: sede_id ? `${BASE}#/prenotazione-online?sede=${sede_id}` : "" },
-    { label: "🍽️ Menu pubblico", url: azienda_slug ? `${BASE}#/menu-pubblico?az=${azienda_slug}` : "" },
+    // Il router legge il menu pubblico come #/menu/<slug>, non come
+    // #/menu-pubblico?az=<slug>: con il vecchio formato il link condiviso ai
+    // clienti finiva su una pagina che non esiste.
+    { label: "🍽️ Menu pubblico", url: azienda_slug ? `${BASE}#/menu/${azienda_slug}` : "" },
   ].filter(p => p.url);
 
   container.innerHTML = `
