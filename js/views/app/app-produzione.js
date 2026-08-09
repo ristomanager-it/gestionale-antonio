@@ -1171,7 +1171,7 @@ function bindEvents() {
       alert("Seleziona una ricetta prima");
       return;
     }
-   window.location.hash = "#/bo-ricette?id=" + state.ricetta.id;
+   window.location.hash = "#/crea-ricetta-avanzata?id=" + state.ricetta.id   // bo-ricette non esiste come rotta;
   });
 
   // ============================================================
