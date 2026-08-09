@@ -456,7 +456,7 @@ async function calcolaStatoCategorie(supa, azienda, fatture, fiscali) {
         ? supa.from("fatture_acquisto_righe").select("fattura_id, prodotto_id").in("fattura_id", fatturaTradIds)
         : Promise.resolve({ data: [] }),
       fiscaleDocIds.size
-        ? supa.from("fiscale_documenti_righe").select("documento_id, prodotto_id").in("documento_id", Array.from(fiscaleDocIds))
+        ? supa.from("fiscale_documenti_righe").select("documento_id, prodotto_id, match_metodo").in("documento_id", Array.from(fiscaleDocIds))
         : Promise.resolve({ data: [] })
     ]);
     const righeFatt = righeFattRes.data || [];
@@ -476,10 +476,22 @@ async function calcolaStatoCategorie(supa, azienda, fatture, fiscali) {
       });
     }
 
+    // Una riga senza prodotto ma marcata "non_prodotto" o "descrittiva" e' stata
+    // sistemata a mano da qualcuno: trasporto, sconto, nota. Contarla come
+    // mancante faceva risultare rossi 64 documenti gia' lavorati, e il semaforo
+    // smetteva di dire qualcosa di utile.
+    const ESCLUSE_A_MANO = ["non_prodotto", "descrittiva"];
+
+    function statoRigaSingola(r) {
+      if (r.prodotto_id) return mappaProd.get(String(r.prodotto_id)) || "red";
+      if (ESCLUSE_A_MANO.includes(String(r.match_metodo || ""))) return "green";
+      return "red";
+    }
+
     function statoDoc(righe, keyField, docId) {
       const rr = righe.filter((r) => String(r[keyField]) === String(docId));
       if (!rr.length) return "red";
-      return _peggioreStato(rr.map((r) => (r.prodotto_id ? (mappaProd.get(String(r.prodotto_id)) || "red") : "red")));
+      return _peggioreStato(rr.map(statoRigaSingola));
     }
 
     fatture.forEach((f) => {
