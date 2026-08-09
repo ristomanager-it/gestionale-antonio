@@ -229,6 +229,9 @@ export async function render(container) {
               <div style="font-size:12px;font-weight:800;color:#166534;margin-bottom:8px;">🛵 Asporto e consegna</div>
               <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;">
+                  <input type="checkbox" id="cfg-tavolo" style="accent-color:#16a34a;width:16px;height:16px;" checked> 🍽 Al tavolo o in camera
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;">
                   <input type="checkbox" id="cfg-ritiro" style="accent-color:#16a34a;width:16px;height:16px;"> 🛍 Asporto
                 </label>
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;">
@@ -777,6 +780,7 @@ export async function render(container) {
     qs("#caparra-importo").value = caparra.importo || "";
     qs("#caparra-note").value = caparra.note || "";
     qs("#cfg-ordinabile").checked = !!m.ordinabile;
+    qs("#cfg-tavolo").checked = m.tavolo_attivo !== false;
     qs("#cfg-ritiro").checked = !!m.ritiro_attivo;
     qs("#cfg-consegna").checked = !!m.consegna_attiva;
     qs("#consegna-panel").style.display = m.consegna_attiva ? "block" : "none";
@@ -859,6 +863,7 @@ export async function render(container) {
       ordinabile: qs("#cfg-ordinabile").checked,
       luogo_consegna_label: qs("#cfg-luogo-label").value,
       richiedi_orario_consegna: qs("#cfg-richiedi-orario").checked,
+      tavolo_attivo: qs("#cfg-tavolo").checked,
       ritiro_attivo: qs("#cfg-ritiro").checked,
       consegna_attiva: qs("#cfg-consegna").checked,
       consegna_modo: modoConsegna,
