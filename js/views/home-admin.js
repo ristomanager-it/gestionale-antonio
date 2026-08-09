@@ -760,7 +760,7 @@ async function listaDecisioni(supabase, aziendaId) {
         // solo giallo e rosso sono resi: "info" non esisteva e sarebbe
         // finito senza stile, invisibile fra gli altri avvisi
         livello: "giallo",
-        link: "#/bo-calendario",
+        link: "#/eventi-territorio",
         titolo: eventi.length + (eventi.length === 1 ? " evento in zona da guardare" : " eventi in zona da guardare"),
         sotto: primo.nome + (quando ? " dal " + quando : "")
           + (primo.distanza_km != null ? " a " + primo.distanza_km + " km" : "")
