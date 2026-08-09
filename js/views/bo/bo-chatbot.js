@@ -675,7 +675,7 @@ export async function render(container) {
 
   window._prendi_chat = async (numero) => {
     await supa().from("chatbot_sessioni").update({ stato: "operatore" }).eq("azienda_id", aziendaId).eq("numero_cliente", numero);
-    window.location.hash = "#/whatsapp";
+    window.location.hash = "#/bo-whatsapp";
   };
 
   // ── INIT ──────────────────────────────────────────────────────────────────
