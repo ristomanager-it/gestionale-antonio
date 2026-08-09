@@ -226,7 +226,7 @@ export async function render(container) {
           <div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${c.ultimoMessaggio?.substring(0, 50) || "[media]"}
           </div>
-          ${isBot ? `<div style="margin-top:6px;"><a href="#/chatbot" style="font-size:11px;color:#0E5A7A;text-decoration:none;font-weight:600;">→ Vedi sessione chatbot</a></div>` : ""}
+          ${isBot ? `<div style="margin-top:6px;"><a href="#/bo-chatbot" style="font-size:11px;color:#0E5A7A;text-decoration:none;font-weight:600;">→ Vedi sessione chatbot</a></div>` : ""}
         </div>
       `;
     }).join("");
