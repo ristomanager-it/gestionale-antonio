@@ -207,7 +207,14 @@
     if (!slug) { showError("Menu non trovato", "Il link non è valido."); return; }
 
     var menu = null, azienda = null, categorie = [], tutteVoci = {}, filtriAttivi = new Set(), sede = null, vociById = {};
-    var carrello = {}; // { voceId: quantita }
+    var carrello = {}; // { voceId: quantita totale } — solo per i contatori sulle schede
+    // Il carrello vero e' un elenco di righe: due margherite con aggiunte diverse
+    // sono due righe, altrimenti in cucina non si sa quale farcire.
+    var linee = [];            // { k, voce_id, qta, opz: [{id,nome,prezzo,gruppo,tipo}] }
+    var opzPerVoce = {};       // voce_id -> gruppi di opzioni
+    var tipoOrdine = "tavolo"; // tavolo | asporto | domicilio
+    var pos = { lat: null, lng: null, gps: false };
+    var consegna = { costo: 0, zona: null, errore: null };
     var ORDINI_EDGE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/Ordini-menu-pubblico-api-index";
     var TAG_LABELS = {
       vegetariano: "🌱 Vegetariano", vegano: "🥦 Vegano", senza_glutine: "🌾 Senza glutine",
@@ -334,6 +341,14 @@
         lnk.href = "https://fonts.googleapis.com/css2?family=" + fn + ":wght@400;700;800&display=swap";
         document.head.appendChild(lnk);
       }
+
+      // Aggiunte e varianti dei piatti: servono per le schede
+      fetch(ORDINI_EDGE_URL, { method: "POST", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ azione: "opzioni", menu_id: menu.id }) })
+        .then(function(x) { return x.json(); })
+        .then(function(d) {
+          (d.opzioni || []).forEach(function(o) { opzPerVoce[o.voce_id] = o.gruppi || []; });
+        }).catch(function(){});
 
       // Tracking visita (la Edge Function controlla lei se tracking_attivo è vero)
       chiamaApi({ azione: "track", slug: slug, tipo: "visita" }).catch(function(){});
@@ -849,24 +864,67 @@
       if (e.target === e.currentTarget) document.getElementById("detail-overlay").style.display = "none";
     };
 
-    // ── CARRELLO ─────────────────────────────────────────────────
+    // ── CARRELLO A RIGHE ─────────────────────────────────────────
+    function chiaveLinea(voceId, opz) {
+      return voceId + "|" + (opz || []).map(function(o){ return o.id; }).sort().join(",");
+    }
+    function prezzoVoce(v) { return Number(v.prezzo_override || v.prezzo || 0); }
+    function prezzoLinea(l) {
+      var v = vociById[l.voce_id];
+      return prezzoVoce(v) + (l.opz || []).reduce(function(t,o){ return t + Number(o.prezzo||0); }, 0);
+    }
+    function testoOpzioni(opz) {
+      return (opz || []).map(function(o) {
+        return (o.tipo === "togli" ? "senza " : "con ") + o.nome.toLowerCase();
+      }).join(" · ");
+    }
+    function haOpzioni(voceId) {
+      var g = opzPerVoce[voceId];
+      return Array.isArray(g) && g.length > 0;
+    }
+    function ricalcolaContatori() {
+      carrello = {};
+      linee.forEach(function(l) { carrello[l.voce_id] = (carrello[l.voce_id] || 0) + l.qta; });
+    }
+    function aggiungiLinea(voceId, qta, opz) {
+      var k = chiaveLinea(voceId, opz);
+      var e = linee.filter(function(l){ return l.k === k; })[0];
+      if (e) e.qta += qta;
+      else linee.push({ k: k, voce_id: voceId, qta: qta, opz: opz || [] });
+      ricalcolaContatori(); aggiornaCarrelloUI();
+    }
+    function modificaLinea(k, delta) {
+      var e = linee.filter(function(l){ return l.k === k; })[0];
+      if (!e) return;
+      e.qta += delta;
+      if (e.qta <= 0) linee = linee.filter(function(l){ return l.k !== k; });
+      ricalcolaContatori(); aggiornaCarrelloUI();
+    }
+    function togliLinea(k) {
+      linee = linee.filter(function(l){ return l.k !== k; });
+      ricalcolaContatori(); aggiornaCarrelloUI();
+    }
+
+    // Il + sulla scheda del piatto: se ci sono aggiunte si apre la scheda,
+    // altrimenti entra dritto nel carrello come prima.
     function modificaCarrello(voceId, delta) {
-      var q = (carrello[voceId] || 0) + delta;
-      if (q <= 0) delete carrello[voceId];
-      else carrello[voceId] = q;
+      if (delta > 0 && haOpzioni(voceId)) { apriOpzioni(voceId); return; }
+      if (delta > 0) { aggiungiLinea(voceId, 1, []); }
+      else {
+        var senza = linee.filter(function(l){ return l.voce_id === voceId && (!l.opz || !l.opz.length); })[0];
+        var qualsiasi = linee.filter(function(l){ return l.voce_id === voceId; }).slice(-1)[0];
+        var t = senza || qualsiasi;
+        if (t) modificaLinea(t.k, -1);
+      }
       var valEl = document.getElementById("qtyval-" + voceId);
       if (valEl) valEl.textContent = carrello[voceId] || 0;
-      aggiornaCarrelloUI();
     }
 
     function totaleCarrello() {
       var tot = 0, count = 0;
-      Object.keys(carrello).forEach(function(id) {
-        var v = vociById[id];
-        if (!v) return;
-        var prezzo = v.prezzo_override || v.prezzo || 0;
-        tot += prezzo * carrello[id];
-        count += carrello[id];
+      linee.forEach(function(l) {
+        if (!vociById[l.voce_id]) return;
+        tot += prezzoLinea(l) * l.qta; count += l.qta;
       });
       return { tot: tot, count: count };
     }
@@ -878,52 +936,168 @@
         bar.classList.add("show");
         document.getElementById("cart-bar-count").textContent = r.count;
         document.getElementById("cart-bar-tot").textContent = r.tot.toFixed(2).replace(".", ",") + " €";
-      } else {
-        bar.classList.remove("show");
+      } else { bar.classList.remove("show"); }
+      document.querySelectorAll("[id^='qtyval-']").forEach(function(el) {
+        var id = el.id.replace("qtyval-", "");
+        el.textContent = carrello[id] || 0;
+      });
+    }
+
+    // ── SCHEDA DEL PIATTO CON LE AGGIUNTE ────────────────────────
+    var opzScelte = {}, opzVoce = null, opzQta = 1, opzLineaK = null;
+
+    function apriOpzioni(voceId, lineaK) {
+      var v = vociById[voceId]; if (!v) return;
+      opzVoce = voceId; opzScelte = {}; opzQta = 1; opzLineaK = lineaK || null;
+      if (lineaK) {
+        var l = linee.filter(function(x){ return x.k === lineaK; })[0];
+        if (l) { opzQta = l.qta; (l.opz||[]).forEach(function(o){ opzScelte[o.id] = o; }); }
       }
+      var ov = document.getElementById("opz-overlay");
+      if (!ov) {
+        ov = document.createElement("div");
+        ov.id = "opz-overlay"; ov.className = "raccolta-overlay";
+        ov.innerHTML = '<div class="raccolta-box"><div id="opz-content"></div></div>';
+        document.body.appendChild(ov);
+        ov.onclick = function(e) { if (e.target === ov) ov.style.display = "none"; };
+      }
+      disegnaOpzioni();
+      ov.style.display = "flex";
+    }
+
+    function disegnaOpzioni() {
+      var v = vociById[opzVoce];
+      var gruppi = opzPerVoce[opzVoce] || [];
+      var html = '<div class="raccolta-title">' + esc(v.nome) + '</div>';
+      if (v.descrizione) html += '<div class="raccolta-sub">' + esc(v.descrizione) + '</div>';
+
+      gruppi.forEach(function(g) {
+        var regola = g.tipo === "singola" ? "una scelta" :
+                     (g.max ? "fino a " + g.max : "quante vuoi");
+        html += '<div style="margin-top:16px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">' +
+            '<b style="font-size:14px;">' + esc(g.nome) + '</b>' +
+            '<span style="font-size:11.5px;color:#64748b;">' + (g.obbligatorio ? "obbligatorio · " : "") + regola + '</span>' +
+          '</div>';
+        (g.opzioni || []).forEach(function(o) {
+          var on = !!opzScelte[o.id];
+          html += '<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f5f9;font-size:14.5px;cursor:pointer;">' +
+            '<input type="' + (g.tipo === "singola" ? "radio" : "checkbox") + '" ' +
+              'data-opz="' + o.id + '" data-gruppo="' + g.gruppo_id + '" data-tipo="' + esc(g.tipo) + '" ' +
+              'name="g' + g.gruppo_id + '" ' + (on ? "checked" : "") + ' style="width:19px;height:19px;accent-color:var(--brand);">' +
+            '<span style="flex:1;">' + esc(o.nome) + '</span>' +
+            (Number(o.prezzo) > 0 ? '<span style="font-size:13.5px;color:#64748b;font-weight:700;">+' + Number(o.prezzo).toFixed(2).replace(".", ",") + ' €</span>' : '') +
+          '</label>';
+        });
+        html += '</div>';
+      });
+
+      var tot = (prezzoVoce(v) + Object.keys(opzScelte).reduce(function(t,k){ return t + Number(opzScelte[k].prezzo||0); }, 0)) * opzQta;
+      html += '<div id="opz-errore" style="color:#dc2626;font-size:13px;margin-top:10px;"></div>' +
+        '<div style="display:flex;gap:10px;align-items:center;margin-top:14px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<button class="cart-qty-btn" id="opz-meno">−</button>' +
+            '<b id="opz-qta">' + opzQta + '</b>' +
+            '<button class="cart-qty-btn" id="opz-piu">+</button>' +
+          '</div>' +
+          '<button class="raccolta-btn" id="opz-add" style="flex:1;margin:0;">' +
+            (opzLineaK ? "Aggiorna" : "Aggiungi") + ' · ' + tot.toFixed(2).replace(".", ",") + ' €</button>' +
+        '</div>';
+
+      document.getElementById("opz-content").innerHTML = html;
+
+      document.querySelectorAll("#opz-content [data-opz]").forEach(function(inp) {
+        inp.onchange = function() {
+          var gruppo = inp.dataset.gruppo, id = inp.dataset.opz, tipo = inp.dataset.tipo;
+          var g = (opzPerVoce[opzVoce] || []).filter(function(x){ return x.gruppo_id === gruppo; })[0];
+          var o = (g.opzioni || []).filter(function(x){ return x.id === id; })[0];
+          if (tipo === "singola") {
+            (g.opzioni || []).forEach(function(x){ delete opzScelte[x.id]; });
+            opzScelte[id] = { id: o.id, nome: o.nome, prezzo: o.prezzo, gruppo: g.nome, tipo: g.tipo };
+          } else if (inp.checked) {
+            var quanti = (g.opzioni || []).filter(function(x){ return opzScelte[x.id]; }).length;
+            if (g.max && quanti >= g.max) {
+              inp.checked = false;
+              document.getElementById("opz-errore").textContent = "Puoi scegliere al massimo " + g.max + " " + g.nome.toLowerCase() + ".";
+              return;
+            }
+            opzScelte[id] = { id: o.id, nome: o.nome, prezzo: o.prezzo, gruppo: g.nome, tipo: g.tipo };
+          } else { delete opzScelte[id]; }
+          disegnaOpzioni();
+        };
+      });
+      document.getElementById("opz-meno").onclick = function() { if (opzQta > 1) { opzQta--; disegnaOpzioni(); } };
+      document.getElementById("opz-piu").onclick = function() { opzQta++; disegnaOpzioni(); };
+      document.getElementById("opz-add").onclick = function() {
+        var gruppi = opzPerVoce[opzVoce] || [];
+        for (var i = 0; i < gruppi.length; i++) {
+          var g = gruppi[i];
+          var quanti = (g.opzioni || []).filter(function(x){ return opzScelte[x.id]; }).length;
+          if (g.obbligatorio && quanti < Math.max(1, g.min || 1)) {
+            document.getElementById("opz-errore").textContent = "Scegli " + g.nome.toLowerCase() + ".";
+            return;
+          }
+        }
+        var scelte = Object.keys(opzScelte).map(function(k){ return opzScelte[k]; });
+        if (opzLineaK) togliLinea(opzLineaK);
+        aggiungiLinea(opzVoce, opzQta, scelte);
+        document.getElementById("opz-overlay").style.display = "none";
+        if (document.getElementById("cart-overlay").style.display === "flex") apriCarrello();
+      };
     }
 
     function apriCarrello() {
       var r = totaleCarrello();
-      var righeHtml = Object.keys(carrello).map(function(id) {
-        var v = vociById[id];
-        if (!v) return "";
-        var prezzo = v.prezzo_override || v.prezzo || 0;
-        return '<div class="cart-item-row">' +
-          '<div style="flex:1;">' +
+      var righeHtml = linee.map(function(l) {
+        var v = vociById[l.voce_id]; if (!v) return "";
+        var p = prezzoLinea(l), t = testoOpzioni(l.opz);
+        return '<div class="cart-item-row" style="align-items:flex-start;">' +
+          '<div style="flex:1;min-width:0;">' +
             '<div class="cart-item-nome">' + esc(v.nome) + '</div>' +
-            '<div class="cart-item-prezzo">' + prezzo.toFixed(2) + ' € × ' + carrello[id] + '</div>' +
+            (t ? '<div style="font-size:12px;color:#7c2d12;background:#fff7ed;border-radius:6px;padding:2px 6px;display:inline-block;margin:3px 0;">' + esc(t) + '</div>' : '') +
+            '<div class="cart-item-prezzo">' + p.toFixed(2).replace(".", ",") + ' € × ' + l.qta + ' = ' + (p * l.qta).toFixed(2).replace(".", ",") + ' €</div>' +
+            (haOpzioni(l.voce_id) ? '<button data-mod="' + l.k + '" style="background:none;border:none;padding:0;margin-top:4px;font-size:12px;font-weight:700;color:var(--brand);">Modifica le aggiunte</button>' : '') +
           '</div>' +
           '<div class="cart-qty-ctrl" style="margin-top:0;">' +
-            '<button class="cart-qty-btn" data-cart-dec="' + id + '">−</button>' +
-            '<span class="cart-qty-val">' + carrello[id] + '</span>' +
-            '<button class="cart-qty-btn" data-cart-inc="' + id + '">+</button>' +
+            '<button class="cart-qty-btn" data-cart-dec="' + l.k + '">−</button>' +
+            '<span class="cart-qty-val">' + l.qta + '</span>' +
+            '<button class="cart-qty-btn" data-cart-inc="' + l.k + '">+</button>' +
           '</div>' +
+          '<button data-cart-del="' + l.k + '" style="background:none;border:none;color:#b91c1c;font-size:16px;padding:4px;">🗑</button>' +
         '</div>';
       }).join("");
 
       document.getElementById("cart-content").innerHTML =
         '<div class="raccolta-title">🛒 Il tuo ordine</div>' +
-        '<div style="margin:12px 0;">' + (righeHtml || '<div style="color:#94a3b8;font-size:13px;">Carrello vuoto</div>') + '</div>' +
+        '<div style="margin:12px 0;">' + (righeHtml || '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px 0;">Il carrello è vuoto.<br>Torna al menu e aggiungi qualcosa.</div>') + '</div>' +
         '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding-top:12px;border-top:2px solid #111827;margin-bottom:16px;">' +
           '<span>Totale</span><span>' + r.tot.toFixed(2).replace(".", ",") + ' €</span>' +
         '</div>' +
         '<button class="raccolta-btn" id="btn-vai-checkout"' + (r.count === 0 ? ' disabled style="opacity:.5;"' : '') + '>Procedi all\'ordine →</button>';
 
-      document.querySelectorAll("#cart-content [data-cart-inc]").forEach(function(btn) {
-        btn.onclick = function() { modificaCarrello(btn.dataset.cartInc, 1); apriCarrello(); };
+      document.querySelectorAll("#cart-content [data-cart-inc]").forEach(function(b) {
+        b.onclick = function() { modificaLinea(b.dataset.cartInc, 1); apriCarrello(); };
       });
-      document.querySelectorAll("#cart-content [data-cart-dec]").forEach(function(btn) {
-        btn.onclick = function() { modificaCarrello(btn.dataset.cartDec, -1); apriCarrello(); };
+      document.querySelectorAll("#cart-content [data-cart-dec]").forEach(function(b) {
+        b.onclick = function() { modificaLinea(b.dataset.cartDec, -1); apriCarrello(); };
+      });
+      document.querySelectorAll("#cart-content [data-cart-del]").forEach(function(b) {
+        b.onclick = function() { togliLinea(b.dataset.cartDel); apriCarrello(); };
+      });
+      document.querySelectorAll("#cart-content [data-mod]").forEach(function(b) {
+        b.onclick = function() {
+          var l = linee.filter(function(x){ return x.k === b.dataset.mod; })[0];
+          if (l) apriOpzioni(l.voce_id, l.k);
+        };
       });
       var btnCheckout = document.getElementById("btn-vai-checkout");
       if (btnCheckout) btnCheckout.onclick = function() {
         document.getElementById("cart-overlay").style.display = "none";
         apriCheckout();
       };
-
       document.getElementById("cart-overlay").style.display = "flex";
     }
+
     document.getElementById("cart-overlay").onclick = function(e) {
       if (e.target === e.currentTarget) document.getElementById("cart-overlay").style.display = "none";
     };
@@ -932,75 +1106,283 @@
     function apriCheckout() {
       var luogoLabel = menu.luogo_consegna_label || "Tavolo";
       var chiediOrario = menu.richiedi_orario_consegna !== false;
+      var puoiConsegna = !!menu.consegna_attiva;
+      var puoiAsporto = !!menu.ritiro_attivo;
+      if (!puoiConsegna && tipoOrdine === "domicilio") tipoOrdine = "tavolo";
+
+      var modi = "";
+      if (puoiConsegna || puoiAsporto) {
+        function bottoneModo(v, ic, testo) {
+          var on = tipoOrdine === v;
+          return '<button data-modo="' + v + '" style="flex:1;border:2px solid ' + (on ? "var(--brand)" : "#e2e8f0") +
+            ';background:' + (on ? "var(--brand-light)" : "#fff") + ';color:' + (on ? "var(--brand)" : "#475569") +
+            ';border-radius:14px;padding:10px 6px;font-size:12.5px;font-weight:700;">' +
+            '<span style="display:block;font-size:20px;">' + ic + '</span>' + testo + '</button>';
+        }
+        modi = '<div style="display:flex;gap:8px;margin:6px 0 16px;">' +
+          bottoneModo("tavolo", "🍽", esc(luogoLabel)) +
+          (puoiAsporto ? bottoneModo("asporto", "🛍", "Asporto") : "") +
+          (puoiConsegna ? bottoneModo("domicilio", "🛵", "A casa") : "") +
+          '</div>';
+      }
+
+      var campiLuogo = "";
+      if (tipoOrdine === "tavolo") {
+        campiLuogo = '<div class="checkout-field"><label>' + esc(luogoLabel) + ' *</label>' +
+          '<input id="chk-luogo" class="raccolta-input" placeholder="Es. 12"></div>';
+      } else if (tipoOrdine === "domicilio") {
+        campiLuogo =
+          '<button id="chk-gps" style="width:100%;border:1.5px solid var(--brand);background:#fff;color:var(--brand);border-radius:11px;padding:11px;font-size:14px;font-weight:700;margin-bottom:10px;">📍 Usa la mia posizione</button>' +
+          '<div class="checkout-field"><label>Via *</label><input id="chk-via" class="raccolta-input" autocomplete="off" placeholder="Via Roma"><div id="chk-sugg"></div></div>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<div class="checkout-field" style="flex:1;"><label>Civico *</label><input id="chk-civico" class="raccolta-input" placeholder="12"></div>' +
+            '<div class="checkout-field" style="flex:1;"><label>CAP</label><input id="chk-cap" class="raccolta-input" inputmode="numeric" placeholder="01028"></div>' +
+          '</div>' +
+          '<div class="checkout-field"><label>Città</label><input id="chk-citta" class="raccolta-input" placeholder="Orte"></div>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<div class="checkout-field" style="flex:1;"><label>Campanello</label><input id="chk-campanello" class="raccolta-input"></div>' +
+            '<div class="checkout-field" style="flex:1;"><label>Piano</label><input id="chk-piano" class="raccolta-input"></div>' +
+          '</div>' +
+          '<div id="chk-mappa-wrap" style="display:none;margin-bottom:10px;">' +
+            '<label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Sposta lo spillo sul portone</label>' +
+            '<div id="chk-mappa" style="height:160px;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;"></div>' +
+            '<div style="font-size:11.5px;color:#64748b;margin-top:4px;">Chi consegna apre questo punto sulle mappe.</div>' +
+          '</div>' +
+          '<div class="checkout-field"><label>Note per chi consegna</label><input id="chk-note-consegna" class="raccolta-input" placeholder="Cancello verde, citofono in basso"></div>';
+      }
 
       document.getElementById("checkout-content").innerHTML =
         '<div class="raccolta-title">I tuoi dati</div>' +
-        '<div class="raccolta-sub">Servono per consegnarti l\'ordine — il pagamento avviene con carta nello step successivo.</div>' +
+        modi +
         '<div class="checkout-field"><label>Nome e cognome *</label><input id="chk-nome" class="raccolta-input" placeholder="Mario Rossi"></div>' +
         '<div class="checkout-field"><label>Telefono *</label><input id="chk-tel" class="raccolta-input" type="tel" placeholder="333 1234567"></div>' +
         '<div class="checkout-field"><label>Email *</label><input id="chk-email" class="raccolta-input" type="email" placeholder="mario@email.it"></div>' +
-        '<div class="checkout-field"><label>' + esc(luogoLabel) + ' *</label><input id="chk-luogo" class="raccolta-input" placeholder="Es. 12"></div>' +
-        (chiediOrario ? '<div class="checkout-field"><label>Orario di consegna desiderato</label><input id="chk-orario" class="raccolta-input" placeholder="Es. 13:30 oppure appena pronto"></div>' : '') +
-        '<div class="checkout-field"><label>Allergie o intolleranze</label><textarea id="chk-allergie" class="raccolta-input" style="min-height:60px;resize:vertical;" placeholder="Se non ce ne sono lascia vuoto"></textarea></div>' +
+        campiLuogo +
+        (chiediOrario ? '<div class="checkout-field"><label>Orario desiderato</label><input id="chk-orario" class="raccolta-input" placeholder="Es. 20:30 oppure appena pronto"></div>' : '') +
+        '<div class="checkout-field"><label>Allergie o intolleranze</label><textarea id="chk-allergie" class="raccolta-input" style="min-height:50px;resize:vertical;" placeholder="Se non ce ne sono lascia vuoto"></textarea></div>' +
+        '<div id="chk-conto" style="background:#f8fafc;border-radius:12px;padding:12px 14px;font-size:14px;margin:12px 0;"></div>' +
         '<div id="chk-errore" style="color:#dc2626;font-size:13px;margin-bottom:10px;"></div>' +
-        '<button class="raccolta-btn" id="btn-paga">💳 Paga con carta e conferma ordine</button>';
+        '<button class="raccolta-btn" id="btn-paga">💳 Paga con carta</button>' +
+        '<button class="raccolta-btn" id="btn-consegna" style="background:#fff;color:var(--brand);border:1.5px solid #cbd5e1;margin-top:8px;">💶 Pago alla consegna</button>';
 
-      document.getElementById("btn-paga").onclick = inviaOrdine;
+      document.querySelectorAll("#checkout-content [data-modo]").forEach(function(b) {
+        b.onclick = function() { tipoOrdine = b.dataset.modo; consegna = { costo: 0, zona: null, errore: null }; apriCheckout(); };
+      });
+      document.getElementById("btn-paga").onclick = function() { inviaOrdine("carta"); };
+      document.getElementById("btn-consegna").onclick = function() { inviaOrdine("alla_consegna"); };
+      if (tipoOrdine === "domicilio") preparaIndirizzo();
+      disegnaConto();
       document.getElementById("checkout-overlay").style.display = "flex";
     }
-    document.getElementById("checkout-overlay").onclick = function(e) {
-      if (e.target === e.currentTarget) document.getElementById("checkout-overlay").style.display = "none";
-    };
 
-    async function inviaOrdine() {
+    function disegnaConto() {
+      var box = document.getElementById("chk-conto"); if (!box) return;
+      var r = totaleCarrello();
+      var html = '<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Piatti</span><span>' +
+        r.tot.toFixed(2).replace(".", ",") + ' €</span></div>';
+      if (tipoOrdine === "domicilio") {
+        if (consegna.errore) {
+          html += '<div style="color:#b91c1c;font-size:13px;padding:6px 0;">' + esc(consegna.errore) + '</div>';
+        } else {
+          html += '<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Consegna' +
+            (consegna.zona ? ' · ' + esc(consegna.zona) : '') + '</span><span>' +
+            (consegna.costo > 0 ? consegna.costo.toFixed(2).replace(".", ",") + ' €' : '<b style="color:#15803d;">gratis</b>') +
+            '</span></div>';
+        }
+      }
+      html += '<div style="display:flex;justify-content:space-between;border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;font-weight:800;font-size:16px;">' +
+        '<span>Totale</span><span>' + (r.tot + (tipoOrdine === "domicilio" ? consegna.costo : 0)).toFixed(2).replace(".", ",") + ' €</span></div>';
+      box.innerHTML = html;
+    }
+
+    // ── INDIRIZZO, POSIZIONE, MAPPA ──────────────────────────────
+    var mappa = null, spillo = null, timerSugg = null;
+
+    function preparaIndirizzo() {
+      document.getElementById("chk-gps").onclick = function(e) {
+        e.preventDefault();
+        var b = e.currentTarget; b.textContent = "📍 Cerco la posizione…";
+        if (!navigator.geolocation) { b.textContent = "📍 Posizione non disponibile"; return; }
+        navigator.geolocation.getCurrentPosition(function(p) {
+          pos = { lat: p.coords.latitude, lng: p.coords.longitude, gps: true };
+          b.textContent = "📍 Posizione presa";
+          indirizzoDaPosizione(pos.lat, pos.lng);
+          mostraMappa();
+          calcolaConsegna();
+        }, function() {
+          b.textContent = "📍 Non riesco: scrivi l'indirizzo";
+        }, { enableHighAccuracy: true, timeout: 10000 });
+      };
+
+      var via = document.getElementById("chk-via");
+      via.oninput = function() {
+        clearTimeout(timerSugg);
+        var q = via.value.trim();
+        if (q.length < 4) { document.getElementById("chk-sugg").innerHTML = ""; return; }
+        timerSugg = setTimeout(function() { cercaIndirizzo(q); }, 500);
+      };
+      ["chk-cap", "chk-civico"].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.onchange = calcolaConsegna;
+      });
+    }
+
+    // Suggerimenti: Google se il locale ha messo la chiave, altrimenti
+    // OpenStreetMap che non costa niente e in centro basta.
+    function cercaIndirizzo(q) {
+      var citta = (document.getElementById("chk-citta").value || (sede && sede.citta) || "").trim();
+      var url = "https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=it&q=" +
+        encodeURIComponent(q + (citta ? " " + citta : ""));
+      fetch(url, { headers: { "Accept-Language": "it" } })
+        .then(function(r) { return r.json(); })
+        .then(function(lista) {
+          document.getElementById("chk-sugg").innerHTML = (lista || []).map(function(x, i) {
+            return '<button data-sugg="' + i + '" style="display:block;width:100%;text-align:left;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:8px 10px;margin-top:4px;font-size:13px;">' +
+              esc(x.display_name.split(",").slice(0, 3).join(",")) + '</button>';
+          }).join("");
+          document.querySelectorAll("#chk-sugg [data-sugg]").forEach(function(b) {
+            b.onclick = function(e) {
+              e.preventDefault();
+              var x = lista[Number(b.dataset.sugg)];
+              var a = x.address || {};
+              document.getElementById("chk-via").value = a.road || x.display_name.split(",")[0];
+              if (a.house_number) document.getElementById("chk-civico").value = a.house_number;
+              if (a.postcode) document.getElementById("chk-cap").value = a.postcode;
+              if (a.city || a.town || a.village) document.getElementById("chk-citta").value = a.city || a.town || a.village;
+              pos = { lat: Number(x.lat), lng: Number(x.lon), gps: false };
+              document.getElementById("chk-sugg").innerHTML = "";
+              mostraMappa(); calcolaConsegna();
+            };
+          });
+        }).catch(function(){});
+    }
+
+    function indirizzoDaPosizione(lat, lng) {
+      fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lng,
+        { headers: { "Accept-Language": "it" } })
+        .then(function(r) { return r.json(); })
+        .then(function(x) {
+          var a = (x && x.address) || {};
+          if (a.road) document.getElementById("chk-via").value = a.road;
+          if (a.house_number) document.getElementById("chk-civico").value = a.house_number;
+          if (a.postcode) document.getElementById("chk-cap").value = a.postcode;
+          if (a.city || a.town || a.village) document.getElementById("chk-citta").value = a.city || a.town || a.village;
+          calcolaConsegna();
+        }).catch(function(){});
+    }
+
+    function mostraMappa() {
+      if (pos.lat == null) return;
+      var wrap = document.getElementById("chk-mappa-wrap");
+      if (!wrap) return;
+      wrap.style.display = "block";
+      if (!window.L) {
+        var css = document.createElement("link"); css.rel = "stylesheet";
+        css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(css);
+        var js = document.createElement("script");
+        js.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+        js.onload = disegnaMappa;
+        document.head.appendChild(js);
+      } else { disegnaMappa(); }
+    }
+
+    function disegnaMappa() {
+      if (!window.L || pos.lat == null) return;
+      if (!mappa) {
+        mappa = L.map("chk-mappa").setView([pos.lat, pos.lng], 17);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19, attribution: "© OpenStreetMap"
+        }).addTo(mappa);
+        spillo = L.marker([pos.lat, pos.lng], { draggable: true }).addTo(mappa);
+        spillo.on("dragend", function() {
+          var p = spillo.getLatLng();
+          pos = { lat: p.lat, lng: p.lng, gps: false };
+          calcolaConsegna();
+        });
+      } else {
+        mappa.setView([pos.lat, pos.lng], 17);
+        spillo.setLatLng([pos.lat, pos.lng]);
+      }
+      setTimeout(function() { mappa.invalidateSize(); }, 200);
+    }
+
+    function calcolaConsegna() {
+      if (tipoOrdine !== "domicilio") return;
+      var r = totaleCarrello();
+      var cap = (document.getElementById("chk-cap") || {}).value || "";
+      fetch(ORDINI_EDGE_URL, {
+        method: "POST", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ azione: "costo_consegna", menu_id: menu.id,
+          subtotale: r.tot, cap: cap.trim(), lat: pos.lat, lng: pos.lng })
+      }).then(function(x) { return x.json(); })
+        .then(function(d) {
+          if (d && d.ok) consegna = { costo: Number(d.costo) || 0, zona: d.zona || null, errore: null };
+          else consegna = { costo: 0, zona: null, errore: (d && d.errore) || "Consegna non disponibile" };
+          disegnaConto();
+        }).catch(function(){});
+    }
+
+    async function inviaOrdine(modo) {
       var nome = document.getElementById("chk-nome").value.trim();
       var tel = document.getElementById("chk-tel").value.trim();
       var email = document.getElementById("chk-email").value.trim();
-      var luogo = document.getElementById("chk-luogo").value.trim();
       var orarioEl = document.getElementById("chk-orario");
       var orario = orarioEl ? orarioEl.value.trim() : "";
       var allergie = document.getElementById("chk-allergie").value.trim();
       var erroreBox = document.getElementById("chk-errore");
+      erroreBox.textContent = "";
 
-      if (!nome || !tel || !email || !luogo) {
-        erroreBox.textContent = "Compila tutti i campi obbligatori (*).";
-        return;
+      if (!nome || !tel || !email) { erroreBox.textContent = "Compila nome, telefono ed email."; return; }
+
+      var dati = {
+        azione: "crea_ordine", menu_id: menu.id, tipo_consegna: tipoOrdine,
+        cliente_nome: nome, cliente_telefono: tel, cliente_email: email,
+        orario_consegna: orario, allergie_note: allergie,
+        pagamento: modo === "alla_consegna" ? "alla_consegna" : "carta",
+        righe: linee.map(function(l) {
+          return { menu_voce_id: l.voce_id, quantita: l.qta,
+                   opzioni: (l.opz || []).map(function(o){ return o.id; }) };
+        }),
+        success_url: window.location.href.split("?")[0] + "?slug=" + slug + "&ordine=ok",
+        cancel_url: window.location.href
+      };
+      if (!dati.righe.length) { erroreBox.textContent = "Il carrello è vuoto."; return; }
+
+      if (tipoOrdine === "tavolo") {
+        var luogo = document.getElementById("chk-luogo").value.trim();
+        if (!luogo) { erroreBox.textContent = "Manca il numero del " + (menu.luogo_consegna_label || "tavolo").toLowerCase() + "."; return; }
+        dati.luogo_consegna_label = menu.luogo_consegna_label || "Tavolo";
+        dati.luogo_consegna_valore = luogo;
+      } else if (tipoOrdine === "domicilio") {
+        dati.indirizzo = document.getElementById("chk-via").value.trim();
+        dati.civico = document.getElementById("chk-civico").value.trim();
+        dati.cap = document.getElementById("chk-cap").value.trim();
+        dati.citta = document.getElementById("chk-citta").value.trim();
+        dati.campanello = document.getElementById("chk-campanello").value.trim();
+        dati.piano = document.getElementById("chk-piano").value.trim();
+        dati.note_consegna = document.getElementById("chk-note-consegna").value.trim();
+        dati.lat = pos.lat; dati.lng = pos.lng; dati.posizione_da_gps = pos.gps;
+        if (!dati.indirizzo || !dati.civico) { erroreBox.textContent = "Servono via e numero civico."; return; }
+        if (consegna.errore) { erroreBox.textContent = consegna.errore; return; }
       }
 
-      var righe = Object.keys(carrello).map(function(id) {
-        var v = vociById[id];
-        return { menu_voce_id: id, nome_prodotto: v.nome, quantita: carrello[id], prezzo_unitario: v.prezzo_override || v.prezzo || 0 };
-      });
-      if (!righe.length) { erroreBox.textContent = "Il carrello è vuoto."; return; }
-
-      var btn = document.getElementById("btn-paga");
-      btn.disabled = true; btn.textContent = "⏳ Preparazione pagamento...";
+      var btn = document.getElementById(modo === "alla_consegna" ? "btn-consegna" : "btn-paga");
+      var testoBtn = btn.textContent;
+      btn.disabled = true; btn.textContent = "⏳ Un attimo…";
 
       try {
         var res = await fetch(ORDINI_EDGE_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({
-            azione: "crea_ordine",
-            menu_id: menu.id,
-            cliente_nome: nome, cliente_telefono: tel, cliente_email: email,
-            luogo_consegna_label: menu.luogo_consegna_label || "Tavolo",
-            luogo_consegna_valore: luogo,
-            orario_consegna: orario,
-            allergie_note: allergie,
-            righe: righe,
-            success_url: window.location.href.split("?")[0] + "?slug=" + slug + "&ordine=ok",
-            cancel_url: window.location.href
-          })
+          method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(dati)
         });
-        var testo = await res.text();
-        var dati = JSON.parse(testo);
-        if (!dati.success) { throw new Error(dati.error || "Errore nella creazione dell'ordine"); }
-        // Redirect a Stripe Checkout per il pagamento
-        window.location.href = dati.checkout_url;
+        var out = JSON.parse(await res.text());
+        if (!out.success) throw new Error(out.error || "Errore nella creazione dell'ordine");
+        if (out.checkout_url) { window.location.href = out.checkout_url; return; }
+        // pagamento alla consegna: si va alla pagina di stato dell'ordine
+        window.location.href = "/ordine.html?t=" + encodeURIComponent(out.token);
       } catch (err) {
         erroreBox.textContent = "Errore: " + err.message;
-        btn.disabled = false; btn.textContent = "💳 Paga con carta e conferma ordine";
+        btn.disabled = false; btn.textContent = testoBtn;
       }
     }
 
