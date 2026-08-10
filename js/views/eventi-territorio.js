@@ -113,47 +113,63 @@ export async function render(app) {
       ? "dal " + dataLunga(e.data_inizio) + " al " + dataLunga(e.data_fine)
       : dataLunga(e.data_inizio);
 
+    // Chiusa di suo: con venti eventi, venti schede aperte sono un muro.
+    // Chiusa si vede quello che serve per decidere se aprirla; il resto sta
+    // dentro. I proposti restano aperti: sono quelli su cui devi agire.
+    const dominio = e.fonte_url
+      ? String(e.fonte_url).replace(/^https?:\/\//, "").split("/")[0] : "";
+
     return `
-      <div class="ev-card ${proposto ? "" : "ev-ok"}" data-id="${esc(e.id)}">
-        <div class="ev-testa">
+      <details class="ev-card ${proposto ? "" : "ev-ok"}" data-id="${esc(e.id)}" ${proposto ? "open" : ""}>
+        <summary class="ev-testa">
           <span class="ev-ico">${cat.i}</span>
           <div style="flex:1;min-width:0;">
             <div class="ev-nome">${esc(e.nome)}</div>
-            <div class="ev-quando">${esc(periodo)}</div>
+            <div class="ev-riga2">
+              <span class="ev-quando">${esc(periodo)}</span>
+              ${e.distanza_km != null ? '<span class="ev-km">' + esc(e.distanza_km) + " km</span>" : ""}
+              <span class="ev-imp" style="background:${imp.b};color:${imp.c};">${imp.l}</span>
+            </div>
           </div>
-          ${proposto ? "" : '<span class="ev-bollo">confermato</span>'}
-        </div>
+          ${proposto ? "" : '<span class="ev-bollo">ok</span>'}
+        </summary>
 
-        <div class="ev-dati">
-          <span>${esc(cat.l)}</span>
-          ${e.comune ? "<span>" + esc(e.comune) + "</span>" : ""}
-          ${e.distanza_km != null ? "<span>" + esc(e.distanza_km) + " km</span>" : ""}
-          <span class="ev-imp" style="background:${imp.b};color:${imp.c};">${imp.l}</span>
-        </div>
+        <div class="ev-corpo">
+          <div class="ev-dati">
+            <span>${esc(cat.l)}</span>
+            ${e.comune ? "<span>" + esc(e.comune) + "</span>" : ""}
+          </div>
 
-        ${e.descrizione ? '<div class="ev-desc">' + esc(e.descrizione) + "</div>" : ""}
-        ${e.luogo ? '<div class="ev-luogo">' + esc(e.luogo) + "</div>" : ""}
+          ${e.descrizione ? '<div class="ev-desc">' + esc(e.descrizione) + "</div>" : ""}
+          ${e.luogo ? '<div class="ev-luogo">' + esc(e.luogo) + "</div>" : ""}
 
-        <div class="ev-azioni">
-          ${e.fonte_url
-            ? '<a href="' + esc(e.fonte_url) + '" target="_blank" rel="noopener" class="ev-btn ev-link">Vedi la fonte</a>'
-            : '<span class="ev-nofonte">Nessuna fonte indicata</span>'}
-          ${proposto
-            ? '<button type="button" class="ev-btn ev-si" data-azione="conferma">È giusto</button>' +
-              '<button type="button" class="ev-btn ev-no" data-azione="scarta">Scarta</button>'
-            : '<button type="button" class="ev-btn ev-no" data-azione="scarta">Rimuovi</button>'}
+          <div class="ev-azioni">
+            ${e.fonte_url
+              ? '<a href="' + esc(e.fonte_url) + '" target="_blank" rel="noopener" class="ev-btn ev-link">Apri ' + esc(dominio) + "</a>"
+              : '<span class="ev-nofonte">Nessuna fonte indicata</span>'}
+            ${proposto
+              ? '<button type="button" class="ev-btn ev-si" data-azione="conferma">È giusto</button>' +
+                '<button type="button" class="ev-btn ev-no" data-azione="scarta">Scarta</button>'
+              : '<button type="button" class="ev-btn ev-no" data-azione="scarta">Rimuovi</button>'}
+          </div>
+          <div class="ev-esito"></div>
         </div>
-        <div class="ev-esito"></div>
-      </div>`;
+      </details>`;
   }).join("");
 
   app.innerHTML = testa + `
     <div id="ev-lista" style="padding:0 20px 28px;max-width:820px;margin:0 auto;">${schede}</div>
 
     <style>
-      .ev-card{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;}
+      .ev-card{border:1px solid #e5e7eb;border-radius:12px;margin-bottom:8px;background:#fff;}
       .ev-card.ev-ok{border-color:#bbf7d0;background:#f6fdf8;}
-      .ev-testa{display:flex;gap:10px;align-items:flex-start;}
+      .ev-testa{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;
+                cursor:pointer;list-style:none;}
+      .ev-testa::-webkit-details-marker{display:none;}
+      .ev-card[open] .ev-testa{border-bottom:1px solid #eef2f7;}
+      .ev-corpo{padding:12px 14px 14px;}
+      .ev-riga2{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px;}
+      .ev-km{font-size:12px;color:#64748b;}
       .ev-ico{font-size:20px;line-height:1.2;}
       .ev-nome{font-size:15px;font-weight:700;color:#111827;line-height:1.3;}
       .ev-quando{font-size:13px;color:#0E5A7A;font-weight:600;margin-top:2px;}
@@ -161,7 +177,7 @@ export async function render(app) {
                 border-radius:99px;padding:3px 9px;white-space:nowrap;}
       .ev-dati{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;font-size:12px;color:#64748b;}
       .ev-dati span{background:#f8fafc;border:1px solid #e2e8f0;border-radius:99px;padding:2px 9px;}
-      .ev-imp{border:none !important;font-weight:700;}
+      .ev-imp{border:none !important;font-weight:700;font-size:11px;border-radius:99px;padding:2px 8px;}
       .ev-desc{font-size:13px;color:#374151;line-height:1.45;margin-top:9px;}
       .ev-luogo{font-size:12px;color:#94a3b8;margin-top:3px;}
       .ev-azioni{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;}
@@ -183,7 +199,7 @@ export async function render(app) {
     const btn = ev.target.closest("button[data-azione]");
     if (!btn) return;
 
-    const card = btn.closest(".ev-card");
+    const card = btn.closest("details.ev-card");
     const id = card?.dataset?.id;
     const azione = btn.dataset.azione;
     const esito = card.querySelector(".ev-esito");
