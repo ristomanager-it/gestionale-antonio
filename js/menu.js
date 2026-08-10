@@ -475,6 +475,7 @@ export function initMenu() {
             { label: "📣 Meta Ads", route: "bo-template?tab=tab-metaads" },
           ] },
           { label: "📣 Campagne",         route: "bo-marketing"      },
+          { label: "📧 Mail marketing",   route: "mail-marketing"   },
           { label: "📸 Bacheca Social",   route: "bo-marketing?tab=bacheca-social" },
           { label: "📅 Calendario editoriale", route: "bo-calendario" },
           { label: "📱 Storie", route: "bo-storie" },

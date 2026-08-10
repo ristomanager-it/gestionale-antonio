@@ -810,7 +810,7 @@ async function listaDecisioni(supabase, aziendaId) {
       const primo = aMeta[0] || completi[0] || segnali[0];
       out.push({
         livello: aMeta.length ? "rosso" : "giallo",
-        link: "#/campagne",
+        link: "#/mail-marketing",
         titolo: aMeta.length
           ? aMeta.length + (aMeta.length === 1 ? " ha aperto il preventivo e non l'ha finito" : " hanno aperto il preventivo e non l'hanno finito")
           : segnali.length + (segnali.length === 1 ? " contatto si e' fatto vivo" : " contatti si sono fatti vivi"),
