@@ -8,6 +8,7 @@ import { supabase } from "../supabaseClient.js";
 const FILTRI = [
   { v: "caldi", e: "Da richiamare" },
   { v: "tutti", e: "Tutti" },
+  { v: "bozze", e: "Mail da leggere" },
   { v: "proposto", e: "Da decidere" },
   { v: "inviata", e: "Contattati" },
   { v: "da_chiamare", e: "Senza email" },
@@ -57,7 +58,8 @@ async function carica(container, azienda, filtro) {
   lista.innerHTML = '<div style="font-size:13px;color:#64748b;">Un momento&hellip;</div>';
 
   let q = supabase.from("v_campagne_stato").select("*").eq("azienda_id", azienda.id);
-  if (filtro === "proposto") q = q.eq("stato", "proposto");
+  if (filtro === "bozze") q = q.not("mail_testo", "is", null).neq("mail_stato", "inviata");
+  else if (filtro === "proposto") q = q.eq("stato", "proposto");
   else if (filtro === "da_chiamare") q = q.eq("stato", "da_chiamare");
   else if (filtro === "inviata") q = q.not("inviata_il", "is", null);
 
@@ -76,9 +78,12 @@ async function carica(container, azienda, filtro) {
   }
 
   if (!righe.length) {
-    lista.innerHTML = avviso(filtro === "caldi"
-      ? "Nessuno ha ancora dato segnali. Qui compaiono quelli che aprono il preventivo: sono le telefonate che valgono."
-      : "Niente in archivio con questo filtro.");
+    lista.innerHTML = avviso(
+      filtro === "caldi"
+        ? "Nessuno ha ancora dato segnali. Qui compaiono quelli che aprono il preventivo: sono le telefonate che valgono."
+        : filtro === "bozze"
+          ? "Nessuna mail scritta. Chiedi a Tony di scriverle per i destinatari che hai accettato."
+          : "Niente in archivio con questo filtro.");
     return;
   }
 
@@ -99,6 +104,25 @@ async function carica(container, azienda, filtro) {
       + (r.motivo ? '<div style="font-size:12.5px;color:#475569;margin-top:6px;">' + esc(r.motivo) + '</div>' : "")
       + (r.note ? '<div style="font-size:12.5px;color:#334155;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:9px;padding:8px;margin-top:8px;white-space:pre-wrap;">' + esc(r.note) + '</div>' : "")
       + '</div></div>'
+      + (r.mail_testo
+          ? '<details style="margin-top:10px;border-top:1px solid #F1F5F9;padding-top:10px;" data-mail="' + r.id + '">'
+            + '<summary style="cursor:pointer;font-size:13px;font-weight:700;color:#0E5A7A;">'
+            + (r.mail_stato === 'approvata' ? 'Mail approvata, pronta a partire' : 'Leggi la mail che ha scritto Tony')
+            + '</summary>'
+            + '<div style="margin-top:10px;">'
+            + '<label style="font-size:11.5px;font-weight:700;color:#94a3b8;">Oggetto</label>'
+            + '<input type="text" data-ogg="' + r.id + '" value="' + esc(r.mail_oggetto || '') + '" style="width:100%;border:1px solid #CBD5DD;border-radius:8px;padding:9px;font-size:13.5px;margin:4px 0 10px;font-family:inherit;">'
+            + '<label style="font-size:11.5px;font-weight:700;color:#94a3b8;">Testo</label>'
+            + '<textarea data-txt="' + r.id + '" rows="12" style="width:100%;border:1px solid #CBD5DD;border-radius:8px;padding:10px;font-size:13.5px;font-family:inherit;line-height:1.5;margin:4px 0 10px;">' + esc(r.mail_testo) + '</textarea>'
+            + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+            + '<button class="app-button small" data-salva="' + r.id + '" style="background:#0E5A7A;color:#fff;">Salva correzioni</button>'
+            + (r.mail_stato === 'approvata'
+                ? '<button class="app-button small gray" data-sblocca="' + r.id + '">Rimetti in bozza</button>'
+                : '<button class="app-button small" data-approva="' + r.id + '" style="background:#15803d;color:#fff;">Approva</button>')
+            + '</div>'
+            + '<div style="font-size:11.5px;color:#94a3b8;margin-top:8px;">Approvare non fa partire niente: le mail approvate partono quando lo dici a Tony.</div>'
+            + '</div></details>'
+          : '')
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;max-width:100%;">'
       + (r.telefono ? '<a href="tel:' + esc(r.telefono) + '" class="app-button small" style="background:#0E5A7A;color:#fff;text-decoration:none;">Chiama</a>' : "")
       + (r.email ? '<a href="mailto:' + esc(r.email) + '" class="app-button small gray" style="text-decoration:none;">Scrivi</a>' : "")
@@ -108,6 +132,47 @@ async function carica(container, azienda, filtro) {
   });
 
   lista.innerHTML = html;
+
+  // Correzioni e approvazione: quello che parte e' quello che si legge qui.
+  lista.querySelectorAll("[data-salva]").forEach((b) => {
+    b.onclick = async () => {
+      const id = b.dataset.salva;
+      const ogg = lista.querySelector('[data-ogg="' + id + '"]').value.trim();
+      const txt = lista.querySelector('[data-txt="' + id + '"]').value.trim();
+      if (!ogg || !txt) { alert("Servono sia l'oggetto sia il testo."); return; }
+      b.disabled = true; b.textContent = "Salvo...";
+      const { error } = await supabase.from("campagne_target")
+        .update({ mail_oggetto: ogg, mail_testo: txt, mail_stato: "bozza" }).eq("id", id);
+      b.disabled = false; b.textContent = "Salva correzioni";
+      if (error) { alert("Non sono riuscito a salvare."); return; }
+      await carica(container, azienda, filtro);
+    };
+  });
+
+  lista.querySelectorAll("[data-approva]").forEach((b) => {
+    b.onclick = async () => {
+      const id = b.dataset.approva;
+      const ogg = lista.querySelector('[data-ogg="' + id + '"]').value.trim();
+      const txt = lista.querySelector('[data-txt="' + id + '"]').value.trim();
+      b.disabled = true;
+      const { error } = await supabase.from("campagne_target")
+        .update({ mail_oggetto: ogg, mail_testo: txt, mail_stato: "approvata" }).eq("id", id);
+      b.disabled = false;
+      if (error) { alert("Non sono riuscito ad approvare."); return; }
+      await carica(container, azienda, filtro);
+    };
+  });
+
+  lista.querySelectorAll("[data-sblocca]").forEach((b) => {
+    b.onclick = async () => {
+      b.disabled = true;
+      const { error } = await supabase.from("campagne_target")
+        .update({ mail_stato: "bozza" }).eq("id", b.dataset.sblocca);
+      b.disabled = false;
+      if (error) { alert("Non riesco a rimetterla in bozza."); return; }
+      await carica(container, azienda, filtro);
+    };
+  });
 }
 
 function peso(r) {

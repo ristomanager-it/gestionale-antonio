@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Non ricevere più queste email</title>
+<style>
+  body{margin:0;background:#EEF1F4;color:#1F2A33;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.55;}
+  .wrap{max-width:460px;margin:0 auto;padding:60px 18px;}
+  .card{background:#fff;border:1px solid #E3E8EC;border-radius:16px;padding:22px;}
+  h1{font-size:1.2rem;margin:0 0 10px;}
+  p{margin:0 0 12px;font-size:14.5px;color:#475569;}
+  .ok{color:#15803d;font-weight:700;}
+  .attesa{color:#64748b;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="box">
+    <p class="attesa">Un momento&hellip;</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var CHIAVE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var sb = window.supabase.createClient(URL_SB, CHIAVE);
+  var box = document.getElementById("box");
+  var token = new URLSearchParams(location.search).get("t") || "";
+
+  function esc(v) {
+    return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // Un clic e basta: niente conferme, niente motivi da spiegare, niente
+  // moduli. Chi vuole uscire esce.
+  (async function () {
+    if (!token) {
+      box.innerHTML = "<h1>Link non completo</h1><p>Riapri il collegamento che trovi in fondo alla email.</p>";
+      return;
+    }
+    try {
+      var r = await sb.rpc("campagne_disiscrivi", { p_token: token });
+      var d = r.data && r.data.length ? r.data[0] : null;
+      if (r.error || !d) {
+        box.innerHTML = "<h1>Non ci risulta</h1><p>Questo indirizzo non e' nella nostra lista, oppure il collegamento non e' piu' valido. In ogni caso non riceverai altre email.</p>";
+        return;
+      }
+      var chi = d.ragione_sociale ? " di " + esc(d.ragione_sociale) : "";
+      var locale = d.locale ? esc(d.locale) : "noi";
+      box.innerHTML = d.gia_fatto
+        ? "<h1>Era gia' fatto</h1><p>L'indirizzo" + chi + " era gia' stato tolto: da " + locale + " non arrivera' altro.</p>"
+        : "<h1 class='ok'>Fatto</h1><p>L'indirizzo" + chi + " e' stato tolto dalla lista. Da " + locale + " non riceverai piu' email commerciali.</p><p>Se un giorno ti serve, ci trovi sul nostro sito o al telefono.</p>";
+    } catch (e) {
+      box.innerHTML = "<h1>Qualcosa non ha funzionato</h1><p>Riprova fra poco. Se il problema resta, rispondi alla email e ti togliamo a mano.</p>";
+    }
+  })();
+})();
+</script>
+</body>
+</html>
