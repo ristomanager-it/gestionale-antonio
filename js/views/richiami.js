@@ -40,8 +40,8 @@ export async function render(container) {
     + '<h1 style="font-size:1.4rem;font-weight:800;margin:0 0 2px;">Cosa porta gente da queste parti</h1>'
     + '<div style="font-size:13.5px;color:#475569;margin-bottom:16px;">I posti intorno a voi che attirano gruppi da fuori: stadi, musei, borghi, fiere, santuari. Chi li gestisce deve dire a quei gruppi dove mangiare, e da lì si parte.</div>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'
-    + '<button id="rt-nuovo" class="app-button primary">+ Aggiungine uno</button>'
-    + '<button id="rt-cerca" class="app-button gray">Falli cercare a Tony</button>'
+    + '<button id="rt-nuovo" class="app-button primary">+ Aggiungi attrattiva</button>'
+    + '<button id="rt-cerca" class="app-button gray">Falle cercare a Tony</button>'
     + '</div>'
     + '<div id="rt-form"></div>'
     + '<div id="rt-lista"><div style="font-size:13px;color:#64748b;">Un momento&hellip;</div></div>'
@@ -66,7 +66,10 @@ async function carica(container, azienda) {
 
   const righe = data || [];
   if (!righe.length) {
-    box.innerHTML = avviso("La mappa è vuota. Comincia da quelli che conosci: lo stadio dove vengono le squadre, il borgo dove arrivano i pullman, la fiera. Bastano il nome e chi lo gestisce.");
+    box.innerHTML = avviso("Nessuna attrattiva. Comincia da quelle che conosci: lo stadio dove vengono le squadre, il borgo dove arrivano i pullman, la fiera. Bastano il nome e chi la gestisce.")
+      + '<div style="margin-top:14px;"><button id="rt-nuovo-fondo" class="app-button primary">+ Aggiungi attrattiva</button></div>';
+    const primo = box.querySelector("#rt-nuovo-fondo");
+    if (primo) primo.onclick = () => mostraForm(container, azienda, null);
     return;
   }
 
@@ -104,7 +107,12 @@ async function carica(container, azienda) {
       + '</div></div>';
   });
 
+  html += '<div style="margin-top:16px;"><button id="rt-nuovo-fondo" class="app-button primary">+ Aggiungi attrattiva</button></div>';
+
   box.innerHTML = html;
+
+  const inFondo = box.querySelector("#rt-nuovo-fondo");
+  if (inFondo) inFondo.onclick = () => mostraForm(container, azienda, null);
 
   box.querySelectorAll("[data-conf]").forEach((b) => {
     b.onclick = async () => { await cambiaStato(b.dataset.conf, "confermato"); await carica(container, azienda); };
@@ -139,8 +147,8 @@ function mostraForm(container, azienda, r) {
     '<option value="' + o.v + '"' + (sel === o.v ? " selected" : "") + '>' + esc(o.e) + '</option>').join("");
 
   box.innerHTML = '<div style="background:#fff;border:1px solid #0E5A7A;border-radius:14px;padding:15px;margin-bottom:16px;">'
-    + '<div style="font-size:14px;font-weight:800;margin-bottom:12px;">' + (r ? "Modifica" : "Un posto che porta gente") + '</div>'
-    + campo("rt-nome", "Come si chiama", v.nome, "es. Stadio Rocchi, Parco dei Mostri, Fiera di...")
+    + '<div style="font-size:14px;font-weight:800;margin-bottom:12px;">' + (r ? "Modifica attrattiva" : "Nuova attrattiva") + '</div>'
+    + campo("rt-nome", "Come si chiama l'attrattiva", v.nome, "es. Stadio Rocchi, Parco dei Mostri, Fiera di...")
     + '<label style="font-size:12.5px;font-weight:700;color:#334155;">Che cos\'è</label>'
     + '<select id="rt-tipo" style="' + stileCampo() + '">' + opz(TIPI, v.tipo) + '</select>'
     + '<label style="font-size:12.5px;font-weight:700;color:#334155;">Chi ci porta</label>'
@@ -196,7 +204,7 @@ function mostraForm(container, azienda, r) {
     if (esito.error) {
       btn.disabled = false; btn.textContent = "Salva";
       box.querySelector("#rt-err").textContent = esito.error.code === "23505"
-        ? "C'è già un posto con questo nome." : "Non sono riuscito a salvare: " + esito.error.message;
+        ? "C'è già un'attrattiva con questo nome." : "Non sono riuscito a salvare: " + esito.error.message;
       return;
     }
     box.innerHTML = "";
@@ -219,7 +227,7 @@ async function cercaConTony(container, azienda) {
     alert("La ricerca non ha funzionato. Puoi aggiungerli a mano.");
   }
   b.disabled = false;
-  b.textContent = "Falli cercare a Tony";
+  b.textContent = "Falle cercare a Tony";
   await carica(container, azienda);
 }
 
