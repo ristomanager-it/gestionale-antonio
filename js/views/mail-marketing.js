@@ -14,22 +14,87 @@ const FILTRI = [
   { v: "da_chiamare", e: "Senza email" },
 ];
 
-export async function render(container) {
-  const azienda = window.state?.azienda;
-  if (!azienda?.id) {
-    container.innerHTML = '<div style="max-width:780px;margin:22px auto;padding:0 16px;">Nessuna azienda attiva.</div>';
+// L'ultima sezione aperta resta: chi ci lavora ogni giorno vuole ritrovarsi
+// dove stava, non ricominciare dalla prima scheda.
+let sezioneAperta = "contatti";
+
+function montaSezioni(container, azienda) {
+  const barra = container.querySelector("#mm-sezioni");
+  const sezioni = [
+    { v: "contatti", e: "Chi abbiamo contattato" },
+    { v: "attrattive", e: "Attrattive" },
+  ];
+  barra.innerHTML = "";
+  sezioni.forEach((sz) => {
+    const b = document.createElement("button");
+    b.textContent = sz.e;
+    b.style.cssText = "border-radius:10px;padding:8px 14px;font-size:13.5px;font-weight:700;border:1px solid #CBD5DD;background:#fff;color:#334155;cursor:pointer;";
+    if (sezioneAperta === sz.v) selezionato(b, true);
+    b.onclick = async () => {
+      sezioneAperta = sz.v;
+      barra.querySelectorAll("button").forEach((x) => selezionato(x, false));
+      selezionato(b, true);
+      await apriSezione(container, azienda);
+    };
+    barra.appendChild(b);
+  });
+}
+
+async function apriSezione(container, azienda) {
+  const corpo = container.querySelector("#mm-corpo");
+  if (sezioneAperta === "attrattive") {
+    corpo.innerHTML = '<div style="font-size:13px;color:#64748b;">Un momento&hellip;</div>';
+    try {
+      const mod = await import("./richiami.js?v=" + (window.APP_V || ""));
+      await mod.render(corpo);
+    } catch (e) {
+      corpo.innerHTML = '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px;font-size:13.5px;color:#b45309;">Non sono riuscito ad aprire le attrattive. Riprova fra poco.</div>';
+    }
     return;
   }
+  // torna l'elenco dei contattati
+  corpo.innerHTML = '<div id="ca-filtri" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;"></div>'
+    + '<div id="ca-lista"></div>';
+  montaFiltri(container, azienda);
+  await carica(container, azienda, "caldi");
+}
 
-  container.innerHTML =
-    '<div style="max-width:820px;margin:22px auto;padding:0 14px 50px;overflow-x:hidden;">'
-    + '<h1 style="font-size:1.4rem;font-weight:800;margin:0 0 2px;">Chi abbiamo contattato</h1>'
-    + '<div style="font-size:13px;color:#64748b;margin-bottom:16px;">' + esc(azienda.nome || "") + '</div>'
-    + '<div id="ca-filtri" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;"></div>'
-    + '<div id="ca-lista"><div style="font-size:13px;color:#64748b;">Un momento&hellip;</div></div>'
-    + '</div>';
+// I quattro numeri in cima: cosa c'e' da fare, in un colpo d'occhio.
+async function numeri(container, azienda) {
+  const box = container.querySelector("#mm-numeri");
+  if (!box) return;
+  const conta = async (tabella, filtro) => {
+    let q = supabase.from(tabella).select("id", { count: "exact", head: true })
+      .eq("azienda_id", azienda.id);
+    q = filtro(q);
+    const { count } = await q;
+    return count || 0;
+  };
+  try {
+    const [attrattive, daDecidere, daLeggere, caldi] = await Promise.all([
+      conta("richiami_territorio", (q) => q.eq("stato", "confermato")),
+      conta("campagne_target", (q) => q.eq("stato", "proposto").eq("disiscritto", false)),
+      conta("campagne_target", (q) => q.eq("mail_stato", "bozza").eq("disiscritto", false)),
+      conta("campagne_eventi", (q) => q.eq("tipo", "form_abbandonato")),
+    ]);
+    const cella = (n, etichettaTesto, colore) =>
+      '<div style="background:#fff;border:1px solid #E3E8EC;border-radius:12px;padding:11px 12px;">'
+      + '<div style="font-size:1.35rem;font-weight:800;color:' + colore + ';line-height:1.1;">' + n + '</div>'
+      + '<div style="font-size:11.5px;color:#64748b;margin-top:3px;">' + etichettaTesto + '</div></div>';
+    box.innerHTML =
+      cella(attrattive, "attrattive", "#0E5A7A")
+      + cella(daDecidere, "da decidere", daDecidere ? "#d97706" : "#94a3b8")
+      + cella(daLeggere, "mail da leggere", daLeggere ? "#d97706" : "#94a3b8")
+      + cella(caldi, "da richiamare", caldi ? "#dc2626" : "#94a3b8");
+  } catch (e) {
+    box.innerHTML = "";
+  }
+}
 
+function montaFiltri(container, azienda) {
   const barra = container.querySelector("#ca-filtri");
+  if (!barra) return;
+  barra.innerHTML = "";
   FILTRI.forEach((f, i) => {
     const b = document.createElement("button");
     b.textContent = f.e;
@@ -43,8 +108,33 @@ export async function render(container) {
     };
     barra.appendChild(b);
   });
+}
 
-  await carica(container, azienda, "caldi");
+export async function render(container) {
+  const azienda = window.state?.azienda;
+  if (!azienda?.id) {
+    container.innerHTML = '<div style="max-width:780px;margin:22px auto;padding:0 16px;">Nessuna azienda attiva.</div>';
+    return;
+  }
+
+  container.innerHTML =
+    '<div style="max-width:820px;margin:22px auto;padding:0 14px 50px;overflow-x:hidden;">'
+    + '<h1 style="font-size:1.4rem;font-weight:800;margin:0 0 2px;">Mail marketing</h1>'
+    + '<div style="font-size:13px;color:#64748b;margin-bottom:14px;">' + esc(azienda.nome || "") + '</div>'
+    + '<div id="mm-numeri" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,110px),1fr));gap:8px;margin-bottom:14px;"></div>'
+    + '<div id="mm-sezioni" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;border-bottom:1px solid #E3E8EC;padding-bottom:12px;"></div>'
+    + '<div id="mm-corpo">'
+    + '<div id="ca-filtri" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;"></div>'
+    + '<div id="ca-lista"><div style="font-size:13px;color:#64748b;">Un momento&hellip;</div></div>'
+    + '</div>'
+    + '</div>';
+
+  // Le attrattive stanno qui dentro, non nel menu: e' lo stesso lavoro, e il
+  // menu laterale e' gia' lungo abbastanza.
+  montaSezioni(container, azienda);
+  numeri(container, azienda);
+
+  await apriSezione(container, azienda);
 }
 
 function selezionato(b, si) {
@@ -146,6 +236,7 @@ async function carica(container, azienda, filtro) {
       b.disabled = false; b.textContent = "Salva correzioni";
       if (error) { alert("Non sono riuscito a salvare."); return; }
       await carica(container, azienda, filtro);
+      numeri(container, azienda);
     };
   });
 
@@ -160,6 +251,7 @@ async function carica(container, azienda, filtro) {
       b.disabled = false;
       if (error) { alert("Non sono riuscito ad approvare."); return; }
       await carica(container, azienda, filtro);
+      numeri(container, azienda);
     };
   });
 
@@ -171,6 +263,7 @@ async function carica(container, azienda, filtro) {
       b.disabled = false;
       if (error) { alert("Non riesco a rimetterla in bozza."); return; }
       await carica(container, azienda, filtro);
+      numeri(container, azienda);
     };
   });
 }
