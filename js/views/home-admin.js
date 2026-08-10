@@ -790,6 +790,36 @@ async function listaDecisioni(supabase, aziendaId) {
     }
   } catch (e) { /* niente */ }
 
+  // ── CHI STA CHIEDENDO E NON HA FINITO ───────────────────────────────────
+  // Chi apre il preventivo e si ferma a meta' e' la persona piu' calda che
+  // hai: stava chiedendo e qualcosa l'ha fermato. Una telefonata la recupera,
+  // una mail no. Sopra ci sono anche quelli che hanno completato.
+  try {
+    const { data } = await supabase.from("v_campagne_stato")
+      .select("ragione_sociale, telefono, a_che_punto, form_lasciato_a_meta, richiesta_completa, ha_cliccato, ultimo_segnale")
+      .eq("azienda_id", aziendaId).eq("disiscritto", false)
+      .order("ultimo_segnale", { ascending: false, nullsFirst: false })
+      .limit(50);
+
+    const segnali = (data || []).filter(r =>
+      r.form_lasciato_a_meta || r.richiesta_completa || r.ha_cliccato);
+
+    if (segnali.length) {
+      const aMeta = segnali.filter(r => r.form_lasciato_a_meta && !r.richiesta_completa);
+      const completi = segnali.filter(r => r.richiesta_completa);
+      const primo = aMeta[0] || completi[0] || segnali[0];
+      out.push({
+        livello: aMeta.length ? "rosso" : "giallo",
+        link: "#/campagne",
+        titolo: aMeta.length
+          ? aMeta.length + (aMeta.length === 1 ? " ha aperto il preventivo e non l'ha finito" : " hanno aperto il preventivo e non l'hanno finito")
+          : segnali.length + (segnali.length === 1 ? " contatto si e' fatto vivo" : " contatti si sono fatti vivi"),
+        sotto: (primo.ragione_sociale || "") + " · " + (primo.a_che_punto || "")
+          + (completi.length && aMeta.length ? " · " + completi.length + " hanno gia chiesto il preventivo" : ""),
+      });
+    }
+  } catch (e) { /* niente */ }
+
   // ── CONFIGURAZIONE DELL'AZIENDA ─────────────────────────────────────────
   // La percentuale e' calcolata sui dati veri, non sul flag profilo_completato,
   // che risultava vero anche per aziende senza partita IVA ne' indirizzo.

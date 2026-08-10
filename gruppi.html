@@ -124,6 +124,7 @@
   var sottotitolo = document.getElementById("sottotitolo");
   var iniziatoMandato = false;
   var inviatoDavvero = false;
+  var abbandonoMandato = false;
 
   function mostraAvviso(testo, colore) {
     avviso.textContent = testo;
@@ -172,14 +173,35 @@
     try { sb.rpc("gruppi_segnale", { p_token: token, p_tipo: tipo }); } catch (e) { /* non deve bloccare */ }
   }
 
-  document.addEventListener("input", function () {
+  // Alla prima prova il segnale non e' partito: "input" da solo non basta,
+  // su iPhone chi tocca un campo e poi chiude non lo fa mai scattare.
+  // Ora vale anche il focus, e l'abbandono si manda con sendBeacon, che parte
+  // anche mentre la pagina si chiude: una fetch normale viene troncata.
+  function iniziato() {
     if (iniziatoMandato) return;
     iniziatoMandato = true;
     segnale("form_iniziato");
-  }, true);
+  }
+  document.addEventListener("input", iniziato, true);
+  document.addEventListener("focusin", iniziato, true);
+  document.addEventListener("change", iniziato, true);
 
-  window.addEventListener("pagehide", function () {
-    if (iniziatoMandato && !inviatoDavvero) segnale("form_abbandonato");
+  function abbandono() {
+    if (!iniziatoMandato || inviatoDavvero || abbandonoMandato) return;
+    abbandonoMandato = true;
+    try {
+      var corpo = JSON.stringify({ p_token: token, p_tipo: "form_abbandonato" });
+      var url = URL_SB + "/rest/v1/rpc/gruppi_segnale?apikey=" + encodeURIComponent(CHIAVE);
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, new Blob([corpo], { type: "application/json" }));
+      } else {
+        sb.rpc("gruppi_segnale", { p_token: token, p_tipo: "form_abbandonato" });
+      }
+    } catch (e) { /* non deve bloccare */ }
+  }
+  window.addEventListener("pagehide", abbandono);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") abbandono();
   });
 
   document.getElementById("invia").addEventListener("click", async function () {
