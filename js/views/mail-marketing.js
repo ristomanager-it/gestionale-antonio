@@ -21,10 +21,10 @@ export async function render(container) {
   }
 
   container.innerHTML =
-    '<div style="max-width:820px;margin:22px auto;padding:0 16px 50px;">'
+    '<div style="max-width:820px;margin:22px auto;padding:0 14px 50px;overflow-x:hidden;">'
     + '<h1 style="font-size:1.4rem;font-weight:800;margin:0 0 2px;">Chi abbiamo contattato</h1>'
     + '<div style="font-size:13px;color:#64748b;margin-bottom:16px;">' + esc(azienda.nome || "") + '</div>'
-    + '<div id="ca-filtri" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;margin-bottom:6px;-webkit-overflow-scrolling:touch;"></div>'
+    + '<div id="ca-filtri" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;"></div>'
     + '<div id="ca-lista"><div style="font-size:13px;color:#64748b;">Un momento&hellip;</div></div>'
     + '</div>';
 
@@ -33,7 +33,7 @@ export async function render(container) {
     const b = document.createElement("button");
     b.textContent = f.e;
     b.dataset.f = f.v;
-    b.style.cssText = "white-space:nowrap;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:700;border:1px solid #CBD5DD;background:#fff;color:#334155;cursor:pointer;";
+    b.style.cssText = "border-radius:99px;padding:7px 14px;font-size:13px;font-weight:700;border:1px solid #CBD5DD;background:#fff;color:#334155;cursor:pointer;";
     if (i === 0) selezionato(b, true);
     b.onclick = () => {
       barra.querySelectorAll("button").forEach((x) => selezionato(x, false));
@@ -89,17 +89,17 @@ async function carica(container, azienda, filtro) {
       : r.form_lasciato_a_meta ? "#dc2626"
       : r.ha_cliccato ? "#d97706" : "#94a3b8";
 
-    html += '<div style="background:#fff;border:1px solid #E3E8EC;border-radius:14px;padding:13px 14px;margin-bottom:9px;">'
+    html += '<div style="background:#fff;border:1px solid #E3E8EC;border-radius:14px;padding:13px 14px;margin-bottom:9px;overflow-wrap:anywhere;">'
       + '<div style="display:flex;gap:9px;align-items:flex-start;">'
       + '<span style="width:9px;height:9px;border-radius:50%;background:' + colore + ';margin-top:6px;flex:0 0 9px;"></span>'
-      + '<div style="flex:1;min-width:0;">'
+      + '<div style="flex:1;min-width:0;overflow-wrap:anywhere;">'
       + '<div style="font-size:14.5px;font-weight:800;">' + esc(r.ragione_sociale) + '</div>'
       + '<div style="font-size:12px;color:' + colore + ';font-weight:700;margin-top:2px;">' + esc(r.a_che_punto) + '</div>'
       + (r.citta ? '<div style="font-size:12px;color:#94a3b8;margin-top:2px;">' + esc(r.citta) + ' · ' + esc(r.segmento) + '</div>' : "")
       + (r.motivo ? '<div style="font-size:12.5px;color:#475569;margin-top:6px;">' + esc(r.motivo) + '</div>' : "")
       + (r.note ? '<div style="font-size:12.5px;color:#334155;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:9px;padding:8px;margin-top:8px;white-space:pre-wrap;">' + esc(r.note) + '</div>' : "")
       + '</div></div>'
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;max-width:100%;">'
       + (r.telefono ? '<a href="tel:' + esc(r.telefono) + '" class="app-button small" style="background:#0E5A7A;color:#fff;text-decoration:none;">Chiama</a>' : "")
       + (r.email ? '<a href="mailto:' + esc(r.email) + '" class="app-button small gray" style="text-decoration:none;">Scrivi</a>' : "")
       + (r.sito ? '<a href="' + esc(r.sito) + '" target="_blank" rel="noopener" class="app-button small gray" style="text-decoration:none;">Sito</a>' : "")
