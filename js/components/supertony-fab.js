@@ -1,7 +1,9 @@
 // js/components/supertony-fab.js
 // Super Tony a portata di pollice: un pulsante che resta su ogni schermata,
 // senza dover passare da Piattaforma né cambiare azienda.
-// Visibile solo al superadmin.
+// Visibile a superadmin e admin: e' l'admin che sa come si parla in casa sua.
+// Super Tony (gestione della piattaforma) resta solo al superadmin: da qui ci
+// si arriva col link in fondo alla pagina del cervello.
 
 function isSuperadmin() {
   const s = window.state || {};
@@ -11,28 +13,35 @@ function isSuperadmin() {
          (s.aziende || []).some(a => a.ruolo === "superadmin");
 }
 
+function isAdmin() {
+  const s = window.state || {};
+  return s.ruolo === "admin" ||
+         s.ruoloRaw === "admin" ||
+         (s.aziende || []).some(a => a.ruolo === "admin");
+}
+
 export function montaSuperTony() {
-  if (!isSuperadmin()) return;
+  if (!isSuperadmin() && !isAdmin()) return;
   if (document.getElementById("st-fab")) return;
 
   const b = document.createElement("button");
   b.id = "st-fab";
-  b.title = "Super Tony";
-  b.setAttribute("aria-label", "Apri Super Tony");
+  b.title = "Il cervello di Tony";
+  b.setAttribute("aria-label", "Apri il cervello di Tony");
   b.textContent = "🧠";
 
-  // apre Super Tony senza toccare l azienda attiva:
+  // apre il cervello senza toccare l azienda attiva:
   // al ritorno ci si ritrova dove si era
   b.onclick = () => {
     const attuale = (window.location.hash || "").replace("#/", "");
-    if (attuale === "super-tony") {
+    if (attuale === "tony-cervello") {
       const indietro = sessionStorage.getItem("st_ritorno");
       sessionStorage.removeItem("st_ritorno");
       vai(indietro || "home");
       return;
     }
     if (attuale) sessionStorage.setItem("st_ritorno", attuale);
-    vai("super-tony");
+    vai("tony-cervello");
   };
 
   document.body.appendChild(b);

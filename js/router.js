@@ -171,6 +171,9 @@ const routes = {
   "abbina-articoli": () => imp("./views/abbina-articoli.js"),
   "menu-engineering": () => imp("./views/menu-engineering.js"),
   "super-tony": () => imp("./views/super-tony.js"),
+  // Il cervello: le regole che il locale insegna al proprio Tony.
+  // Admin e superadmin. Super Tony resta cosa da superadmin.
+  "tony-cervello": () => imp("./views/tony-cervello.js"),
   preparazioni: () => imp("./views/preparazioni.js"),
   reparti: () => imp("./views/reparti.js"),
   venduto: () => imp("./views/venduto.js"),
@@ -601,6 +604,9 @@ function hasPermission(area) {
     "bo-test",
     // Produzione — dati di controllo/produttività (solo admin)
     "produttivita-produzione",
+    // Il cervello di Tony: chi lo apre riscrive come parla il locale.
+    // Non e' roba da manager, e' una decisione di chi risponde del marchio.
+    "tony-cervello",
   ]);
 
   if (ADMIN_ONLY_ROUTES.has(area)) {
