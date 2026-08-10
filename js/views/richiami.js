@@ -127,6 +127,8 @@ async function carica(container, azienda) {
           : (r.gestore ? '<div style="font-size:12.5px;color:#b45309;margin-top:2px;">Nessun recapito: aggiungilo o fattelo cercare</div>' : ""))
       + (r.stagionalita ? '<div style="font-size:12.5px;color:#64748b;margin-top:2px;">' + esc(r.stagionalita) + '</div>' : "")
       + (r.volume ? '<div style="font-size:12.5px;color:#64748b;">' + esc(r.volume) + '</div>' : "")
+      + (r.contatto_diretto ? '<div style="display:inline-block;font-size:11px;font-weight:800;background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;border-radius:99px;padding:2px 9px;margin-top:6px;">Rapporto diretto</div>' : "")
+      + (r.servizi_offerti ? '<div style="font-size:12.5px;color:#334155;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:9px;padding:8px;margin-top:6px;white-space:pre-wrap;"><b>Possiamo offrire:</b> ' + esc(r.servizi_offerti) + '</div>' : "")
       + '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;max-width:100%;">'
       + (proposto
           ? '<button class="app-button small" data-conf="' + r.id + '" style="background:#15803d;color:#fff;">Conferma</button>'
@@ -234,6 +236,11 @@ function mostraForm(container, azienda, r) {
     + '</div>'
     + campo("rt-stag", "In che periodi lavora", v.stagionalita, "da settembre a maggio, tutto l'anno, estate")
     + campo("rt-volume", "Quanta gente muove", v.volume, "capienza, visitatori all'anno, quanti pullman")
+    + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#334155;margin:8px 0 4px;cursor:pointer;">'
+    + '<input type="checkbox" id="rt-diretto"' + (v.contatto_diretto ? " checked" : "") + '> Ho un rapporto diretto col gestore (non solo ospiti di passaggio)'
+    + '</label>'
+    + '<label style="font-size:12.5px;font-weight:700;color:#334155;">Cosa possiamo offrirgli</label>'
+    + '<textarea id="rt-servizi" rows="3" placeholder="es. pranzo prima dell\'allenamento, pausa pranzo durante un riscaldamento, ritiro con pernottamento" style="width:100%;border:1px solid #CBD5DD;border-radius:9px;padding:10px;margin:4px 0 12px;font-size:14px;font-family:inherit;">' + esc(v.servizi_offerti) + '</textarea>'
     + '<div style="display:flex;gap:8px;margin-top:6px;">'
     + '<button id="rt-salva" class="app-button primary">Salva</button>'
     + '<button id="rt-annulla" class="app-button gray">Annulla</button>'
@@ -261,6 +268,8 @@ function mostraForm(container, azienda, r) {
       gestore_telefono: box.querySelector("#rt-tel").value.trim() || null,
       stagionalita: box.querySelector("#rt-stag").value.trim() || null,
       volume: box.querySelector("#rt-volume").value.trim() || null,
+      contatto_diretto: box.querySelector("#rt-diretto").checked,
+      servizi_offerti: box.querySelector("#rt-servizi").value.trim() || null,
       // Quello che scrive una persona non ha bisogno di essere confermato.
       stato: "confermato",
       fonte: r ? (r.fonte || "mano") : "mano",
