@@ -476,6 +476,7 @@ export function initMenu() {
           ] },
           { label: "📣 Campagne",         route: "bo-marketing"      },
           { label: "📧 Mail marketing",   route: "mail-marketing"   },
+          { label: "📍 Cosa porta gente",  route: "richiami"         },
           { label: "📸 Bacheca Social",   route: "bo-marketing?tab=bacheca-social" },
           { label: "📅 Calendario editoriale", route: "bo-calendario" },
           { label: "📱 Storie", route: "bo-storie" },
