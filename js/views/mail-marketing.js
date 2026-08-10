@@ -5,6 +5,17 @@ import { supabase } from "../supabaseClient.js";
    Chi ha lasciato il preventivo a meta' sta in cima, perche' quella
    e' la telefonata che vale. */
 
+
+const CATEGORIE = [
+  { v: "", e: "Tutte" },
+  { v: "sport", e: "🏟️ Sport" },
+  { v: "arte", e: "🏛️ Arte e borghi" },
+  { v: "lavoro", e: "💼 Lavoro" },
+  { v: "fede", e: "⛪ Fede" },
+  { v: "spettacoli", e: "🎭 Spettacoli" },
+  { v: "altro", e: "📍 Altro" },
+];
+
 const FILTRI = [
   { v: "caldi", e: "Da richiamare" },
   { v: "tutti", e: "Tutti" },
@@ -17,6 +28,26 @@ const FILTRI = [
 // L'ultima sezione aperta resta: chi ci lavora ogni giorno vuole ritrovarsi
 // dove stava, non ricominciare dalla prima scheda.
 let sezioneAperta = "contatti";
+let categoriaFiltro = "";
+
+function montaCategorie(container, azienda) {
+  const barra = container.querySelector("#mm-categoria");
+  if (!barra) return;
+  barra.innerHTML = "";
+  CATEGORIE.forEach((c) => {
+    const b = document.createElement("button");
+    b.textContent = c.e;
+    b.style.cssText = "border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:700;border:1px solid #CBD5DD;background:#fff;color:#334155;cursor:pointer;";
+    if (categoriaFiltro === c.v) selezionato(b, true);
+    b.onclick = async () => {
+      categoriaFiltro = c.v;
+      barra.querySelectorAll("button").forEach((x) => selezionato(x, false));
+      selezionato(b, true);
+      await apriSezione(container, azienda);
+    };
+    barra.appendChild(b);
+  });
+}
 
 function montaSezioni(container, azienda) {
   const barra = container.querySelector("#mm-sezioni");
@@ -122,7 +153,8 @@ export async function render(container) {
     + '<h1 style="font-size:1.4rem;font-weight:800;margin:0 0 2px;">Mail marketing</h1>'
     + '<div style="font-size:13px;color:#64748b;margin-bottom:14px;">' + esc(azienda.nome || "") + '</div>'
     + '<div id="mm-numeri" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,110px),1fr));gap:8px;margin-bottom:14px;"></div>'
-    + '<div id="mm-sezioni" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;border-bottom:1px solid #E3E8EC;padding-bottom:12px;"></div>'
+    + '<div id="mm-sezioni" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;border-bottom:1px solid #E3E8EC;padding-bottom:12px;"></div>'
+    + '<div id="mm-categoria" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>'
     + '<div id="mm-corpo">'
     + '<div id="ca-filtri" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;"></div>'
     + '<div id="ca-lista"><div style="font-size:13px;color:#64748b;">Un momento&hellip;</div></div>'
@@ -132,6 +164,7 @@ export async function render(container) {
   // Le attrattive stanno qui dentro, non nel menu: e' lo stesso lavoro, e il
   // menu laterale e' gia' lungo abbastanza.
   montaSezioni(container, azienda);
+  montaCategorie(container, azienda);
   numeri(container, azienda);
 
   await apriSezione(container, azienda);
@@ -152,6 +185,7 @@ async function carica(container, azienda, filtro) {
   else if (filtro === "proposto") q = q.eq("stato", "proposto");
   else if (filtro === "da_chiamare") q = q.eq("stato", "da_chiamare");
   else if (filtro === "inviata") q = q.not("inviata_il", "is", null);
+  if (categoriaFiltro) q = q.eq("categoria", categoriaFiltro);
 
   const { data, error } = await q.order("ultimo_segnale", { ascending: false, nullsFirst: false }).limit(200);
 

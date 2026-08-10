@@ -28,6 +28,17 @@ const PUBBLICI = [
   { v: "misto", e: "Un po' di tutto" },
 ];
 
+const CATEGORIE = [
+  { v: "", e: "Tutte" },
+  { v: "sport", e: "🏟️ Sport" },
+  { v: "arte", e: "🏛️ Arte e borghi" },
+  { v: "lavoro", e: "💼 Lavoro" },
+  { v: "fede", e: "⛪ Fede" },
+  { v: "spettacoli", e: "🎭 Spettacoli" },
+  { v: "altro", e: "📍 Altro" },
+];
+let rtCategoriaFiltro = "";
+
 export async function render(container) {
   const azienda = window.state?.azienda;
   if (!azienda?.id) {
@@ -43,6 +54,7 @@ export async function render(container) {
     + '<button id="rt-nuovo" class="app-button primary">+ Aggiungi attrattiva</button>'
     + '<button id="rt-cerca" class="app-button gray">Falle cercare a Tony</button>'
     + '</div>'
+    + '<div id="rt-categoria" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>'
     + '<div id="rt-form"></div>'
     + '<div id="rt-lista"><div style="font-size:13px;color:#64748b;">Un momento&hellip;</div></div>'
     + '</div>';
@@ -50,13 +62,30 @@ export async function render(container) {
   container.querySelector("#rt-nuovo").onclick = () => mostraForm(container, azienda, null);
   container.querySelector("#rt-cerca").onclick = () => cercaConTony(container, azienda);
 
+  const barraCat = container.querySelector("#rt-categoria");
+  CATEGORIE.forEach((c) => {
+    const b = document.createElement("button");
+    b.textContent = c.e;
+    b.style.cssText = "border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:700;border:1px solid #CBD5DD;background:#fff;color:#334155;cursor:pointer;";
+    if (rtCategoriaFiltro === c.v) { b.style.background = "#0E5A7A"; b.style.color = "#fff"; b.style.borderColor = "#0E5A7A"; }
+    b.onclick = async () => {
+      rtCategoriaFiltro = c.v;
+      barraCat.querySelectorAll("button").forEach((x) => { x.style.background = "#fff"; x.style.color = "#334155"; x.style.borderColor = "#CBD5DD"; });
+      b.style.background = "#0E5A7A"; b.style.color = "#fff"; b.style.borderColor = "#0E5A7A";
+      await carica(container, azienda);
+    };
+    barraCat.appendChild(b);
+  });
+
   await carica(container, azienda);
 }
 
 async function carica(container, azienda) {
   const box = container.querySelector("#rt-lista");
-  const { data, error } = await supabase.from("richiami_territorio")
-    .select("*").eq("azienda_id", azienda.id)
+  let q = supabase.from("richiami_territorio")
+    .select("*").eq("azienda_id", azienda.id);
+  if (rtCategoriaFiltro) q = q.eq("categoria", rtCategoriaFiltro);
+  const { data, error } = await q
     .order("stato").order("priorita").order("minuti", { nullsFirst: false });
 
   if (error) {
