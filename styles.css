@@ -2194,3 +2194,43 @@ min-width:0;
   }
 }
 
+
+/* =========================================================
+   TELEFONO: NIENTE ESCE DALLO SCHERMO
+   Su iPhone capitava di ritrovarsi la pagina spostata di lato, col
+   testo tagliato a sinistra: succede quando una griglia o una barra
+   di schede e' piu' larga del telefono. overflow-x:hidden sul body
+   non basta, Safari lo aggira. Con clip la pagina non si sposta piu',
+   e le cose larghe scorrono per conto loro invece di trascinare tutto.
+========================================================= */
+@media (max-width: 900px) {
+  html, body {
+    max-width: 100vw;
+    overflow-x: clip;
+  }
+
+  /* Le tabelle larghe scorrono da sole, dentro il loro riquadro. */
+  table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Foto e riquadri incorporati non sfondano il bordo. */
+  img, video, iframe, canvas, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Indirizzi e parole lunghe vanno a capo invece di spingere. */
+  p, li, td, th, span, div, h1, h2, h3, h4 {
+    overflow-wrap: break-word;
+  }
+
+  /* I campi non superano mai la larghezza del telefono. */
+  input, select, textarea, pre {
+    max-width: 100%;
+  }
+}
