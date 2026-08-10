@@ -13,6 +13,10 @@ export async function render(container) {
     return;
   }
 
+  // Chi e' gia' loggato non deve mai vedere il form di accesso: l'azienda
+  // attiva non e' in bozza, quindi qui serve la sola lettura dei requisiti.
+  if (user) { window.location.hash = "#/configurazione-azienda"; return; }
+
   // ── Altrimenti mostra form login/registrazione ──
   document.querySelector(".app-header")?.style.setProperty("display","none");
   document.querySelector(".topbar-global")?.style.setProperty("display","none");

@@ -781,7 +781,7 @@ async function listaDecisioni(supabase, aziendaId) {
       const perc = Math.round(((obbligatori.length - mancanti.length) * 100) / obbligatori.length);
       out.push({
         livello: perc < 60 ? "rosso" : "giallo",
-        link: "#/completaAzienda",
+        link: "#/configurazione-azienda",
         titolo: "Configurazione al " + perc + "%",
         sotto: "Mancano " + mancanti.length + (mancanti.length === 1 ? " voce: " : " voci: ")
           + mancanti.slice(0, 3).map(r => r.etichetta).join(", ")
