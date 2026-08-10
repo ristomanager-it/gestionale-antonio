@@ -46,7 +46,7 @@ export async function render(container) {
         </select>
         <div id="cfg-sede-label" style="font-size:12px;color:#94a3b8;">Cambia sede per configurare un altro locale</div>
       </div> <div style="border-bottom:1px solid #e5e7eb;margin-bottom:24px;">
-        <div id="tab-nav-wrap" style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;">
+        <div id="tab-nav-wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,88px),1fr));gap:4px;max-width:100%;">
         <style>#tab-nav-wrap button:hover{background:#f0f9ff!important;}</style>
         ${[
           { id:'operativo',    icon:'👨‍🍳', label:'Operativo'       },
@@ -66,7 +66,7 @@ export async function render(container) {
             padding:10px 8px;border:none;background:none;cursor:pointer;
             font-size:12px;font-weight:600;color:#64748b;
             border-bottom:3px solid transparent;
-            white-space:nowrap;transition:all 0.15s;
+            white-space:normal;overflow-wrap:anywhere;transition:all 0.15s;
             display:flex;flex-direction:column;align-items:center;gap:4px;
             min-height:54px;border-radius:8px 8px 0 0;
           ">

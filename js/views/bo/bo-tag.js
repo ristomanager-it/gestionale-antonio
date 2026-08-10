@@ -86,7 +86,7 @@ export async function render(container) {
           </div>
         </div>
 
-        <div style="display:flex;border-bottom:1px solid #e5e7eb;margin:16px 0 20px;overflow-x:auto;">
+        <div style="display:flex;flex-wrap:wrap;max-width:100%;border-bottom:1px solid #e5e7eb;margin:16px 0 20px;overflow-x:auto;">
           <button class="rf-nav-btn attiva" data-tab="tab-ltv">💎 Livelli LTV</button>
           <button class="rf-nav-btn" data-tab="tab-sistema">⚙️ Tag sistema</button>
           <button class="rf-nav-btn" data-tab="tab-custom">✏️ Tag personalizzati</button>

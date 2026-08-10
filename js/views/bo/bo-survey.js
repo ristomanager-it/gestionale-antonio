@@ -113,7 +113,7 @@ export async function render(container) {
             </div>
 
             <!-- Tabs -->
-            <div style="display:flex;border-bottom:1px solid #e5e7eb;margin-bottom:20px;">
+            <div style="display:flex;flex-wrap:wrap;max-width:100%;border-bottom:1px solid #e5e7eb;margin-bottom:20px;">
               <button class="sv-nav attiva" data-tab="tab-overview">📊 Overview</button>
               <button class="sv-nav" data-tab="tab-risposte">💬 Risposte</button>
               <button class="sv-nav" data-tab="tab-invii">📤 Invii</button>

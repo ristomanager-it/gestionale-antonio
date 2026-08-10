@@ -35,7 +35,7 @@ export async function render(container) {
       <img src="assets/favicon-192.png" class="login-logo">
     </div>
 
-    <div style="display:flex;border-bottom:2px solid #e5e7eb;margin-bottom:20px;">
+    <div style="display:flex;flex-wrap:wrap;max-width:100%;border-bottom:2px solid #e5e7eb;margin-bottom:20px;">
       <button id="tab-login" style="flex:1;padding:10px;border:none;background:none;font-weight:700;font-size:0.95rem;cursor:pointer;color:#0E5A7A;border-bottom:2px solid #0E5A7A;margin-bottom:-2px;">Accedi</button>
       <button id="tab-register" style="flex:1;padding:10px;border:none;background:none;font-weight:700;font-size:0.95rem;cursor:pointer;color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;">Registrati gratis</button>
     </div>
@@ -135,7 +135,7 @@ async function renderWizard(container, azienda, inModifica) {
     </div>
 
     <!-- Tabs step -->
-    <div style="display:flex;border-bottom:2px solid #e5e7eb;padding:0 20px;background:#f9fafb;">
+    <div style="display:flex;flex-wrap:wrap;max-width:100%;border-bottom:2px solid #e5e7eb;padding:0 20px;background:#f9fafb;">
       <button class="wz-tab active" data-step="1" style="flex:1;padding:14px 8px;border:none;background:none;font-weight:700;font-size:13px;cursor:pointer;color:#0E5A7A;border-bottom:2px solid #0E5A7A;margin-bottom:-2px;">1. Locale</button>
       <button class="wz-tab" data-step="2" style="flex:1;padding:14px 8px;border:none;background:none;font-weight:700;font-size:13px;cursor:pointer;color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;">2. Sede</button>
       <button class="wz-tab" data-step="3" style="flex:1;padding:14px 8px;border:none;background:none;font-weight:700;font-size:13px;cursor:pointer;color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;">3. Fiscale</button>

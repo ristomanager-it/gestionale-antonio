@@ -15,7 +15,7 @@ container.innerHTML=`
     </div>
 
     <!-- TAB SWITCHER -->
-    <div style="display:flex;border-bottom:2px solid #e5e7eb;margin-bottom:20px;">
+    <div style="display:flex;flex-wrap:wrap;max-width:100%;border-bottom:2px solid #e5e7eb;margin-bottom:20px;">
       <button id="tab-login" style="
         flex:1;padding:10px;border:none;background:none;
         font-weight:700;font-size:0.95rem;cursor:pointer;

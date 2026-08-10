@@ -218,9 +218,10 @@ export async function render(container) {
     <style>
       .rf-tab { display:none; }
       .rf-tab.attiva { display:block; }
-      .rf-nav-btn { background:none;border:none;padding:10px 18px;cursor:pointer;font-size:14px;font-weight:600;color:#64748b;border-bottom:3px solid transparent;transition:all .2s; }
+      .rf-nav-btn { background:none;border:none;padding:10px 14px;max-width:100%;cursor:pointer;font-size:14px;font-weight:600;color:#64748b;border-bottom:3px solid transparent;transition:all .2s; }
       .rf-nav-btn.attiva { color:#0E5A7A;border-bottom-color:#0E5A7A; }
       .rf-nav-btn:hover { color:#0E5A7A; }
+      @media (max-width:700px){ .rf-nav-btn { padding:9px 10px;font-size:13px; } }
       .wc-btn { display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;color:#334155;border-radius:6px;padding:3px 8px;font-size:11px;font-family:monospace;cursor:pointer;margin:2px;transition:all .15s; }
       .wc-btn:hover { background:#0E5A7A;color:white;border-color:#0E5A7A; }
       .tag-chip { display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all .15s;margin:2px; }
@@ -252,7 +253,7 @@ export async function render(container) {
         </div>
 
         <!-- Tabs -->
-        <div style="display:flex;border-bottom:1px solid #e5e7eb;margin:16px 0 20px;">
+        <div style="display:flex;flex-wrap:wrap;max-width:100%;border-bottom:1px solid #e5e7eb;margin:16px 0 20px;">
           <button class="rf-nav-btn attiva" data-tab="tab-momenti">📅 Momenti</button>
           <button class="rf-nav-btn" data-tab="tab-email">✉️ Messaggi</button>
           <button class="rf-nav-btn" data-tab="tab-template">💬 Template</button>
