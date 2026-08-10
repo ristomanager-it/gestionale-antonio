@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Richiesta per gruppi</title>
+<style>
+  :root{--blu:#0E5A7A;--testo:#1F2A33;--muto:#64748b;--riga:#E3E8EC;--sfondo:#EEF1F4;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--sfondo);color:var(--testo);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5;}
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 60px;}
+  .testata{margin-bottom:18px;}
+  .testata h1{font-size:1.35rem;margin:0 0 4px;}
+  .testata p{margin:0;font-size:13.5px;color:var(--muto);}
+  .card{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:16px;margin-bottom:14px;}
+  label{display:block;font-size:12.5px;font-weight:700;color:#334155;margin:12px 0 5px;}
+  label:first-child{margin-top:0;}
+  input,select,textarea{width:100%;border:1px solid #CBD5DD;border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;color:var(--testo);background:#fff;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blu);}
+  textarea{min-height:76px;resize:vertical;}
+  .riga2{display:flex;gap:10px;}
+  .riga2>div{flex:1;}
+  .scelte label{display:flex;align-items:flex-start;gap:10px;border:1px solid #CBD5DD;border-radius:12px;padding:11px 12px;margin:0 0 8px;font-weight:400;cursor:pointer;}
+  .scelte input{width:auto;margin-top:3px;flex:0 0 auto;}
+  .scelte b{display:block;font-size:14px;}
+  .scelte span{font-size:12.5px;color:var(--muto);}
+  button{width:100%;background:var(--blu);color:#fff;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+  button:disabled{opacity:.55;cursor:default;}
+  .nota{font-size:12px;color:var(--muto);margin-top:12px;}
+  .avviso{border-radius:12px;padding:13px 14px;font-size:14px;margin-bottom:14px;display:none;}
+  .avviso.giallo{background:#fffbeb;border:1px solid #fde68a;color:#b45309;}
+  .avviso.verde{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;}
+  .caricamento{font-size:13px;color:var(--muto);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="testata">
+    <h1 id="titolo">Richiesta per gruppi</h1>
+    <p id="sottotitolo" class="caricamento">Un momento&hellip;</p>
+  </div>
+
+  <div id="avviso" class="avviso"></div>
+
+  <div class="card" id="modulo" style="display:none;">
+    <label for="occasione">Di cosa si tratta</label>
+    <select id="occasione">
+      <option value="pranzo squadra">Pranzo o cena per una squadra in trasferta</option>
+      <option value="ritiro pre-gara">Ritiro pre-gara, con pernottamento</option>
+      <option value="cena aziendale">Cena aziendale</option>
+      <option value="pranzo gruppo turistico">Sosta pranzo per un gruppo in viaggio</option>
+      <option value="festa">Battesimo, cresima, laurea o festa</option>
+      <option value="altro">Altro</option>
+    </select>
+
+    <label for="referente">Chi organizza</label>
+    <input id="referente" type="text" autocomplete="name" placeholder="Nome e cognome">
+
+    <div class="riga2">
+      <div>
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" placeholder="nome@esempio.it">
+      </div>
+      <div>
+        <label for="telefono">Telefono</label>
+        <input id="telefono" type="tel" autocomplete="tel" placeholder="opzionale">
+      </div>
+    </div>
+
+    <div class="riga2">
+      <div>
+        <label for="persone">Quante persone</label>
+        <input id="persone" type="number" min="1" max="500" inputmode="numeric" placeholder="es. 28">
+      </div>
+      <div>
+        <label for="quando">Quando</label>
+        <input id="quando" type="text" placeholder="anche solo la settimana">
+      </div>
+    </div>
+
+    <label>Dove</label>
+    <div class="scelte">
+      <label><input type="radio" name="dove" value="da noi" checked>
+        <span><b>Da voi</b><span>Sala, servizio e parcheggio per il pullman</span></span></label>
+      <label><input type="radio" name="dove" value="da noi cliente">
+        <span><b>Nella nostra sede</b><span>Portate voi cucina e servizio</span></span></label>
+    </div>
+
+    <label>Che tipo di menù</label>
+    <div class="scelte">
+      <label><input type="radio" name="menu" value="terra" checked>
+        <span><b>Terra</b><span>La cucina di queste terre</span></span></label>
+      <label><input type="radio" name="menu" value="mare">
+        <span><b>Mare</b><span>Pesce fresco del giorno</span></span></label>
+      <label><input type="radio" name="menu" value="veloce">
+        <span><b>Veloce a prezzo fisso</b><span>Serviti in un'ora, per chi ha il programma stretto</span></span></label>
+      <label><input type="radio" name="menu" value="da concordare">
+        <span><b>Ne parliamo</b><span>Lo costruiamo insieme</span></span></label>
+    </div>
+
+    <label for="note">Note</label>
+    <textarea id="note" placeholder="Intolleranze, vegetariani, orario di arrivo, se serve il pernottamento"></textarea>
+
+    <div style="margin-top:16px;">
+      <button id="invia" type="button">Chiedi il preventivo</button>
+    </div>
+    <p class="nota">I dati servono solo a prepararti il preventivo e a richiamarti. Rispondiamo entro il giorno dopo.</p>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var CHIAVE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var sb = window.supabase.createClient(URL_SB, CHIAVE);
+
+  var token = new URLSearchParams(location.search).get("t") || "";
+  var avviso = document.getElementById("avviso");
+  var modulo = document.getElementById("modulo");
+  var sottotitolo = document.getElementById("sottotitolo");
+  var iniziatoMandato = false;
+  var inviatoDavvero = false;
+
+  function mostraAvviso(testo, colore) {
+    avviso.textContent = testo;
+    avviso.className = "avviso " + colore;
+    avviso.style.display = "block";
+  }
+
+  function valore(nome) {
+    var scelti = document.getElementsByName(nome);
+    for (var i = 0; i < scelti.length; i++) if (scelti[i].checked) return scelti[i].value;
+    return "";
+  }
+
+  async function avvia() {
+    if (!token) {
+      sottotitolo.textContent = "";
+      mostraAvviso("Questo indirizzo non e' completo. Riapri il link che ti abbiamo mandato per email.", "giallo");
+      return;
+    }
+    try {
+      var r = await sb.rpc("gruppi_apri", { p_token: token });
+      var d = r.data && r.data.length ? r.data[0] : null;
+      if (r.error || !d) {
+        sottotitolo.textContent = "";
+        mostraAvviso("Questo link non e' piu' valido. Scrivici e te ne mandiamo un altro.", "giallo");
+        return;
+      }
+      document.title = "Richiesta per gruppi — " + d.locale;
+      document.getElementById("titolo").textContent = d.locale;
+      sottotitolo.className = "";
+      sottotitolo.textContent = d.ragione_sociale + (d.citta ? " · " + d.citta : "");
+
+      if (d.gia_inviato) {
+        mostraAvviso("Abbiamo gia' ricevuto la tua richiesta. Se vuoi cambiare qualcosa, compila di nuovo.", "verde");
+      }
+      modulo.style.display = "block";
+    } catch (e) {
+      sottotitolo.textContent = "";
+      mostraAvviso("Qualcosa non ha funzionato. Riprova fra poco.", "giallo");
+    }
+  }
+
+  // Chi comincia a scrivere e poi sparisce e' la persona che vale la telefonata.
+  function segnale(tipo) {
+    if (!token) return;
+    try { sb.rpc("gruppi_segnale", { p_token: token, p_tipo: tipo }); } catch (e) { /* non deve bloccare */ }
+  }
+
+  document.addEventListener("input", function () {
+    if (iniziatoMandato) return;
+    iniziatoMandato = true;
+    segnale("form_iniziato");
+  }, true);
+
+  window.addEventListener("pagehide", function () {
+    if (iniziatoMandato && !inviatoDavvero) segnale("form_abbandonato");
+  });
+
+  document.getElementById("invia").addEventListener("click", async function () {
+    var bottone = this;
+    var referente = document.getElementById("referente").value.trim();
+    var email = document.getElementById("email").value.trim();
+    if (!referente || !email || email.indexOf("@") < 1) {
+      mostraAvviso("Servono almeno il nome di chi organizza e un indirizzo email.", "giallo");
+      return;
+    }
+    bottone.disabled = true;
+    bottone.textContent = "Invio in corso...";
+    try {
+      var r = await sb.rpc("gruppi_richiesta", {
+        p_token: token,
+        p_referente: referente,
+        p_email: email,
+        p_telefono: document.getElementById("telefono").value.trim(),
+        p_occasione: document.getElementById("occasione").value,
+        p_persone: parseInt(document.getElementById("persone").value, 10) || null,
+        p_quando: document.getElementById("quando").value.trim(),
+        p_dove: valore("dove"),
+        p_menu: valore("menu"),
+        p_note: document.getElementById("note").value.trim()
+      });
+      if (r.error || r.data !== true) throw new Error("rifiutata");
+      inviatoDavvero = true;
+      modulo.style.display = "none";
+      mostraAvviso("Richiesta ricevuta. Ti prepariamo il preventivo e ti rispondiamo entro il giorno dopo.", "verde");
+    } catch (e) {
+      bottone.disabled = false;
+      bottone.textContent = "Chiedi il preventivo";
+      mostraAvviso("Non siamo riusciti a inviare la richiesta. Riprova, oppure chiamaci.", "giallo");
+    }
+  });
+
+  avvia();
+})();
+</script>
+</body>
+</html>
