@@ -820,6 +820,31 @@ async function listaDecisioni(supabase, aziendaId) {
     }
   } catch (e) { /* niente */ }
 
+  // ── COSE DA RIFARE A UNA CERTA DATA ─────────────────────────────────────
+  // Non un commento nel codice che nessuno rilegge: una riga vera che
+  // compare quando la data e' arrivata, e sparisce quando la si segna fatta.
+  try {
+    const oggi = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase.from("promemoria_sistema")
+      .select("id, titolo, dettaglio, data_da")
+      .eq("azienda_id", aziendaId).eq("stato", "aperto")
+      .lte("data_da", oggi).order("data_da").limit(10);
+
+    const promemoria = data || [];
+    if (promemoria.length) {
+      out.push({
+        livello: "giallo",
+        link: "#/promemoria",
+        titolo: promemoria.length === 1
+          ? "1 cosa da rifare: " + promemoria[0].titolo
+          : promemoria.length + " cose da rifare",
+        sotto: promemoria.length === 1
+          ? (promemoria[0].dettaglio || "").slice(0, 140)
+          : promemoria.slice(0, 2).map(p => p.titolo).join(" · "),
+      });
+    }
+  } catch (e) { /* niente */ }
+
   // ── CONFIGURAZIONE DELL'AZIENDA ─────────────────────────────────────────
   // La percentuale e' calcolata sui dati veri, non sul flag profilo_completato,
   // che risultava vero anche per aziende senza partita IVA ne' indirizzo.

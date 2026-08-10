@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260810-14";
+const APP_V = "20260810-15";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -176,6 +176,8 @@ const routes = {
   "tony-cervello": () => imp("./views/tony-cervello.js"),
   // Mail marketing: chi abbiamo contattato e cosa ha fatto dopo.
   "mail-marketing": () => imp("./views/mail-marketing.js"),
+  // Cose che oggi non si potevano fare (calendario non uscito, dato non pronto).
+  "promemoria": () => imp("./views/promemoria.js"),
   // La mappa dei posti che portano gente da fuori: il passo prima delle mail.
   "richiami": () => imp("./views/richiami.js"),
   preparazioni: () => imp("./views/preparazioni.js"),
@@ -369,6 +371,7 @@ const ADDETTO_MARKETING_ROUTES = new Set([
   "bo-sito", "bo-media", "bo-storie", "bo-menzioni", "bo-voucher",
   // Mail marketing: l'archivio dei contattati e chi va richiamato
   "mail-marketing",
+  "promemoria",
   "richiami",
   // Prenotazioni / clienti
   "prenotazioni", "prenotazioni-tavoli",
