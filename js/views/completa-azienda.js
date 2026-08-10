@@ -319,7 +319,7 @@ async function renderWizard(container, azienda, inModifica) {
       btn.disabled = true;
       const testo = btn.textContent;
       btn.textContent = "Salvataggio...";
-      const esito = await salvaDatiWizard(container, az);
+      const esito = await salvaDatiWizard(container, az, inModifica);
       btn.disabled = false;
       btn.textContent = testo;
       if (!esito.ok) { container.querySelector("#wz-error").textContent = esito.errore; return; }
@@ -434,7 +434,7 @@ function validateStep(step) {
      il modulo riempiva una faccia e il resto dell'app leggeva l'altra
    - profilo_completato NON si mette piu' a true per decreto: lo decide
      stato_requisiti() guardando i dati appena scritti. */
-async function salvaDatiWizard(container, az) {
+async function salvaDatiWizard(container, az, inModifica) {
   try {
     const val = (id) => (document.getElementById(id)?.value || "").trim();
     const nome = val("wz-nome");
@@ -478,9 +478,15 @@ async function salvaDatiWizard(container, az) {
 
     if (azErr) throw azErr;
 
-    const { data: sedeEsistente } = await supabase
-      .from("sedi").select("id").eq("azienda_id", az.id)
-      .order("created_at").limit(1).maybeSingle();
+    // In modifica la sede NON si tocca: qui si prenderebbe la piu' vecchia
+    // (order created_at limit 1), che per un'azienda con piu' locali non e'
+    // quella su cui si sta lavorando. Si scriverebbe nome e indirizzo sul
+    // locale sbagliato. Le sedi si gestiscono da gestione-sedi.
+    const { data: sedeEsistente } = inModifica
+      ? { data: null }
+      : await supabase
+          .from("sedi").select("id").eq("azienda_id", az.id)
+          .order("created_at").limit(1).maybeSingle();
 
     // ATTENZIONE: sedi NON ha le colonne cap e provincia. Scriverle faceva
     // fallire l'intero salvataggio della sede, e prima l'errore non veniva
@@ -497,7 +503,7 @@ async function salvaDatiWizard(container, az) {
     if (sedeEsistente) {
       const { error: sErr } = await supabase.from("sedi").update(sedeDati).eq("id", sedeEsistente.id);
       if (sErr) throw sErr;
-    } else {
+    } else if (!inModifica) {
       const { error: sErr } = await supabase.from("sedi").insert(sedeDati);
       if (sErr) throw sErr;
     }
@@ -511,10 +517,20 @@ async function salvaDatiWizard(container, az) {
     } catch (e) {
       console.error("wizard stato_requisiti:", e);
     }
-    await supabase.from("aziende").update({ profilo_completato: completo }).eq("id", az.id);
+    // In modifica il flag puo' solo salire. Rimetterlo a false perche' manca
+    // ancora una voce (tipico: Stripe) chiuderebbe un cliente gia' operativo
+    // dentro il wizard: il router rimanda li' ogni rotta finche' e' false.
+    if (completo || !inModifica) {
+      await supabase.from("aziende").update({ profilo_completato: completo }).eq("id", az.id);
+    }
 
     if (window.stateActions?.setAzienda) {
-      window.stateActions.setAzienda({ ...az, nome, profilo_completato: completo, stato_attivazione: "attiva" });
+      window.stateActions.setAzienda({
+        ...az,
+        nome,
+        profilo_completato: (inModifica && !completo) ? az.profilo_completato : completo,
+        stato_attivazione: "attiva",
+      });
     }
 
     return { ok: true, completo };
