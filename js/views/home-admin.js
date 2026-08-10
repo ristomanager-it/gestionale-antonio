@@ -69,8 +69,15 @@ export async function render(container) {
 
 ${sintesi(ora)}
 
-      <div class="ad-sez">Aspettano una tua decisione</div>
-      <div class="ad-dec">
+      <div class="ad-dbar ${decisioni.length ? (decisioni.some(d => d.livello === "rosso") ? "rosso" : "giallo") : "ok"}" id="ad-dbar">
+        <i class="cam">&#128276;</i>
+        <b>Aspettano una tua decisione</b>
+        ${decisioni.length
+          ? `<span class="num">${decisioni.length}</span>`
+          : `<span class="ok">tutto a posto</span>`}
+        <span class="fre" id="ad-dfre">&#9656;</span>
+      </div>
+      <div class="ad-dec" id="ad-dec" hidden>
         ${decisioni.length
           ? decisioni.map(d => `
             <a href="${d.link}" class="d ${d.livello}">
@@ -123,6 +130,19 @@ ${sintesi(ora)}
   import("../components/scorciatoie.js?v=" + (window.APP_V || "1"))
     .then(m => m.montaScorciatoie())
     .catch(e => console.warn("scorciatoie non caricate:", e));
+
+  // La lista sta chiusa: in home si vede il numero, il dettaglio si apre al tocco.
+  const dbar = container.querySelector("#ad-dbar");
+  if (dbar) {
+    dbar.addEventListener("click", () => {
+      const lista = container.querySelector("#ad-dec");
+      const fre = container.querySelector("#ad-dfre");
+      if (!lista) return;
+      const aperta = !lista.hasAttribute("hidden");
+      if (aperta) lista.setAttribute("hidden", ""); else lista.removeAttribute("hidden");
+      if (fre) fre.style.transform = aperta ? "" : "rotate(90deg)";
+    });
+  }
 
   container.querySelectorAll("[data-per]").forEach(b => {
     b.addEventListener("click", () => {
@@ -1008,7 +1028,17 @@ function stile() {
   .ad-legenda{font-size:12.5px;color:var(--muto);line-height:1.5;margin:-6px 4px 18px;}
   .ad-per button{white-space:nowrap;}
   .ad-sez{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muto);margin:0 0 9px 4px;}
+  .ad-dbar{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--riga);border-radius:16px;padding:13px 15px;margin-bottom:10px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;}
+  .ad-dbar b{flex:1;font-size:14px;font-weight:700;color:var(--testo);}
+  .ad-dbar .cam{font-style:normal;font-size:16px;line-height:1;}
+  .ad-dbar .num{min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--rosso);color:#fff;font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;}
+  .ad-dbar.giallo .num{background:var(--ambra);}
+  .ad-dbar.rosso{border-color:#F6C9C9;}
+  .ad-dbar.giallo{border-color:#F3DFB4;}
+  .ad-dbar .ok{font-size:12.5px;color:var(--muto);}
+  .ad-dbar .fre{color:var(--muto);font-size:13px;transition:transform .15s;}
   .ad-dec{background:#fff;border:1px solid var(--riga);border-radius:16px;overflow:hidden;margin-bottom:20px;}
+  .ad-dec[hidden]{display:none;}
   .ad-dec .d{display:flex;align-items:center;gap:12px;padding:14px 15px;border-top:1px solid #F1F4F6;text-decoration:none;color:var(--testo);}
   .ad-dec .d:first-child{border-top:none;}
   .ad-dec .pun{width:9px;height:9px;border-radius:50%;flex:0 0 9px;font-style:normal;}

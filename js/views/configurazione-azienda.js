@@ -77,6 +77,10 @@ export async function render(container) {
       + escapeTesto(etichetteModuli[modulo] || modulo) + '</div>';
 
     gruppi[modulo].forEach((r) => {
+      // Dieci requisiti su quindici puntano al wizard di primo ingresso, che per
+      // un'azienda attiva non si apre: si mandano alla rotta di modifica.
+      const rotta = String(r.rotta || "").indexOf("completaAzienda") === 0
+        ? "configura-dati" : r.rotta;
       const colore = r.obbligatorio ? "#dc2626" : "#d97706";
       const sfondo = r.obbligatorio ? "#fef2f2" : "#fffbeb";
       const bordo = r.obbligatorio ? "#fecaca" : "#fde68a";
@@ -86,7 +90,7 @@ export async function render(container) {
         + '<div style="font-size:14px;font-weight:700;color:' + colore + ';">' + escapeTesto(r.etichetta) + '</div>'
         + '<div style="font-size:12px;color:#64748b;line-height:1.45;margin-top:2px;">' + escapeTesto(r.descrizione || "") + '</div>'
         + '</div>'
-        + '<a href="#/' + escapeTesto(r.rotta) + '" class="app-button small gray" style="white-space:nowrap;text-decoration:none;">'
+        + '<a href="#/' + escapeTesto(rotta) + '" class="app-button small gray" style="white-space:nowrap;text-decoration:none;">'
         + escapeTesto(r.etichetta_azione) + '</a>'
         + '</div></div>';
     });

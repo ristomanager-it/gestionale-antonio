@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260810-02";
+const APP_V = "20260810-03";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -140,6 +140,10 @@ const routes = {
   profilo: () => imp("./views/completa-profilo.js"),
   completaAzienda: () => imp("./views/completa-azienda.js"),
   "configurazione-azienda": () => imp("./views/configurazione-azienda.js"),
+  // Modifica dei dati anagrafici ad azienda gia' attiva: stessa vista del wizard,
+  // ma con un nome di rotta diverso da completaAzienda cosi' preferBozza non
+  // sposta l'azienda attiva su una bozza.
+  "configura-dati": () => imp("./views/completa-azienda.js"),
 "scegli-sede": () => imp("./views/scegli-sede.js"),
   acquisti: () => imp("./views/acquisti/index.js"),
   "prodotti-da-correggere": () => imp("./views/prodotti-da-correggere.js"),

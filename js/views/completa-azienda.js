@@ -6,10 +6,16 @@ export async function render(container) {
   const user = window.state?.user;
   const azienda = window.state?.azienda;
 
-  if (user && azienda && (!azienda.profilo_completato || azienda.stato_attivazione === "bozza")) {
+  // Modalita' modifica: si arriva da #/configura-dati per correggere i dati di
+  // un'azienda gia' attiva. Senza questa strada le voci mancanti in
+  // configurazione-azienda non avrebbero dove portare.
+  const rottaCorrente = String(window.location.hash || "").replace("#/", "").split("?")[0];
+  const inModifica = rottaCorrente === "configura-dati";
+
+  if (user && azienda && (inModifica || !azienda.profilo_completato || azienda.stato_attivazione === "bozza")) {
     document.querySelector(".app-header")?.style.setProperty("display","none");
     document.querySelector(".topbar-global")?.style.setProperty("display","none");
-    await renderWizard(container, azienda);
+    await renderWizard(container, azienda, inModifica);
     return;
   }
 
@@ -95,7 +101,7 @@ export async function render(container) {
    WIZARD COMPLETAMENTO AZIENDA
 ══════════════════════════════════════════════ */
 
-async function renderWizard(container, azienda) {
+async function renderWizard(container, azienda, inModifica) {
   const az = azienda;
 
   // Carica dati esistenti
@@ -124,8 +130,8 @@ async function renderWizard(container, azienda) {
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#0E5A7A,#1a8fb5);padding:28px 28px 20px;color:white;">
       <img src="assets/favicon-192.png" style="width:44px;height:44px;border-radius:12px;margin-bottom:12px;">
-      <div style="font-size:22px;font-weight:800;margin-bottom:4px;">Completa il profilo</div>
-      <div style="font-size:14px;opacity:.85;">${esc(p.nome)} — configura i dati base per iniziare</div>
+      <div style="font-size:22px;font-weight:800;margin-bottom:4px;">${inModifica ? "Dati dell&apos;azienda" : "Completa il profilo"}</div>
+      <div style="font-size:14px;opacity:.85;">${esc(p.nome)} — ${inModifica ? "correggi o completa quello che manca" : "configura i dati base per iniziare"}</div>
     </div>
 
     <!-- Tabs step -->
@@ -270,7 +276,7 @@ async function renderWizard(container, azienda) {
       <div style="flex:1;"></div>
       <div id="wz-error" style="font-size:13px;color:#dc2626;margin-right:12px;"></div>
       <button id="wz-next" class="app-button primary">Avanti →</button>
-      <button id="wz-save" class="app-button primary" style="display:none;">Entra nella dashboard →</button>
+      <button id="wz-save" class="app-button primary" style="display:none;">${inModifica ? "Salva e torna →" : "Entra nella dashboard →"}</button>
     </div>
 
   </div>
@@ -399,7 +405,7 @@ async function renderWizard(container, azienda) {
 
   // Il pulsante finale non salva piu': i dati sono gia' stati scritti entrando
   // nella verifica. Qui si entra e basta.
-  container.querySelector("#wz-save").onclick = () => vaiInDashboard(az);
+  container.querySelector("#wz-save").onclick = () => vaiInDashboard(az, inModifica);
 
   showStep(1);
 }
@@ -593,7 +599,15 @@ function escapeTesto(v) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-function vaiInDashboard(az) {
+function vaiInDashboard(az, inModifica) {
+  // In modifica l'azienda attiva resta quella su cui si stava lavorando:
+  // azzerarla rimanderebbe l'utente alla scelta azienda senza motivo.
+  if (inModifica) {
+    document.querySelector(".app-header")?.style.removeProperty("display");
+    document.querySelector(".topbar-global")?.style.removeProperty("display");
+    window.location.hash = "#/configurazione-azienda";
+    return;
+  }
   localStorage.removeItem("active_azienda_id");
   document.querySelector(".app-header")?.style.removeProperty("display");
   document.querySelector(".topbar-global")?.style.removeProperty("display");
