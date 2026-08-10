@@ -91,7 +91,11 @@ async function carica(container, azienda) {
       + (r.comune ? ' · ' + esc(r.comune) : "")
       + (r.minuti ? ' · ' + r.minuti + ' min' : (r.distanza_km ? ' · ' + r.distanza_km + ' km' : ""))
       + '</div>'
-      + (r.gestore ? '<div style="font-size:13px;color:#334155;margin-top:6px;">Gestito da ' + esc(r.gestore) + '</div>' : "")
+      + (r.gestore ? '<div style="font-size:13px;color:#334155;margin-top:6px;">Gestito da <b>' + esc(r.gestore) + '</b></div>' : "")
+      + (r.gestore_email || r.gestore_telefono
+          ? '<div style="font-size:12.5px;color:#64748b;margin-top:2px;">'
+            + esc([r.gestore_telefono, r.gestore_email].filter(Boolean).join(" · ")) + '</div>'
+          : (r.gestore ? '<div style="font-size:12.5px;color:#b45309;margin-top:2px;">Nessun recapito: aggiungilo o fattelo cercare</div>' : ""))
       + (r.stagionalita ? '<div style="font-size:12.5px;color:#64748b;margin-top:2px;">' + esc(r.stagionalita) + '</div>' : "")
       + (r.volume ? '<div style="font-size:12.5px;color:#64748b;">' + esc(r.volume) + '</div>' : "")
       + '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;max-width:100%;">'
@@ -99,11 +103,22 @@ async function carica(container, azienda) {
           ? '<button class="app-button small" data-conf="' + r.id + '" style="background:#15803d;color:#fff;">Conferma</button>'
             + '<button class="app-button small gray" data-scarta="' + r.id + '">Non serve</button>'
           : '')
+      + (r.gestore_telefono
+          ? '<a href="tel:' + esc(r.gestore_telefono) + '" class="app-button small" style="background:#0E5A7A;color:#fff;text-decoration:none;">Chiama</a>'
+          : "")
+      + (r.gestore_email
+          ? '<a href="mailto:' + esc(r.gestore_email) + '" class="app-button small gray" style="text-decoration:none;">Scrivi a mano</a>'
+          : "")
       + '<button class="app-button small gray" data-mod="' + r.id + '">Modifica</button>'
       + (!proposto && !r.target_id
-          ? '<button class="app-button small" data-target="' + r.id + '" style="background:#0E5A7A;color:#fff;">Scrivi al gestore</button>'
+          ? '<button class="app-button small gray" data-target="' + r.id + '">Mettilo fra i contatti</button>'
           : "")
-      + (r.target_id ? '<span style="font-size:11.5px;color:#15803d;align-self:center;font-weight:700;">gestore in lista contatti</span>' : "")
+      + (r.target_id
+          ? '<a href="#/mail-marketing" style="font-size:11.5px;color:#15803d;align-self:center;font-weight:700;text-decoration:none;">nei contatti &rsaquo;</a>'
+          : "")
+      + (!r.gestore_email && !proposto
+          ? '<button class="app-button small gray" data-trova="' + r.id + '">Cerca i contatti</button>'
+          : "")
       + '</div></div>';
   });
 
@@ -123,11 +138,37 @@ async function carica(container, azienda) {
   box.querySelectorAll("[data-mod]").forEach((b) => {
     b.onclick = () => mostraForm(container, azienda, righe.find((r) => r.id === b.dataset.mod));
   });
+  box.querySelectorAll("[data-trova]").forEach((b) => {
+    b.onclick = async () => {
+      const r = righe.find((x) => x.id === b.dataset.trova);
+      if (!r) return;
+      b.disabled = true; b.textContent = "Cerco...";
+      try {
+        // Prima lo si porta fra i contatti, poi la funzione che legge le
+        // pagine contatti fa il resto: e' la stessa che usiamo per le aziende.
+        await supabase.rpc("richiamo_in_target", { p_richiamo: r.id });
+        const { data } = await supabase.functions.invoke("tony-target-contatti", {
+          body: { azienda_id: azienda.id, max: 3 },
+        });
+        const esito = data && Array.isArray(data.esiti) ? data.esiti[0] : null;
+        if (esito && esito.email) {
+          await supabase.from("richiami_territorio")
+            .update({ gestore_email: esito.email, fonte_url: esito.pagina || null }).eq("id", r.id);
+        } else {
+          alert("Sul loro sito non ho trovato un indirizzo pubblico. Meglio chiamarli.");
+        }
+      } catch (e) {
+        alert("La ricerca non ha funzionato. Puoi scrivere il recapito a mano.");
+      }
+      await carica(container, azienda);
+    };
+  });
+
   box.querySelectorAll("[data-target]").forEach((b) => {
     b.onclick = async () => {
       b.disabled = true; b.textContent = "Aggiungo...";
       const { error } = await supabase.rpc("richiamo_in_target", { p_richiamo: b.dataset.target });
-      if (error) { b.disabled = false; b.textContent = "Scrivi al gestore"; alert("Non riesco ad aggiungerlo: " + error.message); return; }
+      if (error) { b.disabled = false; b.textContent = "Mettilo fra i contatti"; alert("Non riesco ad aggiungerlo: " + error.message); return; }
       await carica(container, azienda);
     };
   });
