@@ -2234,3 +2234,29 @@ min-width:0;
     max-width: 100%;
   }
 }
+
+
+/* =========================================================
+   TELEFONO: LE GRIGLIE A 3-4 COLONNE SI RIORDINANO
+   Molte schermate hanno il numero di colonne scritto a mano
+   dentro lo stile della riga. Quel numero non cambia mai, e
+   su un telefono da 360px quattro colonne diventano quattro
+   colonnine da 78px: i numeri vanno a capo e le etichette si
+   tagliano. Qui diciamo che sotto i 640px le colonne si
+   contano da sole, larghe almeno 130px. Su schermo grande
+   non cambia niente.
+   Le griglie definite come classe dentro <style> (calendario
+   a 7 giorni, planner settimanale, tab prenotazioni) NON
+   vengono toccate: quelle il numero di colonne ce l'hanno
+   per un motivo.
+========================================================= */
+@media (max-width: 640px) {
+  [style*="grid-template-columns:repeat(4,1fr)"],
+  [style*="grid-template-columns: repeat(4,1fr)"],
+  [style*="grid-template-columns:repeat(3,1fr)"],
+  [style*="grid-template-columns: repeat(3,1fr)"],
+  [style*="grid-template-columns:1fr 1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+  }
+}

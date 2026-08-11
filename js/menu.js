@@ -395,21 +395,26 @@ export function initMenu() {
       key: "cucina",
       title: "CUCINA",
       items: [
-        { label: "📖 Ricettario",         route: "ricettario"         },
-        { label: "🍽️ Menu del Giorno", route: "menu-giorno" },
-        { label: "🧩 Menu Componibile", route: "menu-componibile" },
-        { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
-        { label: "🍳 Ristoflow Kitchen",   route: "kds"               },
-        { label: "🏭 Schermo Produzioni",   route: "kds-produzioni"    },
-        { label: "🏭 Produzione",          route: "produzione"         },
-        { label: "🟢 Produzioni aperte",   route: "produzioni-aperte"  },
-        { label: "🧪 Preparazioni",        route: "preparazioni"       },
+        { label: "📖 Ricette e menu", route: "ricettario", children: [
+          { label: "📖 Ricettario",         route: "ricettario"         },
+          { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
+          { label: "🍽️ Menu del Giorno", route: "menu-giorno" },
+          { label: "🧩 Menu Componibile", route: "menu-componibile" },
+        ] },
+        { label: "🏭 Produzione", route: "produzione", children: [
+          { label: "🏭 Produzione",          route: "produzione"         },
+          { label: "🟢 Produzioni aperte",   route: "produzioni-aperte"  },
+          { label: "🧪 Preparazioni",        route: "preparazioni"       },
+          { label: "📋 Planning",            route: "planner-produzione" },
+          { label: "📒 Registro lotti",      route: "registro-lotti"    },
+          { label: "📊 Produttività",        route: "produttivita-produzione" },
+        ] },
+        { label: "🍳 Schermi", route: "kds", children: [
+          { label: "🍳 Ristoflow Kitchen",   route: "kds"               },
+          { label: "🏭 Schermo Produzioni",   route: "kds-produzioni"    },
+        ] },
         { label: "🔔 Avvisi HACCP (manager)", route: "alert-haccp-config" },
-        { label: "📋 Planning",            route: "planner-produzione" },
-        { label: "📒 Registro lotti",      route: "registro-lotti"    },
-        { label: "📊 Produttività",        route: "produttivita-produzione" },
         { label: "🔌 Dispositivi", route: "bo-dispositivi", children: [
-          { label: "🔌 Dispositivi", route: "bo-dispositivi?tab=dispositivi" },
           { label: "⚡ Energia", route: "bo-dispositivi?tab=energia" },
           { label: "📋 Log", route: "bo-dispositivi?tab=log" },
         ] },
@@ -423,7 +428,6 @@ export function initMenu() {
         key: "gestione",
         title: "GESTIONE",
         items: [
-          { label: "📊 Dashboard",        route: "bo-dashboard"      },
           { label: "🧮 Ragioniere",       route: "bo-bilancio"       },
           { label: "🛒 Acquisti", route: "acquisti", children: [
             { label: "Fatture", route: "acquisti?tab=fatture" },
@@ -460,57 +464,36 @@ export function initMenu() {
         title: "MARKETING & CRM",
         items: [
           { label: "📉 Analytics",          route: "bo-analytics"      },
-          { label: "🏷️ Tag & LTV", route: "bo-tag", children: [
-            { label: "👁 Panoramica", route: "bo-tag?tab=tab-panoramica" },
-            { label: "💎 Livelli LTV", route: "bo-tag?tab=tab-ltv" },
-            { label: "⚙️ Tag sistema", route: "bo-tag?tab=tab-sistema" },
-            { label: "✏️ Tag personalizzati", route: "bo-tag?tab=tab-custom" },
+          { label: "👥 Clienti", route: "bo-tag", children: [
+            { label: "🏷️ Tag & LTV",         route: "bo-tag"            },
+            { label: "🎫 Fidelity & Network", route: "bo-fidelity"       },
+            { label: "⭐ Recensioni ricevute", route: "recensioni-ricevute" },
+            { label: "⚙️ Config recensioni", route: "recensioni"        },
+            { label: "📸 Chi ci tagga",       route: "bo-menzioni"       },
           ] },
-          { label: "💬 Template WhatsApp", route: "bo-template", children: [
-            { label: "📅 Momenti", route: "bo-template?tab=tab-momenti" },
-            { label: "✉️ Messaggi", route: "bo-template?tab=tab-email" },
-            { label: "💬 Template", route: "bo-template?tab=tab-template" },
-            { label: "🏷️ Tag", route: "bo-template?tab=tab-tag" },
-            { label: "⚡ Regole automatiche", route: "bo-template?tab=tab-regole" },
-            { label: "📣 Meta Ads", route: "bo-template?tab=tab-metaads" },
+          { label: "📣 Campagne", route: "bo-marketing", children: [
+            { label: "📣 Campagne",           route: "bo-marketing"      },
+            { label: "📧 Mail marketing",     route: "mail-marketing"    },
+            { label: "🎁 Promo",              route: "bo-promo"          },
+            { label: "📊 Analisi Promo",      route: "bo-promo-analisi"  },
+            { label: "🎁 Buoni regalo",       route: "bo-voucher"        },
+            { label: "🔗 Catenarie",          route: "bo-catenarie"      },
+            { label: "✂️ Short Link",         route: "bo-shortlink"      },
           ] },
-          { label: "📣 Campagne",         route: "bo-marketing"      },
-          { label: "📧 Mail marketing",   route: "mail-marketing"   },
-          { label: "📸 Bacheca Social",   route: "bo-marketing?tab=bacheca-social" },
-          { label: "📅 Calendario editoriale", route: "bo-calendario" },
-          { label: "📱 Storie", route: "bo-storie" },
-          { label: "🎁 Buoni regalo", route: "bo-voucher" },
-          { label: "📸 Chi ci tagga", route: "bo-menzioni" },
+          { label: "💬 Messaggi", route: "bo-template", children: [
+            { label: "💬 Template WhatsApp",  route: "bo-template"       },
+            { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp"       },
+            { label: "🤖 Chatbot",            route: "bo-chatbot"        },
+            { label: "📨 Registro messaggi",  route: "registro-messaggi" },
+          ] },
+          { label: "📸 Social e Sito", route: "bo-calendario", children: [
+            { label: "📸 Bacheca Social",     route: "bo-marketing?tab=bacheca-social" },
+            { label: "📅 Calendario editoriale", route: "bo-calendario"  },
+            { label: "📱 Storie",             route: "bo-storie"         },
+            { label: "🌐 Sito Web",           route: "bo-sito"           },
+            { label: "🖼️ Media Library",      route: "bo-media"          },
+          ] },
           { label: "⚡ Crediti Tony", route: "bo-crediti" },
-          { label: "🎁 Promo", route: "bo-promo", children: [
-            { label: "🎯 Gestisci campagne", route: "bo-promo" },
-            { label: "📊 Analisi Promo",     route: "bo-promo-analisi" },
-          ] },
-          { label: "⭐ Recensioni ricevute", route: "recensioni-ricevute" },
-          { label: "⚙️ Config recensioni", route: "recensioni" },   // impostazioni + statistiche (admin)
-          { label: "📨 Registro messaggi",  route: "registro-messaggi" },
-          { label: "🎫 Fidelity & Network", route: "bo-fidelity", children: [
-            { label: "📊 Dashboard", route: "bo-fidelity?tab=dashboard" },
-            { label: "👥 Clienti", route: "bo-fidelity?tab=clienti" },
-            { label: "⚙️ Regole punti", route: "bo-fidelity?tab=configurazione" },
-            { label: "🌐 Network", route: "bo-fidelity?tab=network" },
-          ] },
-          { label: "🔗 Catenarie",          route: "bo-catenarie"      },
-          { label: "✂️ Short Link",         route: "bo-shortlink"      },
-          { label: "📱 WhatsApp Inbox",     route: "bo-whatsapp",      badge: "wa" },
-          { label: "🤖 Chatbot", route: "bo-chatbot", children: [
-            { label: "💬 Flussi", route: "bo-chatbot?tab=flussi" },
-            { label: "🪑 Tavoli chatbot", route: "bo-chatbot?tab=tavoli" },
-            { label: "📊 Sessioni", route: "bo-chatbot?tab=sessioni" },
-            { label: "⚙️ Impostazioni", route: "bo-chatbot?tab=config" },
-          ] },
-          { label: "🖼️ Media Library",       route: "bo-media"          },
-          { label: "🌐 Sito Web", route: "bo-sito", children: [
-            { label: "✏️ Contenuti", route: "bo-sito?tab=contenuti" },
-            { label: "📸 Media", route: "bo-sito?tab=foto" },
-            { label: "📋 Sezioni", route: "bo-sito?tab=sezioni" },
-            { label: "🚀 Pubblica", route: "bo-sito?tab=pubblica" },
-          ] },
         ]
       });
 
@@ -518,26 +501,30 @@ export function initMenu() {
         key: "personale",
         title: "PERSONALE",
         items: [
-          { label: "👥 Candidature",      route: "bo-candidature"    },
-          { label: "💬 Survey team", route: "bo-survey", children: [
-            { label: "📊 Overview", route: "bo-survey?tab=tab-overview" },
-            { label: "💬 Risposte", route: "bo-survey?tab=tab-risposte" },
-            { label: "📤 Invii", route: "bo-survey?tab=tab-invii" },
+          { label: "👨‍💼 Squadra", route: "dipendenti", children: [
+            { label: "👨‍💼 Dipendenti",     route: "dipendenti"        },
+            { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
+            { label: "🏢 Agenzie",          route: "bo-agenzie"        },
+            { label: "🔐 Permessi",         route: "permessi-operatore"},
+            { label: "👁️ Accessi app",     route: "accessi-app"       },
           ] },
-          { label: "👨‍💼 Dipendenti",     route: "dipendenti"        },
-          { label: "➕ Nuovo dipendente", route: "crea-dipendente"   },
-          { label: "🏢 Agenzie",          route: "bo-agenzie"        },
-          { label: "🔐 Permessi",         route: "permessi-operatore"},
-          { label: "📆 Gestione ferie",   route: "hr-admin"          },
-          { label: "💶 Buste paga",       route: "hr-buste-paga"     },
-          { label: "👥 Costo personale",  route: "hr-costi"          },
-          { label: "⭐ Persone & KPI",     route: "persone"           },
-          { label: "📝 Test competenze",   route: "bo-test"           },
-          { label: "📋 Briefing servizio", route: "briefing-servizio" },
-          { label: "📋 Cartellino ore",   route: "bo-presenze"       },
-          { label: "👁️ Accessi app",     route: "accessi-app"       },
-          { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
-          { label: "📁 Documenti HR",      route: "hr-documenti"      },
+          { label: "🕒 Ore e paghe", route: "bo-presenze", children: [
+            { label: "📋 Cartellino ore",   route: "bo-presenze"       },
+            { label: "📆 Gestione ferie",   route: "hr-admin"          },
+            { label: "💶 Buste paga",       route: "hr-buste-paga"     },
+            { label: "👥 Costo personale",  route: "hr-costi"          },
+          ] },
+          { label: "📁 Documenti", route: "hr-fascicolo", children: [
+            { label: "👤 Fascicolo HR",      route: "hr-fascicolo"      },
+            { label: "📁 Documenti HR",      route: "hr-documenti"      },
+          ] },
+          { label: "🎯 Crescita", route: "persone", children: [
+            { label: "⭐ Persone & KPI",     route: "persone"           },
+            { label: "📝 Test competenze",   route: "bo-test"           },
+            { label: "📋 Briefing servizio", route: "briefing-servizio" },
+            { label: "💬 Survey team",       route: "bo-survey"         },
+          ] },
+          { label: "👥 Candidature",      route: "bo-candidature"    },
           { label: "📘 Manuale",          route: "manuale"           },
         ]
       });
@@ -725,7 +712,7 @@ export function initMenu() {
       const sub = document.createElement("div");
       sub.className = "menu-subitems open";
       sub.style.display = "block";
-      submenuAperto.children.forEach(ch => {
+      submenuAperto.children.filter(ch => can(ch.route)).forEach(ch => {
         const crow = document.createElement("div");
         crow.className = "menu-subitem";
         crow.innerText = ch.label;
@@ -741,9 +728,14 @@ export function initMenu() {
 
     struttura.forEach(section => {
 
+      // Una voce con sotto-voci resta in elenco se almeno una sotto-voce e'
+      // permessa: prima si guardava solo la rotta del gruppo, e chi non aveva
+      // quella perdeva anche tutte le pagine sotto.
       const items =
-        section.items.filter(
-          i => can(i.route)
+        section.items.filter(i =>
+          (i.children && i.children.length)
+            ? i.children.some(ch => can(ch.route))
+            : can(i.route)
         );
 
       if (items.length === 0) return;
