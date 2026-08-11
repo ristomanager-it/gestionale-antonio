@@ -95,12 +95,19 @@ async function apriSezione(container, azienda) {
   await carica(container, azienda, "caldi");
 }
 
-// Quanto abbiamo speso, quanti contatti abbiamo trovato, quante conversioni
-// vere sono uscite. Tre numeri, non venti: il resto e' dettaglio a corredo.
+// Il funnel intero: dalla spesa in ricerca fino al preventivo chiuso.
+// Chi apre, chi clicca, chi molla il form a meta': sono strade diverse,
+// non un percorso a scalini, ma leggerle vicine dice dove si perde gente.
 async function mostraCostiRisultati(corpo, azienda) {
   corpo.innerHTML = '<div style="font-size:13px;color:#64748b;">Un momento&hellip;</div>';
-  const { data, error } = await supabase.from("v_costi_risultati")
-    .select("*").eq("azienda_id", azienda.id).maybeSingle();
+  const [{ data, error }, chiusiRes] = await Promise.all([
+    supabase.from("v_costi_risultati").select("*").eq("azienda_id", azienda.id).maybeSingle(),
+    supabase.from("campagne_target").select("id, ragione_sociale, preventivo_valore")
+      .eq("azienda_id", azienda.id).eq("preventivo_chiuso", true).order("preventivo_chiuso_il", { ascending: false }),
+  ]);
+  const daChiudere = await supabase.from("campagne_target")
+    .select("id, ragione_sociale, citta, note")
+    .eq("azienda_id", azienda.id).eq("stato", "preventivo").eq("preventivo_chiuso", false);
 
   if (error || !data) {
     corpo.innerHTML = '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px;font-size:13.5px;color:#b45309;">Non sono riuscito a leggere i numeri. Riprova fra poco.</div>';
@@ -113,13 +120,18 @@ async function mostraCostiRisultati(corpo, azienda) {
   const attrTrovate = Number(data.attrattive_trovate) || 0;
   const attrConf = Number(data.attrattive_confermate) || 0;
   const mailInviate = Number(data.mail_inviate) || 0;
-  const preventivi = Number(data.preventivi_richiesti) || 0;
-  const clienti = Number(data.clienti_acquisiti) || 0;
-  const conversioni = mailInviate > 0 ? preventivi + clienti : preventivi + clienti; // le conversioni sono a valle dell'invio
+  const mailAperte = Number(data.mail_aperte) || 0;
+  const cliccati = Number(data.link_cliccati) || 0;
+  const aMeta = Number(data.form_lasciati_a_meta) || 0;
+  const richiesti = Number(data.preventivi_richiesti) || 0;
+  const chiusi = Number(data.preventivi_chiusi) || 0;
+  const valoreChiuso = Number(data.valore_chiuso) || 0;
+
   const costoPerContatto = contatti > 0 ? spesa / contatti : null;
-  const costoPerConversione = (preventivi + clienti) > 0 ? spesa / (preventivi + clienti) : null;
+  const costoPerChiuso = chiusi > 0 ? spesa / chiusi : null;
 
   const euro = (n) => "$" + n.toFixed(n < 1 ? 4 : 2);
+  const soldi = (n) => "\u20ac" + n.toLocaleString("it-IT", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const cellaGrande = (numero, etichettaTesto, colore, sotto) =>
     '<div style="background:#fff;border:1px solid #E3E8EC;border-radius:14px;padding:16px;flex:1;min-width:140px;">'
@@ -131,27 +143,90 @@ async function mostraCostiRisultati(corpo, azienda) {
   let html = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">'
     + cellaGrande(euro(spesa), "Speso in ricerca", "#0E5A7A", "solo ricerca destinatari, oggi")
     + cellaGrande(contatti, "Contatti trovati", "#334155", conEmail + " con email verificata")
-    + cellaGrande(preventivi + clienti, "Conversioni", preventivi + clienti > 0 ? "#15803d" : "#94a3b8", preventivi + " preventivi \u00b7 " + clienti + " clienti")
+    + cellaGrande(chiusi, "Preventivi chiusi", chiusi > 0 ? "#15803d" : "#94a3b8", richiesti + " richiesti in tutto")
+    + '</div>';
+
+  // Il funnel: da chi ha ricevuto la mail fino a chi ha chiuso davvero.
+  html += '<div style="background:#fff;border:1px solid #E3E8EC;border-radius:14px;padding:14px;margin-bottom:12px;">'
+    + '<div style="font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#94a3b8;margin-bottom:10px;">Cosa succede dopo l\'invio</div>'
+    + barraFunnel("Mail inviate", mailInviate, mailInviate)
+    + barraFunnel("Hanno aperto", mailAperte, mailInviate)
+    + barraFunnel("Hanno cliccato il link", cliccati, mailInviate)
+    + barraFunnel("Hanno lasciato il form a meta\'", aMeta, mailInviate, "#d97706")
+    + barraFunnel("Hanno chiesto il preventivo", richiesti, mailInviate, "#0E5A7A")
+    + barraFunnel("Preventivo chiuso", chiusi, mailInviate, "#15803d")
     + '</div>';
 
   html += '<div style="background:#fff;border:1px solid #E3E8EC;border-radius:14px;padding:14px;margin-bottom:12px;">'
     + '<div style="font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#94a3b8;margin-bottom:10px;">Nel dettaglio</div>'
     + rigaDettaglio("Contatti con email", conEmail + " su " + contatti, conEmail > 0 ? Math.round(conEmail / Math.max(contatti, 1) * 100) + "%" : "")
     + rigaDettaglio("Attrattive trovate", attrTrovate + " proposte, " + attrConf + " confermate", "")
-    + rigaDettaglio("Mail scritte e inviate", mailInviate + " inviate", "")
-    + rigaDettaglio("Preventivi richiesti", String(preventivi), "")
-    + rigaDettaglio("Clienti acquisiti da qui", String(clienti), "")
+    + rigaDettaglio("Valore chiuso", valoreChiuso > 0 ? soldi(valoreChiuso) : "non segnato", "")
     + '</div>';
 
   html += '<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:14px;margin-bottom:12px;">'
     + '<div style="font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#94a3b8;margin-bottom:10px;">Costo per risultato</div>'
     + rigaDettaglio("Per contatto trovato", costoPerContatto != null ? euro(costoPerContatto) : "\u2014", "")
-    + rigaDettaglio("Per conversione (preventivo o cliente)", costoPerConversione != null ? euro(costoPerConversione) : "ancora nessuna", "")
+    + rigaDettaglio("Per preventivo chiuso", costoPerChiuso != null ? euro(costoPerChiuso) : "ancora nessuno", "")
     + '</div>';
+
+  // Chi ha chiesto e aspetta di essere segnato: da qui si chiude.
+  const inAttesa = daChiudere.data || [];
+  if (inAttesa.length) {
+    html += '<div style="background:#fff;border:1px solid #fde68a;border-radius:14px;padding:14px;margin-bottom:12px;">'
+      + '<div style="font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#b45309;margin-bottom:10px;">Preventivi da chiudere (' + inAttesa.length + ')</div>';
+    inAttesa.forEach((r) => {
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #F1F5F9;">'
+        + '<span style="font-size:13.5px;color:#1F2A33;">' + esc(r.ragione_sociale) + (r.citta ? ' <span style="color:#94a3b8;">(' + esc(r.citta) + ')</span>' : '') + '</span>'
+        + '<button class="app-button small" data-chiudi="' + r.id + '" style="background:#15803d;color:#fff;white-space:nowrap;">Segna chiuso</button>'
+        + '</div>';
+    });
+    html += '</div>';
+  }
+
+  const chiusiLista = chiusiRes.data || [];
+  if (chiusiLista.length) {
+    html += '<details style="margin-bottom:12px;"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:#334155;">Preventivi chiusi (' + chiusiLista.length + ')</summary>'
+      + '<div style="margin-top:8px;">';
+    chiusiLista.forEach((r) => {
+      html += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid #F1F5F9;font-size:13px;">'
+        + '<span>' + esc(r.ragione_sociale) + '</span>'
+        + '<span style="color:#15803d;font-weight:700;">' + (r.preventivo_valore ? soldi(Number(r.preventivo_valore)) : "chiuso") + '</span>'
+        + '</div>';
+    });
+    html += '</div></details>';
+  }
 
   html += '<div style="font-size:12px;color:#94a3b8;line-height:1.5;">La spesa conta solo la ricerca dei destinatari (tony-target-cerca): le altre ricerche (attrattive, calendari sportivi, lettura contatti) non registrano ancora il costo reale, quindi il numero qui sopra e\' per difetto, non per eccesso.</div>';
 
   corpo.innerHTML = html;
+
+  corpo.querySelectorAll("[data-chiudi]").forEach((b) => {
+    b.onclick = async () => {
+      const valore = prompt("Valore dell\'evento in euro (lascia vuoto se non vuoi segnarlo):");
+      if (valore === null) return;
+      const numero = valore.trim() ? Number(valore.replace(",", ".")) : null;
+      b.disabled = true; b.textContent = "Salvo...";
+      const { error } = await supabase.rpc("segna_preventivo_chiuso", { p_target: b.dataset.chiudi, p_valore: numero });
+      if (error) { b.disabled = false; b.textContent = "Segna chiuso"; alert("Non sono riuscito a salvare: " + error.message); return; }
+      await mostraCostiRisultati(corpo, azienda);
+    };
+  });
+}
+
+// Una riga del funnel con una barretta proporzionale al totale delle mail
+// inviate: fa vedere a colpo d\'occhio dove si perde gente lungo la strada.
+function barraFunnel(etichettaTesto, valore, totale, colore) {
+  const perc = totale > 0 ? Math.min(100, Math.round(valore / totale * 100)) : 0;
+  const col = colore || "#0E5A7A";
+  return '<div style="margin-bottom:9px;">'
+    + '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;">'
+    + '<span style="color:#475569;">' + etichettaTesto + '</span>'
+    + '<span style="font-weight:700;color:#1F2A33;">' + valore + (totale > 0 ? ' <span style="color:#94a3b8;font-weight:400;">(' + perc + '%)</span>' : '') + '</span>'
+    + '</div>'
+    + '<div style="height:6px;background:#F1F5F9;border-radius:99px;overflow:hidden;">'
+    + '<div style="height:100%;width:' + perc + '%;background:' + col + ';"></div></div>'
+    + '</div>';
 }
 
 function rigaDettaglio(etichettaTesto, valore, percentuale) {
