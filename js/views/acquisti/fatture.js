@@ -1056,6 +1056,24 @@ async function openDocumentoUploadModal(azienda) {
       `;
     }).join("");
 
+    righeContainer.querySelectorAll(".riga-cat-interna").forEach((el) => {
+      el.addEventListener("change", async (e) => {
+        const idx = Number(e.currentTarget.dataset.i);
+        const val = e.currentTarget.value || null;
+        const riga = righe[idx];
+        if (!riga || !riga.prodotto_id) return;
+
+        const { error } = await supabase.from("prodotti")
+          .update({ categoria_interna_id: val }).eq("id", riga.prodotto_id);
+        if (error) { alert("Non salvata: " + error.message); return; }
+
+        // si aggiorna anche la copia in memoria, cosi il semaforo cambia subito
+        const p = prodottiCache.find(x => String(x.id) === String(riga.prodotto_id));
+        if (p) p.categoria_interna_id = val;
+        renderRighe();
+      });
+    });
+
     righeContainer.querySelectorAll(".riga-descrizione").forEach((el) => {
       el.addEventListener("input", (e) => {
         const idx = Number(e.currentTarget.dataset.i);
