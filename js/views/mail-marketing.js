@@ -54,6 +54,7 @@ function montaSezioni(container, azienda) {
   const sezioni = [
     { v: "contatti", e: "Chi abbiamo contattato" },
     { v: "attrattive", e: "Attrattive" },
+    { v: "costi", e: "Costi e risultati" },
   ];
   barra.innerHTML = "";
   sezioni.forEach((sz) => {
@@ -83,11 +84,81 @@ async function apriSezione(container, azienda) {
     }
     return;
   }
+  if (sezioneAperta === "costi") {
+    await mostraCostiRisultati(corpo, azienda);
+    return;
+  }
   // torna l'elenco dei contattati
   corpo.innerHTML = '<div id="ca-filtri" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;"></div>'
     + '<div id="ca-lista"></div>';
   montaFiltri(container, azienda);
   await carica(container, azienda, "caldi");
+}
+
+// Quanto abbiamo speso, quanti contatti abbiamo trovato, quante conversioni
+// vere sono uscite. Tre numeri, non venti: il resto e' dettaglio a corredo.
+async function mostraCostiRisultati(corpo, azienda) {
+  corpo.innerHTML = '<div style="font-size:13px;color:#64748b;">Un momento&hellip;</div>';
+  const { data, error } = await supabase.from("v_costi_risultati")
+    .select("*").eq("azienda_id", azienda.id).maybeSingle();
+
+  if (error || !data) {
+    corpo.innerHTML = '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px;font-size:13.5px;color:#b45309;">Non sono riuscito a leggere i numeri. Riprova fra poco.</div>';
+    return;
+  }
+
+  const spesa = Number(data.spesa_ricerca_usd) || 0;
+  const contatti = Number(data.contatti_trovati) || 0;
+  const conEmail = Number(data.contatti_con_email) || 0;
+  const attrTrovate = Number(data.attrattive_trovate) || 0;
+  const attrConf = Number(data.attrattive_confermate) || 0;
+  const mailInviate = Number(data.mail_inviate) || 0;
+  const preventivi = Number(data.preventivi_richiesti) || 0;
+  const clienti = Number(data.clienti_acquisiti) || 0;
+  const conversioni = mailInviate > 0 ? preventivi + clienti : preventivi + clienti; // le conversioni sono a valle dell'invio
+  const costoPerContatto = contatti > 0 ? spesa / contatti : null;
+  const costoPerConversione = (preventivi + clienti) > 0 ? spesa / (preventivi + clienti) : null;
+
+  const euro = (n) => "$" + n.toFixed(n < 1 ? 4 : 2);
+
+  const cellaGrande = (numero, etichettaTesto, colore, sotto) =>
+    '<div style="background:#fff;border:1px solid #E3E8EC;border-radius:14px;padding:16px;flex:1;min-width:140px;">'
+    + '<div style="font-size:1.6rem;font-weight:800;color:' + colore + ';line-height:1.1;">' + numero + '</div>'
+    + '<div style="font-size:12.5px;color:#64748b;margin-top:4px;font-weight:700;">' + etichettaTesto + '</div>'
+    + (sotto ? '<div style="font-size:11.5px;color:#94a3b8;margin-top:3px;">' + sotto + '</div>' : "")
+    + '</div>';
+
+  let html = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">'
+    + cellaGrande(euro(spesa), "Speso in ricerca", "#0E5A7A", "solo ricerca destinatari, oggi")
+    + cellaGrande(contatti, "Contatti trovati", "#334155", conEmail + " con email verificata")
+    + cellaGrande(preventivi + clienti, "Conversioni", preventivi + clienti > 0 ? "#15803d" : "#94a3b8", preventivi + " preventivi \u00b7 " + clienti + " clienti")
+    + '</div>';
+
+  html += '<div style="background:#fff;border:1px solid #E3E8EC;border-radius:14px;padding:14px;margin-bottom:12px;">'
+    + '<div style="font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#94a3b8;margin-bottom:10px;">Nel dettaglio</div>'
+    + rigaDettaglio("Contatti con email", conEmail + " su " + contatti, conEmail > 0 ? Math.round(conEmail / Math.max(contatti, 1) * 100) + "%" : "")
+    + rigaDettaglio("Attrattive trovate", attrTrovate + " proposte, " + attrConf + " confermate", "")
+    + rigaDettaglio("Mail scritte e inviate", mailInviate + " inviate", "")
+    + rigaDettaglio("Preventivi richiesti", String(preventivi), "")
+    + rigaDettaglio("Clienti acquisiti da qui", String(clienti), "")
+    + '</div>';
+
+  html += '<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:14px;margin-bottom:12px;">'
+    + '<div style="font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#94a3b8;margin-bottom:10px;">Costo per risultato</div>'
+    + rigaDettaglio("Per contatto trovato", costoPerContatto != null ? euro(costoPerContatto) : "\u2014", "")
+    + rigaDettaglio("Per conversione (preventivo o cliente)", costoPerConversione != null ? euro(costoPerConversione) : "ancora nessuna", "")
+    + '</div>';
+
+  html += '<div style="font-size:12px;color:#94a3b8;line-height:1.5;">La spesa conta solo la ricerca dei destinatari (tony-target-cerca): le altre ricerche (attrattive, calendari sportivi, lettura contatti) non registrano ancora il costo reale, quindi il numero qui sopra e\' per difetto, non per eccesso.</div>';
+
+  corpo.innerHTML = html;
+}
+
+function rigaDettaglio(etichettaTesto, valore, percentuale) {
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid #F1F5F9;font-size:13.5px;">'
+    + '<span style="color:#475569;">' + etichettaTesto + '</span>'
+    + '<span style="font-weight:700;color:#1F2A33;">' + valore + (percentuale ? ' <span style="color:#94a3b8;font-weight:400;">(' + percentuale + ')</span>' : '') + '</span>'
+    + '</div>';
 }
 
 // I quattro numeri in cima: cosa c'e' da fare, in un colpo d'occhio.
