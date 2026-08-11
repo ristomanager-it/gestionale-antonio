@@ -374,7 +374,6 @@ export function initMenu() {
         { label: "🪑 Comande",           route: "bo-comande"         },
         { label: "💳 Cassa libera",       route: "cassa-libera"       },
         { label: "📅 Prenotazioni",      route: "prenotazioni"       },
-        { label: "🗓️ Tavoli",           route: "prenotazioni-tavoli"},
         { label: "📋 Mansionario Sala",  route: "mansionario-sala"   },
         { label: "🗺️ Mappa Sala",       route: "sala"               },
       ]

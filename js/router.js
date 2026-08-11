@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=48";
+import { initMenu } from "./menu.js?v=49";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260811-05";
+const APP_V = "20260811-06";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -216,7 +216,6 @@ const routes = {
   "mansionario-controllo": () => imp("./views/mansionario-controllo.js"),
 
   "prenotazione-online": () => imp("./views/prenotazioni/prenotazione-online.js"),
-  "prenotazioni-tavoli": () => imp("./views/prenotazioni-tavoli.js"),
   "prenotazione-tavolo-form": () => imp("./views/prenotazioni/form.js"),
   "prenotazioni-form": () => imp("./views/prenotazioni/form.js"),
   "prenotazioni-rifiutate": () => imp("./views/prenotazioni/rifiutate.js"),
@@ -371,7 +370,7 @@ const ADDETTO_MARKETING_ROUTES = new Set([
   "promemoria",
   "richiami",
   // Prenotazioni / clienti
-  "prenotazioni", "prenotazioni-tavoli",
+  "prenotazioni",
   // Essenziali
   "home", "profilo", "completaProfilo", "scegli-sede",
 ]);
@@ -695,7 +694,6 @@ function hasPermission(area) {
       // Prenotazioni
       "prenotazioni",
       "prenotazioni-dettaglio",
-      "prenotazioni-tavoli",
 
       // HR personale: solo le SUE cose, non i costi ne' le buste degli altri
       "hr-richieste",

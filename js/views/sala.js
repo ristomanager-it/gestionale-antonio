@@ -25,10 +25,12 @@ export async function render(container) {
       <div class="card">
         <div id="sala-container" class="sala-mappa" style="
           position:relative;
-          min-height:600px;
+          width:100%;
+          aspect-ratio:4/3;
+          min-height:340px;
           background:#f8fafc;
           border-radius:12px;
-          overflow:auto;
+          overflow:hidden;
           border:1px solid #e5e7eb;
         "></div>
       </div>
@@ -147,11 +149,14 @@ export async function render(container) {
       const el = document.createElement("div");
       el.className = "tavolo-mappa " + classe;
 
+      // pos_x e pos_y sono PERCENTUALI della sala, non pixel: e' cosi' che
+      // li salva la piantina in Configurazione. Letti come pixel, i tavoli
+      // finivano tutti ammucchiati nei primi novanta pixel a sinistra.
       el.style.position = "absolute";
-      el.style.left = (toNumber(t.pos_x) || 0) + "px";
-      el.style.top = (toNumber(t.pos_y) || 0) + "px";
-      el.style.width = "96px";
-      el.style.height = "96px";
+      el.style.left = (toNumber(t.pos_x) || 0) + "%";
+      el.style.top = (toNumber(t.pos_y) || 0) + "%";
+      el.style.width = "clamp(64px, 9%, 96px)";
+      el.style.aspectRatio = "1";
       el.style.borderRadius = "14px";
       el.style.display = "flex";
       el.style.flexDirection = "column";
@@ -249,14 +254,16 @@ export async function render(container) {
 
       const rect = box.getBoundingClientRect();
 
-      let x = e.clientX - rect.left - offsetX + box.scrollLeft;
-      let y = e.clientY - rect.top - offsetY + box.scrollTop;
+      // Stessa unita' della piantina in Configurazione: percentuali, con il
+      // tetto a 90 perche' il tavolo deve restare dentro la sala.
+      let x = (e.clientX - rect.left - offsetX) / rect.width * 100;
+      let y = (e.clientY - rect.top - offsetY) / rect.height * 100;
 
-      x = Math.max(0, x);
-      y = Math.max(0, y);
+      x = Math.max(0, Math.min(90, x));
+      y = Math.max(0, Math.min(90, y));
 
-      el.style.left = x + "px";
-      el.style.top = y + "px";
+      el.style.left = x + "%";
+      el.style.top = y + "%";
     };
 
     document.onmouseup = async () => {
@@ -265,8 +272,8 @@ export async function render(container) {
       isDragging = false;
       el.style.cursor = "grab";
 
-      const x = parseInt(el.style.left, 10) || 0;
-      const y = parseInt(el.style.top, 10) || 0;
+      const x = Math.round((parseFloat(el.style.left) || 0) * 10) / 10;
+      const y = Math.round((parseFloat(el.style.top) || 0) * 10) / 10;
 
       if (moved) {
         const { error } = await window.supabaseClient

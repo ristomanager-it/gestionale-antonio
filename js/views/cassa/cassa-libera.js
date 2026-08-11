@@ -33,6 +33,7 @@ export async function renderCassaLibera(container, azienda) {
   let _ultimoScan = null;     // dedup codici scanner
   let categorie = [];
   let prodotti = [];
+  let categoriaAttiva = null;   // null = tutte le categorie
 
   container.innerHTML = '<div class="view"><p style="color:#64748b;">Caricamento cassa…</p></div>';
 
@@ -95,7 +96,10 @@ export async function renderCassaLibera(container, azienda) {
           <!-- Griglia prodotti -->
           <div style="flex:1;min-width:300px;">
             <input id="cl-cerca" placeholder="Cerca prodotto…"
-              style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:12px;font-size:15px;margin-bottom:12px;">
+              style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:12px;font-size:15px;margin-bottom:10px;">
+            <div id="cl-categorie" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;">
+              ${bottoneCategoria(null, 'Tutte')}${categorie.map(c => bottoneCategoria(c.id, c.nome)).join('')}
+            </div>
             <div id="cl-griglia" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
               ${prodotti.map(p => cardProdotto(p)).join('')}
             </div>
@@ -182,6 +186,14 @@ export async function renderCassaLibera(container, azienda) {
     collegaEventi();
   }
 
+  function bottoneCategoria(id, label) {
+    const attiva = String(categoriaAttiva) === String(id);
+    return '<button data-cl-cat="' + (id === null ? '' : esc(String(id))) + '"' +
+      ' style="flex-shrink:0;padding:8px 14px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;' +
+      'background:' + (attiva ? '#0E5A7A' : '#eef2f7') + ';color:' + (attiva ? 'white' : '#334155') + ';">' +
+      esc(label) + '</button>';
+  }
+
   function cardProdotto(p) {
     return `<button class="cl-prod" data-id="${p.id}" style="
       padding:12px 8px;border:1px solid #e5e7eb;border-radius:12px;background:white;cursor:pointer;
@@ -220,15 +232,33 @@ export async function renderCassaLibera(container, azienda) {
     container.querySelectorAll('.cl-meno').forEach(b => b.onclick = () => {
       const i = +b.dataset.i; carrello[i].qta--; if (carrello[i].qta <= 0) carrello.splice(i,1); render(); aggiornaSchermoCliente();
     });
-    // Cerca
+    // Cerca e categoria filtrano insieme: con 1.700 prodotti a listino la
+    // sola ricerca per nome non basta a trovare in fretta quello che serve.
     const cerca = container.querySelector('#cl-cerca');
-    if (cerca) cerca.oninput = () => {
-      const q = cerca.value.toLowerCase();
+    const applicaFiltri = () => {
+      const q = (cerca ? cerca.value : '').toLowerCase();
       container.querySelectorAll('.cl-prod').forEach(b => {
         const p = prodotti.find(x => String(x.id) === b.dataset.id);
-        b.style.display = (!q || (p && p.nome.toLowerCase().includes(q))) ? '' : 'none';
+        if (!p) { b.style.display = 'none'; return; }
+        const okNome = !q || String(p.nome || '').toLowerCase().includes(q);
+        const okCat = !categoriaAttiva || String(p.categoria_vendita_id) === String(categoriaAttiva);
+        b.style.display = (okNome && okCat) ? '' : 'none';
       });
     };
+    if (cerca) cerca.oninput = applicaFiltri;
+
+    container.querySelectorAll('[data-cl-cat]').forEach(b => {
+      b.onclick = () => {
+        categoriaAttiva = b.dataset.clCat === '' ? null : b.dataset.clCat;
+        container.querySelectorAll('[data-cl-cat]').forEach(x => {
+          const attiva = (x.dataset.clCat === '' ? null : x.dataset.clCat) === categoriaAttiva;
+          x.style.background = attiva ? '#0E5A7A' : '#eef2f7';
+          x.style.color = attiva ? 'white' : '#334155';
+        });
+        applicaFiltri();
+      };
+    });
+    applicaFiltri();
     // Svuota
     const sv = container.querySelector('#cl-svuota');
     if (sv) sv.onclick = () => { carrello = []; coupon = null; fidelityCliente = null; render(); aggiornaSchermoCliente(); };
