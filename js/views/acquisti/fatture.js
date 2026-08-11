@@ -2127,9 +2127,12 @@ body.rf-modal-open{
 .rf-riga-grid{
   display:grid;
   gap:10px;
-  grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns:minmax(180px,2fr) repeat(3, minmax(90px,1fr));
   width:100%;
 }
+.rf-riga-cat{margin-top:9px}
+.rf-riga-cat select{width:100%;max-width:340px}
+.rf-riga-cat label{color:#b45309}
 
 .rf-close-icon{
   background:none;
