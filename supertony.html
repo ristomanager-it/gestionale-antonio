@@ -240,6 +240,42 @@ function preparaAllegati() {
   };
 }
 
+
+// Il lavoro in background: quando l'indagine e' lunga, il server la porta
+// avanti da solo. Qui si controlla ogni tanto se ha finito.
+let pollingSuperTony = null;
+function fermaPollingSuperTony() {
+  if (pollingSuperTony) { clearInterval(pollingSuperTony); pollingSuperTony = null; }
+}
+function avviaPollingSuperTony() {
+  fermaPollingSuperTony();
+  let tentativi = 0;
+  pollingSuperTony = setInterval(async function () {
+    tentativi++;
+    if (tentativi > 200) { fermaPollingSuperTony(); return; }
+    try {
+      const u = await sb.auth.getUser();
+      const user = u && u.data && u.data.user;
+      if (!user) return;
+      const r = await sb.from("supertony_sessioni")
+        .select("stato, risultato_reply, risultato_proposte")
+        .eq("user_id", user.id).eq("chiave", "corrente").maybeSingle();
+      if (r.error || !r.data) return;
+      if (r.data.stato === "pronto") {
+        fermaPollingSuperTony();
+        aggiungi("assistant", r.data.risultato_reply || "Fatto.");
+        if (Array.isArray(r.data.risultato_proposte) && r.data.risultato_proposte.length) {
+          proposte.push.apply(proposte, r.data.risultato_proposte);
+          disegna();
+        }
+      } else if (r.data.stato === "errore") {
+        fermaPollingSuperTony();
+        aggiungi("assistant", "Il lavoro in background si e' interrotto. Scrivi di nuovo la richiesta.");
+      }
+    } catch (e) { /* riprova al giro dopo */ }
+  }, 6000);
+}
+
 async function invia() {
   const t = $("testo").value.trim();
   if ((!t && !daInviare.length) || occupato) return;
@@ -293,6 +329,9 @@ async function invia() {
       if (Array.isArray(data.proposals) && data.proposals.length) {
         proposte.push.apply(proposte, data.proposals);
         disegna();
+      }
+      if (data.in_corso) {
+        avviaPollingSuperTony();
       }
     }
   } catch (e) {

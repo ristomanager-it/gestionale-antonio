@@ -257,6 +257,47 @@ function renderProposte() {
     b.addEventListener("click", () => { proposte.splice(Number(b.dataset.idx), 1); renderProposte(); salvaStato(); }));
 }
 
+
+// ── Il lavoro in background di Super Tony ───────────────
+// Quando un'indagine e' lunga, il server la porta avanti da solo (vedi
+// super-tony v21) invece di fermarsi ogni minuto ad aspettare "continua".
+// Qui si controlla ogni tanto se ha finito.
+let pollingSuperTony = null;
+
+function fermaPollingSuperTony() {
+  if (pollingSuperTony) { clearInterval(pollingSuperTony); pollingSuperTony = null; }
+}
+
+function avviaPollingSuperTony() {
+  fermaPollingSuperTony();
+  let tentativi = 0;
+  pollingSuperTony = setInterval(async () => {
+    tentativi++;
+    if (tentativi > 200) { fermaPollingSuperTony(); return; } // ~16 minuti, poi basta
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("supertony_sessioni")
+        .select("stato, risultato_reply, risultato_proposte")
+        .eq("user_id", user.id).eq("chiave", "corrente").maybeSingle();
+      if (error || !data) return;
+      if (data.stato === "pronto") {
+        fermaPollingSuperTony();
+        aggiungiMsg("assistant", data.risultato_reply || "Fatto.");
+        if (Array.isArray(data.risultato_proposte) && data.risultato_proposte.length) {
+          proposte.push(...data.risultato_proposte);
+          renderProposte();
+          salvaStato();
+        }
+      } else if (data.stato === "errore") {
+        fermaPollingSuperTony();
+        aggiungiMsg("assistant", "⚠️ Il lavoro in background si e' interrotto. Scrivi di nuovo la richiesta.");
+      }
+    } catch (e) { /* riprova al giro dopo */ }
+  }, 6000);
+}
+
 async function invia() {
   if (busy) return;
   const input = document.getElementById("st-input");
@@ -302,6 +343,9 @@ async function invia() {
         proposte.push(...data.proposals);
         renderProposte();
         salvaStato();
+      }
+      if (data.in_corso) {
+        avviaPollingSuperTony();
       }
     }
   } catch (e) {
