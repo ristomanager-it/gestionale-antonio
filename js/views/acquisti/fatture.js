@@ -634,7 +634,7 @@ async function openDocumentoUploadModal(azienda) {
 
   const supabase = window.supabaseClient;
 
-  const [fornitoriRes, prodottiRes, aliasCache] = await Promise.all([
+  const [fornitoriRes, prodottiRes, aliasCache, catInterneRes] = await Promise.all([
     supabase
       .from("fornitori")
       .select("id, ragione_sociale, partita_iva")
