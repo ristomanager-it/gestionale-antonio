@@ -257,7 +257,7 @@ export async function renderFatture(container, azienda) {
   function apriPopupCategorie(documentoId, info) {
     const m = document.createElement("div");
     m.innerHTML =
-      '<div class="rf-modal-backdrop"><div class="rf-modal" style="max-width:840px;width:96%;">' +
+      '<div class="rf-modal-backdrop"><div class="rf-modal" style="max-width:1100px;width:96%;">' +
       '<div class="rf-modal-header"><h3 class="rf-modal-title">🏷️ Assegna categorie — ' + escapeHtml(info?.fornitore || "fattura") + '</h3>' +
       '<button id="catx-close" style="background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:#64748b;">✕</button></div>' +
       '<div class="rf-modal-body" id="catx-box" style="max-height:72vh;overflow:auto;"><div style="color:#94a3b8;font-size:13px;">Caricamento righe…</div></div>' +
