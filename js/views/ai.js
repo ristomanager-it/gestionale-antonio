@@ -48,6 +48,85 @@ const TONY_AVATAR =
 const USER_AVATAR =
   "https://ui-avatars.com/api/?name=U&background=0E5A7A&color=fff";
 
+
+// ── Lavori in background di Tony ────────────────────────
+// Le ricerche vere (cerca aziende, leggi calendari) durano uno o due minuti:
+// troppo per una connessione HTTP tenuta aperta. Il server risponde subito
+// e continua a lavorare da solo; qui si controlla ogni tanto se ha finito.
+let pollingAttivo = null;
+
+function fermaPolling() {
+  if (pollingAttivo) { clearInterval(pollingAttivo); pollingAttivo = null; }
+}
+
+async function avviaPolling(jobId) {
+  fermaPolling();
+  const supa = window.supabaseClient || window.supabase;
+  let tentativi = 0;
+
+  pollingAttivo = setInterval(async () => {
+    tentativi++;
+    // Dopo 20 minuti si smette di controllare da soli: il lavoro resta in
+    // tony_lavori_background comunque, si vedra' riaprendo la chat.
+    if (tentativi > 240) { fermaPolling(); return; }
+
+    try {
+      const { data, error } = await supa
+        .from("tony_lavori_background")
+        .select("stato, risposta, fatto, errore")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (error || !data) return;
+
+      if (data.stato === "completato") {
+        fermaPolling();
+        const reply = puliscilReply(data.risposta) || "Fatto.";
+        addMessage(reply, "ai", { fonte: "campagne" });
+        conversation.push({ role: "assistant", content: reply });
+        salvaTonyMsg("assistant", reply);
+        scrollBottom();
+      } else if (data.stato === "errore") {
+        fermaPolling();
+        addMessage("La ricerca non e' andata a buon fine: " + (data.errore || "errore sconosciuto") + ". Riprova.", "ai");
+        scrollBottom();
+      }
+    } catch (e) { /* riprova al giro dopo */ }
+  }, 5000);
+}
+
+// Se la chat si riapre con un lavoro ancora in corso da prima (magari sei
+// uscito), lo si ritrova qui invece di perderlo.
+async function riprendiLavoroAperto() {
+  const aziendaId = window.state?.azienda?.id;
+  if (!aziendaId) return;
+  const supa = window.supabaseClient || window.supabase;
+  try {
+    const { data } = await supa
+      .from("tony_lavori_background")
+      .select("id, stato, risposta, errore, creato_at")
+      .eq("azienda_id", aziendaId)
+      .order("creato_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data) return;
+
+    if (data.stato === "in_corso") {
+      addMessage("Bentornato: sto ancora lavorando sulla ricerca che avevi chiesto. Appena ho finito te lo dico qui.", "ai");
+      scrollBottom();
+      avviaPolling(data.id);
+    } else if (data.stato === "completato" && data.risposta) {
+      // Gia' pronto da quando eri fuori: lo mostro ora.
+      const reply = puliscilReply(data.risposta);
+      addMessage(reply, "ai", { fonte: "campagne" });
+      conversation.push({ role: "assistant", content: reply });
+      salvaTonyMsg("assistant", reply);
+      scrollBottom();
+      // Segnato come mostrato, cosi' non ricompare al prossimo giro.
+      await supa.from("tony_lavori_background").update({ stato: "mostrato" }).eq("id", data.id);
+    }
+  } catch (e) { /* niente, la chat funziona comunque */ }
+}
+
 export async function render(app) {
   conversation = [];
 
@@ -858,7 +937,12 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   const token = session?.data?.session?.access_token || "";
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  // Ora che le ricerche lunghe vanno in background, questa richiesta deve
+  // solo aspettare il PRIMO giro (decidere cosa fare + eventuali strumenti
+  // veloci): di solito pochi secondi, ma con Claude sotto carico puo'
+  // arrivare a un minuto abbondante. 90s da' margine senza tenere la
+  // connessione aperta per una ricerca vera, che ormai non aspetta piu' qui.
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
 
   try {
     const res = await fetch(`${supabaseUrl}/functions/v1/tony-router`, {
@@ -1343,6 +1427,9 @@ function initChat(ruolo) {
       const c = document.getElementById("chat-messages");
       if (c) c.scrollTop = c.scrollHeight;
     }
+    // C'era un lavoro lasciato a meta' (o gia' pronto) da prima? Lo si
+    // ritrova qui, invece di perderlo quando si torna nella chat.
+    riprendiLavoroAperto();
   });
 
   // Memoria panel
@@ -1390,6 +1477,10 @@ function initChat(ruolo) {
       addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed, fonte: data?.fonte });
       conversation.push({ role: "assistant", content: reply });
     salvaTonyMsg("assistant", reply);
+
+      if (data?.in_corso && data?.job_id) {
+        avviaPolling(data.job_id);
+      }
 
       if (data?.action?.type === "crea_ricetta" && data?.action_executed) {
         setTimeout(() => {
