@@ -1029,6 +1029,18 @@ async function openDocumentoUploadModal(azienda) {
             </div>
           </div>
 
+          <div class="rf-riga-cat">
+            <div class="rf-field">
+              <label>Categoria interna${prod && prod.categoria_interna_id ? "" : " — da scegliere"}</label>
+              <select class="input riga-cat-interna" data-i="${i}" ${row.prodotto_id ? "" : "disabled"}>
+                <option value="">${row.prodotto_id ? "— scegli —" : "prima serve il prodotto"}</option>
+                ${CATEGORIE_INTERNE.map((c) =>
+                  `<option value="${c.id}"${prod && String(prod.categoria_interna_id) === String(c.id) ? " selected" : ""}>${escapeHtml(c.nome)}</option>`
+                ).join("")}
+              </select>
+            </div>
+          </div>
+
           <div class="rf-riga-bottom">
             <div class="rf-riga-status ${matchedClass}">
               ${escapeHtml(matched)}${row.prodotto_nome ? ` · ${escapeHtml(row.prodotto_nome)}` : ""}
