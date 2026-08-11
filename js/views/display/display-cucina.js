@@ -16,6 +16,21 @@ async function waitForAuth(maxWait = 4000) {
 
 
 // Suono alert — Web Audio API, nessuna dipendenza esterna
+// Le tre colonne della vista a stati: un tavolo sta dove sta la sua portata
+// piu' indietro. Finche' una vivanda non e' partita il tavolo e' "da fare",
+// anche se il resto e' gia' pronto.
+const COLONNE_CUCINA = [
+  { key: 'da_fare',        label: 'DA FARE',         colore: '#38bdf8' },
+  { key: 'in_preparazione', label: 'IN PREPARAZIONE', colore: '#f59e0b' },
+  { key: 'pronto',         label: 'PRONTO',          colore: '#22c55e' },
+];
+
+function colonnaTavolo(righe) {
+  if (righe.some(r => r.stato !== 'in_preparazione' && r.stato !== 'pronto')) return 'da_fare';
+  if (righe.some(r => r.stato === 'in_preparazione')) return 'in_preparazione';
+  return 'pronto';
+}
+
 function suonaAlert() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -51,6 +66,10 @@ export async function render(container) {
   let cuocoAttivo   = null;
   let settori       = [];
   let settoreAttivo = null; // null = tutti
+  // Due modi di guardare lo stesso servizio: "tavoli" mette una card per
+  // tavolo in ordine di attesa, "colonne" le smista in Da fare / In
+  // preparazione / Pronto come faceva il vecchio schermo Kitchen.
+  let vistaCucina = 'tavoli';
   let righeAttive   = [];
   let tempiRicetta  = {}; // prodotto_vendita_id → tempo_esecuzione_min
   let alertFiredTavolo = new Set(); // comandaId già segnalata (5+ min dall'arrivo ordine)
@@ -93,9 +112,14 @@ export async function render(container) {
       <div id="cucina-main" style="display:flex;flex:1;overflow:hidden;flex-direction:column;">
 
         <!-- Tabs settori -->
-        <div style="background:#1e293b;border-bottom:1px solid #334155;padding:10px 16px;display:flex;gap:8px;flex-shrink:0;overflow-x:auto;">
+        <div style="background:#1e293b;border-bottom:1px solid #334155;padding:10px 16px;display:flex;gap:8px;flex-shrink:0;overflow-x:auto;align-items:center;">
           <button data-settore="" style="padding:8px 18px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;background:#0E5A7A;color:white;">Tutti</button>
           <div id="settori-tabs" style="display:flex;gap:8px;"></div>
+          <div style="flex:1;"></div>
+          <div style="display:flex;gap:4px;background:#0f172a;border-radius:10px;padding:3px;flex-shrink:0;">
+            <button data-vista="tavoli" style="padding:6px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;background:#0E5A7A;color:white;">Tavoli</button>
+            <button data-vista="colonne" style="padding:6px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;background:transparent;color:#94a3b8;">Colonne</button>
+          </div>
         </div>
 
         <!-- Griglia portate -->
@@ -184,7 +208,9 @@ export async function render(container) {
 
   async function loadRighe() {
     try {
-      // Carica righe in_attesa e in_preparazione filtrate per sede
+      // Carica righe in_attesa, in_preparazione e pronto filtrate per sede.
+      // Le pronte servono alla terza colonna della vista a stati; nella vista
+      // per tavoli restano nascoste, come prima.
       let righeQuery;
       if (sedeId) {
         // Filtra per sede tramite join con comande
@@ -203,7 +229,7 @@ export async function render(container) {
           .from('comanda_righe')
           .select('*')
           .eq('azienda_id', aziendaId)
-          .in('stato', ['in_attesa', 'in_preparazione'])
+          .in('stato', ['in_attesa', 'in_preparazione', 'pronto'])
           .in('comanda_id', comandaIds)
           .order('created_at');
         righeAttive = data || [];
@@ -212,7 +238,7 @@ export async function render(container) {
           .from('comanda_righe')
           .select('*')
           .eq('azienda_id', aziendaId)
-          .in('stato', ['in_attesa', 'in_preparazione'])
+          .in('stato', ['in_attesa', 'in_preparazione', 'pronto'])
           .order('created_at');
         righeAttive = data || [];
       }
@@ -362,7 +388,7 @@ export async function render(container) {
       return arrA - arrB; // il tavolo che aspetta di più va per primo
     });
 
-    box.innerHTML = tavoliOrdinati.map(([comandaId, righe]) => {
+    const cardsTavolo = tavoliOrdinati.map(([comandaId, righe]) => {
       const info      = tavoloMap[comandaId] || { tavolo:'?', cliente:'', coperti:0 };
       const arrivoAt  = Math.min(...righe.map(r => r.created_at ? new Date(r.created_at).getTime() : ora));
 
@@ -425,7 +451,7 @@ export async function render(container) {
         `;
       }).join('');
 
-      return `
+      const html = `
         <div data-tavolo-card="${comandaId}" data-arrivo="${arrivoAt}" style="
           background:#1e293b;border-radius:16px;padding:18px;
           border:3px solid #334155;position:relative;transition:border-color 0.4s;
@@ -446,7 +472,31 @@ export async function render(container) {
           ${usciteHtml}
         </div>
       `;
-    }).join('');
+      return { comandaId, colonna: colonnaTavolo(righe), html };
+    });
+
+    if (vistaCucina === 'colonne') {
+      box.style.display = 'grid';
+      box.style.gridTemplateColumns = 'repeat(auto-fit, minmax(240px, 1fr))';
+      box.innerHTML = COLONNE_CUCINA.map(col => {
+        const dentro = cardsTavolo.filter(c => c.colonna === col.key);
+        return '<div style="min-width:0;">' +
+          '<div style="position:sticky;top:0;background:#0f172a;padding:8px 6px;margin-bottom:10px;border-bottom:3px solid ' + col.colore + ';display:flex;justify-content:space-between;align-items:center;">' +
+            '<span style="font-size:13px;font-weight:800;letter-spacing:.5px;color:' + col.colore + ';">' + col.label + '</span>' +
+            '<span style="font-size:12px;font-weight:800;color:#0f172a;background:' + col.colore + ';border-radius:10px;padding:1px 9px;">' + dentro.length + '</span>' +
+          '</div>' +
+          '<div style="display:flex;flex-direction:column;gap:12px;">' +
+            (dentro.length ? dentro.map(c => c.html).join('') : '<div style="color:#475569;text-align:center;padding:20px;font-size:13px;">—</div>') +
+          '</div></div>';
+      }).join('');
+    } else {
+      box.style.display = 'grid';
+      box.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+      const daMostrare = cardsTavolo.filter(c => c.colonna !== 'pronto');
+      box.innerHTML = daMostrare.length
+        ? daMostrare.map(c => c.html).join('')
+        : '<div style="color:#475569;text-align:center;grid-column:1/-1;padding:60px;font-size:16px;">✅ Nessuna portata in attesa</div>';
+    }
 
     // Binding azioni (per singola portata dentro il tavolo)
     box.querySelectorAll('[data-inizia]').forEach(btn => {
@@ -469,12 +519,16 @@ export async function render(container) {
     box.querySelectorAll('[data-pronto]').forEach(btn => {
       btn.onclick = async () => {
         const rid = btn.dataset.pronto;
+        const completedAt = new Date().toISOString();
         await supa().from('comanda_righe').update({
           stato: 'pronto',
-          completed_at: new Date().toISOString(),
+          completed_at: completedAt,
         }).eq('id', rid);
-        const eraUltimaDelTavolo = righeAttive.filter(x => x.comanda_id === (righeAttive.find(x2=>String(x2.id)===String(rid))||{}).comanda_id).length <= 1;
-        righeAttive = righeAttive.filter(x => String(x.id) !== String(rid));
+        // La riga non sparisce piu' dalla memoria: cambia stato e si sposta
+        // nella colonna PRONTO. Nella vista per tavoli il tavolo tutto pronto
+        // esce comunque dall'elenco, come si e' sempre comportato.
+        const r = righeAttive.find(x => String(x.id) === String(rid));
+        if (r) { r.stato = 'pronto'; r.completed_at = completedAt; }
         alertPartiFired.delete(rid);
         renderCards();
       };
@@ -749,6 +803,18 @@ export async function render(container) {
     if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
     if (cronometroTick) { clearInterval(cronometroTick); cronometroTick = null; }
   }
+
+  container.querySelectorAll('[data-vista]').forEach(btn => {
+    btn.onclick = () => {
+      vistaCucina = btn.dataset.vista;
+      container.querySelectorAll('[data-vista]').forEach(b => {
+        const attivo = b.dataset.vista === vistaCucina;
+        b.style.background = attivo ? '#0E5A7A' : 'transparent';
+        b.style.color = attivo ? 'white' : '#94a3b8';
+      });
+      renderCards();
+    };
+  });
 
   container.querySelector('#btn-cucina-refresh').onclick = () => caricaTutto();
 

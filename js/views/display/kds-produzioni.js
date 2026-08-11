@@ -7,6 +7,23 @@
 let lottiCache = [];
 let durataByFase = {};
 let clockTimer = null;
+// Due modi di guardare il laboratorio: "lotti" li mette tutti in fila per
+// anzianita', "colonne" li smista per quanto sono avanti con le fasi.
+let vistaProduzioni = 'lotti';
+
+const COLONNE_PROD = [
+  { key: 'da_avviare',    label: 'DA AVVIARE',    colore: '#38bdf8' },
+  { key: 'in_lavorazione', label: 'IN LAVORAZIONE', colore: '#f59e0b' },
+  { key: 'completa',      label: 'PRONTA DA CHIUDERE', colore: '#22c55e' },
+];
+
+function colonnaLotto(l) {
+  const tot = l.fasi.length;
+  const firmate = l.fasi.filter(f => f.firmato_il).length;
+  if (tot && firmate >= tot) return 'completa';
+  if (firmate > 0) return 'in_lavorazione';
+  return 'da_avviare';
+}
 let refreshTimer = null;
 
 function supa() { return window.supabaseClient; }
@@ -22,6 +39,10 @@ export async function render(container) {
           <div id="kdsp-kpi" style="font-size:13px;color:#94a3b8;"></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
+          <div style="display:flex;gap:4px;background:#1e293b;border-radius:10px;padding:3px;">
+            <button data-vista-prod="lotti" style="padding:6px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;background:#0E5A7A;color:white;">Lotti</button>
+            <button data-vista-prod="colonne" style="padding:6px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:#94a3b8;">Colonne</button>
+          </div>
           <div id="kdsp-clock" style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;"></div>
           <button id="kdsp-full" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:8px 12px;cursor:pointer;">⛶ Kiosk</button>
         </div>
@@ -31,6 +52,18 @@ export async function render(container) {
       </div>
     </div>
   `;
+
+  container.querySelectorAll("[data-vista-prod]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      vistaProduzioni = btn.dataset.vistaProd;
+      container.querySelectorAll("[data-vista-prod]").forEach((b) => {
+        const attivo = b.dataset.vistaProd === vistaProduzioni;
+        b.style.background = attivo ? "#0E5A7A" : "transparent";
+        b.style.color = attivo ? "white" : "#94a3b8";
+      });
+      renderBoard();
+    });
+  });
 
   document.getElementById("kdsp-full")?.addEventListener("click", () => {
     const el = document.getElementById("kdsp-root");
@@ -97,6 +130,23 @@ function renderBoard() {
     return;
   }
 
+  if (vistaProduzioni === 'colonne') {
+    board.style.gridTemplateColumns = "repeat(auto-fit,minmax(260px,1fr))";
+    board.innerHTML = COLONNE_PROD.map((col) => {
+      const dentro = lottiCache.filter((l) => colonnaLotto(l) === col.key);
+      return '<div style="min-width:0;">' +
+        '<div style="position:sticky;top:0;background:#0f172a;padding:8px 6px;margin-bottom:10px;border-bottom:3px solid ' + col.colore + ';display:flex;justify-content:space-between;align-items:center;">' +
+          '<span style="font-size:13px;font-weight:800;letter-spacing:.5px;color:' + col.colore + ';">' + col.label + '</span>' +
+          '<span style="font-size:12px;font-weight:800;color:#0f172a;background:' + col.colore + ';border-radius:10px;padding:1px 9px;">' + dentro.length + '</span>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:12px;">' +
+          (dentro.length ? dentro.map((l) => cardHtml(l)).join("") : '<div style="color:#475569;text-align:center;padding:20px;font-size:13px;">—</div>') +
+        '</div></div>';
+    }).join("");
+    return;
+  }
+
+  board.style.gridTemplateColumns = "repeat(auto-fill,minmax(300px,1fr))";
   board.innerHTML = lottiCache.map((l) => cardHtml(l)).join("");
 }
 
