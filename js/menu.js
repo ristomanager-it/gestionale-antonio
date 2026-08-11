@@ -409,10 +409,7 @@ export function initMenu() {
           { label: "📒 Registro lotti",      route: "registro-lotti"    },
           { label: "📊 Produttività",        route: "produttivita-produzione" },
         ] },
-        { label: "🍳 Schermi", route: "kds", children: [
-          { label: "🍳 Ristoflow Kitchen",   route: "kds"               },
-          { label: "🏭 Schermo Produzioni",   route: "kds-produzioni"    },
-        ] },
+        { label: "🏭 Schermo Produzioni",   route: "kds-produzioni"    },
         { label: "🔔 Avvisi HACCP (manager)", route: "alert-haccp-config" },
         { label: "🔌 Dispositivi", route: "bo-dispositivi", children: [
           { label: "⚡ Energia", route: "bo-dispositivi?tab=energia" },
