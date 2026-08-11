@@ -647,9 +647,16 @@ async function openDocumentoUploadModal(azienda) {
       .eq("attivo", true)
       .order("nome", { ascending: true })
       .limit(3000),
-    loadProdottiAliasOcr(supabase, azienda.id)
+    loadProdottiAliasOcr(supabase, azienda.id),
+    supabase
+      .from("categorie_interne_prodotti")
+      .select("id, nome, sigla")
+      .eq("azienda_id", azienda.id)
+      .eq("attiva", true)
+      .order("nome", { ascending: true })
   ]);
 
+  const CATEGORIE_INTERNE = catInterneRes.data || [];
   const fornitori = fornitoriRes.data || [];
   const prodottiCache = (prodottiRes.data || []).map((p) => ({
     id: p.id,
