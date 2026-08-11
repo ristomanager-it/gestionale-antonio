@@ -482,6 +482,14 @@ function buildRowsTable(rows, options = {}) {
   `;
 }
 
+function dataLocaleStr(d) {
+  const dt = d instanceof Date ? d : new Date(d);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const g = String(dt.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + g;
+}
+
 function computeOperatorSummary(rows) {
   const ordered = [...rows].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   const byDay = new Map();
@@ -490,7 +498,7 @@ function computeOperatorSummary(rows) {
     const ts = row?.timestamp ? new Date(row.timestamp) : null;
     if (!ts || Number.isNaN(ts.getTime())) continue;
 
-    const dayKey = ts.toISOString().slice(0, 10);
+    const dayKey = dataLocaleStr(ts);
     if (!byDay.has(dayKey)) {
       byDay.set(dayKey, {
         dayKey,
@@ -671,7 +679,7 @@ function renderOperatorCard() {
 }
 
 function getTodayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return dataLocaleStr(new Date());
 }
 
 function getWeekStart() {
@@ -679,7 +687,7 @@ function getWeekStart() {
   const day = d.getDay();
   const diff = (day === 0 ? -6 : 1 - day);
   d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
+  return dataLocaleStr(d);
 }
 
 function getMonthStart() {
@@ -1245,7 +1253,7 @@ const pinOk = await verificaPinTimbrature({
             .eq('azienda_id', azienda.id)
             .eq('dipendente_id', dipendenteId)
             .eq('tipo', 'inizio_turno')
-            .gte('timestamp', new Date().toISOString().slice(0, 10) + 'T00:00:00')
+            .gte('timestamp', new Date(Date.now() - 20 * 3600000).toISOString())
             .order('timestamp', { ascending: false })
             .limit(1)
             .maybeSingle();
