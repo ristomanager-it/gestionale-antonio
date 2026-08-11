@@ -14,7 +14,6 @@ async function waitForAuth(maxWait = 4000) {
   return false;
 }
 
-const ADMIN_PIN_CUCINA = { pin: '0000', nome: 'Admin', ruolo: 'admin', colore: '#dc2626' };
 
 // Suono alert — Web Audio API, nessuna dipendenza esterna
 function suonaAlert() {
@@ -77,7 +76,6 @@ export async function render(container) {
     <div style="background:#0f172a;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-bottom:1px solid #1e293b;">
       <div style="color:white;font-size:18px;font-weight:700;">👨‍🍳 Cucina</div>
       <div style="display:flex;gap:10px;align-items:center;">
-        <div id="badge-cuoco" style="display:none;background:rgba(255,255,255,0.1);border-radius:20px;padding:5px 14px;font-size:13px;color:white;cursor:pointer;"></div>
         <div id="cucina-ora" style="font-size:13px;color:#94a3b8;"></div>
         <button id="btn-cucina-refresh" style="background:rgba(255,255,255,0.08);border:none;color:white;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;">🔄</button>
         <button id="btn-timer-manuale" style="background:#7c3aed;border:none;color:white;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;position:relative;">
@@ -91,24 +89,8 @@ export async function render(container) {
     <!-- Body -->
     <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
 
-      <!-- PIN view -->
-      <div id="cucina-pin" style="flex:1;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#111827,#0f172a);">
-        <div style="background:#1e293b;border-radius:24px;padding:40px 32px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;border:1px solid #334155;">
-          <div style="font-size:44px;margin-bottom:8px;">👨‍🍳</div>
-          <div style="font-size:20px;font-weight:700;color:white;margin-bottom:4px;">Display Cucina</div>
-          <div style="font-size:13px;color:#64748b;margin-bottom:28px;">Inserisci il tuo PIN</div>
-          <div id="pin-display-cucina" style="font-size:32px;letter-spacing:12px;height:48px;margin-bottom:20px;color:#38bdf8;font-weight:700;">____</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-            ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n => `
-              <button data-kc="${n}" style="height:60px;border-radius:14px;border:none;font-size:20px;font-weight:600;cursor:pointer;background:${n===''?'transparent':'#334155'};color:white;${n===''?'pointer-events:none;':''}" ${n===''?'disabled':''}>${n}</button>
-            `).join('')}
-          </div>
-          <div id="pin-error-cucina" style="color:#f87171;font-size:13px;min-height:20px;"></div>
-        </div>
-      </div>
-
       <!-- Display principale -->
-      <div id="cucina-main" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+      <div id="cucina-main" style="display:flex;flex:1;overflow:hidden;flex-direction:column;">
 
         <!-- Tabs settori -->
         <div style="background:#1e293b;border-bottom:1px solid #334155;padding:10px 16px;display:flex;gap:8px;flex-shrink:0;overflow-x:auto;">
@@ -180,68 +162,14 @@ export async function render(container) {
   tick(); setInterval(tick, 30000);
 
   // ════════════════════════════════════════
-  // PIN CUCINA
+  // AVVIO DIRETTO
+  // Il display parte subito sulle comande. Prima chiedeva un PIN, ma
+  // l'unico che funzionava era scritto nel codice: nessuno in anagrafica
+  // ne aveva uno, quindi ogni riga risultava lavorata da "Admin". Era un
+  // ostacolo davanti allo schermo e basta.
+  // Per riattivare il riconoscimento del cuoco servono PIN veri sui
+  // profili, e il campo cuoco_id sulle righe comanda e' gia' pronto.
   // ════════════════════════════════════════
-  let pinInput = '';
-  let cuochiDB  = [];
-
-  async function loadCuochi() {
-    try {
-      const { data } = await supa()
-        .from('profili')
-        .select('id, nome, cognome, pin, ruolo, colore')
-        .eq('azienda_id', aziendaId)
-        .not('pin', 'is', null);
-      cuochiDB = (data || []).map(p => ({
-        pin: p.pin,
-        nome: [p.nome, p.cognome].filter(Boolean).join(' ') || 'Cuoco',
-        ruolo: p.ruolo || 'cuoco',
-        colore: p.colore || '#f59e0b',
-        profiloId: p.id,
-      }));
-    } catch(e) { cuochiDB = []; }
-  }
-
-  function renderPinCucina() {
-    const el = container.querySelector('#pin-display-cucina');
-    if (el) el.textContent = '●'.repeat(pinInput.length) + '_'.repeat(Math.max(0, 4-pinInput.length));
-  }
-
-  container.querySelectorAll('[data-kc]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const key = btn.dataset.kc;
-      if (key === '⌫') { pinInput = pinInput.slice(0,-1); renderPinCucina(); container.querySelector('#pin-error-cucina').textContent=''; return; }
-      if (pinInput.length >= 4) return;
-      pinInput += key; renderPinCucina();
-      if (pinInput.length === 4) {
-        const trovato = pinInput === ADMIN_PIN_CUCINA.pin ? ADMIN_PIN_CUCINA : cuochiDB.find(c => c.pin === pinInput);
-        if (trovato) {
-          container.querySelector('#pin-error-cucina').textContent = '';
-          setTimeout(() => accediCucina(trovato), 150);
-        } else {
-          container.querySelector('#pin-error-cucina').textContent = '❌ PIN non riconosciuto';
-          setTimeout(() => { pinInput=''; renderPinCucina(); container.querySelector('#pin-error-cucina').textContent=''; }, 1200);
-        }
-      }
-    });
-  });
-
-  function accediCucina(cuoco) {
-    cuocoAttivo = cuoco;
-    const badge = container.querySelector('#badge-cuoco');
-    badge.style.display = 'block';
-    badge.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${cuoco.colore};display:inline-block;margin-right:6px;"></span>${cuoco.nome}`;
-    container.querySelector('#cucina-pin').style.display = 'none';
-    container.querySelector('#cucina-main').style.display = 'flex';
-    avviaRefresh();
-  }
-
-  container.querySelector('#badge-cuoco').addEventListener('click', () => {
-    cuocoAttivo = null; pinInput = ''; renderPinCucina();
-    fermaRefresh();
-    container.querySelector('#cucina-pin').style.display = 'flex';
-    container.querySelector('#cucina-main').style.display = 'none';
-  });
 
   // ════════════════════════════════════════
   // CARICA DATI
@@ -825,8 +753,8 @@ export async function render(container) {
   container.querySelector('#btn-cucina-refresh').onclick = () => caricaTutto();
 
   // ── Init ──
-  await loadCuochi();
   await loadSettori();
+  avviaRefresh();
 }
 
 function esc(s) {
