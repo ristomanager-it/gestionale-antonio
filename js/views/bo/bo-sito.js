@@ -948,7 +948,11 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 ${nav}
 <div style="position:relative;height:100svh;min-height:580px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:80px;text-align:center;overflow:hidden;">
   <div style="position:absolute;inset:0;background:var(--scuro);">
-    ${conf.foto_cover ? `<img src="${esc(conf.foto_cover)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;" alt="">` : ""}
+    ${conf.video_hero
+      ? `<video src="${esc(conf.video_hero)}" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;"></video>`
+      : (copertina.length > 1
+          ? copertina.map((u,i) => `<img src="${esc(u)}" class="cop" style="animation-delay:${i*5}s" alt="">`).join("")
+          : (copertina[0] ? `<img src="${esc(copertina[0])}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;" alt="">` : ""))}
   </div>
   <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.7) 0%,rgba(0,0,0,.2) 60%,transparent 100%);"></div>
   <div style="position:relative;z-index:2;padding:0 20px;">
