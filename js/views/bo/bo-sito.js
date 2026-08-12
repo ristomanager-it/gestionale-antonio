@@ -629,6 +629,9 @@ export async function render(container) {
         <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:white;font-size:9px;padding:2px 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${m.nome || ""}</div>
       </div>`;
     }).join("");
+    grid.querySelectorAll(".sw-lente").forEach(b => {
+      b.onclick = ev => { ev.stopPropagation(); apriAnteprima(b.dataset.big, b.dataset.vid === "1"); };
+    });
     grid.querySelectorAll(".sw-media-item").forEach(el => {
       el.onclick = () => {
         if (multi) {
