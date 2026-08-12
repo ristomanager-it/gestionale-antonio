@@ -623,6 +623,46 @@ export async function render(container) {
       grid.parentNode.insertBefore(bar, grid);
     }
 
+    // Riquadro delle scelte: con centinaia di foto serve vedere subito quali
+    // si sono prese, in che ordine finiranno nello slideshow, e poterle togliere.
+    const selId = gridId + "-scelte";
+    let box = document.getElementById(selId);
+    if (multi && !box) {
+      box = document.createElement("div");
+      box.id = selId;
+      box.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding:10px;background:#f1f5f9;border-radius:10px;";
+      grid.parentNode.insertBefore(box, grid);
+    }
+
+    function aggiornaScelte() {
+      if (!box) return;
+      const urls = fotoSel[key] || [];
+      if (!urls.length) {
+        box.innerHTML = '<span style="font-size:12px;color:#94a3b8;">Nessuna foto scelta &mdash; le sceglie Tony</span>';
+        return;
+      }
+      box.innerHTML = '<div style="width:100%;font-size:12px;font-weight:600;margin-bottom:2px;">' +
+        urls.length + ' scelte, in questo ordine</div>' +
+        urls.map(function (u, i) {
+          const m = media.find(function (x) { return x.url === u; }) || {};
+          return '<div style="position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;">' +
+            '<img src="' + (m.thumb_url || u) + '" style="width:100%;height:100%;object-fit:cover;">' +
+            '<div style="position:absolute;top:2px;left:2px;background:#0f4c5c;color:#fff;font-size:10px;width:16px;height:16px;border-radius:8px;text-align:center;line-height:16px;">' + (i + 1) + '</div>' +
+            '<button data-u="' + u + '" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:0;border-radius:8px;width:16px;height:16px;font-size:11px;line-height:1;cursor:pointer;">&times;</button>' +
+            '</div>';
+        }).join("");
+      box.querySelectorAll("button[data-u]").forEach(function (b) {
+        b.onclick = function (ev) {
+          ev.stopPropagation();
+          fotoSel[key] = fotoSel[key].filter(function (u) { return u !== b.dataset.u; });
+          const item = grid.querySelector('.sw-media-item[data-url="' + b.dataset.u + '"]');
+          if (item) item.classList.remove("selected");
+          aggiornaScelte();
+        };
+      });
+    }
+    aggiornaScelte();
+
     disegna(media);
 
     function disegna(elenco) {
