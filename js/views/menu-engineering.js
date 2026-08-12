@@ -348,6 +348,19 @@ function renderSimulatore() {
       <button class="app-button small gray" id="me-sim-reset">Prezzo attuale</button>
     </div>
     <div id="me-sim-out" style="margin-top:14px;"></div>
+    <div style="margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button class="app-button" id="me-sim-salva" ${r.prodotto_vendita_id ? "" : "disabled"}>Metti questo prezzo a menu</button>
+      <span id="me-sim-esito" style="font-size:13px;"></span>
+    </div>
+    ${r.prodotto_vendita_id
+      ? `<div style="font-size:12.5px; color:#94a3b8; margin-top:8px; line-height:1.5;">
+           A menu adesso: ${r.prezzo_listino != null ? eur(r.prezzo_listino) : "prezzo non impostato"}.
+           Il prezzo cambia sul piatto in vendita, i conti gia battuti restano come sono.
+         </div>`
+      : `<div style="font-size:12.5px; color:#b45309; margin-top:8px; line-height:1.5;">
+           Questa ricetta non e collegata a nessun piatto in vendita, quindi il prezzo non si puo salvare da qui.
+           Collegala in Menu &amp; Prodotti e il pulsante si accende.
+         </div>`}
   `;
 
   document.getElementById("me-sim-piatto").addEventListener("change", e => {
@@ -358,7 +371,61 @@ function renderSimulatore() {
     calcolaSim();
   });
   document.getElementById("me-sim-prezzo").addEventListener("input", calcolaSim);
+
+  const btnSalva = document.getElementById("me-sim-salva");
+  if (btnSalva) btnSalva.addEventListener("click", () => salvaPrezzo(r));
+
   calcolaSim();
+}
+
+// Scrive il prezzo sul piatto in vendita collegato alla ricetta. Il simulatore
+// finora calcolava e basta: si vedeva quanto si guadagnava di piu' e poi
+// bisognava andare a mano in Menu & Prodotti a cambiare il prezzo.
+async function salvaPrezzo(r) {
+  const btn = document.getElementById("me-sim-salva");
+  const esito = document.getElementById("me-sim-esito");
+  const nuovo = Number(document.getElementById("me-sim-prezzo").value) || 0;
+
+  if (!r.prodotto_vendita_id) return;
+  if (!(nuovo > 0)) {
+    esito.style.color = "#b91c1c";
+    esito.textContent = "Scrivi un prezzo maggiore di zero.";
+    return;
+  }
+
+  const supa = window.supabaseClient || window.supabase;
+  btn.disabled = true;
+  esito.style.color = "#64748b";
+  esito.textContent = "Salvataggio...";
+
+  const { error } = await supa
+    .from("prodotti_vendita")
+    .update({ prezzo_base: nuovo })
+    .eq("id", r.prodotto_vendita_id);
+
+  if (error) {
+    btn.disabled = false;
+    esito.style.color = "#b91c1c";
+    esito.textContent = "Non salvato: " + error.message;
+    return;
+  }
+
+  // Verifica sul database, non sulla speranza: rileggo il prezzo appena scritto.
+  const { data: chk } = await supa
+    .from("prodotti_vendita")
+    .select("prezzo_base")
+    .eq("id", r.prodotto_vendita_id)
+    .maybeSingle();
+
+  btn.disabled = false;
+  if (chk && Number(chk.prezzo_base) === nuovo) {
+    esito.style.color = "#15803d";
+    esito.textContent = "Fatto: a menu ora sta a " + eur(nuovo) + ".";
+    r.prezzo_listino = nuovo;
+  } else {
+    esito.style.color = "#b45309";
+    esito.textContent = "Salvato, ma la rilettura non torna. Controlla in Menu & Prodotti.";
+  }
 }
 
 function calcolaSim() {
