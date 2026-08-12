@@ -594,74 +594,7 @@ export async function render(container) {
   function renderMedia(gridId, media, key, multi) {
     const grid = document.getElementById(gridId);
     if (!media.length) { grid.innerHTML = `<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Nessun media — carica dalla Media Library</div>`; return; }
-
-    // Con centinaia di foto senza filtro non si trova niente: i bottoni
-    // nascono dai tag realmente presenti, non da un elenco fisso.
-    const tags = [...new Set(media.map(m => m.tag).filter(Boolean))].sort();
-    const barId = gridId + "-filtri";
-    let bar = document.getElementById(barId);
-    if (!bar && tags.length > 1) {
-      bar = document.createElement("div");
-      bar.id = barId;
-      bar.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;";
-      bar.innerHTML = [`<button data-t="" class="sw-filtro attivo">Tutte</button>`]
-        .concat(tags.map(t => `<button data-t="${t}" class="sw-filtro">${t}</button>`)).join("");
-      bar.querySelectorAll("button").forEach(b => {
-        b.style.cssText = "border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:4px 11px;font-size:12px;cursor:pointer;";
-        b.onclick = () => {
-          bar.querySelectorAll("button").forEach(x => { x.style.background = "#fff"; x.style.color = "#0f172a"; });
-          b.style.background = "#0f4c5c"; b.style.color = "#fff";
-          const t = b.dataset.t;
-          disegna(t ? media.filter(m => m.tag === t) : media);
-        };
-      });
-      grid.parentNode.insertBefore(bar, grid);
-    }
-
-    // Riquadro delle scelte: con centinaia di foto serve vedere subito quali
-    // si sono prese, in che ordine finiranno nello slideshow, e poterle togliere.
-    const selId = gridId + "-scelte";
-    let box = document.getElementById(selId);
-    if (multi && !box) {
-      box = document.createElement("div");
-      box.id = selId;
-      box.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding:10px;background:#f1f5f9;border-radius:10px;";
-      grid.parentNode.insertBefore(box, grid);
-    }
-
-    function aggiornaScelte() {
-      if (!box) return;
-      const urls = fotoSel[key] || [];
-      if (!urls.length) {
-        box.innerHTML = '<span style="font-size:12px;color:#94a3b8;">Nessuna foto scelta &mdash; le sceglie Tony</span>';
-        return;
-      }
-      box.innerHTML = '<div style="width:100%;font-size:12px;font-weight:600;margin-bottom:2px;">' +
-        urls.length + ' scelte, in questo ordine</div>' +
-        urls.map(function (u, i) {
-          const m = media.find(function (x) { return x.url === u; }) || {};
-          return '<div style="position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;">' +
-            '<img src="' + (m.thumb_url || u) + '" style="width:100%;height:100%;object-fit:cover;">' +
-            '<div style="position:absolute;top:2px;left:2px;background:#0f4c5c;color:#fff;font-size:10px;width:16px;height:16px;border-radius:8px;text-align:center;line-height:16px;">' + (i + 1) + '</div>' +
-            '<button data-u="' + u + '" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:0;border-radius:8px;width:16px;height:16px;font-size:11px;line-height:1;cursor:pointer;">&times;</button>' +
-            '</div>';
-        }).join("");
-      box.querySelectorAll("button[data-u]").forEach(function (b) {
-        b.onclick = function (ev) {
-          ev.stopPropagation();
-          fotoSel[key] = fotoSel[key].filter(function (u) { return u !== b.dataset.u; });
-          const item = grid.querySelector('.sw-media-item[data-url="' + b.dataset.u + '"]');
-          if (item) item.classList.remove("selected");
-          aggiornaScelte();
-        };
-      });
-    }
-    aggiornaScelte();
-
-    disegna(media);
-
-    function disegna(elenco) {
-    grid.innerHTML = elenco.map(m => {
+    grid.innerHTML = media.map(m => {
       const isV = m.tipo === "video";
       const isSel = multi ? fotoSel[key].includes(m.url) : fotoSel[key] === m.url;
       return `<div class="sw-media-item${isSel ? ' selected' : ''}" data-url="${m.url}" data-key="${key}">
