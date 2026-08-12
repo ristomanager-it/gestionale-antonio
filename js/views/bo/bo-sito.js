@@ -581,6 +581,7 @@ export async function render(container) {
     const imgs  = (data || []).filter(m => m.tipo === "immagine");
     const video = (data || []).filter(m => m.tipo === "video");
     renderMedia("grid-cover",      imgs,  "cover",     false);
+    renderMedia("grid-header",     imgs,  "header",    true);
     renderMedia("grid-reel-terra", video, "reelTerra", false);
     renderMedia("grid-reel-mare",  video, "reelMare",  false);
     renderMedia("grid-locale",     imgs,  "locale",    true);
