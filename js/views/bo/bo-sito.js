@@ -274,7 +274,6 @@ export async function render(container) {
     <div class="sw-panel" id="panel-foto">
       <div class="sw-card">
         <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🖼️ Foto cover (hero)</div>
-        <div style="font-size:12px;color:#b45309;background:#fffbeb;padding:8px 10px;border-radius:8px;margin-bottom:8px;">Lo slideshow si sceglie nel blocco qui sotto.</div>
         <div style="font-size:12px;color:#64748b;margin-bottom:10px;">La prima foto che vede il visitatore</div>
         <div class="sw-media-grid" id="grid-cover"></div>
       </div>
