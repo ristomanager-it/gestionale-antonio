@@ -556,7 +556,6 @@ export async function render(container) {
       foto_reel_terra: conf.foto_reel_terra,
       foto_reel_mare:  conf.foto_reel_mare,
       foto_locale:     conf.foto_locale,
-      foto_header:     conf.foto_header,
       sezioni:         conf.sezioni,
       updated_at:      new Date().toISOString()
     };
