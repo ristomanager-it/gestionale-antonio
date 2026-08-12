@@ -622,36 +622,105 @@ export async function render(container) {
   function renderMedia(gridId, media, key, multi) {
     const grid = document.getElementById(gridId);
     if (!media.length) { grid.innerHTML = `<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Nessun media — carica dalla Media Library</div>`; return; }
-    grid.innerHTML = media.map(m => {
-      const isV = m.tipo === "video";
-      const isSel = multi ? fotoSel[key].includes(m.url) : fotoSel[key] === m.url;
-      return `<div class="sw-media-item${isSel ? ' selected' : ''}" data-url="${m.url}" data-key="${key}">
-        ${isV ? `<video src="${m.url}" muted preload="metadata"></video>` : `<img src="${m.url}" alt="${m.nome}" loading="lazy">`}
-        <div class="sw-media-check">✓</div>
-        <button class="sw-lente" data-big="${m.url}" data-vid="${isV ? 1 : 0}" title="Vedi grande">🔍</button>
-        <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:white;font-size:9px;padding:2px 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${m.nome || ""}</div>
-      </div>`;
-    }).join("");
-    grid.querySelectorAll(".sw-lente").forEach(b => {
-      b.onclick = ev => { ev.stopPropagation(); apriAnteprima(b.dataset.big, b.dataset.vid === "1"); };
-    });
-    grid.querySelectorAll(".sw-media-item").forEach(el => {
-      el.onclick = () => {
-        if (multi) {
-          el.classList.toggle("selected");
-          fotoSel[key] = el.classList.contains("selected")
-            ? [...fotoSel[key], el.dataset.url]
-            : fotoSel[key].filter(u => u !== el.dataset.url);
-        } else if (el.classList.contains("selected")) {
-          el.classList.remove("selected");
-          fotoSel[key] = null;
-        } else {
-          grid.querySelectorAll(".sw-media-item").forEach(x => x.classList.remove("selected"));
-          el.classList.add("selected");
-          fotoSel[key] = el.dataset.url;
-        }
-      };
-    });
+    // Riquadro con quello che si e' scelto: numerato, nell'ordine in cui
+    // finisce in copertina, con la x per togliere.
+    const boxId = gridId + "-scelte";
+    let box = document.getElementById(boxId);
+    if (!box) {
+      box = document.createElement("div");
+      box.id = boxId;
+      box.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;padding:10px;background:#f1f5f9;border-radius:10px;";
+      grid.parentNode.insertBefore(box, grid);
+    }
+    function scelte() {
+      const v = fotoSel[key];
+      return multi ? (v || []) : (v ? [v] : []);
+    }
+    function aggiornaScelte() {
+      const urls = scelte();
+      if (!urls.length) { box.innerHTML = '<span style="font-size:12px;color:#94a3b8;">Niente scelto</span>'; return; }
+      box.innerHTML = '<div style="width:100%;font-size:12px;font-weight:600;">' +
+        (multi ? urls.length + ' scelte, in questo ordine' : 'Scelto') + '</div>' +
+        urls.map(function (u, i) {
+          const mm = media.find(function (x) { return x.url === u; }) || {};
+          const vid = mm.tipo === "video";
+          return '<div style="position:relative;width:62px;height:62px;border-radius:8px;overflow:hidden;background:#000;">' +
+            (vid ? '<video src="' + u + '" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>'
+                 : '<img src="' + u + '" style="width:100%;height:100%;object-fit:cover;">') +
+            (multi ? '<div style="position:absolute;bottom:2px;left:2px;background:#0f4c5c;color:#fff;font-size:10px;width:16px;height:16px;border-radius:8px;text-align:center;line-height:16px;">' + (i + 1) + '</div>' : '') +
+            '<button data-tog="' + u + '" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:0;border-radius:8px;width:17px;height:17px;font-size:12px;line-height:1;padding:0;">&times;</button></div>';
+        }).join("");
+      box.querySelectorAll("button[data-tog]").forEach(function (b) {
+        b.onclick = function (ev) {
+          ev.stopPropagation();
+          const u = b.dataset.tog;
+          if (multi) fotoSel[key] = (fotoSel[key] || []).filter(function (x) { return x !== u; });
+          else fotoSel[key] = null;
+          const it = grid.querySelector('.sw-media-item[data-url="' + u + '"]');
+          if (it) it.classList.remove("selected");
+          aggiornaScelte();
+        };
+      });
+    }
+
+    // Filtri per tipo: con centinaia di media trovarne uno a mano e' un lavoro.
+    const tags = Array.from(new Set(media.map(function (m) { return m.tag; }).filter(Boolean))).sort();
+    const barId = gridId + "-filtri";
+    let bar = document.getElementById(barId);
+    if (!bar && tags.length > 1) {
+      bar = document.createElement("div");
+      bar.id = barId;
+      bar.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;";
+      bar.innerHTML = '<button data-t="">Tutte</button>' +
+        tags.map(function (t) { return '<button data-t="' + t + '">' + t + '</button>'; }).join("");
+      bar.querySelectorAll("button").forEach(function (b) {
+        b.style.cssText = "border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;";
+        b.onclick = function () {
+          bar.querySelectorAll("button").forEach(function (x) { x.style.background = "#fff"; x.style.color = "#0f172a"; });
+          b.style.background = "#0f4c5c"; b.style.color = "#fff";
+          const t = b.dataset.t;
+          disegna(t ? media.filter(function (m) { return m.tag === t; }) : media);
+        };
+      });
+      grid.parentNode.insertBefore(bar, grid);
+    }
+
+    function disegna(elenco) {
+      grid.innerHTML = elenco.map(m => {
+        const isV = m.tipo === "video";
+        const isSel = multi ? (fotoSel[key] || []).includes(m.url) : fotoSel[key] === m.url;
+        return `<div class="sw-media-item${isSel ? ' selected' : ''}" data-url="${m.url}" data-key="${key}">
+          ${isV ? `<video src="${m.url}" muted preload="metadata"></video>` : `<img src="${m.thumb_url || m.url}" alt="${m.nome || ''}" loading="lazy" decoding="async">`}
+          <div class="sw-media-check">✓</div>
+          <button class="sw-lente" data-big="${m.url}" data-vid="${isV ? 1 : 0}" title="Vedi grande">🔍</button>
+          <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:white;font-size:9px;padding:2px 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${m.nome || ""}</div>
+        </div>`;
+      }).join("");
+      grid.querySelectorAll(".sw-lente").forEach(b => {
+        b.onclick = ev => { ev.stopPropagation(); apriAnteprima(b.dataset.big, b.dataset.vid === "1"); };
+      });
+      grid.querySelectorAll(".sw-media-item").forEach(el => {
+        el.onclick = () => {
+          if (multi) {
+            el.classList.toggle("selected");
+            fotoSel[key] = el.classList.contains("selected")
+              ? [...(fotoSel[key] || []), el.dataset.url]
+              : (fotoSel[key] || []).filter(u => u !== el.dataset.url);
+          } else if (el.classList.contains("selected")) {
+            el.classList.remove("selected");
+            fotoSel[key] = null;
+          } else {
+            grid.querySelectorAll(".sw-media-item").forEach(x => x.classList.remove("selected"));
+            el.classList.add("selected");
+            fotoSel[key] = el.dataset.url;
+          }
+          aggiornaScelte();
+        };
+      });
+    }
+
+    aggiornaScelte();
+    disegna(media);
   }
 
   // ── TONY ────────────────────────────────────────────────────
