@@ -502,6 +502,7 @@ export async function render(container) {
       if (conf.foto_locale)     fotoSel.locale     = conf.foto_locale;
       if (conf.foto_header)     fotoSel.header     = conf.foto_header;
       if (conf.video_hero)      fotoSel.videoHero  = conf.video_hero;
+      repoSito = conf.repo_github || null;
       if (conf.form_link) document.getElementById('sw-form-link').value = conf.form_link;
       // Colori
       if (conf.colore_brand)      { set("sw-colore-btn-hex", conf.colore_brand);      document.getElementById("sw-colore-btn").value = conf.colore_brand; }
