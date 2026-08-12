@@ -619,6 +619,34 @@ export async function render(container) {
       + '<div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-size:12px;">Tocca per chiudere</div>';
   }
 
+  // I riquadri del tab Media partono chiusi: con centinaia di media,
+  // averli tutti aperti significa scorrere all'infinito per arrivare in fondo.
+  function pieghevoli() {
+    const pan = document.getElementById("panel-foto");
+    if (!pan) return;
+    pan.querySelectorAll(".sw-card").forEach(function (card) {
+      if (card.dataset.pieg) return;
+      card.dataset.pieg = "1";
+      const testa = card.firstElementChild;
+      if (!testa) return;
+      const corpo = Array.prototype.slice.call(card.children, 1);
+      const freccia = document.createElement("span");
+      freccia.textContent = "▸";
+      freccia.style.cssText = "float:right;color:#94a3b8;font-size:13px;transition:transform .15s;";
+      testa.appendChild(freccia);
+      testa.style.cursor = "pointer";
+      testa.style.userSelect = "none";
+      testa.style.marginBottom = "0";
+      corpo.forEach(function (el) { el.style.display = "none"; });
+      testa.onclick = function () {
+        const chiuso = corpo[0] && corpo[0].style.display === "none";
+        corpo.forEach(function (el) { el.style.display = chiuso ? "" : "none"; });
+        freccia.style.transform = chiuso ? "rotate(90deg)" : "";
+        testa.style.marginBottom = chiuso ? "4px" : "0";
+      };
+    });
+  }
+
   function renderMedia(gridId, media, key, multi) {
     const grid = document.getElementById(gridId);
     if (!media.length) { grid.innerHTML = `<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Nessun media — carica dalla Media Library</div>`; return; }
