@@ -752,6 +752,11 @@ export async function render(container) {
     const lng     = sede?.lng || profilo?.lng || 12.3857;
     const nome    = conf.nome || sedeSelezionata?.nome || "Ristorante";
     const cta     = conf.hero_cta || "Prenota un tavolo";
+    // Copertina: le foto scelte nel gestionale. Se non ce ne sono si usa
+    // la vecchia foto singola, cosi' i siti gia' pubblicati non cambiano.
+    const copertina = (Array.isArray(conf.foto_header) && conf.foto_header.length)
+      ? conf.foto_header.slice(0, 6)
+      : (conf.foto_cover ? [conf.foto_cover] : []);
     const formUrl = conf.form_link || (conf.form_id
       ? `https://app.ristoflow-ai.com/#/prenotazione-online?form_id=${conf.form_id}`
       : "#");
