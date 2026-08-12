@@ -598,7 +598,7 @@ export async function render(container) {
       const isV = m.tipo === "video";
       const isSel = multi ? fotoSel[key].includes(m.url) : fotoSel[key] === m.url;
       return `<div class="sw-media-item${isSel ? ' selected' : ''}" data-url="${m.url}" data-key="${key}">
-        ${isV ? `<video src="${m.url}" muted preload="metadata"></video>` : `<img src="${m.thumb_url || m.url}" alt="${m.nome || ''}" loading="lazy" decoding="async">`}
+        ${isV ? `<video src="${m.url}" muted preload="metadata"></video>` : `<img src="${m.url}" alt="${m.nome}" loading="lazy">`}
         <div class="sw-media-check">✓</div>
         <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:white;font-size:9px;padding:2px 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${m.nome || ""}</div>
       </div>`;
