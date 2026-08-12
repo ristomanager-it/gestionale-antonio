@@ -59,7 +59,20 @@ export async function render(app) {
     return;
   }
 
-  const opzioniUm = ["kg", "gr", "lt", "ml"];
+  // "pz" serve per le confezioni che contengono pezzi e non peso: le uova da 90,
+  // i tovaglioli da 50. Senza, quei prodotti non si potevano correggere.
+  const opzioniUm = ["kg", "gr", "lt", "ml", "pz"];
+
+  // Il nome del prodotto quasi sempre dice cosa contiene la confezione: se c'e'
+  // scritto PZ90 o X48 sono pezzi, se c'e' KG o GR e' peso. Preselezionare
+  // l'unita' giusta evita l'errore piu' probabile, cioe' lasciare "kg" su una
+  // confezione di uova.
+  function umSuggerita(nome) {
+    const n = String(nome || "").toUpperCase();
+    if (/\bPZ ?\d|\bX ?\d{2,}|UOVA|TOVAGLIOL|BICCHIER|PIATT|SACCHETT|GUANTI|POSAT/.test(n)) return "pz";
+    if (/\bLT ?\d|\bML ?\d|\bCL ?\d|OLIO|LATTE|SUCCO|ACETO|VINO/.test(n)) return "lt";
+    return "kg";
+  }
 
   const cards = righe.map((r) => {
     const um = String(r.um_costo || "pz");
@@ -80,7 +93,7 @@ export async function render(app) {
           <label>Un ${esc(um)} contiene</label>
           <input class="pdc-qta" type="number" step="0.01" min="0" placeholder="es. 5" />
           <select class="pdc-um">
-            ${opzioniUm.map((u) => `<option value="${u}">${u}</option>`).join("")}
+            ${opzioniUm.map((u) => `<option value="${u}" ${u === umSuggerita(r.prodotto) ? "selected" : ""}>${u}</option>`).join("")}
           </select>
           <button type="button" class="pdc-salva">Salva</button>
         </div>
@@ -158,18 +171,22 @@ export async function render(app) {
     // ricalcolato e lo si mostra.
     let nuovo = null;
     try {
+      // Chiedo il costo nell'unita' in cui il ristoratore compra: al chilo,
+      // al litro o al pezzo. Prima chiedevo il costo al grammo e usciva
+      // "0,0057 € al grammo": giusto, ma illeggibile e sembra un errore.
       const { data: chk } = await supabase.rpc("costo_prodotto_per_um_check", {
         p_prodotto_id: Number(id),
-        p_um: um === "kg" || um === "gr" ? "gr" : "ml"
+        p_um: um === "pz" ? "pz" : (um === "kg" || um === "gr" ? "kg" : "lt")
       });
       nuovo = chk;
     } catch (e) { /* la verifica e' un di piu', il salvataggio e' andato */ }
 
     card.classList.add("fatto");
     esito.style.color = "#15803d";
+    const unitaTesto = um === "pz" ? "pezzo"
+      : (um === "kg" || um === "gr" ? "chilo" : "litro");
     esito.textContent = nuovo != null
-      ? "Salvato. Ora costa " + Number(nuovo).toFixed(4).replace(".", ",") + " € al "
-        + (um === "kg" || um === "gr" ? "grammo" : "millilitro") + "."
+      ? "Salvato. Ora costa " + Number(nuovo).toFixed(2).replace(".", ",") + " € al " + unitaTesto + "."
       : "Salvato. Il costo delle ricette si aggiorna al prossimo ricalcolo.";
   });
 }
