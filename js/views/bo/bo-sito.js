@@ -277,11 +277,7 @@ export async function render(container) {
         <div style="font-size:12px;color:#64748b;margin-bottom:10px;">La prima foto che vede il visitatore</div>
         <div class="sw-media-grid" id="grid-cover"></div>
       </div>
-      <div class="sw-card">
-        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🎞️ Foto slideshow (testata)</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Si alternano in cima al sito. Toccane quante vuoi, nell'ordine che preferisci. Se non ne scegli nessuna le sceglie Tony.</div>
-        <div class="sw-media-grid" id="grid-header"></div>
-      </div>
+      <!-- blocco slideshow rimosso col ripristino del 12/08 -->
       <div class="sw-card">
         <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🎬 Video — cucina di terra</div>
         <div class="sw-media-grid" id="grid-reel-terra"></div>
