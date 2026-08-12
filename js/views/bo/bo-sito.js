@@ -497,6 +497,8 @@ export async function render(container) {
       if (conf.foto_reel_terra) fotoSel.reelTerra = conf.foto_reel_terra;
       if (conf.foto_reel_mare)  fotoSel.reelMare  = conf.foto_reel_mare;
       if (conf.foto_locale)     fotoSel.locale     = conf.foto_locale;
+      if (conf.foto_header)     fotoSel.header     = conf.foto_header;
+      if (conf.video_hero)      fotoSel.videoHero  = conf.video_hero;
       if (conf.form_link) document.getElementById('sw-form-link').value = conf.form_link;
       // Colori
       if (conf.colore_brand)      { set("sw-colore-btn-hex", conf.colore_brand);      document.getElementById("sw-colore-btn").value = conf.colore_brand; }
