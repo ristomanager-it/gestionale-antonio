@@ -730,6 +730,16 @@ export async function render(container) {
       sc.from("aziende").select("logo_url,colore_brand").eq("id", aziendaId).maybeSingle(),
     ]);
 
+    // Recensioni vere della sede: solo quelle accese dal titolare.
+    let recensioni = [];
+    if (sedeId) {
+      const { data: rec } = await sc.from("recensioni")
+        .select("voto,testo,autore")
+        .eq("sede_id", sedeId).eq("visibile", true).gte("voto", 4)
+        .order("created_at", { ascending: false }).limit(6);
+      recensioni = rec || [];
+    }
+
     const logo    = sede?.logo_url || az?.logo_url || "";
     const clrBtn  = conf.colore_brand      || sede?.colore_brand      || az?.colore_brand || "#794d01";
     const clrAcc  = conf.colore_secondario || sede?.colore_secondario || "#c4892a";
