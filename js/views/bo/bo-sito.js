@@ -15,6 +15,7 @@ export async function render(container) {
   let sedeSelezionata = null;
   let _identita = null;
   const fotoSel = { cover: null, reelTerra: null, reelMare: null, locale: [], header: [], videoHero: null };
+  let repoSito = null;   // repo dedicato del sito, letto dal database
   const SEZIONI = [
     { id:"hero",       label:"🦸 Hero",              def:true  },
     { id:"highlights", label:"✨ Highlights",         def:true  },
