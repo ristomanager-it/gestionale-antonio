@@ -598,6 +598,25 @@ export async function render(container) {
     renderMedia("grid-locale",     imgs,  "locale",    true);
   }
 
+  // Anteprima a schermo intero: le miniature sono troppo piccole per capire
+  // se una foto regge in copertina.
+  function apriAnteprima(url, isVideo) {
+    let ov = document.getElementById("sw-anteprima");
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = "sw-anteprima";
+      ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px;";
+      ov.onclick = () => { ov.style.display = "none"; ov.innerHTML = ""; };
+      document.body.appendChild(ov);
+    }
+    ov.style.display = "flex";
+    ov.innerHTML = (isVideo
+      ? '<video src="' + url + '" controls autoplay playsinline style="max-width:100%;max-height:88vh;border-radius:12px;"></video>'
+      : '<img src="' + url + '" style="max-width:100%;max-height:88vh;object-fit:contain;border-radius:12px;">')
+      + '<div style="position:absolute;top:14px;right:18px;color:#fff;font-size:30px;line-height:1;">&times;</div>'
+      + '<div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-size:12px;">Tocca per chiudere</div>';
+  }
+
   function renderMedia(gridId, media, key, multi) {
     const grid = document.getElementById(gridId);
     if (!media.length) { grid.innerHTML = `<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Nessun media — carica dalla Media Library</div>`; return; }
