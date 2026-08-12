@@ -1047,8 +1047,7 @@ ${sezioniState.recensioni && recensioni.length ? `
   <div style="max-width:700px;margin:0 auto;">
     <div class="eyebrow">Dicono di noi</div>
     <h2 class="h2" style="margin-bottom:24px;">L'opinione<br><em>dei nostri ospiti</em></h2>
-    <div class="rev-c"><div class="stars">★★★★★</div><div class="rev-t">"Cucina tradizionale curata e servizio rapido. Una sosta ideale per chi viaggia."</div><div style="font-size:12px;color:var(--grigio)"><strong>Marco R.</strong> · lavoro</div></div>
-    <div class="rev-c"><div class="stars">★★★★★</div><div class="rev-t">"Il pesce era freschissimo, si sentiva. Torneremo sicuramente."</div><div style="font-size:12px;color:var(--grigio)"><strong>Laura M.</strong> · famiglia</div></div>
+    ${recensioni.map(r => `<div class="rev-c"><div class="stars">${"★".repeat(Number(r.voto)||5)}</div><div class="rev-t">"${esc(r.testo)}"</div>${r.autore ? `<div style="font-size:12px;color:var(--grigio)"><strong>${esc(r.autore)}</strong></div>` : ""}</div>`).join("")}
     <div style="text-align:center;margin-top:20px;"><a class="btn" href="${esc(formUrl)}">🗓 ${esc(cta)}</a></div>
   </div>
 </div>` : ""}
