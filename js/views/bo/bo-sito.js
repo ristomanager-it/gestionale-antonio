@@ -615,6 +615,10 @@ export async function render(container) {
           fotoSel[key] = el.classList.contains("selected")
             ? [...fotoSel[key], el.dataset.url]
             : fotoSel[key].filter(u => u !== el.dataset.url);
+        } else if (el.classList.contains("selected")) {
+          // riclick: annulla una scelta fatta per sbaglio
+          el.classList.remove("selected");
+          fotoSel[key] = null;
         } else {
           grid.querySelectorAll(".sw-media-item").forEach(x => x.classList.remove("selected"));
           el.classList.add("selected");
@@ -622,6 +626,7 @@ export async function render(container) {
         }
       };
     });
+    }
   }
 
   // ── TONY ────────────────────────────────────────────────────
