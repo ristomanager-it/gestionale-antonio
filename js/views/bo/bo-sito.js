@@ -441,6 +441,8 @@ export async function render(container) {
       foto_reel_terra: fotoSel.reelTerra,
       foto_reel_mare:  fotoSel.reelMare,
       foto_locale:     fotoSel.locale,
+      foto_header:     fotoSel.header,
+      video_hero:      fotoSel.videoHero,
       sezioni:      { ...sezioniState },
     };
   }
