@@ -1122,7 +1122,6 @@ ${ctaBar}${footer}
           slug:   conf.slug,
           nome:   conf.nome,
           dominio: conf.dominio || null,
-          repo:    conf.repo_github || null,
           pagine: {
             "index.html":     pagine.home,
             "chi-siamo.html": pagine.chiSiamo,
