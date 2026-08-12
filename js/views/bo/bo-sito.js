@@ -14,7 +14,7 @@ export async function render(container) {
   // ── STATO ───────────────────────────────────────────────────
   let sedeSelezionata = null;
   let _identita = null;
-  const fotoSel = { cover: null, reelTerra: null, reelMare: null, locale: [], header: [] };
+  const fotoSel = { cover: null, reelTerra: null, reelMare: null, locale: [] };
   const SEZIONI = [
     { id:"hero",       label:"🦸 Hero",              def:true  },
     { id:"highlights", label:"✨ Highlights",         def:true  },
