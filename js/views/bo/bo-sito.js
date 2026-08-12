@@ -65,6 +65,8 @@ export async function render(container) {
     .sw-media-item img,.sw-media-item video{width:100%;height:100%;object-fit:cover}
     .sw-media-check{position:absolute;top:4px;right:4px;background:#0E5A7A;color:white;border-radius:50%;width:20px;height:20px;display:none;align-items:center;justify-content:center;font-size:11px;font-weight:700}
     .sw-media-item.selected .sw-media-check{display:flex}
+    .sw-lente{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.55);color:#fff;border:0;border-radius:50%;width:22px;height:22px;font-size:11px;line-height:1;cursor:pointer;padding:0}
+    .sw-lente:hover{background:rgba(0,0,0,.85)}
     .sw-toggle{width:42px;height:24px;background:#e5e7eb;border-radius:12px;position:relative;cursor:pointer;border:none;flex-shrink:0}
     .sw-toggle.on{background:#0E5A7A}
     .sw-toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:transform .2s}
