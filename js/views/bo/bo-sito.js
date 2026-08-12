@@ -1042,7 +1042,7 @@ ${sezioniState.locale && conf.foto_locale?.[0] ? `
     <a class="btn" href="${esc(formUrl)}">🗓 ${esc(cta)}</a>
   </section>
 </div>` : ""}
-${sezioniState.recensioni ? `
+${sezioniState.recensioni && recensioni.length ? `
 <div class="rev-bg">
   <div style="max-width:700px;margin:0 auto;">
     <div class="eyebrow">Dicono di noi</div>
