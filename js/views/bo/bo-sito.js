@@ -598,6 +598,7 @@ export async function render(container) {
     renderMedia("grid-reel-terra", video, "reelTerra", false);
     renderMedia("grid-reel-mare",  video, "reelMare",  false);
     renderMedia("grid-locale",     imgs,  "locale",    true);
+    pieghevoli();
   }
 
   // Anteprima a schermo intero: le miniature sono troppo piccole per capire
