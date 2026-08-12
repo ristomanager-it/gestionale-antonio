@@ -617,7 +617,6 @@ export async function render(container) {
         }
       };
     });
-    }
   }
 
   // ── TONY ────────────────────────────────────────────────────
