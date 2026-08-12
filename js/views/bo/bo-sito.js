@@ -275,9 +275,14 @@ export async function render(container) {
     <!-- TAB FOTO -->
     <div class="sw-panel" id="panel-foto">
       <div class="sw-card">
-        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🖼️ Foto cover (hero)</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">La prima foto che vede il visitatore</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🖼️ Copertina</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Tocca le foto che vuoi in cima al sito. Se ne scegli più di una si alternano da sole. Tocca la lente per vederle grandi.</div>
         <div class="sw-media-grid" id="grid-cover"></div>
+      </div>
+      <div class="sw-card">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🎥 Video di copertina</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Se scegli un video prende il posto delle foto. Ritocca per toglierlo.</div>
+        <div class="sw-media-grid" id="grid-video-hero"></div>
       </div>
       <div class="sw-card">
         <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🎬 Video — cucina di terra</div>
