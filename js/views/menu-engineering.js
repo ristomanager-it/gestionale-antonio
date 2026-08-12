@@ -303,13 +303,20 @@ function mostraDettaglio(rid) {
       <div style="font-size:14px; color:#475569; margin-top:8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:6px 14px;">
         <div>Venduti: <b>${Number(r.qta_venduta).toLocaleString("it-IT")}</b></div>
         <div>Ricavi: <b>${eur(r.ricavi)}</b></div>
-        <div>Prezzo medio: <b>${eur(r.prezzo_medio)}</b></div>
+        <div>Prezzo a menu: <b>${r.prezzo_listino != null ? eur(r.prezzo_listino) : "non impostato"}</b></div>
+        <div>Prezzo medio incassato: <b>${eur(r.prezzo_medio)}</b></div>
         <div>Costo piatto: <b>${eur(r.costo_piatto)}</b>${r.costo_stimato ? ' <span style="color:#d97706; font-size:11px;">(stima)</span>' : ""}</div>
         <div>Margine: <b>${eur(r.margine_unitario)}</b></div>
         <div>Food cost: <b>${r.food_cost_perc ?? "—"}%</b></div>
         <div>Percezione prezzo: <b>${r.indice_percezione_prezzo}</b></div>
         <div>Quota categoria: <b>${r.quota_categoria_perc}%</b></div>
       </div>
+      ${r.costo_stimato && r.prezzo_listino != null && Number(r.costo_piatto) === Number(r.prezzo_listino)
+        ? `<div style="margin-top:12px; padding:11px; border-radius:8px; background:#fef3c7; border:1px solid #fcd34d; font-size:13.5px; line-height:1.5;">
+             Il costo di questo piatto e uguale al prezzo di vendita: nel campo del costo e finito il prezzo.
+             Finche resta cosi, food cost e prezzo consigliato qui sotto non vogliono dire niente.
+           </div>`
+        : ""}
       <div style="margin-top:12px; padding:11px; border-radius:8px; background:${spinta ? "#f0fdf4" : "#f8fafc"}; font-size:14px;">
         💡 Prezzo consigliato: <b>${eur(r.prezzo_consigliato)}</b>
         ${spinta ? ` — margine spingibile <b>+${eur(r.margine_spingibile)}</b> a piatto` : " — prezzo già ben posizionato"}
@@ -476,9 +483,9 @@ function renderTabella() {
       const col = COLORI[r.quadrante] || "#94a3b8";
       const spinta = r.quadrante !== "SENZA_COSTO" && Number(r.margine_spingibile) > 0;
       return `
-        <div style="border:1px solid #e2e8f0; border-left:4px solid ${col}; border-radius:10px; padding:12px; margin-bottom:8px;">
+        <div class="me-riga" data-rid="${r.ricetta_id}" style="border:1px solid #e2e8f0; border-left:4px solid ${col}; border-radius:10px; padding:12px; margin-bottom:8px; cursor:pointer;">
           <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
-            <div style="font-weight:700; font-size:15px;">${escapeHtml(r.nome)}</div>
+            <div style="font-weight:700; font-size:15px;">${escapeHtml(r.nome)} <span style="color:#cbd5e1; font-weight:400;">›</span></div>
             <span style="color:${col}; font-weight:800; font-size:11px; white-space:nowrap;">${r.quadrante === "SENZA_COSTO" ? "manca costo" : escapeHtml(r.quadrante)}</span>
           </div>
           <div style="font-size:12px; color:#94a3b8; margin-bottom:8px;">${escapeHtml(r.categoria)}</div>
@@ -491,6 +498,7 @@ function renderTabella() {
           ${spinta ? `<div style="margin-top:8px; font-size:13.5px; color:#16a34a; font-weight:700;">+${eur(r.margine_spingibile)} a piatto</div>` : ""}
         </div>`;
     }).join("");
+    agganciaRighe(cont);
     return;
   }
 
@@ -514,7 +522,7 @@ function renderTabella() {
             ? `<span style="color:#94a3b8; font-size:11px;">manca costo</span>`
             : `<span style="color:${col}; font-weight:800; font-size:11px;">${escapeHtml(r.quadrante)}</span>`;
           return `
-          <tr style="border-bottom:1px solid #f1f5f9;">
+          <tr class="me-riga" data-rid="${r.ricetta_id}" style="border-bottom:1px solid #f1f5f9; cursor:pointer;">
             <td style="padding:7px 4px; font-weight:600;">${escapeHtml(r.nome)}<div style="font-size:11px; color:#94a3b8; font-weight:400;">${escapeHtml(r.categoria)}</div></td>
             <td style="padding:7px 4px;">${badge}</td>
             <td style="padding:7px 4px; text-align:right;">${Number(r.qta_venduta).toLocaleString("it-IT")}</td>
@@ -526,6 +534,23 @@ function renderTabella() {
         }).join("")}
       </tbody>
     </table>`;
+  agganciaRighe(cont);
+}
+
+// Prima la scheda del piatto si apriva solo cliccando le bollicine del grafico:
+// bersagli da pochi pixel, su un telefono quasi impossibili da centrare. Ora si
+// apre anche toccando la riga in elenco, che e' il gesto naturale.
+function agganciaRighe(cont) {
+  cont.querySelectorAll(".me-riga").forEach(el => {
+    el.addEventListener("click", () => {
+      const rid = Number(el.dataset.rid);
+      mostraDettaglio(rid);
+      simRid = rid;
+      renderSimulatore();
+      const box = document.getElementById("me-dettaglio");
+      if (box) box.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
 }
 
 /* ── Copertura dati ────────────────────────────────────────────────────── */
