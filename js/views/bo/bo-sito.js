@@ -599,7 +599,34 @@ export async function render(container) {
   function renderMedia(gridId, media, key, multi) {
     const grid = document.getElementById(gridId);
     if (!media.length) { grid.innerHTML = `<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Nessun media — carica dalla Media Library</div>`; return; }
-    grid.innerHTML = media.map(m => {
+
+    // Con centinaia di foto senza filtro non si trova niente: i bottoni
+    // nascono dai tag realmente presenti, non da un elenco fisso.
+    const tags = [...new Set(media.map(m => m.tag).filter(Boolean))].sort();
+    const barId = gridId + "-filtri";
+    let bar = document.getElementById(barId);
+    if (!bar && tags.length > 1) {
+      bar = document.createElement("div");
+      bar.id = barId;
+      bar.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;";
+      bar.innerHTML = [`<button data-t="" class="sw-filtro attivo">Tutte</button>`]
+        .concat(tags.map(t => `<button data-t="${t}" class="sw-filtro">${t}</button>`)).join("");
+      bar.querySelectorAll("button").forEach(b => {
+        b.style.cssText = "border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:4px 11px;font-size:12px;cursor:pointer;";
+        b.onclick = () => {
+          bar.querySelectorAll("button").forEach(x => { x.style.background = "#fff"; x.style.color = "#0f172a"; });
+          b.style.background = "#0f4c5c"; b.style.color = "#fff";
+          const t = b.dataset.t;
+          disegna(t ? media.filter(m => m.tag === t) : media);
+        };
+      });
+      grid.parentNode.insertBefore(bar, grid);
+    }
+
+    disegna(media);
+
+    function disegna(elenco) {
+    grid.innerHTML = elenco.map(m => {
       const isV = m.tipo === "video";
       const isSel = multi ? fotoSel[key].includes(m.url) : fotoSel[key] === m.url;
       return `<div class="sw-media-item${isSel ? ' selected' : ''}" data-url="${m.url}" data-key="${key}">
