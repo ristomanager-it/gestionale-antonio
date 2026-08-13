@@ -197,6 +197,23 @@ export async function render(container) {
           <label class="sw-label">Paragrafo 2</label>
           <textarea id="sw-chisiamo-2" class="sw-textarea" placeholder="Filosofia e valori..."></textarea>
         </div>
+        <div style="font-size:12px;color:#64748b;margin:10px 0 6px;">Titoli delle due sezioni con foto o video. Lasciali vuoti e restano quelli attuali.</div>
+        <div class="sw-field">
+          <label class="sw-label">Sezione 1 &mdash; sopratitolo</label>
+          <input id="sw-sez1-occhiello" class="sw-input" placeholder="Tradizione · Territorio">
+        </div>
+        <div class="sw-field">
+          <label class="sw-label">Sezione 1 &mdash; titolo</label>
+          <input id="sw-sez1-titolo" class="sw-input" placeholder="I primi di terra">
+        </div>
+        <div class="sw-field">
+          <label class="sw-label">Sezione 2 &mdash; sopratitolo</label>
+          <input id="sw-sez2-occhiello" class="sw-input" placeholder="Scelto ogni mattina">
+        </div>
+        <div class="sw-field">
+          <label class="sw-label">Sezione 2 &mdash; titolo</label>
+          <input id="sw-sez2-titolo" class="sw-input" placeholder="Il nostro mare">
+        </div>
       </div>
 
       <div class="sw-card" id="sw-card-mare">
