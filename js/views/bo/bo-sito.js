@@ -1493,7 +1493,7 @@ ${sezioniState.reel && (conf.foto_reel_terra || conf.foto_reel_mare) ? `
   </div>` : ""}
   ${conf.foto_reel_mare ? `<div class="reel-blocco">
     ${mediaSezione(conf.foto_reel_mare, "Tocca")}
-    <div class="reel-testo"><div class="occhiello">Scelto ogni mattina</div><h3>Il nostro mare</h3>${conf.mare_testo ? `<p>${esc(conf.mare_testo)}</p>` : ""}</div>
+    <div class="reel-testo"><div class="occhiello">${esc(conf.sez2_occhiello || "Scelto ogni mattina")}</div><h3>${esc(conf.sez2_titolo || "Il nostro mare")}</h3>${conf.mare_testo ? `<p>${esc(conf.mare_testo)}</p>` : ""}</div>
   </div>` : ""}
 </div>` : ""}
 ${sezioniState.mare && conf.mare_quote ? `
