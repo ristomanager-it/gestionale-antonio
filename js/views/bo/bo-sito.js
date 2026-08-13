@@ -610,6 +610,7 @@ export async function render(container) {
       foto_header:     conf.foto_header,
       video_hero:      conf.video_hero,
       sezioni:         conf.sezioni,
+      sezioni_ordine:  conf.sezioni_ordine,
       updated_at:      new Date().toISOString()
     };
 
