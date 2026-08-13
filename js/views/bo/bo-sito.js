@@ -664,6 +664,212 @@ export async function render(container) {
     });
   }
 
+  // ── GALLERIA DEL SITO ──────────────────────────────────────
+  // Le foto della libreria hanno forme e pesi a caso. Qui si sceglie
+  // l'inquadratura una volta sola e si salva una copia gia' della misura
+  // giusta e leggera. L'originale in libreria non viene mai toccato.
+  const FORMATI = {
+    copertina: { w: 1600, h: 900,  nome: "Copertina" },
+    sezione:   { w: 1200, h: 675,  nome: "Sezione" },
+    quadrata:  { w: 1000, h: 1000, nome: "Quadrata" },
+    verticale: { w: 1080, h: 1920, nome: "Verticale" }
+  };
+  let sitoMedia = [];
+
+  async function caricaSitoMedia() {
+    const grid = document.getElementById("grid-sito");
+    if (!grid) return;
+    let q = sc.from("sito_media").select("*").eq("azienda_id", aziendaId);
+    if (sedeSelezionata && sedeSelezionata.id) q = q.eq("sede_id", sedeSelezionata.id);
+    const { data } = await q.order("created_at", { ascending: false });
+    sitoMedia = data || [];
+    if (!sitoMedia.length) {
+      grid.innerHTML = '<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Ancora nessuna foto pronta. Usa i pulsanti qui sopra.</div>';
+      return;
+    }
+    grid.innerHTML = sitoMedia.map(function (m) {
+      return '<div class="sw-media-item" data-url="' + m.url + '" style="cursor:default">' +
+        '<img src="' + m.url + '" loading="lazy" decoding="async">' +
+        '<button class="sw-lente" data-big="' + m.url + '" data-vid="0">&#128269;</button>' +
+        '<button class="sw-del-foto" data-id="' + m.id + '" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:50%;width:22px;height:22px;font-size:12px;line-height:1;padding:0;cursor:pointer">&times;</button>' +
+        '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:9px;padding:2px 5px;">' +
+          (FORMATI[m.formato] ? FORMATI[m.formato].nome : m.formato) + ' · ' + (m.peso_kb || "?") + ' kB</div>' +
+        '</div>';
+    }).join("");
+    grid.querySelectorAll(".sw-lente").forEach(function (b) {
+      b.onclick = function (e) { e.stopPropagation(); apriAnteprima(b.dataset.big, false); };
+    });
+    grid.querySelectorAll(".sw-del-foto").forEach(function (b) {
+      b.onclick = async function (e) {
+        e.stopPropagation();
+        if (!confirm("Togliere questa foto dalla galleria del sito?")) return;
+        await sc.from("sito_media").delete().eq("id", b.dataset.id);
+        caricaSitoMedia();
+      };
+    });
+  }
+
+  async function scegliDaLibreria(formato) {
+    let q = sc.from("media_library").select("id,url,thumb_url,nome,tag,path")
+      .eq("azienda_id", aziendaId).eq("tipo", "immagine")
+      .or("archiviata.is.null,archiviata.eq.false");
+    if (sedeSelezionata && sedeSelezionata.id) q = q.eq("sede_id", sedeSelezionata.id);
+    const { data } = await q.order("created_at", { ascending: false }).limit(600);
+    const foto = data || [];
+    if (!foto.length) { alert("Nessuna foto in libreria per questa sede."); return; }
+
+    const tags = Array.from(new Set(foto.map(function (f) { return f.tag; }).filter(Boolean))).sort();
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:99998;background:#0f172a;display:flex;flex-direction:column;";
+    ov.innerHTML =
+      '<div style="padding:12px 14px;color:#fff;display:flex;justify-content:space-between;align-items:center;">' +
+        '<b style="font-size:15px">Scegli la foto &mdash; ' + FORMATI[formato].nome + '</b>' +
+        '<button id="ch-x" style="background:none;border:0;color:#fff;font-size:26px;line-height:1">&times;</button></div>' +
+      '<div id="ch-f" style="display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;"></div>' +
+      '<div id="ch-g" style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;padding:0 14px 20px;"></div>';
+    document.body.appendChild(ov);
+    ov.querySelector("#ch-x").onclick = function () { ov.remove(); };
+
+    const barra = ov.querySelector("#ch-f");
+    barra.innerHTML = '<button data-t="">Tutte</button>' +
+      tags.map(function (t) { return '<button data-t="' + t + '">' + t + '</button>'; }).join("");
+    barra.querySelectorAll("button").forEach(function (b) {
+      b.style.cssText = "border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:999px;padding:5px 12px;font-size:12px;white-space:nowrap";
+      b.onclick = function () { mostra(b.dataset.t ? foto.filter(function (f) { return f.tag === b.dataset.t; }) : foto); };
+    });
+
+    function mostra(elenco) {
+      const g = ov.querySelector("#ch-g");
+      g.innerHTML = elenco.map(function (f) {
+        return '<img src="' + (f.thumb_url || f.url) + '" data-u="' + f.url + '" loading="lazy" ' +
+          'style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer">';
+      }).join("");
+      g.querySelectorAll("img").forEach(function (im) {
+        im.onclick = function () {
+          const orig = elenco.find(function (x) { return x.url === im.dataset.u; });
+          ov.remove();
+          apriRitaglio(orig, formato);
+        };
+      });
+    }
+    mostra(foto);
+  }
+
+  function apriRitaglio(orig, formato) {
+    const F = FORMATI[formato];
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:99998;background:#0b1220;display:flex;flex-direction:column;";
+    ov.innerHTML =
+      '<div style="padding:12px 14px;color:#fff;display:flex;justify-content:space-between;align-items:center;">' +
+        '<b style="font-size:15px">' + F.nome + ' &middot; ' + F.w + '&times;' + F.h + '</b>' +
+        '<button id="rt-x" style="background:none;border:0;color:#fff;font-size:26px;line-height:1">&times;</button></div>' +
+      '<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 14px;">' +
+        '<div id="rt-box" style="position:relative;width:100%;max-width:520px;overflow:hidden;background:#000;border-radius:12px;touch-action:none;">' +
+          '<img id="rt-img" style="position:absolute;transform-origin:0 0;user-select:none;-webkit-user-drag:none">' +
+          '<div style="position:absolute;inset:0;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55);border-radius:12px;pointer-events:none"></div>' +
+        '</div></div>' +
+      '<div style="padding:14px;color:#cbd5e1;font-size:12.5px;text-align:center">Trascina per spostare &middot; pizzica per ingrandire</div>' +
+      '<div style="padding:0 14px 22px;display:flex;gap:10px;">' +
+        '<button id="rt-ann" style="flex:1;padding:14px;border-radius:10px;border:1px solid #334155;background:transparent;color:#e2e8f0;font-size:15px">Annulla</button>' +
+        '<button id="rt-ok" style="flex:2;padding:14px;border-radius:10px;border:0;background:#0E5A7A;color:#fff;font-size:15px;font-weight:600">Aggiungi alla galleria</button>' +
+      '</div>';
+    document.body.appendChild(ov);
+    ov.querySelector("#rt-x").onclick = ov.querySelector("#rt-ann").onclick = function () { ov.remove(); };
+
+    const box = ov.querySelector("#rt-box");
+    const img = ov.querySelector("#rt-img");
+    box.style.aspectRatio = F.w + " / " + F.h;
+
+    let scala = 1, dx = 0, dy = 0;
+    img.crossOrigin = "anonymous";
+    img.onload = function () {
+      const bw = box.clientWidth, bh = box.clientHeight;
+      scala = Math.max(bw / img.naturalWidth, bh / img.naturalHeight);
+      dx = (bw - img.naturalWidth * scala) / 2;
+      dy = (bh - img.naturalHeight * scala) / 2;
+      applica();
+    };
+    img.src = orig.url;
+
+    function applica() {
+      const bw = box.clientWidth, bh = box.clientHeight;
+      const minS = Math.max(bw / img.naturalWidth, bh / img.naturalHeight);
+      if (scala < minS) scala = minS;
+      const lw = img.naturalWidth * scala, lh = img.naturalHeight * scala;
+      if (dx > 0) dx = 0;
+      if (dy > 0) dy = 0;
+      if (dx < bw - lw) dx = bw - lw;
+      if (dy < bh - lh) dy = bh - lh;
+      img.style.width = img.naturalWidth + "px";
+      img.style.height = img.naturalHeight + "px";
+      img.style.transform = "translate(" + dx + "px," + dy + "px) scale(" + scala + ")";
+    }
+
+    let punti = {};
+    box.onpointerdown = function (e) { box.setPointerCapture(e.pointerId); punti[e.pointerId] = e; };
+    box.onpointerup = box.onpointercancel = function (e) { delete punti[e.pointerId]; };
+    box.onpointermove = function (e) {
+      if (!punti[e.pointerId]) return;
+      const ids = Object.keys(punti);
+      if (ids.length === 1) {
+        dx += e.clientX - punti[e.pointerId].clientX;
+        dy += e.clientY - punti[e.pointerId].clientY;
+        punti[e.pointerId] = e;
+        applica();
+      } else if (ids.length === 2) {
+        const a = punti[ids[0]], b = punti[ids[1]];
+        const prima = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        punti[e.pointerId] = e;
+        const a2 = punti[ids[0]], b2 = punti[ids[1]];
+        const dopo = Math.hypot(a2.clientX - b2.clientX, a2.clientY - b2.clientY);
+        if (prima > 0) { scala = scala * (dopo / prima); applica(); }
+      }
+    };
+    box.onwheel = function (e) { e.preventDefault(); scala = scala * (e.deltaY < 0 ? 1.08 : 0.93); applica(); };
+
+    ov.querySelector("#rt-ok").onclick = async function () {
+      const btn = ov.querySelector("#rt-ok");
+      btn.disabled = true; btn.textContent = "Preparo...";
+      try {
+        const bw = box.clientWidth;
+        const r = F.w / bw;
+        const cv = document.createElement("canvas");
+        cv.width = F.w; cv.height = F.h;
+        const cx = cv.getContext("2d");
+        cx.imageSmoothingQuality = "high";
+        cx.drawImage(img, dx * r, dy * r, img.naturalWidth * scala * r, img.naturalHeight * scala * r);
+
+        const blob = await new Promise(function (res) { cv.toBlob(res, "image/jpeg", 0.82); });
+        if (!blob) throw new Error("ritaglio non riuscito");
+
+        const nome = "sito/" + aziendaId + "/" + Date.now() + "-" + formato + ".jpg";
+        const up = await sc.storage.from("media-aziende").upload(nome, blob, { contentType: "image/jpeg", upsert: false });
+        if (up.error) throw up.error;
+        const pub = sc.storage.from("media-aziende").getPublicUrl(nome);
+
+        const ins = await sc.from("sito_media").insert({
+          azienda_id: aziendaId,
+          sede_id: (sedeSelezionata && sedeSelezionata.id) || null,
+          formato: formato,
+          url: pub.data.publicUrl,
+          path: nome,
+          larghezza: F.w, altezza: F.h,
+          peso_kb: Math.round(blob.size / 1024),
+          origine_id: orig.id || null,
+          ritaglio: { dx: dx, dy: dy, scala: scala, box: bw },
+          titolo: orig.nome || null
+        });
+        if (ins.error) throw ins.error;
+
+        ov.remove();
+        caricaSitoMedia();
+      } catch (e) {
+        alert("Non sono riuscito a salvare: " + (e.message || e));
+        btn.disabled = false; btn.textContent = "Aggiungi alla galleria";
+      }
+    };
+  }
+
   function renderMedia(gridId, media, key, multi) {
     const grid = document.getElementById(gridId);
     if (!media.length) { grid.innerHTML = `<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Nessun media — carica dalla Media Library</div>`; return; }
