@@ -1155,6 +1155,16 @@ export async function render(container) {
     }
     if (conf.hl1 && conf.hl1.titolo) fatti.push(conf.hl1.titolo);
 
+    // Nelle sezioni si puo' mettere un video oppure una foto: si distingue
+    // dall'estensione, cosi' il titolare sceglie quello che ha.
+    const eVideo = function (u) { return /\.(mp4|mov|webm|m4v)(\?|$)/i.test(String(u || "")); };
+    const mediaSezione = function (u, etichetta) {
+      if (!u) return "";
+      return eVideo(u)
+        ? `<div class="reel-item" onclick="apriVideo('${esc(u)}')"><video src="${esc(u)}" autoplay muted loop playsinline></video><div class="reel-tocca">${etichetta}</div></div>`
+        : `<div class="reel-item" onclick="apriVideo('${esc(u)}')"><img src="${esc(u)}" alt="" loading="lazy"></div>`;
+    };
+
     const copertina = (Array.isArray(conf.foto_header) && conf.foto_header.length)
       ? conf.foto_header.slice(0, 6)
       : (conf.foto_cover ? [conf.foto_cover] : []);
