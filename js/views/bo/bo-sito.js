@@ -278,6 +278,17 @@ export async function render(container) {
 
     <!-- TAB FOTO -->
     <div class="sw-panel" id="panel-foto">
+      <div class="sw-card" id="card-galleria-sito">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🖼️ Galleria del sito</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Le foto gia' tagliate nella misura giusta, pronte da usare. Aggiungine dalla libreria: scegli il punto, il resto lo fa il sistema.</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="sw-add-foto" data-f="copertina">+ Copertina</button>
+          <button class="sw-add-foto" data-f="sezione">+ Sezione</button>
+          <button class="sw-add-foto" data-f="quadrata">+ Quadrata</button>
+          <button class="sw-add-foto" data-f="verticale">+ Verticale</button>
+        </div>
+        <div class="sw-media-grid" id="grid-sito"></div>
+      </div>
       <div class="sw-card">
         <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🖼️ Copertina</div>
         <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Tocca le foto che vuoi in cima al sito. Se ne scegli più di una si alternano da sole. Tocca la lente per vederle grandi.</div>
