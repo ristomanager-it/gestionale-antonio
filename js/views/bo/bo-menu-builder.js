@@ -1108,6 +1108,20 @@ export async function render(container) {
     const empty = qs("#centro-empty");
     const dropzone = qs("#centro-dropzone");
 
+    // Se c'e' un menu aperto ma l'elenco risulta vuoto, le categorie sono
+    // state perse fra un caricamento e l'altro: si rileggono e si ridisegna.
+    // Senza questo il menu sembrava svuotato pur avendo tutte le sue voci.
+    if (menuAttivo && !menuCategorie.length && !renderCatCentro._staRicaricando) {
+      renderCatCentro._staRicaricando = true;
+      loadMenuCategorie(menuAttivo.id)
+        .then(function () { return loadTutteLeVoci(); })
+        .then(function () {
+          renderCatCentro._staRicaricando = false;
+          if (menuCategorie.length) { renderCatCentro(); renderCatSx(); }
+        })
+        .catch(function () { renderCatCentro._staRicaricando = false; });
+    }
+
     empty.style.display = menuCategorie.length ? "none" : "flex";
 
     lista.innerHTML = menuCategorie.map(mc => {
