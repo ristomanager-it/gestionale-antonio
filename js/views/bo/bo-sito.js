@@ -353,17 +353,45 @@ export async function render(container) {
 
   // ── SEZIONI ─────────────────────────────────────────────────
   const sezioniList = document.getElementById("sw-sezioni-list");
-  sezioniList.innerHTML = SEZIONI.map(s => `
-    <div class="sw-sezione-row">
-      <span style="font-size:14px;font-weight:600;">${s.label}</span>
-      <button class="sw-toggle ${s.def ? 'on' : ''}" data-sezione="${s.id}"></button>
-    </div>`).join("");
-  sezioniList.querySelectorAll(".sw-toggle").forEach(btn => {
-    btn.onclick = () => {
-      btn.classList.toggle("on");
-      sezioniState[btn.dataset.sezione] = btn.classList.contains("on");
-    };
-  });
+  // Le sezioni si spostano con le frecce: sul telefono il trascinamento
+  // e' scomodo e sbaglia bersaglio, le frecce no.
+  function disegnaSezioni() {
+    const elenco = ordineSezioni
+      .map(function (id) { return SEZIONI.find(function (x) { return x.id === id; }); })
+      .filter(Boolean);
+    sezioniList.innerHTML = elenco.map(function (s, i) {
+      return '<div class="sw-sezione-row">' +
+        '<span style="display:flex;gap:3px;margin-right:8px;">' +
+          '<button class="sw-su" data-i="' + i + '"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button>' +
+          '<button class="sw-giu" data-i="' + i + '"' + (i === elenco.length - 1 ? ' disabled' : '') + '>&#9660;</button>' +
+        '</span>' +
+        '<span style="font-size:14px;font-weight:600;flex:1;">' + s.label + '</span>' +
+        '<button class="sw-toggle' + (sezioniState[s.id] ? ' on' : '') + '" data-sezione="' + s.id + '"></button>' +
+        '</div>';
+    }).join("");
+
+    sezioniList.querySelectorAll(".sw-su,.sw-giu").forEach(function (b) {
+      b.style.cssText = "border:1px solid #cbd5e1;background:#fff;border-radius:6px;width:26px;height:26px;font-size:10px;line-height:1;cursor:pointer;padding:0";
+      if (b.disabled) b.style.opacity = ".3";
+      b.onclick = function () {
+        const i = Number(b.dataset.i);
+        const j = b.classList.contains("sw-su") ? i - 1 : i + 1;
+        if (j < 0 || j >= ordineSezioni.length) return;
+        const t = ordineSezioni[i];
+        ordineSezioni[i] = ordineSezioni[j];
+        ordineSezioni[j] = t;
+        disegnaSezioni();
+      };
+    });
+
+    sezioniList.querySelectorAll(".sw-toggle").forEach(function (btn) {
+      btn.onclick = function () {
+        btn.classList.toggle("on");
+        sezioniState[btn.dataset.sezione] = btn.classList.contains("on");
+      };
+    });
+  }
+  disegnaSezioni();
 
   // ── COLOR PICKER SYNC ───────────────────────────────────────
   const syncPicker = (pickerId, hexId) => {
