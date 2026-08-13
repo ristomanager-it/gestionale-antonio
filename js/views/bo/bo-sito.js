@@ -819,7 +819,9 @@ export async function render(container) {
     if (window.ResizeObserver) new ResizeObserver(function () { if (pronto) applica(); }).observe(box);
 
     function applica() {
-      const bw = box.clientWidth, bh = box.clientHeight;
+      const rr = box.getBoundingClientRect();
+      const bw = rr.width, bh = rr.height;
+      if (!bw || !bh) return;
       const minS = Math.max(bw / img.naturalWidth, bh / img.naturalHeight);
       if (scala < minS) scala = minS;
       const lw = img.naturalWidth * scala, lh = img.naturalHeight * scala;
