@@ -1282,6 +1282,16 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400&family=${fontUrl}&display=swap" rel="stylesheet">
 <style>${css}</style>
 <script>
+// Video a schermo pieno al tocco: sul telefono un video incastrato in una
+// colonna non si guarda, cosi' si apre grande e con l'audio.
+function apriVideo(u){
+  var o=document.createElement('div');
+  o.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:12px';
+  o.innerHTML='<video src="'+u+'" controls autoplay playsinline style="max-width:100%;max-height:92vh;border-radius:12px"></video>'
+    +'<div style="position:absolute;top:14px;right:18px;color:#fff;font-size:30px;line-height:1">&times;</div>';
+  o.onclick=function(){o.remove()};
+  document.body.appendChild(o);
+}
 (function(){
   var SID=sessionStorage.getItem('rf_sid')||(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
   sessionStorage.setItem('rf_sid',SID);
