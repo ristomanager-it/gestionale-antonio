@@ -23,6 +23,7 @@ export async function render(container) {
     { id:"reel",       label:"🎬 Video reel",         def:true  },
     { id:"mare",       label:"🐟 Filosofia mare",     def:false },
     { id:"menu",       label:"📋 Menu digitale",      def:true  },
+    { id:"menugiorno", label:"🍝 Menu del giorno",     def:false },
     { id:"locale",     label:"🏠 Il locale",          def:true  },
     { id:"recensioni", label:"⭐ Recensioni",         def:true  },
     { id:"mappa",      label:"📍 Come raggiungerci",  def:true  },
