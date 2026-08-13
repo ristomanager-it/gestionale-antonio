@@ -921,7 +921,7 @@ export async function render(container) {
   // ── CONSEGNA: zone, fasce orarie, anteprima ───────────────────
   // Il costo e la capienza li ricontrolla comunque il database a ogni ordine:
   // qui si decide, non si calcola.
-  let modoConsegna = "fisso", zone = [], fasce = [];
+  // modoConsegna, zone e fasce sono dichiarate in cima al file.
   const GIORNI = [["Lun",1],["Mar",2],["Mer",3],["Gio",4],["Ven",5],["Sab",6],["Dom",0]];
 
   function cambiaModo(m) {
