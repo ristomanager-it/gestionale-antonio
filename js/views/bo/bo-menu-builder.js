@@ -26,6 +26,10 @@ export async function render(container) {
 
   let menus           = [];
   let menuAttivo      = null;
+  // Dichiarate qui e non piu' in fondo: cambiaModo() viene chiamata da
+  // popolaConfigMenu() ben prima, e con let l'uso anticipato fermava
+  // selezionaMenu() a meta'. Le categorie del menu restavano invisibili.
+  let modoConsegna = "fisso", zone = [], fasce = [];
   let catVendita      = [];
   let menuCategorie   = [];
   let catSelezionata  = null;
