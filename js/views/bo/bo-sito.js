@@ -795,16 +795,28 @@ export async function render(container) {
     const img = ov.querySelector("#rt-img");
     box.style.aspectRatio = F.w + " / " + F.h;
 
-    let scala = 1, dx = 0, dy = 0;
+    let scala = 1, dx = 0, dy = 0, pronto = false;
     img.crossOrigin = "anonymous";
-    img.onload = function () {
-      const bw = box.clientWidth, bh = box.clientHeight;
-      scala = Math.max(bw / img.naturalWidth, bh / img.naturalHeight);
-      dx = (bw - img.naturalWidth * scala) / 2;
-      dy = (bh - img.naturalHeight * scala) / 2;
+
+    // Quando la foto finisce di caricare il riquadro puo' non avere ancora
+    // una larghezza: il calcolo partirebbe da zero e l'immagine resterebbe
+    // una striscia. Si aspetta che il riquadro esista davvero.
+    function prepara() {
+      const r = box.getBoundingClientRect();
+      if (!r.width || !r.height || !img.naturalWidth) {
+        requestAnimationFrame(prepara);
+        return;
+      }
+      scala = Math.max(r.width / img.naturalWidth, r.height / img.naturalHeight);
+      dx = (r.width - img.naturalWidth * scala) / 2;
+      dy = (r.height - img.naturalHeight * scala) / 2;
+      pronto = true;
       applica();
-    };
+    }
+    img.onload = prepara;
+    img.onerror = function () { alert("Non riesco a caricare questa foto."); ov.remove(); };
     img.src = orig.url;
+    if (window.ResizeObserver) new ResizeObserver(function () { if (pronto) applica(); }).observe(box);
 
     function applica() {
       const bw = box.clientWidth, bh = box.clientHeight;
