@@ -370,6 +370,7 @@ export async function render(container) {
 
   // ── SEZIONI ─────────────────────────────────────────────────
   const sezioniList = document.getElementById("sw-sezioni-list");
+  let ordineSezioni = SEZIONI.map(function (s) { return s.id; });
   // Le sezioni si spostano con le frecce: sul telefono il trascinamento
   // e' scomodo e sbaglia bersaglio, le frecce no.
   function disegnaSezioni() {
