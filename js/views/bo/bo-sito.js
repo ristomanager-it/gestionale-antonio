@@ -1407,8 +1407,14 @@ ${sezioniState.cucina && conf.chisiamo_1 ? `
 </section>` : ""}
 ${sezioniState.reel && (conf.foto_reel_terra || conf.foto_reel_mare) ? `
 <div class="reel-grid" style="max-width:${conf.foto_reel_terra && conf.foto_reel_mare ? '100%' : '600px'};margin:0 auto;">
-  ${conf.foto_reel_terra ? `<div class="reel-item"><video src="${esc(conf.foto_reel_terra)}" autoplay muted loop playsinline></video><div class="reel-ov"><div class="reel-lbl">I primi di terra</div><div class="reel-sub">Tradizione · Territorio</div></div></div>` : ""}
-  ${conf.foto_reel_mare ? `<div class="reel-item"><video src="${esc(conf.foto_reel_mare)}" autoplay muted loop playsinline></video><div class="reel-ov"><div class="reel-lbl">Il nostro mare</div><div class="reel-sub">Scelto ogni mattina</div></div></div>` : ""}
+  ${conf.foto_reel_terra ? `<div>
+    <div class="reel-item" onclick="apriVideo('${esc(conf.foto_reel_terra)}')"><video src="${esc(conf.foto_reel_terra)}" autoplay muted loop playsinline></video><div class="reel-tocca">Tocca per aprire</div></div>
+    <div class="reel-testo"><div class="occhiello">Tradizione · Territorio</div><h3>I primi di terra</h3>${conf.chisiamo_2 ? `<p>${esc(conf.chisiamo_2)}</p>` : ""}</div>
+  </div>` : ""}
+  ${conf.foto_reel_mare ? `<div>
+    <div class="reel-item" onclick="apriVideo('${esc(conf.foto_reel_mare)}')"><video src="${esc(conf.foto_reel_mare)}" autoplay muted loop playsinline></video><div class="reel-tocca">Tocca per aprire</div></div>
+    <div class="reel-testo"><div class="occhiello">Scelto ogni mattina</div><h3>Il nostro mare</h3>${conf.mare_testo ? `<p>${esc(conf.mare_testo)}</p>` : ""}</div>
+  </div>` : ""}
 </div>` : ""}
 ${sezioniState.mare && conf.mare_quote ? `
 <div class="mare-s" id="mare">
