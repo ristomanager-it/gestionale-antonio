@@ -1113,12 +1113,15 @@ ${nav}
           : (copertina[0] ? `<img src="${esc(copertina[0])}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;" alt="">` : ""))}
   </div>
   <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.7) 0%,rgba(0,0,0,.2) 60%,transparent 100%);"></div>
-  <div style="position:relative;z-index:2;padding:0 20px;">
-    <div class="eyebrow">Orte · A1 · Parcheggio gratuito</div>
-    <h1 class="h2" style="color:#fff;font-size:clamp(36px,8vw,72px);margin-bottom:16px;text-shadow:0 2px 12px rgba(0,0,0,.5);">${esc(conf.hero_titolo || nome)}</h1>
-    ${conf.hero_sub ? `<p style="font-size:14px;color:rgba(255,255,255,.85);margin-bottom:28px;max-width:440px;margin-left:auto;margin-right:auto;text-shadow:0 1px 6px rgba(0,0,0,.5);">${esc(conf.hero_sub)}</p>` : ""}
-    <a class="btn" href="${esc(formUrl)}" style="font-size:16px;padding:16px 36px;">🗓 ${esc(cta)}</a>
-    ${tel ? `<a class="btn-ghost" href="tel:${esc(tel)}">📞 Chiama</a>` : ""}
+  <div style="position:relative;z-index:2;width:100%;max-width:1100px;margin:0 auto;padding:0 20px 34px;text-align:left;">
+    <div class="eyebrow">Orte · uscita A1</div>
+    <h1 class="h2" style="color:#fff;font-size:clamp(31px,8vw,58px);line-height:1.06;margin:8px 0 10px;text-shadow:0 2px 12px rgba(0,0,0,.5);">${esc(conf.hero_titolo || nome)}</h1>
+    ${conf.hero_sub ? `<p style="font-size:16px;color:rgba(255,255,255,.9);margin-bottom:20px;max-width:34ch;text-shadow:0 1px 6px rgba(0,0,0,.5);">${esc(conf.hero_sub)}</p>` : ""}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a class="btn" href="${esc(formUrl)}" style="font-size:15px;padding:14px 26px;">🗓 ${esc(cta)}</a>
+      ${tel ? `<a class="btn-ghost" href="tel:${esc(tel)}">📞 Chiama</a>` : ""}
+    </div>
+    ${fatti.length ? `<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;">${fatti.map(f => `<span style="border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.88);padding:5px 11px;border-radius:999px;font-size:12.5px;">${esc(f)}</span>`).join("")}</div>` : ""}
   </div>
 </div>
 ${ctaBar}
