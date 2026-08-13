@@ -860,7 +860,7 @@ export async function render(container) {
       const btn = ov.querySelector("#rt-ok");
       btn.disabled = true; btn.textContent = "Preparo...";
       try {
-        const bw = box.clientWidth;
+        const bw = box.getBoundingClientRect().width;
         const r = F.w / bw;
         const cv = document.createElement("canvas");
         cv.width = F.w; cv.height = F.h;
