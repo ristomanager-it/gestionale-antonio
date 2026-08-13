@@ -296,7 +296,7 @@ export async function render(container) {
       </div>
       <div class="sw-card">
         <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🎥 Video di copertina</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Se scegli un video prende il posto delle foto. Ritocca per toglierlo.</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Foto o video, come preferisci. Se scegli un video prende il posto delle foto. Ritocca per toglierlo.</div>
         <div class="sw-media-grid" id="grid-video-hero"></div>
       </div>
       <div class="sw-card">
