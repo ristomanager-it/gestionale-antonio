@@ -780,7 +780,7 @@ export async function render(container) {
         '<button id="rt-x" style="background:none;border:0;color:#fff;font-size:26px;line-height:1">&times;</button></div>' +
       '<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 14px;">' +
         '<div id="rt-box" style="position:relative;width:100%;max-width:520px;overflow:hidden;background:#000;border-radius:12px;touch-action:none;">' +
-          '<img id="rt-img" style="position:absolute;transform-origin:0 0;user-select:none;-webkit-user-drag:none">' +
+          '<img id="rt-img" style="position:absolute;transform-origin:0 0;user-select:none;-webkit-user-drag:none;max-width:none;max-height:none;">' +
           '<div style="position:absolute;inset:0;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55);border-radius:12px;pointer-events:none"></div>' +
         '</div></div>' +
       '<div style="padding:14px;color:#cbd5e1;font-size:12.5px;text-align:center">Trascina per spostare &middot; pizzica per ingrandire</div>' +
