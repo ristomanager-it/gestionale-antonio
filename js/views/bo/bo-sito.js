@@ -609,15 +609,26 @@ export async function render(container) {
     const { data } = await q;
     const imgs  = (data || []).filter(m => m.tipo === "immagine");
     const video = (data || []).filter(m => m.tipo === "video");
-    renderMedia("grid-cover",      imgs,  "header",    true);
-    renderMedia("grid-video-hero", video, "videoHero", false);
-    renderMedia("grid-reel-terra", video, "reelTerra", false);
-    renderMedia("grid-reel-mare",  video, "reelMare",  false);
-    renderMedia("grid-locale",     imgs,  "locale",    true);
     document.querySelectorAll(".sw-add-foto").forEach(function (b) {
       b.onclick = function () { scegliDaLibreria(b.dataset.f); };
     });
-    caricaSitoMedia();
+    await caricaSitoMedia();
+
+    // Le sezioni pescano dalla galleria del sito, non dalla libreria: li'
+    // dentro le foto sono gia' tagliate nella misura giusta e leggere.
+    function pronte(formati) {
+      return sitoMedia.filter(function (m) { return formati.indexOf(m.formato) !== -1; })
+        .map(function (m) {
+          return { url: m.url, thumb_url: m.url, tipo: "immagine",
+                   nome: m.titolo || (FORMATI[m.formato] ? FORMATI[m.formato].nome : m.formato),
+                   tag: FORMATI[m.formato] ? FORMATI[m.formato].nome : m.formato };
+        });
+    }
+    renderMedia("grid-cover",      pronte(["copertina"]),          "header",    true);
+    renderMedia("grid-video-hero", video,                          "videoHero", false);
+    renderMedia("grid-reel-terra", video,                          "reelTerra", false);
+    renderMedia("grid-reel-mare",  video,                          "reelMare",  false);
+    renderMedia("grid-locale",     pronte(["sezione","quadrata"]), "locale",    true);
     pieghevoli();
   }
 
