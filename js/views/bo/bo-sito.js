@@ -997,6 +997,11 @@ a{text-decoration:none;color:inherit}
 .loc-img{width:100%;height:280px;object-fit:cover;display:block}
 .rev-bg{background:var(--caldo);padding:72px 20px}
 .rev-c{background:#fff;border-radius:12px;padding:20px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.rev-strip{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px;margin:0 -20px;padding-left:20px;padding-right:20px}
+.rev-strip::-webkit-scrollbar{display:none}
+.rev-strip .rev-c{flex:0 0 80%;max-width:340px;scroll-snap-align:start;margin-bottom:0}
+@media(min-width:760px){.rev-strip .rev-c{flex-basis:45%}}
+.rev-scorri{font-size:12px;color:var(--grigio);margin-top:6px}
 .rev-t{font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;line-height:1.6;margin-bottom:10px}
 .stars{color:var(--acc);letter-spacing:2px;font-size:13px;margin-bottom:6px}
 .map-s{background:var(--scuro);padding:72px 20px}
