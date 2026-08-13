@@ -487,6 +487,7 @@ export async function render(container) {
       foto_header:     fotoSel.header,
       video_hero:      fotoSel.videoHero,
       sezioni:      { ...sezioniState },
+      sezioni_ordine: ordineSezioni.slice(),
     };
   }
 
