@@ -1176,6 +1176,24 @@ ${sezioniState.locale && conf.foto_locale?.[0] ? `
     <a class="btn" href="${esc(formUrl)}">🗓 ${esc(cta)}</a>
   </section>
 </div>` : ""}
+${menuOggi ? `
+<section class="section" id="menugiorno">
+  <div class="eyebrow">Oggi in cucina</div>
+  <h2 class="h2" style="margin-bottom:6px;">${esc(menuOggi.titolo || "Menu del giorno")}</h2>
+  ${menuOggi.prezzo_visibile && Number(menuOggi.prezzo_fisso) > 0
+    ? `<div style="font-size:19px;color:var(--btn);font-weight:600;margin-bottom:16px;">${Number(menuOggi.prezzo_fisso).toFixed(0)} € a persona</div>`
+    : `<div style="margin-bottom:16px;"></div>`}
+  ${["antipasti","primi","secondi","contorni","dolci"].map(p => {
+      const v = menuOggi.voci.filter(x => (x.portata || "").toLowerCase() === p);
+      if (!v.length) return "";
+      return `<div style="margin-bottom:14px;">
+        <div class="eyebrow" style="margin-bottom:6px;">${p}</div>
+        ${v.map(x => `<div style="padding:5px 0;border-bottom:1px solid #eee;font-size:15px;">${esc(x.nome)}</div>`).join("")}
+      </div>`;
+    }).join("")}
+  ${menuOggi.note ? `<p style="font-size:14px;color:var(--grigio);margin-top:10px;">${esc(menuOggi.note)}</p>` : ""}
+  <div style="margin-top:18px;"><a class="btn" href="${esc(formUrl)}">🗓 ${esc(cta)}</a></div>
+</section>` : ""}
 ${sezioniState.recensioni && recensioni.length ? `
 <div class="rev-bg">
   <div style="max-width:700px;margin:0 auto;">
