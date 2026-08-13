@@ -614,6 +614,10 @@ export async function render(container) {
     renderMedia("grid-reel-terra", video, "reelTerra", false);
     renderMedia("grid-reel-mare",  video, "reelMare",  false);
     renderMedia("grid-locale",     imgs,  "locale",    true);
+    document.querySelectorAll(".sw-add-foto").forEach(function (b) {
+      b.onclick = function () { scegliDaLibreria(b.dataset.f); };
+    });
+    caricaSitoMedia();
     pieghevoli();
   }
 
