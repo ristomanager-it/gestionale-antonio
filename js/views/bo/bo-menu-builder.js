@@ -642,6 +642,11 @@ export async function render(container) {
     renderTabsMenu();
     if (menus.length > 0) {
       await selezionaMenu(menus[0]);
+      // Ridisegno dopo che tutto e' caricato: la colonna sinistra restava
+      // vuota finche' non si scriveva nella casella di ricerca, segno che
+      // veniva disegnata prima che le categorie fossero pronte.
+      renderCatSx(qs("#search-cat-sx") ? qs("#search-cat-sx").value : "");
+      renderCatCentro();
     } else {
       renderCatSx();
       renderCatCentro();
