@@ -876,7 +876,7 @@ export async function render(container) {
 
   function renderMedia(gridId, media, key, multi) {
     const grid = document.getElementById(gridId);
-    if (!media.length) { grid.innerHTML = `<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Nessun media — carica dalla Media Library</div>`; return; }
+    if (!media.length) { grid.innerHTML = `<div style="color:#94a3b8;font-size:13px;grid-column:1/-1;padding:8px;">Niente qui. Aggiungi le foto dalla Galleria del sito, in cima.</div>`; return; }
     // Riquadro con quello che si e' scelto: numerato, nell'ordine in cui
     // finisce in copertina, con la x per togliere.
     const boxId = gridId + "-scelte";
