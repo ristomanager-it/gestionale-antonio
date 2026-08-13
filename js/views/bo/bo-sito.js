@@ -692,6 +692,7 @@ export async function render(container) {
     verticale: { w: 1080, h: 1920, nome: "Verticale" }
   };
   let sitoMedia = [];
+  let ordineSezioni = SEZIONI.map(function (s) { return s.id; });
 
   async function caricaSitoMedia() {
     const grid = document.getElementById("grid-sito");
