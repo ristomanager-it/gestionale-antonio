@@ -575,7 +575,7 @@ export async function render(container) {
         ordineSezioni = conf.sezioni_ordine.filter(function (k) { return noti.indexOf(k) !== -1; });
         noti.forEach(function (k) { if (ordineSezioni.indexOf(k) === -1) ordineSezioni.push(k); });
       }
-      disegnaSezioni();   // rimette in fila le sezioni come le ha lasciate il titolare
+      try { disegnaSezioni(); } catch (e) { console.warn("sezioni:", e); }
       repoSito = conf.repo_github || null;
       if (conf.form_link) document.getElementById('sw-form-link').value = conf.form_link;
       // Colori
