@@ -869,6 +869,18 @@ export async function render(container) {
       recensioni = rec || [];
     }
 
+    // Menu del giorno: si prende quello di oggi, solo se il titolare
+    // l'ha pubblicato. Se non c'e', la sezione non viene proprio stampata.
+    let menuOggi = null;
+    if (sedeId && sezioniState.menugiorno) {
+      const oggi = new Date().toISOString().slice(0, 10);
+      const { data: mg } = await sc.from("menu_giorno")
+        .select("titolo,voci,note,prezzo_fisso,prezzo_visibile")
+        .eq("sede_id", sedeId).eq("data", oggi).eq("pubblicato", true)
+        .maybeSingle();
+      if (mg && Array.isArray(mg.voci) && mg.voci.length) menuOggi = mg;
+    }
+
     const logo    = sede?.logo_url || az?.logo_url || "";
     const clrBtn  = conf.colore_brand      || sede?.colore_brand      || az?.colore_brand || "#794d01";
     const clrAcc  = conf.colore_secondario || sede?.colore_secondario || "#c4892a";
