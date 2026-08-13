@@ -1104,7 +1104,7 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
     const home = `${head(nome)}
 <body>
 ${nav}
-<div style="position:relative;height:100svh;min-height:580px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:80px;text-align:center;overflow:hidden;">
+<div style="position:relative;min-height:82svh;display:flex;align-items:flex-end;overflow:hidden;">
   <div style="position:absolute;inset:0;background:var(--scuro);">
     ${conf.video_hero
       ? `<video src="${esc(conf.video_hero)}" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;"></video>`
