@@ -545,6 +545,12 @@ export async function render(container) {
       if (conf.foto_locale)     fotoSel.locale     = conf.foto_locale;
       if (conf.foto_header)     fotoSel.header     = conf.foto_header;
       if (conf.video_hero)      fotoSel.videoHero  = conf.video_hero;
+      if (Array.isArray(conf.sezioni_ordine) && conf.sezioni_ordine.length) {
+        const noti = SEZIONI.map(function (x) { return x.id; });
+        ordineSezioni = conf.sezioni_ordine.filter(function (k) { return noti.indexOf(k) !== -1; });
+        noti.forEach(function (k) { if (ordineSezioni.indexOf(k) === -1) ordineSezioni.push(k); });
+      }
+      disegnaSezioni();   // rimette in fila le sezioni come le ha lasciate il titolare
       repoSito = conf.repo_github || null;
       if (conf.form_link) document.getElementById('sw-form-link').value = conf.form_link;
       // Colori
