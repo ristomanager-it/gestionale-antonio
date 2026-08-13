@@ -551,6 +551,10 @@ export async function render(container) {
       set("sw-hero-sub",    conf.hero_sub);
       set("sw-hero-cta",    conf.hero_cta);
       set("sw-chisiamo-2",  conf.chisiamo_2);
+      set("sw-sez1-occhiello", conf.sez1_occhiello);
+      set("sw-sez1-titolo",    conf.sez1_titolo);
+      set("sw-sez2-occhiello", conf.sez2_occhiello);
+      set("sw-sez2-titolo",    conf.sez2_titolo);
       set("sw-mare-quote",  conf.mare_quote);
       set("sw-mare-testo",  conf.mare_testo);
       set("sw-pranzo",      conf.orari_pranzo);
