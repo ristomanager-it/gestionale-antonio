@@ -895,6 +895,18 @@ export async function render(container) {
     const cta     = conf.hero_cta || "Prenota un tavolo";
     // Copertina: le foto scelte nel gestionale. Se non ce ne sono si usa
     // la vecchia foto singola, cosi' i siti gia' pubblicati non cambiano.
+    // Tre dati secchi sotto i bottoni: chi cerca dove mangiare mentre e' in
+    // viaggio decide su questi, non sulle descrizioni.
+    const fatti = [];
+    if (recensioni.length >= 3) {
+      const media = recensioni.reduce((t, r) => t + (Number(r.voto) || 0), 0) / recensioni.length;
+      fatti.push("\u2605 " + media.toFixed(1).replace(".", ",") + " su " + recensioni.length + " recensioni");
+    }
+    if (menuOggi && menuOggi.prezzo_visibile && Number(menuOggi.prezzo_fisso) > 0) {
+      fatti.push("Menu del giorno " + Number(menuOggi.prezzo_fisso).toFixed(0) + " \u20AC");
+    }
+    if (conf.hl1 && conf.hl1.titolo) fatti.push(conf.hl1.titolo);
+
     const copertina = (Array.isArray(conf.foto_header) && conf.foto_header.length)
       ? conf.foto_header.slice(0, 6)
       : (conf.foto_cover ? [conf.foto_cover] : []);
