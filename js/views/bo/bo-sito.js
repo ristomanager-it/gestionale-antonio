@@ -626,8 +626,10 @@ export async function render(container) {
     }
     renderMedia("grid-cover",      pronte(["copertina"]),          "header",    true);
     renderMedia("grid-video-hero", video,                          "videoHero", false);
-    renderMedia("grid-reel-terra", video,                          "reelTerra", false);
-    renderMedia("grid-reel-mare",  video,                          "reelMare",  false);
+    // Nelle sezioni si puo' mettere un video oppure una foto gia' pronta.
+    const perSezione = video.concat(pronte(["verticale", "quadrata", "sezione"]));
+    renderMedia("grid-reel-terra", perSezione,                     "reelTerra", false);
+    renderMedia("grid-reel-mare",  perSezione,                     "reelMare",  false);
     renderMedia("grid-locale",     pronte(["sezione","quadrata"]), "locale",    true);
     pieghevoli();
   }
