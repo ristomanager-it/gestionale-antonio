@@ -1489,7 +1489,7 @@ ${sezioniState.reel && (conf.foto_reel_terra || conf.foto_reel_mare) ? `
 <div class="reel-grid" style="max-width:${conf.foto_reel_terra && conf.foto_reel_mare ? '100%' : '600px'};margin:0 auto;">
   ${conf.foto_reel_terra ? `<div class="reel-blocco">
     ${mediaSezione(conf.foto_reel_terra, "Tocca")}
-    <div class="reel-testo"><div class="occhiello">Tradizione · Territorio</div><h3>I primi di terra</h3>${conf.chisiamo_2 ? `<p>${esc(conf.chisiamo_2)}</p>` : ""}</div>
+    <div class="reel-testo"><div class="occhiello">${esc(conf.sez1_occhiello || "Tradizione · Territorio")}</div><h3>${esc(conf.sez1_titolo || "I primi di terra")}</h3>${conf.chisiamo_2 ? `<p>${esc(conf.chisiamo_2)}</p>` : ""}</div>
   </div>` : ""}
   ${conf.foto_reel_mare ? `<div class="reel-blocco">
     ${mediaSezione(conf.foto_reel_mare, "Tocca")}
