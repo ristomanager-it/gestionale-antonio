@@ -638,6 +638,10 @@ export async function render(container) {
       video_hero:      conf.video_hero,
       sezioni:         conf.sezioni,
       sezioni_ordine:  conf.sezioni_ordine,
+      sez1_occhiello:  conf.sez1_occhiello,
+      sez1_titolo:     conf.sez1_titolo,
+      sez2_occhiello:  conf.sez2_occhiello,
+      sez2_titolo:     conf.sez2_titolo,
       updated_at:      new Date().toISOString()
     };
 
