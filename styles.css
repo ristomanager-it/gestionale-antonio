@@ -327,8 +327,18 @@ padding:var(--app-padding-y) var(--app-padding-x);
 padding-top:calc(var(--header-height) + 16px);
 padding-bottom:120px;
 display:flex;
-justify-content:center;
+/* prima era una riga flex con justify-content:center: le viste che stampano
+   piu' blocchi di primo livello (intestazione + lista + modali) finivano
+   affiancate in colonne invece che impilate, e su telefono la pagina usciva
+   dallo schermo. Impilo in colonna; .view resta centrata con margin auto. */
+flex-direction:column;
+align-items:stretch;
 min-height:100vh;
+}
+
+#app > .view{
+margin-left:auto;
+margin-right:auto;
 }
 
 /* =========================================================
