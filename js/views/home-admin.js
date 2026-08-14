@@ -118,10 +118,8 @@ ${sintesi(ora)}
     .then(m => m.montaBottoneCamera())
     .catch(e => console.warn("camera non caricata:", e));
 
-  import("../components/supertony-fab.js?v=" + (window.APP_V || "1"))
-    .then(m => m.montaSuperTony())
-    .catch(e => console.warn("super tony non caricato:", e));
-
+  // Super Tony non e' piu' un pulsante flottante: stava sopra quello delle
+  // prenotazioni e copriva il +. Si apre dal menu.
   import("../components/messaggi-personale.js?v=" + (window.APP_V || "1"))
     .then(m => m.montaMessaggiHome())
     .catch(e => console.warn("messaggi non caricati:", e));
