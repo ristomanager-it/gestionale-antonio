@@ -15,6 +15,7 @@ function normalizeMatchText(value) {
   s = s.replace(/[.,;:/\\|()[\]{}'"`´’“”]+/g, " ");
   s = s.replace(/[%€$£]+/g, " ");
 
+  s = s.replace(/\bgr\s*\d+([.,]\d+)?\b/g, " g ");
   s = s.replace(/\bgr\b/g, " g ");
   s = s.replace(/\bgrammi\b/g, " g ");
   s = s.replace(/\bkg\b/g, " kg ");
