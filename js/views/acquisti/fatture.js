@@ -2816,9 +2816,17 @@ async function renderRigheFiscali(box, documentoId, azienda) {
       const riga = righe.find(x => String(x.id) === String(rigaId));
       const testo = radiceDescrizione(riga ? riga.descrizione_originale : "");
       if (testo) {
+        const norm = testo
+          .replace(/[^a-z0-9]+/gi, " ").toLowerCase()
+          .replace(/\b(pz|kg|kgr|gr|g|lt|ltr|l|ml|cl|cf|conf|bs|pn)\s*\d+\b/g, " $1 ")
+          .replace(/\b\d+\b/g, " ")
+          .replace(/\s+/g, " ").trim();
         const { data: giaCe } = await supaDir.from("prodotti_alias_ocr")
-          .select("id").eq("azienda_id", azienda.id).eq("testo_ocr", testo).maybeSingle();
-        if (!giaCe) {
+          .select("id").eq("azienda_id", azienda.id).eq("testo_norm", norm).maybeSingle();
+        if (giaCe && giaCe.id) {
+          await supaDir.from("prodotti_alias_ocr")
+            .update({ prodotto_id: Number(prodId) }).eq("id", giaCe.id);
+        } else {
           await supaDir.from("prodotti_alias_ocr")
             .insert({ azienda_id: azienda.id, testo_ocr: testo, prodotto_id: Number(prodId) });
         }
