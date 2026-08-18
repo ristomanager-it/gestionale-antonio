@@ -31,6 +31,13 @@ function normalizeMatchText(value) {
   s = s.replace(/\bconfez\b/g, " confezione ");
 
   s = s.replace(/\bx\b/g, " ");
+
+  // I numeri delle confezioni non dicono che prodotto e' e cambiano da una
+  // fattura all'altra: senza toglierli, "UOVA GRANDI L PZ90" e "uova grandi
+  // l pz" restavano due prodotti diversi.
+  s = s.replace(/\b(pz|kg|gr|g|l|ml|cl|cf|conf|bs|pn)\s*\d+([.,]\d+)?\b/g, " $1 ");
+  s = s.replace(/\b\d+([.,]\d+)?\b/g, " ");
+
   s = s.replace(/\s+/g, " ").trim();
 
   return s;
