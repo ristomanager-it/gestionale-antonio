@@ -787,15 +787,35 @@ async function openDocumentoUploadModal(azienda) {
     if (q.length < 2) { datalistProdotti.innerHTML = ""; return; }
 
     const trovati = [];
+    const visti = new Set();
     for (const p of prodottiCache) {
       const nome = String(p.nome || "");
-      if (nome.toLowerCase().includes(q)) {
-        trovati.push(nome);
+      if (nome.toLowerCase().includes(q) && !visti.has(nome.toLowerCase())) {
+        visti.add(nome.toLowerCase());
+        trovati.push({ testo: nome, nota: "" });
         if (trovati.length >= 30) break;
       }
     }
+
+    // Anche i nomi gia' usati in fattura per un prodotto: scrivendo "sep"
+    // escono le descrizioni gia' collegate, con accanto il prodotto a cui
+    // portano, cosi' si sceglie da li' invece di riscriverle.
+    if (Array.isArray(aliasCache)) {
+      for (const a of aliasCache) {
+        const testo = String(a.testo_ocr || "");
+        if (!testo || visti.has(testo.toLowerCase())) continue;
+        if (!testo.toLowerCase().includes(q)) continue;
+        const prod = prodottiCache.find((p) => String(p.id) === String(a.prodotto_id));
+        if (!prod) continue;
+        visti.add(testo.toLowerCase());
+        trovati.push({ testo: testo, nota: prod.nome });
+        if (trovati.length >= 45) break;
+      }
+    }
+
     datalistProdotti.innerHTML = trovati
-      .map((n) => '<option value="' + escapeHtml(n) + '"></option>')
+      .map((t) => '<option value="' + escapeHtml(t.testo) + '"' +
+        (t.nota ? ' label="' + escapeHtml("\u2192 " + t.nota) + '"' : "") + '></option>')
       .join("");
   }
 
