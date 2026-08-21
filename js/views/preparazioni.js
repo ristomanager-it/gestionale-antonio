@@ -130,7 +130,7 @@ export async function render(container) {
               <div class="form-group">
                 <label>Fattore</label>
                 <input id="stadio-fattore" class="input" readonly />
-                <div class="form-help">Scala ingredienti e imballi.</div>
+                <div class="form-help">Scala gli ingredienti. Il confezionamento si decide sotto, sul lotto.</div>
               </div>
             </div>
             <div class="form-actions">
@@ -864,17 +864,17 @@ async function calcolaStadi() {
   let tot = 0;
   const righe = data.map((r) => {
     tot += Number(r.costo_scalato || 0);
-    return "<tr><td style=\"padding:4px 8px 4px 0;\">" + escapeHtml(r.ingrediente) +
-      "</td><td style=\"text-align:right;padding:4px 8px 4px 0;white-space:nowrap;\">" +
+    return "<tr><td style=\"padding:4px 8px 4px 0;vertical-align:top;width:55%;\">" + escapeHtml(r.ingrediente) +
+      "</td><td style=\"text-align:right;padding:4px 8px 4px 0;white-space:nowrap;vertical-align:top;\">" +
       Number(r.quantita_scalata).toFixed(3) + " " + escapeHtml(r.unita || "") +
-      "</td><td style=\"text-align:right;padding:4px 0;white-space:nowrap;\">" +
+      "</td><td style=\"text-align:right;padding:4px 0;white-space:nowrap;vertical-align:top;\">" +
       Number(r.costo_scalato || 0).toFixed(2) + " &euro;</td></tr>";
   }).join("");
 
   if (box) {
     box.innerHTML =
       "<div class=\"form-help\" style=\"margin-bottom:6px;\">Base: " + escapeHtml(data[0].base_calcolo || "") + "</div>" +
-      "<table style=\"width:100%;border-collapse:collapse;font-size:13px;\">" + righe +
+      "<table style=\"width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;\">" + righe +
       "<tr><td style=\"padding-top:8px;font-weight:700;\">Totale materiali</td><td></td>" +
       "<td style=\"text-align:right;padding-top:8px;font-weight:700;white-space:nowrap;\">" +
       tot.toFixed(2) + " &euro;</td></tr></table>";
