@@ -1256,12 +1256,12 @@ function renderConfezioniRows() {
 
             <div class="form-group">
               <label>Kg per confezione</label>
-              <input class="input" readonly value="${escapeAttr(formatNumber(kgConf))} kg" />
+              <input class="input" readonly data-riep-conf value="${escapeAttr(formatNumber(kgConf))} kg" />
             </div>
 
             <div class="form-group">
               <label>Kg totali riga</label>
-              <input class="input" readonly value="${escapeAttr(formatNumber(kgTot))} kg" />
+              <input class="input" readonly data-riep-tot value="${escapeAttr(formatNumber(kgTot))} kg" />
             </div>
 
             <div class="form-group">
@@ -1290,6 +1290,21 @@ function renderConfezioniRows() {
     .join("");
 }
 
+function aggiornaRiepilogoRiga(card, row) {
+  if (!card || !row) return;
+  const boxConf = card.querySelector("[data-riep-conf]");
+  const boxTot = card.querySelector("[data-riep-tot]");
+  const porz = porzioniCache.find((p) => String(p.id) === String(row.porzione_id))
+            || porzioniCache.find((p) => p.label === row.confezione_label) || null;
+  const pesoKg = toNumber(row.peso_kg) > 0
+    ? toNumber(row.peso_kg)
+    : (porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0);
+  const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 0));
+  const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni) || 0));
+  if (boxConf) boxConf.value = formatNumber(pesoKg * pezzi) + " kg";
+  if (boxTot) boxTot.value = formatNumber(pesoKg * pezzi * numConf) + " kg";
+}
+
 function onConfezioniChange(e) {
   const target = e.target;
   if (!(target instanceof HTMLElement)) return;
@@ -1316,29 +1331,31 @@ function onConfezioniChange(e) {
     confezioniRows[idx].porzione_id = porz ? String(porz.id) : "";
     if (porz && !(toNumber(confezioniRows[idx].peso_kg) > 0)) {
       confezioniRows[idx].peso_kg = toKg(porz.peso_porzione, porz.unita_misura);
+      const campoPeso = card.querySelector('[data-field="peso_kg"]');
+      if (campoPeso) campoPeso.value = String(confezioniRows[idx].peso_kg);
     }
-    renderConfezioniRows();
+    aggiornaRiepilogoRiga(card, confezioniRows[idx]);
     recalcResaUI();
     return;
   }
 
   if (field === "peso_kg" && target instanceof HTMLInputElement) {
     confezioniRows[idx].peso_kg = target.value ?? "";
-    renderConfezioniRows();
+    aggiornaRiepilogoRiga(card, confezioniRows[idx]);
     recalcResaUI();
     return;
   }
 
   if (field === "pezzi_per_confezione" && target instanceof HTMLInputElement) {
     confezioniRows[idx].pezzi_per_confezione = target.value ?? "";
-    renderConfezioniRows();
+    aggiornaRiepilogoRiga(card, confezioniRows[idx]);
     recalcResaUI();
     return;
   }
 
   if (field === "numero_confezioni" && target instanceof HTMLInputElement) {
     confezioniRows[idx].numero_confezioni = target.value ?? "";
-    renderConfezioniRows();
+    aggiornaRiepilogoRiga(card, confezioniRows[idx]);
     recalcResaUI();
     return;
   }
