@@ -40,6 +40,7 @@ function isManagerAnagrafante() {
 let operatoreRisolto = null;
 
 let confezioniRows = []; // [{ id, porzione_id, pezzi_per_confezione, numero_confezioni, note }]
+let confezioniMemoria = []; // etichette confezione gia' usate in azienda
 let coprodottiRows = []; // [{ id, prodotto_id, quantita, unita_misura, data_scadenza, note }]
 
 let savedLotto = null;
@@ -733,7 +734,7 @@ function setupAutocompleteRicette() {
         const resaTxt = r.resa_teorica != null ? ` — Resa teorica batch base: ${String(r.resa_teorica)} ${r.resa_unita || "kg"}` : "";
         setRicettaInfo("Pezzi base: " + (r.pezzi_base ?? "-") + resaTxt);
 
-        await Promise.all([loadPorzioniRicetta(r.id), loadConservazioni(r.id), loadFasiHaccp(r.id), loadStadiRicetta(r.id)]);
+        await Promise.all([loadPorzioniRicetta(r.id), loadConservazioni(r.id), loadFasiHaccp(r.id), loadStadiRicetta(r.id), loadConfezioniMemoria()]);
         recalcResaUI();
       };
 
@@ -756,6 +757,29 @@ function setupAutocompleteRicette() {
 /* ========================================================= */
 
 let stadiCache = [];
+
+async function loadConfezioniMemoria() {
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  if (!supabase || !aziendaId) return;
+  try {
+    const { data } = await supabase
+      .from("produzione_lotti")
+      .select("dettaglio_confezionamento")
+      .eq("azienda_id", aziendaId)
+      .not("dettaglio_confezionamento", "is", null)
+      .order("id", { ascending: false })
+      .limit(80);
+    const set = new Set();
+    (data || []).forEach((l) => {
+      const det = Array.isArray(l.dettaglio_confezionamento) ? l.dettaglio_confezionamento : [];
+      det.forEach((d) => { if (d && d.label) set.add(String(d.label)); });
+    });
+    confezioniMemoria = Array.from(set);
+  } catch (e) {
+    confezioniMemoria = [];
+  }
+}
 
 async function loadStadiRicetta(ricettaId) {
   stadiCache = [];
@@ -1139,20 +1163,26 @@ function renderConfezioniRows() {
     return;
   }
 
-  if (!porzioniCache.length) {
-    wrap.innerHTML = `<div class="form-help">Nessuna porzionatura attiva per questa ricetta (ricette_porzione).</div>`;
-    return;
-  }
-
   if (!confezioniRows.length) {
     wrap.innerHTML = `<div class="form-help">Nessuna confezione inserita. Premi “+ Aggiungi confezione”.</div>`;
     return;
   }
 
-  wrap.innerHTML = confezioniRows
+  const memoria = Array.from(new Set([
+    ...porzioniCache.map((p) => p.label),
+    ...confezioniMemoria,
+  ].filter(Boolean)));
+
+  const datalist = '<datalist id="confezioni-note">' +
+    memoria.map((l) => '<option value="' + escapeAttr(l) + '"></option>').join("") +
+    '</datalist>';
+
+  wrap.innerHTML = datalist + confezioniRows
     .map((row) => {
-      const porz = porzioniCache.find((p) => String(p.id) === String(row.porzione_id)) || null;
-      const pesoKg = porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0;
+      const porz = porzioniCache.find((p) => String(p.id) === String(row.porzione_id))
+                || porzioniCache.find((p) => p.label === row.confezione_label) || null;
+      const pesoKgFormato = porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0;
+      const pesoKg = toNumber(row.peso_kg) > 0 ? toNumber(row.peso_kg) : pesoKgFormato;
       const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 0));
       const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni) || 0));
       const kgConf = pesoKg * pezzi;
@@ -1163,17 +1193,19 @@ function renderConfezioniRows() {
           <div class="form-grid">
 
             <div class="form-group">
-              <label>Porzionatura</label>
-              <select class="input" data-field="porzione_id" ${savedLotto ? "disabled" : ""}>
-                <option value="">Seleziona...</option>
-                ${porzioniCache
-                  .map((p) => {
-                    const pKg = toKg(p.peso_porzione, p.unita_misura);
-                    const selected = String(p.id) === String(row.porzione_id) ? "selected" : "";
-                    return `<option value="${escapeAttr(String(p.id))}" ${selected}>${escapeHtml(p.label)} (${escapeHtml(formatNumber(pKg))} kg)</option>`;
-                  })
-                  .join("")}
-              </select>
+              <label>Confezione</label>
+              <input class="input" list="confezioni-note" data-field="confezione_label"
+                value="${escapeAttr(String(row.confezione_label ?? (porz?.label || "")))}"
+                placeholder="Es: Vaso 1 kg" ${savedLotto ? "readonly" : ""} />
+              <div class="form-help">Scegli dall'elenco o scrivine una nuova.</div>
+            </div>
+
+            <div class="form-group">
+              <label>Peso confezione (kg)</label>
+              <input class="input" type="number" min="0" step="0.001" data-field="peso_kg"
+                value="${escapeAttr(String(row.peso_kg ?? (pesoKgFormato || "")))}"
+                placeholder="Es: 1.000" ${savedLotto ? "readonly" : ""} />
+              <div class="form-help">Libero: metti il peso reale pesato.</div>
             </div>
 
             <div class="form-group">
@@ -1254,8 +1286,22 @@ function onConfezioniChange(e) {
 
   if (savedLotto) return;
 
-  if (field === "porzione_id" && target instanceof HTMLSelectElement) {
-    confezioniRows[idx].porzione_id = (target.value || "").toString();
+  if (field === "confezione_label" && target instanceof HTMLInputElement) {
+    const val = (target.value || "").toString();
+    confezioniRows[idx].confezione_label = val;
+    // se corrisponde a un formato della ricetta, aggancio il formato e propongo il suo peso
+    const porz = porzioniCache.find((p) => p.label === val);
+    confezioniRows[idx].porzione_id = porz ? String(porz.id) : "";
+    if (porz && !(toNumber(confezioniRows[idx].peso_kg) > 0)) {
+      confezioniRows[idx].peso_kg = toKg(porz.peso_porzione, porz.unita_misura);
+    }
+    renderConfezioniRows();
+    recalcResaUI();
+    return;
+  }
+
+  if (field === "peso_kg" && target instanceof HTMLInputElement) {
+    confezioniRows[idx].peso_kg = target.value ?? "";
     renderConfezioniRows();
     recalcResaUI();
     return;
@@ -1665,10 +1711,14 @@ function getTotaleConfezionatoKg() {
   let tot = 0;
 
   for (const r of confezioniRows) {
-    const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
-    if (!porz) continue;
+    // il peso scritto a mano vince: e' quello pesato davvero
+    const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id))
+              || porzioniCache.find((p) => p.label === r.confezione_label) || null;
+    const pesoKg = toNumber(r.peso_kg) > 0
+      ? toNumber(r.peso_kg)
+      : (porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0);
+    if (!(pesoKg > 0)) continue;
 
-    const pesoKg = toKg(porz.peso_porzione, porz.unita_misura);
     const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
     const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
 
@@ -2794,13 +2844,17 @@ function getConservazioneStandardLabel() {
 function buildDettaglioConfezionamento() {
   try {
     return (confezioniRows || [])
-      .filter(c => c.porzione_id && Number(c.pezzi_per_confezione) > 0 && Number(c.numero_confezioni) > 0)
+      .filter(c => Number(c.pezzi_per_confezione) > 0 && Number(c.numero_confezioni) > 0
+                   && (c.porzione_id || c.confezione_label))
       .map(c => {
-        const porz = porzioniCache.find(p => String(p.id) === String(c.porzione_id));
-        const pesoKg = toKg(porz?.peso_porzione, porz?.unita_misura);
+        const porz = porzioniCache.find(p => String(p.id) === String(c.porzione_id))
+                  || porzioniCache.find(p => p.label === c.confezione_label);
+        const pesoKg = Number(c.peso_kg) > 0
+          ? Number(c.peso_kg)
+          : toKg(porz?.peso_porzione, porz?.unita_misura);
         return {
-          porzione_id: String(c.porzione_id),
-          label: porz?.label || "",
+          porzione_id: porz ? String(porz.id) : null,
+          label: c.confezione_label || porz?.label || "",
           pezzi_per_confezione: Number(c.pezzi_per_confezione),
           numero_confezioni: Number(c.numero_confezioni),
           peso_porzione_kg: pesoKg,
