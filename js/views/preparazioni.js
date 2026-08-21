@@ -108,6 +108,41 @@ export async function render(container) {
       })}
 
       ${createCard({
+        title: "Punto di partenza",
+        body: `
+          <div id="stadi-box" style="display:none;">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Entro da</label>
+                <select id="stadio-da" class="input"></select>
+                <div class="form-help">Da dove attacchi la lavorazione.</div>
+              </div>
+              <div class="form-group">
+                <label>Chiudo a</label>
+                <select id="stadio-a" class="input"></select>
+                <div class="form-help">Dove ti fermi. Chiudendo prima esce un semilavorato con lotto suo.</div>
+              </div>
+              <div class="form-group">
+                <label>Quanto ne ho</label>
+                <input id="stadio-qta" class="input" type="number" min="0" step="0.001" placeholder="Es: 21" />
+                <div id="stadio-qta-help" class="form-help">Quantità di partenza che hai davvero in mano.</div>
+              </div>
+              <div class="form-group">
+                <label>Fattore</label>
+                <input id="stadio-fattore" class="input" readonly />
+                <div class="form-help">Scala ingredienti e imballi.</div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="btn-calcola-stadi" class="app-button secondary">Calcola ingredienti</button>
+            </div>
+            <div id="stadi-risultato" style="margin-top:12px;"></div>
+          </div>
+          <div id="stadi-vuoto" class="form-help">Questa ricetta si lavora tutta di seguito: nessun punto di sosta.</div>
+        `
+      })}
+
+      ${createCard({
         title: "Dati Lotto",
         body: `
           <div class="form-grid">
@@ -698,7 +733,7 @@ function setupAutocompleteRicette() {
         const resaTxt = r.resa_teorica != null ? ` — Resa teorica batch base: ${String(r.resa_teorica)} ${r.resa_unita || "kg"}` : "";
         setRicettaInfo("Pezzi base: " + (r.pezzi_base ?? "-") + resaTxt);
 
-        await Promise.all([loadPorzioniRicetta(r.id), loadConservazioni(r.id), loadFasiHaccp(r.id)]);
+        await Promise.all([loadPorzioniRicetta(r.id), loadConservazioni(r.id), loadFasiHaccp(r.id), loadStadiRicetta(r.id)]);
         recalcResaUI();
       };
 
@@ -713,6 +748,153 @@ function setupAutocompleteRicette() {
     if (!wrap) return;
     if (!wrap.contains(e.target)) suggest.classList.remove("open");
   });
+}
+
+
+/* ========================================================= */
+/* STADI — punto di partenza e di chiusura                    */
+/* ========================================================= */
+
+let stadiCache = [];
+
+async function loadStadiRicetta(ricettaId) {
+  stadiCache = [];
+  const box = document.getElementById("stadi-box");
+  const vuoto = document.getElementById("stadi-vuoto");
+  const ris = document.getElementById("stadi-risultato");
+  if (ris) ris.innerHTML = "";
+
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  if (!supabase || !aziendaId || !ricettaId) return;
+
+  const { data, error } = await supabase
+    .from("ricette_stadi")
+    .select("numero, nome, chiudibile, ingresso, resa_kg, shelf_life_giorni, shelf_life_tipo")
+    .eq("ricetta_id", ricettaId)
+    .eq("azienda_id", aziendaId)
+    .order("numero", { ascending: true });
+
+  if (error) {
+    console.error("Errore caricamento stadi:", error);
+    return;
+  }
+
+  stadiCache = data || [];
+
+  const selDa = document.getElementById("stadio-da");
+  const selA = document.getElementById("stadio-a");
+
+  if (!stadiCache.length) {
+    if (box) box.style.display = "none";
+    if (vuoto) vuoto.style.display = "";
+    return;
+  }
+
+  if (box) box.style.display = "";
+  if (vuoto) vuoto.style.display = "none";
+
+  if (selDa) {
+    selDa.innerHTML = stadiCache
+      .filter((s) => s.ingresso)
+      .map((s) => "<option value=\"" + s.numero + "\">" + escapeHtml(s.nome) + "</option>")
+      .join("");
+  }
+  if (selA) {
+    selA.innerHTML = stadiCache
+      .filter((s) => s.chiudibile)
+      .map((s) => "<option value=\"" + s.numero + "\">" + escapeHtml(s.nome) + "</option>")
+      .join("");
+    selA.value = String(stadiCache[stadiCache.length - 1].numero);
+  }
+
+  aggiornaHelpQuantita();
+}
+
+function aggiornaHelpQuantita() {
+  const selDa = document.getElementById("stadio-da");
+  const help = document.getElementById("stadio-qta-help");
+  if (!selDa || !help) return;
+
+  const da = Number(selDa.value || 1);
+  if (da <= 1) {
+    help.innerText = "Quantità del primo ingrediente della ricetta.";
+    return;
+  }
+  const prec = stadiCache.find((s) => Number(s.numero) === da - 1);
+  help.innerText = prec
+    ? "Chilogrammi di " + prec.nome.toLowerCase() + " che hai in cella."
+    : "Quantità di partenza.";
+}
+
+async function calcolaStadi() {
+  const supabase = window.supabaseClient || window.supabase;
+  const ricettaId = document.getElementById("prod-ricetta-id")?.value;
+  const da = Number(document.getElementById("stadio-da")?.value || 1);
+  const a = Number(document.getElementById("stadio-a")?.value || 999);
+  const qta = parseFloat((document.getElementById("stadio-qta")?.value || "").replace(",", "."));
+  const ris = document.getElementById("stadio-fattore");
+  const box = document.getElementById("stadi-risultato");
+
+  if (!supabase || !ricettaId) return;
+  if (!Number.isFinite(qta) || qta <= 0) {
+    if (box) box.innerHTML = "<div class=\"form-help\">Scrivi quanto ne hai per calcolare.</div>";
+    return;
+  }
+
+  const params = { p_ricetta_id: Number(ricettaId), p_quantita: qta, p_stadio_da: da, p_stadio_a: a };
+  if (da <= 1) {
+    const primo = await primoIngrediente(Number(ricettaId));
+    if (primo) params.p_ingrediente = primo;
+  }
+
+  const { data, error } = await supabase.rpc("ricetta_scala", params);
+
+  if (error) {
+    console.error("Errore calcolo stadi:", error);
+    if (box) box.innerHTML = "<div class=\"form-help\">" + escapeHtml(error.message || "Calcolo non riuscito") + "</div>";
+    return;
+  }
+  if (!data || !data.length) {
+    if (box) box.innerHTML = "<div class=\"form-help\">Nessun ingrediente per questi stadi.</div>";
+    return;
+  }
+
+  if (ris) ris.value = Number(data[0].fattore).toFixed(3) + " x";
+
+  let tot = 0;
+  const righe = data.map((r) => {
+    tot += Number(r.costo_scalato || 0);
+    return "<tr><td style=\"padding:4px 8px 4px 0;\">" + escapeHtml(r.ingrediente) +
+      "</td><td style=\"text-align:right;padding:4px 8px 4px 0;white-space:nowrap;\">" +
+      Number(r.quantita_scalata).toFixed(3) + " " + escapeHtml(r.unita || "") +
+      "</td><td style=\"text-align:right;padding:4px 0;white-space:nowrap;\">" +
+      Number(r.costo_scalato || 0).toFixed(2) + " &euro;</td></tr>";
+  }).join("");
+
+  if (box) {
+    box.innerHTML =
+      "<div class=\"form-help\" style=\"margin-bottom:6px;\">Base: " + escapeHtml(data[0].base_calcolo || "") + "</div>" +
+      "<table style=\"width:100%;border-collapse:collapse;font-size:13px;\">" + righe +
+      "<tr><td style=\"padding-top:8px;font-weight:700;\">Totale materiali</td><td></td>" +
+      "<td style=\"text-align:right;padding-top:8px;font-weight:700;white-space:nowrap;\">" +
+      tot.toFixed(2) + " &euro;</td></tr></table>";
+  }
+}
+
+async function primoIngrediente(ricettaId) {
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  if (!supabase || !aziendaId) return null;
+  const { data } = await supabase
+    .from("ricetta_ingredienti")
+    .select("prodotto_id")
+    .eq("ricetta_id", ricettaId)
+    .eq("azienda_id", aziendaId)
+    .eq("stadio", 1)
+    .order("ordine", { ascending: true })
+    .limit(1);
+  return data && data.length ? data[0].prodotto_id : null;
 }
 
 function setRicettaInfo(text) {
@@ -1876,6 +2058,10 @@ function bindEvents() {
   });
 
   document.getElementById("btn-vedi-ricetta")?.addEventListener("click", apriModalRicetta);
+  document.getElementById("btn-calcola-stadi")?.addEventListener("click", calcolaStadi);
+  document.getElementById("stadio-da")?.addEventListener("change", () => { aggiornaHelpQuantita(); calcolaStadi(); });
+  document.getElementById("stadio-a")?.addEventListener("change", calcolaStadi);
+  document.getElementById("stadio-qta")?.addEventListener("change", calcolaStadi);
 
   document.getElementById("prod-modal-close")?.addEventListener("click", chiudiModalRicetta);
   document.getElementById("prod-modal-backdrop")?.addEventListener("click", (e) => {
