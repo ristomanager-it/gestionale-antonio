@@ -442,12 +442,24 @@ function presetDataOggi() {
 /* DATA LOAD */
 /* ========================================================= */
 
+async function attendiClient(tentativi) {
+  for (let i = 0; i < (tentativi || 20); i++) {
+    const c = window.supabaseClient || window.supabase;
+    if (c && window.state?.azienda?.id) return c;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return window.supabaseClient || window.supabase || null;
+}
+
 async function preloadRicette() {
-  const supabase = window.supabaseClient;
+  const supabase = await attendiClient(20);
   const aziendaId = window.state?.azienda?.id;
 
   ricetteCache = [];
-  if (!supabase || !aziendaId) return;
+  if (!supabase || !aziendaId) {
+    console.error("[preparazioni] client o azienda non disponibili: ricette non caricate");
+    return;
+  }
 
   // Carico TUTTE le ricette a blocchi (range) per evitare troncamenti del limite di default.
   // Ordino per id (non per nome) cosi' la collation non sposta le maiuscole in coda oltre il limite.
@@ -498,7 +510,7 @@ async function preloadRicette() {
 }
 
 async function preloadDipendenti() {
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
 
   dipendentiCache = [];
@@ -545,7 +557,7 @@ async function preloadDipendenti() {
 }
 
 async function preloadProdotti() {
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
 
   prodottiCache = [];
@@ -572,7 +584,7 @@ async function preloadProdotti() {
 }
 
 async function loadPorzioniRicetta(ricettaId) {
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
 
   porzioniCache = [];
@@ -604,7 +616,7 @@ async function loadPorzioniRicetta(ricettaId) {
 }
 
 async function loadConservazioni(ricettaId) {
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
 
   scenariConservazione = [];
@@ -1541,7 +1553,7 @@ function bindCoprodottoAutocomplete() {
 
 async function creaProdottoCoprodottoInline(nome) {
   if (!nome || nome.length < 2) { alert("Scrivi almeno il nome."); return null; }
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   const um = (prompt("Unità di misura (kg, gr, pz, lt):", "kg") || "kg").trim();
   const { data, error } = await supabase.from("prodotti")
@@ -1556,7 +1568,7 @@ async function creaProdottoCoprodottoInline(nome) {
 async function creaNuovoProdottoCoprodotto(rowId, selectEl) {
   const nome = prompt("Nome del nuovo prodotto (coprodotto):");
   if (!nome || !nome.trim()) { selectEl.value = ""; return; }
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   const um = prompt("Unità di misura (kg, pz, lt...):", "kg") || "kg";
   const { data, error } = await supabase.from("prodotti")
@@ -1756,7 +1768,7 @@ async function apriModalRicetta() {
   body.innerHTML = `<div class="form-help">Caricamento...</div>`;
   backdrop.style.display = "block";
 
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
 
   const [ingRes, fasiRes, ricRes] = await Promise.all([
@@ -1930,7 +1942,7 @@ function chiudiSchedaTecnica() {
 /* ========================================================= */
 async function stampaSchedaProduzione() {
   if (!ricettaSelezionata?.id) { alert("Seleziona prima una ricetta."); return; }
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   const azienda = window.state?.azienda;
 
@@ -2030,7 +2042,7 @@ async function stampaSchedaProduzione() {
 
 async function stampaEtichettaProduzione() {
   if (!ricettaSelezionata?.id) { alert("Seleziona prima una ricetta."); return; }
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   const azienda = window.state?.azienda;
   const sedeNome = window.state?.sedeAttiva?.nome || azienda?.nome || "";
@@ -2284,7 +2296,7 @@ function getLottoRefId(lotto) {
 /* ========================================================= */
 
 async function loadFasiHaccp(ricettaId, stadioDa, stadioA) {
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   if (!supabase || !aziendaId || !ricettaId) return;
 
@@ -2800,7 +2812,7 @@ async function salvaProduzione() {
   if (!ricettaSelezionata?.id) { alert("Seleziona prima una ricetta."); return; }
   if (savedLotto) { alert("Produzione già registrata."); return; }
 
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   if (!supabase || !aziendaId) { alert("Sessione non valida."); return; }
 
@@ -2890,7 +2902,7 @@ function buildDettaglioConfezionamento() {
 }
 
 async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   if (!logHaccp.length || !lottoUUID) return;
 
   // In resume le righe fase esistono già (create all'apertura): le aggiorno.
@@ -2952,7 +2964,7 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
 
 async function stampaRegistroHaccp() {
   const azienda = window.state?.azienda;
-  const supabase = window.supabaseClient;
+  const supabase = window.supabaseClient || window.supabase;
   const nomeRicetta = ricettaSelezionata?.nome || "—";
   const codLotto = document.getElementById("prod-lotto")?.value || savedLotto?.codice_lotto || "—";
   const dataOggi = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
