@@ -99,7 +99,7 @@ export async function render(container) {
             <label>Ricetta</label>
             <input id="prod-ricetta-search" class="input" placeholder="Cerca ricetta..." autocomplete="off" ${savedLotto ? "disabled" : ""} />
             <input id="prod-ricetta-id" type="hidden" />
-            <div id="prod-ricetta-suggest" class="suggest-list" style="position:relative;z-index:50;background:#fff;"></div>
+            <div id="prod-ricetta-suggest" class="suggest-list"></div>
             <div id="prod-ricetta-info" class="form-help" style="margin-top:10px;">Nessuna ricetta selezionata</div>
           </div>
 
@@ -680,7 +680,7 @@ function setupAutocompleteRicette() {
 
   if (!input || !suggest || !hidden || !btnVedi) return;
 
-  input.addEventListener("input", async () => {
+  input.addEventListener("input", () => {
     if (savedLotto) return;
 
     const q = (input.value || "").toLowerCase().trim();
@@ -708,7 +708,7 @@ function setupAutocompleteRicette() {
     const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const nq = norm(q);
     // Ordino i match: prima chi INIZIA con la query (es "rag" -> "Ragù..." prima di "asparagi"), poi gli altri
-    let risultati = ricetteCache
+    const risultati = ricetteCache
       .filter((r) => norm(r.nome).includes(nq))
       .sort((a, b) => {
         const na = norm(a.nome), nb = norm(b.nome);
@@ -718,43 +718,6 @@ function setupAutocompleteRicette() {
         return na.localeCompare(nb, "it");
       })
       .slice(0, 10);
-
-    // Se la lista in memoria e' vuota (vista aperta senza preload, o preload fallito),
-    // cerco direttamente nel database: cosi' la ricerca funziona comunque.
-    if (!risultati.length && !ricetteCache.length) {
-      const supabase = window.supabaseClient || window.supabase;
-      const aziendaId = window.state?.azienda?.id;
-      if (supabase && aziendaId) {
-        const { data } = await supabase
-          .from("ricette")
-          .select("id, nome, pezzi_base, prodotto_output_id, scaling_tempo_pct")
-          .eq("azienda_id", aziendaId)
-          .eq("attivo", true)
-          .ilike("nome", "%" + q + "%")
-          .order("nome")
-          .limit(10);
-        (data || []).forEach((r) => {
-          risultati.push({
-            id: r.id, nome: r.nome, pezzi_base: r.pezzi_base,
-            prodotto_output_id: r.prodotto_output_id ?? null,
-            scaling_tempo_pct: (r.scaling_tempo_pct == null ? 20 : Number(r.scaling_tempo_pct)),
-            resa_teorica: null, resa_unita: "kg"
-          });
-        });
-      }
-    }
-
-    if (!risultati.length) {
-      const div = document.createElement("div");
-      div.className = "suggest-item";
-      div.style.color = "#8a7f70";
-      div.textContent = ricetteCache.length
-        ? ("Nessuna ricetta trovata (" + ricetteCache.length + " caricate)")
-        : "Ricette non ancora caricate: attendi un istante e riprova";
-      suggest.appendChild(div);
-      suggest.classList.add("open");
-      return;
-    }
 
     risultati.forEach((r) => {
       const div = document.createElement("div");
@@ -1220,7 +1183,11 @@ function renderConfezioniRows() {
     ...confezioniMemoria,
   ].filter(Boolean)));
 
-  wrap.innerHTML = confezioniRows
+  const datalist = '<datalist id="confezioni-note">' +
+    memoria.map((l) => '<option value="' + escapeAttr(l) + '"></option>').join("") +
+    '</datalist>';
+
+  wrap.innerHTML = datalist + confezioniRows
     .map((row) => {
       const porz = porzioniCache.find((p) => String(p.id) === String(row.porzione_id))
                 || porzioniCache.find((p) => p.label === row.confezione_label) || null;
@@ -1237,21 +1204,10 @@ function renderConfezioniRows() {
 
             <div class="form-group">
               <label>Confezione</label>
-              <select class="input" data-field="confezione_sel" ${savedLotto ? "disabled" : ""}>
-                <option value="">Seleziona...</option>
-                ${memoria
-                  .map((l) => {
-                    const sel = l === (row.confezione_label || "") ? "selected" : "";
-                    return `<option value="${escapeAttr(l)}" ${sel}>${escapeHtml(l)}</option>`;
-                  })
-                  .join("")}
-                <option value="__altra__" ${row.altra ? "selected" : ""}>➕ Altra confezione...</option>
-              </select>
-              ${row.altra ? `
-                <input class="input" style="margin-top:8px;" data-field="confezione_label"
-                  value="${escapeAttr(String(row.confezione_label ?? ""))}"
-                  placeholder="Nome della confezione" ${savedLotto ? "readonly" : ""} />
-              ` : ""}
+              <input class="input" list="confezioni-note" data-field="confezione_label"
+                value="${escapeAttr(String(row.confezione_label ?? (porz?.label || "")))}"
+                placeholder="Es: Vaso 1 kg" ${savedLotto ? "readonly" : ""} />
+              <div class="form-help">Scegli dall'elenco o scrivine una nuova.</div>
             </div>
 
             <div class="form-group">
@@ -1340,27 +1296,16 @@ function onConfezioniChange(e) {
 
   if (savedLotto) return;
 
-  if (field === "confezione_sel" && target instanceof HTMLSelectElement) {
-    const val = (target.value || "").toString();
-    if (val === "__altra__") {
-      confezioniRows[idx].altra = true;
-      confezioniRows[idx].confezione_label = "";
-      confezioniRows[idx].porzione_id = "";
-    } else {
-      confezioniRows[idx].altra = false;
-      confezioniRows[idx].confezione_label = val;
-      const porz = porzioniCache.find((p) => p.label === val);
-      confezioniRows[idx].porzione_id = porz ? String(porz.id) : "";
-      if (porz) confezioniRows[idx].peso_kg = toKg(porz.peso_porzione, porz.unita_misura);
-    }
-    renderConfezioniRows();
-    recalcResaUI();
-    return;
-  }
-
   if (field === "confezione_label" && target instanceof HTMLInputElement) {
     const val = (target.value || "").toString();
     confezioniRows[idx].confezione_label = val;
+    // se corrisponde a un formato della ricetta, aggancio il formato e propongo il suo peso
+    const porz = porzioniCache.find((p) => p.label === val);
+    confezioniRows[idx].porzione_id = porz ? String(porz.id) : "";
+    if (porz && !(toNumber(confezioniRows[idx].peso_kg) > 0)) {
+      confezioniRows[idx].peso_kg = toKg(porz.peso_porzione, porz.unita_misura);
+    }
+    renderConfezioniRows();
     recalcResaUI();
     return;
   }
