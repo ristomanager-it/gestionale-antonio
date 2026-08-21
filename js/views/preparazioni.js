@@ -833,6 +833,7 @@ async function loadStadiRicetta(ricettaId) {
   }
 
   aggiornaHelpQuantita();
+  await ricaricaFasiPerStadio();
 }
 
 function aggiornaHelpQuantita() {
@@ -848,6 +849,14 @@ function aggiornaHelpQuantita() {
     return;
   }
   help.innerText = eti ? ("Quanti kg di " + eti + " hai in cella.") : "Quantità di partenza.";
+}
+
+async function ricaricaFasiPerStadio() {
+  const ricettaId = document.getElementById("prod-ricetta-id")?.value;
+  if (!ricettaId || savedLotto) return;
+  const da = Number(document.getElementById("stadio-da")?.value || 1);
+  const a  = Number(document.getElementById("stadio-a")?.value || 999);
+  await loadFasiHaccp(Number(ricettaId), da, a);
 }
 
 async function calcolaStadi() {
@@ -2108,8 +2117,8 @@ function bindEvents() {
 
   document.getElementById("btn-vedi-ricetta")?.addEventListener("click", apriModalRicetta);
   document.getElementById("btn-calcola-stadi")?.addEventListener("click", calcolaStadi);
-  document.getElementById("stadio-da")?.addEventListener("change", () => { aggiornaHelpQuantita(); calcolaStadi(); });
-  document.getElementById("stadio-a")?.addEventListener("change", calcolaStadi);
+  document.getElementById("stadio-da")?.addEventListener("change", () => { aggiornaHelpQuantita(); calcolaStadi(); ricaricaFasiPerStadio(); });
+  document.getElementById("stadio-a")?.addEventListener("change", () => { calcolaStadi(); ricaricaFasiPerStadio(); });
   document.getElementById("stadio-qta")?.addEventListener("change", calcolaStadi);
 
   document.getElementById("prod-modal-close")?.addEventListener("click", chiudiModalRicetta);
@@ -2272,17 +2281,26 @@ function getLottoRefId(lotto) {
 /* HACCP — FASI PRODUZIONE                                   */
 /* ========================================================= */
 
-async function loadFasiHaccp(ricettaId) {
+async function loadFasiHaccp(ricettaId, stadioDa, stadioA) {
   const supabase = window.supabaseClient;
   const aziendaId = window.state?.azienda?.id;
   if (!supabase || !aziendaId || !ricettaId) return;
 
-  const { data, error } = await supabase
+  // Entrando da uno stadio successivo, le fasi precedenti sono gia' state eseguite e
+  // firmate sul lotto del semilavorato: non vanno rifirmate qui.
+  const da = Number(stadioDa) > 0 ? Number(stadioDa) : 1;
+  const a  = Number(stadioA)  > 0 ? Number(stadioA)  : 999;
+
+  let q = supabase
     .from("ricette_preparazione_fasi")
-    .select("id, ordine, nome_fase, tipo_fase, descrizione_operativa, tecnologia, temperatura, durata_min, dispositivo_id")
+    .select("id, ordine, stadio, nome_fase, tipo_fase, descrizione_operativa, tecnologia, temperatura, durata_min, dispositivo_id")
     .eq("ricetta_id", ricettaId)
     .eq("azienda_id", aziendaId)
+    .gte("stadio", da)
+    .lte("stadio", a)
     .order("ordine", { ascending: true });
+
+  const { data, error } = await q;
 
   if (error) { console.error(error); fasiCache = []; renderFasiHaccp(); return; }
   fasiCache = data || [];
