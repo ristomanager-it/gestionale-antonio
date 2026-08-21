@@ -85,6 +85,7 @@ export async function render(container) {
     subtitle: "Peso reale, confezionamento a porzionature, coprodotti, firma e magazzino (HACCP-ready)",
     content: `
       <div class="form-actions" style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="button" id="btn-salva-produzione-top" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra / apri in Produzioni</button>
         <button type="button" id="btn-back" class="app-button secondary">← Centro Produzione</button>
         <button type="button" id="btn-scheda-tecnica" class="app-button secondary">📘 Scheda tecnica</button>
         <button type="button" id="btn-stampa-produzione" class="app-button secondary">🖨 Stampa scheda produzione</button>
@@ -2182,6 +2183,7 @@ function bindEvents() {
   });
 
   document.getElementById("btn-salva-produzione")?.addEventListener("click", salvaProduzione);
+  document.getElementById("btn-salva-produzione-top")?.addEventListener("click", salvaProduzione);
 
   document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichetteConfezioni);
   document.getElementById("btn-print-etichettatrice")?.addEventListener("click", stampaEtichetteSuEtichettatrice);
@@ -2803,6 +2805,7 @@ async function salvaProduzione() {
   if (!supabase || !aziendaId) { alert("Sessione non valida."); return; }
 
   const btn = document.getElementById("btn-salva-produzione");
+  const btnTop = document.getElementById("btn-salva-produzione-top");
   if (btn) { btn.disabled = true; btn.textContent = "Salvataggio..."; }
 
   try {
@@ -2847,10 +2850,12 @@ async function salvaProduzione() {
     aggiornaAbilitazioneStampe();
     setEsito("✅ Produzione registrata e aperta in Produzioni aperte. Lotto: " + (nuovo.codice_lotto || String(luuid).slice(0, 8)), false);
     if (btn) btn.textContent = "✅ Registrata";
+    if (btnTop) { btnTop.disabled = true; btnTop.textContent = "✅ Registrata"; }
   } catch (e) {
     console.error("salvaProduzione:", e);
     setEsito("❌ Errore: " + (e.message || "salvataggio non riuscito"), true);
     if (btn) { btn.disabled = false; btn.textContent = "💾 Registra / apri in Produzioni"; }
+    if (btnTop) { btnTop.disabled = false; btnTop.textContent = "💾 Registra / apri in Produzioni"; }
   }
 }
 
