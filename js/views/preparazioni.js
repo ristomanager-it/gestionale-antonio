@@ -2767,14 +2767,21 @@ function firmaFaseHaccp(idx) {
   const nomeFase = fase?.nome_fase || fase?.tipo_fase || "fase";
   log.firme = Array.isArray(log.firme) ? log.firme : [];
   const primaFirma = log.firme.length === 0;
-  const suggerito = (primaFirma && operatoreRisolto?.pin) ? String(operatoreRisolto.pin) : "";
-  const msg = primaFirma
-    ? `PIN di chi ha eseguito la fase «${nomeFase}»:`
-    : `PIN del collega che ha lavorato la fase «${nomeFase}» insieme:`;
-  const pin = (prompt(msg, suggerito) || "").trim();
-  if (!pin) return;
-  const match = dipendentiCache.find((d) => (d.pin ?? "").toString() === pin);
-  if (!match) { alert("PIN non valido ❌"); return; }
+  // Prima firma: se l'operatore e' gia' identificato in alto, firma direttamente.
+  // Il prompt del browser viene spesso bloccato su mobile e il pulsante sembra morto.
+  let match = null;
+  if (primaFirma && operatoreRisolto?.id) {
+    match = dipendentiCache.find((d) => String(d.id) === String(operatoreRisolto.id)) || operatoreRisolto;
+  } else {
+    const msg = primaFirma
+      ? `PIN di chi ha eseguito la fase «${nomeFase}»:`
+      : `PIN del collega che ha lavorato la fase «${nomeFase}» insieme:`;
+    const pin = (prompt(msg, "") || "").trim();
+    if (!pin) return;
+    match = dipendentiCache.find((d) => (d.pin ?? "").toString() === pin);
+    if (!match) { alert("PIN non valido ❌"); return; }
+  }
+  if (!match) { alert("Inserisci prima il PIN operatore in alto ❌"); return; }
   if (log.firme.some((f) => String(f.operatore_id) === String(match.id))) { alert(match.nome + " ha già firmato questa fase."); return; }
   log.firme.push({ operatore_id: match.id ?? null, operatore_nome: match.nome, firmato_il: new Date().toISOString() });
   applicaFirmePrincipale(log);
