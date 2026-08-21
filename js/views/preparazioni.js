@@ -770,7 +770,7 @@ async function loadStadiRicetta(ricettaId) {
 
   const { data, error } = await supabase
     .from("ricette_stadi")
-    .select("numero, nome, chiudibile, ingresso, resa_kg, shelf_life_giorni, shelf_life_tipo")
+    .select("numero, nome, ingresso_label, chiudibile, ingresso, resa_kg, shelf_life_giorni, shelf_life_tipo")
     .eq("ricetta_id", ricettaId)
     .eq("azienda_id", aziendaId)
     .order("numero", { ascending: true });
@@ -797,7 +797,7 @@ async function loadStadiRicetta(ricettaId) {
   if (selDa) {
     selDa.innerHTML = stadiCache
       .filter((s) => s.ingresso)
-      .map((s) => "<option value=\"" + s.numero + "\">" + escapeHtml(s.nome) + "</option>")
+      .map((s) => "<option value=\"" + s.numero + "\">" + escapeHtml(s.ingresso_label || s.nome) + "</option>")
       .join("");
   }
   if (selA) {
@@ -817,14 +817,13 @@ function aggiornaHelpQuantita() {
   if (!selDa || !help) return;
 
   const da = Number(selDa.value || 1);
+  const st = stadiCache.find((s) => Number(s.numero) === da);
+  const eti = st && st.ingresso_label ? st.ingresso_label.toLowerCase() : null;
   if (da <= 1) {
-    help.innerText = "Quantità del primo ingrediente della ricetta.";
+    help.innerText = eti ? ("Quanti kg di " + eti + " metti in lavorazione.") : "Quantità del primo ingrediente della ricetta.";
     return;
   }
-  const prec = stadiCache.find((s) => Number(s.numero) === da - 1);
-  help.innerText = prec
-    ? "Chilogrammi di " + prec.nome.toLowerCase() + " che hai in cella."
-    : "Quantità di partenza.";
+  help.innerText = eti ? ("Quanti kg di " + eti + " hai in cella.") : "Quantità di partenza.";
 }
 
 async function calcolaStadi() {
