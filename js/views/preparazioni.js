@@ -1183,11 +1183,7 @@ function renderConfezioniRows() {
     ...confezioniMemoria,
   ].filter(Boolean)));
 
-  const datalist = '<datalist id="confezioni-note">' +
-    memoria.map((l) => '<option value="' + escapeAttr(l) + '"></option>').join("") +
-    '</datalist>';
-
-  wrap.innerHTML = datalist + confezioniRows
+  wrap.innerHTML = confezioniRows
     .map((row) => {
       const porz = porzioniCache.find((p) => String(p.id) === String(row.porzione_id))
                 || porzioniCache.find((p) => p.label === row.confezione_label) || null;
@@ -1204,10 +1200,21 @@ function renderConfezioniRows() {
 
             <div class="form-group">
               <label>Confezione</label>
-              <input class="input" list="confezioni-note" data-field="confezione_label"
-                value="${escapeAttr(String(row.confezione_label ?? (porz?.label || "")))}"
-                placeholder="Es: Vaso 1 kg" ${savedLotto ? "readonly" : ""} />
-              <div class="form-help">Scegli dall'elenco o scrivine una nuova.</div>
+              <select class="input" data-field="confezione_sel" ${savedLotto ? "disabled" : ""}>
+                <option value="">Seleziona...</option>
+                ${memoria
+                  .map((l) => {
+                    const sel = l === (row.confezione_label || "") ? "selected" : "";
+                    return `<option value="${escapeAttr(l)}" ${sel}>${escapeHtml(l)}</option>`;
+                  })
+                  .join("")}
+                <option value="__altra__" ${row.altra ? "selected" : ""}>➕ Altra confezione...</option>
+              </select>
+              ${row.altra ? `
+                <input class="input" style="margin-top:8px;" data-field="confezione_label"
+                  value="${escapeAttr(String(row.confezione_label ?? ""))}"
+                  placeholder="Nome della confezione" ${savedLotto ? "readonly" : ""} />
+              ` : ""}
             </div>
 
             <div class="form-group">
@@ -1296,16 +1303,27 @@ function onConfezioniChange(e) {
 
   if (savedLotto) return;
 
+  if (field === "confezione_sel" && target instanceof HTMLSelectElement) {
+    const val = (target.value || "").toString();
+    if (val === "__altra__") {
+      confezioniRows[idx].altra = true;
+      confezioniRows[idx].confezione_label = "";
+      confezioniRows[idx].porzione_id = "";
+    } else {
+      confezioniRows[idx].altra = false;
+      confezioniRows[idx].confezione_label = val;
+      const porz = porzioniCache.find((p) => p.label === val);
+      confezioniRows[idx].porzione_id = porz ? String(porz.id) : "";
+      if (porz) confezioniRows[idx].peso_kg = toKg(porz.peso_porzione, porz.unita_misura);
+    }
+    renderConfezioniRows();
+    recalcResaUI();
+    return;
+  }
+
   if (field === "confezione_label" && target instanceof HTMLInputElement) {
     const val = (target.value || "").toString();
     confezioniRows[idx].confezione_label = val;
-    // se corrisponde a un formato della ricetta, aggancio il formato e propongo il suo peso
-    const porz = porzioniCache.find((p) => p.label === val);
-    confezioniRows[idx].porzione_id = porz ? String(porz.id) : "";
-    if (porz && !(toNumber(confezioniRows[idx].peso_kg) > 0)) {
-      confezioniRows[idx].peso_kg = toKg(porz.peso_porzione, porz.unita_misura);
-    }
-    renderConfezioniRows();
     recalcResaUI();
     return;
   }
