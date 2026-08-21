@@ -680,7 +680,7 @@ function setupAutocompleteRicette() {
 
   if (!input || !suggest || !hidden || !btnVedi) return;
 
-  input.addEventListener("input", () => {
+  input.addEventListener("input", async () => {
     if (savedLotto) return;
 
     const q = (input.value || "").toLowerCase().trim();
@@ -708,7 +708,7 @@ function setupAutocompleteRicette() {
     const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const nq = norm(q);
     // Ordino i match: prima chi INIZIA con la query (es "rag" -> "Ragù..." prima di "asparagi"), poi gli altri
-    const risultati = ricetteCache
+    let risultati = ricetteCache
       .filter((r) => norm(r.nome).includes(nq))
       .sort((a, b) => {
         const na = norm(a.nome), nb = norm(b.nome);
@@ -718,6 +718,31 @@ function setupAutocompleteRicette() {
         return na.localeCompare(nb, "it");
       })
       .slice(0, 10);
+
+    // Se la lista in memoria e' vuota (vista aperta senza preload, o preload fallito),
+    // cerco direttamente nel database: cosi' la ricerca funziona comunque.
+    if (!risultati.length && !ricetteCache.length) {
+      const supabase = window.supabaseClient || window.supabase;
+      const aziendaId = window.state?.azienda?.id;
+      if (supabase && aziendaId) {
+        const { data } = await supabase
+          .from("ricette")
+          .select("id, nome, pezzi_base, prodotto_output_id, scaling_tempo_pct")
+          .eq("azienda_id", aziendaId)
+          .eq("attivo", true)
+          .ilike("nome", "%" + q + "%")
+          .order("nome")
+          .limit(10);
+        (data || []).forEach((r) => {
+          risultati.push({
+            id: r.id, nome: r.nome, pezzi_base: r.pezzi_base,
+            prodotto_output_id: r.prodotto_output_id ?? null,
+            scaling_tempo_pct: (r.scaling_tempo_pct == null ? 20 : Number(r.scaling_tempo_pct)),
+            resa_teorica: null, resa_unita: "kg"
+          });
+        });
+      }
+    }
 
     if (!risultati.length) {
       const div = document.createElement("div");
