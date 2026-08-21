@@ -3905,6 +3905,14 @@ async function preloadFromPlanner(plannerId){
 // =========================================================
 // RESUME: riprende un lotto aperto dal monitor "Produzioni aperte"
 // =========================================================
+function applicaStadiDalLotto(lotto) {
+  const selDa = document.getElementById("stadio-da");
+  const selA = document.getElementById("stadio-a");
+  if (selDa && lotto?.stadio_ingresso) selDa.value = String(lotto.stadio_ingresso);
+  if (selA && lotto?.stadio_chiusura) selA.value = String(lotto.stadio_chiusura);
+  if (typeof aggiornaHelpQuantita === "function") aggiornaHelpQuantita();
+}
+
 async function resumeDaLotto(lottoUuid) {
   const supabase = window.supabaseClient
   const aziendaId = window.state?.azienda?.id
@@ -3935,8 +3943,10 @@ async function resumeDaLotto(lottoUuid) {
     await Promise.all([
       loadPorzioniRicetta(ricetta.id),
       loadConservazioni(ricetta.id),
-      loadFasiHaccp(ricetta.id)
+      loadFasiHaccp(ricetta.id),
+      loadStadiRicetta(ricetta.id)
     ])
+    applicaStadiDalLotto(lotto)
   }
 
   // Sovrappone le firme/temperature già registrate sulle fasi
