@@ -4006,9 +4006,14 @@ async function resumeDaLotto(lottoUuid) {
     }
   } catch (e) { console.warn("Ripristino confezioni:", e); }
 
-  // Il lotto e' gia' registrato: rendo disponibili le stampe etichette e blocco i campi
-  savedLotto = { lotto_uuid: lotto.lotto_uuid, id: lotto.id, codice_lotto: lotto.codice_lotto };
+  // Le stampe etichette diventano disponibili perche' il lotto esiste gia'.
+  // Ma se il lotto e' ancora APERTO la scheda resta modificabile: e' in lavorazione,
+  // e servono confezioni, firme e pesi. Si blocca solo quando e' chiuso o firmato.
   savedLottoUUID = lotto.lotto_uuid;
+  const lottoInLavorazione = String(lotto.stato || "").toLowerCase() === "aperta";
+  savedLotto = lottoInLavorazione
+    ? null
+    : { lotto_uuid: lotto.lotto_uuid, id: lotto.id, codice_lotto: lotto.codice_lotto };
   const pL = document.getElementById("btn-print-lotto");
   const pC = document.getElementById("btn-print-coprodotti");
   const pE = document.getElementById("btn-print-etichettatrice");
