@@ -99,7 +99,7 @@ export async function render(container) {
             <label>Ricetta</label>
             <input id="prod-ricetta-search" class="input" placeholder="Cerca ricetta..." autocomplete="off" ${savedLotto ? "disabled" : ""} />
             <input id="prod-ricetta-id" type="hidden" />
-            <div id="prod-ricetta-suggest" class="suggest-list"></div>
+            <div id="prod-ricetta-suggest" class="suggest-list" style="position:relative;z-index:50;background:#fff;"></div>
             <div id="prod-ricetta-info" class="form-help" style="margin-top:10px;">Nessuna ricetta selezionata</div>
           </div>
 
@@ -718,6 +718,18 @@ function setupAutocompleteRicette() {
         return na.localeCompare(nb, "it");
       })
       .slice(0, 10);
+
+    if (!risultati.length) {
+      const div = document.createElement("div");
+      div.className = "suggest-item";
+      div.style.color = "#8a7f70";
+      div.textContent = ricetteCache.length
+        ? ("Nessuna ricetta trovata (" + ricetteCache.length + " caricate)")
+        : "Ricette non ancora caricate: attendi un istante e riprova";
+      suggest.appendChild(div);
+      suggest.classList.add("open");
+      return;
+    }
 
     risultati.forEach((r) => {
       const div = document.createElement("div");
