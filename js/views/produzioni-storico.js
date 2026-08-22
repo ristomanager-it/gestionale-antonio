@@ -92,7 +92,7 @@ async function carica(container, aziendaId) {
   box.innerHTML = '<div class="small-muted">Carico…</div>';
 
   let q = supa().from("produzione_lotti")
-    .select("id, lotto_uuid, codice_lotto, ricetta_id, data_produzione, data_scadenza, quantita_output, unita_misura, stato, costo_totale_lotto, costo_unitario_output, note, ricette(nome), dipendenti(nome, cognome)")
+    .select("id, lotto_uuid, codice_lotto, ricetta_id, data_produzione, data_scadenza, quantita_output, unita_misura, stato, costo_totale_lotto, costo_unitario_output, note, ricette(nome), dipendenti!produzione_lotti_operatore_id_fkey(nome, cognome)")
     .eq("azienda_id", aziendaId)
     .order("data_produzione", { ascending: false })
     .limit(300);

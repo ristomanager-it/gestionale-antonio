@@ -58,7 +58,7 @@ async function carica() {
 
   let q = window.supabaseClient
     .from("produzione_lotti")
-    .select("id, lotto_uuid, codice_lotto, data_produzione, data_scadenza, quantita_output, unita_misura, luogo, note, stato, created_at, firmato_at, ricette(nome), dipendenti(nome)")
+    .select("id, lotto_uuid, codice_lotto, data_produzione, data_scadenza, quantita_output, unita_misura, luogo, note, stato, created_at, firmato_at, ricette(nome), dipendenti!produzione_lotti_operatore_id_fkey(nome)")
     .eq("azienda_id", window.state.azienda.id)
     .order("created_at", { ascending: false })
     .limit(500);

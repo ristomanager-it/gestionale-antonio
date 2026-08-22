@@ -163,7 +163,7 @@ async function refreshLista() {
 
   const { data, error } = await window.supabaseClient
     .from("produzione_lotti")
-    .select("id, lotto_uuid, codice_lotto, ricetta_id, data_produzione, data_scadenza, quantita_output, luogo, note, created_at, operatore_id, ricette(nome), dipendenti(nome)")
+    .select("id, lotto_uuid, codice_lotto, ricetta_id, data_produzione, data_scadenza, quantita_output, luogo, note, created_at, operatore_id, ricette(nome), dipendenti!produzione_lotti_operatore_id_fkey(nome)")
     .eq("azienda_id", window.state.azienda.id).eq("stato", "aperta").order("created_at", { ascending: true });
 
   if (error) { cont.innerHTML = `<div style="color:#dc2626;">Errore: ${escapeHtml(error.message)}</div>`; return; }
