@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260822-02";
+const APP_V = "20260822-03";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -274,6 +274,7 @@ const routes = {
 
 const PUBLIC_ROUTES = new Set([
   "login",
+  "prodotto",
   "activate",
   "setPassword",
   "set-password",
@@ -1336,6 +1337,21 @@ async function resolve() {
     } catch(e) {
       console.error("Errore menu pubblico:", e);
       app.innerHTML = "Menu non trovato";
+      return;
+    }
+  }
+
+  // ── Route scheda prodotto (QR sull'etichetta, senza login) ──
+  if (route === "prodotto") {
+    const codice = segments[1];
+    if (!codice) { app.innerHTML = "Link non valido"; return; }
+    try {
+      const { renderProdottoPubblico } = await imp("./views/prodotto-pubblico.js");
+      await renderProdottoPubblico(app, decodeURIComponent(codice));
+      return;
+    } catch (e) {
+      console.error("Errore scheda prodotto:", e);
+      app.innerHTML = "Prodotto non trovato";
       return;
     }
   }

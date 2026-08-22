@@ -63,7 +63,7 @@ async function carica() {
 
   let q = window.supabaseClient
     .from("produzione_lotti")
-    .select("id, lotto_uuid, codice_lotto, data_produzione, data_scadenza, quantita_output, unita_misura, luogo, note, stato, created_at, firmato_at, ricette(nome), dipendenti!produzione_lotti_operatore_id_fkey(nome)")
+    .select("id, lotto_uuid, codice_lotto, data_produzione, data_scadenza, quantita_output, unita_misura, luogo, note, stato, created_at, firmato_at, ricette(nome, codice), dipendenti!produzione_lotti_operatore_id_fkey(nome)")
     .eq("azienda_id", window.state.azienda.id)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -148,7 +148,7 @@ async function toggleDettaglio(card) {
   let etichetta = null;
   if (info.ricetta_id) {
     const { data } = await supa.from("etichette")
-      .select("denominazione, denominazione_extra, ingredienti, allergeni, peso_netto_g, tmc_dicitura, conservazione, dopo_apertura, origine")
+      .select("denominazione, denominazione_extra, ingredienti, allergeni, peso_netto_g, peso_sgocciolato_g, tmc_dicitura, conservazione, dopo_apertura, origine")
       .eq("ricetta_id", info.ricetta_id).maybeSingle();
     etichetta = data || null;
   }
@@ -209,6 +209,7 @@ async function toggleDettaglio(card) {
       <div><label style="display:block;color:#64748b;">Quante</label>
         <input class="input rl-quante" type="number" min="1" value="${nDefault}" style="width:90px;"></div>
       <button class="rl-stampa" style="background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;">🏷 Stampa etichette</button>
+      <div style="width:100%;font-size:11px;color:#94a3b8;margin-top:2px;">Retro 60 × 40 mm · QR alla scheda del prodotto</div>
     </div>`);
   }
 
@@ -227,48 +228,77 @@ async function toggleDettaglio(card) {
       e.stopPropagation();
       const peso = box.querySelector(".rl-peso")?.value || "";
       const quante = Math.max(1, parseInt(box.querySelector(".rl-quante")?.value || "1", 10));
-      stampaEtichette({ etichetta, produttore, info, peso, quante });
+      stampaEtichette({ etichetta, produttore, info, peso, quante, codiceRicetta: lotto.ricette?.codice });
     });
     box.querySelectorAll(".rl-peso, .rl-quante").forEach(i => i.addEventListener("click", e => e.stopPropagation()));
   }
 }
 
-// Costruisce le etichette e apre la stampa del browser.
-// Non serve stampante di rete configurata: si stampa come una pagina.
-function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
+// Retro dell'etichetta: misura unica 60x40 mm su ogni prodotto e ogni formato.
+// Il corpo del testo non scende sotto i 6pt: il regolamento 1169/2011 chiede
+// almeno 1,2 mm di altezza della x, sotto quella misura l'etichetta e' fuori norma.
+// Il QR si genera in locale (js/vendor/qrcode.js), niente CDN: nel laboratorio
+// la connessione non e' garantita.
+async function stampaEtichette({ etichetta, produttore, info, peso, quante, codiceRicetta }) {
+  let qrSvg = "";
+  try {
+    const mod = await import("../vendor/qrcode.js");
+    const qrcode = mod.default || window.qrcode;
+    if (qrcode && codiceRicetta) {
+      const url = location.origin + location.pathname + "#/prodotto/" + encodeURIComponent(codiceRicetta);
+      const q = qrcode(0, "M");
+      q.addData(url);
+      q.make();
+      qrSvg = q.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
+    }
+  } catch (e) {
+    console.warn("QR non generato:", e);
+  }
+
   const scad = info.data_scadenza ? new Date(info.data_scadenza).toLocaleDateString("it-IT") : "";
   const allerg = Array.isArray(etichetta.allergeni) ? etichetta.allergeni.filter(Boolean) : [];
+  const sgocc = etichetta.peso_sgocciolato_g;
+
+  const righe = [];
+  if (etichetta.ingredienti) righe.push(`<b>Ingredienti:</b> ${escapeHtml(etichetta.ingredienti)}`);
+  righe.push(`<b>Allergeni:</b> ${allerg.length ? `<span class="al">${escapeHtml(allerg.join(", "))}</span>` : "nessuno"}${etichetta.origine ? ` &nbsp; <b>Origine:</b> ${escapeHtml(etichetta.origine)}` : ""}`);
+  if (sgocc) righe.push(`<b>Peso sgocciolato:</b> ${escapeHtml(String(sgocc))} g`);
+  if (etichetta.conservazione) righe.push(escapeHtml(etichetta.conservazione));
+  if (etichetta.dopo_apertura) righe.push(escapeHtml(etichetta.dopo_apertura));
+
   const una = `
     <div class="et">
-      <div class="tit">${escapeHtml(etichetta.denominazione || "")}</div>
-      ${etichetta.denominazione_extra ? `<div class="extra">${escapeHtml(etichetta.denominazione_extra)}</div>` : ""}
-      ${etichetta.ingredienti ? `<div class="r"><b>Ingredienti:</b> ${escapeHtml(etichetta.ingredienti)}</div>` : ""}
-      ${allerg.length ? `<div class="r"><b>Allergeni:</b> ${escapeHtml(allerg.join(", "))}</div>` : ""}
-      ${peso ? `<div class="r"><b>Peso netto:</b> ${escapeHtml(String(peso))} g</div>` : ""}
-      ${etichetta.conservazione ? `<div class="r">${escapeHtml(etichetta.conservazione)}</div>` : ""}
-      ${etichetta.dopo_apertura ? `<div class="r">${escapeHtml(etichetta.dopo_apertura)}</div>` : ""}
-      ${etichetta.origine ? `<div class="r"><b>Origine:</b> ${escapeHtml(etichetta.origine)}</div>` : ""}
-      <div class="lotto">LOTTO ${escapeHtml(info.codice_lotto || "")}${scad ? `<br>${escapeHtml(etichetta.tmc_dicitura || "Da consumarsi entro")} il ${scad}` : ""}</div>
-      <div class="prod">${escapeHtml(produttore.ragione_sociale || "")}<br>${escapeHtml(produttore.indirizzo || "")}${produttore.stabilimento ? `<br>Stab.: ${escapeHtml(produttore.stabilimento)}` : ""}${produttore.partita_iva ? `<br>P.IVA ${escapeHtml(produttore.partita_iva)}` : ""}</div>
+      <div class="tit">${escapeHtml(etichetta.denominazione || "")}${peso ? ` · ${escapeHtml(String(peso))} g` : ""}</div>
+      <div class="corpo">
+        <div class="testo">${righe.join("<br>")}</div>
+        ${qrSvg ? `<div class="qr">${qrSvg}<div class="qrcap">Come si usa</div></div>` : ""}
+      </div>
+      <div class="lotto">LOTTO ${escapeHtml(info.codice_lotto || "")}${scad ? ` · ${escapeHtml(etichetta.tmc_dicitura || "entro")} il ${scad}` : ""}</div>
+      <div class="prod">${escapeHtml(produttore.ragione_sociale || "")} — ${escapeHtml(produttore.indirizzo || "")}${produttore.partita_iva ? ` — P.IVA ${escapeHtml(produttore.partita_iva)}` : ""}</div>
     </div>`;
 
   const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Etichette ${escapeHtml(info.codice_lotto || "")}</title>
     <style>
-      @page { margin: 6mm; }
-      body { font-family: Arial, Helvetica, sans-serif; margin:0; display:flex; flex-wrap:wrap; gap:4mm; }
-      .et { border:1.5pt solid #000; border-radius:2mm; padding:3mm; width:62mm; box-sizing:border-box; font-size:7pt; line-height:1.35; page-break-inside:avoid; }
-      .tit { font-size:10pt; font-weight:800; text-transform:uppercase; margin-bottom:1.5mm; }
-      .extra { font-size:7pt; font-style:italic; margin-bottom:1mm; }
-      .r { margin:0.6mm 0; }
-      .lotto { margin-top:2mm; padding-top:1.5mm; border-top:1pt solid #000; font-size:8.5pt; font-weight:800; }
-      .prod { margin-top:2mm; padding-top:1.5mm; border-top:0.5pt dotted #666; font-size:6pt; color:#222; }
+      @page { margin: 5mm; }
+      body { font-family: Arial, Helvetica, sans-serif; margin:0; display:flex; flex-wrap:wrap; gap:3mm; }
+      .et { width:60mm; height:40mm; box-sizing:border-box; border:1px solid #999; border-radius:1mm;
+            padding:2.6mm; display:flex; flex-direction:column; page-break-inside:avoid; color:#000; }
+      .tit { font-size:6.5pt; font-weight:800; border-bottom:0.5pt solid #666; padding-bottom:0.7mm; margin-bottom:1mm; }
+      .corpo { display:flex; gap:2mm; flex:1; overflow:hidden; }
+      .testo { flex:1; font-size:6pt; line-height:1.25; }
+      .al { font-weight:800; }
+      .qr { width:13mm; flex-shrink:0; display:flex; flex-direction:column; align-items:center; }
+      .qr svg { width:13mm; height:13mm; display:block; }
+      .qrcap { font-size:4.5pt; color:#444; text-align:center; margin-top:0.3mm; }
+      .lotto { border-top:0.7pt solid #000; margin-top:1mm; padding-top:0.8mm; font-size:7pt; font-weight:800; }
+      .prod { margin-top:0.7mm; font-size:5pt; color:#333; line-height:1.2; }
     </style></head><body>${una.repeat(quante)}</body></html>`;
 
   const w = window.open("", "_blank");
   if (!w) { alert("Il browser ha bloccato la finestra di stampa. Consenti i popup e riprova."); return; }
   w.document.write(html);
   w.document.close();
-  setTimeout(() => { w.focus(); w.print(); }, 350);
+  setTimeout(() => { w.focus(); w.print(); }, 400);
 }
 
 // Stampa il registro cosi' come e' filtrato a schermo: e' il documento
