@@ -66,7 +66,12 @@ export async function renderProdottoPubblico(app, codice) {
         ${d.denominazione_extra ? `<div class="pp-extra">${esc(d.denominazione_extra)}</div>` : ""}
       </div>
 
-      ${d.foto_url ? `<img class="pp-foto" src="${esc(d.foto_url)}" alt="${esc(d.denominazione)}">` : ""}
+      ${(() => {
+        // la grafica della confezione e' quella che il cliente ha in mano:
+        // se c'e' viene prima della foto del piatto
+        const img = d.grafica_url || d.foto_url;
+        return img ? `<img class="pp-foto" src="${esc(img)}" alt="${esc(d.denominazione)}">` : "";
+      })()}
 
       ${d.istruzioni_uso ? `<div class="pp-uso">
         <div class="pp-sez">Come si usa</div>

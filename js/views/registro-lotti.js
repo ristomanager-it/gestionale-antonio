@@ -281,6 +281,15 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante, codi
     <style>
       @page { margin: 5mm; }
       body { font-family: Arial, Helvetica, sans-serif; margin:0; display:flex; flex-wrap:wrap; gap:3mm; }
+      /* La finestra parte con la stampa gia' aperta: se si annulla resta un foglio
+         senza vie d'uscita, e su telefono non c'e' modo di chiuderla. */
+      .barra { width:100%; box-sizing:border-box; background:#0E5A7A; padding:10px 14px;
+               display:flex; gap:10px; align-items:center; position:sticky; top:0; z-index:9; }
+      .barra .tit { color:#e2f2f9; font-size:12px; font-weight:700; flex:1; }
+      .barra button { border-radius:7px; padding:8px 15px; font-size:13px; font-weight:800; cursor:pointer; }
+      .bstampa { background:#fff; color:#0E5A7A; border:0; }
+      .bchiudi { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.6); }
+      @media print { .barra { display:none !important; } }
       .et { width:60mm; height:40mm; box-sizing:border-box; border:1px solid #999; border-radius:1mm;
             padding:2.6mm; display:flex; flex-direction:column; page-break-inside:avoid; color:#000; }
       .tit { font-size:6.5pt; font-weight:800; border-bottom:0.5pt solid #666; padding-bottom:0.7mm; margin-bottom:1mm; }
@@ -292,7 +301,13 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante, codi
       .qrcap { font-size:4.5pt; color:#444; text-align:center; margin-top:0.3mm; }
       .lotto { border-top:0.7pt solid #000; margin-top:1mm; padding-top:0.8mm; font-size:7pt; font-weight:800; }
       .prod { margin-top:0.7mm; font-size:5pt; color:#333; line-height:1.2; }
-    </style></head><body>${una.repeat(quante)}</body></html>`;
+    </style></head><body>
+      <div class="barra">
+        <span class="tit">Etichette · LOTTO ${escapeHtml(info.codice_lotto || "")} · ${quante} ${quante === 1 ? "copia" : "copie"}</span>
+        <button class="bstampa" onclick="window.print()">🖨 Stampa</button>
+        <button class="bchiudi" onclick="window.close()">✕ Chiudi</button>
+      </div>
+      ${una.repeat(quante)}</body></html>`;
 
   const w = window.open("", "_blank");
   if (!w) { alert("Il browser ha bloccato la finestra di stampa. Consenti i popup e riprova."); return; }
@@ -338,7 +353,19 @@ function stampaRegistro() {
       .n { text-align:right; }
       tr { page-break-inside:avoid; }
       .firma { margin-top:8mm; font-size:8pt; }
+      .barra { background:#0E5A7A; padding:10px 14px; display:flex; gap:10px; align-items:center;
+               margin:-0mm 0 6mm; border-radius:8px; }
+      .barra .tit { color:#e2f2f9; font-size:11pt; font-weight:700; flex:1; }
+      .barra button { border-radius:7px; padding:8px 15px; font-size:11pt; font-weight:800; cursor:pointer; }
+      .bstampa { background:#fff; color:#0E5A7A; border:0; }
+      .bchiudi { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.6); }
+      @media print { .barra { display:none !important; } }
     </style></head><body>
+      <div class="barra">
+        <span class="tit">Registro lotti · ${lotti.length} lotti</span>
+        <button class="bstampa" onclick="window.print()">🖨 Stampa</button>
+        <button class="bchiudi" onclick="window.close()">✕ Chiudi</button>
+      </div>
       <h1>Registro lotti di produzione</h1>
       <div class="sub">${escapeHtml(azienda)}${sede ? " — " + escapeHtml(sede) : ""} · stampato il ${oggi} · ${lotti.length} lotti</div>
       <table>

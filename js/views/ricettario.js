@@ -5,6 +5,10 @@ let categorieCache = [];
 let filtroBozza = true;
 let filtroInCompletamento = false;
 let filtroComplete = false;
+// Market/conserve: e' una dimensione diversa dallo stato, quindi si somma agli
+// altri filtri invece di sostituirli. Sono le ricette che finiscono in vendita
+// dentro una confezione con una grafica sopra.
+let filtroMarket = false;
 
 
 // ============================================================
@@ -161,6 +165,10 @@ export async function render(app) {
               <input type="checkbox" id="f-complete">
               Complete 🟢
             </label>
+            <label>
+              <input type="checkbox" id="f-market">
+              Market / Conserve 🫙
+            </label>
           </div>
         `
       })}
@@ -217,6 +225,11 @@ function bindFiltri() {
     filtroComplete = e.target.checked;
     renderRicetteList();
   });
+
+  document.getElementById("f-market")?.addEventListener("change", e => {
+    filtroMarket = e.target.checked;
+    renderRicetteList();
+  });
 }
 
 async function loadAll() {
@@ -243,6 +256,8 @@ async function loadRicette() {
     .select(`
       id,
       nome,
+      codice,
+      tipo_ricetta,
       stato_strutturale,
       generata_automaticamente,
       origine,
@@ -297,6 +312,8 @@ async function loadRicette() {
     return {
       id: r.id,
       nome: r.nome || "",
+      codice: r.codice || null,
+      market: r.tipo_ricetta === "market",
       stato: r.stato_strutturale || "bozza",
       resa: out?.peso_finale ?? null,
       um: out?.unita_misura ?? null,
@@ -395,6 +412,9 @@ function getRicetteFiltrate() {
       return false;
     });
   }
+
+  // market restringe: vale insieme allo stato, non al posto suo
+  if (filtroMarket) risultati = risultati.filter(r => r.market);
 
   const qTestoLista = normalize(document.getElementById("ric-search")?.value || "");
   if (qTestoLista) risultati = risultati.filter(r => normalize(r.nome).includes(qTestoLista));
@@ -841,7 +861,8 @@ async function mostraRicetta(id) {
     ricettaRes,
     ingredientiRes,
     fasiRes,
-    outputRes
+    outputRes,
+    formatiRes
   ] = await Promise.all([
 
     supabase
@@ -865,7 +886,13 @@ async function mostraRicetta(id) {
       .from("ricette_output")
       .select("*")
       .eq("ricetta_id", id)
-      .maybeSingle()
+      .maybeSingle(),
+
+    supabase
+      .from("ricette_porzione")
+      .select("id, label, peso_porzione, unita_misura, attivo, grafica_url, grafica_path")
+      .eq("ricetta_id", id)
+      .order("peso_porzione")
 
   ]);
 
@@ -881,6 +908,20 @@ async function mostraRicetta(id) {
   const ingredienti = ingredientiRes.data || [];
   const fasi = fasiRes.data || [];
   const output = outputRes.data || null;
+  const formati = (formatiRes?.data || []).filter(f => f.attivo !== false);
+
+  // La grafica di rappresentanza riguarda solo i prodotti finiti. I semilavorati
+  // restano in casa e portano la sola etichetta di lotto stampata dal registro.
+  let semilavorato = false;
+  if (ricetta.tipo_ricetta === "market" && ricetta.prodotto_output_id) {
+    const { data: po } = await supabase
+      .from("prodotti")
+      .select("tipo_prodotto")
+      .eq("id", ricetta.prodotto_output_id)
+      .maybeSingle();
+    semilavorato = po?.tipo_prodotto === "semilavorato";
+  }
+  const mostraGrafica = ricetta.tipo_ricetta === "market" && !semilavorato && formati.length > 0;
 
   const viewer = document.getElementById("ric-viewer");
 
@@ -999,6 +1040,40 @@ async function mostraRicetta(id) {
         `
       }
 
+      ${mostraGrafica ? `
+        <h4 style="margin-top:22px;">🎨 Grafica etichetta (fronte)</h4>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">
+          Una grafica per formato. Il retro con ingredienti, allergeni, lotto e QR
+          resta quello generato dal registro lotti a 60 × 40 mm.
+        </div>
+        ${formati.map(f => `
+          <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid #f1f5f9;">
+            <div style="width:96px;height:120px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              ${f.grafica_url
+                ? `<img src="${escapeAttribute(f.grafica_url)}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;">`
+                : `<span style="font-size:11px;color:#94a3b8;text-align:center;padding:6px;">nessuna<br>grafica</span>`}
+            </div>
+            <div style="flex:1;min-width:180px;">
+              <div style="font-weight:700;font-size:14px;">${escapeHtml(f.label || "Formato")}</div>
+              <div style="font-size:12px;color:#64748b;margin-bottom:8px;">
+                ${escapeHtml(String(f.peso_porzione ?? ""))} ${escapeHtml(f.unita_misura || "")}
+              </div>
+              <input type="file" class="gr-file" data-porzione="${f.id}"
+                     accept="image/png,image/jpeg,image/webp,application/pdf"
+                     style="font-size:12px;max-width:100%;">
+              <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="app-button small gr-carica" data-porzione="${f.id}">Carica</button>
+                ${f.grafica_url ? `
+                  <a class="app-button small gray" href="${escapeAttribute(f.grafica_url)}" target="_blank" rel="noopener">Apri</a>
+                  <button class="app-button small gray gr-rimuovi" data-porzione="${f.id}"
+                          data-path="${escapeAttribute(f.grafica_path || "")}">Rimuovi</button>` : ""}
+              </div>
+              <div class="gr-esito" data-porzione="${f.id}" style="font-size:12px;margin-top:6px;"></div>
+            </div>
+          </div>
+        `).join("")}
+      ` : ""}
+
       <div style="margin-top:18px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="app-button primary" id="btn-vai-modifica-ricetta" data-ricetta-id="${id}">
           ✏️ Completa / Modifica
@@ -1012,6 +1087,90 @@ async function mostraRicetta(id) {
   document.getElementById("btn-vai-modifica-ricetta")?.addEventListener("click", function() {
     const rid = this.dataset.ricettaId;
     if (rid) window.location.hash = `#/crea-ricetta-avanzata?id=${rid}`;
+  });
+
+  if (mostraGrafica) bindGrafica(id, ricetta);
+}
+
+// ============================================================
+// 🎨 GRAFICA ETICHETTA — fronte confezione, una per formato
+// Il bucket media-aziende non ha una policy di UPDATE: quindi mai upsert,
+// si carica sempre un file nuovo e si cancella il vecchio dopo.
+// ============================================================
+
+function bindGrafica(ricettaId, ricetta) {
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  const viewer = document.getElementById("ric-viewer");
+  if (!viewer || !aziendaId) return;
+
+  const esito = (pid, testo, colore) => {
+    const el = viewer.querySelector(`.gr-esito[data-porzione="${pid}"]`);
+    if (el) el.innerHTML = `<span style="color:${colore};">${escapeHtml(testo)}</span>`;
+  };
+
+  viewer.querySelectorAll(".gr-carica").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const pid = btn.dataset.porzione;
+      const input = viewer.querySelector(`.gr-file[data-porzione="${pid}"]`);
+      const file = input?.files?.[0];
+      if (!file) { esito(pid, "Scegli prima un file.", "#b45309"); return; }
+      if (file.size > 5 * 1024 * 1024) { esito(pid, "File troppo grande: massimo 5 MB.", "#b91c1c"); return; }
+
+      btn.disabled = true;
+      esito(pid, "Carico…", "#64748b");
+
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const codice = ricetta.codice || `ric${ricettaId}`;
+      const path = `etichette/${aziendaId}/${codice}/${pid}-${Date.now()}.${ext}`;
+
+      const { error: errUp } = await supabase.storage
+        .from("media-aziende")
+        .upload(path, file, { contentType: file.type || undefined });
+
+      if (errUp) { btn.disabled = false; esito(pid, "Errore caricamento: " + errUp.message, "#b91c1c"); return; }
+
+      const { data: pub } = supabase.storage.from("media-aziende").getPublicUrl(path);
+      const url = pub?.publicUrl || null;
+
+      // il vecchio file si cancella solo dopo che il nuovo e' salvato in tabella
+      const { data: prima } = await supabase
+        .from("ricette_porzione").select("grafica_path").eq("id", pid).maybeSingle();
+
+      const { error: errDb } = await supabase
+        .from("ricette_porzione")
+        .update({ grafica_url: url, grafica_path: path })
+        .eq("id", pid);
+
+      if (errDb) { btn.disabled = false; esito(pid, "Errore salvataggio: " + errDb.message, "#b91c1c"); return; }
+
+      if (prima?.grafica_path && prima.grafica_path !== path) {
+        await supabase.storage.from("media-aziende").remove([prima.grafica_path]);
+      }
+
+      esito(pid, "Grafica caricata.", "#166534");
+      await mostraRicetta(ricettaId);
+    });
+  });
+
+  viewer.querySelectorAll(".gr-rimuovi").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const pid = btn.dataset.porzione;
+      if (!confirm("Rimuovere la grafica di questo formato?")) return;
+      btn.disabled = true;
+
+      const { error } = await supabase
+        .from("ricette_porzione")
+        .update({ grafica_url: null, grafica_path: null })
+        .eq("id", pid);
+
+      if (error) { btn.disabled = false; esito(pid, "Errore: " + error.message, "#b91c1c"); return; }
+
+      if (btn.dataset.path) {
+        await supabase.storage.from("media-aziende").remove([btn.dataset.path]);
+      }
+      await mostraRicetta(ricettaId);
+    });
   });
 }
 
