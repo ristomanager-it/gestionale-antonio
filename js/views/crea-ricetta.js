@@ -1464,6 +1464,7 @@ export async function render(app) {
               <select id="r-tipo" class="input">
                 <option value="base">Base (semilavorato)</option>
                 <option value="finita">Piatto finito</option>
+                <option value="market">Market / Conserva 🫙</option>
               </select>
             </div>
 
@@ -3634,6 +3635,31 @@ function aggiungiPorzione(initial = {}) {
           <option value="false">no</option>
         </select>
       </div>
+
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Grafica etichetta (fronte confezione)</label>
+        ${initial.id ? `
+          <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+            <div style="width:84px;height:104px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              ${initial.grafica_url
+                ? `<img src="${escapeAttr(initial.grafica_url)}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;">`
+                : `<span style="font-size:10px;color:#94a3b8;text-align:center;padding:5px;">nessuna<br>grafica</span>`}
+            </div>
+            <div style="flex:1;min-width:180px;">
+              <input type="file" class="porz-grafica-file" accept="image/png,image/jpeg,image/webp,application/pdf" style="font-size:12px;max-width:100%;">
+              <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" class="app-button small porz-grafica-carica">Carica</button>
+                ${initial.grafica_url ? `<button type="button" class="app-button small gray porz-grafica-rimuovi">Rimuovi</button>` : ""}
+              </div>
+              <div class="porz-grafica-esito" style="font-size:12px;margin-top:6px;color:#64748b;"></div>
+            </div>
+          </div>
+        ` : `
+          <div style="font-size:12px;color:#b45309;padding:8px 0;">
+            Salva prima la ricetta: la grafica si aggancia a un formato che esiste già.
+          </div>
+        `}
+      </div>
     </div>
   `;
 
@@ -3641,7 +3667,73 @@ function aggiungiPorzione(initial = {}) {
   card.querySelector(".porz-attivo").value = String(initial.attivo ?? true);
   card.querySelector('[data-action="delete"]').addEventListener("click", () => card.remove());
 
+  // l'id serve al salvataggio per non perdere la grafica nel giro di delete + insert
+  if (initial.id) {
+    card.dataset.porzioneId = initial.id;
+    card.dataset.graficaUrl = initial.grafica_url || "";
+    card.dataset.graficaPath = initial.grafica_path || "";
+    bindGraficaPorzione(card, initial);
+  }
+
   container.appendChild(card);
+}
+
+/* ------------------------------------------------------------
+   Grafica del fronte confezione, una per formato.
+   Il bucket media-aziende non ha policy di UPDATE: mai upsert,
+   si carica un file nuovo col timestamp e si cancella il vecchio dopo.
+------------------------------------------------------------ */
+function bindGraficaPorzione(card, initial) {
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  const esito = card.querySelector(".porz-grafica-esito");
+  const dillo = (t, c) => { if (esito) { esito.textContent = t; esito.style.color = c; } };
+
+  card.querySelector(".porz-grafica-carica")?.addEventListener("click", async () => {
+    const file = card.querySelector(".porz-grafica-file")?.files?.[0];
+    if (!file) return dillo("Scegli prima un file.", "#b45309");
+    if (file.size > 5 * 1024 * 1024) return dillo("File troppo grande: massimo 5 MB.", "#b91c1c");
+
+    dillo("Carico…", "#64748b");
+    const ext = (file.name.split(".").pop() || "png").toLowerCase();
+    const path = `etichette/${aziendaId}/ric${ricettaId}/${initial.id}-${Date.now()}.${ext}`;
+
+    const { error: errUp } = await supabase.storage
+      .from("media-aziende").upload(path, file, { contentType: file.type || undefined });
+    if (errUp) return dillo("Errore caricamento: " + errUp.message, "#b91c1c");
+
+    const { data: pub } = supabase.storage.from("media-aziende").getPublicUrl(path);
+    const url = pub?.publicUrl || null;
+
+    const { error: errDb } = await supabase
+      .from("ricette_porzione")
+      .update({ grafica_url: url, grafica_path: path })
+      .eq("id", initial.id);
+    if (errDb) return dillo("Errore salvataggio: " + errDb.message, "#b91c1c");
+
+    const vecchio = card.dataset.graficaPath;
+    if (vecchio && vecchio !== path) {
+      await supabase.storage.from("media-aziende").remove([vecchio]);
+    }
+    card.dataset.graficaUrl = url;
+    card.dataset.graficaPath = path;
+    dillo("Grafica caricata.", "#166534");
+  });
+
+  card.querySelector(".porz-grafica-rimuovi")?.addEventListener("click", async () => {
+    if (!confirm("Rimuovere la grafica di questo formato?")) return;
+    const { error } = await supabase
+      .from("ricette_porzione")
+      .update({ grafica_url: null, grafica_path: null })
+      .eq("id", initial.id);
+    if (error) return dillo("Errore: " + error.message, "#b91c1c");
+    if (card.dataset.graficaPath) {
+      await supabase.storage.from("media-aziende").remove([card.dataset.graficaPath]);
+    }
+    card.dataset.graficaUrl = "";
+    card.dataset.graficaPath = "";
+    dillo("Grafica rimossa.", "#166534");
+  });
 }
 
 
@@ -4324,6 +4416,8 @@ async function salvaTutto() {
       if (!label) return;
       if (!peso_porzione || peso_porzione <= 0) return;
 
+      // le porzioni si salvano con delete + insert: senza riportare questi due campi
+      // la grafica caricata sparirebbe a ogni salvataggio, lasciando il file orfano
       rows.push({
         ricetta_id: ricettaIdNum,
         label,
@@ -4331,6 +4425,8 @@ async function salvaTutto() {
         unita_misura,
         note,
         attivo,
+        grafica_url: r.dataset.graficaUrl || null,
+        grafica_path: r.dataset.graficaPath || null,
         azienda_id: aziendaId
       });
     });
