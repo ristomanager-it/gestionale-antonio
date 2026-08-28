@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Il tuo piano</title>
+<style>
+  :root{--carta:#FDFBF7;--inchiostro:#131A24;--rosso:#D0342C;--salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--carta);color:var(--inchiostro);
+       font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:720px;margin:0 auto;padding:0 18px 80px}
+  h1{font-size:32px;line-height:1.1;margin:30px 0 4px;letter-spacing:-.02em}
+  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--rosso);
+     margin:44px 0 12px;padding-top:18px;border-top:3px solid var(--inchiostro)}
+  .occhiello{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--salvia);margin:0}
+  .numeri{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}
+  .numeri div{flex:1 1 130px;border:2px solid var(--riga);border-radius:10px;padding:14px;background:#fff}
+  .numeri b{display:block;font-size:28px;line-height:1;color:var(--rosso)}
+  .numeri span{font-size:13px;color:var(--tenue);text-transform:uppercase;letter-spacing:.06em}
+  .barra{height:18px;background:var(--riga);border-radius:9px;overflow:hidden;margin:12px 0}
+  .barra i{display:block;height:100%;background:var(--rosso)}
+  table{width:100%;border-collapse:collapse;font-size:16px;margin:10px 0}
+  th{text-align:left;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);
+     border-bottom:2px solid var(--inchiostro);padding:8px 6px}
+  td{border-bottom:1px solid var(--riga);padding:10px 6px;vertical-align:top}
+  .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .tag{display:inline-block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+       padding:3px 9px;border-radius:3px;background:var(--salvia);color:#fff}
+  .tag.r{background:var(--rosso)}
+  .tag.v{background:#2E8B57}
+  .nota{background:#fff;border:2px solid var(--riga);border-radius:10px;padding:16px;margin:18px 0;font-size:16px}
+  a{color:var(--rosso)}
+  @media(max-width:520px){h1{font-size:26px}table{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico il piano...</p></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  var SB_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+  var token = new URLSearchParams(location.search).get("t") || "";
+  var app = document.getElementById("app");
+
+  var TIPO = { acconto: "Acconto", rata: "Rata", saldo: "Saldo" };
+  var STATO = {
+    attesa:    '<span class="tag">In attesa</span>',
+    pagata:    '<span class="tag v">Pagata</span>',
+    scaduta:   '<span class="tag r">Scaduta</span>',
+    annullata: "—"
+  };
+  var MODALITA = {
+    acconto_saldo: "acconto e saldo",
+    rate_mensili: "a rate",
+    libero: "versamenti liberi"
+  };
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function euro(n) {
+    return Number(n || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+  }
+  function dataIt(iso) {
+    if (!iso) return "—";
+    var p = String(iso).slice(0, 10).split("-");
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+  function oggi() { return new Date().toISOString().slice(0, 10); }
+
+  if (!token) {
+    app.innerHTML = "<h1>Link incompleto</h1><p>Apri il collegamento che ti è arrivato per intero.</p>";
+    return;
+  }
+
+  sb.rpc("viaggio_mio_piano", { p_token: token }).then(function (r) {
+    if (r.error || !r.data) {
+      app.innerHTML = "<h1>Piano non trovato</h1><p>Il link non è più valido. Scrivi agli organizzatori e te ne mandano uno nuovo.</p>";
+      return;
+    }
+    var d = r.data;
+    var quota = Number(d.quota || 0);
+    var versato = Number(d.versato || 0);
+    var residuo = quota - versato;
+    var perc = quota > 0 ? Math.min(100, Math.round(versato / quota * 100)) : 0;
+
+    var rate = d.rate || [];
+    var prossima = null;
+    rate.forEach(function (x) {
+      if (x.stato === "attesa" && !prossima) prossima = x;
+    });
+
+    var h = "";
+    h += '<p class="occhiello">' + esc(d.viaggio.titolo) + "</p>";
+    h += "<h1>" + esc(d.nucleo || d.referente) + "</h1>";
+    h += '<p style="color:#5B6672;margin-top:0;">' + d.persone + (d.persone === 1 ? " persona" : " persone")
+       + " · " + esc(MODALITA[d.modalita] || d.modalita)
+       + (d.chi_paga === "pro_capite" ? " · ognuno la sua quota" : "") + "</p>";
+
+    h += '<div class="numeri">'
+      + "<div><b>" + euro(quota) + "</b><span>Quota</span></div>"
+      + '<div><b style="color:#2E8B57;">' + euro(versato) + "</b><span>Versato</span></div>"
+      + "<div><b>" + euro(residuo) + "</b><span>Residuo</span></div></div>";
+
+    h += '<div class="barra"><i style="width:' + perc + '%"></i></div>';
+    h += '<p style="color:#5B6672;font-size:16px;">' + perc + "% della quota."
+       + (prossima ? " Prossimo versamento: " + euro(prossima.importo) + " entro il " + dataIt(prossima.scadenza) + "." : " Nessuna scadenza aperta.")
+       + "</p>";
+
+    if (rate.length) {
+      h += "<h2>Il piano</h2><table><tr><th>Voce</th><th>Scadenza</th><th class=\"num\">Importo</th><th>Stato</th></tr>";
+      rate.forEach(function (x) {
+        var scaduta = x.stato === "attesa" && x.scadenza && x.scadenza < oggi();
+        h += "<tr><td><b>" + (TIPO[x.tipo] || x.tipo) + "</b>"
+           + (x.intestata ? '<div style="color:#5B6672;font-size:14px;">' + esc(x.intestata) + "</div>" : "")
+           + "</td><td>" + dataIt(x.scadenza) + '</td><td class="num">' + euro(x.importo) + "</td><td>"
+           + (scaduta ? STATO.scaduta : (STATO[x.stato] || "")) + "</td></tr>";
+      });
+      h += "</table>";
+    } else {
+      h += "<h2>Il piano</h2><p>Il piano non è ancora stato preparato. Gli organizzatori lo impostano dopo aver confermato il gruppo.</p>";
+    }
+
+    if ((d.versamenti || []).length) {
+      h += "<h2>Quello che avete versato</h2><table><tr><th>Data</th><th>Come</th><th class=\"num\">Importo</th></tr>";
+      d.versamenti.forEach(function (x) {
+        h += "<tr><td>" + dataIt(x.data) + "</td><td>" + esc(x.metodo) + '</td><td class="num">' + euro(x.importo) + "</td></tr>";
+      });
+      h += "</table>";
+    }
+
+    h += '<div class="nota">Per versare, o per cambiare il modo in cui pagate, scrivete agli organizzatori. '
+       + 'Il pagamento con carta arriva a breve su questa pagina.</div>';
+    h += '<p style="font-size:15px;color:#5B6672;">Questo indirizzo è personale: chi ce l\'ha vede il vostro piano. Non giratelo fuori dal gruppo.</p>';
+
+    app.innerHTML = h;
+    document.title = (d.nucleo || d.referente) + " — " + d.viaggio.titolo;
+  });
+})();
+</script>
+</body>
+</html>
