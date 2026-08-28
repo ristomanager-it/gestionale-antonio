@@ -56,17 +56,33 @@
          + " al " + Number(pb[2]) + " " + mesi[Number(pb[1]) - 1] + " " + pb[0];
   }
   function grande(src) { return src.replace(/\/\d+px-/, "/1280px-"); }
+
   function sommario(lingua, titolo) {
     return fetch("https://" + lingua + ".wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { return (j && j.thumbnail && j.thumbnail.source) ? grande(j.thumbnail.source) : null; })
-      .catch(function () { return null; });
+      .then(function (j) {
+        if (!j) return null;
+        if (j.originalimage && j.originalimage.source)
+          return { grande: j.originalimage.source, piccola: j.thumbnail ? j.thumbnail.source : null };
+        if (j.thumbnail && j.thumbnail.source)
+          return { grande: grande(j.thumbnail.source), piccola: j.thumbnail.source };
+        return null;
+      }).catch(function () { return null; });
   }
+
   function fotoDaWiki(titolo, img) {
     if (!titolo) { img.remove(); return; }
     sommario("it", titolo)
-      .then(function (u) { return u || sommario("en", titolo); })
-      .then(function (u) { if (u) { img.src = u; img.style.minHeight = "0"; } else img.remove(); });
+      .then(function (e) { return e || sommario("en", titolo); })
+      .then(function (e) {
+        if (!e) { img.remove(); return; }
+        img.onerror = function () {
+          img.onerror = function () { img.remove(); };
+          if (e.piccola && e.piccola !== img.src) img.src = e.piccola; else img.remove();
+        };
+        img.src = e.grande;
+        img.style.minHeight = "0";
+      });
   }
 
   sb.rpc("viaggi_catalogo_pubblico", { p_azienda: AZIENDA }).then(function (r) {
