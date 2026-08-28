@@ -193,14 +193,27 @@
     }
 
     if ((dati.mezzi || []).length) {
-      h += "<h2>I mezzi</h2><table><tr><th>Mezzo</th><th>Modello</th><th>Posti</th><th>Stato</th></tr>";
+      // I mezzi sono identici: si descrive il camper una volta sola e si dice quanti sono.
+      var gruppi = {};
       dati.mezzi.forEach(function (m) {
-        h += "<tr><td><b>" + esc(m.nome) + "</b>"
-           + (m.note ? '<div style="color:#5B6672;font-size:14px;">' + esc(m.note) + "</div>" : "")
-           + "</td><td>" + esc(m.modello || "") + "</td><td>"
-           + (m.posti_max || "") + "</td><td>" + (m.stato === "libero" ? "Libero" : "Assegnato") + "</td></tr>";
+        var k = (m.modello || m.nome) + "|" + (m.posti_max || "");
+        if (!gruppi[k]) gruppi[k] = { m: m, n: 0, liberi: 0 };
+        gruppi[k].n += 1;
+        if (m.stato === "libero") gruppi[k].liberi += 1;
       });
-      h += "</table>";
+
+      h += "<h2>Il camper</h2>";
+      Object.keys(gruppi).forEach(function (k) {
+        var g = gruppi[k], m = g.m;
+        h += '<div class="calc">';
+        h += "<h3>" + esc(m.modello || m.nome) + "</h3>";
+        h += "<p>" + (g.n > 1 ? "Ne abbiamo <b>" + g.n + "</b>, identici. " : "")
+           + "Fino a <b>" + (m.posti_max || "") + "</b> persone per mezzo"
+           + (m.posti_letto ? ", " + m.posti_letto + " posti letto" : "") + ".</p>";
+        if (m.note) h += "<p>" + esc(m.note) + "</p>";
+        h += "<p><b>" + g.liberi + "</b> " + (g.liberi === 1 ? "ancora libero" : "ancora liberi") + ".</p>";
+        h += "</div>";
+      });
     }
 
     if ((dati.scadenze || []).length) {
