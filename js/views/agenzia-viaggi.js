@@ -329,8 +329,8 @@ function renderCatalogo() {
       ? euro(v.quota_camper) + " <span style=\"color:#64748b;\">a camper</span>"
       : euro(v.quota_adulto) + " <span style=\"color:#64748b;\">a persona</span>";
 
-    html += "<tr>"
-      + td("<b>" + escapeHtml(v.titolo) + "</b><div style=\"color:#64748b;font-size:12px;\">" + escapeHtml(v.sottotitolo || "") + "</div>")
+    html += "<tr class=\"av-riga\" data-id=\"" + v.id + "\" style=\"cursor:pointer;\">"
+      + td("<b style=\"color:#0E5A7A;\">" + escapeHtml(v.titolo) + "</b><div style=\"color:#64748b;font-size:12px;\">" + escapeHtml(v.sottotitolo || "") + "</div>")
       + td(periodo(v.data_inizio, v.data_fine))
       + td(quota)
       + td(v.posti_totali == null ? "—" : String(v.posti_totali))
@@ -339,6 +339,147 @@ function renderCatalogo() {
   });
 
   box.innerHTML = html + tabellaChiudi();
+
+  box.querySelectorAll(".av-riga").forEach(function (tr) {
+    tr.addEventListener("click", function () { apriViaggio(tr.dataset.id); });
+  });
+}
+
+/* ---------------- SCHEDA DEL VIAGGIO ---------------- */
+
+async function apriViaggio(id) {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+  box.innerHTML = "<div style=\"color:#64748b;\">Carico il viaggio...</div>";
+
+  const v = viaggiCache.find(function (x) { return x.id === id; });
+  if (!v) { box.innerHTML = vuoto("Viaggio non trovato."); return; }
+
+  try {
+    const [tp, bg, sc, mz] = await Promise.all([
+      supa().from("viaggi_tappe")
+        .select("id,giorno,data,titolo,descrizione,km,tipo,stato_usa,foto_wiki")
+        .eq("viaggio_id", id).order("giorno"),
+      supa().from("viaggi_budget")
+        .select("voce,dettaglio,importo_min,importo_max,categoria")
+        .eq("viaggio_id", id).order("ordine"),
+      supa().from("viaggi_scadenze")
+        .select("titolo,descrizione,mese_target,completato")
+        .eq("viaggio_id", id).order("mese_target"),
+      supa().from("viaggi_mezzi")
+        .select("nome,modello,posti_max,posti_letto,stato").eq("viaggio_id", id).order("nome"),
+    ]);
+    if (tp.error) throw tp.error;
+
+    const tappe = tp.data || [];
+    const ids = tappe.map(function (t) { return t.id; });
+    let pasti = [];
+    if (ids.length) {
+      const pa = await supa().from("viaggi_tappe_pasti")
+        .select("tappa_id,momento,dove,locale,citta,piatto,ricetta_camper,spesa_persona,prenotazione_necessaria")
+        .in("tappa_id", ids);
+      pasti = pa.data || [];
+    }
+    const perTappa = {};
+    pasti.forEach(function (p) { (perTappa[p.tappa_id] = perTappa[p.tappa_id] || []).push(p); });
+
+    let km = 0;
+    tappe.forEach(function (t) { km += Number(t.km || 0); });
+
+    const url = location.origin + "/viaggi/v/?s=" + encodeURIComponent(v.slug);
+
+    let h = "<div style=\"margin-bottom:14px;\"><button id=\"av-indietro\" style=\"background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;\">← Catalogo</button></div>";
+
+    h += "<h2 style=\"margin:0 0 2px;font-size:24px;\">" + escapeHtml(v.titolo) + "</h2>"
+      + "<div style=\"color:#64748b;margin-bottom:14px;\">" + escapeHtml(v.sottotitolo || "") + " · " + periodo(v.data_inizio, v.data_fine) + "</div>";
+
+    h += "<div style=\"display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;\">"
+      + card("Giorni", String(tappe.length), "#0E5A7A")
+      + card("Chilometri", km.toLocaleString("it-IT"), "#0E5A7A")
+      + card("Quota", v.modalita_prezzo === "camper" ? euro(v.quota_camper) : euro(v.quota_adulto), "#16a34a")
+      + card("Posti", v.posti_totali == null ? "—" : String(v.posti_totali), "#64748b")
+      + "</div>";
+
+    h += "<div style=\"border:1px solid #e2e8f0;border-radius:10px;padding:14px;background:#fff;margin-bottom:18px;\">"
+      + "<div style=\"font-size:13px;color:#64748b;margin-bottom:6px;\">Pagina pubblica</div>"
+      + "<a href=\"" + url + "\" target=\"_blank\" style=\"color:#0E5A7A;font-weight:700;word-break:break-all;\">" + escapeHtml(url) + "</a>"
+      + "<div style=\"margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;\">"
+      + "<button id=\"av-stato\" data-id=\"" + v.id + "\" style=\"background:" + (v.stato === "pubblicato" ? "#fff" : "#16a34a") + ";color:" + (v.stato === "pubblicato" ? "#64748b" : "#fff") + ";border:1px solid " + (v.stato === "pubblicato" ? "#cbd5e1" : "#16a34a") + ";border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;\">"
+      + (v.stato === "pubblicato" ? "Riporta in bozza" : "Pubblica") + "</button>"
+      + "</div></div>";
+
+    if ((mz.data || []).length) {
+      h += "<h3 style=\"font-size:16px;margin:18px 0 6px;\">Mezzi</h3>" + tabellaApri(["Mezzo", "Modello", "Posti", "Stato"]);
+      mz.data.forEach(function (m) {
+        h += "<tr>" + td("<b>" + escapeHtml(m.nome) + "</b>") + td(escapeHtml(m.modello || ""))
+          + td(String(m.posti_max || "")) + td(escapeHtml(m.stato)) + "</tr>";
+      });
+      h += tabellaChiudi();
+    }
+
+    h += "<h3 style=\"font-size:16px;margin:22px 0 6px;\">Programma e pasti</h3>" + tabellaApri(["Giorno", "Tappa", "Km", "Colazione", "Pranzo", "Cena"]);
+    tappe.forEach(function (t) {
+      const p = perTappa[t.id] || [];
+      function pasto(momento) {
+        const x = p.find(function (y) { return y.momento === momento; });
+        if (!x) return "—";
+        const testo = x.locale || x.ricetta_camper || "da decidere";
+        const dove = x.dove === "camper" ? "camper" : (x.dove === "fuori" ? "fuori" : "a scelta");
+        return "<span style=\"font-size:12px;color:#64748b;\">" + dove + "</span><br>" + escapeHtml(testo)
+          + (x.prenotazione_necessaria ? " <span style=\"color:#dc2626;font-size:11px;\">prenotare</span>" : "");
+      }
+      const fermo = t.tipo === "fermi";
+      h += "<tr" + (fermo ? " style=\"background:#f1f5f9;\"" : "") + ">"
+        + td("<b>" + t.giorno + "</b><div style=\"font-size:11px;color:#64748b;\">" + data(t.data) + "</div>")
+        + td("<b>" + escapeHtml(t.titolo) + "</b><div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(t.stato_usa || "") + "</div>")
+        + td(Number(t.km) > 0 ? String(t.km) : "—")
+        + td(pasto("colazione")) + td(pasto("pranzo")) + td(pasto("cena"))
+        + "</tr>";
+    });
+    h += tabellaChiudi();
+
+    if ((bg.data || []).length) {
+      let bmin = 0, bmax = 0;
+      bg.data.forEach(function (b) { bmin += Number(b.importo_min || 0); bmax += Number(b.importo_max || 0); });
+      h += "<h3 style=\"font-size:16px;margin:22px 0 6px;\">Budget</h3>" + tabellaApri(["Voce", "Categoria", "Da", "A"]);
+      bg.data.forEach(function (b) {
+        h += "<tr>" + td("<b>" + escapeHtml(b.voce) + "</b><div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(b.dettaglio || "") + "</div>")
+          + td(escapeHtml(b.categoria || "")) + td(euro(b.importo_min)) + td(euro(b.importo_max)) + "</tr>";
+      });
+      h += "<tr>" + td("<b>Totale</b>") + td("") + td("<b>" + euro(bmin) + "</b>") + td("<b>" + euro(bmax) + "</b>") + "</tr>";
+      h += tabellaChiudi();
+    }
+
+    if ((sc.data || []).length) {
+      h += "<h3 style=\"font-size:16px;margin:22px 0 6px;\">Scadenze</h3>" + tabellaApri(["Cosa", "Entro", "Fatto"]);
+      sc.data.forEach(function (s) {
+        h += "<tr>" + td("<b>" + escapeHtml(s.titolo) + "</b><div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(s.descrizione || "") + "</div>")
+          + td(data(s.mese_target)) + td(s.completato ? "Sì" : "—") + "</tr>";
+      });
+      h += tabellaChiudi();
+    }
+
+    box.innerHTML = h;
+
+    document.getElementById("av-indietro").addEventListener("click", function () {
+      tabAttiva = "catalogo"; disegnaTabs(); renderCatalogo();
+    });
+
+    const bStato = document.getElementById("av-stato");
+    bStato.addEventListener("click", async function () {
+      const nuovo = v.stato === "pubblicato" ? "bozza" : "pubblicato";
+      bStato.disabled = true;
+      const r = await supa().from("viaggi")
+        .update({ stato: nuovo, pubblico: nuovo === "pubblicato", adesioni_aperte: nuovo === "pubblicato" })
+        .eq("id", v.id);
+      if (r.error) { bStato.disabled = false; alert(r.error.message); return; }
+      await caricaViaggi();
+      apriViaggio(v.id);
+    });
+
+  } catch (e) {
+    mostraErrore(e);
+  }
 }
 
 /* ---------------- ISCRITTI ---------------- */
