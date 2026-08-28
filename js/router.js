@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=49";
+import { initMenu } from "./menu.js?v=50";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20260823-02";
+const APP_V = "20260828-01";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -159,6 +159,9 @@ const routes = {
   "briefing-servizio": () => imp("./views/briefing-servizio.js"),
   "produzioni-aperte": () => imp("./views/produzioni-aperte.js"),
   "registro-lotti": () => imp("./views/registro-lotti.js"),
+
+  // Agenzia viaggi: modulo in prova, solo azienda Ristoflow.
+  "agenzia-viaggi": () => imp("./views/agenzia-viaggi.js"),
   "produttivita-produzione": () => imp("./views/produttivita-produzione.js"),
   "registro-messaggi": () => imp("./views/registro-messaggi.js"),
   storicoLotto: () => imp("./views/storico-lotto.js"),
@@ -559,6 +562,22 @@ function hasPermission(area) {
 
   if (PREHOME_ROUTES.has(area)) {
     return true;
+  }
+
+  // =====================================
+  // MODULI IN PROVA — solo dentro l'azienda Ristoflow
+  // Sta prima del superadmin apposta: altrimenti la voce resterebbe
+  // raggiungibile anche da Campo Antico o da un'azienda cliente.
+  // =====================================
+
+  const RISTOFLOW_ONLY_ROUTES = new Set([
+    "agenzia-viaggi",
+  ]);
+
+  if (RISTOFLOW_ONLY_ROUTES.has(area)) {
+    const suRistoflow =
+      window.state?.azienda?.id === "a43d41b5-f4ac-494f-8144-6574347a754f";
+    return suRistoflow && (isSuperadmin() || ruolo === "admin");
   }
 
   // =====================================
