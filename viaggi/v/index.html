@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Il viaggio</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --carta:#FDFBF7; --inchiostro:#131A24; --rosso:#D0342C;
+    --salvia:#5E8B87; --riga:#E3DDD2; --tenue:#5B6672;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--carta);color:var(--inchiostro);
+       font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:860px;margin:0 auto;padding:0 18px 90px}
+  h1{font-size:40px;line-height:1.05;letter-spacing:-.02em;margin:30px 0 6px}
+  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--rosso);
+     margin:54px 0 14px;padding-top:20px;border-top:3px solid var(--inchiostro)}
+  h3{font-size:23px;margin:0 0 6px;letter-spacing:-.01em}
+  p{margin:10px 0}
+  .occhiello{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--salvia);margin:0}
+  .sotto{font-size:22px;color:var(--tenue);margin:0 0 18px}
+  .numeri{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0}
+  .numeri div{flex:1 1 130px;border:2px solid var(--riga);border-radius:10px;padding:14px;background:#fff}
+  .numeri b{display:block;font-size:32px;color:var(--rosso);line-height:1}
+  .numeri span{font-size:13px;color:var(--tenue);letter-spacing:.06em;text-transform:uppercase}
+  #mappa{height:500px;border-radius:12px;border:2px solid var(--riga);margin:10px 0}
+  .giorno{display:flex;gap:16px;padding:22px 0;border-bottom:1px solid var(--riga)}
+  .giorno .n{color:var(--rosso);font-size:32px;line-height:1;min-width:56px;font-weight:700;font-variant-numeric:tabular-nums}
+  .fermo{background:#F1F5F4;border-left:5px solid var(--salvia);padding-left:14px;border-radius:0 8px 8px 0}
+  .tag{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+       background:var(--salvia);color:#fff;padding:3px 9px;border-radius:3px}
+  .tag.r{background:var(--rosso)}
+  .foto{width:100%;border-radius:10px;margin:12px 0;display:block;background:#F1EDE6;min-height:120px}
+  .pasti{margin:12px 0 0;border-top:1px dashed var(--riga);padding-top:10px}
+  .pasto{font-size:16px;padding:5px 0;color:var(--tenue)}
+  .pasto b{color:var(--inchiostro)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:16px}
+  th{text-align:left;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);
+     border-bottom:2px solid var(--inchiostro);padding:8px 6px}
+  td{border-bottom:1px solid var(--riga);padding:9px 6px;vertical-align:top}
+  .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  label{display:block;font-size:15px;color:var(--tenue);margin:14px 0 4px}
+  input,select{width:100%;padding:13px;border:2px solid var(--riga);border-radius:8px;
+               font-size:17px;background:#fff;color:var(--inchiostro);font-family:inherit}
+  input:focus,select:focus{outline:3px solid var(--salvia);outline-offset:1px;border-color:var(--salvia)}
+  .scelta{border:2px solid var(--riga);border-radius:10px;padding:14px;margin:10px 0;background:#fff;cursor:pointer;display:block}
+  .scelta.on{border-color:var(--rosso);border-width:3px}
+  .scelta h4{margin:0 0 3px;font-size:18px}
+  .scelta p{margin:2px 0;font-size:15px;color:var(--tenue)}
+  .scelta input{width:auto;margin-right:8px}
+  button{background:var(--rosso);color:#fff;border:0;padding:16px 28px;border-radius:8px;
+         font-size:18px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:18px}
+  button:disabled{opacity:.6;cursor:default}
+  .due{display:flex;gap:14px;flex-wrap:wrap}
+  .due>div{flex:1 1 160px}
+  .msg{margin-top:14px;padding:14px;border-radius:8px;font-size:17px}
+  .msg.ok{background:#EAF6EE;border:2px solid #2E8B57;color:#1D5E38}
+  .msg.ko{background:#FDECEA;border:2px solid var(--rosso);color:#8E1D17}
+  .credito{font-size:13px;color:var(--tenue);margin-top:4px}
+  @media(max-width:520px){h1{font-size:30px}.sotto{font-size:19px}.giorno{gap:10px}.giorno .n{font-size:24px;min-width:40px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico il viaggio...</p></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  var SB_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+  var params = new URLSearchParams(location.search);
+  var slug = params.get("s") || "route66-2027";
+  var app = document.getElementById("app");
+  var dati = null;
+
+  var COLORI = { guida: "#D0342C", fermi: "#5E8B87", volo: "#131A24" };
+  var MOMENTI = { colazione: "Colazione", pranzo: "Pranzo", cena: "Cena" };
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function euro(n) {
+    return Number(n || 0).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + " €";
+  }
+  function dataIt(iso) {
+    if (!iso) return "";
+    var p = String(iso).slice(0, 10).split("-");
+    var mesi = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+    return Number(p[2]) + " " + mesi[Number(p[1]) - 1] + " " + p[0];
+  }
+  function mesePiu(iso) {
+    if (!iso) return "";
+    var p = String(iso).slice(0, 10).split("-");
+    var mesi = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+    return mesi[Number(p[1]) - 1] + " " + p[0];
+  }
+
+  // Foto di repertorio: si chiede a Wikimedia il ritaglio della voce indicata.
+  function fotoDaWiki(titolo, img) {
+    if (!titolo) return;
+    var url = "https://it.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo);
+    fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (j && j.thumbnail && j.thumbnail.source) { img.src = j.thumbnail.source.replace(/\/\d+px-/, "/1200px-"); return; }
+      return fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (k) {
+          if (k && k.thumbnail && k.thumbnail.source) img.src = k.thumbnail.source.replace(/\/\d+px-/, "/1200px-");
+          else img.remove();
+        });
+    }).catch(function () { img.remove(); });
+  }
+
+  function disegna() {
+    var v = dati.viaggio, tappe = dati.tappe || [];
+    var giorni = tappe.length;
+    var km = 0, stati = {};
+    tappe.forEach(function (t) { km += Number(t.km || 0); if (t.stato_usa) stati[t.stato_usa] = 1; });
+
+    var h = "";
+    h += '<p class="occhiello">Dal ' + esc(dataIt(v.data_inizio)) + " al " + esc(dataIt(v.data_fine)) + "</p>";
+    h += "<h1>" + esc(v.titolo) + "</h1>";
+    h += '<p class="sotto">' + esc(v.sottotitolo || "") + "</p>";
+
+    h += '<div class="numeri">'
+      + "<div><b>" + giorni + "</b><span>Giorni</span></div>"
+      + "<div><b>" + (v.km_totali || km).toLocaleString("it-IT") + "</b><span>Chilometri</span></div>"
+      + "<div><b>" + (v.stati_attraversati || Object.keys(stati).length) + "</b><span>Stati</span></div>"
+      + "<div><b>" + (v.notti_hotel || 0) + "</b><span>Notti in hotel</span></div>"
+      + "</div>";
+
+    if (v.descrizione) h += "<p>" + esc(v.descrizione) + "</p>";
+
+    h += "<h2>Il percorso</h2><div id=\"mappa\"></div>";
+    h += '<p class="credito">Rosso: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
+
+    h += "<h2>Giorno per giorno</h2><div id=\"programma\"></div>";
+
+    if ((dati.budget || []).length) {
+      h += "<h2>Quanto costa</h2>";
+      var min = 0, max = 0;
+      dati.budget.forEach(function (b) { min += Number(b.min || 0); max += Number(b.max || 0); });
+      h += "<table><tr><th>Voce</th><th class=\"num\">Da</th><th class=\"num\">A</th></tr>";
+      dati.budget.forEach(function (b) {
+        h += "<tr><td><b>" + esc(b.voce) + "</b>"
+           + (b.dettaglio ? '<div style="color:#5B6672;font-size:14px;">' + esc(b.dettaglio) + "</div>" : "")
+           + '</td><td class="num">' + euro(b.min) + '</td><td class="num">' + euro(b.max) + "</td></tr>";
+      });
+      h += '<tr><td><b>Totale del gruppo</b></td><td class="num"><b>' + euro(min) + '</b></td><td class="num"><b>' + euro(max) + "</b></td></tr>";
+      var pers = Number(dati.persone_confermate || 0);
+      if (pers > 0) {
+        h += '<tr><td>A persona, su ' + pers + ' confermati</td><td class="num">' + euro(min / pers) + '</td><td class="num">' + euro(max / pers) + "</td></tr>";
+      }
+      h += "</table>";
+    }
+
+    if ((dati.mezzi || []).length) {
+      h += "<h2>I mezzi</h2><table><tr><th>Mezzo</th><th>Modello</th><th>Posti</th><th>Stato</th></tr>";
+      dati.mezzi.forEach(function (m) {
+        h += "<tr><td><b>" + esc(m.nome) + "</b></td><td>" + esc(m.modello || "") + "</td><td>"
+           + (m.posti_max || "") + "</td><td>" + (m.stato === "libero" ? "Libero" : "Assegnato") + "</td></tr>";
+      });
+      h += "</table>";
+    }
+
+    if ((dati.scadenze || []).length) {
+      h += "<h2>Cosa va prenotato e quando</h2><table><tr><th>Cosa</th><th>Entro</th><th>Fatto</th></tr>";
+      dati.scadenze.forEach(function (s) {
+        h += "<tr><td><b>" + esc(s.titolo) + "</b>"
+           + (s.descrizione ? '<div style="color:#5B6672;font-size:14px;">' + esc(s.descrizione) + "</div>" : "")
+           + "</td><td>" + esc(mesePiu(s.mese)) + "</td><td>" + (s.completato ? "Sì" : "—") + "</td></tr>";
+      });
+      h += "</table>";
+    }
+
+    h += modulo(v);
+    app.innerHTML = h;
+
+    disegnaProgramma(tappe);
+    disegnaMappa(tappe);
+    agganciaModulo();
+  }
+
+  function disegnaProgramma(tappe) {
+    var box = document.getElementById("programma");
+    tappe.forEach(function (t) {
+      var d = document.createElement("div");
+      d.className = "giorno" + (t.tipo === "fermi" ? " fermo" : "");
+      var testa = '<p class="occhiello">' + esc(dataIt(t.data)) + (t.stato_usa ? " · " + esc(t.stato_usa) : "")
+        + (Number(t.km) > 0 ? " · " + t.km + " km" : "")
+        + (t.tipo === "fermi" ? ' · <span class="tag">Giornata ferma</span>' : "")
+        + (t.tipo === "volo" ? ' · <span class="tag r">Volo</span>' : "") + "</p>";
+
+      var pasti = "";
+      (t.pasti || []).forEach(function (p) {
+        var dove = p.dove === "camper" ? "in camper" : (p.dove === "fuori" ? "fuori" : "a scelta");
+        var cosa = p.locale ? esc(p.locale) + (p.citta ? ", " + esc(p.citta) : "") : esc(p.ricetta || "");
+        if (!cosa) cosa = "da decidere";
+        var extra = "";
+        if (p.piatto) extra += " — " + esc(p.piatto);
+        if (p.prenotare) extra += ' <span class="tag r">Prenotare</span>';
+        pasti += '<div class="pasto"><b>' + MOMENTI[p.momento] + "</b> " + dove + ": " + cosa + extra + "</div>";
+      });
+
+      d.innerHTML = '<div class="n">' + t.giorno + "</div><div style=\"flex:1;min-width:0;\">"
+        + testa + "<h3>" + esc(t.titolo) + "</h3>"
+        + '<img class="foto" alt="' + esc(t.titolo) + '">'
+        + (t.descrizione ? "<p>" + esc(t.descrizione) + "</p>" : "")
+        + (pasti ? '<div class="pasti">' + pasti + "</div>" : "")
+        + "</div>";
+      box.appendChild(d);
+
+      var img = d.querySelector("img");
+      if (t.foto_url) img.src = t.foto_url; else fotoDaWiki(t.foto_wiki, img);
+    });
+  }
+
+  function disegnaMappa(tappe) {
+    var punti = tappe.filter(function (t) { return t.lat && t.lng; });
+    if (!punti.length) { document.getElementById("mappa").remove(); return; }
+
+    var mappa = L.map("mappa", { scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap", maxZoom: 18
+    }).addTo(mappa);
+
+    var linea = [];
+    punti.forEach(function (t) {
+      var ll = [Number(t.lat), Number(t.lng)];
+      linea.push(ll);
+      L.circleMarker(ll, {
+        radius: 9, color: "#fff", weight: 2,
+        fillColor: COLORI[t.tipo] || "#D0342C", fillOpacity: 1
+      }).addTo(mappa).bindPopup(
+        "<b>Giorno " + t.giorno + " — " + esc(t.titolo) + "</b><br>"
+        + (Number(t.km) > 0 ? t.km + " km<br>" : "")
+        + (t.descrizione ? esc(t.descrizione) : "")
+      );
+    });
+
+    L.polyline(linea, { color: "#D0342C", weight: 3, opacity: .8 }).addTo(mappa);
+    mappa.fitBounds(L.latLngBounds(linea), { padding: [30, 30] });
+    setTimeout(function () { mappa.invalidateSize(); }, 200);
+  }
+
+  function modulo(v) {
+    if (!v.adesioni_aperte) {
+      return "<h2>Adesioni</h2><p>Le adesioni per questo viaggio sono chiuse.</p>";
+    }
+    var quota = v.modalita_prezzo === "camper" ? v.quota_camper : v.quota_adulto;
+    var testoQuota = v.modalita_prezzo === "camper"
+      ? euro(quota) + " a camper, fino a " + v.posti_per_mezzo + " persone"
+      : euro(quota) + " a persona";
+
+    var h = "<h2>Vieni con noi</h2>";
+    h += "<p><b>" + testoQuota + ".</b> Acconto " + (v.acconto_percentuale || 30) + "%, saldo "
+       + (v.saldo_entro_giorni || 30) + " giorni prima della partenza.</p>";
+    h += '<div class="due"><div><label for="f-nome">Nome</label><input id="f-nome"></div>'
+       + '<div><label for="f-cognome">Cognome</label><input id="f-cognome"></div></div>';
+    h += '<label for="f-email">Email</label><input id="f-email" type="email">';
+    h += '<label for="f-tel">Telefono</label><input id="f-tel" type="tel">';
+    h += '<label for="f-nucleo">Come vi chiamiamo (famiglia, gruppo)</label><input id="f-nucleo">';
+    h += '<div class="due"><div><label for="f-adulti">Adulti</label><input id="f-adulti" type="number" min="1" value="2"></div>'
+       + '<div><label for="f-bambini">Bambini</label><input id="f-bambini" type="number" min="0" value="0"></div></div>';
+
+    h += "<h3 style=\"margin-top:26px;\">Come preferite pagare</h3>";
+    var m = v.modalita_ammesse || ["acconto_saldo"];
+    if (m.indexOf("acconto_saldo") >= 0) {
+      h += '<label class="scelta on"><input type="radio" name="mod" value="acconto_saldo" checked>'
+         + "<h4>Acconto e saldo</h4><p>Una parte ora, il resto prima di partire.</p></label>";
+    }
+    if (m.indexOf("rate_mensili") >= 0) {
+      h += '<label class="scelta"><input type="radio" name="mod" value="rate_mensili">'
+         + "<h4>A rate</h4><p>Acconto, poi importi uguali fino alla partenza.</p></label>";
+    }
+    if (m.indexOf("libero") >= 0) {
+      h += '<label class="scelta"><input type="radio" name="mod" value="libero">'
+         + "<h4>Mettete da parte quando potete</h4><p>Nessuna scadenza intermedia, solo il termine ultimo.</p></label>";
+    }
+
+    h += '<div class="due"><div><label for="f-chipaga">Chi paga</label><select id="f-chipaga">'
+       + '<option value="unico">Un solo pagatore</option>'
+       + '<option value="pro_capite">Ognuno la sua quota</option></select></div>'
+       + '<div><label for="f-cadenza">Ogni quanto</label><select id="f-cadenza">'
+       + '<option value="1">Ogni mese</option><option value="2">Ogni due mesi</option>'
+       + '<option value="3">Ogni tre mesi</option><option value="6">Ogni sei mesi</option></select></div></div>';
+
+    h += '<button id="f-invia">Invia l\'adesione</button><div id="f-msg"></div>';
+    return h;
+  }
+
+  function agganciaModulo() {
+    var b = document.getElementById("f-invia");
+    if (!b) return;
+
+    document.querySelectorAll(".scelta input").forEach(function (r) {
+      r.addEventListener("change", function () {
+        document.querySelectorAll(".scelta").forEach(function (s) { s.classList.remove("on"); });
+        r.closest(".scelta").classList.add("on");
+      });
+    });
+
+    b.addEventListener("click", function () {
+      var msg = document.getElementById("f-msg");
+      var sel = document.querySelector(".scelta input:checked");
+      var val = function (id) { var e = document.getElementById(id); return e ? e.value : ""; };
+
+      if (!val("f-nome").trim() || !val("f-email").trim()) {
+        msg.className = "msg ko"; msg.textContent = "Servono nome ed email.";
+        return;
+      }
+
+      b.disabled = true; b.textContent = "Invio...";
+      msg.className = ""; msg.textContent = "";
+
+      sb.rpc("viaggio_adesione", {
+        p_slug: slug, p_nome: val("f-nome"), p_cognome: val("f-cognome"),
+        p_email: val("f-email"), p_telefono: val("f-tel"), p_nucleo: val("f-nucleo"),
+        p_adulti: Number(val("f-adulti") || 1), p_bambini: Number(val("f-bambini") || 0),
+        p_modalita: sel ? sel.value : "acconto_saldo",
+        p_chi_paga: val("f-chipaga"), p_cadenza: Number(val("f-cadenza") || 1), p_note: null
+      }).then(function (r) {
+        b.disabled = false; b.textContent = "Invia l'adesione";
+        if (r.error) { msg.className = "msg ko"; msg.textContent = r.error.message; return; }
+        var d = r.data || {};
+        if (!d.ok) { msg.className = "msg ko"; msg.textContent = d.errore || "Riprova."; return; }
+        var link = location.origin + location.pathname.replace(/[^/]*$/, "") + "../p/?t=" + d.link;
+        msg.className = "msg ok";
+        msg.innerHTML = "Ci siamo. Quota " + euro(d.quota) + " per " + d.persone + " persone.<br>"
+          + 'Il vostro piano è qui: <a href="' + link + '">' + link + "</a><br>Salvate questo indirizzo.";
+      });
+    });
+  }
+
+  sb.rpc("viaggio_pubblico", { p_slug: slug }).then(function (r) {
+    if (r.error || !r.data || !r.data.viaggio) {
+      app.innerHTML = "<h1>Viaggio non trovato</h1><p>Il link potrebbe essere vecchio, oppure il viaggio non è ancora pubblicato.</p>";
+      return;
+    }
+    dati = r.data;
+    document.title = dati.viaggio.titolo;
+    disegna();
+  });
+})();
+</script>
+</body>
+</html>
