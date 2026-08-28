@@ -31,10 +31,16 @@
   .tag.v{background:#2E8B57}
   .nota{background:#fff;border:2px solid var(--riga);border-radius:10px;padding:16px;margin:18px 0;font-size:16px}
   a{color:var(--rosso)}
+  .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);border-bottom:2px solid var(--riga);
+             padding:12px 18px;max-width:720px;margin:0 auto}
+  .barra-top a{text-decoration:none;font-size:16px;font-weight:700}
   @media(max-width:520px){h1{font-size:26px}table{font-size:15px}}
 </style>
 </head>
 <body>
+<div class="barra-top">
+  <a href="../">← Tutti i viaggi</a>
+</div>
 <div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico il piano...</p></div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
