@@ -428,7 +428,7 @@ async function apriViaggio(id) {
         .select("titolo,descrizione,mese_target,completato")
         .eq("viaggio_id", id).order("mese_target"),
       supa().from("viaggi_mezzi")
-        .select("nome,modello,posti_max,posti_letto,stato").eq("viaggio_id", id).order("nome"),
+        .select("id,nome,modello,posti_max,posti_letto,stato,note").eq("viaggio_id", id).order("nome"),
     ]);
     if (tp.error) throw tp.error;
 
@@ -469,11 +469,28 @@ async function apriViaggio(id) {
       + (v.stato === "pubblicato" ? "Riporta in bozza" : "Pubblica") + "</button>"
       + "</div></div>";
 
+    let fotoMezzi = {};
     if ((mz.data || []).length) {
-      h += "<h3 style=\"font-size:16px;margin:18px 0 6px;\">Mezzi</h3>" + tabellaApri(["Mezzo", "Modello", "Posti", "Stato"]);
+      const idsM = mz.data.map(function (m) { return m.id; });
+      const fm = await supa().from("viaggi_mezzi_foto")
+        .select("id,mezzo_id,url,didascalia,ordine").in("mezzo_id", idsM).order("ordine");
+      (fm.data || []).forEach(function (f) {
+        (fotoMezzi[f.mezzo_id] = fotoMezzi[f.mezzo_id] || []).push(f);
+      });
+
+      h += "<h3 style=\"font-size:16px;margin:18px 0 6px;\">Mezzi</h3>" + tabellaApri(["Mezzo", "Modello", "Posti", "Stato", "Foto"]);
       mz.data.forEach(function (m) {
+        const gal = fotoMezzi[m.id] || [];
+        let cella = "<div style=\"display:flex;gap:4px;flex-wrap:wrap;align-items:center;\">";
+        gal.forEach(function (f) {
+          cella += "<span style=\"position:relative;display:inline-block;\">"
+            + "<img src=\"" + escapeHtml(f.url) + "\" style=\"width:52px;height:38px;object-fit:cover;border-radius:4px;display:block;\">"
+            + "<button class=\"av-foto-del\" data-foto=\"" + f.id + "\" title=\"Togli\" style=\"position:absolute;top:-6px;right:-6px;background:#dc2626;color:#fff;border:0;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;padding:0;\">×</button></span>";
+        });
+        cella += "<button class=\"av-mezzo-foto\" data-mezzo=\"" + m.id + "\" style=\"background:#fff;border:1px dashed #cbd5e1;border-radius:6px;padding:8px 10px;font-size:11px;color:#64748b;cursor:pointer;\">+ foto</button></div>";
+
         h += "<tr>" + td("<b>" + escapeHtml(m.nome) + "</b>") + td(escapeHtml(m.modello || ""))
-          + td(String(m.posti_max || "")) + td(escapeHtml(m.stato)) + "</tr>";
+          + td(String(m.posti_max || "")) + td(escapeHtml(m.stato)) + td(cella) + "</tr>";
       });
       h += tabellaChiudi();
     }
@@ -537,6 +554,18 @@ async function apriViaggio(id) {
 
     box.querySelectorAll(".av-foto").forEach(function (b) {
       b.addEventListener("click", function () { caricaFotoTappa(b.dataset.tappa, v.id); });
+    });
+
+    box.querySelectorAll(".av-mezzo-foto").forEach(function (b) {
+      b.addEventListener("click", function () { caricaFotoMezzo(b.dataset.mezzo, v.id); });
+    });
+
+    box.querySelectorAll(".av-foto-del").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        const r = await supa().from("viaggi_mezzi_foto").delete().eq("id", b.dataset.foto);
+        if (r.error) { alert(r.error.message); return; }
+        apriViaggio(v.id);
+      });
     });
 
     const bStato = document.getElementById("av-stato");
@@ -699,6 +728,46 @@ function caricaFotoTappa(tappaId, viaggioId) {
 
     const r = await supa().from("viaggi_tappe").update({ foto_url: url }).eq("id", tappaId);
     if (r.error) { alert(r.error.message); return; }
+
+    apriViaggio(viaggioId);
+  });
+
+  input.click();
+}
+
+// Piu foto per mezzo: finiscono nella slide della pagina pubblica.
+function caricaFotoMezzo(mezzoId, viaggioId) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/jpeg,image/png,image/webp";
+  input.multiple = true;
+
+  input.addEventListener("change", async function () {
+    const files = Array.prototype.slice.call(input.files || []);
+    if (!files.length) return;
+
+    const box = document.getElementById("av-corpo");
+    if (box) box.insertAdjacentHTML("afterbegin", "<div style=\"color:#64748b;margin-bottom:8px;\">Carico " + files.length + " foto...</div>");
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 10 * 1024 * 1024) { alert(file.name + " supera i 10 MB, saltata."); continue; }
+
+      const est = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const percorso = aziendaId() + "/" + viaggioId + "/mezzi/" + mezzoId + "-" + Date.now() + "-" + i + "." + est;
+
+      const up = await supa().storage.from("viaggi-foto").upload(percorso, file, { upsert: true });
+      if (up.error) { alert(up.error.message); continue; }
+
+      const pub = supa().storage.from("viaggi-foto").getPublicUrl(percorso);
+      const url = pub && pub.data ? pub.data.publicUrl : null;
+      if (!url) continue;
+
+      const r = await supa().from("viaggi_mezzi_foto").insert({
+        mezzo_id: mezzoId, azienda_id: aziendaId(), url: url, ordine: i
+      });
+      if (r.error) alert(r.error.message);
+    }
 
     apriViaggio(viaggioId);
   });
