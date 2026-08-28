@@ -55,19 +55,18 @@
     return "dal " + Number(pa[2]) + " " + mesi[Number(pa[1]) - 1]
          + " al " + Number(pb[2]) + " " + mesi[Number(pb[1]) - 1] + " " + pb[0];
   }
+  function grande(src) { return src.replace(/\/\d+px-/, "/1280px-"); }
+  function sommario(lingua, titolo) {
+    return fetch("https://" + lingua + ".wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { return (j && j.thumbnail && j.thumbnail.source) ? grande(j.thumbnail.source) : null; })
+      .catch(function () { return null; });
+  }
   function fotoDaWiki(titolo, img) {
     if (!titolo) { img.remove(); return; }
-    fetch("https://it.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) {
-        if (j && j.thumbnail && j.thumbnail.source) { img.src = j.thumbnail.source.replace(/\/\d+px-/, "/1200px-"); return; }
-        return fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (k) {
-            if (k && k.thumbnail && k.thumbnail.source) img.src = k.thumbnail.source.replace(/\/\d+px-/, "/1200px-");
-            else img.remove();
-          });
-      }).catch(function () { img.remove(); });
+    sommario("it", titolo)
+      .then(function (u) { return u || sommario("en", titolo); })
+      .then(function (u) { if (u) { img.src = u; img.style.minHeight = "0"; } else img.remove(); });
   }
 
   sb.rpc("viaggi_catalogo_pubblico", { p_azienda: AZIENDA }).then(function (r) {
