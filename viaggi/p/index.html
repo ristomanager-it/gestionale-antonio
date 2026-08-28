@@ -43,9 +43,21 @@
 </div>
 <div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico il piano...</p></div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function () {
+  var appBox = document.getElementById("app");
+
+  function guasto(testo) {
+    if (appBox) appBox.innerHTML = "<h1>Non riesco a caricare</h1><p>" + testo + "</p>"
+      + '<p style="font-size:15px;color:#5B6672;">Riprova fra un minuto. Se insiste, avvisaci.</p>';
+  }
+
+  if (!window.supabase || typeof window.supabase.createClient !== "function") {
+    guasto("La connessione al server non e partita.");
+    return;
+  }
+
   var SB_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
   var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
   var sb = window.supabase.createClient(SB_URL, SB_KEY);
