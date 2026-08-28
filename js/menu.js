@@ -126,6 +126,9 @@ export function initMenu() {
     );
   }
 
+  // Azienda Ristoflow: i moduli ancora in prova si accendono solo qui.
+  const AZIENDA_RISTOFLOW = "a43d41b5-f4ac-494f-8144-6574347a754f";
+
   function isAziendaRole() {
     const r = getRuoloAttivo();
     return ["admin", "manager", "operatore", "addetto_marketing"].includes(r);
@@ -535,6 +538,23 @@ export function initMenu() {
           { label: "🖼️ Media Library",        route: "bo-media"         },
         ]
       });
+
+      // ── AGENZIA VIAGGI ──
+      // Modulo in prova: si vede solo dentro l'azienda Ristoflow, non dai clienti.
+      // Il filtro per ruolo (solo admin) resta in hasPermission.
+      if (window.state?.azienda?.id === AZIENDA_RISTOFLOW) {
+      sections.push({
+        key: "viaggi",
+        title: "🚐 AGENZIA VIAGGI",
+        items: [
+          { label: "🚐 Viaggi", route: "agenzia-viaggi", children: [
+            { label: "🗺️ Catalogo", route: "agenzia-viaggi?tab=catalogo" },
+            { label: "👥 Iscritti", route: "agenzia-viaggi?tab=iscritti" },
+            { label: "💶 Incassi",  route: "agenzia-viaggi?tab=incassi"  },
+          ] },
+        ]
+      });
+      }
 
       // ── HOTEL ──
       sections.push({
