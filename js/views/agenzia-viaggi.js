@@ -417,7 +417,9 @@ async function apriViaggio(id) {
       h += tabellaChiudi();
     }
 
-    h += "<h3 style=\"font-size:16px;margin:22px 0 6px;\">Programma e pasti</h3>" + tabellaApri(["Giorno", "Tappa", "Km", "Colazione", "Pranzo", "Cena"]);
+    h += "<h3 style=\"font-size:16px;margin:22px 0 6px;\">Programma e pasti</h3>"
+      + "<div style=\"font-size:13px;color:#64748b;margin-bottom:8px;\">Senza foto propria la pagina pubblica prende quella di Wikimedia. Carica la tua e vince la tua.</div>"
+      + tabellaApri(["Giorno", "Tappa", "Foto", "Km", "Colazione", "Pranzo", "Cena"]);
     tappe.forEach(function (t) {
       const p = perTappa[t.id] || [];
       function pasto(momento) {
@@ -429,9 +431,15 @@ async function apriViaggio(id) {
           + (x.prenotazione_necessaria ? " <span style=\"color:#dc2626;font-size:11px;\">prenotare</span>" : "");
       }
       const fermo = t.tipo === "fermi";
+      const foto = t.foto_url
+        ? "<img src=\"" + escapeHtml(t.foto_url) + "\" style=\"width:64px;height:44px;object-fit:cover;border-radius:4px;display:block;\">"
+          + "<button class=\"av-foto\" data-tappa=\"" + t.id + "\" style=\"margin-top:4px;background:none;border:0;color:#0E5A7A;font-size:11px;cursor:pointer;padding:0;text-decoration:underline;\">cambia</button>"
+        : "<button class=\"av-foto\" data-tappa=\"" + t.id + "\" style=\"background:#fff;border:1px dashed #cbd5e1;border-radius:6px;padding:6px 10px;font-size:11px;color:#64748b;cursor:pointer;\">carica</button>";
+
       h += "<tr" + (fermo ? " style=\"background:#f1f5f9;\"" : "") + ">"
         + td("<b>" + t.giorno + "</b><div style=\"font-size:11px;color:#64748b;\">" + data(t.data) + "</div>")
         + td("<b>" + escapeHtml(t.titolo) + "</b><div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(t.stato_usa || "") + "</div>")
+        + td(foto)
         + td(Number(t.km) > 0 ? String(t.km) : "—")
         + td(pasto("colazione")) + td(pasto("pranzo")) + td(pasto("cena"))
         + "</tr>";
@@ -463,6 +471,10 @@ async function apriViaggio(id) {
 
     document.getElementById("av-indietro").addEventListener("click", function () {
       tabAttiva = "catalogo"; disegnaTabs(); renderCatalogo();
+    });
+
+    box.querySelectorAll(".av-foto").forEach(function (b) {
+      b.addEventListener("click", function () { caricaFotoTappa(b.dataset.tappa, v.id); });
     });
 
     const bStato = document.getElementById("av-stato");
@@ -593,6 +605,41 @@ async function renderIncassi() {
   }
 
   box.innerHTML = html;
+}
+
+/* ---------------- FOTO DELLE TAPPE ---------------- */
+
+// Carica su Storage (bucket viaggi-foto) e scrive l'indirizzo in viaggi_tappe.foto_url.
+function caricaFotoTappa(tappaId, viaggioId) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/jpeg,image/png,image/webp";
+
+  input.addEventListener("change", async function () {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert("La foto supera i 10 MB."); return; }
+
+    const box = document.getElementById("av-corpo");
+    if (box) box.insertAdjacentHTML("afterbegin", "<div id=\"av-upl\" style=\"color:#64748b;margin-bottom:8px;\">Carico la foto...</div>");
+
+    const est = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const percorso = aziendaId() + "/" + viaggioId + "/" + tappaId + "-" + Date.now() + "." + est;
+
+    const up = await supa().storage.from("viaggi-foto").upload(percorso, file, { upsert: true });
+    if (up.error) { alert(up.error.message); const e = document.getElementById("av-upl"); if (e) e.remove(); return; }
+
+    const pub = supa().storage.from("viaggi-foto").getPublicUrl(percorso);
+    const url = pub && pub.data ? pub.data.publicUrl : null;
+    if (!url) { alert("Caricata, ma non riesco a ricavare l'indirizzo pubblico."); return; }
+
+    const r = await supa().from("viaggi_tappe").update({ foto_url: url }).eq("id", tappaId);
+    if (r.error) { alert(r.error.message); return; }
+
+    apriViaggio(viaggioId);
+  });
+
+  input.click();
 }
 
 /* ---------------- utilita ---------------- */
