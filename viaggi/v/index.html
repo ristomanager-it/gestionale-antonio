@@ -81,6 +81,21 @@
   .n-btn{background:#fff;color:var(--inchiostro);border:2px solid var(--riga);border-radius:8px;
          padding:12px 18px;font-size:17px;font-weight:700;cursor:pointer;margin:0;font-family:inherit}
   .n-btn.on{background:var(--rosso);color:#fff;border-color:var(--rosso)}
+  .slide{position:relative;margin:12px 0}
+  .slide-pista{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
+               -webkit-overflow-scrolling:touch;scrollbar-width:none;border-radius:10px}
+  .slide-pista::-webkit-scrollbar{display:none}
+  .slide-pista figure{flex:0 0 100%;scroll-snap-align:center;margin:0}
+  .slide-pista img{width:100%;height:260px;object-fit:cover;border-radius:10px;display:block;background:#F1EDE6}
+  .slide-pista figcaption{font-size:14px;color:var(--tenue);padding:6px 2px}
+  .slide-frecce{position:absolute;top:110px;left:0;right:0;display:flex;justify-content:space-between;
+                pointer-events:none;padding:0 8px}
+  .slide-frecce button{pointer-events:auto;background:rgba(19,26,36,.72);color:#fff;border:0;border-radius:50%;
+                       width:44px;height:44px;font-size:20px;margin:0;padding:0;cursor:pointer;line-height:1}
+  .slide-punti{display:flex;gap:6px;justify-content:center;margin-top:8px}
+  .slide-punti i{width:8px;height:8px;border-radius:50%;background:var(--riga);display:block}
+  .slide-punti i.on{background:var(--rosso)}
+  @media(max-width:520px){.slide-pista img{height:210px}.slide-frecce{top:85px}}
   @media(max-width:520px){h1{font-size:30px}.sotto{font-size:19px}.giorno{gap:10px}.giorno .n{font-size:24px;min-width:40px}}
 </style>
 </head>
@@ -211,6 +226,26 @@
            + "Fino a <b>" + (m.posti_max || "") + "</b> persone per mezzo"
            + (m.posti_letto ? ", " + m.posti_letto + " posti letto" : "") + ".</p>";
         if (m.note) h += "<p>" + esc(m.note) + "</p>";
+
+        var foto = m.foto || [];
+        if (foto.length) {
+          var idS = "slide-" + Math.abs(k.length * 7 + foto.length);
+          h += '<div class="slide" id="' + idS + '"><div class="slide-pista">';
+          foto.forEach(function (f) {
+            h += "<figure><img src=\"" + esc(f.url) + '" alt="' + esc(f.didascalia || m.modello || "camper") + '">'
+               + (f.didascalia ? "<figcaption>" + esc(f.didascalia) + "</figcaption>" : "") + "</figure>";
+          });
+          h += "</div>";
+          if (foto.length > 1) {
+            h += '<div class="slide-frecce"><button data-dir="-1" aria-label="Foto precedente">‹</button>'
+               + '<button data-dir="1" aria-label="Foto successiva">›</button></div>';
+            h += '<div class="slide-punti">';
+            foto.forEach(function (f, i) { h += "<i" + (i === 0 ? ' class="on"' : "") + "></i>"; });
+            h += "</div>";
+          }
+          h += "</div>";
+        }
+
         h += "<p><b>" + g.liberi + "</b> " + (g.liberi === 1 ? "ancora libero" : "ancora liberi") + ".</p>";
         h += "</div>";
       });
@@ -231,6 +266,7 @@
     app.innerHTML = h;
 
     disegnaCalcolatore();
+    attivaSlide();
     disegnaProgramma(tappe);
     disegnaMappa(tappe);
     agganciaModulo();
@@ -239,6 +275,28 @@
     if (su) su.addEventListener("click", function (e) {
       e.preventDefault();
       window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  // Scorrimento a slide: la pista scorre da sola col dito, le frecce e i punti
+  // servono a chi guarda da computer.
+  function attivaSlide() {
+    document.querySelectorAll(".slide").forEach(function (box) {
+      var pista = box.querySelector(".slide-pista");
+      var punti = box.querySelectorAll(".slide-punti i");
+      if (!pista) return;
+
+      box.querySelectorAll(".slide-frecce button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          pista.scrollBy({ left: Number(b.dataset.dir) * pista.clientWidth, behavior: "smooth" });
+        });
+      });
+
+      pista.addEventListener("scroll", function () {
+        if (!punti.length) return;
+        var i = Math.round(pista.scrollLeft / pista.clientWidth);
+        punti.forEach(function (p, k) { p.className = k === i ? "on" : ""; });
+      });
     });
   }
 
