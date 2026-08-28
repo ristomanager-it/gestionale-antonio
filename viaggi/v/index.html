@@ -281,10 +281,11 @@
     h += blocco("Prima di partire", "prima", primaC, primaP);
     h += blocco("Durante il viaggio", "in_viaggio", viagC, viagP);
 
-    h += '<h3 style="font-size:19px;margin:26px 0 2px;">La quota che versate a noi</h3>';
-    h += "<p>" + euro(quota) + " a camper, cioè <b>" + euro(quota / n) + "</b> a testa in " + n
-       + ". Copre il mezzo per intero: noleggio, coperture, carburante, campeggi, pedaggi. "
-       + "Voli, pasti e ingressi li gestite voi.</p>";
+    h += '<h3 style="font-size:19px;margin:26px 0 2px;">Il camper, tutto compreso</h3>';
+    h += "<p><b>" + euro(quota) + "</b> a camper, cioè <b>" + euro(quota / n) + "</b> a testa se siete in " + n
+       + ". Dentro c'è tutto quello che il mezzo si porta dietro per tre settimane: noleggio, coperture, "
+       + "carburante, soste notturne, pedaggi e parcheggi. Nessun conto a sorpresa alla riconsegna.</p>";
+    h += "<p>Fuori restano il volo, quello che mangiate e i biglietti dei parchi.</p>";
 
     h += "</div>";
     box.innerHTML = h;
