@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I nostri viaggi</title>
+<style>
+  :root{--carta:#FDFBF7;--inchiostro:#131A24;--rosso:#D0342C;--salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--carta);color:var(--inchiostro);
+       font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:860px;margin:0 auto;padding:0 18px 80px}
+  h1{font-size:42px;line-height:1.05;margin:36px 0 6px;letter-spacing:-.02em}
+  .sotto{font-size:21px;color:var(--tenue);margin:0 0 30px}
+  .card{display:block;text-decoration:none;color:inherit;border:2px solid var(--riga);
+        border-radius:14px;overflow:hidden;background:#fff;margin:20px 0}
+  .card img{width:100%;display:block;background:#F1EDE6;min-height:140px}
+  .card .testo{padding:18px}
+  .card h2{font-size:26px;margin:0 0 4px;letter-spacing:-.01em}
+  .card p{margin:4px 0;color:var(--tenue);font-size:17px}
+  .riga{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+  .prezzo{font-size:22px;font-weight:700;color:var(--rosso)}
+  .tag{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+       background:var(--salvia);color:#fff;padding:3px 9px;border-radius:3px}
+  .tag.chiuse{background:var(--tenue)}
+  .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:36px;text-align:center;color:var(--tenue)}
+  @media(max-width:520px){h1{font-size:32px}.sotto{font-size:18px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico i viaggi...</p></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  var SB_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+  var AZIENDA = new URLSearchParams(location.search).get("a") || "a43d41b5-f4ac-494f-8144-6574347a754f";
+  var app = document.getElementById("app");
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function euro(n) { return Number(n || 0).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + " €"; }
+  function periodo(a, b) {
+    if (!a) return "date da definire";
+    var mesi = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+    var pa = String(a).slice(0, 10).split("-");
+    var testo = Number(pa[2]) + " " + mesi[Number(pa[1]) - 1] + " " + pa[0];
+    if (!b) return "dal " + testo;
+    var pb = String(b).slice(0, 10).split("-");
+    return "dal " + Number(pa[2]) + " " + mesi[Number(pa[1]) - 1]
+         + " al " + Number(pb[2]) + " " + mesi[Number(pb[1]) - 1] + " " + pb[0];
+  }
+  function fotoDaWiki(titolo, img) {
+    if (!titolo) { img.remove(); return; }
+    fetch("https://it.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (j && j.thumbnail && j.thumbnail.source) { img.src = j.thumbnail.source.replace(/\/\d+px-/, "/1200px-"); return; }
+        return fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (k) {
+            if (k && k.thumbnail && k.thumbnail.source) img.src = k.thumbnail.source.replace(/\/\d+px-/, "/1200px-");
+            else img.remove();
+          });
+      }).catch(function () { img.remove(); });
+  }
+
+  sb.rpc("viaggi_catalogo_pubblico", { p_azienda: AZIENDA }).then(function (r) {
+    var lista = (r && r.data) || [];
+    var h = "<h1>I nostri viaggi</h1><p class=\"sotto\">Partenze di gruppo, con noi.</p>";
+
+    if (!lista.length) {
+      app.innerHTML = h + '<div class="vuoto">Nessun viaggio in programma in questo momento. Torna a trovarci.</div>';
+      return;
+    }
+
+    lista.forEach(function (v) {
+      var prezzo = v.modalita_prezzo === "camper"
+        ? euro(v.quota_camper) + " <span style=\"font-size:15px;color:#5B6672;font-weight:400;\">a camper</span>"
+        : euro(v.quota_adulto) + " <span style=\"font-size:15px;color:#5B6672;font-weight:400;\">a persona</span>";
+
+      h += '<a class="card" href="v/?s=' + encodeURIComponent(v.slug) + '">'
+        + '<img alt="' + esc(v.titolo) + '" data-wiki="' + esc(v.copertina_wiki || "") + '"'
+        + (v.copertina_url ? ' src="' + esc(v.copertina_url) + '"' : "") + ">"
+        + '<div class="testo"><h2>' + esc(v.titolo) + "</h2>"
+        + "<p>" + esc(v.sottotitolo || "") + "</p>"
+        + "<p>" + esc(periodo(v.data_inizio, v.data_fine))
+        + (v.km ? " · " + Number(v.km).toLocaleString("it-IT") + " km" : "") + "</p>"
+        + '<div class="riga"><span class="prezzo">' + prezzo + "</span>"
+        + (v.adesioni_aperte ? '<span class="tag">Adesioni aperte</span>' : '<span class="tag chiuse">Adesioni chiuse</span>')
+        + "</div></div></a>";
+    });
+
+    app.innerHTML = h;
+
+    document.querySelectorAll("img[data-wiki]").forEach(function (img) {
+      if (!img.getAttribute("src")) fotoDaWiki(img.dataset.wiki, img);
+    });
+  });
+})();
+</script>
+</body>
+</html>
