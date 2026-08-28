@@ -32,12 +32,72 @@ function tabDaHash() {
   return ["catalogo", "iscritti", "incassi"].includes(t) ? t : null;
 }
 
+const CSS_VIAGGI = `
+  .av-wrap{max-width:1100px;margin:0 auto;padding:14px;overflow-x:hidden}
+  .av-wrap *{max-width:100%}
+  .av-num{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .av-num > div{flex:1 1 calc(50% - 5px);border:1px solid #e2e8f0;border-radius:10px;padding:12px;background:#fff}
+  .av-num b{display:block;font-size:20px;font-weight:700;line-height:1.1}
+  .av-num span{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+  .av-due{display:flex;gap:12px;flex-wrap:wrap}
+  .av-due > div{flex:1 1 150px;min-width:0}
+  .av-link{display:block;word-break:break-all;overflow-wrap:anywhere;color:#0E5A7A;font-weight:700;font-size:14px}
+  .av-tab-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .av-tabella{width:100%;border-collapse:collapse;font-size:14px}
+  .av-tabella th{text-align:left;padding:8px 6px;border-bottom:2px solid #0E5A7A;
+                 font-size:11px;color:#64748b;text-transform:uppercase}
+  .av-tabella td{padding:9px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  @media (max-width: 700px) {
+    .av-wrap{padding:10px}
+    .av-num > div{flex:1 1 calc(50% - 5px);padding:10px}
+    .av-num b{font-size:17px}
+    /* le tabelle diventano schede impilate: sette colonne su un telefono non ci stanno */
+    .av-tabella, .av-tabella tbody, .av-tabella tr, .av-tabella td{display:block;width:100%}
+    .av-tabella thead{display:none}
+    .av-tabella tr{border:1px solid #e2e8f0;border-radius:10px;background:#fff;
+                   margin-bottom:10px;padding:6px 10px}
+    .av-tabella td{border:0;border-bottom:1px solid #f1f5f9;padding:7px 0;display:flex;gap:10px}
+    .av-tabella td:last-child{border-bottom:0}
+    .av-tabella td:before{content:attr(data-et);flex:0 0 40%;font-size:11px;color:#64748b;
+                          text-transform:uppercase;letter-spacing:.03em;padding-top:2px}
+    .av-tabella td > *{flex:1;min-width:0}
+    .av-tabella td.av-vuoto{display:none}
+  }
+`;
+
+function iniettaCss() {
+  if (document.getElementById("av-css")) return;
+  const st = document.createElement("style");
+  st.id = "av-css";
+  st.textContent = CSS_VIAGGI;
+  document.head.appendChild(st);
+}
+
+// Copia l'intestazione di colonna dentro ogni cella, cosi su telefono
+// la tabella puo diventare una scheda con le etichette a sinistra.
+function etichetta(box) {
+  if (!box) return;
+  box.querySelectorAll("table.av-tabella").forEach(function (t) {
+    const teste = Array.prototype.map.call(t.querySelectorAll("thead th"), function (th) {
+      return th.textContent.trim();
+    });
+    t.querySelectorAll("tbody tr").forEach(function (tr) {
+      Array.prototype.forEach.call(tr.children, function (td, i) {
+        td.setAttribute("data-et", teste[i] || "");
+        const testo = td.textContent.replace(/\s/g, "");
+        if (testo === "" || testo === "\u2014") td.classList.add("av-vuoto");
+      });
+    });
+  });
+}
+
 export async function render(app) {
   const azienda = window.state?.azienda;
   tabAttiva = tabDaHash() || "catalogo";
+  iniettaCss();
 
   app.innerHTML = `
-    <div style="max-width:1100px;margin:0 auto;padding:16px;">
+    <div class="av-wrap">
       <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap;">
         <div>
           <h1 style="margin:0 0 4px;font-size:22px;">🚐 Agenzia viaggi</h1>
@@ -127,7 +187,7 @@ function formNuovoViaggio() {
     + "<h2 style=\"margin:0 0 14px;font-size:18px;\">Nuovo viaggio</h2>"
     + campo("nv-titolo", "Titolo", "text", "Route 66 in camper")
     + campo("nv-sotto", "Sottotitolo", "text", "Da Chicago a Santa Monica")
-    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;\">"
+    + "<div class=\"av-due\">"
     +   "<div style=\"flex:1 1 160px;\">" + campo("nv-dal", "Partenza", "date", "") + "</div>"
     +   "<div style=\"flex:1 1 160px;\">" + campo("nv-al", "Rientro", "date", "") + "</div>"
     + "</div>"
@@ -136,11 +196,11 @@ function formNuovoViaggio() {
     +   "<option value=\"camper\">A camper (fino a 5 persone)</option>"
     +   "<option value=\"persona\">A persona</option>"
     + "</select>"
-    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;\">"
+    + "<div class=\"av-due\">"
     +   "<div style=\"flex:1 1 160px;\">" + campo("nv-quota", "Quota (€)", "number", "12500") + "</div>"
     +   "<div style=\"flex:1 1 160px;\">" + campo("nv-posti", "Posti totali", "number", "10") + "</div>"
     + "</div>"
-    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;\">"
+    + "<div class=\"av-due\">"
     +   "<div style=\"flex:1 1 160px;\">" + campo("nv-acconto", "Acconto %", "number", "25") + "</div>"
     +   "<div style=\"flex:1 1 160px;\">" + campo("nv-slug", "Indirizzo pagina", "text", "route66-2027") + "</div>"
     + "</div>"
@@ -224,7 +284,7 @@ function formNuovaIscrizione() {
     + campo("ni-referente", "Referente", "text", "Nome e cognome")
     + campo("ni-nucleo", "Nucleo o gruppo", "text", "Famiglia Rossi")
     + campo("ni-email", "Email", "email", "")
-    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;\">"
+    + "<div class=\"av-due\">"
     +   "<div style=\"flex:1 1 120px;\">" + campo("ni-adulti", "Adulti", "number", "2") + "</div>"
     +   "<div style=\"flex:1 1 120px;\">" + campo("ni-bambini", "Bambini", "number", "0") + "</div>"
     +   "<div style=\"flex:1 1 160px;\">" + campo("ni-quota", "Quota totale (€)", "number", "") + "</div>"
@@ -235,7 +295,7 @@ function formNuovaIscrizione() {
     +   "<option value=\"rate_mensili\">A rate</option>"
     +   "<option value=\"libero\">Versa quando puo</option>"
     + "</select>"
-    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;\">"
+    + "<div class=\"av-due\" style=\"margin-top:10px;\">"
     +   "<div style=\"flex:1 1 200px;\">"
     +     "<label style=\"font-size:12px;color:#64748b;display:block;\">Chi paga</label>"
     +     "<select id=\"ni-chipaga\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;\">"
@@ -339,6 +399,7 @@ function renderCatalogo() {
   });
 
   box.innerHTML = html + tabellaChiudi();
+  etichetta(box);
 
   box.querySelectorAll(".av-riga").forEach(function (tr) {
     tr.addEventListener("click", function () { apriViaggio(tr.dataset.id); });
@@ -391,9 +452,9 @@ async function apriViaggio(id) {
     let h = "<div style=\"margin-bottom:14px;\"><button id=\"av-indietro\" style=\"background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;\">← Catalogo</button></div>";
 
     h += "<h2 style=\"margin:0 0 2px;font-size:24px;\">" + escapeHtml(v.titolo) + "</h2>"
-      + "<div style=\"color:#64748b;margin-bottom:14px;\">" + escapeHtml(v.sottotitolo || "") + " · " + periodo(v.data_inizio, v.data_fine) + "</div>";
+      + "<div style=\"color:#64748b;margin-bottom:14px;font-size:14px;\">" + escapeHtml(v.sottotitolo || "") + "<br>" + periodo(v.data_inizio, v.data_fine) + "</div>";
 
-    h += "<div style=\"display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;\">"
+    h += "<div class=\"av-num\">"
       + card("Giorni", String(tappe.length), "#0E5A7A")
       + card("Chilometri", km.toLocaleString("it-IT"), "#0E5A7A")
       + card("Quota", v.modalita_prezzo === "camper" ? euro(v.quota_camper) : euro(v.quota_adulto), "#16a34a")
@@ -402,7 +463,7 @@ async function apriViaggio(id) {
 
     h += "<div style=\"border:1px solid #e2e8f0;border-radius:10px;padding:14px;background:#fff;margin-bottom:18px;\">"
       + "<div style=\"font-size:13px;color:#64748b;margin-bottom:6px;\">Pagina pubblica</div>"
-      + "<a href=\"" + url + "\" target=\"_blank\" style=\"color:#0E5A7A;font-weight:700;word-break:break-all;\">" + escapeHtml(url) + "</a>"
+      + "<a class=\"av-link\" href=\"" + url + "\" target=\"_blank\">" + escapeHtml(url) + "</a>"
       + "<div style=\"margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;\">"
       + "<button id=\"av-stato\" data-id=\"" + v.id + "\" style=\"background:" + (v.stato === "pubblicato" ? "#fff" : "#16a34a") + ";color:" + (v.stato === "pubblicato" ? "#64748b" : "#fff") + ";border:1px solid " + (v.stato === "pubblicato" ? "#cbd5e1" : "#16a34a") + ";border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;\">"
       + (v.stato === "pubblicato" ? "Riporta in bozza" : "Pubblica") + "</button>"
@@ -468,6 +529,7 @@ async function apriViaggio(id) {
     }
 
     box.innerHTML = h;
+    etichetta(box);
 
     document.getElementById("av-indietro").addEventListener("click", function () {
       tabAttiva = "catalogo"; disegnaTabs(); renderCatalogo();
@@ -546,6 +608,7 @@ async function renderIscritti() {
   });
 
   box.innerHTML = html + tabellaChiudi();
+  etichetta(box);
   aggancioNuovaIscrizione();
 }
 
@@ -587,7 +650,7 @@ async function renderIncassi() {
   let arretrato = 0;
   scadute.forEach(function (r) { arretrato += Number(r.importo || 0); });
 
-  let html = "<div style=\"display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;\">"
+  let html = "<div class=\"av-num\">"
     + card("Quote totali", euro(quote), "#0E5A7A")
     + card("Incassato", euro(versato), "#16a34a")
     + card("Da incassare", euro(quote - versato), "#64748b")
@@ -605,6 +668,7 @@ async function renderIncassi() {
   }
 
   box.innerHTML = html;
+  etichetta(box);
 }
 
 /* ---------------- FOTO DELLE TAPPE ---------------- */
@@ -658,15 +722,13 @@ function val(id) {
 function rosso(t) { return "<span style=\"color:#dc2626;\">" + escapeHtml(t) + "</span>"; }
 
 function card(titolo, valore, colore) {
-  return "<div style=\"flex:1 1 160px;border:1px solid #e2e8f0;border-radius:10px;padding:14px;background:#fff;\">"
-    + "<div style=\"font-size:22px;font-weight:700;color:" + colore + ";\">" + valore + "</div>"
-    + "<div style=\"font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;\">" + escapeHtml(titolo) + "</div></div>";
+  return "<div><b style=\"color:" + colore + ";\">" + valore + "</b><span>" + escapeHtml(titolo) + "</span></div>";
 }
 
 function tabellaApri(intestazioni) {
-  let h = "<div style=\"overflow-x:auto;\"><table style=\"width:100%;border-collapse:collapse;font-size:14px;\"><thead><tr>";
+  let h = "<div class=\"av-tab-wrap\"><table class=\"av-tabella\"><thead><tr>";
   intestazioni.forEach(function (t) {
-    h += "<th style=\"text-align:left;padding:8px 6px;border-bottom:2px solid #0E5A7A;font-size:12px;color:#64748b;text-transform:uppercase;\">" + escapeHtml(t) + "</th>";
+    h += "<th>" + escapeHtml(t) + "</th>";
   });
   return h + "</tr></thead><tbody>";
 }
@@ -674,7 +736,7 @@ function tabellaApri(intestazioni) {
 function tabellaChiudi() { return "</tbody></table></div>"; }
 
 function td(html) {
-  return "<td style=\"padding:9px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top;\">" + html + "</td>";
+  return "<td><div>" + html + "</div></td>";
 }
 
 function vuoto(testo) {
