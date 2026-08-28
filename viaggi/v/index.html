@@ -236,14 +236,16 @@
     var n = personeCamper;
     var quota = Number(v.quota_camper || 0);
 
-    var primaC = [sommaQ("camper", "min", "prima"), sommaQ("camper", "max", "prima")];
-    var primaP = [sommaQ("persona", "min", "prima"), sommaQ("persona", "max", "prima")];
-    var viagC  = [sommaQ("camper", "min", "in_viaggio"), sommaQ("camper", "max", "in_viaggio")];
-    var viagP  = [sommaQ("persona", "min", "in_viaggio"), sommaQ("persona", "max", "in_viaggio")];
+    // Un prezzo solo, non una forbice: si prende il valore alto, che e gia
+    // quello prudente. Il minimo resta nel gestionale per i conti interni.
+    var primaC = sommaQ("camper", "max", "prima");
+    var primaP = sommaQ("persona", "max", "prima");
+    var viagC  = sommaQ("camper", "max", "in_viaggio");
+    var viagP  = sommaQ("persona", "max", "in_viaggio");
 
-    var primaTesta = [primaC[0] / n + primaP[0], primaC[1] / n + primaP[1]];
-    var viagTesta  = [viagC[0] / n + viagP[0], viagC[1] / n + viagP[1]];
-    var tuttoTesta = [primaTesta[0] + viagTesta[0], primaTesta[1] + viagTesta[1]];
+    var primaTesta = primaC / n + primaP;
+    var viagTesta  = viagC / n + viagP;
+    var tuttoTesta = primaTesta + viagTesta;
 
     var h = '<div class="calc">';
     h += "<p><b>In quanti dividete il camper?</b></p><div class=\"scelte-n\">";
@@ -253,26 +255,26 @@
     h += "</div>";
 
     h += '<div class="numeri" style="margin-top:16px;">'
-      + "<div><b>" + euro(primaTesta[0]) + " – " + euro(primaTesta[1]) + "</b><span>Prima di partire</span></div>"
-      + "<div><b>" + euro(viagTesta[0]) + " – " + euro(viagTesta[1]) + "</b><span>Da spendere lì</span></div>"
-      + "<div><b>" + euro(tuttoTesta[0]) + " – " + euro(tuttoTesta[1]) + "</b><span>In tutto, a testa</span></div>"
+      + "<div><b>" + euro(primaTesta) + "</b><span>Prima di partire</span></div>"
+      + "<div><b>" + euro(viagTesta) + "</b><span>Da spendere lì</span></div>"
+      + "<div><b>" + euro(tuttoTesta) + "</b><span>In tutto, a testa</span></div>"
       + "</div>";
 
     h += '<p class="credito">Il primo numero è quello che si paga prima: volo, camper, assicurazione. Il secondo è la vita di tutti i giorni per tre settimane: benzina, campeggi, spesa e ristoranti. Un preventivo di agenzia di solito comprende solo il primo.</p>';
 
     function blocco(titolo, quando, camperTot, persTot) {
       var t = '<h3 style="font-size:19px;margin:26px 0 2px;">' + titolo + "</h3>";
-      t += "<table><tr><th>Voce</th><th class=\"num\">Da</th><th class=\"num\">A</th></tr>";
+      t += "<table><tr><th>Voce</th><th class=\"num\">Costo</th></tr>";
       b.forEach(function (x) {
         if (x.quando !== quando) return;
         t += "<tr><td><b>" + esc(x.voce) + "</b>"
            + '<div style="color:#5B6672;font-size:14px;">'
            + (x.unita === "camper" ? "per camper" : "a persona")
            + (x.dettaglio ? " · " + esc(x.dettaglio) : "") + "</div>"
-           + '</td><td class="num">' + euro(x.min) + '</td><td class="num">' + euro(x.max) + "</td></tr>";
+           + '</td><td class="num">' + euro(x.max) + "</td></tr>";
       });
-      t += '<tr><td><b>A testa, in ' + n + '</b></td><td class="num"><b>' + euro(camperTot[0] / n + persTot[0])
-         + '</b></td><td class="num"><b>' + euro(camperTot[1] / n + persTot[1]) + "</b></td></tr></table>";
+      t += '<tr><td><b>A testa, in ' + n + '</b></td><td class="num"><b>'
+         + euro(camperTot / n + persTot) + "</b></td></tr></table>";
       return t;
     }
 
