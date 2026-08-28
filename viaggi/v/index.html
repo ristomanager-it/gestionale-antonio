@@ -101,19 +101,38 @@
     return mesi[Number(p[1]) - 1] + " " + p[0];
   }
 
-  // Foto di repertorio: si chiede a Wikimedia il ritaglio della voce indicata.
-  function fotoDaWiki(titolo, img) {
-    if (!titolo) return;
-    var url = "https://it.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo);
-    fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-      if (j && j.thumbnail && j.thumbnail.source) { img.src = j.thumbnail.source.replace(/\/\d+px-/, "/1200px-"); return; }
-      return fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (k) {
-          if (k && k.thumbnail && k.thumbnail.source) img.src = k.thumbnail.source.replace(/\/\d+px-/, "/1200px-");
-          else img.remove();
-        });
-    }).catch(function () { img.remove(); });
+  // Foto di repertorio da Wikimedia. Tre tentativi: voce italiana, voce inglese,
+  // ricerca per parole chiave. Se non torna niente il riquadro sparisce.
+  function grande(src) { return src.replace(/\/\d+px-/, "/1280px-"); }
+
+  function sommario(lingua, titolo) {
+    return fetch("https://" + lingua + ".wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { return (j && j.thumbnail && j.thumbnail.source) ? grande(j.thumbnail.source) : null; })
+      .catch(function () { return null; });
+  }
+
+  function cerca(lingua, testo) {
+    var u = "https://" + lingua + ".wikipedia.org/w/api.php?action=query&format=json&origin=*"
+          + "&generator=search&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=1280"
+          + "&gsrsearch=" + encodeURIComponent(testo);
+    return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !j.query || !j.query.pages) return null;
+      var pg = Object.keys(j.query.pages).map(function (k) { return j.query.pages[k]; })[0];
+      return (pg && pg.thumbnail && pg.thumbnail.source) ? pg.thumbnail.source : null;
+    }).catch(function () { return null; });
+  }
+
+  function fotoDaWiki(titolo, img, ripiego) {
+    if (!titolo && !ripiego) { img.remove(); return; }
+    var chiave = titolo || ripiego;
+    sommario("it", chiave)
+      .then(function (u) { return u || sommario("en", chiave); })
+      .then(function (u) { return u || cerca("en", ripiego || chiave); })
+      .then(function (u) {
+        if (u) { img.src = u; img.style.minHeight = "0"; }
+        else img.remove();
+      });
   }
 
   function disegna() {
@@ -145,13 +164,33 @@
       h += "<h2>Quanto costa</h2>";
       var min = 0, max = 0;
       dati.budget.forEach(function (b) { min += Number(b.min || 0); max += Number(b.max || 0); });
-      h += "<table><tr><th>Voce</th><th class=\"num\">Da</th><th class=\"num\">A</th></tr>";
-      dati.budget.forEach(function (b) {
-        h += "<tr><td><b>" + esc(b.voce) + "</b>"
-           + (b.dettaglio ? '<div style="color:#5B6672;font-size:14px;">' + esc(b.dettaglio) + "</div>" : "")
-           + '</td><td class="num">' + euro(b.min) + '</td><td class="num">' + euro(b.max) + "</td></tr>";
-      });
-      h += '<tr><td><b>Totale del gruppo</b></td><td class="num"><b>' + euro(min) + '</b></td><td class="num"><b>' + euro(max) + "</b></td></tr>";
+      var incl = dati.budget.filter(function (b) { return b.incluso; });
+      var escl = dati.budget.filter(function (b) { return !b.incluso; });
+      var iMin = 0, iMax = 0;
+      incl.forEach(function (b) { iMin += Number(b.min || 0); iMax += Number(b.max || 0); });
+
+      function righe(lista) {
+        var t = "";
+        lista.forEach(function (b) {
+          t += "<tr><td><b>" + esc(b.voce) + "</b>"
+             + (b.dettaglio ? '<div style="color:#5B6672;font-size:14px;">' + esc(b.dettaglio) + "</div>" : "")
+             + '</td><td class="num">' + euro(b.min) + '</td><td class="num">' + euro(b.max) + "</td></tr>";
+        });
+        return t;
+      }
+
+      if (v.cosa_include) h += "<p>" + esc(v.cosa_include) + "</p>";
+
+      if (incl.length) {
+        h += '<h3 style="font-size:19px;margin:22px 0 2px;">Compreso nella quota del camper</h3>';
+        h += "<table><tr><th>Voce</th><th class=\"num\">Da</th><th class=\"num\">A</th></tr>" + righe(incl)
+           + '<tr><td><b>Totale mezzi</b></td><td class="num"><b>' + euro(iMin) + '</b></td><td class="num"><b>' + euro(iMax) + "</b></td></tr>"
+           + '<tr><td>Diviso due camper</td><td class="num">' + euro(iMin / 2) + '</td><td class="num">' + euro(iMax / 2) + "</td></tr></table>";
+      }
+
+      h += '<h3 style="font-size:19px;margin:26px 0 2px;">Da mettere in conto a parte</h3>';
+      h += "<table><tr><th>Voce</th><th class=\"num\">Da</th><th class=\"num\">A</th></tr>" + righe(escl);
+      h += '<tr><td><b>Totale del viaggio</b></td><td class="num"><b>' + euro(min) + '</b></td><td class="num"><b>' + euro(max) + "</b></td></tr>";
       var pers = Number(dati.persone_confermate || 0);
       if (pers > 0) {
         h += '<tr><td>A persona, su ' + pers + ' confermati</td><td class="num">' + euro(min / pers) + '</td><td class="num">' + euro(max / pers) + "</td></tr>";
@@ -162,7 +201,9 @@
     if ((dati.mezzi || []).length) {
       h += "<h2>I mezzi</h2><table><tr><th>Mezzo</th><th>Modello</th><th>Posti</th><th>Stato</th></tr>";
       dati.mezzi.forEach(function (m) {
-        h += "<tr><td><b>" + esc(m.nome) + "</b></td><td>" + esc(m.modello || "") + "</td><td>"
+        h += "<tr><td><b>" + esc(m.nome) + "</b>"
+           + (m.note ? '<div style="color:#5B6672;font-size:14px;">' + esc(m.note) + "</div>" : "")
+           + "</td><td>" + esc(m.modello || "") + "</td><td>"
            + (m.posti_max || "") + "</td><td>" + (m.stato === "libero" ? "Libero" : "Assegnato") + "</td></tr>";
       });
       h += "</table>";
@@ -216,7 +257,8 @@
       box.appendChild(d);
 
       var img = d.querySelector("img");
-      if (t.foto_url) img.src = t.foto_url; else fotoDaWiki(t.foto_wiki, img);
+      if (t.foto_url) img.src = t.foto_url;
+      else fotoDaWiki(t.foto_wiki, img, t.titolo + " Route 66");
     });
   }
 
