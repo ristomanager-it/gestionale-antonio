@@ -59,10 +59,31 @@
   .msg.ok{background:#EAF6EE;border:2px solid #2E8B57;color:#1D5E38}
   .msg.ko{background:#FDECEA;border:2px solid var(--rosso);color:#8E1D17}
   .credito{font-size:13px;color:var(--tenue);margin-top:4px}
+  .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);border-bottom:2px solid var(--riga);
+             display:flex;justify-content:space-between;align-items:center;padding:12px 18px;
+             max-width:860px;margin:0 auto}
+  .barra-top a{text-decoration:none;font-size:16px;font-weight:700;color:var(--rosso)}
+  .barra-top .su{color:var(--tenue)}
+  .pasto-box{border:2px solid var(--riga);border-radius:10px;padding:12px;margin:10px 0;background:#fff}
+  .pasto-box.fuori{border-left:6px solid var(--rosso)}
+  .pasto-box.camper{border-left:6px solid var(--salvia)}
+  .pasto-box.scelta{border-left:6px dashed var(--salvia)}
+  .pasto-testa{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);margin:0 0 4px}
+  .pasto-box h4{margin:0 0 4px;font-size:19px}
+  .pasto-box p{margin:3px 0;font-size:16px;color:var(--tenue)}
+  .piatto-foto{width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin:8px 0;display:block}
+  .azioni{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .azioni a{display:inline-block;text-decoration:none;font-size:15px;font-weight:700;
+            border:2px solid var(--riga);border-radius:8px;padding:9px 14px;color:var(--inchiostro)}
+  .azioni a.mappa{border-color:var(--rosso);color:var(--rosso)}
   @media(max-width:520px){h1{font-size:30px}.sotto{font-size:19px}.giorno{gap:10px}.giorno .n{font-size:24px;min-width:40px}}
 </style>
 </head>
 <body>
+<div class="barra-top">
+  <a href="../" class="indietro">← Tutti i viaggi</a>
+  <a href="#" class="su" id="torna-su">↑ Inizio</a>
+</div>
 <div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico il viaggio...</p></div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -220,11 +241,18 @@
     }
 
     h += modulo(v);
+    h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--rosso);font-weight:700;text-decoration:none;font-size:18px;">← Torna a tutti i viaggi</a></p>';
     app.innerHTML = h;
 
     disegnaProgramma(tappe);
     disegnaMappa(tappe);
     agganciaModulo();
+
+    var su = document.getElementById("torna-su");
+    if (su) su.addEventListener("click", function (e) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
   }
 
   function disegnaProgramma(tappe) {
@@ -238,14 +266,34 @@
         + (t.tipo === "volo" ? ' · <span class="tag r">Volo</span>' : "") + "</p>";
 
       var pasti = "";
-      (t.pasti || []).forEach(function (p) {
-        var dove = p.dove === "camper" ? "in camper" : (p.dove === "fuori" ? "fuori" : "a scelta");
-        var cosa = p.locale ? esc(p.locale) + (p.citta ? ", " + esc(p.citta) : "") : esc(p.ricetta || "");
-        if (!cosa) cosa = "da decidere";
-        var extra = "";
-        if (p.piatto) extra += " — " + esc(p.piatto);
-        if (p.prenotare) extra += ' <span class="tag r">Prenotare</span>';
-        pasti += '<div class="pasto"><b>' + MOMENTI[p.momento] + "</b> " + dove + ": " + cosa + extra + "</div>";
+      (t.pasti || []).forEach(function (p, i) {
+        var dove = p.dove === "camper" ? "In camper" : (p.dove === "fuori" ? "Fuori" : "A scelta");
+        var idFoto = "pf-" + t.giorno + "-" + i;
+
+        pasti += '<div class="pasto-box ' + p.dove + '">';
+        pasti += '<p class="pasto-testa">' + MOMENTI[p.momento] + " · " + dove
+              + (p.spesa ? " · circa " + Math.round(Number(p.spesa)) + " $ a testa" : "") + "</p>";
+
+        if (p.locale) {
+          pasti += "<h4>" + esc(p.locale) + "</h4>";
+          if (p.piatto) pasti += "<p><b>Da prendere:</b> " + esc(p.piatto) + "</p>";
+          if (p.foto_piatto_url || p.foto_piatto_wiki)
+            pasti += '<img class="piatto-foto" id="' + idFoto + '" alt="' + esc(p.piatto || p.locale) + '">';
+          if (p.indirizzo || p.citta)
+            pasti += "<p>" + esc([p.indirizzo, p.citta].filter(Boolean).join(", ")) + "</p>";
+          if (p.note) pasti += "<p>" + esc(p.note) + "</p>";
+          if (p.prenotare) pasti += '<p><span class="tag r">Va prenotato</span></p>';
+
+          pasti += '<div class="azioni">';
+          if (p.mappa) pasti += '<a class="mappa" href="' + esc(p.mappa) + '" target="_blank" rel="noopener">Apri sulla mappa</a>';
+          if (p.telefono) pasti += '<a href="tel:' + esc(String(p.telefono).replace(/\s/g, "")) + '">Chiama</a>';
+          if (p.sito) pasti += '<a href="' + esc(p.sito) + '" target="_blank" rel="noopener">Sito</a>';
+          pasti += "</div>";
+        } else {
+          pasti += "<h4>" + esc(p.ricetta || "Da decidere") + "</h4>";
+          if (p.note) pasti += "<p>" + esc(p.note) + "</p>";
+        }
+        pasti += "</div>";
       });
 
       d.innerHTML = '<div class="n">' + t.giorno + "</div><div style=\"flex:1;min-width:0;\">"
@@ -256,9 +304,16 @@
         + "</div>";
       box.appendChild(d);
 
-      var img = d.querySelector("img");
+      var img = d.querySelector("img.foto");
       if (t.foto_url) img.src = t.foto_url;
       else fotoDaWiki(t.foto_wiki, img, t.titolo + " Route 66");
+
+      (t.pasti || []).forEach(function (p, i) {
+        var el = document.getElementById("pf-" + t.giorno + "-" + i);
+        if (!el) return;
+        if (p.foto_piatto_url) { el.src = p.foto_piatto_url; return; }
+        fotoDaWiki(p.foto_piatto_wiki, el, (p.piatto || "") + " food");
+      });
     });
   }
 
