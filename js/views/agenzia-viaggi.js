@@ -1,6 +1,7 @@
 /* =========================================================
    AGENZIA VIAGGI — catalogo viaggi, iscritti, incassi
-   Solo admin. Le regole del database filtrano gia per azienda.
+   Solo admin, solo azienda Ristoflow (gate nel router).
+   v2: creazione viaggio e iscrizione, tab letto dall'hash.
    ========================================================= */
 
 let viaggiCache = [];
@@ -20,13 +21,30 @@ const MODALITA_LABEL = {
   libero:        "Versamenti liberi",
 };
 
+function supa() { return window.supabaseClient || window.supabase; }
+function aziendaId() { return window.state?.azienda?.id; }
+
+function tabDaHash() {
+  const h = String(window.location.hash || "");
+  const q = h.split("?")[1];
+  if (!q) return null;
+  const t = new URLSearchParams(q).get("tab");
+  return ["catalogo", "iscritti", "incassi"].includes(t) ? t : null;
+}
+
 export async function render(app) {
   const azienda = window.state?.azienda;
+  tabAttiva = tabDaHash() || "catalogo";
 
   app.innerHTML = `
     <div style="max-width:1100px;margin:0 auto;padding:16px;">
-      <h1 style="margin:0 0 4px;font-size:22px;">🚐 Agenzia viaggi</h1>
-      <div style="color:#64748b;font-size:13px;margin-bottom:16px;">${escapeHtml(azienda?.nome || "")} — viaggi in catalogo, iscritti e incassi</div>
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h1 style="margin:0 0 4px;font-size:22px;">🚐 Agenzia viaggi</h1>
+          <div style="color:#64748b;font-size:13px;margin-bottom:16px;">${escapeHtml(azienda?.nome || "")} — viaggi, iscritti e incassi</div>
+        </div>
+        <button id="av-nuovo" style="background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">➕ Nuovo viaggio</button>
+      </div>
 
       <div id="av-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
         <button data-tab="catalogo" class="av-tab">Catalogo</button>
@@ -39,7 +57,7 @@ export async function render(app) {
   `;
 
   app.querySelectorAll(".av-tab").forEach(function (b) {
-    b.style.cssText = "background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;color:#0E5A7A;";
+    b.style.cssText = "background:#fff;border:1px solid #0E5A7A;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;color:#0E5A7A;";
     b.addEventListener("click", function () {
       tabAttiva = b.dataset.tab;
       disegnaTabs();
@@ -47,9 +65,17 @@ export async function render(app) {
     });
   });
 
+  const bNuovo = document.getElementById("av-nuovo");
+  if (bNuovo) bNuovo.addEventListener("click", formNuovoViaggio);
+
   disegnaTabs();
-  await caricaViaggi();
-  await caricaTab();
+
+  try {
+    await caricaViaggi();
+    await caricaTab();
+  } catch (e) {
+    mostraErrore(e);
+  }
 }
 
 function disegnaTabs() {
@@ -57,28 +83,231 @@ function disegnaTabs() {
     const on = b.dataset.tab === tabAttiva;
     b.style.background = on ? "#0E5A7A" : "#fff";
     b.style.color = on ? "#fff" : "#0E5A7A";
-    b.style.borderColor = "#0E5A7A";
   });
 }
 
-async function caricaViaggi() {
-  const supa = window.supabaseClient || window.supabase;
-  const azienda = window.state?.azienda;
+function mostraErrore(e) {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+  box.innerHTML = "<div style=\"border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:16px;color:#991b1b;\">"
+    + "<b>Qualcosa non ha risposto.</b><div style=\"font-size:13px;margin-top:6px;\">"
+    + escapeHtml(e && e.message ? e.message : String(e)) + "</div></div>";
+}
 
-  const r = await supa
+async function caricaViaggi() {
+  const r = await supa()
     .from("viaggi")
     .select("id,slug,titolo,sottotitolo,data_inizio,data_fine,stato,modalita_prezzo,quota_camper,quota_adulto,posti_totali,posti_per_mezzo,catalogo")
-    .eq("azienda_id", azienda?.id)
+    .eq("azienda_id", aziendaId())
     .order("data_inizio", { ascending: true });
 
+  if (r.error) throw r.error;
   viaggiCache = r.data || [];
   if (!viaggioSel && viaggiCache.length) viaggioSel = viaggiCache[0].id;
 }
 
 async function caricaTab() {
-  if (tabAttiva === "catalogo") return renderCatalogo();
-  if (tabAttiva === "iscritti") return renderIscritti();
-  return renderIncassi();
+  try {
+    if (tabAttiva === "catalogo") return renderCatalogo();
+    if (tabAttiva === "iscritti") return await renderIscritti();
+    return await renderIncassi();
+  } catch (e) {
+    mostraErrore(e);
+  }
+}
+
+/* ---------------- NUOVO VIAGGIO ---------------- */
+
+function formNuovoViaggio() {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+
+  box.innerHTML = ""
+    + "<div style=\"border:1px solid #e2e8f0;border-radius:12px;padding:18px;background:#fff;max-width:640px;\">"
+    + "<h2 style=\"margin:0 0 14px;font-size:18px;\">Nuovo viaggio</h2>"
+    + campo("nv-titolo", "Titolo", "text", "Route 66 in camper")
+    + campo("nv-sotto", "Sottotitolo", "text", "Da Chicago a Santa Monica")
+    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;\">"
+    +   "<div style=\"flex:1 1 160px;\">" + campo("nv-dal", "Partenza", "date", "") + "</div>"
+    +   "<div style=\"flex:1 1 160px;\">" + campo("nv-al", "Rientro", "date", "") + "</div>"
+    + "</div>"
+    + "<label style=\"font-size:12px;color:#64748b;display:block;margin-top:10px;\">Come si vende</label>"
+    + "<select id=\"nv-modalita\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;\">"
+    +   "<option value=\"camper\">A camper (fino a 5 persone)</option>"
+    +   "<option value=\"persona\">A persona</option>"
+    + "</select>"
+    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;\">"
+    +   "<div style=\"flex:1 1 160px;\">" + campo("nv-quota", "Quota (€)", "number", "12500") + "</div>"
+    +   "<div style=\"flex:1 1 160px;\">" + campo("nv-posti", "Posti totali", "number", "10") + "</div>"
+    + "</div>"
+    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;\">"
+    +   "<div style=\"flex:1 1 160px;\">" + campo("nv-acconto", "Acconto %", "number", "25") + "</div>"
+    +   "<div style=\"flex:1 1 160px;\">" + campo("nv-slug", "Indirizzo pagina", "text", "route66-2027") + "</div>"
+    + "</div>"
+    + "<div id=\"nv-msg\" style=\"margin-top:12px;font-size:13px;\"></div>"
+    + "<div style=\"margin-top:16px;display:flex;gap:10px;\">"
+    +   "<button id=\"nv-salva\" style=\"background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:11px 20px;font-weight:700;cursor:pointer;\">Crea viaggio</button>"
+    +   "<button id=\"nv-annulla\" style=\"background:#fff;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:11px 20px;font-weight:700;cursor:pointer;\">Annulla</button>"
+    + "</div></div>";
+
+  document.getElementById("nv-annulla").addEventListener("click", function () {
+    tabAttiva = "catalogo"; disegnaTabs(); caricaTab();
+  });
+
+  document.getElementById("nv-salva").addEventListener("click", async function () {
+    const msg = document.getElementById("nv-msg");
+    const titolo = val("nv-titolo");
+    let slug = val("nv-slug").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
+
+    if (!titolo) { msg.innerHTML = rosso("Serve almeno il titolo."); return; }
+    if (!slug) slug = "viaggio-" + Date.now();
+
+    const modalita = val("nv-modalita");
+    const quota = Number(val("nv-quota") || 0);
+
+    const riga = {
+      azienda_id: aziendaId(),
+      slug: slug,
+      titolo: titolo,
+      sottotitolo: val("nv-sotto") || null,
+      data_inizio: val("nv-dal") || null,
+      data_fine: val("nv-al") || null,
+      stato: "bozza",
+      pubblico: false,
+      adesioni_aperte: false,
+      modalita_prezzo: modalita,
+      quota_camper: modalita === "camper" ? quota : 0,
+      quota_adulto: modalita === "persona" ? quota : 0,
+      posti_totali: Number(val("nv-posti") || 0) || null,
+      acconto_percentuale: Number(val("nv-acconto") || 30),
+    };
+
+    msg.innerHTML = "<span style=\"color:#64748b;\">Salvo...</span>";
+    const r = await supa().from("viaggi").insert(riga).select("id").single();
+
+    if (r.error) {
+      msg.innerHTML = rosso(r.error.message.indexOf("duplicate") >= 0
+        ? "Esiste gia un viaggio con questo indirizzo pagina. Cambialo."
+        : r.error.message);
+      return;
+    }
+
+    viaggioSel = r.data.id;
+    await caricaViaggi();
+    tabAttiva = "catalogo";
+    disegnaTabs();
+    renderCatalogo();
+  });
+}
+
+/* ---------------- NUOVA ISCRIZIONE ---------------- */
+
+function formNuovaIscrizione() {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+
+  if (!viaggiCache.length) {
+    box.innerHTML = vuoto("Prima serve un viaggio.");
+    return;
+  }
+
+  let opzioni = "";
+  viaggiCache.forEach(function (v) {
+    opzioni += "<option value=\"" + v.id + "\">" + escapeHtml(v.titolo) + "</option>";
+  });
+
+  box.innerHTML = ""
+    + "<div style=\"border:1px solid #e2e8f0;border-radius:12px;padding:18px;background:#fff;max-width:640px;\">"
+    + "<h2 style=\"margin:0 0 14px;font-size:18px;\">Nuova iscrizione</h2>"
+    + "<label style=\"font-size:12px;color:#64748b;display:block;\">Viaggio</label>"
+    + "<select id=\"ni-viaggio\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;\">" + opzioni + "</select>"
+    + campo("ni-referente", "Referente", "text", "Nome e cognome")
+    + campo("ni-nucleo", "Nucleo o gruppo", "text", "Famiglia Rossi")
+    + campo("ni-email", "Email", "email", "")
+    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;\">"
+    +   "<div style=\"flex:1 1 120px;\">" + campo("ni-adulti", "Adulti", "number", "2") + "</div>"
+    +   "<div style=\"flex:1 1 120px;\">" + campo("ni-bambini", "Bambini", "number", "0") + "</div>"
+    +   "<div style=\"flex:1 1 160px;\">" + campo("ni-quota", "Quota totale (€)", "number", "") + "</div>"
+    + "</div>"
+    + "<label style=\"font-size:12px;color:#64748b;display:block;margin-top:10px;\">Come paga</label>"
+    + "<select id=\"ni-modalita\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;\">"
+    +   "<option value=\"acconto_saldo\">Acconto e saldo</option>"
+    +   "<option value=\"rate_mensili\">A rate</option>"
+    +   "<option value=\"libero\">Versa quando puo</option>"
+    + "</select>"
+    + "<div style=\"display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;\">"
+    +   "<div style=\"flex:1 1 200px;\">"
+    +     "<label style=\"font-size:12px;color:#64748b;display:block;\">Chi paga</label>"
+    +     "<select id=\"ni-chipaga\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;\">"
+    +       "<option value=\"unico\">Un solo pagatore</option>"
+    +       "<option value=\"pro_capite\">Ognuno la sua quota</option>"
+    +     "</select></div>"
+    +   "<div style=\"flex:1 1 200px;\">"
+    +     "<label style=\"font-size:12px;color:#64748b;display:block;\">Ogni quanto</label>"
+    +     "<select id=\"ni-cadenza\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;\">"
+    +       "<option value=\"1\">Ogni mese</option>"
+    +       "<option value=\"2\">Ogni due mesi</option>"
+    +       "<option value=\"3\">Ogni tre mesi</option>"
+    +       "<option value=\"6\">Ogni sei mesi</option>"
+    +     "</select></div>"
+    + "</div>"
+    + "<div style=\"font-size:12px;color:#64748b;margin-top:8px;\">Con \"ognuno la sua quota\" i partecipanti vanno aggiunti prima di generare il piano.</div>"
+    + "<div id=\"ni-msg\" style=\"margin-top:12px;font-size:13px;\"></div>"
+    + "<div style=\"margin-top:16px;display:flex;gap:10px;\">"
+    +   "<button id=\"ni-salva\" style=\"background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:11px 20px;font-weight:700;cursor:pointer;\">Crea e genera il piano</button>"
+    +   "<button id=\"ni-annulla\" style=\"background:#fff;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:11px 20px;font-weight:700;cursor:pointer;\">Annulla</button>"
+    + "</div></div>";
+
+  const vSel = document.getElementById("ni-viaggio");
+  const qCampo = document.getElementById("ni-quota");
+  function proponiQuota() {
+    const v = viaggiCache.find(function (x) { return x.id === vSel.value; });
+    if (!v || qCampo.value) return;
+    qCampo.value = v.modalita_prezzo === "camper" ? (v.quota_camper || "") : (v.quota_adulto || "");
+  }
+  vSel.addEventListener("change", function () { qCampo.value = ""; proponiQuota(); });
+  proponiQuota();
+
+  document.getElementById("ni-annulla").addEventListener("click", function () {
+    tabAttiva = "iscritti"; disegnaTabs(); caricaTab();
+  });
+
+  document.getElementById("ni-salva").addEventListener("click", async function () {
+    const msg = document.getElementById("ni-msg");
+    const referente = val("ni-referente");
+    if (!referente) { msg.innerHTML = rosso("Serve il nome del referente."); return; }
+
+    const chiPaga = val("ni-chipaga");
+    const riga = {
+      viaggio_id: vSel.value,
+      azienda_id: aziendaId(),
+      referente_nome: referente,
+      nucleo_familiare: val("ni-nucleo") || null,
+      referente_email: val("ni-email") || null,
+      n_adulti: Number(val("ni-adulti") || 1),
+      n_bambini: Number(val("ni-bambini") || 0),
+      quota_totale: Number(val("ni-quota") || 0),
+      modalita_pagamento: val("ni-modalita"),
+      chi_paga: chiPaga,
+      cadenza_mesi: Number(val("ni-cadenza") || 1),
+      stato: "richiesta",
+    };
+
+    msg.innerHTML = "<span style=\"color:#64748b;\">Salvo...</span>";
+    const r = await supa().from("viaggi_iscrizioni").insert(riga).select("id").single();
+    if (r.error) { msg.innerHTML = rosso(r.error.message); return; }
+
+    if (chiPaga === "pro_capite") {
+      msg.innerHTML = "<span style=\"color:#16a34a;\">Iscrizione creata. Aggiungi i partecipanti, poi genera il piano.</span>";
+    } else {
+      const g = await supa().rpc("viaggi_genera_rate", { p_iscrizione: r.data.id });
+      if (g.error) { msg.innerHTML = rosso("Iscrizione creata, ma il piano no: " + g.error.message); return; }
+    }
+
+    tabAttiva = "iscritti";
+    disegnaTabs();
+    await caricaTab();
+  });
 }
 
 /* ---------------- CATALOGO ---------------- */
@@ -88,7 +317,7 @@ function renderCatalogo() {
   if (!box) return;
 
   if (!viaggiCache.length) {
-    box.innerHTML = vuoto("Nessun viaggio ancora. Il primo si crea dal database o duplicando una proposta del catalogo.");
+    box.innerHTML = vuoto("Nessun viaggio ancora. Premi Nuovo viaggio qui sopra per crearne uno.");
     return;
   }
 
@@ -119,30 +348,31 @@ async function renderIscritti() {
   if (!box) return;
   box.innerHTML = "<div style=\"color:#64748b;\">Caricamento...</div>";
 
-  const supa = window.supabaseClient || window.supabase;
-  const azienda = window.state?.azienda;
-
-  const r = await supa
+  const r = await supa()
     .from("viaggi_iscrizioni")
-    .select("id,viaggio_id,referente_nome,nucleo_familiare,n_adulti,n_bambini,quota_totale,stato,modalita_pagamento,chi_paga,cadenza_mesi,mezzo_id")
-    .eq("azienda_id", azienda?.id)
+    .select("id,viaggio_id,referente_nome,nucleo_familiare,n_adulti,n_bambini,quota_totale,stato,modalita_pagamento,chi_paga,cadenza_mesi")
+    .eq("azienda_id", aziendaId())
     .order("creato_il", { ascending: false });
+  if (r.error) throw r.error;
 
   const iscr = r.data || [];
+  const barra = "<div style=\"margin-bottom:14px;\"><button id=\"av-nuova-iscr\" style=\"background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;\">➕ Nuova iscrizione</button></div>";
+
   if (!iscr.length) {
-    box.innerHTML = vuoto("Nessuna iscrizione. Arrivano dal modulo di adesione sulla pagina pubblica.");
+    box.innerHTML = barra + vuoto("Nessuna iscrizione. Le adesioni dalla pagina pubblica arrivano qui, oppure la aggiungi a mano.");
+    aggancioNuovaIscrizione();
     return;
   }
 
-  const s = await supa
+  const s = await supa()
     .from("vw_viaggi_saldi")
     .select("iscrizione_id,versato,residuo,prossima_scadenza,prossimo_importo")
-    .eq("azienda_id", azienda?.id);
+    .eq("azienda_id", aziendaId());
 
   const saldi = {};
   (s.data || []).forEach(function (x) { saldi[x.iscrizione_id] = x; });
 
-  let html = tabellaApri(["Nucleo", "Persone", "Come paga", "Quota", "Versato", "Residuo", "Prossima"]);
+  let html = barra + tabellaApri(["Nucleo", "Persone", "Come paga", "Quota", "Versato", "Residuo", "Prossima"]);
 
   iscr.forEach(function (i) {
     const sa = saldi[i.id] || {};
@@ -163,6 +393,12 @@ async function renderIscritti() {
   });
 
   box.innerHTML = html + tabellaChiudi();
+  aggancioNuovaIscrizione();
+}
+
+function aggancioNuovaIscrizione() {
+  const b = document.getElementById("av-nuova-iscr");
+  if (b) b.addEventListener("click", formNuovaIscrizione);
 }
 
 /* ---------------- INCASSI ---------------- */
@@ -172,26 +408,24 @@ async function renderIncassi() {
   if (!box) return;
   box.innerHTML = "<div style=\"color:#64748b;\">Caricamento...</div>";
 
-  const supa = window.supabaseClient || window.supabase;
-  const azienda = window.state?.azienda;
   const oggi = new Date().toISOString().slice(0, 10);
 
-  const s = await supa
+  const s = await supa()
     .from("vw_viaggi_saldi")
     .select("quota_totale,versato,residuo")
-    .eq("azienda_id", azienda?.id);
+    .eq("azienda_id", aziendaId());
+  if (s.error) throw s.error;
 
-  const righe = s.data || [];
   let quote = 0, versato = 0;
-  righe.forEach(function (x) {
+  (s.data || []).forEach(function (x) {
     quote += Number(x.quota_totale || 0);
     versato += Number(x.versato || 0);
   });
 
-  const sc = await supa
+  const sc = await supa()
     .from("viaggi_rate")
-    .select("id,tipo,importo,scadenza,stato,iscrizione_id")
-    .eq("azienda_id", azienda?.id)
+    .select("id,tipo,importo,scadenza,stato")
+    .eq("azienda_id", aziendaId())
     .eq("stato", "attesa")
     .lt("scadenza", oggi)
     .order("scadenza", { ascending: true });
@@ -210,8 +444,7 @@ async function renderIncassi() {
   if (!scadute.length) {
     html += "<div style=\"color:#64748b;\">Nessuna rata scaduta.</div>";
   } else {
-    html += "<h2 style=\"font-size:16px;margin:0 0 8px;\">Rate scadute</h2>";
-    html += tabellaApri(["Scadenza", "Tipo", "Importo"]);
+    html += "<h2 style=\"font-size:16px;margin:0 0 8px;\">Rate scadute</h2>" + tabellaApri(["Scadenza", "Tipo", "Importo"]);
     scadute.forEach(function (r) {
       html += "<tr>" + td(data(r.scadenza)) + td(escapeHtml(r.tipo)) + td(euro(r.importo)) + "</tr>";
     });
@@ -222,6 +455,19 @@ async function renderIncassi() {
 }
 
 /* ---------------- utilita ---------------- */
+
+function campo(id, etichetta, tipo, placeholder) {
+  return "<label style=\"font-size:12px;color:#64748b;display:block;margin-top:10px;\">" + escapeHtml(etichetta) + "</label>"
+    + "<input id=\"" + id + "\" type=\"" + tipo + "\" placeholder=\"" + escapeHtml(placeholder || "") + "\""
+    + " style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;box-sizing:border-box;\">";
+}
+
+function val(id) {
+  const el = document.getElementById(id);
+  return el ? String(el.value || "") : "";
+}
+
+function rosso(t) { return "<span style=\"color:#dc2626;\">" + escapeHtml(t) + "</span>"; }
 
 function card(titolo, valore, colore) {
   return "<div style=\"flex:1 1 160px;border:1px solid #e2e8f0;border-radius:10px;padding:14px;background:#fff;\">"
