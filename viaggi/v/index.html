@@ -72,6 +72,7 @@
   .pasto-box.fuori{border-left:6px solid var(--rosso)}
   .pasto-box.camper{border-left:6px solid var(--salvia)}
   .pasto-box.scelta{border-left:6px dashed var(--salvia)}
+  .pasto-box.dorme{border-left:6px solid var(--inchiostro);background:#FBF8F2}
   .pasto-testa{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);margin:0 0 4px}
   .pasto-box h4{margin:0 0 4px;font-size:19px}
   .pasto-box p{margin:3px 0;font-size:16px;color:var(--tenue)}
@@ -552,11 +553,30 @@
         pasti += "</div>";
       });
 
+      var dormire = "";
+      if (t.alloggio && (t.alloggio.nome || t.alloggio.note)) {
+        dormire += '<div class="pasto-box dorme">';
+        dormire += '<p class="pasto-testa">Dove si dorme</p>';
+        if (t.alloggio.nome) {
+          dormire += "<h4>" + esc(t.alloggio.nome) + "</h4>";
+          if (t.alloggio.indirizzo) dormire += "<p>" + esc(t.alloggio.indirizzo) + "</p>";
+          if (t.alloggio.note) dormire += "<p>" + esc(t.alloggio.note) + "</p>";
+          if (t.alloggio.prenotato) dormire += '<p><span class="tag">Prenotato</span></p>';
+          dormire += '<div class="azioni">';
+          if (t.alloggio.mappa) dormire += '<a class="mappa" href="' + esc(t.alloggio.mappa) + '" target="_blank" rel="noopener">Apri sulla mappa</a>';
+          if (t.alloggio.telefono) dormire += '<a href="tel:' + esc(String(t.alloggio.telefono).replace(/\s/g, "")) + '">Chiama</a>';
+          dormire += "</div>";
+        } else {
+          dormire += "<p>" + esc(t.alloggio.note) + "</p>";
+        }
+        dormire += "</div>";
+      }
+
       d.innerHTML = '<div class="n">' + t.giorno + '</div><div style="flex:1;min-width:0;">'
         + testa + "<h3>" + esc(t.titolo) + "</h3>"
         + '<img class="foto" alt="' + esc(t.titolo) + '">'
         + (t.descrizione ? "<p>" + esc(t.descrizione) + "</p>" : "")
-        + (pasti ? '<div class="pasti">' + pasti + "</div>" : "")
+        + (dormire || pasti ? '<div class="pasti">' + dormire + pasti + "</div>" : "")
         + "</div>";
       box.appendChild(d);
 
