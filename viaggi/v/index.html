@@ -236,6 +236,48 @@
     return t;
   }
 
+  // I pasti non sono nel prezzo: qui si dice quanto mettere in conto,
+  // sommando quello che abbiamo scritto tappa per tappa.
+  function disegnaContoPasti() {
+    var box = document.getElementById("conto-pasti");
+    if (!box) return;
+
+    var fuori = 0, bordo = 0, nFuori = 0, nBordo = 0;
+    (dati.tappe || []).forEach(function (t) {
+      (t.pasti || []).forEach(function (p) {
+        var c = Number(p.spesa || 0);
+        if (p.dove === "camper") { bordo += c; nBordo += 1; }
+        else { fuori += c; nFuori += 1; }
+      });
+    });
+
+    var giorni = (dati.tappe || []).length || 1;
+    var euroDa = 0.92; // dollari verso euro, arrotondato per eccesso
+
+    function eur(d) { return euro(Math.ceil(d * euroDa / 5) * 5); }
+
+    var h = '<div class="calc">';
+    h += "<p>I pasti non sono nel prezzo del viaggio: si mangia dove e quanto si vuole. "
+       + "Questo è quello che abbiamo messo in conto noi, tappa per tappa.</p>";
+
+    h += '<div class="numeri">'
+      + "<div><b>" + eur(fuori) + "</b><span>" + nFuori + " pasti fuori</span></div>"
+      + "<div><b>" + eur(bordo) + "</b><span>spesa per " + nBordo + " pasti a bordo</span></div>"
+      + "<div><b>" + eur(fuori + bordo) + "</b><span>in tutto, a persona</span></div>"
+      + "</div>";
+
+    h += "<p>Fanno circa <b>" + eur((fuori + bordo) / giorni) + " al giorno a persona</b>, "
+       + "colazione compresa. Chi cucina piu spesso a bordo spende meno: la spesa al supermercato "
+       + "per una cena completa sta intorno ai " + eur(11) + " a testa, un ristorante sulla Route 66 "
+       + "fra i " + eur(14) + " e i " + eur(45) + ".</p>";
+
+    h += '<p class="credito">Ogni giorno trovate scritto dove si mangia, cosa vale la pena '
+       + "prendere e quanto costa. I locali si possono aprire sulla mappa e chiamare.</p>";
+    h += "</div>";
+
+    box.innerHTML = h;
+  }
+
   function disegnaCalcolatore() {
     var box = document.getElementById("calcolatore");
     if (!box) return;
@@ -329,6 +371,9 @@
     h += "<h2>Il percorso</h2><div id=\"mappa\"></div>";
     h += '<p class="credito">Rosso: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
 
+    h += "<h2>Mangiare</h2>";
+    h += '<div id="conto-pasti"></div>';
+
     h += "<h2>Giorno per giorno</h2><div id=\"programma\"></div>";
 
     if ((dati.mezzi || []).length) {
@@ -393,6 +438,7 @@
     app.innerHTML = h;
 
     disegnaCalcolatore();
+    disegnaContoPasti();
     attivaSlide();
     disegnaProgramma(tappe);
     disegnaMappa(tappe);
@@ -445,7 +491,8 @@
 
         pasti += '<div class="pasto-box ' + p.dove + '">';
         pasti += '<p class="pasto-testa">' + MOMENTI[p.momento] + " \u00b7 " + dove
-              + (p.spesa ? " \u00b7 circa " + Math.round(Number(p.spesa)) + " $ a testa" : "") + "</p>";
+              + (p.spesa ? " \u00b7 " + (p.dove === "camper" ? "spesa " : "")
+                 + "circa " + Math.round(Number(p.spesa)) + " $ a testa" : "") + "</p>";
 
         if (p.locale) {
           pasti += "<h4>" + esc(p.locale) + "</h4>";
@@ -464,6 +511,7 @@
           pasti += "</div>";
         } else {
           pasti += "<h4>" + esc(p.ricetta || "Da decidere") + "</h4>";
+          if (p.piatto) pasti += "<p>" + esc(p.piatto) + "</p>";
           if (p.note) pasti += "<p>" + esc(p.note) + "</p>";
         }
         pasti += "</div>";
