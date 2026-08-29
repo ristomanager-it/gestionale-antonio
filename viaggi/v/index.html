@@ -259,7 +259,7 @@
         + '<input type="radio" name="opz" value="posto_condiviso"' + (opzione === "posto_condiviso" ? " checked" : "") + ">"
         + "<h4>Un posto in camper condiviso</h4>"
         + "<p>Da soli o in due, insieme ad altri del gruppo. " + euro(quotaPosto)
-        + " a testa, fino a " + maxCondiviso + " a bordo.</p></label>";
+        + " a testa. Stesso camper, diviso con chi viaggia con noi.</p></label>";
     }
 
     if (opzione === "camper_intero") {
@@ -272,16 +272,14 @@
     }
 
     var n = personeCamper;
+    // La quota copre gia' tutto il camper: sommarci di nuovo le voci del mezzo
+    // sarebbe contarlo due volte, ed e' quello che faceva la versione precedente.
     var quotaTesta = opzione === "camper_intero" ? quotaCamper / n : quotaPosto;
-    var mezzoInViaggio = opzione === "camper_intero" ? viagC / n : viagC / maxCondiviso;
-    var mezzoPrima = opzione === "camper_intero" ? primaC / n : primaC / maxCondiviso;
-
-    var primaTesta = mezzoPrima + primaP;
-    var viagTesta = mezzoInViaggio + viagP;
+    var tuttoTesta = quotaTesta + primaP + viagP;
 
     h += '<div class="numeri" style="margin-top:18px;">'
       + "<div><b>" + euro(quotaTesta) + "</b><span>Quota a testa</span></div>"
-      + "<div><b>" + euro(primaTesta + viagTesta) + "</b><span>Tutto compreso, a testa</span></div>"
+      + "<div><b>" + euro(tuttoTesta) + "</b><span>Tutto compreso, a testa</span></div>"
       + "</div>";
 
     h += '<p class="credito">La quota è quello che serve per il camper. '
@@ -308,7 +306,7 @@
          + (x.dettaglio ? '<div style="color:#5B6672;font-size:14px;">' + esc(x.dettaglio) + "</div>" : "")
          + '</td><td class="num">' + euro(x.max) + "</td></tr>";
     });
-    h += '<tr><td><b>In tutto</b></td><td class="num"><b>' + euro(primaP + viagP) + "</b></td></tr></table>";
+    h += '<tr><td><b>In tutto, oltre alla quota</b></td><td class="num"><b>' + euro(primaP + viagP) + "</b></td></tr></table>";
 
     h += "</div>";
     box.innerHTML = h;
