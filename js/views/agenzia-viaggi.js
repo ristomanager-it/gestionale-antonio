@@ -157,7 +157,7 @@ function mostraErrore(e) {
 async function caricaViaggi() {
   const r = await supa()
     .from("viaggi")
-    .select("id,slug,titolo,sottotitolo,data_inizio,data_fine,stato,modalita_prezzo,quota_camper,quota_adulto,posti_totali,posti_per_mezzo,catalogo")
+    .select("id,slug,titolo,sottotitolo,data_inizio,data_fine,stato,modalita_prezzo,quota_camper,quota_posto,quota_adulto,posti_per_mezzo,posti_condivisi_max,catalogo")
     .eq("azienda_id", aziendaId())
     .order("data_inizio", { ascending: true });
 
@@ -198,7 +198,7 @@ function formNuovoViaggio() {
     + "</select>"
     + "<div class=\"av-due\">"
     +   "<div style=\"flex:1 1 160px;\">" + campo("nv-quota", "Quota (€)", "number", "12500") + "</div>"
-    +   "<div style=\"flex:1 1 160px;\">" + campo("nv-posti", "Posti totali", "number", "10") + "</div>"
+    +   "<div style=\"flex:1 1 160px;\">" + campo("nv-quota-posto", "Quota posto singolo (€)", "number", "1250") + "</div>"
     + "</div>"
     + "<div class=\"av-due\">"
     +   "<div style=\"flex:1 1 160px;\">" + campo("nv-acconto", "Acconto %", "number", "25") + "</div>"
@@ -238,7 +238,7 @@ function formNuovoViaggio() {
       modalita_prezzo: modalita,
       quota_camper: modalita === "camper" ? quota : 0,
       quota_adulto: modalita === "persona" ? quota : 0,
-      posti_totali: Number(val("nv-posti") || 0) || null,
+      quota_posto: Number(val("nv-quota-posto") || 0),
       acconto_percentuale: Number(val("nv-acconto") || 30),
     };
 
@@ -381,7 +381,7 @@ function renderCatalogo() {
     return;
   }
 
-  let html = tabellaApri(["Viaggio", "Periodo", "Quota", "Posti", "Stato"]);
+  let html = tabellaApri(["Viaggio", "Periodo", "Camper intero", "Posto singolo", "Stato"]);
 
   viaggiCache.forEach(function (v) {
     const st = STATO_VIAGGIO[v.stato] || STATO_VIAGGIO.bozza;
@@ -392,8 +392,8 @@ function renderCatalogo() {
     html += "<tr class=\"av-riga\" data-id=\"" + v.id + "\" style=\"cursor:pointer;\">"
       + td("<b style=\"color:#0E5A7A;\">" + escapeHtml(v.titolo) + "</b><div style=\"color:#64748b;font-size:12px;\">" + escapeHtml(v.sottotitolo || "") + "</div>")
       + td(periodo(v.data_inizio, v.data_fine))
-      + td(quota)
-      + td(v.posti_totali == null ? "—" : String(v.posti_totali))
+      + td(euro(v.quota_camper))
+      + td(Number(v.quota_posto) > 0 ? euro(v.quota_posto) : "—")
       + td("<span style=\"color:" + st.c + ";font-weight:700;\">" + st.t + "</span>")
       + "</tr>";
   });
@@ -457,8 +457,8 @@ async function apriViaggio(id) {
     h += "<div class=\"av-num\">"
       + card("Giorni", String(tappe.length), "#0E5A7A")
       + card("Chilometri", km.toLocaleString("it-IT"), "#0E5A7A")
-      + card("Quota", v.modalita_prezzo === "camper" ? euro(v.quota_camper) : euro(v.quota_adulto), "#16a34a")
-      + card("Posti", v.posti_totali == null ? "—" : String(v.posti_totali), "#64748b")
+      + card("Camper intero", euro(v.quota_camper), "#16a34a")
+      + card("Posto singolo", Number(v.quota_posto) > 0 ? euro(v.quota_posto) : "—", "#16a34a")
       + "</div>";
 
     h += "<div style=\"border:1px solid #e2e8f0;border-radius:10px;padding:14px;background:#fff;margin-bottom:18px;\">"
@@ -594,7 +594,7 @@ async function renderIscritti() {
 
   const r = await supa()
     .from("viaggi_iscrizioni")
-    .select("id,viaggio_id,referente_nome,nucleo_familiare,n_adulti,n_bambini,quota_totale,stato,modalita_pagamento,chi_paga,cadenza_mesi")
+    .select("id,viaggio_id,referente_nome,nucleo_familiare,n_adulti,n_bambini,quota_totale,stato,modalita_pagamento,chi_paga,cadenza_mesi,tipo_posto")
     .eq("azienda_id", aziendaId())
     .order("creato_il", { ascending: false });
   if (r.error) throw r.error;
@@ -616,7 +616,7 @@ async function renderIscritti() {
   const saldi = {};
   (s.data || []).forEach(function (x) { saldi[x.iscrizione_id] = x; });
 
-  let html = barra + tabellaApri(["Nucleo", "Persone", "Come paga", "Quota", "Versato", "Residuo", "Prossima"]);
+  let html = barra + tabellaApri(["Nucleo", "Persone", "Formula", "Come paga", "Quota", "Versato", "Residuo", "Prossima"]);
 
   iscr.forEach(function (i) {
     const sa = saldi[i.id] || {};
@@ -628,6 +628,7 @@ async function renderIscritti() {
     html += "<tr>"
       + td("<b>" + escapeHtml(i.nucleo_familiare || i.referente_nome) + "</b><div style=\"color:#64748b;font-size:12px;\">" + escapeHtml(i.referente_nome) + "</div>")
       + td(String(persone))
+      + td("<span style=\"font-size:12px;\">" + (i.tipo_posto === "posto_condiviso" ? "Posto condiviso" : "Camper intero") + "</span>")
       + td("<span style=\"font-size:12px;\">" + escapeHtml(come) + "</span>")
       + td(euro(i.quota_totale))
       + td(euro(sa.versato))
