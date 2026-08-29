@@ -238,16 +238,15 @@
     h += '<p class="prezzone">' + euro(minimo) + "</p>";
     h += '<p class="prezzone-sotto">a persona, tutto compreso</p>';
 
-    h += "<p>Volo, camper, benzina, campeggi, assicurazione, pedaggi e ingressi ai parchi. "
-       + "Resta fuori solo quello che mangiate, perché lo decidete voi.</p>";
+    h += "<p>Volo, camper, benzina, campeggi, assicurazione, pedaggi e ingressi ai parchi: "
+       + "è tutto qui dentro.</p>";
 
     h += '<h3 style="font-size:19px;margin:24px 0 6px;">Se volete il camper solo per voi</h3>';
+    h += "<p>Il prezzo qui sopra vale a camper pieno. Se siete di meno il mezzo si divide fra meno persone, e cambia così:</p>";
     h += "<table><tr><th>Siete in</th><th class=\"num\">A persona</th></tr>";
     for (var k = maxCamper; k >= 2; k--) {
       var prezzo = arrotonda(quotaCamper / k + personali);
-      var riga = k === maxCamper
-        ? "<b>" + k + "</b> <span style=\"color:#5B6672;\">(anche in condiviso)</span>"
-        : "<b>" + k + "</b>";
+      var riga = "<b>" + k + "</b> " + (k === 1 ? "persona" : "persone");
       h += "<tr><td>" + riga + '</td><td class="num"><b>' + euro(prezzo) + "</b></td></tr>";
     }
     h += "</table>";
@@ -281,11 +280,7 @@
     h += "<h2>Il percorso</h2><div id=\"mappa\"></div>";
     h += '<p class="credito">Rosso: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
 
-    if ((dati.budget || []).length) {
-      h += "<h2>Quanto costa</h2>";
-      if (v.cosa_include) h += "<p>" + esc(v.cosa_include) + "</p>";
-      h += '<div id="calcolatore"></div>';
-    }
+    h += "<h2>Giorno per giorno</h2><div id=\"programma\"></div>";
 
     if ((dati.mezzi || []).length) {
       // I mezzi sono identici: si descrive il camper una volta sola e si dice quanti sono.
@@ -328,6 +323,11 @@
       });
     }
 
+    if ((dati.budget || []).length) {
+      h += "<h2>Quanto costa</h2>";
+      h += '<div id="calcolatore"></div>';
+    }
+
     if ((dati.scadenze || []).length) {
       h += "<h2>Cosa va prenotato e quando</h2><table><tr><th>Cosa</th><th>Entro</th><th>Fatto</th></tr>";
       dati.scadenze.forEach(function (s) {
@@ -337,8 +337,6 @@
       });
       h += "</table>";
     }
-
-    h += "<h2>Giorno per giorno</h2><div id=\"programma\"></div>";
 
     h += modulo(v);
     h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--rosso);font-weight:700;text-decoration:none;font-size:18px;">\u2190 Torna a tutti i viaggi</a></p>';
