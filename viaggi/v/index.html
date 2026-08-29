@@ -409,12 +409,17 @@
     h += "<h1>" + esc(v.titolo) + "</h1>";
     h += '<p class="sotto">' + esc(v.sottotitolo || "") + "</p>";
 
-    h += '<div class="numeri">'
-      + "<div><b>" + giorni + "</b><span>Giorni</span></div>"
-      + "<div><b>" + (v.km_totali || km).toLocaleString("it-IT") + "</b><span>Chilometri</span></div>"
-      + "<div><b>" + (v.stati_attraversati || Object.keys(stati).length) + "</b><span>Stati</span></div>"
-      + "<div><b>" + (v.notti_hotel || 0) + "</b><span>Notti in hotel</span></div>"
-      + "</div>";
+    // I quattro numeri si mostrano solo se dicono qualcosa: su un raduno in paese
+    // chilometri e notti in hotel non c'entrano niente.
+    if (v.mostra_numeri !== false) {
+      var celle = "<div><b>" + giorni + "</b><span>Giorni</span></div>";
+      var kmTot = Number(v.km_totali || km);
+      if (kmTot > 0) celle += "<div><b>" + kmTot.toLocaleString("it-IT") + "</b><span>Chilometri</span></div>";
+      var nStati = Number(v.stati_attraversati || Object.keys(stati).length);
+      if (nStati > 1) celle += "<div><b>" + nStati + "</b><span>Stati</span></div>";
+      if (Number(v.notti_hotel) > 0) celle += "<div><b>" + v.notti_hotel + "</b><span>Notti in hotel</span></div>";
+      h += '<div class="numeri">' + celle + "</div>";
+    }
 
     if (v.descrizione) h += "<p>" + esc(v.descrizione) + "</p>";
 
