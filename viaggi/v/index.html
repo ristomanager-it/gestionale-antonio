@@ -280,7 +280,7 @@
 
     h += '<div class="numeri">'
       + "<div><b>" + eur(fuori) + "</b><span>" + nFuori + " pasti fuori</span></div>"
-      + "<div><b>" + eur(bordo) + "</b><span>spesa per " + nBordo + " pasti a bordo</span></div>"
+      + "<div><b>" + eur(bordo) + "</b><span>spesa per " + nBordo + " pasti fatti da voi</span></div>"
       + "<div><b>" + eur(fuori + bordo) + "</b><span>in tutto, a persona</span></div>"
       + "</div>";
 
@@ -294,6 +294,10 @@
     h += "</div>";
 
     box.innerHTML = h;
+  }
+
+  function nomeMezzo() {
+    return (dati.viaggio && dati.viaggio.mezzo_etichetta) ? dati.viaggio.mezzo_etichetta : "camper";
   }
 
   function disegnaCalcolatore() {
@@ -331,8 +335,9 @@
 
       if (f.descrizione) h += "<p>" + esc(f.descrizione) + "</p>";
       h += '<p class="credito">' + euro(pieno) + " a persona vuol dire: "
-         + euro(Number(f.quota_posto || 0)) + " di camper diviso fra sei, piu "
-         + euro(personali + extra) + " di volo, hotel e ingressi.</p>";
+         + euro(Number(f.quota_posto || 0)) + " di " + esc(nomeMezzo()) + " diviso fra "
+         + Number(f.posti_max || 6) + ", piu " + euro(personali + extra)
+         + " di volo, hotel e ingressi.</p>";
 
       if (f.incluso && f.incluso.length) {
         h += '<ul class="incluso">';
@@ -340,12 +345,13 @@
         h += "</ul>";
       }
 
-      h += "<p>Il camper costa <b>" + euro(f.quota_camper) + "</b> in tutto e si divide fra chi ci sale. "
+      h += "<p>Il " + esc(nomeMezzo()) + " costa <b>" + euro(f.quota_camper) + "</b> in tutto e si divide fra chi ci sale. "
          + "Volo, hotel e ingressi sono <b>" + euro(personali + extra) + "</b> a testa e non si dividono: "
          + "chi vola, vola.</p>";
 
-      h += '<table style="margin-top:10px;"><tr><th>Se siete in</th><th class="num">Camper</th>'
-         + '<th class="num">Volo e ingressi</th><th class="num">A testa</th></tr>';
+      h += '<table style="margin-top:10px;"><tr><th>Se siete in</th><th class="num">'
+         + esc(nomeMezzo().charAt(0).toUpperCase() + nomeMezzo().slice(1))
+         + '</th><th class="num">Volo e ingressi</th><th class="num">A testa</th></tr>';
       for (var k = Number(f.posti_max || 6); k >= 2; k--) {
         var quotaK = Number(f.quota_camper || 0) / k;
         var tot = arrotonda(quotaK + personali + extra);
@@ -410,13 +416,13 @@
         if (m.stato === "libero") gruppi[k].liberi += 1;
       });
 
-      h += "<h2>Il camper</h2>";
+      h += "<h2>Il " + esc(nomeMezzo()) + "</h2>";
       Object.keys(gruppi).forEach(function (k, idx) {
         var g = gruppi[k], m = g.m;
         h += '<div class="calc">';
         h += "<h3>" + esc(m.modello || m.nome) + "</h3>";
         h += "<p>" + (g.n > 1 ? "Ne abbiamo <b>" + g.n + "</b>, identici. " : "")
-           + "Fino a <b>" + (m.posti_max || "") + "</b> persone per mezzo"
+           + "Fino a <b>" + (m.posti_max || "") + "</b> persone a bordo"
            + (m.posti_letto ? ", " + m.posti_letto + " posti letto" : "") + ".</p>";
         if (m.note) h += "<p>" + esc(m.note) + "</p>";
 
@@ -424,7 +430,7 @@
         if (foto.length) {
           h += '<div class="slide" id="slide-' + idx + '"><div class="slide-pista">';
           foto.forEach(function (f) {
-            h += "<figure><img src=\"" + esc(f.url) + '" alt="' + esc(f.didascalia || m.modello || "camper") + '">'
+            h += "<figure><img src=\"" + esc(f.url) + '" alt="' + esc(f.didascalia || m.modello || nomeMezzo()) + '">'
                + (f.didascalia ? "<figcaption>" + esc(f.didascalia) + "</figcaption>" : "") + "</figure>";
           });
           h += "</div>";
@@ -513,7 +519,9 @@
 
       var pasti = "";
       (t.pasti || []).forEach(function (p, i) {
-        var dove = p.dove === "camper" ? "In camper" : (p.dove === "fuori" ? "Fuori" : "A scelta");
+        var dove = p.dove === "camper"
+          ? (nomeMezzo() === "camper" ? "In camper" : "Al sacco")
+          : (p.dove === "fuori" ? "Fuori" : "A scelta");
         var idFoto = "pf-" + t.giorno + "-" + i;
 
         pasti += '<div class="pasto-box ' + p.dove + '">';
@@ -621,9 +629,9 @@
 
     h += '<label for="f-opzione">Come viaggiate</label><select id="f-opzione">';
     if (v.ammette_camper_intero !== false)
-      h += '<option value="camper_intero">Un camper tutto nostro</option>';
+      h += '<option value="camper_intero">Un ' + esc(nomeMezzo()) + ' tutto nostro</option>';
     if (v.ammette_posto_condiviso !== false)
-      h += '<option value="posto_condiviso">Un posto in camper condiviso</option>';
+      h += '<option value="posto_condiviso">Un posto condiviso</option>';
     h += "</select>";
     h += '<div class="due"><div><label for="f-nome">Nome</label><input id="f-nome"></div>'
        + '<div><label for="f-cognome">Cognome</label><input id="f-cognome"></div></div>';
