@@ -262,11 +262,18 @@
     if (!box) return;
 
     var fuori = 0, bordo = 0, nFuori = 0, nBordo = 0;
+    var minFuori = null, maxFuori = null;
     (dati.tappe || []).forEach(function (t) {
       (t.pasti || []).forEach(function (p) {
         var c = Number(p.spesa || 0);
         if (p.dove === "camper") { bordo += c; nBordo += 1; }
-        else { fuori += c; nFuori += 1; }
+        else {
+          fuori += c; nFuori += 1;
+          if (c > 0) {
+            if (minFuori === null || c < minFuori) minFuori = c;
+            if (maxFuori === null || c > maxFuori) maxFuori = c;
+          }
+        }
       });
     });
 
@@ -281,14 +288,16 @@
 
     h += '<div class="numeri">'
       + "<div><b>" + eur(fuori) + "</b><span>" + nFuori + " pasti fuori</span></div>"
-      + "<div><b>" + eur(bordo) + "</b><span>spesa per " + nBordo + " pasti fatti da voi</span></div>"
+      + "<div><b>" + eur(bordo) + "</b><span>spesa per " + nBordo + " pasti al volo</span></div>"
       + "<div><b>" + eur(fuori + bordo) + "</b><span>in tutto, a persona</span></div>"
       + "</div>";
 
     h += "<p>Fanno circa <b>" + eur((fuori + bordo) / giorni) + " al giorno a persona</b>, "
-       + "colazione compresa. Chi cucina piu spesso a bordo spende meno: la spesa al supermercato "
-       + "per una cena completa sta intorno ai " + eur(11) + " a testa, un ristorante sulla Route 66 "
-       + "fra i " + eur(14) + " e i " + eur(45) + ".</p>";
+       + "colazione compresa."
+       + (minFuori !== null ? " I locali che abbiamo scelto vanno dai " + eur(minFuori)
+            + " ai " + eur(maxFuori) + " a testa." : "")
+       + (nBordo > 0 ? " Chi mangia piu spesso di quello che compra, spende meno." : "")
+       + "</p>";
 
     h += '<p class="credito">Ogni giorno trovate scritto dove si mangia, cosa vale la pena '
        + "prendere e quanto costa. I locali si possono aprire sulla mappa e chiamare.</p>";
@@ -585,7 +594,7 @@
         img.onerror = function () { fotoDaWiki(t.foto_wiki, img, t.titolo); };
         img.src = t.foto_url;
       } else {
-        fotoDaWiki(t.foto_wiki, img, t.titolo + " Route 66");
+        fotoDaWiki(t.foto_wiki, img, t.titolo + " " + (t.stato_usa || ""));
       }
 
       (t.pasti || []).forEach(function (p, i) {
