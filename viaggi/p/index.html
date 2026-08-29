@@ -34,6 +34,16 @@
   .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);border-bottom:2px solid var(--riga);
              padding:12px 18px;max-width:720px;margin:0 auto}
   .barra-top a{text-decoration:none;font-size:16px;font-weight:700}
+  button{background:var(--rosso);color:#fff;border:0;padding:15px 26px;border-radius:8px;
+         font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:14px}
+  button:disabled{opacity:.6;cursor:default}
+  button.chiaro{background:#fff;color:var(--salvia);border:2px solid var(--salvia)}
+  input{width:100%;padding:13px;border:2px solid var(--riga);border-radius:8px;
+        font-size:17px;font-family:inherit;background:#fff;color:var(--inchiostro);box-sizing:border-box}
+  label{display:block;font-size:15px;color:var(--tenue);margin:12px 0 4px}
+  .msg{margin-top:12px;padding:13px;border-radius:8px;font-size:16px}
+  .msg.ok{background:#EAF6EE;border:2px solid #2E8B57;color:#1D5E38}
+  .msg.ko{background:#FDECEA;border:2px solid var(--rosso);color:#8E1D17}
   @media(max-width:520px){h1{font-size:26px}table{font-size:15px}}
 </style>
 </head>
@@ -97,6 +107,43 @@
     return;
   }
 
+  var esito = new URLSearchParams(location.search).get("pagamento");
+
+  function avviso() {
+    if (esito === "ok") {
+      return '<div class="msg ok">Pagamento ricevuto, grazie. Se il piano qui sotto non è ancora aggiornato, ricarica fra qualche secondo.</div>';
+    }
+    if (esito === "annullato") {
+      return '<div class="msg ko">Pagamento annullato. Non è stato addebitato nulla.</div>';
+    }
+    return "";
+  }
+
+  function paga(corpo, bottone, box) {
+    bottone.disabled = true;
+    var testoVecchio = bottone.textContent;
+    bottone.textContent = "Un attimo...";
+    corpo.token = token;
+    corpo.ritorno = location.origin + location.pathname;
+
+    fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/viaggi-paga", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": SB_KEY },
+      body: JSON.stringify(corpo)
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.ok && d.url) { location.href = d.url; return; }
+      bottone.disabled = false;
+      bottone.textContent = testoVecchio;
+      box.className = "msg ko";
+      box.textContent = (d && d.errore) ? d.errore : "Non riesco ad aprire il pagamento.";
+    }).catch(function () {
+      bottone.disabled = false;
+      bottone.textContent = testoVecchio;
+      box.className = "msg ko";
+      box.textContent = "Connessione non riuscita.";
+    });
+  }
+
   sb.rpc("viaggio_mio_piano", { p_token: token }).then(function (r) {
     if (r.error || !r.data) {
       app.innerHTML = "<h1>Piano non trovato</h1><p>Il link non è più valido. Scrivi agli organizzatori e te ne mandano uno nuovo.</p>";
@@ -114,7 +161,7 @@
       if (x.stato === "attesa" && !prossima) prossima = x;
     });
 
-    var h = "";
+    var h = avviso();
     h += '<p class="occhiello">' + esc(d.viaggio.titolo) + "</p>";
     h += "<h1>" + esc(d.nucleo || d.referente) + "</h1>";
     h += '<p style="color:#5B6672;margin-top:0;">' + d.persone + (d.persone === 1 ? " persona" : " persone")
@@ -141,6 +188,11 @@
            + (scaduta ? STATO.scaduta : (STATO[x.stato] || "")) + "</td></tr>";
       });
       h += "</table>";
+
+      if (prossima && prossima.id) {
+        h += '<button id="paga-rata">Paga ' + euro(prossima.importo) + "</button>";
+        h += '<div id="msg-rata"></div>';
+      }
     } else {
       h += "<h2>Il piano</h2><p>Il piano non è ancora stato preparato. Gli organizzatori lo impostano dopo aver confermato il gruppo.</p>";
     }
@@ -153,11 +205,33 @@
       h += "</table>";
     }
 
-    h += '<div class="nota">Per versare, o per cambiare il modo in cui pagate, scrivete agli organizzatori. '
-       + 'Il pagamento con carta arriva a breve su questa pagina.</div>';
+    if (residuo > 0.01) {
+      h += "<h2>Versa quando puoi</h2>";
+      h += '<p style="color:#5B6672;font-size:16px;">Mettete da parte quando vi conviene: '
+         + "ogni versamento scala dal residuo. Restano " + euro(residuo) + ".</p>";
+      h += '<label for="imp-libero">Quanto volete versare</label>';
+      h += '<input id="imp-libero" type="number" min="10" step="10" inputmode="decimal" placeholder="100">';
+      h += '<button class="chiaro" id="paga-libero">Versa ora</button><div id="msg-libero"></div>';
+    }
+
+    h += '<div class="nota">Per cambiare il modo in cui pagate, scrivete agli organizzatori.</div>';
     h += '<p style="font-size:15px;color:#5B6672;">Questo indirizzo è personale: chi ce l\'ha vede il vostro piano. Non giratelo fuori dal gruppo.</p>';
 
     app.innerHTML = h;
+
+    var bRata = document.getElementById("paga-rata");
+    if (bRata) bRata.addEventListener("click", function () {
+      paga({ rata_id: prossima.id }, bRata, document.getElementById("msg-rata"));
+    });
+
+    var bLib = document.getElementById("paga-libero");
+    if (bLib) bLib.addEventListener("click", function () {
+      var box = document.getElementById("msg-libero");
+      var imp = Number((document.getElementById("imp-libero") || {}).value || 0);
+      if (!(imp > 0)) { box.className = "msg ko"; box.textContent = "Scrivete un importo."; return; }
+      paga({ importo: imp }, bLib, box);
+    });
+
     document.title = (d.nucleo || d.referente) + " — " + d.viaggio.titolo;
   });
 })();
