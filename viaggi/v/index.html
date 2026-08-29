@@ -180,17 +180,30 @@
   // senza ripiego resterebbe un riquadro vuoto.
   function grande(src) { return src.replace(/\/\d+px-/, "/1280px-"); }
 
+  // Le voci delle citta su Wikipedia hanno spesso bandiera o stemma come immagine
+  // di apertura: sono disegni, non fotografie, e sulla pagina fanno pena.
+  function eFotografia(url) {
+    var u = String(url || "").toLowerCase();
+    if (!u) return false;
+    if (u.indexOf(".svg") !== -1) return false;
+    var scarta = ["flag", "bandiera", "seal", "stemma", "coat_of_arms", "coat of arms",
+                  "logo", "emblem", "map", "mappa", "locator", "wikivoyage", "icon",
+                  "blason", "crest", "banner_of", "sigillo"];
+    for (var i = 0; i < scarta.length; i++) {
+      if (u.indexOf(scarta[i]) !== -1) return false;
+    }
+    return true;
+  }
+
   function sommario(lingua, titolo) {
     return fetch("https://" + lingua + ".wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         if (!j) return null;
-        if (j.originalimage && j.originalimage.source) {
-          return { grande: j.originalimage.source, piccola: j.thumbnail ? j.thumbnail.source : null };
-        }
-        if (j.thumbnail && j.thumbnail.source) {
-          return { grande: grande(j.thumbnail.source), piccola: j.thumbnail.source };
-        }
+        var org = j.originalimage && j.originalimage.source ? j.originalimage.source : null;
+        var thumb = j.thumbnail && j.thumbnail.source ? j.thumbnail.source : null;
+        if (org && eFotografia(org)) return { grande: org, piccola: thumb };
+        if (thumb && eFotografia(thumb)) return { grande: grande(thumb), piccola: thumb };
         return null;
       })
       .catch(function () { return null; });
@@ -204,6 +217,7 @@
       if (!j || !j.query || !j.query.pages) return null;
       var pg = Object.keys(j.query.pages).map(function (k) { return j.query.pages[k]; })[0];
       if (!pg || !pg.thumbnail || !pg.thumbnail.source) return null;
+      if (!eFotografia(pg.thumbnail.source)) return null;
       return { grande: pg.thumbnail.source, piccola: pg.thumbnail.source };
     }).catch(function () { return null; });
   }
