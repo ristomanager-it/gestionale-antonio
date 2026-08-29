@@ -30,6 +30,7 @@
   .numeri b{display:block;font-size:32px;color:var(--rosso);line-height:1}
   .numeri span{font-size:13px;color:var(--tenue);letter-spacing:.06em;text-transform:uppercase}
   #mappa{height:500px;border-radius:12px;border:2px solid var(--riga);margin:10px 0}
+  .copertina{width:100%;border-radius:12px;display:block;margin:18px 0 6px;background:#F1EDE6}
   .giorno{display:flex;gap:16px;padding:22px 0;border-bottom:1px solid var(--riga)}
   .giorno .n{color:var(--rosso);font-size:32px;line-height:1;min-width:56px;font-weight:700;font-variant-numeric:tabular-nums}
   .fermo{background:#F1F5F4;border-left:5px solid var(--salvia);padding-left:14px;border-radius:0 8px 8px 0}
@@ -402,6 +403,8 @@
     tappe.forEach(function (t) { km += Number(t.km || 0); if (t.stato_usa) stati[t.stato_usa] = 1; });
 
     var h = "";
+    // La copertina c'era nel dato ma non veniva mai disegnata.
+    if (v.copertina_url || v.copertina_wiki) h += '<img class="copertina" alt="' + esc(v.titolo) + '">';
     h += '<p class="occhiello">Dal ' + esc(dataIt(v.data_inizio)) + " al " + esc(dataIt(v.data_fine)) + "</p>";
     h += "<h1>" + esc(v.titolo) + "</h1>";
     h += '<p class="sotto">' + esc(v.sottotitolo || "") + "</p>";
@@ -483,6 +486,16 @@
     h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--rosso);font-weight:700;text-decoration:none;font-size:18px;">\u2190 Torna a tutti i viaggi</a></p>';
 
     app.innerHTML = h;
+
+    var imgCop = document.querySelector("img.copertina");
+    if (imgCop) {
+      if (v.copertina_url) {
+        imgCop.onerror = function () { fotoDaWiki(v.copertina_wiki, imgCop, v.titolo); };
+        imgCop.src = v.copertina_url;
+      } else {
+        fotoDaWiki(v.copertina_wiki, imgCop, v.titolo);
+      }
+    }
 
     disegnaCalcolatore();
     disegnaContoPasti();
