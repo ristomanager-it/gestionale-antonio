@@ -329,6 +329,230 @@
     });
   }
 
+  function disegna() {
+    var v = dati.viaggio, tappe = dati.tappe || [];
+    var giorni = tappe.length;
+    var km = 0, stati = {};
+    tappe.forEach(function (t) { km += Number(t.km || 0); if (t.stato_usa) stati[t.stato_usa] = 1; });
+
+    var h = "";
+    h += '<p class="occhiello">Dal ' + esc(dataIt(v.data_inizio)) + " al " + esc(dataIt(v.data_fine)) + "</p>";
+    h += "<h1>" + esc(v.titolo) + "</h1>";
+    h += '<p class="sotto">' + esc(v.sottotitolo || "") + "</p>";
+
+    h += '<div class="numeri">'
+      + "<div><b>" + giorni + "</b><span>Giorni</span></div>"
+      + "<div><b>" + (v.km_totali || km).toLocaleString("it-IT") + "</b><span>Chilometri</span></div>"
+      + "<div><b>" + (v.stati_attraversati || Object.keys(stati).length) + "</b><span>Stati</span></div>"
+      + "<div><b>" + (v.notti_hotel || 0) + "</b><span>Notti in hotel</span></div>"
+      + "</div>";
+
+    if (v.descrizione) h += "<p>" + esc(v.descrizione) + "</p>";
+
+    h += "<h2>Il percorso</h2><div id=\"mappa\"></div>";
+    h += '<p class="credito">Rosso: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
+
+    if ((dati.budget || []).length) {
+      h += "<h2>Quanto costa</h2>";
+      if (v.cosa_include) h += "<p>" + esc(v.cosa_include) + "</p>";
+      h += '<div id="calcolatore"></div>';
+    }
+
+    if ((dati.mezzi || []).length) {
+      // I mezzi sono identici: si descrive il camper una volta sola e si dice quanti sono.
+      var gruppi = {};
+      dati.mezzi.forEach(function (m) {
+        var k = (m.modello || m.nome) + "|" + (m.posti_max || "");
+        if (!gruppi[k]) gruppi[k] = { m: m, n: 0, liberi: 0 };
+        gruppi[k].n += 1;
+        if (m.stato === "libero") gruppi[k].liberi += 1;
+      });
+
+      h += "<h2>Il camper</h2>";
+      Object.keys(gruppi).forEach(function (k, idx) {
+        var g = gruppi[k], m = g.m;
+        h += '<div class="calc">';
+        h += "<h3>" + esc(m.modello || m.nome) + "</h3>";
+        h += "<p>" + (g.n > 1 ? "Ne abbiamo <b>" + g.n + "</b>, identici. " : "")
+           + "Fino a <b>" + (m.posti_max || "") + "</b> persone per mezzo"
+           + (m.posti_letto ? ", " + m.posti_letto + " posti letto" : "") + ".</p>";
+        if (m.note) h += "<p>" + esc(m.note) + "</p>";
+
+        var foto = m.foto || [];
+        if (foto.length) {
+          h += '<div class="slide" id="slide-' + idx + '"><div class="slide-pista">';
+          foto.forEach(function (f) {
+            h += "<figure><img src=\"" + esc(f.url) + '" alt="' + esc(f.didascalia || m.modello || "camper") + '">'
+               + (f.didascalia ? "<figcaption>" + esc(f.didascalia) + "</figcaption>" : "") + "</figure>";
+          });
+          h += "</div>";
+          if (foto.length > 1) {
+            h += '<div class="slide-frecce"><button data-dir="-1" aria-label="Foto precedente">\u2039</button>'
+               + '<button data-dir="1" aria-label="Foto successiva">\u203a</button></div>';
+            h += '<div class="slide-punti">';
+            foto.forEach(function (f, i) { h += "<i" + (i === 0 ? ' class="on"' : "") + "></i>"; });
+            h += "</div>";
+          }
+          h += "</div>";
+        }
+        h += "</div>";
+      });
+    }
+
+    if ((dati.scadenze || []).length) {
+      h += "<h2>Cosa va prenotato e quando</h2><table><tr><th>Cosa</th><th>Entro</th><th>Fatto</th></tr>";
+      dati.scadenze.forEach(function (s) {
+        h += "<tr><td><b>" + esc(s.titolo) + "</b>"
+           + (s.descrizione ? '<div style="color:#5B6672;font-size:14px;">' + esc(s.descrizione) + "</div>" : "")
+           + "</td><td>" + esc(mesePiu(s.mese)) + "</td><td>" + (s.completato ? "S\u00ec" : "\u2014") + "</td></tr>";
+      });
+      h += "</table>";
+    }
+
+    h += "<h2>Giorno per giorno</h2><div id=\"programma\"></div>";
+
+    h += modulo(v);
+    h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--rosso);font-weight:700;text-decoration:none;font-size:18px;">\u2190 Torna a tutti i viaggi</a></p>';
+
+    app.innerHTML = h;
+
+    disegnaCalcolatore();
+    attivaSlide();
+    disegnaProgramma(tappe);
+    disegnaMappa(tappe);
+    agganciaModulo();
+
+    var fo = document.getElementById("f-opzione");
+    if (fo) fo.value = opzione;
+
+    var su = document.getElementById("torna-su");
+    if (su) su.addEventListener("click", function (e) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  // Scorrimento a slide: la pista scorre col dito, frecce e punti per chi guarda da computer.
+  function attivaSlide() {
+    document.querySelectorAll(".slide").forEach(function (box) {
+      var pista = box.querySelector(".slide-pista");
+      var punti = box.querySelectorAll(".slide-punti i");
+      if (!pista) return;
+
+      box.querySelectorAll(".slide-frecce button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          pista.scrollBy({ left: Number(b.dataset.dir) * pista.clientWidth, behavior: "smooth" });
+        });
+      });
+
+      pista.addEventListener("scroll", function () {
+        if (!punti.length) return;
+        var i = Math.round(pista.scrollLeft / pista.clientWidth);
+        punti.forEach(function (p, k) { p.className = k === i ? "on" : ""; });
+      });
+    });
+  }
+
+  function disegnaProgramma(tappe) {
+    var box = document.getElementById("programma");
+    if (!box) return;
+
+    tappe.forEach(function (t) {
+      var d = document.createElement("div");
+      d.className = "giorno" + (t.tipo === "fermi" ? " fermo" : "");
+      var testa = '<p class="occhiello">' + esc(dataIt(t.data)) + (t.stato_usa ? " \u00b7 " + esc(t.stato_usa) : "")
+        + (Number(t.km) > 0 ? " \u00b7 " + t.km + " km" : "")
+        + (t.tipo === "fermi" ? ' \u00b7 <span class="tag">Giornata ferma</span>' : "")
+        + (t.tipo === "volo" ? ' \u00b7 <span class="tag r">Volo</span>' : "") + "</p>";
+
+      var pasti = "";
+      (t.pasti || []).forEach(function (p, i) {
+        var dove = p.dove === "camper" ? "In camper" : (p.dove === "fuori" ? "Fuori" : "A scelta");
+        var idFoto = "pf-" + t.giorno + "-" + i;
+
+        pasti += '<div class="pasto-box ' + p.dove + '">';
+        pasti += '<p class="pasto-testa">' + MOMENTI[p.momento] + " \u00b7 " + dove
+              + (p.spesa ? " \u00b7 circa " + Math.round(Number(p.spesa)) + " $ a testa" : "") + "</p>";
+
+        if (p.locale) {
+          pasti += "<h4>" + esc(p.locale) + "</h4>";
+          if (p.piatto) pasti += "<p><b>Da prendere:</b> " + esc(p.piatto) + "</p>";
+          if (p.foto_piatto_url || p.foto_piatto_wiki)
+            pasti += '<img class="piatto-foto" id="' + idFoto + '" alt="' + esc(p.piatto || p.locale) + '">';
+          if (p.indirizzo || p.citta)
+            pasti += "<p>" + esc([p.indirizzo, p.citta].filter(Boolean).join(", ")) + "</p>";
+          if (p.note) pasti += "<p>" + esc(p.note) + "</p>";
+          if (p.prenotare) pasti += '<p><span class="tag r">Va prenotato</span></p>';
+
+          pasti += '<div class="azioni">';
+          if (p.mappa) pasti += '<a class="mappa" href="' + esc(p.mappa) + '" target="_blank" rel="noopener">Apri sulla mappa</a>';
+          if (p.telefono) pasti += '<a href="tel:' + esc(String(p.telefono).replace(/\s/g, "")) + '">Chiama</a>';
+          if (p.sito) pasti += '<a href="' + esc(p.sito) + '" target="_blank" rel="noopener">Sito</a>';
+          pasti += "</div>";
+        } else {
+          pasti += "<h4>" + esc(p.ricetta || "Da decidere") + "</h4>";
+          if (p.note) pasti += "<p>" + esc(p.note) + "</p>";
+        }
+        pasti += "</div>";
+      });
+
+      d.innerHTML = '<div class="n">' + t.giorno + '</div><div style="flex:1;min-width:0;">'
+        + testa + "<h3>" + esc(t.titolo) + "</h3>"
+        + '<img class="foto" alt="' + esc(t.titolo) + '">'
+        + (t.descrizione ? "<p>" + esc(t.descrizione) + "</p>" : "")
+        + (pasti ? '<div class="pasti">' + pasti + "</div>" : "")
+        + "</div>";
+      box.appendChild(d);
+
+      var img = d.querySelector("img.foto");
+      if (t.foto_url) {
+        img.onerror = function () { fotoDaWiki(t.foto_wiki, img, t.titolo); };
+        img.src = t.foto_url;
+      } else {
+        fotoDaWiki(t.foto_wiki, img, t.titolo + " Route 66");
+      }
+
+      (t.pasti || []).forEach(function (p, i) {
+        var el = document.getElementById("pf-" + t.giorno + "-" + i);
+        if (!el) return;
+        if (p.foto_piatto_url) { el.src = p.foto_piatto_url; return; }
+        fotoDaWiki(p.foto_piatto_wiki, el, (p.piatto || "") + " food");
+      });
+    });
+  }
+
+  function disegnaMappa(tappe) {
+    var box = document.getElementById("mappa");
+    if (!box) return;
+    var punti = tappe.filter(function (t) { return t.lat && t.lng; });
+    // Se la libreria della mappa non e arrivata, si toglie il riquadro e il
+    // resto della pagina resta leggibile.
+    if (!punti.length || typeof L === "undefined") { box.remove(); return; }
+
+    var mappa = L.map("mappa", { scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap", maxZoom: 18
+    }).addTo(mappa);
+
+    var linea = [];
+    punti.forEach(function (t) {
+      var ll = [Number(t.lat), Number(t.lng)];
+      linea.push(ll);
+      L.circleMarker(ll, {
+        radius: 9, color: "#fff", weight: 2,
+        fillColor: COLORI[t.tipo] || "#D0342C", fillOpacity: 1
+      }).addTo(mappa).bindPopup(
+        "<b>Giorno " + t.giorno + " \u2014 " + esc(t.titolo) + "</b><br>"
+        + (Number(t.km) > 0 ? t.km + " km<br>" : "")
+        + (t.descrizione ? esc(t.descrizione) : "")
+      );
+    });
+
+    L.polyline(linea, { color: "#D0342C", weight: 3, opacity: .8 }).addTo(mappa);
+    mappa.fitBounds(L.latLngBounds(linea), { padding: [30, 30] });
+    setTimeout(function () { mappa.invalidateSize(); }, 200);
+  }
+
   function modulo(v) {
     if (!v.adesioni_aperte) {
       return "<h2>Adesioni</h2><p>Le adesioni per questo viaggio sono chiuse.</p>";
