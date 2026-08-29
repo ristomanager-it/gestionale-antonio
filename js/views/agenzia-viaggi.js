@@ -29,7 +29,7 @@ function tabDaHash() {
   const q = h.split("?")[1];
   if (!q) return null;
   const t = new URLSearchParams(q).get("tab");
-  return ["catalogo", "iscritti", "incassi"].includes(t) ? t : null;
+  return ["catalogo", "occasioni", "iscritti", "incassi"].includes(t) ? t : null;
 }
 
 const CSS_VIAGGI = `
@@ -108,6 +108,7 @@ export async function render(app) {
 
       <div id="av-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
         <button data-tab="catalogo" class="av-tab">Catalogo</button>
+        <button data-tab="occasioni" class="av-tab">Occasioni</button>
         <button data-tab="iscritti" class="av-tab">Iscritti</button>
         <button data-tab="incassi"  class="av-tab">Incassi</button>
       </div>
@@ -169,6 +170,7 @@ async function caricaViaggi() {
 async function caricaTab() {
   try {
     if (tabAttiva === "catalogo") return renderCatalogo();
+    if (tabAttiva === "occasioni") return await renderOccasioni();
     if (tabAttiva === "iscritti") return await renderIscritti();
     return await renderIncassi();
   } catch (e) {
@@ -793,6 +795,201 @@ function rosso(t) { return "<span style=\"color:#dc2626;\">" + escapeHtml(t) + "
 
 function card(titolo, valore, colore) {
   return "<div><b style=\"color:" + colore + ";\">" + valore + "</b><span>" + escapeHtml(titolo) + "</span></div>";
+}
+
+/* ---------------- OCCASIONI ---------------- */
+
+async function renderOccasioni() {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+  box.innerHTML = '<div style="color:#64748b;">Carico le occasioni...</div>';
+
+  const [occ, rotte] = await Promise.all([
+    supa().from("viaggi_occasioni")
+      .select("*, viaggi_rotte(nome,origine_iata,destinazione_iata,modello_viaggio_id)")
+      .eq("azienda_id", aziendaId())
+      .in("stato", ["nuova", "vista", "pubblicata"])
+      .order("trovata_il", { ascending: false })
+      .limit(60),
+    supa().from("viaggi_rotte").select("*").eq("azienda_id", aziendaId()).order("nome")
+  ]);
+
+  if (occ.error) throw occ.error;
+  if (rotte.error) throw rotte.error;
+
+  const lista = occ.data || [];
+  const nuove = lista.filter(function (o) { return o.stato === "nuova"; });
+
+  let h = '<div class="av-num">'
+    + "<div><b>" + nuove.length + "</b><span>Nuove</span></div>"
+    + "<div><b>" + (rotte.data || []).filter(function (r) { return r.attiva; }).length + "</b><span>Rotte sorvegliate</span></div>"
+    + "</div>";
+
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'
+    + '<button id="occ-cerca" style="background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">🔎 Cerca adesso</button>'
+    + '<button id="occ-rotte" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">Rotte</button>'
+    + "</div>";
+
+  if (!lista.length) {
+    h += '<div style="border:1px dashed #cbd5e1;border-radius:10px;padding:28px;text-align:center;color:#64748b;">'
+      + "Nessuna occasione ancora. La ricerca gira ogni notte alle 4:20, "
+      + "oppure si lancia a mano con il pulsante qui sopra.</div>";
+    box.innerHTML = h;
+    agganciaOccasioni();
+    return;
+  }
+
+  h += tabellaApri(["Rotta", "Partenza", "Volo", "Alloggio", "Costo vivo", "Suggerito", ""]);
+
+  lista.forEach(function (o) {
+    const r = o.viaggi_rotte || {};
+    const nuova = o.stato === "nuova";
+    h += "<tr" + (nuova ? ' style="background:#f0fdf4;"' : "") + ">"
+      + "<td><b>" + escapeHtml(r.nome || "—") + "</b>"
+      + '<div style="color:#64748b;font-size:12px;">' + escapeHtml(o.vettore || "") 
+      + " · " + (o.notti || 0) + " notti</div></td>"
+      + "<td>" + data(o.data_partenza) + '<div style="color:#64748b;font-size:12px;">'
+      + data(o.data_rientro) + "</div></td>"
+      + "<td>" + euro(o.volo_prezzo) + "</td>"
+      + "<td>" + euro(o.alloggio_prezzo) + "</td>"
+      + "<td><b>" + euro(o.costo_vivo) + "</b></td>"
+      + '<td><b style="color:#16a34a;">' + euro(o.prezzo_suggerito) + "</b>"
+      + '<div style="color:#64748b;font-size:12px;">+' + Math.round(Number(o.margine_perc || 0)) + "%</div></td>"
+      + '<td style="white-space:nowrap;">'
+      + (o.stato === "pubblicata"
+          ? '<span style="color:#16a34a;font-weight:700;">Pubblicata</span>'
+          : '<button class="occ-pub" data-id="' + o.id + '" style="background:#16a34a;color:#fff;border:0;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer;">Pubblica</button>'
+            + ' <button class="occ-no" data-id="' + o.id + '" style="background:#fff;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;padding:7px 10px;cursor:pointer;">Scarta</button>')
+      + "</td></tr>";
+  });
+
+  h += tabellaChiudi();
+  box.innerHTML = h;
+  agganciaOccasioni();
+}
+
+function agganciaOccasioni() {
+  const bCerca = document.getElementById("occ-cerca");
+  if (bCerca) bCerca.addEventListener("click", async function () {
+    bCerca.disabled = true;
+    bCerca.textContent = "Sto cercando...";
+    try {
+      const r = await supa().functions.invoke("viaggi-cerca-occasioni", { body: {} });
+      const d = r.data || {};
+      if (d.ok === false) alert("La ricerca non e partita: " + (d.errore || "errore"));
+      else alert("Trovate " + (d.occasioni_nuove || 0) + " occasioni su "
+                 + (d.combinazioni_provate || 0) + " combinazioni provate.");
+      await renderOccasioni();
+    } catch (e) {
+      alert("Errore: " + (e.message || e));
+    } finally {
+      bCerca.disabled = false;
+      bCerca.textContent = "🔎 Cerca adesso";
+    }
+  });
+
+  const bRotte = document.getElementById("occ-rotte");
+  if (bRotte) bRotte.addEventListener("click", renderRotte);
+
+  document.querySelectorAll(".occ-no").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      await supa().from("viaggi_occasioni").update({ stato: "scartata" }).eq("id", b.dataset.id);
+      await renderOccasioni();
+    });
+  });
+
+  document.querySelectorAll(".occ-pub").forEach(function (b) {
+    b.addEventListener("click", function () { pubblicaOccasione(b.dataset.id); });
+  });
+}
+
+async function pubblicaOccasione(id) {
+  const r = await supa().from("viaggi_occasioni")
+    .select("*, viaggi_rotte(nome,modello_viaggio_id)").eq("id", id).single();
+  if (r.error) return alert("Non trovo l'occasione: " + r.error.message);
+
+  const o = r.data;
+  const rotta = o.viaggi_rotte || {};
+  if (!rotta.modello_viaggio_id) {
+    return alert("Questa rotta non ha un itinerario di riferimento.\n"
+      + "Aprine uno dal Catalogo e collegalo alla rotta, poi si potra pubblicare in un clic.");
+  }
+
+  const prezzo = prompt(
+    "Prezzo di vendita a persona.\n\nCosto vivo: " + euro(o.costo_vivo)
+    + "\nSuggerito: " + euro(o.prezzo_suggerito) + " (+" + Math.round(Number(o.margine_perc || 0)) + "%)",
+    String(Math.round(Number(o.prezzo_suggerito || 0)))
+  );
+  if (prezzo === null) return;
+
+  const p = Number(String(prezzo).replace(",", "."));
+  if (!(p > 0)) return alert("Prezzo non valido.");
+
+  const titolo = prompt("Titolo del viaggio", rotta.nome + " — " + data(o.data_partenza));
+  if (!titolo) return;
+
+  const slug = titolo.toLowerCase()
+    .replace(/[àáâä]/g, "a").replace(/[èéêë]/g, "e").replace(/[ìíîï]/g, "i")
+    .replace(/[òóôö]/g, "o").replace(/[ùúûü]/g, "u")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + String(o.data_partenza).slice(0, 7);
+
+  const cl = await supa().rpc("viaggio_clona", {
+    p_origine: rotta.modello_viaggio_id,
+    p_azienda: aziendaId(),
+    p_slug: slug,
+    p_titolo: titolo
+  });
+  if (cl.error) return alert("Copia non riuscita: " + cl.error.message);
+
+  const nuovoId = cl.data;
+  const giorni = Number(o.notti || 7) + 1;
+
+  const up = await supa().from("viaggi").update({
+    data_inizio: o.data_partenza,
+    data_fine: o.data_rientro,
+    stato: "bozza",
+    pubblico: false,
+    quota_posto: p,
+    quota_camper: p * 2
+  }).eq("id", nuovoId);
+  if (up.error) return alert("Date e prezzo non salvati: " + up.error.message);
+
+  await supa().from("viaggi_occasioni")
+    .update({ stato: "pubblicata", viaggio_id: nuovoId }).eq("id", id);
+
+  alert("Fatto. Il viaggio e in bozza nel Catalogo: controlla le date delle tappe, "
+    + "poi mettilo pubblico.\n\nGiorni previsti: " + giorni);
+
+  await caricaViaggi();
+  tabAttiva = "catalogo";
+  disegnaTabs();
+  renderCatalogo();
+}
+
+async function renderRotte() {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+  const r = await supa().from("viaggi_rotte").select("*").eq("azienda_id", aziendaId()).order("nome");
+  if (r.error) return mostraErrore(r.error);
+
+  let h = '<div style="margin-bottom:14px;"><button id="occ-indietro" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;">← Occasioni</button></div>';
+  h += "<p style=\"color:#64748b;font-size:13px;\">Le rotte che la ricerca controlla ogni notte. "
+    + "Sotto le soglie l'occasione viene segnalata, sopra viene scartata.</p>";
+  h += tabellaApri(["Rotta", "Tratta", "Notti", "Soglia volo", "Soglia totale", "Attiva"]);
+
+  (r.data || []).forEach(function (x) {
+    h += "<tr><td><b>" + escapeHtml(x.nome) + "</b></td>"
+      + "<td>" + escapeHtml(x.origine_iata) + " → " + escapeHtml(x.destinazione_iata) + "</td>"
+      + "<td>" + x.notti + "</td>"
+      + "<td>" + euro(x.soglia_volo) + "</td>"
+      + "<td>" + euro(x.soglia_totale) + "</td>"
+      + "<td>" + (x.attiva ? "🟢" : "⚪") + "</td></tr>";
+  });
+  h += tabellaChiudi();
+  box.innerHTML = h;
+
+  const b = document.getElementById("occ-indietro");
+  if (b) b.addEventListener("click", renderOccasioni);
 }
 
 function tabellaApri(intestazioni) {
