@@ -825,21 +825,40 @@ async function renderOccasioni() {
     + "<div><b>" + (rotte.data || []).filter(function (r) { return r.attiva; }).length + "</b><span>Rotte sorvegliate</span></div>"
     + "</div>";
 
-  // Zone prese dalle rotte, cosi il menu si aggiorna da solo quando se ne aggiungono.
-  const zone = [];
-  (rotte.data || []).forEach(function (r) {
-    if (r.zona && zone.indexOf(r.zona) === -1) zone.push(r.zona);
-  });
-  zone.sort();
+  // I menu si riempiono dalle rotte: aggiungendo una rotta nuova compaiono da soli.
+  const elenco = function (campo) {
+    const v = [];
+    (rotte.data || []).forEach(function (r) {
+      if (r[campo] && v.indexOf(r[campo]) === -1) v.push(r[campo]);
+    });
+    return v.sort();
+  };
+  const TIPI = {
+    volo_hotel: "Volo e hotel", volo_auto: "Volo e auto", crociera: "Crociera",
+    camper: "Camper", gruppo: "Gruppo", tour: "Tour organizzato"
+  };
+
+  const menu = function (id, vuoto, valori, etichette) {
+    return '<select id="' + id + '" class="occ-f" style="border:1px solid #cbd5e1;border-radius:8px;'
+      + 'padding:10px 12px;font-weight:600;">'
+      + '<option value="">' + vuoto + "</option>"
+      + valori.map(function (v) {
+          return '<option value="' + escapeHtml(v) + '">'
+            + escapeHtml(etichette ? (etichette[v] || v) : v) + "</option>";
+        }).join("")
+      + "</select>";
+  };
 
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">'
-    + '<select id="occ-zona" style="border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font-weight:600;">'
-    + '<option value="">Tutte le zone</option>'
-    + zone.map(function (z) { return '<option value="' + escapeHtml(z) + '">' + escapeHtml(z) + "</option>"; }).join("")
-    + "</select>"
+    + menu("occ-continente", "Tutti i continenti", elenco("continente"))
+    + menu("occ-nazione", "Tutte le nazioni", elenco("nazione"))
+    + menu("occ-tipo", "Tutti i tipi", elenco("tipo"), TIPI)
     + '<button id="occ-cerca" style="background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">🔎 Cerca adesso</button>'
     + '<button id="occ-rotte" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">Rotte</button>'
     + "</div>";
+
+  // Il continente restringe le nazioni: si tiene la lista completa per rifiltrarla.
+  window.__rotteViaggi = rotte.data || [];
 
   if (!lista.length) {
     h += '<div style="border:1px dashed #cbd5e1;border-radius:10px;padding:28px;text-align:center;color:#64748b;">'
@@ -857,7 +876,10 @@ async function renderOccasioni() {
     const nuova = o.stato === "nuova";
     h += "<tr" + (nuova ? ' style="background:#f0fdf4;"' : "") + ">"
       + "<td><b>" + escapeHtml(r.nome || "—") + "</b>"
-      + '<div style="color:#64748b;font-size:12px;">' + escapeHtml(o.vettore || "") 
+      + '<div style="color:#64748b;font-size:12px;">'
+      + escapeHtml(((o.dettaglio || {}).nazione) || "") + " · "
+      + escapeHtml(TIPI[(o.dettaglio || {}).tipo] || "") + "</div>"
+      + '<div style="color:#64748b;font-size:12px;">' + escapeHtml(o.vettore || "")
       + " · " + (o.notti || 0) + " notti</div></td>"
       + "<td>" + data(o.data_partenza) + '<div style="color:#64748b;font-size:12px;">'
       + data(o.data_rientro) + "</div></td>"
@@ -887,17 +909,23 @@ function agganciaOccasioni() {
     bCerca.disabled = true;
     bCerca.textContent = "Sto cercando...";
     try {
-      const selZona = document.getElementById("occ-zona");
-      const zona = selZona ? selZona.value : "";
-      const r = await supa().functions.invoke("viaggi-cerca-occasioni",
-                  { body: zona ? { zona: zona } : {} });
+      const leggi = function (id) {
+        const e = document.getElementById(id);
+        return e && e.value ? e.value : null;
+      };
+      const filtri = {};
+      if (leggi("occ-continente")) filtri.continente = leggi("occ-continente");
+      if (leggi("occ-nazione")) filtri.nazione = leggi("occ-nazione");
+      if (leggi("occ-tipo")) filtri.tipo = leggi("occ-tipo");
+      const r = await supa().functions.invoke("viaggi-cerca-occasioni", { body: filtri });
       const d = r.data || {};
       if (d.ok === false) {
         // l'errore vero, non un generico "0 trovate"
         alert("La ricerca non e partita.\n\n" + (d.errore || "errore sconosciuto"));
       } else {
         let msg = "Trovate " + (d.occasioni_nuove || 0) + " occasioni su "
-                + (d.rotte || 0) + " rotte" + (zona ? " in " + zona : "") + ".";
+                + (d.rotte || 0) + " rotte (" + (d.filtri || "tutte") + ").";
+        if (d.nota) msg = d.nota;
         if ((d.sopra_soglia || []).length) {
           msg += "\n\nScartate perche sopra soglia:\n" + d.sopra_soglia.slice(0, 6).join("\n");
         }
@@ -911,6 +939,20 @@ function agganciaOccasioni() {
       bCerca.disabled = false;
       bCerca.textContent = "🔎 Cerca adesso";
     }
+  });
+
+  const selCont = document.getElementById("occ-continente");
+  const selNaz = document.getElementById("occ-nazione");
+  if (selCont && selNaz) selCont.addEventListener("change", function () {
+    const tutte = window.__rotteViaggi || [];
+    const naz = [];
+    tutte.forEach(function (r) {
+      if (selCont.value && r.continente !== selCont.value) return;
+      if (r.nazione && naz.indexOf(r.nazione) === -1) naz.push(r.nazione);
+    });
+    naz.sort();
+    selNaz.innerHTML = '<option value="">Tutte le nazioni</option>'
+      + naz.map(function (n) { return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + "</option>"; }).join("");
   });
 
   const bRotte = document.getElementById("occ-rotte");
