@@ -259,7 +259,8 @@
     var h = "";
 
     formule.forEach(function (f) {
-      var pieno = arrotonda(Number(f.quota_posto || 0) + personali);
+      var extra = Number(f.extra_persona || 0);
+      var pieno = arrotonda(Number(f.quota_posto || 0) + personali + extra);
       var on = f.codice === formulaScelta;
 
       h += '<div class="formula' + (on ? " on" : "") + '" data-codice="' + esc(f.codice) + '">';
@@ -278,7 +279,7 @@
 
       h += '<table style="margin-top:10px;"><tr><th>Se siete in</th><th class="num">A persona</th></tr>';
       for (var k = Number(f.posti_max || 6); k >= 2; k--) {
-        var p = arrotonda(Number(f.quota_camper || 0) / k + personali);
+        var p = arrotonda(Number(f.quota_camper || 0) / k + personali + extra);
         h += "<tr><td><b>" + k + "</b> persone" + (k === Number(f.posti_max || 6) ? " <span style=\"color:#5B6672;\">camper pieno</span>" : "")
            + '</td><td class="num"><b>' + euro(p) + "</b></td></tr>";
       }
