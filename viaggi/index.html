@@ -107,9 +107,17 @@
     }
 
     lista.forEach(function (v) {
-      var prezzo = v.modalita_prezzo === "camper"
-        ? euro(v.quota_camper) + " <span style=\"font-size:15px;color:#5B6672;font-weight:400;\">a camper</span>"
-        : euro(v.quota_adulto) + " <span style=\"font-size:15px;color:#5B6672;font-weight:400;\">a persona</span>";
+      // Si mostra il prezzo di ingresso: il posto condiviso, se previsto.
+      var prezzo;
+      if (v.ammette_posto_condiviso !== false && Number(v.quota_posto) > 0) {
+        prezzo = '<span style="font-size:15px;color:#5B6672;font-weight:400;">da</span> '
+               + euro(v.quota_posto)
+               + ' <span style="font-size:15px;color:#5B6672;font-weight:400;">a persona</span>';
+      } else if (v.modalita_prezzo === "camper") {
+        prezzo = euro(v.quota_camper) + ' <span style="font-size:15px;color:#5B6672;font-weight:400;">a camper</span>';
+      } else {
+        prezzo = euro(v.quota_adulto) + ' <span style="font-size:15px;color:#5B6672;font-weight:400;">a persona</span>';
+      }
 
       h += '<a class="card" href="v/?s=' + encodeURIComponent(v.slug) + '">'
         + '<img alt="' + esc(v.titolo) + '" data-wiki="' + esc(v.copertina_wiki || "") + '"'
