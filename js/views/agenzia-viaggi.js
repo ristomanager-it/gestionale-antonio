@@ -883,9 +883,17 @@ async function renderOccasioni() {
     const nuova = o.stato === "nuova";
     h += "<tr" + (nuova ? ' style="background:#f0fdf4;"' : "") + ">"
       + "<td><b>" + escapeHtml(r.nome || "—") + "</b>"
-      + '<div style="color:#64748b;font-size:12px;">'
-      + escapeHtml(((o.dettaglio || {}).nazione) || "") + " · "
-      + escapeHtml(TIPI[(o.dettaglio || {}).tipo] || "") + "</div>"
+      + (function () {
+          // Le occasioni trovate prima non hanno nazione ne tipo: senza questo
+          // controllo restava un puntino da solo sotto il nome della rotta.
+          const d = o.dettaglio || {};
+          const parti = [];
+          if (d.nazione) parti.push(escapeHtml(d.nazione));
+          if (d.tipo && TIPI[d.tipo]) parti.push(escapeHtml(TIPI[d.tipo]));
+          return parti.length
+            ? '<div style="color:#64748b;font-size:12px;">' + parti.join(" · ") + "</div>"
+            : "";
+        })()
       + '<div style="color:#64748b;font-size:12px;">' + escapeHtml(o.vettore || "")
       + " · " + (o.notti || 0) + " notti</div></td>"
       + "<td>" + data(o.data_partenza) + '<div style="color:#64748b;font-size:12px;">'
