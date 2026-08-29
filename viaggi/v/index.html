@@ -371,9 +371,6 @@
     h += "<h2>Il percorso</h2><div id=\"mappa\"></div>";
     h += '<p class="credito">Rosso: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
 
-    h += "<h2>Mangiare</h2>";
-    h += '<div id="conto-pasti"></div>';
-
     h += "<h2>Giorno per giorno</h2><div id=\"programma\"></div>";
 
     if ((dati.mezzi || []).length) {
@@ -421,6 +418,9 @@
       h += "<h2>Quanto costa</h2>";
       h += '<div id="calcolatore"></div>';
     }
+
+    h += "<h2>Mangiare</h2>";
+    h += '<div id="conto-pasti"></div>';
 
     if ((dati.scadenze || []).length) {
       h += "<h2>Cosa va prenotato e quando</h2><table><tr><th>Cosa</th><th>Entro</th><th>Fatto</th></tr>";
