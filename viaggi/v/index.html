@@ -646,12 +646,17 @@
     if (!v.adesioni_aperte) {
       return "<h2>Adesioni</h2><p>Le adesioni per questo viaggio sono chiuse.</p>";
     }
-    var h = "<h2 id=\"modulo-adesione\">Vieni con noi</h2>";
-    h += "<p>Acconto " + (v.acconto_percentuale || 30) + "%, saldo "
-       + (v.saldo_entro_giorni || 30) + " giorni prima della partenza.</p>";
+    // Senza quote non e' una vendita: si raccoglie solo chi ci sara'.
+    var senzaPrezzi = !(Number(v.quota_camper) > 0) && !(Number(v.quota_posto) > 0);
+
+    var h = senzaPrezzi
+      ? "<h2 id=\"modulo-adesione\">Chi ci sara</h2><p>Segnatevi qui: serve a sapere quanti siamo, "
+        + "per i tavoli e per le giornate da prenotare.</p>"
+      : "<h2 id=\"modulo-adesione\">Vieni con noi</h2><p>Acconto " + (v.acconto_percentuale || 30)
+        + "%, saldo " + (v.saldo_entro_giorni || 30) + " giorni prima della partenza.</p>";
 
     var formule = dati.formule || [];
-    if (formule.length) {
+    if (formule.length && !senzaPrezzi) {
       h += '<label for="f-formula">Formula</label><select id="f-formula">';
       formule.forEach(function (f) {
         h += '<option value="' + esc(f.codice) + '"' + (f.codice === formulaScelta ? " selected" : "") + ">"
@@ -660,20 +665,24 @@
       h += "</select>";
     }
 
+    if (!senzaPrezzi) {
     h += '<label for="f-opzione">Come viaggiate</label><select id="f-opzione">';
     if (v.ammette_camper_intero !== false)
       h += '<option value="camper_intero">Un ' + esc(nomeMezzo()) + ' tutto nostro</option>';
     if (v.ammette_posto_condiviso !== false)
       h += '<option value="posto_condiviso">Un posto condiviso</option>';
     h += "</select>";
+    }
     h += '<div class="due"><div><label for="f-nome">Nome</label><input id="f-nome"></div>'
        + '<div><label for="f-cognome">Cognome</label><input id="f-cognome"></div></div>';
     h += '<label for="f-email">Email</label><input id="f-email" type="email">';
     h += '<label for="f-tel">Telefono</label><input id="f-tel" type="tel">';
-    h += '<label for="f-nucleo">Come vi chiamiamo (famiglia, gruppo)</label><input id="f-nucleo">';
+    h += '<label for="f-nucleo">' + (senzaPrezzi ? "Di che famiglia siete" : "Come vi chiamiamo (famiglia, gruppo)")
+       + '</label><input id="f-nucleo">';
     h += '<div class="due"><div><label for="f-adulti">Adulti</label><input id="f-adulti" type="number" min="1" value="2"></div>'
        + '<div><label for="f-bambini">Bambini</label><input id="f-bambini" type="number" min="0" value="0"></div></div>';
 
+    if (!senzaPrezzi) {
     h += "<h3 style=\"margin-top:26px;\">Come preferite pagare</h3>";
     var m = v.modalita_ammesse || ["acconto_saldo"];
     if (m.indexOf("acconto_saldo") >= 0) {
@@ -696,7 +705,9 @@
        + '<option value="1">Ogni mese</option><option value="2">Ogni due mesi</option>'
        + '<option value="3">Ogni tre mesi</option><option value="6">Ogni sei mesi</option></select></div></div>';
 
-    h += '<button id="f-invia">Invia l\'adesione</button><div id="f-msg"></div>';
+    }
+
+    h += '<button id="f-invia">' + (senzaPrezzi ? "Ci sono" : "Invia l'adesione") + "</button><div id=\"f-msg\"></div>";
     return h;
   }
 
@@ -739,8 +750,10 @@
         if (!d.ok) { msg.className = "msg ko"; msg.textContent = d.errore || "Riprova."; return; }
         var link = location.origin + location.pathname.replace(/[^/]*$/, "") + "../p/?t=" + d.link;
         msg.className = "msg ok";
-        msg.innerHTML = "Ci siamo. Quota " + euro(d.quota) + " per " + d.persone + " persone.<br>"
-          + 'Il vostro piano è qui: <a href="' + link + '">' + link + "</a><br>Salvate questo indirizzo.";
+        msg.innerHTML = Number(d.quota) > 0
+          ? "Ci siamo. Quota " + euro(d.quota) + " per " + d.persone + " persone.<br>"
+            + 'Il vostro piano è qui: <a href="' + link + '">' + link + "</a><br>Salvate questo indirizzo."
+          : "Segnati. Siete in " + d.persone + ": ci vediamo là.";
       });
     });
   }
