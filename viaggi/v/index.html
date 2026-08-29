@@ -563,7 +563,13 @@
 
         if (p.locale) {
           pasti += "<h4>" + esc(p.locale) + "</h4>";
-          if (p.piatto) pasti += "<p><b>Da prendere:</b> " + esc(p.piatto) + "</p>";
+          // Senza tipo di cucina il testo non e' un piatto da ordinare ma una frase:
+          // si scrive in grassetto e senza etichetta.
+          if (p.piatto) {
+            pasti += p.tipo_cucina
+              ? "<p><b>Da prendere:</b> " + esc(p.piatto) + "</p>"
+              : "<p><b>" + esc(p.piatto) + "</b></p>";
+          }
           if (p.foto_piatto_url || p.foto_piatto_wiki)
             pasti += '<img class="piatto-foto" id="' + idFoto + '" alt="' + esc(p.piatto || p.locale) + '">';
           if (p.indirizzo || p.citta)
