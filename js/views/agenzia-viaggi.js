@@ -383,7 +383,7 @@ function renderCatalogo() {
     return;
   }
 
-  let html = tabellaApri(["Viaggio", "Periodo", "Camper intero", "Posto singolo", "Stato"]);
+  let html = tabellaApri(["Viaggio", "Periodo", "Mezzo intero", "A persona", "Stato"]);
 
   viaggiCache.forEach(function (v) {
     const st = STATO_VIAGGIO[v.stato] || STATO_VIAGGIO.bozza;
@@ -459,13 +459,20 @@ async function apriViaggio(id) {
     h += "<div class=\"av-num\">"
       + card("Giorni", String(tappe.length), "#0E5A7A")
       + card("Chilometri", km.toLocaleString("it-IT"), "#0E5A7A")
-      + card("Camper intero", euro(v.quota_camper), "#16a34a")
-      + card("Posto singolo", Number(v.quota_posto) > 0 ? euro(v.quota_posto) : "—", "#16a34a")
+      + (Number(v.quota_camper) > 0
+          ? card((v.mezzo_etichetta || "camper") === "camper" ? "Camper intero" : "Mezzo intero",
+                 euro(v.quota_camper), "#16a34a")
+            + card("A persona", Number(v.quota_posto) > 0 ? euro(v.quota_posto) : "—", "#16a34a")
+          : card("Prezzo a persona", Number(v.quota_posto) > 0 ? euro(v.quota_posto) : "—", "#16a34a"))
       + "</div>";
 
     h += "<div style=\"border:1px solid #e2e8f0;border-radius:10px;padding:14px;background:#fff;margin-bottom:18px;\">"
       + "<div style=\"font-size:13px;color:#64748b;margin-bottom:6px;\">Pagina pubblica</div>"
-      + "<a class=\"av-link\" href=\"" + url + "\" target=\"_blank\">" + escapeHtml(url) + "</a>"
+      + (v.stato === "pubblicato" && v.pubblico !== false
+          ? "<a class=\"av-link\" href=\"" + url + "\" target=\"_blank\">" + escapeHtml(url) + "</a>"
+          : "<div style=\"color:#94a3b8;word-break:break-all;\">" + escapeHtml(url) + "</div>"
+            + "<div style=\"margin-top:6px;color:#b45309;font-size:13px;\">"
+            + "Non ancora online: il link risponde <i>viaggio non trovato</i> finche non premi Pubblica.</div>")
       + "<div style=\"margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;\">"
       + "<button id=\"av-stato\" data-id=\"" + v.id + "\" style=\"background:" + (v.stato === "pubblicato" ? "#fff" : "#16a34a") + ";color:" + (v.stato === "pubblicato" ? "#64748b" : "#fff") + ";border:1px solid " + (v.stato === "pubblicato" ? "#cbd5e1" : "#16a34a") + ";border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;\">"
       + (v.stato === "pubblicato" ? "Riporta in bozza" : "Pubblica") + "</button>"
