@@ -850,7 +850,7 @@ async function renderOccasioni() {
     return;
   }
 
-  h += tabellaApri(["Rotta", "Partenza", "Volo", "Alloggio", "Costo vivo", "Suggerito", ""]);
+  h += tabellaApri(["Rotta", "Partenza", "Volo a persona", "Hotel, camera intera", "Costo vivo a persona", "Prezzo suggerito", ""]);
 
   lista.forEach(function (o) {
     const r = o.viaggi_rotte || {};
@@ -877,6 +877,7 @@ async function renderOccasioni() {
 
   h += tabellaChiudi();
   box.innerHTML = h;
+  etichetta(box);          // senza questa, su telefono restano numeri senza nome
   agganciaOccasioni();
 }
 
@@ -1084,6 +1085,7 @@ async function renderRotte() {
   });
   h += tabellaChiudi();
   box.innerHTML = h;
+  etichetta(box);
 
   const b = document.getElementById("occ-indietro");
   if (b) b.addEventListener("click", renderOccasioni);
