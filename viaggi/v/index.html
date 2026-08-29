@@ -334,7 +334,11 @@
 
     formule.forEach(function (f) {
       var extra = Number(f.extra_persona || 0);
-      var pieno = arrotonda(Number(f.quota_posto || 0) + personali + extra);
+      // Ogni formula puo avere le sue spese personali: il volo di quella
+      // spartana costa un terzo di quello della completa.
+      var fisse = (f.spese_persona !== null && f.spese_persona !== undefined)
+        ? Number(f.spese_persona) : personali;
+      var pieno = arrotonda(Number(f.quota_posto || 0) + fisse + extra);
       var on = f.codice === formulaScelta;
 
       h += '<div class="formula' + (on ? " on" : "") + '" data-codice="' + esc(f.codice) + '">';
@@ -346,7 +350,7 @@
       if (f.descrizione) h += "<p>" + esc(f.descrizione) + "</p>";
       h += '<p class="credito">' + euro(pieno) + " a persona vuol dire: "
          + euro(Number(f.quota_posto || 0)) + " di " + esc(nomeMezzo()) + " diviso fra "
-         + Number(f.posti_max || 6) + ", piu " + euro(personali + extra)
+         + Number(f.posti_max || 6) + ", piu " + euro(fisse + extra)
          + " di volo, hotel e ingressi.</p>";
 
       if (f.incluso && f.incluso.length) {
@@ -356,7 +360,7 @@
       }
 
       h += "<p>Il " + esc(nomeMezzo()) + " costa <b>" + euro(f.quota_camper) + "</b> in tutto e si divide fra chi ci sale. "
-         + "Volo, hotel e ingressi sono <b>" + euro(personali + extra) + "</b> a testa e non si dividono: "
+         + "Volo, hotel e ingressi sono <b>" + euro(fisse + extra) + "</b> a testa e non si dividono: "
          + "chi vola, vola.</p>";
 
       h += '<table style="margin-top:10px;"><tr><th>Se siete in</th><th class="num">'
@@ -364,10 +368,10 @@
          + '</th><th class="num">Volo e ingressi</th><th class="num">A testa</th></tr>';
       for (var k = Number(f.posti_max || 6); k >= 2; k--) {
         var quotaK = Number(f.quota_camper || 0) / k;
-        var tot = arrotonda(quotaK + personali + extra);
+        var tot = arrotonda(quotaK + fisse + extra);
         h += "<tr><td><b>" + k + "</b> persone" + (k === Number(f.posti_max || 6) ? " <span style=\"color:#5B6672;\">pieno</span>" : "")
            + '</td><td class="num">' + euro(quotaK)
-           + '</td><td class="num">' + euro(personali + extra)
+           + '</td><td class="num">' + euro(fisse + extra)
            + '</td><td class="num"><b>' + euro(tot) + "</b></td></tr>";
       }
       h += "</table>";
