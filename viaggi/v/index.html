@@ -77,6 +77,17 @@
             border:2px solid var(--riga);border-radius:8px;padding:9px 14px;color:var(--inchiostro)}
   .azioni a.mappa{border-color:var(--rosso);color:var(--rosso)}
   .calc{border:2px solid var(--riga);border-radius:12px;padding:18px;background:#fff;margin:14px 0}
+  .formula{border:2px solid var(--riga);border-radius:12px;padding:18px;background:#fff;margin:16px 0}
+  .formula.on{border-color:var(--rosso);border-width:3px}
+  .formula-testa{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .formula-testa h3{margin:0 0 2px;font-size:26px}
+  .formula-testa p{margin:0;color:var(--tenue);font-size:17px}
+  .formula-prezzo{font-size:34px;font-weight:800;color:var(--rosso);line-height:1;white-space:nowrap}
+  .formula-prezzo span{display:block;font-size:14px;font-weight:400;color:var(--tenue);letter-spacing:.04em}
+  ul.incluso{margin:12px 0;padding-left:0;list-style:none}
+  ul.incluso li{padding:6px 0 6px 28px;position:relative;font-size:17px;border-bottom:1px solid var(--riga)}
+  ul.incluso li:before{content:"\2713";position:absolute;left:2px;color:var(--salvia);font-weight:700}
+  button.scegli{width:100%}
   .prezzone{font-size:56px;line-height:1;font-weight:800;color:var(--rosso);margin:4px 0 0;letter-spacing:-.03em}
   .prezzone-sotto{font-size:18px;color:var(--tenue);margin:2px 0 14px}
   @media(max-width:520px){.prezzone{font-size:44px}}
@@ -215,46 +226,83 @@
       .then(function (e) { mostra(img, e); });
   }
 
-  // Un prezzo finito a persona, gia' comprensivo di tutto quello che si paga
-  // a noi e delle spese obbligate. Niente forbici, niente somme da fare a mano.
+  // Due formule nella stessa pagina: si sceglie qui e la scelta arriva al modulo.
   function arrotonda(n) { return Math.ceil(Number(n || 0) / 10) * 10; }
+  var formulaScelta = null;
+
+  function speseFisse() {
+    var t = 0;
+    (dati.budget || []).forEach(function (x) { if (x.unita === "persona") t += Number(x.max || 0); });
+    return t;
+  }
 
   function disegnaCalcolatore() {
     var box = document.getElementById("calcolatore");
     if (!box) return;
     var v = dati.viaggio;
-    var b = dati.budget || [];
+    var formule = dati.formule || [];
+    var personali = speseFisse();
 
-    var personali = 0;
-    b.forEach(function (x) { if (x.unita === "persona") personali += Number(x.max || 0); });
-
-    var quotaCamper = Number(v.quota_camper || 0);
-    var quotaPosto = Number(v.quota_posto || 0);
-    var maxCamper = Number(v.posti_per_mezzo || 5);
-
-    var minimo = arrotonda(quotaPosto + personali);
-
-    var h = '<div class="calc">';
-    h += '<p class="prezzone">' + euro(minimo) + "</p>";
-    h += '<p class="prezzone-sotto">a persona, tutto compreso</p>';
-
-    h += "<p>Volo, camper, benzina, campeggi, assicurazione, pedaggi e ingressi ai parchi: "
-       + "è tutto qui dentro.</p>";
-
-    h += '<h3 style="font-size:19px;margin:24px 0 6px;">Se volete il camper solo per voi</h3>';
-    h += "<p>Il prezzo qui sopra vale a camper pieno. Se siete di meno il mezzo si divide fra meno persone, e cambia così:</p>";
-    h += "<table><tr><th>Siete in</th><th class=\"num\">A persona</th></tr>";
-    for (var k = maxCamper; k >= 2; k--) {
-      var prezzo = arrotonda(quotaCamper / k + personali);
-      var riga = "<b>" + k + "</b> " + (k === 1 ? "persona" : "persone");
-      h += "<tr><td>" + riga + '</td><td class="num"><b>' + euro(prezzo) + "</b></td></tr>";
+    // viaggio senza formule: si usa la quota del viaggio
+    if (!formule.length) {
+      formule = [{
+        codice: "unica", nome: "Il viaggio", sottotitolo: null, descrizione: null, incluso: null,
+        quota_camper: Number(v.quota_camper || 0), quota_posto: Number(v.quota_posto || 0),
+        posti_max: Number(v.posti_per_mezzo || 6), consigliata: true
+      }];
     }
-    h += "</table>";
-    h += '<p class="credito">In ' + maxCamper + " si paga meno perché il camper si divide fra più persone. "
-       + "Da soli o in coppia potete unirvi ad altri e restare al prezzo pieno di gruppo.</p>";
+    if (!formulaScelta) {
+      var cons = formule.filter(function (f) { return f.consigliata; })[0];
+      formulaScelta = cons ? cons.codice : formule[0].codice;
+    }
 
-    h += "</div>";
+    var h = "";
+
+    formule.forEach(function (f) {
+      var pieno = arrotonda(Number(f.quota_posto || 0) + personali);
+      var on = f.codice === formulaScelta;
+
+      h += '<div class="formula' + (on ? " on" : "") + '" data-codice="' + esc(f.codice) + '">';
+      h += '<div class="formula-testa"><div>';
+      h += "<h3>" + esc(f.nome) + (f.consigliata ? ' <span class="tag r">Consigliata</span>' : "") + "</h3>";
+      if (f.sottotitolo) h += "<p>" + esc(f.sottotitolo) + "</p>";
+      h += "</div><div class=\"formula-prezzo\">" + euro(pieno) + "<span>a persona</span></div></div>";
+
+      if (f.descrizione) h += "<p>" + esc(f.descrizione) + "</p>";
+
+      if (f.incluso && f.incluso.length) {
+        h += '<ul class="incluso">';
+        f.incluso.forEach(function (r) { h += "<li>" + esc(r) + "</li>"; });
+        h += "</ul>";
+      }
+
+      h += '<table style="margin-top:10px;"><tr><th>Se siete in</th><th class="num">A persona</th></tr>';
+      for (var k = Number(f.posti_max || 6); k >= 2; k--) {
+        var p = arrotonda(Number(f.quota_camper || 0) / k + personali);
+        h += "<tr><td><b>" + k + "</b> persone" + (k === Number(f.posti_max || 6) ? " <span style=\"color:#5B6672;\">camper pieno</span>" : "")
+           + '</td><td class="num"><b>' + euro(p) + "</b></td></tr>";
+      }
+      h += "</table>";
+      h += '<p class="credito">Il camper e lo stesso: piu siete, meno costa a testa. '
+         + "Da soli o in coppia potete unirvi ad altri e restare al prezzo di gruppo.</p>";
+
+      h += '<button class="scegli" data-codice="' + esc(f.codice) + '">'
+         + (on ? "Formula scelta \u2713" : "Scelgo questa") + "</button>";
+      h += "</div>";
+    });
+
     box.innerHTML = h;
+
+    box.querySelectorAll(".scegli").forEach(function (b) {
+      b.addEventListener("click", function () {
+        formulaScelta = b.dataset.codice;
+        disegnaCalcolatore();
+        var f = document.getElementById("f-formula");
+        if (f) f.value = formulaScelta;
+        var m = document.getElementById("modulo-adesione");
+        if (m) m.scrollIntoView({ behavior: "smooth" });
+      });
+    });
   }
 
   function disegna() {
@@ -481,15 +529,25 @@
     if (!v.adesioni_aperte) {
       return "<h2>Adesioni</h2><p>Le adesioni per questo viaggio sono chiuse.</p>";
     }
-    var h = "<h2>Vieni con noi</h2>";
+    var h = "<h2 id=\"modulo-adesione\">Vieni con noi</h2>";
     h += "<p>Acconto " + (v.acconto_percentuale || 30) + "%, saldo "
        + (v.saldo_entro_giorni || 30) + " giorni prima della partenza.</p>";
 
+    var formule = dati.formule || [];
+    if (formule.length) {
+      h += '<label for="f-formula">Formula</label><select id="f-formula">';
+      formule.forEach(function (f) {
+        h += '<option value="' + esc(f.codice) + '"' + (f.codice === formulaScelta ? " selected" : "") + ">"
+           + esc(f.nome) + "</option>";
+      });
+      h += "</select>";
+    }
+
     h += '<label for="f-opzione">Come viaggiate</label><select id="f-opzione">';
     if (v.ammette_camper_intero !== false)
-      h += '<option value="camper_intero">Un camper tutto nostro — ' + euro(v.quota_camper) + "</option>";
+      h += '<option value="camper_intero">Un camper tutto nostro</option>';
     if (v.ammette_posto_condiviso !== false)
-      h += '<option value="posto_condiviso">Un posto in camper condiviso — ' + euro(v.quota_posto) + " a testa</option>";
+      h += '<option value="posto_condiviso">Un posto in camper condiviso</option>';
     h += "</select>";
     h += '<div class="due"><div><label for="f-nome">Nome</label><input id="f-nome"></div>'
        + '<div><label for="f-cognome">Cognome</label><input id="f-cognome"></div></div>';
@@ -555,7 +613,8 @@
         p_adulti: Number(val("f-adulti") || 1), p_bambini: Number(val("f-bambini") || 0),
         p_modalita: sel ? sel.value : "acconto_saldo",
         p_chi_paga: val("f-chipaga"), p_cadenza: Number(val("f-cadenza") || 1), p_note: null,
-        p_tipo_posto: val("f-opzione") || "camper_intero"
+        p_tipo_posto: val("f-opzione") || "camper_intero",
+        p_formula: val("f-formula") || null
       }).then(function (r) {
         b.disabled = false; b.textContent = "Invia l'adesione";
         if (r.error) { msg.className = "msg ko"; msg.textContent = r.error.message; return; }
