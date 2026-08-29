@@ -825,7 +825,18 @@ async function renderOccasioni() {
     + "<div><b>" + (rotte.data || []).filter(function (r) { return r.attiva; }).length + "</b><span>Rotte sorvegliate</span></div>"
     + "</div>";
 
-  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'
+  // Zone prese dalle rotte, cosi il menu si aggiorna da solo quando se ne aggiungono.
+  const zone = [];
+  (rotte.data || []).forEach(function (r) {
+    if (r.zona && zone.indexOf(r.zona) === -1) zone.push(r.zona);
+  });
+  zone.sort();
+
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">'
+    + '<select id="occ-zona" style="border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font-weight:600;">'
+    + '<option value="">Tutte le zone</option>'
+    + zone.map(function (z) { return '<option value="' + escapeHtml(z) + '">' + escapeHtml(z) + "</option>"; }).join("")
+    + "</select>"
     + '<button id="occ-cerca" style="background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">🔎 Cerca adesso</button>'
     + '<button id="occ-rotte" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">Rotte</button>'
     + "</div>";
@@ -858,7 +869,8 @@ async function renderOccasioni() {
       + '<td style="white-space:nowrap;">'
       + (o.stato === "pubblicata"
           ? '<span style="color:#16a34a;font-weight:700;">Pubblicata</span>'
-          : '<button class="occ-pub" data-id="' + o.id + '" style="background:#16a34a;color:#fff;border:0;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer;">Pubblica</button>'
+          : '<button class="occ-prev" data-id="' + o.id + '" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer;">'
+            + (o.bozza ? "Rivedi" : "Anteprima") + "</button>"
             + ' <button class="occ-no" data-id="' + o.id + '" style="background:#fff;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;padding:7px 10px;cursor:pointer;">Scarta</button>')
       + "</td></tr>";
   });
@@ -874,11 +886,23 @@ function agganciaOccasioni() {
     bCerca.disabled = true;
     bCerca.textContent = "Sto cercando...";
     try {
-      const r = await supa().functions.invoke("viaggi-cerca-occasioni", { body: {} });
+      const selZona = document.getElementById("occ-zona");
+      const zona = selZona ? selZona.value : "";
+      const r = await supa().functions.invoke("viaggi-cerca-occasioni",
+                  { body: zona ? { zona: zona } : {} });
       const d = r.data || {};
-      if (d.ok === false) alert("La ricerca non e partita: " + (d.errore || "errore"));
-      else alert("Trovate " + (d.occasioni_nuove || 0) + " occasioni su "
-                 + (d.combinazioni_provate || 0) + " combinazioni provate.");
+      if (d.ok === false) {
+        // l'errore vero, non un generico "0 trovate"
+        alert("La ricerca non e partita.\n\n" + (d.errore || "errore sconosciuto"));
+      } else {
+        let msg = "Trovate " + (d.occasioni_nuove || 0) + " occasioni su "
+                + (d.rotte || 0) + " rotte" + (zona ? " in " + zona : "") + ".";
+        if ((d.sopra_soglia || []).length) {
+          msg += "\n\nScartate perche sopra soglia:\n" + d.sopra_soglia.slice(0, 6).join("\n");
+        }
+        if ((d.errori || []).length) msg += "\n\nProblemi:\n" + d.errori.join("\n");
+        alert(msg);
+      }
       await renderOccasioni();
     } catch (e) {
       alert("Errore: " + (e.message || e));
@@ -898,72 +922,145 @@ function agganciaOccasioni() {
     });
   });
 
-  document.querySelectorAll(".occ-pub").forEach(function (b) {
-    b.addEventListener("click", function () { pubblicaOccasione(b.dataset.id); });
+  document.querySelectorAll(".occ-prev").forEach(function (b) {
+    b.addEventListener("click", function () { anteprimaOccasione(b.dataset.id); });
   });
 }
 
-async function pubblicaOccasione(id) {
-  const r = await supa().from("viaggi_occasioni")
-    .select("*, viaggi_rotte(nome,modello_viaggio_id)").eq("id", id).single();
-  if (r.error) return alert("Non trovo l'occasione: " + r.error.message);
+// Anteprima dell'itinerario: si genera con Claude, si legge, e solo dopo si pubblica.
+// Il viaggio non esiste finche' non si preme il pulsante verde in fondo.
+async function anteprimaOccasione(id) {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
 
+  const r = await supa().from("viaggi_occasioni")
+    .select("*, viaggi_rotte(nome,origine_iata,destinazione_iata,zona)").eq("id", id).single();
+  if (r.error) return alert("Non trovo l'occasione: " + r.error.message);
   const o = r.data;
   const rotta = o.viaggi_rotte || {};
-  if (!rotta.modello_viaggio_id) {
-    return alert("Questa rotta non ha un itinerario di riferimento.\n"
-      + "Aprine uno dal Catalogo e collegalo alla rotta, poi si potra pubblicare in un clic.");
+
+  if (!o.bozza) {
+    box.innerHTML = '<div style="padding:40px;text-align:center;color:#64748b;">'
+      + "Sto costruendo l'itinerario per " + escapeHtml(rotta.nome || "") + ".<br>"
+      + '<span style="font-size:13px;">Cerco hotel e ristoranti veri: ci vuole un minuto.</span></div>';
+    try {
+      const g = await supa().functions.invoke("viaggi-bozza-itinerario", { body: { occasione_id: id } });
+      const d = g.data || {};
+      if (d.ok === false) {
+        box.innerHTML = '<div style="padding:30px;color:#991b1b;">Non e riuscita: '
+          + escapeHtml(d.errore || "errore") + "</div>";
+        return;
+      }
+      o.bozza = d.bozza;
+    } catch (e) {
+      box.innerHTML = '<div style="padding:30px;color:#991b1b;">Errore: ' + escapeHtml(e.message || String(e)) + "</div>";
+      return;
+    }
   }
 
-  const prezzo = prompt(
-    "Prezzo di vendita a persona.\n\nCosto vivo: " + euro(o.costo_vivo)
-    + "\nSuggerito: " + euro(o.prezzo_suggerito) + " (+" + Math.round(Number(o.margine_perc || 0)) + "%)",
-    String(Math.round(Number(o.prezzo_suggerito || 0)))
-  );
-  if (prezzo === null) return;
+  const b = o.bozza || {};
+  const tappe = b.tappe || [];
 
-  const p = Number(String(prezzo).replace(",", "."));
-  if (!(p > 0)) return alert("Prezzo non valido.");
+  let h = '<div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">'
+    + '<button id="ant-indietro" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;">← Occasioni</button>'
+    + '<button id="ant-rifai" style="background:#fff;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:8px 14px;cursor:pointer;">Rifai l\'itinerario</button>'
+    + "</div>";
 
-  const titolo = prompt("Titolo del viaggio", rotta.nome + " — " + data(o.data_partenza));
-  if (!titolo) return;
+  h += '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:18px;background:#fff;margin-bottom:16px;">'
+    + '<div style="color:#64748b;font-size:13px;letter-spacing:.06em;text-transform:uppercase;">'
+    + escapeHtml(rotta.nome || "") + " · " + data(o.data_partenza) + " → " + data(o.data_rientro) + "</div>"
+    + '<h2 style="margin:6px 0 2px;font-size:26px;">' + escapeHtml(b.titolo || "Senza titolo") + "</h2>"
+    + '<div style="color:#64748b;">' + escapeHtml(b.sottotitolo || "") + "</div>"
+    + '<p style="margin:12px 0 0;">' + escapeHtml(b.descrizione || "") + "</p>"
+    + "</div>";
 
-  const slug = titolo.toLowerCase()
-    .replace(/[àáâä]/g, "a").replace(/[èéêë]/g, "e").replace(/[ìíîï]/g, "i")
-    .replace(/[òóôö]/g, "o").replace(/[ùúûü]/g, "u")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + String(o.data_partenza).slice(0, 7);
+  h += '<div class="av-num" style="margin-bottom:16px;">'
+    + "<div><b>" + euro(o.costo_vivo) + "</b><span>Costo vivo</span></div>"
+    + "<div><b>" + euro(o.prezzo_suggerito) + "</b><span>Suggerito</span></div>"
+    + "<div><b>" + euro(Number(o.prezzo_suggerito || 0) - Number(o.costo_vivo || 0)) + "</b><span>Margine a persona</span></div>"
+    + "<div><b>" + tappe.length + "</b><span>Giorni</span></div>"
+    + "</div>";
 
-  const cl = await supa().rpc("viaggio_clona", {
-    p_origine: rotta.modello_viaggio_id,
-    p_azienda: aziendaId(),
-    p_slug: slug,
-    p_titolo: titolo
+  tappe.forEach(function (t) {
+    const pasti = t.pasti || [];
+    h += '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;background:#fff;margin-bottom:10px;">'
+      + '<div style="display:flex;gap:12px;align-items:baseline;">'
+      + '<div style="font-size:22px;font-weight:800;color:#0E5A7A;min-width:34px;">' + (t.giorno || "") + "</div>"
+      + "<div style=\"flex:1;\"><b style=\"font-size:17px;\">" + escapeHtml(t.titolo || "") + "</b>"
+      + '<div style="color:#64748b;font-size:13px;">' + escapeHtml(t.citta || "")
+      + (Number(t.km) > 0 ? " · " + t.km + " km" : "") + "</div></div></div>"
+      + '<p style="margin:10px 0 0;color:#334155;">' + escapeHtml(t.descrizione || "") + "</p>";
+
+    if (t.alloggio) {
+      h += '<div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;border-left:4px solid #0E5A7A;">'
+        + "<b>Dove si dorme:</b> " + escapeHtml(t.alloggio)
+        + (t.alloggio_indirizzo ? '<div style="color:#64748b;font-size:13px;">' + escapeHtml(t.alloggio_indirizzo) + "</div>" : "")
+        + (t.alloggio_note ? '<div style="color:#64748b;font-size:13px;">' + escapeHtml(t.alloggio_note) + "</div>" : "")
+        + "</div>";
+    }
+
+    pasti.forEach(function (p) {
+      h += '<div style="margin-top:8px;padding:10px;background:#fffdf7;border-radius:8px;border-left:4px solid #d97706;">'
+        + '<span style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.05em;">'
+        + escapeHtml(p.momento || "") + "</span> "
+        + "<b>" + escapeHtml(p.locale || "da decidere") + "</b>"
+        + (p.piatto ? '<div style="font-size:14px;">' + escapeHtml(p.piatto) + "</div>" : "")
+        + (p.note ? '<div style="color:#64748b;font-size:12px;">' + escapeHtml(p.note) + "</div>" : "")
+        + (p.spesa ? '<div style="color:#64748b;font-size:12px;">circa ' + euro(p.spesa) + " a testa</div>" : "")
+        + "</div>";
+    });
+
+    h += "</div>";
   });
-  if (cl.error) return alert("Copia non riuscita: " + cl.error.message);
 
-  const nuovoId = cl.data;
-  const giorni = Number(o.notti || 7) + 1;
+  h += '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:18px;background:#fff;margin-top:16px;">'
+    + '<label style="display:block;font-weight:700;margin-bottom:6px;">Prezzo di vendita a persona</label>'
+    + '<input id="ant-prezzo" type="number" value="' + Math.round(Number(o.prezzo_suggerito || 0)) + '" '
+    + 'style="border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font-size:18px;width:160px;">'
+    + '<div style="color:#64748b;font-size:13px;margin:6px 0 14px;">Costo vivo ' + euro(o.costo_vivo)
+    + ". Quello che metti sopra e il tuo margine.</div>"
+    + '<button id="ant-pubblica" style="background:#16a34a;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:700;font-size:16px;cursor:pointer;">Pubblica questo viaggio</button>'
+    + '<div style="color:#64748b;font-size:12px;margin-top:8px;">Nasce in bozza e non pubblico: si rilegge nel Catalogo prima di mandarlo online.</div>'
+    + "</div>";
 
-  const up = await supa().from("viaggi").update({
-    data_inizio: o.data_partenza,
-    data_fine: o.data_rientro,
-    stato: "bozza",
-    pubblico: false,
-    quota_posto: p,
-    quota_camper: p * 2
-  }).eq("id", nuovoId);
-  if (up.error) return alert("Date e prezzo non salvati: " + up.error.message);
+  box.innerHTML = h;
 
-  await supa().from("viaggi_occasioni")
-    .update({ stato: "pubblicata", viaggio_id: nuovoId }).eq("id", id);
+  const bi = document.getElementById("ant-indietro");
+  if (bi) bi.addEventListener("click", renderOccasioni);
 
-  alert("Fatto. Il viaggio e in bozza nel Catalogo: controlla le date delle tappe, "
-    + "poi mettilo pubblico.\n\nGiorni previsti: " + giorni);
+  const br = document.getElementById("ant-rifai");
+  if (br) br.addEventListener("click", async function () {
+    if (!confirm("Rifaccio l'itinerario da capo?")) return;
+    br.disabled = true;
+    br.textContent = "Rifaccio...";
+    await supa().functions.invoke("viaggi-bozza-itinerario", { body: { occasione_id: id, rifai: true } });
+    await anteprimaOccasione(id);
+  });
 
-  await caricaViaggi();
-  tabAttiva = "catalogo";
-  disegnaTabs();
-  renderCatalogo();
+  const bp = document.getElementById("ant-pubblica");
+  if (bp) bp.addEventListener("click", async function () {
+    const campo = document.getElementById("ant-prezzo");
+    const p = Number(campo ? campo.value : 0);
+    if (!(p > 0)) return alert("Metti un prezzo valido.");
+
+    bp.disabled = true;
+    bp.textContent = "Pubblico...";
+    const res = await supa().rpc("occasione_pubblica", { p_occasione: id, p_prezzo: p });
+    if (res.error) {
+      bp.disabled = false;
+      bp.textContent = "Pubblica questo viaggio";
+      return alert("Non pubblicato: " + res.error.message);
+    }
+    const d = res.data || {};
+    if (d.ok === false) {
+      bp.disabled = false;
+      bp.textContent = "Pubblica questo viaggio";
+      return alert(d.errore || "Non pubblicato.");
+    }
+    alert("Fatto: " + d.tappe + " giornate e " + d.pasti + " pasti.\n\n"
+      + "Il viaggio e nel Catalogo in bozza. Controllalo e poi mettilo pubblico.");
+    await renderOccasioni();
+  });
 }
 
 async function renderRotte() {
