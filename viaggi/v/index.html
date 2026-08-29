@@ -261,6 +261,12 @@
   function disegnaContoPasti() {
     var box = document.getElementById("conto-pasti");
     if (!box) return;
+    if (dati.viaggio && dati.viaggio.mostra_costi_pasti === false) {
+      var sez = box.previousElementSibling;
+      if (sez && sez.tagName === "H2") sez.remove();
+      box.remove();
+      return;
+    }
 
     var fuori = 0, bordo = 0, nFuori = 0, nBordo = 0;
     var minFuori = null, maxFuori = null;
@@ -557,8 +563,9 @@
         var idFoto = "pf-" + t.giorno + "-" + i;
 
         pasti += '<div class="pasto-box ' + p.dove + '">';
+        var mostraSpesa = !(dati.viaggio && dati.viaggio.mostra_costi_pasti === false);
         pasti += '<p class="pasto-testa">' + MOMENTI[p.momento] + " \u00b7 " + dove
-              + (p.spesa ? " \u00b7 " + (p.dove === "camper" ? "spesa " : "")
+              + (mostraSpesa && p.spesa ? " \u00b7 " + (p.dove === "camper" ? "spesa " : "")
                  + "circa " + Math.round(Number(p.spesa)) + " $ a testa" : "") + "</p>";
 
         if (p.locale) {
