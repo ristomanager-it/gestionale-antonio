@@ -28,10 +28,16 @@
        background:var(--salvia);color:#fff;padding:3px 9px;border-radius:3px}
   .tag.chiuse{background:var(--tenue)}
   .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:36px;text-align:center;color:var(--tenue)}
+  .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);border-bottom:2px solid var(--riga);
+             padding:12px 18px;max-width:860px;margin:0 auto}
+  .barra-top a{text-decoration:none;font-size:16px;font-weight:700;color:var(--rosso)}
   @media(max-width:520px){h1{font-size:32px}.sotto{font-size:18px}}
 </style>
 </head>
 <body>
+<div class="barra-top">
+  <a href="#" id="indietro">← Indietro</a>
+</div>
 <div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico i viaggi...</p></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -55,6 +61,15 @@
 
   var AZIENDA = new URLSearchParams(location.search).get("a") || "a43d41b5-f4ac-494f-8144-6574347a754f";
   var app = document.getElementById("app");
+
+  // Torna da dove si e arrivati; se la pagina e stata aperta da un link diretto
+  // non c'e storia da percorrere e si va alla home.
+  var indietro = document.getElementById("indietro");
+  if (indietro) indietro.addEventListener("click", function (e) {
+    e.preventDefault();
+    if (history.length > 1) history.back();
+    else location.href = "https://app.ristoflow-ai.com/";
+  });
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
