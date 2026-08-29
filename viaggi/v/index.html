@@ -212,8 +212,10 @@
       .then(function (e) { mostra(img, e); });
   }
 
-  // Quanto costa a testa: dipende da quanti si dividono il camper.
+  // Due modi di partecipare: il camper tutto per se, oppure un posto in
+  // camper condiviso. Il numero di persone cambia solo il conto del primo.
   var personeCamper = 4;
+  var opzione = "camper_intero";
 
   function disegnaCalcolatore() {
     var box = document.getElementById("calcolatore");
@@ -221,71 +223,92 @@
     var v = dati.viaggio;
     var b = dati.budget || [];
 
-    function somma(unita, campo) {
-      var t = 0;
-      b.forEach(function (x) { if (x.unita === unita) t += Number(x[campo] || 0); });
-      return t;
-    }
-
     function sommaQ(unita, campo, quando) {
       var t = 0;
       b.forEach(function (x) { if (x.unita === unita && x.quando === quando) t += Number(x[campo] || 0); });
       return t;
     }
 
-    var n = personeCamper;
-    var quota = Number(v.quota_camper || 0);
+    var quotaCamper = Number(v.quota_camper || 0);
+    var quotaPosto  = Number(v.quota_posto || 0);
+    var maxCamper   = Number(v.posti_per_mezzo || 5);
+    var maxCondiviso = Number(v.posti_condivisi_max || 6);
 
-    // Un prezzo solo, non una forbice: si prende il valore alto, che e gia
-    // quello prudente. Il minimo resta nel gestionale per i conti interni.
-    var primaC = sommaQ("camper", "max", "prima");
     var primaP = sommaQ("persona", "max", "prima");
-    var viagC  = sommaQ("camper", "max", "in_viaggio");
     var viagP  = sommaQ("persona", "max", "in_viaggio");
+    var primaC = sommaQ("camper", "max", "prima");
+    var viagC  = sommaQ("camper", "max", "in_viaggio");
 
-    var primaTesta = primaC / n + primaP;
-    var viagTesta  = viagC / n + viagP;
-    var tuttoTesta = primaTesta + viagTesta;
+    var intero = v.ammette_camper_intero !== false;
+    var condiviso = v.ammette_posto_condiviso !== false;
+    if (!intero) opzione = "posto_condiviso";
+    if (!condiviso) opzione = "camper_intero";
 
     var h = '<div class="calc">';
-    h += "<p><b>In quanti dividete il camper?</b></p><div class=\"scelte-n\">";
-    [3, 4, 5].forEach(function (k) {
-      h += '<button class="n-btn' + (k === n ? " on" : "") + '" data-n="' + k + '">' + k + " persone</button>";
-    });
-    h += "</div>";
+    h += "<p><b>Come volete viaggiare?</b></p>";
 
-    h += '<div class="numeri" style="margin-top:16px;">'
-      + "<div><b>" + euro(primaTesta) + "</b><span>Prima di partire</span></div>"
-      + "<div><b>" + euro(viagTesta) + "</b><span>Da spendere lì</span></div>"
-      + "<div><b>" + euro(tuttoTesta) + "</b><span>In tutto, a testa</span></div>"
-      + "</div>";
-
-    h += '<p class="credito">Il primo numero si paga prima di partire: volo, camper, assicurazione. Il secondo si spende strada facendo: benzina, soste, pedaggi, ingressi. Quello che mangiate non è conteggiato: al supermercato o al ristorante, decidete voi quanto spendere.</p>';
-
-    function blocco(titolo, quando, camperTot, persTot) {
-      var t = '<h3 style="font-size:19px;margin:26px 0 2px;">' + titolo + "</h3>";
-      t += "<table><tr><th>Voce</th><th class=\"num\">Costo</th></tr>";
-      b.forEach(function (x) {
-        if (x.quando !== quando) return;
-        t += "<tr><td><b>" + esc(x.voce) + "</b>"
-           + '<div style="color:#5B6672;font-size:14px;">'
-           + (x.unita === "camper" ? "per camper" : "a persona")
-           + (x.dettaglio ? " · " + esc(x.dettaglio) : "") + "</div>"
-           + '</td><td class="num">' + euro(x.max) + "</td></tr>";
-      });
-      t += '<tr><td><b>A testa, in ' + n + '</b></td><td class="num"><b>'
-         + euro(camperTot / n + persTot) + "</b></td></tr></table>";
-      return t;
+    if (intero) {
+      h += '<label class="scelta' + (opzione === "camper_intero" ? " on" : "") + '">'
+        + '<input type="radio" name="opz" value="camper_intero"' + (opzione === "camper_intero" ? " checked" : "") + ">"
+        + "<h4>Un camper tutto vostro</h4>"
+        + "<p>Famiglia o gruppo di amici, fino a " + maxCamper + " persone. "
+        + euro(quotaCamper) + " per il mezzo, da dividere fra voi.</p></label>";
+    }
+    if (condiviso) {
+      h += '<label class="scelta' + (opzione === "posto_condiviso" ? " on" : "") + '">'
+        + '<input type="radio" name="opz" value="posto_condiviso"' + (opzione === "posto_condiviso" ? " checked" : "") + ">"
+        + "<h4>Un posto in camper condiviso</h4>"
+        + "<p>Da soli o in due, insieme ad altri del gruppo. " + euro(quotaPosto)
+        + " a testa, fino a " + maxCondiviso + " a bordo.</p></label>";
     }
 
-    h += blocco("Prima di partire", "prima", primaC, primaP);
-    h += blocco("Durante il viaggio", "in_viaggio", viagC, viagP);
+    if (opzione === "camper_intero") {
+      h += '<p style="margin-top:18px;"><b>In quanti siete?</b></p><div class="scelte-n">';
+      [2, 3, 4, 5].forEach(function (k) {
+        if (k > maxCamper) return;
+        h += '<button class="n-btn' + (k === personeCamper ? " on" : "") + '" data-n="' + k + '">' + k + "</button>";
+      });
+      h += "</div>";
+    }
+
+    var n = personeCamper;
+    var quotaTesta = opzione === "camper_intero" ? quotaCamper / n : quotaPosto;
+    var mezzoInViaggio = opzione === "camper_intero" ? viagC / n : viagC / maxCondiviso;
+    var mezzoPrima = opzione === "camper_intero" ? primaC / n : primaC / maxCondiviso;
+
+    var primaTesta = mezzoPrima + primaP;
+    var viagTesta = mezzoInViaggio + viagP;
+
+    h += '<div class="numeri" style="margin-top:18px;">'
+      + "<div><b>" + euro(quotaTesta) + "</b><span>Quota a testa</span></div>"
+      + "<div><b>" + euro(primaTesta + viagTesta) + "</b><span>Tutto compreso, a testa</span></div>"
+      + "</div>";
+
+    h += '<p class="credito">La quota è quello che serve per il camper. '
+      + "L'altro numero comprende anche il volo e i biglietti dei parchi. "
+      + "Quello che mangiate non è conteggiato: decidete voi quanto spendere.</p>";
 
     h += '<h3 style="font-size:19px;margin:26px 0 2px;">Il camper, tutto compreso</h3>';
-    h += "<p><b>" + euro(quota) + "</b> a camper, cioè <b>" + euro(quota / n) + "</b> a testa se siete in " + n
-       + ". Dentro c'è tutto quello che il mezzo si porta dietro per tre settimane: noleggio, coperture, "
-       + "carburante, soste notturne, pedaggi e parcheggi. Nessun conto a sorpresa alla riconsegna.</p>";
-    h += "<p>Fuori restano il volo, quello che mangiate e i biglietti dei parchi.</p>";
+    h += "<p><b>" + euro(quotaCamper) + "</b> a mezzo: noleggio, coperture, carburante, "
+      + "soste notturne, pedaggi e parcheggi. Nessun conto a sorpresa alla riconsegna.</p>";
+    h += "<table><tr><th>Voce</th><th class=\"num\">Costo</th></tr>";
+    b.forEach(function (x) {
+      if (x.unita !== "camper") return;
+      h += "<tr><td><b>" + esc(x.voce) + "</b>"
+         + (x.dettaglio ? '<div style="color:#5B6672;font-size:14px;">' + esc(x.dettaglio) + "</div>" : "")
+         + '</td><td class="num">' + euro(x.max) + "</td></tr>";
+    });
+    h += "</table>";
+
+    h += '<h3 style="font-size:19px;margin:26px 0 2px;">Quello che paga ognuno, oltre alla quota</h3>';
+    h += "<table><tr><th>Voce</th><th class=\"num\">Costo</th></tr>";
+    b.forEach(function (x) {
+      if (x.unita !== "persona") return;
+      h += "<tr><td><b>" + esc(x.voce) + "</b>"
+         + (x.dettaglio ? '<div style="color:#5B6672;font-size:14px;">' + esc(x.dettaglio) + "</div>" : "")
+         + '</td><td class="num">' + euro(x.max) + "</td></tr>";
+    });
+    h += '<tr><td><b>In tutto</b></td><td class="num"><b>' + euro(primaP + viagP) + "</b></td></tr></table>";
 
     h += "</div>";
     box.innerHTML = h;
@@ -296,240 +319,30 @@
         disegnaCalcolatore();
       });
     });
-  }
-
-  function disegna() {
-    var v = dati.viaggio, tappe = dati.tappe || [];
-    var km = 0, stati = {};
-    tappe.forEach(function (t) { km += Number(t.km || 0); if (t.stato_usa) stati[t.stato_usa] = 1; });
-
-    var h = "";
-    h += '<p class="occhiello">Dal ' + esc(dataIt(v.data_inizio)) + " al " + esc(dataIt(v.data_fine)) + "</p>";
-    h += "<h1>" + esc(v.titolo) + "</h1>";
-    h += '<p class="sotto">' + esc(v.sottotitolo || "") + "</p>";
-
-    h += '<div class="numeri">'
-      + "<div><b>" + tappe.length + "</b><span>Giorni</span></div>"
-      + "<div><b>" + (v.km_totali || km).toLocaleString("it-IT") + "</b><span>Chilometri</span></div>"
-      + "<div><b>" + (v.stati_attraversati || Object.keys(stati).length) + "</b><span>Stati</span></div>"
-      + "<div><b>" + (v.notti_hotel || 0) + "</b><span>Notti in hotel</span></div>"
-      + "</div>";
-
-    if (v.descrizione) h += "<p>" + esc(v.descrizione) + "</p>";
-
-    h += "<h2>Il percorso</h2><div id=\"mappa\"></div>";
-    h += '<p class="credito">Rosso: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
-
-    if ((dati.budget || []).length) {
-      h += "<h2>Quanto costa</h2>";
-      if (v.cosa_include) h += "<p>" + esc(v.cosa_include) + "</p>";
-      h += '<div id="calcolatore"></div>';
-    }
-
-    if ((dati.mezzi || []).length) {
-      // I mezzi sono identici: si descrive il camper una volta sola e si dice quanti sono.
-      var gruppi = {};
-      dati.mezzi.forEach(function (m) {
-        var k = (m.modello || m.nome) + "|" + (m.posti_max || "");
-        if (!gruppi[k]) gruppi[k] = { m: m, n: 0, liberi: 0 };
-        gruppi[k].n += 1;
-        if (m.stato === "libero") gruppi[k].liberi += 1;
-      });
-
-      h += "<h2>Il camper</h2>";
-      Object.keys(gruppi).forEach(function (k, gi) {
-        var g = gruppi[k], m = g.m;
-        h += '<div class="calc">';
-        h += "<h3>" + esc(m.modello || m.nome) + "</h3>";
-        h += "<p>" + (g.n > 1 ? "Ne abbiamo <b>" + g.n + "</b>, identici. " : "")
-           + "Fino a <b>" + (m.posti_max || "") + "</b> persone per mezzo"
-           + (m.posti_letto ? ", " + m.posti_letto + " posti letto" : "") + ".</p>";
-        if (m.note) h += "<p>" + esc(m.note) + "</p>";
-
-        var foto = m.foto || [];
-        if (foto.length) {
-          h += '<div class="slide"><div class="slide-pista">';
-          foto.forEach(function (f) {
-            h += "<figure><img src=\"" + esc(f.url) + '" alt="' + esc(f.didascalia || m.modello || "camper") + '">'
-               + (f.didascalia ? "<figcaption>" + esc(f.didascalia) + "</figcaption>" : "") + "</figure>";
-          });
-          h += "</div>";
-          if (foto.length > 1) {
-            h += '<div class="slide-frecce"><button data-dir="-1" aria-label="Foto precedente">&lsaquo;</button>'
-               + '<button data-dir="1" aria-label="Foto successiva">&rsaquo;</button></div>';
-            h += '<div class="slide-punti">';
-            foto.forEach(function (f, i) { h += "<i" + (i === 0 ? ' class="on"' : "") + "></i>"; });
-            h += "</div>";
-          }
-          h += "</div>";
-        }
-
-        h += "<p><b>" + g.liberi + "</b> " + (g.liberi === 1 ? "ancora libero" : "ancora liberi") + ".</p>";
-        h += "</div>";
-      });
-    }
-
-    h += "<h2>Giorno per giorno</h2><div id=\"programma\"></div>";
-
-    if ((dati.scadenze || []).length) {
-      h += "<h2>Cosa va prenotato e quando</h2><table><tr><th>Cosa</th><th>Entro</th><th>Fatto</th></tr>";
-      dati.scadenze.forEach(function (s) {
-        h += "<tr><td><b>" + esc(s.titolo) + "</b>"
-           + (s.descrizione ? '<div style="color:#5B6672;font-size:14px;">' + esc(s.descrizione) + "</div>" : "")
-           + "</td><td>" + esc(mesePiu(s.mese)) + "</td><td>" + (s.completato ? "Sì" : "—") + "</td></tr>";
-      });
-      h += "</table>";
-    }
-
-    h += modulo(v);
-    h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--rosso);font-weight:700;text-decoration:none;font-size:18px;">&larr; Torna a tutti i viaggi</a></p>';
-
-    app.innerHTML = h;
-
-    disegnaCalcolatore();
-    attivaSlide();
-    disegnaProgramma(tappe);
-    disegnaMappa(tappe);
-    agganciaModulo();
-
-    var su = document.getElementById("torna-su");
-    if (su) su.addEventListener("click", function (e) {
-      e.preventDefault();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  }
-
-  // Scorrimento a slide: la pista scorre col dito, frecce e punti servono da computer.
-  function attivaSlide() {
-    document.querySelectorAll(".slide").forEach(function (box) {
-      var pista = box.querySelector(".slide-pista");
-      var punti = box.querySelectorAll(".slide-punti i");
-      if (!pista) return;
-
-      box.querySelectorAll(".slide-frecce button").forEach(function (b) {
-        b.addEventListener("click", function () {
-          pista.scrollBy({ left: Number(b.dataset.dir) * pista.clientWidth, behavior: "smooth" });
-        });
-      });
-
-      pista.addEventListener("scroll", function () {
-        if (!punti.length) return;
-        var i = Math.round(pista.scrollLeft / pista.clientWidth);
-        punti.forEach(function (p, k) { p.className = k === i ? "on" : ""; });
+    box.querySelectorAll('input[name="opz"]').forEach(function (r) {
+      r.addEventListener("change", function () {
+        opzione = r.value;
+        disegnaCalcolatore();
+        var f = document.getElementById("f-opzione");
+        if (f) f.value = opzione;
       });
     });
-  }
-
-  function disegnaProgramma(tappe) {
-    var box = document.getElementById("programma");
-    if (!box) return;
-
-    tappe.forEach(function (t) {
-      var d = document.createElement("div");
-      d.className = "giorno" + (t.tipo === "fermi" ? " fermo" : "");
-      var testa = '<p class="occhiello">' + esc(dataIt(t.data)) + (t.stato_usa ? " · " + esc(t.stato_usa) : "")
-        + (Number(t.km) > 0 ? " · " + t.km + " km" : "")
-        + (t.tipo === "fermi" ? ' · <span class="tag">Giornata ferma</span>' : "")
-        + (t.tipo === "volo" ? ' · <span class="tag r">Volo</span>' : "") + "</p>";
-
-      var pasti = "";
-      (t.pasti || []).forEach(function (p, i) {
-        var dove = p.dove === "camper" ? "In camper" : (p.dove === "fuori" ? "Fuori" : "A scelta");
-        var idFoto = "pf-" + t.giorno + "-" + i;
-
-        pasti += '<div class="pasto-box ' + p.dove + '">';
-        pasti += '<p class="pasto-testa">' + MOMENTI[p.momento] + " · " + dove
-              + (p.spesa ? " · circa " + Math.round(Number(p.spesa)) + " $ a testa" : "") + "</p>";
-
-        if (p.locale) {
-          pasti += "<h4>" + esc(p.locale) + "</h4>";
-          if (p.piatto) pasti += "<p><b>Da prendere:</b> " + esc(p.piatto) + "</p>";
-          if (p.foto_piatto_url || p.foto_piatto_wiki)
-            pasti += '<img class="piatto-foto" id="' + idFoto + '" alt="' + esc(p.piatto || p.locale) + '">';
-          if (p.indirizzo || p.citta)
-            pasti += "<p>" + esc([p.indirizzo, p.citta].filter(Boolean).join(", ")) + "</p>";
-          if (p.note) pasti += "<p>" + esc(p.note) + "</p>";
-          if (p.prenotare) pasti += '<p><span class="tag r">Va prenotato</span></p>';
-
-          pasti += '<div class="azioni">';
-          if (p.mappa) pasti += '<a class="mappa" href="' + esc(p.mappa) + '" target="_blank" rel="noopener">Apri sulla mappa</a>';
-          if (p.telefono) pasti += '<a href="tel:' + esc(String(p.telefono).replace(/\s/g, "")) + '">Chiama</a>';
-          if (p.sito) pasti += '<a href="' + esc(p.sito) + '" target="_blank" rel="noopener">Sito</a>';
-          pasti += "</div>";
-        } else {
-          pasti += "<h4>" + esc(p.ricetta || "Da decidere") + "</h4>";
-          if (p.note) pasti += "<p>" + esc(p.note) + "</p>";
-        }
-        pasti += "</div>";
-      });
-
-      d.innerHTML = '<div class="n">' + t.giorno + "</div><div style=\"flex:1;min-width:0;\">"
-        + testa + "<h3>" + esc(t.titolo) + "</h3>"
-        + '<img class="foto" alt="' + esc(t.titolo) + '">'
-        + (t.descrizione ? "<p>" + esc(t.descrizione) + "</p>" : "")
-        + (pasti ? '<div class="pasti">' + pasti + "</div>" : "")
-        + "</div>";
-      box.appendChild(d);
-
-      var img = d.querySelector("img.foto");
-      if (t.foto_url) {
-        img.onerror = function () { fotoDaWiki(t.foto_wiki, img, t.titolo); };
-        img.src = t.foto_url;
-      } else {
-        fotoDaWiki(t.foto_wiki, img, t.titolo + " Route 66");
-      }
-
-      (t.pasti || []).forEach(function (p, i) {
-        var el = document.getElementById("pf-" + t.giorno + "-" + i);
-        if (!el) return;
-        if (p.foto_piatto_url) { el.src = p.foto_piatto_url; return; }
-        fotoDaWiki(p.foto_piatto_wiki, el, (p.piatto || "") + " food");
-      });
-    });
-  }
-
-  function disegnaMappa(tappe) {
-    var punti = tappe.filter(function (t) { return t.lat && t.lng; });
-    var box = document.getElementById("mappa");
-    if (!box) return;
-    if (!punti.length) { box.remove(); return; }
-
-    var mappa = L.map("mappa", { scrollWheelZoom: false });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap", maxZoom: 18
-    }).addTo(mappa);
-
-    var linea = [];
-    punti.forEach(function (t) {
-      var ll = [Number(t.lat), Number(t.lng)];
-      linea.push(ll);
-      L.circleMarker(ll, {
-        radius: 9, color: "#fff", weight: 2,
-        fillColor: COLORI[t.tipo] || "#D0342C", fillOpacity: 1
-      }).addTo(mappa).bindPopup(
-        "<b>Giorno " + t.giorno + " — " + esc(t.titolo) + "</b><br>"
-        + (Number(t.km) > 0 ? t.km + " km<br>" : "")
-        + (t.descrizione ? esc(t.descrizione) : "")
-      );
-    });
-
-    L.polyline(linea, { color: "#D0342C", weight: 3, opacity: .8 }).addTo(mappa);
-    mappa.fitBounds(L.latLngBounds(linea), { padding: [30, 30] });
-    setTimeout(function () { mappa.invalidateSize(); }, 200);
   }
 
   function modulo(v) {
     if (!v.adesioni_aperte) {
       return "<h2>Adesioni</h2><p>Le adesioni per questo viaggio sono chiuse.</p>";
     }
-    var quota = v.modalita_prezzo === "camper" ? v.quota_camper : v.quota_adulto;
-    var testoQuota = v.modalita_prezzo === "camper"
-      ? euro(quota) + " a camper, fino a " + v.posti_per_mezzo + " persone"
-      : euro(quota) + " a persona";
-
     var h = "<h2>Vieni con noi</h2>";
-    h += "<p><b>" + testoQuota + ".</b> Acconto " + (v.acconto_percentuale || 30) + "%, saldo "
+    h += "<p>Acconto " + (v.acconto_percentuale || 30) + "%, saldo "
        + (v.saldo_entro_giorni || 30) + " giorni prima della partenza.</p>";
+
+    h += '<label for="f-opzione">Come viaggiate</label><select id="f-opzione">';
+    if (v.ammette_camper_intero !== false)
+      h += '<option value="camper_intero">Un camper tutto nostro — ' + euro(v.quota_camper) + "</option>";
+    if (v.ammette_posto_condiviso !== false)
+      h += '<option value="posto_condiviso">Un posto in camper condiviso — ' + euro(v.quota_posto) + " a testa</option>";
+    h += "</select>";
     h += '<div class="due"><div><label for="f-nome">Nome</label><input id="f-nome"></div>'
        + '<div><label for="f-cognome">Cognome</label><input id="f-cognome"></div></div>';
     h += '<label for="f-email">Email</label><input id="f-email" type="email">';
@@ -593,7 +406,8 @@
         p_email: val("f-email"), p_telefono: val("f-tel"), p_nucleo: val("f-nucleo"),
         p_adulti: Number(val("f-adulti") || 1), p_bambini: Number(val("f-bambini") || 0),
         p_modalita: sel ? sel.value : "acconto_saldo",
-        p_chi_paga: val("f-chipaga"), p_cadenza: Number(val("f-cadenza") || 1), p_note: null
+        p_chi_paga: val("f-chipaga"), p_cadenza: Number(val("f-cadenza") || 1), p_note: null,
+        p_tipo_posto: val("f-opzione") || "camper_intero"
       }).then(function (r) {
         b.disabled = false; b.textContent = "Invia l'adesione";
         if (r.error) { msg.className = "msg ko"; msg.textContent = r.error.message; return; }
