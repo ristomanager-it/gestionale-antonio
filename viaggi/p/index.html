@@ -166,6 +166,11 @@
     });
 
     var h = avviso();
+
+    // Cosa hanno comprato, non solo quanto devono pagare.
+    if (d.viaggio.copertina || d.viaggio.copertina_wiki) {
+      h += '<img class="copertina" id="cop" alt="' + esc(d.viaggio.titolo) + '">';
+    }
     h += '<p class="occhiello">' + esc(d.viaggio.titolo) + "</p>";
     h += "<h1>" + esc(d.nucleo || d.referente) + "</h1>";
     h += '<p style="color:#5B6672;margin-top:0;">' + d.persone + (d.persone === 1 ? " persona" : " persone")
@@ -181,6 +186,52 @@
     h += '<p style="color:#5B6672;font-size:16px;">' + perc + "% della quota."
        + (prossima ? " Prossimo versamento: " + euro(prossima.importo) + " entro il " + dataIt(prossima.scadenza) + "." : " Nessuna scadenza aperta.")
        + "</p>";
+
+    var v = d.viaggio || {};
+    h += '<div class="scheda">'
+      + "<h2 style=\"margin-top:0;\">Il vostro pacchetto</h2>"
+      + '<p class="periodo">' + dataIt(v.dal) + " – " + dataIt(v.al)
+      + (v.giorni ? " · " + v.giorni + " giorni" : "") + "</p>"
+      + (v.descrizione ? "<p>" + esc(v.descrizione) + "</p>" : "")
+      + "</div>";
+
+    var incluso = d.incluso || [];
+    if (incluso.length) {
+      h += "<h2>Cosa comprende</h2><ul class=\"incluso\">";
+      incluso.forEach(function (r) { h += "<li>" + esc(r) + "</li>"; });
+      h += "</ul>";
+    }
+
+    var confermati = d.confermati || [];
+    var daFare = d.da_confermare || [];
+    if (confermati.length || daFare.length) {
+      h += "<h2>A che punto siamo</h2>";
+      confermati.forEach(function (x) {
+        h += '<div class="riga fatto"><b>' + esc(x.cosa) + "</b>"
+          + '<span class="ok">Confermato'
+          + (x.riferimento ? " · " + esc(x.riferimento) : "") + "</span></div>";
+      });
+      daFare.forEach(function (x) {
+        h += '<div class="riga"><b>' + esc(x.cosa) + "</b>"
+          + '<span class="attesa">Da confermare</span></div>';
+      });
+      h += '<p class="nota">Ci occupiamo noi di prenotare tutto. Vi avvisiamo appena '
+        + "ogni voce e confermata.</p>";
+    }
+
+    var prog = d.programma || [];
+    if (prog.length) {
+      h += "<h2>Il programma</h2><table><tr><th>Giorno</th><th>Dove</th><th>Si dorme</th></tr>";
+      prog.forEach(function (t) {
+        h += "<tr><td><b>" + t.giorno + "</b><div style=\"color:#5B6672;font-size:13px;\">"
+          + dataIt(t.data) + "</div></td>"
+          + "<td>" + esc(t.titolo) + "</td>"
+          + "<td>" + esc(t.alloggio || "—") + "</td></tr>";
+      });
+      h += "</table>";
+      h += '<p style="text-align:center;"><a href="../v/?s=' + esc(v.slug)
+        + '" style="color:var(--rosso);font-weight:700;">Vedi il programma completo →</a></p>';
+    }
 
     if (rate.length) {
       h += "<h2>Il piano</h2><table><tr><th>Voce</th><th>Scadenza</th><th class=\"num\">Importo</th><th>Stato</th></tr>";
@@ -222,6 +273,12 @@
     h += '<p style="font-size:15px;color:#5B6672;">Questo indirizzo è personale: chi ce l\'ha vede il vostro piano. Non giratelo fuori dal gruppo.</p>';
 
     app.innerHTML = h;
+
+    var cop = document.getElementById("cop");
+    if (cop) {
+      if (d.viaggio.copertina) cop.src = d.viaggio.copertina;
+      else cop.remove();
+    }
 
     var bRata = document.getElementById("paga-rata");
     if (bRata) bRata.addEventListener("click", function () {
