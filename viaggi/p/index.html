@@ -272,6 +272,15 @@
     h += '<div class="nota">Per cambiare il modo in cui pagate, scrivete agli organizzatori.</div>';
     h += '<p style="font-size:15px;color:#5B6672;">Questo indirizzo è personale: chi ce l\'ha vede il vostro piano. Non giratelo fuori dal gruppo.</p>';
 
+    h += '<div class="scheda" style="border-color:var(--accento);">'
+      + "<b style=\"font-size:18px;\">Lo spazio del gruppo</b>"
+      + "<p style=\"margin:6px 0 10px;\">Da lì si invitano gli altri partecipanti, ci si mette "
+      + "d'accordo prima di partire e si scrive il diario di bordo.</p>"
+      + '<a href="../gruppo/?t=' + esc(token) + '" '
+      + 'style="display:inline-block;background:var(--accento);color:#fff;text-decoration:none;'
+      + 'padding:12px 22px;border-radius:8px;font-weight:700;">Apri lo spazio del gruppo</a>'
+      + "</div>";
+
     h += '<div class="salva" id="salva">'
       + '<b>Tenete questa pagina a portata di mano</b>'
       + "<p>E la vostra prenotazione: da qui si paga e si vede a che punto siamo. "
