@@ -1,158 +1,240 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Il browser e GitHub Pages tenevano la pagina vecchia anche dopo il deploy. -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>I nostri viaggi</title>
+<title>Viaggi</title>
 <style>
-  :root{--carta:#FDFBF7;--inchiostro:#131A24;--accento:#12657F; --allarme:#B3261E;--salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
+  :root{--carta:#FDFBF7;--inchiostro:#131A24;--accento:#12657F;--allarme:#B3261E;
+        --salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672;--oro:#B8860B}
   *{box-sizing:border-box}
   html,body{overflow-x:hidden;max-width:100%}
-  a,td,th{overflow-wrap:anywhere;word-break:break-word}
-  table{table-layout:fixed;width:100%}
   body{margin:0;background:var(--carta);color:var(--inchiostro);
-       font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
-  .wrap{max-width:860px;margin:0 auto;padding:0 18px 80px}
-  h1{font-size:42px;line-height:1.05;margin:36px 0 6px;letter-spacing:-.02em}
-  .sotto{font-size:21px;color:var(--tenue);margin:0 0 30px}
-  .card{display:block;text-decoration:none;color:inherit;border:2px solid var(--riga);
-        border-radius:14px;overflow:hidden;background:#fff;margin:20px 0}
-  .card img{width:100%;display:block;background:#F1EDE6;min-height:140px}
-  .card .testo{padding:18px}
-  .card h2{font-size:26px;margin:0 0 4px;letter-spacing:-.01em}
-  .card p{margin:4px 0;color:var(--tenue);font-size:17px}
-  .riga{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
-  .prezzo{font-size:22px;font-weight:700;color:var(--accento)}
-  .tag{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
-       background:var(--salvia);color:#fff;padding:3px 9px;border-radius:3px}
-  .tag.chiuse{background:var(--tenue)}
-  .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:36px;text-align:center;color:var(--tenue)}
-  .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);border-bottom:2px solid var(--riga);
-             padding:12px 18px;max-width:860px;margin:0 auto}
-  .barra-top a{text-decoration:none;font-size:16px;font-weight:700;color:var(--accento)}
-  @media(max-width:520px){h1{font-size:32px}.sotto{font-size:18px}}
+       font:17px/1.6 Georgia,"Times New Roman",serif}
+  a{overflow-wrap:anywhere}
+  .wrap{max-width:940px;margin:0 auto;padding:0 18px 70px}
+
+  .testata{padding:44px 0 10px;text-align:center}
+  .testata h1{font-size:44px;line-height:1.05;margin:0 0 10px;letter-spacing:-.02em}
+  .testata p{color:var(--tenue);font-size:20px;margin:0 auto;max-width:560px}
+  .azioni-top{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 6px}
+  .azioni-top a{text-decoration:none;border-radius:8px;padding:13px 24px;font-weight:700;font-size:17px}
+  .primario{background:var(--accento);color:#fff}
+  .secondario{background:#fff;color:var(--accento);border:1px solid var(--accento)}
+
+  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--accento);
+     margin:46px 0 14px;padding-top:16px;border-top:2px solid var(--inchiostro)}
+  h2 .tutti{float:right;font-size:14px;letter-spacing:0;text-transform:none;font-weight:400}
+
+  .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+  .carta{border:2px solid var(--riga);border-radius:12px;background:#fff;overflow:hidden;
+         display:flex;flex-direction:column}
+  .carta img{width:100%;height:165px;object-fit:cover;display:none;background:#F1EDE6}
+  .carta img.c{display:block}
+  .carta .dentro{padding:14px;flex:1;display:flex;flex-direction:column}
+  .carta h3{margin:0 0 3px;font-size:21px;line-height:1.15}
+  .carta .dove{color:var(--tenue);font-size:14px;margin:0 0 8px}
+  .carta .prezzo{font-size:25px;font-weight:700;color:var(--accento);margin-top:auto}
+  .carta .prezzo span{font-size:14px;font-weight:400;color:var(--tenue)}
+  .carta a.vai{display:block;text-align:center;background:var(--accento);color:#fff;
+               text-decoration:none;padding:11px;border-radius:8px;font-weight:700;margin-top:10px}
+  .targa{display:inline-block;background:#EEF6F9;color:var(--accento);border-radius:20px;
+         padding:3px 11px;font-size:13px;margin-bottom:7px}
+  .targa.gruppo{background:#F1F7F3;color:#2E8B57}
+
+  .storia{border-left:5px solid var(--salvia);background:#fff;border:1px solid var(--riga);
+          border-left-width:5px;border-radius:10px;padding:15px;margin-bottom:11px}
+  .storia h3{margin:0 0 2px;font-size:20px}
+  .storia .chi{color:var(--tenue);font-size:14px;margin:0 0 8px}
+  .diretta{display:inline-block;background:#FDECEA;color:var(--allarme);border-radius:20px;
+           padding:2px 9px;font-size:12px;font-weight:700;margin-left:6px}
+
+  .giudizio{border:1px solid var(--riga);border-radius:10px;background:#fff;padding:14px;margin-bottom:10px}
+  .stelle{color:var(--oro);letter-spacing:2px}
+  .media{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .media b{font-size:34px;color:var(--oro)}
+
+  .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:30px;text-align:center;color:var(--tenue)}
+  .pie{margin-top:50px;padding-top:18px;border-top:1px solid var(--riga);
+       color:var(--tenue);font-size:15px;text-align:center}
+  @media(max-width:560px){ .testata h1{font-size:33px} .testata p{font-size:18px} }
 </style>
 </head>
 <body>
-<div class="barra-top">
-  <a href="../offerte/">← Le offerte</a>
+<div class="wrap">
+  <div class="testata">
+    <h1>Si riparte</h1>
+    <p>Partenze di gruppo e occasioni trovate ogni notte, da tutta Italia.
+       Itinerari scritti a mano, non presi da un catalogo.</p>
+    <div class="azioni-top">
+      <a class="primario" href="offerte/">Vedi le offerte</a>
+      <a class="secondario" href="#storie">Leggi le storie</a>
+    </div>
+  </div>
+
+  <h2>In partenza <a class="tutti" href="offerte/">tutte le offerte →</a></h2>
+  <div id="offerte"><p style="color:#5B6672;">Carico...</p></div>
+
+  <h2 id="storie">Storie di chi è andato</h2>
+  <div id="storie-box"></div>
+
+  <h2>Dicono di noi</h2>
+  <div id="giudizi"></div>
+
+  <p class="pie">Scriveteci: <a href="mailto:viaggi@ristoflow-ai.com">viaggi@ristoflow-ai.com</a></p>
 </div>
-<div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico i viaggi...</p></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function () {
-  var appBox = document.getElementById("app");
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var CHIAVE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var AZIENDA = "a43d41b5-f4ac-494f-8144-6574347a754f";
+  var sb = supabase.createClient(URL_SB, CHIAVE);
 
-  function guasto(testo) {
-    if (appBox) appBox.innerHTML = "<h1>Non riesco a caricare</h1><p>" + testo + "</p>"
-      + '<p style="font-size:15px;color:#5B6672;">Riprova fra un minuto. Se insiste, avvisaci.</p>';
+  var CITTA = { FCO:"Roma", CIA:"Roma", MXP:"Milano", LIN:"Milano", BGY:"Bergamo",
+    NAP:"Napoli", BRI:"Bari", BLQ:"Bologna", VCE:"Venezia", TRN:"Torino", PSA:"Pisa",
+    CTA:"Catania", PMO:"Palermo", SUF:"Lamezia", CAG:"Cagliari", VRN:"Verona" };
+
+  function esc(t) {
+    return String(t == null ? "" : t).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function euro(n) {
+    return Number(n || 0).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + " €";
+  }
+  function meseIt(d) {
+    if (!d) return "";
+    var M = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
+             "luglio","agosto","settembre","ottobre","novembre","dicembre"];
+    var p = String(d).slice(0,10).split("-");
+    return Number(p[2]) + " " + M[Number(p[1]) - 1];
+  }
+  function stelle(n) {
+    var s = "";
+    for (var i = 1; i <= 5; i++) s += (i <= Math.round(Number(n)) ? "\u2605" : "\u2606");
+    return s;
+  }
+  function taglia(t, n) {
+    t = String(t || "");
+    return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, "") + "…" : t;
   }
 
-  if (!window.supabase || typeof window.supabase.createClient !== "function") {
-    guasto("La connessione al server non e partita.");
-    return;
+  // Le foto da Wikipedia: si scartano bandiere e stemmi, che sono disegni.
+  function eFoto(u) {
+    u = String(u || "").toLowerCase();
+    if (!u || u.indexOf(".svg") !== -1) return false;
+    var no = ["flag","bandiera","seal","stemma","coat_of_arms","logo","emblem","map","locator"];
+    for (var i = 0; i < no.length; i++) if (u.indexOf(no[i]) !== -1) return false;
+    return true;
+  }
+  function mostra(img, u) { img.onload = function () { img.classList.add("c"); }; img.src = u; }
+  function fotoWiki(voce, img) {
+    if (!voce) { img.remove(); return; }
+    var prova = function (lingua) {
+      return fetch("https://" + lingua + ".wikipedia.org/api/rest_v1/page/summary/"
+                   + encodeURIComponent(voce))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          var t = j && j.thumbnail ? j.thumbnail.source : null;
+          return t && eFoto(t) ? t.replace(/\/\d+px-/, "/700px-") : null;
+        }).catch(function () { return null; });
+    };
+    prova("it").then(function (u) { return u || prova("en"); })
+      .then(function (u) { if (u) mostra(img, u); else img.remove(); });
   }
 
-  var SB_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
-  var sb = window.supabase.createClient(SB_URL, SB_KEY);
-
-  var AZIENDA = new URLSearchParams(location.search).get("a") || "a43d41b5-f4ac-494f-8144-6574347a754f";
-  var app = document.getElementById("app");
-
-  // Torna da dove si e arrivati; se la pagina e stata aperta da un link diretto
-  // non c'e storia da percorrere e si va alla home.
-
-
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  }
-  function euro(n) { return Number(n || 0).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + " €"; }
-  function periodo(a, b) {
-    if (!a) return "date da definire";
-    var mesi = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
-    var pa = String(a).slice(0, 10).split("-");
-    var testo = Number(pa[2]) + " " + mesi[Number(pa[1]) - 1] + " " + pa[0];
-    if (!b) return "dal " + testo;
-    var pb = String(b).slice(0, 10).split("-");
-    return "dal " + Number(pa[2]) + " " + mesi[Number(pa[1]) - 1]
-         + " al " + Number(pb[2]) + " " + mesi[Number(pb[1]) - 1] + " " + pb[0];
-  }
-  function grande(src) { return src.replace(/\/\d+px-/, "/1280px-"); }
-
-  function sommario(lingua, titolo) {
-    return fetch("https://" + lingua + ".wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) {
-        if (!j) return null;
-        if (j.originalimage && j.originalimage.source)
-          return { grande: j.originalimage.source, piccola: j.thumbnail ? j.thumbnail.source : null };
-        if (j.thumbnail && j.thumbnail.source)
-          return { grande: grande(j.thumbnail.source), piccola: j.thumbnail.source };
-        return null;
-      }).catch(function () { return null; });
-  }
-
-  function fotoDaWiki(titolo, img) {
-    if (!titolo) { img.remove(); return; }
-    sommario("it", titolo)
-      .then(function (e) { return e || sommario("en", titolo); })
-      .then(function (e) {
-        if (!e) { img.remove(); return; }
-        img.onerror = function () {
-          img.onerror = function () { img.remove(); };
-          if (e.piccola && e.piccola !== img.src) img.src = e.piccola; else img.remove();
-        };
-        img.src = e.grande;
-        img.style.minHeight = "0";
-      });
-  }
-
-  sb.rpc("viaggi_catalogo_pubblico", { p_azienda: AZIENDA }).then(function (r) {
-    var lista = (r && r.data) || [];
-    var h = "<h1>I nostri viaggi</h1><p class=\"sotto\">Partenze di gruppo, con noi.</p>";
-
-    if (!lista.length) {
-      app.innerHTML = h + '<div class="vuoto">Nessun viaggio in programma in questo momento. Torna a trovarci.</div>';
+  // ---- le offerte, solo le prime sei ------------------------------------
+  sb.rpc("offerte_pubbliche", { p_azienda: AZIENDA }).then(function (r) {
+    var box = document.getElementById("offerte");
+    var righe = (r.data || []).slice(0, 6);
+    if (!righe.length) {
+      box.innerHTML = '<div class="vuoto">Nessuna partenza in questo momento.<br>'
+        + "Tornate fra qualche giorno.</div>";
       return;
     }
-
-    lista.forEach(function (v) {
-      // Si mostra il prezzo di ingresso: il posto condiviso, se previsto.
-      var prezzo;
-      if (v.ammette_posto_condiviso !== false && Number(v.quota_posto) > 0) {
-        prezzo = '<span style="font-size:15px;color:#5B6672;font-weight:400;">da</span> '
-               + euro(v.quota_posto)
-               + ' <span style="font-size:15px;color:#5B6672;font-weight:400;">a persona</span>';
-      } else if (v.modalita_prezzo === "camper") {
-        prezzo = euro(v.quota_camper) + ' <span style="font-size:15px;color:#5B6672;font-weight:400;">a camper</span>';
-      } else {
-        prezzo = euro(v.quota_adulto) + ' <span style="font-size:15px;color:#5B6672;font-weight:400;">a persona</span>';
-      }
-
-      h += '<a class="card" href="v/?s=' + encodeURIComponent(v.slug) + '">'
-        + '<img alt="' + esc(v.titolo) + '" data-wiki="' + esc(v.copertina_wiki || "") + '"'
-        + (v.copertina_url ? ' src="' + esc(v.copertina_url) + '"' : "") + ">"
-        + '<div class="testo"><h2>' + esc(v.titolo) + "</h2>"
-        + "<p>" + esc(v.sottotitolo || "") + "</p>"
-        + "<p>" + esc(periodo(v.data_inizio, v.data_fine))
-        + (v.km ? " · " + Number(v.km).toLocaleString("it-IT") + " km" : "") + "</p>"
-        + '<div class="riga"><span class="prezzo">' + prezzo + "</span>"
-        + (v.adesioni_aperte ? '<span class="tag">Adesioni aperte</span>' : '<span class="tag chiuse">Adesioni chiuse</span>')
-        + "</div></div></a>";
+    var h = '<div class="griglia">';
+    righe.forEach(function (o, i) {
+      h += '<div class="carta"><img id="of-' + i + '" alt="">'
+        + '<div class="dentro">'
+        + (o.partenza_da
+            ? '<span class="targa">Da ' + esc(CITTA[o.partenza_da] || o.partenza_da) + "</span>"
+            : '<span class="targa gruppo">Partenza di gruppo</span>')
+        + "<h3>" + esc(o.titolo) + "</h3>"
+        + '<p class="dove">' + esc(meseIt(o.data_partenza))
+        + (o.notti ? " · " + o.notti + " notti" : "") + "</p>"
+        + '<div class="prezzo">'
+        + (o.solo_adesione || !Number(o.prezzo)
+            ? '<span style="font-size:19px;color:var(--inchiostro);">Su adesione</span>'
+            : euro(o.prezzo) + " <span>a persona</span>")
+        + "</div>"
+        + (o.viaggio_slug && o.pubblicato
+            ? '<a class="vai" href="v/?s=' + esc(o.viaggio_slug) + '">Guarda il viaggio</a>'
+            : '<a class="vai" href="offerte/">Chiedi informazioni</a>')
+        + "</div></div>";
     });
-
-    app.innerHTML = h;
-
-    document.querySelectorAll("img[data-wiki]").forEach(function (img) {
-      if (!img.getAttribute("src")) fotoDaWiki(img.dataset.wiki, img);
+    h += "</div>";
+    box.innerHTML = h;
+    righe.forEach(function (o, i) {
+      var img = document.getElementById("of-" + i);
+      if (!img) return;
+      if (o.copertina) { img.onerror = function () { img.onerror = null; fotoWiki(o.copertina_wiki, img); }; mostra(img, o.copertina); }
+      else fotoWiki(o.copertina_wiki, img);
     });
+  });
+
+  // ---- le storie ---------------------------------------------------------
+  sb.rpc("vetrina_storie", { p_azienda: AZIENDA, p_limite: 6 }).then(function (r) {
+    var box = document.getElementById("storie-box");
+    var righe = r.data || [];
+    if (!righe.length) {
+      box.innerHTML = '<div class="vuoto">Le prime storie arrivano dopo le prime partenze.<br>'
+        + "Chi viaggia con noi racconta, e qui resta.</div>";
+      return;
+    }
+    var h = "";
+    righe.forEach(function (s) {
+      h += '<div class="storia">'
+        + "<h3>" + esc(s.titolo || s.destinazione || "Una giornata")
+        + (s.in_diretta ? '<span class="diretta">scritto dal viaggio</span>' : "") + "</h3>"
+        + '<p class="chi">' + esc(s.autore)
+        + (s.luogo ? " · " + esc(s.luogo) : "")
+        + (s.viaggio ? " · " + esc(s.viaggio) : "")
+        + (s.anno ? " · " + s.anno : "") + "</p>"
+        + "<p>" + esc(taglia(s.testo, 320)) + "</p>"
+        + (s.slug ? '<p style="margin:8px 0 0;"><a href="v/?s=' + esc(s.slug)
+            + '" style="color:var(--accento);font-weight:700;">Vedi il viaggio →</a></p>' : "")
+        + "</div>";
+    });
+    box.innerHTML = h;
+  });
+
+  // ---- i giudizi ---------------------------------------------------------
+  sb.rpc("vetrina_giudizi", { p_azienda: AZIENDA, p_limite: 6 }).then(function (r) {
+    var box = document.getElementById("giudizi");
+    var d = r.data || {};
+    var righe = d.righe || [];
+    if (!righe.length) {
+      box.innerHTML = '<div class="vuoto">Ancora nessun giudizio.<br>'
+        + "Li scrivono i partecipanti al rientro, e non li tocchiamo.</div>";
+      return;
+    }
+    var h = '<div class="media"><b>' + String(d.media).replace(".", ",") + "</b>"
+      + '<span class="stelle">' + stelle(d.media) + "</span>"
+      + '<span style="color:var(--tenue);">su ' + d.quanti
+      + (d.quanti === 1 ? " giudizio" : " giudizi") + "</span></div>";
+
+    righe.forEach(function (g) {
+      h += '<div class="giudizio">'
+        + '<div class="stelle">' + stelle(g.voto) + "</div>"
+        + "<p>" + esc(g.testo) + "</p>"
+        + '<p style="color:var(--tenue);font-size:14px;margin:6px 0 0;">'
+        + esc(g.autore) + (g.viaggio ? " · " + esc(g.viaggio) : "") + "</p></div>";
+    });
+    box.innerHTML = h;
   });
 })();
 </script>
