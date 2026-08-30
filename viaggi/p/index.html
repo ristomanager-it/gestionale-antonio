@@ -113,7 +113,112 @@
 
   var esito = new URLSearchParams(location.search).get("pagamento");
 
+  // Il salvadanaio: si apre da qui, e da qui si versa. Chi mette da parte
+  // guadagna sul valore, non in punti.
+  function disegnaSalvadanaio() {
+    var box = document.getElementById("salvadanaio");
+    if (!box) return;
+
+    sb.rpc("salvadanaio_saldo", { p_token: token }).then(function (r) {
+      var s = r.data;
+
+      if (!s || !s.aperto) {
+        box.innerHTML = '<div class="scheda" style="border-color:#B8860B;background:#FFFDF6;">'
+          + '<b style="font-size:18px;">Il salvadanaio</b>'
+          + "<p style=\"margin:6px 0 10px;\">Mettete via una cifra alla volta e la ritrovate "
+          + "quando prenotate. <b>Quello che versate vale il 4% in piu</b>: cinquanta euro "
+          + "ne valgono cinquantadue. E ogni sei versamenti, dieci euro in regalo.</p>"
+          + '<label for="s-quota">Quanto alla volta</label>'
+          + '<input id="s-quota" type="number" min="5" step="5" value="50">'
+          + '<label for="s-cadenza">Ogni quanto</label>'
+          + '<select id="s-cadenza"><option value="mensile">Ogni mese</option>'
+          + '<option value="settimanale">Ogni settimana</option>'
+          + '<option value="giornaliera">Ogni giorno</option></select>'
+          + '<label for="s-nome">Per quale viaggio</label>'
+          + '<input id="s-nome" placeholder="Maldive 2028">'
+          + '<button id="s-apri" style="margin-top:12px;">Apri il salvadanaio</button>'
+          + '<div id="s-msg"></div></div>';
+
+        var b = document.getElementById("s-apri");
+        if (b) b.addEventListener("click", function () {
+          var msg = document.getElementById("s-msg");
+          var q = Number(document.getElementById("s-quota").value);
+          if (!(q >= 5)) { msg.className = "msg no"; msg.textContent = "Almeno cinque euro."; return; }
+          b.disabled = true; b.textContent = "Apro...";
+          sb.rpc("salvadanaio_apri", {
+            p_token: token, p_quota: q,
+            p_cadenza: document.getElementById("s-cadenza").value,
+            p_nome: document.getElementById("s-nome").value.trim() || null,
+            p_obiettivo: null
+          }).then(function (rr) {
+            b.disabled = false; b.textContent = "Apri il salvadanaio";
+            var d = rr.data || {};
+            if (rr.error || d.ok === false) {
+              msg.className = "msg no";
+              msg.textContent = d.errore || "Non e andata.";
+              return;
+            }
+            disegnaSalvadanaio();
+          });
+        });
+        return;
+      }
+
+      var obiettivo = Number(s.obiettivo || 0);
+      var dentro = Number(s.dentro || 0);
+      var perc = obiettivo > 0 ? Math.min(100, Math.round(dentro / obiettivo * 100)) : 0;
+
+      var h = '<div class="scheda" style="border-color:#B8860B;background:#FFFDF6;">'
+        + '<b style="font-size:18px;">Il salvadanaio'
+        + (s.nome ? " \u2014 " + esc(s.nome) : "") + "</b>"
+        + '<div style="font-size:34px;font-weight:700;color:#B8860B;margin:8px 0 2px;">'
+        + euro(dentro) + "</div>"
+        + '<div style="color:var(--tenue);font-size:15px;">'
+        + "messi da parte in " + s.volte + (s.volte === 1 ? " versamento" : " versamenti") + "</div>";
+
+      if (obiettivo > 0) {
+        h += '<div style="background:#EDE7DC;border-radius:20px;height:12px;margin:12px 0 6px;overflow:hidden;">'
+          + '<div style="background:#B8860B;height:12px;width:' + perc + '%;"></div></div>'
+          + '<div style="color:var(--tenue);font-size:14px;">' + perc + "% di " + euro(obiettivo) + "</div>";
+      }
+
+      h += '<p style="margin:12px 0 6px;">Prossimo versamento da ' + euro(s.quota)
+        + " intorno al " + dataIt(s.prossimo) + ".</p>"
+        + '<button id="s-versa">Versa ' + euro(s.quota) + " adesso</button>"
+        + '<div style="color:var(--tenue);font-size:14px;margin-top:6px;">'
+        + "Diventano " + euro(Number(s.quota) * 1.04) + " nel salvadanaio.</div>"
+        + '<div id="s-msg2"></div></div>';
+
+      box.innerHTML = h;
+
+      var bv = document.getElementById("s-versa");
+      if (bv) bv.addEventListener("click", function () {
+        var msg = document.getElementById("s-msg2");
+        bv.disabled = true; bv.textContent = "Apro il pagamento...";
+        sb.functions.invoke("viaggi-salvadanaio-paga", {
+          body: { token: token, importo: Number(s.quota) }
+        }).then(function (rr) {
+          var d = (rr.data) || {};
+          if (d.ok === false || !d.url) {
+            bv.disabled = false; bv.textContent = "Versa " + euro(s.quota) + " adesso";
+            msg.className = "msg no";
+            msg.textContent = d.errore || "Non riesco ad aprire il pagamento.";
+            return;
+          }
+          location.href = d.url;
+        });
+      });
+    });
+  }
+
   function avviso() {
+    var sal = new URLSearchParams(location.search).get("salvadanaio");
+    if (sal === "ok") {
+      return '<div class="msg ok">Versamento ricevuto: e gia nel salvadanaio, con il premio.</div>';
+    }
+    if (sal === "annullato") {
+      return '<div class="msg ko">Versamento annullato. Non e stato addebitato nulla.</div>';
+    }
     if (esito === "ok") {
       return '<div class="msg ok">Pagamento ricevuto, grazie. Se il piano qui sotto non è ancora aggiornato, ricarica fra qualche secondo.</div>';
     }
@@ -272,6 +377,8 @@
     h += '<div class="nota">Per cambiare il modo in cui pagate, scrivete agli organizzatori.</div>';
     h += '<p style="font-size:15px;color:#5B6672;">Questo indirizzo è personale: chi ce l\'ha vede il vostro piano. Non giratelo fuori dal gruppo.</p>';
 
+    h += '<div id="salvadanaio"></div>';
+
     h += '<div class="scheda" style="border-color:var(--accento);">'
       + "<b style=\"font-size:18px;\">Lo spazio del gruppo</b>"
       + "<p style=\"margin:6px 0 10px;\">Da lì si invitano gli altri partecipanti, ci si mette "
@@ -315,6 +422,8 @@
         });
       }
     }
+
+    disegnaSalvadanaio();
 
     var cop = document.getElementById("cop");
     if (cop) {
