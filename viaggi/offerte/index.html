@@ -35,7 +35,8 @@
 
   .offerta{border:2px solid var(--riga);border-radius:12px;background:#fff;
            margin-bottom:14px;overflow:hidden;display:flex;flex-wrap:wrap}
-  .offerta img{width:220px;height:170px;object-fit:cover;display:block;background:#F1EDE6}
+  .offerta img{width:220px;height:170px;object-fit:cover;display:none;background:#F1EDE6}
+  .offerta img.c{display:block}
   .offerta .testo{flex:1;min-width:240px;padding:16px}
   .offerta h2{margin:0 0 2px;font-size:23px;line-height:1.15}
   .luogo{color:var(--tenue);font-size:15px;margin:0 0 8px}
@@ -62,7 +63,7 @@
 </head>
 <body>
 <div class="barra-top">
-  <a href="#" id="indietro">← Al gestionale</a>
+  <a href="../">← Tutti i viaggi</a>
 </div>
 
 <div class="wrap">
@@ -152,6 +153,11 @@
     for (var i = 0; i < scarta.length; i++) if (u.indexOf(scarta[i]) !== -1) return false;
     return true;
   }
+  function mostra(img, url) {
+    img.onload = function () { img.classList.add("c"); };
+    img.src = url;
+  }
+
   function fotoWiki(voce, img) {
     if (!voce) { img.remove(); return; }
     var prova = function (lingua) {
@@ -166,7 +172,7 @@
         .catch(function () { return null; });
     };
     prova("it").then(function (u) { return u || prova("en"); })
-      .then(function (u) { if (u) img.src = u; else img.remove(); });
+      .then(function (u) { if (u) mostra(img, u); else img.remove(); });
   }
 
   function leggi(id) {
@@ -231,8 +237,8 @@
       if (!img) return;
       if (o.copertina) {
         // se la foto nostra non carica si ripiega su Wikipedia
-        img.onerror = function () { fotoWiki(o.copertina_wiki, img); };
-        img.src = o.copertina;
+        img.onerror = function () { img.onerror = null; fotoWiki(o.copertina_wiki, img); };
+        mostra(img, o.copertina);
       } else {
         fotoWiki(o.copertina_wiki, img);
       }
@@ -297,10 +303,7 @@
     carica();
   });
 
-  document.getElementById("indietro").addEventListener("click", function (e) {
-    e.preventDefault();
-    location.href = "https://app.ristoflow-ai.com/#/agenzia-viaggi";
-  });
+
 })();
 </script>
 </body>
