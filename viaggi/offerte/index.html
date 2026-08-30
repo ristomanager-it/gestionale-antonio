@@ -183,6 +183,30 @@
     return e && e.value ? e.value : null;
   }
 
+  // I filtri possono arrivare dalla home o dal pulsante last minute.
+  function daIndirizzo() {
+    var p = new URLSearchParams(location.search);
+    var oggi = new Date();
+    var metti = function (id, v) {
+      var e = document.getElementById(id);
+      if (e && v) e.value = v;
+    };
+    metti("f-partenza", p.get("da"));
+    metti("f-dove", p.get("dove"));
+
+    var giorni = Number(p.get("giorni") || 0);
+    if (p.get("urgenti")) giorni = 30;
+    if (giorni > 0) {
+      var fine = new Date(oggi.getTime() + giorni * 86400000);
+      metti("f-dal", oggi.toISOString().slice(0, 10));
+      metti("f-al", fine.toISOString().slice(0, 10));
+      var t = document.querySelector(".sotto");
+      if (t && p.get("urgenti")) {
+        t.innerHTML = "<b>Last minute</b> — quello che parte entro trenta giorni.";
+      }
+    }
+  }
+
   function disegna(righe) {
     if (!righe.length) {
       elenco.innerHTML = '<div class="vuoto">Nessuna offerta con questi filtri.<br>'
@@ -290,6 +314,7 @@
       o.value = v; o.textContent = "fino a " + euro(v);
       sm.appendChild(o);
     });
+    daIndirizzo();
     carica();
   });
 
