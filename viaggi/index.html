@@ -17,7 +17,25 @@
   a{overflow-wrap:anywhere}
   .wrap{max-width:940px;margin:0 auto;padding:0 18px 70px}
 
-  .testata{padding:44px 0 10px;text-align:center}
+  .nav{position:sticky;top:0;z-index:900;background:rgba(253,251,247,.96);
+       border-bottom:2px solid var(--riga);backdrop-filter:blur(6px)}
+  .nav-dentro{max-width:940px;margin:0 auto;padding:12px 18px;
+              display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .marchio{font-size:22px;font-weight:700;color:var(--inchiostro);text-decoration:none;
+           letter-spacing:-.01em;margin-right:auto}
+  .voci{display:flex;gap:18px;flex-wrap:wrap}
+  .voci a{color:var(--inchiostro);text-decoration:none;font-size:16px}
+  .voci a:hover{color:var(--accento)}
+  .apri-menu{display:none;background:none;border:0;font-size:26px;line-height:1;cursor:pointer;
+             color:var(--inchiostro);padding:0 4px}
+  @media(max-width:640px){
+    .apri-menu{display:block}
+    .voci{display:none;width:100%;flex-direction:column;gap:0}
+    .voci.aperto{display:flex}
+    .voci a{padding:12px 0;border-top:1px solid var(--riga);font-size:17px}
+  }
+
+  .testata{padding:40px 0 10px;text-align:center}
   .testata h1{font-size:44px;line-height:1.05;margin:0 0 10px;letter-spacing:-.02em}
   .testata p{color:var(--tenue);font-size:20px;margin:0 auto;max-width:560px}
   .azioni-top{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 6px}
@@ -45,8 +63,9 @@
          padding:3px 11px;font-size:13px;margin-bottom:7px}
   .targa.gruppo{background:#F1F7F3;color:#2E8B57}
 
-  .storia{border-left:5px solid var(--salvia);background:#fff;border:1px solid var(--riga);
-          border-left-width:5px;border-radius:10px;padding:15px;margin-bottom:11px}
+  .storie-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .storia{border:1px solid var(--riga);border-left:5px solid var(--salvia);background:#fff;
+          border-radius:10px;padding:15px}
   .storia h3{margin:0 0 2px;font-size:20px}
   .storia .chi{color:var(--tenue);font-size:14px;margin:0 0 8px}
   .diretta{display:inline-block;background:#FDECEA;color:var(--allarme);border-radius:20px;
@@ -57,6 +76,22 @@
   .media{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
   .media b{font-size:34px;color:var(--oro)}
 
+  .salva{border:2px solid var(--oro);border-radius:14px;background:#FFFDF6;padding:20px;
+         display:flex;gap:22px;flex-wrap:wrap}
+  .salva-testo{flex:1;min-width:260px}
+  .salva-testo h3{margin:0 0 8px;font-size:24px}
+  .salva-testo p{margin:0 0 8px}
+  .minuta{color:var(--tenue);font-size:14px}
+  .salva-conto{min-width:230px;background:#fff;border:1px solid var(--riga);
+               border-radius:12px;padding:16px}
+  .salva-conto label{display:block;font-size:13px;color:var(--tenue);
+                     letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+  .salva-conto select{width:100%;padding:11px;border:1px solid var(--riga);
+                      border-radius:8px;font:inherit;font-size:16px;background:#fff}
+  .sv-esito{margin-top:14px;line-height:1.4}
+  .sv-esito .grosso{font-size:30px;font-weight:700;color:var(--oro);display:block}
+  .sv-esito .riga{color:var(--tenue);font-size:15px}
+
   .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:30px;text-align:center;color:var(--tenue)}
   .pie{margin-top:50px;padding-top:18px;border-top:1px solid var(--riga);
        color:var(--tenue);font-size:15px;text-align:center}
@@ -64,6 +99,20 @@
 </style>
 </head>
 <body>
+<header class="nav">
+  <div class="nav-dentro">
+    <a class="marchio" href="./">Si riparte</a>
+    <button class="apri-menu" id="apri-menu" aria-label="Menu">☰</button>
+    <nav class="voci" id="voci">
+      <a href="offerte/">Offerte</a>
+      <a href="catalogo/">I viaggi</a>
+      <a href="#storie">Storie</a>
+      <a href="#salvadanaio">Salvadanaio</a>
+      <a href="#giudizi">Dicono di noi</a>
+    </nav>
+  </div>
+</header>
+
 <div class="wrap">
   <div class="testata">
     <h1>Si riparte</h1>
@@ -81,7 +130,29 @@
   <h2 id="storie">Storie di chi è andato</h2>
   <div id="storie-box"></div>
 
-  <h2>Dicono di noi</h2>
+  <h2 id="salvadanaio">Il salvadanaio</h2>
+  <div class="salva">
+    <div class="salva-testo">
+      <h3>Mettete via poco alla volta, partite prima</h3>
+      <p>Cinquanta euro al mese diventano un viaggio senza accorgersene. E quello che
+         versate <b>vale il quattro per cento in più</b>: cinquanta euro ne valgono
+         cinquantadue. Ogni sei versamenti, dieci euro in regalo.</p>
+      <p class="minuta">Non è un conto di risparmio: è credito per i nostri viaggi,
+         e se cambiate idea ve lo restituiamo.</p>
+    </div>
+    <div class="salva-conto">
+      <label for="sv-quota">Metto via</label>
+      <select id="sv-quota">
+        <option value="25">25 € al mese</option>
+        <option value="50" selected>50 € al mese</option>
+        <option value="100">100 € al mese</option>
+        <option value="150">150 € al mese</option>
+      </select>
+      <div class="sv-esito" id="sv-esito"></div>
+    </div>
+  </div>
+
+  <h2 id="giudizi">Dicono di noi</h2>
   <div id="giudizi"></div>
 
   <p class="pie">Scriveteci: <a href="mailto:viaggi@ristoflow-ai.com">viaggi@ristoflow-ai.com</a></p>
@@ -209,7 +280,32 @@
             + '" style="color:var(--accento);font-weight:700;">Vedi il viaggio →</a></p>' : "")
         + "</div>";
     });
+    h += "</div>";
     box.innerHTML = h;
+  });
+
+  // ---- il salvadanaio: quanto viene fuori in un anno --------------------
+  function contoSalvadanaio() {
+    var sel = document.getElementById("sv-quota");
+    var out = document.getElementById("sv-esito");
+    if (!sel || !out) return;
+    var q = Number(sel.value);
+    var anno = q * 12;
+    var premio = Math.round(anno * 4) / 100 + 20;   // 4% piu due volte i dieci euro
+    out.innerHTML = '<span class="grosso">' + euro(anno + premio) + "</span>"
+      + '<span class="riga">dopo un anno, avendone versati ' + euro(anno) + "</span>";
+  }
+  var selQ = document.getElementById("sv-quota");
+  if (selQ) { selQ.addEventListener("change", contoSalvadanaio); contoSalvadanaio(); }
+
+  var bMenu = document.getElementById("apri-menu");
+  if (bMenu) bMenu.addEventListener("click", function () {
+    document.getElementById("voci").classList.toggle("aperto");
+  });
+  document.querySelectorAll(".voci a").forEach(function (a) {
+    a.addEventListener("click", function () {
+      document.getElementById("voci").classList.remove("aperto");
+    });
   });
 
   // ---- i giudizi ---------------------------------------------------------
