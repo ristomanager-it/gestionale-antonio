@@ -97,8 +97,22 @@
   .visore .lato.sx{left:0} .visore .lato.dx{right:0}
 
   .testata{padding:34px 0 10px;text-align:center}
-  .testata h1{font-size:44px;line-height:1.05;margin:0 0 10px;letter-spacing:-.02em}
-  .testata p{color:var(--tenue);font-size:20px;margin:0 auto;max-width:560px}
+  .testata h1{font-size:52px;line-height:1;margin:0 0 6px;letter-spacing:-.03em}
+  .payoff{font-size:24px;color:var(--inchiostro) !important;font-weight:700;margin:0 0 10px !important}
+  .testata p{color:var(--tenue);font-size:19px;margin:0 auto;max-width:540px}
+
+  .cerca{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;justify-content:center;
+         background:#fff;border:2px solid var(--riga);border-radius:14px;
+         padding:14px;margin:26px auto 14px;max-width:820px;text-align:left}
+  .cerca-campo{flex:1;min-width:170px}
+  .cerca label{display:block;font-size:12px;color:var(--tenue);letter-spacing:.06em;
+               text-transform:uppercase;margin-bottom:4px}
+  .cerca select{width:100%;padding:12px;border:1px solid var(--riga);border-radius:8px;
+                font:inherit;font-size:16px;background:#fff;color:var(--inchiostro)}
+  .cerca button{background:var(--accento);color:#fff;border:0;border-radius:8px;
+                padding:13px 26px;font:inherit;font-size:17px;font-weight:700;cursor:pointer}
+  .lastminute{background:var(--allarme) !important;color:#fff !important;
+              box-shadow:0 2px 10px rgba(179,38,30,.25)}
   .azioni-top{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 6px}
   .azioni-top a{text-decoration:none;border-radius:8px;padding:13px 24px;font-weight:700;font-size:17px}
   .primario{background:var(--accento);color:#fff}
@@ -140,7 +154,8 @@
   .salva{border:2px solid var(--oro);border-radius:14px;background:#FFFDF6;padding:20px;
          display:flex;gap:22px;flex-wrap:wrap}
   .salva-testo{flex:1;min-width:260px}
-  .salva-testo h3{margin:0 0 8px;font-size:24px}
+  .slogan{font-size:20px;font-style:italic;color:var(--oro);margin:0 0 6px !important}
+  .salva-testo h3{margin:0 0 8px;font-size:26px}
   .salva-testo p{margin:0 0 8px}
   .minuta{color:var(--tenue);font-size:14px}
   .salva-conto{min-width:230px;background:#fff;border:1px solid var(--riga);
@@ -197,11 +212,33 @@
 <div class="wrap">
   <div class="testata">
     <h1>Si riparte</h1>
-    <p>Partenze di gruppo e occasioni trovate ogni notte, da tutta Italia.
-       Itinerari scritti a mano, non presi da un catalogo.</p>
+    <p class="payoff">Cinque viaggi l'anno, non uno.</p>
+    <p>Cerchiamo ogni notte le partenze più convenienti da tutta Italia
+       e ci costruiamo sopra l'itinerario. Voi partite.</p>
+
+    <div class="cerca">
+      <div class="cerca-campo">
+        <label for="h-da">Parto da</label>
+        <select id="h-da"><option value="">Qualsiasi città</option></select>
+      </div>
+      <div class="cerca-campo">
+        <label for="h-dove">Dove</label>
+        <select id="h-dove"><option value="">Tutto il mondo</option></select>
+      </div>
+      <div class="cerca-campo">
+        <label for="h-quando">Quando</label>
+        <select id="h-quando">
+          <option value="">Quando capita</option>
+          <option value="30">Nei prossimi 30 giorni</option>
+          <option value="90">Nei prossimi 3 mesi</option>
+          <option value="180">Nei prossimi 6 mesi</option>
+        </select>
+      </div>
+      <button id="h-cerca">Cerca</button>
+    </div>
+
     <div class="azioni-top">
-      <a class="primario" href="offerte/">Vedi le offerte</a>
-      <a class="secondario" href="#storie">Leggi le storie</a>
+      <a class="lastminute" href="offerte/?urgenti=1">Last minute — partenze entro 30 giorni</a>
     </div>
   </div>
 
@@ -211,7 +248,8 @@
   <h2 id="salvadanaio">Il salvadanaio</h2>
   <div class="salva">
     <div class="salva-testo">
-      <h3>Mettete via poco alla volta, partite prima</h3>
+      <p class="slogan">Il viaggio comincia quando cominci a metterlo via.</p>
+      <h3>Poco alla volta, e vale di più</h3>
       <p>Cinquanta euro al mese diventano un viaggio senza accorgersene. E quello che
          versate <b>vale il quattro per cento in più</b>: cinquanta euro ne valgono
          cinquantadue. Ogni sei versamenti, dieci euro in regalo.</p>
@@ -455,6 +493,35 @@
     if (e.key === "Escape") chiudiStoria();
     if (e.key === "ArrowRight") apriStoria(indice + 1);
     if (e.key === "ArrowLeft") apriStoria(indice - 1);
+  });
+
+  // ---- la ricerca in cima: riempie i menu e porta alle offerte filtrate
+  sb.rpc("offerte_filtri", { p_azienda: AZIENDA }).then(function (r) {
+    var f = r.data || {};
+    var sda = document.getElementById("h-da");
+    (f.partenze || []).sort().forEach(function (i) {
+      var o = document.createElement("option");
+      o.value = i; o.textContent = CITTA[i] || i;
+      sda.appendChild(o);
+    });
+    var sdo = document.getElementById("h-dove");
+    (f.nazioni || []).sort().forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = n; o.textContent = n;
+      sdo.appendChild(o);
+    });
+  });
+
+  var bCerca = document.getElementById("h-cerca");
+  if (bCerca) bCerca.addEventListener("click", function () {
+    var q = [];
+    var da = document.getElementById("h-da").value;
+    var dove = document.getElementById("h-dove").value;
+    var quando = document.getElementById("h-quando").value;
+    if (da) q.push("da=" + encodeURIComponent(da));
+    if (dove) q.push("dove=" + encodeURIComponent(dove));
+    if (quando) q.push("giorni=" + quando);
+    location.href = "offerte/" + (q.length ? "?" + q.join("&") : "");
   });
 
   // ---- il salvadanaio: quanto viene fuori in un anno --------------------
