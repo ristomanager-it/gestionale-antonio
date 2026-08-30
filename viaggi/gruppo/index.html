@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Il nostro viaggio</title>
+<style>
+  :root{--carta:#FDFBF7;--inchiostro:#131A24;--accento:#12657F;--allarme:#B3261E;
+        --salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--carta);color:var(--inchiostro);
+       font:17px/1.6 Georgia,"Times New Roman",serif}
+  .wrap{max-width:720px;margin:0 auto;padding:0 18px 70px}
+  .barra{position:sticky;top:0;z-index:900;background:var(--carta);
+         border-bottom:2px solid var(--riga);padding:12px 18px;max-width:720px;margin:0 auto;
+         display:flex;justify-content:space-between;gap:12px}
+  .barra a{text-decoration:none;font-size:16px;font-weight:700;color:var(--accento)}
+  .copertina{width:100%;border-radius:12px;display:none;margin:16px 0 6px;background:#F1EDE6}
+  .copertina.c{display:block}
+  .occhiello{color:var(--tenue);font-size:14px;letter-spacing:.08em;text-transform:uppercase;margin:14px 0 2px}
+  h1{font-size:32px;line-height:1.1;margin:0 0 4px}
+  .sotto{color:var(--tenue);margin:0 0 16px}
+  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--accento);
+     margin:30px 0 10px;padding-top:14px;border-top:2px solid var(--inchiostro)}
+
+  .tab{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
+  .tab button{background:#fff;border:1px solid var(--accento);color:var(--accento);
+              border-radius:8px;padding:9px 16px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+  .tab button.on{background:var(--accento);color:#fff}
+
+  .chi{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+  .chi span{background:#fff;border:1px solid var(--riga);border-radius:20px;padding:6px 13px;font-size:15px}
+  .chi span.io{border-color:var(--accento);color:var(--accento);font-weight:700}
+
+  .msg{border:1px solid var(--riga);border-radius:12px;background:#fff;padding:13px 15px;margin-bottom:9px}
+  .msg .testa{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:var(--tenue)}
+  .msg .testa b{color:var(--inchiostro);font-size:16px}
+  .msg p{margin:6px 0 0}
+  .msg.domanda{border-left:5px solid #B45309}
+  .msg.avviso{border-left:5px solid var(--allarme)}
+  .msg.recensione{border-left:5px solid var(--salvia);background:#F7FBF8}
+  .stelle{color:#B8860B;letter-spacing:2px}
+
+  .pagina{border:1px solid var(--riga);border-radius:12px;background:#fff;padding:16px;margin-bottom:12px}
+  .pagina h3{margin:0 0 2px;font-size:21px}
+  .pagina .dove{color:var(--tenue);font-size:14px;margin:0 0 8px}
+  .diretta{display:inline-block;background:#FDECEA;color:var(--allarme);border-radius:20px;
+           padding:2px 10px;font-size:13px;font-weight:700;margin-left:6px}
+
+  label{display:block;font-size:14px;color:var(--tenue);margin:12px 0 4px}
+  input,textarea,select{width:100%;padding:12px;border:1px solid var(--riga);border-radius:8px;
+                        font:inherit;font-size:16px;background:#fff;color:var(--inchiostro)}
+  textarea{min-height:120px;resize:vertical}
+  button.big{background:var(--accento);color:#fff;border:0;padding:14px 24px;border-radius:8px;
+             font:inherit;font-size:17px;font-weight:700;cursor:pointer;margin-top:12px}
+  button.big:disabled{opacity:.5}
+  .avviso{margin-top:12px;padding:12px;border-radius:8px;font-size:16px}
+  .avviso.ok{background:#F4FAF5;border:2px solid var(--salvia)}
+  .avviso.no{background:#FDECEA;border:2px solid var(--allarme);color:#8E1D17}
+  .punti{background:#EEF6F9;border:1px solid #BBD9E4;border-radius:12px;padding:14px;margin:14px 0}
+  .punti b{font-size:26px;color:var(--accento)}
+  .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:30px;text-align:center;color:var(--tenue)}
+</style>
+</head>
+<body>
+<div class="barra">
+  <a href="#" id="b-viaggio">Il programma</a>
+  <a href="#" id="b-su">↑ Inizio</a>
+</div>
+<div class="wrap" id="app"><p style="padding:40px 0;color:#5B6672;">Apro lo spazio del gruppo...</p></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var CHIAVE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var sb = supabase.createClient(URL_SB, CHIAVE);
+
+  var app = document.getElementById("app");
+  var token = new URLSearchParams(location.search).get("t");
+  var dati = null;
+  var scheda = "bacheca";
+
+  if (!token) {
+    app.innerHTML = "<h1>Collegamento mancante</h1><p>Aprite il link che vi è arrivato per email.</p>";
+    return;
+  }
+
+  function esc(t) {
+    return String(t == null ? "" : t).replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function dataIt(d) {
+    if (!d) return "";
+    var p = String(d).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : String(d);
+  }
+  function quando(t) {
+    if (!t) return "";
+    var d = new Date(t);
+    var oggi = new Date();
+    var g = Math.floor((oggi - d) / 86400000);
+    if (g === 0) return "oggi";
+    if (g === 1) return "ieri";
+    if (g < 7) return g + " giorni fa";
+    return dataIt(t);
+  }
+  function stelle(n) {
+    var s = "";
+    for (var i = 1; i <= 5; i++) s += (i <= Number(n) ? "\u2605" : "\u2606");
+    return s;
+  }
+
+  // Le foto dalle voci di Wikipedia: si scartano bandiere e stemmi, che sono
+  // disegni e non fotografie.
+  function eFoto(u) {
+    u = String(u || "").toLowerCase();
+    if (!u || u.indexOf(".svg") !== -1) return false;
+    var no = ["flag","bandiera","seal","stemma","coat_of_arms","logo","emblem","map","locator"];
+    for (var i = 0; i < no.length; i++) if (u.indexOf(no[i]) !== -1) return false;
+    return true;
+  }
+  function copertina(img, url, voce) {
+    var mostra = function (u) { img.onload = function () { img.classList.add("c"); }; img.src = u; };
+    if (url) { img.onerror = function () { img.onerror = null; daWiki(); }; mostra(url); return; }
+    daWiki();
+    function daWiki() {
+      if (!voce) return;
+      fetch("https://it.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(voce))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          var t = j && j.thumbnail ? j.thumbnail.source : null;
+          if (t && eFoto(t)) mostra(t.replace(/\/\d+px-/, "/900px-"));
+        }).catch(function () {});
+    }
+  }
+
+  function apri() {
+    sb.rpc("gruppo_apri", { p_token: token }).then(function (r) {
+      if (r.error || !r.data) {
+        app.innerHTML = "<h1>Non trovo il gruppo</h1><p>Il collegamento non è più valido. "
+          + "Chiedete a chi ha prenotato di rimandarvelo.</p>";
+        return;
+      }
+      dati = r.data;
+      disegna();
+    });
+  }
+
+  function disegna() {
+    var v = dati.viaggio || {};
+    var io = dati.io || {};
+    var h = "";
+
+    if (v.copertina || v.copertina_wiki) h += '<img class="copertina" id="cop" alt="">';
+    h += '<p class="occhiello">' + esc(v.sottotitolo || "Il nostro viaggio") + "</p>";
+    h += "<h1>" + esc(v.titolo) + "</h1>";
+    h += '<p class="sotto">' + dataIt(v.dal) + " – " + dataIt(v.al)
+       + (v.giorni ? " · " + v.giorni + " giorni" : "")
+       + (v.partito ? " · <b>viaggio finito</b>" : "") + "</p>";
+
+    var gruppo = dati.gruppo || [];
+    h += '<div class="chi"><span class="io">' + esc(io.nome || "Io") + "</span>";
+    gruppo.forEach(function (p) {
+      if (p.nome && p.nome !== io.nome) h += "<span>" + esc(p.nome) + "</span>";
+    });
+    h += "</div>";
+
+    h += '<div class="tab">'
+      + '<button data-s="bacheca">Bacheca</button>'
+      + '<button data-s="diario">Diario di bordo</button>'
+      + (io.capogruppo ? '<button data-s="invita">Invita</button>' : "")
+      + "</div>";
+
+    h += '<div id="corpo"></div>';
+    app.innerHTML = h;
+
+    var img = document.getElementById("cop");
+    if (img) copertina(img, v.copertina, v.copertina_wiki);
+
+    document.querySelectorAll(".tab button").forEach(function (b) {
+      if (b.dataset.s === scheda) b.classList.add("on");
+      b.addEventListener("click", function () { scheda = b.dataset.s; disegna(); });
+    });
+
+    if (scheda === "bacheca") bacheca();
+    else if (scheda === "diario") diario();
+    else invita();
+  }
+
+  function bacheca() {
+    var box = document.getElementById("corpo");
+    var righe = (dati.bacheca || []).filter(function (m) { return m.tipo !== "diario"; });
+    var h = "";
+
+    if (!righe.length) {
+      h += '<div class="vuoto">Ancora nessun messaggio.<br>Comincia tu: una domanda, '
+        + "un accordo da prendere, qualsiasi cosa.</div>";
+    } else {
+      righe.forEach(function (m) {
+        h += '<div class="msg ' + esc(m.tipo) + '">'
+          + '<div class="testa"><b>' + esc(m.autore) + "</b><span>" + quando(m.quando) + "</span></div>"
+          + (m.voto ? '<div class="stelle">' + stelle(m.voto) + "</div>" : "")
+          + "<p>" + esc(m.testo) + "</p></div>";
+      });
+    }
+
+    h += "<h2>Scrivi al gruppo</h2>"
+      + '<label for="m-tipo">Che cos\'è</label>'
+      + '<select id="m-tipo">'
+      + '<option value="messaggio">Un messaggio</option>'
+      + '<option value="domanda">Una domanda</option>'
+      + '<option value="avviso">Un avviso importante</option>'
+      + (dati.viaggio.partito ? '<option value="recensione">Una recensione del viaggio</option>' : "")
+      + "</select>"
+      + '<div id="m-voto" style="display:none;">'
+      + '<label for="m-stelle">Quante stelle</label>'
+      + '<select id="m-stelle"><option value="5">5 — da rifare</option>'
+      + '<option value="4">4 — bello</option><option value="3">3 — nella media</option>'
+      + '<option value="2">2 — poco</option><option value="1">1 — no</option></select>'
+      + '<label style="margin-top:10px;"><input type="checkbox" id="m-pub" style="width:auto;margin-right:6px;" checked>'
+      + " Mostrala anche a chi guarda il viaggio</label></div>"
+      + '<label for="m-testo">Cosa vuoi dire</label>'
+      + '<textarea id="m-testo" placeholder="Scrivi qui..."></textarea>'
+      + '<button class="big" id="m-invia">Scrivi</button>'
+      + '<div id="m-msg"></div>';
+
+    box.innerHTML = h;
+
+    var tipo = document.getElementById("m-tipo");
+    tipo.addEventListener("change", function () {
+      document.getElementById("m-voto").style.display = tipo.value === "recensione" ? "block" : "none";
+    });
+
+    document.getElementById("m-invia").addEventListener("click", function () {
+      var b = this, msg = document.getElementById("m-msg");
+      var testo = document.getElementById("m-testo").value.trim();
+      if (!testo) { msg.className = "avviso no"; msg.textContent = "Scrivi qualcosa."; return; }
+
+      var t = tipo.value;
+      var voto = t === "recensione" ? Number(document.getElementById("m-stelle").value) : null;
+      var pub = t === "recensione" && document.getElementById("m-pub").checked;
+
+      b.disabled = true; b.textContent = "Mando...";
+      sb.rpc("gruppo_scrivi", {
+        p_token: token, p_testo: testo, p_tipo: t,
+        p_voto: voto, p_giorno: null, p_risposta_a: null, p_pubblico: pub
+      }).then(function (r) {
+        b.disabled = false; b.textContent = "Scrivi";
+        var d = r.data || {};
+        if (r.error || d.ok === false) {
+          msg.className = "avviso no";
+          msg.textContent = (d.errore || "Non è andata. Riprova.");
+          return;
+        }
+        apri();
+      });
+    });
+  }
+
+  function diario() {
+    var box = document.getElementById("corpo");
+    var v = dati.viaggio || {};
+    var h = "";
+
+    h += '<div class="punti"><b>Scrivere rende</b><br>'
+      + "Cinquanta punti a pagina, <b>cento</b> se la scrivi mentre sei in viaggio. "
+      + "Venti punti valgono un euro sul prossimo viaggio.</div>";
+
+    h += '<label for="d-titolo">Titolo</label>'
+      + '<input id="d-titolo" placeholder="Il pranzo alla Tonnara">'
+      + '<label for="d-giorno">Che giorno del viaggio</label>'
+      + '<input id="d-giorno" type="number" min="1" max="' + (v.giorni || 30) + '" placeholder="3">'
+      + '<label for="d-luogo">Dove eravate</label>'
+      + '<input id="d-luogo" placeholder="Cordova">'
+      + '<label for="d-testo">Racconta</label>'
+      + '<textarea id="d-testo" placeholder="Com\'è andata, cosa avete visto, cosa rifareste..."></textarea>'
+      + '<button class="big" id="d-invia">Scrivi la pagina</button>'
+      + '<div id="d-msg"></div>';
+
+    box.innerHTML = h;
+
+    document.getElementById("d-invia").addEventListener("click", function () {
+      var b = this, msg = document.getElementById("d-msg");
+      var testo = document.getElementById("d-testo").value.trim();
+      if (testo.length < 40) {
+        msg.className = "avviso no";
+        msg.textContent = "Scrivi qualcosa di più: almeno due righe, che poi le legge qualcuno.";
+        return;
+      }
+      var giorno = Number(document.getElementById("d-giorno").value) || null;
+
+      b.disabled = true; b.textContent = "Mando...";
+      sb.rpc("diario_scrivi", {
+        p_token: token, p_testo: testo,
+        p_titolo: document.getElementById("d-titolo").value.trim() || null,
+        p_giorno: giorno,
+        p_luogo: document.getElementById("d-luogo").value.trim() || null,
+        p_foto: null
+      }).then(function (r) {
+        b.disabled = false; b.textContent = "Scrivi la pagina";
+        var d = r.data || {};
+        if (r.error || d.ok === false) {
+          msg.className = "avviso no";
+          msg.textContent = (d.errore || "Non è andata. Riprova.");
+          return;
+        }
+        msg.className = "avviso ok";
+        msg.textContent = d.messaggio || "Pagina salvata.";
+        document.getElementById("d-testo").value = "";
+        document.getElementById("d-titolo").value = "";
+        caricaPagine();
+      });
+    });
+
+    caricaPagine();
+  }
+
+  function caricaPagine() {
+    var v = dati.viaggio || {};
+    sb.rpc("diario_destinazione", { p_slug: v.slug, p_destinazione: null, p_limite: 20 })
+      .then(function (r) {
+        var pagine = r.data || [];
+        var vecchio = document.getElementById("d-pagine");
+        if (vecchio) vecchio.remove();
+
+        var box = document.createElement("div");
+        box.id = "d-pagine";
+        var h = "<h2>Le pagine scritte</h2>";
+        if (!pagine.length) {
+          h += '<div class="vuoto">Nessuna pagina ancora. La prima è la più bella da scrivere.</div>';
+        } else {
+          pagine.forEach(function (p) {
+            h += '<div class="pagina">'
+              + "<h3>" + esc(p.titolo || ("Giorno " + (p.giorno || "")))
+              + (p.in_diretta ? '<span class="diretta">dal viaggio</span>' : "") + "</h3>"
+              + '<p class="dove">' + esc(p.autore)
+              + (p.luogo ? " · " + esc(p.luogo) : "")
+              + (p.giorno ? " · giorno " + p.giorno : "") + "</p>"
+              + "<p>" + esc(p.testo) + "</p></div>";
+          });
+        }
+        box.innerHTML = h;
+        document.getElementById("corpo").appendChild(box);
+      });
+  }
+
+  function invita() {
+    var box = document.getElementById("corpo");
+    box.innerHTML = "<h2>Chi viene con noi</h2>"
+      + "<p>Scrivi chi partecipa: a ognuno arriva un collegamento suo, "
+      + "e da lì può leggere, scrivere e raccontare.</p>"
+      + '<label for="i-nome">Nome</label><input id="i-nome" placeholder="Come lo chiami">'
+      + '<label for="i-cognome">Cognome</label><input id="i-cognome">'
+      + '<label for="i-email">Email</label><input id="i-email" type="email" placeholder="per mandargli il collegamento">'
+      + '<button class="big" id="i-invia">Crea il collegamento</button>'
+      + '<div id="i-msg"></div>';
+
+    document.getElementById("i-invia").addEventListener("click", function () {
+      var b = this, msg = document.getElementById("i-msg");
+      var nome = document.getElementById("i-nome").value.trim();
+      if (!nome) { msg.className = "avviso no"; msg.textContent = "Serve almeno il nome."; return; }
+
+      b.disabled = true; b.textContent = "Creo...";
+      sb.rpc("gruppo_invita", {
+        p_token: token, p_nome: nome,
+        p_cognome: document.getElementById("i-cognome").value.trim() || null,
+        p_email: document.getElementById("i-email").value.trim() || null,
+        p_telefono: null
+      }).then(function (r) {
+        b.disabled = false; b.textContent = "Crea il collegamento";
+        var d = r.data || {};
+        if (r.error || d.ok === false) {
+          msg.className = "avviso no";
+          msg.textContent = (d.errore || "Non è andata.");
+          return;
+        }
+        msg.className = "avviso ok";
+        msg.innerHTML = "<b>" + esc(d.nome) + "</b> è dentro. Mandagli questo collegamento:<br><br>"
+          + '<span style="word-break:break-all;font-size:14px;">' + esc(d.link) + "</span><br><br>"
+          + '<button class="big" id="i-copia" style="margin:0;">Copia il collegamento</button>';
+
+        var c = document.getElementById("i-copia");
+        if (c) c.addEventListener("click", function () {
+          navigator.clipboard.writeText(d.link).then(function () {
+            c.textContent = "Copiato";
+          });
+        });
+
+        document.getElementById("i-nome").value = "";
+        document.getElementById("i-cognome").value = "";
+        document.getElementById("i-email").value = "";
+        apri();
+      });
+    });
+  }
+
+  document.getElementById("b-viaggio").addEventListener("click", function (e) {
+    e.preventDefault();
+    if (dati && dati.viaggio && dati.viaggio.slug) location.href = "../v/?s=" + dati.viaggio.slug;
+  });
+  document.getElementById("b-su").addEventListener("click", function (e) {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  apri();
+})();
+</script>
+</body>
+</html>
