@@ -1027,6 +1027,7 @@ async function renderOccasioni() {
           // controllo restava un puntino da solo sotto il nome della rotta.
           const d = o.dettaglio || {};
           const parti = [];
+          if (o.origine_iata) parti.push("da " + escapeHtml(d.partenza_da || o.origine_iata));
           if (d.nazione) parti.push(escapeHtml(d.nazione));
           if (d.tipo && TIPI[d.tipo]) parti.push(escapeHtml(TIPI[d.tipo]));
           return parti.length
@@ -1047,6 +1048,10 @@ async function renderOccasioni() {
           ? '<span style="color:#16a34a;font-weight:700;">Pubblicata</span>'
           : '<button class="occ-prev" data-id="' + o.id + '" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer;">'
             + (o.bozza ? "Rivedi" : "Anteprima") + "</button>"
+            + ' <button class="occ-vetr" data-id="' + o.id + '" data-prezzo="' + Number(o.prezzo_suggerito || 0)
+            + '" style="background:' + (o.in_vetrina ? "#0E5A7A" : "#fff") + ";color:"
+            + (o.in_vetrina ? "#fff" : "#0E5A7A") + ';border:1px solid #0E5A7A;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer;">'
+            + (o.in_vetrina ? "In vetrina ✓" : "Metti in vetrina") + "</button>"
             + ' <button class="occ-no" data-id="' + o.id + '" style="background:#fff;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;padding:7px 10px;cursor:pointer;">Scarta</button>')
       + "</td></tr>";
   });
@@ -1125,6 +1130,40 @@ function agganciaOccasioni() {
   document.querySelectorAll(".occ-prev").forEach(function (b) {
     b.addEventListener("click", function () { anteprimaOccasione(b.dataset.id); });
   });
+
+  // La vetrina e' quello che vedono i clienti: il prezzo lo decide Antonio,
+  // non il suggerimento della funzione.
+  document.querySelectorAll(".occ-vetr").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      const dentro = b.textContent.indexOf("✓") === -1;
+      let prezzo = null;
+      let titolo = null;
+
+      if (dentro) {
+        const p = prompt("A che prezzo la vendi?\nA persona, in euro.", b.dataset.prezzo || "");
+        if (p === null) return;
+        prezzo = Number(p);
+        if (!(prezzo > 0)) return alert("Serve un prezzo valido.");
+        titolo = prompt("Come si chiama in vetrina?\nLascia vuoto per usare il titolo dell'itinerario.") || null;
+      } else {
+        if (!confirm("La tolgo dalla vetrina pubblica?")) return;
+      }
+
+      const r = await supa().rpc("occasione_vetrina", {
+        p_occasione: b.dataset.id, p_dentro: dentro,
+        p_prezzo: prezzo, p_titolo: titolo
+      });
+      if (r.error) return alert("Non salvato: " + r.error.message);
+      const d = r.data || {};
+      if (d.ok === false) return alert(d.errore || "Non salvato.");
+
+      if (dentro) {
+        alert("In vetrina a " + euro(d.prezzo) + ".\n\n"
+          + "La vedi su app.ristoflow-ai.com/viaggi/offerte/");
+      }
+      await renderOccasioni();
+    });
+  });
 }
 
 // Anteprima dell'itinerario: si genera con Claude, si legge, e solo dopo si pubblica.
@@ -1134,7 +1173,7 @@ async function anteprimaOccasione(id) {
   if (!box) return;
 
   const r = await supa().from("viaggi_occasioni")
-    .select("*, viaggi_rotte(nome,origine_iata,destinazione_iata,zona)").eq("id", id).single();
+    .select("*, viaggi_rotte(nome,origine_iata,destinazione_iata,zona,destinazione_nome,nazione)").eq("id", id).single();
   if (r.error) return alert("Non trovo l'occasione: " + r.error.message);
   const o = r.data;
   const rotta = o.viaggi_rotte || {};
