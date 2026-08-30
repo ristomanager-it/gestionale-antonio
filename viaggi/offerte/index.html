@@ -67,7 +67,7 @@
 
 <div class="wrap">
   <h1>Offerte del momento</h1>
-  <p class="sotto">Partenze da tutta Italia, prezzi bloccati finché ci sono posti.</p>
+  <p class="sotto">Le nostre partenze di gruppo e le occasioni del momento, da tutta Italia.</p>
 
   <div class="filtri">
     <div class="filtri-riga">
@@ -182,9 +182,12 @@
       return;
     }
 
-    conta.textContent = righe.length === 1
-      ? "Una offerta disponibile."
-      : righe.length + " offerte disponibili.";
+    var nostri = righe.filter(function (x) { return x.origine === "catalogo"; }).length;
+    var occ = righe.length - nostri;
+    var parti = [];
+    if (nostri) parti.push(nostri + (nostri === 1 ? " partenza nostra" : " partenze nostre"));
+    if (occ) parti.push(occ + (occ === 1 ? " occasione" : " occasioni"));
+    conta.textContent = parti.join(" e ") + ".";
 
     var h = "";
     righe.forEach(function (o, i) {
@@ -192,13 +195,18 @@
       h += '<div class="offerta">'
         + '<img id="foto-' + i + '" alt="' + esc(o.destinazione || o.titolo) + '">'
         + '<div class="testo">'
-        + (o.partenza_da ? '<div class="da">Da ' + esc(CITTA[o.partenza_da] || o.partenza_da) + "</div>" : "")
+        + (o.partenza_da
+            ? '<div class="da">Da ' + esc(CITTA[o.partenza_da] || o.partenza_da) + "</div>"
+            : (o.origine === "catalogo"
+                ? '<div class="da" style="background:#F1F7F3;color:#2E8B57;">Partenza di gruppo</div>' : ""))
         + "<h2>" + esc(o.titolo) + "</h2>"
         + '<p class="luogo">' + esc([o.nazione, TIPI[o.tipo]].filter(Boolean).join(" · ")) + "</p>"
         + '<p class="quando">' + esc(meseIt(o.data_partenza))
         + (o.data_rientro ? " – " + esc(meseIt(o.data_rientro)) : "")
         + (giorni ? " · " + giorni : "") + "</p>"
-        + '<div class="prezzo">' + euro(o.prezzo) + " <span>a persona</span></div>";
+        + (o.solo_adesione || !Number(o.prezzo)
+            ? '<div class="prezzo" style="font-size:22px;">Su adesione <span>senza quota</span></div>'
+            : '<div class="prezzo">' + euro(o.prezzo) + " <span>a persona</span></div>");
 
       var incl = o.incluso || [];
       if (incl.length) {
@@ -220,7 +228,14 @@
 
     righe.forEach(function (o, i) {
       var img = document.getElementById("foto-" + i);
-      if (img) fotoWiki(o.copertina_wiki, img);
+      if (!img) return;
+      if (o.copertina) {
+        // se la foto nostra non carica si ripiega su Wikipedia
+        img.onerror = function () { fotoWiki(o.copertina_wiki, img); };
+        img.src = o.copertina;
+      } else {
+        fotoWiki(o.copertina_wiki, img);
+      }
     });
   }
 
