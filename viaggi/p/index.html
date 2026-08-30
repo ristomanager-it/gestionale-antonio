@@ -272,7 +272,40 @@
     h += '<div class="nota">Per cambiare il modo in cui pagate, scrivete agli organizzatori.</div>';
     h += '<p style="font-size:15px;color:#5B6672;">Questo indirizzo è personale: chi ce l\'ha vede il vostro piano. Non giratelo fuori dal gruppo.</p>';
 
+    h += '<div class="salva" id="salva">'
+      + '<b>Tenete questa pagina a portata di mano</b>'
+      + "<p>E la vostra prenotazione: da qui si paga e si vede a che punto siamo. "
+      + 'Il collegamento e anche nella mail che vi abbiamo mandato.</p>'
+      + '<div class="salva-come" id="salva-come"></div>'
+      + '<button id="salva-chiudi">Ho capito</button>'
+      + "</div>";
+
     app.innerHTML = h;
+
+    // Come si salva cambia da telefono a telefono: si dice quello giusto.
+    var boxSalva = document.getElementById("salva");
+    if (boxSalva) {
+      if (localStorage.getItem("salva-visto") === "1") {
+        boxSalva.remove();
+      } else {
+        var ua = navigator.userAgent || "";
+        var come = document.getElementById("salva-come");
+        if (come) {
+          if (/iPhone|iPad|iPod/i.test(ua)) {
+            come.innerHTML = "Toccate <b>Condividi</b> in basso, poi <b>Aggiungi a Home</b>.";
+          } else if (/Android/i.test(ua)) {
+            come.innerHTML = "Toccate i <b>tre puntini</b> in alto, poi <b>Aggiungi a schermata Home</b>.";
+          } else {
+            come.innerHTML = "Salvatela nei preferiti con <b>Ctrl+D</b>, o <b>Cmd+D</b> su Mac.";
+          }
+        }
+        var bc = document.getElementById("salva-chiudi");
+        if (bc) bc.addEventListener("click", function () {
+          try { localStorage.setItem("salva-visto", "1"); } catch (e) {}
+          boxSalva.remove();
+        });
+      }
+    }
 
     var cop = document.getElementById("cop");
     if (cop) {
