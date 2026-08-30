@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root{
-    --carta:#FDFBF7; --inchiostro:#131A24; --rosso:#D0342C;
+    --carta:#FDFBF7; --inchiostro:#131A24; --accento:#12657F; --allarme:#B3261E;
     --salvia:#5E8B87; --riga:#E3DDD2; --tenue:#5B6672;
   }
   *{box-sizing:border-box}
@@ -19,7 +19,7 @@
        font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
   .wrap{max-width:860px;margin:0 auto;padding:0 18px 90px}
   h1{font-size:40px;line-height:1.05;letter-spacing:-.02em;margin:30px 0 6px}
-  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--rosso);
+  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--accento);
      margin:54px 0 14px;padding-top:20px;border-top:3px solid var(--inchiostro)}
   h3{font-size:23px;margin:0 0 6px;letter-spacing:-.01em}
   p{margin:10px 0}
@@ -27,16 +27,16 @@
   .sotto{font-size:22px;color:var(--tenue);margin:0 0 18px}
   .numeri{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0}
   .numeri div{flex:1 1 130px;border:2px solid var(--riga);border-radius:10px;padding:14px;background:#fff}
-  .numeri b{display:block;font-size:32px;color:var(--rosso);line-height:1}
+  .numeri b{display:block;font-size:32px;color:var(--accento);line-height:1}
   .numeri span{font-size:13px;color:var(--tenue);letter-spacing:.06em;text-transform:uppercase}
   #mappa{height:500px;border-radius:12px;border:2px solid var(--riga);margin:10px 0}
   .copertina{width:100%;border-radius:12px;display:block;margin:18px 0 6px;background:#F1EDE6}
   .giorno{display:flex;gap:16px;padding:22px 0;border-bottom:1px solid var(--riga)}
-  .giorno .n{color:var(--rosso);font-size:32px;line-height:1;min-width:56px;font-weight:700;font-variant-numeric:tabular-nums}
+  .giorno .n{color:var(--accento);font-size:32px;line-height:1;min-width:56px;font-weight:700;font-variant-numeric:tabular-nums}
   .fermo{background:#F1F5F4;border-left:5px solid var(--salvia);padding-left:14px;border-radius:0 8px 8px 0}
   .tag{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
        background:var(--salvia);color:#fff;padding:3px 9px;border-radius:3px}
-  .tag.r{background:var(--rosso)}
+  .tag.r{background:var(--allarme)}
   .foto{width:100%;border-radius:10px;margin:12px 0;display:block;background:#F1EDE6;min-height:120px}
   .pasti{margin:12px 0 0;border-top:1px dashed var(--riga);padding-top:10px}
   .pasto{font-size:16px;padding:5px 0;color:var(--tenue)}
@@ -51,26 +51,26 @@
                font-size:17px;background:#fff;color:var(--inchiostro);font-family:inherit}
   input:focus,select:focus{outline:3px solid var(--salvia);outline-offset:1px;border-color:var(--salvia)}
   .scelta{border:2px solid var(--riga);border-radius:10px;padding:14px;margin:10px 0;background:#fff;cursor:pointer;display:block}
-  .scelta.on{border-color:var(--rosso);border-width:3px}
+  .scelta.on{border-color:var(--accento);border-width:3px}
   .scelta h4{margin:0 0 3px;font-size:18px}
   .scelta p{margin:2px 0;font-size:15px;color:var(--tenue)}
   .scelta input{width:auto;margin-right:8px}
-  button{background:var(--rosso);color:#fff;border:0;padding:16px 28px;border-radius:8px;
+  button{background:var(--accento);color:#fff;border:0;padding:16px 28px;border-radius:8px;
          font-size:18px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:18px}
   button:disabled{opacity:.6;cursor:default}
   .due{display:flex;gap:14px;flex-wrap:wrap}
   .due>div{flex:1 1 160px}
   .msg{margin-top:14px;padding:14px;border-radius:8px;font-size:17px}
   .msg.ok{background:#EAF6EE;border:2px solid #2E8B57;color:#1D5E38}
-  .msg.ko{background:#FDECEA;border:2px solid var(--rosso);color:#8E1D17}
+  .msg.ko{background:#FDECEA;border:2px solid var(--allarme);color:#8E1D17}
   .credito{font-size:13px;color:var(--tenue);margin-top:4px}
   .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);border-bottom:2px solid var(--riga);
              display:flex;justify-content:space-between;align-items:center;padding:12px 18px;
              max-width:860px;margin:0 auto}
-  .barra-top a{text-decoration:none;font-size:16px;font-weight:700;color:var(--rosso)}
+  .barra-top a{text-decoration:none;font-size:16px;font-weight:700;color:var(--accento)}
   .barra-top .su{color:var(--tenue)}
   .pasto-box{border:2px solid var(--riga);border-radius:10px;padding:12px;margin:10px 0;background:#fff}
-  .pasto-box.fuori{border-left:6px solid var(--rosso)}
+  .pasto-box.fuori{border-left:6px solid var(--accento)}
   .pasto-box.camper{border-left:6px solid var(--salvia)}
   .pasto-box.scelta{border-left:6px dashed var(--salvia)}
   .pasto-box.dorme{border-left:6px solid var(--inchiostro);background:#FBF8F2}
@@ -81,26 +81,26 @@
   .azioni{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
   .azioni a{display:inline-block;text-decoration:none;font-size:15px;font-weight:700;
             border:2px solid var(--riga);border-radius:8px;padding:9px 14px;color:var(--inchiostro)}
-  .azioni a.mappa{border-color:var(--rosso);color:var(--rosso)}
+  .azioni a.mappa{border-color:var(--accento);color:var(--accento)}
   .calc{border:2px solid var(--riga);border-radius:12px;padding:18px;background:#fff;margin:14px 0}
   .formula{border:2px solid var(--riga);border-radius:12px;padding:18px;background:#fff;margin:16px 0}
-  .formula.on{border-color:var(--rosso);border-width:3px}
+  .formula.on{border-color:var(--accento);border-width:3px}
   .formula-testa{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
   .formula-testa h3{margin:0 0 2px;font-size:26px}
   .formula-testa p{margin:0;color:var(--tenue);font-size:17px}
-  .formula-prezzo{font-size:34px;font-weight:800;color:var(--rosso);line-height:1;white-space:nowrap}
+  .formula-prezzo{font-size:34px;font-weight:800;color:var(--accento);line-height:1;white-space:nowrap}
   .formula-prezzo span{display:block;font-size:14px;font-weight:400;color:var(--tenue);letter-spacing:.04em}
   ul.incluso{margin:12px 0;padding-left:0;list-style:none}
   ul.incluso li{padding:6px 0 6px 28px;position:relative;font-size:17px;border-bottom:1px solid var(--riga)}
   ul.incluso li:before{content:"\2713";position:absolute;left:2px;color:var(--salvia);font-weight:700}
   button.scegli{width:100%}
-  .prezzone{font-size:56px;line-height:1;font-weight:800;color:var(--rosso);margin:4px 0 0;letter-spacing:-.03em}
+  .prezzone{font-size:56px;line-height:1;font-weight:800;color:var(--accento);margin:4px 0 0;letter-spacing:-.03em}
   .prezzone-sotto{font-size:18px;color:var(--tenue);margin:2px 0 14px}
   @media(max-width:520px){.prezzone{font-size:44px}}
   .scelte-n{display:flex;gap:10px;flex-wrap:wrap}
   .n-btn{background:#fff;color:var(--inchiostro);border:2px solid var(--riga);border-radius:8px;
          padding:12px 18px;font-size:17px;font-weight:700;cursor:pointer;margin:0;font-family:inherit}
-  .n-btn.on{background:var(--rosso);color:#fff;border-color:var(--rosso)}
+  .n-btn.on{background:var(--accento);color:#fff;border-color:var(--accento)}
   .slide{position:relative;margin:12px 0}
   .slide-pista{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
                -webkit-overflow-scrolling:touch;scrollbar-width:none;border-radius:10px}
@@ -114,7 +114,7 @@
                        width:44px;height:44px;font-size:20px;margin:0;padding:0;cursor:pointer;line-height:1}
   .slide-punti{display:flex;gap:6px;justify-content:center;margin-top:8px}
   .slide-punti i{width:8px;height:8px;border-radius:50%;background:var(--riga);display:block}
-  .slide-punti i.on{background:var(--rosso)}
+  .slide-punti i.on{background:var(--accento)}
   @media(max-width:520px){.slide-pista img{height:210px}.slide-frecce{top:85px}}
   @media(max-width:520px){h1{font-size:30px}.sotto{font-size:19px}.giorno{gap:10px}.giorno .n{font-size:24px;min-width:40px}}
 </style>
@@ -151,7 +151,7 @@
   var app = document.getElementById("app");
   var dati = null;
 
-  var COLORI = { guida: "#D0342C", fermi: "#5E8B87", volo: "#131A24" };
+  var COLORI = { guida: "#12657F", fermi: "#5E8B87", volo: "#131A24" };
   var MOMENTI = { colazione: "Colazione", pranzo: "Pranzo", cena: "Cena" };
 
   function esc(s) {
@@ -430,7 +430,7 @@
     if (v.descrizione) h += "<p>" + esc(v.descrizione) + "</p>";
 
     h += "<h2>Il percorso</h2><div id=\"mappa\"></div>";
-    h += '<p class="credito">Rosso: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
+    h += '<p class="credito">Blu: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
 
     h += "<h2>Giorno per giorno</h2><div id=\"programma\"></div>";
 
@@ -495,7 +495,7 @@
 
     h += modulo(v);
 
-    h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--rosso);font-weight:700;text-decoration:none;font-size:18px;">\u2190 Torna a tutti i viaggi</a></p>';
+    h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--accento);font-weight:700;text-decoration:none;font-size:18px;">\u2190 Torna a tutti i viaggi</a></p>';
 
     app.innerHTML = h;
 
@@ -661,7 +661,7 @@
       linea.push(ll);
       L.circleMarker(ll, {
         radius: 9, color: "#fff", weight: 2,
-        fillColor: COLORI[t.tipo] || "#D0342C", fillOpacity: 1
+        fillColor: COLORI[t.tipo] || "#12657F", fillOpacity: 1
       }).addTo(mappa).bindPopup(
         "<b>Giorno " + t.giorno + " \u2014 " + esc(t.titolo) + "</b><br>"
         + (Number(t.km) > 0 ? t.km + " km<br>" : "")
@@ -669,7 +669,7 @@
       );
     });
 
-    L.polyline(linea, { color: "#D0342C", weight: 3, opacity: .8 }).addTo(mappa);
+    L.polyline(linea, { color: "#12657F", weight: 3, opacity: .8 }).addTo(mappa);
     mappa.fitBounds(L.latLngBounds(linea), { padding: [30, 30] });
     setTimeout(function () { mappa.invalidateSize(); }, 200);
   }
@@ -786,7 +786,7 @@
           ? "<b>Ci siamo.</b> Quota " + euro(d.quota) + " per " + d.persone + " persone.<br><br>"
             + "Vi abbiamo mandato una mail con il collegamento alla vostra prenotazione: "
             + "da lì si paga e si vede a che punto siamo.<br><br>"
-            + '<a href="' + link + '" style="display:inline-block;background:var(--rosso);color:#fff;'
+            + '<a href="' + link + '" style="display:inline-block;background:var(--accento);color:#fff;'
             + 'text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;">'
             + "Apri la mia prenotazione</a>"
           : "<b>Segnati.</b> Siete in " + d.persone + ": ci vediamo là.";
