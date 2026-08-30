@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <title>I nostri viaggi</title>
 <style>
-  :root{--carta:#FDFBF7;--inchiostro:#131A24;--rosso:#D0342C;--salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
+  :root{--carta:#FDFBF7;--inchiostro:#131A24;--accento:#12657F; --allarme:#B3261E;--salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
   *{box-sizing:border-box}
   body{margin:0;background:var(--carta);color:var(--inchiostro);
        font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
@@ -23,14 +23,14 @@
   .card h2{font-size:26px;margin:0 0 4px;letter-spacing:-.01em}
   .card p{margin:4px 0;color:var(--tenue);font-size:17px}
   .riga{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
-  .prezzo{font-size:22px;font-weight:700;color:var(--rosso)}
+  .prezzo{font-size:22px;font-weight:700;color:var(--accento)}
   .tag{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
        background:var(--salvia);color:#fff;padding:3px 9px;border-radius:3px}
   .tag.chiuse{background:var(--tenue)}
   .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:36px;text-align:center;color:var(--tenue)}
   .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);border-bottom:2px solid var(--riga);
              padding:12px 18px;max-width:860px;margin:0 auto}
-  .barra-top a{text-decoration:none;font-size:16px;font-weight:700;color:var(--rosso)}
+  .barra-top a{text-decoration:none;font-size:16px;font-weight:700;color:var(--accento)}
   @media(max-width:520px){h1{font-size:32px}.sotto{font-size:18px}}
 </style>
 </head>
