@@ -1142,9 +1142,23 @@ async function anteprimaOccasione(id) {
     try {
       const g = await supa().functions.invoke("viaggi-bozza-itinerario", { body: { occasione_id: id } });
       const d = g.data || {};
-      if (d.ok === false) {
-        box.innerHTML = '<div style="padding:30px;color:#991b1b;">Non e riuscita: '
-          + escapeHtml(d.errore || "errore") + "</div>";
+      if (d.ok === false || !d.bozza) {
+        // L'errore va detto per intero: il caso piu frequente e' il credito finito,
+        // e prima si vedeva solo un itinerario "Senza titolo" che non si pubblicava.
+        const testo = String(d.errore || "errore sconosciuto");
+        const credito = testo.indexOf("credit balance") !== -1;
+        box.innerHTML = '<div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:12px;padding:20px;color:#991b1b;">'
+          + "<b>L'itinerario non e stato creato.</b>"
+          + (credito
+              ? '<p style="margin:10px 0;">Il credito Anthropic e finito: la ricerca non puo girare.<br>'
+                + 'Ricaricalo su <a href="https://console.anthropic.com/settings/billing" target="_blank" '
+                + 'style="color:#991b1b;font-weight:700;">console.anthropic.com</a>, poi riprova.</p>'
+              : '<p style="margin:10px 0;font-size:14px;">' + escapeHtml(testo.slice(0, 300)) + "</p>")
+          + '<button id="ant-torna" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;'
+          + 'border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;">← Torna alle occasioni</button>'
+          + "</div>";
+        const bt = document.getElementById("ant-torna");
+        if (bt) bt.addEventListener("click", renderOccasioni);
         return;
       }
       o.bozza = d.bozza;
@@ -1156,6 +1170,7 @@ async function anteprimaOccasione(id) {
 
   const b = o.bozza || {};
   const tappe = b.tappe || [];
+  const pronta = tappe.length > 0 && b.titolo;
 
   let h = '<div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">'
     + '<button id="ant-indietro" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;">← Occasioni</button>'
@@ -1215,8 +1230,10 @@ async function anteprimaOccasione(id) {
     + 'style="border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;font-size:18px;width:160px;">'
     + '<div style="color:#64748b;font-size:13px;margin:6px 0 14px;">Costo vivo ' + euro(o.costo_vivo)
     + ". Quello che metti sopra e il tuo margine.</div>"
-    + '<button id="ant-pubblica" style="background:#16a34a;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:700;font-size:16px;cursor:pointer;">Pubblica questo viaggio</button>'
-    + '<div style="color:#64748b;font-size:12px;margin-top:8px;">Nasce in bozza e non pubblico: si rilegge nel Catalogo prima di mandarlo online.</div>'
+    + (pronta
+        ? '<button id="ant-pubblica" style="background:#16a34a;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:700;font-size:16px;cursor:pointer;">Pubblica questo viaggio</button>'
+          + '<div style="color:#64748b;font-size:12px;margin-top:8px;">Nasce in bozza e non pubblico: si rilegge nel Catalogo prima di mandarlo online.</div>'
+        : '<div style="color:#b45309;font-weight:700;">Itinerario incompleto: premi Rifai prima di pubblicare.</div>')
     + "</div>";
 
   box.innerHTML = h;
