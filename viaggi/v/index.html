@@ -493,6 +493,9 @@
       h += "</table>";
     }
 
+    h += '<h2 id="dicono">Chi c\'e stato</h2><div id="recensioni"></div>';
+    h += '<h2>Il diario di bordo</h2><div id="diario"></div>';
+
     h += modulo(v);
 
     h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--accento);font-weight:700;text-decoration:none;font-size:18px;">\u2190 Torna a tutti i viaggi</a></p>';
@@ -514,6 +517,8 @@
     attivaSlide();
     disegnaProgramma(tappe);
     disegnaMappa(tappe);
+    disegnaRecensioni(v.slug);
+    disegnaDiario(v.slug);
     agganciaModulo();
 
     var su = document.getElementById("torna-su");
@@ -672,6 +677,70 @@
     L.polyline(linea, { color: "#12657F", weight: 3, opacity: .8 }).addTo(mappa);
     mappa.fitBounds(L.latLngBounds(linea), { padding: [30, 30] });
     setTimeout(function () { mappa.invalidateSize(); }, 200);
+  }
+
+  // Chi ha fatto il viaggio: le recensioni che il gruppo ha reso pubbliche.
+  function disegnaRecensioni(slug) {
+    var box = document.getElementById("recensioni");
+    if (!box) return;
+    sb.rpc("viaggio_recensioni", { p_slug: slug }).then(function (r) {
+      var righe = (r.data) || [];
+      if (!righe.length) {
+        // niente riquadro vuoto: si toglie anche il titolo
+        var t = box.previousElementSibling;
+        if (t && t.tagName === "H2") t.remove();
+        box.remove();
+        return;
+      }
+      var media = 0;
+      righe.forEach(function (x) { media += Number(x.voto || 0); });
+      media = media / righe.length;
+
+      var h = '<p class="sotto" style="margin-top:0;">' + stelle(media) + " "
+        + media.toFixed(1).replace(".", ",") + " su "
+        + righe.length + (righe.length === 1 ? " giudizio" : " giudizi") + "</p>";
+
+      righe.forEach(function (x) {
+        h += '<div class="pasto-box scelta">'
+          + '<p class="pasto-testa">' + esc(x.autore) + " · " + stelle(x.voto) + "</p>"
+          + "<p>" + esc(x.testo) + "</p></div>";
+      });
+      box.innerHTML = h;
+    });
+  }
+
+  function stelle(n) {
+    var s = "";
+    for (var i = 1; i <= 5; i++) s += (i <= Math.round(Number(n)) ? "\u2605" : "\u2606");
+    return s;
+  }
+
+  // Le pagine scritte da chi c'e stato, anche in anni diversi.
+  function disegnaDiario(slug) {
+    var box = document.getElementById("diario");
+    if (!box) return;
+    sb.rpc("diario_destinazione", { p_slug: slug, p_destinazione: null, p_limite: 8 })
+      .then(function (r) {
+        var pagine = (r.data) || [];
+        if (!pagine.length) {
+          var t = box.previousElementSibling;
+          if (t && t.tagName === "H2") t.remove();
+          box.remove();
+          return;
+        }
+        var h = "";
+        pagine.forEach(function (p) {
+          h += '<div class="giorno" style="border-left:6px solid var(--salvia);">'
+            + '<div style="flex:1;min-width:0;">'
+            + '<p class="occhiello">' + esc(p.autore)
+            + (p.luogo ? " \u00b7 " + esc(p.luogo) : "")
+            + (p.anno ? " \u00b7 " + p.anno : "")
+            + (p.in_diretta ? ' \u00b7 <span class="tag r">scritto dal viaggio</span>' : "") + "</p>"
+            + "<h3>" + esc(p.titolo || ("Giorno " + (p.giorno || ""))) + "</h3>"
+            + "<p>" + esc(p.testo) + "</p></div></div>";
+        });
+        box.innerHTML = h;
+      });
   }
 
   function modulo(v) {
