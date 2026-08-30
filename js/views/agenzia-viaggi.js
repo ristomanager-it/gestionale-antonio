@@ -46,7 +46,8 @@ const CSS_VIAGGI = `
   .av-tabella{width:100%;border-collapse:collapse;font-size:14px}
   .av-tabella th{text-align:left;padding:8px 6px;border-bottom:2px solid #0E5A7A;
                  font-size:11px;color:#64748b;text-transform:uppercase}
-  .av-tabella td{padding:9px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  .av-tabella td{padding:9px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top;
+                 overflow-wrap:break-word;word-break:normal}
   @media (max-width: 700px) {
     .av-wrap{padding:10px}
     .av-num > div{flex:1 1 calc(50% - 5px);padding:10px}
@@ -1021,10 +1022,10 @@ async function renderOccasioni() {
     const r = o.viaggi_rotte || {};
     const nuova = o.stato === "nuova";
     h += "<tr" + (nuova ? ' style="background:#f0fdf4;"' : "") + ">"
-      + "<td><b>" + escapeHtml(r.nome || "—") + "</b>"
+      // Tutto dentro un contenitore solo: su telefono la cella diventa flessibile
+      // e i pezzi separati finivano affiancati come colonne strette.
+      + '<td><div><b>' + escapeHtml(r.nome || "—") + "</b>"
       + (function () {
-          // Le occasioni trovate prima non hanno nazione ne tipo: senza questo
-          // controllo restava un puntino da solo sotto il nome della rotta.
           const d = o.dettaglio || {};
           const parti = [];
           if (o.origine_iata) parti.push("da " + escapeHtml(d.partenza_da || o.origine_iata));
@@ -1035,7 +1036,7 @@ async function renderOccasioni() {
             : "";
         })()
       + '<div style="color:#64748b;font-size:12px;">' + escapeHtml(o.vettore || "")
-      + " · " + (o.notti || 0) + " notti</div></td>"
+      + " · " + (o.notti || 0) + " notti</div></div></td>"
       + "<td>" + data(o.data_partenza) + '<div style="color:#64748b;font-size:12px;">'
       + data(o.data_rientro) + "</div></td>"
       + "<td>" + euro(o.volo_prezzo) + "</td>"
@@ -1046,13 +1047,15 @@ async function renderOccasioni() {
       + '<td style="white-space:nowrap;">'
       + (o.stato === "pubblicata"
           ? '<span style="color:#16a34a;font-weight:700;">Pubblicata</span>'
-          : '<button class="occ-prev" data-id="' + o.id + '" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer;">'
+          : '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'
+            + '<button class="occ-prev" data-id="' + o.id + '" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:6px;padding:7px 11px;font-weight:700;cursor:pointer;white-space:nowrap;font-size:14px;">'
             + (o.bozza ? "Rivedi" : "Anteprima") + "</button>"
-            + ' <button class="occ-vetr" data-id="' + o.id + '" data-prezzo="' + Number(o.prezzo_suggerito || 0)
+            + '<button class="occ-vetr" data-id="' + o.id + '" data-prezzo="' + Number(o.prezzo_suggerito || 0)
             + '" style="background:' + (o.in_vetrina ? "#0E5A7A" : "#fff") + ";color:"
-            + (o.in_vetrina ? "#fff" : "#0E5A7A") + ';border:1px solid #0E5A7A;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer;">'
-            + (o.in_vetrina ? "In vetrina ✓" : "Metti in vetrina") + "</button>"
-            + ' <button class="occ-no" data-id="' + o.id + '" style="background:#fff;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;padding:7px 10px;cursor:pointer;">Scarta</button>')
+            + (o.in_vetrina ? "#fff" : "#0E5A7A") + ';border:1px solid #0E5A7A;border-radius:6px;padding:7px 11px;font-weight:700;cursor:pointer;white-space:nowrap;font-size:14px;">'
+            + (o.in_vetrina ? "✓ In vetrina" : "Vetrina") + "</button>"
+            + '<button class="occ-no" data-id="' + o.id + '" style="background:#fff;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;padding:7px 10px;cursor:pointer;white-space:nowrap;font-size:14px;">Scarta</button>'
+            + "</div>")
       + "</td></tr>";
   });
 
