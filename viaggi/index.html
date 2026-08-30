@@ -36,7 +36,7 @@
 </head>
 <body>
 <div class="barra-top">
-  <a href="#" id="indietro">← Indietro</a>
+  <a href="#" id="indietro">← Al gestionale</a>
 </div>
 <div class="wrap" id="app"><p style="margin-top:40px;color:#5B6672">Carico i viaggi...</p></div>
 
@@ -64,11 +64,12 @@
 
   // Torna da dove si e arrivati; se la pagina e stata aperta da un link diretto
   // non c'e storia da percorrere e si va alla home.
+  // history.back() rimandava alla pagina di un viaggio, cioe' di nuovo qui dentro.
+  // Dal catalogo pubblico si torna sempre al gestionale, alla vista dei viaggi.
   var indietro = document.getElementById("indietro");
   if (indietro) indietro.addEventListener("click", function (e) {
     e.preventDefault();
-    if (history.length > 1) history.back();
-    else location.href = "https://app.ristoflow-ai.com/";
+    location.href = "https://app.ristoflow-ai.com/#/agenzia-viaggi";
   });
 
   function esc(s) {
