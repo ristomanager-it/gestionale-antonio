@@ -1000,6 +1000,7 @@ async function renderOccasioni() {
     + menu("occ-tipo", "Tutti i tipi", elenco("tipo"), TIPI)
     + '<button id="occ-cerca" style="background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">🔎 Cerca adesso</button>'
     + '<button id="occ-rotte" style="background:#fff;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">Rotte</button>'
+    + '<button id="occ-nuova" style="background:#fff;color:#0E5A7A;border:1px dashed #0E5A7A;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">+ Destinazione</button>'
     + "</div>";
 
   // Il continente restringe le nazioni: si tiene la lista completa per rifiltrarla.
@@ -1110,6 +1111,9 @@ function agganciaOccasioni() {
 
   const bRotte = document.getElementById("occ-rotte");
   if (bRotte) bRotte.addEventListener("click", renderRotte);
+
+  const bNuova = document.getElementById("occ-nuova");
+  if (bNuova) bNuova.addEventListener("click", nuovaDestinazione);
 
   document.querySelectorAll(".occ-no").forEach(function (b) {
     b.addEventListener("click", async function () {
@@ -1274,6 +1278,46 @@ async function anteprimaOccasione(id) {
       + "Il viaggio e nel Catalogo in bozza. Controllalo e poi mettilo pubblico.");
     await renderOccasioni();
   });
+}
+
+
+// Aggiungere una destinazione qualsiasi senza toccare il database: basta il
+// nome, il resto ha valori sensati e si corregge dopo dalla schermata Rotte.
+async function nuovaDestinazione() {
+  const dove = prompt("Dove si va?\n\nEsempi: Maldive, Tokyo, Safari in Kenya, Crociera Baltico");
+  if (!dove || !dove.trim()) return;
+
+  const TIPI_SCELTA = "1 = volo e hotel\n2 = volo e auto\n3 = crociera\n4 = camper\n5 = tour di gruppo";
+  const n = prompt("Che tipo di viaggio?\n\n" + TIPI_SCELTA, "1");
+  if (n === null) return;
+  const tipo = { "1": "volo_hotel", "2": "volo_auto", "3": "crociera",
+                 "4": "camper", "5": "gruppo" }[String(n).trim()] || "volo_hotel";
+
+  const nazione = prompt("In che nazione? (facoltativo)") || null;
+  const continente = prompt("Continente?\n\nEuropa, Asia, Africa, America del Nord,\nAmerica centrale, America del Sud, Oceania") || null;
+  const notti = Number(prompt("Quante notti?", "7")) || 7;
+  const iata = prompt("Codice aeroporto, se lo sai (facoltativo)\nEsempio: MLE per le Maldive") || null;
+  const tetto = Number(prompt("Sopra quanto NON e piu un'occasione?\nCosto vivo a persona, in euro", "1500")) || null;
+
+  const r = await supa().rpc("rotta_crea_veloce", {
+    p_azienda: aziendaId(), p_destinazione: dove.trim(), p_nazione: nazione,
+    p_continente: continente, p_iata: iata, p_tipo: tipo, p_notti: notti,
+    p_soglia_totale: tetto
+  });
+
+  if (r.error) return alert("Non creata: " + r.error.message);
+  const d = r.data || {};
+  if (d.ok === false) return alert(d.errore || "Non creata.");
+
+  if (confirm("Creata: " + d.nome + (d.nota ? "\n\n" + d.nota : "")
+              + "\n\nCerco subito le occasioni su questa rotta?")) {
+    const g = await supa().functions.invoke("viaggi-cerca-occasioni",
+                { body: { rotta_id: d.rotta_id } });
+    const e = g.data || {};
+    if (e.ok === false) alert("La ricerca non e partita:\n\n" + (e.errore || "errore"));
+    else alert("Trovate " + (e.occasioni_nuove || 0) + " occasioni.");
+  }
+  await renderOccasioni();
 }
 
 async function renderRotte() {
