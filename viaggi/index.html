@@ -167,6 +167,32 @@
   .sv-esito{margin-top:14px;line-height:1.4}
   .sv-esito .grosso{font-size:30px;font-weight:700;color:var(--oro);display:block}
   .sv-esito .riga{color:var(--tenue);font-size:15px}
+  .sv-esito .quale{display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--riga);
+                   font-size:16px;color:var(--inchiostro)}
+  .sv-vai{display:block;text-align:center;background:var(--oro);color:#fff;text-decoration:none;
+          margin-top:12px;padding:12px;border-radius:8px;font-weight:700}
+
+  .motivi{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;
+          margin:34px 0 6px}
+  .motivo{background:#fff;border:2px solid var(--riga);border-radius:12px;padding:18px}
+  .motivo .num{width:34px;height:34px;border-radius:50%;background:var(--accento);color:#fff;
+               display:flex;align-items:center;justify-content:center;font-weight:700;
+               font-size:18px;margin-bottom:10px}
+  .motivo h3{margin:0 0 6px;font-size:21px}
+  .motivo p{margin:0;color:var(--tenue);font-size:16px}
+
+  .conto{background:#fff;border:2px solid var(--riga);border-radius:14px;padding:20px;
+         max-width:620px;margin:0 auto}
+  .conto-intro{margin:0 0 14px;color:var(--tenue)}
+  .conto-tab{width:100%;border-collapse:collapse;font-size:17px}
+  .conto-tab td{padding:10px 0;border-bottom:1px solid var(--riga)}
+  .conto-tab td.n{text-align:right;white-space:nowrap}
+  .conto-tab td.verde{color:#2E8B57}
+  .conto-tab tr.tot td{border-bottom:0;border-top:2px solid var(--inchiostro);
+                       font-size:22px;padding-top:12px}
+  .conto-nota{color:var(--tenue);font-size:15px;margin:12px 0 16px}
+  .conto a.primario{display:inline-block;text-decoration:none;padding:13px 26px;
+                    border-radius:8px;font-weight:700}
 
   .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:30px;text-align:center;color:var(--tenue)}
   .pie{margin-top:50px;padding-top:18px;border-top:1px solid var(--riga);
@@ -213,8 +239,8 @@
   <div class="testata">
     <h1>Si riparte</h1>
     <p class="payoff">Una vita in vacanza.</p>
-    <p>Partenze da tutta Italia, itinerari costruiti uno per uno.
-       Voi scegliete dove, al resto pensiamo noi.</p>
+    <p>Mettete via 50 euro al mese. Dopo un anno avete 620 euro
+       e un viaggio già pronto: volo, hotel e itinerario fatti da noi.</p>
 
     <div class="cerca">
       <div class="cerca-campo">
@@ -237,8 +263,27 @@
       <button id="h-cerca">Cerca</button>
     </div>
 
-    <div class="azioni-top">
-      <a class="lastminute" href="offerte/?urgenti=1">Last minute — partenze entro 30 giorni</a>
+    <div class="azioni-top" id="azioni-top"></div>
+  </div>
+
+  <div class="motivi">
+    <div class="motivo">
+      <div class="num">1</div>
+      <h3>Mettete via poco</h3>
+      <p>Da 25 euro al mese, quando volete. Quello che versate
+         <b>vale il 4% in più</b>: 50 diventano 52.</p>
+    </div>
+    <div class="motivo">
+      <div class="num">2</div>
+      <h3>Partite</h3>
+      <p>Il salvadanaio paga il viaggio. Volo, hotel e itinerario
+         li prepariamo noi: voi scegliete solo dove.</p>
+    </div>
+    <div class="motivo">
+      <div class="num">3</div>
+      <h3>Il viaggio dopo costa meno</h3>
+      <p>Un punto per ogni euro speso. <b>Venti punti = un euro</b>
+         di sconto sulla prossima partenza.</p>
     </div>
   </div>
 
@@ -264,8 +309,32 @@
         <option value="100">100 € al mese</option>
         <option value="150">150 € al mese</option>
       </select>
+      <label for="sv-mesi" style="margin-top:12px;">Per</label>
+      <select id="sv-mesi">
+        <option value="6">6 mesi</option>
+        <option value="12" selected>un anno</option>
+        <option value="24">due anni</option>
+      </select>
       <div class="sv-esito" id="sv-esito"></div>
+      <a class="sv-vai" href="offerte/">Guarda cosa ci si paga</a>
     </div>
+  </div>
+
+  <h2 id="punti">Quanto vi torna indietro</h2>
+  <div class="conto">
+    <p class="conto-intro">Una famiglia che parte due volte l'anno da mille euro a viaggio,
+       mettendo via cinquanta euro al mese:</p>
+    <table class="conto-tab">
+      <tr><td>Versati nel salvadanaio in un anno</td><td class="n">600 €</td></tr>
+      <tr><td>Premio del 4% più la costanza</td><td class="n verde">+ 44 €</td></tr>
+      <tr><td>Punti dai due viaggi</td><td class="n verde">+ 100 €</td></tr>
+      <tr><td>Punti per due recensioni e due diari</td><td class="n verde">+ 15 €</td></tr>
+      <tr><td>Un amico portato</td><td class="n verde">+ 10 €</td></tr>
+      <tr class="tot"><td><b>Vale</b></td><td class="n"><b>769 €</b></td></tr>
+    </table>
+    <p class="conto-nota">Centosessantanove euro guadagnati stando fermi.
+       Chi scrive dal viaggio prende il doppio dei punti.</p>
+    <a class="primario" href="offerte/">Guarda dove si parte</a>
   </div>
 
   <h2 id="giudizi">Dicono di noi</h2>
@@ -360,6 +429,10 @@
         + "Tornate fra qualche giorno.</div>";
       return;
     }
+    offerteVive = r.data || [];
+    contoSalvadanaio();
+    pulsantiTestata(offerteVive);
+
     var h = '<div class="griglia">';
     righe.forEach(function (o, i) {
       h += '<div class="carta"><img id="of-' + i + '" alt="">'
@@ -495,6 +568,26 @@
     if (e.key === "ArrowLeft") apriStoria(indice - 1);
   });
 
+  // Il pulsante urgente esiste solo se c'e' qualcosa che parte davvero presto.
+  function pulsantiTestata(righe) {
+    var box = document.getElementById("azioni-top");
+    if (!box) return;
+    var limite = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    var oggi = new Date().toISOString().slice(0, 10);
+    var urgenti = righe.filter(function (o) {
+      return o.data_partenza >= oggi && o.data_partenza <= limite;
+    });
+
+    var h = "";
+    if (urgenti.length) {
+      h += '<a class="lastminute" href="offerte/?urgenti=1">Last minute \u2014 '
+        + urgenti.length + (urgenti.length === 1 ? " partenza" : " partenze")
+        + " entro trenta giorni</a>";
+    }
+    h += '<a class="secondario" href="offerte/">Tutte le partenze</a>';
+    box.innerHTML = h;
+  }
+
   // ---- la ricerca in cima: riempie i menu e porta alle offerte filtrate
   sb.rpc("offerte_filtri", { p_azienda: AZIENDA }).then(function (r) {
     var f = r.data || {};
@@ -525,18 +618,44 @@
   });
 
   // ---- il salvadanaio: quanto viene fuori in un anno --------------------
+  // Il conto del salvadanaio, e soprattutto: che viaggio ci si paga.
+  var offerteVive = [];
+
   function contoSalvadanaio() {
     var sel = document.getElementById("sv-quota");
+    var mesiSel = document.getElementById("sv-mesi");
     var out = document.getElementById("sv-esito");
     if (!sel || !out) return;
+
     var q = Number(sel.value);
-    var anno = q * 12;
-    var premio = Math.round(anno * 4) / 100 + 20;   // 4% piu due volte i dieci euro
-    out.innerHTML = '<span class="grosso">' + euro(anno + premio) + "</span>"
-      + '<span class="riga">dopo un anno, avendone versati ' + euro(anno) + "</span>";
+    var mesi = Number(mesiSel ? mesiSel.value : 12);
+    var versato = q * mesi;
+    var premio = Math.round(versato * 4) / 100 + Math.floor(mesi / 6) * 10;
+    var totale = versato + premio;
+
+    var h = '<span class="grosso">' + euro(totale) + "</span>"
+      + '<span class="riga">avendone versati ' + euro(versato)
+      + ": " + euro(premio) + " in regalo</span>";
+
+    // si cerca il viaggio piu caro che ci sta dentro
+    var scelto = null;
+    offerteVive.forEach(function (o) {
+      var p = Number(o.prezzo || 0);
+      if (p > 0 && p <= totale && (!scelto || p > Number(scelto.prezzo))) scelto = o;
+    });
+    if (scelto) {
+      h += '<span class="quale">Ci si paga <b>' + esc(scelto.titolo) + "</b>"
+        + (Number(scelto.prezzo) ? " a " + euro(scelto.prezzo) : "") + ".</span>";
+    }
+
+    out.innerHTML = h;
   }
+
   var selQ = document.getElementById("sv-quota");
-  if (selQ) { selQ.addEventListener("change", contoSalvadanaio); contoSalvadanaio(); }
+  var selM = document.getElementById("sv-mesi");
+  if (selQ) selQ.addEventListener("change", contoSalvadanaio);
+  if (selM) selM.addEventListener("change", contoSalvadanaio);
+  contoSalvadanaio();
 
   // Il menu laterale: si apre da destra, si chiude col velo, con la X,
   // toccando una voce o premendo Esc.
