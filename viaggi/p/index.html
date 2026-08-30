@@ -11,6 +11,9 @@
 <style>
   :root{--carta:#FDFBF7;--inchiostro:#131A24;--accento:#12657F; --allarme:#B3261E;--salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
   *{box-sizing:border-box}
+  html,body{overflow-x:hidden;max-width:100%}
+  a,.msg,td,th{overflow-wrap:anywhere;word-break:break-word}
+  table{table-layout:fixed;width:100%}
   body{margin:0;background:var(--carta);color:var(--inchiostro);
        font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
   .wrap{max-width:720px;margin:0 auto;padding:0 18px 80px}
@@ -199,13 +202,20 @@
           body: { token: token, importo: Number(s.quota) }
         }).then(function (rr) {
           var d = (rr.data) || {};
-          if (d.ok === false || !d.url) {
+          if (rr.error || d.ok === false || !d.url) {
             bv.disabled = false; bv.textContent = "Versa " + euro(s.quota) + " adesso";
             msg.className = "msg no";
-            msg.textContent = d.errore || "Non riesco ad aprire il pagamento.";
+            // si dice cosa e successo davvero: prima usciva sempre la stessa frase
+            msg.textContent = d.errore
+              || (rr.error && (rr.error.message || String(rr.error)))
+              || "Non riesco ad aprire il pagamento.";
             return;
           }
           location.href = d.url;
+        }).catch(function (e) {
+          bv.disabled = false; bv.textContent = "Versa " + euro(s.quota) + " adesso";
+          msg.className = "msg no";
+          msg.textContent = "Errore: " + (e.message || String(e));
         });
       });
     });
