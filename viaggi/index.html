@@ -178,6 +178,24 @@
   .media{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
   .media b{font-size:34px;color:var(--oro)}
 
+  .contrario{background:#fff;border:2px solid var(--riga);border-radius:14px;padding:20px}
+  .contrario-apre{margin:0 0 18px;font-size:18px}
+  .due{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .colonna{border-radius:12px;padding:18px}
+  .colonna.rossa{background:#FDF2F1;border:1px solid #F3C9C5}
+  .colonna.verde{background:#F2F9F4;border:1px solid #BFE3C8}
+  .etichetta{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+             color:var(--tenue);margin-bottom:8px}
+  .colonna .grande{display:block;font-size:36px;line-height:1;letter-spacing:-.02em}
+  .colonna.rossa .grande{color:var(--allarme)}
+  .colonna.verde .grande{color:#2E8B57}
+  .colonna p{margin:4px 0 12px;color:var(--tenue)}
+  .colonna ul{margin:0;padding-left:0;list-style:none;font-size:16px}
+  .colonna li{padding:6px 0 6px 22px;position:relative;border-top:1px solid rgba(0,0,0,.06)}
+  .colonna.rossa li:before{content:"\u2715";position:absolute;left:2px;color:var(--allarme)}
+  .colonna.verde li:before{content:"\u2713";position:absolute;left:2px;color:#2E8B57}
+  .contrario-chiude{margin:18px 0 0;font-size:18px;line-height:1.5}
+
   .salva{border:2px solid var(--oro);border-radius:14px;background:#FFFDF6;padding:20px;
          display:flex;gap:22px;flex-wrap:wrap}
   .salva-testo{flex:1;min-width:260px}
@@ -254,6 +272,7 @@
     <a href="offerte/">Le offerte</a>
     <a href="catalogo/">Tutti i viaggi</a>
     <a href="#storie">Storie dal viaggio</a>
+    <a href="#contrario">Al contrario del prestito</a>
     <a href="#salvadanaio">Il salvadanaio</a>
     <a href="#giudizi">Dicono di noi</a>
   </nav>
@@ -328,6 +347,43 @@
 
   <h2>In partenza <a class="tutti" href="offerte/">tutte le offerte →</a></h2>
   <div id="offerte"><p style="color:#5B6672;">Carico...</p></div>
+
+  <h2 id="contrario">Al contrario di tutti</h2>
+  <div class="contrario">
+    <p class="contrario-apre">Nei primi sei mesi del 2026 gli italiani si sono fatti prestare
+       <b>225 milioni di euro</b> per andare in vacanza. Chi chiede un prestito per un viaggio
+       ne chiede in media 5.400, e li restituisce in <b>cinquanta rate da 132 euro</b>:
+       quattro anni a pagare una settimana.</p>
+
+    <div class="due">
+      <div class="colonna rossa">
+        <span class="etichetta">Come si fa di solito</span>
+        <b class="grande">5.400 €</b>
+        <p>chiesti in prestito</p>
+        <ul>
+          <li>50 rate da 132 euro</li>
+          <li>Si paga per quattro anni</li>
+          <li>Si torna e si continua a pagare</li>
+          <li>Gli interessi li tiene la banca</li>
+        </ul>
+      </div>
+      <div class="colonna verde">
+        <span class="etichetta">Come si fa qui</span>
+        <b class="grande">5 € al giorno</b>
+        <p>messi via prima</p>
+        <ul>
+          <li>Quanto un pacchetto di sigarette</li>
+          <li>Dopo un anno sono 1.900 euro</li>
+          <li>Si parte già pagato</li>
+          <li>Il premio del 4% lo tenete voi</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="contrario-chiude">Stessa vacanza. Da una parte quattro anni di rate,
+       dall'altra un anno di caffè non presi. <b>Noi facciamo il contrario del prestito:
+       mettete via prima, e quello che versate cresce invece di costare.</b></p>
+  </div>
 
   <h2 id="salvadanaio">Il salvadanaio</h2>
   <div class="salva">
