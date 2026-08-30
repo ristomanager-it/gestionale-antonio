@@ -17,8 +17,14 @@
   a{overflow-wrap:anywhere}
   .wrap{max-width:940px;margin:0 auto;padding:0 18px 70px}
 
-  .nav{position:sticky;top:0;z-index:900;background:rgba(253,251,247,.96);
-       border-bottom:2px solid var(--riga);backdrop-filter:blur(6px)}
+  .nav{position:fixed;top:0;left:0;right:0;z-index:900;background:transparent;
+       border-bottom:1px solid rgba(255,255,255,.18);transition:background .25s,border-color .25s}
+  .nav.solida{background:rgba(253,251,247,.97);border-bottom-color:var(--riga);
+              backdrop-filter:blur(8px)}
+  .nav .marchio,.nav .voci-larghe a{color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.4)}
+  .nav.solida .marchio,.nav.solida .voci-larghe a{color:var(--inchiostro);text-shadow:none}
+  .nav .apri-menu span{background:#fff}
+  .nav.solida .apri-menu span{background:var(--inchiostro)}
   .nav-dentro{max-width:940px;margin:0 auto;padding:12px 18px;
               display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .marchio{font-size:22px;font-weight:700;color:var(--inchiostro);text-decoration:none;
@@ -53,7 +59,30 @@
 
   @media(max-width:760px){ .voci-larghe{display:none} }
 
-  .storie-riga{display:flex;gap:14px;overflow-x:auto;padding:16px 18px 8px;
+  .eroe{position:relative;min-height:76vh;display:flex;align-items:flex-end;
+        overflow:hidden;background:#0B0F14}
+  .eroe-foto{position:absolute;inset:0;background-size:cover;background-position:center;
+             opacity:0;transition:opacity .8s}
+  .eroe-foto.c{opacity:1}
+  .eroe-velo{position:absolute;inset:0;
+             background:linear-gradient(180deg,rgba(11,15,20,.35) 0%,rgba(11,15,20,.15) 35%,rgba(11,15,20,.88) 100%)}
+  .eroe-testo{position:relative;z-index:2;width:100%;max-width:940px;margin:0 auto;
+              padding:0 18px 34px;color:#fff}
+  .eroe-testo h1{font-size:62px;line-height:.98;margin:0 0 4px;letter-spacing:-.03em;
+                 text-shadow:0 2px 24px rgba(0,0,0,.5)}
+  .eroe-testo .payoff{font-size:27px;font-weight:400;font-style:italic;color:#fff !important;
+                      margin:0 0 8px !important;text-shadow:0 2px 18px rgba(0,0,0,.5)}
+  .sotto-eroe{font-size:19px;color:rgba(255,255,255,.9);max-width:460px;margin:0 0 20px;
+              text-shadow:0 1px 12px rgba(0,0,0,.5)}
+  @media(max-width:640px){
+    .eroe{min-height:82vh}
+    .eroe-testo h1{font-size:44px}
+    .eroe-testo .payoff{font-size:22px}
+    .sotto-eroe{font-size:17px}
+  }
+
+  .storie-riga{display:flex;gap:14px;overflow-x:auto;padding:16px 18px 10px;
+               background:var(--carta);border-bottom:1px solid var(--riga);
                max-width:940px;margin:0 auto;scrollbar-width:none}
   .storie-riga::-webkit-scrollbar{display:none}
   .bolla{flex:0 0 auto;width:78px;text-align:center;cursor:pointer;border:0;background:none;
@@ -96,14 +125,11 @@
   .visore .lato{position:absolute;top:0;bottom:0;width:34%;z-index:3;cursor:pointer}
   .visore .lato.sx{left:0} .visore .lato.dx{right:0}
 
-  .testata{padding:34px 0 10px;text-align:center}
-  .testata h1{font-size:52px;line-height:1;margin:0 0 6px;letter-spacing:-.03em}
-  .payoff{font-size:24px;color:var(--inchiostro) !important;font-weight:700;margin:0 0 10px !important}
-  .testata p{color:var(--tenue);font-size:19px;margin:0 auto;max-width:540px}
 
-  .cerca{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;justify-content:center;
-         background:#fff;border:2px solid var(--riga);border-radius:14px;
-         padding:14px;margin:26px auto 14px;max-width:820px;text-align:left}
+  .cerca{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;
+         background:rgba(253,251,247,.97);border-radius:14px;
+         padding:14px;margin:0 0 12px;max-width:760px;text-align:left;
+         box-shadow:0 8px 30px rgba(0,0,0,.3)}
   .cerca-campo{flex:1;min-width:170px}
   .cerca label{display:block;font-size:12px;color:var(--tenue);letter-spacing:.06em;
                text-transform:uppercase;margin-bottom:4px}
@@ -111,9 +137,10 @@
                 font:inherit;font-size:16px;background:#fff;color:var(--inchiostro)}
   .cerca button{background:var(--accento);color:#fff;border:0;border-radius:8px;
                 padding:13px 26px;font:inherit;font-size:17px;font-weight:700;cursor:pointer}
+  .chiaro{background:#fff;color:var(--inchiostro);box-shadow:0 4px 16px rgba(0,0,0,.25)}
   .lastminute{background:var(--allarme) !important;color:#fff !important;
               box-shadow:0 2px 10px rgba(179,38,30,.25)}
-  .azioni-top{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 6px}
+  .azioni-top{display:flex;gap:10px;flex-wrap:wrap;margin:0}
   .azioni-top a{text-decoration:none;border-radius:8px;padding:13px 24px;font-weight:700;font-size:17px}
   .primario{background:var(--accento);color:#fff}
   .secondario{background:#fff;color:var(--accento);border:1px solid var(--accento)}
@@ -201,7 +228,6 @@
   .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:30px;text-align:center;color:var(--tenue)}
   .pie{margin-top:50px;padding-top:18px;border-top:1px solid var(--riga);
        color:var(--tenue);font-size:15px;text-align:center}
-  @media(max-width:560px){ .testata h1{font-size:33px} .testata p{font-size:18px} }
 </style>
 </head>
 <body>
@@ -237,14 +263,14 @@
   </div>
 </aside>
 
-<div class="storie-riga" id="storie-riga"></div>
-
-<div class="wrap">
-  <div class="testata">
+<section class="eroe">
+  <div class="eroe-foto" id="eroe-foto"></div>
+  <div class="eroe-velo"></div>
+  <div class="eroe-testo">
     <h1>Si riparte</h1>
     <p class="payoff">Una vita in vacanza.</p>
-    <p>Mettete via 50 euro al mese. Dopo un anno avete 620 euro
-       e un viaggio già pronto: volo, hotel e itinerario fatti da noi.</p>
+    <p class="sotto-eroe">Mettete via cinque euro al giorno.
+       A fine anno sono due viaggi lunghi.</p>
 
     <div class="cerca">
       <div class="cerca-campo">
@@ -266,10 +292,13 @@
       </div>
       <button id="h-cerca">Cerca</button>
     </div>
-
     <div class="azioni-top" id="azioni-top"></div>
   </div>
+</section>
 
+<div class="storie-riga" id="storie-riga"></div>
+
+<div class="wrap">
   <div class="manifesto">
     <p>I soldi spesi in viaggi sono gli unici che non si rimpiangono.
        Per questo abbiamo fatto un motore di ricerca solo per quello:
@@ -449,6 +478,7 @@
     offerteVive = r.data || [];
     contoSalvadanaio();
     pulsantiTestata(offerteVive);
+    vestiEroe(offerteVive);
 
     var h = '<div class="griglia">';
     righe.forEach(function (o, i) {
@@ -479,6 +509,48 @@
       else fotoWiki(o.copertina_wiki, img);
     });
   });
+
+  // La foto grande prende la copertina della prima partenza: cambia da sola
+  // quando cambia il catalogo, senza doverla caricare a mano.
+  function vestiEroe(righe) {
+    var box = document.getElementById("eroe-foto");
+    if (!box) return;
+    var scelta = null;
+    righe.forEach(function (o) {
+      if (!scelta && o.copertina) scelta = o.copertina;
+    });
+    if (scelta) {
+      var pre = new Image();
+      pre.onload = function () {
+        box.style.backgroundImage = "url('" + scelta + "')";
+        box.classList.add("c");
+      };
+      pre.src = scelta;
+      return;
+    }
+    // se nessuna offerta ha una foto nostra, si prova con Wikipedia
+    var voce = null;
+    righe.forEach(function (o) { if (!voce && o.copertina_wiki) voce = o.copertina_wiki; });
+    if (!voce) return;
+    fetch("https://it.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(voce))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var t = j && j.originalimage ? j.originalimage.source
+              : (j && j.thumbnail ? j.thumbnail.source.replace(/\/\d+px-/, "/1400px-") : null);
+        if (t && eFoto(t)) { box.style.backgroundImage = "url('" + t + "')"; box.classList.add("c"); }
+      }).catch(function () {});
+  }
+
+  // La barra diventa piena appena si scorre oltre la foto.
+  var nav = document.querySelector(".nav");
+  function guardaScorrimento() {
+    var eroe = document.querySelector(".eroe");
+    var soglia = eroe ? eroe.offsetHeight - 70 : 80;
+    if (window.scrollY > soglia) nav.classList.add("solida");
+    else nav.classList.remove("solida");
+  }
+  window.addEventListener("scroll", guardaScorrimento, { passive: true });
+  guardaScorrimento();
 
   // ---- le storie in cima -------------------------------------------------
   var storie = [];
@@ -601,7 +673,7 @@
         + urgenti.length + (urgenti.length === 1 ? " partenza" : " partenze")
         + " entro trenta giorni</a>";
     }
-    h += '<a class="secondario" href="offerte/">Tutte le partenze</a>';
+    h += '<a class="chiaro" href="offerte/">Tutte le partenze</a>';
     box.innerHTML = h;
   }
 
