@@ -200,11 +200,28 @@
     return true;
   }
 
+  // Una ricerca come "Hollywood Studios Orlando" restituiva la scheda di un attore:
+  // se la voce descrive una persona, la foto e un ritratto e non c entra niente.
+  function ePersona(descrizione) {
+    var d = String(descrizione || "").toLowerCase();
+    if (!d) return false;
+    var segni = ["attore", "attrice", "actor", "actress", "cantante", "singer", "musicista",
+                 "musician", "regista", "director", "scrittore", "writer", "politico",
+                 "politician", "calciatore", "footballer", "sportivo", "modella", "model",
+                 "imprenditore", "businessman", "personaggio", "rapper", "produttore",
+                 "producer", "born ", "nato ", "nata "];
+    for (var i = 0; i < segni.length; i++) {
+      if (d.indexOf(segni[i]) !== -1) return true;
+    }
+    return false;
+  }
+
   function sommario(lingua, titolo) {
     return fetch("https://" + lingua + ".wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titolo))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         if (!j) return null;
+        if (ePersona(j.description) || j.type === "disambiguation") return null;
         var org = j.originalimage && j.originalimage.source ? j.originalimage.source : null;
         var thumb = j.thumbnail && j.thumbnail.source ? j.thumbnail.source : null;
         if (org && eFotografia(org)) return { grande: org, piccola: thumb };
@@ -216,12 +233,13 @@
 
   function cerca(lingua, testo) {
     var u = "https://" + lingua + ".wikipedia.org/w/api.php?action=query&format=json&origin=*"
-          + "&generator=search&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=1280"
+          + "&generator=search&gsrlimit=1&prop=pageimages|pageterms&piprop=thumbnail&pithumbsize=1280&wbptterms=description"
           + "&gsrsearch=" + encodeURIComponent(testo);
     return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       if (!j || !j.query || !j.query.pages) return null;
       var pg = Object.keys(j.query.pages).map(function (k) { return j.query.pages[k]; })[0];
       if (!pg || !pg.thumbnail || !pg.thumbnail.source) return null;
+      if (pg.terms && pg.terms.description && ePersona(pg.terms.description[0])) return null;
       if (!eFotografia(pg.thumbnail.source)) return null;
       return { grande: pg.thumbnail.source, piccola: pg.thumbnail.source };
     }).catch(function () { return null; });
