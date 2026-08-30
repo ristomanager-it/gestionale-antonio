@@ -9,21 +9,21 @@
 <meta http-equiv="Expires" content="0">
 <title>Il tuo piano</title>
 <style>
-  :root{--carta:#FDFBF7;--inchiostro:#131A24;--rosso:#D0342C;--salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
+  :root{--carta:#FDFBF7;--inchiostro:#131A24;--accento:#12657F; --allarme:#B3261E;--salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
   *{box-sizing:border-box}
   body{margin:0;background:var(--carta);color:var(--inchiostro);
        font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
   .wrap{max-width:720px;margin:0 auto;padding:0 18px 80px}
   h1{font-size:32px;line-height:1.1;margin:30px 0 4px;letter-spacing:-.02em}
-  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--rosso);
+  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--accento);
      margin:44px 0 12px;padding-top:18px;border-top:3px solid var(--inchiostro)}
   .occhiello{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--salvia);margin:0}
   .numeri{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}
   .numeri div{flex:1 1 130px;border:2px solid var(--riga);border-radius:10px;padding:14px;background:#fff}
-  .numeri b{display:block;font-size:28px;line-height:1;color:var(--rosso)}
+  .numeri b{display:block;font-size:28px;line-height:1;color:var(--accento)}
   .numeri span{font-size:13px;color:var(--tenue);text-transform:uppercase;letter-spacing:.06em}
   .barra{height:18px;background:var(--riga);border-radius:9px;overflow:hidden;margin:12px 0}
-  .barra i{display:block;height:100%;background:var(--rosso)}
+  .barra i{display:block;height:100%;background:var(--accento)}
   table{width:100%;border-collapse:collapse;font-size:16px;margin:10px 0}
   th{text-align:left;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);
      border-bottom:2px solid var(--inchiostro);padding:8px 6px}
@@ -31,14 +31,14 @@
   .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
   .tag{display:inline-block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
        padding:3px 9px;border-radius:3px;background:var(--salvia);color:#fff}
-  .tag.r{background:var(--rosso)}
+  .tag.r{background:var(--allarme)}
   .tag.v{background:#2E8B57}
   .nota{background:#fff;border:2px solid var(--riga);border-radius:10px;padding:16px;margin:18px 0;font-size:16px}
-  a{color:var(--rosso)}
+  a{color:var(--accento)}
   .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);border-bottom:2px solid var(--riga);
              padding:12px 18px;max-width:720px;margin:0 auto}
   .barra-top a{text-decoration:none;font-size:16px;font-weight:700}
-  button{background:var(--rosso);color:#fff;border:0;padding:15px 26px;border-radius:8px;
+  button{background:var(--accento);color:#fff;border:0;padding:15px 26px;border-radius:8px;
          font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:14px}
   button:disabled{opacity:.6;cursor:default}
   button.chiaro{background:#fff;color:var(--salvia);border:2px solid var(--salvia)}
@@ -47,7 +47,7 @@
   label{display:block;font-size:15px;color:var(--tenue);margin:12px 0 4px}
   .msg{margin-top:12px;padding:13px;border-radius:8px;font-size:16px}
   .msg.ok{background:#EAF6EE;border:2px solid #2E8B57;color:#1D5E38}
-  .msg.ko{background:#FDECEA;border:2px solid var(--rosso);color:#8E1D17}
+  .msg.ko{background:#FDECEA;border:2px solid var(--allarme);color:#8E1D17}
   @media(max-width:520px){h1{font-size:26px}table{font-size:15px}}
 </style>
 </head>
@@ -230,7 +230,7 @@
       });
       h += "</table>";
       h += '<p style="text-align:center;"><a href="../v/?s=' + esc(v.slug)
-        + '" style="color:var(--rosso);font-weight:700;">Vedi il programma completo →</a></p>';
+        + '" style="color:var(--accento);font-weight:700;">Vedi il programma completo →</a></p>';
     }
 
     if (rate.length) {
