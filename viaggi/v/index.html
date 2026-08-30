@@ -494,6 +494,15 @@
     }
 
     h += modulo(v);
+
+    // Chi ha gia prenotato e ha perso il link se lo fa rimandare da qui.
+    h += '<h2 style="font-size:22px;">Ho gia prenotato</h2>'
+      + "<p>Se avete perso il collegamento alla vostra prenotazione, scrivete "
+      + "l'indirizzo con cui vi siete iscritti e ve lo rimandiamo.</p>"
+      + '<label for="r-email">La vostra email</label>'
+      + '<input id="r-email" type="email" placeholder="nome@esempio.it">'
+      + '<button id="r-invia" style="margin-top:10px;">Rimandami il collegamento</button>'
+      + '<div id="r-msg"></div>';
     h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../" style="color:var(--rosso);font-weight:700;text-decoration:none;font-size:18px;">\u2190 Torna a tutti i viaggi</a></p>';
 
     app.innerHTML = h;
@@ -514,6 +523,21 @@
     disegnaProgramma(tappe);
     disegnaMappa(tappe);
     agganciaModulo();
+
+    var rb = document.getElementById("r-invia");
+    if (rb) rb.addEventListener("click", function () {
+      var em = document.getElementById("r-email");
+      var msg = document.getElementById("r-msg");
+      var valore = em ? em.value.trim() : "";
+      if (!valore) { msg.className = "msg no"; msg.textContent = "Scrivete l'indirizzo."; return; }
+      rb.disabled = true; rb.textContent = "Invio...";
+      sb.rpc("viaggio_recupera_link", { p_email: valore }).then(function (r) {
+        rb.disabled = false; rb.textContent = "Rimandami il collegamento";
+        var d = r.data || {};
+        msg.className = "msg ok";
+        msg.textContent = d.messaggio || "Se l'indirizzo risulta fra le prenotazioni, la mail sta arrivando.";
+      });
+    });
 
     var su = document.getElementById("torna-su");
     if (su) su.addEventListener("click", function (e) {
