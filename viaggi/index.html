@@ -23,19 +23,80 @@
               display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .marchio{font-size:22px;font-weight:700;color:var(--inchiostro);text-decoration:none;
            letter-spacing:-.01em;margin-right:auto}
-  .voci{display:flex;gap:18px;flex-wrap:wrap}
-  .voci a{color:var(--inchiostro);text-decoration:none;font-size:16px}
-  .voci a:hover{color:var(--accento)}
-  .apri-menu{display:none;background:none;border:0;font-size:26px;line-height:1;cursor:pointer;
-             color:var(--inchiostro);padding:0 4px}
-  @media(max-width:640px){
-    .apri-menu{display:block}
-    .voci{display:none;width:100%;flex-direction:column;gap:0}
-    .voci.aperto{display:flex}
-    .voci a{padding:12px 0;border-top:1px solid var(--riga);font-size:17px}
-  }
+  .voci-larghe{display:flex;gap:20px}
+  .voci-larghe a{color:var(--inchiostro);text-decoration:none;font-size:16px}
+  .voci-larghe a:hover{color:var(--accento)}
 
-  .testata{padding:40px 0 10px;text-align:center}
+  .apri-menu{background:none;border:0;cursor:pointer;padding:6px;display:flex;
+             flex-direction:column;gap:5px;width:38px}
+  .apri-menu span{display:block;height:2px;background:var(--inchiostro);border-radius:2px}
+
+  .velo{position:fixed;inset:0;background:rgba(19,26,36,.45);opacity:0;pointer-events:none;
+        transition:opacity .2s;z-index:1000}
+  .velo.on{opacity:1;pointer-events:auto}
+
+  .cassetto{position:fixed;top:0;right:0;bottom:0;width:290px;max-width:86vw;
+            background:var(--carta);border-left:2px solid var(--riga);z-index:1001;
+            transform:translateX(100%);transition:transform .22s ease;
+            padding:20px;display:flex;flex-direction:column;overflow-y:auto}
+  .cassetto.on{transform:translateX(0)}
+  .cassetto .chiudi{position:absolute;top:12px;right:14px;background:none;border:0;
+                    font-size:34px;line-height:1;cursor:pointer;color:var(--tenue)}
+  .marchio-lato{font-size:22px;font-weight:700;color:var(--inchiostro);
+                text-decoration:none;margin-bottom:18px;display:block}
+  .cassetto nav{display:flex;flex-direction:column}
+  .cassetto nav a{color:var(--inchiostro);text-decoration:none;font-size:19px;
+                  padding:14px 0;border-bottom:1px solid var(--riga)}
+  .cassetto nav a:hover{color:var(--accento)}
+  .cassetto-pie{margin-top:auto;padding-top:20px;color:var(--tenue);font-size:15px}
+  .cassetto-pie a{color:var(--accento)}
+
+  @media(max-width:760px){ .voci-larghe{display:none} }
+
+  .storie-riga{display:flex;gap:14px;overflow-x:auto;padding:16px 18px 8px;
+               max-width:940px;margin:0 auto;scrollbar-width:none}
+  .storie-riga::-webkit-scrollbar{display:none}
+  .bolla{flex:0 0 auto;width:78px;text-align:center;cursor:pointer;border:0;background:none;
+         padding:0;font:inherit}
+  .bolla .anello{width:74px;height:74px;border-radius:50%;padding:3px;
+                 background:linear-gradient(45deg,var(--accento),var(--salvia))}
+  .bolla.live .anello{background:linear-gradient(45deg,#B3261E,#E8873A)}
+  .bolla.vista .anello{background:var(--riga)}
+  .bolla .foto{width:100%;height:100%;border-radius:50%;object-fit:cover;
+               background:#EDE7DC;border:2px solid var(--carta);display:block}
+  .bolla span{display:block;font-size:12px;color:var(--tenue);margin-top:5px;
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bolla.live span{color:var(--allarme);font-weight:700}
+
+  .visore{position:fixed;inset:0;background:#0B0F14;z-index:1100;display:none}
+  .visore.on{display:flex;flex-direction:column}
+  .visore .barre{display:flex;gap:4px;padding:10px 12px 0}
+  .visore .barra{flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:3px;overflow:hidden}
+  .visore .barra i{display:block;height:3px;background:#fff;width:0}
+  .visore .barra.fatta i{width:100%}
+  .visore .barra.ora i{animation:scorre 6s linear forwards}
+  @keyframes scorre{from{width:0}to{width:100%}}
+  .visore .capo{display:flex;align-items:center;gap:10px;padding:10px 14px;color:#fff}
+  .visore .capo b{font-size:16px}
+  .visore .capo .quando{color:rgba(255,255,255,.6);font-size:14px}
+  .visore .chiudi-v{margin-left:auto;background:none;border:0;color:#fff;
+                    font-size:34px;line-height:1;cursor:pointer}
+  .visore .corpo{flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+                 overflow:hidden}
+  .visore .corpo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+  .visore .testo{position:relative;z-index:2;padding:24px;color:#fff;text-align:center;
+                 max-width:620px;text-shadow:0 2px 18px rgba(0,0,0,.7)}
+  .visore .testo h3{font-size:30px;margin:0 0 10px}
+  .visore .testo p{font-size:19px;margin:0}
+  .visore .sfuma{position:absolute;inset:0;z-index:1;
+                 background:linear-gradient(180deg,rgba(11,15,20,.45),rgba(11,15,20,.15) 40%,rgba(11,15,20,.75))}
+  .visore .vai-v{display:block;text-align:center;background:#fff;color:var(--inchiostro);
+                 text-decoration:none;margin:14px 18px 22px;padding:14px;border-radius:10px;
+                 font-weight:700;font-size:17px}
+  .visore .lato{position:absolute;top:0;bottom:0;width:34%;z-index:3;cursor:pointer}
+  .visore .lato.sx{left:0} .visore .lato.dx{right:0}
+
+  .testata{padding:34px 0 10px;text-align:center}
   .testata h1{font-size:44px;line-height:1.05;margin:0 0 10px;letter-spacing:-.02em}
   .testata p{color:var(--tenue);font-size:20px;margin:0 auto;max-width:560px}
   .azioni-top{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 6px}
@@ -102,16 +163,36 @@
 <header class="nav">
   <div class="nav-dentro">
     <a class="marchio" href="./">Si riparte</a>
-    <button class="apri-menu" id="apri-menu" aria-label="Menu">☰</button>
-    <nav class="voci" id="voci">
+    <nav class="voci-larghe">
       <a href="offerte/">Offerte</a>
       <a href="catalogo/">I viaggi</a>
-      <a href="#storie">Storie</a>
       <a href="#salvadanaio">Salvadanaio</a>
       <a href="#giudizi">Dicono di noi</a>
     </nav>
+    <button class="apri-menu" id="apri-menu" aria-label="Apri il menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
+
+<div class="velo" id="velo"></div>
+<aside class="cassetto" id="cassetto">
+  <button class="chiudi" id="chiudi-menu" aria-label="Chiudi">&times;</button>
+  <a class="marchio-lato" href="./">Si riparte</a>
+  <nav>
+    <a href="offerte/">Le offerte</a>
+    <a href="catalogo/">Tutti i viaggi</a>
+    <a href="#storie">Storie dal viaggio</a>
+    <a href="#salvadanaio">Il salvadanaio</a>
+    <a href="#giudizi">Dicono di noi</a>
+  </nav>
+  <div class="cassetto-pie">
+    <p>Avete già prenotato?<br>Il collegamento è nella mail che vi abbiamo mandato.</p>
+    <a href="mailto:viaggi@ristoflow-ai.com">viaggi@ristoflow-ai.com</a>
+  </div>
+</aside>
+
+<div class="storie-riga" id="storie-riga"></div>
 
 <div class="wrap">
   <div class="testata">
@@ -126,9 +207,6 @@
 
   <h2>In partenza <a class="tutti" href="offerte/">tutte le offerte →</a></h2>
   <div id="offerte"><p style="color:#5B6672;">Carico...</p></div>
-
-  <h2 id="storie">Storie di chi è andato</h2>
-  <div id="storie-box"></div>
 
   <h2 id="salvadanaio">Il salvadanaio</h2>
   <div class="salva">
@@ -156,6 +234,23 @@
   <div id="giudizi"></div>
 
   <p class="pie">Scriveteci: <a href="mailto:viaggi@ristoflow-ai.com">viaggi@ristoflow-ai.com</a></p>
+</div>
+
+<div class="visore" id="visore">
+  <div class="barre" id="v-barre"></div>
+  <div class="capo">
+    <b id="v-titolo"></b>
+    <span class="quando" id="v-quando"></span>
+    <button class="chiudi-v" id="v-chiudi" aria-label="Chiudi">&times;</button>
+  </div>
+  <div class="corpo" id="v-corpo">
+    <img id="v-foto" alt="">
+    <div class="sfuma"></div>
+    <div class="lato sx" id="v-sx"></div>
+    <div class="lato dx" id="v-dx"></div>
+    <div class="testo"><h3 id="v-h"></h3><p id="v-p"></p></div>
+  </div>
+  <a class="vai-v" id="v-link" href="#"></a>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -257,31 +352,109 @@
     });
   });
 
-  // ---- le storie ---------------------------------------------------------
-  sb.rpc("vetrina_storie", { p_azienda: AZIENDA, p_limite: 6 }).then(function (r) {
-    var box = document.getElementById("storie-box");
-    var righe = r.data || [];
-    if (!righe.length) {
-      box.innerHTML = '<div class="vuoto">Le prime storie arrivano dopo le prime partenze.<br>'
-        + "Chi viaggia con noi racconta, e qui resta.</div>";
-      return;
-    }
+  // ---- le storie in cima -------------------------------------------------
+  var storie = [];
+  var indice = 0;
+  var timer = null;
+  var viste = {};
+  try { viste = JSON.parse(localStorage.getItem("storie-viste") || "{}"); } catch (e) { viste = {}; }
+
+  function quandoBreve(t) {
+    if (!t) return "";
+    var min = Math.floor((Date.now() - new Date(t)) / 60000);
+    if (min < 60) return min + " min fa";
+    if (min < 1440) return Math.floor(min / 60) + " ore fa";
+    return Math.floor(min / 1440) + " giorni fa";
+  }
+
+  sb.rpc("storie_pubbliche", { p_azienda: AZIENDA }).then(function (r) {
+    storie = r.data || [];
+    var riga = document.getElementById("storie-riga");
+    if (!storie.length) { riga.remove(); return; }
+
     var h = "";
-    righe.forEach(function (s) {
-      h += '<div class="storia">'
-        + "<h3>" + esc(s.titolo || s.destinazione || "Una giornata")
-        + (s.in_diretta ? '<span class="diretta">scritto dal viaggio</span>' : "") + "</h3>"
-        + '<p class="chi">' + esc(s.autore)
-        + (s.luogo ? " · " + esc(s.luogo) : "")
-        + (s.viaggio ? " · " + esc(s.viaggio) : "")
-        + (s.anno ? " · " + s.anno : "") + "</p>"
-        + "<p>" + esc(taglia(s.testo, 320)) + "</p>"
-        + (s.slug ? '<p style="margin:8px 0 0;"><a href="v/?s=' + esc(s.slug)
-            + '" style="color:var(--accento);font-weight:700;">Vedi il viaggio →</a></p>' : "")
-        + "</div>";
+    storie.forEach(function (s, i) {
+      h += '<button class="bolla' + (s.dal_viaggio ? " live" : "")
+        + (viste[s.id] ? " vista" : "") + '" data-i="' + i + '">'
+        + '<div class="anello"><img class="foto" id="bolla-' + i + '" alt=""></div>'
+        + "<span>" + esc(s.titolo) + "</span></button>";
     });
-    h += "</div>";
-    box.innerHTML = h;
+    riga.innerHTML = h;
+
+    storie.forEach(function (s, i) {
+      var img = document.getElementById("bolla-" + i);
+      if (!img) return;
+      if (s.immagine) img.src = s.immagine;
+      else if (s.immagine_wiki) fotoWiki(s.immagine_wiki, img);
+    });
+
+    riga.querySelectorAll(".bolla").forEach(function (b) {
+      b.addEventListener("click", function () { apriStoria(Number(b.dataset.i)); });
+    });
+  });
+
+  function apriStoria(i) {
+    if (i < 0) i = 0;
+    if (i >= storie.length) { chiudiStoria(); return; }
+    indice = i;
+    var s = storie[i];
+    var v = document.getElementById("visore");
+
+    // le barrette in cima, una per storia
+    var barre = "";
+    storie.forEach(function (x, k) {
+      barre += '<div class="barra ' + (k < i ? "fatta" : (k === i ? "ora" : "")) + '"><i></i></div>';
+    });
+    document.getElementById("v-barre").innerHTML = barre;
+
+    document.getElementById("v-titolo").textContent = s.autore || s.titolo;
+    document.getElementById("v-quando").textContent =
+      (s.dal_viaggio ? "in viaggio · " : "") + quandoBreve(s.dal);
+    document.getElementById("v-h").textContent = s.dal_viaggio ? (s.titolo || "") : (s.titolo || "");
+    document.getElementById("v-p").textContent = s.testo || "";
+
+    var foto = document.getElementById("v-foto");
+    foto.removeAttribute("src");
+    if (s.immagine) foto.src = s.immagine;
+    else if (s.immagine_wiki) fotoWiki(s.immagine_wiki, foto);
+
+    var link = document.getElementById("v-link");
+    if (s.link_url) {
+      link.href = s.link_url;
+      link.textContent = s.link_testo || "Guarda il viaggio";
+      link.style.display = "block";
+    } else link.style.display = "none";
+
+    v.classList.add("on");
+    document.body.style.overflow = "hidden";
+
+    viste[s.id] = 1;
+    try { localStorage.setItem("storie-viste", JSON.stringify(viste)); } catch (e) {}
+    sb.rpc("storia_vista", { p_id: s.id });
+
+    clearTimeout(timer);
+    timer = setTimeout(function () { apriStoria(indice + 1); }, 6000);
+  }
+
+  function chiudiStoria() {
+    clearTimeout(timer);
+    document.getElementById("visore").classList.remove("on");
+    document.body.style.overflow = "";
+    // i cerchietti gia visti diventano grigi
+    document.querySelectorAll(".bolla").forEach(function (b) {
+      var s = storie[Number(b.dataset.i)];
+      if (s && viste[s.id]) b.classList.add("vista");
+    });
+  }
+
+  document.getElementById("v-chiudi").addEventListener("click", chiudiStoria);
+  document.getElementById("v-sx").addEventListener("click", function () { apriStoria(indice - 1); });
+  document.getElementById("v-dx").addEventListener("click", function () { apriStoria(indice + 1); });
+  document.addEventListener("keydown", function (e) {
+    if (!document.getElementById("visore").classList.contains("on")) return;
+    if (e.key === "Escape") chiudiStoria();
+    if (e.key === "ArrowRight") apriStoria(indice + 1);
+    if (e.key === "ArrowLeft") apriStoria(indice - 1);
   });
 
   // ---- il salvadanaio: quanto viene fuori in un anno --------------------
@@ -298,14 +471,32 @@
   var selQ = document.getElementById("sv-quota");
   if (selQ) { selQ.addEventListener("change", contoSalvadanaio); contoSalvadanaio(); }
 
+  // Il menu laterale: si apre da destra, si chiude col velo, con la X,
+  // toccando una voce o premendo Esc.
+  var cassetto = document.getElementById("cassetto");
+  var velo = document.getElementById("velo");
+
+  function apriMenu() {
+    cassetto.classList.add("on");
+    velo.classList.add("on");
+    document.body.style.overflow = "hidden";
+  }
+  function chiudiMenu() {
+    cassetto.classList.remove("on");
+    velo.classList.remove("on");
+    document.body.style.overflow = "";
+  }
+
   var bMenu = document.getElementById("apri-menu");
-  if (bMenu) bMenu.addEventListener("click", function () {
-    document.getElementById("voci").classList.toggle("aperto");
+  if (bMenu) bMenu.addEventListener("click", apriMenu);
+  var bChiudi = document.getElementById("chiudi-menu");
+  if (bChiudi) bChiudi.addEventListener("click", chiudiMenu);
+  if (velo) velo.addEventListener("click", chiudiMenu);
+  document.querySelectorAll(".cassetto nav a").forEach(function (a) {
+    a.addEventListener("click", chiudiMenu);
   });
-  document.querySelectorAll(".voci a").forEach(function (a) {
-    a.addEventListener("click", function () {
-      document.getElementById("voci").classList.remove("aperto");
-    });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") chiudiMenu();
   });
 
   // ---- i giudizi ---------------------------------------------------------
