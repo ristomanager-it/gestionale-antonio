@@ -47,6 +47,25 @@
   .conta a{display:block;text-align:center;background:var(--oro);color:#fff;text-decoration:none;
            padding:14px;border-radius:8px;font-weight:700;margin-top:14px}
 
+  .modulo{background:#fff;border:2px solid var(--oro);border-radius:14px;padding:20px}
+  .mod-intro{margin:0 0 16px;color:var(--tenue)}
+  .modulo label{display:block;font-size:13px;color:var(--tenue);letter-spacing:.05em;
+                text-transform:uppercase;margin:12px 0 5px}
+  .modulo .fac{text-transform:none;letter-spacing:0}
+  .modulo input,.modulo select{width:100%;padding:12px;border:1px solid var(--riga);
+                border-radius:8px;font:inherit;font-size:16px;background:#fff;color:var(--inchiostro)}
+  .mod-due{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .accetto{display:flex !important;align-items:flex-start;gap:8px;text-transform:none !important;
+           letter-spacing:0 !important;font-size:16px !important;color:var(--inchiostro) !important;
+           margin-top:16px !important}
+  .accetto input{width:auto !important;margin-top:4px}
+  .modulo button{width:100%;background:var(--oro);color:#fff;border:0;border-radius:8px;
+                 padding:15px;font:inherit;font-size:18px;font-weight:700;cursor:pointer;margin-top:16px}
+  .modulo button:disabled{opacity:.5}
+  .esitomod{margin-top:14px;padding:14px;border-radius:8px;font-size:16px}
+  .esitomod.ok{background:#F4FAF5;border:2px solid #2E8B57}
+  .esitomod.no{background:#FDECEA;border:2px solid var(--allarme);color:#8E1D17}
+
   .passo{display:flex;gap:14px;align-items:flex-start;padding:16px 0;border-bottom:1px solid var(--riga)}
   .passo .n{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--oro);color:#fff;
             display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
@@ -118,11 +137,48 @@
     <a href="../offerte/">Guarda dove si parte</a>
   </div>
 
+  <h2 id="apri">Apritelo adesso</h2>
+  <div class="modulo" id="modulo">
+    <p class="mod-intro">Non serve aver già prenotato. Bastano nome ed email:
+       da subito avete il salvadanaio, le offerte riservate e la prelazione sui posti.</p>
+    <label for="i-nome">Nome e cognome</label>
+    <input id="i-nome" placeholder="Come vi chiamate">
+    <label for="i-email">Email</label>
+    <input id="i-email" type="email" placeholder="dove vi scriviamo">
+    <label for="i-tel">Telefono <span class="fac">(se volete)</span></label>
+    <input id="i-tel" type="tel">
+    <div class="mod-due">
+      <div>
+        <label for="i-quota">Metto via</label>
+        <select id="i-quota">
+          <option value="25">25 € alla volta</option>
+          <option value="50" selected>50 € alla volta</option>
+          <option value="100">100 € alla volta</option>
+          <option value="150">150 € alla volta</option>
+        </select>
+      </div>
+      <div>
+        <label for="i-cadenza">Ogni</label>
+        <select id="i-cadenza">
+          <option value="mensile" selected>mese</option>
+          <option value="settimanale">settimana</option>
+          <option value="giornaliera">giorno</option>
+        </select>
+      </div>
+    </div>
+    <label for="i-viaggio">Per quale viaggio <span class="fac">(se lo sapete già)</span></label>
+    <input id="i-viaggio" placeholder="Giappone 2028">
+    <label class="accetto"><input type="checkbox" id="i-ok">
+      Ho letto e accetto il <a href="../regolamento/" target="_blank">regolamento</a>.</label>
+    <button id="i-vai">Apri il salvadanaio</button>
+    <div id="i-msg"></div>
+  </div>
+
   <h2>Come funziona</h2>
   <div class="passo"><div class="n">1</div><div>
-    <h3>Lo aprite dalla vostra pagina</h3>
-    <p>Serve aver prenotato almeno una volta. Scegliete quanto e ogni quanto,
-       e gli date un nome: <i>Thailandia 2028</i>, oppure <i>il viaggio dei cinquant'anni</i>.</p>
+    <h3>Vi iscrivete</h3>
+    <p>Nome, email e via: nessun costo, nessun obbligo di comprare.
+       Ricevete un collegamento personale che è la vostra pagina.</p>
   </div></div>
   <div class="passo"><div class="n">2</div><div>
     <h3>Versate quando volete</h3>
@@ -168,6 +224,18 @@
       </ul>
     </div>
   </div>
+
+  <h2>Cosa vi spetta da soci</h2>
+  <div class="passo"><div class="n">★</div><div>
+    <h3>Offerte riservate</h3>
+    <p>Partenze che non finiscono sul sito: ve le mandiamo per email prima,
+       e restano vostre finché ci sono posti.</p>
+  </div></div>
+  <div class="passo"><div class="n">★</div><div>
+    <h3>Prelazione sui posti</h3>
+    <p>Sulle partenze a posti limitati avete quarantotto ore per prenotare
+       prima che si apra a tutti.</p>
+  </div></div>
 
   <h2>Le domande che ci fanno</h2>
 
@@ -264,6 +332,54 @@
     var sb = supabase.createClient("https://cuhcscpvhypoaplcmtjk.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0");
     sb.rpc("offerte_pubbliche", { p_azienda: "a43d41b5-f4ac-494f-8144-6574347a754f" })
       .then(function (r) { OFFERTE = r.data || []; conta(); });
+
+    // L'iscrizione e aperta a chiunque: non serve aver prenotato.
+    var b = document.getElementById("i-vai");
+    if (!b) return;
+    b.addEventListener("click", function () {
+      var msg = document.getElementById("i-msg");
+      var nome = document.getElementById("i-nome").value.trim();
+      var mail = document.getElementById("i-email").value.trim();
+      var ok = document.getElementById("i-ok").checked;
+
+      if (!nome) { msg.className = "esitomod no"; msg.textContent = "Serve il nome."; return; }
+      if (!mail || mail.indexOf("@") === -1) {
+        msg.className = "esitomod no"; msg.textContent = "Serve un'email valida."; return;
+      }
+      if (!ok) {
+        msg.className = "esitomod no";
+        msg.textContent = "Bisogna accettare il regolamento.";
+        return;
+      }
+
+      b.disabled = true;
+      b.textContent = "Un attimo...";
+      sb.rpc("socio_iscriviti", {
+        p_email: mail, p_nome: nome,
+        p_telefono: document.getElementById("i-tel").value.trim() || null,
+        p_quota: Number(document.getElementById("i-quota").value),
+        p_cadenza: document.getElementById("i-cadenza").value,
+        p_nome_viaggio: document.getElementById("i-viaggio").value.trim() || null,
+        p_accetta: true
+      }).then(function (r) {
+        b.disabled = false;
+        b.textContent = "Apri il salvadanaio";
+        var d = r.data || {};
+        if (r.error || d.ok === false) {
+          msg.className = "esitomod no";
+          msg.textContent = d.errore || (r.error && r.error.message) || "Non è andata.";
+          return;
+        }
+        msg.className = "esitomod ok";
+        msg.innerHTML = "<b>Ci siete.</b> "
+          + (d.gia_iscritto ? "Eravate già iscritti: questa è la vostra pagina."
+                            : "Questa è la vostra pagina, conservatela.")
+          + '<br><br><a href="' + d.link + '" '
+          + 'style="display:inline-block;background:var(--oro);color:#fff;text-decoration:none;'
+          + 'padding:12px 22px;border-radius:8px;font-weight:700;">Apri la mia pagina</a>';
+        document.getElementById("modulo").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
   };
   document.head.appendChild(s);
 })();
