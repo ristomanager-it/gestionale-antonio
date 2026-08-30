@@ -172,6 +172,10 @@
   .sv-vai{display:block;text-align:center;background:var(--oro);color:#fff;text-decoration:none;
           margin-top:12px;padding:12px;border-radius:8px;font-weight:700}
 
+  .manifesto{background:#fff;border-left:5px solid var(--accento);border-radius:10px;
+             padding:18px 20px;margin:30px 0 4px}
+  .manifesto p{margin:0;font-size:19px;line-height:1.55}
+
   .motivi{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;
           margin:34px 0 6px}
   .motivo{background:#fff;border:2px solid var(--riga);border-radius:12px;padding:18px}
@@ -266,6 +270,12 @@
     <div class="azioni-top" id="azioni-top"></div>
   </div>
 
+  <div class="manifesto">
+    <p>I soldi spesi in viaggi sono gli unici che non si rimpiangono.
+       Per questo abbiamo fatto un motore di ricerca solo per quello:
+       trovare il modo di partire più spesso, e vedere il mondo più di una volta.</p>
+  </div>
+
   <div class="motivi">
     <div class="motivo">
       <div class="num">1</div>
@@ -293,10 +303,15 @@
   <h2 id="salvadanaio">Il salvadanaio</h2>
   <div class="salva">
     <div class="salva-testo">
-      <p class="slogan">Il viaggio comincia quando cominci a metterlo via.</p>
-      <h3>Poco alla volta, e vale di più</h3>
-      <p>Cinquanta euro al mese diventano un viaggio senza accorgersene. E quello che
-         versate <b>vale il quattro per cento in più</b>: cinquanta euro ne valgono
+      <p class="slogan">Non ve ne accorgete nemmeno.</p>
+      <h3>Il salvadanaio</h3>
+      <p>Nessuno ha mille euro da parte. Ma cinque euro al giorno li spendiamo
+         tutti senza pensarci: un pacchetto di sigarette, due caffè e un tramezzino,
+         il parcheggio.</p>
+      <p><b>Chi smette di fumare e mette qui quei cinque euro, a fine anno
+         ha 1.900 euro</b>: due viaggi a lungo raggio, o tre se sta attento
+         alle offerte. Senza aver messo via niente che si sia sentito mancare.</p>
+      <p>E quello che versate <b>vale il 4% in più</b>: cinquanta euro ne valgono
          cinquantadue. Ogni sei versamenti, dieci euro in regalo.</p>
       <p class="minuta">Non è un conto di risparmio: è credito per i nostri viaggi,
          e se cambiate idea ve lo restituiamo.</p>
@@ -304,10 +319,12 @@
     <div class="salva-conto">
       <label for="sv-quota">Metto via</label>
       <select id="sv-quota">
-        <option value="25">25 € al mese</option>
-        <option value="50" selected>50 € al mese</option>
-        <option value="100">100 € al mese</option>
-        <option value="150">150 € al mese</option>
+        <option value="g3">3 € al giorno — un caffè e una brioche</option>
+        <option value="g5" selected>5 € al giorno — un pacchetto di sigarette</option>
+        <option value="g10">10 € al giorno — pranzo fuori</option>
+        <option value="m25">25 € al mese</option>
+        <option value="m50">50 € al mese</option>
+        <option value="m100">100 € al mese</option>
       </select>
       <label for="sv-mesi" style="margin-top:12px;">Per</label>
       <select id="sv-mesi">
@@ -627,25 +644,32 @@
     var out = document.getElementById("sv-esito");
     if (!sel || !out) return;
 
-    var q = Number(sel.value);
+    // la scelta puo essere al giorno o al mese: si porta tutto a mesi
+    var v = String(sel.value);
     var mesi = Number(mesiSel ? mesiSel.value : 12);
-    var versato = q * mesi;
+    var q = Number(v.slice(1));
+    var versato = v.charAt(0) === "g"
+      ? Math.round(q * 30.4 * mesi)
+      : q * mesi;
     var premio = Math.round(versato * 4) / 100 + Math.floor(mesi / 6) * 10;
     var totale = versato + premio;
 
     var h = '<span class="grosso">' + euro(totale) + "</span>"
       + '<span class="riga">avendone versati ' + euro(versato)
-      + ": " + euro(premio) + " in regalo</span>";
+      + ", " + euro(premio) + " in regalo</span>";
 
-    // si cerca il viaggio piu caro che ci sta dentro
-    var scelto = null;
+    // quanti viaggi ci si fanno, non solo quanti soldi
+    var piuBasso = null;
     offerteVive.forEach(function (o) {
       var p = Number(o.prezzo || 0);
-      if (p > 0 && p <= totale && (!scelto || p > Number(scelto.prezzo))) scelto = o;
+      if (p > 0 && (piuBasso === null || p < piuBasso)) piuBasso = p;
     });
-    if (scelto) {
-      h += '<span class="quale">Ci si paga <b>' + esc(scelto.titolo) + "</b>"
-        + (Number(scelto.prezzo) ? " a " + euro(scelto.prezzo) : "") + ".</span>";
+    if (piuBasso) {
+      var quanti = Math.floor(totale / piuBasso);
+      if (quanti >= 1) {
+        h += '<span class="quale"><b>' + quanti
+          + (quanti === 1 ? " viaggio" : " viaggi") + "</b> fra quelli in partenza adesso.</span>";
+      }
     }
 
     out.innerHTML = h;
