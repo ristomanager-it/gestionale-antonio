@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Il browser e GitHub Pages tenevano la pagina vecchia anche dopo il deploy. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Offerte — Ristoflow Viaggi</title>
+<style>
+  :root{--carta:#FDFBF7;--inchiostro:#131A24;--accento:#12657F;--allarme:#B3261E;
+        --salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--carta);color:var(--inchiostro);
+       font:17px/1.6 Georgia,"Times New Roman",serif}
+  .wrap{max-width:900px;margin:0 auto;padding:0 18px 60px}
+  .barra-top{position:sticky;top:0;z-index:900;background:var(--carta);
+             border-bottom:2px solid var(--riga);padding:12px 18px;max-width:900px;margin:0 auto}
+  .barra-top a{text-decoration:none;font-size:16px;font-weight:700;color:var(--accento)}
+  h1{font-size:36px;line-height:1.1;margin:22px 0 6px}
+  .sotto{color:var(--tenue);margin:0 0 18px;font-size:18px}
+
+  .filtri{border:2px solid var(--riga);border-radius:12px;padding:14px;background:#fff;margin-bottom:18px}
+  .filtri-riga{display:flex;gap:10px;flex-wrap:wrap}
+  .campo{flex:1;min-width:150px}
+  label{display:block;font-size:13px;color:var(--tenue);letter-spacing:.04em;
+        text-transform:uppercase;margin-bottom:4px}
+  select,input{width:100%;padding:11px 12px;border:1px solid var(--riga);border-radius:8px;
+               font-size:16px;font-family:inherit;background:#fff;color:var(--inchiostro)}
+  .azzera{margin-top:10px;background:none;border:0;color:var(--accento);
+          font-size:15px;cursor:pointer;padding:0;text-decoration:underline}
+
+  .conta{color:var(--tenue);margin:14px 0}
+
+  .offerta{border:2px solid var(--riga);border-radius:12px;background:#fff;
+           margin-bottom:14px;overflow:hidden;display:flex;flex-wrap:wrap}
+  .offerta img{width:220px;height:170px;object-fit:cover;display:block;background:#F1EDE6}
+  .offerta .testo{flex:1;min-width:240px;padding:16px}
+  .offerta h2{margin:0 0 2px;font-size:23px;line-height:1.15}
+  .luogo{color:var(--tenue);font-size:15px;margin:0 0 8px}
+  .quando{font-size:16px;margin:0 0 10px}
+  .prezzo{font-size:28px;font-weight:700;color:var(--accento);line-height:1}
+  .prezzo span{font-size:15px;font-weight:400;color:var(--tenue)}
+  .da{display:inline-block;background:#EEF6F9;color:var(--accento);border-radius:20px;
+      padding:3px 11px;font-size:14px;margin-bottom:8px}
+  .incluso{margin:10px 0 0;padding-left:0;list-style:none;font-size:15px}
+  .incluso li{padding:3px 0 3px 22px;position:relative;color:var(--tenue)}
+  .incluso li:before{content:"\2713";position:absolute;left:0;color:var(--salvia)}
+  .azioni{margin-top:12px}
+  .azioni a{display:inline-block;background:var(--accento);color:#fff;text-decoration:none;
+            padding:11px 20px;border-radius:8px;font-weight:700;font-size:16px}
+  .azioni .scrivi{background:#fff;color:var(--accento);border:1px solid var(--accento);margin-left:8px}
+
+  .vuoto{border:2px dashed var(--riga);border-radius:12px;padding:40px 20px;
+         text-align:center;color:var(--tenue)}
+  @media(max-width:560px){
+    .offerta img{width:100%;height:190px}
+    h1{font-size:29px}
+  }
+</style>
+</head>
+<body>
+<div class="barra-top">
+  <a href="#" id="indietro">← Al gestionale</a>
+</div>
+
+<div class="wrap">
+  <h1>Offerte del momento</h1>
+  <p class="sotto">Partenze da tutta Italia, prezzi bloccati finché ci sono posti.</p>
+
+  <div class="filtri">
+    <div class="filtri-riga">
+      <div class="campo">
+        <label for="f-partenza">Parto da</label>
+        <select id="f-partenza"><option value="">Qualsiasi città</option></select>
+      </div>
+      <div class="campo">
+        <label for="f-dove">Dove</label>
+        <select id="f-dove"><option value="">Tutto il mondo</option></select>
+      </div>
+    </div>
+    <div class="filtri-riga" style="margin-top:10px;">
+      <div class="campo">
+        <label for="f-dal">Parto dopo il</label>
+        <input id="f-dal" type="date">
+      </div>
+      <div class="campo">
+        <label for="f-al">Entro il</label>
+        <input id="f-al" type="date">
+      </div>
+      <div class="campo">
+        <label for="f-max">Fino a</label>
+        <select id="f-max"><option value="">Qualsiasi prezzo</option></select>
+      </div>
+    </div>
+    <button class="azzera" id="f-azzera">Azzera i filtri</button>
+  </div>
+
+  <p class="conta" id="conta">Carico le offerte...</p>
+  <div id="elenco"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var CHIAVE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var AZIENDA = "a43d41b5-f4ac-494f-8144-6574347a754f";
+
+  var sb = supabase.createClient(URL_SB, CHIAVE);
+  var elenco = document.getElementById("elenco");
+  var conta = document.getElementById("conta");
+
+  var CITTA = {
+    FCO: "Roma", CIA: "Roma Ciampino", MXP: "Milano", LIN: "Milano Linate",
+    BGY: "Bergamo", NAP: "Napoli", BRI: "Bari", BLQ: "Bologna", VCE: "Venezia",
+    TRN: "Torino", PSA: "Pisa", CTA: "Catania", PMO: "Palermo",
+    SUF: "Lamezia Terme", CAG: "Cagliari", VRN: "Verona", FLR: "Firenze"
+  };
+  var TIPI = {
+    volo_hotel: "Volo e hotel", volo_auto: "Volo e auto", crociera: "Crociera",
+    camper: "Camper", gruppo: "Viaggio di gruppo", tour: "Tour organizzato"
+  };
+
+  function esc(t) {
+    return String(t == null ? "" : t).replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function euro(n) {
+    return Number(n || 0).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + " €";
+  }
+  function dataIt(d) {
+    if (!d) return "";
+    var p = String(d).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : String(d);
+  }
+  function meseIt(d) {
+    if (!d) return "";
+    var M = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
+             "luglio","agosto","settembre","ottobre","novembre","dicembre"];
+    var p = String(d).slice(0, 10).split("-");
+    return Number(p[2]) + " " + M[Number(p[1]) - 1];
+  }
+
+  // Foto dalla voce Wikipedia, come nelle altre pagine. Le bandiere e gli
+  // stemmi si scartano: sono disegni, non fotografie.
+  function eFotografia(url) {
+    var u = String(url || "").toLowerCase();
+    if (!u || u.indexOf(".svg") !== -1) return false;
+    var scarta = ["flag","bandiera","seal","stemma","coat_of_arms","logo","emblem","map","locator"];
+    for (var i = 0; i < scarta.length; i++) if (u.indexOf(scarta[i]) !== -1) return false;
+    return true;
+  }
+  function fotoWiki(voce, img) {
+    if (!voce) { img.remove(); return; }
+    var prova = function (lingua) {
+      return fetch("https://" + lingua + ".wikipedia.org/api/rest_v1/page/summary/"
+                   + encodeURIComponent(voce))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (!j) return null;
+          var t = j.thumbnail && j.thumbnail.source ? j.thumbnail.source : null;
+          return t && eFotografia(t) ? t.replace(/\/\d+px-/, "/600px-") : null;
+        })
+        .catch(function () { return null; });
+    };
+    prova("it").then(function (u) { return u || prova("en"); })
+      .then(function (u) { if (u) img.src = u; else img.remove(); });
+  }
+
+  function leggi(id) {
+    var e = document.getElementById(id);
+    return e && e.value ? e.value : null;
+  }
+
+  function disegna(righe) {
+    if (!righe.length) {
+      elenco.innerHTML = '<div class="vuoto">Nessuna offerta con questi filtri.<br>'
+        + "Provate ad allargare le date o a cambiare città di partenza.</div>";
+      conta.textContent = "";
+      return;
+    }
+
+    conta.textContent = righe.length === 1
+      ? "Una offerta disponibile."
+      : righe.length + " offerte disponibili.";
+
+    var h = "";
+    righe.forEach(function (o, i) {
+      var giorni = o.notti ? o.notti + (o.notti === 1 ? " notte" : " notti") : "";
+      h += '<div class="offerta">'
+        + '<img id="foto-' + i + '" alt="' + esc(o.destinazione || o.titolo) + '">'
+        + '<div class="testo">'
+        + (o.partenza_da ? '<div class="da">Da ' + esc(CITTA[o.partenza_da] || o.partenza_da) + "</div>" : "")
+        + "<h2>" + esc(o.titolo) + "</h2>"
+        + '<p class="luogo">' + esc([o.nazione, TIPI[o.tipo]].filter(Boolean).join(" · ")) + "</p>"
+        + '<p class="quando">' + esc(meseIt(o.data_partenza))
+        + (o.data_rientro ? " – " + esc(meseIt(o.data_rientro)) : "")
+        + (giorni ? " · " + giorni : "") + "</p>"
+        + '<div class="prezzo">' + euro(o.prezzo) + " <span>a persona</span></div>";
+
+      var incl = o.incluso || [];
+      if (incl.length) {
+        h += '<ul class="incluso">';
+        incl.slice(0, 4).forEach(function (r) { h += "<li>" + esc(r) + "</li>"; });
+        h += "</ul>";
+      }
+
+      h += '<div class="azioni">'
+        + (o.pubblicato && o.viaggio_slug
+            ? '<a href="../v/?s=' + esc(o.viaggio_slug) + '">Vedi il viaggio</a>'
+            : '<a class="scrivi" href="mailto:viaggi@ristoflow-ai.com?subject='
+              + encodeURIComponent("Informazioni: " + o.titolo + " del " + dataIt(o.data_partenza))
+              + '">Chiedi informazioni</a>')
+        + "</div></div></div>";
+    });
+
+    elenco.innerHTML = h;
+
+    righe.forEach(function (o, i) {
+      var img = document.getElementById("foto-" + i);
+      if (img) fotoWiki(o.copertina_wiki, img);
+    });
+  }
+
+  function carica() {
+    conta.textContent = "Cerco...";
+    sb.rpc("offerte_pubbliche", {
+      p_azienda: AZIENDA,
+      p_partenza: leggi("f-partenza"),
+      p_nazione: leggi("f-dove"),
+      p_dal: leggi("f-dal"),
+      p_al: leggi("f-al"),
+      p_max: leggi("f-max") ? Number(leggi("f-max")) : null
+    }).then(function (r) {
+      if (r.error) {
+        conta.textContent = "";
+        elenco.innerHTML = '<div class="vuoto">Non riesco a caricare le offerte.</div>';
+        return;
+      }
+      disegna(r.data || []);
+    });
+  }
+
+  // I filtri si riempiono con quello che c'e' davvero in vetrina.
+  sb.rpc("offerte_filtri", { p_azienda: AZIENDA }).then(function (r) {
+    var f = (r.data) || {};
+    var sp = document.getElementById("f-partenza");
+    (f.partenze || []).sort().forEach(function (i) {
+      var o = document.createElement("option");
+      o.value = i; o.textContent = CITTA[i] || i;
+      sp.appendChild(o);
+    });
+    var sd = document.getElementById("f-dove");
+    (f.nazioni || []).sort().forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = n; o.textContent = n;
+      sd.appendChild(o);
+    });
+    var sm = document.getElementById("f-max");
+    var max = Number(f.prezzo_max || 0);
+    [300, 500, 800, 1200, 2000, 3000].forEach(function (v) {
+      if (v > max + 500) return;
+      var o = document.createElement("option");
+      o.value = v; o.textContent = "fino a " + euro(v);
+      sm.appendChild(o);
+    });
+    carica();
+  });
+
+  ["f-partenza", "f-dove", "f-dal", "f-al", "f-max"].forEach(function (id) {
+    var e = document.getElementById(id);
+    if (e) e.addEventListener("change", carica);
+  });
+
+  document.getElementById("f-azzera").addEventListener("click", function () {
+    ["f-partenza", "f-dove", "f-dal", "f-al", "f-max"].forEach(function (id) {
+      var e = document.getElementById(id);
+      if (e) e.value = "";
+    });
+    carica();
+  });
+
+  document.getElementById("indietro").addEventListener("click", function (e) {
+    e.preventDefault();
+    location.href = "https://app.ristoflow-ai.com/#/agenzia-viaggi";
+  });
+})();
+</script>
+</body>
+</html>
