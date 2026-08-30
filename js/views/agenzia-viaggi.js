@@ -111,6 +111,7 @@ export async function render(app) {
         <button data-tab="occasioni" class="av-tab">Occasioni</button>
         <button data-tab="iscritti" class="av-tab">Iscritti</button>
         <button data-tab="incassi"  class="av-tab">Incassi</button>
+        <button data-tab="acquisti" class="av-tab">Da comprare</button>
       </div>
 
       <div id="av-corpo"><div style="color:#64748b;">Caricamento...</div></div>
@@ -172,6 +173,7 @@ async function caricaTab() {
     if (tabAttiva === "catalogo") return renderCatalogo();
     if (tabAttiva === "occasioni") return await renderOccasioni();
     if (tabAttiva === "iscritti") return await renderIscritti();
+    if (tabAttiva === "acquisti") return await renderAcquisti();
     return await renderIncassi();
   } catch (e) {
     mostraErrore(e);
@@ -657,6 +659,142 @@ function aggancioNuovaIscrizione() {
 }
 
 /* ---------------- INCASSI ---------------- */
+
+
+// Cosa c'e da comprare per i clienti che hanno pagato: volo, hotel, auto,
+// ingressi. Ogni riga ha il link gia pronto e si spunta quando e comprata.
+// In cima il margine vero: incassato meno speso davvero.
+async function renderAcquisti() {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+  box.innerHTML = '<div style="padding:30px;text-align:center;color:#64748b;">Carico...</div>';
+
+  const r = await supa().from("viaggi_acquisti")
+    .select("*, viaggi_iscrizioni(referente_nome,referente_email,quota_totale), viaggi(titolo,data_inizio)")
+    .eq("azienda_id", aziendaId())
+    .order("stato", { ascending: true })
+    .order("entro", { ascending: true });
+  if (r.error) throw r.error;
+
+  const righe = r.data || [];
+  if (!righe.length) {
+    box.innerHTML = '<div style="border:2px dashed #cbd5e1;border-radius:12px;padding:36px;text-align:center;color:#64748b;">'
+      + "Niente da comprare.<br><span style=\"font-size:13px;\">"
+      + "La lista nasce da sola quando un cliente paga la prima rata.</span></div>";
+    return;
+  }
+
+  let previsto = 0, reale = 0, aperte = 0, incassato = 0;
+  const viste = {};
+  righe.forEach(function (x) {
+    previsto += Number(x.costo_previsto || 0);
+    reale += Number(x.costo_reale || 0);
+    if (x.stato === "da_comprare") aperte += 1;
+    // la quota si conta una volta per iscrizione, non per riga
+    if (!viste[x.iscrizione_id]) {
+      viste[x.iscrizione_id] = true;
+      incassato += Number((x.viaggi_iscrizioni || {}).quota_totale || 0);
+    }
+  });
+  const speso = reale > 0 ? reale : previsto;
+
+  let h = '<div class="av-num" style="margin-bottom:16px;">'
+    + "<div><b>" + euro(incassato) + "</b><span>Incassato</span></div>"
+    + "<div><b>" + euro(previsto) + "</b><span>Da spendere</span></div>"
+    + "<div><b>" + euro(reale) + "</b><span>Speso davvero</span></div>"
+    + '<div><b style="color:' + (incassato - speso >= 0 ? "#16a34a" : "#b91c1c") + ';">'
+    + euro(incassato - speso) + "</b><span>Margine</span></div>"
+    + "<div><b>" + aperte + "</b><span>Da comprare</span></div>"
+    + "</div>";
+
+  if (incassato - speso < 0) {
+    h += '<div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:12px 14px;margin-bottom:14px;color:#991b1b;">'
+      + "<b>Attenzione: si spende piu di quanto si incassa.</b>"
+      + '<div style="font-size:13px;margin-top:4px;">Controlla il listino: il prezzo deve coprire tutte le voci qui sotto.</div>'
+      + "</div>";
+  }
+
+  const oggi = new Date().toISOString().slice(0, 10);
+  const ICONE = { volo: "\u2708\uFE0F", hotel: "\uD83C\uDFE8", auto: "\uD83D\uDE97",
+                  trasferimento: "\uD83D\uDE8C", ingresso: "\uD83C\uDFAB", extra: "\u2795" };
+
+  righe.forEach(function (x) {
+    const comprato = x.stato === "comprato";
+    const scaduta = !comprato && x.entro && x.entro < oggi;
+    const isc = x.viaggi_iscrizioni || {};
+    const via = x.viaggi || {};
+
+    h += '<div style="border:1px solid ' + (scaduta ? "#fca5a5" : "#e2e8f0")
+      + ';border-radius:12px;padding:14px;margin-bottom:10px;background:'
+      + (comprato ? "#f0fdf4" : scaduta ? "#fef2f2" : "#fff") + ';">';
+
+    h += '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">'
+      + "<div style=\"flex:1;min-width:200px;\">"
+      + '<div style="font-size:12px;color:#64748b;">' + escapeHtml(via.titolo || "")
+      + " · " + escapeHtml(isc.referente_nome || "") + "</div>"
+      + "<b>" + (ICONE[x.tipo] || "") + " " + escapeHtml(x.descrizione) + "</b>"
+      + (x.note ? '<div style="font-size:13px;color:#64748b;margin-top:3px;">' + escapeHtml(x.note) + "</div>" : "")
+      + "</div>"
+      + '<div style="text-align:right;">'
+      + "<div><b>" + euro(x.costo_previsto) + "</b></div>"
+      + (Number(x.costo_reale) > 0
+          ? '<div style="font-size:13px;color:#16a34a;">pagato ' + euro(x.costo_reale) + "</div>" : "")
+      + (x.entro ? '<div style="font-size:12px;color:' + (scaduta ? "#b91c1c" : "#64748b") + ';">'
+          + (scaduta ? "scaduta il " : "entro il ") + data(x.entro) + "</div>" : "")
+      + "</div></div>";
+
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">';
+    if (x.link) {
+      h += '<a href="' + escapeHtml(x.link) + '" target="_blank" rel="noopener" '
+        + 'style="background:#0E5A7A;color:#fff;text-decoration:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:14px;">Vai a comprare</a>';
+    }
+    if (!comprato) {
+      h += '<button class="acq-ok" data-id="' + x.id + '" data-prev="' + Number(x.costo_previsto || 0) + '" '
+        + 'style="background:#16a34a;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:14px;">Comprato</button>'
+        + '<button class="acq-no" data-id="' + x.id + '" '
+        + 'style="background:#fff;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px;">Non serve</button>';
+    } else {
+      h += '<span style="color:#16a34a;font-weight:700;">Comprato'
+        + (x.riferimento ? " · " + escapeHtml(x.riferimento) : "") + "</span>"
+        + '<button class="acq-annulla" data-id="' + x.id + '" '
+        + 'style="background:#fff;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;">Annulla</button>';
+    }
+    h += "</div></div>";
+  });
+
+  box.innerHTML = h;
+
+  document.querySelectorAll(".acq-ok").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      const speso = prompt("Quanto hai pagato davvero?", b.dataset.prev);
+      if (speso === null) return;
+      const rif = prompt("Codice di prenotazione (facoltativo)") || null;
+      const u = await supa().from("viaggi_acquisti").update({
+        stato: "comprato", costo_reale: Number(speso) || 0,
+        riferimento: rif, comprato_il: new Date().toISOString()
+      }).eq("id", b.dataset.id);
+      if (u.error) return alert("Non salvato: " + u.error.message);
+      await renderAcquisti();
+    });
+  });
+
+  document.querySelectorAll(".acq-no").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      if (!confirm("Segno che questa voce non serve?")) return;
+      await supa().from("viaggi_acquisti").update({ stato: "non_serve" }).eq("id", b.dataset.id);
+      await renderAcquisti();
+    });
+  });
+
+  document.querySelectorAll(".acq-annulla").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      await supa().from("viaggi_acquisti").update({
+        stato: "da_comprare", costo_reale: null, riferimento: null, comprato_il: null
+      }).eq("id", b.dataset.id);
+      await renderAcquisti();
+    });
+  });
+}
 
 async function renderIncassi() {
   const box = document.getElementById("av-corpo");
