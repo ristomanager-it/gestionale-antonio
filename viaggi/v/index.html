@@ -77,6 +77,9 @@
   .pasto-box.camper{border-left:6px solid var(--salvia)}
   .pasto-box.scelta{border-left:6px dashed var(--salvia)}
   .pasto-box.dorme{border-left:6px solid var(--inchiostro);background:#FBF8F2}
+  .pasto-box.compreso{border-left:6px solid var(--salvia);background:#F2F7F5}
+  .pasto-box.compreso ul{margin:4px 0 0;padding-left:20px}
+  .pasto-box.compreso li{font-size:16px;color:var(--inchiostro);margin:2px 0}
   .pasto-testa{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);margin:0 0 4px}
   .pasto-box h4{margin:0 0 4px;font-size:19px}
   .pasto-box p{margin:3px 0;font-size:16px;color:var(--tenue)}
@@ -624,6 +627,16 @@
         pasti += "</div>";
       });
 
+      // Senza questo elenco il cliente leggeva i nomi dei monumenti senza sapere
+      // se gli ingressi erano nel pacchetto o da pagare sul posto.
+      var compreso = "";
+      if (t.compreso && t.compreso.length) {
+        compreso += '<div class="pasto-box compreso">';
+        compreso += '<p class="pasto-testa">Compreso nel prezzo</p><ul>';
+        t.compreso.forEach(function (c) { compreso += "<li>" + esc(c) + "</li>"; });
+        compreso += "</ul></div>";
+      }
+
       var dormire = "";
       if (t.alloggio && (t.alloggio.nome || t.alloggio.note)) {
         dormire += '<div class="pasto-box dorme">';
@@ -647,7 +660,8 @@
         + testa + "<h3>" + esc(t.titolo) + "</h3>"
         + '<img class="foto" alt="' + esc(t.titolo) + '">'
         + (t.descrizione ? "<p>" + esc(t.descrizione) + "</p>" : "")
-        + (dormire || pasti ? '<div class="pasti">' + dormire + pasti + "</div>" : "")
+        + (compreso || dormire || pasti
+            ? '<div class="pasti">' + compreso + dormire + pasti + "</div>" : "")
         + "</div>";
       box.appendChild(d);
 
