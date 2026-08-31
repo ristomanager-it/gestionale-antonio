@@ -424,7 +424,10 @@ async function apriViaggio(id) {
   try {
     const [tp, bg, sc, mz] = await Promise.all([
       supa().from("viaggi_tappe")
-        .select("id,giorno,data,titolo,descrizione,km,tipo,stato_usa,foto_wiki")
+        // foto_url mancava: la colonna Foto mostrava "carica" anche sulle tappe
+        // che la foto ce l avevano gia. I campi alloggio servono alla colonna nuova.
+        .select("id,giorno,data,titolo,descrizione,km,tipo,stato_usa,foto_wiki,foto_url,"
+          + "alloggio_nome,alloggio_indirizzo,alloggio_note,alloggio_telefono,alloggio_mappa")
         .eq("viaggio_id", id).order("giorno"),
       supa().from("viaggi_budget")
         .select("voce,dettaglio,importo_min,importo_max,categoria")
@@ -509,7 +512,7 @@ async function apriViaggio(id) {
 
     h += "<h3 style=\"font-size:16px;margin:22px 0 6px;\">Programma e pasti</h3>"
       + "<div style=\"font-size:13px;color:#64748b;margin-bottom:8px;\">Senza foto propria la pagina pubblica prende quella di Wikimedia. Carica la tua e vince la tua.</div>"
-      + tabellaApri(["Giorno", "Tappa", "Foto", "Km", "Colazione", "Pranzo", "Cena"]);
+      + tabellaApri(["Giorno", "Tappa", "Foto", "Km", "Dove si dorme", "Colazione", "Pranzo", "Cena"]);
     tappe.forEach(function (t) {
       const p = perTappa[t.id] || [];
       function pasto(momento) {
@@ -519,6 +522,23 @@ async function apriViaggio(id) {
         const dove = x.dove === "camper" ? "camper" : (x.dove === "fuori" ? "fuori" : "a scelta");
         return "<span style=\"font-size:12px;color:#64748b;\">" + dove + "</span><br>" + escapeHtml(testo)
           + (x.prenotazione_necessaria ? " <span style=\"color:#dc2626;font-size:11px;\">prenotare</span>" : "");
+      }
+      function dormire(x) {
+        if (!x.alloggio_nome) {
+          return "<span style=\"color:#b45309;font-size:12px;\">da scegliere</span>";
+        }
+        let c = "<b>" + escapeHtml(x.alloggio_nome) + "</b>";
+        if (x.alloggio_indirizzo) {
+          c += "<div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(x.alloggio_indirizzo) + "</div>";
+        }
+        if (x.alloggio_telefono) {
+          c += "<div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(x.alloggio_telefono) + "</div>";
+        }
+        if (x.alloggio_mappa) {
+          c += "<a href=\"" + escapeHtml(x.alloggio_mappa) + "\" target=\"_blank\" rel=\"noopener\" "
+            + "style=\"font-size:12px;color:#0E5A7A;\">mappa</a>";
+        }
+        return c;
       }
       const fermo = t.tipo === "fermi";
       const foto = t.foto_url
@@ -531,6 +551,7 @@ async function apriViaggio(id) {
         + td("<b>" + escapeHtml(t.titolo) + "</b><div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(t.stato_usa || "") + "</div>")
         + td(foto)
         + td(Number(t.km) > 0 ? String(t.km) : "—")
+        + td(dormire(t))
         + td(pasto("colazione")) + td(pasto("pranzo")) + td(pasto("cena"))
         + "</tr>";
     });
