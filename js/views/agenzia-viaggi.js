@@ -1016,7 +1016,7 @@ async function renderOccasioni() {
     return;
   }
 
-  h += tabellaApri(["Rotta", "Partenza", "Volo a persona", "Hotel, camera intera", "Costo vivo a persona", "Prezzo suggerito", ""]);
+  h += tabellaApri(["Rotta", "Partenza", "Volo a persona", "Dove si dorme", "Auto", "Costo vivo a persona", "Prezzo suggerito", ""]);
 
   lista.forEach(function (o) {
     const r = o.viaggi_rotte || {};
@@ -1040,7 +1040,40 @@ async function renderOccasioni() {
       + "<td>" + data(o.data_partenza) + '<div style="color:#64748b;font-size:12px;">'
       + data(o.data_rientro) + "</div></td>"
       + "<td>" + euro(o.volo_prezzo) + "</td>"
-      + "<td>" + euro(o.alloggio_prezzo) + "</td>"
+      // Dal motore v9 arriva il nome dell albergo: senza, restava solo un importo
+      // e non si sapeva dove si dormiva.
+      + "<td>" + (function () {
+          const d = o.dettaglio || {};
+          let c = "";
+          if (d.hotel_nome) {
+            c += "<b>" + escapeHtml(d.hotel_nome) + "</b>";
+            const sotto = [];
+            if (d.hotel_zona) sotto.push(escapeHtml(d.hotel_zona));
+            if (d.hotel_stelle) sotto.push(d.hotel_stelle + "\u2605");
+            if (d.hotel_a_notte) sotto.push(euro(d.hotel_a_notte) + " a notte");
+            if (sotto.length) {
+              c += '<div style="color:#64748b;font-size:12px;">' + sotto.join(" \u00B7 ") + "</div>";
+            }
+            if (d.hotel_link) {
+              c += '<a href="' + escapeHtml(d.hotel_link) + '" target="_blank" rel="noopener" '
+                + 'style="color:#0E5A7A;font-size:12px;">apri</a> ';
+            }
+            c += '<div style="color:#64748b;font-size:12px;">'
+              + euro(o.alloggio_prezzo) + " camera intera</div>";
+          } else {
+            c = euro(o.alloggio_prezzo)
+              + '<div style="color:#b45309;font-size:12px;">albergo non indicato</div>';
+          }
+          return c;
+        })() + "</td>"
+      + "<td>" + (function () {
+          const d = o.dettaglio || {};
+          if (!o.auto_prezzo) return '<span style="color:#94a3b8;">\u2014</span>';
+          return euro(o.auto_prezzo)
+            + (d.auto_a_giorno
+                ? '<div style="color:#64748b;font-size:12px;">' + euro(d.auto_a_giorno) + " al giorno</div>"
+                : "");
+        })() + "</td>"
       + "<td><b>" + euro(o.costo_vivo) + "</b></td>"
       + '<td><b style="color:#16a34a;">' + euro(o.prezzo_suggerito) + "</b>"
       + '<div style="color:#64748b;font-size:12px;">+' + Math.round(Number(o.margine_perc || 0)) + "%</div></td>"
