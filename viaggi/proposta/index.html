@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>La vostra proposta</title>
+<style>
+  :root{--carta:#FDFBF7;--inchiostro:#131A24;--accento:#12657F;--allarme:#B3261E;
+        --salvia:#5E8B87;--riga:#E3DDD2;--tenue:#5B6672;--oro:#B8860B;--verde:#2F7A4F}
+  *{box-sizing:border-box}
+  html,body{overflow-x:hidden;max-width:100%}
+  body{margin:0;background:var(--carta);color:var(--inchiostro);
+       font:17px/1.6 Georgia,"Times New Roman",serif}
+  a{color:var(--accento);overflow-wrap:anywhere}
+  .wrap{max-width:780px;margin:0 auto;padding:0 18px 40px}
+  .hero{position:relative;margin:0 -18px;height:280px;background:var(--inchiostro);
+        overflow:hidden;border-radius:0 0 18px 18px}
+  .hero img{width:100%;height:100%;object-fit:cover;opacity:.7}
+  .hero .sopra{position:absolute;left:20px;right:20px;bottom:20px;color:#fff}
+  .hero h1{color:#fff;font-size:31px;line-height:1.1;margin:0;text-shadow:0 2px 12px rgba(0,0,0,.55)}
+  .hero .chi{color:#fff;font-size:16px;opacity:.92;margin:0 0 6px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--accento);
+     margin:34px 0 10px;padding-top:14px;border-top:2px solid var(--inchiostro)}
+  .tempo{background:#FFF8E1;border:2px solid var(--oro);border-radius:12px;
+         padding:14px 16px;margin:16px 0;text-align:center}
+  .tempo.rosso{background:#FDECEA;border-color:var(--allarme)}
+  .tempo b{font-size:19px}
+  .prezzobox{background:#fff;border:2px solid var(--oro);border-radius:14px;padding:22px;
+             margin:16px 0;text-align:center;position:relative;overflow:hidden}
+  .sconto{position:absolute;top:0;right:0;background:var(--allarme);color:#fff;
+          font-weight:700;padding:6px 14px;border-radius:0 12px 0 12px;font-size:15px}
+  .vecchio{color:var(--tenue);text-decoration:line-through;font-size:20px;display:block}
+  .cifra{font-size:43px;font-weight:700;line-height:1.1;display:block}
+  .box{background:#fff;border:2px solid var(--riga);border-radius:12px;padding:16px;margin:10px 0}
+  .giorno{background:#fff;border:2px solid var(--riga);border-radius:12px;padding:16px;
+          margin:10px 0;cursor:pointer}
+  .giorno .num{color:var(--accento);font-weight:700;font-size:15px;margin:0}
+  .giorno .tit{font-size:20px;font-weight:700;margin:2px 30px 0 0}
+  .giorno .freccia{float:right;color:var(--tenue);font-size:18px}
+  .dentro{border-top:1px solid var(--riga);margin-top:12px;padding-top:12px}
+  ul.si,ul.no{padding-left:2px;margin:6px 0;list-style:none}
+  ul.si li,ul.no li{margin:4px 0}
+  ul.si li:before{content:"\2713  ";color:var(--verde);font-weight:700}
+  ul.no li:before{content:"\2717  ";color:var(--allarme);font-weight:700}
+  .etichetta{font-size:13px;letter-spacing:.1em;text-transform:uppercase;
+             color:var(--tenue);margin:12px 0 2px}
+  .riga{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--riga)}
+  .azioni{position:sticky;bottom:0;background:rgba(253,251,247,.97);backdrop-filter:blur(8px);
+          border-top:2px solid var(--riga);padding:14px 0 18px;margin-top:26px;z-index:50}
+  .bottone{display:block;width:100%;background:var(--oro);color:#fff;text-align:center;
+           padding:16px;border-radius:10px;font-weight:700;font-size:18px;
+           text-decoration:none;border:none;margin-bottom:8px;font-family:inherit;cursor:pointer}
+  .bottone.chiaro{background:#fff;color:var(--inchiostro);border:2px solid var(--riga);
+                  font-size:16px;padding:13px}
+  .nota{color:var(--tenue);font-size:15px}
+  textarea{width:100%;border:2px solid var(--riga);border-radius:10px;padding:12px;
+           font:16px/1.5 Georgia,serif;background:#fff;min-height:110px}
+  .fatto{background:#F2F7F5;border:2px solid var(--salvia);border-radius:12px;padding:18px;margin:16px 0}
+  @media(max-width:520px){.hero h1{font-size:26px}.cifra{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p style="margin-top:50px;color:#5B6672">Apro la proposta...</p></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  var app = document.getElementById("app");
+
+  function guasto(t) { app.innerHTML = "<h1>Non riesco ad aprire</h1><p>" + t + "</p>"; }
+  if (!window.supabase || typeof window.supabase.createClient !== "function") {
+    guasto("La connessione al server non e partita. Riprovate fra un minuto.");
+    return;
+  }
+
+  var SB_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+  var token = new URLSearchParams(location.search).get("t") || "";
+  if (!token) {
+    app.innerHTML = "<h1>Link incompleto</h1><p>Aprite per intero il collegamento che vi e arrivato.</p>";
+    return;
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function euro(n) { return Math.round(Number(n || 0)).toLocaleString("it-IT") + " \u20AC"; }
+  function dataIt(iso) {
+    if (!iso) return "";
+    var p = String(iso).slice(0, 10).split("-");
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+  function quantoResta(ore) {
+    if (ore == null) return "";
+    if (ore <= 0) return "e scaduta";
+    var g = Math.floor(ore / 24), o = ore % 24;
+    if (g > 0) return g + (g === 1 ? " giorno" : " giorni") + (o > 0 ? " e " + o + (o === 1 ? " ora" : " ore") : "");
+    return o + (o === 1 ? " ora" : " ore");
+  }
+
+  function copertina(b) {
+    var t = (b && b.tappe) || [];
+    for (var i = 0; i < t.length; i++) { if (t[i].foto_url) return t[i].foto_url; }
+    return null;
+  }
+
+  function elenco(v, classe) {
+    if (!v || !v.length) return "";
+    var h = '<ul class="' + classe + '">';
+    for (var i = 0; i < v.length; i++) h += "<li>" + esc(v[i]) + "</li>";
+    return h + "</ul>";
+  }
+
+  function giornata(t, i) {
+    var h = '<div class="giorno" data-g="' + i + '">';
+    h += '<span class="freccia">\u25BE</span>';
+    h += '<p class="num">Giorno ' + esc(t.giorno) + (t.citta ? " \u00B7 " + esc(t.citta) : "") + "</p>";
+    h += '<p class="tit">' + esc(t.titolo || "") + "</p>";
+    h += '<div class="dentro" id="d' + i + '" style="display:none">';
+    if (t.descrizione) h += "<p>" + esc(t.descrizione) + "</p>";
+    if (t.compreso && t.compreso.length) {
+      h += '<p class="etichetta">Compreso</p>' + elenco(t.compreso, "si");
+    }
+    if (t.non_compreso && t.non_compreso.length) {
+      h += '<p class="etichetta">Non compreso</p>' + elenco(t.non_compreso, "no");
+    }
+    if (t.alloggio) {
+      h += '<p class="etichetta">Dove si dorme</p><p><b>' + esc(t.alloggio) + "</b>"
+        + (t.alloggio_indirizzo ? "<br>" + esc(t.alloggio_indirizzo) : "")
+        + (t.alloggio_note ? '<br><span class="nota">' + esc(t.alloggio_note) + "</span>" : "")
+        + "</p>";
+    }
+    var pasti = t.pasti || [];
+    if (pasti.length) {
+      h += '<p class="etichetta">Dove si mangia</p>';
+      for (var k = 0; k < pasti.length; k++) {
+        var p = pasti[k];
+        h += "<p><b>" + esc(p.locale || "") + "</b>"
+          + (p.piatto ? " \u2014 " + esc(p.piatto) : "")
+          + (p.spesa ? ' <span class="nota">circa ' + esc(p.spesa) + " \u20AC a testa</span>" : "")
+          + (p.note ? '<br><span class="nota">' + esc(p.note) + "</span>" : "")
+          + "</p>";
+      }
+    }
+    return h + "</div></div>";
+  }
+
+  function rispondi(scelta, testo) {
+    return sb.rpc("proposta_rispondi", { p_token: token, p_scelta: scelta, p_testo: testo || null });
+  }
+
+  function schermataFatto(titolo, testo) {
+    app.innerHTML = '<div class="fatto" style="margin-top:60px"><h1 style="font-size:28px;margin:0 0 10px">'
+      + esc(titolo) + "</h1><p>" + esc(testo) + "</p></div>";
+    window.scrollTo(0, 0);
+  }
+
+  function agganciaAzioni(d) {
+    var apri = app.querySelectorAll(".giorno");
+    for (var i = 0; i < apri.length; i++) {
+      apri[i].addEventListener("click", function () {
+        var box = document.getElementById("d" + this.getAttribute("data-g"));
+        if (!box) return;
+        var chiuso = box.style.display === "none";
+        box.style.display = chiuso ? "block" : "none";
+        this.querySelector(".freccia").textContent = chiuso ? "\u25B4" : "\u25BE";
+      });
+    }
+
+    var bPrendo = document.getElementById("prendo");
+    if (bPrendo) bPrendo.addEventListener("click", function () {
+      bPrendo.disabled = true;
+      rispondi("accetto").then(function (r) {
+        if (r.data && r.data.ok === false) {
+          alert(r.data.errore || "Non riesco a registrare la risposta.");
+          bPrendo.disabled = false;
+          return;
+        }
+        schermataFatto("Bene, ci siamo.",
+          "Vi richiamiamo entro un giorno per i documenti e per l acconto. "
+          + "Il prezzo che avete visto e bloccato.");
+      });
+    });
+
+    var bCambio = document.getElementById("cambio");
+    if (bCambio) bCambio.addEventListener("click", function () {
+      var zona = document.getElementById("zonatesto");
+      if (zona.style.display === "none") {
+        zona.style.display = "block";
+        zona.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      var testo = document.getElementById("testo").value.trim();
+      if (!testo) { alert("Scrivete cosa cambiereste."); return; }
+      bCambio.disabled = true;
+      rispondi("modifiche", testo).then(function () {
+        schermataFatto("Ricevuto.",
+          "Guardiamo cosa si puo cambiare e vi rispondiamo su questa stessa pagina. "
+          + "Il collegamento resta valido.");
+      });
+    });
+
+    var bNo = document.getElementById("no");
+    if (bNo) bNo.addEventListener("click", function () {
+      var perche = prompt("Ci dite perche? Serve a noi per fare meglio la prossima.");
+      if (perche === null) return;
+      bNo.disabled = true;
+      rispondi("no", perche).then(function () {
+        schermataFatto("Grazie lo stesso.",
+          "Se cambiate idea o volete provare un altra destinazione, siamo qui.");
+      });
+    });
+  }
+
+  sb.rpc("proposta_apri", { p_token: token }).then(function (res) {
+    if (res.error) { guasto("Il server non risponde."); return; }
+    var d = res.data;
+    if (!d) {
+      app.innerHTML = "<h1>Proposta non trovata</h1>"
+        + "<p>Il collegamento non corrisponde a nessuna richiesta.</p>";
+      return;
+    }
+
+    if (d.stato === "in_lavorazione") {
+      app.innerHTML = '<div class="box" style="margin-top:60px"><h1 style="font-size:27px;margin:0 0 10px">'
+        + "Ci stiamo lavorando</h1><p>" + esc(d.nome) + ", la proposta per "
+        + esc(d.destinazione) + " compare qui appena e pronta, e vi arriva anche per email. "
+        + "Di solito ci vogliono poche ore.</p></div>";
+      return;
+    }
+
+    var b = d.bozza || {};
+    var persone = Number(d.adulti || 0) + Number(d.bambini || 0);
+    var foto = copertina(b);
+    var h = "";
+
+    h += '<div class="hero">';
+    if (foto) h += '<img src="' + esc(foto) + '" alt="">';
+    h += '<div class="sopra"><p class="chi">La proposta di ' + esc(d.nome) + "</p>"
+      + "<h1>" + esc(b.titolo || d.destinazione) + "</h1></div></div>";
+
+    if (d.stato === "scaduta") {
+      h += '<div class="tempo rosso"><b>Questa proposta e scaduta il '
+        + dataIt(d.valida_fino) + ".</b><br>"
+        + '<span class="nota">I prezzi dei voli cambiano ogni giorno. '
+        + "Rifacciamo il conto con quelli di oggi: il programma resta lo stesso.</span></div>";
+    } else if (d.stato === "accettata") {
+      h += '<div class="fatto"><b>Avete detto di si.</b> Vi richiamiamo per i documenti e l acconto.</div>';
+    } else if (d.stato === "modifiche_chieste") {
+      h += '<div class="fatto"><b>Abbiamo ricevuto la vostra richiesta di modifica.</b><br>'
+        + '<span class="nota">Vi rispondiamo su questa stessa pagina.</span>'
+        + (d.risposta ? '<br><br><span class="nota">Avete scritto: \u00AB' + esc(d.risposta) + "\u00BB</span>" : "")
+        + "</div>";
+    } else if (d.ore_rimaste != null) {
+      h += '<div class="tempo">Questa proposta vale ancora <b>' + quantoResta(d.ore_rimaste)
+        + "</b><br>" + '<span class="nota">'
+        + (d.sconto_motivo ? esc(d.sconto_motivo) + ". " : "")
+        + "Dopo la scadenza il prezzo torna a quello pieno: i voli si muovono ogni giorno.</span></div>";
+    }
+
+    if (d.prezzo) {
+      h += '<div class="prezzobox">';
+      if (d.sconto) h += '<div class="sconto">\u2212' + euro(d.sconto) + "</div>";
+      if (d.prezzo_pieno && Number(d.prezzo_pieno) > Number(d.prezzo)) {
+        h += '<span class="vecchio">' + euro(d.prezzo_pieno) + "</span>";
+      }
+      h += '<span class="cifra">' + euro(d.prezzo) + "</span>";
+      h += '<p class="nota">a persona, tutto compreso'
+        + (persone > 1 ? " \u2014 per " + persone + " persone fanno " + euro(d.prezzo * persone) : "")
+        + "</p></div>";
+    }
+
+    h += '<div class="box"><p><b>' + esc(d.destinazione) + "</b> \u00B7 "
+      + dataIt(d.partenza) + " \u2192 " + dataIt(d.rientro)
+      + (persone ? " \u00B7 " + persone + (persone === 1 ? " persona" : " persone") : "") + "</p>"
+      + '<p class="nota">Le date sono quelle che ci avete dato: non le abbiamo spostate.</p></div>';
+
+    if (b.descrizione) h += "<p>" + esc(b.descrizione) + "</p>";
+
+    if (b.perfetto_per && b.perfetto_per.length) {
+      h += "<h2>Perfetto per voi se</h2><ul>";
+      for (var i = 0; i < b.perfetto_per.length; i++) h += "<li>" + esc(b.perfetto_per[i]) + "</li>";
+      h += "</ul>";
+    }
+
+    var tappe = b.tappe || [];
+    if (tappe.length) {
+      h += "<h2>Il programma</h2>";
+      h += '<p class="nota">Toccate una giornata per aprirla.</p>';
+      for (var j = 0; j < tappe.length; j++) h += giornata(tappe[j], j);
+    }
+
+    if (b.incluso && b.incluso.length) {
+      h += "<h2>Cosa comprende</h2><div class=\"box\">" + elenco(b.incluso, "si");
+      if (b.non_incluso && b.non_incluso.length) {
+        h += '<p class="etichetta">Non comprende</p>' + elenco(b.non_incluso, "no");
+      }
+      h += "</div>";
+    }
+
+    if (d.scaletta && d.scaletta.length && d.stato !== "scaduta") {
+      h += "<h2>Come si paga</h2><div class=\"box\">";
+      for (var s = 0; s < d.scaletta.length; s++) {
+        var r = d.scaletta[s];
+        h += '<div class="riga"><span>' + esc(r.quando) + "</span><b>" + euro(r.importo) + "</b></div>";
+      }
+      var note = [];
+      for (var s2 = 0; s2 < d.scaletta.length; s2++) {
+        if (d.scaletta[s2].nota) note.push(esc(d.scaletta[s2].nota));
+      }
+      if (note.length) h += '<p class="nota">' + note.join(" ") + "</p>";
+      h += "</div>";
+    }
+
+    if (d.stato === "proposta_inviata" || d.stato === "vista") {
+      h += '<div id="zonatesto" style="display:none;margin-top:20px">'
+        + '<p class="etichetta">Cosa cambiereste</p>'
+        + '<textarea id="testo" placeholder="Scrivete qui: un albergo, una giornata, il ritmo, il prezzo..."></textarea></div>';
+      h += '<div class="azioni">'
+        + '<button class="bottone" id="prendo">Lo prendiamo</button>'
+        + '<button class="bottone chiaro" id="cambio">Cambierei qualcosa</button>'
+        + '<button class="bottone chiaro" id="no">Non fa per noi</button>'
+        + '</div>';
+    } else if (d.stato === "scaduta") {
+      h += '<div class="azioni">'
+        + '<button class="bottone" id="cambio">Rifate il prezzo</button></div>'
+        + '<div id="zonatesto" style="display:none">'
+        + '<textarea id="testo">Rifate il prezzo con le tariffe di oggi.</textarea></div>';
+    }
+
+    app.innerHTML = h;
+    agganciaAzioni(d);
+  });
+})();
+</script>
+</body>
+</html>
