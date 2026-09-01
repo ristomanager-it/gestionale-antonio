@@ -35,6 +35,14 @@
   #mappa{height:500px;border-radius:12px;border:2px solid var(--riga);margin:10px 0}
   .copertina{width:100%;border-radius:12px;display:block;margin:18px 0 6px;background:#F1EDE6}
   .giorno{display:flex;gap:16px;padding:22px 0;border-bottom:1px solid var(--riga)}
+  /* Dodici giornate aperte tutte insieme non si leggono su un telefono:
+     si mostra il titolo e si apre quella che interessa. */
+  .giorno .testa-tap{cursor:pointer;display:flex;align-items:flex-start;gap:10px}
+  .giorno .testa-tap h3{flex:1;margin:0}
+  .giorno .apri{color:var(--tenue);font-size:20px;line-height:1;padding-top:4px;user-select:none}
+  .giorno .corpo{overflow:hidden}
+  .giorno .corpo[hidden]{display:none}
+  .giorno .assaggio{color:var(--tenue);margin:6px 0 0}
   .giorno .n{color:var(--accento);font-size:32px;line-height:1;min-width:56px;font-weight:700;font-variant-numeric:tabular-nums}
   .fermo{background:#F1F5F4;border-left:5px solid var(--salvia);padding-left:14px;border-radius:0 8px 8px 0}
   .tag{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
@@ -99,6 +107,9 @@
   ul.incluso{margin:12px 0;padding-left:0;list-style:none}
   ul.incluso li{padding:6px 0 6px 28px;position:relative;font-size:17px;border-bottom:1px solid var(--riga)}
   ul.incluso li:before{content:"\2713";position:absolute;left:2px;color:var(--salvia);font-weight:700}
+  ul.escluso{margin:12px 0;padding-left:0;list-style:none}
+  ul.escluso li{padding:6px 0 6px 28px;position:relative;font-size:17px;border-bottom:1px solid var(--riga)}
+  ul.escluso li:before{content:"\2717";position:absolute;left:2px;color:var(--allarme);font-weight:700}
   button.scegli{width:100%}
   .prezzone{font-size:56px;line-height:1;font-weight:800;color:var(--accento);margin:4px 0 0;letter-spacing:-.03em}
   .prezzone-sotto{font-size:18px;color:var(--tenue);margin:2px 0 14px}
@@ -453,6 +464,19 @@
 
     if (v.descrizione) h += "<p>" + esc(v.descrizione) + "</p>";
 
+    // Tre righe che fanno capire subito se il viaggio e per chi legge.
+    if (v.perfetto_per && v.perfetto_per.length) {
+      h += "<h2>Perfetto per voi se</h2><ul>";
+      v.perfetto_per.forEach(function (r) { h += "<li>" + esc(r) + "</li>"; });
+      h += "</ul>";
+    }
+
+    if (v.non_incluso && v.non_incluso.length) {
+      h += "<h2>Cosa resta fuori</h2><ul class=\"escluso\">";
+      v.non_incluso.forEach(function (r) { h += "<li>" + esc(r) + "</li>"; });
+      h += "</ul>";
+    }
+
     h += "<h2>Il percorso</h2><div id=\"mappa\"></div>";
     h += '<p class="credito">Blu: giornata di guida. Verde: giornata ferma. Nero: volo. Tocca un punto per aprire la tappa.</p>';
 
@@ -577,7 +601,7 @@
     var box = document.getElementById("programma");
     if (!box) return;
 
-    tappe.forEach(function (t) {
+    tappe.forEach(function (t, i) {
       var d = document.createElement("div");
       d.className = "giorno" + (t.tipo === "fermi" ? " fermo" : "");
       var testa = '<p class="occhiello">' + esc(dataIt(t.data)) + (t.stato_usa ? " \u00b7 " + esc(t.stato_usa) : "")
@@ -634,7 +658,15 @@
         compreso += '<div class="pasto-box compreso">';
         compreso += '<p class="pasto-testa">Compreso nel prezzo</p><ul>';
         t.compreso.forEach(function (c) { compreso += "<li>" + esc(c) + "</li>"; });
-        compreso += "</ul></div>";
+        compreso += "</ul>";
+        // Quello che NON e compreso conta piu del resto: e li che nascono
+        // i malintesi al rientro.
+        if (t.non_compreso && t.non_compreso.length) {
+          compreso += '<p class="pasto-testa" style="margin-top:10px;color:var(--allarme)">A parte</p><ul>';
+          t.non_compreso.forEach(function (c) { compreso += "<li>" + esc(c) + "</li>"; });
+          compreso += "</ul>";
+        }
+        compreso += "</div>";
       }
 
       var dormire = "";
@@ -656,14 +688,37 @@
         dormire += "</div>";
       }
 
+      // La prima giornata resta aperta: fa capire subito che dentro c e altro.
+      var chiusa = i > 0;
+      var assaggio = "";
+      if (chiusa && t.descrizione) {
+        var frase = String(t.descrizione).split(". ")[0];
+        assaggio = '<p class="assaggio">' + esc(frase.length > 90 ? frase.slice(0, 90) + "\u2026" : frase + ".") + "</p>";
+      }
+
       d.innerHTML = '<div class="n">' + t.giorno + '</div><div style="flex:1;min-width:0;">'
-        + testa + "<h3>" + esc(t.titolo) + "</h3>"
+        + testa
+        + '<div class="testa-tap"><h3>' + esc(t.titolo) + "</h3>"
+        + '<span class="apri">' + (chiusa ? "\u25BE" : "\u25B4") + "</span></div>"
+        + assaggio
+        + '<div class="corpo"' + (chiusa ? " hidden" : "") + ">"
         + '<img class="foto" alt="' + esc(t.titolo) + '">'
         + (t.descrizione ? "<p>" + esc(t.descrizione) + "</p>" : "")
         + (compreso || dormire || pasti
             ? '<div class="pasti">' + compreso + dormire + pasti + "</div>" : "")
-        + "</div>";
+        + "</div></div>";
       box.appendChild(d);
+
+      var tap = d.querySelector(".testa-tap");
+      var corpo = d.querySelector(".corpo");
+      var segno = d.querySelector(".apri");
+      var sotto = d.querySelector(".assaggio");
+      tap.addEventListener("click", function () {
+        var era = corpo.hasAttribute("hidden");
+        if (era) { corpo.removeAttribute("hidden"); } else { corpo.setAttribute("hidden", ""); }
+        segno.textContent = era ? "\u25B4" : "\u25BE";
+        if (sotto) sotto.style.display = era ? "none" : "block";
+      });
 
       var img = d.querySelector("img.foto");
       if (t.foto_url) {
