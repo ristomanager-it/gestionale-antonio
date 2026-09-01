@@ -784,11 +784,13 @@ async function renderAcquisti() {
     }
     if (!comprato) {
       h += '<button class="acq-ok" data-id="' + x.id + '" data-prev="' + Number(x.costo_previsto || 0) + '" '
-        + 'style="background:#16a34a;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:14px;">Comprato</button>'
+        + 'style="background:#fff;color:#16a34a;border:2px solid #16a34a;border-radius:8px;'
+        + 'padding:7px 13px;font-weight:700;cursor:pointer;font-size:14px;">Segna comprato</button>'
         + '<button class="acq-no" data-id="' + x.id + '" '
         + 'style="background:#fff;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px;">Non serve</button>';
     } else {
-      h += '<span style="color:#16a34a;font-weight:700;">Comprato'
+      h += '<span style="background:#16a34a;color:#fff;border-radius:8px;padding:7px 13px;'
+        + 'font-weight:700;font-size:14px;">\u2713 Comprato'
         + (x.riferimento ? " · " + escapeHtml(x.riferimento) : "") + "</span>"
         + '<button class="acq-annulla" data-id="' + x.id + '" '
         + 'style="background:#fff;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;">Annulla</button>';
