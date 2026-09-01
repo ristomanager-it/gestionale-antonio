@@ -29,8 +29,17 @@ function tabDaHash() {
   const q = h.split("?")[1];
   if (!q) return null;
   const t = new URLSearchParams(q).get("tab");
-  return ["catalogo", "occasioni", "iscritti", "incassi"].includes(t) ? t : null;
+  return ["catalogo", "occasioni", "iscritti", "incassi", "acquisti", "richieste"].includes(t) ? t : null;
 }
+
+// L avviso via email porta dritto alla richiesta da guardare, non al catalogo.
+function richiestaDaHash() {
+  const h = String(window.location.hash || "");
+  const q = h.split("?")[1];
+  if (!q) return null;
+  return new URLSearchParams(q).get("richiesta");
+}
+let richiestaAperta = null;
 
 const CSS_VIAGGI = `
   .av-wrap{max-width:1100px;margin:0 auto;padding:14px;overflow-x:hidden}
@@ -94,7 +103,8 @@ function etichetta(box) {
 
 export async function render(app) {
   const azienda = window.state?.azienda;
-  tabAttiva = tabDaHash() || "catalogo";
+  richiestaAperta = richiestaDaHash();
+  tabAttiva = tabDaHash() || (richiestaAperta ? "richieste" : "catalogo");
   iniettaCss();
 
   app.innerHTML = `
@@ -113,6 +123,7 @@ export async function render(app) {
         <button data-tab="iscritti" class="av-tab">Iscritti</button>
         <button data-tab="incassi"  class="av-tab">Incassi</button>
         <button data-tab="acquisti" class="av-tab">Da comprare</button>
+        <button data-tab="richieste" class="av-tab">Richieste</button>
       </div>
 
       <div id="av-corpo"><div style="color:#64748b;">Caricamento...</div></div>
@@ -175,6 +186,7 @@ async function caricaTab() {
     if (tabAttiva === "occasioni") return await renderOccasioni();
     if (tabAttiva === "iscritti") return await renderIscritti();
     if (tabAttiva === "acquisti") return await renderAcquisti();
+    if (tabAttiva === "richieste") return await renderRichieste();
     return await renderIncassi();
   } catch (e) {
     mostraErrore(e);
@@ -1481,4 +1493,186 @@ function escapeHtml(s) {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+
+/* ---------------- RICHIESTE SU MISURA ---------------- */
+
+const STATI_RICHIESTA = {
+  nuova: { testo: "Nuova", colore: "#0E5A7A" },
+  in_lavorazione: { testo: "Da fare a mano", colore: "#b45309" },
+  proposta_inviata: { testo: "Mandata", colore: "#0E5A7A" },
+  vista: { testo: "Letta dal cliente", colore: "#0E5A7A" },
+  modifiche_chieste: { testo: "Chiede modifiche", colore: "#B8860B" },
+  accettata: { testo: "Accettata", colore: "#16a34a" },
+  scaduta: { testo: "Scaduta", colore: "#64748b" },
+  persa: { testo: "Persa", colore: "#64748b" }
+};
+
+function bolloStato(st) {
+  const s = STATI_RICHIESTA[st] || { testo: st || "", colore: "#64748b" };
+  return "<span style=\"display:inline-block;background:" + s.colore
+    + ";color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;\">"
+    + escapeHtml(s.testo) + "</span>";
+}
+
+async function renderRichieste() {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+
+  const r = await supa()
+    .from("viaggi_richieste")
+    .select("id,token,nome,email,telefono,destinazione,data_partenza,data_rientro,"
+      + "date_rigide,adulti,bambini,budget_persona,budget_massimo,fase,con_chi,occasione,"
+      + "interessi,da_evitare,note,stato,prezzo_vendita,prezzo_pieno,valida_fino,"
+      + "inviata_il,vista_il,risposta,risposta_il,creata_il,in_coda,bozza")
+    .eq("azienda_id", aziendaId())
+    .order("creata_il", { ascending: false })
+    .limit(100);
+  if (r.error) throw r.error;
+
+  const righe = r.data || [];
+  if (!righe.length) {
+    box.innerHTML = "<div style=\"border:1px solid #e2e8f0;border-radius:12px;padding:20px;"
+      + "background:#fff;color:#64748b;\">Nessuna richiesta ancora. "
+      + "Arrivano dal modulo pubblico e la proposta parte da sola.</div>";
+    return;
+  }
+
+  // quelle che aspettano una mano vanno sopra a tutto
+  const daFare = righe.filter(function (x) {
+    return x.stato === "in_lavorazione" || x.stato === "modifiche_chieste" || x.stato === "accettata";
+  });
+
+  let h = "";
+  if (daFare.length) {
+    h += "<div style=\"background:#FFF8E1;border:1px solid #B8860B;border-radius:10px;"
+      + "padding:12px 14px;margin-bottom:14px;\"><b>" + daFare.length
+      + (daFare.length === 1 ? " richiesta aspetta" : " richieste aspettano")
+      + " una risposta.</b></div>";
+  }
+
+  h += "<div class=\"av-tab-wrap\"><table class=\"av-tabella\">"
+    + "<thead><tr><th>Cliente</th><th>Dove e quando</th><th>Budget</th>"
+    + "<th>Prezzo</th><th>Stato</th><th></th></tr></thead><tbody>";
+
+  righe.forEach(function (x) {
+    const persone = Number(x.adulti || 0) + Number(x.bambini || 0);
+    const aperta = richiestaAperta && String(x.id) === String(richiestaAperta);
+    h += "<tr id=\"ri-" + x.id + "\"" + (aperta ? " style=\"outline:3px solid #B8860B;\"" : "") + ">"
+      + "<td data-et=\"Cliente\"><b>" + escapeHtml(x.nome || "") + "</b>"
+      + "<div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(x.email || "")
+      + (x.telefono ? " &middot; " + escapeHtml(x.telefono) : "") + "</div></td>"
+      + "<td data-et=\"Dove e quando\">" + escapeHtml(x.destinazione || "")
+      + "<div style=\"font-size:12px;color:#64748b;\">" + data(x.data_partenza)
+      + " &rarr; " + data(x.data_rientro)
+      + (x.date_rigide ? " &middot; date fisse" : " &middot; date libere")
+      + " &middot; " + persone + (persone === 1 ? " persona" : " persone") + "</div></td>"
+      + "<td data-et=\"Budget\">" + (x.budget_persona ? euro(x.budget_persona) : "&mdash;")
+      + "<div style=\"font-size:12px;color:#64748b;\">a persona</div></td>"
+      + "<td data-et=\"Prezzo\">" + (x.prezzo_vendita ? "<b>" + euro(x.prezzo_vendita) + "</b>" : "&mdash;")
+      + (x.valida_fino ? "<div style=\"font-size:12px;color:#64748b;\">vale fino al "
+          + data(x.valida_fino) + "</div>" : "") + "</td>"
+      + "<td data-et=\"Stato\">" + bolloStato(x.stato)
+      + (x.in_coda ? "<div style=\"font-size:12px;color:#b45309;\">in coda</div>" : "") + "</td>"
+      + "<td data-et=\"\"><button class=\"ri-apri\" data-id=\"" + x.id + "\" "
+      + "style=\"padding:8px 12px;border:1px solid #0E5A7A;background:#fff;color:#0E5A7A;"
+      + "border-radius:8px;font-size:13px;cursor:pointer;\">Guarda</button></td>"
+      + "</tr>"
+      + "<tr class=\"ri-dett\" id=\"rd-" + x.id + "\" style=\"display:none;\">"
+      + "<td colspan=\"6\">" + dettaglioRichiesta(x) + "</td></tr>";
+  });
+
+  h += "</tbody></table></div>";
+  box.innerHTML = h;
+  adattaTabelle(box);
+
+  box.querySelectorAll(".ri-apri").forEach(function (b) {
+    b.addEventListener("click", function () {
+      const d = document.getElementById("rd-" + b.dataset.id);
+      if (!d) return;
+      const chiuso = d.style.display === "none";
+      d.style.display = chiuso ? "table-row" : "none";
+      b.textContent = chiuso ? "Chiudi" : "Guarda";
+    });
+  });
+
+  box.querySelectorAll(".ri-rifai").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      b.disabled = true;
+      b.textContent = "Sto rifacendo...";
+      try {
+        const res = await supa().functions.invoke("viaggi-proposta-auto",
+          { body: { richiesta_id: b.dataset.id, rifai: true } });
+        if (res.error) throw res.error;
+        const out = res.data || {};
+        alert(out.ok ? "Proposta rifatta e mandata."
+                     : "Non e partita: " + (out.errore || (out.problemi || []).join(", ")));
+        renderRichieste();
+      } catch (e) {
+        alert("Non ha risposto: " + e.message);
+        b.disabled = false;
+        b.textContent = "Rifai la proposta";
+      }
+    });
+  });
+
+  // se si arriva dall email, si apre gia il dettaglio giusto
+  if (richiestaAperta) {
+    const d = document.getElementById("rd-" + richiestaAperta);
+    const riga = document.getElementById("ri-" + richiestaAperta);
+    if (d) d.style.display = "table-row";
+    if (riga) riga.scrollIntoView({ behavior: "smooth", block: "center" });
+    const b = box.querySelector('.ri-apri[data-id="' + richiestaAperta + '"]');
+    if (b) b.textContent = "Chiudi";
+  }
+}
+
+function dettaglioRichiesta(x) {
+  const b = x.bozza || {};
+  const link = "https://app.ristoflow-ai.com/viaggi/proposta/?t=" + encodeURIComponent(x.token || "");
+  let h = "<div style=\"background:#f8fafc;border-radius:10px;padding:14px;\">";
+
+  if (x.risposta) {
+    h += "<div style=\"background:#fff;border-left:4px solid #B8860B;padding:10px 12px;"
+      + "border-radius:6px;margin-bottom:12px;\"><b>Il cliente ha scritto</b><br>"
+      + escapeHtml(x.risposta) + "</div>";
+  }
+
+  h += "<div style=\"font-size:13px;color:#334155;line-height:1.7;\">";
+  if (x.fase) h += "<div><b>A che punto e:</b> " + escapeHtml(x.fase) + "</div>";
+  if (x.con_chi) h += "<div><b>Parte:</b> " + escapeHtml(x.con_chi) + "</div>";
+  if (x.occasione) h += "<div><b>Occasione:</b> " + escapeHtml(x.occasione) + "</div>";
+  if (x.interessi && x.interessi.length) {
+    h += "<div><b>Interessa:</b> " + escapeHtml(x.interessi.join(", ")) + "</div>";
+  }
+  if (x.da_evitare) h += "<div><b>Da evitare:</b> " + escapeHtml(x.da_evitare) + "</div>";
+  if (x.note) h += "<div><b>Note:</b> " + escapeHtml(x.note) + "</div>";
+  if (x.budget_massimo) h += "<div><b>Massimo:</b> " + euro(x.budget_massimo) + " a persona</div>";
+  h += "</div>";
+
+  if (b.titolo) {
+    h += "<div style=\"margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;\">"
+      + "<b>" + escapeHtml(b.titolo) + "</b>"
+      + "<div style=\"font-size:13px;color:#64748b;\">"
+      + ((b.tappe || []).length) + " giornate"
+      + ((b.hotel || []).length ? " &middot; " + b.hotel.length + " alberghi" : "")
+      + "</div></div>";
+  }
+
+  h += "<div style=\"margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;\">"
+    + "<a href=\"" + link + "\" target=\"_blank\" rel=\"noopener\" "
+    + "style=\"padding:9px 14px;background:#0E5A7A;color:#fff;border-radius:8px;"
+    + "text-decoration:none;font-size:13px;font-weight:700;\">Vedi come la vede il cliente</a>"
+    + "<button class=\"ri-rifai\" data-id=\"" + x.id + "\" "
+    + "style=\"padding:9px 14px;background:#B8860B;color:#fff;border:0;border-radius:8px;"
+    + "font-size:13px;font-weight:700;cursor:pointer;\">Rifai la proposta</button>"
+    + (x.email ? "<a href=\"mailto:" + escapeHtml(x.email) + "\" "
+        + "style=\"padding:9px 14px;border:1px solid #cbd5e1;border-radius:8px;"
+        + "text-decoration:none;font-size:13px;color:#0f172a;\">Scrivi</a>" : "")
+    + (x.telefono ? "<a href=\"tel:" + escapeHtml(x.telefono) + "\" "
+        + "style=\"padding:9px 14px;border:1px solid #cbd5e1;border-radius:8px;"
+        + "text-decoration:none;font-size:13px;color:#0f172a;\">Chiama</a>" : "")
+    + "</div></div>";
+  return h;
 }
