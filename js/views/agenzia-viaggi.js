@@ -1585,7 +1585,7 @@ async function renderRichieste() {
 
   h += "</tbody></table></div>";
   box.innerHTML = h;
-  adattaTabelle(box);
+  etichetta(box);
 
   box.querySelectorAll(".ri-apri").forEach(function (b) {
     b.addEventListener("click", function () {
