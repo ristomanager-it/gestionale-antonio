@@ -1496,6 +1496,47 @@ function escapeHtml(s) {
 }
 
 
+// La bozza porta il nome di una voce Wikipedia, non un indirizzo: la foto si
+// risolve qui. Scarta stemmi, mappe e ritratti di persone, come fa la pagina
+// pubblica: su una richiesta per "Hollywood Studios" tornava un attore.
+async function fotoDaWiki(titolo) {
+  if (!titolo) return null;
+  const lingue = ["it", "en"];
+  for (const l of lingue) {
+    try {
+      const r = await fetch("https://" + l + ".wikipedia.org/api/rest_v1/page/summary/"
+        + encodeURIComponent(titolo), { headers: { accept: "application/json" } });
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (!j || j.type === "disambiguation") continue;
+      const d = String(j.description || "").toLowerCase();
+      const persone = ["attore", "attrice", "actor", "actress", "cantante", "singer",
+                       "politico", "politician", "calciatore", "footballer", "regista",
+                       "director", "scrittore", "writer", "born ", "nato ", "nata "];
+      if (persone.some(function (p) { return d.indexOf(p) !== -1; })) continue;
+      const url = (j.originalimage && j.originalimage.source)
+        || (j.thumbnail && j.thumbnail.source);
+      if (!url) continue;
+      if (/flag|coat_of_arms|stemma|bandiera|\.svg$|map|mappa|logo/i.test(url)) continue;
+      return url.replace(/\/\d+px-/, "/640px-");
+    } catch (e) { /* si prova la lingua dopo */ }
+  }
+  return null;
+}
+
+async function riempiCopertine(box) {
+  const posti = box.querySelectorAll("[data-wiki]");
+  for (const p of posti) {
+    const u = await fotoDaWiki(p.getAttribute("data-wiki"));
+    if (u) {
+      p.innerHTML = "<img src=\"" + escapeHtml(u) + "\" alt=\"\" "
+        + "style=\"width:100%;height:150px;object-fit:cover;border-radius:8px;\">";
+    } else {
+      p.remove();
+    }
+  }
+}
+
 /* ---------------- RICHIESTE SU MISURA ---------------- */
 
 const STATI_RICHIESTA = {
@@ -1618,6 +1659,8 @@ async function renderRichieste() {
   });
 
   // se si arriva dall email, si apre gia il dettaglio giusto
+  riempiCopertine(box);
+
   if (richiestaAperta) {
     const d = document.getElementById("rd-" + richiestaAperta);
     const riga = document.getElementById("ri-" + richiestaAperta);
@@ -1652,8 +1695,26 @@ function dettaglioRichiesta(x) {
   h += "</div>";
 
   if (b.titolo) {
+    const tappe = b.tappe || [];
+    const vere = tappe.filter(function (t) { return t.foto_url; }).slice(0, 4);
+    let foto = "";
+    if (vere.length) {
+      foto = "<div style=\"display:flex;gap:6px;margin-top:12px;overflow-x:auto;\">";
+      vere.forEach(function (t) {
+        foto += "<img src=\"" + escapeHtml(t.foto_url) + "\" alt=\"\" "
+          + "style=\"width:150px;height:110px;object-fit:cover;border-radius:8px;flex:0 0 auto;\">";
+      });
+      foto += "</div>";
+    } else {
+      const voce = b.copertina_wiki
+        || (tappe.find(function (t) { return t.foto_wiki; }) || {}).foto_wiki;
+      if (voce) {
+        foto = "<div data-wiki=\"" + escapeHtml(voce) + "\" "
+          + "style=\"margin-top:12px;height:150px;background:#e2e8f0;border-radius:8px;\"></div>";
+      }
+    }
     h += "<div style=\"margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;\">"
-      + "<b>" + escapeHtml(b.titolo) + "</b>"
+      + "<b>" + escapeHtml(b.titolo) + "</b>" + foto
       + "<div style=\"font-size:13px;color:#64748b;\">"
       + ((b.tappe || []).length) + " giornate"
       + ((b.hotel || []).length ? " &middot; " + b.hotel.length + " alberghi" : "")
