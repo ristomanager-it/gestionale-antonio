@@ -372,6 +372,9 @@
       formulaScelta = cons ? cons.codice : formule[0].codice;
     }
 
+    // Il modello di prezzo lo decide il viaggio: "persona" oppure mezzo condiviso.
+    var aPersona = String(v.modalita_prezzo || "") === "persona";
+
     var h = "";
 
     formule.forEach(function (f) {
@@ -390,10 +393,17 @@
       h += "</div><div class=\"formula-prezzo\">" + euro(pieno) + "<span>a persona</span></div></div>";
 
       if (f.descrizione) h += "<p>" + esc(f.descrizione) + "</p>";
-      h += '<p class="credito">' + euro(pieno) + " a persona vuol dire: "
-         + euro(Number(f.quota_posto || 0)) + " di " + esc(nomeMezzo()) + " diviso fra "
-         + Number(f.posti_max || 6) + ", piu " + euro(fisse + extra)
-         + " di volo, hotel e ingressi.</p>";
+
+      // Il calcolo del mezzo diviso fra i passeggeri vale solo per i viaggi in
+      // camper o in auto condivisa. Su un viaggio a persona quel blocco produceva
+      // la tabella "se siete in 4, 3, 2" e la frase "chi vola, vola", che non
+      // c entrano niente: il prezzo e uno e non si divide.
+      if (!aPersona) {
+        h += '<p class="credito">' + euro(pieno) + " a persona vuol dire: "
+           + euro(Number(f.quota_posto || 0)) + " di " + esc(nomeMezzo()) + " diviso fra "
+           + Number(f.posti_max || 6) + ", piu " + euro(fisse + extra)
+           + " di volo, hotel e ingressi.</p>";
+      }
 
       if (f.incluso && f.incluso.length) {
         h += '<ul class="incluso">';
@@ -401,22 +411,24 @@
         h += "</ul>";
       }
 
-      h += "<p>Il " + esc(nomeMezzo()) + " costa <b>" + euro(f.quota_camper) + "</b> in tutto e si divide fra chi ci sale. "
-         + "Volo, hotel e ingressi sono <b>" + euro(fisse + extra) + "</b> a testa e non si dividono: "
-         + "chi vola, vola.</p>";
+      if (!aPersona) {
+        h += "<p>Il " + esc(nomeMezzo()) + " costa <b>" + euro(f.quota_camper) + "</b> in tutto e si divide fra chi ci sale. "
+           + "Volo, hotel e ingressi sono <b>" + euro(fisse + extra) + "</b> a testa e non si dividono: "
+           + "chi vola, vola.</p>";
 
-      h += '<table style="margin-top:10px;"><tr><th>Se siete in</th><th class="num">'
-         + esc(nomeMezzo().charAt(0).toUpperCase() + nomeMezzo().slice(1))
-         + '</th><th class="num">Volo e ingressi</th><th class="num">A testa</th></tr>';
-      for (var k = Number(f.posti_max || 6); k >= 2; k--) {
-        var quotaK = Number(f.quota_camper || 0) / k;
-        var tot = arrotonda(quotaK + fisse + extra);
-        h += "<tr><td><b>" + k + "</b> persone" + (k === Number(f.posti_max || 6) ? " <span style=\"color:#5B6672;\">pieno</span>" : "")
-           + '</td><td class="num">' + euro(quotaK)
-           + '</td><td class="num">' + euro(fisse + extra)
-           + '</td><td class="num"><b>' + euro(tot) + "</b></td></tr>";
+        h += '<table style="margin-top:10px;"><tr><th>Se siete in</th><th class="num">'
+           + esc(nomeMezzo().charAt(0).toUpperCase() + nomeMezzo().slice(1))
+           + '</th><th class="num">Volo e ingressi</th><th class="num">A testa</th></tr>';
+        for (var k = Number(f.posti_max || 6); k >= 2; k--) {
+          var quotaK = Number(f.quota_camper || 0) / k;
+          var tot = arrotonda(quotaK + fisse + extra);
+          h += "<tr><td><b>" + k + "</b> persone" + (k === Number(f.posti_max || 6) ? " <span style=\"color:#5B6672;\">pieno</span>" : "")
+             + '</td><td class="num">' + euro(quotaK)
+             + '</td><td class="num">' + euro(fisse + extra)
+             + '</td><td class="num"><b>' + euro(tot) + "</b></td></tr>";
+        }
+        h += "</table>";
       }
-      h += "</table>";
 
       h += '<button class="scegli" data-codice="' + esc(f.codice) + '">'
          + (on ? "Formula scelta \u2713" : "Scelgo questa") + "</button>";
