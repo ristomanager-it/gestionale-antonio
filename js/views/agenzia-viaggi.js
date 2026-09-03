@@ -1254,8 +1254,37 @@ async function anteprimaOccasione(id) {
       + "Sto costruendo l'itinerario per " + escapeHtml(rotta.nome || "") + ".<br>"
       + '<span style="font-size:13px;">Cerco hotel e ristoranti veri: ci vuole un minuto.</span></div>';
     try {
-      const g = await supa().functions.invoke("viaggi-bozza-itinerario", { body: { occasione_id: id } });
-      const d = g.data || {};
+      // La generazione dura uno o due minuti e il browser molla prima: si lancia
+      // senza aspettare la risposta e si controlla il database finche la bozza
+      // non compare. Prima usciva "errore sconosciuto" su un lavoro che stava
+      // andando a buon fine.
+      let d = {};
+      try {
+        const g = await Promise.race([
+          supa().functions.invoke("viaggi-bozza-itinerario", { body: { occasione_id: id } }),
+          new Promise(function (ris) { setTimeout(function () { ris({ scaduto: true }); }, 20000); })
+        ]);
+        d = g && g.data ? g.data : {};
+        if (g && g.scaduto) d = { attendi: true };
+      } catch (e) { d = { attendi: true }; }
+
+      if (d.attendi) {
+        for (let giro = 1; giro <= 30; giro++) {
+          box.innerHTML = '<div style="padding:40px;text-align:center;color:#64748b;">'
+            + "Sto costruendo l'itinerario per " + escapeHtml(rotta.nome || "") + ".<br>"
+            + '<span style="font-size:13px;">Cerco hotel e ristoranti veri: '
+            + "ci vogliono un paio di minuti.</span><br>"
+            + '<span style="font-size:12px;color:#94a3b8;">' + (giro * 6) + " secondi</span></div>";
+          await new Promise(function (ris) { setTimeout(ris, 6000); });
+          const q = await supa().from("viaggi_occasioni").select("bozza").eq("id", id).single();
+          if (!q.error && q.data && q.data.bozza) { d = { ok: true, bozza: q.data.bozza }; break; }
+        }
+        if (!d.bozza) {
+          d = { ok: false, errore: "Ci sta mettendo piu del previsto. "
+            + "La generazione continua da sola: riprova fra un minuto." };
+        }
+      }
+
       if (d.ok === false || !d.bozza) {
         // L'errore va detto per intero: il caso piu frequente e' il credito finito,
         // e prima si vedeva solo un itinerario "Senza titolo" che non si pubblicava.
