@@ -160,7 +160,9 @@ function renderBoard() {
 
   const inRitardo = lottiCache.filter((l) => (Date.now() - new Date(l.created_at).getTime()) / 3600000 >= 24).length;
   const kpi = document.getElementById("kdsp-kpi");
-  if (kpi) kpi.innerHTML = `${lottiCache.length} in corso · <span style="color:${inRitardo ? "#f87171" : "#94a3b8"}">${inRitardo} da oltre 24h</span>`;
+  const fuoriTempo = lottiCache.filter((l) => { const c = faseCorrente(l); return c && c.oltre; }).length;
+  if (kpi) kpi.innerHTML = `${lottiCache.length} in corso · <span style="color:${inRitardo ? "#f87171" : "#94a3b8"}">${inRitardo} da oltre 24h</span>`
+    + (fuoriTempo ? ` · <span style="color:#fbbf24;font-weight:700;">${fuoriTempo} fuori tempo</span>` : "");
 
   if (!lottiCache.length) {
     board.innerHTML = `<div style="color:#475569;font-size:15px;padding:20px;">Nessuna produzione aperta.</div>`;
