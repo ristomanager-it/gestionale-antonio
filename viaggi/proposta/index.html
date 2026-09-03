@@ -56,6 +56,8 @@
   .bottone.chiaro{background:#fff;color:var(--inchiostro);border:2px solid var(--riga);
                   font-size:16px;padding:13px}
   .nota{color:var(--tenue);font-size:15px}
+  .fotog{width:100%;height:190px;object-fit:cover;border-radius:10px;margin-bottom:10px;display:block}
+  .postofoto{width:100%;height:190px;background:var(--riga);border-radius:10px;margin-bottom:10px}
   textarea{width:100%;border:2px solid var(--riga);border-radius:10px;padding:12px;
            font:16px/1.5 Georgia,serif;background:#fff;min-height:110px}
   .fatto{background:#F2F7F5;border:2px solid var(--salvia);border-radius:12px;padding:18px;margin:16px 0}
@@ -110,6 +112,53 @@
     return null;
   }
 
+  // Le bozze costruite dal motore portano il nome di una voce Wikipedia, non un
+  // indirizzo: senza questo la pagina del cliente restava senza una foto.
+  // Scarta ritratti di persone, stemmi, bandiere e mappe.
+  function fotoDaWiki(titolo) {
+    if (!titolo) return Promise.resolve(null);
+    var lingue = ["it", "en"];
+    function prova(i) {
+      if (i >= lingue.length) return Promise.resolve(null);
+      return fetch("https://" + lingue[i] + ".wikipedia.org/api/rest_v1/page/summary/"
+        + encodeURIComponent(titolo), { headers: { accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (!j || j.type === "disambiguation") return prova(i + 1);
+          var d = String(j.description || "").toLowerCase();
+          var persone = ["attore", "attrice", "actor", "actress", "cantante", "singer",
+                         "politico", "politician", "calciatore", "footballer", "regista",
+                         "director", "scrittore", "writer", "born ", "nato ", "nata "];
+          for (var k = 0; k < persone.length; k++) {
+            if (d.indexOf(persone[k]) !== -1) return prova(i + 1);
+          }
+          var u = (j.originalimage && j.originalimage.source)
+               || (j.thumbnail && j.thumbnail.source);
+          if (!u) return prova(i + 1);
+          if (/flag|coat_of_arms|stemma|bandiera|\.svg$|map|mappa|logo/i.test(u)) return prova(i + 1);
+          return u.replace(/\/\d+px-/, "/960px-");
+        })
+        .catch(function () { return prova(i + 1); });
+    }
+    return prova(0);
+  }
+
+  function riempiFoto() {
+    var posti = document.querySelectorAll("[data-wiki]");
+    posti.forEach(function (p) {
+      fotoDaWiki(p.getAttribute("data-wiki")).then(function (u) {
+        if (!u) { p.remove(); return; }
+        if (p.classList.contains("hero")) {
+          var img = document.createElement("img");
+          img.src = u; img.alt = "";
+          p.insertBefore(img, p.firstChild);
+        } else {
+          p.innerHTML = '<img src="' + esc(u) + '" alt="" class="fotog">';
+        }
+      });
+    });
+  }
+
   function elenco(v, classe) {
     if (!v || !v.length) return "";
     var h = '<ul class="' + classe + '">';
@@ -123,6 +172,11 @@
     h += '<p class="num">Giorno ' + esc(t.giorno) + (t.citta ? " \u00B7 " + esc(t.citta) : "") + "</p>";
     h += '<p class="tit">' + esc(t.titolo || "") + "</p>";
     h += '<div class="dentro" id="d' + i + '" style="display:none">';
+    if (t.foto_url) {
+      h += '<img src="' + esc(t.foto_url) + '" alt="" class="fotog">';
+    } else if (t.foto_wiki) {
+      h += '<div data-wiki="' + esc(t.foto_wiki) + '" class="postofoto"></div>';
+    }
     if (t.descrizione) h += "<p>" + esc(t.descrizione) + "</p>";
     if (t.compreso && t.compreso.length) {
       h += '<p class="etichetta">Compreso</p>' + elenco(t.compreso, "si");
@@ -170,6 +224,7 @@
         var chiuso = box.style.display === "none";
         box.style.display = chiuso ? "block" : "none";
         this.querySelector(".freccia").textContent = chiuso ? "\u25B4" : "\u25BE";
+        if (chiuso) riempiFoto();
       });
     }
 
@@ -183,8 +238,9 @@
           return;
         }
         schermataFatto("Bene, ci siamo.",
-          "Vi richiamiamo entro un giorno per i documenti e per l acconto. "
-          + "Il prezzo che avete visto e bloccato.");
+          "Il prezzo e bloccato e il viaggio e vostro. Vi arriva subito una mail con "
+          + "il riepilogo: da li si versa l acconto e i biglietti partono. "
+          + "Se preferite sentirci prima, chiamate quando volete.");
       });
     });
 
@@ -240,7 +296,10 @@
     var foto = copertina(b);
     var h = "";
 
-    h += '<div class="hero">';
+    var voceHero = b.copertina_wiki
+      || ((b.tappe || []).find(function (t) { return t.foto_wiki; }) || {}).foto_wiki
+      || d.destinazione;
+    h += '<div class="hero"' + (foto ? "" : ' data-wiki="' + esc(voceHero) + '"') + ">";
     if (foto) h += '<img src="' + esc(foto) + '" alt="">';
     h += '<div class="sopra"><p class="chi">La proposta di ' + esc(d.nome) + "</p>"
       + "<h1>" + esc(b.titolo || d.destinazione) + "</h1></div></div>";
@@ -336,6 +395,7 @@
 
     app.innerHTML = h;
     agganciaAzioni(d);
+    riempiFoto();
   });
 })();
 </script>
