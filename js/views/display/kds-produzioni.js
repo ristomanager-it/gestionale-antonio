@@ -204,7 +204,10 @@ function cardHtml(l) {
           <div style="font-size:11px;color:${corrente.ritardo ? "#fecaca" : "#94a3b8"};">In lavorazione${corrente.ritardo ? " · IN RITARDO ⚠" : ""}</div>
           <div style="font-size:14px;font-weight:700;">${escapeHtml(corrente.nome)}</div>
           <div style="font-size:12px;color:${corrente.ritardo ? "#fecaca" : "#cbd5e1"};">${corrente.elapsed}′${corrente.prevista ? " / ~" + corrente.prevista + "′ previsti" : ""}</div>
-        </div>` : `<div style="margin-top:8px;font-size:13px;color:#4ade80;">✓ Tutte le fasi firmate — pronta da chiudere</div>`}
+        </div>` : `<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <span style="font-size:13px;color:#4ade80;">✓ Tutte le fasi firmate</span>
+          <button data-chiudi="${l.id}" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">✔ Chiudi</button>
+        </div>`}
     </div>`;
 }
 
