@@ -102,6 +102,47 @@
   function euro(n) {
     return Number(n || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
   }
+  // Le giornate portano il nome di una voce Wikipedia: senza risolverla la pagina
+  // del cliente resta senza una foto. Scarta ritratti, stemmi, bandiere e mappe.
+  function fotoDaWiki(titolo) {
+    if (!titolo) return Promise.resolve(null);
+    var lingue = ["it", "en"];
+    function prova(i) {
+      if (i >= lingue.length) return Promise.resolve(null);
+      return fetch("https://" + lingue[i] + ".wikipedia.org/api/rest_v1/page/summary/"
+        + encodeURIComponent(titolo), { headers: { accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (!j || j.type === "disambiguation") return prova(i + 1);
+          var d = String(j.description || "").toLowerCase();
+          var persone = ["attore", "attrice", "actor", "actress", "cantante", "singer",
+                         "politico", "politician", "calciatore", "footballer", "regista",
+                         "director", "scrittore", "writer", "born ", "nato ", "nata "];
+          for (var k = 0; k < persone.length; k++) {
+            if (d.indexOf(persone[k]) !== -1) return prova(i + 1);
+          }
+          var u = (j.originalimage && j.originalimage.source)
+               || (j.thumbnail && j.thumbnail.source);
+          if (!u) return prova(i + 1);
+          if (/flag|coat_of_arms|stemma|bandiera|\.svg$|map|mappa|logo/i.test(u)) return prova(i + 1);
+          return u.replace(/\/\d+px-/, "/960px-");
+        })
+        .catch(function () { return prova(i + 1); });
+    }
+    return prova(0);
+  }
+
+  function riempiFotoTappe() {
+    var posti = document.querySelectorAll("[data-wiki]");
+    posti.forEach(function (p) {
+      fotoDaWiki(p.getAttribute("data-wiki")).then(function (u) {
+        if (!u) { p.remove(); return; }
+        p.innerHTML = '<img src="' + esc(u) + '" alt="" '
+          + 'style="width:100%;height:160px;object-fit:cover;border-radius:10px;display:block">';
+      });
+    });
+  }
+
   function dataIt(iso) {
     if (!iso) return "—";
     var p = String(iso).slice(0, 10).split("-");
@@ -344,6 +385,22 @@
           + "<td>" + esc(t.alloggio || "—") + "</td></tr>";
       });
       h += "</table>";
+
+      var conFoto = prog.filter(function (t) { return t.foto || t.foto_wiki; }).slice(0, 6);
+      if (conFoto.length) {
+        h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;">';
+        conFoto.forEach(function (t) {
+          if (t.foto) {
+            h += '<img src="' + esc(t.foto) + '" alt="" '
+              + 'style="width:100%;height:160px;object-fit:cover;border-radius:10px;display:block">';
+          } else {
+            h += '<div data-wiki="' + esc(t.foto_wiki) + '" '
+              + 'style="height:160px;background:var(--riga);border-radius:10px"></div>';
+          }
+        });
+        h += "</div>";
+      }
+
       h += '<p style="text-align:center;"><a href="../v/?s=' + esc(v.slug)
         + '" style="color:var(--accento);font-weight:700;">Vedi il programma completo →</a></p>';
     }
@@ -438,8 +495,14 @@
     var cop = document.getElementById("cop");
     if (cop) {
       if (d.viaggio.copertina) cop.src = d.viaggio.copertina;
-      else cop.remove();
+      else if (d.viaggio.copertina_wiki) {
+        fotoDaWiki(d.viaggio.copertina_wiki).then(function (u) {
+          if (u) cop.src = u; else cop.remove();
+        });
+      } else cop.remove();
     }
+
+    riempiFotoTappe();
 
     var bRata = document.getElementById("paga-rata");
     if (bRata) bRata.addEventListener("click", function () {
