@@ -1264,8 +1264,11 @@ async function anteprimaOccasione(id) {
           supa().functions.invoke("viaggi-bozza-itinerario", { body: { occasione_id: id } }),
           new Promise(function (ris) { setTimeout(function () { ris({ scaduto: true }); }, 20000); })
         ]);
-        d = g && g.data ? g.data : {};
-        if (g && g.scaduto) d = { attendi: true };
+        // supabase-js non solleva eccezioni: quando la chiamata cade torna
+        // { data: null, error }. Senza questo controllo finiva dritta in
+        // "errore sconosciuto" mentre la generazione stava ancora lavorando.
+        if (!g || g.scaduto || g.error || !g.data) d = { attendi: true };
+        else d = g.data;
       } catch (e) { d = { attendi: true }; }
 
       if (d.attendi) {
