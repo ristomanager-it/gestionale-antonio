@@ -70,7 +70,7 @@ const CSS_VIAGGI = `
     .av-tabella td:last-child{border-bottom:0}
     .av-tabella td:before{content:attr(data-et);flex:0 0 40%;font-size:11px;color:#64748b;
                           text-transform:uppercase;letter-spacing:.03em;padding-top:2px}
-    .av-tabella td > *{flex:1;min-width:0}
+    .av-tabella td > *{flex:1;min-width:0;overflow-wrap:break-word;word-break:normal}
     .av-tabella td.av-vuoto{display:none}
   }
 `;
@@ -1079,7 +1079,7 @@ async function renderOccasioni() {
       // e non si sapeva dove si dormiva.
       + "<td>" + (function () {
           const d = o.dettaglio || {};
-          let c = "";
+          let c = "<div>";
           if (d.hotel_nome) {
             c += "<b>" + escapeHtml(d.hotel_nome) + "</b>";
             const sotto = [];
@@ -1096,18 +1096,18 @@ async function renderOccasioni() {
             c += '<div style="color:#64748b;font-size:12px;">'
               + euro(o.alloggio_prezzo) + " camera intera</div>";
           } else {
-            c = euro(o.alloggio_prezzo)
+            c += euro(o.alloggio_prezzo)
               + '<div style="color:#b45309;font-size:12px;">albergo non indicato</div>';
           }
-          return c;
+          return c + "</div>";
         })() + "</td>"
       + "<td>" + (function () {
           const d = o.dettaglio || {};
           if (!o.auto_prezzo) return '<span style="color:#94a3b8;">\u2014</span>';
-          return euro(o.auto_prezzo)
+          return "<div>" + euro(o.auto_prezzo)
             + (d.auto_a_giorno
                 ? '<div style="color:#64748b;font-size:12px;">' + euro(d.auto_a_giorno) + " al giorno</div>"
-                : "");
+                : "") + "</div>";
         })() + "</td>"
       + "<td><b>" + euro(o.costo_vivo) + "</b></td>"
       + '<td><b style="color:#16a34a;">' + euro(o.prezzo_suggerito) + "</b>"
