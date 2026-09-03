@@ -28,6 +28,35 @@ let refreshTimer = null;
 
 function supa() { return window.supabaseClient; }
 
+// Il bottone dice il gesto da fare, non il nome del passaggio: chi sta al
+// banco legge "Abbatti", non "Abbattimento in positivo". Se la fase non e'
+// in elenco si mostra il suo nome cosi' com'e', senza inventare verbi.
+const VERBI_FASE = [
+  { chiave: "confezion", verbo: "Confeziona" },
+  { chiave: "sottovuoto", verbo: "Confeziona" },
+  { chiave: "invasett", verbo: "Invasa" },
+  { chiave: "cottura", verbo: "Cuoci" },
+  { chiave: "cuoci", verbo: "Cuoci" },
+  { chiave: "pastorizz", verbo: "Pastorizza" },
+  { chiave: "abbatt", verbo: "Abbatti" },
+  { chiave: "raffredd", verbo: "Raffredda" },
+  { chiave: "porzionatura", verbo: "Porziona" },
+  { chiave: "taglio", verbo: "Porziona" },
+  { chiave: "stoccaggio", verbo: "Stocca" },
+  { chiave: "riposo", verbo: "Metti a riposo" },
+  { chiave: "condimento", verbo: "Condisci" },
+  { chiave: "legatura", verbo: "Lega" },
+  { chiave: "marinat", verbo: "Marina" },
+  { chiave: "etichett", verbo: "Etichetta" },
+  { chiave: "pesat", verbo: "Pesa" },
+];
+
+function verboFase(nome) {
+  const t = String(nome || "").toLowerCase();
+  for (const v of VERBI_FASE) { if (t.indexOf(v.chiave) >= 0) return v.verbo; }
+  return String(nome || "Continua");
+}
+
 export async function render(container) {
   const sedeId = window.state?.sedeAttiva?.id;
 
