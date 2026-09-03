@@ -182,7 +182,7 @@ function cardHtml(l) {
   const qta = l.quantita_output ? (l.quantita_output + " " + (l.unita_misura || "")) : "";
 
   return `
-    <div style="background:#1e293b;border-radius:12px;padding:14px;border-left:4px solid ${corrente && corrente.ritardo ? "#f87171" : "#16a34a"};">
+    <div data-vai="${l.lotto_uuid}" style="background:#1e293b;border-radius:12px;padding:14px;cursor:pointer;border-left:4px solid ${corrente && corrente.ritardo ? "#f87171" : "#16a34a"};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
         <div>
           <div style="font-weight:800;font-size:16px;">${escapeHtml(nome)}</div>
