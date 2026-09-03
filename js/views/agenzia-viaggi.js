@@ -29,7 +29,7 @@ function tabDaHash() {
   const q = h.split("?")[1];
   if (!q) return null;
   const t = new URLSearchParams(q).get("tab");
-  return ["catalogo", "occasioni", "iscritti", "incassi", "acquisti", "richieste"].includes(t) ? t : null;
+  return ["catalogo", "occasioni", "iscritti", "incassi", "acquisti", "richieste", "scorte"].includes(t) ? t : null;
 }
 
 // L avviso via email porta dritto alla richiesta da guardare, non al catalogo.
@@ -124,6 +124,7 @@ export async function render(app) {
         <button data-tab="incassi"  class="av-tab">Incassi</button>
         <button data-tab="acquisti" class="av-tab">Da comprare</button>
         <button data-tab="richieste" class="av-tab">Richieste</button>
+        <button data-tab="scorte" class="av-tab">Scorte</button>
       </div>
 
       <div id="av-corpo"><div style="color:#64748b;">Caricamento...</div></div>
@@ -187,6 +188,7 @@ async function caricaTab() {
     if (tabAttiva === "iscritti") return await renderIscritti();
     if (tabAttiva === "acquisti") return await renderAcquisti();
     if (tabAttiva === "richieste") return await renderRichieste();
+    if (tabAttiva === "scorte") return await renderScorte();
     return await renderIncassi();
   } catch (e) {
     mostraErrore(e);
@@ -1862,4 +1864,162 @@ function dettaglioRichiesta(x) {
         + "text-decoration:none;font-size:13px;color:#0f172a;\">Chiama</a>" : "")
     + "</div></div>";
   return h;
+}
+
+
+/* ---------------- SCORTE: COMPRATO PRIMA DI VENDERE ---------------- */
+
+// Biglietti dei parchi, posti volo, camere bloccate: soldi gia usciti che aspettano
+// un cliente. Vanno tenuti separati dagli acquisti fatti per un'iscrizione, perche
+// hanno una scadenza e un rischio: quello che non si vende in tempo e perso.
+
+async function renderScorte() {
+  const box = document.getElementById("av-corpo");
+  if (!box) return;
+
+  const [q, isc] = await Promise.all([
+    supa().rpc("scorte_situazione", { p_azienda: aziendaId() }),
+    supa().from("viaggi_iscrizioni")
+      .select("id, referente_nome, viaggi(titolo)")
+      .eq("azienda_id", aziendaId())
+      .in("stato", ["richiesta", "confermata"])
+      .order("creato_il", { ascending: false }).limit(50)
+  ]);
+  if (q.error) throw q.error;
+
+  const d = q.data || {};
+  const righe = (d.righe || []).filter(Boolean);
+
+  // stesso riquadro usato nelle altre schermate: coppie valore piu etichetta
+  let h = '<div class="av-num" style="margin-bottom:16px;">'
+    + "<div><b>" + euro(d.speso || 0) + "</b><span>Speso</span></div>"
+    + "<div><b>" + euro(d.ancora_libere || 0) + "</b><span>Ancora libere</span></div>"
+    + "<div><b>" + euro(d.gia_assegnate || 0) + "</b><span>Gia assegnate</span></div>"
+    + '<div><b style="color:' + (Number(d.scadono_entro_30 || 0) > 0 ? "#b45309" : "#0f172a") + ';">'
+    + euro(d.scadono_entro_30 || 0) + "</b><span>Scadono entro 30 giorni</span></div>"
+    + "</div>";
+
+  if (Number(d.gia_scadute || 0) > 0) {
+    h += '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;'
+      + 'padding:12px 14px;margin:12px 0;color:#991b1b;"><b>'
+      + euro(d.gia_scadute) + " scaduti senza essere venduti.</b><br>"
+      + '<span style="font-size:14px;">E il costo del comprare in anticipo: '
+      + "va tenuto d'occhio, non nascosto.</span></div>";
+  }
+
+  h += '<button id="sc-nuova" style="background:#0E5A7A;color:#fff;border:0;'
+    + 'border-radius:8px;padding:11px 18px;font-weight:700;cursor:pointer;margin:8px 0 14px;">'
+    + "+ Ho comprato qualcosa</button>";
+
+  h += '<div id="sc-modulo" style="display:none;background:#fff;border:2px solid #cbd5e1;'
+    + 'border-radius:12px;padding:16px;margin-bottom:16px;">'
+    + '<div style="display:grid;gap:10px;">'
+    + '<select id="sc-tipo"><option value="ingresso">Ingressi e biglietti</option>'
+    + '<option value="volo">Posti volo</option><option value="hotel">Camere</option>'
+    + '<option value="auto">Noleggi</option><option value="pacchetto">Pacchetti</option>'
+    + '<option value="altro">Altro</option></select>'
+    + '<input id="sc-desc" placeholder="Cosa hai comprato, per esteso">'
+    + '<input id="sc-forn" placeholder="Da chi (facoltativo)">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+    + '<input id="sc-qta" type="number" min="1" value="1" placeholder="Quante">'
+    + '<input id="sc-costo" type="number" step="0.01" placeholder="Costo di una">'
+    + "</div>"
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+    + '<input id="sc-prezzo" type="number" step="0.01" placeholder="A quanto la vendi">'
+    + '<input id="sc-scad" type="date" placeholder="Vale fino al">'
+    + "</div>"
+    + '<input id="sc-rif" placeholder="Codice o riferimento (facoltativo)">'
+    + '<button id="sc-salva" style="background:#16a34a;color:#fff;border:0;border-radius:8px;'
+    + 'padding:11px;font-weight:700;cursor:pointer;">Registra la spesa</button>'
+    + "</div></div>";
+
+  if (!righe.length) {
+    h += '<div style="border:1px dashed #cbd5e1;border-radius:12px;padding:30px;'
+      + 'text-align:center;color:#64748b;">Niente comprato in anticipo.<br>'
+      + "Qui finisce quello che compri prima di avere un cliente.</div>";
+  } else {
+    h += '<div class="av-tab-wrap"><table class="av-tabella">'
+      + "<thead><tr><th>Cosa</th><th>Quante</th><th>Costo</th><th>Vale fino al</th>"
+      + "<th>Stato</th><th></th></tr></thead><tbody>";
+    righe.forEach(function (r) {
+      const colore = r.stato === "scaduta" ? "#b91c1c"
+        : r.stato === "scade presto" ? "#b45309"
+        : r.stato === "tutto venduto" ? "#16a34a" : "#0E5A7A";
+      h += "<tr>"
+        + '<td data-et="Cosa"><b>' + escapeHtml(r.descrizione || "") + "</b>"
+        + (r.fornitore ? '<div style="font-size:12px;color:#64748b;">'
+            + escapeHtml(r.fornitore) + "</div>" : "") + "</td>"
+        + '<td data-et="Quante">' + r.libere + " di " + r.quantita + "</td>"
+        + '<td data-et="Costo">' + euro(r.costo_unitario) + " l\u2019una"
+        + (r.prezzo_vendita ? '<div style="font-size:12px;color:#16a34a;">vendi a '
+            + euro(r.prezzo_vendita) + "</div>" : "") + "</td>"
+        + '<td data-et="Vale fino al">' + (r.valida_fino ? data(r.valida_fino) : "\u2014") + "</td>"
+        + '<td data-et="Stato"><span style="color:' + colore + ';font-weight:700;">'
+        + escapeHtml(r.stato) + "</span></td>"
+        + '<td data-et="">' + (r.libere > 0 && r.stato !== "scaduta"
+            ? '<button class="sc-assegna" data-id="' + r.id + '" '
+              + 'style="padding:8px 12px;border:1px solid #0E5A7A;background:#fff;color:#0E5A7A;'
+              + 'border-radius:8px;font-size:13px;cursor:pointer;">Assegna</button>'
+            : "") + "</td></tr>";
+    });
+    h += "</tbody></table></div>";
+  }
+
+  box.innerHTML = h;
+  etichetta(box);
+
+  const bn = document.getElementById("sc-nuova");
+  if (bn) bn.addEventListener("click", function () {
+    const m = document.getElementById("sc-modulo");
+    m.style.display = m.style.display === "none" ? "block" : "none";
+  });
+
+  const bs = document.getElementById("sc-salva");
+  if (bs) bs.addEventListener("click", async function () {
+    const desc = document.getElementById("sc-desc").value.trim();
+    const costo = Number(document.getElementById("sc-costo").value || 0);
+    if (!desc || costo <= 0) { alert("Servono la descrizione e il costo."); return; }
+    bs.disabled = true;
+    const r = await supa().rpc("scorta_nuova", {
+      p_tipo: document.getElementById("sc-tipo").value,
+      p_descrizione: desc,
+      p_quantita: Number(document.getElementById("sc-qta").value || 1),
+      p_costo: costo,
+      p_fornitore: document.getElementById("sc-forn").value.trim() || null,
+      p_valida_fino: document.getElementById("sc-scad").value || null,
+      p_prezzo_vendita: Number(document.getElementById("sc-prezzo").value || 0) || null,
+      p_riferimento: document.getElementById("sc-rif").value.trim() || null
+    });
+    if (r.error || (r.data && r.data.ok === false)) {
+      alert((r.data && r.data.errore) || (r.error && r.error.message) || "Non si registra.");
+      bs.disabled = false; return;
+    }
+    renderScorte();
+  });
+
+  box.querySelectorAll(".sc-assegna").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      const lista = (isc.data || []);
+      if (!lista.length) { alert("Non ci sono iscrizioni a cui assegnarla."); return; }
+      let testo = "A chi la assegno? Scrivi il numero:\n\n";
+      lista.forEach(function (x, i) {
+        testo += (i + 1) + ") " + x.referente_nome
+          + (x.viaggi ? " \u00b7 " + x.viaggi.titolo : "") + "\n";
+      });
+      const scelta = prompt(testo);
+      if (!scelta) return;
+      const n = parseInt(scelta, 10);
+      if (!n || n < 1 || n > lista.length) return;
+      const quante = parseInt(prompt("Quante?", "1") || "1", 10);
+
+      const r = await supa().rpc("scorta_assegna", {
+        p_scorta: b.dataset.id, p_iscrizione: lista[n - 1].id, p_quantita: quante || 1
+      });
+      if (r.error || (r.data && r.data.ok === false)) {
+        alert((r.data && r.data.errore) || (r.error && r.error.message) || "Non riesco.");
+        return;
+      }
+      renderScorte();
+    });
+  });
 }
