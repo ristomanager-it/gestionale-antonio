@@ -187,6 +187,29 @@ function renderBoard() {
   board.innerHTML = lottiCache.map((l) => cardHtml(l)).join("");
 }
 
+// Fase in corso = la prima non ancora firmata. Il tempo si conta dalla firma
+// della fase precedente, non dall'apertura del lotto.
+// oltre = ha superato il tempo previsto. ritardo = lo ha superato di meta'.
+// Serve anche al contatore in alto, per questo sta fuori da cardHtml.
+function faseCorrente(l) {
+  let prevTs = new Date(l.created_at).getTime();
+  for (let i = 0; i < l.fasi.length; i++) {
+    const f = l.fasi[i];
+    if (f.firmato_il) { prevTs = new Date(f.firmato_il).getTime(); continue; }
+    const elapsed = Math.floor((Date.now() - prevTs) / 60000);
+    const prevista = durataByFase[String(f.fase_id)] || 0;
+    return {
+      nome: f.fase_nome || ("Fase " + f.fase_ordine),
+      elapsed: elapsed,
+      prevista: prevista,
+      oltre: prevista > 0 && elapsed > prevista,
+      ritardo: prevista > 0 && elapsed > prevista * 1.5,
+      sforo: prevista > 0 ? Math.max(0, elapsed - prevista) : 0,
+    };
+  }
+  return null;
+}
+
 function cardHtml(l) {
   const since = new Date(l.created_at).getTime();
   const nome = l.ricette?.nome || "Ricetta";
