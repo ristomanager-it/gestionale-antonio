@@ -1587,7 +1587,31 @@ async function renderRichieste() {
     return x.stato === "in_lavorazione" || x.stato === "modifiche_chieste" || x.stato === "accettata";
   });
 
+  // Con venti richieste in lista non si trova piu niente: si guarda una cosa
+  // per volta. Il filtro sta in memoria, non ricarica.
+  const GRUPPI = [
+    { chiave: "da_fare", testo: "Da fare",
+      dentro: ["in_lavorazione", "modifiche_chieste", "accettata"] },
+    { chiave: "in_corso", testo: "Mandate",
+      dentro: ["proposta_inviata", "vista"] },
+    { chiave: "nuove", testo: "Nuove", dentro: ["nuova"] },
+    { chiave: "chiuse", testo: "Chiuse", dentro: ["persa", "scaduta"] }
+  ];
+
   let h = "";
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
+  h += '<button class="ri-filtro" data-f="tutte" style="padding:7px 13px;border-radius:20px;'
+    + 'border:1px solid #0E5A7A;background:#0E5A7A;color:#fff;font-size:13px;font-weight:700;'
+    + 'cursor:pointer;">Tutte ' + righe.length + "</button>";
+  GRUPPI.forEach(function (g) {
+    const n = righe.filter(function (x) { return g.dentro.indexOf(x.stato) !== -1; }).length;
+    if (!n) return;
+    h += '<button class="ri-filtro" data-f="' + g.chiave + '" '
+      + 'style="padding:7px 13px;border-radius:20px;border:1px solid #cbd5e1;background:#fff;'
+      + 'color:#0f172a;font-size:13px;cursor:pointer;">' + g.testo + " " + n + "</button>";
+  });
+  h += "</div>";
+
   if (daFare.length) {
     h += "<div style=\"background:#FFF8E1;border:1px solid #B8860B;border-radius:10px;"
       + "padding:12px 14px;margin-bottom:14px;\"><b>" + daFare.length
@@ -1602,7 +1626,10 @@ async function renderRichieste() {
   righe.forEach(function (x) {
     const persone = Number(x.adulti || 0) + Number(x.bambini || 0);
     const aperta = richiestaAperta && String(x.id) === String(richiestaAperta);
-    h += "<tr id=\"ri-" + x.id + "\"" + (aperta ? " style=\"outline:3px solid #B8860B;\"" : "") + ">"
+    const gruppo = (GRUPPI.find(function (g) { return g.dentro.indexOf(x.stato) !== -1; })
+                    || { chiave: "altro" }).chiave;
+    h += "<tr id=\"ri-" + x.id + "\" data-g=\"" + gruppo + "\""
+      + (aperta ? " style=\"outline:3px solid #B8860B;\"" : "") + ">"
       + "<td data-et=\"Cliente\"><b>" + escapeHtml(x.nome || "") + "</b>"
       + "<div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(x.email || "")
       + (x.telefono ? " &middot; " + escapeHtml(x.telefono) : "") + "</div></td>"
@@ -1622,13 +1649,33 @@ async function renderRichieste() {
       + "style=\"padding:8px 12px;border:1px solid #0E5A7A;background:#fff;color:#0E5A7A;"
       + "border-radius:8px;font-size:13px;cursor:pointer;\">Guarda</button></td>"
       + "</tr>"
-      + "<tr class=\"ri-dett\" id=\"rd-" + x.id + "\" style=\"display:none;\">"
+      + "<tr class=\"ri-dett\" id=\"rd-" + x.id + "\" data-g=\"" + gruppo + "\" style=\"display:none;\">"
       + "<td colspan=\"6\">" + dettaglioRichiesta(x) + "</td></tr>";
   });
 
   h += "</tbody></table></div>";
   box.innerHTML = h;
   etichetta(box);
+
+  box.querySelectorAll(".ri-filtro").forEach(function (b) {
+    b.addEventListener("click", function () {
+      const scelto = b.dataset.f;
+      box.querySelectorAll(".ri-filtro").forEach(function (x) {
+        const suo = x.dataset.f === scelto;
+        x.style.background = suo ? "#0E5A7A" : "#fff";
+        x.style.color = suo ? "#fff" : "#0f172a";
+        x.style.borderColor = suo ? "#0E5A7A" : "#cbd5e1";
+        x.style.fontWeight = suo ? "700" : "400";
+      });
+      box.querySelectorAll("tbody tr").forEach(function (r) {
+        const dett = r.classList.contains("ri-dett");
+        const suo = scelto === "tutte" || r.dataset.g === scelto;
+        if (!suo) { r.style.display = "none"; return; }
+        r.style.display = dett ? "none" : "";
+      });
+      box.querySelectorAll(".ri-apri").forEach(function (x) { x.textContent = "Guarda"; });
+    });
+  });
 
   box.querySelectorAll(".ri-apri").forEach(function (b) {
     b.addEventListener("click", function () {
