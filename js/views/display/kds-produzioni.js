@@ -249,12 +249,25 @@ function onBoardClick(e) {
 }
 
 // Stessa chiusura di produzioni-aperte: stato "firmato" e ora della firma.
+// Il peso finale si chiede PRIMA di chiudere: e' quello che fa scattare il
+// carico a magazzino. Senza, il lotto si chiudeva lo stesso e la giacenza
+// restava a zero senza nessun errore a schermo.
 async function chiudiLottoKds(id) {
   if (!id) return;
-  if (!confirm("Confermi la chiusura di questa produzione?")) return;
+  const lotto = lottiCache.find((x) => String(x.id) === String(id));
+  const um = (lotto && lotto.unita_misura) || "kg";
+  const nome = (lotto && lotto.ricette && lotto.ricette.nome) || "questa produzione";
+  const digitato = prompt("Peso finale di " + nome + " (" + um + "):",
+    lotto && Number(lotto.quantita_output) > 0 ? String(lotto.quantita_output) : "");
+  if (digitato === null) return;
+  const peso = Number(String(digitato).replace(",", "."));
+  if (!Number.isFinite(peso) || peso <= 0) {
+    alert("Serve il peso finale: senza non si carica il magazzino.");
+    return;
+  }
   const { error } = await supa()
     .from("produzione_lotti")
-    .update({ stato: "firmato", firmato_at: new Date().toISOString() })
+    .update({ quantita_output: peso, stato: "firmato", firmato_at: new Date().toISOString() })
     .eq("id", id);
   if (error) { alert("Errore chiusura: " + error.message); return; }
   await carica(window.state?.sedeAttiva?.id);
