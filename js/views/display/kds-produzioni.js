@@ -121,6 +121,14 @@ function renderBoard() {
   const board = document.getElementById("kdsp-board");
   if (!board) return;
 
+  // Lo schermo era nato di sola lettura, ma chi sta al banco tocca la scheda
+  // per aprire la lavorazione e chiude il lotto da qui. Un solo ascoltatore
+  // sul contenitore: le schede vengono ridisegnate ogni 15 secondi.
+  if (!board.dataset.kdsAzioni) {
+    board.dataset.kdsAzioni = "1";
+    board.addEventListener("click", onBoardClick);
+  }
+
   const inRitardo = lottiCache.filter((l) => (Date.now() - new Date(l.created_at).getTime()) / 3600000 >= 24).length;
   const kpi = document.getElementById("kdsp-kpi");
   if (kpi) kpi.innerHTML = `${lottiCache.length} in corso · <span style="color:${inRitardo ? "#f87171" : "#94a3b8"}">${inRitardo} da oltre 24h</span>`;
