@@ -211,4 +211,23 @@ function cardHtml(l) {
     </div>`;
 }
 
+function onBoardClick(e) {
+  const btn = e.target.closest("[data-chiudi]");
+  if (btn) { e.stopPropagation(); chiudiLottoKds(btn.dataset.chiudi); return; }
+  const card = e.target.closest("[data-vai]");
+  if (card && card.dataset.vai) window.location.hash = "#/preparazioni?lotto=" + card.dataset.vai;
+}
+
+// Stessa chiusura di produzioni-aperte: stato "firmato" e ora della firma.
+async function chiudiLottoKds(id) {
+  if (!id) return;
+  if (!confirm("Confermi la chiusura di questa produzione?")) return;
+  const { error } = await supa()
+    .from("produzione_lotti")
+    .update({ stato: "firmato", firmato_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) { alert("Errore chiusura: " + error.message); return; }
+  await carica(window.state?.sedeAttiva?.id);
+}
+
 function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
