@@ -134,6 +134,18 @@
   .slide-punti i.on{background:var(--accento)}
   @media(max-width:520px){.slide-pista img{height:210px}.slide-frecce{top:85px}}
   @media(max-width:520px){h1{font-size:30px}.sotto{font-size:19px}.giorno{gap:10px}.giorno .n{font-size:24px;min-width:40px}}
+  /* Su telefono il modulo di adesione sta in fondo a una pagina lunghissima:
+     senza un richiamo fisso in basso nessuno ci arriva. */
+  .barra-basso{position:fixed;left:0;right:0;bottom:0;background:rgba(253,251,247,.97);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    border-top:2px solid var(--riga);padding:12px 16px;
+    display:flex;align-items:center;gap:12px;z-index:60}
+  .barra-basso .prz{flex:1;min-width:0;line-height:1.2}
+  .barra-basso .prz b{font-size:21px;display:block}
+  .barra-basso .prz span{font-size:13px;color:var(--tenue)}
+  .barra-basso a{background:var(--oro);color:#fff;text-decoration:none;padding:13px 20px;
+    border-radius:10px;font-weight:700;white-space:nowrap}
+  body{padding-bottom:84px}
 </style>
 </head>
 <body>
@@ -449,6 +461,25 @@
     });
   }
 
+  function barraBasso(v) {
+    if (!v || !v.adesioni_aperte) return;
+    if (document.querySelector(".barra-basso")) return;
+    var prezzo = Number(v.quota_posto || 0) || Number(v.quota_camper || 0);
+    if (!(prezzo > 0)) return;
+    var b = document.createElement("div");
+    b.className = "barra-basso";
+    b.innerHTML = '<div class="prz"><b>' + euro(prezzo) + "</b>"
+      + "<span>a persona, tutto compreso</span></div>"
+      + '<a href="#modulo-adesione" id="vai-modulo">Vieni con noi</a>';
+    document.body.appendChild(b);
+    var a = document.getElementById("vai-modulo");
+    if (a) a.addEventListener("click", function (e) {
+      e.preventDefault();
+      var m = document.getElementById("modulo-adesione");
+      if (m) m.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   function disegna() {
     var v = dati.viaggio, tappe = dati.tappe || [];
     var giorni = tappe.length;
@@ -561,6 +592,7 @@
     h += '<h2>&nbsp;</h2><p style="text-align:center;"><a href="../catalogo/" style="color:var(--accento);font-weight:700;text-decoration:none;font-size:18px;">\u2190 Torna a tutti i viaggi</a></p>';
 
     app.innerHTML = h;
+    barraBasso(v);
 
     var imgCop = document.querySelector("img.copertina");
     if (imgCop) {
