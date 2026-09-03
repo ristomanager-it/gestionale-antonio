@@ -1272,19 +1272,31 @@ async function anteprimaOccasione(id) {
       } catch (e) { d = { attendi: true }; }
 
       if (d.attendi) {
-        for (let giro = 1; giro <= 30; giro++) {
-          box.innerHTML = '<div style="padding:40px;text-align:center;color:#64748b;">'
-            + "Sto costruendo l'itinerario per " + escapeHtml(rotta.nome || "") + ".<br>"
+        // Sui viaggi lunghi la costruzione arriva a tre minuti: si aspetta fino a
+        // cinque, e intanto si puo tornare indietro perche il lavoro va avanti lo
+        // stesso e la bozza resta salvata.
+        let fermato = false;
+        for (let giro = 1; giro <= 50 && !fermato; giro++) {
+          box.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#64748b;">'
+            + "Sto costruendo l'itinerario per <b>" + escapeHtml(rotta.nome || "") + "</b>.<br>"
             + '<span style="font-size:13px;">Cerco hotel e ristoranti veri: '
-            + "ci vogliono un paio di minuti.</span><br>"
-            + '<span style="font-size:12px;color:#94a3b8;">' + (giro * 6) + " secondi</span></div>";
+            + "di solito ci vogliono due o tre minuti.</span><br><br>"
+            + '<span style="font-size:12px;color:#94a3b8;">' + (giro * 6) + " secondi</span>"
+            + '<br><br><button id="ant-sfondo" style="background:#fff;color:#0E5A7A;'
+            + 'border:1px solid #0E5A7A;border-radius:8px;padding:9px 16px;font-size:13px;'
+            + 'cursor:pointer;">Torna alle occasioni, continua da solo</button></div>';
+          const bs = document.getElementById("ant-sfondo");
+          if (bs) bs.addEventListener("click", function () { fermato = true; renderOccasioni(); });
           await new Promise(function (ris) { setTimeout(ris, 6000); });
+          if (fermato) return;
           const q = await supa().from("viaggi_occasioni").select("bozza").eq("id", id).single();
           if (!q.error && q.data && q.data.bozza) { d = { ok: true, bozza: q.data.bozza }; break; }
         }
+        if (fermato) return;
         if (!d.bozza) {
-          d = { ok: false, errore: "Ci sta mettendo piu del previsto. "
-            + "La generazione continua da sola: riprova fra un minuto." };
+          d = { ok: false, errore: "Ci sta mettendo piu del previsto. La costruzione "
+            + "continua da sola: torna fra un minuto e premi di nuovo Anteprima, "
+            + "la trovi gia pronta." };
         }
       }
 
