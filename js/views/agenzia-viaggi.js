@@ -172,7 +172,7 @@ function mostraErrore(e) {
 async function caricaViaggi() {
   const r = await supa()
     .from("viaggi")
-    .select("id,slug,titolo,sottotitolo,data_inizio,data_fine,stato,modalita_prezzo,quota_camper,quota_posto,quota_adulto,posti_per_mezzo,posti_condivisi_max,catalogo")
+    .select("id,slug,titolo,sottotitolo,data_inizio,data_fine,stato,modalita_prezzo,quota_camper,quota_posto,quota_adulto,posti_per_mezzo,posti_condivisi_max,catalogo,in_vetrina,prezzi_stato,prezzi_verificati_il,giorni_validita")
     .eq("azienda_id", aziendaId())
     .order("data_inizio", { ascending: true });
 
@@ -391,6 +391,27 @@ function formNuovaIscrizione() {
 
 /* ---------------- CATALOGO ---------------- */
 
+
+// I prezzi invecchiano: piu si avvicina la partenza, meno durano. Qui si vede
+// a colpo d'occhio quali vanno ricontrollati prima di restare in vetrina.
+function statoPrezzi(v) {
+  const stato = v.prezzi_stato || "stimato";
+  if (stato === "bloccato") {
+    return '<span style="color:#16a34a;font-weight:700;">Bloccati</span>'
+      + '<div style="font-size:12px;color:#64748b;">camere in mano</div>';
+  }
+  if (!v.prezzi_verificati_il) {
+    return '<span style="color:#b91c1c;font-weight:700;">Mai verificati</span>';
+  }
+  const giorni = Math.floor((Date.now() - new Date(v.prezzi_verificati_il).getTime()) / 86400000);
+  const allaPartenza = Math.floor((new Date(v.data_inizio).getTime() - Date.now()) / 86400000);
+  const limite = allaPartenza <= 30 ? 7 : allaPartenza <= 90 ? 14 : Number(v.giorni_validita || 21);
+  const colore = giorni > limite ? "#b91c1c" : giorni > limite / 2 ? "#b45309" : "#16a34a";
+  return '<span style="color:' + colore + ';font-weight:700;">'
+    + (giorni === 0 ? "Oggi" : giorni + (giorni === 1 ? " giorno fa" : " giorni fa")) + "</span>"
+    + '<div style="font-size:12px;color:#64748b;">valgono ' + limite + " giorni</div>";
+}
+
 function renderCatalogo() {
   const box = document.getElementById("av-corpo");
   if (!box) return;
@@ -400,7 +421,7 @@ function renderCatalogo() {
     return;
   }
 
-  let html = tabellaApri(["Viaggio", "Periodo", "Mezzo intero", "A persona", "Stato"]);
+  let html = tabellaApri(["Viaggio", "Periodo", "A persona", "Prezzi", "Stato"]);
 
   viaggiCache.forEach(function (v) {
     const st = STATO_VIAGGIO[v.stato] || STATO_VIAGGIO.bozza;
@@ -411,8 +432,8 @@ function renderCatalogo() {
     html += "<tr class=\"av-riga\" data-id=\"" + v.id + "\" style=\"cursor:pointer;\">"
       + td("<b style=\"color:#0E5A7A;\">" + escapeHtml(v.titolo) + "</b><div style=\"color:#64748b;font-size:12px;\">" + escapeHtml(v.sottotitolo || "") + "</div>")
       + td(periodo(v.data_inizio, v.data_fine))
-      + td(euro(v.quota_camper))
       + td(Number(v.quota_posto) > 0 ? euro(v.quota_posto) : "—")
+      + td(statoPrezzi(v))
       + td("<span style=\"color:" + st.c + ";font-weight:700;\">" + st.t + "</span>")
       + "</tr>";
   });
@@ -613,6 +634,35 @@ async function apriViaggio(id) {
         if (r.error) { alert(r.error.message); return; }
         apriViaggio(v.id);
       });
+    });
+
+    const bpv = document.getElementById("pz-verificati");
+    if (bpv) bpv.addEventListener("click", async function () {
+      bpv.disabled = true;
+      const nota = prompt("Una riga su cosa hai controllato (facoltativa)") || null;
+      const r = await supa().rpc("prezzi_verificati",
+        { p_viaggio: bpv.dataset.id, p_stato: "verificato", p_nota: nota });
+      if (r.error || (r.data && r.data.ok === false)) {
+        alert((r.data && r.data.errore) || r.error.message);
+        bpv.disabled = false; return;
+      }
+      await caricaViaggi();
+      apriViaggio(bpv.dataset.id);
+    });
+
+    const bpb = document.getElementById("pz-bloccati");
+    if (bpb) bpb.addEventListener("click", async function () {
+      if (!confirm("Confermi che camere e posti sono gia bloccati?\n\n"
+        + "Da quel momento i prezzi non scadono piu: e roba tua.")) return;
+      bpb.disabled = true;
+      const r = await supa().rpc("prezzi_verificati",
+        { p_viaggio: bpb.dataset.id, p_stato: "bloccato", p_nota: null });
+      if (r.error || (r.data && r.data.ok === false)) {
+        alert((r.data && r.data.errore) || r.error.message);
+        bpb.disabled = false; return;
+      }
+      await caricaViaggi();
+      apriViaggio(bpb.dataset.id);
     });
 
     const bStato = document.getElementById("av-stato");
