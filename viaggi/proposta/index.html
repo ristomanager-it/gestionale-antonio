@@ -209,6 +209,71 @@
     return sb.rpc("proposta_rispondi", { p_token: token, p_scelta: scelta, p_testo: testo || null });
   }
 
+  function mostraPagamento() {
+    window.scrollTo(0, 0);
+    app.innerHTML = '<div class="fatto" style="margin-top:50px">'
+      + '<h1 style="font-size:27px;margin:0 0 10px">Bene, ci siamo.</h1>'
+      + "<p>Il viaggio e vostro. Manca solo l acconto: con quello compriamo i biglietti "
+      + "e il prezzo resta quello che avete visto.</p></div>"
+      + '<p class="nota" style="margin-top:20px">Sto preparando il pagamento...</p>';
+
+    sb.rpc("proposta_pagamento", { p_token: token }).then(function (r) {
+      var d = r.data;
+      if (!d || !d.rate || !d.rate.length) {
+        app.innerHTML = '<div class="fatto" style="margin-top:50px">'
+          + '<h1 style="font-size:27px;margin:0 0 10px">Bene, ci siamo.</h1>'
+          + "<p>Il viaggio e vostro. Vi arriva una mail con il riepilogo e le istruzioni "
+          + "per l acconto.</p></div>";
+        return;
+      }
+
+      var acconto = null;
+      for (var i = 0; i < d.rate.length; i++) {
+        if (d.rate[i].tipo === "acconto") acconto = d.rate[i];
+      }
+
+      var h = '<div class="fatto"><h1 style="font-size:27px;margin:0 0 10px">Bene, ci siamo.</h1>'
+        + "<p>Il viaggio e vostro. Con l acconto compriamo i biglietti e il prezzo "
+        + "resta quello che avete visto.</p></div>";
+
+      h += "<h2>Come si paga</h2><div class=\"box\">";
+      d.rate.forEach(function (x) {
+        var eti = x.tipo === "acconto" ? "Acconto"
+                : x.tipo === "saldo" ? "Saldo" : "Rata " + x.numero;
+        h += '<div class="riga"><span>' + eti
+          + '<br><span class="nota">entro il ' + dataIt(x.scadenza) + "</span></span><b>"
+          + euro(x.importo) + "</b></div>";
+      });
+      h += '<p class="nota">Totale ' + euro(d.totale) + " per il gruppo.</p></div>";
+
+      if (acconto && acconto.stato !== "pagata") {
+        h += '<div class="azioni"><button class="bottone" id="paga">Versa l acconto di '
+          + euro(acconto.importo) + "</button>"
+          + '<p class="nota" style="text-align:center;margin:6px 0 0">'
+          + "Pagamento con carta. Se preferite fare un bonifico, scriveteci.</p></div>";
+      }
+      app.innerHTML = h;
+
+      var bp = document.getElementById("paga");
+      if (bp) bp.addEventListener("click", function () {
+        bp.disabled = true;
+        bp.textContent = "Apro il pagamento...";
+        sb.functions.invoke("viaggi-paga", {
+          body: {
+            token: d.token_iscrizione, rata_id: acconto.id,
+            ritorno: location.origin + "/viaggi/p/"
+          }
+        }).then(function (res) {
+          var out = res.data || {};
+          if (out.ok && out.url) { location.href = out.url; return; }
+          alert(out.errore || "Il pagamento non si apre. Vi scriviamo noi.");
+          bp.disabled = false;
+          bp.textContent = "Versa l acconto";
+        });
+      });
+    });
+  }
+
   function schermataFatto(titolo, testo) {
     app.innerHTML = '<div class="fatto" style="margin-top:60px"><h1 style="font-size:28px;margin:0 0 10px">'
       + esc(titolo) + "</h1><p>" + esc(testo) + "</p></div>";
@@ -231,16 +296,18 @@
     var bPrendo = document.getElementById("prendo");
     if (bPrendo) bPrendo.addEventListener("click", function () {
       bPrendo.disabled = true;
+      bPrendo.textContent = "Un attimo...";
       rispondi("accetto").then(function (r) {
         if (r.data && r.data.ok === false) {
           alert(r.data.errore || "Non riesco a registrare la risposta.");
           bPrendo.disabled = false;
+          bPrendo.textContent = "Lo prendiamo";
           return;
         }
-        schermataFatto("Bene, ci siamo.",
-          "Il prezzo e bloccato e il viaggio e vostro. Vi arriva subito una mail con "
-          + "il riepilogo: da li si versa l acconto e i biglietti partono. "
-          + "Se preferite sentirci prima, chiamate quando volete.");
+        // Il si non basta: il prezzo resta bloccato solo se arriva l acconto,
+        // quindi si porta subito il cliente al pagamento invece di promettere
+        // una telefonata.
+        mostraPagamento();
       });
     });
 
@@ -310,7 +377,9 @@
         + '<span class="nota">I prezzi dei voli cambiano ogni giorno. '
         + "Rifacciamo il conto con quelli di oggi: il programma resta lo stesso.</span></div>";
     } else if (d.stato === "accettata") {
-      h += '<div class="fatto"><b>Avete detto di si.</b> Vi richiamiamo per i documenti e l acconto.</div>';
+      app.innerHTML = "";
+      mostraPagamento();
+      return;
     } else if (d.stato === "modifiche_chieste") {
       h += '<div class="fatto"><b>Abbiamo ricevuto la vostra richiesta di modifica.</b><br>'
         + '<span class="nota">Vi rispondiamo su questa stessa pagina.</span>'
