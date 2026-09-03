@@ -1612,6 +1612,23 @@ async function renderRichieste() {
   });
   h += "</div>";
 
+  // Le destinazioni non si scrivono a mano: si prendono da quelle che ci sono.
+  const mete = {};
+  righe.forEach(function (x) {
+    const m = String(x.destinazione || "").trim();
+    if (m) mete[m] = (mete[m] || 0) + 1;
+  });
+  const eleMete = Object.keys(mete).sort();
+  if (eleMete.length > 1) {
+    h += '<select id="ri-meta" style="width:100%;max-width:320px;margin-bottom:12px;">'
+      + '<option value="">Tutte le destinazioni</option>';
+    eleMete.forEach(function (m) {
+      h += '<option value="' + escapeHtml(m) + '">' + escapeHtml(m)
+        + " (" + mete[m] + ")</option>";
+    });
+    h += "</select>";
+  }
+
   if (daFare.length) {
     h += "<div style=\"background:#FFF8E1;border:1px solid #B8860B;border-radius:10px;"
       + "padding:12px 14px;margin-bottom:14px;\"><b>" + daFare.length
@@ -1629,6 +1646,7 @@ async function renderRichieste() {
     const gruppo = (GRUPPI.find(function (g) { return g.dentro.indexOf(x.stato) !== -1; })
                     || { chiave: "altro" }).chiave;
     h += "<tr id=\"ri-" + x.id + "\" data-g=\"" + gruppo + "\""
+      + " data-m=\"" + escapeHtml(String(x.destinazione || "")) + "\""
       + (aperta ? " style=\"outline:3px solid #B8860B;\"" : "") + ">"
       + "<td data-et=\"Cliente\"><b>" + escapeHtml(x.nome || "") + "</b>"
       + "<div style=\"font-size:12px;color:#64748b;\">" + escapeHtml(x.email || "")
@@ -1649,7 +1667,8 @@ async function renderRichieste() {
       + "style=\"padding:8px 12px;border:1px solid #0E5A7A;background:#fff;color:#0E5A7A;"
       + "border-radius:8px;font-size:13px;cursor:pointer;\">Guarda</button></td>"
       + "</tr>"
-      + "<tr class=\"ri-dett\" id=\"rd-" + x.id + "\" data-g=\"" + gruppo + "\" style=\"display:none;\">"
+      + "<tr class=\"ri-dett\" id=\"rd-" + x.id + "\" data-g=\"" + gruppo + "\""
+      + " data-m=\"" + escapeHtml(String(x.destinazione || "")) + "\" style=\"display:none;\">"
       + "<td colspan=\"6\">" + dettaglioRichiesta(x) + "</td></tr>";
   });
 
@@ -1657,24 +1676,38 @@ async function renderRichieste() {
   box.innerHTML = h;
   etichetta(box);
 
+  let filtroStato = "tutte";
+  let filtroMeta = "";
+
+  function applicaFiltri() {
+    box.querySelectorAll("tbody tr").forEach(function (r) {
+      const dett = r.classList.contains("ri-dett");
+      const okStato = filtroStato === "tutte" || r.dataset.g === filtroStato;
+      const okMeta = !filtroMeta || r.dataset.m === filtroMeta;
+      if (!okStato || !okMeta) { r.style.display = "none"; return; }
+      r.style.display = dett ? "none" : "";
+    });
+    box.querySelectorAll(".ri-apri").forEach(function (x) { x.textContent = "Guarda"; });
+  }
+
   box.querySelectorAll(".ri-filtro").forEach(function (b) {
     b.addEventListener("click", function () {
-      const scelto = b.dataset.f;
+      filtroStato = b.dataset.f;
       box.querySelectorAll(".ri-filtro").forEach(function (x) {
-        const suo = x.dataset.f === scelto;
+        const suo = x.dataset.f === filtroStato;
         x.style.background = suo ? "#0E5A7A" : "#fff";
         x.style.color = suo ? "#fff" : "#0f172a";
         x.style.borderColor = suo ? "#0E5A7A" : "#cbd5e1";
         x.style.fontWeight = suo ? "700" : "400";
       });
-      box.querySelectorAll("tbody tr").forEach(function (r) {
-        const dett = r.classList.contains("ri-dett");
-        const suo = scelto === "tutte" || r.dataset.g === scelto;
-        if (!suo) { r.style.display = "none"; return; }
-        r.style.display = dett ? "none" : "";
-      });
-      box.querySelectorAll(".ri-apri").forEach(function (x) { x.textContent = "Guarda"; });
+      applicaFiltri();
     });
+  });
+
+  const selMeta = document.getElementById("ri-meta");
+  if (selMeta) selMeta.addEventListener("change", function () {
+    filtroMeta = selMeta.value;
+    applicaFiltri();
   });
 
   box.querySelectorAll(".ri-apri").forEach(function (b) {
