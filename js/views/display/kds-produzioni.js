@@ -217,18 +217,7 @@ function cardHtml(l) {
   const firmate = l.fasi.filter((f) => f.firmato_il).length;
   const pct = tot ? Math.round((firmate / tot) * 100) : 0;
 
-  // fase in corso = prima non firmata
-  let prevTs = since;
-  let corrente = null;
-  for (let i = 0; i < l.fasi.length; i++) {
-    const f = l.fasi[i];
-    if (f.firmato_il) { prevTs = new Date(f.firmato_il).getTime(); continue; }
-    const elapsed = Math.floor((Date.now() - prevTs) / 60000);
-    const prevista = durataByFase[String(f.fase_id)] || 0;
-    const ritardo = prevista > 0 && elapsed > prevista * 1.5;
-    corrente = { nome: f.fase_nome || ("Fase " + f.fase_ordine), elapsed, prevista, ritardo };
-    break;
-  }
+  const corrente = faseCorrente(l);
 
   const op = l.dipendenti?.nome || "";
   const qta = l.quantita_output ? (l.quantita_output + " " + (l.unita_misura || "")) : "";
