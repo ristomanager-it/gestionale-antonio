@@ -20,12 +20,22 @@ async function caricaStoricoTony() {
   try {
     const az = window.state?.azienda?.id;
     if (!az) return false;
+    // Tony riparte pulito ogni mattina: la conversazione di ieri non serve
+    // e faceva ricaricare anche undici giorni di messaggi. Inoltre lo
+    // storico e' di CHI scrive, non dell'azienda: senza il filtro utente
+    // ognuno si ritrovava in testa la chat del collega.
+    const inizioGiornata = new Date();
+    inizioGiornata.setHours(0, 0, 0, 0);
+    const ut = window.state?.user?.id || null;
+    if (!ut) return false;
     const { data, error } = await supabase
       .from("tony_chat_storico")
       .select("role,content")
       .eq("azienda_id", az)
+      .eq("utente_id", ut)
+      .gte("created_at", inizioGiornata.toISOString())
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(12);
     if (error || !data?.length) return false;
     const storico = data.reverse();
     conversation = storico.map((m) => ({ role: m.role, content: m.content }));
