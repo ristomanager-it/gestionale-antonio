@@ -162,6 +162,8 @@ const routes = {
 
   // Agenzia viaggi: modulo in prova, solo azienda Ristoflow.
   "agenzia-viaggi": () => imp("./views/agenzia-viaggi.js"),
+  // I voli letti ogni notte dalle compagnie: prezzi veri, nessun modello di mezzo.
+  "voli-offerta": () => imp("./views/voli-offerta.js"),
   "produttivita-produzione": () => imp("./views/produttivita-produzione.js"),
   "registro-messaggi": () => imp("./views/registro-messaggi.js"),
   storicoLotto: () => imp("./views/storico-lotto.js"),
