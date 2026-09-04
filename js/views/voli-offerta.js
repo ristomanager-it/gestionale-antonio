@@ -1,8 +1,15 @@
 /* =========================================================
-   VOLI IN OFFERTA — v2
+   VOLI IN OFFERTA — v3
    I voli letti ogni notte dove le compagnie pubblicano i prezzi.
    Non passano da nessun modello: prezzo, date e numero di volo
    sono quelli veri, e costano zero da leggere.
+
+   v3: la richiesta non parte piu' dal browser. La Edge Function della bozza
+   non ha gli header CORS e dal browser veniva respinta ("Failed to send a
+   request"). Adesso si chiama volo_costruisci: il database lancia il lavoro
+   e questa pagina guarda ogni cinque secondi se e' pronto. Cosi' ottanta
+   secondi di attesa non dipendono piu' dalla linea del locale: se cade, il
+   viaggio si costruisce lo stesso.
 
    v2: da guardare a fare. Due bottoni per volo.
    "Costruisci il viaggio" crea l'occasione con il volo dentro come costo
@@ -221,30 +228,31 @@ function aggancia(app) {
       esito.innerHTML = '<span class="vo-attesa">Creo l occasione…</span>';
 
       try {
-        const rpc = await client().rpc("volo_a_occasione", { p_volo_id: id });
+        const rpc = await client().rpc("volo_costruisci", { p_volo_id: id });
         if (rpc.error) throw new Error(rpc.error.message);
         const occasione = rpc.data;
 
         esito.innerHTML = '<span class="vo-attesa">Tony sta costruendo l itinerario: '
-          + "hotel, giorni e ristoranti. Ci vuole circa un minuto, non chiudere.</span>";
+          + "hotel, giorni e ristoranti. Ci vuole circa un minuto. "
+          + "Puoi anche chiudere: il lavoro va avanti da solo.</span>";
 
-        const inv = await client().functions.invoke("viaggi-bozza-itinerario", {
-          body: { occasione_id: occasione }
-        });
-        if (inv.error) throw new Error(inv.error.message);
-
-        const d = inv.data || {};
-        if (d.tetto_raggiunto) {
-          esito.innerHTML = '<span class="vo-male">' + esc(d.errore) + "</span>";
+        const pronta = await aspetta(occasione, esito);
+        if (!pronta) {
+          esito.innerHTML = '<span class="vo-attesa">Ci sta mettendo piu del solito. '
+            + 'Il viaggio si sta costruendo lo stesso: '
+            + '<a href="#/agenzia-viaggi?tab=occasioni">guarda nel catalogo</a> '
+            + "fra qualche minuto.</span>";
+          tutti = tutti.filter(function (v) { return v.id !== id; });
           return;
         }
-        if (!d.ok) throw new Error(d.errore || "non riuscito");
 
-        const rp = d.riepilogo || {};
         esito.innerHTML = '<div class="vo-fatto">'
-          + "<b>" + esc(d.titolo || "Viaggio pronto") + "</b><br>"
-          + esc(d.tappe || 0) + " giorni · costo vivo " + esc(rp.costo_vivo_a_persona || "?")
-          + " · prezzo suggerito " + esc(rp.prezzo_suggerito || "?") + " a persona<br>"
+          + "<b>" + esc(pronta.titolo || "Viaggio pronto") + "</b><br>"
+          + esc(pronta.tappe || 0) + " giorni"
+          + (pronta.hotel ? " · " + esc(pronta.hotel) : "")
+          + "<br>costo vivo " + esc(Math.round(Number(pronta.costo_vivo || 0)))
+          + " · prezzo suggerito " + esc(Math.round(Number(pronta.prezzo_suggerito || 0)))
+          + " a persona<br>"
           + '<a href="#/agenzia-viaggi?tab=occasioni">Aprilo nel catalogo →</a>'
           + "</div>";
 
@@ -259,6 +267,27 @@ function aggancia(app) {
       }
     });
   });
+}
+
+// Guarda ogni cinque secondi se il viaggio e' pronto, per tre minuti al
+// massimo. Non e' una richiesta appesa: se il telefono si spegne o la linea
+// cade, il lavoro sul server continua e il viaggio si trova nel catalogo.
+async function aspetta(occasione, esito) {
+  for (let giro = 1; giro <= 36; giro++) {
+    await new Promise(function (ok) { setTimeout(ok, 5000); });
+
+    const r = await client().rpc("occasione_stato", { p_occasione: occasione });
+    if (r.error) continue;
+
+    const s = r.data || {};
+    if (s.pronta) return s;
+
+    if (giro % 4 === 0 && esito) {
+      esito.innerHTML = '<span class="vo-attesa">Ci sta lavorando… '
+        + (giro * 5) + " secondi.</span>";
+    }
+  }
+  return null;
 }
 
 function stile() {
