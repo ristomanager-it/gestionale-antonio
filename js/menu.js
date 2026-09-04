@@ -552,6 +552,7 @@ export function initMenu() {
             { label: "👥 Iscritti", route: "agenzia-viaggi?tab=iscritti" },
             { label: "💶 Incassi",  route: "agenzia-viaggi?tab=incassi"  },
           ] },
+          { label: "✈️ Voli in offerta", route: "voli-offerta" },
         ]
       });
       }
