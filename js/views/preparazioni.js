@@ -2757,12 +2757,16 @@ function renderFasiHaccp() {
            </div>`
         : ""}
 
-      <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        <span style="font-size:11px;color:#94a3b8;">Aggiungi fase qui sotto →</span>
-        <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="abbattimento" style="background:#0891b2;">❄️ + Abbattimento</button>
-        <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="conservazione" style="background:#0ea5e9;">🧊 + Conservazione</button>
-        <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="confezionamento" style="background:#7c3aed;">📦 + Confezionamento</button>
-        <button type="button" class="app-button tiny gray haccp-add-after" data-after="${idx}" data-tipo="__scegli__">➕ Altra</button>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;display:flex;gap:4px;align-items:center;">
+        <span style="font-size:10.5px;color:#b6c0cc;flex-shrink:0;">+ fase:</span>
+        <button type="button" class="haccp-add-after" data-after="${idx}" data-tipo="abbattimento" title="Abbattimento"
+          style="flex:1;min-width:0;background:#0891b2;color:#fff;border:none;border-radius:7px;padding:6px 2px;font-size:11px;cursor:pointer;">❄️</button>
+        <button type="button" class="haccp-add-after" data-after="${idx}" data-tipo="conservazione" title="Conservazione"
+          style="flex:1;min-width:0;background:#0ea5e9;color:#fff;border:none;border-radius:7px;padding:6px 2px;font-size:11px;cursor:pointer;">🧊</button>
+        <button type="button" class="haccp-add-after" data-after="${idx}" data-tipo="confezionamento" title="Confezionamento"
+          style="flex:1;min-width:0;background:#7c3aed;color:#fff;border:none;border-radius:7px;padding:6px 2px;font-size:11px;cursor:pointer;">📦</button>
+        <button type="button" class="haccp-add-after" data-after="${idx}" data-tipo="__scegli__" title="Altra fase"
+          style="flex:1;min-width:0;background:#eef2f6;color:#475569;border:none;border-radius:7px;padding:6px 2px;font-size:11px;cursor:pointer;">➕</button>
       </div>
     </div>`;
   }).join("");
