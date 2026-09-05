@@ -2856,22 +2856,48 @@ function inserisciFaseDopo(dopoIdx, tipo) {
     tipo = scelta;
   }
 
-  const nome = nomiTipo[tipo] || "Fase";
+  let nome = nomiTipo[tipo] || "Fase";
   const descDefault = {
     abbattimento: "Abbattere a +3°C entro 90 min (o -18°C se congelamento)",
     conservazione: "Riporre alla temperatura di conservazione prevista",
     confezionamento: "Confezionare ed etichettare (lotto e scadenza)",
   };
 
+  /* L'abbattimento positivo e quello negativo sono due lavorazioni diverse:
+     +3°C in 90 minuti per il servizio, -18°C in 240 per il congelamento.
+     La nota citava tutte e due le temperature e non si sceglieva niente,
+     quindi il registro non diceva quale delle due era stata fatta. */
+  let tempPrevista = null;
+  let durataPrevista = null;
+  if (tipo === "abbattimento") {
+    const scelta = prompt(
+      "Che abbattimento?\n\n1 = positivo, +3°C entro 90 min (servizio/frigo)\n2 = negativo, -18°C entro 240 min (congelamento)",
+      "1"
+    );
+    if (scelta === null) return;
+    if (String(scelta).trim() === "2") {
+      nome = "Abbattimento negativo";
+      descDefault.abbattimento = "Abbattere a -18°C al cuore entro 240 min (congelamento)";
+      tempPrevista = -18;
+      durataPrevista = 240;
+    } else {
+      nome = "Abbattimento positivo";
+      descDefault.abbattimento = "Abbattere a +3°C al cuore entro 90 min";
+      tempPrevista = 3;
+      durataPrevista = 90;
+    }
+  }
+
   const nuovaFase = {
     id: null, ordine: 0, nome_fase: nome, tipo_fase: tipo,
     descrizione_operativa: descDefault[tipo] || null,
-    tecnologia: null, temperatura: null, durata_min: null, dispositivo_id: null, sintetica: true,
+    tecnologia: null, temperatura: tempPrevista, durata_min: durataPrevista,
+    dispositivo_id: null, sintetica: true,
   };
   const nuovoLog = {
     fase_id: null, fase_ordine: 0, fase_nome: nome, fase_tipo: tipo,
     dispositivo_id: null, fonte_dato: "manuale", tecnologia_prevista: "",
-    temperatura_prevista: null, temperatura_min: null, temperatura_max: null,
+    temperatura_prevista: tempPrevista, temperatura_min: null, temperatura_max: null,
     temperatura_rilevata: "", temperatura_ok: null, ora_inizio: "", ora_fine: "",
     durata_reale_min: null, esito: "ok", note: descDefault[tipo] || "",
     firmato: false, firmato_da: null, firmato_il: null, firme: [],
