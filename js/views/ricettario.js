@@ -231,8 +231,14 @@ function riPrezzoBase(p) {
   if (!p) return 0;
   const prezzo = Number(p.costo_ultimo) > 0 ? Number(p.costo_ultimo) : Number(p.costo_medio) || 0;
   if (prezzo <= 0) return 0;
-  const um = String(p.um_costo || p.unita_base || p.unita_misura || "").toLowerCase().replace(/[^a-z]/g, "");
-  if (um === "gr" || um === "g" || um === "ml") return prezzo * 1000;
+
+  // Conta unita_misura, cioe' come il prodotto e' STOCCATO, non um_costo.
+  // Su farina e semola um_costo dice "kg" mentre unita_misura dice "pz": sono
+  // sacchi, e dando retta a um_costo il prezzo del sacco (19,93) veniva letto
+  // come prezzo al chilo. Sul sale e' il contrario, um_costo dice "pz" ma il
+  // prodotto e' a chilo. Quel campo e' compilato male su meta' del magazzino.
+  const um = String(p.unita_misura || p.unita_base || "").toLowerCase().replace(/[^a-z]/g, "");
+
   if (um === "pz" || um === "pezzi") {
     const pesoG = Number(p.peso_unita_g) || 0;
     if (pesoG > 0) return prezzo / (pesoG / 1000);
@@ -241,9 +247,10 @@ function riPrezzoBase(p) {
       const base = riUmBase(cont, p.um_confezione);
       if (base > 0) return prezzo / base;
     }
-    return 0;
+    return 0;   // confezione di contenuto ignoto: non valorizzabile
   }
-  return prezzo;
+  if (um === "gr" || um === "g" || um === "ml") return prezzo * 1000;
+  return prezzo;   // kg, lt
 }
 function riCostoRiga(i) {
   const prezzo = riPrezzoBase(i.prodotti);
