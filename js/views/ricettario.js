@@ -210,6 +210,47 @@ export async function render(app) {
   setupAutocomplete();
 }
 
+/* Costo di un ingrediente, con la conversione che prima mancava.
+   Il calcolo precedente faceva:
+       costoKg = costo_medio || costo_ultimo
+   e trattava quel numero come euro al chilo. Ma per i prodotti tenuti a
+   confezione quello e' il prezzo del SACCO: la farina da 25 kg a 19,92 euro
+   diventava 19,92 euro/kg e sei chili facevano 119,50 invece di 4,78.
+   La Baguette usciva a 201,76 euro invece di 11,73.
+   Ora, se il prodotto e' a pezzi, si divide per il contenuto della confezione
+   preso da peso_unita_g oppure da contenuto_confezione. */
+function riUmBase(q, um) {
+  const u = String(um || "").toLowerCase().replace(/[^a-z]/g, "");
+  if (u === "g" || u === "gr" || u === "grammi") return q / 1000;
+  if (u === "hg") return q / 10;
+  if (u === "ml") return q / 1000;
+  if (u === "cl") return q / 100;
+  return q;
+}
+function riPrezzoBase(p) {
+  if (!p) return 0;
+  const prezzo = Number(p.costo_ultimo) > 0 ? Number(p.costo_ultimo) : Number(p.costo_medio) || 0;
+  if (prezzo <= 0) return 0;
+  const um = String(p.um_costo || p.unita_base || p.unita_misura || "").toLowerCase().replace(/[^a-z]/g, "");
+  if (um === "gr" || um === "g" || um === "ml") return prezzo * 1000;
+  if (um === "pz" || um === "pezzi") {
+    const pesoG = Number(p.peso_unita_g) || 0;
+    if (pesoG > 0) return prezzo / (pesoG / 1000);
+    const cont = Number(p.contenuto_confezione) || 0;
+    if (cont > 0) {
+      const base = riUmBase(cont, p.um_confezione);
+      if (base > 0) return prezzo / base;
+    }
+    return 0;
+  }
+  return prezzo;
+}
+function riCostoRiga(i) {
+  const prezzo = riPrezzoBase(i.prodotti);
+  if (prezzo <= 0) return 0;
+  return riUmBase(Number(i.quantita || 0), i.unita_misura) * prezzo;
+}
+
 function bindFiltri() {
   document.getElementById("f-bozza")?.addEventListener("change", e => {
     filtroBozza = e.target.checked;
@@ -873,7 +914,7 @@ async function mostraRicetta(id) {
 
     supabase
       .from("ricetta_ingredienti")
-      .select("*, prodotti(costo_medio, costo_ultimo, peso_unita_g, unita_base)")
+      .select("*, prodotti(costo_medio, costo_ultimo, peso_unita_g, unita_base, unita_misura, um_costo, contenuto_confezione, um_confezione)")
       .eq("ricetta_id", id),
 
     supabase
@@ -979,15 +1020,7 @@ async function mostraRicetta(id) {
       `}
 
       ${(() => {
-        const fc = ingredienti.reduce((tot, i) => {
-          const costoKg = Number(i.prodotti?.costo_medio || i.prodotti?.costo_ultimo || 0);
-          const qta = Number(i.quantita || 0);
-          const um = (i.unita_misura || "").toLowerCase();
-          const qtaKg = um === "g" || um === "gr" ? qta/1000 :
-                        um === "ml" ? qta/1000 :
-                        um === "cl" ? qta/100 : qta;
-          return tot + (qtaKg * costoKg);
-        }, 0);
+        const fc = ingredienti.reduce((tot, i) => tot + riCostoRiga(i), 0);
         return fc > 0 ? `
           <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:13px;color:#166534;">🍽️ Food cost stimato</span>
@@ -1008,15 +1041,8 @@ async function mostraRicetta(id) {
           ? `<div style="margin-bottom:8px;">
               ${ingredienti.map(i => {
                 // Costo da join prodotti
-                const costoKg = Number(i.prodotti?.costo_medio || i.prodotti?.costo_ultimo || 0);
-                const qta = Number(i.quantita || 0);
-                const um = (i.unita_misura || "").toLowerCase();
-                // Converti UM in kg per calcolo food cost
-                const qtaKg = um === "g" || um === "gr" ? qta/1000 :
-                              um === "ml" ? qta/1000 :
-                              um === "cl" ? qta/100 :
-                              qta;
-                const costoRiga = costoKg > 0 ? (qtaKg * costoKg).toFixed(3) : null;
+                const cr = riCostoRiga(i);
+                const costoRiga = cr > 0 ? cr.toFixed(3) : null;
                 return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;flex-wrap:wrap;">
                   <span style="flex:1;min-width:0;word-break:break-word;">${escapeHtml(i.nome_prodotto)} — ${escapeHtml(String(i.quantita))} ${escapeHtml(i.unita_misura || "")}</span>
                   ${costoRiga ? `<span style="color:#0E5A7A;font-weight:600;white-space:nowrap;">€${costoRiga}</span>` : ""}
