@@ -324,20 +324,22 @@ export async function render(container) {
         `
       })}
 
-      ${createCard({
+      <div id="card-confezionamento">${createCard({
         title: "Confezionamento reale (porzionature)",
         body: `
-          <div id="confezioni-wrap"></div>
+          <div id="confezioni-casa"><div id="confezioni-blocco">
+            <div id="confezioni-wrap"></div>
 
-          <div class="form-actions" style="margin-top:10px;">
-            <button type="button" id="btn-add-confezione" class="app-button secondary" ${savedLotto ? "disabled" : ""}>+ Aggiungi confezione</button>
-          </div>
+            <div class="form-actions" style="margin-top:10px;">
+              <button type="button" id="btn-add-confezione" class="app-button secondary" ${savedLotto ? "disabled" : ""}>+ Aggiungi confezione</button>
+            </div>
 
-          <div class="form-help" style="margin-top:10px;">
-            1 riga = 1 tipologia confezione. Stampa: 1 etichetta per confezione.
-          </div>
+            <div class="form-help" style="margin-top:10px;">
+              1 riga = 1 tipologia confezione. Stampa: 1 etichetta per confezione.
+            </div>
+          </div></div>
         `
-      })}
+      })}</div>
 
       ${createCard({
         title: "Coprodotti",
@@ -2718,6 +2720,12 @@ function renderFasiHaccp() {
         ${(Array.isArray(log.firme) && log.firme.length) ? `<span style="font-size:11px;color:#64748b;margin-left:8px;">${escapeHtml(new Date(log.firme[0].firmato_il).toLocaleString("it-IT"))}</span>` : ""}
       </div>
 
+      ${String(log.fase_tipo || "").toLowerCase() === "confezionamento"
+        ? `<div id="conf-dentro-fase-${idx}" style="margin-top:12px;padding-top:12px;border-top:2px solid #ede9fe;">
+             <div style="font-size:12px;font-weight:700;color:#6d28d9;margin-bottom:8px;">📦 Confezioni uscite da questo lotto</div>
+           </div>`
+        : ""}
+
       <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
         <span style="font-size:11px;color:#94a3b8;">Aggiungi fase qui sotto →</span>
         <button type="button" class="app-button tiny haccp-add-after" data-after="${idx}" data-tipo="abbattimento" style="background:#0891b2;">❄️ + Abbattimento</button>
@@ -2727,6 +2735,31 @@ function renderFasiHaccp() {
       </div>
     </div>`;
   }).join("");
+
+  /* Il confezionamento si segna DENTRO la sua fase, non in una card a mezzo
+     metro di distanza: chi confeziona firma e conta le confezioni nello stesso
+     punto, con lo stesso gesto. Sposto il nodo invece di ridisegnarlo altrove,
+     cosi' tutta la logica che lo alimenta (righe, calcolo resa, etichette)
+     resta esattamente quella di prima e continua a funzionare. */
+  try {
+    const blocco = document.getElementById("confezioni-blocco");
+    const cardConf = document.getElementById("card-confezionamento");
+    if (blocco) {
+      const iConf = logHaccp.findIndex((l) => String(l.fase_tipo || "").toLowerCase() === "confezionamento");
+      const dest = iConf >= 0 ? document.getElementById("conf-dentro-fase-" + iConf) : null;
+      if (dest && blocco.parentElement !== dest) {
+        dest.appendChild(blocco);
+        if (cardConf) cardConf.style.display = "none";
+      } else if (!dest && cardConf) {
+        // Nessuna fase di confezionamento in questa ricetta: la card torna al suo posto
+        cardConf.style.display = "";
+        const casa = document.getElementById("confezioni-casa");
+        if (casa && blocco.parentElement !== casa) casa.appendChild(blocco);
+      }
+    }
+  } catch (e) {
+    console.warn("confezioni nella fase:", e);
+  }
 
   // Bind eventi
   list.querySelectorAll(".haccp-inizio").forEach(el => {
