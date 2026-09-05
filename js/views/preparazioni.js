@@ -2791,6 +2791,42 @@ function firmaFaseHaccp(idx) {
   }
   renderFasiHaccp();
   aggiornaAbilitazioneStampe();
+
+  /* La firma va nel database SUBITO, non al salvataggio della produzione.
+     Prima le firme restavano nel browser fino a "Registra produzione": il KDS
+     mostrava 4/7 mentre in cucina ne erano state firmate sei, e tutte
+     finivano registrate con lo stesso orario, quello del salvataggio, invece
+     che con l'ora vera in cui la fase e' stata eseguita. Se la pagina si
+     ricaricava, le firme non ancora salvate sparivano.
+     Le righe fase esistono gia' dall'apertura del lotto (le crea un trigger
+     sul database), quindi qui basta aggiornare quella giusta.
+     Niente async e niente await: se la rete e' lenta la cucina non aspetta,
+     e in caso di errore la firma resta a schermo e viene comunque riscritta
+     dal salvataggio finale. */
+  try {
+    const _uuid = resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid) || null;
+    const _cli = window.supabaseClient || window.supabase;
+    if (_uuid && _cli && log.fase_id) {
+      _cli.from("produzione_log_haccp").update({
+        operatore_id: log.operatore_id || null,
+        operatore_nome: log.operatore_nome || null,
+        temperatura_rilevata: (log.temperatura_rilevata === "" || log.temperatura_rilevata == null)
+                              ? null : Number(log.temperatura_rilevata),
+        ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
+        ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
+        durata_reale_min: log.durata_reale_min ?? null,
+        esito: log.esito || "ok",
+        note: log.note || null,
+        firmato_da: log.firmato_da || null,
+        firmato_il: log.firmato_il || new Date().toISOString(),
+        firme: log.firme || []
+      }).eq("lotto_id", _uuid).eq("fase_id", log.fase_id)
+        .then(function (r) { if (r && r.error) console.warn("firma non salvata subito:", r.error.message); })
+        .catch(function (e) { console.warn("firma non salvata subito:", e); });
+    }
+  } catch (e) {
+    console.warn("firma immediata saltata:", e);
+  }
 }
 
 function aggiornaAbilitazioneStampe() {
