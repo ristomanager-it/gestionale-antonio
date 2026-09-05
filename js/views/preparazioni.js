@@ -106,6 +106,21 @@ export async function render(container) {
           <div class="form-actions">
             <button type="button" id="btn-vedi-ricetta" class="app-button secondary" disabled>👁 Vedi ricetta</button>
           </div>
+
+          <div id="scala-box" style="display:none;margin-top:14px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fbfcfd;">
+            <div style="font-size:13px;font-weight:700;color:#0f2b3d;margin-bottom:8px;">📐 Quanto ne devo fare</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <select id="scala-modo" class="input" style="flex:1;min-width:130px;">
+                <option value="porzioni">Porzioni da fare</option>
+                <option value="vincolo">Ho questa quantita di…</option>
+              </select>
+              <input id="scala-valore" class="input" type="number" step="0.01" placeholder="quanto" style="width:92px;" />
+              <input id="scala-um" class="input" placeholder="kg" style="width:66px;display:none;" value="kg" />
+            </div>
+            <input id="scala-ingr" class="input" placeholder="quale ingrediente (es. pelati)" style="margin-top:6px;display:none;" />
+            <button type="button" id="btn-scala" class="app-button" style="width:100%;margin-top:9px;">Calcola le dosi</button>
+            <div id="scala-esito" style="margin-top:10px;"></div>
+          </div>
         `
       })}
 
@@ -749,6 +764,8 @@ function setupAutocompleteRicette() {
 
         await Promise.all([loadPorzioniRicetta(r.id), loadConservazioni(r.id), loadFasiHaccp(r.id), loadStadiRicetta(r.id), loadConfezioniMemoria()]);
         recalcResaUI();
+        const _sb = document.getElementById("scala-box");
+        if (_sb) { _sb.style.display = "block"; document.getElementById("scala-esito").innerHTML = ""; }
       };
 
       suggest.appendChild(div);
@@ -756,6 +773,72 @@ function setupAutocompleteRicette() {
 
     suggest.classList.add("open");
   });
+
+  /* Riscalo delle dosi. Il calcolo lo fa il database con scala_ricetta():
+     e' matematica, non serve un modello linguistico e cosi' non puo' sbagliare
+     una moltiplicazione davanti a chi sta cucinando.
+     Due modi, come lo chiede un cuoco: "devo fare 20 porzioni" oppure
+     "ho 1,4 kg di pelati, adattami il resto". */
+  const scalaModo = document.getElementById("scala-modo");
+  if (scalaModo) {
+    scalaModo.addEventListener("change", () => {
+      const vincolo = scalaModo.value === "vincolo";
+      const ing = document.getElementById("scala-ingr");
+      const um = document.getElementById("scala-um");
+      if (ing) ing.style.display = vincolo ? "block" : "none";
+      if (um) um.style.display = vincolo ? "block" : "none";
+    });
+  }
+
+  const btnScala = document.getElementById("btn-scala");
+  if (btnScala) {
+    btnScala.addEventListener("click", async () => {
+      const esito = document.getElementById("scala-esito");
+      if (!ricettaSelezionata?.id) { if (esito) esito.textContent = "Scegli prima una ricetta."; return; }
+      const modo = document.getElementById("scala-modo")?.value || "porzioni";
+      const valore = Number(document.getElementById("scala-valore")?.value || 0);
+      if (!valore || valore <= 0) { if (esito) esito.textContent = "Scrivi quanto ne devi fare."; return; }
+      const ingr = (document.getElementById("scala-ingr")?.value || "").trim();
+      const um = (document.getElementById("scala-um")?.value || "kg").trim();
+      if (modo === "vincolo" && !ingr) { if (esito) esito.textContent = "Scrivi di quale ingrediente hai quella quantita."; return; }
+
+      btnScala.disabled = true;
+      const testoOrig = btnScala.textContent;
+      btnScala.textContent = "Calcolo…";
+      if (esito) esito.innerHTML = "";
+      try {
+        const cli = window.supabaseClient || window.supabase;
+        const { data, error } = await cli.rpc("scala_ricetta", {
+          p_ricetta_id: ricettaSelezionata.id, p_modo: modo,
+          p_valore: valore, p_ingrediente: modo === "vincolo" ? ingr : null,
+          p_um: modo === "vincolo" ? um : null
+        });
+        if (error) throw error;
+        if (!data || data.ok !== true) {
+          if (esito) esito.innerHTML = '<div style="padding:9px;border-radius:8px;background:#fff7e6;border-left:3px solid #d99a2b;font-size:13px;">'
+            + escapeHtml(data?.errore || "Non riesco a calcolare le dosi.") + '</div>';
+          return;
+        }
+        const righe = (data.ingredienti || []).map((r) =>
+          '<tr><td style="padding:4px 0;font-size:13px;">' + escapeHtml(r.ingrediente) + '</td>'
+          + '<td style="padding:4px 0;font-size:13px;font-weight:700;text-align:right;white-space:nowrap;">' + escapeHtml(r.dose || "") + '</td></tr>').join("");
+        const testa = (data.porzioni_risultanti ? data.porzioni_risultanti + " porzioni" : "")
+          + (data.resa_kg ? (data.porzioni_risultanti ? " · " : "") + "resa " + data.resa_kg + " kg" : "");
+        if (esito) esito.innerHTML =
+          '<div style="border-top:1px solid #e2e8f0;padding-top:9px;">'
+          + (testa ? '<div style="font-size:12.5px;color:#475569;margin-bottom:6px;">' + escapeHtml(testa) + '</div>' : "")
+          + '<table style="width:100%;border-collapse:collapse;">' + righe + '</table>'
+          + '<div style="margin-top:8px;font-size:13px;font-weight:700;color:#0f2b3d;">Materia prima: € '
+          + Number(data.costo_totale || 0).toFixed(2) + '</div></div>';
+      } catch (e) {
+        console.error("scala_ricetta:", e);
+        if (esito) esito.textContent = "Errore nel calcolo: " + (e?.message || e);
+      } finally {
+        btnScala.disabled = false;
+        btnScala.textContent = testoOrig;
+      }
+    });
+  }
 
   document.addEventListener("click", (e) => {
     const wrap = input.parentElement;
