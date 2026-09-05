@@ -1426,18 +1426,18 @@ export async function render(app) {
       </div>
 
       <div class="cr-aiuti">
-        <button id="btn-tony-unico" type="button" class="cr-aiuto unico">🤖 Chiedi a Tony</button>
+        <button id="btn-tony-unico" type="button" class="cr-aiuto unico">🤖 Scrivi con Tony</button>
       </div>
 
       <div id="tony-pannello" style="display:none;">
         <textarea id="tony-testo" rows="4" placeholder="Scrivi o detta la ricetta. Oppure scatta una foto del piatto o del foglio."></textarea>
         <div class="tony-strumenti">
           <button id="tony-detta" type="button" class="tony-st">🎤 Detta</button>
-          <button id="tony-scatta-piatto" type="button" class="tony-st">🍽️ Foto piatto</button>
-          <button id="tony-scatta-ricetta" type="button" class="tony-st">📷 Foto ricetta</button>
+          <button id="tony-scatta-piatto" type="button" class="tony-st">🍽️ Piatto</button>
+          <button id="tony-scatta-ricetta" type="button" class="tony-st">📷 Foglio</button>
           <button id="tony-inventa-qui" type="button" class="tony-st">✨ Inventa</button>
-          <button id="tony-vai" type="button" class="tony-vai">Compila</button>
         </div>
+        <button id="tony-vai" type="button" class="tony-vai">Compila</button>
       </div>
 
       <div class="cr-spiega" id="cr-spiega"></div>
@@ -1469,13 +1469,14 @@ export async function render(app) {
         #tony-testo{width:100%;border:1px solid #d5dce2;border-radius:9px;padding:10px;
                     font-size:14px;font-family:inherit;line-height:1.45;box-sizing:border-box;
                     background:#fff;color:#1f2937;resize:vertical}
-        .tony-strumenti{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center}
-        .tony-st{border:1px solid #d5dce2;background:#fff;border-radius:8px;padding:8px 11px;
-                 font-size:12.5px;cursor:pointer;color:#334155}
+        .tony-strumenti{display:flex;gap:5px;margin-top:9px;align-items:center}
+        .tony-st{flex:1;min-width:0;border:1px solid #d5dce2;background:#fff;border-radius:8px;
+                 padding:9px 4px;font-size:12px;cursor:pointer;color:#334155;
+                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
         .tony-st:active{transform:scale(.97)}
         .tony-st.rec{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
-        .tony-vai{margin-left:auto;background:#c9a227;color:#16202a;border:none;
-                  border-radius:8px;padding:9px 20px;font-size:13.5px;font-weight:700;cursor:pointer}
+        .tony-vai{width:100%;margin-top:8px;background:#c9a227;color:#16202a;border:none;
+                  border-radius:9px;padding:12px;font-size:14.5px;font-weight:700;cursor:pointer}
         .tony-vai:disabled{opacity:.5}
       </style>
 
