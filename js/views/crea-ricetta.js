@@ -1426,11 +1426,27 @@ export async function render(app) {
       </div>
 
       <div class="cr-aiuti">
-        <button id="btn-tony-inventa" type="button" class="cr-aiuto viola">✨ Inventiamo</button>
-        <button id="btn-foto-piatto" type="button" class="cr-aiuto arancio">🍽️ Dalla foto</button>
-        <button id="btn-foto-ricetta" type="button" class="cr-aiuto blu">📷 Ricetta scritta</button>
+        <button id="btn-tony-unico" type="button" class="cr-aiuto unico">🤖 Chiedi a Tony</button>
       </div>
+
+      <div id="tony-pannello" style="display:none;">
+        <textarea id="tony-testo" rows="4" placeholder="Scrivi o detta la ricetta. Oppure scatta una foto del piatto o del foglio."></textarea>
+        <div class="tony-strumenti">
+          <button id="tony-detta" type="button" class="tony-st">🎤 Detta</button>
+          <button id="tony-scatta-piatto" type="button" class="tony-st">🍽️ Foto piatto</button>
+          <button id="tony-scatta-ricetta" type="button" class="tony-st">📷 Foto ricetta</button>
+          <button id="tony-inventa-qui" type="button" class="tony-st">✨ Inventa</button>
+          <button id="tony-vai" type="button" class="tony-vai">Compila</button>
+        </div>
+      </div>
+
       <div class="cr-spiega" id="cr-spiega"></div>
+
+      <div style="display:none;">
+        <button id="btn-tony-inventa" type="button"></button>
+        <button id="btn-foto-piatto" type="button"></button>
+        <button id="btn-foto-ricetta" type="button"></button>
+      </div>
 
       <input id="input-foto-piatto" type="file" accept="image/*" style="display:none;" />
       <input id="input-foto-ricetta" type="file" accept="image/*" style="display:none;" />
@@ -1447,6 +1463,20 @@ export async function render(app) {
         .cr-aiuto.arancio{background:#ea580c}
         .cr-aiuto.blu{background:#0E76A3}
         .cr-spiega{font-size:12px;color:#6b7280;min-height:17px;margin-bottom:14px;padding:0 2px}
+        .cr-aiuto.unico{background:#0f2b3d;flex:1;font-size:14px;padding:13px 8px}
+        #tony-pannello{margin:8px 0 4px;padding:12px;border:1px solid #e2e8f0;
+                       border-radius:12px;background:#fbfcfd}
+        #tony-testo{width:100%;border:1px solid #d5dce2;border-radius:9px;padding:10px;
+                    font-size:14px;font-family:inherit;line-height:1.45;box-sizing:border-box;
+                    background:#fff;color:#1f2937;resize:vertical}
+        .tony-strumenti{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center}
+        .tony-st{border:1px solid #d5dce2;background:#fff;border-radius:8px;padding:8px 11px;
+                 font-size:12.5px;cursor:pointer;color:#334155}
+        .tony-st:active{transform:scale(.97)}
+        .tony-st.rec{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
+        .tony-vai{margin-left:auto;background:#c9a227;color:#16202a;border:none;
+                  border-radius:8px;padding:9px 20px;font-size:13.5px;font-weight:700;cursor:pointer}
+        .tony-vai:disabled{opacity:.5}
       </style>
 
       ${createCard({
@@ -5123,6 +5153,83 @@ function bindUI() {
   safeOn("btn-tony-ing", "click", () => apriModalTonyIngredienti());
   safeOn("btn-tony-anagrafica", "click", () => apriModalTony("anagrafica"));
   safeOn("btn-tony-inventa", "click", () => apriChatRicettaTony());
+
+  safeOn("btn-tony-unico", "click", () => {
+    const p = document.getElementById("tony-pannello");
+    if (!p) return;
+    const aperto = p.style.display !== "none";
+    p.style.display = aperto ? "none" : "block";
+    if (!aperto) document.getElementById("tony-testo")?.focus();
+  });
+
+  safeOn("tony-scatta-piatto", "click", () =>
+    document.getElementById("input-foto-piatto")?.click());
+  safeOn("tony-scatta-ricetta", "click", () =>
+    document.getElementById("input-foto-ricetta")?.click());
+  safeOn("tony-inventa-qui", "click", () => apriChatRicettaTony());
+
+  safeOn("tony-detta", "click", async () => {
+    const btn = document.getElementById("tony-detta");
+    const box = document.getElementById("tony-testo");
+    if (!btn || !box) return;
+    if (btn.dataset.rec === "1") {
+      btn.dataset.rec = "";
+      btn.classList.remove("rec");
+      btn.textContent = "⏳ Trascrivo…";
+      try {
+        const audio = await tonyStopMic(btn);
+        if (audio) {
+          const supa = window.supabaseClient || window.supabase;
+          const token = (await supa.auth.getSession())?.data?.session?.access_token || "";
+          const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": token },
+            body: JSON.stringify({ azienda_id: window.state?.azienda?.id, audio_base64: audio,
+                                   messages: [{ role: "user", content: "trascrivi" }] })
+          });
+          const d = await r.json();
+          const testo = String(d.trascrizione || d.reply || "").trim();
+          if (testo) box.value = (box.value ? box.value + " " : "") + testo;
+        }
+      } catch (e) { console.error("dettatura:", e); }
+      btn.textContent = "🎤 Detta";
+      return;
+    }
+    try {
+      await tonyStartMic(btn);
+      btn.dataset.rec = "1";
+      btn.classList.add("rec");
+      btn.textContent = "⏹ Ferma";
+    } catch (e) {
+      const s = document.getElementById("cr-spiega");
+      if (s) s.textContent = "Microfono non disponibile: apri app.ristoflow-ai.com";
+    }
+  });
+
+  safeOn("tony-vai", "click", async () => {
+    const box = document.getElementById("tony-testo");
+    const btn = document.getElementById("tony-vai");
+    const stato = document.getElementById("cr-spiega");
+    const testo = (box?.value || "").trim();
+    if (!testo) { if (stato) stato.textContent = "Scrivi o detta la ricetta, poi premi Compila."; return; }
+    if (btn) { btn.disabled = true; btn.textContent = "Leggo…"; }
+    if (stato) stato.textContent = "Sto leggendo la ricetta…";
+    try {
+      const conv = [{ role: "user", content: "Questa e' la ricetta come me l'ha dettata il cuoco:\n\n\"" + testo + "\"\n\nDammi ora la scheda tecnica nel formato JSON richiesto. Non inventare quantita', durate o temperature che non ha detto: usa null." }];
+      const data = await tonyChatChiama(conv, "finalizza");
+      const parsed = tonyEstraiReply(data);
+      if (!parsed) throw new Error("risposta vuota");
+      const finto = document.createElement("div");
+      await tonyApplicaSezione("inventa", parsed, finto, stato || finto);
+      const p = document.getElementById("tony-pannello");
+      if (p) p.style.display = "none";
+    } catch (e) {
+      console.error("tony-vai:", e);
+      if (stato) stato.textContent = "Non sono riuscito a leggere la ricetta. Riprova o usa la foto.";
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "Compila"; }
+    }
+  });
   safeOn("btn-tony-vino", "click", () => abbinaVinoConTony());
   safeOn("btn-disegno-piatto", "click", () => creaImmaginePiatto());
 
@@ -5150,6 +5257,7 @@ function bindUI() {
 
   // la spiegazione si legge solo quando serve, senza occupare mezzo schermo
   const _spiega = {
+    "btn-tony-unico": "Scrivi, detta o fotografa: Tony compila la scheda e la valorizza sui vostri prezzi.",
     "btn-tony-inventa": "Hai un eccedenza o un idea? Raccontala a Tony: ne esce la ricetta completa, dosi e conservazione comprese.",
     "btn-foto-piatto": "Foto di un piatto impiattato: Tony capisce cos e, ricostruisce gli ingredienti e lo valorizza sui vostri prezzi.",
     "btn-foto-ricetta": "Anche scritta a mano: Tony la legge e compila la scheda."
