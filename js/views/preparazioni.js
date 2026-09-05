@@ -3700,8 +3700,13 @@ async function rfRenderLabelPdfPage(doc, format, label) {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(w >= 100 ? 14 : 11);
-  doc.text(`LOTTO: ${(label.lotto || "").toString()}`, margin, y);
-  y += w >= 100 ? 9 : 7;
+  /* Il codice lotto finiva sotto il QR e si leggeva a meta': e' il dato piu'
+     importante dell'etichetta. Lo mando a capo entro la larghezza libera,
+     cioe' quella che resta togliendo il quadrato del QR. */
+  const largLotto = (qrDataUrl ? (w - margin * 2 - qrSize - 2) : (w - margin * 2));
+  const righeLotto = doc.splitTextToSize(`LOTTO: ${(label.lotto || "").toString()}`, Math.max(largLotto, 20));
+  doc.text(righeLotto, margin, y);
+  y += (righeLotto.length * (w >= 100 ? 6 : 5)) + (w >= 100 ? 3 : 2);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(w >= 100 ? 11 : 9);
@@ -3885,10 +3890,14 @@ function stampaEtichetteConfezioni() {
           lotto_uuid: savedLottoUUID || savedLotto.lotto_uuid || null,
           dataProduzione: rfFormatDateITA(dataProdISO),
           dataScadenza: rfFormatDateITA(scadenzaISO),
+          /* L'ordine conta: il renderer smette di scrivere quando finisce lo
+             spazio sull'etichetta (break su y > h - margin), e su un formato
+             piccolo entravano solo le prime righe. Peso e porzionatura sono i
+             due dati che servono in cella: vanno per primi. */
           rows: [
-            { k: "Porzionatura", v: r.label || "" },
-            { k: "Pezzi", v: String(r.pezzi_per_confezione) },
             { k: "Peso", v: `${formatNumber(r.kg_per_confezione)} kg` },
+            { k: "Porz.", v: r.label || "" },
+            { k: "Pezzi", v: String(r.pezzi_per_confezione) },
             scenarioLabel ? { k: "Scenario", v: scenarioLabel } : null,
             temperatura ? { k: "Temperatura", v: temperatura } : null,
             fasiText ? { k: "Conservazione", v: fasiText } : null,
