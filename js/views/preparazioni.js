@@ -718,6 +718,10 @@ function setupAutocompleteRicette() {
     ricettaSelezionata = null;
     hidden.value = "";
     btnVedi.disabled = true;
+    document.querySelectorAll(".suggest-aperto").forEach((el) => {
+      el.style.overflow = el.dataset.prevOverflow || "";
+      el.classList.remove("suggest-aperto");
+    });
 
     setRicettaInfo("Nessuna ricetta selezionata");
     porzioniCache = [];
@@ -765,6 +769,10 @@ function setupAutocompleteRicette() {
         hidden.value = r.id;
         input.value = r.nome;
         suggest.classList.remove("open");
+        document.querySelectorAll(".suggest-aperto").forEach((el) => {
+          el.style.overflow = el.dataset.prevOverflow || "";
+          el.classList.remove("suggest-aperto");
+        });
 
         ricettaSelezionata = r;
         btnVedi.disabled = false;
@@ -782,6 +790,19 @@ function setupAutocompleteRicette() {
     });
 
     suggest.classList.add("open");
+    /* La card ritaglia quello che esce dai suoi bordi, quindi dei risultati
+       si vedeva solo il primo e mezzo: cercando "BBQ" la Salsa BBQ c'era ma
+       restava sotto il taglio. Finche' la lista e' aperta la card non ritaglia. */
+    let _p = suggest.parentElement;
+    while (_p && _p !== document.body) {
+      const _st = window.getComputedStyle(_p);
+      if (_st.overflow !== "visible" || _st.overflowY !== "visible") {
+        _p.dataset.prevOverflow = _p.style.overflow || "";
+        _p.style.overflow = "visible";
+        _p.classList.add("suggest-aperto");
+      }
+      _p = _p.parentElement;
+    }
   });
 
   /* Riscalo delle dosi. Il calcolo lo fa il database con scala_ricetta():
