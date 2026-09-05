@@ -2652,6 +2652,16 @@ function renderFasiHaccp() {
   if (emptyEl) emptyEl.style.display = "none";
   wrap.style.display = "";
 
+  /* Il blocco confezioni viene spostato dentro la fase di confezionamento in
+     fondo a questa funzione. Ma qui sotto si riscrive innerHTML, che distrugge
+     tutto quello che c'e' dentro: al secondo ridisegno il blocco spariva e
+     restava solo il titolo. Lo riporto al sicuro PRIMA di riscrivere. */
+  try {
+    const _b = document.getElementById("confezioni-blocco");
+    const _casa = document.getElementById("confezioni-casa");
+    if (_b && _casa && _b.parentElement !== _casa) _casa.appendChild(_b);
+  } catch (e) { /* niente */ }
+
   if (!fasiCache.length) {
     list.innerHTML = `<div style="color:#94a3b8;font-size:13px;font-style:italic;padding:8px 0;">Nessuna fase dalla ricetta. Aggiungine una qui sotto (es. abbattimento a cottura ultimata).</div>`;
     aggiornaAbilitazioneStampe();
