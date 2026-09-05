@@ -2791,45 +2791,6 @@ function firmaFaseHaccp(idx) {
   }
   renderFasiHaccp();
   aggiornaAbilitazioneStampe();
-  salvaFirmaSubito(log);
-}
-
-/* La firma si salva NEL MOMENTO in cui viene apposta, non al salvataggio
-   finale della produzione. Prima le firme restavano nella memoria del browser
-   fino a "Registra produzione": il KDS mostrava 0/7 mentre in cucina erano
-   gia' state firmate quattro fasi, e se la pagina si ricaricava le firme si
-   perdevano. Ed e' anche piu' corretto per l'HACCP: la firma deve registrare
-   quando la fase e' stata eseguita, non quando qualcuno ha salvato la scheda.
-   Le righe fase esistono gia' dall'apertura del lotto (le crea un trigger sul
-   database), quindi qui basta un update mirato. */
-async function salvaFirmaSubito(log) {
-  try {
-    const lottoUUID = (typeof resumeLottoUUID !== "undefined" && resumeLottoUUID)
-                      || savedLotto?.lotto_uuid || null;
-    if (!lottoUUID || !log?.fase_id) return;
-    const supabase = window.supabaseClient || window.supabase;
-    if (!supabase) return;
-
-    await supabase.from("produzione_log_haccp").update({
-      operatore_id: log.operatore_id || null,
-      operatore_nome: log.operatore_nome || null,
-      temperatura_rilevata: (log.temperatura_rilevata !== "" && log.temperatura_rilevata != null)
-                            ? Number(log.temperatura_rilevata) : null,
-      temperatura_ok: log.temperatura_ok ?? null,
-      ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
-      ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
-      durata_reale_min: log.durata_reale_min ?? null,
-      esito: log.esito || "ok",
-      note: log.note || null,
-      firmato_da: log.firmato_da || null,
-      firmato_il: log.firmato_il || new Date().toISOString(),
-      firme: log.firme || []
-    }).eq("lotto_id", lottoUUID).eq("fase_id", log.fase_id);
-  } catch (e) {
-    // Non blocco la cucina se la rete cade: la firma resta a schermo e
-    // viene comunque riscritta dal salvataggio finale della produzione.
-    console.warn("Firma non salvata subito, verra' salvata alla registrazione:", e);
-  }
 }
 
 function aggiornaAbilitazioneStampe() {
