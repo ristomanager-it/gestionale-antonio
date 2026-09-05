@@ -734,9 +734,17 @@ function setupAutocompleteRicette() {
 
     const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const nq = norm(q);
-    // Ordino i match: prima chi INIZIA con la query (es "rag" -> "Ragù..." prima di "asparagi"), poi gli altri
+    // Cerco per PAROLE, in qualunque ordine: "bbq salsa" deve trovare
+    // "Salsa BBQ Campo Antico". Prima si cercava la frase intera con
+    // includes(), quindi bastava invertire due parole per non trovare piu'
+    // niente — e in cucina nessuno ricorda l'ordine esatto del nome.
+    const paroleQ = nq.split(/\s+/).filter((w) => w.length > 1);
     const risultati = ricetteCache
-      .filter((r) => norm(r.nome).includes(nq))
+      .filter((r) => {
+        const n = norm(r.nome);
+        if (n.includes(nq)) return true;
+        return paroleQ.length > 0 && paroleQ.every((w) => n.includes(w));
+      })
       .sort((a, b) => {
         const na = norm(a.nome), nb = norm(b.nome);
         const ia = na.startsWith(nq) ? 0 : (na.split(/\s+/).some(w => w.startsWith(nq)) ? 1 : 2);
