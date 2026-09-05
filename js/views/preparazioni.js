@@ -4224,9 +4224,15 @@ async function resumeDaLotto(lottoUuid) {
   try {
     const det = Array.isArray(lotto.dettaglio_confezionamento) ? lotto.dettaglio_confezionamento : [];
     if (det.length) {
+      /* Il nome della confezione e il peso venivano persi nel ripristino:
+         si recuperavano solo pezzi, numero e note. Riaprendo un lotto salvato
+         le righe tornavano senza nome e senza peso, e la stampa le scartava
+         dicendo che non c'era nessuna confezione valida. */
       confezioniRows = det.map((d) => ({
         id: cryptoRandomId(),
         porzione_id: (d.porzione_id ?? "").toString(),
+        confezione_label: d.label ?? d.confezione_label ?? "",
+        peso_kg: d.peso_porzione_kg ?? d.peso_kg ?? "",
         pezzi_per_confezione: d.pezzi_per_confezione ?? "",
         numero_confezioni: d.numero_confezioni ?? "",
         note: d.note ?? ""
