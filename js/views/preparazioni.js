@@ -3744,14 +3744,24 @@ async function stampaEtichetteSuEtichettatrice() {
   const scenario = scenariConservazione.find((s) => String(s.id) === String(scenarioId)) || null;
   const scenarioLabel = scenario?.scenario_label || getConservazioneStandardLabel() || "";
 
+  /* Il campo confezione dice "scegli dall'elenco o scrivine una nuova", ma qui
+     la riga veniva buttata via se non corrispondeva a una porzionatura della
+     ricetta: chi scriveva un formato nuovo (es. "Iqf") compilava tutto e poi
+     si sentiva dire che non c'era niente da stampare.
+     Ora il formato libero vale quanto quello dell'elenco: bastano un nome,
+     un peso e un numero di confezioni. */
   const rows = confezioniRows
     .map((r) => {
       const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
       const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
       const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
-      if (!porz || pezzi <= 0 || numConf <= 0) return null;
-      const pesoPorzKg = toKg(porz.peso_porzione, porz.unita_misura);
-      return { label: porz.label, pezzi, numConf, kgConf: pesoPorzKg * pezzi, note: (r.note || "").toString() };
+      if (pezzi <= 0 || numConf <= 0) return null;
+      const label = String(r.confezione_label || porz?.label || "").trim();
+      const pesoPorzKg = toNumber(r.peso_kg) > 0
+                       ? toNumber(r.peso_kg)
+                       : toKg(porz?.peso_porzione, porz?.unita_misura);
+      if (!label || pesoPorzKg <= 0) return null;
+      return { label, pezzi, numConf, kgConf: pesoPorzKg * pezzi, note: (r.note || "").toString() };
     })
     .filter(Boolean);
 
@@ -3815,13 +3825,17 @@ function stampaEtichetteConfezioni() {
         const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
         const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
         const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
-        if (!porz || pezzi <= 0 || numConf <= 0) return null;
+        if (pezzi <= 0 || numConf <= 0) return null;
 
-        const pesoPorzKg = toKg(porz.peso_porzione, porz.unita_misura);
+        const _label = String(r.confezione_label || porz?.label || "").trim();
+        const pesoPorzKg = toNumber(r.peso_kg) > 0
+                         ? toNumber(r.peso_kg)
+                         : toKg(porz?.peso_porzione, porz?.unita_misura);
+        if (!_label || pesoPorzKg <= 0) return null;
         const kgConf = pesoPorzKg * pezzi;
 
         return {
-          label: porz.label,
+          label: _label,
           pezzi_per_confezione: pezzi,
           numero_confezioni: numConf,
           kg_per_confezione: kgConf,
