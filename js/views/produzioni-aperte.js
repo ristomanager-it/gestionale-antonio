@@ -99,8 +99,27 @@ async function apriProduzione() {
   const pin = (document.getElementById("pa-pin")?.value || "").trim();
   const note = (document.getElementById("pa-note")?.value || "").trim();
 
-  const ric = ricetteCache.find(r => (r.nome || "").toLowerCase() === nome.toLowerCase());
-  if (!ric) { msg.innerHTML = '<span style="color:#dc2626;">Seleziona una ricetta valida dall\'elenco.</span>'; return; }
+  /* Prima si pretendeva il nome ESATTO: scrivendo "Norcina" non trovava
+     "Norcina - Campo Antico Conserve" e diceva di sceglierne una valida.
+     Ora: match esatto, poi per parole. Se le corrispondenze sono piu' di una
+     lo dico invece di indovinare. */
+  const _norm = (x) => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const _nq = _norm(nome);
+  let ric = ricetteCache.find(r => _norm(r.nome) === _nq);
+  if (!ric) {
+    const _par = _nq.split(/\s+/).filter(w => w.length > 1);
+    const cand = ricetteCache.filter(r => {
+      const n = _norm(r.nome);
+      return n.includes(_nq) || (_par.length && _par.every(w => n.includes(w)));
+    });
+    if (cand.length === 1) ric = cand[0];
+    else if (cand.length > 1) {
+      msg.innerHTML = '<span style="color:#b45309;">Ci sono ' + cand.length + ' ricette che corrispondono: ' +
+        cand.slice(0, 4).map(r => escapeHtml(r.nome)).join(" · ") + '. Scegline una dall\'elenco.</span>';
+      return;
+    }
+  }
+  if (!ric) { msg.innerHTML = '<span style="color:#dc2626;">Non trovo nessuna ricetta con questo nome.</span>'; return; }
 
   let operatore_id = null;
   if (pin) {
