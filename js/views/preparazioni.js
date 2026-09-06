@@ -1242,7 +1242,12 @@ function setupOperatorePIN() {
   operatoreRisolto = null;
   info.innerText = "Nessun operatore identificato";
 
-  pinInput.addEventListener("input", () => {
+  /* Il campo e' type="password" e iPhone lo riempie da solo con una password
+     salvata: con l'autofill l'evento "input" non scatta e il PIN non veniva
+     mai risolto, restava scritto "Nessun operatore identificato".
+     Ascolto anche change e blur, e provo una volta all'avvio nel caso il
+     campo arrivi gia' pieno. */
+  const risolviPin = () => {
     if (savedLotto) return;
 
     const pin = (pinInput.value || "").trim();
@@ -1265,7 +1270,13 @@ function setupOperatorePIN() {
     if (match.costo_orario) {
       costoOrarioDipendente = match.costo_orario;
     }
-  });
+  };
+
+  pinInput.addEventListener("input", risolviPin);
+  pinInput.addEventListener("change", risolviPin);
+  pinInput.addEventListener("blur", risolviPin);
+  pinInput.setAttribute("autocomplete", "one-time-code");
+  if ((pinInput.value || "").trim()) risolviPin();
 }
 
 /* ========================================================= */
