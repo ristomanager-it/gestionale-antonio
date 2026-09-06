@@ -152,23 +152,12 @@ async function apriProduzione() {
 
   if (error) { msg.innerHTML = `<span style="color:#dc2626;">Errore: ${escapeHtml(error.message)}</span>`; return; }
 
-  // Crea le righe fase (da ricetta) collegate al lotto, non firmate
-  const luuid = nuovo?.lotto_uuid || lottoUuid;
-  if (luuid) {
-    const { data: fasi } = await window.supabaseClient
-      .from("ricette_preparazione_fasi")
-      .select("id, ordine, nome_fase, tipo_fase, temperatura, durata_min, descrizione_operativa")
-      .eq("ricetta_id", ric.id).order("ordine");
-    if (fasi && fasi.length) {
-      const righe = fasi.map(f => ({
-        azienda_id: aziendaId, lotto_id: luuid, ricetta_id: ric.id,
-        fase_id: f.id, fase_ordine: f.ordine, fase_nome: f.nome_fase, fase_tipo: f.tipo_fase,
-        temperatura_prevista: f.temperatura ? Number(f.temperatura) : null,
-        esito: "ok",
-      }));
-      await window.supabaseClient.from("produzione_log_haccp").insert(righe);
-    }
-  }
+  /* Le righe fase NON si creano piu' qui: le crea il trigger
+     trg_lotto_crea_fasi sul database, all'insert del lotto.
+     Creandole in due posti ogni fase compariva doppia — la BBQ ne aveva 18
+     invece di 10 — e chi firmava si trovava lo stesso passaggio due volte.
+     Nel database la regola vale per QUALUNQUE percorso apra un lotto:
+     questa schermata, Preparazioni, o qualsiasi cosa aggiungeremo. */
 
   msg.innerHTML = '<span style="color:#16a34a;">Produzione aperta ✅</span>';
   ["pa-ricetta", "pa-qta", "pa-pin", "pa-note"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
