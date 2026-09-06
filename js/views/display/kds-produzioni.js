@@ -133,7 +133,7 @@ async function carica(sedeId) {
   const ricetteIds = [...new Set(lotti.map((l) => l.ricetta_id).filter(Boolean))];
 
   const [{ data: haccp }, { data: fasiMeta }] = await Promise.all([
-    supa().from("produzione_log_haccp").select("lotto_id, fase_id, fase_ordine, fase_nome, fase_tipo, firmato_il, scadenza_prevista").in("lotto_id", uuids),
+    supa().from("produzione_log_haccp").select("lotto_id, fase_id, fase_ordine, fase_nome, firmato_il").in("lotto_id", uuids),
     supa().from("ricette_preparazione_fasi").select("id, durata_min").in("ricetta_id", ricetteIds),
   ]);
   durataByFase = {};
@@ -195,54 +195,15 @@ function renderBoard() {
 // Serve anche al contatore in alto, per questo sta fuori da cardHtml.
 function faseCorrente(l) {
   let prevTs = new Date(l.created_at).getTime();
-  let attesaFinoA = null;   // se la fase precedente e' un riposo, qui c'e' quando finisce
   for (let i = 0; i < l.fasi.length; i++) {
     const f = l.fasi[i];
-    if (f.firmato_il) {
-      const ts = new Date(f.firmato_il).getTime();
-      const tipoPrec = String(f.fase_tipo || "").toLowerCase();
-      const durPrec = durataByFase[String(f.fase_id)] || 0;
-      // Firmare "riposo 3 ore" vuol dire "ho messo a riposare", non "e' finito":
-      // la fase dopo non comincia alla firma ma quando il riposo scade.
-      // Senza questo il KDS contava 103 minuti su 30 previsti e segnava un
-      // ritardo che non esiste, perche' l'impasto sta ancora lievitando.
-      if ((tipoPrec === "attesa" || tipoPrec === "raffreddamento") && durPrec > 0) {
-        attesaFinoA = ts + durPrec * 60000;
-        prevTs = attesaFinoA;
-      } else {
-        attesaFinoA = null;
-        prevTs = ts;
-      }
-      continue;
-    }
-    // riposo ancora in corso: non e' il momento di questa fase
-    if (attesaFinoA && Date.now() < attesaFinoA) {
-      const restano = Math.ceil((attesaFinoA - Date.now()) / 60000);
-      return {
-        nome: f.fase_nome || ("Fase " + f.fase_ordine),
-        elapsed: 0, prevista: durataByFase[String(f.fase_id)] || 0,
-        in_riposo: true,
-        manca: restano,
-        pronto_alle: new Date(attesaFinoA).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }),
-        attesa: true, oltre: false, ritardo: false, sforo: 0,
-      };
-    }
+    if (f.firmato_il) { prevTs = new Date(f.firmato_il).getTime(); continue; }
     const elapsed = Math.floor((Date.now() - prevTs) / 60000);
     const prevista = durataByFase[String(f.fase_id)] || 0;
-    // Quanto manca alla fine di questa fase. Sulle attese lunghe — un poolish
-    // sta in frigo 20 ore — sapere "mancano 40 minuti" o l'ora esatta in cui
-    // e' pronto serve piu' del tempo gia' trascorso.
-    const scad = f.scadenza_prevista ? new Date(f.scadenza_prevista).getTime() : null;
-    const manca = scad ? Math.max(0, Math.ceil((scad - Date.now()) / 60000)) : null;
-    const attesa = String(f.fase_tipo || "").toLowerCase() === "attesa"
-                || String(f.fase_tipo || "").toLowerCase() === "raffreddamento";
     return {
       nome: f.fase_nome || ("Fase " + f.fase_ordine),
       elapsed: elapsed,
       prevista: prevista,
-      manca: manca,
-      pronto_alle: scad ? new Date(scad).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : null,
-      attesa: attesa,
       oltre: prevista > 0 && elapsed > prevista,
       ritardo: prevista > 0 && elapsed > prevista * 1.5,
       sforo: prevista > 0 ? Math.max(0, elapsed - prevista) : 0,
@@ -264,7 +225,7 @@ function cardHtml(l) {
   const qta = l.quantita_output ? (l.quantita_output + " " + (l.unita_misura || "")) : "";
 
   return `
-    <div data-vai="${l.lotto_uuid}" style="background:#1e293b;border-radius:12px;padding:14px;cursor:pointer;border-left:4px solid ${corrente && corrente.in_riposo ? "#38bdf8" : (corrente && corrente.ritardo ? "#f87171" : (corrente && corrente.oltre ? "#fbbf24" : "#16a34a"))};">
+    <div data-vai="${l.lotto_uuid}" style="background:#1e293b;border-radius:12px;padding:14px;cursor:pointer;border-left:4px solid ${corrente && corrente.ritardo ? "#f87171" : (corrente && corrente.oltre ? "#fbbf24" : "#16a34a")};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
         <div>
           <div style="font-weight:800;font-size:16px;">${escapeHtml(nome)}</div>
@@ -282,12 +243,10 @@ function cardHtml(l) {
       <div style="font-size:12px;color:#94a3b8;">Fasi firmate: <b style="color:#e2e8f0;">${firmate}/${tot}</b></div>
 
       ${corrente ? `
-        <div style="margin-top:8px;padding:8px;background:${corrente.in_riposo ? "#0b3a54" : (corrente.ritardo ? "#7f1d1d" : "#0f172a")};border-radius:8px;">
-          <div style="font-size:11px;color:${corrente.ritardo ? "#fecaca" : "#94a3b8"};">${corrente.in_riposo ? "In riposo — non ancora da fare" : "In lavorazione" + (corrente.ritardo ? " · IN RITARDO ⚠" : "")}</div>
+        <div style="margin-top:8px;padding:8px;background:${corrente.ritardo ? "#7f1d1d" : "#0f172a"};border-radius:8px;">
+          <div style="font-size:11px;color:${corrente.ritardo ? "#fecaca" : "#94a3b8"};">In lavorazione${corrente.ritardo ? " · IN RITARDO ⚠" : ""}</div>
           <div style="font-size:14px;font-weight:700;">${escapeHtml(corrente.nome)}</div>
-          <div style="font-size:12px;color:${corrente.ritardo ? "#fecaca" : "#cbd5e1"};">${corrente.in_riposo ? "in riposo" : corrente.elapsed + "′" + (corrente.prevista ? " / ~" + corrente.prevista + "′ previsti" : "")}</div>
-          ${corrente.manca !== null && corrente.manca > 0 ? `<div style="margin-top:6px;padding:7px 10px;background:#0b3a54;border-radius:8px;font-size:13px;font-weight:700;color:#7dd3fc;">⏳ pronto alle ${corrente.pronto_alle} · mancano ${corrente.manca}′</div>` : ""}
-          ${corrente.manca === 0 && corrente.attesa ? `<div style="margin-top:6px;padding:7px 10px;background:#14532d;border-radius:8px;font-size:13px;font-weight:700;color:#86efac;">✓ attesa finita, si puo' procedere</div>` : ""}
+          <div style="font-size:12px;color:${corrente.ritardo ? "#fecaca" : "#cbd5e1"};">${corrente.elapsed}′${corrente.prevista ? " / ~" + corrente.prevista + "′ previsti" : ""}</div>
           <button style="margin-top:10px;width:100%;background:${corrente.ritardo ? "#dc2626" : (corrente.oltre ? "#d97706" : "#16a34a")};color:white;border:none;border-radius:10px;padding:10px 16px;font-weight:700;font-size:14px;cursor:pointer;">▶ ${escapeHtml(verboFase(corrente.nome))}${corrente.sforo ? " · +" + corrente.sforo + "′" : ""}</button>
         </div>` : `<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
           <span style="font-size:13px;color:#4ade80;">✓ Tutte le fasi firmate</span>
