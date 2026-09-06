@@ -2981,10 +2981,30 @@ function firmaFaseHaccp(idx) {
   if (log.firme.some((f) => String(f.operatore_id) === String(match.id))) { alert(match.nome + " ha già firmato questa fase."); return; }
   log.firme.push({ operatore_id: match.id ?? null, operatore_nome: match.nome, firmato_il: new Date().toISOString() });
   applicaFirmePrincipale(log);
-  if (!log.ora_fine) {
-    log.ora_fine = new Date().toISOString().slice(0, 16);
-    calcolaHaccpDurata(idx);
+
+  /* Orario LOCALE, non UTC. toISOString() restituisce l'ora di Greenwich:
+     firmando alle 08:44 il campo scriveva 06:44, due ore indietro, e su un
+     registro HACCP l'ora sbagliata vale meno di nessuna ora. */
+  const _oraLocale = (d) => {
+    const p = (n) => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate())
+         + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+  };
+  const _ora = new Date();
+
+  if (!log.ora_fine) log.ora_fine = _oraLocale(_ora);
+
+  /* L'inizio della fase e' la fine di quella precedente: cosi' la durata
+     reale esce da sola e nessuno deve scrivere due orari a mano mentre
+     cucina. Se e' la prima fase, parte dalla firma stessa. */
+  if (!log.ora_inizio) {
+    let inizio = null;
+    for (let k = idx - 1; k >= 0; k--) {
+      if (logHaccp[k]?.ora_fine) { inizio = logHaccp[k].ora_fine; break; }
+    }
+    log.ora_inizio = inizio || log.ora_fine;
   }
+  calcolaHaccpDurata(idx);
   renderFasiHaccp();
   aggiornaAbilitazioneStampe();
 
