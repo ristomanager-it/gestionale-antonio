@@ -1314,9 +1314,15 @@ export async function render(container) {
     const box = qs("#lista-prodotti-dx");
     if (!box) return;
 
-    const rigaHtml = (p) => {
-      const voce = menuVoci.find(v => String(v.prodotto_vendita_id) === String(p.id));
-      const prezzoDisplay = voce?.prezzo_override || voce?.prezzo || p.prezzo_base || 0;
+    const rigaHtml = (v) => {
+      // La voce comanda: il prodotto di vendita puo' non essere nella categoria
+      // agganciata a questa portata, ma la voce esiste a database e va gestita.
+      const p = prodottiVendita.find(x => String(x.id) === String(v.prodotto_vendita_id)) || null;
+      const voce = v;
+      const nome = v.nome || p?.nome || "(senza nome)";
+      const foto = v.foto_url || p?.foto_url || p?.immagine_url || null;
+      const orfana = !p;
+      const prezzoDisplay = voce?.prezzo_override || voce?.prezzo || p?.prezzo_base || 0;
       const fc = voce?.food_cost_snapshot || null;
       const margine = fc && prezzoDisplay > 0 ? ((prezzoDisplay - fc) / prezzoDisplay * 100) : null;
       return `
