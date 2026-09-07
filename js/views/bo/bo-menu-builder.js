@@ -719,6 +719,10 @@ export async function render(container) {
       if (!tutteLeVoci[v.categoria_id]) tutteLeVoci[v.categoria_id] = [];
       tutteLeVoci[v.categoria_id].push(v);
     });
+    // Il mockup e' la fonte della stampa: se resta fermo si stampa il menu vecchio.
+    // Qui vale per tutti i chiamanti di loadTutteLeVoci in un colpo solo.
+    const tabMockup = qs("#dx-tab-mockup");
+    if (tabMockup && tabMockup.style.display !== "none") renderMockupCompleto();
   }
 
   // ── TABS MENU ─────────────────────────────────────────────────
