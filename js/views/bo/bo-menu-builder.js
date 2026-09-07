@@ -1326,20 +1326,21 @@ export async function render(container) {
       const fc = voce?.food_cost_snapshot || null;
       const margine = fc && prezzoDisplay > 0 ? ((prezzoDisplay - fc) / prezzoDisplay * 100) : null;
       return `
-        <div class="prodotto-row nel-menu" data-prod-id="${p.id}" data-voce-ordine-id="${voce.id}" draggable="true">
+        <div class="prodotto-row nel-menu" data-prod-id="${p ? p.id : ""}" data-voce-ordine-id="${voce.id}" draggable="true">
           <span class="prod-drag-handle" onclick="event.stopPropagation()" style="cursor:grab;color:#86efac;font-size:16px;flex-shrink:0;user-select:none;">⠿</span>
-          ${(p.foto_url||p.immagine_url)
-            ?`<img src="${esc(p.foto_url||p.immagine_url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
+          ${foto
+            ?`<img src="${esc(foto)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
             :`<div style="width:44px;height:44px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🍽️</div>`}
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.nome)}</div>
+            <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(nome)}</div>
             <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
               ${prezzoDisplay?`<span style="font-size:13px;font-weight:800;color:#0E5A7A;">€${Number(prezzoDisplay).toFixed(2)}</span>`:""}
+              ${orfana?`<span title="La portata non sta nella categoria di vendita agganciata a questa portata del menu" style="font-size:10px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:6px;padding:1px 6px;">⚠️ fuori categoria</span>`:""}
               ${margine!==null?`<span style="font-size:10px;font-weight:700;color:${margine>60?"#16a34a":margine>40?"#f59e0b":"#dc2626"};">📊 ${margine.toFixed(0)}%</span>`:""}
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
-            <button class="btn-edit-voce mb-btn mb-btn-sec" data-voce-id="${voce.id}" data-prod-id="${p.id}" style="font-size:11px;padding:4px 8px;">✏️</button>
+            <button class="btn-edit-voce mb-btn mb-btn-sec" data-voce-id="${voce.id}" data-prod-id="${p ? p.id : ""}" style="font-size:11px;padding:4px 8px;">✏️</button>
             <button class="btn-rm-voce mb-btn mb-btn-danger" data-voce-id="${voce.id}" style="font-size:11px;padding:4px 8px;">✕</button>
           </div>
         </div>`;
