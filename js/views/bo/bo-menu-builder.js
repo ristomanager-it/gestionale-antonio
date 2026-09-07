@@ -1299,9 +1299,7 @@ export async function render(container) {
     qs("#dx-content").style.display = "flex";
     qs("#dx-cat-nome").textContent = mc.nome;
     renderProdottiDx();
-    // Aggiorna mockup se tab mockup è aperto
-    const mockupTab = qs("#dx-tab-mockup");
-    if (mockupTab && mockupTab.style.display !== "none") renderMockupCompleto();
+    // Il ridisegno del mockup vive dentro loadTutteLeVoci: qui sarebbe una seconda passata inutile.
   }
 
   // ── RENDER DX PLACEHOLDER ─────────────────────────────────────
