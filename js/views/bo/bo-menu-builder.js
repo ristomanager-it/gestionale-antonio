@@ -1346,9 +1346,7 @@ export async function render(container) {
         </div>`;
     };
 
-    const inMenuOrdinati = menuVoci
-      .map(v => prodottiVendita.find(p => String(p.id) === String(v.prodotto_vendita_id)))
-      .filter(Boolean);
+    const inMenuOrdinati = menuVoci.slice();
 
     if (!inMenuOrdinati.length) {
       box.innerHTML = `<div style="color:#94a3b8;font-size:12px;text-align:center;padding:30px 10px;">Nessuna portata ancora nel menu.<br>Cercala qui sopra per aggiungerla.</div>`;
