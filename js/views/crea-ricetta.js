@@ -1770,6 +1770,7 @@ export async function render(app) {
   await loadDispositivi();
   bindUI();
   initModeToggle();
+  bindAutosaveIngredienti();
 
   if (ricettaId) {
     await caricaRicettaCompleta();
@@ -1784,6 +1785,7 @@ export async function render(app) {
     aggiungiScenarioConservazione();
     aggiungiPorzione();
     aggiornaOutputInfo();
+    proponiRecuperoBozzaIngredienti();
   }
 }
 
@@ -2838,6 +2840,84 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
       ingSuggest.classList.add("open");
     }
   }
+}
+
+/* ============================================================
+   BOZZA INGREDIENTI IN SESSIONE
+   Solo per ricette NUOVE (ricettaId ancora null): se l'utente
+   cambia sede/vista a metà compilazione, la lista ingredienti
+   inserita finora sopravvive nel browser e viene riproposta.
+   Non tocca il flusso di modifica ricette esistenti.
+============================================================ */
+const BOZZA_ING_KEY = "crea_ricetta_bozza_ingredienti_nuova";
+let _bozzaIngTimer = null;
+
+function leggiRigheIngredientiDom() {
+  return [...document.querySelectorAll("#ingredienti-container .azienda-card")]
+    .map(r => ({
+      prodotto_id: (r.querySelector(".ing-id")?.value || "").trim() || null,
+      nome_prodotto: (r.querySelector(".ing-search")?.value || "").trim(),
+      quantita: r.querySelector(".ing-qta")?.value || "",
+      unita_misura: r.querySelector(".ing-um")?.value || "kg",
+      note: r.querySelector(".ing-note")?.value || ""
+    }))
+    .filter(r => r.nome_prodotto || r.quantita);
+}
+
+function salvaBozzaIngredientiSessione() {
+  if (ricettaId) return; // solo per ricette nuove
+  clearTimeout(_bozzaIngTimer);
+  _bozzaIngTimer = setTimeout(() => {
+    try {
+      const righe = leggiRigheIngredientiDom();
+      if (!righe.length) {
+        sessionStorage.removeItem(BOZZA_ING_KEY);
+        return;
+      }
+      sessionStorage.setItem(BOZZA_ING_KEY, JSON.stringify({
+        aziendaId: window.state?.azienda?.id || null,
+        aziendaNome: window.state?.azienda?.nome || "",
+        nomeRicetta: document.getElementById("r-nome")?.value || "",
+        righe,
+        ts: Date.now()
+      }));
+    } catch {}
+  }, 400);
+}
+
+function proponiRecuperoBozzaIngredienti() {
+  if (ricettaId) return;
+  let bozza;
+  try { bozza = JSON.parse(sessionStorage.getItem(BOZZA_ING_KEY) || "null"); } catch { bozza = null; }
+  if (!bozza || !bozza.righe?.length) return;
+
+  // scarta bozze più vecchie di 6 ore
+  if (Date.now() - (bozza.ts || 0) > 6 * 60 * 60 * 1000) {
+    sessionStorage.removeItem(BOZZA_ING_KEY);
+    return;
+  }
+
+  const quando = new Date(bozza.ts).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  const dettaglioAzienda = bozza.aziendaNome ? ` (${bozza.aziendaNome})` : "";
+  const msg = `Trovata una bozza non salvata di ${bozza.righe.length} ingrediente/i delle ${quando}${dettaglioAzienda}.\nRecuperarla?`;
+
+  if (!confirm(msg)) {
+    sessionStorage.removeItem(BOZZA_ING_KEY);
+    return;
+  }
+
+  document.getElementById("ingredienti-container").innerHTML = "";
+  bozza.righe.forEach(r => aggiungiIngrediente(r));
+  const campoNome = document.getElementById("r-nome");
+  if (campoNome && !campoNome.value && bozza.nomeRicetta) campoNome.value = bozza.nomeRicetta;
+}
+
+function bindAutosaveIngredienti() {
+  const cont = document.getElementById("ingredienti-container");
+  if (!cont) return;
+  ["input", "change", "click"].forEach(ev => {
+    cont.addEventListener(ev, () => salvaBozzaIngredientiSessione());
+  });
 }
 
 function aggiungiIngrediente(initial = {}) {
@@ -4039,6 +4119,7 @@ async function salvaTutto() {
 
     savedId = String(data.id);
     ricettaId = savedId;
+    try { sessionStorage.removeItem(BOZZA_ING_KEY); } catch {}
   } else {
     const payload = cleanPayload({
       nome,
