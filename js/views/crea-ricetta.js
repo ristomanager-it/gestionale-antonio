@@ -2070,9 +2070,24 @@ function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
     }
 
     const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Tollera singolare/plurale italiano (melanzana/melanzane, pomodoro/pomodori...)
+    // e non pretende più che le parole compaiano nello stesso ordine scritto dall'utente.
+    const varianti = (tok) => {
+      if (tok.length < 4) return [tok];
+      const fine = tok[tok.length - 1];
+      if (fine === "a") return [tok, tok.slice(0, -1) + "e"];
+      if (fine === "e") return [tok, tok.slice(0, -1) + "a"];
+      if (fine === "o") return [tok, tok.slice(0, -1) + "i"];
+      if (fine === "i") return [tok, tok.slice(0, -1) + "o"];
+      return [tok];
+    };
     const nq = norm(q);
+    const tokens = nq.split(/\s+/).filter(Boolean);
     const risultati = prodottiCache
-      .filter(p => norm(p.descrizione).includes(nq))
+      .filter(p => {
+        const dNorm = norm(p.descrizione);
+        return tokens.every(tok => varianti(tok).some(v => dNorm.includes(v)));
+      })
       .slice(0, 10);
 
     risultati.forEach(p => {
