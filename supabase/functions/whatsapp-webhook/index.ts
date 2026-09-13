@@ -1,5 +1,5 @@
 // ============================================================
-// WHATSAPP WEBHOOK v7 — Ristoflow.AI
+// WHATSAPP WEBHOOK v8 — Ristoflow.AI
 // Riceve messaggi da Meta WhatsApp Business API e instrada:
 //   - solo ristorante  -> flusso prenotazione tavolo
 //   - solo hotel       -> link booking.html
@@ -100,6 +100,44 @@ async function sendText(phoneNumberId: string, token: string, to: string, body: 
   }
 }
 
+// Bottoni tap (max 3, id/title <=20 char) — piu' veloce e senza errori di digitazione
+async function sendButtons(
+  phoneNumberId: string,
+  token: string,
+  to: string,
+  body: string,
+  buttons: { id: string; title: string }[],
+): Promise<void> {
+  const r = await fetch(
+    `https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "interactive",
+        interactive: {
+          type: "button",
+          body: { text: body },
+          action: {
+            buttons: buttons.map((b) => ({
+              type: "reply",
+              reply: { id: b.id, title: b.title },
+            })),
+          },
+        },
+      }),
+    },
+  );
+  if (!r.ok) {
+    console.error("WA SEND BUTTONS error:", r.status, await r.text());
+  }
+}
+
 // ---------- UTILITA' DATE/ORE ----------
 function nowRome(): Date {
   return new Date(
@@ -165,8 +203,7 @@ function isNo(t: string): boolean {
 }
 
 // ---------- FLUSSO RISTORANTE ----------
-// Step: data -> ora -> coperti -> nome -> cognome -> intolleranze_check ->
-//       intolleranze_dett -> bambini_check -> bambini_dett -> altro -> conferma
+// Step: data -> ora -> coperti -> nome_cognome -> richieste -> conferma
 interface Sessione {
   id: string;
   numero_telefono: string;
@@ -261,99 +298,58 @@ async function gestisciFlussoRistorante(
         await reply("Scrivimi solo il numero di persone (es. _4_) 🙏");
         return;
       }
-      await salva("nome", { num_persone: n });
-      await reply("Perfetto! 👥\n\nQual è il tuo *nome*?");
+      await salva("nome_cognome", { num_persone: n });
+      await reply("Perfetto! 👥\n\nA nome di chi? (*nome e cognome*)");
       return;
     }
-    case "nome": {
+    case "nome_cognome": {
       if (t.length < 2) {
-        await reply("Scrivimi il tuo nome 🙏");
+        await reply("Scrivimi nome e cognome 🙏");
         return;
       }
-      await salva("cognome", { nome: t });
-      await reply(`Grazie ${t}! E il *cognome*?`);
+      const parti = t.split(/\s+/);
+      const nome = parti[0];
+      const cognome = parti.slice(1).join(" ") || "";
+      await salva("richieste", { nome, cognome, nome_completo: t });
+      await reply(
+        "Grazie! ✅\n\nCi sono *intolleranze, allergie, bambini* o altre richieste?\nScrivi pure tutto insieme, oppure _no_",
+      );
       return;
     }
-    case "cognome": {
-      if (t.length < 2) {
-        await reply("Scrivimi il tuo cognome 🙏");
-        return;
-      }
-      await salva("intolleranze_check", { cognome: t });
-      await reply("Ci sono *intolleranze o allergie* nel gruppo? (sì / no)");
-      return;
-    }
-    case "intolleranze_check": {
-      if (isSi(tLower)) {
-        await salva("intolleranze_dett", {});
-        await reply("Quali intolleranze/allergie? ✍️");
-        return;
-      }
-      if (isNo(tLower)) {
-        await salva("bambini_check", { intolleranze: null });
-        await reply("Ci sono *bambini*? (sì / no)");
-        return;
-      }
-      await reply("Rispondi *sì* oppure *no* 🙏");
-      return;
-    }
-    case "intolleranze_dett": {
-      await salva("bambini_check", { intolleranze: t });
-      await reply("Segnato! ✅\n\nCi sono *bambini*? (sì / no)");
-      return;
-    }
-    case "bambini_check": {
-      if (isSi(tLower)) {
-        await salva("bambini_dett", {});
-        await reply("Quanti bambini? Servono seggioloni? ✍️");
-        return;
-      }
-      if (isNo(tLower)) {
-        await salva("altro", { bambini: null });
-        await reply("Hai *altre richieste*? (scrivi pure, oppure _no_)");
-        return;
-      }
-      await reply("Rispondi *sì* oppure *no* 🙏");
-      return;
-    }
-    case "bambini_dett": {
-      await salva("altro", { bambini: t });
-      await reply("Perfetto! ✅\n\nHai *altre richieste*? (scrivi pure, oppure _no_)");
-      return;
-    }
-    case "altro": {
-      const altro = isNo(tLower) ? null : t;
-      const d = { ...dati, altro };
-      const note = [
-        d.intolleranze ? `Intolleranze: ${d.intolleranze}` : null,
-        d.bambini ? `Bambini: ${d.bambini}` : null,
-        d.altro ? `Note: ${d.altro}` : null,
-      ].filter(Boolean).join(" | ");
+    case "richieste": {
+      const note = isNo(tLower) ? null : t;
+      const d = { ...dati, note };
 
       const riepilogo =
         `📋 *Riepilogo prenotazione*\n\n` +
         `📅 Data: ${formatDataIT(d.data_prenotazione)}\n` +
         `⏰ Ora: ${d.ora_prenotazione}\n` +
         `👥 Persone: ${d.num_persone}\n` +
-        `👤 ${d.nome} ${d.cognome}\n` +
+        `👤 ${d.nome_completo}\n` +
         (note ? `📝 ${note}\n` : "") +
-        `\nConfermi? Rispondi:\n*1* = ✅ Conferma\n*2* = ❌ Annulla`;
+        `\nConfermi?`;
 
-      await salva("conferma", { altro, note });
-      await reply(riepilogo);
+      await salva("conferma", { note });
+      await sendButtons(conn.meta_phone_number_id, token, from, riepilogo, [
+        { id: "confirm", title: "✅ Conferma" },
+        { id: "cancel", title: "❌ Annulla" },
+      ]);
       return;
     }
     case "conferma": {
-      if (t === "1" || isSi(tLower)) {
-        const pren = await dbInsert("prenotazioni", {
+      const confermato = t === "1" || tLower === "confirm" || tLower.includes("conferma") || isSi(tLower);
+      const annullato = t === "2" || tLower === "cancel" || tLower.includes("annulla") || isNo(tLower);
+
+      if (confermato) {
+        const pren = await dbInsert("prenotazioni_tavoli", {
           azienda_id: conn.azienda_id,
           sede_id: conn.sede_id ?? null,
-          nome: dati.nome,
-          cognome: dati.cognome,
-          telefono: from,
-          data_prenotazione: dati.data_prenotazione,
-          ora_prenotazione: dati.ora_prenotazione,
-          num_persone: dati.num_persone,
+          cliente_nome: dati.nome_completo,
+          cognome: dati.cognome || null,
+          cliente_telefono: from,
+          data: dati.data_prenotazione,
+          ora: dati.ora_prenotazione,
+          coperti: dati.num_persone,
           note: dati.note || null,
           stato: "in_attesa",
           canale: "whatsapp",
@@ -372,7 +368,7 @@ async function gestisciFlussoRistorante(
               conn.meta_phone_number_id,
               conn.meta_access_token || WHATSAPP_TOKEN,
               ADMIN_WA_NUMBER,
-              `🔔 Nuova prenotazione WA:\n${dati.nome} ${dati.cognome} — ${formatDataIT(dati.data_prenotazione)} ${dati.ora_prenotazione} x${dati.num_persone}\nTel: ${from}${dati.note ? `\n${dati.note}` : ""}`,
+              `🔔 Nuova prenotazione WA:\n${dati.nome_completo} — ${formatDataIT(dati.data_prenotazione)} ${dati.ora_prenotazione} x${dati.num_persone}\nTel: ${from}${dati.note ? `\n${dati.note}` : ""}`,
             );
           }
         } else {
@@ -382,12 +378,15 @@ async function gestisciFlussoRistorante(
         }
         return;
       }
-      if (t === "2" || isNo(tLower)) {
+      if (annullato) {
         await dbDelete("chatbot_sessioni", `id=eq.${sess.id}`);
         await reply("Prenotazione annullata. ❌\nScrivimi quando vuoi per ricominciare!");
         return;
       }
-      await reply("Rispondi *1* per confermare o *2* per annullare 🙏");
+      await sendButtons(conn.meta_phone_number_id, token, from, "Confermi la prenotazione?", [
+        { id: "confirm", title: "✅ Conferma" },
+        { id: "cancel", title: "❌ Annulla" },
+      ]);
       return;
     }
     default: {
@@ -578,3 +577,4 @@ Deno.serve(async (req: Request) => {
 
   return new Response("Method not allowed", { status: 405 });
 });
+
