@@ -24,7 +24,7 @@ const PLATFORM_ONLY_PERMS = new Set([
   "audit.read"
 ]);
 
-function getRuolo() {
+export function getRuolo() {
   const raw = window.state?.viewAs || window.state?.ruolo;
   return window.normalizeRuolo ? window.normalizeRuolo(raw) : raw;
 }

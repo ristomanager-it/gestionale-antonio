@@ -11,9 +11,15 @@
 // - ricette_porzione
 // + ricette_output_secondari (coprodotti / rifili)
 // ============================================================
-import { requirePermessi } from "../auth-utils.js";
+import { requirePermessi, getRuolo } from "../auth-utils.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 import { caricaCostiOrari, caricaEnergia, calcolaCostiProduzione } from "../utils/costiProduzione.js";
+// Food cost (€ materia prima/manodopera/energia/porzione) visibile solo ad admin/superadmin,
+// non al manager: dato sensibile che l'azienda non vuole in mano a tutti i responsabili sala/cucina.
+function isAdminFoodCost() {
+  const r = String(getRuolo() || "").toLowerCase();
+  return r.includes("admin") || r === "superadmin"; // copre "admin" e "superadmin", esclude "manager"/"operatore"
+}
 let ricettaId = null;
 let ricettaCompilataConTony = false; // true se Tony ha compilato (chat/dettatura/foto)
 let impiattamentoCorrente = null;   // progetto di montaggio del piatto
@@ -1631,6 +1637,12 @@ export async function render(app) {
             </div>
 
             <div class="form-group">
+              <label>Porzioni previste *</label>
+              <input id="r-pezzi-base" type="number" step="1" min="0" class="input" placeholder="Es. 10" />
+              <div class="form-help">Quante porzioni rende questa sessione: è il numero da cui esce il food cost a porzione qui sopra. Se la ricetta è una base usata in più preparazioni diverse (una crema, un fondo) e non ha una resa fissa, metti un numero medio di riferimento: il costo a porzione sarà una stima, non un dato bloccante.</div>
+            </div>
+
+            <div class="form-group">
               <label>Aumento tempo cottura/abbattimento per dose in più (%)</label>
               <input id="r-scaling-tempo" type="number" step="1" min="0" class="input" placeholder="20" value="20" />
               <div class="form-help">Es. 20 = ogni dose oltre la prima aggiunge +20% al tempo di cottura/abbattimento (per gli avvisi HACCP). Solo cottura e abbattimento.</div>
@@ -2662,6 +2674,8 @@ function aggiornaOutputInfo() {
 function aggiornaFoodCostLive() {
   const prev = document.getElementById("r-cost-preview");
   if (!prev) return;
+  if (!isAdminFoodCost()) { prev.style.display = "none"; prev.innerText = ""; return; }
+  prev.style.display = "";
 
   const ingredientRows = [];
   document.querySelectorAll("#ingredienti-container .azienda-card").forEach(r => {
@@ -3083,6 +3097,8 @@ let _costiOrari = null, _energia = null, _lottoStandard = 10;
 async function aggiornaCostiProduzione() {
   const box = document.getElementById("costi-produzione");
   if (!box) return;
+  if (!isAdminFoodCost()) { box.style.display = "none"; box.innerHTML = ""; return; }
+  box.style.display = "";
   const supabase = window.supabaseClient;
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) return;
@@ -3109,7 +3125,7 @@ async function aggiornaCostiProduzione() {
 
   const c = calcolaCostiProduzione(fasi, {
     costi: _costiOrari, energia: _energia,
-    lotto: _lottoStandard, porzioni: Number(document.getElementById("r-porzioni")?.value) || 1,
+    lotto: _lottoStandard, porzioni: Number(document.getElementById("r-pezzi-base")?.value) || 1,
   });
 
   // materia prima dalle righe ingredienti: se correggi un prodotto, qui cambia subito
@@ -3131,7 +3147,7 @@ async function aggiornaCostiProduzione() {
   // Le quantita' degli ingredienti sono di TUTTA la sessione, non di una porzione:
   // se la resa non e' compilata si divideva per 1 e usciva il costo dell'intera
   // infornata spacciato per costo a porzione (il pollo a 29 € invece che a 2,90).
-  const porzioniResa = Math.max(Number(document.getElementById("r-porzioni")?.value) || 0, 0);
+  const porzioniResa = Math.max(Number(document.getElementById("r-pezzi-base")?.value) || 0, 0);
   const porzioniRicetta = porzioniResa > 0 ? porzioniResa : Math.max(Number(_lottoStandard) || 1, 1);
   const resaMancante = porzioniResa <= 0;
   const mpPorzione = mpTotale / porzioniRicetta;
@@ -3150,7 +3166,8 @@ async function aggiornaCostiProduzione() {
         <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:11px 13px;
                     margin-bottom:12px;font-size:12.5px;color:#7C2D12;line-height:1.5;">
           <b>Manca la resa della ricetta.</b> Sto dividendo per le porzioni per sessione (${porzioniRicetta}).
-          Compila <b>Porzioni</b> più in alto: è quel numero che rende esatto il food cost qui e in tutta l'app.
+          Compila <b>Porzioni previste</b> nella sezione Output (Resa) più in basso: è quel numero che rende esatto il food cost qui e in tutta l'app.
+          Se è una base senza resa fissa (usata in più preparazioni) va bene anche un numero medio di riferimento.
         </div>` : ""}
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
@@ -4010,8 +4027,12 @@ async function caricaRicettaCompleta() {
 
   const prev = document.getElementById("r-cost-preview");
   if (prev) {
-    const cm = ricetta.costo_materia_prima ?? 0;
-    prev.innerText = `Food cost (MP): € ${formatMoney(cm)} (snapshot)`;
+    if (!isAdminFoodCost()) { prev.style.display = "none"; prev.innerText = ""; }
+    else {
+      prev.style.display = "";
+      const cm = ricetta.costo_materia_prima ?? 0;
+      prev.innerText = `Food cost (MP): € ${formatMoney(cm)} (snapshot)`;
+    }
   }
 }
 
@@ -4605,10 +4626,14 @@ async function salvaTutto() {
 
   const prev = document.getElementById("r-cost-preview");
   if (prev) {
-    if (computed.ok) {
-      prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — Costo unitario output: € ${formatMoney(computed.costoUnitarioPrincipale)} / ${computed.baseUnitLabel}`;
-    } else {
-      prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — ${computed.warning || "Verifica unità output/ingredienti"}`;
+    if (!isAdminFoodCost()) { prev.style.display = "none"; prev.innerText = ""; }
+    else {
+      prev.style.display = "";
+      if (computed.ok) {
+        prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — Costo unitario output: € ${formatMoney(computed.costoUnitarioPrincipale)} / ${computed.baseUnitLabel}`;
+      } else {
+        prev.innerText = `Food cost (MP): € ${formatMoney(computed.costoTotaleInput)} — ${computed.warning || "Verifica unità output/ingredienti"}`;
+      }
     }
   }
 
