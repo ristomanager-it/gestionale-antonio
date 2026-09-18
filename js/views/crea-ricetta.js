@@ -5263,6 +5263,7 @@ function bindUI() {
   safeOn("btn-add-out2", "click", () => aggiungiOutputSecondario());
   safeOn("r-output-peso", "input", () => aggiornaFoodCostLive());
   safeOn("r-output-um", "change", () => aggiornaFoodCostLive());
+  safeOn("r-pezzi-base", "input", () => { aggiornaCostiProduzione(); aggiornaFoodCostLive(); });
   safeOn("btn-add-fase", "click", () =>
   aggiungiFase({
     tipo_fase: "preparazione",
