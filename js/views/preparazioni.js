@@ -201,6 +201,7 @@ export async function render(container) {
             <div style="font-size:13px;color:#64748b;margin-bottom:12px;">
               Registra i parametri di ogni fase prima di confermare la produzione. Il registro viene salvato insieme al lotto.
             </div>
+            <div id="haccp-firma-continue-wrap" style="display:none;margin-bottom:12px;"></div>
             <div id="haccp-fasi-list"></div>
 
             <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #e2e8f0;">
@@ -2663,6 +2664,25 @@ function renderFasiHaccp() {
   if (emptyEl) emptyEl.style.display = "none";
   wrap.style.display = "";
 
+  // Barra di firma unica per le fasi continue (preparazione/cottura senza riposo in mezzo)
+  const barra = document.getElementById("haccp-firma-continue-wrap");
+  if (barra) {
+    const nDaFirmare = idxFasiContinueDaFirmare().length;
+    if (nDaFirmare > 1) {
+      barra.style.display = "";
+      barra.innerHTML = `
+        <button type="button" id="btn-firma-continue" class="app-button" style="background:#0E5A7A;">
+          ✍️ Firma tutte le fasi continue (${nDaFirmare})
+        </button>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Un solo PIN per preparazione e cottura. Attesa, raffreddamento, confezionamento e conservazione restano firme a sé.</div>
+      `;
+      barra.querySelector("#btn-firma-continue")?.addEventListener("click", firmaFasiContinue);
+    } else {
+      barra.style.display = "none";
+      barra.innerHTML = "";
+    }
+  }
+
   /* Il blocco confezioni viene spostato dentro la fase di confezionamento in
      fondo a questa funzione. Ma qui sotto si riscrive innerHTML, che distrugge
      tutto quello che c'e' dentro: al secondo ridisegno il blocco spariva e
@@ -2979,6 +2999,28 @@ function firmaFaseHaccp(idx) {
   }
   if (!match) { alert("Inserisci prima il PIN operatore in alto ❌"); return; }
   if (log.firme.some((f) => String(f.operatore_id) === String(match.id))) { alert(match.nome + " ha già firmato questa fase."); return; }
+  applicaFirmaAIdx(idx, match);
+  renderFasiHaccp();
+  aggiornaAbilitazioneStampe();
+}
+
+/* Fasi "continue" (preparazione/cottura, senza un riposo/attesa/raffreddamento
+   in mezzo): firmate tutte insieme con un solo PIN invece di una alla volta,
+   richiesta di Antonio ("ogni 2 minuti tocca firmare"). Attesa, raffreddamento,
+   confezionamento, porzionatura e conservazione restano firmabili singolarmente:
+   sono i punti critici (CCP) con un loro orario/temperatura da tracciare a se'. */
+const TIPI_FASE_CONTINUA = ["preparazione", "cottura"];
+
+function idxFasiContinueDaFirmare() {
+  return logHaccp
+    .map((log, idx) => ({ log, idx, tipo: String(fasiCache[idx]?.tipo_fase || "").toLowerCase() }))
+    .filter((r) => TIPI_FASE_CONTINUA.includes(r.tipo) && (!Array.isArray(r.log.firme) || r.log.firme.length === 0))
+    .map((r) => r.idx);
+}
+
+function applicaFirmaAIdx(idx, match) {
+  const log = logHaccp[idx];
+  log.firme = Array.isArray(log.firme) ? log.firme : [];
   log.firme.push({ operatore_id: match.id ?? null, operatore_nome: match.nome, firmato_il: new Date().toISOString() });
   applicaFirmePrincipale(log);
 
@@ -3005,8 +3047,6 @@ function firmaFaseHaccp(idx) {
     log.ora_inizio = inizio || log.ora_fine;
   }
   calcolaHaccpDurata(idx);
-  renderFasiHaccp();
-  aggiornaAbilitazioneStampe();
 
   /* La firma va nel database SUBITO, non al salvataggio della produzione.
      Prima le firme restavano nel browser fino a "Registra produzione": il KDS
@@ -3043,6 +3083,26 @@ function firmaFaseHaccp(idx) {
   } catch (e) {
     console.warn("firma immediata saltata:", e);
   }
+}
+
+function firmaFasiContinue() {
+  const targets = idxFasiContinueDaFirmare();
+  if (!targets.length) { alert("Nessuna fase di preparazione/cottura da firmare."); return; }
+
+  let match = null;
+  if (operatoreRisolto?.id) {
+    match = dipendentiCache.find((d) => String(d.id) === String(operatoreRisolto.id)) || operatoreRisolto;
+  } else {
+    const pin = (prompt(`PIN di chi ha eseguito queste ${targets.length} fasi (preparazione/cottura):`, "") || "").trim();
+    if (!pin) return;
+    match = dipendentiCache.find((d) => (d.pin ?? "").toString() === pin);
+    if (!match) { alert("PIN non valido ❌"); return; }
+  }
+  if (!match) { alert("Inserisci prima il PIN operatore in alto ❌"); return; }
+
+  targets.forEach((idx) => applicaFirmaAIdx(idx, match));
+  renderFasiHaccp();
+  aggiornaAbilitazioneStampe();
 }
 
 function aggiornaAbilitazioneStampe() {
