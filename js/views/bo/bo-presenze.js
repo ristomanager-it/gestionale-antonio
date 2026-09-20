@@ -3,7 +3,15 @@
 // Filtri: sede, dipendente, periodo | Export: CSV, PDF, Stampa
 // GPS: blocco timbratura se assente o oltre raggio sede
 
+import { getRuolo } from "../../auth-utils.js";
+
 const supa = () => window.supabaseClient || window.supabase;
+
+// Correzione turni: solo admin/superadmin, tocca dati di costo del lavoro.
+function isAdminCorrezioni() {
+  const r = String(getRuolo() || '').toLowerCase();
+  return r.includes('admin') || r === 'superadmin';
+}
 
 function esc(v) {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -106,6 +114,7 @@ export async function render(container) {
             <button id="btn-export-pdf" class="pr-btn" style="background:#dc2626;color:white;">📄 PDF</button>
             <button id="btn-stampa" class="pr-btn" style="background:#374151;color:white;">🖨️ Stampa</button>
             <button id="btn-cartellino" class="pr-btn" style="background:#0E5A7A;color:white;">📋 Cartellino ore</button>
+            ${isAdminCorrezioni() ? `<button id="btn-add-timbratura" class="pr-btn" style="background:#16a34a;color:white;">➕ Aggiungi timbratura</button>` : ''}
           </div>
         </div>
 
@@ -385,6 +394,7 @@ export async function render(container) {
               <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;" class="pr-hide-mobile">GPS</th>
               <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;" class="pr-hide-mobile">Distanza sede</th>
               <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;" class="pr-hide-mobile">Canale</th>
+              ${isAdminCorrezioni() ? '<th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;" class="pr-no-print">Azioni</th>' : ''}
             </tr>
           </thead>
           <tbody>
@@ -421,6 +431,11 @@ export async function render(container) {
                   <td style="padding:9px 14px;" class="pr-hide-mobile">${gpsHtml}</td>
                   <td style="padding:9px 14px;" class="pr-hide-mobile">${distanzaHtml}</td>
                   <td style="padding:9px 14px;color:#64748b;" class="pr-hide-mobile">${esc(t.canale||'—')}</td>
+                  ${isAdminCorrezioni() ? `
+                  <td style="padding:9px 14px;white-space:nowrap;" class="pr-no-print">
+                    <button class="btn-edit-timb" data-id="${t.id}" title="Modifica" style="border:none;background:none;cursor:pointer;font-size:15px;">✏️</button>
+                    <button class="btn-del-timb" data-id="${t.id}" title="Elimina" style="border:none;background:none;cursor:pointer;font-size:15px;">🗑️</button>
+                  </td>` : ''}
                 </tr>
               `;
             }).join('')}
@@ -431,6 +446,124 @@ export async function render(container) {
         ${rows.length} timbrature — ${Object.keys(riepilogoCorrente).length} dipendenti
       </div>
     `;
+
+    if (isAdminCorrezioni()) {
+      tbl.querySelectorAll('.btn-edit-timb').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const row = timbratureCorrente.find(t => t.id === btn.dataset.id);
+          if (row) apriModalCorrezione(row);
+        });
+      });
+      tbl.querySelectorAll('.btn-del-timb').forEach(btn => {
+        btn.addEventListener('click', () => eliminaTimbratura(btn.dataset.id));
+      });
+    }
+  }
+
+  // ── Correzione turni (solo admin/superadmin) ────────────────
+  async function eliminaTimbratura(id) {
+    const row = timbratureCorrente.find(t => t.id === id);
+    if (!row) return;
+    const ok = confirm(`Eliminare questa timbratura?\n${esc(row.dip_nome)} — ${fmtData(row.timestamp)} ${fmtOra(row.timestamp)} (${row.tipo})\n\nNon si può annullare.`);
+    if (!ok) return;
+    const { error } = await supa().from('timbrature').delete().eq('id', id);
+    if (error) { alert('Errore: ' + error.message); return; }
+    await caricaDati();
+  }
+
+  function apriModalCorrezione(rowEsistente) {
+    const isNew = !rowEsistente;
+    const dipDefault = rowEsistente?.dipendente_id || filtroDipId || '';
+    const tsDefault = rowEsistente?.timestamp ? new Date(rowEsistente.timestamp) : new Date();
+    const dataDefault = tsDefault.toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+    const oraDefault = tsDefault.toLocaleTimeString('sv-SE', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).slice(0, 5);
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML = `
+      <div style="background:white;border-radius:14px;padding:20px;max-width:380px;width:100%;">
+        <div style="font-weight:700;font-size:15px;margin-bottom:14px;">${isNew ? '➕ Aggiungi timbratura' : '✏️ Modifica timbratura'}</div>
+
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Dipendente</label>
+        <select id="mc-dip" style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px;box-sizing:border-box;" ${!isNew ? 'disabled' : ''}>
+          ${(dipendenti || []).map(d => `<option value="${d.id}" ${d.id === dipDefault ? 'selected' : ''}>${esc(d.cognome)} ${esc(d.nome)}</option>`).join('')}
+        </select>
+
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Tipo</label>
+        <select id="mc-tipo" style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px;box-sizing:border-box;">
+          ${['inizio_turno', 'fine_turno', 'inizio_pausa', 'fine_pausa'].map(v =>
+            `<option value="${v}" ${rowEsistente?.tipo === v ? 'selected' : ''}>${{ inizio_turno: 'Inizio turno', fine_turno: 'Fine turno', inizio_pausa: 'Inizio pausa', fine_pausa: 'Fine pausa' }[v]}</option>`
+          ).join('')}
+        </select>
+
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <div style="flex:1;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Data</label>
+            <input type="date" id="mc-data" value="${dataDefault}" style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px;box-sizing:border-box;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Ora</label>
+            <input type="time" id="mc-ora" value="${oraDefault}" style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px;box-sizing:border-box;">
+          </div>
+        </div>
+
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Motivo correzione</label>
+        <input type="text" id="mc-nota" placeholder="Es. dimenticato di timbrare" style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:14px;box-sizing:border-box;">
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button id="mc-annulla" class="pr-btn" style="background:#f1f5f9;color:#374151;">Annulla</button>
+          <button id="mc-salva" class="pr-btn" style="background:#0E5A7A;color:white;">Salva</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelector('#mc-annulla').addEventListener('click', () => overlay.remove());
+
+    overlay.querySelector('#mc-salva').addEventListener('click', async () => {
+      const dipId = overlay.querySelector('#mc-dip').value;
+      const tipo = overlay.querySelector('#mc-tipo').value;
+      const dataVal = overlay.querySelector('#mc-data').value;
+      const oraVal = overlay.querySelector('#mc-ora').value;
+      const nota = overlay.querySelector('#mc-nota').value.trim();
+      if (!dipId || !dataVal || !oraVal) { alert('Compila dipendente, data e ora.'); return; }
+      if (!nota && isNew) { alert('Scrivi un motivo, resta in nota sulla correzione.'); return; }
+
+      // Ora locale Europe/Rome → ISO con offset, così il fuso è esplicito indipendentemente da dove gira il browser.
+      const offsetMin = -new Date(`${dataVal}T${oraVal}:00`).getTimezoneOffset();
+      const sign = offsetMin >= 0 ? '+' : '-';
+      const offH = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0');
+      const offM = String(Math.abs(offsetMin) % 60).padStart(2, '0');
+      const isoLocale = `${dataVal}T${oraVal}:00${sign}${offH}:${offM}`;
+
+      const dip = (dipendenti || []).find(d => d.id === dipId);
+      const payload = {
+        timestamp: isoLocale,
+        tipo,
+        corretta_manualmente: true,
+        corretta_da: window.state?.user?.id || null,
+        corretta_il: new Date().toISOString(),
+        nota_correzione: nota || null,
+        origine_correzione: 'admin',
+      };
+
+      let error;
+      if (isNew) {
+        ({ error } = await supa().from('timbrature').insert({
+          ...payload,
+          dipendente_id: dipId,
+          dip_nome: dip ? `${dip.nome} ${dip.cognome}` : null,
+          azienda_id: aziendaId,
+          sede_id: filtroSedeId || null,
+          canale: 'web',
+        }));
+      } else {
+        ({ error } = await supa().from('timbrature').update(payload).eq('id', rowEsistente.id));
+      }
+      if (error) { alert('Errore: ' + error.message); return; }
+      overlay.remove();
+      await caricaDati();
+    });
   }
 
   // ── Export CSV ──────────────────────────────────────────────
@@ -512,6 +645,9 @@ export async function render(container) {
   container.querySelector('#btn-export-pdf').addEventListener('click', () => stampaCartellino());
   container.querySelector('#btn-stampa').addEventListener('click', () => stampaCartellino());
   container.querySelector('#btn-cartellino').addEventListener('click', () => stampaCartellino());
+  if (isAdminCorrezioni()) {
+    container.querySelector('#btn-add-timbratura')?.addEventListener('click', () => apriModalCorrezione(null));
+  }
 
   // ── Cartellino ore: giorno per giorno + totale mese, tutti i dipendenti ──
   function stampaCartellino() {
