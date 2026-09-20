@@ -2246,6 +2246,40 @@ function setupCategoriaAutocomplete() {
   });
 }
 
+// Le foto scattate dal telefono possono pesare 3-4 MB: oltre quella soglia
+// Claude Vision rifiuta la richiesta (400) in meno di 2 secondi e in app
+// compare solo "Non sono riuscito a leggere la foto", senza dire perche'.
+// Ridimensiono qui prima di spedire, cosi' resta leggibile ma sotto il limite.
+function ridimensionaFotoTony(file, maxLato = 1600, qualita = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxLato || height > maxLato) {
+        if (width >= height) { height = Math.round(height * (maxLato / width)); width = maxLato; }
+        else { width = Math.round(width * (maxLato / height)); height = maxLato; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", qualita));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      // Non blocco il flusso se il ridimensionamento fallisce (es. HEIC non supportato
+      // da questo browser): riprovo con la lettura diretta, come prima.
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    };
+    img.src = url;
+  });
+}
+
 let _ultimaFotoPiatto = null;   // serve per rileggere la stessa foto con le precisazioni
 
 // Guarda la foto e capisce che domanda ce dietro: una cassa di pomodori
@@ -2255,12 +2289,7 @@ async function guardaEDecidi(file) {
   const set = (t) => { if (stato) stato.textContent = t; };
   set("👀 Guardo cosa ce nella foto…");
 
-  const b64 = await new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(String(r.result));
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
+  const b64 = await ridimensionaFotoTony(file);
 
   const supa = window.supabaseClient || window.supabase;
   const token = (await supa.auth.getSession())?.data?.session?.access_token || "";
@@ -2376,12 +2405,7 @@ async function compilaRicettaDaPiatto(file, note = "") {
   try {
     let b64 = _ultimaFotoPiatto;
     if (file) {
-      b64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(String(r.result));
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
+      b64 = await ridimensionaFotoTony(file);
       _ultimaFotoPiatto = b64;
     }
     if (!b64) { setStato("⚠️ Nessuna foto: scattane una o caricala."); return; }
@@ -2566,12 +2590,7 @@ async function compilaRicettaDaFoto(file) {
   if (btn) btn.disabled = true;
   setStato("📷 Leggo la ricetta dalla foto…");
   try {
-    const b64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(String(r.result));
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
+    const b64 = await ridimensionaFotoTony(file);
     const supa = window.supabaseClient || window.supabase;
     const token = (await supa.auth.getSession())?.data?.session?.access_token || "";
     const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-foto", {
