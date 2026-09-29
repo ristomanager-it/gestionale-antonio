@@ -20,7 +20,7 @@ const CASSA_CONFIG = {
   // Modalità simulazione scontrino: true = numero finto, nessuna scrittura in
   // coda_fiscale. L'IP/porta della stampante non sono più qui: vengono letti
   // da stampanti_fiscali (tabella azienda/sede) al momento dell'emissione.
-  simulazione: true,
+  simulazione: false,
 };
 
 // Permette di sovrascrivere la config leggendo dalle impostazioni della sede
