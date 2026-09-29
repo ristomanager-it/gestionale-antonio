@@ -191,11 +191,11 @@ export async function emettiScontrinoFiscale(doc) {
   const { data: riga, error: insErr } = await supabase.from('coda_fiscale').insert({
     azienda_id: aziendaId,
     sede_id: sedeId,
-    tipo_documento: 'commerciale',
+    tipo_documento: 'scontrino',
     righe: righeDb,
     metodo_pagamento: metodoPagamento,
     totale: Number(doc?.totale) || 0,
-    stato: 'in_coda',
+    stato: 'in_attesa',
     stampante_ip: stampante.ip,
     stampante_porta: stampante.porta,
   }).select('id').single();
@@ -214,7 +214,7 @@ export async function emettiScontrinoFiscale(doc) {
       .eq('id', riga.id)
       .single();
     if (!aggiornata) continue;
-    if (aggiornata.stato === 'stampato') {
+    if (aggiornata.stato === 'completato') {
       return { ok: true, numero_documento: aggiornata.numero_scontrino, simulato: false };
     }
     if (aggiornata.stato === 'errore') {
