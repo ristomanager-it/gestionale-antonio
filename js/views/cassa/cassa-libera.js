@@ -15,7 +15,7 @@
 // ATTENZIONE: import statico, il cache-busting di router.js (?v=APP_V) NON lo
 // raggiunge. Ad ogni modifica di cassa-hardware.js bumpare manualmente il
 // ?v=N qui sotto, altrimenti il browser tiene la versione vecchia in cache.
-import { avviaPagamentoCarta, emettiScontrinoFiscale, configuraCassa } from './cassa-hardware.js?v=1';
+import { avviaPagamentoCarta, emettiScontrinoFiscale, configuraCassa } from './cassa-hardware.js?v=2';
 
 // Il router chiama render(app). Recupero l'azienda dallo stato globale.
 export async function render(container) {
@@ -411,7 +411,11 @@ export async function renderCassaLibera(container, azienda) {
         pagamenti: [{ metodo: _metodoScelto, importo: t.totale }],
         azienda: aziendaId, sede: sedeId,
       });
-      esito.textContent = '✅ Incassato. Scontrino: ' + (scontrino.numero_documento || 'n/d') + (scontrino.simulato ? ' (simulato)' : '');
+      if (!scontrino.ok) {
+        esito.textContent = '⚠️ Incasso registrato ma scontrino fiscale NON stampato: ' + (scontrino.errore || 'errore sconosciuto') + ' — verifica la stampante.';
+      } else {
+        esito.textContent = '✅ Incassato. Scontrino: ' + (scontrino.numero_documento || 'n/d') + (scontrino.simulato ? ' (simulato)' : '');
+      }
       // 4) Reset dopo un attimo
       setTimeout(() => {
         carrello = [];
