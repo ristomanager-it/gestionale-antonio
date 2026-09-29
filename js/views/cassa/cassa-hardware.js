@@ -17,23 +17,15 @@
 const CASSA_CONFIG = {
   // Provider pagamento: 'sumup' | 'revolut' | 'nexi' | 'nessuno'
   paymentProvider: 'nessuno',
-  // Stampante fiscale
-  fiscalPrinter: {
-    enabled: false,
-    ip: '192.168.0.150',   // Epson FP-81 II RT (rete locale)
-    port: 9100,
-    model: 'FP-81-II-RT',
-  },
-  // Modalità simulazione: true finché non colleghi l'hardware reale
+  // Modalità simulazione scontrino: true = numero finto, nessuna scrittura in
+  // coda_fiscale. L'IP/porta della stampante non sono più qui: vengono letti
+  // da stampanti_fiscali (tabella azienda/sede) al momento dell'emissione.
   simulazione: true,
 };
 
 // Permette di sovrascrivere la config leggendo dalle impostazioni della sede
 export function configuraCassa(overrides = {}) {
   Object.assign(CASSA_CONFIG, overrides);
-  if (overrides.fiscalPrinter) {
-    Object.assign(CASSA_CONFIG.fiscalPrinter, overrides.fiscalPrinter);
-  }
   return { ...CASSA_CONFIG };
 }
 
@@ -110,21 +102,23 @@ async function _pagaNexi(euro, opts) {
 }
 
 // ============================================================================
-// 2) SCONTRINO FISCALE — Epson FP-81 II RT
+// 2) SCONTRINO FISCALE — Epson FP-81 II RT via coda_fiscale
 // ============================================================================
 //
-// La FP-81 II RT è un registratore telematico Epson. Si comanda via rete
-// (protocollo ePOS / XML su HTTP alla porta della stampante) oppure via un
-// bridge locale. Poiché una pagina web non può aprire una socket TCP grezza
-// verso la porta 9100, lo scenario reale è uno di questi:
-//   a) La stampante espone l'interfaccia ePOS-Print (HTTP/XML) → fetch diretto
-//   b) Un piccolo bridge locale (Raspberry/PC) riceve il JSON e parla con la
-//      stampante → si fa fetch al bridge
-//
-// Qui produciamo il "documento commerciale" in forma strutturata + una bozza
-// del payload XML ePOS, e in simulazione restituiamo un esito con numero
-// scontrino finto. Da collegare quando testi con la stampante reale.
+// La RT sta sulla rete locale della sede; questa pagina gira su HTTPS
+// (GitHub Pages), quindi un fetch diretto browser→stampante verrebbe
+// bloccato (mixed content) e comunque non funzionerebbe da remoto. Il
+// flusso reale è:
+//   1) L'app inserisce una riga in coda_fiscale con stato 'in_coda'
+//   2) Un agente sul Raspberry della sede fa polling su coda_fiscale, monta
+//      il comando XML e lo invia a fpmate.cgi sulla stampante (porta 80)
+//   3) L'agente riscrive la riga con stato 'stampato'/'errore' + numero
+//      documento
+//   4) Questa funzione fa polling sulla riga finché non cambia stato
 // ---------------------------------------------------------------------------
+
+const POLL_INTERVAL_MS = 1200;
+const POLL_TIMEOUT_MS = 20000;
 
 /**
  * Emette lo scontrino/documento commerciale.
@@ -132,91 +126,91 @@ async function _pagaNexi(euro, opts) {
  *    righe: [{descrizione, quantita, prezzo_unitario, aliquota_iva}],
  *    totale, pagamenti: [{metodo, importo}], sconto, azienda, sede
  * }
- * @returns {Promise<{ok:boolean, numero_documento?:string, simulato:boolean, xml?:string, errore?:string}>}
+ * @returns {Promise<{ok:boolean, numero_documento?:string, simulato:boolean, errore?:string}>}
  */
 export async function emettiScontrinoFiscale(doc) {
   const righe = Array.isArray(doc?.righe) ? doc.righe : [];
-  if (!righe.length) return { ok: false, simulato: true, errore: 'Nessuna riga da stampare' };
+  if (!righe.length) return { ok: false, simulato: false, errore: 'Nessuna riga da stampare' };
 
-  // Costruisco il payload ePOS-Print (bozza) — utile già ora per la stampante
-  const xml = _costruisciXmlEpos(doc);
-
-  // Simulazione: numero documento finto, nessuna stampa reale
-  if (CASSA_CONFIG.simulazione || !CASSA_CONFIG.fiscalPrinter.enabled) {
+  // Simulazione: numero documento finto, nessuna stampa reale.
+  // Lascio true di default: va sbloccata a mano quando si vuole davvero
+  // testare l'emissione reale dalla cassa (configuraCassa({simulazione:false})).
+  if (CASSA_CONFIG.simulazione) {
     await _attesa(400);
     return {
       ok: true,
       numero_documento: 'SIM-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*9999),
       simulato: true,
-      xml, // ritorno anche l'XML così lo puoi ispezionare
     };
   }
 
-  // >>> COLLEGARE QUI <<<  — invio reale alla stampante/bridge
-  try {
-    const url = 'http://' + CASSA_CONFIG.fiscalPrinter.ip + '/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000';
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '""' },
-      body: xml,
-    });
-    if (!res.ok) throw new Error('Stampante HTTP ' + res.status);
-    const testo = await res.text();
-    // TODO: parsare la risposta ePOS per estrarre numero documento ed esito reale
-    return { ok: true, numero_documento: _estraiNumeroDaRisposta(testo), simulato: false, xml };
-  } catch (e) {
-    return { ok: false, simulato: false, xml, errore: String(e?.message || e) };
-  }
-}
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = doc?.azienda;
+  const sedeId = doc?.sede || null;
+  if (!aziendaId) return { ok: false, simulato: false, errore: 'Azienda mancante' };
 
-// Costruisce il corpo XML ePOS-Print (bozza minima, da rifinire sul modello reale)
-function _costruisciXmlEpos(doc) {
-  const righe = doc?.righe || [];
-  let corpo = '';
-  for (const r of righe) {
-    const desc = _esc(r.descrizione || '');
-    const prezzo = (Number(r.prezzo_unitario) || 0).toFixed(2);
-    const qta = Number(r.quantita) || 1;
-    const iva = Number(r.aliquota_iva ?? 10);
-    // <printRecItem> è il comando tipico per una riga di vendita sui RT
-    corpo += '<printRecItem operator="1" description="' + desc + '" quantity="' + qta +
-             '" unitPrice="' + prezzo + '" department="1" justification="1" vatRate="' + iva + '"/>';
+  // Stampante fiscale attiva per l'azienda/sede
+  let q = supabase.from('stampanti_fiscali').select('ip, porta').eq('azienda_id', aziendaId).eq('attiva', true);
+  if (sedeId) q = q.eq('sede_id', sedeId);
+  const { data: stampante, error: stampErr } = await q.limit(1).maybeSingle();
+  if (stampErr || !stampante) {
+    return { ok: false, simulato: false, errore: 'Nessuna stampante fiscale attiva configurata per questa sede' };
   }
-  // Pagamenti
-  for (const p of (doc?.pagamenti || [])) {
-    const tipo = p.metodo === 'contanti' ? '0' : '2'; // 0=contanti, 2=carta (mappatura tipica)
-    const imp = (Number(p.importo) || 0).toFixed(2);
-    corpo += '<printRecTotal operator="1" description="' + _esc(p.metodo || '') + '" payment="' + imp + '" paymentType="' + tipo + '"/>';
-  }
-  return '<?xml version="1.0" encoding="utf-8"?>' +
-    '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body>' +
-    '<printerCommand>' +
-    '<beginFiscalReceipt operator="1"/>' +
-    corpo +
-    '<endFiscalReceipt operator="1"/>' +
-    '</printerCommand>' +
-    '</s:Body></s:Envelope>';
-}
 
-function _estraiNumeroDaRisposta(testo) {
-  // TODO: dipende dal formato di risposta della FP-81. Placeholder.
-  const m = String(testo || '').match(/receiptNumber="?(\d+)"?/i);
-  return m ? m[1] : ('RT-' + Date.now());
+  const righeDb = righe.map(r => ({
+    descrizione: r.descrizione || '',
+    quantita: Number(r.quantita) || 1,
+    prezzo_unitario: Number(r.prezzo_unitario) || 0,
+    aliquota_iva: Number(r.aliquota_iva ?? 10),
+  }));
+  const pagamenti = Array.isArray(doc?.pagamenti) ? doc.pagamenti : [];
+  const metodoPagamento = pagamenti[0]?.metodo || 'contanti';
+
+  const { data: riga, error: insErr } = await supabase.from('coda_fiscale').insert({
+    azienda_id: aziendaId,
+    sede_id: sedeId,
+    tipo_documento: 'commerciale',
+    righe: righeDb,
+    metodo_pagamento: metodoPagamento,
+    totale: Number(doc?.totale) || 0,
+    stato: 'in_coda',
+    stampante_ip: stampante.ip,
+    stampante_porta: stampante.porta,
+  }).select('id').single();
+
+  if (insErr || !riga) {
+    return { ok: false, simulato: false, errore: 'Scrittura coda fiscale fallita: ' + (insErr?.message || 'errore') };
+  }
+
+  // Polling sull'esito scritto dall'agente sul Raspberry
+  const scadenza = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < scadenza) {
+    await _attesa(POLL_INTERVAL_MS);
+    const { data: aggiornata } = await supabase
+      .from('coda_fiscale')
+      .select('stato, numero_scontrino, errore_msg')
+      .eq('id', riga.id)
+      .single();
+    if (!aggiornata) continue;
+    if (aggiornata.stato === 'stampato') {
+      return { ok: true, numero_documento: aggiornata.numero_scontrino, simulato: false };
+    }
+    if (aggiornata.stato === 'errore') {
+      return { ok: false, simulato: false, errore: aggiornata.errore_msg || 'Errore stampa fiscale' };
+    }
+  }
+  return { ok: false, simulato: false, errore: 'Timeout: documento ancora in coda, controlla il Raspberry/la stampante' };
 }
 
 // ============================================================================
 // UTILITÀ
 // ============================================================================
 function _attesa(ms) { return new Promise(r => setTimeout(r, ms)); }
-function _esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
 
 // Espongo la config in lettura per debug/UI
 export function statoCassaHardware() {
   return {
     pagamento: CASSA_CONFIG.paymentProvider,
-    stampante: CASSA_CONFIG.fiscalPrinter.enabled ? CASSA_CONFIG.fiscalPrinter.ip : 'disattivata',
     simulazione: CASSA_CONFIG.simulazione,
   };
 }
