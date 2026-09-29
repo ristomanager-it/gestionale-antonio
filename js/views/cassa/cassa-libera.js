@@ -417,7 +417,7 @@ export async function renderCassaLibera(container, azienda) {
         container.querySelector('#cl-modal').style.display = 'none';
         render();
         aggiornaSchermoCliente();
-      }, 1400);
+      }, 3500);
     };
   }
 
