@@ -149,11 +149,33 @@ export async function emettiScontrinoFiscale(doc) {
   const sedeId = doc?.sede || null;
   if (!aziendaId) return { ok: false, simulato: false, errore: 'Azienda mancante' };
 
-  // Stampante fiscale attiva per l'azienda/sede
-  let q = supabase.from('stampanti_fiscali').select('ip, porta').eq('azienda_id', aziendaId).eq('attiva', true);
-  if (sedeId) q = q.eq('sede_id', sedeId);
-  const { data: stampante, error: stampErr } = await q.limit(1).maybeSingle();
-  if (stampErr || !stampante) {
+  // Stampante fiscale attiva: prima cerco quella specifica della sede,
+  // poi in fallback quella registrata a livello azienda (sede_id null,
+  // es. "Tutte le sedi").
+  let stampante = null;
+  if (sedeId) {
+    const { data } = await supabase
+      .from('stampanti_fiscali')
+      .select('ip, porta')
+      .eq('azienda_id', aziendaId)
+      .eq('sede_id', sedeId)
+      .eq('attiva', true)
+      .limit(1)
+      .maybeSingle();
+    stampante = data;
+  }
+  if (!stampante) {
+    const { data } = await supabase
+      .from('stampanti_fiscali')
+      .select('ip, porta')
+      .eq('azienda_id', aziendaId)
+      .is('sede_id', null)
+      .eq('attiva', true)
+      .limit(1)
+      .maybeSingle();
+    stampante = data;
+  }
+  if (!stampante) {
     return { ok: false, simulato: false, errore: 'Nessuna stampante fiscale attiva configurata per questa sede' };
   }
 
