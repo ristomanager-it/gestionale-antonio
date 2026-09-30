@@ -78,6 +78,8 @@ def build_comanda(c, larg):
     out = INIT + CENTRO + DIM_2 + t(REPARTI.get(c.get("reparto"), str(c.get("reparto") or "").upper())) + b"\n"
     tav = c.get("tavolo")
     out += DIM_2 + t("TAVOLO " + str(tav) if tav else "BANCO") + b"\n" + DIM_1 + NORMALE
+    if c.get("via"):
+        out += b"\n" + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(" VIA " + str(c["via"]) + "a USCITA ") + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n\n"
     if c.get("coperti"):
         out += DIM_ALTO + t(str(c["coperti"]) + " coperti") + DIM_1 + b"\n"
     out += t(riga_dx(c.get("cameriere") or "", ora_locale(), larg)) + b"\n"
@@ -94,7 +96,7 @@ def build_comanda(c, larg):
         out += CENTRO + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(titolo) + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n\n" + SINISTRA
         out += righe_gruppo(gruppi[u], grande, larg)
     out += t("-" * larg) + b"\n"
-    if c.get("note"):
+    if c.get("note") and not c.get("via"):
         out += DIM_ALTO + GRASSETTO_ON + t(taglia(str(c["note"]), larg)) + GRASSETTO_OFF + DIM_1 + b"\n"
     out += TAGLIO
     return out

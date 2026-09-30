@@ -171,6 +171,7 @@ export async function render(container) {
               <div id="badge-uscita" style="background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:5px 10px;font-size:12px;color:#374151;font-weight:600;white-space:nowrap;">🍽️ Uscita 1</div>
               <button id="btn-nuova-uscita" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;">+ Nuova uscita</button>
               <button id="btn-invia-cucina" style="background:#16a34a;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">📤 Invia</button>
+              <button id="btn-via-uscita" style="display:none;background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:700;">🔔 Via</button>
               <button id="btn-preconto" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">🧾 Conto</button>
               <button id="btn-chiudi-comanda" style="background:#dc2626;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">✅ Chiudi</button>
             </div>
@@ -1471,6 +1472,7 @@ export async function render(container) {
   const COLORI_USCITA = ['#0E5A7A','#7c3aed','#16a34a','#dc2626','#f59e0b','#0891b2','#be185d'];
 
   function renderRighe() {
+    aggiornaBottoneVia();
     const box = container.querySelector('#righe-comanda');
     const righeAttive = righeComanda.filter(r => r.stato !== 'annullato');
     if (!righeAttive.length) {
@@ -1674,6 +1676,40 @@ export async function render(container) {
     }
   }
 
+  // ── VIA USCITA: il cameriere chiama in cucina la prossima uscita quando il tavolo è pronto ──
+  function prossimaUscitaDaChiamare() {
+    if (!comandaAttiva) return null;
+    const chiamata = Number(comandaAttiva.uscita_chiamata || 1);
+    const uscite = righeComanda
+      .filter(r => r.stato && r.stato !== 'in_attesa' && r.stato !== 'annullato')
+      .map(r => Number(r.uscita_numero || 1))
+      .filter(u => u > chiamata);
+    return uscite.length ? Math.min(...uscite) : null;
+  }
+
+  function aggiornaBottoneVia() {
+    const b = container.querySelector('#btn-via-uscita');
+    if (!b) return;
+    const n = prossimaUscitaDaChiamare();
+    b.style.display = n ? '' : 'none';
+    if (n) b.textContent = '🔔 Via ' + n + 'ª uscita';
+  }
+
+  async function chiamaUscita() {
+    const n = prossimaUscitaDaChiamare();
+    if (!n || !comandaAttiva) return;
+    const b = container.querySelector('#btn-via-uscita');
+    if (b) b.disabled = true;
+    const { error } = await supa().from('comande').update({ uscita_chiamata: n }).eq('id', comandaAttiva.id);
+    if (b) b.disabled = false;
+    if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
+    comandaAttiva.uscita_chiamata = n;
+    const righe = righeComanda.filter(r => Number(r.uscita_numero || 1) === n && r.stato && r.stato !== 'in_attesa' && r.stato !== 'annullato');
+    stampaComandaReparti(righe, false, { via: n, note: '*** VIA ' + n + 'a USCITA ***' });
+    mostraToast('🔔 Chiamata la ' + n + 'ª uscita in cucina', 'success');
+    aggiornaBottoneVia();
+  }
+
   async function inviaInCucina() {
     // Invia TUTTE le righe non ancora inviate, di qualsiasi uscita: la cucina riceve la comanda
     // completa e il foglio la divide per uscite (1a, 2a, …) nell'ordine giusto.
@@ -1730,6 +1766,7 @@ export async function render(container) {
             tavolo: tavolo?.nome || tavolo?.numero || null, coperti: comandaAttiva?.coperti || null,
             cameriere: cameriereAttivo?.nome || null, ristampa: !!ristampa, righe: perReparto[rep],
             note: extra?.note || null,
+            via: extra?.via || null,
           },
         });
       });
@@ -2761,6 +2798,7 @@ export async function render(container) {
   container.querySelector('#btn-refresh').onclick = () => loadAll();
   container.querySelector('#btn-back-tavoli').onclick = () => switchView('tavoli');
   container.querySelector('#btn-invia-cucina').onclick = () => inviaInCucina();
+  container.querySelector('#btn-via-uscita').onclick = () => chiamaUscita();
   container.querySelector('#btn-nuova-uscita').onclick = () => nuovaUscita();
   container.querySelector('#btn-preconto').onclick = () => mostraPreconto();
   container.querySelector('#btn-chiudi-comanda').onclick = () => chiudiComanda();
