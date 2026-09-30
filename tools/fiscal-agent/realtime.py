@@ -100,11 +100,12 @@ def ascolta():
 
 def main():
     print("Agente fiscale avviato, Realtime + riserva ogni", FALLBACK_SECONDS, "s", flush=True)
+    print("Filtro:", agent.filtro_coda() or "nessuno (prende tutti i documenti)", flush=True)
     threading.Thread(target=ascolta, daemon=True).start()
     while True:
         SVEGLIA.clear()
         try:
-            righe = agent.sb_get("coda_fiscale?stato=eq.in_attesa&order=created_at.asc&limit=5")
+            righe = agent.sb_get(agent.query_in_attesa())
             for riga in righe:
                 agent.elabora(riga)
             if len(righe) == 5:

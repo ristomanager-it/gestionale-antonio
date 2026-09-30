@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Agente fiscale Ristoflow v3.1 — legge coda_fiscale e stampa su Epson FP-81 II RT via fpmate.cgi
+Agente fiscale Ristoflow v3.2 — legge coda_fiscale e stampa su Epson FP-81 II RT via fpmate.cgi
 Stati validi: in_attesa, in_elaborazione, completato, errore
 Documenti: scontrino, fattura (= scontrino, la fattura elettronica si fa a parte),
            preconto (non fiscale), lettura_x, chiusura_z
@@ -24,6 +24,29 @@ SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SERVICE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 POLL_SECONDS = 3
 MAX_TENTATIVI = 3
+
+# Con più locali ogni Raspberry prende solo i documenti suoi. Tutti facoltativi (vuoti = prende tutto):
+#   RISTOFLOW_AZIENDA_ID  uuid dell'azienda
+#   RISTOFLOW_SEDE_ID     uuid della sede (i documenti senza sede restano validi)
+#   RISTOFLOW_STAMPANTI   IP delle stampanti di questo locale, separati da virgola
+AZIENDA_ID = os.environ.get("RISTOFLOW_AZIENDA_ID", "").strip()
+SEDE_ID = os.environ.get("RISTOFLOW_SEDE_ID", "").strip()
+STAMPANTI = [x.strip() for x in os.environ.get("RISTOFLOW_STAMPANTI", "").split(",") if x.strip()]
+
+
+def filtro_coda():
+    f = ""
+    if AZIENDA_ID:
+        f += "&azienda_id=eq." + AZIENDA_ID
+    if SEDE_ID:
+        f += "&or=(sede_id.eq." + SEDE_ID + ",sede_id.is.null)"
+    if STAMPANTI:
+        f += "&stampante_ip=in.(" + ",".join(STAMPANTI) + ")"
+    return f
+
+
+def query_in_attesa(limite=5):
+    return "coda_fiscale?stato=eq.in_attesa&order=created_at.asc&limit=" + str(limite) + filtro_coda()
 LARGHEZZA = 42          # caratteri per riga sul preconto
 # QR in fondo allo scontrino (coupon / link). Se la stampante rifiuta il QR,
 # il documento viene ristampato subito SENZA fondo: lo scontrino non si blocca mai per il QR.
@@ -335,7 +358,7 @@ def main():
     print("Agente fiscale avviato, polling ogni", POLL_SECONDS, "s")
     while True:
         try:
-            righe = sb_get("coda_fiscale?stato=eq.in_attesa&order=created_at.asc&limit=5")
+            righe = sb_get(query_in_attesa())
             for riga in righe:
                 elabora(riga)
         except urllib.error.URLError as e:
