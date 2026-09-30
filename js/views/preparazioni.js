@@ -1,6 +1,7 @@
 // FILE: js/pages/preparazioni.js
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 import { getStampanteEtichette, stampaEtichetteEpos } from "../modules/produzione/epos-etichette.js";
+import { inviaEtichetteLotto, stampanteEtichette as stampanteEtichetteBrother } from "../modules/produzione/etichette-lotto.js";
 
 /*
   PRODUZIONE (flusso industriale)
@@ -3981,8 +3982,41 @@ function buildTestoConservazione(scenarioId) {
     return `${tipo}${temp}${durata}`;
   }).join(" → ");
 }
+async function stampaEtichetteBrother() {
+  const supabase = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  const btn = document.getElementById("btn-print-etichettatrice");
+  const [{ data: etichetta }, { data: produttore }] = await Promise.all([
+    supabase.from("etichette").select("*").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata?.id).order("id", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", aziendaId).limit(1).maybeSingle(),
+  ]);
+  if (!etichetta) return alert("Manca la scheda etichetta di questa ricetta (ingredienti, allergeni, conservazione): senza, l'etichetta non è a norma.");
+  const scadenza = document.getElementById("prod-scadenza")?.value || null;
+  if (!scadenza) return alert("Manca la data di scadenza del lotto: impostala in Conservazione.");
+  const righe = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0 && r.kg_per_confezione > 0);
+  if (!righe.length) return alert("Nessuna confezione con peso e numero: aggiungile nel confezionamento.");
+  const info = { codice_lotto: lottoCorrente().codice_lotto || "", data_scadenza: scadenza };
+  if (btn) { btn.disabled = true; btn.textContent = "🖨️ Invio..."; }
+  let tot = 0;
+  try {
+    for (const r of righe) {
+      const peso = Math.round(r.kg_per_confezione * 1000);
+      const esito = await inviaEtichetteLotto({ etichetta, produttore: produttore || {}, info, peso, copie: r.numero_confezioni });
+      if (esito.motivo === "troppo_lungo") return alert("Il testo della scheda etichetta non entra nel 62x40 a norma: accorcia ingredienti o conservazione.");
+      if (!esito.ok) return alert("Errore invio etichette: " + esito.motivo);
+      tot += r.numero_confezioni;
+    }
+    alert("🏷 " + tot + " etichette inviate alla Brother.");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "🖨️ Stampa su etichettatrice"; }
+  }
+}
+
 async function stampaEtichetteSuEtichettatrice() {
   if (!lottoCorrente()) return alert("Registra o riprendi prima la produzione.");
+
+  // Brother 62x40 (via Raspberry): etichetta di legge, una per confezione, col peso della confezione
+  if (await stampanteEtichetteBrother()) { await stampaEtichetteBrother(); return; }
 
   const stampante = await getStampanteEtichette();
   if (!stampante) {
