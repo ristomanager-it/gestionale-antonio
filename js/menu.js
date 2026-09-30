@@ -375,8 +375,6 @@ export function initMenu() {
       title: "🪑 SALA",
       items: [
         { label: "🪑 Comande",           route: "bo-comande"         },
-        { label: "💳 Cassa libera",       route: "cassa-libera"       },
-        { label: "🧾 Chiusura cassa",     route: "chiusura-cassa"     },
         { label: "📅 Prenotazioni",      route: "prenotazioni"       },
         { label: "📋 Mansionario Sala",  route: "mansionario-sala"   },
         { label: "🗺️ Mappa Sala",       route: "sala"               },
@@ -428,6 +426,8 @@ export function initMenu() {
         key: "gestione",
         title: "GESTIONE",
         items: [
+          { label: "💳 Cassa",            route: "cassa-libera"      },
+          { label: "🧾 Chiusura cassa",   route: "chiusura-cassa"    },
           { label: "🧮 Ragioniere",       route: "bo-bilancio"       },
           { label: "🛒 Acquisti", route: "acquisti", children: [
             { label: "Fatture", route: "acquisti?tab=fatture" },

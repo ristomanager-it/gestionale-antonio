@@ -38,6 +38,10 @@ export async function renderCassaLibera(container, azienda) {
   let prodotti = [];
   let categoriaAttiva = null;   // null = tutte le categorie
   let incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
+  // Cassa unica: scheda Sala (tavoli, si incassa chi paga al banco) e scheda Banco (vendita al volo)
+  let modo = 'sala';
+  let tavoloAttivo = null;   // { comanda, tavolo } quando si incassa un tavolo dalla cassa
+  let sala = { tavoli: [], sale: [], salaSel: null, aperte: [], totali: {}, preconti: new Set(), errori: {}, incassatoOggi: 0, caricato: false };
 
   container.innerHTML = '<div class="view"><p style="color:#64748b;">Caricamento cassa…</p></div>';
 
@@ -68,6 +72,7 @@ export async function renderCassaLibera(container, azienda) {
     return 10;
   };
 
+  await caricaSala();
   render();
 
   function totali() {
@@ -91,14 +96,32 @@ export async function renderCassaLibera(container, azienda) {
     return { lordo: round2(lordo), sconto, totale, iva, imponibile: round2(totale - iva) };
   }
 
+  function barraSchede() {
+    const tab = (id, label) => '<button class="cl-tab" data-modo="' + id + '" style="padding:10px 18px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;'
+      + (modo === id ? 'background:#0E5A7A;color:#fff;' : 'background:#f1f5f9;color:#334155;') + '">' + label + '</button>';
+    return '<div style="display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:8px 10px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.06);">'
+      + tab('sala', '🪑 Sala') + tab('banco', '🛒 Banco')
+      + '<span style="margin-left:auto;font-size:12px;color:#64748b;">' + (modo === 'sala' ? 'Chi viene a pagare al banco' : 'Asporto, bar, caffè al banco') + '</span></div>';
+  }
+
   function render() {
+    if (modo === 'sala' && !tavoloAttivo) { renderSala(); return; }
     const t = totali();
+    const bannerTavolo = tavoloAttivo
+      ? '<div style="display:flex;align-items:center;gap:10px;background:#e0f2fe;border:1px solid #bae6fd;border-radius:12px;padding:10px 12px;margin-bottom:12px;">'
+        + '<button id="cl-torna-sala" style="border:none;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:700;color:#0E5A7A;">← Sala</button>'
+        + '<b style="color:#0E5A7A;">Tavolo ' + esc(tavoloAttivo.tavolo?.nome || '') + '</b>'
+        + '<span style="font-size:13px;color:#334155;">' + (tavoloAttivo.comanda.coperti ? tavoloAttivo.comanda.coperti + ' coperti · ' : '') + esc(tavoloAttivo.comanda.cliente_nome || '') + '</span>'
+        + '<span style="margin-left:auto;font-size:12px;color:#64748b;">Per modificare il conto usa Comande</span></div>'
+      : '';
     container.innerHTML = `
       <div class="view" style="max-width:1100px;margin:0 auto;">
+        ${barraSchede()}
+        ${bannerTavolo}
         <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
 
           <!-- Griglia prodotti -->
-          <div style="flex:1;min-width:300px;">
+          <div style="flex:1;min-width:300px;${tavoloAttivo ? 'display:none;' : ''}">
             <input id="cl-cerca" placeholder="Cerca prodotto…"
               style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:12px;font-size:15px;margin-bottom:10px;">
             <div id="cl-categorie" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;">
@@ -276,6 +299,12 @@ export async function renderCassaLibera(container, azienda) {
   }
 
   function rigaCarrello(r, i) {
+    if (tavoloAttivo) {
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;">'
+        + '<div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:#0f172a;">' + esc(r.nome) + '</div>'
+        + '<span style="font-size:13px;color:#64748b;">× ' + r.qta + '</span>'
+        + '<span style="min-width:64px;text-align:right;font-weight:700;">€ ' + (r.prezzo * r.qta).toFixed(2) + '</span></div>';
+    }
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;">
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.nome)}</div>
@@ -289,6 +318,14 @@ export async function renderCassaLibera(container, azienda) {
   }
 
   function collegaEventi() {
+    container.querySelectorAll('.cl-tab').forEach(b => b.onclick = () => {
+      if (incasso.busy) return;
+      if (tavoloAttivo) { tavoloAttivo = null; carrello = []; coupon = null; fidelityCliente = null; }
+      modo = b.dataset.modo;
+      if (modo === 'sala') caricaSala().then(render); else render();
+    });
+    const torna = container.querySelector('#cl-torna-sala');
+    if (torna) torna.onclick = () => { tavoloAttivo = null; carrello = []; coupon = null; fidelityCliente = null; modo = 'sala'; caricaSala().then(render); };
     // Aggiungi prodotto
     container.querySelectorAll('.cl-prod').forEach(b => b.onclick = () => {
       const p = prodotti.find(x => String(x.id) === b.dataset.id);
@@ -521,7 +558,7 @@ export async function renderCassaLibera(container, azienda) {
       const t = totali();
       incasso.busy = true;
       esito.textContent = '⏳ Stampo il preconto…';
-      const r = await emettiPreconto({ righe: righeDocumento(), totale: t.totale, sconto: t.sconto, azienda: aziendaId, sede: sedeId });
+      const r = await emettiPreconto(Object.assign({ righe: righeDocumento(), totale: t.totale, sconto: t.sconto, azienda: aziendaId, sede: sedeId }, datiTavolo()));
       incasso.busy = false;
       esito.textContent = r.ok ? '✅ Preconto stampato. Il conto resta aperto.' : '❌ Preconto non stampato: ' + (r.errore || 'errore');
     }
@@ -552,24 +589,51 @@ export async function renderCassaLibera(container, azienda) {
       out.textContent = '⏳ Stampo il preconto e chiudo…';
       const t = totali();
       const lordo = t.lordo;
-      const pre = await emettiPreconto({ righe: righeDocumento(), totale: lordo, azienda: aziendaId, sede: sedeId });
-      const reg = await registraVendita('non_fiscale', t, { nonFiscale: true });
+      const pre = await emettiPreconto(Object.assign({ righe: righeDocumento(), totale: lordo, azienda: aziendaId, sede: sedeId }, datiTavolo()));
+      const reg = tavoloAttivo
+        ? await chiudiComandaTavolo({ totale: lordo, metodo_pagamento: 'non_fiscale', tipo_documento: 'preconto' })
+        : await registraVendita('non_fiscale', t, { nonFiscale: true });
       if (!reg.ok) { incasso.busy = false; out.textContent = '❌ Chiusura NON registrata: ' + reg.errore; return; }
       const { error } = await supabase.from('chiusure_non_fiscali').insert({
         azienda_id: aziendaId, sede_id: sedeId, motivo: incasso.motivo,
         intestatario: incasso.motivo === 'addebito' ? intest : null,
-        totale: lordo, righe: righeDocumento(), canale: 'cassa_libera',
+        totale: lordo, righe: righeDocumento(), canale: tavoloAttivo ? 'cassa_tavolo' : 'cassa_libera',
+        comanda_uuid: tavoloAttivo ? tavoloAttivo.comanda.id : null,
         preconto_id: null,
         operatore_nome: window.state?.userProfile?.nome || window.state?.user?.email || null,
       });
       incasso.busy = false;
       if (error) { out.textContent = '⚠️ Magazzino scaricato ma motivo non salvato: ' + error.message; return; }
       out.textContent = (pre.ok ? '✅ Preconto stampato. ' : '⚠️ Preconto non stampato (' + (pre.errore || 'errore') + '). ') + 'Conto chiuso come ' + ({ addebito: 'addebito', omaggio: 'omaggio', personale: 'pasto del personale' })[incasso.motivo] + '.';
-      setTimeout(() => { carrello = []; coupon = null; fidelityCliente = null; $('#cl-modal').style.display = 'none'; render(); aggiornaSchermoCliente(); }, 2500);
+      dopoChiusura(2500);
     };
 
     function righeDocumento() {
-      return carrello.map(r => ({ descrizione: r.nome, quantita: r.qta, prezzo_unitario: r.prezzo, aliquota_iva: r.aliquota_iva }));
+      return carrello.filter(r => Number(r.prezzo) > 0)
+        .map(r => ({ descrizione: r.nome, quantita: r.qta, prezzo_unitario: r.prezzo, aliquota_iva: r.aliquota_iva }));
+    }
+    // Dati del tavolo da passare alla stampante (preconto/scontrino)
+    function datiTavolo() {
+      if (!tavoloAttivo) return {};
+      return { numero_tavolo: tavoloAttivo.tavolo?.nome || null, coperti: tavoloAttivo.comanda.coperti || null, comanda_uuid: tavoloAttivo.comanda.id };
+    }
+    // Chiude la comanda del tavolo (al posto di registrare una vendita al banco:
+    // il magazzino del tavolo è già stato scaricato quando il cameriere ha ordinato)
+    async function chiudiComandaTavolo(campi) {
+      const upd = Object.assign({ stato: 'chiusa', chiusa_at: new Date().toISOString(),
+        cameriere_chiusura: window.state?.userProfile?.nome || window.state?.user?.email || 'cassa' }, campi);
+      const { error } = await supabase.from('comande').update(upd).eq('id', tavoloAttivo.comanda.id);
+      return error ? { ok: false, errore: error.message } : { ok: true };
+    }
+    function dopoChiusura(ms) {
+      setTimeout(() => {
+        carrello = []; coupon = null; fidelityCliente = null;
+        const eraTavolo = !!tavoloAttivo;
+        tavoloAttivo = null;
+        $('#cl-modal').style.display = 'none';
+        if (eraTavolo) { modo = 'sala'; caricaSala().then(render); } else render();
+        aggiornaSchermoCliente();
+      }, ms);
     }
 
     async function confermaIncasso() {
@@ -603,7 +667,14 @@ export async function renderCassaLibera(container, azienda) {
             return;
           }
         }
-        const reg = await registraVendita(metodo, t);
+        const reg = tavoloAttivo
+          ? await chiudiComandaTavolo({
+              totale: t.totale, metodo_pagamento: metodo, tipo_documento: incasso.doc === 'fattura' ? 'fattura' : 'scontrino',
+              fattura_cf: cliente ? (cliente.partita_iva || cliente.codice_fiscale) : null,
+              fattura_ragione_sociale: cliente ? cliente.ragione_sociale : null,
+              promo_codice: coupon ? coupon.codice : null, promo_sconto: t.sconto > 0 ? t.sconto : null,
+            })
+          : await registraVendita(metodo, t);
         if (!reg.ok) { esito.textContent = 'Incasso NON registrato: ' + reg.errore + ' - segna il conto a mano e avvisa.'; return; }
         const puntiDati = await accreditaFidelity(t);
         if (puntiDati) esito.textContent = '⭐ +' + puntiDati + ' punti a ' + fidelityCliente.nome;
@@ -611,7 +682,7 @@ export async function renderCassaLibera(container, azienda) {
         if (cliente) await salvaClienteFatturazione(cliente);
 
         esito.textContent = '⏳ Stampo…';
-        const doc = await emettiDocumento({
+        const doc = await emettiDocumento(Object.assign({
           tipo: incasso.doc,
           righe: righeDocumento(),
           totale: t.totale,
@@ -619,7 +690,7 @@ export async function renderCassaLibera(container, azienda) {
           pagamenti: [{ metodo: metodo, importo: t.totale }],
           cliente: cliente || (intest ? { ragione_sociale: intest } : null),
           azienda: aziendaId, sede: sedeId,
-        });
+        }, datiTavolo()));
         if (!doc.ok) {
           esito.textContent = '⚠️ Incasso registrato ma documento NON stampato: ' + (doc.errore || 'errore sconosciuto') + ' — verifica la stampante.';
         } else {
@@ -627,11 +698,7 @@ export async function renderCassaLibera(container, azienda) {
           esito.textContent = '✅ Incassato. Scontrino: ' + (doc.numero_documento || 'n/d') + (doc.simulato ? ' (simulato)' : '')
             + (metodo === 'contanti' && resto > 0 ? ' · Resto € ' + (Math.round(resto * 100) / 100).toFixed(2) : '');
         }
-        setTimeout(() => {
-          carrello = []; coupon = null; fidelityCliente = null;
-          $('#cl-modal').style.display = 'none';
-          render(); aggiornaSchermoCliente();
-        }, 3500);
+        dopoChiusura(3500);
       } finally {
         incasso.busy = false;
       }
@@ -655,6 +722,144 @@ export async function renderCassaLibera(container, azienda) {
         }
       } catch (e) { console.warn('salvaClienteFatturazione', e); }
     }
+  }
+
+  // ── SCHEDA SALA ────────────────────────────────────────────────────────
+  async function caricaSala() {
+    try {
+      let qt = supabase.from('tavoli').select('id, nome, sala_id, pos_x, pos_y, forma, coperti_max, attivo').eq('azienda_id', aziendaId).eq('attivo', true);
+      if (sedeId) qt = qt.eq('sede_id', sedeId);
+      const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+      const [tRes, cRes, zRes] = await Promise.all([
+        qt.order('nome'),
+        supabase.from('comande').select('id, tavolo_id, coperti, cliente_nome, created_at, totale, stato')
+          .eq('azienda_id', aziendaId).in('stato', ['aperta', 'in_corso']),
+        supabase.from('coda_fiscale').select('comanda_uuid, tipo_documento, stato, totale, created_at')
+          .eq('azienda_id', aziendaId).gte('created_at', oggi.toISOString()),
+      ]);
+      sala.tavoli = tRes.data || [];
+      const idTavoli = new Set(sala.tavoli.map(t => String(t.id)));
+      sala.aperte = (cRes.data || []).filter(c => c.tavolo_id && idTavoli.has(String(c.tavolo_id)));
+      sala.sale = [...new Set(sala.tavoli.map(t => t.sala_id).filter(Boolean))];
+      if (sala.salaSel && !sala.sale.includes(sala.salaSel)) sala.salaSel = null;
+      // totali veri dalle righe (comande.totale può essere indietro)
+      sala.totali = {};
+      const ids = sala.aperte.map(c => c.id);
+      if (ids.length) {
+        const { data: righe } = await supabase.from('comanda_righe').select('comanda_id, prezzo_snapshot, quantita, stato').in('comanda_id', ids);
+        (righe || []).filter(r => r.stato !== 'annullato').forEach(r => {
+          sala.totali[r.comanda_id] = (sala.totali[r.comanda_id] || 0) + Number(r.prezzo_snapshot || 0) * Number(r.quantita || 1);
+        });
+      }
+      const docs = zRes.data || [];
+      sala.preconti = new Set(docs.filter(d => d.tipo_documento === 'preconto' && d.stato === 'completato' && d.comanda_uuid).map(d => String(d.comanda_uuid)));
+      sala.incassatoOggi = docs.filter(d => (d.tipo_documento === 'scontrino' || d.tipo_documento === 'fattura') && d.stato === 'completato')
+        .reduce((s, d) => s + Number(d.totale || 0), 0);
+      // tavoli chiusi oggi con scontrino finito in errore
+      sala.errori = {};
+      const errate = docs.filter(d => (d.tipo_documento === 'scontrino' || d.tipo_documento === 'fattura') && d.stato === 'errore' && d.comanda_uuid).map(d => d.comanda_uuid);
+      if (errate.length) {
+        const { data: ce } = await supabase.from('comande').select('id, tavolo_id').in('id', errate);
+        (ce || []).forEach(c => { if (c.tavolo_id) sala.errori[String(c.tavolo_id)] = true; });
+      }
+      sala.caricato = true;
+    } catch (e) {
+      console.warn('caricaSala', e);
+    }
+  }
+
+  function minutiDa(ts) {
+    if (!ts) return null;
+    const s = String(ts);
+    const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z');
+    const m = Math.round((Date.now() - d.getTime()) / 60000);
+    return (m >= 0 && m < 24 * 60) ? m : null;
+  }
+
+  function renderSala() {
+    if (!sala.caricato) {
+      container.innerHTML = '<div class="view" style="max-width:1100px;margin:0 auto;">' + barraSchede() + '<p style="color:#64748b;">Carico la sala…</p></div>';
+      collegaEventi();
+      caricaSala().then(render);
+      return;
+    }
+    const tavoliVis = sala.salaSel ? sala.tavoli.filter(t => t.sala_id === sala.salaSel) : sala.tavoli;
+    let coperti = 0, daIncassare = 0;
+    sala.aperte.forEach(c => { coperti += Number(c.coperti || 0); daIncassare += Number(sala.totali[c.id] || 0); });
+    const stile = {
+      libero: 'background:#f8fafc;border-color:#e2e8f0;color:#94a3b8;',
+      aperto: 'background:#e0f2fe;border-color:#0E5A7A;color:#0E5A7A;',
+      preconto: 'background:#fef3c7;border-color:#d97706;color:#92400e;',
+      errore: 'background:#fee2e2;border-color:#dc2626;color:#991b1b;',
+    };
+    const tavoliHtml = tavoliVis.map(t => {
+      const c = sala.aperte.find(x => String(x.tavolo_id) === String(t.id));
+      let st = 'libero', info = 'libero';
+      if (c) {
+        const tot = Number(sala.totali[c.id] || 0);
+        const min = minutiDa(c.created_at);
+        st = sala.preconti.has(String(c.id)) ? 'preconto' : 'aperto';
+        info = (c.coperti ? c.coperti + ' pers · ' : '') + '€ ' + tot.toFixed(2)
+          + (st === 'preconto' ? '<br>📋 preconto' : (min != null ? '<br>' + (min >= 60 ? Math.floor(min / 60) + ' h ' + (min % 60) : min + ' min') : ''));
+      } else if (sala.errori[String(t.id)]) {
+        st = 'errore'; info = '⚠ scontrino<br>non stampato';
+      }
+      const tondo = String(t.forma || '').toLowerCase().includes('tond') || String(t.forma || '').toLowerCase().includes('rotond');
+      return '<button class="cl-tavolo" data-tavolo="' + t.id + '" style="position:absolute;left:' + (Number(t.pos_x) || 0) + '%;top:' + (Number(t.pos_y) || 0) + '%;'
+        + 'width:clamp(64px,10%,104px);aspect-ratio:1;border:2px solid;border-radius:' + (tondo ? '50%' : '14px') + ';' + stile[st]
+        + 'display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:13px;cursor:pointer;padding:4px;line-height:1.2;">'
+        + '<span>' + esc(t.nome || '') + '</span><span style="font-size:10px;font-weight:600;">' + info + '</span></button>';
+    }).join('');
+    const selSala = sala.sale.length > 1
+      ? '<select id="cl-sala-sel" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;"><option value="">Tutte le sale</option>'
+        + sala.sale.map((id, i) => '<option value="' + id + '"' + (id === sala.salaSel ? ' selected' : '') + '>Sala ' + (i + 1) + '</option>').join('') + '</select>'
+      : '';
+    const leg = (st, l) => '<span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:14px;height:14px;border-radius:4px;border:2px solid;display:inline-block;' + stile[st] + '"></i>' + l + '</span>';
+    const box = (v, l) => '<div style="background:#fff;border-radius:12px;padding:10px 12px;box-shadow:0 1px 2px rgba(0,0,0,.06);"><b style="font-size:18px;">' + v + '</b><div style="font-size:12px;color:#64748b;">' + l + '</div></div>';
+    container.innerHTML = '<div class="view" style="max-width:1100px;margin:0 auto;">' + barraSchede()
+      + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' + selSala
+      + '<button id="cl-sala-agg" style="margin-left:auto;border:1px solid #e2e8f0;background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;">↻ Aggiorna</button></div>'
+      + (sala.tavoli.length
+          ? '<div style="position:relative;background:#fff;border-radius:14px;aspect-ratio:4/3;min-height:340px;box-shadow:0 1px 2px rgba(0,0,0,.06);overflow:hidden;">' + tavoliHtml + '</div>'
+          : '<div style="background:#fff;border-radius:14px;padding:24px;color:#64748b;">Nessun tavolo per questa sede. Si configurano in Mappa Sala.</div>')
+      + '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:8px;">'
+      + leg('libero', 'Libero') + leg('aperto', 'Aperto') + leg('preconto', 'Preconto stampato') + leg('errore', 'Chiuso, scontrino non stampato') + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:10px;">'
+      + box(sala.aperte.length, 'tavoli aperti') + box(coperti, 'coperti in sala')
+      + box('€ ' + daIncassare.toFixed(2), 'da incassare') + box('€ ' + sala.incassatoOggi.toFixed(2), 'incassato oggi') + '</div>'
+      + '<div id="cl-sala-msg" style="font-size:13px;color:#64748b;margin-top:10px;min-height:18px;">Tocca un tavolo aperto per incassarlo qui.</div>'
+      + '</div>';
+    collegaEventi();
+    const agg = container.querySelector('#cl-sala-agg');
+    if (agg) agg.onclick = () => caricaSala().then(render);
+    const ss = container.querySelector('#cl-sala-sel');
+    if (ss) ss.onchange = () => { sala.salaSel = ss.value || null; render(); };
+    container.querySelectorAll('.cl-tavolo').forEach(b => b.onclick = () => apriTavoloInCassa(b.dataset.tavolo));
+  }
+
+  async function apriTavoloInCassa(tavoloId) {
+    const msg = container.querySelector('#cl-sala-msg');
+    const c = sala.aperte.find(x => String(x.tavolo_id) === String(tavoloId));
+    const t = sala.tavoli.find(x => String(x.id) === String(tavoloId));
+    if (!c) {
+      if (msg) msg.textContent = sala.errori[String(tavoloId)]
+        ? '⚠ L\'ultimo conto di ' + (t?.nome || 'questo tavolo') + ' è chiuso ma lo scontrino non è uscito: lo trovi in Chiusura cassa.'
+        : (t?.nome || 'Il tavolo') + ' è libero: si apre da Comande.';
+      return;
+    }
+    const { data: righe, error } = await supabase.from('comanda_righe')
+      .select('prodotto_vendita_id, nome_snapshot, prezzo_snapshot, quantita, stato').eq('comanda_id', c.id);
+    if (error) { if (msg) msg.textContent = '❌ ' + error.message; return; }
+    const pmap = new Map(prodotti.map(p => [String(p.id), p]));
+    carrello = (righe || []).filter(r => r.stato !== 'annullato').map(r => {
+      const p = pmap.get(String(r.prodotto_vendita_id));
+      return { prodotto_id: r.prodotto_vendita_id, nome: r.nome_snapshot, prezzo: Number(r.prezzo_snapshot) || 0, qta: Number(r.quantita) || 1, aliquota_iva: p ? ivaDi(p) : 10 };
+    });
+    if (!carrello.length) { if (msg) msg.textContent = (t?.nome || 'Il tavolo') + ' è aperto ma senza righe.'; return; }
+    coupon = null; fidelityCliente = null;
+    tavoloAttivo = { comanda: c, tavolo: t };
+    render();
+    aggiornaSchermoCliente();
   }
 
   // ── Verifica coupon (riusata da modal e scanner cliente) ──
