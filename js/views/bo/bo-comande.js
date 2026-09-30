@@ -4,7 +4,7 @@
 
 // ATTENZIONE: import statico, il ?v=APP_V del router non lo raggiunge.
 // Ad ogni modifica di cassa-hardware.js bumpare a mano il ?v=N qui sotto.
-import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=4';
+import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=5';
 
 const supa = () => window.supabaseClient || window.supabase;
 

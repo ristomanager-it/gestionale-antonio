@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Gratta e scopri</title>
+<style>
+  :root { --blu:#0E5A7A; --oro:#d97706; --testo:#0f172a; --grigio:#64748b; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:#f1f5f9; color:var(--testo); }
+  .top { background:var(--blu); color:#fff; padding:calc(14px + env(safe-area-inset-top,0px)) 18px 14px; font-weight:700; font-size:16px; }
+  .wrap { max-width:460px; margin:0 auto; padding:18px 16px calc(28px + env(safe-area-inset-bottom,0px)); }
+  .card { background:#fff; border-radius:18px; padding:18px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  h1 { font-size:21px; margin:0 0 6px; }
+  .sub { color:#475569; font-size:14px; margin:0 0 14px; line-height:1.45; }
+  .gratta { position:relative; height:190px; border-radius:16px; overflow:hidden; background:#fffbeb; border:2px dashed var(--oro); touch-action:none; user-select:none; }
+  .gratta .sotto { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; }
+  .gratta .sotto .k { font-size:13px; color:#92400e; }
+  .gratta .sotto .p { font-size:24px; font-weight:800; color:#78350f; margin-top:4px; }
+  .gratta canvas { position:absolute; inset:0; width:100%; height:100%; cursor:pointer; }
+  .meta { text-align:center; color:var(--grigio); font-size:12.5px; margin-top:10px; }
+  .premio { border:2px dashed var(--oro); background:#fffbeb; border-radius:16px; padding:16px; text-align:center; }
+  .premio .p { font-size:24px; font-weight:800; color:#78350f; margin:4px 0; }
+  .premio .d { font-size:13px; color:#92400e; }
+  label.f { display:block; font-size:12.5px; font-weight:600; color:#334155; margin:12px 0 4px; }
+  input.f { width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:10px; font-size:16px; }
+  .chk { display:flex; gap:10px; align-items:flex-start; font-size:13px; color:#334155; margin-top:12px; line-height:1.4; }
+  .chk input { width:20px; height:20px; flex:none; margin:0; }
+  .btn { display:block; width:100%; margin-top:16px; background:var(--blu); color:#fff; border:0; border-radius:12px; padding:15px; font-size:16px; font-weight:700; }
+  .btn:disabled { opacity:.6; }
+  .err { color:#b91c1c; font-size:13.5px; margin-top:10px; min-height:18px; }
+  #qr { display:flex; justify-content:center; margin:12px 0 6px; }
+  .cod { font-family:ui-monospace,Menlo,monospace; font-size:20px; font-weight:800; letter-spacing:2px; }
+  .reg { font-size:11.5px; color:var(--grigio); margin-top:14px; line-height:1.45; white-space:pre-line; }
+  .nascosto { display:none; }
+</style>
+</head>
+<body>
+<div class="top" id="locale">🎁 Gratta e scopri</div>
+<div class="wrap">
+
+  <!-- 1. Gratta -->
+  <div class="card nascosto" id="s-gratta">
+    <h1>Il tuo scontrino nasconde un premio</h1>
+    <p class="sub">Gratta con il dito e scopri cosa hai vinto.</p>
+    <div class="gratta" id="area">
+      <div class="sotto"><div class="k">Hai vinto</div><div class="p" id="g-premio"></div></div>
+      <canvas id="velo"></canvas>
+    </div>
+    <div class="meta" id="g-meta"></div>
+  </div>
+
+  <!-- 2. Premio + dati per salvarlo -->
+  <div class="card nascosto" id="s-dati">
+    <div class="premio">
+      <div class="d">Hai vinto</div>
+      <div class="p" id="d-premio"></div>
+      <div class="d" id="d-validita"></div>
+    </div>
+    <p class="sub" style="margin-top:14px;"><b>Salva il premio per usarlo</b> alla prossima visita.</p>
+    <label class="f" for="nome">Nome</label>
+    <input class="f" id="nome" autocomplete="given-name">
+    <label class="f" for="tel">Telefono</label>
+    <input class="f" id="tel" type="tel" inputmode="tel" autocomplete="tel">
+    <label class="f" for="email">Email (facoltativa)</label>
+    <input class="f" id="email" type="email" autocomplete="email">
+    <label class="chk"><input type="checkbox" id="privacy"> <span>Acconsento al trattamento dei miei dati per ricevere e usare il premio (obbligatorio).</span></label>
+    <label class="chk"><input type="checkbox" id="mkt"> <span>Voglio ricevere promozioni e auguri di compleanno (facoltativo).</span></label>
+    <button class="btn" id="salva">Salva il mio premio</button>
+    <div class="err" id="d-err"></div>
+  </div>
+
+  <!-- 3. Premio salvato -->
+  <div class="card nascosto" id="s-ok">
+    <div class="premio">
+      <div class="d" id="o-titolo">Il tuo premio è salvato</div>
+      <div class="p" id="o-premio"></div>
+      <div class="d" id="o-scad"></div>
+      <div id="qr"></div>
+      <div class="cod" id="o-cod"></div>
+    </div>
+    <p class="sub" style="margin-top:14px;text-align:center;">Mostralo in cassa alla prossima visita. Fai uno screenshot di questa pagina per averlo sempre con te.</p>
+  </div>
+
+  <!-- Messaggi -->
+  <div class="card nascosto" id="s-msg"><h1 id="m-tit"></h1><p class="sub" id="m-txt"></p></div>
+
+  <div class="reg" id="regolamento"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+const TOKEN = new URLSearchParams(location.search).get('t') || '';
+const $ = (id) => document.getElementById(id);
+
+async function rpc(nome, body) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + nome, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return r.ok ? r.json() : { errore: 'rete' };
+}
+
+function mostra(id) {
+  ['s-gratta', 's-dati', 's-ok', 's-msg'].forEach((x) => $(x).classList.toggle('nascosto', x !== id));
+}
+
+function messaggio(tit, txt) { $('m-tit').textContent = tit; $('m-txt').textContent = txt; mostra('s-msg'); }
+
+function euro(n) { return n == null ? '' : Number(n).toFixed(2).replace('.', ',') + ' €'; }
+
+let dati = null;
+
+function vaiAiDati() {
+  $('d-premio').textContent = dati.premio;
+  $('d-validita').textContent = 'alla prossima visita · valido ' + (dati.validita_giorni || 30) + ' giorni dal salvataggio';
+  mostra('s-dati');
+}
+
+function mostraSalvato() {
+  $('o-premio').textContent = dati.premio;
+  $('o-scad').textContent = dati.stato === 'utilizzato' ? 'Premio già usato' : ('valido fino al ' + (dati.scadenza || ''));
+  if (dati.stato === 'utilizzato') $('o-titolo').textContent = 'Premio usato';
+  $('o-cod').textContent = dati.codice || '';
+  $('qr').innerHTML = '';
+  if (window.QRCode && dati.codice && dati.promo_id) {
+    new QRCode($('qr'), { text: 'https://app.ristoflow-ai.com/promo.html?id=' + dati.promo_id + '&c=' + dati.codice + '&ty=1', width: 180, height: 180 });
+  }
+  mostra('s-ok');
+}
+
+// Velo da grattare: si apre da solo quando e' stato grattato circa il 45%
+function preparaGratta() {
+  const cv = $('velo'), area = $('area');
+  const r = area.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = r.width * dpr; cv.height = r.height * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const g = ctx.createLinearGradient(0, 0, r.width, r.height);
+  g.addColorStop(0, '#94a3b8'); g.addColorStop(0.5, '#cbd5e1'); g.addColorStop(1, '#94a3b8');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, r.width, r.height);
+  ctx.fillStyle = '#475569'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center';
+  ctx.fillText('GRATTA QUI', r.width / 2, r.height / 2 + 7);
+  ctx.globalCompositeOperation = 'destination-out';
+  let giu = false, finito = false;
+  const punto = (e) => {
+    const b = cv.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e;
+    return [t.clientX - b.left, t.clientY - b.top];
+  };
+  const gratta = (e) => {
+    if (!giu || finito) return; e.preventDefault();
+    const [x, y] = punto(e);
+    ctx.beginPath(); ctx.arc(x, y, 22, 0, Math.PI * 2); ctx.fill();
+  };
+  const controlla = () => {
+    if (finito) return;
+    const img = ctx.getImageData(0, 0, cv.width, cv.height).data;
+    let vuoti = 0;
+    for (let i = 3; i < img.length; i += 64) if (img[i] === 0) vuoti++;
+    if (vuoti / (img.length / 64) > 0.45) {
+      finito = true; cv.style.transition = 'opacity .5s'; cv.style.opacity = '0';
+      setTimeout(vaiAiDati, 1300);
+    }
+  };
+  cv.addEventListener('pointerdown', (e) => { giu = true; gratta(e); });
+  cv.addEventListener('pointermove', gratta);
+  window.addEventListener('pointerup', () => { if (giu) { giu = false; controlla(); } });
+  cv.addEventListener('touchstart', (e) => { giu = true; gratta(e); }, { passive: false });
+  cv.addEventListener('touchmove', gratta, { passive: false });
+  cv.addEventListener('touchend', () => { giu = false; controlla(); });
+}
+
+$('salva').onclick = async () => {
+  const nome = $('nome').value.trim(), tel = $('tel').value.trim(), email = $('email').value.trim();
+  $('d-err').textContent = '';
+  if (!nome) { $('d-err').textContent = 'Scrivi il tuo nome.'; return; }
+  if (tel.replace(/\D/g, '').length < 8) { $('d-err').textContent = 'Scrivi un numero di telefono valido.'; return; }
+  if (!$('privacy').checked) { $('d-err').textContent = 'Serve il consenso per salvare il premio.'; return; }
+  const btn = $('salva'); btn.disabled = true; btn.textContent = 'Salvo…';
+  const r = await rpc('gratta_salva', { p_token: TOKEN, p_nome: nome, p_telefono: tel, p_email: email || null, p_marketing: $('mkt').checked });
+  btn.disabled = false; btn.textContent = 'Salva il mio premio';
+  if (r.errore) { $('d-err').textContent = r.errore === 'dati_mancanti' ? 'Controlla nome e telefono.' : 'Non riesco a salvare ora. Riprova tra poco.'; return; }
+  dati = r; mostraSalvato();
+};
+
+(async function avvio() {
+  if (!TOKEN) { messaggio('QR non valido', 'Inquadra il QR stampato sul tuo scontrino.'); return; }
+  const r = await rpc('gratta_scopri', { p_token: TOKEN });
+  if (r.locale) { $('locale').textContent = '🎁 ' + r.locale; document.title = 'Gratta e scopri · ' + r.locale; }
+  if (r.errore === 'scaduto') { messaggio('QR scaduto', 'Questo scontrino andava inquadrato entro pochi giorni dall\u2019emissione. Ti aspettiamo per il prossimo!'); return; }
+  if (r.errore) { messaggio('QR non valido', 'Non troviamo questo scontrino. Inquadra di nuovo il QR stampato.'); return; }
+  dati = r;
+  if (r.regolamento) $('regolamento').textContent = r.regolamento;
+  if (r.salvato) { mostraSalvato(); return; }
+  $('g-premio').textContent = r.premio;
+  $('g-meta').textContent = 'Scontrino del ' + (r.data || '') + (r.importo ? ' · ' + euro(r.importo) : '');
+  mostra('s-gratta');
+  requestAnimationFrame(preparaGratta);
+})();
+</script>
+</body>
+</html>

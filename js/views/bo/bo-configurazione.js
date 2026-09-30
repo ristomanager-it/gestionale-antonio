@@ -426,6 +426,8 @@ export async function render(container) {
       + '<option value="nessuno"' + (c.qr_tipo === 'nessuno' ? ' selected' : '') + '>Nessun QR</option>'
       + '<option value="coupon"' + (c.qr_tipo === 'coupon' ? ' selected' : '') + '>Coupon per la prossima visita (unico, si usa una volta)</option>'
       + '<option value="link"' + (c.qr_tipo === 'link' ? ' selected' : '') + '>Link (recensione Google, fidelity, sito…)</option>'
+      + '<option value="promo"' + (c.qr_tipo === 'promo' ? ' selected' : '') + '>🎟️ Promo da scaricare (il cliente lascia i dati e scarica il coupon)</option>'
+      + '<option value="gratta"' + (c.qr_tipo === 'gratta' ? ' selected' : '') + '>🎁 Gratta e scopri (ogni scontrino un premio, in base alla spesa)</option>'
       + '</select>'
       + '<div id="fs-coupon" style="display:none;">'
       + '<label style="' + lab + '">Promo da regalare</label>'
@@ -433,9 +435,10 @@ export async function render(container) {
       + '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px;color:#64748b;">Nessuna adatta? Crea al volo: '
       + '<input id="fs-nuova-perc" type="number" min="1" max="100" class="input" placeholder="%" style="width:70px;">'
       + '<button id="fs-nuova" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px;">Crea "Torna a trovarci"</button></div>'
-      + '<label style="' + lab + '">Valido per giorni</label>'
-      + '<input id="fs-giorni" type="number" min="1" max="365" class="input" value="' + (c.validita_giorni || 30) + '" style="width:120px;">'
+      + '<div id="fs-giorni-wrap"><label style="' + lab + '">Valido per giorni</label>'
+      + '<input id="fs-giorni" type="number" min="1" max="365" class="input" value="' + (c.validita_giorni || 30) + '" style="width:120px;"></div>'
       + '</div>'
+      + '<div id="fs-gratta" style="display:none;"></div>'
       + '<div id="fs-link" style="display:none;">'
       + '<label style="' + lab + '">Indirizzo del link</label>'
       + '<input id="fs-url" class="input" placeholder="https://…" value="' + esc(c.qr_url || '') + '" style="width:100%;box-sizing:border-box;">'
@@ -452,7 +455,11 @@ export async function render(container) {
     const $ = function (id) { return wrap.querySelector(id); };
     function mostra() {
       const t = $('#fs-tipo').value;
-      $('#fs-coupon').style.display = t === 'coupon' ? '' : 'none';
+      $('#fs-coupon').style.display = (t === 'coupon' || t === 'promo') ? '' : 'none';
+      $('#fs-giorni-wrap').style.display = t === 'coupon' ? '' : 'none';
+      $('#fs-nuova').parentElement.style.display = t === 'coupon' ? 'flex' : 'none';
+      $('#fs-gratta').style.display = t === 'gratta' ? '' : 'none';
+      if (t === 'gratta') renderGratta($('#fs-gratta'));
       $('#fs-link').style.display = t === 'link' ? '' : 'none';
       $('#fs-testo-wrap').style.display = t === 'nessuno' ? 'none' : '';
     }
@@ -477,13 +484,18 @@ export async function render(container) {
       const esito = $('#fs-esito');
       if (righe.length > 3 || righe.some(function (x) { return x.length > 40; })) { esito.style.color = '#dc2626'; esito.textContent = 'Massimo 3 righe da 40 caratteri'; return; }
       const tipo = $('#fs-tipo').value;
-      if (tipo === 'coupon' && !$('#fs-promo').value) { esito.style.color = '#dc2626'; esito.textContent = 'Scegli la promo da regalare'; return; }
+      if ((tipo === 'coupon' || tipo === 'promo') && !$('#fs-promo').value) { esito.style.color = '#dc2626'; esito.textContent = 'Scegli la promo'; return; }
+      if (tipo === 'gratta') {
+        const { data: pr } = await supa().from('gratta_premi').select('id, is_base').eq('azienda_id', aziendaId).eq('attivo', true);
+        if (!(pr || []).length) { esito.style.color = '#dc2626'; esito.textContent = 'Aggiungi almeno un premio'; return; }
+        if (!(pr || []).some(function (x) { return x.is_base; })) { esito.style.color = '#dc2626'; esito.textContent = 'Serve un premio base (quello che esce se non esce altro)'; return; }
+      }
       if (tipo === 'link' && !/^https?:\/\//.test(($('#fs-url').value || '').trim())) { esito.style.color = '#dc2626'; esito.textContent = 'Il link deve iniziare con https://'; return; }
       const payload = {
         azienda_id: aziendaId,
         saluto: righe.join('\n') || null,
         qr_tipo: tipo,
-        promo_id: tipo === 'coupon' ? $('#fs-promo').value : null,
+        promo_id: (tipo === 'coupon' || tipo === 'promo') ? $('#fs-promo').value : null,
         validita_giorni: Math.min(365, Math.max(1, Number($('#fs-giorni').value) || 30)),
         qr_url: tipo === 'link' ? $('#fs-url').value.trim() : null,
         qr_testo: ($('#fs-testo').value || '').trim() || null,
@@ -492,6 +504,146 @@ export async function render(container) {
       const { error } = await supa().from('cassa_impostazioni').upsert(payload, { onConflict: 'azienda_id' });
       esito.style.color = error ? '#dc2626' : '#16a34a';
       esito.textContent = error ? '❌ ' + (error.message.includes('row-level') ? 'Solo un admin può modificare' : error.message) : '✅ Salvato: vale dal prossimo scontrino';
+    };
+  }
+
+  // ── GRATTA E SCOPRI: il cliente sceglie il premio, Tony costruisce la promo ──
+  // Estrazione (lato server): dal premio piu' costoso al meno; esce "1 su N" se lo scontrino
+  // arriva alla spesa minima e il tetto del mese non e' finito; altrimenti il premio base.
+  const GS_ESEMPI = [20, 40, 60, 100, 150];
+  function gsSuggerisci(costo, base) {
+    if (base) return { spesa_minima: 0, uno_su: null, tetto_mese: null };
+    if (costo <= 2) return { spesa_minima: 20, uno_su: 5, tetto_mese: null };
+    if (costo <= 5) return { spesa_minima: 30, uno_su: 6, tetto_mese: null };
+    if (costo <= 10) return { spesa_minima: 40, uno_su: 8, tetto_mese: null };
+    if (costo <= 20) return { spesa_minima: 50, uno_su: 25, tetto_mese: 10 };
+    return { spesa_minima: 100, uno_su: 200, tetto_mese: 2 };
+  }
+  function gsCostoMedio(premi, spesa) {
+    let resto = 1, tot = 0;
+    premi.filter(function (p) { return p.attivo && !p.is_base && p.uno_su; })
+      .sort(function (a, b) { return Number(b.costo_reale) - Number(a.costo_reale); })
+      .forEach(function (p) { if (spesa >= Number(p.spesa_minima)) { const pr = resto / p.uno_su; tot += pr * Number(p.costo_reale); resto -= pr; } });
+    const base = premi.find(function (p) { return p.attivo && p.is_base; });
+    if (base) tot += resto * Number(base.costo_reale);
+    return tot;
+  }
+
+  async function renderGratta(box) {
+    box.innerHTML = '<div style="font-size:13px;color:#64748b;margin-top:12px;">Carico i premi…</div>';
+    const [{ data: premi }, { data: prodotti }] = await Promise.all([
+      supa().from('gratta_premi').select('*').eq('azienda_id', aziendaId).order('costo_reale', { ascending: false }),
+      supa().from('prodotti_vendita').select('nome, prezzo_base, costo_produzione').eq('azienda_id', aziendaId).limit(2000),
+    ]);
+    const lista = premi || [];
+    const inp = 'padding:6px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;width:74px;';
+    const righe = lista.map(function (p) {
+      return '<tr data-id="' + p.id + '" style="border-top:1px solid #f1f5f9;' + (p.attivo ? '' : 'opacity:.5;') + '">'
+        + '<td style="padding:6px 4px;"><b>' + esc(p.nome) + '</b>' + (p.is_base ? ' <span style="font-size:11px;background:#e0f2fe;color:#0369a1;border-radius:6px;padding:1px 6px;">base</span>' : '')
+        + (p.promo_id ? '' : ' <span style="font-size:11px;color:#dc2626;">senza promo</span>') + '</td>'
+        + '<td><input class="gs-c" data-k="costo_reale" type="number" step="0.1" value="' + Number(p.costo_reale) + '" style="' + inp + '"></td>'
+        + '<td>' + (p.is_base ? '—' : '<input class="gs-c" data-k="spesa_minima" type="number" step="1" value="' + Number(p.spesa_minima) + '" style="' + inp + '">') + '</td>'
+        + '<td>' + (p.is_base ? 'il resto' : '<input class="gs-c" data-k="uno_su" type="number" min="1" step="1" value="' + (p.uno_su || '') + '" style="' + inp + '">') + '</td>'
+        + '<td>' + (p.is_base ? '—' : '<input class="gs-c" data-k="tetto_mese" type="number" min="1" step="1" value="' + (p.tetto_mese || '') + '" placeholder="—" style="' + inp + '">') + '</td>'
+        + '<td style="white-space:nowrap;"><input class="gs-attivo" type="checkbox"' + (p.attivo ? ' checked' : '') + ' title="Attivo"> '
+        + '<button class="gs-del" title="Elimina" style="border:none;background:#fef2f2;color:#dc2626;border-radius:6px;padding:4px 8px;cursor:pointer;">✕</button></td></tr>';
+    }).join('');
+    const sim = GS_ESEMPI.map(function (sp) {
+      const c = gsCostoMedio(lista, sp);
+      return '<div style="background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:12.5px;">Scontrino ' + sp + ' € → <b>' + c.toFixed(2).replace('.', ',') + ' €</b> (' + (c / sp * 100).toFixed(1).replace('.', ',') + '%)</div>';
+    }).join('');
+    box.innerHTML = '<div style="margin-top:14px;border-top:1px solid #e5e7eb;padding-top:12px;">'
+      + '<div style="font-weight:700;font-size:14px;">Premi</div>'
+      + '<div style="font-size:12px;color:#64748b;margin:2px 0 8px;">Tutti buoni da usare qui alla visita successiva. Il premio si estrae dal più costoso al meno: esce "1 su N" se lo scontrino arriva alla spesa minima; se non esce niente, arriva il premio base.</div>'
+      + (lista.length ? '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="color:#64748b;font-size:11.5px;text-align:left;"><th>Premio</th><th>Costo reale €</th><th>Spesa minima €</th><th>Esce 1 su</th><th>Tetto/mese</th><th></th></tr>' + righe + '</table></div>'
+        : '<div style="font-size:13px;color:#b45309;background:#fffbeb;border-radius:8px;padding:8px 10px;">Nessun premio: aggiungi il primo qui sotto. Serve anche un premio base (es. caffè omaggio).</div>')
+      + '<div style="margin-top:10px;font-size:12px;font-weight:600;color:#64748b;">Quanto ti costa in media (costo reale, se tutti usano il premio)</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' + sim + '</div>'
+      + '<div style="margin-top:14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:12px;">'
+      + '<div style="font-weight:700;font-size:13.5px;color:#5b21b6;">✨ Aggiungi un premio: tu scegli, Tony crea la promo</div>'
+      + '<input id="gs-nome" list="gs-prodotti" class="input" placeholder="Cosa regali? Es. Dolce della casa, Bottiglia di vino, Sconto 10%" style="width:100%;box-sizing:border-box;margin-top:8px;">'
+      + '<datalist id="gs-prodotti">' + (prodotti || []).map(function (x) { return '<option value="' + esc(x.nome) + '"></option>'; }).join('') + '</datalist>'
+      + '<div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;font-size:13px;">Costo reale per te € <input id="gs-costo" type="number" step="0.1" min="0" class="input" style="width:90px;">'
+      + '<label style="display:flex;gap:6px;align-items:center;"><input id="gs-base" type="checkbox"> premio base</label></div>'
+      + '<button id="gs-crea" style="margin-top:10px;background:linear-gradient(135deg,#7c3aed,#0E5A7A);color:white;border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;">✨ Tony crea il premio</button>'
+      + '<span id="gs-esito" style="font-size:12.5px;margin-left:8px;"></span></div>'
+      + '<div style="margin-top:10px;font-size:11.5px;color:#92400e;">⚖️ Solo buoni e sconti da usare in questo locale alla visita successiva (DPR 430/2001, art. 6 lett. c-bis): niente denaro, oggetti o servizi di altri.</div>'
+      + '</div>';
+
+    const q = function (s) { return box.querySelector(s); };
+    q('#gs-nome').addEventListener('change', function () {
+      const pv = (prodotti || []).find(function (x) { return x.nome.toLowerCase() === q('#gs-nome').value.trim().toLowerCase(); });
+      if (pv && Number(pv.costo_produzione) > 0 && !q('#gs-costo').value) q('#gs-costo').value = Number(pv.costo_produzione).toFixed(2);
+    });
+    box.querySelectorAll('.gs-c').forEach(function (el) {
+      el.addEventListener('change', async function () {
+        const id = el.closest('tr').dataset.id, k = el.dataset.k;
+        const v = el.value === '' ? null : Number(el.value);
+        const upd = {}; upd[k] = (k === 'costo_reale' || k === 'spesa_minima') ? (v || 0) : v;
+        await supa().from('gratta_premi').update(upd).eq('id', id);
+        renderGratta(box);
+      });
+    });
+    box.querySelectorAll('.gs-attivo').forEach(function (el) {
+      el.addEventListener('change', async function () {
+        await supa().from('gratta_premi').update({ attivo: el.checked }).eq('id', el.closest('tr').dataset.id);
+        renderGratta(box);
+      });
+    });
+    box.querySelectorAll('.gs-del').forEach(function (el) {
+      el.addEventListener('click', async function () {
+        if (!confirm('Eliminare questo premio? I premi già vinti restano validi.')) return;
+        await supa().from('gratta_premi').delete().eq('id', el.closest('tr').dataset.id);
+        renderGratta(box);
+      });
+    });
+
+    q('#gs-crea').onclick = async function () {
+      const nome = q('#gs-nome').value.trim();
+      const esitoG = q('#gs-esito');
+      const base = q('#gs-base').checked;
+      if (!nome) { esitoG.style.color = '#dc2626'; esitoG.textContent = 'Scrivi cosa regali'; return; }
+      const mSconto = nome.match(/sconto\s*(\d{1,2})\s*%/i);
+      let costo = Number(q('#gs-costo').value);
+      if (!(costo > 0) && mSconto) costo = Math.round(Number(mSconto[1]) * 0.6 * 100) / 100; // % sullo scontrino medio di 60 €
+      if (!(costo >= 0) || q('#gs-costo').value === '' && !mSconto) { esitoG.style.color = '#dc2626'; esitoG.textContent = 'Scrivi il costo reale (quanto ti costa davvero)'; return; }
+      const btn = q('#gs-crea'); btn.disabled = true; btn.textContent = '⏳ Tony sta creando la promo…'; esitoG.textContent = '';
+      try {
+        const azNome = window.state?.azienda?.nome || '';
+        const richiesta = 'Crea la promo per un premio del "Gratta e scopri" stampato sullo scontrino. Premio: ' + nome + '. '
+          + 'È un buono da usare alla prossima visita nello stesso locale, una sola volta, valido 30 giorni dal salvataggio. '
+          + 'Nome breve e invitante, descrizione di una o due frasi per il cliente che lo ha appena vinto. '
+          + 'Regolamento breve: premio non convertibile in denaro, non cumulabile con altre promo, valido solo presso ' + azNome + ' alla visita successiva; '
+          + 'iniziativa esclusa dalla disciplina dei concorsi e delle operazioni a premio ai sensi dell\'art. 6, comma 1, lettera c-bis del DPR 430/2001.';
+        let gen = null;
+        try {
+          const { data } = await supa().functions.invoke('assistente-ai', { body: { messages: [{ role: 'user', content: richiesta }], azienda_id: aziendaId, azienda: azNome, tipo_messaggio: 'genera_promo' } });
+          const testo = String(data?.reply || data?.content || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+          try { gen = JSON.parse(testo); } catch (e) { const a = testo.indexOf('{'), b = testo.lastIndexOf('}'); if (a >= 0 && b > a) { try { gen = JSON.parse(testo.slice(a, b + 1)); } catch (e2) {} } }
+        } catch (e) { /* Tony non disponibile: promo essenziale */ }
+        const promo = {
+          azienda_id: aziendaId, canale: 'gratta', attiva: true,
+          nome: (gen && gen.nome) || nome,
+          descrizione: (gen && gen.descrizione) || ('Hai vinto: ' + nome + '. Ti aspettiamo alla prossima visita!'),
+          tipo: mSconto ? 'sconto_percentuale' : 'omaggio', valore: mSconto ? Number(mSconto[1]) : 0,
+          validita_giorni: 30,
+          regolamento: (gen && gen.regolamento) || ('Premio non convertibile in denaro e non cumulabile con altre promozioni. Valido una sola volta presso ' + azNome + ' alla visita successiva, entro 30 giorni dal salvataggio. Iniziativa esclusa dalla disciplina dei concorsi e delle operazioni a premio (DPR 430/2001, art. 6, c. 1, lett. c-bis).'),
+          messaggio_scadenza: (gen && gen.messaggio_scadenza) || null,
+          messaggio_reminder: (gen && gen.messaggio_reminder) || null,
+          privacy_richiesta: true, consenso_marketing: true,
+        };
+        const { data: pr, error: e1 } = await supa().from('promo').insert(promo).select('id').single();
+        if (e1) throw e1;
+        const sug = gsSuggerisci(costo, base);
+        const { error: e2 } = await supa().from('gratta_premi').insert(Object.assign({
+          azienda_id: aziendaId, promo_id: pr.id, nome: nome, costo_reale: costo || 0, is_base: base, attivo: true,
+        }, sug));
+        if (e2) throw e2;
+        renderGratta(box);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = '✨ Tony crea il premio';
+        esitoG.style.color = '#dc2626'; esitoG.textContent = '❌ ' + (err.message || err);
+      }
     };
   }
 

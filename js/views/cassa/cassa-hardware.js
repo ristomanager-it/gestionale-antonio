@@ -274,7 +274,7 @@ export async function emettiDocumento(doc) {
   // Fondo scontrino (saluto + QR coupon/link) da Configurazione › Cassa. Mai bloccante.
   if (tipo === 'scontrino' || tipo === 'fattura') {
     try {
-      const { data: fine } = await supabase.rpc('prepara_fine_scontrino', { p_azienda: aziendaId });
+      const { data: fine } = await supabase.rpc('prepara_fine_scontrino', { p_azienda: aziendaId, p_importo: Number(doc?.totale) || 0 });
       if (fine) record.fine_scontrino = fine;
     } catch (e) { /* senza fondo */ }
   }
