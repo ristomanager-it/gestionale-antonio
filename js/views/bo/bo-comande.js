@@ -1399,17 +1399,24 @@ export async function render(container) {
     const cat = categorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id));
     const catNome = (cat?.nome || '').toLowerCase();
 
-    const rule = Object.entries(UPSELL_RULES).find(([k]) => catNome.includes(k));
-    if (!rule) return; // nessuna regola → non mostrare
+    let frase, catTarget, catCross, catT, catC;
+    const configurate = Array.isArray(cat?.upsell_categorie) ? cat.upsell_categorie.map(String) : [];
+    if (configurate.length) {
+      // Regola decisa dal ristoratore in Menu › Categorie
+      catT = categorieVendita.find(c => String(c.id) === configurate[0]) || null;
+      catC = configurate[1] ? (categorieVendita.find(c => String(c.id) === configurate[1]) || null) : null;
+      frase = cat.upsell_frase || 'Posso proporre anche…';
+      catTarget = catT?.nome || ''; catCross = catC?.nome || '';
+    } else {
+      const rule = Object.entries(UPSELL_RULES).find(([k]) => catNome.includes(k));
+      if (!rule) return; // nessuna regola → non mostrare
+      ({ frase, catTarget, catCross } = rule[1]);
+      catT = categorieVendita.find(c => c.nome === catTarget);
+      catC = categorieVendita.find(c => c.nome === catCross);
+    }
 
-    const [, { frase, catTarget, catCross }] = rule;
-
-    // Trova prodotti delle due categorie
-    const catT = categorieVendita.find(c => c.nome === catTarget);
-    const catC = categorieVendita.find(c => c.nome === catCross);
-
-    const prodUp1 = catT ? prodottiVendita.filter(p => String(p.categoria_vendita_id) === String(catT.id)).slice(0, 4) : [];
-    const prodUp2 = catC ? prodottiVendita.filter(p => String(p.categoria_vendita_id) === String(catC.id)).slice(0, 3) : [];
+    const prodUp1 = catT ? prodottiVendita.filter(p => String(p.categoria_vendita_id) === String(catT.id) && p.disponibile !== false).slice(0, 4) : [];
+    const prodUp2 = catC ? prodottiVendita.filter(p => String(p.categoria_vendita_id) === String(catC.id) && p.disponibile !== false).slice(0, 3) : [];
 
     if (!prodUp1.length && !prodUp2.length) return;
 
@@ -1556,6 +1563,7 @@ export async function render(container) {
                 <div style="flex:1;min-width:0;">
                   <div style="font-size:13px;font-weight:500;color:#0f172a;">${esc(r.nome_snapshot)}</div>
                   ${r.note ? `<div style="font-size:11px;color:#64748b;">${esc(r.note)}</div>` : ''}
+                  ${(r.aggiunte || []).length ? `<div style="font-size:11px;color:#15803d;">${r.aggiunte.map(a => '+ ' + esc(a.nome)).join(', ')}</div>` : ''}
                   ${r.cameriere ? `<div style="font-size:10px;color:#94a3b8;">${esc(r.cameriere)}</div>` : ''}
                 </div>
                 <div style="display:flex;align-items:center;gap:4px;">
@@ -1713,6 +1721,17 @@ export async function render(container) {
     const liberaIniziale = [...scelte].filter(x => !tutteChip.has(x.toLowerCase())).join(', ');
     let uscitaScelta = Number(riga.uscita_numero || 1);
 
+    // Aggiunte a pagamento: quelle della categoria del piatto + quelle già sulla riga
+    const pvRiga = riga.prodotto_vendita_id ? prodottiVendita.find(p => String(p.id) === String(riga.prodotto_vendita_id)) : null;
+    const catRiga = pvRiga ? categorieVendita.find(c => String(c.id) === String(pvRiga.categoria_vendita_id)) : null;
+    const aggiunteDisp = [];
+    const pushAgg = (a) => { if (a && a.nome && !aggiunteDisp.some(x => x.nome.toLowerCase() === String(a.nome).toLowerCase())) aggiunteDisp.push({ nome: String(a.nome), prezzo: Number(a.prezzo) || 0 }); };
+    (Array.isArray(catRiga?.aggiunte) ? catRiga.aggiunte : []).forEach(pushAgg);
+    const aggiunteRiga = Array.isArray(riga.aggiunte) ? riga.aggiunte : [];
+    aggiunteRiga.forEach(pushAgg);
+    const aggScelte = new Set(aggiunteRiga.map(a => String(a.nome).toLowerCase()));
+    const euroAgg = (n) => '€ ' + (Number(n) || 0).toFixed(2).replace('.', ',');
+
     const chip = (t, colore) => `<button type="button" class="nm-chip" data-t="${esc(t)}" style="padding:9px 13px;border-radius:20px;border:1.5px solid #cbd5e1;background:#fff;font-size:13.5px;cursor:pointer;" data-col="${colore}">${esc(t)}</button>`;
     const gruppo = (titolo, arr, colore) => arr.length ? `<div style="font-size:12.5px;font-weight:700;color:#334155;margin:10px 0 6px;">${titolo}</div><div style="display:flex;flex-wrap:wrap;gap:7px;">${arr.map(t => chip(t, colore)).join('')}</div>` : '';
 
@@ -1727,6 +1746,13 @@ export async function render(container) {
         ${gruppo('Togli', togli, 'rosso')}
         ${gruppo('Richieste su questo piatto', suPiatto, 'blu')}
         ${gruppo('Richieste frequenti', generali, 'blu')}
+        <div style="font-size:12.5px;font-weight:700;color:#334155;margin:12px 0 6px;">Aggiunte a pagamento</div>
+        <div id="nm-agg" style="display:flex;flex-wrap:wrap;gap:7px;"></div>
+        <div style="display:flex;gap:6px;margin-top:7px;">
+          <input id="nm-agg-nome" placeholder="Nuova aggiunta" style="flex:1;min-width:0;padding:9px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;">
+          <input id="nm-agg-prezzo" type="number" step="0.5" min="0" inputmode="decimal" placeholder="€" style="width:70px;padding:9px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;">
+          <button type="button" id="nm-agg-add" style="padding:9px 13px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-weight:700;cursor:pointer;">＋</button>
+        </div>
         <div style="font-size:12.5px;font-weight:700;color:#334155;margin:12px 0 6px;">Nota libera <span style="font-weight:400;color:#94a3b8;">(la prossima volta la trovi tra i pulsanti)</span></div>
         <input id="nm-libera" value="${esc(liberaIniziale)}" placeholder="Scrivi una richiesta…" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;">
         ${inviata ? '' : `<div style="font-size:12.5px;font-weight:700;color:#334155;margin:12px 0 6px;">Uscita</div>
@@ -1752,6 +1778,34 @@ export async function render(container) {
       });
     };
     disegnaChip();
+    const disegnaAgg = () => {
+      const box = ov.querySelector('#nm-agg');
+      box.innerHTML = aggiunteDisp.length ? aggiunteDisp.map((a, i) => {
+        const on = aggScelte.has(a.nome.toLowerCase());
+        return `<button type="button" data-agg="${i}" style="padding:9px 13px;border-radius:20px;border:1.5px solid ${on ? '#16a34a' : '#bbf7d0'};background:${on ? '#dcfce7' : '#f0fdf4'};color:#15803d;font-size:13.5px;font-weight:${on ? '700' : '500'};cursor:pointer;">+ ${esc(a.nome)} ${euroAgg(a.prezzo)}</button>`;
+      }).join('') : '<span style="font-size:12.5px;color:#94a3b8;">Nessuna aggiunta per questa categoria: scrivila qui sotto.</span>';
+      box.querySelectorAll('[data-agg]').forEach(b => b.onclick = () => {
+        const k = aggiunteDisp[Number(b.dataset.agg)].nome.toLowerCase();
+        if (aggScelte.has(k)) aggScelte.delete(k); else aggScelte.add(k);
+        disegnaAgg();
+      });
+    };
+    disegnaAgg();
+    ov.querySelector('#nm-agg-add').onclick = async () => {
+      const nome = String(ov.querySelector('#nm-agg-nome').value || '').trim();
+      const prezzo = Number(String(ov.querySelector('#nm-agg-prezzo').value || '0').replace(',', '.')) || 0;
+      if (!nome) return;
+      pushAgg({ nome, prezzo });
+      aggScelte.add(nome.toLowerCase());
+      ov.querySelector('#nm-agg-nome').value = ''; ov.querySelector('#nm-agg-prezzo').value = '';
+      disegnaAgg();
+      // Resta in memoria sulla categoria: la prossima volta è già un pulsante
+      if (catRiga && !(catRiga.aggiunte || []).some(a => String(a.nome).toLowerCase() === nome.toLowerCase())) {
+        const nuove = (Array.isArray(catRiga.aggiunte) ? catRiga.aggiunte : []).concat([{ nome, prezzo }]);
+        const { error } = await supa().from('categorie_vendita').update({ aggiunte: nuove }).eq('id', catRiga.id);
+        if (!error) catRiga.aggiunte = nuove;
+      }
+    };
     ov.querySelectorAll('.nm-chip').forEach(b => b.onclick = () => {
       const esiste = [...scelte].find(x => x.toLowerCase() === b.dataset.t.toLowerCase());
       if (esiste) scelte.delete(esiste); else scelte.add(b.dataset.t);
@@ -1769,15 +1823,26 @@ export async function render(container) {
       const nota = elenco.join(', ') || null;
       const upd = { note: nota };
       if (!inviata) upd.uscita_numero = uscitaScelta;
+      // Prezzo: base del piatto + aggiunte scelte (le vecchie aggiunte si tolgono prima)
+      const nuoveAgg = aggiunteDisp.filter(a => aggScelte.has(a.nome.toLowerCase()));
+      const sommaVecchie = aggiunteRiga.reduce((t, a) => t + (Number(a.prezzo) || 0), 0);
+      const sommaNuove = nuoveAgg.reduce((t, a) => t + (Number(a.prezzo) || 0), 0);
+      const base = Math.max(0, (Number(riga.prezzo_snapshot) || 0) - sommaVecchie);
+      const cambiateAgg = JSON.stringify(aggiunteRiga.map(a => a.nome.toLowerCase()).sort()) !== JSON.stringify(nuoveAgg.map(a => a.nome.toLowerCase()).sort());
+      upd.aggiunte = nuoveAgg;
+      upd.prezzo_snapshot = Math.round((base + sommaNuove) * 100) / 100;
       const btn = ov.querySelector('#nm-salva'); btn.disabled = true; btn.textContent = 'Salvo…';
       const { error } = await supa().from('comanda_righe').update(upd).eq('id', rigaId);
       if (error) { btn.disabled = false; btn.textContent = 'Salva modifica'; mostraToast('Errore: ' + error.message, 'error'); return; }
-      const cambiataNota = (riga.note || null) !== nota;
+      const cambiataNota = (riga.note || null) !== nota || cambiateAgg;
       riga.note = nota;
+      riga.aggiunte = nuoveAgg;
+      riga.prezzo_snapshot = upd.prezzo_snapshot;
       if (!inviata) riga.uscita_numero = uscitaScelta;
       chiudi();
       if (elenco.length) supa().rpc('registra_note_frequenti', { p_azienda: aziendaId, p_piatto: chiave, p_testi: elenco }).then(() => {}, () => {});
       if (inviata && cambiataNota) stampaVariazione(riga, Number(riga.quantita || 1), 'VARIAZIONE');
+      if (cambiateAgg) { await aggiornaTotale(); renderTotale(); }
       renderRighe();
     };
   }
@@ -1903,7 +1968,8 @@ export async function render(container) {
         const rep = r.stampante || 'cucina';
         if (rep === 'nessuna') return;
         (perReparto[rep] = perReparto[rep] || []).push({
-          qta: Number(r.quantita || 1), nome: r.nome_snapshot, note: r.note || null, uscita: r.uscita_numero || 1,
+          qta: Number(r.quantita || 1), nome: r.nome_snapshot, uscita: r.uscita_numero || 1,
+          note: [r.note].concat((r.aggiunte || []).map(a => '+ ' + a.nome)).filter(Boolean).join(', ') || null,
         });
       });
       const lavori = [];

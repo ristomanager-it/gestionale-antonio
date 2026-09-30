@@ -66,6 +66,15 @@ export async function render(container) {
       </select>
       <div style="font-size:11px;color:#64748b;margin-bottom:8px;">Vale per tutti i prodotti della categoria, tranne quelli con IVA propria.</div>
 
+      <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-top:8px;">Proponi dopo (abbinamenti per il cameriere)</label>
+      <div id="cat-upsell" style="max-height:150px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;font-size:13px;margin-bottom:6px;"></div>
+      <input id="cat-upsell-frase" class="input" placeholder="Frase per il cameriere, es. Aggiungo un contorno?">
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px;">Le prime due categorie spuntate compaiono in Comande dopo un piatto di questa categoria.</div>
+
+      <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-top:8px;">Aggiunte a pagamento</label>
+      <textarea id="cat-aggiunte" class="input" rows="3" placeholder="Una per riga, nome e prezzo:&#10;Burrata 3&#10;Tartufo 4,50"></textarea>
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px;">Compaiono nella scheda modifica del piatto ed entrano nel conto.</div>
+
       <label><input type="checkbox" id="cat-attivo" checked> Attiva</label>
       <label><input type="checkbox" id="cat-visibile" checked> Visibile</label>
 
@@ -306,11 +315,40 @@ export async function render(container) {
     qs("#cat-img-preview").innerText = "Nessuna foto"
     qs("#cat-ordine").value = 0
     qs("#cat-iva").value = "10"
+    renderUpsell([])
+    qs("#cat-upsell-frase").value = ""
+    qs("#cat-aggiunte").value = ""
 
     qs("#cat-attivo").checked = true
     qs("#cat-visibile").checked = true
 
     renderTags()
+  }
+
+  function renderUpsell(sel) {
+    const scelte = (sel || []).map(String)
+    const altre = categorie.filter(x => !categoriaAttiva || String(x.id) !== String(categoriaAttiva.id))
+    // prima le spuntate, nell'ordine scelto
+    altre.sort((a, b) => {
+      const ia = scelte.indexOf(String(a.id)), ib = scelte.indexOf(String(b.id))
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib)
+    })
+    qs("#cat-upsell").innerHTML = altre.map(x => `<label style="display:flex;gap:6px;align-items:center;padding:3px 0;cursor:pointer;"><input type="checkbox" class="cat-up" value="${x.id}" ${scelte.includes(String(x.id)) ? "checked" : ""}> ${String(x.nome || "").replace(/</g, "&lt;")}</label>`).join("") || '<span style="color:#94a3b8;">Nessuna altra categoria</span>'
+  }
+
+  function aggiunteTesto(arr) {
+    return (Array.isArray(arr) ? arr : []).map(a => a.nome + " " + String(Number(a.prezzo) || 0).replace(".", ",")).join("\n")
+  }
+
+  function leggiAggiunte() {
+    return String(qs("#cat-aggiunte").value || "").split("\n").map(r => r.trim()).filter(Boolean).map(r => {
+      const m = r.match(/^(.*?)[\s€]+(\d+(?:[.,]\d{1,2})?)\s*€?$/)
+      return m ? { nome: m[1].trim(), prezzo: Number(m[2].replace(",", ".")) } : { nome: r, prezzo: 0 }
+    }).filter(a => a.nome)
+  }
+
+  function leggiUpsell() {
+    return [...document.querySelectorAll(".cat-up:checked")].map(i => i.value)
   }
 
   function selectCategoria(id) {
@@ -336,6 +374,9 @@ export async function render(container) {
     }
     qs("#cat-ordine").value = c.ordine || 0
     qs("#cat-iva").value = String(c.aliquota_iva ?? 10)
+    renderUpsell(c.upsell_categorie)
+    qs("#cat-upsell-frase").value = c.upsell_frase || ""
+    qs("#cat-aggiunte").value = aggiunteTesto(c.aggiunte)
 
     qs("#cat-attivo").checked = c.attiva ?? true
     qs("#cat-visibile").checked = c.visibile ?? true
@@ -355,7 +396,10 @@ export async function render(container) {
         attiva: qs("#cat-attivo").checked,
         visibile: qs("#cat-visibile").checked,
         ordine: Number(qs("#cat-ordine").value || 0),
-        aliquota_iva: Number(qs("#cat-iva").value || 10)
+        aliquota_iva: Number(qs("#cat-iva").value || 10),
+        upsell_categorie: leggiUpsell(),
+        upsell_frase: qs("#cat-upsell-frase").value.trim() || null,
+        aggiunte: leggiAggiunte()
       }
 
       const { error } = await supabase
@@ -377,7 +421,10 @@ export async function render(container) {
         attiva: qs("#cat-attivo").checked,
         visibile: qs("#cat-visibile").checked,
         ordine: Number(qs("#cat-ordine").value || 0),
-        aliquota_iva: Number(qs("#cat-iva").value || 10)
+        aliquota_iva: Number(qs("#cat-iva").value || 10),
+        upsell_categorie: leggiUpsell(),
+        upsell_frase: qs("#cat-upsell-frase").value.trim() || null,
+        aggiunte: leggiAggiunte()
       }
 
       const { error } = await supabase
