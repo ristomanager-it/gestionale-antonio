@@ -23,8 +23,11 @@ ALTO = ESC + b"!\x10"                       # doppia altezza
 GRANDE = ESC + b"!\x30"                     # doppia altezza e larghezza
 INVERSO_ON = GS + b"B\x01"
 INVERSO_OFF = GS + b"B\x00"
-TAGLIO = b"\n\n\n\n" + GS + b"V\x42\x00"
-BEEP = ESC + b"(A\x04\x00\x30\x33\x03\x0a"  # ignorato dalle stampanti senza cicalino
+TAGLIO = b"\n\n\n" + GS + b"V\x42\x00"
+# dimensioni con GS ! (più compatibile di ESC ! su stampanti non Epson)
+DIM_1 = GS + b"!\x00"
+DIM_ALTO = GS + b"!\x01"                   # doppia altezza
+DIM_2 = GS + b"!\x11"                      # doppia altezza e larghezza
 
 REPARTI = {"cucina": "CUCINA", "bar": "BAR", "pasticceria": "PASTICCERIA", "preconto": "PRECONTO"}
 
@@ -51,10 +54,30 @@ def riga_dx(sx, dx, larg):
     return sx + " " * (larg - len(sx) - len(dx)) + dx
 
 
+def a_capo(testo, n, rientro=""):
+    """Spezza il testo in righe da n caratteri senza tagliare le parole."""
+    parole = str(testo).split()
+    righe, cur = [], ""
+    for w in parole:
+        while len(w) > n:
+            if cur:
+                righe.append(cur); cur = ""
+            righe.append(w[:n]); w = w[n:]
+        prova = (cur + " " + w) if cur else w
+        if len(prova) <= n:
+            cur = prova
+        else:
+            righe.append(cur); cur = rientro + w
+    if cur:
+        righe.append(cur)
+    return righe or [""]
+
+
 def build_comanda(c, larg):
-    out = INIT + CENTRO + GRANDE + t(REPARTI.get(c.get("reparto"), str(c.get("reparto") or "").upper())) + b"\n"
+    grande = max(10, larg // 2)            # caratteri per riga a doppia larghezza
+    out = INIT + CENTRO + DIM_2 + t(REPARTI.get(c.get("reparto"), str(c.get("reparto") or "").upper())) + b"\n"
     tav = c.get("tavolo")
-    out += GRANDE + t("TAVOLO " + str(tav) if tav else "BANCO") + b"\n" + NORMALE
+    out += DIM_2 + t("TAVOLO " + str(tav) if tav else "BANCO") + b"\n" + DIM_1 + NORMALE
     info = []
     if c.get("coperti"):
         info.append(str(c["coperti"]) + " coperti")
@@ -67,13 +90,21 @@ def build_comanda(c, larg):
         out += INVERSO_ON + t(" RISTAMPA ") + INVERSO_OFF + b"\n"
     out += SINISTRA + t("-" * larg) + b"\n"
     for r in c.get("righe") or []:
-        out += ALTO + GRASSETTO_ON + t(taglia(str(r.get("qta", 1)) + " x " + str(r.get("nome", "")), larg)) + GRASSETTO_OFF + NORMALE + b"\n"
+        testo = str(r.get("qta", 1)) + " " + str(r.get("nome", ""))
+        out += DIM_2 + GRASSETTO_ON
+        for riga in a_capo(testo, grande, "  "):
+            out += t(riga) + b"\n"
+        out += GRASSETTO_OFF + DIM_1
         if r.get("note"):
-            out += INVERSO_ON + t(" " + taglia(str(r["note"]), larg - 2) + " ") + INVERSO_OFF + b"\n"
+            out += DIM_ALTO + GRASSETTO_ON + INVERSO_ON
+            for riga in a_capo("> " + str(r["note"]), larg - 1, "  "):
+                out += t(" " + riga + " ") + b"\n"
+            out += INVERSO_OFF + GRASSETTO_OFF + DIM_1
+        out += b"\n"
     out += t("-" * larg) + b"\n"
     if c.get("note"):
-        out += GRASSETTO_ON + t(taglia(str(c["note"]), larg)) + GRASSETTO_OFF + b"\n"
-    out += BEEP + TAGLIO
+        out += DIM_ALTO + GRASSETTO_ON + t(taglia(str(c["note"]), larg)) + GRASSETTO_OFF + DIM_1 + b"\n"
+    out += TAGLIO
     return out
 
 
@@ -94,7 +125,7 @@ def build_preconto(c, larg):
     if float(c.get("sconto") or 0) > 0:
         out += t(riga_dx("Sconto", "-" + euro(c["sconto"]), larg)) + b"\n"
     out += t("-" * larg) + b"\n"
-    out += ALTO + GRASSETTO_ON + t(riga_dx("TOTALE EURO", euro(c.get("totale")), larg)) + GRASSETTO_OFF + NORMALE + b"\n"
+    out += DIM_ALTO + GRASSETTO_ON + t(riga_dx("TOTALE EURO", euro(c.get("totale")), larg)) + GRASSETTO_OFF + DIM_1 + b"\n"
     if c.get("coperti"):
         out += t("Coperti: " + str(c["coperti"])) + b"\n"
     out += CENTRO + t(ora_locale()) + b"\n" + TAGLIO

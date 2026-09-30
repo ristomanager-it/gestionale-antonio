@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Agente fiscale Ristoflow v4 (scontrini + comande) — legge coda_fiscale e stampa su Epson FP-81 II RT via fpmate.cgi
+Agente fiscale Ristoflow v4.1 (scontrini + comande) — legge coda_fiscale e stampa su Epson FP-81 II RT via fpmate.cgi
 Stati validi: in_attesa, in_elaborazione, completato, errore
 Documenti: scontrino, fattura (= scontrino, la fattura elettronica si fa a parte),
            preconto (non fiscale), lettura_x, chiusura_z
