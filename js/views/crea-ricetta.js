@@ -3766,7 +3766,8 @@ function aggiungiPorzione(initial = {}) {
     <div class="form-grid" style="margin-top:10px;">
       <div class="form-group" style="grid-column:1/-1;">
         <label>Label porzione *</label>
-        <input class="porz-label input" value="${escapeAttr(initial.label || "")}" placeholder="Es: Trattoria 200g / Ricevimento 120g / Vasetto 280g" />
+        <input class="porz-label input" list="porz-destinazioni" value="${escapeAttr(initial.label || "")}" placeholder="Destinazione: trattoria, banchetto, buffet, market…" />
+        <datalist id="porz-destinazioni">${["Trattoria", "Ristorante", "Banchetto / matrimonio", "Buffet", "Market / asporto", "Catering", "Menu del giorno"].map((d) => `<option value="${d}"></option>`).join("")}</datalist>
       </div>
 
       <div class="form-group">

@@ -329,6 +329,7 @@ export async function render(container) {
         title: "Confezionamento reale (porzionature)",
         body: `
           <div id="confezioni-casa"><div id="confezioni-blocco">
+            <div id="rimanenza-conf" style="position:sticky;top:0;z-index:5;margin-bottom:10px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:700;background:#f1f5f9;color:#334155;">Inserisci la resa per vedere quanto resta da confezionare</div>
             <div id="confezioni-wrap"></div>
 
             <div class="form-actions" style="margin-top:10px;">
@@ -1288,7 +1289,7 @@ function addConfezioneRow() {
   confezioniRows.push({
     id: cryptoRandomId(),
     porzione_id: "",
-    pezzi_per_confezione: "",
+    pezzi_per_confezione: 1,
     numero_confezioni: "",
     note: ""
   });
@@ -1331,7 +1332,7 @@ function renderConfezioniRows() {
                 || porzioniCache.find((p) => p.label === row.confezione_label) || null;
       const pesoKgFormato = porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0;
       const pesoKg = toNumber(row.peso_kg) > 0 ? toNumber(row.peso_kg) : pesoKgFormato;
-      const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 0));
+      const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 1));
       const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni) || 0));
       const kgConf = pesoKg * pezzi;
       const kgTot = kgConf * numConf;
@@ -1425,7 +1426,7 @@ function aggiornaRiepilogoRiga(card, row) {
   const pesoKg = toNumber(row.peso_kg) > 0
     ? toNumber(row.peso_kg)
     : (porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0);
-  const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 0));
+  const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 1));
   const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni) || 0));
   if (boxConf) boxConf.value = formatNumber(pesoKg * pezzi) + " kg";
   if (boxTot) boxTot.value = formatNumber(pesoKg * pezzi * numConf) + " kg";
@@ -1825,6 +1826,21 @@ function recalcResaUI() {
     resaTeoEl.value = resaTeoKg == null ? "" : formatNumber(resaTeoKg);
   }
   pesoAllocEl.value = `${formatNumber(confezionatoKg)} kg`;
+  const rimEl = document.getElementById("rimanenza-conf");
+  if (rimEl) {
+    if (!(pesoRealeKg > 0)) {
+      rimEl.style.background = "#f1f5f9"; rimEl.style.color = "#334155";
+      rimEl.textContent = "Inserisci la resa per vedere quanto resta da confezionare";
+    } else {
+      const resto = Math.round((pesoRealeKg - confezionatoKg) * 1000) / 1000;
+      const col = resto > 0.001 ? ["#fef2f2", "#b91c1c"] : resto < -0.001 ? ["#fff7ed", "#c2410c"] : ["#f0fdf4", "#15803d"];
+      rimEl.style.background = col[0]; rimEl.style.color = col[1];
+      rimEl.innerHTML = "Resa " + formatNumber(pesoRealeKg) + " kg · confezionato " + formatNumber(confezionatoKg) + " kg<br>"
+        + (resto > 0.001 ? "📦 Da confezionare: <span style=\"font-size:18px;\">" + formatNumber(resto) + " kg</span>"
+          : resto < -0.001 ? "⚠️ Confezionato più della resa: " + formatNumber(-resto) + " kg in più"
+          : "✅ Tutto confezionato");
+    }
+  }
   diffEl.value = `${formatNumber(diffKg)} kg`;
   scartoEl.value = scartoKg == null ? "" : `${formatNumber(scartoKg)} kg`;
   moltEl.value = `${formatNumber(moltiplicatore)} x`;
@@ -1884,7 +1900,7 @@ function getTotaleConfezionatoKg() {
       : (porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0);
     if (!(pesoKg > 0)) continue;
 
-    const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
+    const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 1));
     const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
 
     if (pezzi <= 0 || numConf <= 0) continue;
@@ -2362,7 +2378,7 @@ function raccogliDatiForm() {
   const confezioni = confezioniRows.map((r) => ({
     id: r.id,
     porzione_id: (r.porzione_id || "").toString(),
-    pezzi_per_confezione: Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0)),
+    pezzi_per_confezione: Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 1)),
     numero_confezioni: Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0)),
     note: (r.note || "").toString()
   }));
@@ -2724,6 +2740,7 @@ function renderFasiHaccp() {
     const ro = automatico ? "readonly" : "";
     const bgAuto = automatico ? "background:#f0fdf4;" : "";
 
+    const tipoF = String(log?.fase_tipo || f.tipo_fase || "").toLowerCase();
     const primaConf = String(log?.fase_tipo || f.tipo_fase || "").toLowerCase() === "confezionamento"
       && logHaccp.findIndex((l) => String(l.fase_tipo || "").toLowerCase() === "confezionamento") === idx;
     const passoResa = primaConf
@@ -2756,6 +2773,36 @@ function renderFasiHaccp() {
       ${f.descrizione_operativa ? `<div style="background:var(--bg,#f8fafc);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:10px;border:1px solid #e5e7eb;">📋 ${escapeHtml(f.descrizione_operativa)}</div>` : ""}
       ${automatico ? `<div style="background:#dcfce7;border-radius:8px;padding:8px 12px;font-size:12px;color:#15803d;margin-bottom:10px;">🤖 Dati automatici da <strong>${escapeHtml(disp.nome)}</strong> — aggiungi note se necessario.</div>` : ""}
 
+      ${tipoF === "porzionatura" ? `
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">📏 Grammature per destinazione (dalla ricetta)</div>
+        ${porzioniCache.length
+          ? porzioniCache.map((p) => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0;border-top:1px dashed #e2e8f0;"><span>${escapeHtml(p.label || "")}${p.note ? ` <span style="color:#64748b;">· ${escapeHtml(p.note)}</span>` : ""}</span><strong>${escapeHtml(String(p.peso_porzione ?? ""))} ${escapeHtml(p.unita_misura || "")}</strong></div>`).join("")
+          : `<div style="font-size:12.5px;color:#b45309;">Nessuna grammatura nella ricetta: aggiungile in Crea ricetta › Porzionature (trattoria, banchetto, buffet, market…).</div>`}
+        <div style="font-size:11.5px;color:#64748b;margin-top:6px;">Promemoria per porzionare e stoccare secondo la destinazione. Qui non si misurano tempi.</div>
+      </div>` : tipoF === "conservazione" ? `
+      <div class="form-grid" style="margin-bottom:10px;">
+        <div class="form-group">
+          <label style="font-size:11px;">Stoccato alle</label>
+          <div style="display:flex;gap:6px;">
+            <input type="datetime-local" class="input haccp-inizio" data-idx="${idx}" value="${log.ora_inizio || ""}" ${ro} style="flex:1;${bgAuto}">
+            <button type="button" class="app-button small haccp-adesso" data-idx="${idx}" ${ro}>⏱ Adesso</button>
+          </div>
+        </div>
+        ${hasTempPrevista ? `
+        <div class="form-group">
+          <label style="font-size:11px;">Temp. rilevata (°C)</label>
+          <input type="number" step="0.1" class="input haccp-temp" data-idx="${idx}" value="${log.temperatura_rilevata || ""}" placeholder="${automatico ? "Da dispositivo..." : "es. 72.5"}" ${ro} style="${bgAuto}">
+        </div>` : ""}
+        <div class="form-group">
+          <label style="font-size:11px;">Esito</label>
+          <select class="input haccp-esito" data-idx="${idx}">
+            <option value="ok" ${log.esito === "ok" ? "selected" : ""}>✅ OK</option>
+            <option value="attenzione" ${log.esito === "attenzione" ? "selected" : ""}>⚠️ Attenzione</option>
+            <option value="nc" ${log.esito === "nc" ? "selected" : ""}>❌ Non conforme</option>
+          </select>
+        </div>
+      </div>` : `
       <div class="form-grid" style="margin-bottom:10px;">
         <div class="form-group">
           <label style="font-size:11px;">Ora inizio</label>
@@ -2778,8 +2825,7 @@ function renderFasiHaccp() {
             <option value="nc" ${log.esito === "nc" ? "selected" : ""}>❌ Non conforme</option>
           </select>
         </div>
-      </div>
-
+      </div>`}
       <div class="form-group" style="margin-bottom:10px;">
         <label style="font-size:11px;">Note / azioni correttive</label>
         <input type="text" class="input haccp-note" data-idx="${idx}" value="${escapeHtml(log.note || "")}" placeholder="Annotazioni, deviazioni...">
@@ -2845,10 +2891,23 @@ function renderFasiHaccp() {
   }
 
   // Bind eventi
+  list.querySelectorAll(".haccp-adesso").forEach(el => {
+    el.addEventListener("click", e => {
+      const idx = +e.currentTarget.dataset.idx;
+      const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      const ora = d.toISOString().slice(0, 16);
+      logHaccp[idx].ora_inizio = ora;
+      logHaccp[idx].ora_fine = ora;
+      const inp = list.querySelector('.haccp-inizio[data-idx="' + idx + '"]');
+      if (inp) inp.value = ora;
+      calcolaHaccpDurata(idx);
+    });
+  });
   list.querySelectorAll(".haccp-inizio").forEach(el => {
     el.addEventListener("change", e => {
       const idx = +e.target.dataset.idx;
       logHaccp[idx].ora_inizio = e.target.value;
+      if (String(logHaccp[idx].fase_tipo || "").toLowerCase() === "conservazione") logHaccp[idx].ora_fine = e.target.value;
       calcolaHaccpDurata(idx);
     });
   });
@@ -3050,13 +3109,21 @@ function applicaFirmaAIdx(idx, match) {
          + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
   };
   const _ora = new Date();
+  const _tipoFirma = String(log.fase_tipo || "").toLowerCase();
 
-  if (!log.ora_fine) log.ora_fine = _oraLocale(_ora);
+  // Porzionatura: solo promemoria delle grammature, nessun orario
+  if (_tipoFirma === "porzionatura") { log.ora_inizio = ""; log.ora_fine = ""; }
+  // Stoccaggio: un solo orario, quello in cui il prodotto e' stato riposto
+  else if (_tipoFirma === "conservazione") {
+    if (!log.ora_inizio) log.ora_inizio = _oraLocale(_ora);
+    log.ora_fine = log.ora_inizio;
+  }
+  else if (!log.ora_fine) log.ora_fine = _oraLocale(_ora);
 
   /* L'inizio della fase e' la fine di quella precedente: cosi' la durata
      reale esce da sola e nessuno deve scrivere due orari a mano mentre
      cucina. Se e' la prima fase, parte dalla firma stessa. */
-  if (!log.ora_inizio) {
+  if (!log.ora_inizio && _tipoFirma !== "porzionatura") {
     let inizio = null;
     for (let k = idx - 1; k >= 0; k--) {
       if (logHaccp[k]?.ora_fine) { inizio = logHaccp[k].ora_fine; break; }
@@ -3277,7 +3344,7 @@ function getConservazioneStandardLabel() {
 function buildDettaglioConfezionamento() {
   try {
     return (confezioniRows || [])
-      .filter(c => Number(c.pezzi_per_confezione) > 0 && Number(c.numero_confezioni) > 0
+      .filter(c => (Number(c.pezzi_per_confezione) || 1) > 0 && Number(c.numero_confezioni) > 0
                    && (c.porzione_id || c.confezione_label))
       .map(c => {
         const porz = porzioniCache.find(p => String(p.id) === String(c.porzione_id))
@@ -3288,11 +3355,11 @@ function buildDettaglioConfezionamento() {
         return {
           porzione_id: porz ? String(porz.id) : null,
           label: c.confezione_label || porz?.label || "",
-          pezzi_per_confezione: Number(c.pezzi_per_confezione),
+          pezzi_per_confezione: Number(c.pezzi_per_confezione) || 1,
           numero_confezioni: Number(c.numero_confezioni),
           peso_porzione_kg: pesoKg,
-          kg_per_confezione: pesoKg * Number(c.pezzi_per_confezione),
-          kg_totali_riga: pesoKg * Number(c.pezzi_per_confezione) * Number(c.numero_confezioni),
+          kg_per_confezione: pesoKg * (Number(c.pezzi_per_confezione) || 1),
+          kg_totali_riga: pesoKg * (Number(c.pezzi_per_confezione) || 1) * Number(c.numero_confezioni),
           note: c.note || "",
         };
       });
@@ -3941,7 +4008,7 @@ async function stampaEtichetteSuEtichettatrice() {
   const rows = confezioniRows
     .map((r) => {
       const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
-      const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
+      const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 1));
       const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
       if (pezzi <= 0 || numConf <= 0) return null;
       const label = String(r.confezione_label || porz?.label || "").trim();
@@ -4011,7 +4078,7 @@ function stampaEtichetteConfezioni() {
     const rows = confezioniRows
       .map((r) => {
         const porz = porzioniCache.find((p) => String(p.id) === String(r.porzione_id)) || null;
-        const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 0));
+        const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 1));
         const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
         if (pezzi <= 0 || numConf <= 0) return null;
 
@@ -4425,7 +4492,7 @@ async function resumeDaLotto(lottoUuid) {
         porzione_id: (d.porzione_id ?? "").toString(),
         confezione_label: d.label ?? d.confezione_label ?? "",
         peso_kg: d.peso_porzione_kg ?? d.peso_kg ?? "",
-        pezzi_per_confezione: d.pezzi_per_confezione ?? "",
+        pezzi_per_confezione: d.pezzi_per_confezione ?? 1,
         numero_confezioni: d.numero_confezioni ?? "",
         note: d.note ?? ""
       }));
