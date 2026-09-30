@@ -66,6 +66,16 @@ export async function render(container) {
       </select>
       <div style="font-size:11px;color:#64748b;margin-bottom:8px;">Vale per tutti i prodotti della categoria, tranne quelli con IVA propria.</div>
 
+      <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-top:8px;">Menu del giorno: vale per la portata</label>
+      <select id="cat-portata-mdg" class="input">
+        <option value="">—</option>
+        <option value="antipasti">Antipasti</option>
+        <option value="primi">Primi</option>
+        <option value="secondi">Secondi</option>
+        <option value="dessert">Dessert</option>
+      </select>
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px;">I piatti di questa portata del menu del giorno prendono reparto, aggiunte e abbinamenti da questa categoria.</div>
+
       <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-top:8px;">Proponi dopo (abbinamenti per il cameriere)</label>
       <div id="cat-upsell" style="max-height:150px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;font-size:13px;margin-bottom:6px;"></div>
       <input id="cat-upsell-frase" class="input" placeholder="Frase per il cameriere, es. Aggiungo un contorno?">
@@ -316,6 +326,7 @@ export async function render(container) {
     qs("#cat-ordine").value = 0
     qs("#cat-iva").value = "10"
     renderUpsell([])
+    qs("#cat-portata-mdg").value = ""
     qs("#cat-upsell-frase").value = ""
     qs("#cat-aggiunte").value = ""
 
@@ -375,6 +386,7 @@ export async function render(container) {
     qs("#cat-ordine").value = c.ordine || 0
     qs("#cat-iva").value = String(c.aliquota_iva ?? 10)
     renderUpsell(c.upsell_categorie)
+    qs("#cat-portata-mdg").value = c.portata_menu_giorno || ""
     qs("#cat-upsell-frase").value = c.upsell_frase || ""
     qs("#cat-aggiunte").value = aggiunteTesto(c.aggiunte)
 
@@ -386,6 +398,13 @@ export async function render(container) {
 
     const nome = qs("#cat-nome").value.trim()
     if (!nome) return alert("Nome obbligatorio")
+
+    // Una sola categoria per portata del menu del giorno nella stessa sede
+    const portataMdg = qs("#cat-portata-mdg").value || null
+    if (portataMdg) {
+      const altre = categorie.filter(x => x.portata_menu_giorno === portataMdg && (!categoriaAttiva || x.id !== categoriaAttiva.id)).map(x => x.id)
+      if (altre.length) await supabase.from("categorie_vendita").update({ portata_menu_giorno: null }).in("id", altre)
+    }
 
     if (categoriaAttiva) {
 
@@ -399,7 +418,8 @@ export async function render(container) {
         aliquota_iva: Number(qs("#cat-iva").value || 10),
         upsell_categorie: leggiUpsell(),
         upsell_frase: qs("#cat-upsell-frase").value.trim() || null,
-        aggiunte: leggiAggiunte()
+        aggiunte: leggiAggiunte(),
+        portata_menu_giorno: qs("#cat-portata-mdg").value || null
       }
 
       const { error } = await supabase
@@ -424,7 +444,8 @@ export async function render(container) {
         aliquota_iva: Number(qs("#cat-iva").value || 10),
         upsell_categorie: leggiUpsell(),
         upsell_frase: qs("#cat-upsell-frase").value.trim() || null,
-        aggiunte: leggiAggiunte()
+        aggiunte: leggiAggiunte(),
+        portata_menu_giorno: qs("#cat-portata-mdg").value || null
       }
 
       const { error } = await supabase

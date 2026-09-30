@@ -87,6 +87,8 @@ export async function render(container) {
   let prodottiVendita = [];
   let abbinamentiVino = {};   // ricetta_id -> abbinamento gia' deciso
   let categorieVendita = [];
+  let tuttiProdottiVendita = [];
+  let tutteCategorieVendita = [];
   let prenotazioniOggi = [];
   let comandaAttiva = null;
   let righeComanda = [];
@@ -694,6 +696,9 @@ export async function render(container) {
   // Regola fissa: in comande compare solo ciò che è nel menu, categorie in ordine menu.
   // Fallback: se non c'è un menu attivo con voci, resta tutto come prima.
   function applicaFiltroMenu() {
+    // copia completa: i piatti del menu del giorno si cercano anche fuori dal menu alla carta
+    tuttiProdottiVendita = prodottiVendita.slice();
+    tutteCategorieVendita = categorieVendita.slice();
     if (menuProdSet && menuProdSet.size) {
       prodottiVendita = prodottiVendita.filter(p => menuProdSet.has(String(p.id)));
     }
@@ -1111,17 +1116,51 @@ export async function render(container) {
     };
   }
 
+  // ── Menu del giorno → catalogo: il piatto prende categoria (reparto, aggiunte, abbinamenti)
+  // 1) prodotto con la stessa ricetta  2) prodotto con lo stesso nome  3) categoria collegata alla portata
+  function voceMdgDaRiga(riga) {
+    if (!menuGiornoOggi || riga.prodotto_vendita_id) return null;
+    const nome = String(riga.nome_snapshot || '').toLowerCase().trim();
+    return (menuGiornoOggi.voci || []).find(v => String(v.nome || '').toLowerCase().trim() === nome) || null;
+  }
+  function prodottoPerVoce(v) {
+    const prods = tuttiProdottiVendita.length ? tuttiProdottiVendita : prodottiVendita;
+    if (v.ricetta_id) {
+      const p = prods.find(x => String(x.ricetta_id) === String(v.ricetta_id));
+      if (p) return p;
+    }
+    const nome = String(v.nome || '').toLowerCase().trim();
+    return prods.find(x => String(x.nome || '').toLowerCase().trim() === nome) || null;
+  }
+  function categoriaPerVoce(v) {
+    const cats = tutteCategorieVendita.length ? tutteCategorieVendita : categorieVendita;
+    const p = prodottoPerVoce(v);
+    if (p) { const c = cats.find(c => String(c.id) === String(p.categoria_vendita_id)); if (c) return c; }
+    return cats.find(c => c.portata_menu_giorno === v.portata) || null;
+  }
+  function categoriaDiRiga(riga) {
+    const cats = tutteCategorieVendita.length ? tutteCategorieVendita : categorieVendita;
+    const prods = tuttiProdottiVendita.length ? tuttiProdottiVendita : prodottiVendita;
+    if (riga.prodotto_vendita_id) {
+      const p = prods.find(x => String(x.id) === String(riga.prodotto_vendita_id));
+      return p ? (cats.find(c => String(c.id) === String(p.categoria_vendita_id)) || null) : null;
+    }
+    const v = voceMdgDaRiga(riga);
+    return v ? categoriaPerVoce(v) : null;
+  }
+
   // Piatto singolo del menu del giorno al prezzo alla carta, nella uscita della sua portata
   async function aggiungiPiattoMenuGiorno(idx) {
     if (!comandaAttiva || !menuGiornoOggi) return;
     const v = (menuGiornoOggi.voci || [])[idx];
     if (!v) return;
     const prezzo = Number(v.prezzo) || 0;
+    const cat = categoriaPerVoce(v);
     const riga = {
       azienda_id: aziendaId, comanda_id: comandaAttiva.id, prodotto_vendita_id: null,
       nome_snapshot: v.nome || 'Piatto', prezzo_snapshot: prezzo, quantita: 1,
       uscita_numero: USCITA_PORTATA[v.portata] || 1, stato: 'in_attesa',
-      stampante: v.portata === 'dessert' ? 'pasticceria' : 'cucina',
+      stampante: cat?.reparto_stampa || (v.portata === 'dessert' ? 'pasticceria' : 'cucina'),
       cameriere: cameriereAttivo?.nome || null,
     };
     const { data, error } = await supa().from('comanda_righe').insert(riga).select('*').single();
@@ -1132,6 +1171,11 @@ export async function render(container) {
     renderTotale();
     if (prezzo > 0) mostraToast('✅ ' + (v.nome || 'Piatto') + ' — ' + (USCITA_PORTATA[v.portata] || 1) + 'ª uscita', 'success');
     else mostraToast('⚠️ ' + (v.nome || 'Piatto') + ' senza prezzo alla carta: impostalo nel Menu del giorno', 'warning');
+    // Abbinamenti come per i piatti alla carta: vino della ricetta, poi regola della categoria
+    const pv = prodottoPerVoce(v);
+    const perProposte = { id: pv?.id || null, nome: v.nome || 'Piatto', categoria_vendita_id: cat?.id || null, ricetta_id: v.ricetta_id || pv?.ricetta_id || null };
+    if (perProposte.ricetta_id && abbinamentiVino[String(perProposte.ricetta_id)]) mostraSuggerimentoVino(perProposte);
+    else if (perProposte.categoria_vendita_id) mostraModalUpsell(perProposte);
   }
 
   async function inserisciMenuGiorno(anti, primo, secondo, prezzo) {
@@ -1396,7 +1440,8 @@ export async function render(container) {
   }
 
   function mostraModalUpsell(prodotto) {
-    const cat = categorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id));
+    const cat = categorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id))
+      || tutteCategorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id));
     const catNome = (cat?.nome || '').toLowerCase();
 
     let frase, catTarget, catCross, catT, catC;
@@ -1684,7 +1729,7 @@ export async function render(container) {
       rid = pv?.ricetta_id || null;
     } else if (menuGiornoOggi) {
       const v = (menuGiornoOggi.voci || []).find(x => String(x.nome || '').toLowerCase() === String(riga.nome_snapshot || '').toLowerCase());
-      rid = v?.ricetta_id || null;
+      rid = v?.ricetta_id || (v ? prodottoPerVoce(v)?.ricetta_id : null) || null;
     }
     if (!rid) return [];
     const { data } = await supa().from('ricetta_ingredienti').select('nome_prodotto, ordine').eq('ricetta_id', rid).order('ordine');
@@ -1722,8 +1767,7 @@ export async function render(container) {
     let uscitaScelta = Number(riga.uscita_numero || 1);
 
     // Aggiunte a pagamento: quelle della categoria del piatto + quelle già sulla riga
-    const pvRiga = riga.prodotto_vendita_id ? prodottiVendita.find(p => String(p.id) === String(riga.prodotto_vendita_id)) : null;
-    const catRiga = pvRiga ? categorieVendita.find(c => String(c.id) === String(pvRiga.categoria_vendita_id)) : null;
+    const catRiga = categoriaDiRiga(riga);
     const aggiunteDisp = [];
     const pushAgg = (a) => { if (a && a.nome && !aggiunteDisp.some(x => x.nome.toLowerCase() === String(a.nome).toLowerCase())) aggiunteDisp.push({ nome: String(a.nome), prezzo: Number(a.prezzo) || 0 }); };
     (Array.isArray(catRiga?.aggiunte) ? catRiga.aggiunte : []).forEach(pushAgg);
