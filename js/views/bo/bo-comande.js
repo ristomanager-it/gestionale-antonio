@@ -37,6 +37,9 @@ const UPSELL_RULES = {
   'pizza':      { frase: 'Aggiungo una birra artigianale?', catTarget: 'Bevande', catCross: 'Dolci' },
 };
 
+// Portata del menu del giorno -> uscita in cucina
+const USCITA_PORTATA = { antipasti: 1, primi: 2, secondi: 3, dessert: 4 };
+
 const CROSS_SELL_FINE_PASTO = [
   { msg: '☕ Caffè?', cat: 'Caffetteria' },
   { msg: '🥃 Amaro digestivo?', cat: 'Amari' },
@@ -661,9 +664,9 @@ export async function render(container) {
     try {
       const oggi = new Date().toISOString().slice(0, 10);
       const { data } = await supa().from('menu_giorno')
-        .select('id, prezzo_fisso, pubblicato, voci')
+        .select('id, titolo, prezzo_fisso, pubblicato, voci')
         .eq('azienda_id', aziendaId).eq('sede_id', sedeId).eq('data', oggi).maybeSingle();
-      if (data && Number(data.prezzo_fisso) > 0) menuGiornoOggi = data;
+      if (data && Array.isArray(data.voci) && data.voci.length) menuGiornoOggi = data;
     } catch (e) { console.warn('loadMenuGiornoOggi:', e); }
   }
 
@@ -908,7 +911,7 @@ export async function render(container) {
     uscitaCorrente = 1;
     aggiornaLabelUscita();
     switchView('comanda');
-    categoriaSelezionata = null;
+    categoriaSelezionata = menuGiornoOggi ? '__mdg__' : null;
     // Se cameriere limited: pre-filtra su categorie accessibili
     if (cameriereAttivo?.ruolo === 'limited') {
       const catLimitata = categorieVendita.find(c =>
@@ -958,7 +961,7 @@ export async function render(container) {
       cats = cats.filter(c => CATEGORIE_LIMITED.some(cl => c.nome.toLowerCase().includes(cl.toLowerCase())));
     }
     const all = [{ id: null, nome: 'Tutti' }];
-    if (menuGiornoOggi && Number(menuGiornoOggi.prezzo_fisso) > 0) all.push({ id: '__mdg__', nome: '🍽️ Menu del Giorno' });
+    if (menuGiornoOggi) all.push({ id: '__mdg__', nome: '🍽️ ' + (menuGiornoOggi.titolo || 'Menu del Giorno') });
     all.push(...cats);
     box.innerHTML = all.map(c => `
       <button data-cat="${c.id || ''}" style="
@@ -1004,8 +1007,8 @@ export async function render(container) {
 
     // Tile speciale "Menu del Giorno" — nella sua categoria dedicata
     let specialHtml = '';
-    const mgOk = menuGiornoOggi && Number(menuGiornoOggi.prezzo_fisso) > 0
-      && String(categoriaSelezionata) === '__mdg__';
+    const mgScheda = menuGiornoOggi && String(categoriaSelezionata) === '__mdg__';
+    const mgOk = mgScheda && Number(menuGiornoOggi.prezzo_fisso) > 0;
     if (mgOk) {
       const pf = Number(menuGiornoOggi.prezzo_fisso);
       specialHtml = `
@@ -1016,6 +1019,24 @@ export async function render(container) {
           <div style="font-size:12px;font-weight:700;line-height:1.3;">Menu del Giorno</div>
           <div style="font-size:13px;font-weight:800;">€${pf.toFixed(2).replace('.', ',')}</div>
         </button>`;
+    }
+    if (mgScheda) {
+      const voci = Array.isArray(menuGiornoOggi.voci) ? menuGiornoOggi.voci : [];
+      const titoli = { antipasti: 'Antipasti', primi: 'Primi', secondi: 'Secondi', dessert: 'Dessert' };
+      ['antipasti', 'primi', 'secondi', 'dessert'].forEach(port => {
+        const items = voci.map((v, i) => ({ v, i })).filter(x => x.v.portata === port);
+        if (!items.length) return;
+        specialHtml += `<div style="grid-column:1/-1;font-size:12px;font-weight:700;color:#64748b;margin-top:6px;">${titoli[port]}
+          <span style="font-size:11px;color:#7c3aed;background:#f5f3ff;border-radius:6px;padding:1px 6px;margin-left:6px;">${USCITA_PORTATA[port]}ª uscita</span></div>`;
+        specialHtml += items.map(x => {
+          const pr = Number(x.v.prezzo) || 0;
+          return `<button data-mdg-voce="${x.i}" style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:12px 8px;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div style="font-size:12px;font-weight:600;line-height:1.3;color:#0f172a;">${esc(x.v.nome || 'Piatto')}</div>
+            <div style="font-size:13px;color:${pr > 0 ? '#0E5A7A' : '#b45309'};font-weight:700;">${pr > 0 ? '€' + pr.toFixed(2).replace('.', ',') : 'senza prezzo'}</div>
+          </button>`;
+        }).join('');
+      });
+      list = [];
     }
 
     if (!list.length && !specialHtml) {
@@ -1049,6 +1070,9 @@ export async function render(container) {
     });
     const mgBtn = box.querySelector('[data-menugiorno]');
     if (mgBtn) mgBtn.onclick = () => aggiungiMenuGiorno();
+    box.querySelectorAll('[data-mdg-voce]').forEach(btn => {
+      btn.onclick = () => aggiungiPiattoMenuGiorno(Number(btn.dataset.mdgVoce));
+    });
   }
 
   function aggiungiMenuGiorno() {
@@ -1085,6 +1109,29 @@ export async function render(container) {
       ov.remove();
       await inserisciMenuGiorno(a, p, s, prezzo);
     };
+  }
+
+  // Piatto singolo del menu del giorno al prezzo alla carta, nella uscita della sua portata
+  async function aggiungiPiattoMenuGiorno(idx) {
+    if (!comandaAttiva || !menuGiornoOggi) return;
+    const v = (menuGiornoOggi.voci || [])[idx];
+    if (!v) return;
+    const prezzo = Number(v.prezzo) || 0;
+    const riga = {
+      azienda_id: aziendaId, comanda_id: comandaAttiva.id, prodotto_vendita_id: null,
+      nome_snapshot: v.nome || 'Piatto', prezzo_snapshot: prezzo, quantita: 1,
+      uscita_numero: USCITA_PORTATA[v.portata] || 1, stato: 'in_attesa',
+      stampante: v.portata === 'dessert' ? 'pasticceria' : 'cucina',
+      cameriere: cameriereAttivo?.nome || null,
+    };
+    const { data, error } = await supa().from('comanda_righe').insert(riga).select('*').single();
+    if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
+    righeComanda.push(data);
+    await aggiornaTotale();
+    renderRighe();
+    renderTotale();
+    if (prezzo > 0) mostraToast('✅ ' + (v.nome || 'Piatto') + ' — ' + (USCITA_PORTATA[v.portata] || 1) + 'ª uscita', 'success');
+    else mostraToast('⚠️ ' + (v.nome || 'Piatto') + ' senza prezzo alla carta: impostalo nel Menu del giorno', 'warning');
   }
 
   async function inserisciMenuGiorno(anti, primo, secondo, prezzo) {

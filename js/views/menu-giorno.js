@@ -61,6 +61,12 @@ export async function render(container) {
       if (arr) { const idx = arr.indexOf(""); if (idx >= 0) arr[idx] = String(v.ricetta_id); }
     });
   }
+  // Prezzo alla carta già salvato per ogni piatto del ricettario (portata|ricetta)
+  const prezziSalvati = new Map();
+  if (mgEsistente && Array.isArray(mgEsistente.voci)) {
+    mgEsistente.voci.forEach(v => { if (v.ricetta_id && Number(v.prezzo) > 0) prezziSalvati.set(v.portata + "|" + v.ricetta_id, Number(v.prezzo)); });
+  }
+  const prezziVisibiliVal = mgEsistente ? !!mgEsistente.prezzi_singoli_visibili : false;
   let mezzaPensione = mgEsistente ? !!mgEsistente.mezza_pensione : true;
   let prezzoFisso = mgEsistente && mgEsistente.prezzo_fisso != null ? Number(mgEsistente.prezzo_fisso) : null;
   const titoloVal = (mgEsistente && mgEsistente.titolo) ? mgEsistente.titolo : "Menu del Giorno";
@@ -143,11 +149,19 @@ export async function render(container) {
       + '<button class="mg-lib-del" title="Rimuovi" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:7px 10px;cursor:pointer;">✕</button>'
       + '</div>';
   }
+  function prezzoIniziale(key, r) {
+    if (!r) return "";
+    const salvato = prezziSalvati.get(key + "|" + r.id);
+    if (salvato) return salvato;
+    const pr = prezzoRicetta(r);
+    return pr > 0 ? pr : "";
+  }
   function slotRow(key, idx) {
     const selId = sel[key][idx];
     const r = selId ? mappaRicetta.get(String(selId)) : null;
     return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
       + '<select class="mg-sel" data-portata="' + key + '" data-slot="' + idx + '" style="flex:1;min-width:180px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;">' + optionsFor(key, selId) + '</select>'
+      + '<input class="mg-prezzo-slot" data-portata="' + key + '" data-slot="' + idx + '" type="number" step="0.5" min="0" value="' + prezzoIniziale(key, r) + '" placeholder="€ carta" title="Prezzo alla carta (per cassa e comande)" style="width:84px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;text-align:right;">'
       + '<span class="mg-info" data-portata="' + key + '" data-slot="' + idx + '" style="font-size:11px;color:' + infoColor(r) + ';min-width:120px;">' + infoText(r) + '</span>'
       + '</div>';
   }
@@ -162,6 +176,7 @@ export async function render(container) {
     + '<label style="font-size:13px;color:#334155;">Data <input id="mg-data" type="date" value="' + oggi + '" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;">💶 Prezzo fisso € <input id="mg-prezzo" type="number" step="0.5" min="0" value="' + (prezzoFisso != null ? prezzoFisso : '') + '" placeholder="—" style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-mp" type="checkbox"' + (mezzaPensione ? ' checked' : '') + '> Mezza pensione</label>'
+    + '<label title="Spento: il cliente vede solo il prezzo del menu completo. I prezzi alla carta restano in cassa e comande." style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-prezzi-vis" type="checkbox"' + (prezziVisibiliVal ? ' checked' : '') + '> Mostra al cliente i prezzi dei singoli piatti</label>'
     + '<label style="font-size:13px;color:#334155;">Font <select id="mg-font" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;">'
     + ['Georgia, serif|Georgia','\'Times New Roman\', serif|Times','\'Helvetica Neue\', Arial, sans-serif|Helvetica','Garamond, serif|Garamond','\'Courier New\', monospace|Courier'].map(o=>{const[v,l]=o.split('|');return '<option value="'+v+'"'+(fontFamVal===v?' selected':'')+'>'+l+'</option>';}).join('') + '</select></label>'
     + '<label style="font-size:13px;color:#334155;">Dim. <select id="mg-fontsize" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;">'
@@ -247,6 +262,8 @@ export async function render(container) {
     const infoEl = container.querySelector('.mg-info[data-portata="' + key + '"][data-slot="' + idx + '"]');
     const r = selEl.value ? mappaRicetta.get(String(selEl.value)) : null;
     if (infoEl) { infoEl.textContent = infoText(r); infoEl.style.color = infoColor(r); }
+    const prEl = container.querySelector('.mg-prezzo-slot[data-portata="' + key + '"][data-slot="' + idx + '"]');
+    if (prEl) prEl.value = prezzoIniziale(key, r);
   }
   container.querySelectorAll(".mg-sel").forEach(selEl => selEl.addEventListener("change", () => aggiornaInfo(selEl)));
 
@@ -317,7 +334,7 @@ export async function render(container) {
           ricetta_id: Number(rid),
           portata: p.key,
           nome: r ? r.nome : "Piatto",
-          prezzo: r ? prezzoRicetta(r) : 0,
+          prezzo: Number(container.querySelector('.mg-prezzo-slot[data-portata="' + p.key + '"][data-slot="' + selEl.getAttribute("data-slot") + '"]')?.value) || 0,
           food_cost: r && r.food_cost_percentuale != null ? Number(r.food_cost_percentuale) : null,
         });
       });
@@ -336,6 +353,7 @@ export async function render(container) {
     const voci = raccogliVoci();
     const data = container.querySelector("#mg-data").value || oggi;
     const mp = container.querySelector("#mg-mp").checked;
+    const prezziVis = !!container.querySelector("#mg-prezzi-vis")?.checked;
     const prezzoF = Number(container.querySelector("#mg-prezzo")?.value) || null;
     const titolo = (container.querySelector("#mg-titolo")?.value || "").trim() || "Menu del Giorno";
     const font_family = container.querySelector("#mg-font")?.value || "Georgia, serif";
@@ -346,7 +364,7 @@ export async function render(container) {
     const s2 = supa();
     const { data: sess } = await s2.auth.getUser();
     const uid = sess?.user?.id || null;
-    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
+    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzi_singoli_visibili: prezziVis, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
       const { error } = await s2.from("menu_giorno").update(payload).eq("id", mgEsistente.id);
       if (error) throw error;
