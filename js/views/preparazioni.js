@@ -242,11 +242,11 @@ export async function render(container) {
               <div class="form-help">Precompilata dalla ricetta; puoi correggerla a mano. Serve per il moltiplicatore e lo scarico ingredienti.</div>
             </div>
 
-            <div class="form-group">
-              <label>Peso totale reale prodotto (kg)</label>
-              <input id="prod-peso-reale" class="input" type="number" min="0" step="0.001" placeholder="Es: 12,500" ${savedLotto ? "disabled" : ""} />
-              <div class="form-help">Peso misurato in laboratorio.</div>
-            </div>
+            <div id="peso-casa"><div id="peso-blocco" class="form-group">
+              <label>⚖️ Resa: peso totale reale prodotto (kg)</label>
+              <input id="prod-peso-reale" class="input" type="number" min="0" step="0.001" inputmode="decimal" placeholder="Es: 12,500" ${savedLotto ? "disabled" : ""} />
+              <div class="form-help">Pesa il prodotto finito, prima di confezionarlo.</div>
+            </div></div>
 
             <div class="form-group">
               <label>Totale confezionato (kg)</label>
@@ -2303,9 +2303,11 @@ function bindEvents() {
     addConfezioneRow();
   });
 
-  document.getElementById("confezioni-wrap")?.addEventListener("change", (e) => onConfezioniChange(e));
-  document.getElementById("confezioni-wrap")?.addEventListener("input", (e) => onConfezioniChange(e));
-  document.getElementById("confezioni-wrap")?.addEventListener("click", (e) => onConfezioniClick(e));
+  document.getElementById("confezioni-wrap")?.addEventListener("change", (e) => { onConfezioniChange(e); pianificaSalvataggioLottoAperto(); });
+  document.getElementById("confezioni-wrap")?.addEventListener("input", (e) => { onConfezioniChange(e); pianificaSalvataggioLottoAperto(); });
+  document.getElementById("confezioni-wrap")?.addEventListener("click", (e) => { onConfezioniClick(e); pianificaSalvataggioLottoAperto(); });
+  document.getElementById("prod-peso-reale")?.addEventListener("input", () => pianificaSalvataggioLottoAperto());
+  document.getElementById("prod-scadenza")?.addEventListener("change", () => pianificaSalvataggioLottoAperto());
 
   document.getElementById("btn-add-coprodotto")?.addEventListener("click", () => {
     if (savedLotto) return;
@@ -2691,6 +2693,9 @@ function renderFasiHaccp() {
     const _b = document.getElementById("confezioni-blocco");
     const _casa = document.getElementById("confezioni-casa");
     if (_b && _casa && _b.parentElement !== _casa) _casa.appendChild(_b);
+    const _p = document.getElementById("peso-blocco");
+    const _pc = document.getElementById("peso-casa");
+    if (_p && _pc && _p.parentElement !== _pc) _pc.appendChild(_p);
   } catch (e) { /* niente */ }
 
   if (!fasiCache.length) {
@@ -2719,7 +2724,16 @@ function renderFasiHaccp() {
     const ro = automatico ? "readonly" : "";
     const bgAuto = automatico ? "background:#f0fdf4;" : "";
 
-    return `<div class="azienda-card" style="margin-bottom:12px;border-left:4px solid ${borderColor[f.tipo_fase] || "#0E5A7A"};" data-idx="${idx}">
+    const primaConf = String(log?.fase_tipo || f.tipo_fase || "").toLowerCase() === "confezionamento"
+      && logHaccp.findIndex((l) => String(l.fase_tipo || "").toLowerCase() === "confezionamento") === idx;
+    const passoResa = primaConf
+      ? `<div class="azienda-card" style="margin-bottom:12px;border-left:4px solid #16a34a;background:#f0fdf4;">
+           <strong>⚖️ Resa del lotto</strong>
+           <div style="font-size:12.5px;color:#166534;margin:4px 0 10px;">Processo finito: pesa il prodotto prima di confezionarlo.</div>
+           <div id="resa-prima-conf"></div>
+         </div>`
+      : "";
+    return passoResa + `<div class="azienda-card" style="margin-bottom:12px;border-left:4px solid ${borderColor[f.tipo_fase] || "#0E5A7A"};" data-idx="${idx}">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
         <div>
           <strong>Fase ${f.ordine} — ${escapeHtml(f.nome_fase || f.tipo_fase)}</strong>
@@ -2816,7 +2830,10 @@ function renderFasiHaccp() {
       if (dest && blocco.parentElement !== dest) {
         dest.appendChild(blocco);
         if (cardConf) cardConf.style.display = "none";
-      } else if (!dest && cardConf) {
+      }
+      const pesoB = document.getElementById("peso-blocco");
+      const destPeso = document.getElementById("resa-prima-conf");
+      if (pesoB && destPeso && pesoB.parentElement !== destPeso) destPeso.appendChild(pesoB); else if (!dest && cardConf) {
         // Nessuna fase di confezionamento in questa ricetta: la card torna al suo posto
         cardConf.style.display = "";
         const casa = document.getElementById("confezioni-casa");
@@ -3109,7 +3126,7 @@ function aggiornaAbilitazioneStampe() {
   // Le etichette si possono stampare se il lotto e' salvato/ripreso OPPURE
   // se tutte le fasi HACCP risultano firmate (preparazione di fatto completata).
   const tutteFirmate = logHaccp.length > 0 && logHaccp.every((l) => l.firmato);
-  const abilita = !!savedLotto || tutteFirmate;
+  const abilita = !!lottoCorrente() || tutteFirmate;
   const pL = document.getElementById("btn-print-lotto");
   const pC = document.getElementById("btn-print-coprodotti");
   const pE = document.getElementById("btn-print-etichettatrice");
@@ -3141,12 +3158,54 @@ function rimuoviFirmaFase(idx, i) {
 }
 window.__rimuoviFirmaFase = rimuoviFirmaFase;
 
+// ── Lotto aperto: salvataggio di resa, confezioni, scadenza e note sul lotto ──
+let lottoApertoCodice = null;
+// Lotto su cui si lavora: chiuso (savedLotto) oppure aperto/ripreso (resumeLottoUUID)
+function lottoCorrente() {
+  if (savedLotto) return savedLotto;
+  if (resumeLottoUUID) return { lotto_uuid: resumeLottoUUID, codice_lotto: lottoApertoCodice || null };
+  return null;
+}
+let _timerLottoAperto = null;
+function pianificaSalvataggioLottoAperto() {
+  if (!resumeLottoUUID || savedLotto) return;
+  clearTimeout(_timerLottoAperto);
+  _timerLottoAperto = setTimeout(() => aggiornaLottoAperto(false), 1200);
+}
+async function aggiornaLottoAperto(manuale) {
+  if (!resumeLottoUUID || savedLotto) return;
+  const supabase = window.supabaseClient || window.supabase;
+  const esito = document.getElementById("r-esito");
+  try {
+    const pesoReale = getPesoRealeKg();
+    const agg = {
+      quantita_output: pesoReale || null,
+      dettaglio_confezionamento: buildDettaglioConfezionamento(),
+      note: document.getElementById("prod-note-lotto")?.value || null,
+    };
+    const scad = document.getElementById("prod-scadenza")?.value || null;
+    if (scad) agg.data_scadenza = scad;
+    const scen = document.getElementById("prod-conservazione")?.value || null;
+    if (scen) agg.scenario_conservazione_id = scen;
+    const { error } = await supabase.from("produzione_lotti").update(agg)
+      .eq("lotto_uuid", resumeLottoUUID).eq("stato", "aperta");
+    if (error) throw error;
+    if (manuale) await salvaLogHaccpConLotto(resumeLottoUUID, window.state?.azienda?.id, true);
+    if (esito) { esito.textContent = "💾 Salvato alle " + new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }); esito.style.color = "#15803d"; }
+  } catch (e) {
+    console.error("aggiornaLottoAperto:", e);
+    if (esito) { esito.textContent = "❌ Salvataggio non riuscito: " + (e.message || e); esito.style.color = "#b91c1c"; }
+  }
+}
+
 async function salvaProduzione() {
   const esito = document.getElementById("r-esito") || null;
   const setEsito = (msg, err) => { if (esito) { esito.textContent = msg; esito.style.color = err ? "#b91c1c" : "#15803d"; } };
 
   if (!ricettaSelezionata?.id) { alert("Seleziona prima una ricetta."); return; }
   if (savedLotto) { alert("Produzione già registrata."); return; }
+  // Lotto gia' aperto: non se ne crea un altro, si aggiorna quello
+  if (resumeLottoUUID) { await aggiornaLottoAperto(true); return; }
 
   const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
@@ -3192,13 +3251,16 @@ async function salvaProduzione() {
     await salvaLogHaccpConLotto(luuid, aziendaId, false);
 
     // 3) aggancio lo stato locale: la produzione è ora "aperta" e stampabile
-    savedLotto = { lotto_uuid: luuid, id: nuovo.id, codice_lotto: nuovo.codice_lotto };
+    // Il lotto e' APERTO, non chiuso: la scheda resta modificabile (resa, confezioni, firme)
+    // e ogni modifica si salva da sola sul lotto. Si blocca solo quando viene chiuso/firmato.
+    savedLotto = null;
     savedLottoUUID = luuid;
     resumeLottoUUID = luuid;
+    lottoApertoCodice = nuovo.codice_lotto || String(luuid).slice(0, 8);
     aggiornaAbilitazioneStampe();
-    setEsito("✅ Produzione registrata e aperta in Produzioni aperte. Lotto: " + (nuovo.codice_lotto || String(luuid).slice(0, 8)), false);
-    if (btn) btn.textContent = "✅ Registrata";
-    if (btnTop) { btnTop.disabled = true; btnTop.textContent = "✅ Registrata"; }
+    setEsito("✅ Produzione aperta. Lotto: " + lottoApertoCodice + ". Resa e confezioni si salvano da sole.", false);
+    if (btn) { btn.disabled = false; btn.textContent = "💾 Salva avanzamento"; }
+    if (btnTop) { btnTop.disabled = false; btnTop.textContent = "💾 Salva avanzamento"; }
   } catch (e) {
     console.error("salvaProduzione:", e);
     setEsito("❌ Errore: " + (e.message || "salvataggio non riuscito"), true);
@@ -3853,7 +3915,7 @@ function buildTestoConservazione(scenarioId) {
   }).join(" → ");
 }
 async function stampaEtichetteSuEtichettatrice() {
-  if (!savedLotto?.codice_lotto && !savedLotto?.lotto_uuid) return alert("Registra o riprendi prima la produzione.");
+  if (!lottoCorrente()) return alert("Registra o riprendi prima la produzione.");
 
   const stampante = await getStampanteEtichette();
   if (!stampante) {
@@ -3898,8 +3960,8 @@ async function stampaEtichetteSuEtichettatrice() {
     for (let i = 0; i < r.numConf; i++) {
       labels.push({
         titolo: (ricettaSelezionata?.nome || "Ricetta").toString(),
-        lotto: savedLotto.codice_lotto || ("LOTTO-" + String(savedLotto.lotto_uuid || "").slice(0, 8)),
-        lotto_uuid: savedLottoUUID || savedLotto.lotto_uuid || null,
+        lotto: lottoCorrente().codice_lotto || ("LOTTO-" + String(lottoCorrente().lotto_uuid || "").slice(0, 8)),
+        lotto_uuid: savedLottoUUID || lottoCorrente().lotto_uuid || null,
         dataProduzione: rfFormatDateITA(dataProdISO),
         dataScadenza: rfFormatDateITA(scadenzaISO),
         rows: [
@@ -3930,7 +3992,7 @@ async function stampaEtichetteSuEtichettatrice() {
 }
 
 function stampaEtichetteConfezioni() {
-  if (!savedLotto?.codice_lotto && !savedLotto?.lotto_uuid) return alert("Registra o riprendi prima la produzione.");
+  if (!lottoCorrente()) return alert("Registra o riprendi prima la produzione.");
 
   rfChooseLabelFormat().then(async (format) => {
     if (!format) return;
@@ -3977,8 +4039,8 @@ function stampaEtichetteConfezioni() {
       for (let i = 0; i < r.numero_confezioni; i++) {
         labels.push({
           titolo: (ricettaSelezionata?.nome || "Ricetta").toString(),
-          lotto: savedLotto.codice_lotto || ("LOTTO-" + String(savedLotto.lotto_uuid || "").slice(0, 8)),
-          lotto_uuid: savedLottoUUID || savedLotto.lotto_uuid || null,
+          lotto: lottoCorrente().codice_lotto || ("LOTTO-" + String(lottoCorrente().lotto_uuid || "").slice(0, 8)),
+          lotto_uuid: savedLottoUUID || lottoCorrente().lotto_uuid || null,
           dataProduzione: rfFormatDateITA(dataProdISO),
           dataScadenza: rfFormatDateITA(scadenzaISO),
           /* L'ordine conta: il renderer smette di scrivere quando finisce lo
@@ -4010,7 +4072,7 @@ function stampaEtichetteConfezioni() {
 }
 
 function stampaEtichetteCoprodotti() {
-  if (!savedLotto?.codice_lotto && !savedLotto?.lotto_uuid) return alert("Registra o riprendi prima la produzione.");
+  if (!lottoCorrente()) return alert("Registra o riprendi prima la produzione.");
 
   rfChooseLabelFormat().then(async (format) => {
     if (!format) return;
@@ -4041,7 +4103,7 @@ function stampaEtichetteCoprodotti() {
 
       return {
         titolo: (nomeProd || "Coprodotto").toString(),
-        lotto: savedLotto.codice_lotto || ("LOTTO-" + String(savedLotto.lotto_uuid || "").slice(0, 8)),
+        lotto: lottoCorrente().codice_lotto || ("LOTTO-" + String(lottoCorrente().lotto_uuid || "").slice(0, 8)),
         lotto_uuid: savedLottoUUID || null,
         dataProduzione: rfFormatDateITA(dataProdISO),
         dataScadenza: rfFormatDateITA(scadISO),
@@ -4375,6 +4437,7 @@ async function resumeDaLotto(lottoUuid) {
   // Ma se il lotto e' ancora APERTO la scheda resta modificabile: e' in lavorazione,
   // e servono confezioni, firme e pesi. Si blocca solo quando e' chiuso o firmato.
   savedLottoUUID = lotto.lotto_uuid;
+  lottoApertoCodice = lotto.codice_lotto || null;
   const lottoInLavorazione = String(lotto.stato || "").toLowerCase() === "aperta";
   savedLotto = lottoInLavorazione
     ? null
