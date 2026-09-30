@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Agente fiscale Ristoflow v3 — legge coda_fiscale e stampa su Epson FP-81 II RT via fpmate.cgi
+Agente fiscale Ristoflow v3.1 — legge coda_fiscale e stampa su Epson FP-81 II RT via fpmate.cgi
 Stati validi: in_attesa, in_elaborazione, completato, errore
 Documenti: scontrino, fattura (= scontrino, la fattura elettronica si fa a parte),
            preconto (non fiscale), lettura_x, chiusura_z
@@ -28,8 +28,9 @@ LARGHEZZA = 42          # caratteri per riga sul preconto
 # QR in fondo allo scontrino (coupon / link). Se la stampante rifiuta il QR,
 # il documento viene ristampato subito SENZA fondo: lo scontrino non si blocca mai per il QR.
 QR_TIPO = "QRCODE2"
-QR_MODULO = 6           # dimensione del quadratino (1-16)
-QR_POSIZIONE = 900      # 900 = centrato sulle Epson FP
+QR_DIMENSIONE = 8       # qRCodeSize: dimensione del quadratino (1-16)
+QR_ALLINEAMENTO = 1     # qRCodeAlignment: 0 sinistra, 1 centro, 2 destra
+QR_CORREZIONE = 1       # qRCodeErrorCorrection: 0 L, 1 M, 2 Q, 3 H
 MAX_DESCR = 38          # lunghezza massima descrizione articolo sulla FP-81
 
 # Aliquota IVA -> reparto programmato sulla stampante (come in stampanti_fiscali.reparti_iva)
@@ -149,9 +150,11 @@ def xml_qr(fine):
     code = str(qr.get("contenuto") or "").strip()
     if not code:
         return ""
+    # Per i QR la guida Epson vuole attributi dedicati: position/width/height/hRI non vanno usati
     return (
-        '<printBarCode operator="1" position="' + str(QR_POSIZIONE) + '" width="' + str(QR_MODULO)
-        + '" height="1" hRIPosition="0" hRIFont="A" codeType="' + QR_TIPO + '" code="' + esc(code[:250]) + '" />'
+        '<printBarCode operator="1" codeType="' + QR_TIPO + '" qRCodeAlignment="' + str(QR_ALLINEAMENTO)
+        + '" qRCodeSize="' + str(QR_DIMENSIONE) + '" qRCodeErrorCorrection="' + str(QR_CORREZIONE)
+        + '" qRCodeDataType="0" code="' + esc(code[:250]) + '" />'
     )
 
 
