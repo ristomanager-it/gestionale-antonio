@@ -273,7 +273,7 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante, codi
         <div class="testo">${righe.join("<br>")}</div>
         ${qrSvg ? `<div class="qr">${qrSvg}<div class="qrcap">Come si usa</div></div>` : ""}
       </div>
-      <div class="lotto">LOTTO ${escapeHtml(info.codice_lotto || "")}${scad ? ` · ${escapeHtml(etichetta.tmc_dicitura || "entro")} il ${scad}` : ""}</div>
+      <div class="lotto">LOTTO ${escapeHtml(info.codice_lotto || "")}${scad ? ` · <span class="scad">${escapeHtml(etichetta.tmc_dicitura || "entro")} il ${scad}</span>` : ""}</div>
       <div class="prod">${escapeHtml(produttore.ragione_sociale || "")} — ${escapeHtml(produttore.indirizzo || "")}${produttore.partita_iva ? ` — P.IVA ${escapeHtml(produttore.partita_iva)}` : ""}</div>
     </div>`;
 
@@ -299,7 +299,9 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante, codi
       .tit { font-size:6.5pt; font-weight:800; border-bottom:0.5pt solid #666; padding-bottom:0.7mm; margin-bottom:1mm; }
       .corpo { display:flex; gap:2mm; flex:1; overflow:hidden; }
       .testo { flex:1; font-size:6pt; line-height:1.25; }
-      .al { font-weight:800; }
+      /* Rotolo DK-22251 nero/rosso: allergeni e scadenza in rosso */
+      .al { font-weight:800; color:#e00000; }
+      .scad { color:#e00000; }
       .qr { width:13mm; flex-shrink:0; display:flex; flex-direction:column; align-items:center; }
       .qr svg { width:13mm; height:13mm; display:block; }
       .qrcap { font-size:4.5pt; color:#444; text-align:center; margin-top:0.3mm; }
