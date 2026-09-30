@@ -57,6 +57,15 @@ export async function render(container) {
 
       <input id="cat-ordine" type="number" class="input" placeholder="Ordine">
 
+      <label style="display:block;font-size:12px;font-weight:600;color:#64748b;margin-top:8px;">IVA della categoria</label>
+      <select id="cat-iva" class="input">
+        <option value="10">10% — somministrazione (cibo e bevande al tavolo)</option>
+        <option value="22">22% — asporto alcolici, servizi, noleggi</option>
+        <option value="4">4% — generi di prima necessità</option>
+        <option value="5">5% — altro</option>
+      </select>
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px;">Vale per tutti i prodotti della categoria, tranne quelli con IVA propria.</div>
+
       <label><input type="checkbox" id="cat-attivo" checked> Attiva</label>
       <label><input type="checkbox" id="cat-visibile" checked> Visibile</label>
 
@@ -296,6 +305,7 @@ export async function render(container) {
     qs("#cat-img-preview").style.background = "#f3f4f6"
     qs("#cat-img-preview").innerText = "Nessuna foto"
     qs("#cat-ordine").value = 0
+    qs("#cat-iva").value = "10"
 
     qs("#cat-attivo").checked = true
     qs("#cat-visibile").checked = true
@@ -325,6 +335,7 @@ export async function render(container) {
       qs("#cat-img-preview").innerText = "Nessuna foto"
     }
     qs("#cat-ordine").value = c.ordine || 0
+    qs("#cat-iva").value = String(c.aliquota_iva ?? 10)
 
     qs("#cat-attivo").checked = c.attiva ?? true
     qs("#cat-visibile").checked = c.visibile ?? true
@@ -343,7 +354,8 @@ export async function render(container) {
         immagine_url: qs("#cat-img-url").value || null,
         attiva: qs("#cat-attivo").checked,
         visibile: qs("#cat-visibile").checked,
-        ordine: Number(qs("#cat-ordine").value || 0)
+        ordine: Number(qs("#cat-ordine").value || 0),
+        aliquota_iva: Number(qs("#cat-iva").value || 10)
       }
 
       const { error } = await supabase
@@ -364,7 +376,8 @@ export async function render(container) {
         immagine_url: qs("#cat-img-url").value || null,
         attiva: qs("#cat-attivo").checked,
         visibile: qs("#cat-visibile").checked,
-        ordine: Number(qs("#cat-ordine").value || 0)
+        ordine: Number(qs("#cat-ordine").value || 0),
+        aliquota_iva: Number(qs("#cat-iva").value || 10)
       }
 
       const { error } = await supabase

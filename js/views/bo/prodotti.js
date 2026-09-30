@@ -132,8 +132,14 @@ export async function render(container) {
         </div>
 
         <div>
-          <label>IVA %</label>
-          <input id="prod-iva" class="input" type="number" step="0.01" value="10">
+          <label>IVA</label>
+          <select id="prod-iva" class="input">
+            <option value="">Come la categoria</option>
+            <option value="10">10%</option>
+            <option value="22">22%</option>
+            <option value="4">4%</option>
+            <option value="5">5%</option>
+          </select>
         </div>
       </div>
 
@@ -280,6 +286,18 @@ export async function render(container) {
     `).join("")
   }
 
+  // IVA della categoria scelta nel form (default 10 se senza categoria)
+  function ivaCategoriaSelezionata() {
+    const cid = qs("#prod-categoria")?.value || ""
+    const c = categorie.find(x => String(x.id) === String(cid))
+    return Number(c?.aliquota_iva ?? 10)
+  }
+  function aggiornaEtichettaIvaCategoria() {
+    const sel = qs("#prod-iva")
+    if (!sel || !sel.options.length) return
+    sel.options[0].textContent = "Come la categoria (" + ivaCategoriaSelezionata() + "%)"
+  }
+
   async function loadProdotti() {
     let q = supabase
       .from("prodotti_vendita")
@@ -367,6 +385,8 @@ export async function render(container) {
     `
 
     qs("#prod-categoria").value = value
+    qs("#prod-categoria").onchange = aggiornaEtichettaIvaCategoria
+    aggiornaEtichettaIvaCategoria()
   }
 
   function renderRicettaOptions() {
@@ -495,6 +515,7 @@ export async function render(container) {
 
           <div style="text-align:right;">
             <div style="font-weight:800;">€ ${formatMoney(p.prezzo_base)}</div>
+            <div style="font-size:11px;margin-top:2px;"><span style="border-radius:6px;padding:1px 6px;${p.iva_personalizzata ? "background:#fef3c7;color:#92400e;" : "background:#e0f2fe;color:#0E5A7A;"}">IVA ${Number(p.iva ?? 10)}% · ${p.iva_personalizzata ? "propria" : "categoria"}</span></div>
             <div style="font-size:12px; color:#64748b;">
               ${p.attivo === false ? "Off" : "Attivo"}
             </div>
@@ -589,7 +610,8 @@ export async function render(container) {
     qs("#prod-categoria").value = p.categoria_vendita_id || ""
     qs("#prod-ricetta").value = p.ricetta_id || ""
     qs("#prod-prezzo").value = p.prezzo_base ?? ""
-    qs("#prod-iva").value = p.iva ?? 10
+    qs("#prod-iva").value = p.iva_personalizzata ? String(Number(p.iva ?? 10)) : ""
+    aggiornaEtichettaIvaCategoria()
     qs("#prod-porzione").value = p.porzione_default ?? 1
     qs("#prod-um").value = p.unita_porzione || "pz"
     qs("#prod-minutaggio").value = p.minutaggio_servizio ?? ""
@@ -617,7 +639,8 @@ export async function render(container) {
     qs("#prod-categoria").value = ""
     qs("#prod-ricetta").value = ""
     qs("#prod-prezzo").value = ""
-    qs("#prod-iva").value = 10
+    qs("#prod-iva").value = ""
+    aggiornaEtichettaIvaCategoria()
     qs("#prod-porzione").value = 1
     qs("#prod-um").value = "pz"
     qs("#prod-minutaggio").value = ""
@@ -668,7 +691,9 @@ export async function render(container) {
       ricetta_id: ricettaIdManuale,
       foto_url: qs("#prod-img-url").value.trim() || null,
       prezzo_base: parseNullableNumber(qs("#prod-prezzo").value),
-      iva: parseNullableNumber(qs("#prod-iva").value),
+      // IVA: vuoto = segue la categoria (il trigger in DB la allinea), altrimenti eccezione sul prodotto
+      iva_personalizzata: qs("#prod-iva").value !== "",
+      iva: qs("#prod-iva").value !== "" ? Number(qs("#prod-iva").value) : ivaCategoriaSelezionata(),
       porzione_default: parseNullableNumber(qs("#prod-porzione").value) || 1,
       unita_porzione: qs("#prod-um").value || "pz",
       minutaggio_servizio: parseNullableNumber(qs("#prod-minutaggio").value),
