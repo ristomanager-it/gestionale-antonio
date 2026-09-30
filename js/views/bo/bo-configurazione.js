@@ -235,8 +235,8 @@ export async function render(container) {
 
     let editingId = null;
     let repartiRows = [
-      { reparto: 1, iva: 10, descrizione: 'Alimenti e bevande analcoliche' },
-      { reparto: 2, iva: 22, descrizione: 'Bevande alcoliche' },
+      { reparto: 1, iva: 10, descrizione: 'Somministrazione cibo e bevande (anche alcoliche)' },
+      { reparto: 2, iva: 22, descrizione: 'Asporto alcolici, servizi e noleggi' },
       { reparto: 3, iva: 4,  descrizione: 'Generi prima necessità' }
     ];
 
@@ -322,8 +322,8 @@ export async function render(container) {
       box.querySelector('#sp-ip').value = stampante?.ip || '';
       box.querySelector('#sp-porta').value = stampante?.porta || 80;
       repartiRows = stampante?.reparti_iva || [
-        { reparto: 1, iva: 10, descrizione: 'Alimenti e bevande analcoliche' },
-        { reparto: 2, iva: 22, descrizione: 'Bevande alcoliche' },
+        { reparto: 1, iva: 10, descrizione: 'Somministrazione cibo e bevande (anche alcoliche)' },
+        { reparto: 2, iva: 22, descrizione: 'Asporto alcolici, servizi e noleggi' },
         { reparto: 3, iva: 4,  descrizione: 'Generi prima necessità' }
       ];
       renderReparti();
@@ -396,6 +396,68 @@ export async function render(container) {
       esito.textContent = '✅ Salvato'; esito.style.color = '#16a34a';
       setTimeout(() => renderTabCassa(box), 800);
     };
+
+    renderPuntoCassa(box);
+  }
+
+  // ── PUNTO CASSA: dispositivi autorizzati alla chiusura cassa per i manager ──
+  // L'admin registra il dispositivo della cassa: riceve un codice che resta in
+  // questo browser (localStorage). Nel DB c'e' solo l'hash del codice.
+  async function renderPuntoCassa(box) {
+    const chiaveLS = 'rf_postazione_cassa_' + aziendaId;
+    const tokenQui = localStorage.getItem(chiaveLS);
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-top:8px;margin-bottom:36px;';
+    box.appendChild(wrap);
+
+    const { data: lista, error } = await supa().rpc('elenco_postazioni_cassa', { p_azienda: aziendaId });
+    if (error) { wrap.innerHTML = ''; return; } // non admin: sezione nascosta
+
+    const righe = (lista || []).map(function (p) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;">'
+        + '<div><div style="font-weight:600;font-size:14px;">' + esc(p.nome) + (p.attiva ? '' : ' <span style="color:#dc2626;font-size:12px;">(revocata)</span>') + '</div>'
+        + '<div style="font-size:12px;color:#64748b;">Registrata il ' + new Date(p.created_at).toLocaleDateString('it-IT')
+        + (p.ultimo_uso ? ' · ultima chiusura ' + new Date(p.ultimo_uso).toLocaleDateString('it-IT') : '') + '</div></div>'
+        + (p.attiva ? '<button data-revoca="' + p.id + '" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;">Revoca</button>' : '')
+        + '</div>';
+    }).join('');
+
+    wrap.innerHTML =
+      '<div style="font-size:18px;font-weight:700;color:#0f172a;">🧾 Punto cassa</div>'
+      + '<div style="font-size:13px;color:#64748b;margin:2px 0 14px;">La chiusura cassa (lettura X e chiusura Z) per i manager funziona solo sui dispositivi registrati qui. Gli admin la usano da qualsiasi dispositivo.</div>'
+      + '<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;">'
+      + (tokenQui
+          ? '<div style="font-size:13px;color:#16a34a;font-weight:600;margin-bottom:10px;">✅ Questo dispositivo è registrato come punto cassa</div>'
+          : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
+            + '<input id="pc-nome" class="input" placeholder="Nome (es. Cassa Trattoria)" style="flex:1;min-width:180px;">'
+            + '<button id="pc-registra" style="background:#0E5A7A;color:white;border:none;padding:9px 16px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">Registra questo dispositivo</button>'
+            + '</div>')
+      + '<div id="pc-esito" style="font-size:13px;min-height:16px;"></div>'
+      + (righe || '<div style="font-size:13px;color:#94a3b8;">Nessun punto cassa registrato.</div>')
+      + '</div>';
+
+    const btn = wrap.querySelector('#pc-registra');
+    if (btn) btn.onclick = async function () {
+      const nome = (wrap.querySelector('#pc-nome').value || '').trim() || 'Punto cassa';
+      btn.disabled = true;
+      const { data, error: e } = await supa().rpc('registra_postazione_cassa', { p_azienda: aziendaId, p_nome: nome, p_sede: currentSedeId || null });
+      if (e || !data?.token) {
+        wrap.querySelector('#pc-esito').textContent = '❌ ' + (e?.message || 'Registrazione non riuscita');
+        btn.disabled = false; return;
+      }
+      localStorage.setItem(chiaveLS, data.token);
+      wrap.querySelector('#pc-esito').textContent = '✅ Registrato. Ricarico per mostrare la voce nel menu…';
+      setTimeout(function () { location.reload(); }, 900);
+    };
+    wrap.querySelectorAll('[data-revoca]').forEach(function (b) {
+      b.onclick = async function () {
+        if (!confirm('Revocare questo punto cassa? I manager non potranno più fare la chiusura da quel dispositivo.')) return;
+        const { error: e } = await supa().rpc('revoca_postazione_cassa', { p_id: b.dataset.revoca });
+        if (e) { wrap.querySelector('#pc-esito').textContent = '❌ ' + e.message; return; }
+        wrap.remove();
+        renderPuntoCassa(box);
+      };
+    });
   }
 
   function esc(v) {
