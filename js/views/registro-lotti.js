@@ -228,21 +228,20 @@ async function toggleDettaglio(card) {
       e.stopPropagation();
       const peso = box.querySelector(".rl-peso")?.value || "";
       const quante = Math.max(1, parseInt(box.querySelector(".rl-quante")?.value || "1", 10));
-      stampaEtichette({ etichetta, produttore, info, peso, quante, codiceRicetta: lotto.ricette?.codice });
+      stampaEtichette({ etichetta, produttore, info, peso, quante });
     });
     box.querySelectorAll(".rl-peso, .rl-quante").forEach(i => i.addEventListener("click", e => e.stopPropagation()));
   }
 }
 
-// Retro dell'etichetta: misura unica 60x40 mm su ogni prodotto e ogni formato.
-// Il corpo del testo non scende sotto i 6pt: il regolamento 1169/2011 chiede
-// almeno 1,2 mm di altezza della x, sotto quella misura l'etichetta e' fuori norma.
-// Il QR si genera in locale (js/vendor/qrcode.js), niente CDN: nel laboratorio
-// la connessione non e' garantita.
-// Etichetta lotto disegnata come IMMAGINE 62x100 mm (300 dpi): l'iPhone stampando una pagina web
-// reimpagina il testo a modo suo; un'immagine invece esce identica. Formato "62 x 100 mm" della
-// Brother QL-820NWBc con rotolo DK-22251 nero/rosso: allergeni e scadenza in rosso.
-const ET_W = 732, ET_H = 1181, ET_PAD = 44;   // 62 x 100 mm a 300 dpi
+// Il corpo del testo non scende sotto i 6pt (25 punti a 300 dpi): il regolamento 1169/2011
+// chiede un'altezza minima della x; sotto quella misura l'etichetta e' fuori norma.
+// Se il testo non ci sta, l'etichetta NON si stampa e si chiede di accorciarlo.
+// Etichetta lotto 62x40 mm orizzontale, disegnata come IMMAGINE alla risoluzione della Brother
+// QL-820NWBc (696x472 punti = area stampabile rotolo 62 mm x 40 mm, 300 dpi). Rotolo DK-22251
+// nero/rosso: allergeni e scadenza in rosso. Esce dal Raspberry (coda_stampe, tipo etichetta):
+// dall'iPhone la Brother offre solo 62x100.
+const ET_W = 696, ET_H = 472, ET_PAD = 22;
 const ROSSO = "#e00000";
 
 function etWrap(ctx, testo, maxW) {
@@ -258,7 +257,7 @@ function etWrap(ctx, testo, maxW) {
   return righe;
 }
 
-async function disegnaEtichetta({ etichetta, produttore, info, peso, qrUrl }) {
+function disegnaEtichetta({ etichetta, produttore, info, peso }) {
   const c = document.createElement("canvas");
   c.width = ET_W; c.height = ET_H;
   const ctx = c.getContext("2d");
@@ -267,135 +266,109 @@ async function disegnaEtichetta({ etichetta, produttore, info, peso, qrUrl }) {
   const F = "Arial, Helvetica, sans-serif";
   const W = ET_W - ET_PAD * 2;
 
-  // --- parte bassa, fissa: produttore, lotto, scadenza, QR
-  ctx.font = "26px " + F;
-  const prodTxt = [produttore.ragione_sociale, produttore.indirizzo, produttore.partita_iva ? "P.IVA " + produttore.partita_iva : ""].filter(Boolean).join(" — ");
-  const prodRighe = etWrap(ctx, prodTxt, W).slice(0, 3);
-  let yBasso = ET_H - ET_PAD - prodRighe.length * 31;
-  ctx.fillStyle = "#333";
-  prodRighe.forEach((r, i) => ctx.fillText(r, ET_PAD, yBasso + i * 31));
-
-  const QR = qrUrl ? 190 : 0;
-  const wLotto = W - (QR ? QR + 18 : 0);
+  // --- fondo, sempre nello stesso posto: produttore, lotto, scadenza
+  ctx.font = "25px " + F;
+  const prod = etWrap(ctx, [produttore.ragione_sociale, produttore.indirizzo, produttore.partita_iva ? "P.IVA " + produttore.partita_iva : ""].filter(Boolean).join(" — "), W).slice(0, 3);
+  const yP = ET_H - ET_PAD + 2 - prod.length * 28;
+  ctx.fillStyle = "#000";
+  prod.forEach((r, i) => ctx.fillText(r, ET_PAD, yP + i * 28));
   const scad = info.data_scadenza ? new Date(info.data_scadenza).toLocaleDateString("it-IT") : "";
-  ctx.font = "bold 36px " + F;
-  const scadRighe = scad ? etWrap(ctx, (etichetta.tmc_dicitura || "Da consumarsi entro") + " il " + scad, wLotto) : [];
-  ctx.font = "bold 44px " + F;
-  const lottoRighe = etWrap(ctx, "LOTTO " + (info.codice_lotto || ""), wLotto);
-  const hBlocco = Math.max(QR, lottoRighe.length * 50 + scadRighe.length * 42 + 8);
-  const yBlocco = yBasso - 22 - hBlocco;
-  ctx.fillStyle = "#000"; ctx.fillRect(ET_PAD, yBlocco - 16, W, 4);
-  let y = yBlocco;
-  ctx.font = "bold 44px " + F; ctx.fillStyle = "#000";
-  lottoRighe.forEach(r => { ctx.fillText(r, ET_PAD, y); y += 50; });
-  y += 8;
-  ctx.font = "bold 36px " + F; ctx.fillStyle = ROSSO;
-  scadRighe.forEach(r => { ctx.fillText(r, ET_PAD, y); y += 42; });
-  if (qrUrl) {
-    try {
-      const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = qrUrl; });
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, ET_PAD + W - QR, yBlocco, QR, QR);
-    } catch (e) {}
-  }
-  const limite = yBlocco - 30;   // fin dove può arrivare la parte alta
+  ctx.font = "bold 26px " + F;
+  const sc = scad ? etWrap(ctx, (etichetta.tmc_dicitura || "Da consumarsi entro") + " il " + scad, W) : [];
+  const yS = yP - 6 - sc.length * 30;
+  ctx.fillStyle = ROSSO;
+  sc.forEach((r, i) => ctx.fillText(r, ET_PAD, yS + i * 30));
+  ctx.font = "bold 31px " + F; ctx.fillStyle = "#000";
+  const yL = yS - 36;
+  ctx.fillText("LOTTO " + (info.codice_lotto || ""), ET_PAD, yL);
+  ctx.fillRect(ET_PAD, yL - 9, W, 3);
+  const limite = yL - 16;
 
-  // --- parte alta: titolo, peso, ingredienti, allergeni, conservazione (si stringe se non entra)
+  // --- alto: nome e peso, poi ingredienti, allergeni, origine, conservazione
   const allerg = Array.isArray(etichetta.allergeni) ? etichetta.allergeni.filter(Boolean) : [];
-  const blocchi = [];
-  if (etichetta.ingredienti) blocchi.push({ lab: "Ingredienti", txt: etichetta.ingredienti });
-  blocchi.push({ lab: "Allergeni", txt: allerg.length ? allerg.join(", ") : "nessuno", rosso: allerg.length > 0 });
-  if (etichetta.origine) blocchi.push({ lab: "Origine", txt: etichetta.origine });
-  if (etichetta.peso_sgocciolato_g) blocchi.push({ lab: "Peso sgocciolato", txt: etichetta.peso_sgocciolato_g + " g" });
-  if (etichetta.conservazione) blocchi.push({ txt: etichetta.conservazione });
-  if (etichetta.dopo_apertura) blocchi.push({ txt: etichetta.dopo_apertura });
+  const pezzi = [];
+  if (etichetta.ingredienti) pezzi.push({ b: "Ingredienti:", t: etichetta.ingredienti });
+  pezzi.push({ b: "Allergeni:", t: allerg.length ? allerg.join(", ") : "nessuno", rosso: allerg.length > 0 });
+  if (etichetta.origine) pezzi.push({ b: "Origine:", t: etichetta.origine });
+  if (etichetta.peso_sgocciolato_g) pezzi.push({ b: "Sgocciolato:", t: etichetta.peso_sgocciolato_g + " g" });
+  const cons = [etichetta.conservazione, etichetta.dopo_apertura].filter(Boolean).join(" ");
+  if (cons) pezzi.push({ b: "", t: cons });
 
-  function misuraEDisegna(scala, disegna) {
-    let yy = ET_PAD;
-    const fT = Math.round(56 * scala), fP = Math.round(40 * scala), fL = Math.round(27 * scala), fB = Math.round(32 * scala);
+  function fai(scala, disegna) {
+    let y = ET_PAD - 2;
+    const fT = Math.round(34 * scala), fB = Math.max(25, Math.round(27 * scala)), lh = fB * 1.18;
     ctx.font = "bold " + fT + "px " + F;
-    const tit = etWrap(ctx, etichetta.denominazione || "", W).slice(0, 3);
-    tit.forEach(r => { if (disegna) { ctx.fillStyle = "#000"; ctx.fillText(r, ET_PAD, yy); } yy += fT * 1.15; });
-    if (peso) {
-      ctx.font = "bold " + fP + "px " + F;
-      if (disegna) { ctx.fillStyle = "#000"; ctx.fillText(peso + " g", ET_PAD, yy + 4); }
-      yy += fP * 1.3;
-    }
-    if (disegna) { ctx.fillStyle = "#000"; ctx.fillRect(ET_PAD, yy + 6, W, 3); }
-    yy += 24;
-    blocchi.forEach(b => {
-      if (b.lab) {
-        ctx.font = "bold " + fL + "px " + F;
-        if (disegna) { ctx.fillStyle = "#444"; ctx.fillText(b.lab.toUpperCase(), ET_PAD, yy); }
-        yy += fL * 1.2;
-      }
-      ctx.font = (b.rosso ? "bold " : "") + fB + "px " + F;
-      etWrap(ctx, b.txt, W).forEach(r => { if (disegna) { ctx.fillStyle = b.rosso ? ROSSO : "#000"; ctx.fillText(r, ET_PAD, yy); } yy += fB * 1.22; });
-      yy += 12;
+    const tit = etWrap(ctx, (etichetta.denominazione || "") + (peso ? " · " + peso + " g" : ""), W).slice(0, 2);
+    tit.forEach(r => { if (disegna) { ctx.fillStyle = "#000"; ctx.fillText(r, ET_PAD, y); } y += fT * 1.12; });
+    y += 4;
+    pezzi.forEach(p => {
+      // etichetta in grassetto e testo sulla stessa riga, a capo parola per parola
+      const parole = (p.b ? p.b + " " : "").split(/\s+/).filter(Boolean).map(w => ({ w, bold: true, rosso: false }))
+        .concat(String(p.t).split(/\s+/).filter(Boolean).map(w => ({ w, bold: !!p.rosso, rosso: !!p.rosso })));
+      let x = ET_PAD;
+      parole.forEach(o => {
+        ctx.font = (o.bold ? "bold " : "") + fB + "px " + F;
+        const lw = ctx.measureText(o.w).width;
+        if (x + lw > ET_PAD + W && x > ET_PAD) { x = ET_PAD; y += lh; }
+        if (disegna) { ctx.fillStyle = o.rosso ? ROSSO : "#000"; ctx.fillText(o.w, x, y); }
+        x += ctx.measureText(o.w + " ").width;
+      });
+      y += lh + 2;
     });
-    return yy;
+    return y;
   }
   let scala = 1;
-  while (scala > 0.6 && misuraEDisegna(scala, false) > limite) scala -= 0.05;
-  misuraEDisegna(scala, true);
-  return c.toDataURL("image/png");
+  while (scala > 0.9 && fai(scala, false) > limite) scala -= 0.02;
+  if (fai(scala, false) > limite) return { png: null, troppoLungo: true };
+  fai(scala, true);
+  return { png: c.toDataURL("image/png"), troppoLungo: false };
 }
 
-async function stampaEtichette({ etichetta, produttore, info, peso, quante, codiceRicetta }) {
-  let qrUrl = "";
-  try {
-    const mod = await import("../vendor/qrcode.js");
-    const qrcode = mod.default || window.qrcode;
-    if (qrcode && codiceRicetta) {
-      const url = location.origin + location.pathname + "#/prodotto/" + encodeURIComponent(codiceRicetta);
-      const q = qrcode(0, "M");
-      q.addData(url);
-      q.make();
-      qrUrl = q.createDataURL(8, 0);
-    }
-  } catch (e) {
-    console.warn("QR non generato:", e);
+function sbEt() { return window.supabaseClient || window.supabase; }
+
+async function stampanteEtichette() {
+  const az = window.state?.azienda?.id;
+  if (!az) return null;
+  const sede = window.state?.sedeAttiva?.id || null;
+  const { data } = await sbEt().from("stampanti_comande").select("id, ip, porta, sede_id")
+    .eq("azienda_id", az).eq("reparto", "etichette").eq("attiva", true);
+  const lista = data || [];
+  return lista.find(s => sede && s.sede_id === sede) || lista.find(s => !s.sede_id) || lista[0] || null;
+}
+
+async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
+  const dis = disegnaEtichetta({ etichetta, produttore, info, peso });
+  if (dis.troppoLungo) {
+    alert("Il testo non entra nell'etichetta 62x40 senza scendere sotto la misura minima di legge.\n\nAccorcia ingredienti o conservazione nella scheda etichetta della ricetta.");
+    return;
+  }
+  const png = dis.png;
+  const st = await stampanteEtichette();
+
+  if (st) {
+    // Strada normale: la manda il Raspberry alla Brother, 62x40 esatti, nessuna finestra di stampa
+    const { error } = await sbEt().from("coda_stampe").insert({
+      azienda_id: window.state.azienda.id, sede_id: st.sede_id || window.state?.sedeAttiva?.id || null,
+      stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: 62,
+      tipo: "etichetta", reparto: "etichette",
+      contenuto: { png, copie: quante, formato: "62x40", rosso: true, lotto: info.codice_lotto || null },
+    });
+    if (error) { alert("Errore invio etichette: " + error.message); return; }
+    alert("🏷 " + quante + " " + (quante === 1 ? "etichetta inviata" : "etichette inviate") + " alla stampante");
+    return;
   }
 
-  // Finestra aperta subito (Safari blocca i popup aperti dopo un'attesa)
-  const w = window.open("", "_blank");
-  if (!w) { alert("Il browser ha bloccato la finestra di stampa. Consenti i popup e riprova."); return; }
-  w.document.write('<p style="font-family:Arial;padding:20px;color:#0E5A7A;">Preparo le etichette…</p>');
-
-  const png = await disegnaEtichetta({ etichetta, produttore, info, peso, qrUrl });
-  const pagine = Array.from({ length: quante }, () => '<img class="et" src="' + png + '" alt="">').join("");
-
-  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Etichette ${escapeHtml(info.codice_lotto || "")}</title>
-    <style>
-      /* Nella finestra di stampa dell'iPhone scegliere il formato "62 x 100 mm" */
-      @page { size: 62mm 100mm; margin: 0; }
-      html, body { margin:0; padding:0; background:#fff; }
-      img.et { display:block; width:62mm; height:100mm; page-break-after:always; break-after:page; }
-      img.et:last-child { page-break-after:auto; break-after:auto; }
-      .barra { box-sizing:border-box; background:#0E5A7A; padding:10px 14px; display:flex; gap:10px; align-items:center;
-               position:sticky; top:0; z-index:9; font-family:Arial, sans-serif; }
-      .barra .tit { color:#e2f2f9; font-size:12px; font-weight:700; flex:1; }
-      .barra button { border-radius:7px; padding:8px 15px; font-size:13px; font-weight:800; cursor:pointer; }
-      .bstampa { background:#fff; color:#0E5A7A; border:0; }
-      .bchiudi { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.6); }
-      .nota { font-family:Arial, sans-serif; font-size:12px; color:#475569; padding:8px 14px; background:#f1f5f9; }
-      @media screen { body { background:#e2e8f0; } img.et { width:62mm; margin:4mm auto; box-shadow:0 1px 4px rgba(0,0,0,.25); } }
-      @media print { .barra, .nota { display:none !important; } }
-    </style></head><body>
-      <div class="barra">
-        <span class="tit">Etichette · LOTTO ${escapeHtml(info.codice_lotto || "")} · ${quante} ${quante === 1 ? "copia" : "copie"}</span>
-        <button class="bstampa" onclick="window.print()">🖨 Stampa</button>
-        <button class="bchiudi" onclick="window.close()">✕ Chiudi</button>
-      </div>
-      <div class="nota">Nella stampa scegli la Brother e il formato <b>62 x 100 mm</b>.</div>
-      ${pagine}</body></html>`;
-
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  setTimeout(() => { w.focus(); w.print(); }, 500);
+  // Nessuna etichettatrice collegata: mostro l'immagine, da condividere con l'app Brother iPrint&Label
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;overflow-y:auto;padding:16px;box-sizing:border-box;font-family:Arial,sans-serif;";
+  ov.innerHTML = '<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;">'
+    + '<div style="background:#0E5A7A;color:#fff;padding:12px 14px;font-size:13px;line-height:1.45;"><b>Nessuna etichettatrice collegata a Ristoflow.</b><br>'
+    + 'Tieni premuta l\'immagine › Condividi › Brother iPrint&amp;Label, rotolo 62 mm continuo. Copie: ' + quante + '.</div>'
+    + '<img src="' + png + '" alt="Etichetta" style="display:block;width:100%;border-bottom:1px solid #e2e8f0;">'
+    + '<div style="padding:12px;text-align:right;"><button type="button" style="border:0;border-radius:8px;padding:10px 16px;font-weight:700;background:#f1f5f9;cursor:pointer;">Chiudi</button></div></div>';
+  ov.querySelector("button").onclick = () => ov.remove();
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  document.body.appendChild(ov);
 }
 
 // Stampa il registro cosi' come e' filtrato a schermo: e' il documento

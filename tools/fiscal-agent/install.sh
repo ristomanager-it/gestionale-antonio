@@ -14,7 +14,9 @@ mkdir -p "$DIR"
 cd "$DIR"
 
 echo "-> Libreria websocket (serve la password dell'utente)"
-sudo apt-get install -y python3-websocket >/dev/null
+sudo apt-get install -y python3-websocket python3-pil python3-pip >/dev/null
+echo "-> Libreria etichette Brother"
+pip3 install --quiet --break-system-packages brother-ql-next >/dev/null 2>&1 || pip3 install --quiet brother-ql-next
 
 echo "-> Scarico agente"
 curl -fsSL "$BASE/agent.py" -o agent.py.nuovo

@@ -147,8 +147,30 @@ def build_prova(c, larg):
     return INIT + CENTRO + GRANDE + t("PROVA") + b"\n" + NORMALE + t(str(c.get("testo") or "Stampante collegata a Ristoflow")) + b"\n" + TAGLIO
 
 
+def build_etichetta(c):
+    """Etichetta lotto: PNG 696x472 (62x40 mm a 300 dpi) disegnato dall'app, nero e rosso.
+    Protocollo raster Brother QL, rotolo continuo 62 mm nero/rosso (DK-22251), taglio a ogni etichetta."""
+    import base64
+    import io
+    from PIL import Image
+    from brother_ql.conversion import convert
+    from brother_ql.raster import BrotherQLRaster
+    png = str(c.get("png") or "")
+    if "," in png:
+        png = png.split(",", 1)[1]
+    img = Image.open(io.BytesIO(base64.b64decode(png))).convert("RGB")
+    copie = max(1, min(int(c.get("copie") or 1), 50))
+    rosso = c.get("rosso", True)
+    q = BrotherQLRaster(str(c.get("modello") or "QL-820NWB"))
+    q.exception_on_warning = False
+    return convert(qlr=q, images=[img] * copie, label="62red" if rosso else "62", rotate="0",
+                   threshold=70.0, dither=False, compress=True, red=bool(rosso), dpi_600=False, hq=True, cut=True)
+
+
 def build(riga):
     c = riga.get("contenuto") or {}
+    if riga.get("tipo") == "etichetta":
+        return build_etichetta(c)
     larg = int(riga.get("larghezza") or 42)
     tipo = riga.get("tipo")
     if tipo == "comanda":
