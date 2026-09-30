@@ -706,7 +706,8 @@ export async function renderCassaLibera(container, azienda) {
     const cod = String(codice).trim();
     // pulisco il codice sul display (pronto per la prossima scansione)
     if (_displayRow) supabase.from('cassa_display').update({ scanner_codice: null }).eq('id', _displayRow.id).then(() => {});
-    if (/^rfc:/i.test(cod)) {
+    // coupon: vecchio formato RFC:CODICE oppure link della pagina coupon (…promo.html?…&c=CODICE)
+    if (/^rfc:/i.test(cod) || /[?&]c=[A-Za-z0-9]+/i.test(cod)) {
       const r = await verificaCouponCodice(cod);
       if (!r.ok) alert(r.msgHtml.replace(/<br>/g, '\n').replace(/<[^>]+>/g, ''));
       render(); aggiornaSchermoCliente();
