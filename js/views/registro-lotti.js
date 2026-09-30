@@ -279,8 +279,12 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante, codi
 
   const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Etichette ${escapeHtml(info.codice_lotto || "")}</title>
     <style>
-      @page { margin: 5mm; }
-      body { font-family: Arial, Helvetica, sans-serif; margin:0; display:flex; flex-wrap:wrap; gap:3mm; }
+      /* Etichettatrice Brother QL (rotolo 62 mm): una etichetta per pagina, senza margini,
+         cosi' la stampante taglia tra un'etichetta e l'altra. A video restano in colonna. */
+      @page { size: 62mm 40mm; margin: 0; }
+      body { font-family: Arial, Helvetica, sans-serif; margin:0; }
+      @media screen { body { display:flex; flex-wrap:wrap; gap:3mm; padding-bottom:10mm; } .et { border:1px solid #999; } }
+      @media print { .et { page-break-after: always; break-after: page; margin:0 auto; } .et:last-child { page-break-after: auto; break-after: auto; } }
       /* La finestra parte con la stampa gia' aperta: se si annulla resta un foglio
          senza vie d'uscita, e su telefono non c'e' modo di chiuderla. */
       .barra { width:100%; box-sizing:border-box; background:#0E5A7A; padding:10px 14px;
@@ -290,7 +294,7 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante, codi
       .bstampa { background:#fff; color:#0E5A7A; border:0; }
       .bchiudi { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.6); }
       @media print { .barra { display:none !important; } }
-      .et { width:60mm; height:40mm; box-sizing:border-box; border:1px solid #999; border-radius:1mm;
+      .et { width:60mm; height:40mm; box-sizing:border-box; border-radius:1mm; overflow:hidden;
             padding:2.6mm; display:flex; flex-direction:column; page-break-inside:avoid; color:#000; }
       .tit { font-size:6.5pt; font-weight:800; border-bottom:0.5pt solid #666; padding-bottom:0.7mm; margin-bottom:1mm; }
       .corpo { display:flex; gap:2mm; flex:1; overflow:hidden; }
