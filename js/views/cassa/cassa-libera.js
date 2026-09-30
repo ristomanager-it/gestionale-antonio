@@ -40,6 +40,15 @@ export async function renderCassaLibera(container, azienda) {
   let incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
   // Cassa unica: scheda Sala (tavoli, si incassa chi paga al banco) e scheda Banco (vendita al volo)
   let modo = 'sala';
+  let contoAperto = false;   // telefono: conto a comparsa dal basso
+  const stretto = () => (window.matchMedia ? window.matchMedia('(max-width: 760px)').matches : window.innerWidth <= 760);
+  let _ultimoStretto = stretto();
+  const _onResize = () => {
+    if (!container.isConnected) { window.removeEventListener('resize', _onResize); return; }
+    const ora = stretto();
+    if (ora !== _ultimoStretto) { _ultimoStretto = ora; if (!incasso.busy && container.querySelector('#cl-modal')?.style.display !== 'flex') render(); }
+  };
+  window.addEventListener('resize', _onResize);
   let tavoloAttivo = null;   // { comanda, tavolo } quando si incassa un tavolo dalla cassa
   let sala = { tavoli: [], sale: [], salaSel: null, aperte: [], totali: {}, preconti: new Set(), errori: {}, incassatoOggi: 0, caricato: false };
 
@@ -133,8 +142,13 @@ export async function renderCassaLibera(container, azienda) {
           </div>
 
           <!-- Carrello / conto -->
-          <div style="width:340px;flex-shrink:0;position:sticky;top:12px;background:white;border:1px solid #e5e7eb;border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,0.04);">
-            <div style="font-weight:800;font-size:17px;margin-bottom:12px;color:#0f172a;">🧾 Conto</div>
+          <div id="cl-conto" class="${contoAperto || tavoloAttivo ? 'aperto' : ''}" style="width:340px;flex-shrink:0;position:sticky;top:12px;background:white;border:1px solid #e5e7eb;border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,0.04);">
+            <div class="cl-desk" style="font-weight:800;font-size:17px;margin-bottom:12px;color:#0f172a;">🧾 Conto</div>
+            <button id="cl-conto-toggle" class="cl-head-mob" style="width:100%;border:none;background:none;padding:0 0 8px;cursor:pointer;align-items:center;gap:8px;font-size:15px;color:#0f172a;">
+              <b>🧾 Conto</b><span style="color:#64748b;font-size:13px;">${carrello.reduce((n, r) => n + r.qta, 0)} pz</span>
+              <b style="margin-left:auto;font-size:18px;">€ ${t.totale.toFixed(2)}</b><span style="color:#64748b;">${contoAperto || tavoloAttivo ? '▼' : '▲'}</span>
+            </button>
+            <div class="cl-dett">
             <div id="cl-righe" style="max-height:40vh;overflow:auto;">
               ${carrello.length ? carrello.map((r,i)=>rigaCarrello(r,i)).join('') :
                 '<div style="color:#94a3b8;font-size:14px;padding:16px 0;text-align:center;">Nessun prodotto.<br>Tocca un prodotto per aggiungerlo.</div>'}
@@ -160,7 +174,8 @@ export async function renderCassaLibera(container, azienda) {
               <span>⭐ ${esc(fidelityCliente.nome)} · ${fidelityCliente.punti} punti</span>
               <button id="cl-fid-x" style="border:none;background:none;color:#b91c1c;cursor:pointer;font-size:14px;">✕</button>
             </div>` : ''}
-            <div style="display:flex;gap:8px;margin-top:10px;">
+            </div>
+            <div class="cl-dett" style="display:flex;gap:8px;margin-top:10px;">
               ${coupon ? '' : `<button id="cl-coupon" style="flex:1;padding:9px;border:1px dashed #cbd5e1;border-radius:999px;background:white;color:#0E5A7A;font-size:13px;font-weight:600;cursor:pointer;">🎟 Coupon</button>`}
               <button id="cl-scan-cliente" style="flex:1;padding:9px;border:1px dashed #cbd5e1;border-radius:999px;background:white;color:#7c5c10;font-size:13px;font-weight:600;cursor:pointer;">📱 Scan cliente</button>
             </div>
@@ -168,10 +183,26 @@ export async function renderCassaLibera(container, azienda) {
               width:100%;margin-top:14px;padding:15px;border:none;border-radius:14px;
               background:${carrello.length ? '#0E5A7A' : '#cbd5e1'};color:white;font-size:16px;font-weight:700;
               cursor:${carrello.length ? 'pointer' : 'default'};">💳 Incassa →</button>
-            <button id="cl-svuota" style="width:100%;margin-top:8px;padding:10px;border:1px solid #e5e7eb;border-radius:12px;background:white;color:#64748b;font-size:13px;cursor:pointer;">Svuota</button>
+            <button id="cl-svuota" class="cl-dett" style="width:100%;margin-top:8px;padding:10px;border:1px solid #e5e7eb;border-radius:12px;background:white;color:#64748b;font-size:13px;cursor:pointer;">Svuota</button>
           </div>
         </div>
+        <div class="cl-spazio-mob"></div>
       </div>
+      <style>
+        .cl-head-mob{display:none}
+        .cl-spazio-mob{display:none}
+        @media (max-width:760px){
+          #cl-conto{position:fixed!important;left:0;right:0;bottom:0;top:auto!important;width:auto!important;z-index:60;
+            border-radius:18px 18px 0 0!important;max-height:82vh;overflow:auto;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))!important;
+            box-shadow:0 -8px 24px rgba(0,0,0,.14)!important}
+          #cl-conto .cl-desk{display:none}
+          #cl-conto .cl-head-mob{display:flex}
+          #cl-conto:not(.aperto) .cl-dett{display:none!important}
+          #cl-conto #cl-paga{margin-top:6px!important;padding:13px!important}
+          .cl-spazio-mob{display:block;height:130px}
+          #cl-griglia{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))!important}
+        }
+      </style>
 
       <!-- Modal coupon: campo (lettore USB/manuale) + fotocamera -->
       <div id="cl-cp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1250;align-items:center;justify-content:center;">
@@ -324,6 +355,8 @@ export async function renderCassaLibera(container, azienda) {
       modo = b.dataset.modo;
       if (modo === 'sala') caricaSala().then(render); else render();
     });
+    const tg = container.querySelector('#cl-conto-toggle');
+    if (tg) tg.onclick = () => { contoAperto = !contoAperto; const c = container.querySelector('#cl-conto'); if (c) c.classList.toggle('aperto', contoAperto || !!tavoloAttivo); tg.lastElementChild.textContent = (contoAperto || tavoloAttivo) ? '▼' : '▲'; };
     const torna = container.querySelector('#cl-torna-sala');
     if (torna) torna.onclick = () => { tavoloAttivo = null; carrello = []; coupon = null; fidelityCliente = null; modo = 'sala'; caricaSala().then(render); };
     // Aggiungi prodotto
@@ -629,6 +662,7 @@ export async function renderCassaLibera(container, azienda) {
       setTimeout(() => {
         carrello = []; coupon = null; fidelityCliente = null;
         const eraTavolo = !!tavoloAttivo;
+        contoAperto = false;
         tavoloAttivo = null;
         $('#cl-modal').style.display = 'none';
         if (eraTavolo) { modo = 'sala'; caricaSala().then(render); } else render();
@@ -783,7 +817,9 @@ export async function renderCassaLibera(container, azienda) {
       caricaSala().then(render);
       return;
     }
-    const tavoliVis = sala.salaSel ? sala.tavoli.filter(t => t.sala_id === sala.salaSel) : sala.tavoli;
+    const griglia = stretto();   // telefono: griglia come in Comande; tablet/PC: piantina
+    const tavoliVis = (sala.salaSel ? sala.tavoli.filter(t => t.sala_id === sala.salaSel) : sala.tavoli).slice()
+      .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'it', { numeric: true }));
     let coperti = 0, daIncassare = 0;
     sala.aperte.forEach(c => { coperti += Number(c.coperti || 0); daIncassare += Number(sala.totali[c.id] || 0); });
     const stile = {
@@ -805,8 +841,9 @@ export async function renderCassaLibera(container, azienda) {
         st = 'errore'; info = '⚠ scontrino<br>non stampato';
       }
       const tondo = String(t.forma || '').toLowerCase().includes('tond') || String(t.forma || '').toLowerCase().includes('rotond');
-      return '<button class="cl-tavolo" data-tavolo="' + t.id + '" style="position:absolute;left:' + (Number(t.pos_x) || 0) + '%;top:' + (Number(t.pos_y) || 0) + '%;'
-        + 'width:clamp(64px,10%,104px);aspect-ratio:1;border:2px solid;border-radius:' + (tondo ? '50%' : '14px') + ';' + stile[st]
+      const posizione = griglia ? 'position:relative;width:100%;' : 'position:absolute;left:' + (Number(t.pos_x) || 0) + '%;top:' + (Number(t.pos_y) || 0) + '%;width:clamp(64px,10%,104px);';
+      return '<button class="cl-tavolo" data-tavolo="' + t.id + '" style="' + posizione
+        + 'aspect-ratio:1;border:2px solid;border-radius:' + (tondo && !griglia ? '50%' : '14px') + ';' + stile[st]
         + 'display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:13px;cursor:pointer;padding:4px;line-height:1.2;">'
         + '<span>' + esc(t.nome || '') + '</span><span style="font-size:10px;font-weight:600;">' + info + '</span></button>';
     }).join('');
@@ -820,7 +857,9 @@ export async function renderCassaLibera(container, azienda) {
       + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' + selSala
       + '<button id="cl-sala-agg" style="margin-left:auto;border:1px solid #e2e8f0;background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;">↻ Aggiorna</button></div>'
       + (sala.tavoli.length
-          ? '<div style="position:relative;background:#fff;border-radius:14px;aspect-ratio:4/3;min-height:340px;box-shadow:0 1px 2px rgba(0,0,0,.06);overflow:hidden;">' + tavoliHtml + '</div>'
+          ? (griglia
+              ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;">' + tavoliHtml + '</div>'
+              : '<div style="position:relative;background:#fff;border-radius:14px;aspect-ratio:4/3;min-height:340px;box-shadow:0 1px 2px rgba(0,0,0,.06);overflow:hidden;">' + tavoliHtml + '</div>')
           : '<div style="background:#fff;border-radius:14px;padding:24px;color:#64748b;">Nessun tavolo per questa sede. Si configurano in Mappa Sala.</div>')
       + '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:8px;">'
       + leg('libero', 'Libero') + leg('aperto', 'Aperto') + leg('preconto', 'Preconto stampato') + leg('errore', 'Chiuso, scontrino non stampato') + '</div>'
