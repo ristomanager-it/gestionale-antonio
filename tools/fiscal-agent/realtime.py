@@ -11,6 +11,7 @@ import time
 import websocket
 
 import agent
+import stampe
 
 FALLBACK_SECONDS = 30
 HEARTBEAT_SECONDS = 25
@@ -28,7 +29,8 @@ def join_msg():
     payload = {
         "config": {
             "postgres_changes": [
-                {"event": "INSERT", "schema": "public", "table": "coda_fiscale"}
+                {"event": "INSERT", "schema": "public", "table": "coda_fiscale"},
+                {"event": "INSERT", "schema": "public", "table": "coda_stampe"},
             ]
         }
     }
@@ -105,6 +107,12 @@ def main():
     while True:
         SVEGLIA.clear()
         try:
+            # prima le comande (la cucina aspetta), poi i documenti fiscali
+            try:
+                if stampe.ciclo_una_volta() == 10:
+                    SVEGLIA.set()
+            except Exception as e:
+                print("Errore coda_stampe:", e, flush=True)
             righe = agent.sb_get(agent.query_in_attesa())
             for riga in righe:
                 agent.elabora(riga)

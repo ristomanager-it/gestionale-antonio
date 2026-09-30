@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""
+Stampa NON fiscale Ristoflow: comande di reparto e preconti su stampanti termiche di rete
+(ESC/POS, porta 9100). Legge coda_stampe. Usato da realtime.py insieme all'agente fiscale.
+"""
+import datetime
+import socket
+import time
+
+import agent  # riusa sb_get, sb_patch, filtri e fuso orario
+
+MAX_TENTATIVI = 3
+
+ESC = b"\x1b"
+GS = b"\x1d"
+INIT = ESC + b"@" + ESC + b"t\x13"          # reset + tabella caratteri PC858 (accenti ed euro)
+CENTRO = ESC + b"a\x01"
+SINISTRA = ESC + b"a\x00"
+NORMALE = ESC + b"!\x00"
+GRASSETTO_ON = ESC + b"E\x01"
+GRASSETTO_OFF = ESC + b"E\x00"
+ALTO = ESC + b"!\x10"                       # doppia altezza
+GRANDE = ESC + b"!\x30"                     # doppia altezza e larghezza
+INVERSO_ON = GS + b"B\x01"
+INVERSO_OFF = GS + b"B\x00"
+TAGLIO = b"\n\n\n\n" + GS + b"V\x42\x00"
+BEEP = ESC + b"(A\x04\x00\x30\x33\x03\x0a"  # ignorato dalle stampanti senza cicalino
+
+REPARTI = {"cucina": "CUCINA", "bar": "BAR", "pasticceria": "PASTICCERIA", "preconto": "PRECONTO"}
+
+
+def t(s):
+    return str(s).encode("cp858", "replace")
+
+
+def ora_locale(ts=None):
+    if agent.TZ:
+        now = datetime.datetime.now(agent.TZ)
+    else:
+        now = datetime.datetime.now()
+    return now.strftime("%H:%M")
+
+
+def taglia(s, n):
+    s = str(s)
+    return s if len(s) <= n else s[: n - 1] + "."
+
+
+def riga_dx(sx, dx, larg):
+    sx = taglia(sx, larg - len(dx) - 1)
+    return sx + " " * (larg - len(sx) - len(dx)) + dx
+
+
+def build_comanda(c, larg):
+    out = INIT + CENTRO + GRANDE + t(REPARTI.get(c.get("reparto"), str(c.get("reparto") or "").upper())) + b"\n"
+    tav = c.get("tavolo")
+    out += GRANDE + t("TAVOLO " + str(tav) if tav else "BANCO") + b"\n" + NORMALE
+    info = []
+    if c.get("coperti"):
+        info.append(str(c["coperti"]) + " coperti")
+    if c.get("uscita"):
+        info.append(str(c["uscita"]) + "a uscita")
+    if info:
+        out += t(" - ".join(info)) + b"\n"
+    out += t(riga_dx(c.get("cameriere") or "", ora_locale(), larg)) + b"\n"
+    if c.get("ristampa"):
+        out += INVERSO_ON + t(" RISTAMPA ") + INVERSO_OFF + b"\n"
+    out += SINISTRA + t("-" * larg) + b"\n"
+    for r in c.get("righe") or []:
+        out += ALTO + GRASSETTO_ON + t(taglia(str(r.get("qta", 1)) + " x " + str(r.get("nome", "")), larg)) + GRASSETTO_OFF + NORMALE + b"\n"
+        if r.get("note"):
+            out += INVERSO_ON + t(" " + taglia(str(r["note"]), larg - 2) + " ") + INVERSO_OFF + b"\n"
+    out += t("-" * larg) + b"\n"
+    if c.get("note"):
+        out += GRASSETTO_ON + t(taglia(str(c["note"]), larg)) + GRASSETTO_OFF + b"\n"
+    out += BEEP + TAGLIO
+    return out
+
+
+def euro(v):
+    return ("%.2f" % float(v or 0)).replace(".", ",")
+
+
+def build_preconto(c, larg):
+    out = INIT + CENTRO + GRANDE + t("PRECONTO") + b"\n" + NORMALE + t("documento non fiscale") + b"\n"
+    if c.get("tavolo"):
+        out += ALTO + t("Tavolo " + str(c["tavolo"])) + NORMALE + b"\n"
+    out += SINISTRA + t("-" * larg) + b"\n"
+    for r in c.get("righe") or []:
+        q = float(r.get("quantita") or 1)
+        qs = str(int(q)) if q == int(q) else str(q)
+        tot = q * float(r.get("prezzo_unitario") or 0)
+        out += t(riga_dx(qs + " x " + str(r.get("descrizione", "")), euro(tot), larg)) + b"\n"
+    if float(c.get("sconto") or 0) > 0:
+        out += t(riga_dx("Sconto", "-" + euro(c["sconto"]), larg)) + b"\n"
+    out += t("-" * larg) + b"\n"
+    out += ALTO + GRASSETTO_ON + t(riga_dx("TOTALE EURO", euro(c.get("totale")), larg)) + GRASSETTO_OFF + NORMALE + b"\n"
+    if c.get("coperti"):
+        out += t("Coperti: " + str(c["coperti"])) + b"\n"
+    out += CENTRO + t(ora_locale()) + b"\n" + TAGLIO
+    return out
+
+
+def build_prova(c, larg):
+    return INIT + CENTRO + GRANDE + t("PROVA") + b"\n" + NORMALE + t(str(c.get("testo") or "Stampante collegata a Ristoflow")) + b"\n" + TAGLIO
+
+
+def build(riga):
+    c = riga.get("contenuto") or {}
+    larg = int(riga.get("larghezza") or 42)
+    tipo = riga.get("tipo")
+    if tipo == "comanda":
+        return build_comanda(dict(c, reparto=riga.get("reparto") or c.get("reparto")), larg)
+    if tipo == "preconto":
+        return build_preconto(c, larg)
+    return build_prova(c, larg)
+
+
+def invia(ip, porta, dati):
+    s = socket.create_connection((ip, int(porta or 9100)), 5)
+    try:
+        s.sendall(dati)
+    finally:
+        s.close()
+
+
+def query_in_attesa(limite=10):
+    f = ""
+    if agent.AZIENDA_ID:
+        f += "&azienda_id=eq." + agent.AZIENDA_ID
+    if agent.SEDE_ID:
+        f += "&or=(sede_id.eq." + agent.SEDE_ID + ",sede_id.is.null)"
+    return "coda_stampe?stato=eq.in_attesa&order=created_at.asc&limit=" + str(limite) + f
+
+
+def elabora(riga):
+    rid = riga["id"]
+    try:
+        agent.sb_patch("coda_stampe?id=eq." + rid + "&stato=eq.in_attesa", {"stato": "in_elaborazione"})
+        invia(riga["stampante_ip"], riga.get("stampante_porta"), build(riga))
+        agent.sb_patch("coda_stampe?id=eq." + rid, {"stato": "completato", "elaborato_at": "now()", "errore_msg": None})
+        print("Stampa OK", riga.get("tipo"), riga.get("reparto") or "", riga["stampante_ip"], flush=True)
+    except Exception as e:
+        tentativi = (riga.get("tentativi") or 0) + 1
+        stato = "errore" if tentativi >= MAX_TENTATIVI else "in_attesa"
+        try:
+            agent.sb_patch("coda_stampe?id=eq." + rid, {"stato": stato, "errore_msg": str(e), "tentativi": tentativi})
+        except Exception as e2:
+            print("Impossibile aggiornare coda_stampe:", e2, flush=True)
+        print("ERRORE stampa", riga["stampante_ip"], e, flush=True)
+        if stato == "in_attesa":
+            time.sleep(1)
+
+
+def ciclo_una_volta():
+    righe = agent.sb_get(query_in_attesa())
+    for riga in righe:
+        elabora(riga)
+    return len(righe)
