@@ -1647,10 +1647,12 @@ export async function render(container) {
   }
 
   async function inviaInCucina() {
-    // Invia solo le righe in_attesa dell'uscita corrente
-    const righeNuove = righeComanda.filter(r => r.stato === 'in_attesa' && (r.uscita_numero||1) === uscitaCorrente);
+    // Invia TUTTE le righe non ancora inviate, di qualsiasi uscita: la cucina riceve la comanda
+    // completa e il foglio la divide per uscite (1a, 2a, …) nell'ordine giusto.
+    const righeNuove = righeComanda.filter(r => r.stato === 'in_attesa')
+      .sort((x, y) => (x.uscita_numero || 1) - (y.uscita_numero || 1));
     if (!righeNuove.length) {
-      mostraToast(`Nessun prodotto in attesa per l'uscita ${uscitaCorrente}`, 'warning');
+      mostraToast('Nessun prodotto da inviare', 'warning');
       return;
     }
     for (const r of righeNuove) {
@@ -1660,9 +1662,8 @@ export async function render(container) {
     await supa().from('comande').update({ stato: 'in_corso' }).eq('id', comandaAttiva.id);
     comandaAttiva.stato = 'in_corso';
     renderRighe();
-    const labels = ['prima','seconda','terza','quarta','quinta'];
-    const label = labels[uscitaCorrente-1] || `uscita ${uscitaCorrente}`;
-    mostraToast(`✅ ${righeNuove.length} piatti inviati — ${label} uscita!`, 'success');
+    const uscite = [...new Set(righeNuove.map(r => r.uscita_numero || 1))].sort((x, y) => x - y);
+    mostraToast(`✅ ${righeNuove.length} piatti inviati — uscit${uscite.length > 1 ? 'e' : 'a'} ${uscite.join(', ')}`, 'success');
     stampaComandaReparti(righeNuove, false);
   }
 
