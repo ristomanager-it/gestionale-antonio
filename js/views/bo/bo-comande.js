@@ -1567,7 +1567,7 @@ export async function render(container) {
                   €${(Number(r.prezzo_snapshot||0)*Number(r.quantita||1)).toFixed(2).replace('.',',')}
                 </div>
                 <span style="color:${statoColori[r.stato]||'#64748b'};font-size:16px;" title="${r.stato}">${statoLabel[r.stato]||'⏳'}</span>
-                <button data-note-riga="${r.id}" style="background:#f1f5f9;border:none;border-radius:6px;padding:4px 6px;cursor:pointer;font-size:11px;">📝</button>
+                <button data-note-riga="${r.id}" title="Modifica piatto" style="background:#e0f2fe;border:1px solid #bae6fd;color:#0369a1;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;font-weight:600;">✏️</button>
                 <button data-annulla="${r.id}" style="background:#fee2e2;border:none;border-radius:6px;padding:4px 6px;cursor:pointer;font-size:11px;color:#dc2626;">✕</button>
               </div>
             `).join('')}
@@ -1660,21 +1660,126 @@ export async function render(container) {
     if (eraInviata) stampaVariazione(prima, Number(prima.quantita || 1), 'ANNULLARE');
   }
 
+  // ── SCHEDA MODIFICA PIATTO ──
+  // Le modifiche usate restano in memoria (comande_note_frequenti): prima quelle di QUEL piatto,
+  // poi le più usate in generale. "Togli" arriva dagli ingredienti della ricetta quando c'è.
+  const NOTE_BASE = ['Senza sale', 'Poco sale', 'Senza glutine', 'Ben cotta', 'Al sangue', 'Senza cipolla', 'Senza aglio', 'Piccante', 'Porzione bimbo', 'Diviso in due'];
+
+  function chiavePiatto(riga) {
+    return riga.prodotto_vendita_id ? String(riga.prodotto_vendita_id) : ('nome:' + String(riga.nome_snapshot || '').toLowerCase().trim());
+  }
+
+  async function ingredientiRiga(riga) {
+    let rid = null;
+    if (riga.prodotto_vendita_id) {
+      const pv = prodottiVendita.find(p => String(p.id) === String(riga.prodotto_vendita_id));
+      rid = pv?.ricetta_id || null;
+    } else if (menuGiornoOggi) {
+      const v = (menuGiornoOggi.voci || []).find(x => String(x.nome || '').toLowerCase() === String(riga.nome_snapshot || '').toLowerCase());
+      rid = v?.ricetta_id || null;
+    }
+    if (!rid) return [];
+    const { data } = await supa().from('ricetta_ingredienti').select('nome_prodotto, ordine').eq('ricetta_id', rid).order('ordine');
+    const visti = new Set();
+    return (data || []).map(x => String(x.nome_prodotto || '').trim()).filter(n => {
+      const k = n.toLowerCase();
+      if (!n || visti.has(k) || /^(acqua|sale fino|sale grosso)$/.test(k)) return false;
+      visti.add(k); return true;
+    }).slice(0, 10);
+  }
+
   async function aggiungiNoteRiga(rigaId) {
     const riga = righeComanda.find(r => String(r.id) === String(rigaId));
     if (!riga) return;
-    const shortcut = ['senza sale','senza glutine','ben cotto','al sangue','senza cipolla','senza aglio','allergia frutta secca','piccante'];
-    const scelta = prompt(
-      'Note per questo piatto:\n\nShortcut: ' + shortcut.map((s,i) => (i+1)+'. '+s).join(' | ') + '\n\nScrivi numero o nota libera:',
-      riga.note || ''
-    );
-    if (scelta === null) return;
-    const num = parseInt(scelta);
-    const nota = (!isNaN(num) && num >= 1 && num <= shortcut.length) ? shortcut[num-1] : scelta;
-    await supa().from('comanda_righe').update({ note: nota }).eq('id', rigaId);
-    riga.note = nota;
-    if (riga.stato && riga.stato !== 'in_attesa' && riga.stato !== 'annullato') stampaVariazione(riga, Number(riga.quantita || 1), 'VARIAZIONE');
-    renderRighe();
+    const chiave = chiavePiatto(riga);
+    const inviata = riga.stato && riga.stato !== 'in_attesa' && riga.stato !== 'annullato';
+
+    const [{ data: freq }, ingredienti] = await Promise.all([
+      supa().from('comande_note_frequenti').select('chiave_piatto, testo, usi')
+        .eq('azienda_id', aziendaId).in('chiave_piatto', ['', chiave])
+        .order('usi', { ascending: false }).order('ultimo_uso', { ascending: false }).limit(60),
+      ingredientiRiga(riga),
+    ]);
+    const vistiF = new Set();
+    const prendi = (arr, n) => arr.filter(t => { const k = t.toLowerCase(); if (vistiF.has(k)) return false; vistiF.add(k); return true; }).slice(0, n);
+    const togli = ingredienti.map(n => 'Senza ' + n.toLowerCase());
+    togli.forEach(t => vistiF.add(t.toLowerCase()));
+    const suPiatto = prendi((freq || []).filter(f => f.chiave_piatto === chiave).map(f => f.testo), 8);
+    let generali = prendi((freq || []).filter(f => f.chiave_piatto === '').map(f => f.testo), 12);
+    if (generali.length < 6) generali = generali.concat(prendi(NOTE_BASE, 10 - generali.length));
+
+    const scelte = new Set(String(riga.note || '').split(',').map(x => x.trim()).filter(Boolean));
+    const tutteChip = new Set([...togli, ...suPiatto, ...generali].map(x => x.toLowerCase()));
+    const liberaIniziale = [...scelte].filter(x => !tutteChip.has(x.toLowerCase())).join(', ');
+    let uscitaScelta = Number(riga.uscita_numero || 1);
+
+    const chip = (t, colore) => `<button type="button" class="nm-chip" data-t="${esc(t)}" style="padding:9px 13px;border-radius:20px;border:1.5px solid #cbd5e1;background:#fff;font-size:13.5px;cursor:pointer;" data-col="${colore}">${esc(t)}</button>`;
+    const gruppo = (titolo, arr, colore) => arr.length ? `<div style="font-size:12.5px;font-weight:700;color:#334155;margin:10px 0 6px;">${titolo}</div><div style="display:flex;flex-wrap:wrap;gap:7px;">${arr.map(t => chip(t, colore)).join('')}</div>` : '';
+
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+    ov.innerHTML = `<div style="background:#fff;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+          <div><div style="font-size:17px;font-weight:700;">${esc(riga.nome_snapshot || 'Piatto')}</div>
+          <div style="font-size:12.5px;color:#64748b;">${inviata ? 'Già inviato: salvando esce il foglio VARIAZIONE' : uscitaScelta + 'ª uscita'}</div></div>
+          <button type="button" id="nm-x" style="border:none;background:#f1f5f9;border-radius:10px;padding:8px 12px;font-size:15px;cursor:pointer;">✕</button>
+        </div>
+        ${gruppo('Togli', togli, 'rosso')}
+        ${gruppo('Richieste su questo piatto', suPiatto, 'blu')}
+        ${gruppo('Richieste frequenti', generali, 'blu')}
+        <div style="font-size:12.5px;font-weight:700;color:#334155;margin:12px 0 6px;">Nota libera <span style="font-weight:400;color:#94a3b8;">(la prossima volta la trovi tra i pulsanti)</span></div>
+        <input id="nm-libera" value="${esc(liberaIniziale)}" placeholder="Scrivi una richiesta…" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;">
+        ${inviata ? '' : `<div style="font-size:12.5px;font-weight:700;color:#334155;margin:12px 0 6px;">Uscita</div>
+        <div style="display:flex;gap:7px;">${[1, 2, 3, 4, 5].map(n => `<button type="button" class="nm-us" data-u="${n}" style="flex:1;padding:10px 0;border-radius:10px;border:1.5px solid #cbd5e1;background:#fff;font-size:14px;font-weight:600;cursor:pointer;">${n}ª</button>`).join('')}</div>`}
+        <button type="button" id="nm-salva" style="width:100%;margin-top:16px;padding:14px;border:none;border-radius:12px;background:#0E5A7A;color:#fff;font-weight:700;font-size:15px;cursor:pointer;">Salva modifica</button>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const disegnaChip = () => {
+      ov.querySelectorAll('.nm-chip').forEach(b => {
+        const on = [...scelte].some(x => x.toLowerCase() === b.dataset.t.toLowerCase());
+        const rosso = b.dataset.col === 'rosso';
+        b.style.borderColor = on ? (rosso ? '#dc2626' : '#0E5A7A') : '#cbd5e1';
+        b.style.background = on ? (rosso ? '#fef2f2' : '#e0f2fe') : '#fff';
+        b.style.color = on ? (rosso ? '#b91c1c' : '#0E5A7A') : '#0f172a';
+        b.style.fontWeight = on ? '700' : '400';
+      });
+      ov.querySelectorAll('.nm-us').forEach(b => {
+        const on = Number(b.dataset.u) === uscitaScelta;
+        b.style.borderColor = on ? '#7c3aed' : '#cbd5e1';
+        b.style.background = on ? '#f5f3ff' : '#fff';
+        b.style.color = on ? '#7c3aed' : '#0f172a';
+      });
+    };
+    disegnaChip();
+    ov.querySelectorAll('.nm-chip').forEach(b => b.onclick = () => {
+      const esiste = [...scelte].find(x => x.toLowerCase() === b.dataset.t.toLowerCase());
+      if (esiste) scelte.delete(esiste); else scelte.add(b.dataset.t);
+      disegnaChip();
+    });
+    ov.querySelectorAll('.nm-us').forEach(b => b.onclick = () => { uscitaScelta = Number(b.dataset.u); disegnaChip(); });
+    const chiudi = () => ov.remove();
+    ov.onclick = (e) => { if (e.target === ov) chiudi(); };
+    ov.querySelector('#nm-x').onclick = chiudi;
+
+    ov.querySelector('#nm-salva').onclick = async () => {
+      const libere = String(ov.querySelector('#nm-libera').value || '').split(',').map(x => x.trim()).filter(Boolean);
+      const daChip = [...scelte].filter(x => tutteChip.has(x.toLowerCase()));
+      const elenco = [...daChip, ...libere];
+      const nota = elenco.join(', ') || null;
+      const upd = { note: nota };
+      if (!inviata) upd.uscita_numero = uscitaScelta;
+      const btn = ov.querySelector('#nm-salva'); btn.disabled = true; btn.textContent = 'Salvo…';
+      const { error } = await supa().from('comanda_righe').update(upd).eq('id', rigaId);
+      if (error) { btn.disabled = false; btn.textContent = 'Salva modifica'; mostraToast('Errore: ' + error.message, 'error'); return; }
+      const cambiataNota = (riga.note || null) !== nota;
+      riga.note = nota;
+      if (!inviata) riga.uscita_numero = uscitaScelta;
+      chiudi();
+      if (elenco.length) supa().rpc('registra_note_frequenti', { p_azienda: aziendaId, p_piatto: chiave, p_testi: elenco }).then(() => {}, () => {});
+      if (inviata && cambiataNota) stampaVariazione(riga, Number(riga.quantita || 1), 'VARIAZIONE');
+      renderRighe();
+    };
   }
 
   // ══════════════════════════════════════════
