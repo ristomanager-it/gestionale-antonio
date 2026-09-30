@@ -78,18 +78,31 @@ def build_comanda(c, larg):
     out = INIT + CENTRO + DIM_2 + t(REPARTI.get(c.get("reparto"), str(c.get("reparto") or "").upper())) + b"\n"
     tav = c.get("tavolo")
     out += DIM_2 + t("TAVOLO " + str(tav) if tav else "BANCO") + b"\n" + DIM_1 + NORMALE
-    info = []
     if c.get("coperti"):
-        info.append(str(c["coperti"]) + " coperti")
-    if c.get("uscita"):
-        info.append(str(c["uscita"]) + "a uscita")
-    if info:
-        out += t(" - ".join(info)) + b"\n"
+        out += DIM_ALTO + t(str(c["coperti"]) + " coperti") + DIM_1 + b"\n"
     out += t(riga_dx(c.get("cameriere") or "", ora_locale(), larg)) + b"\n"
     if c.get("ristampa"):
         out += INVERSO_ON + t(" RISTAMPA ") + INVERSO_OFF + b"\n"
     out += SINISTRA + t("-" * larg) + b"\n"
+    # righe raggruppate per uscita: ogni gruppo ha il suo titolo in negativo
+    gruppi = {}
     for r in c.get("righe") or []:
+        u = int(r.get("uscita") or c.get("uscita") or 1)
+        gruppi.setdefault(u, []).append(r)
+    for u in sorted(gruppi):
+        titolo = " " + str(u) + "a USCITA "
+        out += CENTRO + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(titolo) + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n\n" + SINISTRA
+        out += righe_gruppo(gruppi[u], grande, larg)
+    out += t("-" * larg) + b"\n"
+    if c.get("note"):
+        out += DIM_ALTO + GRASSETTO_ON + t(taglia(str(c["note"]), larg)) + GRASSETTO_OFF + DIM_1 + b"\n"
+    out += TAGLIO
+    return out
+
+
+def righe_gruppo(righe, grande, larg):
+    out = b""
+    for r in righe:
         testo = str(r.get("qta", 1)) + " " + str(r.get("nome", ""))
         out += DIM_2 + GRASSETTO_ON
         for riga in a_capo(testo, grande, "  "):
@@ -101,10 +114,6 @@ def build_comanda(c, larg):
                 out += t(" " + riga + " ") + b"\n"
             out += INVERSO_OFF + GRASSETTO_OFF + DIM_1
         out += b"\n"
-    out += t("-" * larg) + b"\n"
-    if c.get("note"):
-        out += DIM_ALTO + GRASSETTO_ON + t(taglia(str(c["note"]), larg)) + GRASSETTO_OFF + DIM_1 + b"\n"
-    out += TAGLIO
     return out
 
 

@@ -134,7 +134,50 @@ export async function emettiScontrinoFiscale(doc) {
 
 // Preconto: documento NON fiscale, stesso canale (coda_fiscale → Raspberry)
 export async function emettiPreconto(doc) {
+  // Se il locale ha una termica per i preconti (Configurazione › Stampanti comande, reparto "preconto")
+  // il preconto esce lì e non consuma la carta della stampante fiscale.
+  try {
+    const supabase = window.supabaseClient || window.supabase;
+    const aziendaId = doc?.azienda;
+    if (aziendaId && !CASSA_CONFIG.simulazione) {
+      const { data: st } = await supabase.from('stampanti_comande').select('id, ip, porta, larghezza, sede_id')
+        .eq('azienda_id', aziendaId).eq('reparto', 'preconto').eq('attiva', true);
+      const scelta = (st || []).find(x => doc?.sede && String(x.sede_id) === String(doc.sede)) || (st || []).find(x => !x.sede_id) || (st || [])[0];
+      if (scelta) return await precontoSuTermica(scelta, doc);
+    }
+  } catch (e) { /* ripiego sulla stampante fiscale */ }
   return emettiDocumento(Object.assign({}, doc, { tipo: 'preconto' }));
+}
+
+async function precontoSuTermica(st, doc) {
+  const supabase = window.supabaseClient || window.supabase;
+  const righe = (Array.isArray(doc?.righe) ? doc.righe : []).map(r => ({
+    descrizione: r.descrizione || '', quantita: Number(r.quantita) || 1, prezzo_unitario: Number(r.prezzo_unitario) || 0,
+  }));
+  const { data: riga, error } = await supabase.from('coda_stampe').insert({
+    azienda_id: doc.azienda, sede_id: doc.sede || null, stampante_id: st.id,
+    stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: st.larghezza || 42,
+    tipo: 'preconto', reparto: 'preconto', comanda_uuid: doc.comanda_uuid || null,
+    contenuto: { tavolo: doc.numero_tavolo || null, coperti: doc.coperti || null, righe: righe,
+                 totale: Number(doc.totale) || 0, sconto: Number(doc.sconto) || 0 },
+  }).select('id').single();
+  if (error || !riga) return { ok: false, simulato: false, errore: 'Coda stampa: ' + (error?.message || 'errore') };
+  // il preconto conta anche come "preconto stampato" per la pianta della cassa
+  if (doc.comanda_uuid) {
+    supabase.from('coda_fiscale').insert({
+      azienda_id: doc.azienda, sede_id: doc.sede || null, tipo_documento: 'preconto', righe: righe,
+      totale: Number(doc.totale) || 0, stato: 'completato', numero_scontrino: 'PRECONTO-TERMICA',
+      comanda_uuid: doc.comanda_uuid, stampante_ip: st.ip, stampante_porta: st.porta || 9100,
+    }).then(() => {});
+  }
+  const scadenza = Date.now() + 12000;
+  while (Date.now() < scadenza) {
+    await _attesa(700);
+    const { data } = await supabase.from('coda_stampe').select('stato, errore_msg').eq('id', riga.id).single();
+    if (data?.stato === 'completato') return { ok: true, numero_documento: 'PRECONTO', simulato: false };
+    if (data?.stato === 'errore') return { ok: false, simulato: false, errore: data.errore_msg || 'Stampante preconti' };
+  }
+  return { ok: false, simulato: false, errore: 'Timeout: controlla la stampante dei preconti e il Raspberry' };
 }
 
 /**

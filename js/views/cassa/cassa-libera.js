@@ -15,7 +15,7 @@
 // ATTENZIONE: import statico, il cache-busting di router.js (?v=APP_V) NON lo
 // raggiunge. Ad ogni modifica di cassa-hardware.js bumpare manualmente il
 // ?v=N qui sotto, altrimenti il browser tiene la versione vecchia in cache.
-import { avviaPagamentoCarta, emettiScontrinoFiscale, emettiDocumento, emettiPreconto, configuraCassa } from './cassa-hardware.js?v=3';
+import { avviaPagamentoCarta, emettiScontrinoFiscale, emettiDocumento, emettiPreconto, configuraCassa } from './cassa-hardware.js?v=4';
 
 // Il router chiama render(app). Recupero l'azienda dallo stato globale.
 export async function render(container) {

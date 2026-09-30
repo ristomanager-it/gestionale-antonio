@@ -4,7 +4,7 @@
 
 // ATTENZIONE: import statico, il ?v=APP_V del router non lo raggiunge.
 // Ad ogni modifica di cassa-hardware.js bumpare a mano il ?v=N qui sotto.
-import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=3';
+import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=4';
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -1137,8 +1137,9 @@ export async function render(container) {
     } else {
       const cat = categorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id));
       const catNome = (cat?.nome || '').toLowerCase();
-      const stampante = ['bevande','vini rossi','vini bianchi','le bollicine','amari','caffetteria']
-        .some(c => catNome.includes(c)) ? 'bar' : 'cucina';
+      // Reparto di stampa: impostato sulla categoria (Menu › Categorie); se manca, regola storica
+      const stampante = cat?.reparto_stampa || (['bevande','vini rossi','vini bianchi','le bollicine','amari','caffetteria']
+        .some(c => catNome.includes(c)) ? 'bar' : 'cucina');
 
       const prezzoFinale = pesoKg ? (prodotto.prezzo_base || 0) * pesoKg : (prodotto.prezzo_base || 0);
       const nomeFinale = pesoKg ? `${prodotto.nome} (${pesoKg}kg)` : prodotto.nome;
@@ -1662,6 +1663,60 @@ export async function render(container) {
     const labels = ['prima','seconda','terza','quarta','quinta'];
     const label = labels[uscitaCorrente-1] || `uscita ${uscitaCorrente}`;
     mostraToast(`✅ ${righeNuove.length} piatti inviati — ${label} uscita!`, 'success');
+    stampaComandaReparti(righeNuove, false);
+  }
+
+  // ── STAMPA COMANDE DI REPARTO (Raspberry del locale → stampanti termiche) ──
+  let _stampantiComande = null;
+  async function stampantiComande() {
+    if (_stampantiComande) return _stampantiComande;
+    const { data } = await supa().from('stampanti_comande').select('id, reparto, ip, porta, larghezza, sede_id, nome')
+      .eq('azienda_id', aziendaId).eq('attiva', true);
+    _stampantiComande = (data || []).filter(s => !sedeId || !s.sede_id || String(s.sede_id) === String(sedeId));
+    return _stampantiComande;
+  }
+
+  async function stampaComandaReparti(righe, ristampa) {
+    try {
+      const stampanti = await stampantiComande();
+      if (!stampanti.length) return; // nessuna stampante configurata: solo schermo cucina
+      const tavolo = tavoli.find(t => String(t.id) === String(comandaAttiva?.tavolo_id));
+      const perReparto = {};
+      righe.forEach(r => {
+        const rep = r.stampante || 'cucina';
+        if (rep === 'nessuna') return;
+        (perReparto[rep] = perReparto[rep] || []).push({
+          qta: Number(r.quantita || 1), nome: r.nome_snapshot, note: r.note || null, uscita: r.uscita_numero || 1,
+        });
+      });
+      const lavori = [];
+      Object.keys(perReparto).forEach(rep => {
+        const st = stampanti.find(s => s.reparto === rep);
+        if (!st) { mostraToast('⚠️ Nessuna stampante per il reparto ' + rep, 'warning'); return; }
+        lavori.push({
+          azienda_id: aziendaId, sede_id: sedeId || null, stampante_id: st.id,
+          stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: st.larghezza || 42,
+          tipo: 'comanda', reparto: rep, comanda_uuid: comandaAttiva?.id || null,
+          contenuto: {
+            tavolo: tavolo?.nome || tavolo?.numero || null, coperti: comandaAttiva?.coperti || null,
+            cameriere: cameriereAttivo?.nome || null, ristampa: !!ristampa, righe: perReparto[rep],
+          },
+        });
+      });
+      if (!lavori.length) return;
+      const { data: ins, error } = await supa().from('coda_stampe').insert(lavori).select('id, reparto');
+      if (error) { mostraToast('⚠️ Comanda non mandata in stampa: ' + error.message, 'error'); return; }
+      // controllo esito dopo qualche secondo: il cameriere deve sapere se un reparto non ha stampato
+      setTimeout(async () => {
+        const { data: esiti } = await supa().from('coda_stampe').select('id, reparto, stato, errore_msg').in('id', (ins || []).map(x => x.id));
+        const ko = (esiti || []).filter(e => e.stato !== 'completato');
+        if (ko.length) {
+          mostraToast('⚠️ Non stampata in ' + ko.map(e => e.reparto).join(', ') + ' — controlla la stampante', 'error');
+        }
+      }, 8000);
+    } catch (e) {
+      console.warn('stampaComandaReparti', e);
+    }
   }
 
   function nuovaUscita() {
