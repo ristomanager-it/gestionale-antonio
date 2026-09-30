@@ -15,7 +15,7 @@
 // ATTENZIONE: import statico, il cache-busting di router.js (?v=APP_V) NON lo
 // raggiunge. Ad ogni modifica di cassa-hardware.js bumpare manualmente il
 // ?v=N qui sotto, altrimenti il browser tiene la versione vecchia in cache.
-import { avviaPagamentoCarta, emettiScontrinoFiscale, configuraCassa } from './cassa-hardware.js?v=2';
+import { avviaPagamentoCarta, emettiScontrinoFiscale, emettiDocumento, emettiPreconto, configuraCassa } from './cassa-hardware.js?v=3';
 
 // Il router chiama render(app). Recupero l'azienda dallo stato globale.
 export async function render(container) {
@@ -37,6 +37,7 @@ export async function renderCassaLibera(container, azienda) {
   let categorie = [];
   let prodotti = [];
   let categoriaAttiva = null;   // null = tutte le categorie
+  let incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
 
   container.innerHTML = '<div class="view"><p style="color:#64748b;">Caricamento cassa…</p></div>';
 
@@ -80,7 +81,7 @@ export async function renderCassaLibera(container, azienda) {
     // Sconto coupon: percentuale o euro sul totale (2x1/omaggio: gestione manuale in riga)
     let sconto = 0;
     if (coupon && lordo > 0) {
-      if (coupon.tipo === 'sconto_perc') sconto = lordo * (Number(coupon.valore) || 0) / 100;
+      if (coupon.tipo === 'sconto_perc' || coupon.tipo === 'sconto_percentuale') sconto = lordo * (Number(coupon.valore) || 0) / 100;
       else if (coupon.tipo === 'sconto_euro') sconto = Math.min(Number(coupon.valore) || 0, lordo);
     }
     sconto = round2(sconto);
@@ -169,22 +170,90 @@ export async function renderCassaLibera(container, azienda) {
         </div>
       </div>
 
-      <!-- Modal pagamento -->
+      <!-- Modal incasso: documento + pagamento (+ fattura, + chiusura non fiscale con motivo) -->
       <div id="cl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1200;align-items:center;justify-content:center;">
-        <div style="background:white;border-radius:20px;padding:24px;width:min(420px,92vw);">
-          <div style="font-weight:800;font-size:19px;margin-bottom:4px;">Incasso</div>
-          <div style="color:#64748b;font-size:14px;margin-bottom:16px;">Totale da incassare: <strong id="cl-modal-tot"></strong></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-            <button class="cl-met" data-met="contanti" style="flex:1;padding:14px;border:2px solid #16a34a;border-radius:12px;background:#16a34a12;font-weight:700;color:#16a34a;cursor:pointer;">💵 Contanti</button>
-            <button class="cl-met" data-met="carta" style="flex:1;padding:14px;border:2px solid #3b82f6;border-radius:12px;background:white;font-weight:700;color:#3b82f6;cursor:pointer;">💳 Carta (tap)</button>
+        <div style="background:white;border-radius:20px;padding:22px;width:min(440px,94vw);max-height:92vh;overflow:auto;">
+          <div id="cl-main">
+            <div style="font-weight:800;font-size:19px;">Incasso</div>
+            <div style="color:#64748b;font-size:14px;margin:2px 0 12px;">Totale da incassare: <strong id="cl-modal-tot"></strong></div>
+
+            <div class="cl-lab">Documento</div>
+            <div class="cl-row">
+              <button class="cl-doc cl-b" data-doc="preconto">📋 Preconto</button>
+              <button class="cl-doc cl-b" data-doc="scontrino">🧾 Scontrino</button>
+              <button class="cl-doc cl-b" data-doc="fattura">📄 Fattura</button>
+            </div>
+
+            <div id="cl-fatt" style="display:none;">
+              <div style="display:flex;gap:6px;margin-top:10px;">
+                <input id="cl-piva" class="cl-in" inputmode="numeric" placeholder="Partita IVA (11 cifre) o CF" style="flex:1;">
+                <button id="cl-piva-cerca" class="cl-b" style="flex:0 0 auto;min-width:0;padding:10px 14px;">🔎 Cerca</button>
+              </div>
+              <div id="cl-piva-esito" style="font-size:12px;min-height:16px;margin-top:4px;color:#64748b;"></div>
+              <input id="cl-rs" class="cl-in" placeholder="Ragione sociale / Nome *">
+              <input id="cl-ind" class="cl-in" placeholder="Indirizzo, CAP, città">
+              <div style="display:flex;gap:6px;">
+                <input id="cl-sdi" class="cl-in" placeholder="Codice SDI" maxlength="7" style="flex:1;text-transform:uppercase;">
+                <input id="cl-pec" class="cl-in" placeholder="PEC" style="flex:2;">
+              </div>
+            </div>
+
+            <div id="cl-pag-box">
+              <div class="cl-lab">Pagamento</div>
+              <div class="cl-row">
+                <button class="cl-met cl-b" data-met="contanti">💵 Contanti</button>
+                <button class="cl-met cl-b" data-met="carta">💳 Carta</button>
+                <button class="cl-met cl-b" data-met="buoni_pasto">🎫 Buoni pasto</button>
+              </div>
+              <div class="cl-row" style="margin-top:6px;">
+                <button class="cl-met cl-b" data-met="bonifico">🏦 Bonifico</button>
+                <button class="cl-met cl-b" data-met="addebito">🏨 Addebito</button>
+              </div>
+              <div id="cl-contanti-box">
+                <input id="cl-ricevuti" class="cl-in" type="number" step="0.01" inputmode="decimal" placeholder="Ricevuti € (facoltativo)">
+                <div id="cl-resto" style="display:none;justify-content:space-between;background:#f0fdf4;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:14px;color:#166534;"><span>Resto da dare</span><b id="cl-resto-val"></b></div>
+              </div>
+              <div id="cl-intest-box" style="display:none;">
+                <input id="cl-intestatario" class="cl-in" placeholder="A chi (nome o azienda) *">
+                <div class="cl-sp">Sullo scontrino esce come "non riscosso".</div>
+              </div>
+            </div>
+
+            <div id="cl-pre-nota" class="cl-sp" style="display:none;margin-top:10px;">Documento non fiscale: il carrello resta aperto. Tieni premuto il pulsante 3 secondi per chiudere il conto senza scontrino (solo addebito, omaggio o pasto del personale).</div>
+
+            <div id="cl-esito" style="font-size:14px;margin:12px 0;min-height:20px;"></div>
+            <button id="cl-conferma" style="position:relative;overflow:hidden;width:100%;padding:14px;border:none;border-radius:12px;background:#0E5A7A;color:white;font-weight:700;font-size:15px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;">
+              <span id="cl-conf-bar" style="position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,255,255,.25);"></span>
+              <span id="cl-conf-txt" style="position:relative;">Conferma e stampa scontrino</span>
+            </button>
+            <button id="cl-annulla" style="width:100%;margin-top:8px;padding:11px;border:1px solid #e5e7eb;border-radius:12px;background:white;color:#64748b;cursor:pointer;">Annulla</button>
           </div>
-          <div id="cl-esito" style="font-size:14px;margin-bottom:12px;min-height:20px;"></div>
-          <div style="display:flex;gap:8px;">
-            <button id="cl-conferma" style="flex:1;padding:13px;border:none;border-radius:12px;background:#0E5A7A;color:white;font-weight:700;cursor:pointer;">Conferma e scontrino</button>
-            <button id="cl-annulla" style="padding:13px 18px;border:1px solid #e5e7eb;border-radius:12px;background:white;color:#64748b;cursor:pointer;">Annulla</button>
+
+          <div id="cl-motivo" style="display:none;">
+            <div style="font-weight:800;font-size:18px;">Chiudi senza scontrino</div>
+            <div class="cl-sp" style="margin-bottom:10px;">Stampa il preconto, scarica il magazzino e registra il motivo. Se il cliente ha pagato, va fatto lo scontrino.</div>
+            <div class="cl-row">
+              <button class="cl-mot cl-b" data-mot="addebito">🏨 Addebito / fattura dopo</button>
+            </div>
+            <div class="cl-row" style="margin-top:6px;">
+              <button class="cl-mot cl-b" data-mot="omaggio">🎁 Omaggio</button>
+              <button class="cl-mot cl-b" data-mot="personale">🍽️ Personale</button>
+            </div>
+            <input id="cl-mot-intest" class="cl-in" placeholder="A chi addebitare (nome o azienda) *" style="display:none;">
+            <div id="cl-mot-esito" style="font-size:14px;margin:10px 0;min-height:18px;"></div>
+            <button id="cl-mot-ok" style="width:100%;padding:13px;border:none;border-radius:12px;background:#b45309;color:white;font-weight:700;cursor:pointer;">Chiudi il conto</button>
+            <button id="cl-mot-back" style="width:100%;margin-top:8px;padding:11px;border:1px solid #e5e7eb;border-radius:12px;background:white;color:#64748b;cursor:pointer;">← Indietro</button>
           </div>
         </div>
       </div>
+      <style>
+        #cl-modal .cl-lab{font-size:12px;font-weight:700;color:#64748b;margin:12px 0 6px}
+        #cl-modal .cl-row{display:flex;gap:6px;flex-wrap:wrap}
+        #cl-modal .cl-b{flex:1;min-width:90px;padding:12px 6px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;font-weight:700;font-size:13px;color:#334155;cursor:pointer}
+        #cl-modal .cl-b.on{border-color:#0E5A7A;background:#e0f2fe;color:#0E5A7A}
+        #cl-modal .cl-in{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;margin-top:6px}
+        #cl-modal .cl-sp{font-size:12px;color:#64748b;margin-top:6px}
+      </style>
     `;
     collegaEventi();
   }
@@ -354,78 +423,238 @@ export async function renderCassaLibera(container, azienda) {
     if (scB) scB.onclick = () => { scB.textContent = '📱 In attesa del cliente...'; chiediScansione(); };
     const fidX = container.querySelector('#cl-fid-x');
     if (fidX) fidX.onclick = () => { fidelityCliente = null; render(); aggiornaSchermoCliente(); };
-    // Apri pagamento
-    const paga = container.querySelector('#cl-paga');
+    // ── Incasso: documento + pagamento ─────────────────────────────────
+    const $ = (sel) => container.querySelector(sel);
+    const paga = $('#cl-paga');
     if (paga) paga.onclick = () => {
       if (!carrello.length) return;
-      container.querySelector('#cl-modal-tot').textContent = '€ ' + totali().totale.toFixed(2);
-      container.querySelector('#cl-esito').textContent = '';
-      container.querySelector('#cl-modal').style.display = 'flex';
-      _metodoScelto = 'contanti';
+      incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
+      $('#cl-modal-tot').textContent = '€ ' + totali().totale.toFixed(2);
+      $('#cl-esito').textContent = '';
+      ['#cl-piva', '#cl-rs', '#cl-ind', '#cl-sdi', '#cl-pec', '#cl-ricevuti', '#cl-intestatario', '#cl-mot-intest'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+      $('#cl-piva-esito').textContent = '';
+      $('#cl-main').style.display = '';
+      $('#cl-motivo').style.display = 'none';
+      aggiornaIncassoUI();
+      $('#cl-modal').style.display = 'flex';
     };
-    // Metodo
-    let _metodoScelto = 'contanti';
-    container.querySelectorAll('.cl-met').forEach(b => b.onclick = () => {
-      _metodoScelto = b.dataset.met;
-      container.querySelectorAll('.cl-met').forEach(x => { x.style.background = 'white'; });
-      b.style.background = (_metodoScelto === 'carta' ? '#3b82f612' : '#16a34a12');
-    });
-    // Annulla
-    const ann = container.querySelector('#cl-annulla');
-    if (ann) ann.onclick = () => { container.querySelector('#cl-modal').style.display = 'none'; };
-    // Conferma incasso
-    const conf = container.querySelector('#cl-conferma');
-    if (conf) conf.onclick = async () => {
-      const esito = container.querySelector('#cl-esito');
-      const t = totali();
-      // 1) Se carta: avvia pagamento tap (scheletro simulato)
-      if (_metodoScelto === 'carta') {
-        esito.textContent = '⏳ Avvicina la carta…';
-        const pay = await avviaPagamentoCarta(t.totale, { descrizione: 'Cassa libera' });
-        if (!pay.ok) { esito.textContent = '❌ ' + (pay.errore || 'Pagamento non riuscito'); return; }
-        esito.textContent = pay.simulato ? '✅ Pagamento simulato' : '✅ Pagamento ok';
-      }
-      // 2) Annullo definitivo del coupon (se agganciato)
-      if (coupon) {
-        const { data: burn, error: burnErr } = await supabase.rpc('annulla_coupon', { p_codice: coupon.codice, p_solo_verifica: false });
-        if (burnErr || !burn || !burn.ok) {
-          esito.textContent = '❌ Coupon non più valido: ' + (burn?.errore || burnErr?.message || 'errore') + ' — rimosso dal conto.';
-          coupon = null; render();
-          return;
-        }
-      }
-      // 3) Registra la vendita
-      const reg = await registraVendita(_metodoScelto, t);
-      if (!reg.ok) {
-        esito.textContent = 'Incasso NON registrato: ' + reg.errore + ' - segna il conto a mano e avvisa.';
+
+    function aggiornaIncassoUI() {
+      container.querySelectorAll('.cl-doc').forEach(b => b.classList.toggle('on', b.dataset.doc === incasso.doc));
+      container.querySelectorAll('.cl-met').forEach(b => b.classList.toggle('on', b.dataset.met === incasso.metodo));
+      const pre = incasso.doc === 'preconto';
+      $('#cl-fatt').style.display = incasso.doc === 'fattura' ? '' : 'none';
+      $('#cl-pag-box').style.display = pre ? 'none' : '';
+      $('#cl-pre-nota').style.display = pre ? '' : 'none';
+      $('#cl-contanti-box').style.display = incasso.metodo === 'contanti' ? '' : 'none';
+      $('#cl-intest-box').style.display = (incasso.metodo === 'addebito' || incasso.metodo === 'bonifico') ? '' : 'none';
+      $('#cl-conf-txt').textContent = pre ? 'Stampa preconto (tieni premuto per chiudere)'
+        : incasso.doc === 'fattura' ? 'Conferma e stampa (fattura)' : 'Conferma e stampa scontrino';
+      aggiornaResto();
+    }
+    function aggiornaResto() {
+      const r = Number($('#cl-ricevuti').value);
+      const tot = totali().totale;
+      const box = $('#cl-resto');
+      if (!r || r < tot) { box.style.display = 'none'; return; }
+      box.style.display = 'flex';
+      $('#cl-resto-val').textContent = '€ ' + (Math.round((r - tot) * 100) / 100).toFixed(2);
+    }
+    container.querySelectorAll('.cl-doc').forEach(b => b.onclick = () => { incasso.doc = b.dataset.doc; aggiornaIncassoUI(); });
+    container.querySelectorAll('.cl-met').forEach(b => b.onclick = () => { incasso.metodo = b.dataset.met; aggiornaIncassoUI(); });
+    const ric = $('#cl-ricevuti'); if (ric) ric.oninput = aggiornaResto;
+    const ann = $('#cl-annulla');
+    if (ann) ann.onclick = () => { if (!incasso.busy) $('#cl-modal').style.display = 'none'; };
+
+    // Ricerca cliente da partita IVA: archivio aziendale, poi registro UE (VIES)
+    const btnPiva = $('#cl-piva-cerca');
+    if (btnPiva) btnPiva.onclick = async () => {
+      const v = ($('#cl-piva').value || '').trim().toUpperCase().replace(/\s+/g, '').replace(/^IT/, '');
+      const out = $('#cl-piva-esito');
+      if (/^[A-Z0-9]{16}$/.test(v)) { // codice fiscale di persona: niente registro, solo archivio
+        const { data } = await supabase.from('clienti_fatturazione').select('*').eq('azienda_id', aziendaId).eq('codice_fiscale', v).maybeSingle();
+        if (data) { riempiCliente(data); out.textContent = '✅ Trovato in archivio'; }
+        else { incasso.cliente = { codice_fiscale: v }; out.textContent = 'Codice fiscale nuovo: completa nome e indirizzo.'; }
         return;
       }
-      // 3b) Fidelity: accredito punti
-      const puntiDati = await accreditaFidelity(t);
-      if (puntiDati) esito.textContent = '⭐ +' + puntiDati + ' punti a ' + fidelityCliente.nome;
-      aggiornaSchermoCliente(true, _metodoScelto);
-      // 3) Scontrino fiscale (scheletro simulato)
-      const scontrino = await emettiScontrinoFiscale({
-        righe: carrello.map(r => ({ descrizione: r.nome, quantita: r.qta, prezzo_unitario: r.prezzo, aliquota_iva: r.aliquota_iva })),
-        totale: t.totale,
-        pagamenti: [{ metodo: _metodoScelto, importo: t.totale }],
-        azienda: aziendaId, sede: sedeId,
-      });
-      if (!scontrino.ok) {
-        esito.textContent = '⚠️ Incasso registrato ma scontrino fiscale NON stampato: ' + (scontrino.errore || 'errore sconosciuto') + ' — verifica la stampante.';
-      } else {
-        esito.textContent = '✅ Incassato. Scontrino: ' + (scontrino.numero_documento || 'n/d') + (scontrino.simulato ? ' (simulato)' : '');
-      }
-      // 4) Reset dopo un attimo
-      setTimeout(() => {
-        carrello = [];
-        coupon = null;
-        fidelityCliente = null;
-        container.querySelector('#cl-modal').style.display = 'none';
-        render();
-        aggiornaSchermoCliente();
-      }, 3500);
+      if (!/^\d{11}$/.test(v)) { out.textContent = '❌ La partita IVA deve avere 11 cifre'; return; }
+      out.textContent = '⏳ Cerco…';
+      const { data, error } = await supabase.functions.invoke('cerca-piva', { body: { azienda_id: aziendaId, partita_iva: v } });
+      if (error || !data) { out.textContent = '❌ Ricerca non riuscita: inserisci i dati a mano'; incasso.cliente = { partita_iva: v }; return; }
+      if (!data.ok) { out.textContent = '❌ ' + (data.errore || 'Non trovata'); incasso.cliente = { partita_iva: v }; return; }
+      riempiCliente(data.cliente);
+      out.textContent = data.fonte === 'archivio' ? '✅ Cliente già in archivio' : ('✅ Trovata nel registro UE' + (data.avviso ? ' — ' + data.avviso : ''));
     };
+    function riempiCliente(c) {
+      incasso.cliente = c || {};
+      $('#cl-rs').value = c?.ragione_sociale || '';
+      $('#cl-ind').value = [c?.indirizzo, [c?.cap, c?.citta, c?.provincia].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+      $('#cl-sdi').value = c?.codice_sdi || '';
+      $('#cl-pec').value = c?.pec || '';
+    }
+
+    // Pulsante conferma: tocco breve = azione; tieni premuto 3 s sul preconto = chiusura con motivo
+    const conf = $('#cl-conferma');
+    let _premuto = null, _lungo = false;
+    const bar = $('#cl-conf-bar');
+    function stopPressione() { if (_premuto) { clearTimeout(_premuto.t); cancelAnimationFrame(_premuto.raf); _premuto = null; } if (bar) bar.style.width = '0'; }
+    if (conf) {
+      conf.addEventListener('pointerdown', (e) => {
+        if (incasso.busy || incasso.doc !== 'preconto') return;
+        _lungo = false;
+        const t0 = performance.now();
+        const anima = () => { if (!_premuto) return; bar.style.width = Math.min(100, (performance.now() - t0) / 30) + '%'; _premuto.raf = requestAnimationFrame(anima); };
+        _premuto = { t: setTimeout(() => { _lungo = true; stopPressione(); apriMotivo(); }, 3000), raf: requestAnimationFrame(anima) };
+      });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => conf.addEventListener(ev, stopPressione));
+      conf.oncontextmenu = (e) => e.preventDefault();
+      conf.onclick = async () => {
+        if (_lungo) { _lungo = false; return; }
+        if (incasso.busy) return;
+        if (incasso.doc === 'preconto') return stampaPrecontoLibero();
+        return confermaIncasso();
+      };
+    }
+
+    async function stampaPrecontoLibero() {
+      const esito = $('#cl-esito');
+      const t = totali();
+      incasso.busy = true;
+      esito.textContent = '⏳ Stampo il preconto…';
+      const r = await emettiPreconto({ righe: righeDocumento(), totale: t.totale, sconto: t.sconto, azienda: aziendaId, sede: sedeId });
+      incasso.busy = false;
+      esito.textContent = r.ok ? '✅ Preconto stampato. Il conto resta aperto.' : '❌ Preconto non stampato: ' + (r.errore || 'errore');
+    }
+
+    function apriMotivo() {
+      incasso.motivo = null;
+      $('#cl-main').style.display = 'none';
+      $('#cl-motivo').style.display = '';
+      $('#cl-mot-esito').textContent = coupon ? '⚠️ Il coupon non viene usato in una chiusura senza scontrino.' : '';
+      container.querySelectorAll('.cl-mot').forEach(b => b.classList.remove('on'));
+      $('#cl-mot-intest').style.display = 'none';
+    }
+    container.querySelectorAll('.cl-mot').forEach(b => b.onclick = () => {
+      incasso.motivo = b.dataset.mot;
+      container.querySelectorAll('.cl-mot').forEach(x => x.classList.toggle('on', x === b));
+      $('#cl-mot-intest').style.display = incasso.motivo === 'addebito' ? '' : 'none';
+    });
+    const motBack = $('#cl-mot-back');
+    if (motBack) motBack.onclick = () => { if (incasso.busy) return; $('#cl-motivo').style.display = 'none'; $('#cl-main').style.display = ''; };
+    const motOk = $('#cl-mot-ok');
+    if (motOk) motOk.onclick = async () => {
+      const out = $('#cl-mot-esito');
+      if (incasso.busy) return;
+      if (!incasso.motivo) { out.textContent = 'Scegli il motivo.'; return; }
+      const intest = ($('#cl-mot-intest').value || '').trim();
+      if (incasso.motivo === 'addebito' && !intest) { out.textContent = 'Scrivi a chi addebitare.'; return; }
+      incasso.busy = true;
+      out.textContent = '⏳ Stampo il preconto e chiudo…';
+      const t = totali();
+      const lordo = t.lordo;
+      const pre = await emettiPreconto({ righe: righeDocumento(), totale: lordo, azienda: aziendaId, sede: sedeId });
+      const reg = await registraVendita('non_fiscale', t, { nonFiscale: true });
+      if (!reg.ok) { incasso.busy = false; out.textContent = '❌ Chiusura NON registrata: ' + reg.errore; return; }
+      const { error } = await supabase.from('chiusure_non_fiscali').insert({
+        azienda_id: aziendaId, sede_id: sedeId, motivo: incasso.motivo,
+        intestatario: incasso.motivo === 'addebito' ? intest : null,
+        totale: lordo, righe: righeDocumento(), canale: 'cassa_libera',
+        preconto_id: null,
+        operatore_nome: window.state?.userProfile?.nome || window.state?.user?.email || null,
+      });
+      incasso.busy = false;
+      if (error) { out.textContent = '⚠️ Magazzino scaricato ma motivo non salvato: ' + error.message; return; }
+      out.textContent = (pre.ok ? '✅ Preconto stampato. ' : '⚠️ Preconto non stampato (' + (pre.errore || 'errore') + '). ') + 'Conto chiuso come ' + ({ addebito: 'addebito', omaggio: 'omaggio', personale: 'pasto del personale' })[incasso.motivo] + '.';
+      setTimeout(() => { carrello = []; coupon = null; fidelityCliente = null; $('#cl-modal').style.display = 'none'; render(); aggiornaSchermoCliente(); }, 2500);
+    };
+
+    function righeDocumento() {
+      return carrello.map(r => ({ descrizione: r.nome, quantita: r.qta, prezzo_unitario: r.prezzo, aliquota_iva: r.aliquota_iva }));
+    }
+
+    async function confermaIncasso() {
+      const esito = $('#cl-esito');
+      const t = totali();
+      const metodo = incasso.metodo;
+      // Validazioni prima di toccare qualsiasi cosa
+      let cliente = null;
+      if (incasso.doc === 'fattura') {
+        const rs = ($('#cl-rs').value || '').trim();
+        const id = ($('#cl-piva').value || '').trim().toUpperCase().replace(/\s+/g, '').replace(/^IT/, '');
+        if (!id || !rs) { esito.textContent = 'Per la fattura servono partita IVA (o CF) e ragione sociale.'; return; }
+        const isPiva = /^\d{11}$/.test(id);
+        cliente = { partita_iva: isPiva ? id : null, codice_fiscale: isPiva ? null : id, ragione_sociale: rs };
+      }
+      const intest = ($('#cl-intestatario').value || '').trim();
+      if ((metodo === 'addebito' || metodo === 'bonifico') && !intest && !cliente) { esito.textContent = 'Scrivi a chi addebitare.'; return; }
+
+      incasso.busy = true;
+      try {
+        if (metodo === 'carta') {
+          esito.textContent = '⏳ Pagamento con carta…';
+          const pay = await avviaPagamentoCarta(t.totale, { descrizione: 'Cassa libera' });
+          if (!pay.ok) { esito.textContent = '❌ ' + (pay.errore || 'Pagamento non riuscito'); return; }
+        }
+        if (coupon) {
+          const { data: burn, error: burnErr } = await supabase.rpc('annulla_coupon', { p_codice: coupon.codice, p_solo_verifica: false });
+          if (burnErr || !burn || !burn.ok) {
+            esito.textContent = '❌ Coupon non più valido: ' + (burn?.errore || burnErr?.message || 'errore') + ' — rimosso dal conto.';
+            coupon = null; render();
+            return;
+          }
+        }
+        const reg = await registraVendita(metodo, t);
+        if (!reg.ok) { esito.textContent = 'Incasso NON registrato: ' + reg.errore + ' - segna il conto a mano e avvisa.'; return; }
+        const puntiDati = await accreditaFidelity(t);
+        if (puntiDati) esito.textContent = '⭐ +' + puntiDati + ' punti a ' + fidelityCliente.nome;
+        aggiornaSchermoCliente(true, metodo);
+        if (cliente) await salvaClienteFatturazione(cliente);
+
+        esito.textContent = '⏳ Stampo…';
+        const doc = await emettiDocumento({
+          tipo: incasso.doc,
+          righe: righeDocumento(),
+          totale: t.totale,
+          sconto: t.sconto,
+          pagamenti: [{ metodo: metodo, importo: t.totale }],
+          cliente: cliente || (intest ? { ragione_sociale: intest } : null),
+          azienda: aziendaId, sede: sedeId,
+        });
+        if (!doc.ok) {
+          esito.textContent = '⚠️ Incasso registrato ma documento NON stampato: ' + (doc.errore || 'errore sconosciuto') + ' — verifica la stampante.';
+        } else {
+          const resto = Number($('#cl-ricevuti').value) - t.totale;
+          esito.textContent = '✅ Incassato. Scontrino: ' + (doc.numero_documento || 'n/d') + (doc.simulato ? ' (simulato)' : '')
+            + (metodo === 'contanti' && resto > 0 ? ' · Resto € ' + (Math.round(resto * 100) / 100).toFixed(2) : '');
+        }
+        setTimeout(() => {
+          carrello = []; coupon = null; fidelityCliente = null;
+          $('#cl-modal').style.display = 'none';
+          render(); aggiornaSchermoCliente();
+        }, 3500);
+      } finally {
+        incasso.busy = false;
+      }
+    }
+
+    // Salva o aggiorna il cliente per le fatture successive (SDI/PEC non arrivano dal registro UE)
+    async function salvaClienteFatturazione(cliente) {
+      try {
+        const extra = {
+          ragione_sociale: cliente.ragione_sociale,
+          codice_sdi: (($('#cl-sdi').value || '').trim().toUpperCase()) || null,
+          pec: ($('#cl-pec').value || '').trim() || null,
+        };
+        if (incasso.cliente?.id) {
+          await supabase.from('clienti_fatturazione').update(Object.assign(extra, { updated_at: new Date().toISOString() })).eq('id', incasso.cliente.id);
+        } else {
+          await supabase.from('clienti_fatturazione').insert(Object.assign({
+            azienda_id: aziendaId, partita_iva: cliente.partita_iva, codice_fiscale: cliente.codice_fiscale,
+            indirizzo: ($('#cl-ind').value || '').trim() || null, fonte: 'manuale',
+          }, extra));
+        }
+      } catch (e) { console.warn('salvaClienteFatturazione', e); }
+    }
   }
 
   // ── Verifica coupon (riusata da modal e scanner cliente) ──
@@ -516,7 +745,10 @@ export async function renderCassaLibera(container, azienda) {
   // vendita, che e' un uuid e non entra in prodotto_id (bigint).
   // Se la scrittura fallisce l'operatore deve saperlo: un incasso perso in
   // silenzio non si recupera piu'.
-  async function registraVendita(metodo, t) {
+  async function registraVendita(metodo, t, opts = {}) {
+    // opts.nonFiscale: chiusura senza scontrino (addebito/omaggio/personale): scarica il
+    // magazzino ma non e' incasso → totale_incassato 0 e canale dedicato.
+    const nf = !!opts.nonFiscale;
     const oggi = new Date().toISOString().slice(0,10);
     const righe = carrello.map(r => ({
       azienda_id: aziendaId, sede_uuid: sedeId,
@@ -527,10 +759,10 @@ export async function renderCassaLibera(container, azienda) {
       quantita: r.qta,
       prezzo_unitario: r.prezzo,
       totale_riga: round2(r.prezzo * r.qta),
-      totale_incassato: round2(r.prezzo * r.qta),
-      canale: 'cassa_libera',
+      totale_incassato: nf ? 0 : round2(r.prezzo * r.qta),
+      canale: nf ? 'cassa_libera_non_fiscale' : 'cassa_libera',
     }));
-    if (coupon && t.sconto > 0) {
+    if (!nf && coupon && t.sconto > 0) {
       righe.push({
         azienda_id: aziendaId, sede_uuid: sedeId,
         data_vendita: oggi,

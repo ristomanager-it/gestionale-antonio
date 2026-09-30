@@ -129,6 +129,22 @@ const POLL_TIMEOUT_MS = 20000;
  * @returns {Promise<{ok:boolean, numero_documento?:string, simulato:boolean, errore?:string}>}
  */
 export async function emettiScontrinoFiscale(doc) {
+  return emettiDocumento(Object.assign({}, doc, { tipo: doc?.tipo || 'scontrino' }));
+}
+
+// Preconto: documento NON fiscale, stesso canale (coda_fiscale → Raspberry)
+export async function emettiPreconto(doc) {
+  return emettiDocumento(Object.assign({}, doc, { tipo: 'preconto' }));
+}
+
+/**
+ * Documento generico verso la stampante fiscale.
+ * doc.tipo: 'scontrino' | 'fattura' | 'preconto'
+ * doc.pagamenti: [{metodo, importo}] — metodi: contanti, carta, buoni_pasto, bonifico, addebito
+ * doc.sconto: sconto promo in euro sul subtotale (le righe restano a prezzo pieno)
+ * doc.cliente: { partita_iva, codice_fiscale, ragione_sociale } per fattura
+ */
+export async function emettiDocumento(doc) {
   const righe = Array.isArray(doc?.righe) ? doc.righe : [];
   if (!righe.length) return { ok: false, simulato: false, errore: 'Nessuna riga da stampare' };
 
@@ -185,20 +201,42 @@ export async function emettiScontrinoFiscale(doc) {
     prezzo_unitario: Number(r.prezzo_unitario) || 0,
     aliquota_iva: Number(r.aliquota_iva ?? 10),
   }));
-  const pagamenti = Array.isArray(doc?.pagamenti) ? doc.pagamenti : [];
-  const metodoPagamento = pagamenti[0]?.metodo || 'contanti';
+  const pagamenti = (Array.isArray(doc?.pagamenti) ? doc.pagamenti : [])
+    .map(p => ({ metodo: String(p.metodo || 'contanti'), importo: Math.round((Number(p.importo) || 0) * 100) / 100 }))
+    .filter(p => p.importo > 0);
+  const metodoPagamento = pagamenti.length > 1 ? 'vario' : (pagamenti[0]?.metodo || 'contanti');
+  const tipo = ['scontrino', 'fattura', 'preconto'].includes(doc?.tipo) ? doc.tipo : 'scontrino';
+  const cliente = doc?.cliente || {};
 
-  const { data: riga, error: insErr } = await supabase.from('coda_fiscale').insert({
+  const record = {
     azienda_id: aziendaId,
     sede_id: sedeId,
-    tipo_documento: 'scontrino',
+    tipo_documento: tipo,
     righe: righeDb,
     metodo_pagamento: metodoPagamento,
+    pagamenti: pagamenti.length ? pagamenti : null,
+    sconto: Number(doc?.sconto) > 0 ? Math.round(Number(doc.sconto) * 100) / 100 : null,
     totale: Number(doc?.totale) || 0,
     stato: 'in_attesa',
     stampante_ip: stampante.ip,
     stampante_porta: stampante.porta,
-  }).select('id').single();
+  };
+  if (doc?.numero_tavolo) record.numero_tavolo = String(doc.numero_tavolo);
+  if (doc?.coperti) record.coperti = Number(doc.coperti) || null;
+  if (doc?.comanda_uuid) record.comanda_uuid = doc.comanda_uuid;
+  if (cliente.partita_iva) record.cliente_piva = cliente.partita_iva;
+  if (cliente.codice_fiscale) record.cliente_cf = cliente.codice_fiscale;
+  if (cliente.ragione_sociale) record.cliente_nome = cliente.ragione_sociale;
+
+  // Fondo scontrino (saluto + QR coupon/link) da Configurazione › Cassa. Mai bloccante.
+  if (tipo === 'scontrino' || tipo === 'fattura') {
+    try {
+      const { data: fine } = await supabase.rpc('prepara_fine_scontrino', { p_azienda: aziendaId });
+      if (fine) record.fine_scontrino = fine;
+    } catch (e) { /* senza fondo */ }
+  }
+
+  const { data: riga, error: insErr } = await supabase.from('coda_fiscale').insert(record).select('id').single();
 
   if (insErr || !riga) {
     return { ok: false, simulato: false, errore: 'Scrittura coda fiscale fallita: ' + (insErr?.message || 'errore') };

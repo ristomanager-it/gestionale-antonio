@@ -397,7 +397,102 @@ export async function render(container) {
       setTimeout(() => renderTabCassa(box), 800);
     };
 
-    renderPuntoCassa(box);
+    renderPuntoCassa(box).then(function () { renderFineScontrino(box); });
+  }
+
+  // ── FINE SCONTRINO: saluto + QR (coupon unico monouso o link) ──
+  async function renderFineScontrino(box) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:36px;';
+    box.appendChild(wrap);
+    const [{ data: cfg }, { data: promo }] = await Promise.all([
+      supa().from('cassa_impostazioni').select('*').eq('azienda_id', aziendaId).maybeSingle(),
+      supa().from('promo').select('id, nome, tipo, valore, attiva').eq('azienda_id', aziendaId).order('created_at', { ascending: false }),
+    ]);
+    const c = cfg || { saluto: '', qr_tipo: 'nessuno', qr_url: '', qr_testo: '', promo_id: null, validita_giorni: 30 };
+    const optPromo = (promo || []).map(function (p) {
+      const v = p.tipo === 'sconto_perc' || p.tipo === 'sconto_percentuale' ? ' (−' + Number(p.valore) + '%)' : p.tipo === 'sconto_euro' ? ' (−€' + Number(p.valore) + ')' : '';
+      return '<option value="' + p.id + '"' + (String(p.id) === String(c.promo_id) ? ' selected' : '') + '>' + esc(p.nome) + v + (p.attiva === false ? ' · non attiva' : '') + '</option>';
+    }).join('');
+    const lab = 'display:block;font-size:12px;font-weight:600;color:#64748b;margin:12px 0 4px;';
+    wrap.innerHTML =
+      '<div style="font-size:18px;font-weight:700;color:#0f172a;">🎟️ Fine scontrino</div>'
+      + '<div style="font-size:13px;color:#64748b;margin:2px 0 14px;">Saluto e QR stampati in fondo a ogni scontrino, per far tornare il cliente.</div>'
+      + '<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;">'
+      + '<label style="' + lab + 'margin-top:0;">Saluto (massimo 3 righe da 40 caratteri)</label>'
+      + '<textarea id="fs-saluto" class="input" rows="3" style="width:100%;box-sizing:border-box;font-family:monospace;" placeholder="Grazie della visita!&#10;A presto">' + esc(c.saluto || '') + '</textarea>'
+      + '<label style="' + lab + '">QR in fondo allo scontrino</label>'
+      + '<select id="fs-tipo" class="input">'
+      + '<option value="nessuno"' + (c.qr_tipo === 'nessuno' ? ' selected' : '') + '>Nessun QR</option>'
+      + '<option value="coupon"' + (c.qr_tipo === 'coupon' ? ' selected' : '') + '>Coupon per la prossima visita (unico, si usa una volta)</option>'
+      + '<option value="link"' + (c.qr_tipo === 'link' ? ' selected' : '') + '>Link (recensione Google, fidelity, sito…)</option>'
+      + '</select>'
+      + '<div id="fs-coupon" style="display:none;">'
+      + '<label style="' + lab + '">Promo da regalare</label>'
+      + '<select id="fs-promo" class="input"><option value="">Scegli una promo…</option>' + optPromo + '</select>'
+      + '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px;color:#64748b;">Nessuna adatta? Crea al volo: '
+      + '<input id="fs-nuova-perc" type="number" min="1" max="100" class="input" placeholder="%" style="width:70px;">'
+      + '<button id="fs-nuova" style="background:#f0f9ff;color:#0E5A7A;border:1px solid #bae6fd;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px;">Crea "Torna a trovarci"</button></div>'
+      + '<label style="' + lab + '">Valido per giorni</label>'
+      + '<input id="fs-giorni" type="number" min="1" max="365" class="input" value="' + (c.validita_giorni || 30) + '" style="width:120px;">'
+      + '</div>'
+      + '<div id="fs-link" style="display:none;">'
+      + '<label style="' + lab + '">Indirizzo del link</label>'
+      + '<input id="fs-url" class="input" placeholder="https://…" value="' + esc(c.qr_url || '') + '" style="width:100%;box-sizing:border-box;">'
+      + '</div>'
+      + '<div id="fs-testo-wrap" style="display:none;">'
+      + '<label style="' + lab + '">Testo sopra il QR (facoltativo)</label>'
+      + '<input id="fs-testo" class="input" maxlength="40" placeholder="Es. Lasciaci una recensione" value="' + esc(c.qr_testo || '') + '" style="width:100%;box-sizing:border-box;">'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;margin-top:14px;align-items:center;">'
+      + '<button id="fs-salva" style="background:#0E5A7A;color:white;border:none;padding:10px 20px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;">💾 Salva</button>'
+      + '<span id="fs-esito" style="font-size:13px;"></span></div>'
+      + '</div>';
+
+    const $ = function (id) { return wrap.querySelector(id); };
+    function mostra() {
+      const t = $('#fs-tipo').value;
+      $('#fs-coupon').style.display = t === 'coupon' ? '' : 'none';
+      $('#fs-link').style.display = t === 'link' ? '' : 'none';
+      $('#fs-testo-wrap').style.display = t === 'nessuno' ? 'none' : '';
+    }
+    $('#fs-tipo').onchange = mostra;
+    mostra();
+
+    $('#fs-nuova').onclick = async function () {
+      const perc = Number($('#fs-nuova-perc').value);
+      if (!perc || perc < 1 || perc > 100) { $('#fs-esito').textContent = 'Scrivi la percentuale di sconto'; return; }
+      const { data, error } = await supa().from('promo').insert({
+        azienda_id: aziendaId, nome: 'Torna a trovarci −' + perc + '%', tipo: 'sconto_perc', valore: perc, attiva: true, canale: 'scontrino',
+      }).select('id, nome').single();
+      if (error) { $('#fs-esito').textContent = '❌ ' + error.message; return; }
+      const o = document.createElement('option');
+      o.value = data.id; o.textContent = data.nome + ' (−' + perc + '%)'; o.selected = true;
+      $('#fs-promo').appendChild(o);
+      $('#fs-esito').textContent = '✅ Promo creata';
+    };
+
+    $('#fs-salva').onclick = async function () {
+      const righe = ($('#fs-saluto').value || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+      const esito = $('#fs-esito');
+      if (righe.length > 3 || righe.some(function (x) { return x.length > 40; })) { esito.style.color = '#dc2626'; esito.textContent = 'Massimo 3 righe da 40 caratteri'; return; }
+      const tipo = $('#fs-tipo').value;
+      if (tipo === 'coupon' && !$('#fs-promo').value) { esito.style.color = '#dc2626'; esito.textContent = 'Scegli la promo da regalare'; return; }
+      if (tipo === 'link' && !/^https?:\/\//.test(($('#fs-url').value || '').trim())) { esito.style.color = '#dc2626'; esito.textContent = 'Il link deve iniziare con https://'; return; }
+      const payload = {
+        azienda_id: aziendaId,
+        saluto: righe.join('\n') || null,
+        qr_tipo: tipo,
+        promo_id: tipo === 'coupon' ? $('#fs-promo').value : null,
+        validita_giorni: Math.min(365, Math.max(1, Number($('#fs-giorni').value) || 30)),
+        qr_url: tipo === 'link' ? $('#fs-url').value.trim() : null,
+        qr_testo: ($('#fs-testo').value || '').trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await supa().from('cassa_impostazioni').upsert(payload, { onConflict: 'azienda_id' });
+      esito.style.color = error ? '#dc2626' : '#16a34a';
+      esito.textContent = error ? '❌ ' + (error.message.includes('row-level') ? 'Solo un admin può modificare' : error.message) : '✅ Salvato: vale dal prossimo scontrino';
+    };
   }
 
   // ── PUNTO CASSA: dispositivi autorizzati alla chiusura cassa per i manager ──

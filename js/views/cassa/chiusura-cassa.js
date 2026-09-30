@@ -149,6 +149,13 @@ export async function render(container) {
       + '<div class="cc-card">'
       + '<div class="cc-riga"><span>🎉 Sconti promo applicati (' + (riep.n_sconti || 0) + ')</span><b>− ' + euro(riep.sconti) + '</b></div>'
       + '<div class="cc-riga"><span>📋 Preconti stampati</span><b>' + (riep.n_preconti || 0) + '</b></div>'
+      + (function () {
+          const nf = riep.non_fiscali || {};
+          const et = { addebito: '🏨 Chiusi con addebito (da fatturare)', omaggio: '🎁 Omaggi', personale: '🍽️ Pasti personale' };
+          return Object.keys(et).filter(function (k) { return nf[k]; }).map(function (k) {
+            return '<div class="cc-riga"><span>' + et[k] + ' (' + nf[k].n + ')</span><b>' + euro(nf[k].totale) + '</b></div>';
+          }).join('');
+        })()
       + '</div>'
 
       + '<h2>Contanti in cassa</h2>'

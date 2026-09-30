@@ -2,6 +2,10 @@
 // Sistema comande completo — tavoli, ordini, up-sell, cross-sell, cucina, cassa
 // v2 — PIN cameriere, modal upsell/cross-sell, tracciamento vendite, apertura tavolo con coperti+nominativo
 
+// ATTENZIONE: import statico, il ?v=APP_V del router non lo raggiunge.
+// Ad ogni modifica di cassa-hardware.js bumpare a mano il ?v=N qui sotto.
+import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=3';
+
 const supa = () => window.supabaseClient || window.supabase;
 
 async function waitForAuth(maxWait = 3000) {
@@ -1730,6 +1734,8 @@ export async function render(container) {
       btn.style.color        = att ? '#0E5A7A' : '#374151';
     });
     container.querySelector('#fattura-box').style.display = _tipoDoc === 'fattura' ? 'block' : 'none';
+    const bp = container.querySelector('#btn-apri-pagamento');
+    if (bp) bp.textContent = _tipoDoc === 'preconto' ? '📋 Stampa preconto · tieni premuto per chiudere' : '💳 Paga →';
   }
 
   container.querySelectorAll('[data-doc]').forEach(btn => {
@@ -1792,13 +1798,148 @@ export async function render(container) {
     return _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
   }
 
-  container.querySelector('#btn-apri-pagamento').onclick = () => {
-    if (_tipoDoc === 'fattura' && !container.querySelector('#fattura-cf').value.trim()) {
-      mostraToast('Inserisci CF/P.IVA per la fattura', 'warning'); return;
-    }
-    container.querySelector('#modal-conto').style.display = 'none';
-    apriModalPagamento();
-  };
+  // Tocco breve su Preconto: stampa e il tavolo resta aperto.
+  // Pressione lunga (3 s): chiusura senza scontrino, solo con motivo (addebito, omaggio, personale).
+  (function () {
+    const btn = container.querySelector('#btn-apri-pagamento');
+    let timer = null, lungo = false;
+    btn.style.touchAction = 'none';
+    btn.style.userSelect = 'none';
+    btn.addEventListener('pointerdown', () => {
+      if (_tipoDoc !== 'preconto') return;
+      lungo = false;
+      btn.style.opacity = '0.75';
+      timer = setTimeout(() => { lungo = true; btn.style.opacity = ''; apriChiusuraNonFiscale(); }, 3000);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, () => { clearTimeout(timer); btn.style.opacity = ''; }));
+    btn.oncontextmenu = (e) => e.preventDefault();
+    btn.onclick = async () => {
+      if (lungo) { lungo = false; return; }
+      if (_tipoDoc === 'preconto') return stampaPrecontoTavolo();
+      if (_tipoDoc === 'fattura' && !container.querySelector('#fattura-cf').value.trim()) {
+        mostraToast('Inserisci CF/P.IVA per la fattura', 'warning'); return;
+      }
+      container.querySelector('#modal-conto').style.display = 'none';
+      apriModalPagamento();
+    };
+  })();
+
+  // Fattura: dalla partita IVA il nome si compila da solo (archivio, poi registro UE)
+  (function () {
+    const cf = container.querySelector('#fattura-cf');
+    if (!cf) return;
+    cf.addEventListener('change', async () => {
+      const v = cf.value.trim().toUpperCase().replace(/\s+/g, '').replace(/^IT/, '');
+      if (!/^\d{11}$/.test(v)) return;
+      const rag = container.querySelector('#fattura-rag');
+      try {
+        const { data } = await supa().functions.invoke('cerca-piva', { body: { azienda_id: aziendaId, partita_iva: v } });
+        if (data?.ok && data.cliente?.ragione_sociale) {
+          rag.value = data.cliente.ragione_sociale;
+          mostraToast('✅ ' + data.cliente.ragione_sociale, 'success');
+        } else if (data && !data.ok) {
+          mostraToast(data.errore || 'Partita IVA non trovata', 'warning');
+        }
+      } catch (e) { /* si compila a mano */ }
+    });
+  })();
+
+  function righeFiscaliConto() {
+    return _righeContoLocali
+      .filter(r => Number(r.prezzo_snapshot || 0) > 0)
+      .map(r => {
+        const pv = prodottiVendita.find(p => String(p.id) === String(r.prodotto_vendita_id));
+        return { descrizione: r.nome_snapshot, quantita: Number(r.quantita || 1), prezzo_unitario: Number(r.prezzo_snapshot || 0), aliquota_iva: Number(pv?.iva ?? 10) };
+      });
+  }
+  function nomeTavoloAttivo() {
+    const t = tavoli.find(x => String(x.id) === String(comandaAttiva?.tavolo_id));
+    return t?.nome || t?.numero || null;
+  }
+
+  async function stampaPrecontoTavolo() {
+    if (!comandaAttiva) return;
+    mostraToast('⏳ Stampo il preconto…', 'info');
+    const r = await emettiPreconto({
+      righe: righeFiscaliConto(), totale: totaleConPromo(),
+      sconto: _promoApplicata ? Number(_promoApplicata.sconto || 0) : 0,
+      numero_tavolo: nomeTavoloAttivo(), coperti: comandaAttiva.coperti, comanda_uuid: comandaAttiva.id,
+      azienda: aziendaId, sede: sedeId,
+    });
+    mostraToast(r.ok ? '✅ Preconto stampato' : '❌ Preconto non stampato: ' + (r.errore || 'errore'), r.ok ? 'success' : 'error');
+  }
+
+  function apriChiusuraNonFiscale() {
+    if (!comandaAttiva) return;
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:3000;display:flex;align-items:center;justify-content:center;';
+    const b = 'flex:1;min-width:120px;padding:12px 6px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;font-weight:700;font-size:13px;color:#334155;cursor:pointer;';
+    ov.innerHTML =
+      '<div style="background:#fff;border-radius:20px;padding:22px;width:min(420px,92vw);">'
+      + '<div style="font-weight:800;font-size:18px;">Chiudi il tavolo senza scontrino</div>'
+      + '<div style="font-size:12px;color:#64748b;margin:4px 0 12px;">Stampa il preconto e registra il motivo. Se il cliente ha pagato, va fatto lo scontrino.</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+      + '<button data-m="addebito" style="' + b + '">🏨 Addebito / fattura dopo</button>'
+      + '<button data-m="omaggio" style="' + b + '">🎁 Omaggio</button>'
+      + '<button data-m="personale" style="' + b + '">🍽️ Personale</button></div>'
+      + '<input id="nf-intest" class="input" placeholder="A chi addebitare (nome o azienda) *" style="display:none;width:100%;box-sizing:border-box;margin-top:8px;">'
+      + '<div id="nf-msg" style="font-size:13px;min-height:18px;margin:10px 0;color:#b45309;"></div>'
+      + '<button id="nf-ok" style="width:100%;padding:13px;border:none;border-radius:12px;background:#b45309;color:#fff;font-weight:700;cursor:pointer;">Chiudi il tavolo</button>'
+      + '<button id="nf-no" style="width:100%;margin-top:8px;padding:11px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;color:#64748b;cursor:pointer;">Annulla</button>'
+      + '</div>';
+    document.body.appendChild(ov);
+    let motivo = null, busy = false;
+    ov.querySelectorAll('[data-m]').forEach(x => x.onclick = () => {
+      motivo = x.dataset.m;
+      ov.querySelectorAll('[data-m]').forEach(y => { y.style.borderColor = y === x ? '#0E5A7A' : '#e2e8f0'; y.style.background = y === x ? '#e0f2fe' : '#fff'; });
+      ov.querySelector('#nf-intest').style.display = motivo === 'addebito' ? '' : 'none';
+    });
+    ov.querySelector('#nf-no').onclick = () => { if (!busy) ov.remove(); };
+    ov.querySelector('#nf-ok').onclick = async () => {
+      const msg = ov.querySelector('#nf-msg');
+      if (busy) return;
+      if (!motivo) { msg.textContent = 'Scegli il motivo.'; return; }
+      const intest = ov.querySelector('#nf-intest').value.trim();
+      if (motivo === 'addebito' && !intest) { msg.textContent = 'Scrivi a chi addebitare.'; return; }
+      busy = true;
+      msg.textContent = '⏳ Chiudo…';
+      const esito = await chiudiTavoloNonFiscale(motivo, intest);
+      busy = false;
+      if (esito) { ov.remove(); } else { msg.textContent = '❌ Chiusura non riuscita, riprova.'; }
+    };
+  }
+
+  async function chiudiTavoloNonFiscale(motivo, intestatario) {
+    const righe = righeFiscaliConto();
+    const lordo = Math.round(totaleContoLordo() * 100) / 100;
+    const comandaId = comandaAttiva.id;
+    const pre = await emettiPreconto({
+      righe: righe, totale: lordo, numero_tavolo: nomeTavoloAttivo(), coperti: comandaAttiva.coperti,
+      comanda_uuid: comandaId, azienda: aziendaId, sede: sedeId,
+    });
+    const { error: e1 } = await supa().from('comande').update({
+      stato: 'chiusa', chiusa_at: new Date().toISOString(), totale: lordo,
+      metodo_pagamento: 'non_fiscale', tipo_documento: 'preconto',
+      cameriere_chiusura: cameriereAttivo?.nome || null,
+    }).eq('id', comandaId);
+    if (e1) { mostraToast('Errore chiusura: ' + e1.message, 'error'); return false; }
+    const { error: e2 } = await supa().from('chiusure_non_fiscali').insert({
+      azienda_id: aziendaId, sede_id: sedeId || null, motivo: motivo,
+      intestatario: motivo === 'addebito' ? intestatario : null,
+      totale: lordo, righe: righe, comanda_uuid: comandaId, canale: 'tavolo',
+      operatore_nome: cameriereAttivo?.nome || null,
+    });
+    if (e2) mostraToast('Tavolo chiuso ma motivo non salvato: ' + e2.message, 'warning');
+    await aggiornaCassaDisplay('pagato', [], lordo, null, 'non_fiscale');
+    chiudiModalConto();
+    comande = comande.filter(c => String(c.id) !== String(comandaId));
+    comandaAttiva = null; righeComanda = []; _righeContoLocali = [];
+    switchView('tavoli');
+    await loadComande();
+    renderMapTavoli();
+    mostraToast((pre.ok ? '📋 Preconto stampato · ' : '⚠️ Preconto non stampato · ') + 'tavolo chiuso (' + motivo + ')', pre.ok ? 'success' : 'warning');
+    return true;
+  }
 
   // ══════════════════════════════════════════
   // MODAL PAGAMENTO — divisione + metodi misti per persona
@@ -1807,6 +1948,7 @@ export async function render(container) {
   const METODI_PAGA = [
     { id: 'contanti', label: '💵 Contanti', color: '#16a34a' },
     { id: 'carta',    label: '💳 Carta',    color: '#3b82f6' },
+    { id: 'buoni_pasto', label: '🎫 Buoni pasto', color: '#0891b2' },
     { id: 'bonifico', label: '🏦 Bonifico', color: '#8b5cf6' },
     { id: 'addebito', label: '🏨 Addebito', color: '#f59e0b' },
   ];
@@ -2179,6 +2321,26 @@ export async function render(container) {
     if (metodoPagamento) aggiornamento.metodo_pagamento = metodoPagamento;
     if (cameriereAttivo?.nome) aggiornamento.cameriere_chiusura = cameriereAttivo.nome;
     if (subConti) aggiornamento.sub_conti = JSON.stringify(subConti);
+    aggiornamento.tipo_documento = _tipoDoc === 'fattura' ? 'fattura' : 'scontrino';
+    const _fattCf = (container.querySelector('#fattura-cf')?.value || '').trim().toUpperCase().replace(/\s+/g, '').replace(/^IT/, '');
+    const _fattRag = (container.querySelector('#fattura-rag')?.value || '').trim();
+    if (_tipoDoc === 'fattura') { aggiornamento.fattura_cf = _fattCf || null; aggiornamento.fattura_ragione_sociale = _fattRag || null; }
+
+    // Documento fiscale: righe a prezzo pieno + sconto promo; pagamenti per persona
+    // riproporzionati sul totale scontato (l'agente fa quadrare l'ultimo centesimo).
+    const _righeDoc = righeFiscaliConto();
+    const _perPersona = totPerPersona();
+    const _fatt = totaleLordo > 0 ? totaleFinale / totaleLordo : 1;
+    const _pagamenti = _perPersona.map((imp, i) => ({ metodo: (_divMetodi[i]?.metodo || metodoPagamento || 'contanti'), importo: Math.round(imp * _fatt * 100) / 100 }))
+      .filter(p => p.importo > 0);
+    const _docFiscale = {
+      tipo: _tipoDoc === 'fattura' ? 'fattura' : 'scontrino',
+      righe: _righeDoc, totale: totaleFinale, sconto: scontoPromo,
+      pagamenti: _pagamenti.length ? _pagamenti : [{ metodo: metodoPagamento || 'contanti', importo: totaleFinale }],
+      numero_tavolo: nomeTavoloAttivo(), coperti: comandaAttiva.coperti, comanda_uuid: comandaAttiva.id,
+      cliente: _tipoDoc === 'fattura' ? { partita_iva: /^\d{11}$/.test(_fattCf) ? _fattCf : null, codice_fiscale: /^\d{11}$/.test(_fattCf) ? null : _fattCf, ragione_sociale: _fattRag } : null,
+      azienda: aziendaId, sede: sedeId,
+    };
 
     const { error: chiusuraError } = await supa()
       .from('comande')
@@ -2192,6 +2354,14 @@ export async function render(container) {
 
     // Aggiorna schermo cliente → PAGATO
     await aggiornaCassaDisplay('pagato', [], totaleFinale, null, metodoPagamento);
+
+    // Stampa in background: il cameriere non resta bloccato, ma vede l'esito
+    if (_righeDoc.length) {
+      emettiDocumento(_docFiscale).then(r => {
+        if (r.ok) mostraToast('🧾 Scontrino ' + (r.numero_documento || '') + ' stampato', 'success');
+        else mostraToast('⚠️ Conto chiuso ma scontrino NON stampato: ' + (r.errore || 'errore') + ' — lo trovi in Chiusura cassa', 'error');
+      });
+    }
 
     const comandaChiusaId = comandaAttiva.id;
     chiudiModalConto();
