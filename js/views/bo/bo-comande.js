@@ -1543,6 +1543,22 @@ export async function render(container) {
     const riga = righeComanda.find(r => String(r.id) === String(rigaId));
     if (!riga) return;
 
+    // Piatto già mandato in cucina: il "+" non può gonfiare la riga inviata (la cucina non lo saprebbe)
+    const giaInviata = riga.stato && riga.stato !== 'in_attesa';
+    if (giaInviata && delta > 0) {
+      const { data, error } = await supa().from('comanda_righe').insert({
+        azienda_id: aziendaId, comanda_id: riga.comanda_id, prodotto_vendita_id: riga.prodotto_vendita_id,
+        nome_snapshot: riga.nome_snapshot, prezzo_snapshot: riga.prezzo_snapshot, quantita: delta,
+        stato: 'in_attesa', stampante: riga.stampante || 'cucina', cameriere: cameriereAttivo?.nome || null,
+        uscita_numero: riga.uscita_numero || 1, note: riga.note || null,
+      }).select('*').single();
+      if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
+      righeComanda.push(data);
+      await aggiornaTotale(); renderRighe(); renderTotale();
+      mostraToast('➕ Aggiunto: premi Invia per mandarlo in cucina', 'info');
+      return;
+    }
+
     const nuova = Number(riga.quantita || 1) + delta;
     if (nuova <= 0) {
       await annullaRiga(rigaId);
@@ -1563,9 +1579,19 @@ export async function render(container) {
     await aggiornaTotale();
     renderRighe();
     renderTotale();
+    if (giaInviata && delta < 0) stampaVariazione(riga, -delta, 'ANNULLARE');
+  }
+
+  // Foglio al reparto per un piatto già inviato: annullo o variazione della nota
+  function stampaVariazione(riga, qta, tipo) {
+    const r = Object.assign({}, riga, { quantita: qta,
+      note: tipo === 'ANNULLARE' ? 'ANNULLARE' : ('VARIAZIONE: ' + (riga.note || '')) });
+    stampaComandaReparti([r], false, { note: tipo === 'ANNULLARE' ? '*** ANNULLARE QUESTO PIATTO ***' : '*** VARIAZIONE ***' });
   }
 
   async function annullaRiga(rigaId) {
+    const prima = righeComanda.find(r => String(r.id) === String(rigaId));
+    const eraInviata = prima && prima.stato && prima.stato !== 'in_attesa' && prima.stato !== 'annullato';
     const { error } = await supa()
       .from('comanda_righe')
       .update({ stato: 'annullato' })
@@ -1582,6 +1608,7 @@ export async function render(container) {
     await aggiornaTotale();
     renderRighe();
     renderTotale();
+    if (eraInviata) stampaVariazione(prima, Number(prima.quantita || 1), 'ANNULLARE');
   }
 
   async function aggiungiNoteRiga(rigaId) {
@@ -1597,6 +1624,7 @@ export async function render(container) {
     const nota = (!isNaN(num) && num >= 1 && num <= shortcut.length) ? shortcut[num-1] : scelta;
     await supa().from('comanda_righe').update({ note: nota }).eq('id', rigaId);
     riga.note = nota;
+    if (riga.stato && riga.stato !== 'in_attesa' && riga.stato !== 'annullato') stampaVariazione(riga, Number(riga.quantita || 1), 'VARIAZIONE');
     renderRighe();
   }
 
@@ -1677,7 +1705,7 @@ export async function render(container) {
     return _stampantiComande;
   }
 
-  async function stampaComandaReparti(righe, ristampa) {
+  async function stampaComandaReparti(righe, ristampa, extra) {
     try {
       const stampanti = await stampantiComande();
       if (!stampanti.length) return; // nessuna stampante configurata: solo schermo cucina
@@ -1701,6 +1729,7 @@ export async function render(container) {
           contenuto: {
             tavolo: tavolo?.nome || tavolo?.numero || null, coperti: comandaAttiva?.coperti || null,
             cameriere: cameriereAttivo?.nome || null, ristampa: !!ristampa, righe: perReparto[rep],
+            note: extra?.note || null,
           },
         });
       });
