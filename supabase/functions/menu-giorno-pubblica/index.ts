@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     if (!(await authOk(req, azienda_id))) return json({ success: false, error: "Non autorizzato" }, 401);
 
     const { data: mg } = await supabase.from("menu_giorno")
-      .select("id, sede_id, voci, data, mezza_pensione, prezzo_fisso, prezzi_singoli_visibili")
+      .select("id, sede_id, voci, data, mezza_pensione, prezzo_fisso, prezzo_visibile, prezzi_singoli_visibili")
       .eq("id", menu_giorno_id).eq("azienda_id", azienda_id).maybeSingle();
     if (!mg) return json({ success: false, error: "Menu del giorno non trovato" }, 404);
 
@@ -61,7 +61,9 @@ Deno.serve(async (req) => {
 
     // Prezzo fisso -> va nel titolo della categoria
     const prezzoFisso = mg.prezzo_fisso != null ? Number(mg.prezzo_fisso) : null;
-    const catNome = CAT_NOME + (prezzoFisso && prezzoFisso > 0 ? " \u2014 \u20ac " + prezzoFisso.toFixed(2).replace(".", ",") : "");
+    // Il prezzo del menu lo dice il cameriere: nel titolo solo se richiesto
+    const mostraPrezzoFisso = mg.prezzo_visibile === true;
+    const catNome = CAT_NOME + (mostraPrezzoFisso && prezzoFisso && prezzoFisso > 0 ? " \u2014 \u20ac " + prezzoFisso.toFixed(2).replace(".", ",") : "");
     // Il prezzo alla carta dei singoli piatti è interno (cassa/comande): al cliente solo se richiesto
     const mostraPrezziSingoli = mg.prezzi_singoli_visibili === true;
 

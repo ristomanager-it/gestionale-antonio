@@ -67,6 +67,7 @@ export async function render(container) {
     mgEsistente.voci.forEach(v => { if (v.ricetta_id && Number(v.prezzo) > 0) prezziSalvati.set(v.portata + "|" + v.ricetta_id, Number(v.prezzo)); });
   }
   const prezziVisibiliVal = mgEsistente ? !!mgEsistente.prezzi_singoli_visibili : false;
+  const prezzoFissoVisibileVal = mgEsistente ? mgEsistente.prezzo_visibile === true : false;
   let mezzaPensione = mgEsistente ? !!mgEsistente.mezza_pensione : true;
   let prezzoFisso = mgEsistente && mgEsistente.prezzo_fisso != null ? Number(mgEsistente.prezzo_fisso) : null;
   const titoloVal = (mgEsistente && mgEsistente.titolo) ? mgEsistente.titolo : "Menu del Giorno";
@@ -176,6 +177,7 @@ export async function render(container) {
     + '<label style="font-size:13px;color:#334155;">Data <input id="mg-data" type="date" value="' + oggi + '" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;">💶 Prezzo fisso € <input id="mg-prezzo" type="number" step="0.5" min="0" value="' + (prezzoFisso != null ? prezzoFisso : '') + '" placeholder="—" style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-mp" type="checkbox"' + (mezzaPensione ? ' checked' : '') + '> Mezza pensione</label>'
+    + '<label title="Spento: il prezzo del menu lo comunica il cameriere; non compare su menu digitale, sito e stampa." style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-prezzo-vis" type="checkbox"' + (prezzoFissoVisibileVal ? ' checked' : '') + '> Mostra al cliente il prezzo del menu</label>'
     + '<label title="Spento: il cliente vede solo il prezzo del menu completo. I prezzi alla carta restano in cassa e comande." style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-prezzi-vis" type="checkbox"' + (prezziVisibiliVal ? ' checked' : '') + '> Mostra al cliente i prezzi dei singoli piatti</label>'
     + '<label style="font-size:13px;color:#334155;">Font <select id="mg-font" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;">'
     + ['Georgia, serif|Georgia','\'Times New Roman\', serif|Times','\'Helvetica Neue\', Arial, sans-serif|Helvetica','Garamond, serif|Garamond','\'Courier New\', monospace|Courier'].map(o=>{const[v,l]=o.split('|');return '<option value="'+v+'"'+(fontFamVal===v?' selected':'')+'>'+l+'</option>';}).join('') + '</select></label>'
@@ -354,6 +356,7 @@ export async function render(container) {
     const data = container.querySelector("#mg-data").value || oggi;
     const mp = container.querySelector("#mg-mp").checked;
     const prezziVis = !!container.querySelector("#mg-prezzi-vis")?.checked;
+    const prezzoFissoVis = !!container.querySelector("#mg-prezzo-vis")?.checked;
     const prezzoF = Number(container.querySelector("#mg-prezzo")?.value) || null;
     const titolo = (container.querySelector("#mg-titolo")?.value || "").trim() || "Menu del Giorno";
     const font_family = container.querySelector("#mg-font")?.value || "Georgia, serif";
@@ -364,7 +367,7 @@ export async function render(container) {
     const s2 = supa();
     const { data: sess } = await s2.auth.getUser();
     const uid = sess?.user?.id || null;
-    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzi_singoli_visibili: prezziVis, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
+    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzi_singoli_visibili: prezziVis, prezzo_visibile: prezzoFissoVis, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
       const { error } = await s2.from("menu_giorno").update(payload).eq("id", mgEsistente.id);
       if (error) throw error;
@@ -400,7 +403,7 @@ export async function render(container) {
       sezioni += "<h2>" + esc(p.titolo) + "</h2><ul>" + items.map(v => "<li>" + esc(v.nome) + "</li>").join("") + "</ul>";
     });
 
-    const titoloPrezzo = prezzoF ? '<div class="prezzo">Menu a € ' + money(prezzoF) + "</div>" : "";
+    const titoloPrezzo = (prezzoF && container.querySelector("#mg-prezzo-vis")?.checked) ? '<div class="prezzo">Menu a € ' + money(prezzoF) + "</div>" : "";
     const sedeNome = sede?.nome ? '<div class="sede">' + esc(sede.nome) + "</div>" : "";
     const logoImg = (conLogo && logoUrl) ? '<img class="logo" src="' + esc(logoUrl) + '" alt="logo">' : "";
     // margini automatici per centrare le liste quando l'allineamento è centrato
