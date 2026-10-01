@@ -1742,6 +1742,11 @@ export async function render(app) {
       })}
 
       ${createCard({
+        title: "🏷 Etichetta di legge",
+        body: `<div id="etichetta-container"><div style="font-size:13px;color:#64748b;">Salva prima la ricetta: poi qui compili l'etichetta.</div></div>`
+      })}
+
+      ${createCard({
         title: "Area Economica",
         body: `
           <div id="output-secondari-container"></div>
@@ -1786,6 +1791,7 @@ export async function render(app) {
 
   if (ricettaId) {
     await caricaRicettaCompleta();
+    initEtichetta();
   } else {
     // default: finita (coerente con default DB). Cambia qui se preferisci "base".
     setVal("r-tipo", "finita");
@@ -4175,6 +4181,7 @@ async function salvaTutto() {
 
     savedId = String(data.id);
     ricettaId = savedId;
+    setTimeout(() => initEtichetta(), 0);
     try { sessionStorage.removeItem(BOZZA_ING_KEY); } catch {}
   } else {
     const payload = cleanPayload({
@@ -5595,4 +5602,132 @@ function round4(n) {
 function formatMoney(n) {
   const x = Number(n ?? 0);
   return x.toFixed(2);
+}
+
+
+// ============================================================
+// 🏷 ETICHETTA DI LEGGE — scheda per ricetta (tabella etichette)
+// Bozza = confermata false: non si stampa finche' il responsabile non conferma
+// ingredienti e allergeni. "Tony sistema il testo" ripulisce i nomi d'acquisto.
+// ============================================================
+const ALLERGENI_UE = ["glutine", "crostacei", "uova", "pesce", "arachidi", "soia", "latte", "frutta a guscio", "sedano", "senape", "sesamo", "solfiti", "lupini", "molluschi"];
+
+async function initEtichetta() {
+  const box = document.getElementById("etichetta-container");
+  if (!box || !ricettaId) return;
+  const supa = window.supabaseClient || window.supabase;
+  const { data: et } = await supa.from("etichette").select("*").eq("ricetta_id", Number(ricettaId)).order("id", { ascending: false }).limit(1).maybeSingle();
+  renderEtichetta(box, et || {});
+}
+
+function renderEtichetta(box, et) {
+  const v = (x) => escapeAttr(x == null ? "" : String(x));
+  const allerg = Array.isArray(et.allergeni) ? et.allergeni : [];
+  const bozza = et.id && et.confermata === false;
+  const lab = "display:block;font-size:12px;font-weight:600;color:#64748b;margin:10px 0 4px;";
+  box.innerHTML = `
+    ${bozza ? `<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:6px;"><b>Bozza proposta in automatico.</b> Controlla ingredienti e allergeni, poi conferma: finché è bozza l'etichetta non si stampa.</div>` : ""}
+    ${!et.id ? `<div style="font-size:13px;color:#64748b;margin-bottom:6px;">Nessuna etichetta: tocca "Tony propone" e controlla.</div>` : ""}
+    <label style="${lab}">Denominazione</label>
+    <input id="et-denom" class="input" value="${v(et.denominazione)}" placeholder="Es. Ragù di vitellone">
+    <label style="${lab}">Ingredienti (in ordine di peso decrescente)</label>
+    <textarea id="et-ingr" class="input" rows="3" placeholder="Es. carne di manzo, pomodori pelati, vino rosso, cipolla, sedano, sale">${escapeHtml(et.ingredienti || "")}</textarea>
+    <label style="${lab}">Allergeni presenti</label>
+    <div id="et-allerg" style="display:flex;flex-wrap:wrap;gap:6px;">
+      ${ALLERGENI_UE.map((a) => `<label style="display:flex;align-items:center;gap:5px;font-size:13px;border:1px solid #e2e8f0;border-radius:16px;padding:5px 10px;cursor:pointer;"><input type="checkbox" value="${a}" ${allerg.includes(a) ? "checked" : ""}> ${a}</label>`).join("")}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;">
+      <div><label style="${lab}">Origine</label><input id="et-origine" class="input" value="${v(et.origine)}" placeholder="Es. Italia"></div>
+      <div><label style="${lab}">Peso netto abituale (g)</label><input id="et-peso" type="number" min="0" class="input" value="${v(et.peso_netto_g)}"></div>
+      <div><label style="${lab}">Dicitura scadenza</label>
+        <select id="et-tmc" class="input">
+          <option value="Da consumarsi entro" ${et.tmc_dicitura !== "Da consumarsi preferibilmente entro" ? "selected" : ""}>Da consumarsi entro (deperibili)</option>
+          <option value="Da consumarsi preferibilmente entro" ${et.tmc_dicitura === "Da consumarsi preferibilmente entro" ? "selected" : ""}>Da consumarsi preferibilmente entro</option>
+        </select></div>
+    </div>
+    <label style="${lab}">Conservazione</label>
+    <input id="et-cons" class="input" value="${v(et.conservazione)}" placeholder="Es. Conservare in frigorifero tra 0 e +4 °C">
+    <label style="${lab}">Dopo l'apertura (facoltativo)</label>
+    <input id="et-apert" class="input" value="${v(et.dopo_apertura)}" placeholder="Es. Una volta aperto consumare entro 3 giorni">
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;">
+      <input id="et-conferma" type="checkbox" ${et.id && et.confermata !== false ? "checked" : ""} style="margin-top:2px;">
+      <span><b>Ho verificato ingredienti e allergeni</b> (anche sulle etichette dei fornitori). Solo così l'etichetta si stampa.</span>
+    </label>
+    <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+      <button type="button" id="et-tony" class="app-button" style="background:#0E5A7A;">✨ Tony propone</button>
+      <button type="button" id="et-salva" class="app-button">💾 Salva etichetta</button>
+      <span id="et-esito" style="font-size:13px;align-self:center;"></span>
+    </div>`;
+
+  const esito = (t, ok) => { const e = document.getElementById("et-esito"); e.textContent = t; e.style.color = ok ? "#15803d" : "#b91c1c"; };
+
+  document.getElementById("et-tony").onclick = async () => {
+    const btn = document.getElementById("et-tony");
+    btn.disabled = true; btn.textContent = "⏳ Tony legge la ricetta…"; esito("", true);
+    try {
+      const supa = window.supabaseClient || window.supabase;
+      const rid = Number(ricettaId);
+      const [{ data: ingr }, { data: cons }, { data: ric }] = await Promise.all([
+        supa.from("ricetta_ingredienti").select("nome_prodotto, quantita, unita_misura").eq("ricetta_id", rid),
+        supa.from("ricette_conservazione").select("temperatura, confezionamento, shelf_life_giorni, scenario_label").eq("ricetta_id", rid).eq("attivo", true).order("shelf_life_giorni", { ascending: false }),
+        supa.from("ricette").select("nome").eq("id", rid).maybeSingle(),
+      ]);
+      const peso = (r) => (Number(r.quantita) || 0) * (["kg", "l", "lt"].includes(String(r.unita_misura || "").toLowerCase()) ? 1000 : 1);
+      const elenco = (ingr || []).slice().sort((a, b) => peso(b) - peso(a)).map((r) => r.nome_prodotto).filter(Boolean);
+      const sc = (cons || [])[0];
+      const richiesta = "Prepara i dati dell'etichetta alimentare (Reg. UE 1169/2011) per il prodotto \"" + (ric?.nome || "") + "\". "
+        + "Ingredienti della ricetta, già in ordine di peso decrescente, con i nomi d'acquisto del magazzino: " + elenco.join(" | ") + ". "
+        + "Riscrivi ogni ingrediente come va in etichetta (togli marche, formati, codici, pesi delle confezioni; es. \"pomod pelati 3/1 kg2,5 la torrente\" -> \"pomodori pelati\"). "
+        + "Indica gli allergeni tra questi 14: " + ALLERGENI_UE.join(", ") + ". Non inventare ingredienti. "
+        + (sc ? "Conservazione prevista: " + (sc.temperatura || "") + ", " + (sc.confezionamento || "") + ", " + (sc.shelf_life_giorni || "") + " giorni. " : "")
+        + "Rispondi SOLO con JSON: {\"denominazione\":\"...\",\"ingredienti\":\"...\",\"allergeni\":[\"...\"],\"conservazione\":\"...\"}";
+      const sessionData = await supa.auth.getSession();
+      const token = sessionData?.data?.session?.access_token || "";
+      const resp = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/assistente-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": token },
+        body: JSON.stringify({ azienda_id: window.state?.azienda?.id, messages: [{ role: "user", content: richiesta }] }),
+      });
+      const data = resp.ok ? await resp.json() : {};
+      let testo = String(data.reply || data.content || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+      let j = null;
+      try { j = JSON.parse(testo); } catch (e) { const a = testo.indexOf("{"), b = testo.lastIndexOf("}"); if (a >= 0 && b > a) { try { j = JSON.parse(testo.slice(a, b + 1)); } catch (e2) {} } }
+      if (!j) throw new Error("Tony non ha risposto in modo leggibile, riprova");
+      if (j.denominazione) document.getElementById("et-denom").value = j.denominazione;
+      if (j.ingredienti) document.getElementById("et-ingr").value = j.ingredienti;
+      if (j.conservazione && !document.getElementById("et-cons").value) document.getElementById("et-cons").value = j.conservazione;
+      const al = (Array.isArray(j.allergeni) ? j.allergeni : []).map((x) => String(x).toLowerCase().trim());
+      document.querySelectorAll("#et-allerg input").forEach((c) => { c.checked = al.includes(c.value); });
+      if (sc && sc.shelf_life_giorni) document.getElementById("et-tmc").value = sc.shelf_life_giorni >= 90 ? "Da consumarsi preferibilmente entro" : "Da consumarsi entro";
+      document.getElementById("et-conferma").checked = false;
+      esito("Proposta pronta: controlla, spunta la verifica e salva", true);
+    } catch (e) {
+      esito("❌ " + (e.message || e), false);
+    } finally {
+      btn.disabled = false; btn.textContent = "✨ Tony propone";
+    }
+  };
+
+  document.getElementById("et-salva").onclick = async () => {
+    const supa = window.supabaseClient || window.supabase;
+    const rec = {
+      azienda_id: window.state?.azienda?.id,
+      ricetta_id: Number(ricettaId),
+      denominazione: document.getElementById("et-denom").value.trim(),
+      ingredienti: document.getElementById("et-ingr").value.trim(),
+      allergeni: [...document.querySelectorAll("#et-allerg input:checked")].map((c) => c.value),
+      origine: document.getElementById("et-origine").value.trim() || null,
+      peso_netto_g: Number(document.getElementById("et-peso").value) || null,
+      tmc_dicitura: document.getElementById("et-tmc").value,
+      conservazione: document.getElementById("et-cons").value.trim() || null,
+      dopo_apertura: document.getElementById("et-apert").value.trim() || null,
+      confermata: document.getElementById("et-conferma").checked,
+    };
+    if (!rec.denominazione || !rec.ingredienti) { esito("Servono denominazione e ingredienti", false); return; }
+    const q = et.id ? supa.from("etichette").update(rec).eq("id", et.id) : supa.from("etichette").insert(rec);
+    const { error } = await q;
+    if (error) { esito("❌ " + error.message, false); return; }
+    esito(rec.confermata ? "✅ Salvata: l'etichetta si può stampare" : "Salvata come bozza (non stampabile finché non confermi)", rec.confermata);
+    initEtichetta();
+  };
 }

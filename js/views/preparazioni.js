@@ -2742,6 +2742,7 @@ function renderFasiHaccp() {
     const bgAuto = automatico ? "background:#f0fdf4;" : "";
 
     const tipoF = String(log?.fase_tipo || f.tipo_fase || "").toLowerCase();
+    const isPh = /\bph\b/i.test(String(log?.fase_nome || f.nome_fase || ""));
     const primaConf = String(log?.fase_tipo || f.tipo_fase || "").toLowerCase() === "confezionamento"
       && logHaccp.findIndex((l) => String(l.fase_tipo || "").toLowerCase() === "confezionamento") === idx;
     const passoResa = primaConf
@@ -2827,6 +2828,12 @@ function renderFasiHaccp() {
           </select>
         </div>
       </div>`}
+      ${isPh ? `
+      <div class="form-group" style="margin-bottom:10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px;">
+        <label style="font-size:11px;font-weight:700;">pH misurato (obbligatorio)</label>
+        <input type="number" step="0.01" min="0" max="14" inputmode="decimal" class="input haccp-ph" data-idx="${idx}" value="${log.valore_misurato ?? ""}" placeholder="es. 3.95" ${ro}>
+        <div class="form-help" id="ph-esito-${idx}">Lo scenario di conservazione e la scadenza si scelgono dal valore.</div>
+      </div>` : ""}
       <div class="form-group" style="margin-bottom:10px;">
         <label style="font-size:11px;">Note / azioni correttive</label>
         <input type="text" class="input haccp-note" data-idx="${idx}" value="${escapeHtml(log.note || "")}" placeholder="Annotazioni, deviazioni...">
@@ -2892,6 +2899,17 @@ function renderFasiHaccp() {
   }
 
   // Bind eventi
+  list.querySelectorAll(".haccp-ph").forEach(el => {
+    el.addEventListener("change", e => {
+      const idx = +e.target.dataset.idx;
+      const v = e.target.value === "" ? null : Number(String(e.target.value).replace(",", "."));
+      logHaccp[idx].valore_misurato = v;
+      logHaccp[idx].valore_um = "pH";
+      const msg = applicaScenarioDaPh(v);
+      const out = document.getElementById("ph-esito-" + idx);
+      if (out && msg) out.innerHTML = msg;
+    });
+  });
   list.querySelectorAll(".haccp-adesso").forEach(el => {
     el.addEventListener("click", e => {
       const idx = +e.currentTarget.dataset.idx;
@@ -3054,9 +3072,31 @@ function verificaHaccpTemp(idx, inputEl) {
   }
 }
 
+// Sceglie lo scenario di conservazione dal pH: uno scenario con ph_max vale solo se pH <= ph_max.
+// Tra quelli ammessi prende quello con la shelf life piu' lunga.
+function applicaScenarioDaPh(v) {
+  if (v == null || !(v > 0) || !scenariConservazione.length) return "";
+  const conPh = scenariConservazione.filter((s) => s.ph_max != null);
+  if (!conPh.length) return "";
+  const ammessi = scenariConservazione.filter((s) => s.ph_max == null || v <= Number(s.ph_max));
+  if (!ammessi.length) return "";
+  ammessi.sort((a, b) => (Number(b.shelf_life_giorni) || 0) - (Number(a.shelf_life_giorni) || 0));
+  const scelto = ammessi[0];
+  const sel = document.getElementById("prod-conservazione");
+  if (sel && !savedLotto) { sel.value = String(scelto.id); aggiornaScadenza(); }
+  const soglia = Number(conPh[0].ph_max);
+  const ok = v <= soglia;
+  return '<b style="color:' + (ok ? '#15803d' : '#b45309') + ';">pH ' + String(v).replace(".", ",") + (ok ? " ≤ " : " > ") + String(soglia).replace(".", ",")
+    + " → " + escapeHtml(scelto.scenario_label || "scenario") + (scelto.shelf_life_giorni ? " (" + scelto.shelf_life_giorni + " giorni)" : "") + "</b>";
+}
+
 function firmaFaseHaccp(idx) {
   const log = logHaccp[idx];
   const fase = fasiCache[idx];
+  if (/\bph\b/i.test(String(log?.fase_nome || fase?.nome_fase || "")) && !(Number(log.valore_misurato) > 0)) {
+    alert("Inserisci il valore di pH misurato prima di firmare questa fase.");
+    return;
+  }
   const nomeFase = fase?.nome_fase || fase?.tipo_fase || "fase";
   log.firme = Array.isArray(log.firme) ? log.firme : [];
   const primaFirma = log.firme.length === 0;
@@ -3155,6 +3195,7 @@ function applicaFirmaAIdx(idx, match) {
                               ? null : Number(log.temperatura_rilevata),
         ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
         ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
+        valore_misurato: log.valore_misurato ?? null, valore_um: log.valore_um || null,
         durata_reale_min: log.durata_reale_min ?? null,
         esito: log.esito || "ok",
         note: log.note || null,
@@ -3383,6 +3424,7 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
           temperatura_ok: log.temperatura_ok ?? null,
           ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
           ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
+        valore_misurato: log.valore_misurato ?? null, valore_um: log.valore_um || null,
           durata_reale_min: log.durata_reale_min ?? null,
           esito: log.esito || "ok",
           note: log.note || null,
@@ -3413,6 +3455,7 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
     temperatura_ok: log.temperatura_ok ?? null,
     ora_inizio: log.ora_inizio ? new Date(log.ora_inizio).toISOString() : null,
     ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
+        valore_misurato: log.valore_misurato ?? null, valore_um: log.valore_um || null,
     durata_reale_min: log.durata_reale_min ?? null,
     esito: log.esito || "ok",
     note: log.note || null,
@@ -3990,7 +4033,8 @@ async function stampaEtichetteBrother() {
     supabase.from("etichette").select("*").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata?.id).order("id", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", aziendaId).limit(1).maybeSingle(),
   ]);
-  if (!etichetta) return alert("Manca la scheda etichetta di questa ricetta (ingredienti, allergeni, conservazione): senza, l'etichetta non è a norma.");
+  if (!etichetta) return alert("Manca la scheda etichetta di questa ricetta (ingredienti, allergeni, conservazione): compilala in Crea ricetta › Etichetta di legge.");
+  if (etichetta.confermata === false) return alert("La scheda etichetta di questa ricetta è una bozza: controlla e conferma ingredienti e allergeni in Crea ricetta › Etichetta di legge.");
   const scadenza = document.getElementById("prod-scadenza")?.value || null;
   if (!scadenza) return alert("Manca la data di scadenza del lotto: impostala in Conservazione.");
   const righe = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0 && r.kg_per_confezione > 0);
@@ -4494,6 +4538,7 @@ async function resumeDaLotto(lottoUuid) {
       if (h.temperatura_ok != null) log.temperatura_ok = h.temperatura_ok
       if (h.ora_inizio) log.ora_inizio = h.ora_inizio
       if (h.ora_fine) log.ora_fine = h.ora_fine
+      if (h.valore_misurato != null) { log.valore_misurato = Number(h.valore_misurato); log.valore_um = h.valore_um || "pH"; }
       if (h.esito) log.esito = h.esito
     })
     renderFasiHaccp()

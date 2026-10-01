@@ -149,7 +149,7 @@ async function toggleDettaglio(card) {
   let etichetta = null;
   if (info.ricetta_id) {
     const { data } = await supa.from("etichette")
-      .select("denominazione, denominazione_extra, ingredienti, allergeni, peso_netto_g, peso_sgocciolato_g, tmc_dicitura, conservazione, dopo_apertura, origine")
+      .select("denominazione, denominazione_extra, ingredienti, allergeni, peso_netto_g, peso_sgocciolato_g, tmc_dicitura, conservazione, dopo_apertura, origine, confermata")
       .eq("ricetta_id", info.ricetta_id).maybeSingle();
     etichetta = data || null;
   }
@@ -198,9 +198,12 @@ async function toggleDettaglio(card) {
   const mancano = [];
   if (!etichetta) mancano.push("la scheda etichetta della ricetta");
   if (!produttore) mancano.push("i dati del produttore");
-  if (mancano.length) {
-    H.push(`<div style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:6px;padding:10px 12px;font-size:12px;">
-      <b>Non stampabile.</b> Manca ${escapeHtml(mancano.join(" e "))}.</div>`);
+  const bozza = etichetta && etichetta.confermata === false;
+  const linkRicetta = `<a href="#/crea-ricetta?id=${encodeURIComponent(info.ricetta_id)}" style="display:inline-block;margin-top:6px;font-weight:700;color:#0E5A7A;">✏️ ${bozza ? "Controlla e conferma" : "Compila adesso"} l'etichetta</a>`;
+  if (mancano.length || bozza) {
+    H.push(`<div style="background:${bozza ? "#fffbeb" : "#fef2f2"};border-left:4px solid ${bozza ? "#d97706" : "#dc2626"};border-radius:6px;padding:10px 12px;font-size:12px;">
+      <b>Non stampabile.</b> ${bozza ? "La scheda etichetta è una bozza: vanno verificati ingredienti e allergeni." : "Manca " + escapeHtml(mancano.join(" e ")) + "."}
+      ${etichetta || !produttore ? "" : "<br>"}${(!etichetta || bozza) ? linkRicetta : ""}</div>`);
   } else {
     const pesoDefault = etichetta.peso_netto_g || (conf.length ? Math.round((conf[0].peso_porzione_kg || 0) * 1000) : "");
     const nDefault = conf.length ? (conf[0].numero_confezioni || 1) : 1;
