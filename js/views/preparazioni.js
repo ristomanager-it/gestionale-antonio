@@ -109,6 +109,21 @@ export async function render(container) {
           </div>
 
           <div id="scala-box" style="display:none;margin-top:14px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fbfcfd;">
+            <div id="stampo-prod" style="display:none;margin-bottom:12px;padding:10px;border:1.5px solid #e9d5ff;background:#fdf4ff;border-radius:10px;">
+              <div style="font-size:13px;font-weight:700;color:#6b21a8;margin-bottom:6px;">🍰 Stampo di oggi</div>
+              <div id="sp-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:6px;">
+                <div><label style="font-size:11px;color:#64748b;">Forma</label>
+                  <select id="sp-forma" class="input"><option value="tonda">⭕ Tonda</option><option value="quadrata">⬛ Quadrata</option><option value="rettangolare">▭ Rettangolare</option><option value="anello">◎ Ad anello</option></select></div>
+                <div id="sp-d-w"><label style="font-size:11px;color:#64748b;">Diametro cm</label><input id="sp-diametro" class="input" type="number" step="0.5" min="0" inputmode="decimal"></div>
+                <div id="sp-l1-w" style="display:none;"><label style="font-size:11px;color:#64748b;">Lato cm</label><input id="sp-lato1" class="input" type="number" step="0.5" min="0" inputmode="decimal"></div>
+                <div id="sp-l2-w" style="display:none;"><label style="font-size:11px;color:#64748b;">2° lato cm</label><input id="sp-lato2" class="input" type="number" step="0.5" min="0" inputmode="decimal"></div>
+                <div><label style="font-size:11px;color:#64748b;">Altezza cm</label><input id="sp-altezza" class="input" type="number" step="0.5" min="0" inputmode="decimal"></div>
+                <div><label style="font-size:11px;color:#64748b;">Quanti pezzi</label><input id="sp-pezzi" class="input" type="number" step="1" min="1" inputmode="numeric" value="1"></div>
+              </div>
+              <div id="sp-rif" style="font-size:12px;color:#64748b;margin-top:6px;"></div>
+              <button type="button" id="btn-sp-calcola" class="app-button" style="width:100%;margin-top:8px;background:#7e22ce;">Calcola le dosi per questo stampo</button>
+            </div>
             <div style="font-size:13px;font-weight:700;color:#0f2b3d;margin-bottom:8px;">📐 Quanto ne devo fare</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
               <select id="scala-modo" class="input" style="flex:1;min-width:130px;">
@@ -488,7 +503,7 @@ async function preloadRicette() {
   for (let start = 0; start < 20000; start += BLOCCO) {
     const { data, error } = await supabase
       .from("ricette")
-      .select("id, nome, pezzi_base, prodotto_output_id, scaling_tempo_pct")
+      .select("id, nome, pezzi_base, prodotto_output_id, scaling_tempo_pct, stampo_attivo, stampo_forma, stampo_diametro_cm, stampo_lato1_cm, stampo_lato2_cm, stampo_altezza_cm, stampo_pezzi, stampo_porzioni")
       .eq("azienda_id", aziendaId)
       .eq("attivo", true)
       .order("id", { ascending: true })
@@ -787,6 +802,7 @@ function setupAutocompleteRicette() {
         recalcResaUI();
         const _sb = document.getElementById("scala-box");
         if (_sb) { _sb.style.display = "block"; document.getElementById("scala-esito").innerHTML = ""; }
+        stampoProdInit(r);
       };
 
       suggest.appendChild(div);
@@ -853,6 +869,8 @@ function setupAutocompleteRicette() {
             + escapeHtml(data?.errore || "Non riesco a calcolare le dosi.") + '</div>';
           return;
         }
+        mostraEsitoScala(esito, data, "");
+        return;
         const righe = (data.ingredienti || []).map((r) =>
           '<tr><td style="padding:4px 0;font-size:13px;">' + escapeHtml(r.ingrediente) + '</td>'
           + '<td style="padding:4px 0;font-size:13px;font-weight:700;text-align:right;white-space:nowrap;">' + escapeHtml(r.dose || "") + '</td></tr>').join("");
@@ -3290,6 +3308,7 @@ async function aggiornaLottoAperto(manuale) {
     const agg = {
       quantita_output: pesoReale || null,
       dettaglio_confezionamento: buildDettaglioConfezionamento(),
+      ...(stampoOggi ? { stampo: stampoOggi } : {}),
       note: document.getElementById("prod-note-lotto")?.value || null,
     };
     const scad = document.getElementById("prod-scadenza")?.value || null;
@@ -3350,6 +3369,7 @@ async function salvaProduzione() {
       operatore_id: operatoreRisolto?.id || null,
       lotto_uuid: lottoUuid,
       dettaglio_confezionamento: buildDettaglioConfezionamento(),
+      ...(stampoOggi ? { stampo: stampoOggi } : {}),
     }).select("id, lotto_uuid, codice_lotto").single();
 
     if (error) throw error;
@@ -4695,4 +4715,146 @@ function renderComeDeveVenire(ric) {
     +   immagini + cosaVaDove + ordine
     +   (imp?.note_finali ? '<div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;font-size:12.5px;color:#78350f;">⚠️ ' + escapeHtml(imp.note_finali) + '</div>' : "")
     + '</div></div>';
+}
+
+
+/* ========================================================= */
+/* 🍰 STAMPO DI OGGI — dosi ricalcolate sul volume dello stampo */
+/* rispetto a quello per cui e' scritta la ricetta              */
+/* ========================================================= */
+let stampoOggi = null;
+
+function mostraEsitoScala(esito, data, testoExtra) {
+  if (!esito) return;
+  const righe = (data.ingredienti || []).map((r) =>
+    '<tr><td style="padding:4px 0;font-size:13px;">' + escapeHtml(r.ingrediente) + '</td>'
+    + '<td style="padding:4px 0;font-size:13px;font-weight:700;text-align:right;white-space:nowrap;">' + escapeHtml(r.dose || "") + '</td></tr>').join("");
+  const testa = (data.porzioni_risultanti ? data.porzioni_risultanti + " porzioni" : "")
+    + (data.resa_kg ? (data.porzioni_risultanti ? " · " : "") + "resa " + data.resa_kg + " kg" : "");
+  esito.innerHTML = '<div style="border-top:1px solid #e2e8f0;padding-top:9px;">'
+    + (testoExtra ? '<div style="font-size:13px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:8px;padding:8px 10px;margin-bottom:8px;">' + testoExtra + '</div>' : "")
+    + (testa ? '<div style="font-size:12.5px;color:#475569;margin-bottom:6px;">' + escapeHtml(testa) + '</div>' : "")
+    + '<table style="width:100%;border-collapse:collapse;">' + righe + '</table>'
+    + '<div style="margin-top:8px;font-size:13px;font-weight:700;color:#0f2b3d;">Materia prima: € ' + Number(data.costo_totale || 0).toFixed(2) + '</div></div>';
+}
+
+function stampoVolume(s) {
+  if (!s) return 0;
+  const d = Number(s.diametro_cm) || 0, l1 = Number(s.lato1_cm) || 0, l2 = Number(s.lato2_cm) || 0;
+  let area = 0;
+  if (s.forma === "tonda" || s.forma === "anello") area = Math.PI * (d / 2) * (d / 2);
+  else if (s.forma === "quadrata") area = l1 * l1;
+  else area = l1 * (l2 || l1);
+  return area;
+}
+
+function stampoTesto(s) {
+  const n = (x) => String(Number(x)).replace(".", ",");
+  let m = (s.forma === "tonda" || s.forma === "anello") ? "Ø " + n(s.diametro_cm) : s.forma === "quadrata" ? n(s.lato1_cm) + "×" + n(s.lato1_cm) : n(s.lato1_cm) + "×" + n(s.lato2_cm);
+  if (Number(s.altezza_cm) > 0) m += " · h " + n(s.altezza_cm);
+  return m;
+}
+
+function stampoLeggiForm() {
+  const v = (id) => { const x = Number(String(document.getElementById(id)?.value || "").replace(",", ".")); return x > 0 ? x : null; };
+  const forma = document.getElementById("sp-forma")?.value || "tonda";
+  const tonda = forma === "tonda" || forma === "anello";
+  return {
+    forma,
+    diametro_cm: tonda ? v("sp-diametro") : null,
+    lato1_cm: tonda ? null : v("sp-lato1"),
+    lato2_cm: forma === "rettangolare" ? v("sp-lato2") : (forma === "quadrata" ? v("sp-lato1") : null),
+    altezza_cm: v("sp-altezza"),
+    pezzi: Math.max(1, Math.round(v("sp-pezzi") || 1)),
+  };
+}
+
+function stampoScriviForm(s) {
+  const set = (id, x) => { const el = document.getElementById(id); if (el) el.value = x == null ? "" : x; };
+  set("sp-forma", s.forma || "tonda");
+  set("sp-diametro", s.diametro_cm); set("sp-lato1", s.lato1_cm); set("sp-lato2", s.lato2_cm);
+  set("sp-altezza", s.altezza_cm); set("sp-pezzi", s.pezzi || 1);
+  stampoFormaUI();
+}
+
+function stampoFormaUI() {
+  const f = document.getElementById("sp-forma")?.value || "tonda";
+  const tonda = f === "tonda" || f === "anello";
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? "" : "none"; };
+  show("sp-d-w", tonda); show("sp-l1-w", !tonda); show("sp-l2-w", f === "rettangolare");
+}
+
+async function stampoProdInit(r) {
+  const box = document.getElementById("stampo-prod");
+  stampoOggi = null;
+  if (!box) return;
+  if (!r || !r.stampo_attivo) { box.style.display = "none"; return; }
+  box.style.display = "block";
+  const rif = r.stampo_forma && (r.stampo_diametro_cm || r.stampo_lato1_cm)
+    ? { forma: r.stampo_forma, diametro_cm: r.stampo_diametro_cm, lato1_cm: r.stampo_lato1_cm, lato2_cm: r.stampo_lato2_cm, altezza_cm: r.stampo_altezza_cm, pezzi: r.stampo_pezzi || 1 }
+    : null;
+  document.getElementById("sp-rif").textContent = rif
+    ? "La ricetta è scritta per " + (rif.pezzi > 1 ? rif.pezzi + " × " : "") + stampoTesto(rif) + (r.stampo_porzioni ? " (" + r.stampo_porzioni + " porzioni a stampo)" : "") + "."
+    : "La ricetta non ha ancora uno stampo: quello che segni oggi diventa il riferimento.";
+
+  const cli = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  const [{ data: ultimi }, { data: usati }] = await Promise.all([
+    cli.from("produzione_lotti").select("stampo").eq("ricetta_id", r.id).not("stampo", "is", null).order("created_at", { ascending: false }).limit(5),
+    cli.from("stampi_usati").select("*").eq("azienda_id", aziendaId).gte("ultimo_uso", new Date(Date.now() - 180 * 864e5).toISOString()).order("usi", { ascending: false }).limit(10),
+  ]);
+  const proposte = [];
+  const chiave = (s) => [s.forma, s.diametro_cm, s.lato1_cm, s.lato2_cm, s.altezza_cm, s.pezzi || 1].join("|");
+  const visti = new Set();
+  const aggiungi = (s, nota) => { const k = chiave(s); if (visti.has(k)) return; visti.add(k); proposte.push({ s, nota }); };
+  (ultimi || []).forEach((x, i) => x.stampo && aggiungi(x.stampo, i === 0 ? "ultimo usato" : ""));
+  if (rif) aggiungi(rif, "ricetta");
+  (usati || []).forEach((u) => aggiungi({ forma: u.forma, diametro_cm: u.diametro_cm, lato1_cm: u.lato1_cm, lato2_cm: u.lato2_cm, altezza_cm: u.altezza_cm, pezzi: 1 }, ""));
+
+  const chips = document.getElementById("sp-chips");
+  chips.innerHTML = proposte.map((p, i) => '<button type="button" class="sp-chip" data-i="' + i + '" style="border:1.5px solid #e9d5ff;background:#fff;border-radius:20px;padding:6px 11px;font-size:12.5px;cursor:pointer;">'
+    + ((p.s.pezzi || 1) > 1 ? (p.s.pezzi + " × ") : "") + escapeHtml(stampoTesto(p.s)) + (p.nota ? ' <span style="color:#7e22ce;">· ' + p.nota + '</span>' : "") + '</button>').join("");
+  chips.querySelectorAll(".sp-chip").forEach((b) => b.addEventListener("click", () => {
+    chips.querySelectorAll(".sp-chip").forEach((x) => { x.style.background = "#fff"; x.style.fontWeight = "400"; });
+    b.style.background = "#faf5ff"; b.style.fontWeight = "700";
+    stampoScriviForm(proposte[+b.dataset.i].s);
+  }));
+  if (proposte.length) { stampoScriviForm(proposte[0].s); chips.querySelector(".sp-chip").style.background = "#faf5ff"; chips.querySelector(".sp-chip").style.fontWeight = "700"; }
+  else stampoScriviForm({ forma: "tonda", pezzi: 1 });
+
+  const formaSel = document.getElementById("sp-forma");
+  if (formaSel && !formaSel.dataset.init) { formaSel.dataset.init = "1"; formaSel.addEventListener("change", stampoFormaUI); }
+
+  const btn = document.getElementById("btn-sp-calcola");
+  btn.onclick = async () => {
+    const esito = document.getElementById("scala-esito");
+    const oggi = stampoLeggiForm();
+    if (!stampoVolume(oggi)) { esito.textContent = "Scrivi le misure dello stampo."; return; }
+    let fattore = 1, testo = "";
+    if (rif && stampoVolume(rif)) {
+      const hOk = Number(oggi.altezza_cm) > 0 && Number(rif.altezza_cm) > 0;
+      const volOggi = stampoVolume(oggi) * (hOk ? Number(oggi.altezza_cm) : 1) * oggi.pezzi;
+      const volRif = stampoVolume(rif) * (hOk ? Number(rif.altezza_cm) : 1) * (rif.pezzi || 1);
+      fattore = volOggi / volRif;
+      testo = (oggi.pezzi > 1 ? oggi.pezzi + " × " : "") + stampoTesto(oggi) + " rispetto a " + ((rif.pezzi || 1) > 1 ? rif.pezzi + " × " : "") + stampoTesto(rif)
+        + " → <b>dose × " + fattore.toFixed(2).replace(".", ",") + "</b>";
+    } else {
+      // primo stampo: diventa quello della ricetta
+      await cli.from("ricette").update({ stampo_forma: oggi.forma, stampo_diametro_cm: oggi.diametro_cm, stampo_lato1_cm: oggi.lato1_cm, stampo_lato2_cm: oggi.lato2_cm, stampo_altezza_cm: oggi.altezza_cm, stampo_pezzi: oggi.pezzi }).eq("id", r.id);
+      r.stampo_forma = oggi.forma; r.stampo_diametro_cm = oggi.diametro_cm; r.stampo_lato1_cm = oggi.lato1_cm; r.stampo_lato2_cm = oggi.lato2_cm; r.stampo_altezza_cm = oggi.altezza_cm; r.stampo_pezzi = oggi.pezzi;
+      testo = "Stampo salvato come riferimento della ricetta: dose come da ricetta.";
+    }
+    stampoOggi = Object.assign({}, oggi, { fattore: Math.round(fattore * 1000) / 1000 });
+    cli.rpc("registra_stampo", { p_azienda: aziendaId, p_forma: oggi.forma, p_diametro: oggi.diametro_cm, p_lato1: oggi.lato1_cm, p_lato2: oggi.lato2_cm, p_altezza: oggi.altezza_cm });
+    btn.disabled = true;
+    try {
+      const { data, error } = await cli.rpc("scala_ricetta", { p_ricetta_id: r.id, p_modo: "fattore", p_valore: fattore });
+      if (error) throw error;
+      if (!data || data.ok !== true) { esito.textContent = data?.errore || "Non riesco a calcolare le dosi."; return; }
+      if (r.stampo_porzioni && data.porzioni_risultanti == null) data.porzioni_risultanti = Math.round(r.stampo_porzioni * stampoVolume(oggi) * oggi.pezzi / (stampoVolume(rif || oggi) * ((rif && rif.pezzi) || 1)));
+      mostraEsitoScala(esito, data, testo);
+    } catch (e) {
+      esito.textContent = "Errore nel calcolo: " + (e?.message || e);
+    } finally { btn.disabled = false; }
+  };
 }

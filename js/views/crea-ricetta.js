@@ -1436,6 +1436,27 @@ export async function render(app) {
       </div>
 
       <div id="tony-pannello" style="display:none;">
+        <details class="cr-guida-dettato" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:14px;">
+          <summary style="font-weight:700;color:#0E5A7A;cursor:pointer;">📋 Come dettare una ricetta (il foglio della cucina)</summary>
+          <div style="margin-top:8px;line-height:1.5;">
+            Detta queste 8 cose, <b>in quest'ordine</b>. Se una non c'è, di' "niente" e vai avanti.
+            <ol style="margin:8px 0 8px 18px;padding:0;">
+              <li><b>Nome e tipo</b>: "piatto finito" se va in menu, "base" se è una preparazione, e la categoria.</li>
+              <li><b>Dose di partenza</b>: "questa dose fa circa 12 chili".</li>
+              <li><b>Ingredienti</b> uno alla volta: nome, quantità, unità (grammi, chili, litri, pezzi). Mai "q.b.".</li>
+              <li><b>Procedimento a fasi numerate</b>: cosa si fa, quanto dura, a che temperatura.</li>
+              <li><b>Resa</b>: quanto pesa il prodotto finito.</li>
+              <li><b>Porzionature</b>: una per destinazione con i grammi (trattoria, ristorante, banchetto, buffet).</li>
+              <li><b>Conservazione</b>: come si abbatte, come si conserva, per quanti giorni.</li>
+              <li><b>Allergeni</b> presenti, anche se ti sembrano ovvi.</li>
+            </ol>
+            <div style="background:#fff;border-left:3px solid #0E5A7A;border-radius:8px;padding:8px 10px;font-style:italic;">
+              "Ragù bolognese, piatto finito, categoria primi. Questa dose fa circa 12 chili. Ingredienti: macinato di manzo 2 chili, pomodori pelati 1 chilo, pancetta 750 grammi, vino rosso 750 millilitri, cipolla 300 grammi, carote 300 grammi, sedano 300 grammi, olio extravergine 100 millilitri, sale 25 grammi. Procedimento. Fase 1: soffritto di cipolla, carote e sedano, 15 minuti a fuoco medio. Fase 2: rosolare pancetta e macinato, 20 minuti. Fase 3: sfumare con il vino, 5 minuti. Fase 4: aggiungere i pelati e cuocere 3 ore a fuoco basso, sopra i 75 gradi. Fase 5: abbattere a +3 gradi entro 90 minuti. Fase 6: porzionare e confezionare sottovuoto. Resa finale 12 chili. Porzionature: trattoria 180 grammi, ristorante 150, banchetto 100. Conservazione: sottovuoto, frigo tra 0 e +4 gradi, 15 giorni. Allergeni: sedano, solfiti."
+            </div>
+            <div style="margin-top:8px;"><b>Regole d'oro:</b> numeri sempre con l'unità · nomi come in magazzino ("macinato di manzo", non "la carne") · una fase = un'azione · la resa si pesa · parla lontano dalla cappa · prima le basi, poi il piatto.</div>
+            <div style="margin-top:6px;color:#475569;">Dopo <b>Compila</b> controlla: ingredienti senza rossi, fasi con tempi e temperature, resa, porzionature, conservazione. Poi <b>Salva Ricetta</b>.</div>
+          </div>
+        </details>
         <textarea id="tony-testo" rows="4" placeholder="Scrivi o detta la ricetta. Oppure scatta una foto del piatto o del foglio."></textarea>
         <div class="tony-strumenti">
           <button id="tony-detta" type="button" class="tony-st">🎤 Detta</button>
@@ -1555,6 +1576,32 @@ export async function render(app) {
           </div>
         `
       })}
+
+      <div id="stampo-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px 16px;margin:0 0 16px;">
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;">
+          <span><b style="font-size:16px;">🍰 Si fa in stampo</b><br><span style="font-size:12.5px;color:#64748b;">Torte, crostate, flan, tortini, frittate, teglie…</span></span>
+          <input id="stampo-attivo" type="checkbox" style="width:24px;height:24px;flex:none;">
+        </label>
+        <div id="stampo-campi" style="display:none;margin-top:12px;border-top:1px solid #f1f5f9;padding-top:10px;">
+          <div style="font-size:12.5px;font-weight:600;color:#64748b;margin-bottom:6px;">La dose è scritta per questo stampo</div>
+          <div id="stampo-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+          <div id="stampo-forme" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            <button type="button" data-forma="tonda" class="stampo-forma">⭕<br>Tonda</button>
+            <button type="button" data-forma="quadrata" class="stampo-forma">⬛<br>Quadrata</button>
+            <button type="button" data-forma="rettangolare" class="stampo-forma">▭<br>Rettangolare</button>
+            <button type="button" data-forma="anello" class="stampo-forma">◎<br>Ad anello</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-top:8px;">
+            <div class="stampo-d"><label style="font-size:12px;color:#64748b;">Diametro cm</label><input id="stampo-diametro" type="number" step="0.5" min="0" inputmode="decimal" class="input"></div>
+            <div class="stampo-l" style="display:none;"><label style="font-size:12px;color:#64748b;" id="stampo-lato1-lab">Lato cm</label><input id="stampo-lato1" type="number" step="0.5" min="0" inputmode="decimal" class="input"></div>
+            <div class="stampo-l2" style="display:none;"><label style="font-size:12px;color:#64748b;">Secondo lato cm</label><input id="stampo-lato2" type="number" step="0.5" min="0" inputmode="decimal" class="input"></div>
+            <div><label style="font-size:12px;color:#64748b;">Altezza cm</label><input id="stampo-altezza" type="number" step="0.5" min="0" inputmode="decimal" class="input"></div>
+            <div><label style="font-size:12px;color:#64748b;">Quanti pezzi</label><input id="stampo-pezzi" type="number" step="1" min="1" inputmode="numeric" class="input" value="1"></div>
+            <div><label style="font-size:12px;color:#64748b;">Porzioni per stampo</label><input id="stampo-porzioni" type="number" step="1" min="0" inputmode="numeric" class="input"></div>
+          </div>
+          <div style="font-size:12px;color:#64748b;margin-top:6px;">In produzione si sceglie lo stampo di oggi e le dosi si ricalcolano da sole.</div>
+        </div>
+      </div>
 
       ${createCard({
         title: "Ingredienti",
@@ -1789,6 +1836,7 @@ export async function render(app) {
   initModeToggle();
   bindAutosaveIngredienti();
 
+  stampoInit();
   if (ricettaId) {
     await caricaRicettaCompleta();
     initEtichetta();
@@ -3936,6 +3984,7 @@ async function caricaRicettaCompleta() {
   }
 
   setVal("r-nome", ricetta.nome || "");
+  stampoCaricaDaRicetta(ricetta);
   setVal("r-pezzi-base", ricetta.pezzi_base ?? "");
   setVal("r-scaling-tempo", ricetta.scaling_tempo_pct ?? 20);
   if (ricetta.impiattamento && typeof ricetta.impiattamento === "object") {
@@ -4223,6 +4272,8 @@ async function salvaTutto() {
   }
 
   const ricettaIdNum = Number(savedId);
+
+  await salvaStampoRicetta(ricettaIdNum, aziendaId);
 
   // output principale
   {
@@ -5730,4 +5781,117 @@ function renderEtichetta(box, et) {
     esito(rec.confermata ? "✅ Salvata: l'etichetta si può stampare" : "Salvata come bozza (non stampabile finché non confermi)", rec.confermata);
     initEtichetta();
   };
+}
+
+
+// ============================================================
+// 🍰 STAMPO DELLA RICETTA — la dose e' scritta per questo stampo.
+// Gli stampi gia' usati in azienda compaiono come chip (stampi_usati).
+// ============================================================
+const STAMPO_REGEX = /(torta|torte|crostat|pan ?di ?spagna|flan|tortino|tortini|sformat|frittat|quiche|parmigian|lasagn|teglia|cheesecake|plumcake|ciambell|tiramis|semifredd|bavarese|mousse|muffin|budino|panna ?cotta|cr[eè]me caramel)/i;
+let stampoForma = "tonda";
+let stampoToccato = false;
+
+function stampoMostraForma() {
+  document.querySelectorAll(".stampo-forma").forEach((b) => {
+    const on = b.dataset.forma === stampoForma;
+    b.style.cssText = "border:1.5px solid " + (on ? "#a855f7" : "#e2e8f0") + ";background:" + (on ? "#faf5ff" : "#fff") + ";border-radius:12px;padding:8px 4px;font-size:12px;font-weight:" + (on ? "700" : "500") + ";cursor:pointer;line-height:1.4;";
+  });
+  const tonda = stampoForma === "tonda" || stampoForma === "anello";
+  const d = document.querySelector(".stampo-d"), l = document.querySelector(".stampo-l"), l2 = document.querySelector(".stampo-l2");
+  if (d) d.style.display = tonda ? "" : "none";
+  if (l) l.style.display = tonda ? "none" : "";
+  if (l2) l2.style.display = stampoForma === "rettangolare" ? "" : "none";
+  const lab = document.getElementById("stampo-lato1-lab");
+  if (lab) lab.textContent = stampoForma === "quadrata" ? "Lato cm" : "Primo lato cm";
+}
+
+function stampoMostraCampi() {
+  const on = document.getElementById("stampo-attivo")?.checked;
+  const c = document.getElementById("stampo-campi");
+  if (c) c.style.display = on ? "" : "none";
+  if (on) stampoCaricaChips();
+}
+
+function stampoEtichetta(s) {
+  const ic = { tonda: "⭕", quadrata: "⬛", rettangolare: "▭", anello: "◎" }[s.forma] || "⭕";
+  const n = (x) => String(Number(x)).replace(".", ",");
+  let m = s.forma === "tonda" || s.forma === "anello" ? "Ø " + n(s.diametro_cm) : s.forma === "quadrata" ? n(s.lato1_cm) + "×" + n(s.lato1_cm) : n(s.lato1_cm) + "×" + n(s.lato2_cm);
+  if (s.altezza_cm) m += " · h " + n(s.altezza_cm);
+  return ic + " " + m;
+}
+
+async function stampoCaricaChips() {
+  const box = document.getElementById("stampo-chips");
+  if (!box || box.dataset.caricato) return;
+  box.dataset.caricato = "1";
+  const supa = window.supabaseClient || window.supabase;
+  const { data } = await supa.from("stampi_usati").select("*").eq("azienda_id", window.state?.azienda?.id)
+    .gte("ultimo_uso", new Date(Date.now() - 180 * 864e5).toISOString()).order("usi", { ascending: false }).limit(12);
+  box.innerHTML = (data || []).map((s, i) => `<button type="button" class="stampo-chip" data-i="${i}" style="border:1.5px solid #e2e8f0;background:#fff;border-radius:20px;padding:7px 12px;font-size:13px;cursor:pointer;">${stampoEtichetta(s)}</button>`).join("")
+    || `<span style="font-size:12.5px;color:#64748b;">Nessuno stampo ancora usato: scrivi le misure qui sotto, la prossima volta lo ritrovi.</span>`;
+  box.querySelectorAll(".stampo-chip").forEach((b) => b.addEventListener("click", () => {
+    const s = data[+b.dataset.i];
+    stampoForma = s.forma;
+    setVal("stampo-diametro", s.diametro_cm ?? "");
+    setVal("stampo-lato1", s.lato1_cm ?? "");
+    setVal("stampo-lato2", s.lato2_cm ?? "");
+    setVal("stampo-altezza", s.altezza_cm ?? "");
+    stampoMostraForma();
+  }));
+}
+
+function stampoInit() {
+  const chk = document.getElementById("stampo-attivo");
+  if (!chk || chk.dataset.init) return;
+  chk.dataset.init = "1";
+  chk.addEventListener("change", () => { stampoToccato = true; stampoMostraCampi(); });
+  document.querySelectorAll(".stampo-forma").forEach((b) => b.addEventListener("click", () => { stampoForma = b.dataset.forma; stampoMostraForma(); }));
+  const nome = document.getElementById("r-nome");
+  if (nome) nome.addEventListener("input", () => {
+    if (stampoToccato || ricettaId) return;
+    chk.checked = STAMPO_REGEX.test(nome.value);
+    stampoMostraCampi();
+  });
+  stampoMostraForma();
+}
+
+function stampoCaricaDaRicetta(r) {
+  stampoInit();
+  const chk = document.getElementById("stampo-attivo");
+  if (!chk) return;
+  chk.checked = !!r.stampo_attivo;
+  stampoToccato = true;
+  stampoForma = r.stampo_forma || "tonda";
+  setVal("stampo-diametro", r.stampo_diametro_cm ?? "");
+  setVal("stampo-lato1", r.stampo_lato1_cm ?? "");
+  setVal("stampo-lato2", r.stampo_lato2_cm ?? "");
+  setVal("stampo-altezza", r.stampo_altezza_cm ?? "");
+  setVal("stampo-pezzi", r.stampo_pezzi ?? 1);
+  setVal("stampo-porzioni", r.stampo_porzioni ?? "");
+  stampoMostraForma();
+  stampoMostraCampi();
+}
+
+async function salvaStampoRicetta(id, aziendaId) {
+  const chk = document.getElementById("stampo-attivo");
+  if (!chk || !id) return;
+  const num = (x) => { const v = Number(String(document.getElementById(x)?.value || "").replace(",", ".")); return v > 0 ? v : null; };
+  const tonda = stampoForma === "tonda" || stampoForma === "anello";
+  const rec = {
+    stampo_attivo: chk.checked,
+    stampo_forma: chk.checked ? stampoForma : null,
+    stampo_diametro_cm: chk.checked && tonda ? num("stampo-diametro") : null,
+    stampo_lato1_cm: chk.checked && !tonda ? num("stampo-lato1") : null,
+    stampo_lato2_cm: chk.checked && stampoForma === "rettangolare" ? num("stampo-lato2") : (chk.checked && stampoForma === "quadrata" ? num("stampo-lato1") : null),
+    stampo_altezza_cm: chk.checked ? num("stampo-altezza") : null,
+    stampo_pezzi: chk.checked ? (Math.round(num("stampo-pezzi") || 1)) : 1,
+    stampo_porzioni: chk.checked ? (num("stampo-porzioni") ? Math.round(num("stampo-porzioni")) : null) : null,
+  };
+  const supa = window.supabaseClient || window.supabase;
+  const { error } = await supa.from("ricette").update(rec).eq("id", id).eq("azienda_id", aziendaId);
+  if (error) { console.warn("Stampo non salvato:", error); return; }
+  if (rec.stampo_attivo && (rec.stampo_diametro_cm || rec.stampo_lato1_cm)) {
+    await supa.rpc("registra_stampo", { p_azienda: aziendaId, p_forma: rec.stampo_forma, p_diametro: rec.stampo_diametro_cm, p_lato1: rec.stampo_lato1_cm, p_lato2: rec.stampo_lato2_cm, p_altezza: rec.stampo_altezza_cm });
+  }
 }
