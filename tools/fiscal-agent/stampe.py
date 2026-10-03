@@ -4,7 +4,9 @@ Stampa NON fiscale Ristoflow: comande di reparto e preconti su stampanti termich
 (ESC/POS, porta 9100). Legge coda_stampe. Usato da realtime.py insieme all'agente fiscale.
 """
 import datetime
+import json
 import socket
+import urllib.request
 import time
 
 import agent  # riusa sb_get, sb_patch, filtri e fuso orario
