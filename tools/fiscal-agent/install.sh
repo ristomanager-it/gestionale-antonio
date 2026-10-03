@@ -70,8 +70,22 @@ done
 EOF
 chmod +x run.sh
 
-echo "-> Avvio automatico all'accensione"
-( crontab -l 2>/dev/null | grep -v "fiscal-agent/run.sh"; echo "@reboot nohup bash $DIR/run.sh >> $DIR/agent.log 2>&1 &" ) | crontab -
+echo "-> Wifi sempre sveglio (niente risparmio energetico)"
+if [ -d /etc/NetworkManager/conf.d ]; then
+  printf '[connection]\nwifi.powersave = 2\n' | sudo tee /etc/NetworkManager/conf.d/ristoflow-wifi.conf >/dev/null
+fi
+sudo iw dev wlan0 set power_save off 2>/dev/null || true
+
+echo "-> Watchdog: se il Raspberry si blocca si riavvia da solo"
+if ! grep -q "^RuntimeWatchdogSec=" /etc/systemd/system.conf; then
+  echo "RuntimeWatchdogSec=15" | sudo tee -a /etc/systemd/system.conf >/dev/null
+  sudo systemctl daemon-reexec || true
+fi
+
+echo "-> Avvio automatico all'accensione (agente + guardiano della rete)"
+( crontab -l 2>/dev/null | grep -v "fiscal-agent/run.sh" | grep -v "fiscal-agent/rete.sh"; \
+  echo "@reboot nohup bash $DIR/run.sh >> $DIR/agent.log 2>&1 &"; \
+  echo "@reboot nohup bash $DIR/rete.sh >> $DIR/agent.log 2>&1 &" ) | crontab -
 
 echo "-> Riavvio agente"
 pkill -f "fiscal-agent/run.sh" || true
