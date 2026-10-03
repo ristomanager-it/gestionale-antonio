@@ -4109,7 +4109,7 @@ function aggiungiPorzione(initial = {}) {
   card.querySelector(".porz-attivo").value = String(initial.attivo ?? true);
   card.querySelector('[data-action="delete"]').addEventListener("click", () => card.remove());
   card.querySelectorAll(".porz-tipo").forEach((b) => b.addEventListener("click", () => { card.dataset.tipo = b.dataset.tipo; porzMostraTipo(card); }));
-  card.querySelectorAll(".porz-pezzi, .porz-peso-pezzo").forEach((i) => i.addEventListener("input", () => aggiornaCostoPorzione(card)));
+  card.querySelectorAll(".porz-pezzi, .porz-peso-pezzo, .porz-ppp").forEach((i) => i.addEventListener("input", () => aggiornaCostoPorzione(card)));
   porzMostraTipo(card);
 
   // l'id serve al salvataggio per non perdere la grafica nel giro di delete + insert
