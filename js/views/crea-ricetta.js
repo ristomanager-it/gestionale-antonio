@@ -3952,9 +3952,15 @@ function aggiungiPorzione(initial = {}) {
         <datalist id="porz-destinazioni">${["Trattoria", "Ristorante", "Banchetto / matrimonio", "Buffet", "Market / asporto", "Catering", "Menu del giorno"].map((d) => `<option value="${d}"></option>`).join("")}</datalist>
       </div>
 
-      <div class="form-group">
-        <label>Peso porzione *</label>
-        <input class="porz-peso input" type="number" min="0" step="0.001" value="${escapeAttr(initial.peso_porzione ?? "")}" />
+      <div class="porz-blocco-pezzi" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group">
+          <label>Pezzi per teglia *</label>
+          <input class="porz-pezzi input" type="number" min="1" step="1" inputmode="numeric" value="${escapeAttr(initial.pezzi_per_stampo ?? "")}" placeholder="es. 24" />
+        </div>
+        <div class="form-group">
+          <label>Peso medio pezzo g (opz.)</label>
+          <input class="porz-peso-pezzo input" type="number" min="0" step="1" inputmode="decimal" value="${escapeAttr(pesoPezzo ?? "")}" placeholder="pesalo una volta" />
+        </div>
       </div>
 
       <div class="porz-blocco-peso" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
