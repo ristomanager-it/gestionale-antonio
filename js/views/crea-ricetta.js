@@ -4770,8 +4770,10 @@ async function salvaTutto() {
     const rows = [];
     document.querySelectorAll("#porzioni-container .azienda-card").forEach(r => {
       const label = (r.querySelector(".porz-label")?.value || "").trim();
-      const peso_porzione = toNumOrNull(r.querySelector(".porz-peso")?.value);
-      const unita_misura = (r.querySelector(".porz-um")?.value || "gr").trim();
+      const tipo_porzione = r.dataset.tipo || "peso";
+      let peso_porzione = toNumOrNull(r.querySelector(".porz-peso")?.value);
+      let unita_misura = (r.querySelector(".porz-um")?.value || "gr").trim();
+      let pezzi_per_stampo = null;
       const note = (r.querySelector(".porz-note")?.value || "").trim() || null;
       const attivo = (r.querySelector(".porz-attivo")?.value !== "false");
 
