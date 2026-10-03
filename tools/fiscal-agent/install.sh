@@ -58,6 +58,7 @@ fi
 cat > run.sh <<'EOF'
 #!/bin/bash
 cd /home/$(whoami)/fiscal-agent
+sudo -n iw dev wlan0 set power_save off 2>/dev/null
 while true; do
   set -a
   source .env
