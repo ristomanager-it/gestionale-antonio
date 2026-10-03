@@ -3981,8 +3981,11 @@ function aggiornaCostoPorzione(card) {
   const tot = pz * stampi;
   const g = Number(card.querySelector(".porz-peso-pezzo")?.value) || 0;
   out.innerHTML = `<b>${tot}</b> pezzi dalla dose (${stampi} ${stampi > 1 ? "teglie" : "teglia"} × ${pz})`
-    + (mp > 0 ? ` · materia prima <b>€ ${formatMoney(mp / tot)}</b> a pezzo` : ` · aggiungi gli ingredienti per il costo`)
-    + (g > 0 ? ` · ${Math.round(g)} g a pezzo` : "");
+    + (ppp !== 1 ? ` → <b>${nf(porz)}</b> porzioni da ${nf(ppp)} pz` : "")
+    + (mp > 0
+      ? ` · materia prima <b>€ ${formatMoney(mp / porz)}</b> a porzione` + (ppp !== 1 ? ` (€ ${formatMoney(mp / tot)} a pezzo)` : "")
+      : ` · aggiungi gli ingredienti per il costo`)
+    + (g > 0 ? ` · ${Math.round(g * ppp)} g a porzione` : "");
 }
 
 function aggiornaCostiPorzioni() {
