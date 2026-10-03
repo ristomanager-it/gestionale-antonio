@@ -19,7 +19,7 @@ export async function render(container) {
       .from("ricette")
       .select("id, nome, porzioni, costo_porzione, costo_materia_prima, origine_stima, created_at")
       .eq("azienda_id", azienda.id).eq("da_verificare", true)
-      .order("created_at", { ascending: false }).limit(200);
+      .order("created_at", { ascending: false }).limit(1000);
 
     const lista = data || [];
     const ids = lista.map(r => r.id);
