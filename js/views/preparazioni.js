@@ -1,7 +1,7 @@
 // FILE: js/pages/preparazioni.js
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 import { getStampanteEtichette, stampaEtichetteEpos } from "../modules/produzione/epos-etichette.js";
-import { inviaEtichetteLotto, stampanteEtichette as stampanteEtichetteBrother } from "../modules/produzione/etichette-lotto.js";
+import { inviaEtichetteLotto, scegliFormatoEtichetta, stampanteEtichette as stampanteEtichetteBrother } from "../modules/produzione/etichette-lotto.js";
 
 /*
   PRODUZIONE (flusso industriale)
