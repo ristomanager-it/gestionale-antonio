@@ -127,7 +127,7 @@ export async function inviaEtichetteLotto({ etichetta, produttore, info, peso, c
   if (dis.troppoLungo) return { ok: false, motivo: "troppo_lungo", png: null };
   const st = await stampanteEtichette();
   if (!st) return { ok: false, motivo: "nessuna_stampante", png: dis.png };
-  const { error } = await sbEt().from("coda_stampe").insert({
+  const { data: job, error } = await sbEt().from("coda_stampe").insert({
     azienda_id: window.state.azienda.id, sede_id: st.sede_id || window.state?.sedeAttiva?.id || null,
     stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: 62,
     tipo: "etichetta", reparto: "etichette",
