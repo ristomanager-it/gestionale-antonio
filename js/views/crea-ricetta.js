@@ -3945,6 +3945,12 @@ function aggiungiPorzione(initial = {}) {
 </button>
     </div>
 
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <button type="button" class="porz-tipo" data-tipo="pezzi">🔲 Pezzi da teglia</button>
+      <button type="button" class="porz-tipo" data-tipo="peso">⚖️ A peso</button>
+      <button type="button" class="porz-tipo" data-tipo="liquido">🥣 Liquido</button>
+    </div>
+
     <div class="form-grid" style="margin-top:10px;">
       <div class="form-group" style="grid-column:1/-1;">
         <label>Label porzione *</label>
