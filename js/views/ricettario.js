@@ -938,7 +938,7 @@ async function mostraRicetta(id) {
 
     supabase
       .from("ricette_porzione")
-      .select("id, label, peso_porzione, unita_misura, attivo, grafica_url, grafica_path, tipo_porzione, pezzi_per_stampo")
+      .select("id, label, peso_porzione, unita_misura, attivo, grafica_url, grafica_path, tipo_porzione, pezzi_per_stampo, pezzi_per_porzione")
       .eq("ricetta_id", id)
       .order("peso_porzione")
 
