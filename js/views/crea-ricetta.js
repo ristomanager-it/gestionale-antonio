@@ -3393,24 +3393,19 @@ async function aggiornaCostiProduzione() {
           <div style="font-size:11.5px;color:#94a3b8;">${c.kwh_lotto} kWh · ${c.costo_kwh} €/kWh</div>
         </div>
         <div style="background:#0E5A7A;border-radius:10px;padding:12px;color:#fff;">
-          <div style="font-size:12px;opacity:.85;">Costo pieno a porzione</div>
+          <div style="font-size:12px;opacity:.85;">Costo pieno ${unita}</div>
           <div style="font-size:20px;font-weight:800;">€ ${pienoPorzione.toFixed(2)}</div>
-          <div style="font-size:11.5px;opacity:.8;">produzione € ${c.totale_porzione.toFixed(2)} · lotto da ${c.lotto}</div>
+          <div style="font-size:11.5px;opacity:.8;">di cui produzione € ${c.totale_porzione.toFixed(2)}</div>
         </div>
       </div>
 
       <div style="font-size:12px;color:#64748b;margin-top:10px;line-height:1.5;">
-        Le fasi descrivono una sessione di lavoro: cambiando le porzioni per sessione vedi
-        quanto scende il costo producendo di più. Manodopera dai costi orari dei vostri
-        dipendenti, energia dalla potenza delle attrezzature scelte in ogni fase.
+        Tutto è diviso per le porzioni previste. Manodopera: minuti di lavoro di ogni fase
+        per il costo orario del ruolo. Energia: durata della fase per la potenza
+        dell'attrezzatura scelta. Senza minuti, ruolo o attrezzatura quella voce resta a zero.
       </div>
     </div>`;
 
-  const inp = document.getElementById("costi-lotto");
-  if (inp) inp.addEventListener("change", () => {
-    _lottoStandard = Math.max(Number(inp.value) || 1, 1);
-    aggiornaCostiProduzione();
-  });
 }
 
 function aggiungiFase(initial = {}) {
