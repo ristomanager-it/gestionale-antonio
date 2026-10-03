@@ -4414,7 +4414,8 @@ async function salvaTutto() {
   {
     const payloadOut = {
       ricetta_id: ricettaIdNum,
-      peso_finale: output_peso,
+      // la stima non si salva come peso reale: resta al server finche' qualcuno pesa
+      peso_finale: (_pesoStimato !== null && output_peso === _pesoStimato) ? null : output_peso,
       unita_misura: normalizeUmForDb(output_um),
       note: output_note,
       azienda_id: aziendaId
