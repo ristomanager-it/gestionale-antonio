@@ -3365,16 +3365,14 @@ async function aggiornaCostiProduzione() {
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
         <div style="font-weight:700;font-size:15px;">⚙️ Costo di produzione</div>
-        <label style="font-size:13px;color:#64748b;margin-left:auto;">Porzioni per sessione</label>
-        <input id="costi-lotto" type="number" min="1" value="${_lottoStandard}"
-          style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;">
+        <div style="font-size:13px;color:#64748b;margin-left:auto;">${resaMancante ? "Porzioni non indicate" : porzioniRicetta + " porzioni"}</div>
       </div>
 
       ${resaMancante ? `
         <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:11px 13px;
                     margin-bottom:12px;font-size:12.5px;color:#7C2D12;line-height:1.5;">
-          <b>Manca la resa della ricetta.</b> Sto dividendo per le porzioni per sessione (${porzioniRicetta}).
-          Compila <b>Porzioni previste</b> nella sezione Output (Resa) più in basso: è quel numero che rende esatto il food cost qui e in tutta l'app.
+          <b>Mancano le porzioni previste.</b> Qui sotto vedi il costo dell'intera sessione.
+          Compila <b>Porzioni previste</b> nella sezione Output (Resa) più in basso per avere il costo a porzione.
           Se è una base senza resa fissa (usata in più preparazioni) va bene anche un numero medio di riferimento.
         </div>` : ""}
 
