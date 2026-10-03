@@ -2965,6 +2965,7 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
     ? candidati[0].prodotto : null;
 
   if (matchEsatto) {
+    delete ingSearch.dataset.nomeDettato;
     // Match sicuro: preseleziona direttamente
     ingSearch.value = matchEsatto.descrizione || matchEsatto.nome || nomeTony;
     ingHidden.value = matchEsatto.id;
