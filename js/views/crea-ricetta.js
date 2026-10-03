@@ -5988,6 +5988,17 @@ function stampoInit() {
   chk.dataset.init = "1";
   chk.addEventListener("change", () => { stampoToccato = true; stampoMostraCampi(); });
   document.querySelectorAll(".stampo-forma").forEach((b) => b.addEventListener("click", () => { stampoForma = b.dataset.forma; stampoMostraForma(); }));
+  document.querySelectorAll(".stampo-gn").forEach((b) => b.addEventListener("click", () => {
+    stampoForma = "rettangolare";
+    setVal("stampo-lato1", b.dataset.l1);
+    setVal("stampo-lato2", b.dataset.l2);
+    stampoMostraForma();
+  }));
+  // costo a pezzo: cambia se cambiano le teglie della dose o gli ingredienti
+  ["stampo-pezzi", "stampo-attivo"].forEach((id) => document.getElementById(id)?.addEventListener("input", aggiornaCostiPorzioni));
+  document.getElementById("stampo-attivo")?.addEventListener("change", aggiornaCostiPorzioni);
+  const ingC = document.getElementById("ingredienti-container");
+  if (ingC) { let t; const f = () => { clearTimeout(t); t = setTimeout(aggiornaCostiPorzioni, 400); }; ingC.addEventListener("input", f); ingC.addEventListener("change", f); }
   const nome = document.getElementById("r-nome");
   if (nome) nome.addEventListener("input", () => {
     if (stampoToccato || ricettaId) return;
