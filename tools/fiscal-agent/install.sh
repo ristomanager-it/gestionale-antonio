@@ -90,8 +90,10 @@ echo "-> Avvio automatico all'accensione (agente + guardiano della rete)"
 echo "-> Riavvio agente"
 pkill -f "fiscal-agent/run.sh" || true
 pkill -f "realtime.py" || true
+pkill -f "fiscal-agent/rete.sh" || true
 sleep 1
 nohup bash "$DIR/run.sh" >> "$DIR/agent.log" 2>&1 < /dev/null &
+nohup bash "$DIR/rete.sh" >> "$DIR/agent.log" 2>&1 < /dev/null &
 sleep 6
 tail -5 "$DIR/agent.log"
 echo ""
