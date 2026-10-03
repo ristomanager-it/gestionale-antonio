@@ -4049,6 +4049,10 @@ function aggiungiPorzione(initial = {}) {
           <label>Peso medio pezzo g (opz.)</label>
           <input class="porz-peso-pezzo input" type="number" min="0" step="1" inputmode="decimal" value="${escapeAttr(pesoPezzo ?? "")}" placeholder="pesalo una volta" />
         </div>
+        <div class="form-group">
+          <label>Pezzi a porzione</label>
+          <input class="porz-ppp input" type="number" min="0.5" step="0.5" inputmode="decimal" value="${escapeAttr(initial.pezzi_per_porzione ?? 1)}" />
+        </div>
       </div>
 
       <div class="porz-blocco-peso" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
