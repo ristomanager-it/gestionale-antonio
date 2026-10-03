@@ -3929,6 +3929,73 @@ function rinumeraPassaggi(passContainer) {
 /* ============================================================
    PORZIONATURE
 ============================================================ */
+function porzTipoIniziale(initial) {
+  if (initial.tipo_porzione) return initial.tipo_porzione;
+  const u = String(initial.unita_misura || "").toLowerCase();
+  if (u === "ml" || u === "lt") return "liquido";
+  if (u === "pz" || initial.pezzi_per_stampo) return "pezzi";
+  return "peso";
+}
+
+// Materia prima di TUTTA la dose, letta live dalle righe ingredienti
+function mpTotaleLive() {
+  const righe = [];
+  document.querySelectorAll("#ingredienti-container .azienda-card").forEach((r) => {
+    const pid = (r.querySelector(".ing-id")?.value || "").trim();
+    const qta = toNumOrNull(r.querySelector(".ing-qta")?.value);
+    if (!pid || !qta || qta <= 0) return;
+    const pr = prodottiMap.get(String(pid));
+    righe.push({ prodotto_id: Number(pid), quantita: qta, unita_misura: (r.querySelector(".ing-um")?.value || pr?.um || "pz") });
+  });
+  if (!righe.length) return 0;
+  const c = computeCostoIndustriale({ outputPrincipale: { peso: 1, um: "kg" }, ingredienti: righe, outputSecondariDom: [] });
+  return Number(c.costoTotaleInput) || 0;
+}
+
+// Quanti stampi/teglie fa la dose scritta (card "Si fa in stampo")
+function stampiPerDose() {
+  const on = document.getElementById("stampo-attivo")?.checked;
+  const n = Math.round(Number(document.getElementById("stampo-pezzi")?.value) || 1);
+  return on && n > 0 ? n : 1;
+}
+
+function aggiornaCostoPorzione(card) {
+  const out = card.querySelector(".porz-costo");
+  if (!out) return;
+  const tipo = card.dataset.tipo;
+  const mp = mpTotaleLive();
+  if (tipo !== "pezzi") { out.innerHTML = ""; return; }
+  const pz = Math.round(Number(card.querySelector(".porz-pezzi")?.value) || 0);
+  const stampi = stampiPerDose();
+  if (!pz) { out.innerHTML = '<span style="color:#b45309;">Scrivi quanti pezzi tagli da una teglia.</span>'; return; }
+  const tot = pz * stampi;
+  const g = Number(card.querySelector(".porz-peso-pezzo")?.value) || 0;
+  out.innerHTML = `<b>${tot}</b> pezzi dalla dose (${stampi} ${stampi > 1 ? "teglie" : "teglia"} × ${pz})`
+    + (mp > 0 ? ` · materia prima <b>€ ${formatMoney(mp / tot)}</b> a pezzo` : ` · aggiungi gli ingredienti per il costo`)
+    + (g > 0 ? ` · ${Math.round(g)} g a pezzo` : "");
+}
+
+function aggiornaCostiPorzioni() {
+  document.querySelectorAll("#porzioni-container .azienda-card").forEach(aggiornaCostoPorzione);
+}
+
+function porzMostraTipo(card) {
+  const tipo = card.dataset.tipo;
+  card.querySelectorAll(".porz-tipo").forEach((b) => {
+    const on = b.dataset.tipo === tipo;
+    b.style.cssText = "flex:1;border:1.5px solid " + (on ? "#0E5A7A" : "#e2e8f0") + ";background:" + (on ? "#e0f2fe" : "#fff") + ";border-radius:10px;padding:8px 4px;font-size:13px;font-weight:" + (on ? "700" : "500") + ";cursor:pointer;";
+  });
+  card.querySelector(".porz-blocco-pezzi").style.display = tipo === "pezzi" ? "" : "none";
+  card.querySelector(".porz-blocco-peso").style.display = tipo === "pezzi" ? "none" : "";
+  const sel = card.querySelector(".porz-um");
+  const opz = tipo === "liquido" ? ["ml", "lt"] : ["gr", "kg"];
+  const cur = sel.value;
+  sel.innerHTML = opz.map((u) => `<option value="${u}">${u}</option>`).join("");
+  sel.value = opz.includes(cur) ? cur : opz[0];
+  card.querySelector(".porz-peso-lab").textContent = tipo === "liquido" ? "Quantità porzione *" : "Peso porzione *";
+  aggiornaCostoPorzione(card);
+}
+
 function aggiungiPorzione(initial = {}) {
   const container = document.getElementById("porzioni-container");
 
