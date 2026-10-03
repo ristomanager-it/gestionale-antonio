@@ -3979,6 +3979,9 @@ function aggiornaCostoPorzione(card) {
   const stampi = stampiPerDose();
   if (!pz) { out.innerHTML = '<span style="color:#b45309;">Scrivi quanti pezzi tagli da una teglia.</span>'; return; }
   const tot = pz * stampi;
+  const ppp = Number(card.querySelector(".porz-ppp")?.value) > 0 ? Number(card.querySelector(".porz-ppp").value) : 1;
+  const porz = tot / ppp;
+  const nf = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
   const g = Number(card.querySelector(".porz-peso-pezzo")?.value) || 0;
   out.innerHTML = `<b>${tot}</b> pezzi dalla dose (${stampi} ${stampi > 1 ? "teglie" : "teglia"} × ${pz})`
     + (ppp !== 1 ? ` → <b>${nf(porz)}</b> porzioni da ${nf(ppp)} pz` : "")
