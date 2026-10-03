@@ -3237,6 +3237,33 @@ function aggiungiIngrediente(initial = {}) {
   });
   aggiornaBadge();
 
+  // Ricetta salvata con ingrediente "da abbinare": all'apertura si riprova la
+  // ricerca. Se il risultato e' sicuro si collega da solo (bordo verde, da
+  // salvare); se no resta giallo e il menu si apre toccando il campo.
+  if (!initial._nome_tony && initial.nome_prodotto && !initial.prodotto_id) {
+    setTimeout(() => {
+      const c = trovaProdottiSimili(initial.nome_prodotto, 5);
+      if (c.length && c[0].score >= 70 && !ingHidden.value) {
+        const p = c[0].prodotto;
+        ingSearch.value = p.descrizione || p.nome || initial.nome_prodotto;
+        ingHidden.value = p.id;
+        umPerRicetta(p, umSel);
+        ingSearch.style.borderColor = "#16a34a";
+        ingSearch.title = "✅ Abbinato in automatico a \"" + initial.nome_prodotto + "\" — salva per confermare";
+        aggiornaBadge();
+        aggiornaOutputInfo();
+      }
+    }, 30);
+  }
+  ingSearch.addEventListener("focus", () => {
+    const testo = (ingSearch.value || "").trim();
+    if (ingHidden.value || testo.length < 2 || ingSuggest.classList.contains("open")) return;
+    precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, testo, umSel, () => {
+      aggiornaBadge();
+      aggiornaOutputInfo();
+    });
+  });
+
   // Se viene da Tony con nome non trovato → fuzzy precompila
   if (initial._nome_tony && !initial.prodotto_id) {
     // Ritardo minimo per assicurarsi che il DOM sia pronto
