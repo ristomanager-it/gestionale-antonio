@@ -1089,7 +1089,7 @@ async function mostraRicetta(id) {
             <div style="flex:1;min-width:180px;">
               <div style="font-weight:700;font-size:14px;">${escapeHtml(f.label || "Formato")}</div>
               <div style="font-size:12px;color:#64748b;margin-bottom:8px;">
-                ${f.tipo_porzione === "pezzi" && f.pezzi_per_stampo ? escapeHtml(f.pezzi_per_stampo + " pz a teglia" + (f.unita_misura !== "pz" ? " · " + f.peso_porzione + " " + f.unita_misura : "")) : escapeHtml(String(f.peso_porzione ?? "") + " " + (f.unita_misura || ""))}
+                ${f.tipo_porzione === "pezzi" && f.pezzi_per_stampo ? escapeHtml(f.pezzi_per_stampo + " pz a teglia" + (Number(f.pezzi_per_porzione) > 0 && Number(f.pezzi_per_porzione) !== 1 ? " · " + f.pezzi_per_porzione + " pz a porzione" : "") + (f.unita_misura !== "pz" ? " · " + f.peso_porzione + " " + f.unita_misura : "")) : escapeHtml(String(f.peso_porzione ?? "") + " " + (f.unita_misura || ""))}
               </div>
               <input type="file" class="gr-file" data-porzione="${f.id}"
                      accept="image/png,image/jpeg,image/webp,application/pdf"
