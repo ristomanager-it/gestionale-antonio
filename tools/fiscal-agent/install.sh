@@ -31,6 +31,7 @@ python3 -m py_compile agent.py.nuovo realtime.py.nuovo stampe.py.nuovo ponte.py.
 mv agent.py.nuovo agent.py
 mv realtime.py.nuovo realtime.py
 mv stampe.py.nuovo stampe.py
+mv ponte.py.nuovo ponte.py
 rm -rf __pycache__
 sed -n 3p agent.py
 
