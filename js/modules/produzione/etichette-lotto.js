@@ -132,7 +132,48 @@ export async function inviaEtichetteLotto({ etichetta, produttore, info, peso, c
     stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: 62,
     tipo: "etichetta", reparto: "etichette",
     contenuto: { png: dis.png, copie, formato: "62x40", rosso: true, lotto: info.codice_lotto || null },
-  });
+  }).select("id, sede_id").single();
   if (error) return { ok: false, motivo: error.message, png: dis.png };
+  if (job?.id) controllaStampaPresa(job.id, job.sede_id);
   return { ok: true, png: dis.png };
+}
+
+/* Il Raspberry di solito prende la stampa in 2-3 secondi. Se dopo 20 secondi e'
+   ancora in coda, il ponte non sta leggendo: lo diciamo subito a chi ha premuto
+   Stampa, invece di lasciarlo davanti a una stampante muta. */
+function controllaStampaPresa(jobId, sedeId) {
+  setTimeout(async () => {
+    try {
+      const { data } = await sbEt().from("coda_stampe").select("stato").eq("id", jobId).maybeSingle();
+      if (!data || data.stato !== "in_attesa") return;
+      let quando = "";
+      try {
+        let q = sbEt().from("agenti_ponte").select("ultimo_contatto").order("ultimo_contatto", { ascending: false }).limit(1);
+        if (sedeId) q = q.eq("sede_id", sedeId);
+        const { data: ap } = await q;
+        if (ap && ap[0]) {
+          const d = new Date(ap[0].ultimo_contatto);
+          quando = " Ultimo contatto del Raspberry: " + d.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) + ".";
+        }
+      } catch (e) { /* tabella non leggibile: avviso comunque */ }
+      mostraAvvisoStampa("🖨️ L'etichetta non è ancora partita: il ponte di stampa non risponde." + quando +
+        " Controlla che il Raspberry sia acceso e in rete. Resta in coda ed esce da sola appena riparte.");
+    } catch (e) { /* controllo facoltativo */ }
+  }, 20000);
+}
+
+function mostraAvvisoStampa(testo) {
+  document.getElementById("avviso-stampa-ferma")?.remove();
+  const box = document.createElement("div");
+  box.id = "avviso-stampa-ferma";
+  box.setAttribute("role", "alert");
+  box.style.cssText = "position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:99999;" +
+    "background:#b91c1c;color:#fff;padding:14px 44px 14px 16px;border-radius:12px;font-size:14px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.25);";
+  box.textContent = testo;
+  const x = document.createElement("button");
+  x.type = "button"; x.textContent = "✕"; x.setAttribute("aria-label", "Chiudi");
+  x.style.cssText = "position:absolute;top:8px;right:10px;background:none;border:0;color:#fff;font-size:18px;cursor:pointer;";
+  x.onclick = () => box.remove();
+  box.appendChild(x);
+  document.body.appendChild(box);
 }
