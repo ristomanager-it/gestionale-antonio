@@ -2158,20 +2158,29 @@ function setupAutocomplete(input, hidden, suggestBox, onPick = null) {
     const tokens = nq.split(/\s+/).filter(Boolean);
     const risultati = prodottiCache
       .filter(p => {
-        const dNorm = norm(p.descrizione);
+        const dNorm = norm((p.nome_interno || "") + " " + (p.descrizione || ""));
         return tokens.every(tok => varianti(tok).some(v => dNorm.includes(v)));
       })
       .slice(0, 10);
+    // se le parole esatte non bastano (es. "farina rimacinata"), aggiungo i simili
+    if (risultati.length < 10) {
+      trovaProdottiSimili(q, 10).forEach(x => {
+        if (risultati.length < 10 && !risultati.includes(x.prodotto)) risultati.push(x.prodotto);
+      });
+    }
 
     risultati.forEach(p => {
       const div = document.createElement("div");
       div.className = "suggest-item";
       // marco i semilavorati (ricette base tipo besciamella) con un'icona
-      div.textContent = (p._semilavorato || p.tipo_prodotto === "semilavorato") ? ("🧪 " + p.descrizione) : p.descrizione;
+      const etichetta = (p.nome_interno && p.nome_interno.toLowerCase() !== String(p.descrizione || "").toLowerCase())
+        ? (p.nome_interno + " · " + p.descrizione) : p.descrizione;
+      div.textContent = (p._semilavorato || p.tipo_prodotto === "semilavorato") ? ("🧪 " + etichetta) : etichetta;
 
       div.onclick = () => {
         input.value = p.descrizione;
         hidden.value = p.id;
+        if (input.dataset.nomeDettato) { salvaAliasIngrediente(input.dataset.nomeDettato, p.id); delete input.dataset.nomeDettato; }
         suggestBox.innerHTML = "";
         suggestBox.classList.remove("open");
         if (typeof onPick === "function") onPick(p);
