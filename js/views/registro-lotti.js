@@ -134,7 +134,7 @@ async function toggleDettaglio(card) {
       .select("quantita, unita_misura, costo_totale, lotto_materia_prima, prodotti(nome)")
       .eq("lotto_id", id),
     supa.from("produzione_lotti")
-      .select("ricetta_id, dettaglio_confezionamento, conforme, nc_motivo, firma_tramite, note, quantita_output, unita_misura, data_scadenza, codice_lotto, data_produzione")
+      .select("id, ricetta_id, dettaglio_confezionamento, conforme, nc_motivo, firma_tramite, note, quantita_output, unita_misura, data_scadenza, codice_lotto, data_produzione")
       .eq("id", id).maybeSingle(),
     supa.from("etichette_produttore")
       .select("ragione_sociale, indirizzo, stabilimento, partita_iva, marchio")
