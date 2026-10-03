@@ -4874,6 +4874,7 @@ async function salvaTutto() {
       let peso_porzione = toNumOrNull(r.querySelector(".porz-peso")?.value);
       let unita_misura = (r.querySelector(".porz-um")?.value || "gr").trim();
       let pezzi_per_stampo = null;
+      let pezzi_per_porzione = 1;
       const note = (r.querySelector(".porz-note")?.value || "").trim() || null;
       const attivo = (r.querySelector(".porz-attivo")?.value !== "false");
 
