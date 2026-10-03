@@ -4896,6 +4896,7 @@ async function salvaTutto() {
         unita_misura,
         tipo_porzione,
         pezzi_per_stampo,
+        pezzi_per_porzione,
         note,
         attivo,
         grafica_url: r.dataset.graficaUrl || null,
