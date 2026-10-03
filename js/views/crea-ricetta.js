@@ -835,6 +835,8 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
         label: p.label || p.contesto || "ristorante",
         peso_porzione: p.peso_porzione || p.peso || p.peso_g || 0,
         unita_misura: p.unita_misura || "gr",
+        tipo_porzione: p.tipo_porzione,
+        pezzi_per_stampo: p.pezzi_per_stampo,
         note: p.note || ""
       }));
     }
