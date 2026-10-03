@@ -1680,7 +1680,12 @@ function bindCoprodottoAutocomplete() {
       const q = norm(input.value.trim());
       hidden.value = ""; setRow("", null);
       if (q.length < 1) { chiudi(); return; }
-      const ris = prodottiCache.filter((p) => norm(p.nome).includes(q)).slice(0, 12);
+      // per parole, in qualunque ordine: "base guacamole" trova "base avocado per guacamole"
+      const parole = q.split(/\s+/).filter((w) => w.length > 1);
+      const ris = prodottiCache.filter((p) => {
+        const nn = norm(p.nome);
+        return nn.includes(q) || (parole.length > 0 && parole.every((w) => nn.includes(w)));
+      }).slice(0, 12);
       let html = ris.map((p) =>
         `<div class="cop-opt" data-id="${escapeAttr(String(p.id))}" data-um="${escapeAttr(String(p.unita_misura || ""))}" data-nome="${escapeAttr(String(p.nome))}" style="padding:9px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid #f1f5f9;">${escapeHtml(p.nome)}</div>`
       ).join("");
