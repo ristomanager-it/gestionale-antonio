@@ -3380,12 +3380,12 @@ async function aggiornaCostiProduzione() {
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
           <div style="font-size:12px;color:#64748b;">🥩 Materia prima</div>
           <div style="font-size:20px;font-weight:800;color:#9a3412;">€ ${mpPorzione.toFixed(2)}</div>
-          <div style="font-size:11.5px;color:#94a3b8;">a porzione · ${formatMoney(mpTotale)} per ${porzioniRicetta}</div>
+          <div style="font-size:11.5px;color:#94a3b8;">${unita}${resaMancante ? "" : " · " + formatMoney(mpTotale) + " in tutto"}</div>
         </div>
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
           <div style="font-size:12px;color:#64748b;">👨‍🍳 Manodopera</div>
           <div style="font-size:20px;font-weight:800;color:#0E5A7A;">€ ${c.lavoro_porzione.toFixed(2)}</div>
-          <div style="font-size:11.5px;color:#94a3b8;">a porzione · ${c.minuti_totali} min per ${c.lotto}</div>
+          <div style="font-size:11.5px;color:#94a3b8;">${unita} · ${c.minuti_totali} min di lavoro in tutto</div>
         </div>
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
           <div style="font-size:12px;color:#64748b;">⚡ Energia</div>
