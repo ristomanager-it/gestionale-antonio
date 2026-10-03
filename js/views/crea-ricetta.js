@@ -4881,6 +4881,7 @@ async function salvaTutto() {
       if (tipo_porzione === "pezzi") {
         pezzi_per_stampo = Math.round(toNumOrNull(r.querySelector(".porz-pezzi")?.value) || 0) || null;
         if (!pezzi_per_stampo) return;
+        pezzi_per_porzione = toNumOrNull(r.querySelector(".porz-ppp")?.value) || 1;
         // pesato una volta -> grammi veri (la produzione calcola i kg); altrimenti 1 pz
         const g = toNumOrNull(r.querySelector(".porz-peso-pezzo")?.value);
         if (g && g > 0) { peso_porzione = g; unita_misura = "gr"; }
