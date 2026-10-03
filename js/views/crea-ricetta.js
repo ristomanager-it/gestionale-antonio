@@ -1670,6 +1670,9 @@ export async function render(app) {
                 type="number"
                 step="0.001"
                 class="input" />
+              <div id="r-output-peso-stima" class="form-help" style="display:none;color:#92400e;">
+                ⚖️ Stimato dalla somma degli ingredienti (crudo). Pesa il prodotto finito e scrivilo qui: il costo al kg diventa esatto.
+              </div>
             </div>
 
             <div class="form-group">
