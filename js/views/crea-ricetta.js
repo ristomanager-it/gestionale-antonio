@@ -3968,6 +3968,8 @@ function aggiungiPorzione(initial = {}) {
         </select>
       </div>
 
+      <div class="porz-costo" style="grid-column:1/-1;font-size:13px;color:#0f172a;background:#f0f9ff;border-radius:8px;padding:0 10px;line-height:2.2;"></div>
+
       <div class="form-group" style="grid-column:1/-1;">
         <label>Note (opz.)</label>
         <input class="porz-note input" value="${escapeAttr(initial.note || "")}" />
