@@ -1585,6 +1585,12 @@ export async function render(app) {
         <div id="stampo-campi" style="display:none;margin-top:12px;border-top:1px solid #f1f5f9;padding-top:10px;">
           <div style="font-size:12.5px;font-weight:600;color:#64748b;margin-bottom:6px;">La dose è scritta per questo stampo</div>
           <div id="stampo-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+            <span style="font-size:12px;color:#64748b;align-self:center;">Teglie gastronorm:</span>
+            <button type="button" class="stampo-gn" data-l1="53" data-l2="32.5" style="border:1.5px solid #e2e8f0;background:#fff;border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer;">GN 1/1</button>
+            <button type="button" class="stampo-gn" data-l1="35.4" data-l2="32.5" style="border:1.5px solid #e2e8f0;background:#fff;border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer;">GN 2/3</button>
+            <button type="button" class="stampo-gn" data-l1="32.5" data-l2="26.5" style="border:1.5px solid #e2e8f0;background:#fff;border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer;">GN 1/2</button>
+          </div>
           <div id="stampo-forme" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
             <button type="button" data-forma="tonda" class="stampo-forma">⭕<br>Tonda</button>
             <button type="button" data-forma="quadrata" class="stampo-forma">⬛<br>Quadrata</button>
