@@ -162,10 +162,12 @@ def build_etichetta(c):
         png = png.split(",", 1)[1]
     img = Image.open(io.BytesIO(base64.b64decode(png))).convert("RGB")
     copie = max(1, min(int(c.get("copie") or 1), 50))
-    rosso = c.get("rosso", True)
+    # rotolo scelto nell'app: 62red, 62, 54, 50, 38, 29 (continui) o 62x29, 62x100 (pretagliati)
+    label = str(c.get("label") or ("62red" if c.get("rosso", True) else "62"))
+    rosso = label == "62red"
     q = BrotherQLRaster(str(c.get("modello") or "QL-820NWB"))
     q.exception_on_warning = False
-    return convert(qlr=q, images=[img] * copie, label="62red" if rosso else "62", rotate="0",
+    return convert(qlr=q, images=[img] * copie, label=label, rotate="0",
                    threshold=70.0, dither=False, compress=True, red=bool(rosso), dpi_600=False, hq=True, cut=True)
 
 
