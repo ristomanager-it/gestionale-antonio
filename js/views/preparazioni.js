@@ -629,7 +629,7 @@ async function loadPorzioniRicetta(ricettaId) {
 
   const { data, error } = await supabase
     .from("ricette_porzione")
-    .select("id, label, peso_porzione, unita_misura, note")
+    .select("id, label, peso_porzione, unita_misura, note, tipo_porzione, pezzi_per_stampo")
     .eq("azienda_id", aziendaId)
     .eq("ricetta_id", ricettaId)
     .eq("attivo", true)
