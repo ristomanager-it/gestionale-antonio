@@ -86,7 +86,9 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   pezzi.push({ b: "Allergeni:", t: allerg.length ? allerg.join(", ") : "nessuno", rosso: allerg.length > 0 });
   if (etichetta.origine) pezzi.push({ b: "Origine:", t: etichetta.origine });
   if (etichetta.peso_sgocciolato_g) pezzi.push({ b: "Sgocciolato:", t: etichetta.peso_sgocciolato_g + " g" });
-  const cons = [etichetta.conservazione, etichetta.dopo_apertura].filter(Boolean).join(" ");
+  // conservazione e dopo apertura: due frasi, col punto in mezzo anche se nella scheda manca
+  const cons = [etichetta.conservazione, etichetta.dopo_apertura].map(t => String(t || "").trim()).filter(Boolean)
+    .map(t => /[.!?]$/.test(t) ? t : t + ".").join(" ");
   if (cons) pezzi.push({ b: "", t: cons });
 
   function fai(scala, disegna) {
