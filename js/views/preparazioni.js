@@ -4074,6 +4074,8 @@ async function stampaEtichetteBrother() {
   const righe = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0 && r.kg_per_confezione > 0);
   if (!righe.length) return alert("Nessuna confezione con peso e numero: aggiungile nel confezionamento.");
   const info = { codice_lotto: lottoCorrente().codice_lotto || "", data_scadenza: scadenza };
+  const formato = await scegliFormatoEtichetta();
+  if (!formato) return;
   if (btn) { btn.disabled = true; btn.textContent = "🖨️ Invio..."; }
   let tot = 0;
   try {
