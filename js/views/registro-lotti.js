@@ -239,9 +239,11 @@ async function toggleDettaglio(card) {
 }
 
 async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
-  const r = await inviaEtichetteLotto({ etichetta, produttore, info, peso, copie: quante });
+  const formato = await scegliFormatoEtichetta();
+  if (!formato) return;
+  const r = await inviaEtichetteLotto({ etichetta, produttore, info, peso, copie: quante, formato });
   if (r.motivo === "troppo_lungo") {
-    alert("Il testo non entra nell'etichetta 62x40 senza scendere sotto la misura minima di legge.\n\nAccorcia ingredienti o conservazione nella scheda etichetta della ricetta.");
+    alert("Il testo non entra nell'etichetta " + formato.larghezzaMm + "x" + formato.lunghezzaMm + " senza scendere sotto la misura minima di legge.\n\nAllunga l'etichetta, oppure accorcia ingredienti o conservazione nella scheda etichetta della ricetta.");
     return;
   }
   if (r.ok) { alert("🏷 " + quante + " " + (quante === 1 ? "etichetta inviata" : "etichette inviate") + " alla stampante"); return; }
