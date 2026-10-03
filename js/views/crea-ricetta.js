@@ -4008,7 +4008,8 @@ function aggiungiPorzione(initial = {}) {
     </div>
   `;
 
-  card.querySelector(".porz-um").value = initial.unita_misura || "gr";
+  card.querySelector(".porz-um").innerHTML = `<option value="${escapeAttr(umIniz || "gr")}">${escapeHtml(umIniz || "gr")}</option>`;
+  card.querySelector(".porz-um").value = umIniz || "gr";
   card.querySelector(".porz-attivo").value = String(initial.attivo ?? true);
   card.querySelector('[data-action="delete"]').addEventListener("click", () => card.remove());
   card.querySelectorAll(".porz-tipo").forEach((b) => b.addEventListener("click", () => { card.dataset.tipo = b.dataset.tipo; porzMostraTipo(card); }));
