@@ -2847,42 +2847,113 @@ function filterFasiByTab() {
    🔍 FUZZY MATCH — trova prodotti simili nel magazzino
    Ritorna lista ordinata per score (0-100)
 ============================================================ */
-function trovaProdottiSimili(nomeRicercato, maxRisultati = 5) {
-  if (!nomeRicercato || !prodottiCache.length) return [];
-  const q = nomeRicercato.toLowerCase().trim();
-  const parole = q.split(/\s+/).filter(p => p.length > 2);
+/* ===== RICERCA INGREDIENTI =====
+   Prima cercava solo in prodotti.descrizione (il testo grezzo di fattura) e a
+   parita' vinceva l'ordine alfabetico: "sale" pescava "546/547e sale in pastiglie
+   x addolcitore" perche' inizia con un numero; "farina rimacinata" non trovava
+   "semola gr duro rimac". Ora: nome_interno + nome + descrizione, abbreviazioni
+   da fattura, sinonimi di cucina, materiale di consumo in fondo, e le scelte del
+   cuoco salvate come alias (prodotti_alias_ocr) per la volta dopo. */
+const ABBREVIAZIONI = { rimac: "rimacinata", rimacin: "rimacinata", rim: "rimacinata", glut: "glutine",
+  evo: "extravergine", extraverg: "extravergine", parmig: "parmigiano", mozz: "mozzarella",
+  pomod: "pomodoro", pomodori: "pomodoro", pom: "pomodoro", uova: "uovo", formagg: "formaggio",
+  zucch: "zucchero", zuccheri: "zucchero", prosc: "prosciutto", pelat: "pelati", conc: "concentrato" };
+const SINONIMI = [
+  ["farina rimacinata", "semola rimacinata"], ["semola", "semola grano duro"],
+  ["olio evo", "olio extravergine"], ["olio extravergine", "olio evo"],
+  ["parmigiano", "parmigiano reggiano"], ["grana", "grana padano"],
+  ["uovo", "uova"], ["panna", "panna cucina"], ["pepe", "pepe nero"]];
+const PAROLE_VUOTE = new Set(["di","del","della","dei","delle","da","al","alla","il","la","lo","le","i","gli","un","una","e","con","per","in",
+  "kg","kgr","gr","g","lt","l","ltr","ml","cl","pz","cf","conf","bs","pn","bt","x","f","s","n","sv","vasc","porz"]);
+function normRic(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\bs\s*\/\s*glut\w*/g, " senza glutine ").replace(/\bgr\.?\s+duro\b/g, " grano duro ")
+    .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+function paroleRic(s) {
+  return normRic(s).split(" ").filter(w => w && !PAROLE_VUOTE.has(w)
+      && !/^(kg|kgr|gr|g|lt|l|ltr|ml|cl|pz|cf|cm)\d/.test(w)   // kg25, gr500
+      && !/^\d{3,}/.test(w) && !/^\d+[a-z]/.test(w))    // codici e misure; 0, 00, 1 restano (farine)
+    .map(w => ABBREVIAZIONI[w] || w);
+}
+function chiaveAliasRic(s) {
+  return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ")
+    .replace(/\b(pz|kg|kgr|gr|g|lt|ltr|l|ml|cl|cf|conf|bs|pn)\s*[0-9]+\b/g, " $1 ")
+    .replace(/\b[0-9]+\b/g, " ").replace(/\s+/g, " ").trim();
+}
+function parolaCombacia(q, t) {
+  if (q === t) return 1;
+  const r = q.length <= t.length ? q : t, l = q.length <= t.length ? t : q;
+  if (r.length >= 4 && l.startsWith(r)) return 0.75;              // rimac / rimacinata
+  if (q.length >= 5 && t.length >= 5 && q.slice(0, 5) === t.slice(0, 5)) return 0.7; // pomodoro / pomodorini
+  return 0;
+}
+function punteggioTesto(qParole, testo) {
+  const tParole = paroleRic(testo);
+  if (!tParole.length || !qParole.length) return 0;
+  let presi = 0;
+  for (const q of qParole) { let m = 0; for (const t of tParole) m = Math.max(m, parolaCombacia(q, t)); presi += m; }
+  const copertura = presi / qParole.length;          // quanto della richiesta c'e'
+  if (copertura < 0.5) return 0;
+  // la prima parola e' l'ingrediente (pepe nero, farina di riso): se manca, il resto conta poco
+  let testa = 0; for (const t of tParole) testa = Math.max(testa, parolaCombacia(qParole[0], t));
+  if (testa < 0.75) return 0;
+  const precisione = Math.min(1, presi / tParole.length); // quanto il nome e' "solo quello"
+  let s = 70 * copertura + 25 * precisione;
+  if (parolaCombacia(qParole[0], tParole[0]) >= 0.75) s += 5; // stessa parola iniziale
+  return s;
+}
+// aliasRic: Map testo_norm -> prodotto_id (prodotti_alias_ocr)
+function trovaProdottiSimiliCore(nomeRicercato, prodotti, aliasRic, maxRisultati) {
+  if (!nomeRicercato || !prodotti.length) return [];
+  const varianti = [nomeRicercato];
+  const nq = normRic(nomeRicercato);
+  SINONIMI.forEach(([a, b]) => { if (nq === a || nq.startsWith(a + " ")) varianti.push(b + nq.slice(a.length)); });
+  const dalAlias = aliasRic ? aliasRic.get(chiaveAliasRic(nomeRicercato)) : null;
 
-  const scored = prodottiCache.map(p => {
-    const nome = (p.descrizione || p.nome || "").toLowerCase();
+  const scored = prodotti.map(p => {
+    const testi = [p.nome_interno, p.nome, p.descrizione].filter(Boolean);
     let score = 0;
-
-    // Match esatto
-    if (nome === q) { score = 100; }
-    // Contiene la stringa intera
-    else if (nome.includes(q)) { score = 80; }
-    else if (q.includes(nome) && nome.length > 3) { score = 70; }
-    else {
-      // Match per parole chiave
-      const paroleTrovate = parole.filter(pw => nome.includes(pw));
-      score += paroleTrovate.length * 20;
-      // Match prime lettere
-      if (nome.startsWith(q.substring(0, 3))) score += 15;
-      // Levenshtein semplice sui primi 8 caratteri
-      const a = q.substring(0, 8), b = nome.substring(0, 8);
-      let dist = 0;
-      for (let i = 0; i < Math.min(a.length, b.length); i++) {
-        if (a[i] !== b[i]) dist++;
+    for (const v of varianti) {
+      const qp = paroleRic(v);
+      for (const t of testi) {
+        if (normRic(t) === normRic(v)) { score = Math.max(score, 100); continue; }
+        score = Math.max(score, punteggioTesto(qp, t) - (v === nomeRicercato ? 0 : 3));
       }
-      score += Math.max(0, 15 - dist * 5);
     }
-
-    return { prodotto: p, score };
+    if (dalAlias && String(dalAlias) === String(p.id)) score = Math.max(score, 101);
+    // materiale di consumo (pulizia, sale addolcitore...) non e' un ingrediente
+    if (Number(p.categoria_bilancio_id) === 9) score -= 45;
+    return { prodotto: p, score: Math.round(score) };
   })
-  .filter(x => x.score > 0)
-  .sort((a, b) => b.score - a.score)
+  .filter(x => x.score > 20)
+  .sort((a, b) => b.score - a.score || String(a.prodotto.nome_interno || a.prodotto.descrizione || "").length - String(b.prodotto.nome_interno || b.prodotto.descrizione || "").length)
   .slice(0, maxRisultati);
 
+  // preselezione automatica (>=70) solo se il primo stacca davvero il secondo:
+  // con "sale" ci sono fino, grosso, marino... deve scegliere il cuoco
+  if (scored.length > 1 && scored[0].score < 101 && scored[0].score - scored[1].score < 8) {
+    scored.forEach(x => { if (x.score >= 70) x.score = 69; });
+  }
   return scored;
+}
+
+let aliasRicMap = new Map();   // testo_norm -> prodotto_id
+
+function trovaProdottiSimili(nomeRicercato, maxRisultati = 5) {
+  return trovaProdottiSimiliCore(nomeRicercato, prodottiCache, aliasRicMap, maxRisultati);
+}
+
+// la scelta del cuoco diventa memoria: "farina rimacinata" -> semola rimac.
+async function salvaAliasIngrediente(testo, prodottoId) {
+  const t = String(testo || "").trim();
+  const aziendaId = window.state?.azienda?.id;
+  if (!t || !prodottoId || !aziendaId) return;
+  try {
+    const supa = window.supabaseClient || window.supabase;
+    const { error } = await supa.rpc("alias_ocr_salva", { p_azienda: aziendaId, p_testo: t, p_prodotto: Number(prodottoId) });
+    if (!error) aliasRicMap.set(chiaveAliasRic(t), Number(prodottoId));
+  } catch (e) { console.warn("alias ingrediente non salvato", e); }
 }
 
 // Precompila campo search e apre dropdown con candidati
