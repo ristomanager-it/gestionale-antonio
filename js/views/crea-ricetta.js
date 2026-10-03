@@ -837,6 +837,7 @@ async function tonyApplicaSezione(sezione, result, overlay, status) {
         unita_misura: p.unita_misura || "gr",
         tipo_porzione: p.tipo_porzione,
         pezzi_per_stampo: p.pezzi_per_stampo,
+        pezzi_per_porzione: p.pezzi_per_porzione,
         note: p.note || ""
       }));
     }
