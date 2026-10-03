@@ -168,6 +168,8 @@ const routes = {
   "registro-messaggi": () => imp("./views/registro-messaggi.js"),
   storicoLotto: () => imp("./views/storico-lotto.js"),
   ricettario: () => imp("./views/ricettario.js"),
+  // stessa ricetta, porzione diversa per locale (trattoria, ristorante, ricevimento)
+  "grammature-servizio": () => imp("./views/grammature-servizio.js"),
   "planner-produzione": () => imp("./views/planner-produzione.js"),
   // Editor ricette UNICO: modalità semplice/avanzata dentro crea-ricetta.js
   creaRicetta: () => imp("./views/crea-ricetta.js"),
