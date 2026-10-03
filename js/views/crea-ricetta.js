@@ -4891,7 +4891,7 @@ async function salvaTutto() {
   // Costo per porzione: preferisco il totale diviso le porzioni previste,
   // altrimenti ricavo dal costo unitario per il peso della porzione.
   let costoPorzione = 0;
-  const nPorz = Number(getVal("r-pezzi-base"));
+  let nPorz = Number(getVal("r-pezzi-base"));
   const costoTot = Number(computed?.costoTotaleInput) || 0;
   // se c'e' una porzionatura a pezzi da teglia comanda lei (la prima: di solito trattoria/ristorante)
   const cardPz = [...document.querySelectorAll("#porzioni-container .azienda-card")]
