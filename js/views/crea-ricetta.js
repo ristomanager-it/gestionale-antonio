@@ -3328,9 +3328,15 @@ async function aggiornaCostiProduzione() {
 
   if (!fasi.length) { box.innerHTML = ""; return; }
 
+  // Un solo divisore per tutto: le porzioni previste della ricetta. Prima la
+  // materia prima si divideva per la resa (38 panini) e manodopera/energia per un
+  // "porzioni per sessione" a parte (10, mai salvato): due numeri per la stessa infornata.
+  const porzioniResa = Math.max(Number(document.getElementById("r-pezzi-base")?.value) || 0, 0);
+  const resaMancante = porzioniResa <= 0;
+  const porzioniRicetta = resaMancante ? 1 : porzioniResa;
   const c = calcolaCostiProduzione(fasi, {
     costi: _costiOrari, energia: _energia,
-    lotto: _lottoStandard, porzioni: Number(document.getElementById("r-pezzi-base")?.value) || 1,
+    lotto: porzioniRicetta, porzioni: porzioniRicetta,
   });
 
   // materia prima dalle righe ingredienti: se correggi un prodotto, qui cambia subito
