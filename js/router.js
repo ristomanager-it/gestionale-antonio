@@ -1837,6 +1837,7 @@ const ROUTE_FEATURES = {
 
   // Cucina & Ricette
   "ricette":         "ricettario",
+  "grammature-servizio": "ricettario",
   "planner-produzione": "ricettario",
 
   // Personale
