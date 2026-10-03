@@ -3355,12 +3355,9 @@ async function aggiornaCostiProduzione() {
     });
     mpTotale = Number(calc.costoTotaleInput) || 0;
   }
-  // Le quantita' degli ingredienti sono di TUTTA la sessione, non di una porzione:
-  // se la resa non e' compilata si divideva per 1 e usciva il costo dell'intera
-  // infornata spacciato per costo a porzione (il pollo a 29 € invece che a 2,90).
-  const porzioniResa = Math.max(Number(document.getElementById("r-pezzi-base")?.value) || 0, 0);
-  const porzioniRicetta = porzioniResa > 0 ? porzioniResa : Math.max(Number(_lottoStandard) || 1, 1);
-  const resaMancante = porzioniResa <= 0;
+  // Le quantita' degli ingredienti sono di TUTTA la sessione: senza porzioni
+  // previste si mostra il costo della sessione intera, dichiarato come tale.
+  const unita = resaMancante ? "per sessione" : "a porzione";
   const mpPorzione = mpTotale / porzioniRicetta;
   const pienoPorzione = mpPorzione + c.totale_porzione;
 
