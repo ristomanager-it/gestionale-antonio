@@ -2990,10 +2990,7 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
     // Match sicuro: preseleziona direttamente
     ingSearch.value = matchEsatto.descrizione || matchEsatto.nome || nomeTony;
     ingHidden.value = matchEsatto.id;
-    if (umSel) {
-      const val = normUm(matchEsatto._um_unitaria || matchEsatto.um);
-      if (["kg","gr","pz","lt","ml"].includes(val)) umSel.value = val;
-    }
+    umPerRicetta(matchEsatto, umSel);
     ingSearch.style.borderColor = "#16a34a";
     ingSearch.title = "✅ Trovato nel magazzino";
     if (typeof onPick === "function") onPick(matchEsatto);
