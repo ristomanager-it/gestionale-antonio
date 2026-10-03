@@ -399,6 +399,7 @@ export function initMenu() {
         { label: "📖 Ricette e menu", route: "ricettario", children: [
           { label: "📖 Ricettario",         route: "ricettario"         },
           { label: "➕ Nuova ricetta",       route: "crea-ricetta" },
+          { label: "⚖️ Grammature servizio", route: "grammature-servizio" },
           { label: "🍽️ Menu del Giorno", route: "menu-giorno" },
           { label: "🧩 Menu Componibile", route: "menu-componibile" },
         ] },
