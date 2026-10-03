@@ -6,10 +6,18 @@
 const FATTORE_CARICO = 0.65;   // un forno non assorbe il massimo per tutto il tempo
 const COSTO_KWH_DEFAULT = 0.28;
 
-/** Costi orari veri per mansione, dall'anagrafica dipendenti. */
-export async function caricaCostiOrari(supabase, aziendaId) {
-  const out = { ruoli: {}, medio: 0 };
+/** Costo orario di produzione. Fonte unica: sedi.costo_orario_produzione,
+ *  la stessa che usa fn_ricalcola_costo_ricetta nel database. Se la sede non
+ *  ce l'ha si ripiega sulla media per mansione dall'anagrafica dipendenti. */
+export async function caricaCostiOrari(supabase, aziendaId, sedeId) {
+  const out = { ruoli: {}, medio: 0, fonte: "dipendenti" };
   if (!aziendaId) return out;
+  if (sedeId) {
+    const { data: sede } = await supabase.from("sedi")
+      .select("costo_orario_produzione").eq("id", sedeId).maybeSingle();
+    const v = Number(sede?.costo_orario_produzione) || 0;
+    if (v > 0) { out.medio = v; out.fonte = "sede"; return out; }
+  }
   const { data } = await supabase.from("dipendenti")
     .select("mansione, ruolo, costo_orario").eq("azienda_id", aziendaId).eq("attivo", true);
 

@@ -13,7 +13,7 @@
 // ============================================================
 import { requirePermessi, getRuolo } from "../auth-utils.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
-import { caricaCostiOrari, caricaEnergia, calcolaCostiProduzione } from "../utils/costiProduzione.js";
+import { caricaCostiOrari, caricaEnergia, calcolaCostiProduzione } from "../utils/costiProduzione.js?v=2";
 // Food cost (€ materia prima/manodopera/energia/porzione) visibile solo ad admin/superadmin,
 // non al manager: dato sensibile che l'azienda non vuole in mano a tutti i responsabili sala/cucina.
 function isAdminFoodCost() {
@@ -3309,6 +3309,7 @@ function rinumeraOrdineIngredienti() {
    FASI
 ============================================================ */
 let _costiOrari = null, _energia = null;
+let _sedeRicettaId = null;   // sede della ricetta aperta: da lì il costo orario
 let _pesoStimato = null;   // peso_output_kg stimato dal server, non ancora pesato
 
 async function aggiornaCostiProduzione() {
@@ -3320,7 +3321,7 @@ async function aggiornaCostiProduzione() {
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) return;
 
-  if (!_costiOrari) _costiOrari = await caricaCostiOrari(supabase, aziendaId);
+  if (!_costiOrari) _costiOrari = await caricaCostiOrari(supabase, aziendaId, _sedeRicettaId || window.state?.sedeAttiva?.id || null);
   if (!_energia) _energia = await caricaEnergia(supabase, aziendaId);
 
   const fasi = [];
@@ -3336,6 +3337,15 @@ async function aggiornaCostiProduzione() {
       ruolo: r.querySelector(".fase-ruolo")?.value || "",
       dispositivo_id: r.querySelector(".fase-dispositivo")?.value || "",
     });
+    // Mostra il totale in chiaro: "10" scritto nel campo ore diventa 10 ore, non 10 minuti.
+    const tot = r.querySelector(".fase-lavoro-tot");
+    if (tot) {
+      const lav = h * 60 + m, dur = dh * 60 + dm;
+      const txt = lav ? "= " + (h ? h + " h " : "") + m + " min di lavoro" : "";
+      const troppo = lav > 0 && dur > 0 && lav > dur;
+      tot.textContent = troppo ? txt + " · più lungo della durata della fase, controlla ore e minuti" : txt;
+      tot.style.color = troppo ? "#b91c1c" : (h > 0 ? "#c2410c" : "#64748b");
+    }
   });
 
   if (!fasi.length) { box.innerHTML = ""; return; }
@@ -3413,7 +3423,7 @@ async function aggiornaCostiProduzione() {
 
       <div style="font-size:12px;color:#64748b;margin-top:10px;line-height:1.5;">
         Tutto è diviso per le porzioni previste. Manodopera: minuti di lavoro di ogni fase
-        per il costo orario del ruolo. Energia: durata della fase per la potenza
+        per ${_costiOrari?.fonte === "sede" ? "il costo orario di produzione della sede (€ " + Number(_costiOrari.medio).toFixed(2) + "/h)" : "il costo orario del ruolo"}. Energia: durata della fase per la potenza
         dell'attrezzatura scelta. Senza minuti, ruolo o attrezzatura quella voce resta a zero.
       </div>
     </div>`;
@@ -3464,6 +3474,7 @@ function aggiungiFase(initial = {}) {
           <span style="font-weight:700;">:</span>
           <input class="fase-lavoro-m input" type="number" min="0" max="59" style="width:70px;" placeholder="min" value="${escapeAttr((initial.lavoro_umano_min ?? 0) % 60 || "")}" />
         </div>
+        <div class="fase-lavoro-tot" style="font-size:12px;margin-top:4px;"></div>
       </div>
 
       <div class="form-group">
@@ -4224,6 +4235,7 @@ async function caricaRicettaCompleta() {
   }
 
   setVal("r-nome", ricetta.nome || "");
+  if (ricetta.sede_id && ricetta.sede_id !== _sedeRicettaId) { _sedeRicettaId = ricetta.sede_id; _costiOrari = null; }
   stampoCaricaDaRicetta(ricetta);
   setVal("r-pezzi-base", ricetta.pezzi_base ?? "");
   setVal("r-scaling-tempo", ricetta.scaling_tempo_pct ?? 20);
