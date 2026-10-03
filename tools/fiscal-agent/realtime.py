@@ -119,8 +119,14 @@ def main():
                 agent.elabora(riga)
             if len(righe) == 5:
                 SVEGLIA.set()  # potrebbero essercene altre
+            errore_giro = None
         except Exception as e:
+            errore_giro = e
             print("Errore nel ciclo:", e, flush=True)
+        try:
+            ponte.battito(errore_giro)
+        except Exception as e:
+            print("Battito non inviato:", e, flush=True)
         SVEGLIA.wait(FALLBACK_SECONDS)
 
 
