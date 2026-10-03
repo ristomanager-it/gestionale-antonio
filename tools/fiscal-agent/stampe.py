@@ -199,10 +199,28 @@ def query_in_attesa(limite=10):
     return "coda_stampe?stato=eq.in_attesa&order=created_at.asc&limit=" + str(limite) + f
 
 
+def prenota(rid):
+    """Prende la stampa solo se e' ancora in attesa: con due ponti accesi esce una volta sola."""
+    req = urllib.request.Request(
+        agent.SUPABASE_URL + "/rest/v1/coda_stampe?id=eq." + rid + "&stato=eq.in_attesa",
+        data=json.dumps({"stato": "in_elaborazione"}).encode("utf-8"),
+        method="PATCH",
+        headers={
+            "apikey": agent.SERVICE_KEY,
+            "Authorization": "Bearer " + agent.SERVICE_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return len(json.loads(r.read() or b"[]")) > 0
+
+
 def elabora(riga):
     rid = riga["id"]
     try:
-        agent.sb_patch("coda_stampe?id=eq." + rid + "&stato=eq.in_attesa", {"stato": "in_elaborazione"})
+        if not prenota(rid):
+            return  # l'ha gia' presa l'altro ponte
         invia(riga["stampante_ip"], riga.get("stampante_porta"), build(riga))
         agent.sb_patch("coda_stampe?id=eq." + rid, {"stato": "completato", "elaborato_at": "now()", "errore_msg": None})
         print("Stampa OK", riga.get("tipo"), riga.get("reparto") or "", riga["stampante_ip"], flush=True)
