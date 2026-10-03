@@ -3957,15 +3957,15 @@ function aggiungiPorzione(initial = {}) {
         <input class="porz-peso input" type="number" min="0" step="0.001" value="${escapeAttr(initial.peso_porzione ?? "")}" />
       </div>
 
-      <div class="form-group">
-        <label>Unità misura *</label>
-        <select class="porz-um input">
-          <option value="gr">gr</option>
-          <option value="kg">kg</option>
-          <option value="pz">pz</option>
-          <option value="ml">ml</option>
-          <option value="lt">lt</option>
-        </select>
+      <div class="porz-blocco-peso" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group">
+          <label class="porz-peso-lab">Peso porzione *</label>
+          <input class="porz-peso input" type="number" min="0" step="0.001" value="${escapeAttr(tipo === "pezzi" ? "" : (initial.peso_porzione ?? ""))}" />
+        </div>
+        <div class="form-group">
+          <label>Unità misura *</label>
+          <select class="porz-um input"></select>
+        </div>
       </div>
 
       <div class="porz-costo" style="grid-column:1/-1;font-size:13px;color:#0f172a;background:#f0f9ff;border-radius:8px;padding:0 10px;line-height:2.2;"></div>
