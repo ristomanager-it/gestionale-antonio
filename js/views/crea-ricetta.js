@@ -5475,7 +5475,12 @@ function convertToBase(qty, um) {
 function bindUI() {
   safeOn("btn-add-ing", "click", () => aggiungiIngrediente());
   safeOn("btn-add-out2", "click", () => aggiungiOutputSecondario());
-  safeOn("r-output-peso", "input", () => aggiornaFoodCostLive());
+  safeOn("r-output-peso", "input", () => {
+    _pesoStimato = null;   // scritto a mano: e' una misura reale
+    const nota = document.getElementById("r-output-peso-stima");
+    if (nota) nota.style.display = "none";
+    aggiornaFoodCostLive();
+  });
   safeOn("r-output-um", "change", () => aggiornaFoodCostLive());
   safeOn("r-pezzi-base", "input", () => { aggiornaCostiProduzione(); aggiornaFoodCostLive(); });
   safeOn("btn-add-fase", "click", () =>
