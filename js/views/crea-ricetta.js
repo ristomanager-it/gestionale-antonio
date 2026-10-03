@@ -4893,6 +4893,10 @@ async function salvaTutto() {
   let costoPorzione = 0;
   const nPorz = Number(getVal("r-pezzi-base"));
   const costoTot = Number(computed?.costoTotaleInput) || 0;
+  // se c'e' una porzionatura a pezzi da teglia comanda lei (la prima: di solito trattoria/ristorante)
+  const cardPz = [...document.querySelectorAll("#porzioni-container .azienda-card")]
+    .find((c) => c.dataset.tipo === "pezzi" && Number(c.querySelector(".porz-pezzi")?.value) > 0);
+  if (cardPz) nPorz = Math.round(Number(cardPz.querySelector(".porz-pezzi").value)) * stampiPerDose();
   if (Number.isFinite(nPorz) && nPorz > 0 && costoTot > 0) {
     costoPorzione = costoTot / nPorz;
   } else {
