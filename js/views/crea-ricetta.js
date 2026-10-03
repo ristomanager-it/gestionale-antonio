@@ -3222,11 +3222,7 @@ function aggiungiIngrediente(initial = {}) {
   };
 
   setupAutocomplete(ingSearch, ingHidden, ingSuggest, (p) => {
-    if (p?.um && umSel) {
-      const val = String(p.um).toLowerCase();
-      const ok = ["kg", "gr", "pz", "l", "ml"].includes(val);
-      if (ok) umSel.value = val;
-    }
+    umPerRicetta(p, umSel);
     // Reset stile fuzzy quando l'utente sceglie manualmente
     ingSearch.style.borderColor = "#16a34a";
     ingSearch.style.background = "";
