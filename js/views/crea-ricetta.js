@@ -3016,6 +3016,7 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
           ingSearch.style.background = "";
           ingSearch.title = "✅ Trovato nel magazzino";
           ingSuggest.classList.remove("open");
+          if (ingSearch.dataset.nomeDettato) { salvaAliasIngrediente(ingSearch.dataset.nomeDettato, p.id); delete ingSearch.dataset.nomeDettato; }
           if (umSel) {
             const val = normUm(p._um_unitaria || p.um);
             if (["kg","gr","pz","lt","ml"].includes(val)) umSel.value = val;
