@@ -2979,6 +2979,7 @@ function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umS
   } else {
     // Match incerto: precompila il nome e mostra dropdown con candidati
     ingSearch.value = nomeTony;
+    ingSearch.dataset.nomeDettato = nomeTony;   // quando sceglie, lo impariamo
     ingHidden.value = "";
     ingSearch.style.borderColor = "#f59e0b";
     ingSearch.style.background = "#fffbeb";
