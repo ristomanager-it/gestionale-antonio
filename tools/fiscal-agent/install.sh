@@ -22,7 +22,10 @@ echo "-> Scarico agente"
 curl -fsSL "$BASE/agent.py" -o agent.py.nuovo
 curl -fsSL "$BASE/realtime.py" -o realtime.py.nuovo
 curl -fsSL "$BASE/stampe.py" -o stampe.py.nuovo
-python3 -m py_compile agent.py.nuovo realtime.py.nuovo stampe.py.nuovo
+curl -fsSL "$BASE/ponte.py" -o ponte.py.nuovo
+curl -fsSL "$BASE/rete.sh" -o rete.sh
+chmod +x rete.sh
+python3 -m py_compile agent.py.nuovo realtime.py.nuovo stampe.py.nuovo ponte.py.nuovo
 [ -f agent.py ] && cp agent.py agent.py.bak
 [ -f realtime.py ] && cp realtime.py realtime.py.bak
 mv agent.py.nuovo agent.py
