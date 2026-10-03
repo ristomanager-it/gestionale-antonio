@@ -4209,6 +4209,13 @@ async function caricaRicettaCompleta() {
     setVal("r-output-um", "kg");
     setVal("r-output-note", "");
   }
+  // resa stimata dal server (somma ingredienti): si mostra, ma al salvataggio non
+  // diventa "reale" finche' non la modifica qualcuno
+  _pesoStimato = (!(Number(outputCache?.peso_finale) > 0) && ricetta.peso_output_stimato && Number(ricetta.peso_output_kg) > 0)
+    ? Number(ricetta.peso_output_kg) : null;
+  if (_pesoStimato !== null) setVal("r-output-peso", _pesoStimato);
+  const notaStima = document.getElementById("r-output-peso-stima");
+  if (notaStima) notaStima.style.display = _pesoStimato !== null ? "" : "none";
 
   // output secondari
   const { data: out2 } = await pSecondari;
