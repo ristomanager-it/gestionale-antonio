@@ -768,6 +768,9 @@ const routePermissions = {
   "ricettario":
     "ricette.write",
 
+  "grammature-servizio":
+    "ricette.write",
+
   "mansionario-sala":
     "sala.read",
 
