@@ -2957,6 +2957,26 @@ async function salvaAliasIngrediente(testo, prodottoId) {
   } catch (e) { console.warn("alias ingrediente non salvato", e); }
 }
 
+// UM in ricetta quando si sceglie un prodotto. prodotti.um e' l'unita' di
+// fattura (pz = confezione) e unita_base e' vuota: copiarla faceva diventare
+// "2,5 kg di farina" -> "2,5 pz", cioe' 2,5 sacchi da 25 kg. Si usa l'unita'
+// di costo (_um_unitaria) e, se la quantita' e' gia' scritta a peso o volume,
+// non si tocca: il food cost converte da solo kg/gr e lt/ml.
+function umPerRicetta(p, umSel) {
+  if (!umSel || !p) return;
+  const ammesse = ["kg", "gr", "pz", "lt", "ml"];
+  const attuale = normUm(umSel.value);
+  const qtaInput = umSel.closest(".azienda-card")?.querySelector(".ing-qta");
+  const qtaScritta = Number(qtaInput?.value) > 0;
+  if (qtaScritta && ["kg", "gr", "lt", "ml"].includes(attuale)) return;
+  let val = normUm(p._um_unitaria);
+  if (!ammesse.includes(val)) val = normUm(p.um);
+  if (!ammesse.includes(val)) return;
+  if (val === "gr") val = "kg";
+  if (val === "ml") val = "lt";
+  umSel.value = val;
+}
+
 // Precompila campo search e apre dropdown con candidati
 function precompilaCampoConFuzzy(ingSearch, ingHidden, ingSuggest, nomeTony, umSel, onPick) {
   if (!nomeTony) return;
