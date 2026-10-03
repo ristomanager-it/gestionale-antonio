@@ -2860,6 +2860,7 @@ const ABBREVIAZIONI = { rimac: "rimacinata", rimacin: "rimacinata", rim: "rimaci
   zucch: "zucchero", zuccheri: "zucchero", prosc: "prosciutto", pelat: "pelati", conc: "concentrato" };
 const SINONIMI = [
   ["farina rimacinata", "semola rimacinata"], ["semola", "semola grano duro"],
+  ["farina di semola", "semola"], ["farina semola", "semola"],
   ["olio evo", "olio extravergine"], ["olio extravergine", "olio evo"],
   ["parmigiano", "parmigiano reggiano"], ["grana", "grana padano"],
   ["uovo", "uova"], ["panna", "panna cucina"], ["pepe", "pepe nero"]];
