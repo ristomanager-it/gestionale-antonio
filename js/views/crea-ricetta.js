@@ -1928,10 +1928,17 @@ async function loadProdotti() {
 
   const { data, error } = await supabase
     .from("prodotti")
-    .select("id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione, contenuto_confezione, um_costo, tipo_prodotto, ricetta_id")
+    .select("id, nome, nome_interno, categoria_bilancio_id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione, contenuto_confezione, um_costo, tipo_prodotto, ricetta_id")
     .eq("azienda_id", aziendaId)
     .eq("attivo", true)
     .order("descrizione");
+
+  // alias (fatture + scelte fatte in ricetta): testo_norm -> prodotto
+  try {
+    const { data: al } = await supabase.from("prodotti_alias_ocr")
+      .select("testo_norm, prodotto_id").eq("azienda_id", aziendaId).limit(20000);
+    aliasRicMap = new Map((al || []).filter(a => a.testo_norm).map(a => [a.testo_norm, a.prodotto_id]));
+  } catch (e) { aliasRicMap = new Map(); }
 
   if (error) {
     console.error(error);
