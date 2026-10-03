@@ -598,12 +598,21 @@ async function preloadProdotti() {
   prodottiCache = [];
   if (!supabase || !aziendaId) return;
 
-  const { data, error } = await supabase
-    .from("prodotti")
-    .select("id, nome, unita_misura")
-    .eq("azienda_id", aziendaId)
-    .eq("attivo", true)
-    .order("nome");
+  // a blocchi: il server ne restituisce al massimo 1000 per volta
+  let data = [], error = null;
+  for (let start = 0; start < 20000; start += 1000) {
+    const res = await supabase
+      .from("prodotti")
+      .select("id, nome, unita_misura")
+      .eq("azienda_id", aziendaId)
+      .eq("attivo", true)
+      .order("id", { ascending: true })
+      .range(start, start + 999);
+    if (res.error) { error = res.error; break; }
+    data = data.concat(res.data || []);
+    if (!res.data || res.data.length < 1000) break;
+  }
+  data.sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
 
   if (error) {
     console.error("Errore preload prodotti:", error);
