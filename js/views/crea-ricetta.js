@@ -4776,7 +4776,14 @@ async function salvaTutto() {
       const attivo = (r.querySelector(".porz-attivo")?.value !== "false");
 
       if (!label) return;
-      if (!peso_porzione || peso_porzione <= 0) return;
+      if (tipo_porzione === "pezzi") {
+        pezzi_per_stampo = Math.round(toNumOrNull(r.querySelector(".porz-pezzi")?.value) || 0) || null;
+        if (!pezzi_per_stampo) return;
+        // pesato una volta -> grammi veri (la produzione calcola i kg); altrimenti 1 pz
+        const g = toNumOrNull(r.querySelector(".porz-peso-pezzo")?.value);
+        if (g && g > 0) { peso_porzione = g; unita_misura = "gr"; }
+        else { peso_porzione = 1; unita_misura = "pz"; }
+      } else if (!peso_porzione || peso_porzione <= 0) return;
 
       // le porzioni si salvano con delete + insert: senza riportare questi due campi
       // la grafica caricata sparirebbe a ogni salvataggio, lasciando il file orfano
