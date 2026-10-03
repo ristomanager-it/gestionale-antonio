@@ -11,6 +11,7 @@ import time
 import websocket
 
 import agent
+import ponte
 import stampe
 
 FALLBACK_SECONDS = 30
