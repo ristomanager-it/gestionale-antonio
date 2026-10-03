@@ -1,4 +1,4 @@
-// Etichette lotto 62x40 per Brother QL-820NWBc, condivise tra Registro lotti e Produzione.
+// Etichette lotto per Brother QL-820NWBc (misura scelta dal rotolo montato), condivise tra Registro lotti e Produzione.
 // L'immagine si disegna qui e il Raspberry la manda alla stampante (coda_stampe, tipo "etichetta").
 
 // Il corpo del testo non scende sotto i 6pt (25 punti a 300 dpi): il regolamento 1169/2011
@@ -8,8 +8,33 @@
 // QL-820NWBc (696x472 punti = area stampabile rotolo 62 mm x 40 mm, 300 dpi). Rotolo DK-22251
 // nero/rosso: allergeni e scadenza in rosso. Esce dal Raspberry (coda_stampe, tipo etichetta):
 // dall'iPhone la Brother offre solo 62x100.
-const ET_W = 696, ET_H = 472, ET_PAD = 22;
+const ET_PAD = 22;
 const ROSSO = "#e00000";
+const DPMM = 300 / 25.4; // punti per millimetro a 300 dpi
+
+// Rotoli Brother QL: larghezza stampabile in punti (300 dpi) e nome usato dal Raspberry.
+// Continui: la lunghezza la scegli tu. Pretagliati: misura fissa.
+export const FORMATI_ETICHETTA = {
+  "62red":  { nome: "62 mm nero e rosso (DK-22251)", w: 696, rosso: true,  continuo: true },
+  "62":     { nome: "62 mm solo nero (DK-22205)",    w: 696, rosso: false, continuo: true },
+  "54":     { nome: "54 mm solo nero",               w: 590, rosso: false, continuo: true },
+  "50":     { nome: "50 mm solo nero (DK-22223)",    w: 554, rosso: false, continuo: true },
+  "38":     { nome: "38 mm solo nero (DK-22225)",    w: 413, rosso: false, continuo: true },
+  "29":     { nome: "29 mm solo nero (DK-22210)",    w: 306, rosso: false, continuo: true },
+  "62x29":  { nome: "Pretagliate 62 x 29 mm (DK-11209)",  w: 696, h: 271,  rosso: false, continuo: false },
+  "62x100": { nome: "Pretagliate 62 x 100 mm (DK-11202)", w: 696, h: 1109, rosso: false, continuo: false },
+};
+
+// { id, lunghezza } -> misure in punti e dati per il Raspberry
+export function misureEtichetta(id, lunghezza) {
+  const f = FORMATI_ETICHETTA[id] || FORMATI_ETICHETTA["62red"];
+  const key = FORMATI_ETICHETTA[id] ? id : "62red";
+  const mm = Math.max(25, Math.min(200, Math.round(Number(lunghezza) || 40)));
+  const h = f.continuo ? Math.round(mm * DPMM) : f.h;
+  const larghezzaMm = Number(key.split("x")[0].replace("red", ""));
+  const descr = f.continuo ? larghezzaMm + "x" + mm : key;
+  return { id: key, w: f.w, h, rosso: f.rosso, label: key, descr, larghezzaMm, lunghezzaMm: f.continuo ? mm : Number(key.split("x")[1]) };
+}
 
 function etWrap(ctx, testo, maxW) {
   const parole = String(testo || "").split(/\s+/).filter(Boolean);
@@ -24,7 +49,10 @@ function etWrap(ctx, testo, maxW) {
   return righe;
 }
 
-export function disegnaEtichetta({ etichetta, produttore, info, peso }) {
+export function disegnaEtichetta({ etichetta, produttore, info, peso, formato }) {
+  const m = formato || misureEtichetta("62red", 40);
+  const ET_W = m.w, ET_H = m.h;
+  const ROSSO = m.rosso ? "#e00000" : "#000";
   const c = document.createElement("canvas");
   c.width = ET_W; c.height = ET_H;
   const ctx = c.getContext("2d");
@@ -88,7 +116,7 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso }) {
   while (scala > 0.9 && fai(scala, false) > limite) scala -= 0.02;
   if (fai(scala, false) > limite) return { png: null, troppoLungo: true };
   fai(scala, true);
-  riduciATreColori(ctx);
+  riduciATreColori(ctx, ET_W, ET_H);
   return { png: c.toDataURL("image/png"), troppoLungo: false };
 }
 
@@ -98,7 +126,7 @@ export async function stampanteEtichette() {
   const az = window.state?.azienda?.id;
   if (!az) return null;
   const sede = window.state?.sedeAttiva?.id || null;
-  const { data } = await sbEt().from("stampanti_comande").select("id, ip, porta, sede_id")
+  const { data } = await sbEt().from("stampanti_comande").select("id, ip, porta, sede_id, etichetta_formato, etichetta_lunghezza_mm")
     .eq("azienda_id", az).eq("reparto", "etichette").eq("attiva", true);
   const lista = data || [];
   return lista.find(s => sede && s.sede_id === sede) || lista.find(s => !s.sede_id) || lista[0] || null;
@@ -107,7 +135,7 @@ export async function stampanteEtichette() {
 
 // Solo bianco, nero e rosso: la Brother stampa questi tre e l'immagine pesa ~10 volte meno
 // (arriva al Raspberry con la notifica istantanea invece che col controllo ogni 30 s).
-function riduciATreColori(ctx) {
+function riduciATreColori(ctx, ET_W, ET_H) {
   const img = ctx.getImageData(0, 0, ET_W, ET_H);
   const d = img.data;
   for (let i = 0; i < d.length; i += 4) {
@@ -122,16 +150,17 @@ function riduciATreColori(ctx) {
 }
 
 // Mette in coda le etichette di un lotto. Ritorna { ok: true } oppure { ok: false, motivo }.
-export async function inviaEtichetteLotto({ etichetta, produttore, info, peso, copie }) {
-  const dis = disegnaEtichetta({ etichetta, produttore, info, peso });
-  if (dis.troppoLungo) return { ok: false, motivo: "troppo_lungo", png: null };
+export async function inviaEtichetteLotto({ etichetta, produttore, info, peso, copie, formato }) {
   const st = await stampanteEtichette();
+  const fmt = formato || misureEtichetta(st?.etichetta_formato || "62red", st?.etichetta_lunghezza_mm || 40);
+  const dis = disegnaEtichetta({ etichetta, produttore, info, peso, formato: fmt });
+  if (dis.troppoLungo) return { ok: false, motivo: "troppo_lungo", png: null, formato: fmt };
   if (!st) return { ok: false, motivo: "nessuna_stampante", png: dis.png };
   const { data: job, error } = await sbEt().from("coda_stampe").insert({
     azienda_id: window.state.azienda.id, sede_id: st.sede_id || window.state?.sedeAttiva?.id || null,
-    stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: 62,
+    stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: fmt.larghezzaMm,
     tipo: "etichetta", reparto: "etichette",
-    contenuto: { png: dis.png, copie, formato: "62x40", rosso: true, lotto: info.codice_lotto || null },
+    contenuto: { png: dis.png, copie, formato: fmt.descr, label: fmt.label, rosso: fmt.rosso, lotto: info.codice_lotto || null },
   }).select("id, sede_id").single();
   if (error) return { ok: false, motivo: error.message, png: dis.png };
   if (job?.id) controllaStampaPresa(job.id, job.sede_id);
@@ -176,4 +205,61 @@ function mostraAvvisoStampa(testo) {
   x.onclick = () => box.remove();
   box.appendChild(x);
   document.body.appendChild(box);
+}
+
+/* Prima di stampare: quale rotolo c'e' nella Brother e quanto lunga tagliare l'etichetta.
+   La scelta resta salvata sulla stampante (per admin e manager) e su questo dispositivo.
+   Ritorna le misure da passare a inviaEtichetteLotto, oppure null se si annulla. */
+export async function scegliFormatoEtichetta() {
+  const st = await stampanteEtichette();
+  let locale = {};
+  try { locale = JSON.parse(localStorage.getItem("rf_brother_formato") || "{}"); } catch (e) { locale = {}; }
+  const idIniz = (st && st.etichetta_formato) || locale.id || "62red";
+  const lungIniz = (st && st.etichetta_lunghezza_mm) || locale.lunghezza || 40;
+
+  return new Promise((resolve) => {
+    const bg = document.createElement("div");
+    bg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;";
+    const opzioni = Object.entries(FORMATI_ETICHETTA)
+      .map(([id, f]) => '<option value="' + id + '"' + (id === idIniz ? " selected" : "") + ">" + f.nome + "</option>").join("");
+    bg.innerHTML =
+      '<div class="view" style="width:min(460px,100%);border-radius:14px;padding:16px;">' +
+        '<h3 style="margin:0 0 6px;">🏷 Misura etichetta Brother</h3>' +
+        '<div class="form-help">Scegli il rotolo montato nella stampante. Resta salvato per le prossime stampe.</div>' +
+        '<div class="form-group" style="margin-top:12px;"><label>Rotolo</label><select id="et-fmt" class="input">' + opzioni + "</select></div>" +
+        '<div class="form-group" id="et-lung-box"><label>Lunghezza etichetta (mm)</label>' +
+          '<input id="et-lung" class="input" type="number" min="25" max="200" step="1" inputmode="numeric" value="' + lungIniz + '" /></div>' +
+        '<div id="et-descr" class="form-help" style="font-weight:600;"></div>' +
+        '<div class="form-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">' +
+          '<button type="button" id="et-ok" class="app-button">🖨️ Stampa</button>' +
+          '<button type="button" id="et-no" class="app-button gray">Annulla</button>' +
+        "</div>" +
+      "</div>";
+    document.body.appendChild(bg);
+    const sel = bg.querySelector("#et-fmt"), lung = bg.querySelector("#et-lung");
+    const box = bg.querySelector("#et-lung-box"), descr = bg.querySelector("#et-descr");
+    const aggiorna = () => {
+      const f = FORMATI_ETICHETTA[sel.value];
+      box.style.display = f.continuo ? "" : "none";
+      const m = misureEtichetta(sel.value, lung.value);
+      descr.textContent = "Etichetta " + m.larghezzaMm + " x " + m.lunghezzaMm + " mm" + (m.rosso ? ", allergeni e scadenza in rosso" : ", solo nero (allergeni in grassetto)");
+    };
+    sel.addEventListener("change", aggiorna); lung.addEventListener("input", aggiorna); aggiorna();
+    const chiudi = (v) => { bg.remove(); resolve(v); };
+    bg.querySelector("#et-no").onclick = () => chiudi(null);
+    bg.addEventListener("click", (e) => { if (e.target === bg) chiudi(null); });
+    bg.querySelector("#et-ok").onclick = async () => {
+      const m = misureEtichetta(sel.value, lung.value);
+      try { localStorage.setItem("rf_brother_formato", JSON.stringify({ id: m.id, lunghezza: m.lunghezzaMm })); } catch (e) { /* facoltativo */ }
+      if (st && (st.etichetta_formato !== m.id || (FORMATI_ETICHETTA[m.id].continuo && st.etichetta_lunghezza_mm !== m.lunghezzaMm))) {
+        try {
+          await sbEt().from("stampanti_comande").update({
+            etichetta_formato: m.id,
+            etichetta_lunghezza_mm: FORMATI_ETICHETTA[m.id].continuo ? m.lunghezzaMm : st.etichetta_lunghezza_mm,
+          }).eq("id", st.id);
+        } catch (e) { /* senza permessi vale solo per questo dispositivo */ }
+      }
+      chiudi(m);
+    };
+  });
 }
