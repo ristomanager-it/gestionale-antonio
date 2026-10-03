@@ -3936,6 +3936,11 @@ function aggiungiPorzione(initial = {}) {
   card.className = "azienda-card";
   card.style.marginBottom = "12px";
   card.style.padding = "14px";
+  const tipo = porzTipoIniziale(initial);
+  card.dataset.tipo = tipo;
+  const umIniz = String(initial.unita_misura || "").toLowerCase();
+  // per i pezzi peso_porzione e' il peso medio del pezzo in grammi (se pesato), oppure 1 pz
+  const pesoPezzo = tipo === "pezzi" && umIniz !== "pz" ? (umIniz === "kg" ? Number(initial.peso_porzione) * 1000 : initial.peso_porzione) : "";
 
   card.innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
