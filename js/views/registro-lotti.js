@@ -238,7 +238,45 @@ async function toggleDettaglio(card) {
   }
 }
 
+// Come in Produzione: senza data di scadenza l'etichetta non esce. Se il lotto non ce l'ha,
+// la propongo da produzione + durata della ricetta e la salvo sul lotto.
+async function scadenzaDelLotto(info) {
+  if (info.data_scadenza) return info.data_scadenza;
+  const supa = window.supabaseClient || window.supabase;
+  let giorni = null;
+  if (info.ricetta_id) {
+    const [{ data: r }, { data: cons }] = await Promise.all([
+      supa.from("ricette").select("shelf_life_giorni").eq("id", info.ricetta_id).maybeSingle(),
+      supa.from("ricette_conservazione").select("shelf_life_giorni").eq("ricetta_id", info.ricetta_id).eq("attivo", true),
+    ]);
+    giorni = r?.shelf_life_giorni || (cons || []).map(c => c.shelf_life_giorni).filter(Boolean).sort((a, b) => a - b)[0] || null;
+  }
+  let proposta = "";
+  if (giorni && info.data_produzione) {
+    const d = new Date(info.data_produzione + "T00:00:00");
+    d.setDate(d.getDate() + Number(giorni));
+    proposta = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+  const scritta = prompt("Questo lotto non ha la data di scadenza e senza non si può etichettare." +
+    (proposta ? "\n\nProposta: produzione + " + giorni + " giorni." : "") + "\n\nData di scadenza (gg/mm/aaaa):", proposta);
+  if (!scritta) return null;
+  const m = String(scritta).trim().match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/);
+  if (!m) { alert("Data non valida: scrivila come gg/mm/aaaa."); return null; }
+  const anno = m[3].length === 2 ? "20" + m[3] : m[3];
+  const iso = anno + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+  if (isNaN(new Date(iso + "T00:00:00").getTime())) { alert("Data non valida."); return null; }
+  if (info.id) {
+    const { error } = await supa.from("produzione_lotti").update({ data_scadenza: iso }).eq("id", info.id);
+    if (error) console.warn("Scadenza non salvata sul lotto:", error.message);
+  }
+  info.data_scadenza = iso;
+  return iso;
+}
+
 async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
+  if (!(await scadenzaDelLotto(info))) return;
+  const g = Number(String(peso || "").replace(",", "."));
+  if (peso && g > 0 && g < 20 && !confirm("Peso netto " + peso + " g: è giusto?\n\nSe intendevi " + peso + " kg, premi Annulla e scrivi " + Math.round(g * 1000) + ".")) return;
   const formato = await scegliFormatoEtichetta();
   if (!formato) return;
   const r = await inviaEtichetteLotto({ etichetta, produttore, info, peso, copie: quante, formato });
