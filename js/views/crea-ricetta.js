@@ -3296,7 +3296,8 @@ function rinumeraOrdineIngredienti() {
 /* ============================================================
    FASI
 ============================================================ */
-let _costiOrari = null, _energia = null, _lottoStandard = 10;
+let _costiOrari = null, _energia = null;
+let _pesoStimato = null;   // peso_output_kg stimato dal server, non ancora pesato
 
 async function aggiornaCostiProduzione() {
   const box = document.getElementById("costi-produzione");
