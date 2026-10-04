@@ -296,7 +296,11 @@ async function invia() {
   stream = null;
   if (imp("cuffie", "1") === "1") setTimeout(avviaCuffie, 300); // il microfono chiuso libera di nuovo il tasto
   const blob = new Blob(pezzi, { type: mimeRec });
-  if (blob.size < 2500) { finisci(); mostra({ ko: true, c: "Non ho sentito niente" }); return; }
+  const durata = Date.now() - diag.inizio;
+  if (blob.size < 2500 || (diag.vad && diag.picco < 0.008)) {
+    finisci(); mostra({ ko: true, c: "Non ti ho sentito: parla più vicino al microfono e riprova" });
+    parla("Non ti ho sentito"); return;
+  }
   mostra({ t: "Tony sta capendo…", c: "…" });
   try {
     const b64 = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsDataURL(blob); });
