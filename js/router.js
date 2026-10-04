@@ -729,6 +729,7 @@ function hasPermission(area) {
       "briefing-servizio",
       "registro-lotti",
       "lotti-fornitore",
+      "scadenze",
       "registro-messaggi",
       "recensioni",
       "recensioni-ricevute",
