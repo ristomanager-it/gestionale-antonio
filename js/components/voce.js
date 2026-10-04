@@ -270,8 +270,11 @@ function ascoltaSilenzio() {
       const rms = Math.sqrt(s / dati.length);
       const t = Date.now() - inizio;
       if (t < 350) { fondo += rms; campioni++; }
-      const soglia = Math.max(0.015, (campioni ? fondo / campioni : 0.01) * 2.2);
-      if (rms > soglia) { parlato = true; ultimaVoce = Date.now(); }
+      if (rms > 0.0005) diag.vad = true;
+      if (rms > diag.picco) diag.picco = rms;
+      diag.fondo = campioni ? fondo / campioni : 0;
+      const soglia = Math.max(0.015, Math.min(0.02, campioni ? fondo / campioni : 0.01) * 2.2); // se parli subito il "fondo" non deve alzare troppo la soglia
+      if (rms > soglia) { parlato = true; diag.parlato = true; ultimaVoce = Date.now(); }
       if (parlato && Date.now() - ultimaVoce > 1500) return fermaRegistrazione();
       if (!parlato && t > 6000) return fermaRegistrazione();
       rafVad = requestAnimationFrame(giro);
