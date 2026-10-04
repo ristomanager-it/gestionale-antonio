@@ -455,6 +455,16 @@ async function renderView(routeName) {
 
   await module.render(app);
 
+  // 🎙️ Comandi vocali: pulsante globale per chi e' entrato (sala, cucina, preparazioni, ricette)
+  try {
+    if (window.state?.user && window.state?.azienda?.id) {
+      imp("./components/voce.js").then(m => m.initVoce(routeName)).catch(e => console.warn("voce:", e));
+    } else if (window.__voceInit) {
+      imp("./components/voce.js").then(m => m.initVoce(routeName)).catch(() => {});
+    }
+    window.__voceInit = true;
+  } catch (e) { /* mai bloccare la navigazione */ }
+
   // Registro accessi (admin): una riga per ogni pagina aperta da utente loggato.
   // Fire-and-forget: non rallenta e non blocca mai la navigazione.
   try {
