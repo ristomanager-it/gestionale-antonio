@@ -2007,6 +2007,8 @@ export async function render(container) {
       const stampanti = await stampantiComande();
       if (!stampanti.length) return; // nessuna stampante configurata: solo schermo cucina
       const tavolo = tavoli.find(t => String(t.id) === String(comandaAttiva?.tavolo_id));
+      const { nome: nomeTavolo, info: infoTavolo } = await infoPerComanda();
+      const minuti = await minutaggiProdotti(righe.map(r => r.prodotto_vendita_id));
       const perReparto = {};
       righe.forEach(r => {
         const rep = r.stampante || 'cucina';
@@ -2014,6 +2016,7 @@ export async function render(container) {
         (perReparto[rep] = perReparto[rep] || []).push({
           qta: Number(r.quantita || 1), nome: r.nome_snapshot, uscita: r.uscita_numero || 1,
           note: [r.note].concat((r.aggiunte || []).map(a => '+ ' + a.nome)).filter(Boolean).join(', ') || null,
+          min: minuti[r.prodotto_vendita_id] || null,
         });
       });
       const lavori = [];
