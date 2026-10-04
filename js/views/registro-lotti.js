@@ -149,8 +149,8 @@ async function toggleDettaglio(card) {
   let etichetta = null;
   if (info.ricetta_id) {
     const { data } = await supa.from("etichette")
-      .select("denominazione, denominazione_extra, ingredienti, allergeni, peso_netto_g, peso_sgocciolato_g, tmc_dicitura, conservazione, dopo_apertura, origine, confermata")
-      .eq("ricetta_id", info.ricetta_id).maybeSingle();
+      .select("id, denominazione, denominazione_extra, ingredienti, allergeni, peso_netto_g, peso_sgocciolato_g, tmc_dicitura, conservazione, dopo_apertura, origine, confermata")
+      .eq("ricetta_id", info.ricetta_id).order("id", { ascending: false }).limit(1).maybeSingle();
     etichetta = data || null;
   }
 
