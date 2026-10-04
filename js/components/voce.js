@@ -454,7 +454,10 @@ async function esegui() {
     finisci();
     if (!d || d.errore || d.ok === false) throw new Error(d?.messaggio || d?.errore || "errore");
     bip(BIP_FATTO);
-    const link = d.lotto_uuid ? `<a href="#/preparazioni?lotto=${encodeURIComponent(d.lotto_uuid)}" style="display:inline-block;margin-top:8px;color:#023C59;font-weight:800;">Apri il lotto →</a>` : "";
+    const u = d.lotto_uuid ? encodeURIComponent(d.lotto_uuid) : "";
+    const link = d.lotto_uuid ? `<div class="va" style="margin-top:10px;">
+      <a href="#/registro-lotti?lotto=${u}&etichetta=1" class="ora" style="flex:2;text-align:center;text-decoration:none;border-radius:11px;padding:12px;font-weight:700;">🏷 Etichetta e scadenza</a>
+      <a href="#/preparazioni?lotto=${u}" style="flex:1;text-align:center;text-decoration:none;border-radius:11px;padding:12px;font-weight:700;background:#E2E6EA;color:#023C59;">Fasi HACCP</a></div>` : "";
     mostra({ t: "Fatto", c: d.messaggio || a.conferma, extra: link, durata: d.lotto_uuid ? 9000 : 3500 });
     parla(a.tipo === "preparazione" ? "Registrato" : "Fatto");
     window.dispatchEvent(new CustomEvent("ristoflow:voce-eseguito", { detail: { azione: a, esito: d } }));
