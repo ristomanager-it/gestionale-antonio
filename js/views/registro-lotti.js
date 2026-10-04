@@ -142,7 +142,7 @@ async function toggleDettaglio(card) {
       .select("fase_ordine, fase_nome, temperatura_rilevata, valore_misurato, valore_um, durata_reale_min, ccp, esito, firmato_da, operatore_nome, firmato_il, note")
       .eq("lotto_id", uuid).order("fase_ordine", { nullsFirst: false }) : Promise.resolve({ data: [] }),
     supa.from("produzione_lotto_ingredienti")
-      .select("quantita, unita_misura, costo_totale, lotto_materia_prima, prodotti(nome)")
+      .select("id, prodotto_id, quantita, unita_misura, costo_totale, lotto_materia_prima, scadenza_materia_prima, lotto_interno_id, scelto_auto, prodotti(nome, ricetta_id)")
       .eq("lotto_id", id),
     supa.from("produzione_lotti")
       .select("id, ricetta_id, dettaglio_confezionamento, conforme, nc_motivo, firma_tramite, note, quantita_output, unita_misura, data_scadenza, codice_lotto, data_produzione, conservazione_libera")
