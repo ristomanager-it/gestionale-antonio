@@ -160,6 +160,7 @@ const routes = {
   "produzioni-aperte": () => imp("./views/produzioni-aperte.js"),
   "registro-lotti": () => imp("./views/registro-lotti.js"),
   "lotti-fornitore": () => imp("./views/lotti-fornitore.js"),
+  "scadenze": () => imp("./views/scadenze.js"),
 
   // Agenzia viaggi: modulo in prova, solo azienda Ristoflow.
   "agenzia-viaggi": () => imp("./views/agenzia-viaggi.js"),
