@@ -199,7 +199,7 @@ async function toggleDettaglio(card) {
   if (!etichetta) mancano.push("la scheda etichetta della ricetta");
   if (!produttore) mancano.push("i dati del produttore");
   const bozza = etichetta && etichetta.confermata === false;
-  const linkRicetta = `<a href="#/crea-ricetta?id=${encodeURIComponent(info.ricetta_id)}" style="display:inline-block;margin-top:6px;font-weight:700;color:#0E5A7A;">✏️ ${bozza ? "Controlla e conferma" : "Compila adesso"} l'etichetta</a>`;
+  const linkRicetta = `<button type="button" class="rl-compila" style="display:inline-block;margin-top:8px;background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;">✏️ ${bozza ? "Controlla e conferma qui" : "Compila qui"} l'etichetta</button>`;
   if (mancano.length || bozza) {
     H.push(`<div style="background:${bozza ? "#fffbeb" : "#fef2f2"};border-left:4px solid ${bozza ? "#d97706" : "#dc2626"};border-radius:6px;padding:10px 12px;font-size:12px;">
       <b>Non stampabile.</b> ${bozza ? "La scheda etichetta è una bozza: vanno verificati ingredienti e allergeni." : "Manca " + escapeHtml(mancano.join(" e ")) + "."}
