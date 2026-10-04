@@ -107,6 +107,10 @@ def build_comanda(c, larg):
             for riga in a_capo(voce.upper(), larg - 2, "  "):
                 out += t(riga) + b"\n"
         out += GRASSETTO_OFF + t("=" * larg) + b"\n"
+    rit = c.get("ritmo") or {}
+    if isinstance(rit, dict) and rit.get("nome"):   # solo veloce/relax: il normale non si stampa
+        extra = " (" + str(rit["min"]) + " min tra le uscite)" if rit.get("min") else ""
+        out += GRASSETTO_ON + t("Ritmo: " + str(rit["nome"]) + extra) + GRASSETTO_OFF + b"\n"
     previste = {str(k): str(v) for k, v in (c.get("uscite_previste") or {}).items() if v}
     if previste:                           # orario stimato di ogni uscita: tutti i reparti si organizzano
         voci = ["%sa %s" % (k, previste[k]) for k in sorted(previste, key=lambda x: int(x))]
