@@ -330,8 +330,18 @@ def elabora(riga):
     try:
         if not prenota(rid):
             return  # l'ha gia' presa l'altro ponte
-        invia(riga["stampante_ip"], riga.get("stampante_porta"), build(riga))
-        agent.sb_patch("coda_stampe?id=eq." + rid, {"stato": "completato", "elaborato_at": "now()", "errore_msg": None})
+        dati = build(riga)
+        ip = _IP_RITROVATI.get(riga.get("stampante_id")) or riga["stampante_ip"]
+        try:
+            invia(ip, riga.get("stampante_porta"), dati)
+        except OSError:
+            nuovo = ritrova_stampante(riga.get("stampante_id"), ip, riga.get("stampante_porta"))
+            if not nuovo:
+                raise
+            invia(nuovo, riga.get("stampante_porta"), dati)
+            riga["stampante_ip"] = nuovo
+        agent.sb_patch("coda_stampe?id=eq." + rid, {"stato": "completato", "elaborato_at": "now()", "errore_msg": None,
+                                                    "stampante_ip": riga["stampante_ip"]})
         print("Stampa OK", riga.get("tipo"), riga.get("reparto") or "", riga["stampante_ip"], flush=True)
     except Exception as e:
         tentativi = (riga.get("tentativi") or 0) + 1
