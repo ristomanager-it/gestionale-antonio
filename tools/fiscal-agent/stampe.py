@@ -87,7 +87,7 @@ def build_comanda(c, larg):
             out += DIM_2 + GRASSETTO_ON + t(riga) + GRASSETTO_OFF + b"\n"
     out += DIM_1 + NORMALE
     if c.get("via"):
-        out += b"\n" + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(" VIA " + str(c["via"]) + "a USCITA ") + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n\n"
+        out += b"\n" + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(" VIA " + str(c["via"]) + "a USCITA ") + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n"
     if c.get("coperti"):
         out += DIM_ALTO + t(str(c["coperti"]) + " coperti") + DIM_1 + b"\n"
     out += SINISTRA + t(riga_dx(c.get("cameriere") or "", ora_locale(), larg)) + b"\n"
