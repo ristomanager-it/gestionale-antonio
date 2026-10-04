@@ -19,6 +19,7 @@ let ctxAudio = null, stream = null, rec = null, pezzi = [], mimeRec = "";
 let timerSilenzio = null, timerMax = null, rafVad = null;
 let timerConferma = null, azioneInAttesa = null, trascrizioneInAttesa = "";
 let silenzioso = null, canale = null, ultimoTrigger = 0;
+let diag = { picco: 0, fondo: 0, parlato: false, vad: false, inizio: 0 };
 
 const sb = () => window.supabaseClient || window.supabase;
 const imp = (k, d) => { try { const v = localStorage.getItem("voce_" + k); return v === null ? d : v; } catch { return d; } };
