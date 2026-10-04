@@ -928,6 +928,8 @@ export async function render(container) {
     container.querySelector('#comanda-tavolo-nome').textContent = tavolo.nome;
     container.querySelector('#comanda-coperti').value = comanda.coperti || 2;
     container.querySelector('#comanda-note').value = comanda.note || '';
+    await caricaRitmi();
+    renderRitmo();
 
     uscitaCorrente = 1;
     aggiornaLabelUscita();
