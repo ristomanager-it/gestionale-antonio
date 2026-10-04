@@ -79,7 +79,7 @@ def a_capo(testo, n, rientro=""):
 
 def build_comanda(c, larg):
     grande = max(10, larg // 2)            # caratteri per riga a doppia larghezza
-    out = INIT + CENTRO + DIM_2 + t(REPARTI.get(c.get("reparto"), str(c.get("reparto") or "").upper())) + b"\n"
+    out = INIT + INTERLINEA_STRETTA + CENTRO + DIM_2 + t(REPARTI.get(c.get("reparto"), str(c.get("reparto") or "").upper())) + b"\n"
     tav = c.get("tavolo")
     out += DIM_2 + t("TAVOLO " + str(tav) if tav else "BANCO") + b"\n"
     if c.get("nome"):                      # nome della prenotazione, sotto il tavolo
