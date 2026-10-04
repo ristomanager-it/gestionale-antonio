@@ -2151,6 +2151,7 @@ export async function render(container) {
           qta: Number(r.quantita || 1), nome: r.nome_snapshot, uscita: r.uscita_numero || 1,
           note: [r.note].concat((r.aggiunte || []).map(a => '+ ' + a.nome)).filter(Boolean).join(', ') || null,
           min: minuti[r.prodotto_vendita_id] || null,
+          ...avvisoAllergeni(allergieTavolo, allergeniPiatti[r.prodotto_vendita_id]),
         });
       });
       const lavori = [];
