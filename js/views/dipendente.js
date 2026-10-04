@@ -776,7 +776,19 @@ async function calcolaProduzioneIbrida(aziendaId, dipendenteId) {
     };
   }
 
-  const lottiValidi = data.filter((x) => x.stato === "confermato" || x.stato === "chiuso");
+  // i lotti chiusi in Ristoflow sono "firmato" (confermato/chiuso sono gli stati vecchi)
+  const lottiValidi = data.filter((x) => ["firmato", "confermato", "chiuso"].includes(x.stato));
+  // lavorazioni a voce: resa e scarto si ricavano da netto e scarto detti
+  lottiValidi.forEach((x) => {
+    const netto = Number(x.quantita_output) || 0, sc = Number(x.scarto_quantita) || 0;
+    if (x.resa_percentuale == null && netto > 0 && x.scarto_quantita != null) x.resa_percentuale = netto / (netto + sc) * 100;
+    if (x.scarto_percentuale == null && netto > 0 && x.scarto_quantita != null) x.scarto_percentuale = sc / (netto + sc) * 100;
+  });
+  // velocita' sulle lavorazioni cronometrate (kg/ora; i grammi diventano kg)
+  const kg = (x) => { const u = String(x.unita_misura || "").toLowerCase(); const q = Number(x.quantita_output) || 0; return u === "g" ? q / 1000 : u === "kg" ? q : null; };
+  const crono = lottiValidi.filter((x) => Number(x.durata_min) > 0 && kg(x) != null);
+  const minuti = crono.reduce((s, x) => s + Number(x.durata_min), 0);
+  const kgOra = minuti > 0 ? crono.reduce((s, x) => s + kg(x), 0) / (minuti / 60) : null;
   const lotti = lottiValidi.length;
   const quantita = lottiValidi.reduce((sum, x) => sum + Number(x.quantita_output || 0), 0);
 
