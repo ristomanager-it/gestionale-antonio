@@ -25,6 +25,8 @@ ALTO = ESC + b"!\x10"                       # doppia altezza
 GRANDE = ESC + b"!\x30"                     # doppia altezza e larghezza
 INVERSO_ON = GS + b"B\x01"
 INVERSO_OFF = GS + b"B\x00"
+ROSSO_ON = ESC + b"r\x01"                    # secondo colore (rosso) su stampanti bicolore
+ROSSO_OFF = ESC + b"r\x00"
 TAGLIO = b"\n\n\n" + GS + b"V\x42\x00"
 # dimensioni con GS ! (più compatibile di ESC ! su stampanti non Epson)
 DIM_1 = GS + b"!\x00"
