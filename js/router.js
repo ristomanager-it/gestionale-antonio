@@ -1676,7 +1676,9 @@ try {
   const aziendaId =
     window.state?.azienda?.id;
 
-  if (dipendenteId && aziendaId) {
+  if (usaCache) {
+    // permessi extra gia' caricati con il contesto
+  } else if (dipendenteId && aziendaId) {
 
     const { data: permessiData } =
       await supabase
