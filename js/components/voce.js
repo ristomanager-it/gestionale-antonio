@@ -458,8 +458,21 @@ async function esegui() {
     const link = d.lotto_uuid ? `<div class="va" style="margin-top:10px;">
       <a href="#/registro-lotti?lotto=${u}&etichetta=1" class="ora" style="flex:2;text-align:center;text-decoration:none;border-radius:11px;padding:12px;font-weight:700;">🏷 Etichetta e scadenza</a>
       <a href="#/preparazioni?lotto=${u}" style="flex:1;text-align:center;text-decoration:none;border-radius:11px;padding:12px;font-weight:700;background:#E2E6EA;color:#023C59;">Fasi HACCP</a></div>` : "";
-    mostra({ t: "Fatto", c: d.messaggio || a.conferma, extra: link, durata: d.lotto_uuid ? 9000 : 3500 });
-    parla(a.tipo === "preparazione" ? "Registrato" : "Fatto");
+    const st = d.stampa || null;
+    const btnStampa = st && st.pronta && !st.richiesta
+      ? `<button type="button" id="voce-stampa" class="ora" style="width:100%;margin-top:8px;border:0;border-radius:11px;padding:12px;font-weight:700;cursor:pointer;">🖨 Stampa ${st.copie} ${st.copie === 1 ? "etichetta" : "etichette"}</button>` : "";
+    const avviso = st && st.richiesta && !st.pronta
+      ? `<div style="margin-top:8px;background:#fffbeb;color:#92400e;border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700;">Etichetta non stampata: ${st.motivo || "da controllare"}</div>` : "";
+    mostra({ t: "Fatto", c: d.messaggio || a.conferma, extra: avviso + link + btnStampa, durata: d.lotto_uuid ? 12000 : 3500 });
+    document.getElementById("voce-stampa")?.addEventListener("click", () => stampaDaVoce(st));
+    if (st && st.richiesta && st.pronta) {
+      parla("Registrato, stampo le etichette");
+      stampaDaVoce(st);
+    } else if (st && st.richiesta) {
+      parla("Registrato. Etichetta non stampata: " + (st.motivo || "da controllare"));
+    } else {
+      parla(a.tipo === "inizio_lavoro" ? "Tempo partito" : a.tipo === "preparazione" || a.tipo === "lavorazione" ? "Registrato" : "Fatto");
+    }
     window.dispatchEvent(new CustomEvent("ristoflow:voce-eseguito", { detail: { azione: a, esito: d } }));
   } catch (e) {
     finisci();
