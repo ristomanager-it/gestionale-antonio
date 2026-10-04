@@ -167,6 +167,19 @@ async function toggleDettaglio(card) {
 
   const H = [];
 
+  // --- lavoro del dipendente (lavorazioni a voce: tempo, scarto, destinazione)
+  if (info.durata_min != null || info.scarto_quantita != null || info.destinazione) {
+    const um = info.unita_misura || "";
+    const netto = Number(info.quantita_output) || 0, scarto = Number(info.scarto_quantita) || 0;
+    const resa = netto && scarto ? Math.round(netto / (netto + scarto) * 100) : null;
+    const resaOra = netto && Number(info.durata_min) > 0 ? formatNum(Math.round(netto / Number(info.durata_min) * 60 * 10) / 10) + " " + escapeHtml(um) + "/ora" : null;
+    H.push(`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+      ${info.durata_min != null ? `<span style="background:#eff6ff;color:#1e3a8a;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;">⏱ ${formatNum(Math.round(Number(info.durata_min)))} min${resaOra ? " · " + resaOra : ""}</span>` : ""}
+      ${scarto ? `<span style="background:#fef3c7;color:#92400e;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;">Scarto ${formatNum(scarto)} ${escapeHtml(um)}${resa != null ? " · resa " + resa + "%" : ""}</span>` : ""}
+      ${info.destinazione ? `<span style="background:#f1f5f9;color:#334155;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;">Per ${escapeHtml(info.destinazione)}</span>` : ""}
+    </div>`);
+  }
+
   // --- fasi
   H.push(`<div style="font-size:12px;font-weight:700;margin-bottom:6px;">Tracciabilità fasi</div>`);
   if (!fasi.length) {
