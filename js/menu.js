@@ -410,6 +410,7 @@ export function initMenu() {
           { label: "📋 Planning",            route: "planner-produzione" },
           { label: "📒 Registro lotti",      route: "registro-lotti"    },
           { label: "📷 Lotti in arrivo",     route: "lotti-fornitore"   },
+          { label: "⏰ Scadenze",            route: "scadenze"          },
           { label: "📊 Produttività",        route: "produttivita-produzione" },
         ] },
         { label: "🏭 Schermo Produzioni",   route: "kds-produzioni"    },
