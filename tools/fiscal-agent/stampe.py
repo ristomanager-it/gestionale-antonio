@@ -137,7 +137,6 @@ def righe_gruppo(righe, grande, larg):
             out += GRASSETTO_OFF + DIM_1
         if str(r.get("min") or "").isdigit() and int(r["min"]) > 0:
             out += t("    prep. " + str(int(r["min"])) + " min") + b"\n"
-        out += b"\n"
     return out
 
 
