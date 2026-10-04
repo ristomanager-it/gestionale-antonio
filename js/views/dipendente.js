@@ -293,6 +293,8 @@ export async function render(container) {
               ${infoRow("Quantità prodotta", formatNumberOrDash(produzioneData.quantita))}
               ${infoRow("Resa media %", formatNumberOrDash(produzioneData.resaMedia))}
               ${infoRow("Scarto medio %", formatNumberOrDash(produzioneData.scartoMedio))}
+              ${infoRow("Lavorazioni cronometrate", produzioneData.lavorazioni ? produzioneData.lavorazioni + " · " + produzioneData.minuti + " min" : "—")}
+              ${infoRow("Velocità (kg/ora)", formatNumberOrDash(produzioneData.kgOra))}
               ${infoRow("Quiz completati", quizData.numeroQuiz)}
               ${infoRow("Media quiz %", formatNumberOrDash(quizData.mediaPercentuale))}
             </div>
