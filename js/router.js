@@ -1782,6 +1782,12 @@ if (!window.state?.sedeAttiva?.id) {
   }
   // sede già gestita da caricaContestoOperativo sopra
 
+  if (!caldo) {
+    window.__rfCtx = { key: __chiave(), t: Date.now(), contesto: (__contesto && __contesto.ok) ? __contesto : null };
+  } else if (__contesto && __contesto.ok && !__cc.contesto) {
+    __cc.contesto = __contesto;
+  }
+
   if (route === "homePiattaforma") {
     if (!isSuperadmin()) {
       window.location.hash = "#/home";
