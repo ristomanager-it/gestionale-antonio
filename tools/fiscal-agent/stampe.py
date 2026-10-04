@@ -48,6 +48,11 @@ def ora_locale(ts=None):
     return now.strftime("%H:%M")
 
 
+def data_ora_locale():
+    now = datetime.datetime.now(agent.TZ) if agent.TZ else datetime.datetime.now()
+    return now.strftime("%d/%m/%Y %H:%M")
+
+
 def taglia(s, n):
     s = str(s)
     return s if len(s) <= n else s[: n - 1] + "."
