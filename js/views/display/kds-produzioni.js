@@ -119,6 +119,28 @@ function tick() {
   });
 }
 
+// ⏱ Lavori partiti a voce ("comincio a tagliare il prosciutto"): chi li fa e da quanto
+let lavoriCache = [];
+async function caricaLavori(sedeId) {
+  let q = supa().from("voce_lavori_aperti").select("id, testo, operatore_nome, inizio_at, sede_id")
+    .eq("azienda_id", window.state.azienda.id).is("chiuso_at", null)
+    .gte("inizio_at", new Date(Date.now() - 12 * 3600000).toISOString()).order("inizio_at");
+  const { data } = await q;
+  lavoriCache = (data || []).filter((l) => !sedeId || !l.sede_id || l.sede_id === sedeId);
+  const board = document.getElementById("kdsp-board");
+  if (!board) return;
+  let box = document.getElementById("kdsp-lavori");
+  if (!box) { box = document.createElement("div"); box.id = "kdsp-lavori"; board.parentNode.insertBefore(box, board); }
+  const e = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  box.innerHTML = lavoriCache.length ? `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px;">${lavoriCache.map((l) => `
+    <div style="background:#0b3b52;border:1px solid #1e6a8a;border-radius:12px;padding:10px 14px;color:#e2f2f9;min-width:220px;">
+      <div style="font-size:11px;letter-spacing:.6px;color:#7dd3fc;font-weight:800;">⏱ LAVORO IN CORSO</div>
+      <div style="font-size:16px;font-weight:800;margin-top:2px;">${e(String(l.testo || "").replace(/^(sto |ok |allora )?(comincio|inizio|iniziando|cominciando|attacco|parto) a /i, ""))}</div>
+      <div style="font-size:13px;margin-top:4px;">${e(l.operatore_nome || "")} · <b data-since="${new Date(l.inizio_at).getTime()}"></b></div>
+    </div>`).join("")}</div>` : "";
+  tick();
+}
+
 async function carica(sedeId) {
   const aziendaId = window.state.azienda.id;
   let q = supa().from("produzione_lotti")
