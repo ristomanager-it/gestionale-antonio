@@ -1,5 +1,6 @@
 // FILE: js/pages/preparazioni.js
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
+import { apriGuidaPreparazioni } from "./guida-preparazioni.js";
 import { getStampanteEtichette, stampaEtichetteEpos } from "../modules/produzione/epos-etichette.js";
 import { inviaEtichetteLotto, scegliFormatoEtichetta, stampanteEtichette as stampanteEtichetteBrother } from "../modules/produzione/etichette-lotto.js";
 
