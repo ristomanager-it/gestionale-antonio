@@ -2071,7 +2071,7 @@ export async function render(container) {
           tipo: 'comanda', reparto: rep, comanda_uuid: comandaAttiva?.id || null,
           contenuto: {
             tavolo: tavolo?.nome || tavolo?.numero || null, coperti: comandaAttiva?.coperti || null,
-            nome: nomeTavolo, info_tavolo: infoTavolo,
+            nome: nomeTavolo, info_tavolo: infoTavolo, uscite_previste: previste,
             cameriere: cameriereAttivo?.nome || null, ristampa: !!ristampa, righe: perReparto[rep],
             note: extra?.note || null,
             via: extra?.via || null,
