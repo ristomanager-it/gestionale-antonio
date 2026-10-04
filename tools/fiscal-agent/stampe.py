@@ -95,11 +95,12 @@ def build_comanda(c, larg):
     out += t("-" * larg) + b"\n"
     info = [str(x).strip() for x in (c.get("info_tavolo") or []) if str(x).strip()]
     if info:                               # cosa deve sapere ogni reparto: allergie, bambini, occasione
-        out += t("=" * larg) + b"\n" + DIM_ALTO + GRASSETTO_ON + t("*** INFO TAVOLO ***") + b"\n"
+        # scala Antonio: portate 10, modifiche 7, info tavolo 4, minuti 4
+        out += t("=" * larg) + b"\n" + DIM_1 + GRASSETTO_ON + t("*** INFO TAVOLO ***") + b"\n"
         for voce in info:
             for riga in a_capo(voce.upper(), larg - 2, "  "):
                 out += t(riga) + b"\n"
-        out += GRASSETTO_OFF + DIM_1 + t("=" * larg) + b"\n"
+        out += GRASSETTO_OFF + t("=" * larg) + b"\n"
     # righe raggruppate per uscita: ogni gruppo ha il suo titolo in negativo
     gruppi = {}
     for r in c.get("righe") or []:
