@@ -268,6 +268,50 @@ async function toggleDettaglio(card) {
   }
 }
 
+// 🔁 Il semilavorato usato non e' quello proposto: scelgo un altro lotto interno
+async function cambiaLottoSemilavorato({ rigaId, prodottoId, card }) {
+  const supa = window.supabaseClient || window.supabase;
+  const az = window.state?.azienda?.id;
+  const { data: prod } = await supa.from("prodotti").select("nome, ricetta_id").eq("id", prodottoId).maybeSingle();
+  let subId = prod?.ricetta_id;
+  if (!subId) {
+    const { data: r } = await supa.from("ricette").select("id").eq("prodotto_output_id", prodottoId).limit(1).maybeSingle();
+    subId = r?.id;
+  }
+  if (!subId) { alert("Non trovo la ricetta di questo semilavorato"); return; }
+  const oggi = new Date().toISOString().slice(0, 10);
+  const { data: lotti } = await supa.from("produzione_lotti")
+    .select("id, codice_lotto, data_produzione, data_scadenza, quantita_output, unita_misura, luogo, stato")
+    .eq("azienda_id", az).eq("ricetta_id", subId).not("stato", "in", "(annullato,annullata,bozza)")
+    .order("data_scadenza", { ascending: true, nullsFirst: false }).limit(30);
+  const validi = (lotti || []).filter(l => !l.data_scadenza || l.data_scadenza >= oggi);
+  const fd = (d) => d ? new Date(d).toLocaleDateString("it-IT") : "—";
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9998;display:flex;align-items:flex-end;justify-content:center;";
+  ov.innerHTML = `<div style="background:#fff;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));box-sizing:border-box;">
+    <div style="font-size:17px;font-weight:800;">Quale lotto hai usato?</div>
+    <div style="font-size:13px;color:#64748b;margin:2px 0 12px;">${escapeHtml(prod?.nome || "")} · in alto quello che scade prima</div>
+    ${validi.length ? validi.map((l, k) => `<button type="button" data-id="${l.id}" style="display:block;width:100%;text-align:left;border:1.5px solid ${k ? "#e2e8f0" : "#0E5A7A"};background:#fff;border-radius:12px;padding:11px 12px;margin-bottom:8px;cursor:pointer;font-size:14px;">
+        <b>${escapeHtml(l.codice_lotto || "")}</b> · scade ${fd(l.data_scadenza)}
+        <div style="font-size:12px;color:#64748b;">prodotto ${fd(l.data_produzione)}${l.quantita_output ? " · " + formatNum(l.quantita_output) + " " + escapeHtml(l.unita_misura || "") : ""}${l.luogo ? " · " + escapeHtml(l.luogo) : ""}</div></button>`).join("")
+      : `<div style="color:#b45309;font-weight:700;padding:10px 0;">Nessun lotto valido di questo semilavorato: va prima registrata la sua produzione.</div>`}
+    <button type="button" data-chiudi style="width:100%;border:0;border-radius:12px;padding:13px;background:#f1f5f9;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;">Annulla</button>
+  </div>`;
+  document.body.appendChild(ov);
+  const chiudi = () => ov.remove();
+  ov.querySelector("[data-chiudi]").onclick = chiudi;
+  ov.addEventListener("click", (e) => { if (e.target === ov) chiudi(); });
+  ov.querySelectorAll("[data-id]").forEach(b => b.onclick = async () => {
+    const l = validi.find(x => String(x.id) === b.dataset.id);
+    const { error } = await supa.from("produzione_lotto_ingredienti").update({
+      lotto_interno_id: l.id, lotto_materia_prima: l.codice_lotto, scadenza_materia_prima: l.data_scadenza, scelto_auto: false,
+    }).eq("id", rigaId);
+    if (error) { alert("Non salvato: " + error.message); return; }
+    chiudi();
+    if (card) { const d = card.querySelector(".rl-dettaglio"); if (d) d.style.display = "none"; await toggleDettaglio(card); }
+  });
+}
+
 // ✏️ Etichetta compilata a mano direttamente dal lotto: stessa scheda di Crea ricetta
 // (tabella etichette, una per ricetta) + la scadenza di QUESTO lotto.
 const ALLERGENI_UE = ["glutine", "crostacei", "uova", "pesce", "arachidi", "soia", "latte", "frutta a guscio", "sedano", "senape", "sesamo", "solfiti", "lupini", "molluschi"];
