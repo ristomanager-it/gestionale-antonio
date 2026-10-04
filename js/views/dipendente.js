@@ -760,7 +760,7 @@ async function calcolaProduzioneIbrida(aziendaId, dipendenteId) {
 
   const { data, error } = await supabase
     .from("produzione_lotti")
-    .select("id,quantita_output,resa_percentuale,scarto_percentuale,stato,data_produzione")
+    .select("id,quantita_output,unita_misura,resa_percentuale,scarto_percentuale,scarto_quantita,durata_min,stato,data_produzione")
     .eq("azienda_id", aziendaId)
     .eq("operatore_id", dipendenteId)
     .gte("data_produzione", inizioPeriodo.toISOString().slice(0, 10));
