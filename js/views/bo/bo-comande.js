@@ -2140,6 +2140,8 @@ export async function render(container) {
       const tavolo = tavoli.find(t => String(t.id) === String(comandaAttiva?.tavolo_id));
       const { nome: nomeTavolo, info: infoTavolo } = await infoPerComanda();
       const minuti = await minutaggiProdotti(righe.concat(righeComanda || []).map(r => r.prodotto_vendita_id));
+      const allergieTavolo = allergeniDaTesto(infoTavolo);
+      const allergeniPiatti = allergieTavolo.length ? await allergeniDeiPiatti(righe.map(r => r.prodotto_vendita_id)) : {};
       const previste = uscitePreviste(minuti, extra?.via || Math.min(...righe.map(r => Number(r.uscita_numero || 1))));
       const perReparto = {};
       righe.forEach(r => {
