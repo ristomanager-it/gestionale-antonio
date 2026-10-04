@@ -74,7 +74,8 @@ aggiorna() {
     curl -fsS -m 30 "$B/$f" -o ".nuovo/$f" || { echo "$(date): aggiornamento non scaricato ($f)" >> agent.log; return; }
   done
   python3 -m py_compile .nuovo/*.py || { echo "$(date): aggiornamento scartato, non compila" >> agent.log; return; }
-  cp .nuovo/* . && chmod +x rete.sh && echo "$SHA" > .versione
+  for f in agent.py realtime.py stampe.py ponte.py rete.sh; do cp ".nuovo/$f" "$f"; done
+  chmod +x rete.sh; rm -rf .nuovo; echo "$SHA" > .versione
   echo "$(date): aggiornato a ${SHA:0:7}" >> agent.log
 }
 
