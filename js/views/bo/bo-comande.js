@@ -2043,6 +2043,25 @@ export async function render(container) {
     return _minutaggi;
   }
 
+  // Orario previsto di ogni uscita: la prima = adesso + piatto piu' lungo; le successive =
+  // uscita prima + tempo medio al tavolo + piatto piu' lungo della nuova. Lo vedono tutti i reparti.
+  const TEMPO_MEDIO_TAVOLO_MIN = 15;
+  function uscitePreviste(minuti, daUscita) {
+    const prep = {};
+    (righeComanda || []).filter(r => r.stato !== 'annullato').forEach(r => {
+      const u = Number(r.uscita_numero || 1);
+      prep[u] = Math.max(prep[u] || 0, Number(minuti[r.prodotto_vendita_id] || 0));
+    });
+    const uscite = Object.keys(prep).map(Number).filter(u => u >= (daUscita || 1)).sort((a, b) => a - b);
+    const out = {};
+    let t = Date.now();
+    uscite.forEach((u, i) => {
+      t += ((i ? TEMPO_MEDIO_TAVOLO_MIN : 0) + prep[u]) * 60000;
+      out[u] = new Date(t).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    });
+    return out;
+  }
+
   async function stampaComandaReparti(righe, ristampa, extra) {
     try {
       const stampanti = await stampantiComande();
