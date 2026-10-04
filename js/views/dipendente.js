@@ -824,6 +824,9 @@ async function calcolaProduzioneIbrida(aziendaId, dipendenteId) {
     quantita: Number(quantita.toFixed(2)),
     resaMedia: Number(resaMedia.toFixed(2)),
     scartoMedio: Number(scartoMedio.toFixed(2)),
+    lavorazioni: crono.length,
+    minuti: Math.round(minuti),
+    kgOra: kgOra != null ? Number(kgOra.toFixed(2)) : null,
     dettaglio
   };
 }
