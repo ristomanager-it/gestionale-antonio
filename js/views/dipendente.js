@@ -814,7 +814,8 @@ async function calcolaProduzioneIbrida(aziendaId, dipendenteId) {
     `Lotti validi: ${lotti}`,
     `Quantità prodotta: ${formatNumberOrDash(quantita)}`,
     `Resa media: ${formatNumberOrDash(resaMedia)}%`,
-    `Scarto medio: ${formatNumberOrDash(scartoMedio)}%`
+    `Scarto medio: ${formatNumberOrDash(scartoMedio)}%`,
+    crono.length ? `Lavorazioni cronometrate: ${crono.length} · ${Math.round(minuti)} min · ${formatNumberOrDash(kgOra)} kg/ora` : `Lavorazioni cronometrate: nessuna`
   ].join("\n");
 
   return {
