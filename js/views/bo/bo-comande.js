@@ -2049,7 +2049,8 @@ export async function render(container) {
       if (!stampanti.length) return; // nessuna stampante configurata: solo schermo cucina
       const tavolo = tavoli.find(t => String(t.id) === String(comandaAttiva?.tavolo_id));
       const { nome: nomeTavolo, info: infoTavolo } = await infoPerComanda();
-      const minuti = await minutaggiProdotti(righe.map(r => r.prodotto_vendita_id));
+      const minuti = await minutaggiProdotti(righe.concat(righeComanda || []).map(r => r.prodotto_vendita_id));
+      const previste = uscitePreviste(minuti, extra?.via || Math.min(...righe.map(r => Number(r.uscita_numero || 1))));
       const perReparto = {};
       righe.forEach(r => {
         const rep = r.stampante || 'cucina';
