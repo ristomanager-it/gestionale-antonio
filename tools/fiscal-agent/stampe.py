@@ -30,6 +30,7 @@ TAGLIO = b"\n\n\n" + GS + b"V\x42\x00"
 DIM_1 = GS + b"!\x00"
 DIM_ALTO = GS + b"!\x01"                   # doppia altezza
 DIM_2 = GS + b"!\x11"                      # doppia altezza e larghezza
+INTERLINEA_STRETTA = ESC + b"3" + bytes([26])   # righe piu' vicine: comanda compatta, meno carta
 
 REPARTI = {"cucina": "CUCINA", "bar": "BAR", "pasticceria": "PASTICCERIA", "preconto": "PRECONTO",
            "beverage": "BEVERAGE", "dessert": "DESSERT"}
