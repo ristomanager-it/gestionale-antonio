@@ -1577,7 +1577,7 @@ async function resolve() {
     console.warn("Check profilo azienda fallito:", e);
   }
 
-  await loadPianoForAzienda(azienda);
+  if (!caldo) await loadPianoForAzienda(azienda);
 
   // ── Carica sede per BO_ROUTES (che saltano caricaContestoOperativo) ──
   if (!window.state?.sedeAttiva?.id) {
