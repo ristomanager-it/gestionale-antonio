@@ -1658,7 +1658,9 @@ async function resolve() {
     route !== "home" &&
     route !== "booking-form-builder"
   ) {
-   const contesto = await window.stateActions.caricaContestoOperativo();
+   const usaCache = caldo && __cc.contesto;
+   const contesto = usaCache ? __cc.contesto : await window.stateActions.caricaContestoOperativo();
+   __contesto = contesto;
 
 console.log("CONTESTO OPERATIVO:", contesto);
 
