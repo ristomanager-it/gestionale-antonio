@@ -243,6 +243,103 @@ async function toggleDettaglio(card) {
   }
 }
 
+// ✏️ Etichetta compilata a mano direttamente dal lotto: stessa scheda di Crea ricetta
+// (tabella etichette, una per ricetta) + la scadenza di QUESTO lotto.
+const ALLERGENI_UE = ["glutine", "crostacei", "uova", "pesce", "arachidi", "soia", "latte", "frutta a guscio", "sedano", "senape", "sesamo", "solfiti", "lupini", "molluschi"];
+
+async function apriEditorEtichetta({ info, etichetta, card }) {
+  const supa = window.supabaseClient || window.supabase;
+  const et = { ...(etichetta || {}) };
+  // niente scheda: la preparo io dalla ricetta (ingredienti in ordine di peso, allergeni delle materie prime)
+  if (!et.id && info.ricetta_id) {
+    const [{ data: ric }, { data: ingr }] = await Promise.all([
+      supa.from("ricette").select("nome").eq("id", info.ricetta_id).maybeSingle(),
+      supa.from("ricetta_ingredienti").select("nome_prodotto, quantita, unita_misura, prodotti(nome, allergeni)").eq("ricetta_id", info.ricetta_id),
+    ]);
+    const peso = (r) => (Number(r.quantita) || 0) * (["kg", "l", "lt"].includes(String(r.unita_misura || "").toLowerCase()) ? 1000 : 1);
+    const righe = (ingr || []).slice().sort((a, b) => peso(b) - peso(a));
+    et.denominazione = ric?.nome || "";
+    et.ingredienti = righe.map(r => r.prodotti?.nome || r.nome_prodotto).filter(Boolean).join(", ");
+    et.allergeni = [...new Set(righe.flatMap(r => (r.prodotti?.allergeni || []).map(a => String(a).replace(/_/g, " ").toLowerCase())))];
+    et.tmc_dicitura = "Da consumarsi entro";
+  }
+  if (!et.conservazione && info.conservazione_libera) et.conservazione = info.conservazione_libera;
+  const allerg = (Array.isArray(et.allergeni) ? et.allergeni : []).map(a => String(a).replace(/_/g, " "));
+  const v = (x) => escapeHtml(x == null ? "" : String(x));
+  const lab = "display:block;font-size:12px;font-weight:700;color:#64748b;margin:12px 0 4px;";
+  const inp = "width:100%;box-sizing:border-box;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;font-size:15px;font-family:inherit;";
+
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9998;display:flex;align-items:flex-end;justify-content:center;";
+  ov.innerHTML = `<div style="background:#fff;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));box-sizing:border-box;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;"><div style="font-size:18px;font-weight:800;">🏷 Etichetta</div>
+        <div style="font-size:12.5px;color:#64748b;">${v(info.codice_lotto || "")} · vale per tutti i lotti di questa ricetta; la scadenza solo per questo lotto</div></div>
+      <button type="button" data-chiudi style="border:0;background:#f1f5f9;border-radius:10px;padding:8px 12px;font-size:16px;cursor:pointer;">✕</button>
+    </div>
+    ${!etichetta?.id ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;border-radius:10px;padding:9px 11px;font-size:12.5px;margin-top:10px;">Preparata dalla ricetta: controlla ingredienti e allergeni.</div>` : ""}
+    <label style="${lab}">Denominazione</label><input data-f="denominazione" style="${inp}" value="${v(et.denominazione)}">
+    <label style="${lab}">Ingredienti (dal più al meno pesante)</label>
+    <textarea data-f="ingredienti" rows="3" style="${inp}">${v(et.ingredienti)}</textarea>
+    <label style="${lab}">Allergeni presenti</label>
+    <div data-allerg style="display:flex;flex-wrap:wrap;gap:6px;">${ALLERGENI_UE.map(a => `<label style="display:flex;align-items:center;gap:5px;font-size:13px;border:1.5px solid #e2e8f0;border-radius:16px;padding:6px 10px;cursor:pointer;"><input type="checkbox" value="${a}" ${allerg.includes(a) ? "checked" : ""}> ${a}</label>`).join("")}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><label style="${lab}">Scadenza di questo lotto</label><input data-scad type="date" style="${inp}" value="${v(info.data_scadenza || "")}"></div>
+      <div><label style="${lab}">Peso netto (g)</label><input data-f="peso_netto_g" type="number" min="0" style="${inp}" value="${v(et.peso_netto_g)}"></div>
+    </div>
+    <label style="${lab}">Dicitura</label>
+    <select data-f="tmc_dicitura" style="${inp}">
+      <option value="Da consumarsi entro" ${et.tmc_dicitura !== "Da consumarsi preferibilmente entro" ? "selected" : ""}>Da consumarsi entro (deperibili)</option>
+      <option value="Da consumarsi preferibilmente entro" ${et.tmc_dicitura === "Da consumarsi preferibilmente entro" ? "selected" : ""}>Da consumarsi preferibilmente entro</option>
+    </select>
+    <label style="${lab}">Conservazione</label><input data-f="conservazione" style="${inp}" value="${v(et.conservazione)}" placeholder="Es. Conservare a -18 °C">
+    <label style="${lab}">Dopo l'apertura (facoltativo)</label><input data-f="dopo_apertura" style="${inp}" value="${v(et.dopo_apertura)}">
+    <label style="${lab}">Origine (facoltativo)</label><input data-f="origine" style="${inp}" value="${v(et.origine)}" placeholder="Es. Italia">
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin-top:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;">
+      <input data-conferma type="checkbox" ${etichetta?.id && etichetta.confermata !== false ? "checked" : ""} style="margin-top:2px;width:18px;height:18px;">
+      <span><b>Ho verificato ingredienti e allergeni</b>, anche sulle etichette dei fornitori. Solo così l'etichetta si stampa.</span></label>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button type="button" data-chiudi style="flex:1;border:0;border-radius:12px;padding:13px;background:#f1f5f9;font-size:15px;font-weight:700;cursor:pointer;">Annulla</button>
+      <button type="button" data-salva style="flex:2;border:0;border-radius:12px;padding:13px;background:#0E5A7A;color:#fff;font-size:15px;font-weight:700;cursor:pointer;">💾 Salva etichetta</button>
+    </div>
+    <div data-esito style="font-size:13px;margin-top:8px;color:#b91c1c;"></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const chiudi = () => ov.remove();
+  ov.querySelectorAll("[data-chiudi]").forEach(b => b.onclick = chiudi);
+  ov.addEventListener("click", (e) => { if (e.target === ov) chiudi(); });
+
+  ov.querySelector("[data-salva]").onclick = async () => {
+    const esito = ov.querySelector("[data-esito]");
+    const f = (k) => ov.querySelector(`[data-f="${k}"]`)?.value?.trim() || "";
+    const rec = {
+      azienda_id: window.state?.azienda?.id, ricetta_id: info.ricetta_id,
+      denominazione: f("denominazione"), ingredienti: f("ingredienti"),
+      allergeni: [...ov.querySelectorAll("[data-allerg] input:checked")].map(c => c.value),
+      peso_netto_g: Number(f("peso_netto_g")) || null, tmc_dicitura: f("tmc_dicitura"),
+      conservazione: f("conservazione") || null, dopo_apertura: f("dopo_apertura") || null, origine: f("origine") || null,
+      confermata: ov.querySelector("[data-conferma]").checked,
+    };
+    if (!rec.denominazione || !rec.ingredienti) { esito.textContent = "Servono denominazione e ingredienti"; return; }
+    const btn = ov.querySelector("[data-salva]"); btn.disabled = true; btn.textContent = "Salvo…";
+    const q = etichetta?.id ? supa.from("etichette").update(rec).eq("id", etichetta.id) : supa.from("etichette").insert(rec);
+    const { error } = await q;
+    if (!error) {
+      const scad = ov.querySelector("[data-scad]").value || null;
+      if (info.id && scad !== (info.data_scadenza || null)) {
+        const r2 = await supa.from("produzione_lotti").update({ data_scadenza: scad }).eq("id", info.id);
+        if (r2.error) { esito.textContent = "Etichetta salvata, scadenza no: " + r2.error.message; btn.disabled = false; btn.textContent = "💾 Salva etichetta"; return; }
+        const l = lottiCache.find(x => String(x.id) === String(info.id)); if (l) l.data_scadenza = scad;
+      }
+    }
+    if (error) { esito.textContent = "Non salvata: " + error.message; btn.disabled = false; btn.textContent = "💾 Salva etichetta"; return; }
+    chiudi();
+    // riapro il dettaglio aggiornato
+    if (card) { const b = card.querySelector(".rl-dettaglio"); if (b) b.style.display = "none"; await toggleDettaglio(card); }
+    if (!rec.confermata) alert("Salvata come bozza: per stampare spunta «Ho verificato ingredienti e allergeni».");
+  };
+}
+
 // Come in Produzione: senza data di scadenza l'etichetta non esce. Se il lotto non ce l'ha,
 // la propongo da produzione + durata della ricetta e la salvo sul lotto.
 async function scadenzaDelLotto(info) {
