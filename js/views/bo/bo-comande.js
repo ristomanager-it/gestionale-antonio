@@ -209,6 +209,22 @@ export async function render(container) {
                 <input id="comanda-coperti" type="number" min="1" max="30" value="2" style="width:60px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:14px;">
                 <input id="comanda-note" class="input" placeholder="Note tavolo..." style="flex:1;font-size:13px;">
               </div>
+              <div style="padding:8px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <div style="font-size:13px;color:#64748b;white-space:nowrap;">Ritmo:</div>
+                  <div id="comanda-ritmo" style="display:flex;gap:6px;flex:1;"></div>
+                  <button id="btn-ritmi-impostazioni" title="Minuti dei ritmi" style="display:none;background:none;border:1px solid #e5e7eb;border-radius:6px;padding:4px 8px;cursor:pointer;">⚙️</button>
+                </div>
+                <div id="ritmi-impostazioni" style="display:none;margin-top:8px;padding:8px;background:#f8fafc;border-radius:8px;font-size:13px;">
+                  <div style="color:#64748b;margin-bottom:6px;">Minuti medi al tavolo tra un'uscita e l'altra (valgono per tutta la sede)</div>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <label>⚡ Veloce <input id="ritmo-min-veloce" type="number" min="1" max="120" style="width:56px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:6px;"></label>
+                    <label>🕒 Normale <input id="ritmo-min-normale" type="number" min="1" max="120" style="width:56px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:6px;"></label>
+                    <label>🛋️ Relax <input id="ritmo-min-relax" type="number" min="1" max="120" style="width:56px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:6px;"></label>
+                    <button id="btn-ritmi-salva" class="btn btn-primary" style="padding:4px 12px;font-size:13px;">Salva</button>
+                  </div>
+                </div>
+              </div>
               <div id="righe-comanda" style="flex:1;overflow-y:auto;padding:8px;"></div>
               <div style="border-top:1px solid #e5e7eb;padding:12px;flex-shrink:0;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
