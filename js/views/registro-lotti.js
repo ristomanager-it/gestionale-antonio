@@ -213,7 +213,7 @@ async function toggleDettaglio(card) {
       <div><label style="display:block;color:#64748b;">Quante</label>
         <input class="input rl-quante" type="number" min="1" value="${nDefault}" style="width:90px;"></div>
       <button class="rl-stampa" style="background:#0E5A7A;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;">🏷 Stampa etichette</button>
-      <div style="width:100%;font-size:11px;color:#94a3b8;margin-top:2px;">Retro 60 × 40 mm · QR alla scheda del prodotto</div>
+      <div style="width:100%;font-size:11px;color:#94a3b8;margin-top:2px;">Retro 60 × 40 mm · QR alla scheda del prodotto · <a href="#" class="rl-compila" style="color:#0E5A7A;font-weight:700;">✏️ modifica etichetta</a></div>
     </div>`);
   }
 
