@@ -49,7 +49,7 @@ export function initVoce(routeName) {
 function creaInterfaccia() {
   const st = document.createElement("style");
   st.textContent = `
-  #voce-fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:9990;width:62px;height:62px;border-radius:50%;
+  #voce-fab{position:fixed;left:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:9990;width:62px;height:62px;border-radius:50%;
     border:none;background:#023C59;color:#fff;font-size:27px;box-shadow:0 6px 20px rgba(2,60,89,.35);cursor:pointer;
     display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;}
   #voce-fab.registra{background:#DC2626;animation:vocePulse 1s infinite;}
