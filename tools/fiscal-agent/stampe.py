@@ -161,13 +161,14 @@ def righe_gruppo(righe, grande, larg):
             for riga in a_capo(">> " + str(r["note"]).upper(), larg - 3, "   "):
                 out += t("   " + riga) + b"\n"
             out += GRASSETTO_OFF + DIM_1
+        # allergeni: carattere normale, in rosso dove la stampante lo sa fare (le altre lo ignorano e stampano nero)
         if r.get("allergeni_contiene"):    # il piatto contiene un'allergia dichiarata dal tavolo
-            out += DIM_ALTO + GRASSETTO_ON
+            out += DIM_1 + GRASSETTO_ON + ROSSO_ON
             for riga in a_capo("!! CONTIENE " + ", ".join(r["allergeni_contiene"]), larg - 3, "   "):
                 out += t("   " + riga) + b"\n"
-            out += GRASSETTO_OFF + DIM_1
+            out += ROSSO_OFF + GRASSETTO_OFF
         elif r.get("allergeni_ignoti"):    # tavolo con allergie, piatto mai controllato
-            out += GRASSETTO_ON + t("   ?? ALLERGENI NON SEGNATI: VERIFICARE") + GRASSETTO_OFF + b"\n"
+            out += DIM_1 + ROSSO_ON + t("   ?? allergeni non segnati: verificare") + ROSSO_OFF + b"\n"
         if str(r.get("min") or "").isdigit() and int(r["min"]) > 0:
             out += t("    prep. " + str(int(r["min"])) + " min") + b"\n"
     return out
