@@ -190,9 +190,18 @@ async function toggleDettaglio(card) {
   // --- materie prime
   if (ingredienti.length) {
     H.push(`<div style="font-size:12px;font-weight:700;margin-bottom:6px;">Materie prime</div>`);
-    H.push(ingredienti.map(i => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dotted #e5e7eb;">
-      <span>${escapeHtml(i.prodotti?.nome || "—")}${i.lotto_materia_prima ? " · lotto " + escapeHtml(i.lotto_materia_prima) : ""}</span>
-      <span>${formatNum(i.quantita)} ${escapeHtml(i.unita_misura || "")}</span></div>`).join("") + `<div style="height:12px;"></div>`);
+    H.push(ingredienti.map(i => {
+      // semilavorato fatto in casa: lotto interno agganciato da solo (il primo che scade), cambiabile
+      const interno = i.lotto_interno_id || i.scelto_auto || (i.prodotti && i.prodotti.ricetta_id);
+      const scad = i.scadenza_materia_prima ? " (scade " + new Date(i.scadenza_materia_prima).toLocaleDateString("it-IT") + ")" : "";
+      const lotto = i.lotto_materia_prima
+        ? `<div style="color:#0E5A7A;font-weight:700;">lotto ${escapeHtml(i.lotto_materia_prima)}${scad}${i.scelto_auto ? ' <span style="color:#94a3b8;font-weight:400;">· scelto da Tony</span>' : ""}</div>`
+        : (interno ? `<div style="color:#b45309;font-weight:700;">⚠ nessun lotto disponibile</div>` : "");
+      const cambia = interno ? `<a href="#" class="rl-cambia-lotto" data-riga="${i.id}" data-prodotto="${i.prodotto_id}" style="color:#0E5A7A;font-weight:700;margin-left:8px;">cambia</a>` : "";
+      return `<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px dotted #e5e7eb;">
+      <span>${escapeHtml(i.prodotti?.nome || "—")}${lotto}</span>
+      <span style="white-space:nowrap;">${formatNum(i.quantita)} ${escapeHtml(i.unita_misura || "")}${cambia}</span></div>`;
+    }).join("") + `<div style="height:12px;"></div>`);
   }
 
   // --- confezionamento
