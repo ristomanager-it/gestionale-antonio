@@ -1609,8 +1609,10 @@ async function resolve() {
     }
   }
 
-  await window.stateActions.caricaPermessiEffettivi();
-  await window.stateActions.caricaRuoloEReparti();
+  if (!caldo) {
+    await window.stateActions.caricaPermessiEffettivi();
+    await window.stateActions.caricaRuoloEReparti();
+  }
 
   if (window.menuController?.refresh) {
     window.menuController.refresh();
