@@ -304,7 +304,8 @@ async function invia() {
   mostra({ t: "Tony sta capendo…", c: "…" });
   try {
     const b64 = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsDataURL(blob); });
-    const d = await chiama({ modo: "capisci", audio_base64: b64, mime: mimeRec });
+    const d = await chiama({ modo: "capisci", audio_base64: b64, mime: mimeRec,
+      diag: { byte: blob.size, ms: durata, picco: +diag.picco.toFixed(4), fondo: +diag.fondo.toFixed(4), parlato: diag.parlato, vad: diag.vad, ua: navigator.userAgent.slice(0, 120) } });
     if (d.errore) throw new Error(d.errore);
     gestisci(d.trascrizione || "", d.azione || {});
   } catch (e) {
