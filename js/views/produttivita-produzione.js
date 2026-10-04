@@ -97,6 +97,18 @@ async function carica() {
       });
     });
   }
+  // Lavorazioni dette a voce (taglio, affettatura...): niente fasi HACCP, il tempo e' quello misurato
+  const nomeDip = new Map((dip || []).map(d => [String(d.id), d.nome]));
+  lotti.filter(l => l.durata_min != null && !perLotto[l.lotto_uuid]).forEach(l => {
+    const min = Number(l.durata_min) || 0;
+    const costoOrario = costoById.get(String(l.operatore_id)) || 0;
+    righe.push({
+      lotto_uuid: l.lotto_uuid, ricetta_id: l.ricetta_id, ricetta: l.ricette?.nome || "Lavorazione",
+      fase_nome: "lavorazione", fase_tipo: "lavorazione", operatore_id: l.operatore_id,
+      operatore: nomeDip.get(String(l.operatore_id)) || "Account admin",
+      durata_min: min, durata_prevista: null, lavoro_min: min, costo_lavoro: min * costoOrario / 60,
+    });
+  });
   righeCache = righe;
   render_(body, lotti, righe);
 }
