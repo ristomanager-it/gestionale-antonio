@@ -2002,6 +2002,47 @@ export async function render(container) {
     return _stampantiComande;
   }
 
+  // Testo stampabile: le termiche non hanno emoji, togliamo tutto cio' che non e' testo latino
+  function perStampa(x) {
+    return String(x || '').replace(/[^\x20-\x7E\u00A0-\u00FF\u20AC\n]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Nome della prenotazione e cose che ogni reparto deve sapere del tavolo
+  // (allergie, bambini, occasione, richieste), piu' le note scritte sulla comanda.
+  async function infoPerComanda() {
+    let p = null;
+    if (comandaAttiva?.prenotazione_id) {
+      const { data } = await supa().from('prenotazioni_tavoli')
+        .select('cliente_nome, cognome, note, occasione, richieste_speciali')
+        .eq('id', comandaAttiva.prenotazione_id).maybeSingle();
+      p = data || null;
+    }
+    const nome = perStampa(p?.cognome || p?.cliente_nome || comandaAttiva?.cliente_nome) || null;
+    const voci = [];
+    if (p?.occasione) voci.push('Occasione: ' + p.occasione);
+    [p?.richieste_speciali, p?.note, comandaAttiva?.note].forEach(testo => {
+      String(testo || '').split(/\n|;/).forEach(v => voci.push(v));
+    });
+    const viste = new Set();
+    const info = voci.map(perStampa).filter(v => {
+      const k = v.toLowerCase();
+      if (!v || viste.has(k)) return false;
+      viste.add(k); return true;
+    });
+    return { nome, info };
+  }
+
+  let _minutaggi = {};
+  async function minutaggiProdotti(ids) {
+    const mancano = [...new Set(ids.filter(id => id && !(id in _minutaggi)))];
+    if (mancano.length) {
+      const { data } = await supa().from('prodotti_vendita').select('id, minutaggio_servizio').in('id', mancano);
+      mancano.forEach(id => { _minutaggi[id] = null; });
+      (data || []).forEach(p => { _minutaggi[p.id] = p.minutaggio_servizio || null; });
+    }
+    return _minutaggi;
+  }
+
   async function stampaComandaReparti(righe, ristampa, extra) {
     try {
       const stampanti = await stampantiComande();
