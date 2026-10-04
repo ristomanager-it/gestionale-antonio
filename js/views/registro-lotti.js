@@ -54,6 +54,17 @@ export async function render(app) {
   document.getElementById("rl-stampa-registro")?.addEventListener("click", stampaRegistro);
 
   await carica();
+
+  // Arrivo da un comando vocale: apro subito quel lotto (e, se chiesto, la sua etichetta)
+  const pr = window.routeParams || {};
+  if (pr.lotto) {
+    const card = document.querySelector(`[data-lotto="${CSS.escape(String(pr.lotto))}"]`);
+    if (card) {
+      await toggleDettaglio(card);
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (pr.etichetta) setTimeout(() => card.querySelector(".rl-compila")?.click(), 300);
+    }
+  }
 }
 
 async function carica() {
