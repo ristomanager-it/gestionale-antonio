@@ -246,6 +246,11 @@ async function toggleDettaglio(card) {
 
   box.innerHTML = H.join("");
 
+  box.querySelectorAll(".rl-cambia-lotto").forEach(b => b.addEventListener("click", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    cambiaLottoSemilavorato({ rigaId: b.dataset.riga, prodottoId: b.dataset.prodotto, card: box.closest("[data-lotto]") });
+  }));
+
   box.querySelectorAll(".rl-compila").forEach(b => b.addEventListener("click", (e) => {
     e.preventDefault(); e.stopPropagation();
     apriEditorEtichetta({ info, etichetta, card: box.closest("[data-lotto]") });
