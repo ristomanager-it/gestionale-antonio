@@ -129,10 +129,10 @@ def righe_gruppo(righe, grande, larg):
         for riga in a_capo(testo, grande, "  "):
             out += t(riga) + b"\n"
         out += GRASSETTO_OFF + DIM_1
-        if r.get("note"):                  # modifiche: nero su bianco, grandi e maiuscole (niente negativo)
-            out += DIM_2 + GRASSETTO_ON
-            for riga in a_capo(">> " + str(r["note"]).upper(), grande, "   "):
-                out += t(riga) + b"\n"
+        if r.get("note"):                  # modifiche: nero su bianco, alte e maiuscole, piu' piccole del piatto
+            out += DIM_ALTO + GRASSETTO_ON
+            for riga in a_capo(">> " + str(r["note"]).upper(), larg - 3, "   "):
+                out += t("   " + riga) + b"\n"
             out += GRASSETTO_OFF + DIM_1
         if str(r.get("min") or "").isdigit() and int(r["min"]) > 0:
             out += t("    prep. " + str(int(r["min"])) + " min") + b"\n"
