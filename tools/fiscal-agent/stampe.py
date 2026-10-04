@@ -95,7 +95,7 @@ def build_comanda(c, larg):
         out += b"\n" + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(" VIA " + str(c["via"]) + "a USCITA ") + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n"
     if c.get("coperti"):
         out += DIM_ALTO + t(str(c["coperti"]) + " coperti") + DIM_1 + b"\n"
-    out += SINISTRA + t(riga_dx(c.get("cameriere") or "", ora_locale(), larg)) + b"\n"
+    out += SINISTRA + t(riga_dx(c.get("cameriere") or "", data_ora_locale(), larg)) + b"\n"
     if c.get("ristampa"):
         out += INVERSO_ON + t(" RISTAMPA ") + INVERSO_OFF + b"\n"
     out += t("-" * larg) + b"\n"
