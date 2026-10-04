@@ -578,6 +578,20 @@ async function listaDecisioni(supabase, aziendaId) {
   } catch (e) { /* niente */ }
 
   try {
+    const { data: sc } = await supabase.rpc("scadenze_vicine", { p_azienda: aziendaId, p_sede: null, p_giorni: 1 });
+    const urgenti = (sc || []);
+    if (urgenti.length) {
+      const scaduti = urgenti.filter(x => x.giorni < 0).length, oggi = urgenti.filter(x => x.giorni === 0).length;
+      out.push({
+        livello: scaduti || oggi ? "rosso" : "giallo", link: "#/scadenze",
+        titolo: [scaduti ? scaduti + " scadut" + (scaduti === 1 ? "o" : "i") : "", oggi ? oggi + " in scadenza oggi" : "",
+                 urgenti.length - scaduti - oggi ? (urgenti.length - scaduti - oggi) + " domani" : ""].filter(Boolean).join(" · "),
+        sotto: "Usato, buttato o congelato: " + urgenti.slice(0, 3).map(x => x.nome).join(", "),
+      });
+    }
+  } catch (e) { /* niente */ }
+
+  try {
     const { count } = await supabase.from("prodotti")
       .select("id", { count: "exact", head: true })
       .eq("azienda_id", aziendaId).eq("allergeni_da_verificare", true);
