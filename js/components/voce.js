@@ -315,6 +315,7 @@ async function avviaRegistrazione() {
   try { speechSynthesis?.cancel(); } catch {}
   try { silenzioso?.pause(); } catch {} // su iPhone l'audio muto in riproduzione puo' disturbare il microfono
   diag = { picco: 0, fondo: 0, parlato: false, vad: false, inizio: Date.now() };
+  const vincoli = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
   } catch (e) {
