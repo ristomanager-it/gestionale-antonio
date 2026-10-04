@@ -32,6 +32,7 @@ mv agent.py.nuovo agent.py
 mv realtime.py.nuovo realtime.py
 mv stampe.py.nuovo stampe.py
 mv ponte.py.nuovo ponte.py
+case "$REF" in main|"") ;; *) echo "$REF" > .versione ;; esac
 rm -rf __pycache__
 sed -n 3p agent.py
 
@@ -57,12 +58,47 @@ fi
 
 cat > run.sh <<'EOF'
 #!/bin/bash
+# Tiene vivo il ponte. A ogni (ri)partenza: scarica l'ultima versione da GitHub (se compila),
+# legge le impostazioni a distanza da agenti_ponte.config e poi avvia realtime.py.
 cd /home/$(whoami)/fiscal-agent
 sudo -n iw dev wlan0 set power_save off 2>/dev/null
+REPO=ristomanager-it/gestionale-antonio
+
+aggiorna() {
+  SHA=$(curl -fsS -m 15 "https://api.github.com/repos/$REPO/commits/main" | python3 -c 'import sys,json; print(json.load(sys.stdin)["sha"])' 2>/dev/null)
+  [ -z "$SHA" ] && return
+  [ "$SHA" = "$(cat .versione 2>/dev/null)" ] && return
+  B="https://raw.githubusercontent.com/$REPO/$SHA/tools/fiscal-agent"
+  rm -rf .nuovo && mkdir -p .nuovo
+  for f in agent.py realtime.py stampe.py ponte.py rete.sh; do
+    curl -fsS -m 30 "$B/$f" -o ".nuovo/$f" || { echo "$(date): aggiornamento non scaricato ($f)" >> agent.log; return; }
+  done
+  python3 -m py_compile .nuovo/*.py || { echo "$(date): aggiornamento scartato, non compila" >> agent.log; return; }
+  cp .nuovo/* . && chmod +x rete.sh && echo "$SHA" > .versione
+  echo "$(date): aggiornato a ${SHA:0:7}" >> agent.log
+}
+
+impostazioni_remote() {
+  NOME="${RISTOFLOW_PONTE_NOME:-$(hostname)}"
+  CFG=$(curl -fsS -m 10 "$SUPABASE_URL/rest/v1/agenti_ponte?id=eq.$NOME&select=config" \
+        -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" 2>/dev/null)
+  eval "$(echo "$CFG" | python3 -c '
+import sys, json, shlex
+try:
+    c = (json.load(sys.stdin) or [{}])[0].get("config") or {}
+except Exception:
+    c = {}
+mappa = {"sede_id": "RISTOFLOW_SEDE_ID", "stampanti": "RISTOFLOW_STAMPANTI", "azienda_id": "RISTOFLOW_AZIENDA_ID"}
+for k, v in c.items():
+    if k in mappa and v is not None:
+        print("export " + mappa[k] + "=" + shlex.quote(str(v)))
+' 2>/dev/null)"
+}
+
 while true; do
-  set -a
-  source .env
-  set +a
+  aggiorna
+  set -a; source .env; set +a
+  impostazioni_remote
   python3 -u realtime.py
   echo "$(date): agente terminato, riavvio tra 5s" >> agent.log
   sleep 5
