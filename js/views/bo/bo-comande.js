@@ -3198,6 +3198,27 @@ export async function render(container) {
   container.querySelector('#btn-refresh').onclick = () => loadAll();
   container.querySelector('#btn-back-tavoli').onclick = () => switchView('tavoli');
   container.querySelector('#btn-invia-cucina').onclick = () => inviaInCucina();
+  container.querySelector('#btn-ritmi-impostazioni').onclick = () => {
+    const box = container.querySelector('#ritmi-impostazioni');
+    container.querySelector('#ritmo-min-veloce').value = minutiRitmi.veloce;
+    container.querySelector('#ritmo-min-normale').value = minutiRitmi.normale;
+    container.querySelector('#ritmo-min-relax').value = minutiRitmi.relax;
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  };
+  container.querySelector('#btn-ritmi-salva').onclick = () => salvaRitmiSede();
+  // note e coperti del tavolo restano sulla comanda: le note finiscono in INFO TAVOLO sulle stampe
+  container.querySelector('#comanda-note').addEventListener('change', async e => {
+    if (!comandaAttiva) return;
+    const note = e.target.value.trim() || null;
+    const { error } = await supa().from('comande').update({ note }).eq('id', comandaAttiva.id);
+    if (!error) comandaAttiva.note = note;
+  });
+  container.querySelector('#comanda-coperti').addEventListener('change', async e => {
+    if (!comandaAttiva) return;
+    const coperti = Math.max(1, parseInt(e.target.value, 10) || 1);
+    const { error } = await supa().from('comande').update({ coperti }).eq('id', comandaAttiva.id);
+    if (!error) comandaAttiva.coperti = coperti;
+  });
   container.querySelector('#btn-via-uscita').onclick = () => chiamaUscita();
   container.querySelector('#btn-nuova-uscita').onclick = () => nuovaUscita();
   container.querySelector('#btn-preconto').onclick = () => mostraPreconto();
