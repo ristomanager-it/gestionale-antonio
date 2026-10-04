@@ -2050,6 +2050,45 @@ export async function render(container) {
     return { nome, info };
   }
 
+  // Allergie del tavolo lette dalle note (prenotazione e comanda) -> i 14 allergeni di legge
+  const PAROLE_ALLERGENI = {
+    'glutine': ['glutin', 'celiac', 'frumento'],
+    'crostacei': ['crostace', 'gamber', 'scamp', 'astic', 'aragost', 'granchi'],
+    'uova': ['uova', 'uovo'],
+    'pesce': ['pesce'],
+    'arachidi': ['arachid'],
+    'soia': ['soia'],
+    'latte': ['latte', 'lattosio', 'latticin'],
+    'frutta a guscio': ['frutta a guscio', 'frutta secca', 'noci', 'nocciol', 'mandorl', 'pistacch', 'anacard'],
+    'sedano': ['sedano'],
+    'senape': ['senape'],
+    'sesamo': ['sesamo'],
+    'solfiti': ['solfit'],
+    'lupini': ['lupin'],
+    'molluschi': ['mollusch', 'cozz', 'vongol', 'calamar', 'polp', 'seppi', 'ostric'],
+  };
+  const normA = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/_/g, ' ').trim();
+  function allergeniDaTesto(righeInfo) {
+    const testo = ' ' + (righeInfo || []).map(normA).join(' | ') + ' ';
+    return Object.keys(PAROLE_ALLERGENI).filter(a => PAROLE_ALLERGENI[a].some(p => testo.includes(p)));
+  }
+  async function allergeniDeiPiatti(ids) {
+    const lista = [...new Set(ids.filter(Boolean))];
+    if (!lista.length) return {};
+    const { data, error } = await supa().rpc('allergeni_piatti', { p_ids: lista });
+    if (error) return {};
+    const m = {};
+    (data || []).forEach(x => { m[x.prodotto_vendita_id] = { allergeni: (x.allergeni || []).map(normA), censito: !!x.censito }; });
+    return m;
+  }
+  // Per ogni piatto: quali allergie del tavolo contiene, oppure se i suoi allergeni non sono mai stati segnati
+  function avvisoAllergeni(allergieTavolo, piatto) {
+    if (!allergieTavolo.length) return {};
+    if (!piatto || !piatto.censito) return { allergeni_ignoti: true };
+    const contiene = allergieTavolo.filter(a => piatto.allergeni.includes(a));
+    return contiene.length ? { allergeni_contiene: contiene.map(a => a.toUpperCase()) } : {};
+  }
+
   let _minutaggi = {};
   async function minutaggiProdotti(ids) {
     const mancano = [...new Set(ids.filter(id => id && !(id in _minutaggi)))];
