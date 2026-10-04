@@ -107,6 +107,16 @@ def build_comanda(c, larg):
             for riga in a_capo(voce.upper(), larg - 2, "  "):
                 out += t(riga) + b"\n"
         out += GRASSETTO_OFF + t("=" * larg) + b"\n"
+    previste = {str(k): str(v) for k, v in (c.get("uscite_previste") or {}).items() if v}
+    if previste:                           # orario stimato di ogni uscita: tutti i reparti si organizzano
+        voci = ["%sa %s" % (k, previste[k]) for k in sorted(previste, key=lambda x: int(x))]
+        riga = "Uscite previste:"
+        for v in voci:                     # ogni "2a 21:20" resta intero sulla stessa riga
+            if len(riga) + 2 + len(v) > larg:
+                out += t(riga) + b"\n"
+                riga = " " * 15
+            riga += "  " + v
+        out += t(riga) + b"\n"
     # righe raggruppate per uscita: ogni gruppo ha il suo titolo in negativo
     gruppi = {}
     for r in c.get("righe") or []:
