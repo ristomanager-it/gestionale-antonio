@@ -210,6 +210,7 @@ const routes = {
   "hr-buste-paga":   () => imp("./views/hr-buste-paga.js"),
   "hr-costi":        () => imp("./views/hr-costi.js"),
   "ricette-da-verificare": () => imp("./views/ricette-da-verificare.js"),
+  "allergeni-da-verificare": () => imp("./views/allergeni-da-verificare.js"),
   "servizi-eventi": () => imp("./views/servizi-eventi.js"),
   "hr-fascicolo":    () => imp("./views/hr-fascicolo.js"),
   "hr-documenti":    () => imp("./views/hr-documenti.js"),
