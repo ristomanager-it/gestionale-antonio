@@ -1480,7 +1480,15 @@ async function resolve() {
     } catch (e) { console.warn("Check agente:", e); }
   }
 
-  try {
+  // ⚡ Contesto "caldo": nei 3 minuti dopo l'ultimo caricamento completo, con stesso utente,
+  // azienda, sede e "vedi come", non richiedo di nuovo al server profilo, piano, ruolo e permessi.
+  const __chiave = () => [session.user.id, window.state?.azienda?.id || "", window.state?.sedeAttiva?.id || "", window.state?.viewAs || ""].join("|");
+  const __cc = window.__rfCtx;
+  const caldo = !!(__cc && __cc.key === __chiave() && Date.now() - __cc.t < 180000
+    && !PREHOME_ROUTES.has(route) && !PLATFORM_ROUTES.has(route));
+  let __contesto = null;
+
+  if (!caldo) try {
     const { data: dipCheck, error: dipCheckErr } = await supabase
       .from("dipendenti")
       .select("profilo_completato")
