@@ -143,6 +143,7 @@ async function caricaLavori(sedeId) {
 
 async function carica(sedeId) {
   const aziendaId = window.state.azienda.id;
+  try { await caricaLavori(sedeId); } catch (e) { /* lo schermo funziona anche senza */ }
   let q = supa().from("produzione_lotti")
     .select("id, lotto_uuid, ricetta_id, created_at, luogo, quantita_output, unita_misura, stato, ricette(nome), dipendenti!produzione_lotti_operatore_id_fkey(nome)")
     .eq("azienda_id", aziendaId).eq("stato", "aperta").order("created_at");
