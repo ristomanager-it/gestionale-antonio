@@ -41,7 +41,7 @@ async function carica() {
 
   // lotti chiusi nel periodo
   let q = window.supabaseClient.from("produzione_lotti")
-    .select("id, lotto_uuid, ricetta_id, created_at, data_produzione, quantita_output, ricette(nome)")
+    .select("id, lotto_uuid, ricetta_id, created_at, data_produzione, quantita_output, unita_misura, durata_min, scarto_quantita, operatore_id, prodotto_lavorato_id, ricette(nome)")
     .eq("azienda_id", aziendaId).in("stato", ["firmato", "chiuso"]).order("data_produzione", { ascending: false }).limit(500);
   if (dal) q = q.gte("data_produzione", dal);
   if (al) q = q.lte("data_produzione", al);
