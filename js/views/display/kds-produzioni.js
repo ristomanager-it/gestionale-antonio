@@ -132,7 +132,13 @@ async function caricaLavori(sedeId) {
   let box = document.getElementById("kdsp-lavori");
   if (!box) { box = document.createElement("div"); box.id = "kdsp-lavori"; board.parentNode.insertBefore(box, board); }
   const e = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  box.innerHTML = lavoriCache.length ? `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px;">${lavoriCache.map((l) => `
+  let sc = [];
+  try { const r = await supa().rpc("scadenze_vicine", { p_azienda: window.state.azienda.id, p_sede: sedeId || null, p_giorni: 0 }); sc = r.data || []; } catch (_) {}
+  const scHtml = sc.length ? `<div style="background:#3b0d0d;border:1px solid #7f1d1d;border-radius:12px;padding:10px 14px;color:#fecaca;margin:0 0 14px;">
+      <div style="font-size:11px;letter-spacing:.6px;color:#fca5a5;font-weight:800;">⏰ SCADE OGGI / SCADUTO</div>
+      <div style="font-size:15px;font-weight:700;margin-top:3px;">${sc.slice(0, 8).map((x) => e(x.nome) + (x.giorni < 0 ? " (scaduto)" : "")).join(" · ")}${sc.length > 8 ? " · e altri " + (sc.length - 8) : ""}</div>
+    </div>` : "";
+  box.innerHTML = scHtml + (lavoriCache.length ? `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px;">${lavoriCache.map((l) => `
     <div style="background:#0b3b52;border:1px solid #1e6a8a;border-radius:12px;padding:10px 14px;color:#e2f2f9;min-width:220px;">
       <div style="font-size:11px;letter-spacing:.6px;color:#7dd3fc;font-weight:800;">⏱ LAVORO IN CORSO</div>
       <div style="font-size:16px;font-weight:800;margin-top:2px;">${e(String(l.testo || "").replace(/^(sto |ok |allora )?(comincio|inizio|iniziando|cominciando|attacco|parto) a /i, ""))}</div>
