@@ -790,7 +790,7 @@ async function calcolaProduzioneIbrida(aziendaId, dipendenteId) {
   const minuti = crono.reduce((s, x) => s + Number(x.durata_min), 0);
   const kgOra = minuti > 0 ? crono.reduce((s, x) => s + kg(x), 0) / (minuti / 60) : null;
   const lotti = lottiValidi.length;
-  const quantita = lottiValidi.reduce((sum, x) => sum + Number(x.quantita_output || 0), 0);
+  const quantita = lottiValidi.reduce((sum, x) => sum + (String(x.unita_misura || "").toLowerCase() === "g" ? Number(x.quantita_output || 0) / 1000 : Number(x.quantita_output || 0)), 0);
 
   const resaValues = lottiValidi
     .map((x) => Number(x.resa_percentuale))
