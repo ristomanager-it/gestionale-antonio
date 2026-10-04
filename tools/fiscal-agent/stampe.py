@@ -126,7 +126,12 @@ def build_comanda(c, larg):
         titolo = " " + str(u) + "a USCITA "
         out += b"\n" + CENTRO + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(titolo) + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n"
         tempi = [int(r["min"]) for r in gruppi[u] if str(r.get("min") or "").isdigit() and int(r["min"]) > 0]
-        if tempi:
+        ora_u = previste.get(str(u))
+        if ora_u and tempi:
+            out += t("ore ~" + ora_u + " - pronta in " + str(max(tempi)) + " min") + b"\n"
+        elif ora_u:
+            out += t("ore ~" + ora_u) + b"\n"
+        elif tempi:
             out += t("pronta in ~" + str(max(tempi)) + " min") + b"\n"
         out += SINISTRA
         out += righe_gruppo(gruppi[u], grande, larg)
