@@ -113,7 +113,7 @@ def build_comanda(c, larg):
         tempi = [int(r["min"]) for r in gruppi[u] if str(r.get("min") or "").isdigit() and int(r["min"]) > 0]
         if tempi:
             out += t("pronta in ~" + str(max(tempi)) + " min") + b"\n"
-        out += b"\n" + SINISTRA
+        out += SINISTRA
         out += righe_gruppo(gruppi[u], grande, larg)
     out += t("-" * larg) + b"\n"
     if c.get("note") and not c.get("via"):
