@@ -238,7 +238,8 @@ async function toggleDettaglio(card) {
       <b>Non stampabile.</b> ${bozza ? "La scheda etichetta è una bozza: vanno verificati ingredienti e allergeni." : "Manca " + escapeHtml(mancano.join(" e ")) + "."}
       ${etichetta || !produttore ? "" : "<br>"}${(!etichetta || bozza) ? linkRicetta : ""}</div>`);
   } else {
-    const pesoDefault = etichetta.peso_netto_g || (conf.length ? Math.round((conf[0].peso_porzione_kg || 0) * 1000) : "");
+    // prima le confezioni di QUESTO lotto ("6 da 2 kg"), poi il peso della scheda etichetta
+    const pesoDefault = (conf.length && conf[0].peso_porzione_kg ? Math.round(conf[0].peso_porzione_kg * 1000) : "") || etichetta.peso_netto_g || "";
     const nDefault = conf.length ? (conf[0].numero_confezioni || 1) : 1;
     H.push(`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;font-size:12px;">
       <div><label style="display:block;color:#64748b;">Peso netto (g)</label>
