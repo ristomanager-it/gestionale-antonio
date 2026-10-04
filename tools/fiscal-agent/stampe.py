@@ -245,6 +245,60 @@ def invia(ip, porta, dati):
         s.close()
 
 
+# ── Stampante che ha cambiato indirizzo (il router le da' un IP nuovo) ──
+# Se non risponde e in Ristoflow ha un nome di rete fisso, scansiono la sua rete sulla
+# porta 9100 e riconosco quella giusta dalla sua pagina web (nome o modello): non mando
+# niente alle altre stampanti. Poi aggiorno l'indirizzo in Ristoflow.
+_IP_RITROVATI = {}
+
+
+def _porta_aperta(ip, porta, attesa=0.5):
+    try:
+        socket.create_connection((ip, porta), attesa).close()
+        return True
+    except Exception:
+        return False
+
+
+def _pagina_web(ip):
+    for url in ("http://" + ip + "/", "http://" + ip + "/general/status.html", "http://" + ip + "/net/net/net.html"):
+        try:
+            with urllib.request.urlopen(url, timeout=2) as r:
+                yield r.read(200000).decode("utf-8", "ignore").lower()
+        except Exception:
+            continue
+
+
+def ritrova_stampante(stampante_id, ip_vecchio, porta):
+    if not stampante_id:
+        return None
+    if stampante_id in _IP_RITROVATI and _IP_RITROVATI[stampante_id] != ip_vecchio:
+        return _IP_RITROVATI[stampante_id]
+    try:
+        info = (agent.sb_get("stampanti_comande?id=eq." + stampante_id + "&select=nome_rete,modello_rete,ip") or [None])[0]
+    except Exception:
+        info = None
+    if not info or not (info.get("nome_rete") or info.get("modello_rete")):
+        return None
+    segni = [x.lower() for x in (info.get("nome_rete"), info.get("modello_rete")) if x]
+    base = ".".join(str(ip_vecchio).split(".")[:3]) + "."
+    from concurrent.futures import ThreadPoolExecutor
+    candidati = [base + str(i) for i in range(1, 255) if base + str(i) != ip_vecchio]
+    with ThreadPoolExecutor(64) as ex:
+        aperti = [ip for ip, ok in zip(candidati, ex.map(lambda ip: _porta_aperta(ip, int(porta or 9100)), candidati)) if ok]
+    for ip in aperti:
+        for pagina in _pagina_web(ip):
+            if any(sg in pagina for sg in segni):
+                _IP_RITROVATI[stampante_id] = ip
+                try:
+                    agent.sb_patch("stampanti_comande?id=eq." + stampante_id, {"ip": ip})
+                except Exception as e:
+                    print("IP ritrovato ma non salvato:", e, flush=True)
+                print("Stampante ritrovata:", ip_vecchio, "->", ip, flush=True)
+                return ip
+    return None
+
+
 def query_in_attesa(limite=10):
     f = ""
     if agent.AZIENDA_ID:
