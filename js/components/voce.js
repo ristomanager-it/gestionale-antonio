@@ -11,6 +11,8 @@
 const URL_EF = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-voce";
 const ESEGUIBILI = ["chiama_uscita", "uscita_pronta", "preparazione", "nuova_ricetta"];
 const SECONDI_ANNULLA = 5;
+const VAPID_PUBBLICA = "BNb6u5McWxUNv_4pyvih-b5gl7KyJezR7pSefqdKnXU_4udgvkDbd0uqxa-bRI46HSCFw5pNO7mUWOqnJafQpF8";
+const VIBRA = [300, 120, 300, 120, 600];
 
 let pagina = "";
 let stato = "riposo"; // riposo | registra | elabora | conferma
@@ -43,6 +45,78 @@ export function initVoce(routeName) {
   if (!fab) creaInterfaccia();
   fab.style.display = "";
   avviaAnnunci();
+  registraServiceWorker();
+  if (pagina === "bo-comande" || pagina === "display-cucina") setTimeout(proponiNotifiche, 1500);
+}
+
+/* ─────────────── notifiche push: vibrano anche a telefono bloccato ─────────────── */
+const pushPossibile = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const isIphone = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
+const daHome = () => window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
+
+function registraServiceWorker() {
+  if (!("serviceWorker" in navigator) || registraServiceWorker.fatto) return;
+  registraServiceWorker.fatto = true;
+  navigator.serviceWorker.register("/sw.js").then(() => aggiornaIscrizione()).catch(() => {});
+}
+
+function statoNotifiche() {
+  if (isIphone() && !daHome()) return "home";       // su iPhone servono dall'icona sulla Home
+  if (!pushPossibile()) return "no";
+  if (Notification.permission === "granted") return "attive";
+  if (Notification.permission === "denied") return "bloccate";
+  return "da_attivare";
+}
+
+function chiaveBin(b64) {
+  const p = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + p).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function attivaNotifiche() {
+  const st = statoNotifiche();
+  if (st === "home") { mostra({ c: "Su iPhone: tocca Condividi → «Aggiungi alla schermata Home», apri Ristoflow dall'icona e attiva qui le notifiche", durata: 12000 }); return false; }
+  if (st === "no") { mostra({ ko: true, c: "Questo browser non supporta le notifiche" }); return false; }
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") { mostra({ ko: true, c: "Notifiche non permesse: abilitale nelle impostazioni del telefono" }); return false; }
+  const ok = await aggiornaIscrizione(true);
+  if (ok) { try { navigator.vibrate?.(VIBRA); } catch {} mostra({ c: "🔔 Notifiche attive su questo telefono", durata: 3500 }); }
+  return ok;
+}
+
+// Salva (o aggiorna) l'iscrizione di questo telefono: reparto e sede seguono le impostazioni
+async function aggiornaIscrizione(forza) {
+  try {
+    if (!pushPossibile() || Notification.permission !== "granted") return false;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub && forza) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chiaveBin(VAPID_PUBBLICA) });
+    if (!sub) return false;
+    const j = sub.toJSON();
+    const { data, error } = await sb().rpc("push_iscrivi", {
+      p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
+      p_azienda: window.state?.azienda?.id, p_sede: window.state?.sedeAttiva?.id || null,
+      p_annunci: imp("annunci", annunciDefault()), p_dispositivo: navigator.userAgent,
+    });
+    if (error) { console.warn("push:", error.message); return false; }
+    return data === true;
+  } catch (e) { console.warn("push:", e); return false; }
+}
+
+// Una volta sola, in sala o in cucina: proposta discreta di attivare le notifiche
+function proponiNotifiche() {
+  const st = statoNotifiche();
+  if (st === "attive" || st === "no" || st === "bloccate" || imp("proposta_push", "0") === "1" || stato !== "riposo") return;
+  salvaImp("proposta_push", "1");
+  mostra({
+    t: "🔔 Portate pronte anche a telefono bloccato",
+    c: st === "home" ? "Su iPhone aggiungi Ristoflow alla schermata Home (Condividi → Aggiungi a Home) e attiva da lì." : "Il telefono vibra quando la cucina dice che il tuo tavolo è pronto.",
+    extra: st === "home" ? "" : `<div class="va" style="margin-top:10px"><button class="ann" data-pno>Non ora</button><button class="ora" data-psi>Attiva</button></div>`,
+    durata: 15000,
+  });
+  pannello.querySelector("[data-psi]")?.addEventListener("click", () => { sblocca(); attivaNotifiche(); });
+  pannello.querySelector("[data-pno]")?.addEventListener("click", () => { pannello.style.display = "none"; });
 }
 
 /* ─────────────── interfaccia ─────────────── */
@@ -123,6 +197,9 @@ function apriImpostazioni() {
     <div class="r">Annunci su questo telefono</div>
     ${g("annunci", annunci, [["sala", "Sala"], ["cucina", "Cucina"], ["tutti", "Tutti"], ["nessuno", "Nessuno"]])}
     <div class="n">Sala riceve "uscita pronta", cucina riceve "via la seconda uscita".</div>
+    <div class="r">Notifiche a telefono bloccato</div>
+    <div class="g"><button data-push>${({ attive: "✅ Attive", home: "Da attivare dalla Home", bloccate: "Bloccate dal telefono", no: "Non supportate", da_attivare: "🔔 Attiva" })[statoNotifiche()]}</button></div>
+    <div class="n">${statoNotifiche() === "home" ? "Su iPhone: Condividi → «Aggiungi alla schermata Home», poi apri Ristoflow dall'icona." : "Vibra quando arriva «portata pronta» per i tuoi tavoli."}</div>
     <div class="r">Tasto dell'auricolare</div>
     ${g("cuffie", cuffie, [["1", "Attivo"], ["0", "Spento"]])}
     <div class="r">Telecomando Bluetooth (Invio)</div>
@@ -134,12 +211,15 @@ function apriImpostazioni() {
       un click in quei 5 secondi annulla.</div>
     <button class="chiudi">Fatto</button></div>`;
   document.body.appendChild(ov);
-  ov.addEventListener("click", (e) => {
+  ov.addEventListener("click", async (e) => {
+    const bp = e.target.closest("[data-push]");
+    if (bp) { const ok = await attivaNotifiche(); if (ok) bp.textContent = "✅ Attive"; return; }
     const b = e.target.closest("[data-k]");
     if (b) {
       salvaImp(b.dataset.k, b.dataset.v);
       b.parentElement.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
       if (b.dataset.k === "cuffie") b.dataset.v === "1" ? avviaCuffie() : fermaCuffie();
+      if (b.dataset.k === "annunci") aggiornaIscrizione();
       return;
     }
     if (e.target === ov || e.target.classList.contains("chiudi")) {
@@ -421,8 +501,11 @@ function avviaAnnunci() {
       const voglio = imp("annunci", annunciDefault());
       if (voglio === "nessuno") return;
       if (voglio !== "tutti" && r.destinatari !== "tutti" && r.destinatari !== voglio) return;
+      // portata pronta per un cameriere preciso: la sente lui (e chi segue "tutti")
+      if (r.destinatario_user_id && r.destinatario_user_id !== window.state?.user?.id && voglio !== "tutti") return;
       if (stato === "registra" || stato === "conferma") return; // non interrompo chi sta parlando
       bip([[988, 0.1], [988, 0.1]]);
+      try { navigator.vibrate?.(VIBRA); } catch {}
       mostra({ t: r.destinatari === "sala" ? "🍽️ Dalla cucina" : "🔔 Dalla sala", c: r.testo, annuncio: true, durata: 7000 });
       parla(r.testo);
     })
