@@ -578,6 +578,17 @@ async function listaDecisioni(supabase, aziendaId) {
   } catch (e) { /* niente */ }
 
   try {
+    const { count } = await supabase.from("prodotti")
+      .select("id", { count: "exact", head: true })
+      .eq("azienda_id", aziendaId).eq("allergeni_da_verificare", true);
+    if (count) out.push({
+      livello: "giallo", link: "#/allergeni-da-verificare",
+      titolo: count + (count === 1 ? " prodotto con allergeni da controllare" : " prodotti con allergeni da controllare"),
+      sotto: "Proposti da Tony: finiscono negli avvisi allergie in comanda",
+    });
+  } catch (e) { /* niente */ }
+
+  try {
     const { data } = await supabase.from("hr_richieste")
       .select("id, tipo, data_inizio, dipendenti(nome, cognome)")
       .eq("azienda_id", aziendaId).eq("stato", "in_attesa").limit(20);
