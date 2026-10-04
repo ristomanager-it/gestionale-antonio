@@ -727,6 +727,7 @@ function hasPermission(area) {
       "produzioni-storico",
       "briefing-servizio",
       "registro-lotti",
+      "lotti-fornitore",
       "registro-messaggi",
       "recensioni",
       "recensioni-ricevute",
