@@ -2314,6 +2314,7 @@ function bindEvents() {
     window.location.hash = "#/produzione";
   });
 
+  document.getElementById("btn-guida-preparazioni")?.addEventListener("click", apriGuidaPreparazioni);
   document.getElementById("btn-scheda-tecnica")?.addEventListener("click", apriSchedaTecnica);
   document.getElementById("btn-stampa-produzione")?.addEventListener("click", stampaSchedaProduzione);
   document.getElementById("btn-stampa-etichetta")?.addEventListener("click", stampaEtichettaProduzione);
