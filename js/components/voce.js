@@ -481,6 +481,31 @@ async function esegui() {
   }
 }
 
+// 🖨 Etichette chieste a voce: l'immagine si disegna qui sul telefono (come dal registro lotti)
+// e va alla Brother tramite il ponte, nel formato impostato sulla stampante.
+async function stampaDaVoce(st) {
+  if (!st || !st.lotto_uuid) return;
+  try {
+    const az = window.state?.azienda?.id;
+    const { data: info } = await sb().from("produzione_lotti").select("*").eq("lotto_uuid", st.lotto_uuid).maybeSingle();
+    if (!info) throw new Error("lotto non trovato");
+    const [{ data: etichetta }, { data: produttore }] = await Promise.all([
+      sb().from("etichette").select("*").eq("ricetta_id", info.ricetta_id).order("id", { ascending: false }).limit(1).maybeSingle(),
+      sb().from("etichette_produttore").select("*").eq("azienda_id", az).maybeSingle(),
+    ]);
+    if (!etichetta || etichetta.confermata === false) throw new Error("etichetta da confermare");
+    if (!produttore) throw new Error("mancano i dati del produttore");
+    const { inviaEtichetteLotto } = await import("../modules/produzione/etichette-lotto.js");
+    const peso = st.peso_g || etichetta.peso_netto_g || "";
+    const r = await inviaEtichetteLotto({ etichetta, produttore, info, peso, copie: st.copie || 1 });
+    if (r.ok) { mostra({ t: "🖨 In stampa", c: (st.copie || 1) + " " + ((st.copie || 1) === 1 ? "etichetta" : "etichette") + " · lotto " + (info.codice_lotto || ""), durata: 4000 }); return; }
+    throw new Error(r.motivo === "nessuna_stampante" ? "nessuna etichettatrice collegata" : r.motivo === "troppo_lungo" ? "il testo non entra nell'etichetta" : r.motivo);
+  } catch (e) {
+    mostra({ ko: true, c: "Etichette non stampate: " + (e.message || e), durata: 6000 });
+    parla("Etichette non stampate");
+  }
+}
+
 // Nuova ricetta: se la chat di Tony e' gia' aperta scrivo li', altrimenti apro Crea ricetta
 function apriRicetta(testo) {
   const inp = document.querySelector("#rc-input"), invio = document.querySelector("#rc-send");
