@@ -317,10 +317,34 @@ async function avviaRegistrazione() {
   diag = { picco: 0, fondo: 0, parlato: false, vad: false, inizio: Date.now() };
   const vincoli = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } };
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-  } catch (e) {
-    stato = "riposo"; aggiornaFab();
-    mostra({ ko: true, c: "Microfono non disponibile: dai il permesso al browser" }); return;
+    stream = await navigator.mediaDevices.getUserMedia(vincoli);
+  } catch (e1) {
+    // Su iPhone il microfono e' spesso solo "occupato" per un attimo (Tony che parla, auricolare che si collega,
+    // altra app): riprovo una volta, poi con le impostazioni di base. Il permesso negato non si riprova.
+    let e = e1;
+    if (e1?.name !== "NotAllowedError") {
+      await new Promise(r => setTimeout(r, 450));
+      try { stream = await navigator.mediaDevices.getUserMedia(vincoli); e = null; }
+      catch (e2) {
+        try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); e = null; } catch (e3) { e = e3; }
+      }
+    }
+    if (e) {
+      stato = "riposo"; aggiornaFab();
+      const nome = e?.name || "Errore";
+      const msg = nome === "NotAllowedError" || nome === "SecurityError"
+        ? "Il microfono non ha il permesso. Chiudi Ristoflow dal multitasking, riaprilo e alla domanda tocca «Consenti». Se non chiede niente: Impostazioni › App › Safari › Microfono › Chiedi."
+        : nome === "NotFoundError"
+          ? "Nessun microfono trovato: se usi l'auricolare, controlla che sia acceso e collegato."
+          : "Microfono occupato (chiamata, altra app o auricolare che si collega). Riprova tra un attimo.";
+      mostra({ ko: true, c: msg + " (" + nome + ")", durata: 9000 });
+      try {
+        sb().from("voce_log").insert({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null,
+          pagina: (location.hash || "").replace(/^#\/?/, ""), azione: { tipo: "microfono_ko" },
+          esito: { fase: "microfono", errore: nome, messaggio: String(e?.message || "").slice(0, 200), ua: navigator.userAgent } }).then(() => {}, () => {});
+      } catch (_) { /* il registro e' facoltativo */ }
+      return;
+    }
   }
   bip(BIP_VIA);
   mimeRec = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].find(m => window.MediaRecorder?.isTypeSupported?.(m)) || "";
