@@ -31,7 +31,8 @@ DIM_1 = GS + b"!\x00"
 DIM_ALTO = GS + b"!\x01"                   # doppia altezza
 DIM_2 = GS + b"!\x11"                      # doppia altezza e larghezza
 
-REPARTI = {"cucina": "CUCINA", "bar": "BAR", "pasticceria": "PASTICCERIA", "preconto": "PRECONTO"}
+REPARTI = {"cucina": "CUCINA", "bar": "BAR", "pasticceria": "PASTICCERIA", "preconto": "PRECONTO",
+           "beverage": "BEVERAGE", "dessert": "DESSERT"}
 
 
 def t(s):
@@ -79,15 +80,26 @@ def build_comanda(c, larg):
     grande = max(10, larg // 2)            # caratteri per riga a doppia larghezza
     out = INIT + CENTRO + DIM_2 + t(REPARTI.get(c.get("reparto"), str(c.get("reparto") or "").upper())) + b"\n"
     tav = c.get("tavolo")
-    out += DIM_2 + t("TAVOLO " + str(tav) if tav else "BANCO") + b"\n" + DIM_1 + NORMALE
+    out += DIM_2 + t("TAVOLO " + str(tav) if tav else "BANCO") + b"\n"
+    if c.get("nome"):                      # nome della prenotazione, sotto il tavolo
+        for riga in a_capo(str(c["nome"]).upper(), grande):
+            out += DIM_2 + GRASSETTO_ON + t(riga) + GRASSETTO_OFF + b"\n"
+    out += DIM_1 + NORMALE
     if c.get("via"):
         out += b"\n" + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(" VIA " + str(c["via"]) + "a USCITA ") + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n\n"
     if c.get("coperti"):
         out += DIM_ALTO + t(str(c["coperti"]) + " coperti") + DIM_1 + b"\n"
-    out += t(riga_dx(c.get("cameriere") or "", ora_locale(), larg)) + b"\n"
+    out += SINISTRA + t(riga_dx(c.get("cameriere") or "", ora_locale(), larg)) + b"\n"
     if c.get("ristampa"):
         out += INVERSO_ON + t(" RISTAMPA ") + INVERSO_OFF + b"\n"
-    out += SINISTRA + t("-" * larg) + b"\n"
+    out += t("-" * larg) + b"\n"
+    info = [str(x).strip() for x in (c.get("info_tavolo") or []) if str(x).strip()]
+    if info:                               # cosa deve sapere ogni reparto: allergie, bambini, occasione
+        out += t("=" * larg) + b"\n" + DIM_ALTO + GRASSETTO_ON + t("*** INFO TAVOLO ***") + b"\n"
+        for voce in info:
+            for riga in a_capo(voce.upper(), larg - 2, "  "):
+                out += t(riga) + b"\n"
+        out += GRASSETTO_OFF + DIM_1 + t("=" * larg) + b"\n"
     # righe raggruppate per uscita: ogni gruppo ha il suo titolo in negativo
     gruppi = {}
     for r in c.get("righe") or []:
@@ -95,7 +107,11 @@ def build_comanda(c, larg):
         gruppi.setdefault(u, []).append(r)
     for u in sorted(gruppi):
         titolo = " " + str(u) + "a USCITA "
-        out += CENTRO + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(titolo) + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n\n" + SINISTRA
+        out += b"\n" + CENTRO + DIM_2 + GRASSETTO_ON + INVERSO_ON + t(titolo) + INVERSO_OFF + GRASSETTO_OFF + DIM_1 + b"\n"
+        tempi = [int(r["min"]) for r in gruppi[u] if str(r.get("min") or "").isdigit() and int(r["min"]) > 0]
+        if tempi:
+            out += t("pronta in ~" + str(max(tempi)) + " min") + b"\n"
+        out += b"\n" + SINISTRA
         out += righe_gruppo(gruppi[u], grande, larg)
     out += t("-" * larg) + b"\n"
     if c.get("note") and not c.get("via"):
@@ -112,11 +128,13 @@ def righe_gruppo(righe, grande, larg):
         for riga in a_capo(testo, grande, "  "):
             out += t(riga) + b"\n"
         out += GRASSETTO_OFF + DIM_1
-        if r.get("note"):
-            out += DIM_ALTO + GRASSETTO_ON + INVERSO_ON
-            for riga in a_capo("> " + str(r["note"]), larg - 1, "  "):
-                out += t(" " + riga + " ") + b"\n"
-            out += INVERSO_OFF + GRASSETTO_OFF + DIM_1
+        if r.get("note"):                  # modifiche: nero su bianco, grandi e maiuscole (niente negativo)
+            out += DIM_2 + GRASSETTO_ON
+            for riga in a_capo(">> " + str(r["note"]).upper(), grande, "   "):
+                out += t(riga) + b"\n"
+            out += GRASSETTO_OFF + DIM_1
+        if str(r.get("min") or "").isdigit() and int(r["min"]) > 0:
+            out += t("    prep. " + str(int(r["min"])) + " min") + b"\n"
         out += b"\n"
     return out
 
