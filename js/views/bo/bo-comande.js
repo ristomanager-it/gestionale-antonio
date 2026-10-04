@@ -2063,8 +2063,61 @@ export async function render(container) {
 
   // Orario previsto di ogni uscita: la prima = adesso + piatto piu' lungo; le successive =
   // uscita prima + tempo medio al tavolo + piatto piu' lungo della nuova. Lo vedono tutti i reparti.
-  const TEMPO_MEDIO_TAVOLO_MIN = 15;
+  // Ritmo del tavolo: minuti medi al tavolo tra un'uscita e l'altra. Default per sede, scelta per tavolo.
+  const RITMI = [
+    { id: 'veloce', etichetta: '⚡ Veloce', stampa: 'VELOCE' },
+    { id: 'normale', etichetta: '🕒 Normale', stampa: 'NORMALE' },
+    { id: 'relax', etichetta: '🛋️ Relax', stampa: 'RELAX' },
+  ];
+  let minutiRitmi = { veloce: 10, normale: 15, relax: 25 };
+  let _ritmiCaricati = false;
+  async function caricaRitmi(forza) {
+    if (_ritmiCaricati && !forza) return;
+    _ritmiCaricati = true;
+    if (!sedeId) return;
+    const { data } = await supa().from('sedi').select('ritmo_veloce_min, ritmo_normale_min, ritmo_relax_min').eq('id', sedeId).maybeSingle();
+    if (data) minutiRitmi = {
+      veloce: data.ritmo_veloce_min || 10, normale: data.ritmo_normale_min || 15, relax: data.ritmo_relax_min || 25,
+    };
+  }
+  function ritmoAttivo() { return comandaAttiva?.ritmo || 'normale'; }
+  function renderRitmo() {
+    const box = container.querySelector('#comanda-ritmo');
+    if (!box) return;
+    const att = ritmoAttivo();
+    box.innerHTML = RITMI.map(r => `
+      <button data-ritmo="${r.id}" style="flex:1;padding:5px 6px;border-radius:8px;cursor:pointer;font-size:13px;
+        border:${r.id === att ? '2px solid #0E5A7A' : '1px solid #e5e7eb'};
+        background:${r.id === att ? '#e0f2fe' : 'white'};color:${r.id === att ? '#0E5A7A' : '#334155'};font-weight:${r.id === att ? '600' : '400'};">
+        ${r.etichetta} <span style="font-size:11px;opacity:.75;">${minutiRitmi[r.id]}'</span></button>`).join('');
+    box.querySelectorAll('[data-ritmo]').forEach(b => b.onclick = () => impostaRitmo(b.dataset.ritmo));
+    const gear = container.querySelector('#btn-ritmi-impostazioni');
+    if (gear) gear.style.display = cameriereAttivo?.ruolo === 'manager' ? '' : 'none';
+  }
+  async function impostaRitmo(r) {
+    if (!comandaAttiva || r === ritmoAttivo()) return;
+    const { error } = await supa().from('comande').update({ ritmo: r }).eq('id', comandaAttiva.id);
+    if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
+    comandaAttiva.ritmo = r;
+    renderRitmo();
+    mostraToast('Ritmo del tavolo: ' + RITMI.find(x => x.id === r).etichetta + ' (' + minutiRitmi[r] + ' min tra le uscite)', 'success');
+  }
+  async function salvaRitmiSede() {
+    const v = id => Math.max(1, Math.min(120, parseInt(container.querySelector(id).value, 10) || 0));
+    const nuovi = { veloce: v('#ritmo-min-veloce'), normale: v('#ritmo-min-normale'), relax: v('#ritmo-min-relax') };
+    if (!sedeId) { mostraToast('Scegli prima una sede', 'warning'); return; }
+    const { error } = await supa().from('sedi').update({
+      ritmo_veloce_min: nuovi.veloce, ritmo_normale_min: nuovi.normale, ritmo_relax_min: nuovi.relax,
+    }).eq('id', sedeId);
+    if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
+    minutiRitmi = nuovi;
+    container.querySelector('#ritmi-impostazioni').style.display = 'none';
+    renderRitmo();
+    mostraToast('Minuti dei ritmi salvati per la sede', 'success');
+  }
+
   function uscitePreviste(minuti, daUscita) {
+    const TEMPO_MEDIO_TAVOLO_MIN = minutiRitmi[ritmoAttivo()] || 15;
     const prep = {};
     (righeComanda || []).filter(r => r.stato !== 'annullato').forEach(r => {
       const u = Number(r.uscita_numero || 1);
