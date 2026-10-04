@@ -2162,6 +2162,8 @@ export async function render(container) {
           contenuto: {
             tavolo: tavolo?.nome || tavolo?.numero || null, coperti: comandaAttiva?.coperti || null,
             nome: nomeTavolo, info_tavolo: infoTavolo, uscite_previste: previste,
+            ritmo: ritmoAttivo() !== 'normale'
+              ? { nome: RITMI.find(x => x.id === ritmoAttivo()).stampa, min: minutiRitmi[ritmoAttivo()] } : null,
             cameriere: cameriereAttivo?.nome || null, ristampa: !!ristampa, righe: perReparto[rep],
             note: extra?.note || null,
             via: extra?.via || null,
