@@ -226,6 +226,11 @@ async function toggleDettaglio(card) {
 
   box.innerHTML = H.join("");
 
+  box.querySelectorAll(".rl-compila").forEach(b => b.addEventListener("click", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    apriEditorEtichetta({ info, etichetta, card: box.closest("[data-lotto]") });
+  }));
+
   const btn = box.querySelector(".rl-stampa");
   if (btn) {
     btn.addEventListener("click", (e) => {
