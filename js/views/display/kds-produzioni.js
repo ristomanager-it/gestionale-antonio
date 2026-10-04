@@ -143,7 +143,7 @@ async function caricaLavori(sedeId) {
       <div style="font-size:11px;letter-spacing:.6px;color:#7dd3fc;font-weight:800;">⏱ LAVORO IN CORSO</div>
       <div style="font-size:16px;font-weight:800;margin-top:2px;">${e(String(l.testo || "").replace(/^(sto |ok |allora )?(comincio|inizio|iniziando|cominciando|attacco|parto) a /i, ""))}</div>
       <div style="font-size:13px;margin-top:4px;">${e(l.operatore_nome || "")} · <b data-since="${new Date(l.inizio_at).getTime()}"></b></div>
-    </div>`).join("")}</div>` : "";
+    </div>`).join("")}</div>` : "");
   tick();
 }
 
