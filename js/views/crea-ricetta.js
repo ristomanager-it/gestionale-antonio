@@ -5720,6 +5720,16 @@ function bindUI() {
   // Se arrivi qui dalla chat di Tony, riprendo la conversazione automaticamente
   const consegnaTony = raccogliConsegnaDaTony();
   if (consegnaTony) setTimeout(() => apriChatRicettaTony(consegnaTony), 500);
+  // Arrivi qui da un comando vocale ("nuova ricetta..."): apro la chat di Tony e gli passo quello che hai detto
+  const dettoAVoce = window.__tonyRicettaVoce;
+  if (dettoAVoce && !consegnaTony) {
+    window.__tonyRicettaVoce = null;
+    setTimeout(() => {
+      apriChatRicettaTony();
+      const inp = document.querySelector("#rc-input"), invio = document.querySelector("#rc-send");
+      if (inp && invio) { inp.value = dettoAVoce; invio.click(); }
+    }, 500);
+  }
   safeOn("btn-tony-output", "click", () => apriModalTony("output"));
   safeOn("btn-tony-porzionature", "click", () => apriModalTony("porzionature"));
   safeOn("btn-tony-conservazione", "click", () => apriModalTony("conservazione"));
