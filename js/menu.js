@@ -411,6 +411,7 @@ export function initMenu() {
           { label: "🗂 Schede evento",       route: "scheda-evento"     },
           { label: "🥂 Modelli buffet",      route: "modelli-buffet"    },
           { label: "📅 Giorni di lavorazione", route: "giorni-lavorazione" },
+          { label: "🏭 Per le sedi",         route: "cc-sedi"           },
           { label: "📒 Registro lotti",      route: "registro-lotti"    },
           { label: "📷 Lotti in arrivo",     route: "lotti-fornitore"   },
           { label: "⏰ Scadenze",            route: "scadenze"          },
