@@ -410,7 +410,7 @@ export function initMenu() {
           { label: "📋 Planning",            route: "planner-produzione" },
           { label: "📷 Banchetto da foto",   route: "banchetto-foto"    },
           { label: "🗂 Schede evento",       route: "scheda-evento"     },
-          { label: "🛒 Spesa banchetti",     route: "spesa-banchetti"   },
+          // Spesa banchetti: confluita in Acquisti › Ordini (un ordine solo per banchetti, trattoria e scorte)
           { label: "🥂 Modelli buffet",      route: "modelli-buffet"    },
           { label: "📅 Giorni di lavorazione", route: "giorni-lavorazione" },
           { label: "🏭 Per le sedi",         route: "cc-sedi"           },
