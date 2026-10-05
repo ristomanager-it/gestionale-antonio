@@ -340,8 +340,9 @@ async function loadRicette() {
     .eq("attivo", true)
     .order("nome");
 
-  if (sedeId) {
-    query = query.eq("sede_id", sedeId);
+  // la sede attiva vede le sue ricette e quelle senza sede; con "Tutte le sedi" vede tutto
+  if (sedeId && !mostraTutteLeSedi()) {
+    query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
   }
 
   const { data, error } = await query;
