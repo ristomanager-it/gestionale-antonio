@@ -927,6 +927,13 @@ async function saveProduzione(mode, id, fallbackDate){
       .insert(payload)
   }
 
+  // stoccaggio scelto qui e mancante in ricetta: resta sulla ricetta per le volte dopo
+  if (stoccaggio && ricetta_id) {
+    try {
+      await window.supabaseClient.from("ricette").update({ stoccaggio }).eq("id", ricetta_id).is("stoccaggio", null)
+    } catch (_) {}
+  }
+
   await renderCurrentView()
 }
 
