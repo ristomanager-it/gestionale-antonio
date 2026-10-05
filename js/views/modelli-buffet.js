@@ -111,7 +111,7 @@ export async function render(app) {
       const t = box.querySelector(".mb-tot"); if (t) t.innerHTML = `Totale su ${ospiti} invitati: <b>${voci.reduce((s, v) => s + (pz(v.percentuale) || 0), 0)} pezzi</b>`;
     });
     box.querySelector(".mb-add")?.addEventListener("click", async () => {
-      const { data, error } = await sb().from("modelli_buffet_voci").insert({ azienda_id: az, modello_id: attivo, ordine: voci.length + 1, piatto: "" })
+      const { data, error } = await sb().from("modelli_buffet_voci").insert({ azienda_id: az, modello_id: attivo, ordine: (voci.length ? (voci[voci.length - 1].ordine || 0) : 0) + 1, piatto: "", angolo: voci.length ? voci[voci.length - 1].angolo : null })
         .select("id, ordine, piatto, ricetta_id, percentuale, fasi, parametri, titolo").single();
       if (error) { alert(error.message); return; }
       voci.push(data); disegna();
