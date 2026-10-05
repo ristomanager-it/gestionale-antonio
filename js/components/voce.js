@@ -187,7 +187,7 @@ function creaInterfaccia() {
 function aggiornaFab() {
   if (!fab) return;
   fab.className = stato === "riposo" ? "" : stato;
-  fab.textContent = stato === "registra" ? "⏺" : stato === "elabora" ? "⏳" : stato === "conferma" ? "✋" : "🎙️";
+  fab.textContent = stato === "registra" ? (dettatura ? "⏹" : "⏺") : stato === "elabora" ? "⏳" : stato === "conferma" ? "✋" : "🎙️";
 }
 
 function apriImpostazioni() {
