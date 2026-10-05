@@ -576,6 +576,12 @@ function perChi(note){
 
 function renderCard(r){
   const nomeDipendente = getDipendenteLabel(r.dipendente_id)
+  // verde = lotto chiuso / fatta; rosso = in ritardo (passata in coda o giorno gia' passato)
+  const oggiStr = formatDateLocal(new Date())
+  const servizio = String(r.prodotto || "").startsWith("🍽")
+  const fatta = r.stato === "completato"
+  const ritardo = !fatta && !servizio && (!!r.in_coda_da || (r.data && r.data < oggiStr))
+  const colore = fatta ? "border-left:5px solid #16a34a;background:#f0fdf4;" : ritardo ? "border-left:5px solid #dc2626;background:#fef2f2;" : ""
 
   return `
     <div
