@@ -471,6 +471,32 @@ export async function renderOrdini(container, azienda) {
     });
   });
 
+  // ── Ordini inviati ai fornitori ──
+  async function loadOrdiniInviati() {
+    const el = container.querySelector("#inviati-content");
+    if (!el) return;
+    const { data, error } = await supabase.from("ordini_fornitore")
+      .select("id, numero_ordine, data_ordine, stato, note, inviato_at, origine, fornitori(ragione_sociale), ordini_fornitore_righe(id)")
+      .eq("azienda_id", azienda.id).order("data_ordine", { ascending: false }).order("id", { ascending: false }).limit(50);
+    if (error) { el.innerHTML = `<div style="color:#b91c1c;font-size:13px;">Errore nel caricamento degli ordini.</div>`; return; }
+    if (!data?.length) { el.innerHTML = `<div style="color:#64748b;font-size:13px;">Nessun ordine inviato finora. Da adesso ogni ordine mandato ai fornitori resta qui.</div>`; return; }
+    const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    el.innerHTML = data.map((o) => `
+      <div class="card" data-ordine="${o.id}" style="cursor:pointer;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <strong>${esc(o.fornitori?.ragione_sociale || "Fornitore")}</strong>
+          <span style="font-size:12px;font-weight:700;color:${o.stato === "inviato" ? "#166534" : "#92400e"};">${esc(o.stato || "")}</span>
+        </div>
+        <div style="font-size:13px;color:#64748b;margin-top:2px;">
+          ${esc(o.numero_ordine || "")} · ${o.data_ordine ? new Date(o.data_ordine + "T12:00:00").toLocaleDateString("it-IT") : ""}
+          · ${(o.ordini_fornitore_righe || []).length} prodotti${o.note ? " · " + esc(o.note) : ""}
+        </div>
+      </div>`).join("");
+    el.querySelectorAll("[data-ordine]").forEach((c) => c.addEventListener("click", () => {
+      window.location.hash = "#/ordine?id=" + c.dataset.ordine;
+    }));
+  }
+
   // ── Trasferimenti interni ──
   function addTrasferimentoRiga() {
     const row = document.createElement("div");
