@@ -261,6 +261,7 @@ export async function render(container) {
 
     if (filtroSedeId) q = q.eq('sede_id', filtroSedeId);
     if (filtroDipId) q = q.eq('dipendente_id', filtroDipId);
+    if (soloProprie()) q = q.eq('dipendente_id', window.state?.dipendente?.id || '00000000-0000-0000-0000-000000000000');
 
     const { data, error } = await q.limit(5000);
     if (error) { tbl.innerHTML = `<div style="padding:20px;color:#dc2626;">Errore: ${error.message}</div>`; return; }
