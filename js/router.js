@@ -731,6 +731,7 @@ function hasPermission(area) {
       "registro-lotti",
       "lotti-fornitore",
       "scadenze",
+      "scheda-evento",
       "registro-messaggi",
       "recensioni",
       "recensioni-ricevute",
