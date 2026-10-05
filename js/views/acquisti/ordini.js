@@ -449,6 +449,30 @@ export async function renderOrdini(container, azienda) {
 
   await loadData();
   await initOrdineDraft();
+  avvisoBanchetti();
+
+  // Ordini da inviare per gli eventi confermati: si preparano in Spesa banchetti,
+  // qui si vede subito quanti ce ne sono e ci si arriva con un tocco.
+  async function avvisoBanchetti() {
+    const box = container.querySelector("#ordini-da-banchetti");
+    if (!box) return;
+    try {
+      const { data } = await supabase.rpc("spesa_banchetti", { p_azienda: azienda.id, p_giorni: 7 });
+      const righe = Array.isArray(data) ? data : [];
+      if (!righe.length) return;
+      const forn = new Set(righe.filter(r => r.fornitore_id).map(r => r.fornitore_id)).size;
+      const senza = righe.filter(r => !r.fornitore_id).length;
+      box.innerHTML = `
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+          <div style="font-weight:800;">🛒 Da ordinare per i banchetti dei prossimi 7 giorni</div>
+          <div style="font-size:13px;color:#7c2d12;margin-top:3px;">
+            ${righe.length} prodotti da ${forn} fornitori${senza ? ` · ${senza} senza fornitore` : ""}
+          </div>
+          <button class="btn-primary" id="vai-spesa-banchetti" style="margin-top:8px;">Prepara e invia gli ordini</button>
+        </div>`;
+      box.querySelector("#vai-spesa-banchetti").addEventListener("click", () => { window.location.hash = "#/spesa-banchetti"; });
+    } catch (e) { console.warn("spesa banchetti:", e); }
+  }
 
   // ── Tab switching ──
   container.querySelectorAll(".tab-ordini-btn").forEach(btn => {
