@@ -548,7 +548,7 @@ function renderRicetteList() {
           <div>
             <strong>${escapeHtml(r.nome)}</strong>
             <div style="font-size:12px;color:#64748b;margin-top:4px;">
-              ${badge} · ${origine} · ${resaTxt}
+              ${badge} · ${origine} · ${resaTxt}${mostraTutteLeSedi() && r.sede_nome ? ` · 🏢 ${escapeHtml(r.sede_nome)}` : ""}
             </div>
             <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
               ${r.creato_da_nome ? `✍️ ${escapeHtml(r.creato_da_nome)}` : ""}
