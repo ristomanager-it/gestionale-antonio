@@ -44,7 +44,7 @@ export async function render(app) {
         <button class="mb-x" data-elimina="1" title="Elimina modello">🗑</button>
       </div>
       <div class="mb-calc">Calcola su <input class="mb-in mb-osp" type="number" min="1" value="${ospiti}"> invitati</div>
-      <div class="mb-voci">${voci.map((v, i) => voce(v, i)).join("") || `<div class="mb-vuoto">Nessun piatto: aggiungi il primo.</div>`}</div>
+      <div class="mb-voci">${voci.map((v, i) => (i === 0 || (voci[i - 1].angolo || "") !== (v.angolo || "") ? `<div class="mb-ang">${esc(v.angolo || "Senza angolo")}</div>` : "") + voce(v, i)).join("") || `<div class="mb-vuoto">Nessun piatto: aggiungi il primo.</div>`}</div>
       <button class="mb-add">＋ Aggiungi piatto</button>
       ${voci.length ? `<div class="mb-tot">Totale su ${ospiti} invitati: <b>${voci.reduce((s, v) => s + (pz(v.percentuale) || 0), 0)} pezzi</b></div>` : ""}
       ` : `<div class="mb-vuoto">Crea il primo modello con «＋ Nuovo».</div>`}
