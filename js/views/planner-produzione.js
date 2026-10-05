@@ -917,6 +917,9 @@ async function saveProduzione(mode, id, fallbackDate){
   }
 
   if(mode === "edit" && id){
+    // cambio di giorno fatto a mano: resta, anche quando il cervello ricalcola
+    const { data: cur } = await window.supabaseClient.from("produzioni_settimanali").select("data").eq("id", id).maybeSingle()
+    if (cur && cur.data !== data) payload.spostato = true
     await window.supabaseClient
       .from("produzioni_settimanali")
       .update(payload)
