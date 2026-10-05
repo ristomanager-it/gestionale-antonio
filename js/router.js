@@ -653,6 +653,19 @@ function hasPermission(area) {
   // SOLO ADMIN (non manager, non operatore)
   // =====================================
 
+  // =====================================
+  // PERSONALE: anagrafica, ferie, buste paga, costi, fascicoli
+  // Solo admin e consulente del lavoro. Ognuno vede le proprie ore in
+  // bo-presenze/timbrature e i propri documenti in "I miei documenti".
+  // =====================================
+  const HR_RISERVATE = new Set([
+    "dipendenti", "dipendente", "crea-dipendente",
+    "hr-admin", "hr-buste-paga", "hr-costi", "hr-fascicolo", "fascicolo-hr", "hr-documenti",
+  ]);
+  if (HR_RISERVATE.has(area)) {
+    return ruolo === "admin" || ruolo === "consulente_lavoro";
+  }
+
   const ADMIN_ONLY_ROUTES = new Set([
     // Marketing & CRM
     "bo-tag",
