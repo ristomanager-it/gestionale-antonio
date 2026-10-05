@@ -452,6 +452,33 @@ async function chiama(corpo) {
   return await r.json();
 }
 
+// Dettatura al cervello: un audio lungo su rete debole puo' non partire. Riprovo da solo e, se non va,
+// tengo l'audio e propongo "Riprova l'invio" (niente da ridettare).
+async function inviaCervello(b64, mime) {
+  for (let tentativo = 1; tentativo <= 3; tentativo++) {
+    mostra({ t: "🧠 Tony legge il cervello…", c: tentativo === 1 ? "Preparo le modifiche da farti confermare" : "Connessione debole, riprovo (" + tentativo + "/3)…" });
+    try {
+      const dc = await chiamaCervello({ modo: "capisci", audio_base64: b64, mime });
+      if (dc.errore) { finisci(); mostra({ ko: true, c: "Non riuscito: " + dc.errore }); parla("Non riuscito"); return; }
+      return mostraCervello(dc);
+    } catch (e) {
+      if (tentativo < 3) { await new Promise((r) => setTimeout(r, 1500 * tentativo)); continue; }
+      try {
+        sb().from("voce_log").insert({ azienda_id: window.state?.azienda?.id, pagina, azione: { tipo: "microfono_ko" },
+          esito: { fase: "invio_cervello", errore: String(e?.message || e), byte: b64.length, ua: navigator.userAgent.slice(0, 120) } }).then(() => {}, () => {});
+      } catch (_) {}
+      finisci();
+      pannello.className = "ko"; pannello.style.display = "block";
+      pannello.innerHTML = `<div class="vt">Invio non riuscito</div><div class="vc">La connessione è caduta mentre mandavo la dettatura. L'audio è salvato: riprova quando hai campo.</div>
+        <div class="va"><button class="ann">✕ Lascia stare</button><button class="ora">↻ Riprova l'invio</button></div>`;
+      pannello.querySelector(".ann").onclick = () => { pannello.style.display = "none"; };
+      pannello.querySelector(".ora").onclick = () => { stato = "elabora"; aggiornaFab(); inviaCervello(b64, mime); };
+      parla("Invio non riuscito, l'audio è salvato");
+      return;
+    }
+  }
+}
+
 async function chiamaCervello(corpo) {
   const s = await sb().auth.getSession();
   const r = await fetch(URL_CERVELLO, { method: "POST",
