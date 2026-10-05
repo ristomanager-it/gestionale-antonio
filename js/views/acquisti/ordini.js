@@ -100,6 +100,11 @@ export async function renderOrdini(container, azienda) {
     <div id="trasf-feedback" style="margin-top:8px;font-size:13px;"></div>
   </div>
 
+  <div id="tab-inviati" style="display:none;">
+    <h3>📨 Ordini inviati</h3>
+    <div id="inviati-content"><div style="color:#64748b;font-size:13px;">Caricamento...</div></div>
+  </div>
+
   <div id="tab-storico-trasf" style="display:none;">
     <h3>📋 Storico trasferimenti</h3>
     <div id="storico-trasf-content"><div style="color:#64748b;font-size:13px;">Caricamento...</div></div>
