@@ -586,6 +586,7 @@ function renderCard(r){
   return `
     <div
       class="planner-card stato-${escapeAttr(r.stato || "da_fare")}"
+      style="${colore}"
       draggable="true"
       data-id="${r.id}">
       <div class="planner-card-title">
