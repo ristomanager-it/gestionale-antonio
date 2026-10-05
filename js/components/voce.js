@@ -457,6 +457,55 @@ async function chiama(corpo) {
   return await r.json();
 }
 
+async function chiamaCervello(corpo) {
+  const s = await sb().auth.getSession();
+  const r = await fetch(URL_CERVELLO, { method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (s?.data?.session?.access_token || "") },
+    body: JSON.stringify({ ...corpo, azienda_id: window.state?.azienda?.id }) });
+  return await r.json();
+}
+
+// Proposta di modifica al cervello: niente esecuzione automatica, serve sempre la conferma dell'admin
+function mostraCervello(d) {
+  const righe = (d.riepilogo || []).filter(Boolean);
+  if (!(d.ops || []).length) {
+    finisci();
+    mostra({ t: d.trascrizione ? "«" + d.trascrizione + "»" : "", c: d.domanda || "Non ho trovato modifiche da fare: riprova con più dettagli", ko: true, durata: 9000 });
+    parla(d.domanda || "Non ho capito cosa cambiare");
+    return;
+  }
+  stato = "conferma"; aggiornaFab();
+  propostaCervello = { ops: d.ops, testo: d.trascrizione || "" };
+  pannello.className = ""; pannello.style.display = "block";
+  pannello.innerHTML = `<div class="vt">🧠 Modifiche al cervello</div>
+    <div class="vc" style="font-size:13px;opacity:.8">«${esc(d.trascrizione || "")}»</div>
+    <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;line-height:1.45">${righe.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
+    ${d.domanda ? `<div style="margin-top:8px;font-size:13px;font-weight:700">❓ ${esc(d.domanda)}</div>` : ""}
+    <div class="va" style="margin-top:10px"><button class="ann">✕ Annulla</button><button class="ora">✓ Conferma</button></div>`;
+  pannello.querySelector(".ann").onclick = () => { propostaCervello = null; finisci(); pannello.style.display = "none"; parla("Annullato"); };
+  pannello.querySelector(".ora").onclick = confermaCervello;
+  parla(righe.length === 1 ? righe[0] + ". Confermi?" : righe.length + " modifiche. Controlla e conferma.");
+}
+
+async function confermaCervello() {
+  const p = propostaCervello; propostaCervello = null;
+  if (!p) return;
+  stato = "elabora"; aggiornaFab();
+  mostra({ t: "🧠 Aggiorno il cervello…", c: "e ricalcolo il planning" });
+  try {
+    const d = await chiamaCervello({ modo: "esegui", ops: p.ops, testo: p.testo });
+    finisci();
+    if (!d || d.ok === false || d.errore) throw new Error(d?.messaggio || d?.errore || "non riuscito");
+    bip(BIP_FATTO);
+    mostra({ t: "✓ Cervello aggiornato", c: (d.fatti || []).join(" · ") + (d.eventi_ripianificati ? " · planning ricalcolato per " + d.eventi_ripianificati + " eventi" : ""), durata: 9000 });
+    parla("Fatto, cervello aggiornato");
+    // ridisegno la pagina aperta con le regole nuove
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  } catch (e) {
+    finisci(); mostra({ ko: true, c: "Non salvato: " + (e.message || e) }); parla("Non riuscito");
+  }
+}
+
 /* ─────────────── rilettura, 5 secondi per annullare, esecuzione ─────────────── */
 function gestisci(trascrizione, a) {
   const detto = trascrizione ? "«" + trascrizione + "»" : "";
