@@ -737,6 +737,7 @@ function hasPermission(area) {
       "scheda-evento",
       "modelli-buffet",
       "giorni-lavorazione",
+      "cc-sedi",
       "registro-messaggi",
       "recensioni",
       "recensioni-ricevute",
