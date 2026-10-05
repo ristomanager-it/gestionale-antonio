@@ -468,11 +468,19 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
   const supaD = window.supabaseClient || window.supabase;
   const { data: dest } = info.id ? await supaD.from("produzione_lotti_destinazioni").select("evento_titolo, quantita").eq("lotto_id", info.id).order("id") : { data: [] };
   if ((dest || []).length > 1) {
-    let ok = 0, ultimo = null;
-    for (const d of dest) {
-      const rr = await inviaEtichetteLotto({ etichetta, produttore, info: { ...info, destinazione: (d.evento_titolo || "evento") + (d.quantita ? " · " + formatNum(d.quantita) + " pz" : "") }, peso, copie: quante, formato });
-      if (rr.motivo === "troppo_lungo") { alert("Il testo non entra nell'etichetta: allungala o accorcia ingredienti e conservazione."); return; }
-      if (rr.ok) ok++; else ultimo = rr;
+    // quante etichette per ogni evento (es. il ragu' di un evento in due sacchetti)
+    const conte = await chiediEtichettePerEvento(dest, quante);
+    if (!conte) return;
+    let ok = 0, tot = 0, ultimo = null;
+    for (let i = 0; i < dest.length; i++) {
+      const d = dest[i], n = conte[i];
+      for (let k = 1; k <= n; k++) {
+        tot++;
+        const quale = (d.evento_titolo || "evento") + (n > 1 ? " · " + k + "/" + n : (d.quantita ? " · " + formatNum(d.quantita) + " pz" : ""));
+        const rr = await inviaEtichetteLotto({ etichetta, produttore, info: { ...info, destinazione: quale }, peso, copie: 1, formato });
+        if (rr.motivo === "troppo_lungo") { alert("Il testo non entra nell'etichetta: allungala o accorcia ingredienti e conservazione."); return; }
+        if (rr.ok) ok++; else ultimo = rr;
+      }
     }
     if (ok === dest.length) { alert("🏷 Etichette inviate: " + quante + " per ognuno dei " + dest.length + " eventi (" + dest.map((d) => d.evento_titolo).join(", ") + ")"); return; }
     if (ultimo && ultimo.motivo !== "nessuna_stampante") { alert("Errore invio etichette: " + ultimo.motivo); return; }
