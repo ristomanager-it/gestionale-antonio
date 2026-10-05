@@ -16,6 +16,9 @@ export async function render(container){
     return
   }
 
+  // si apre sempre sulla settimana di oggi (prima restava sull'ultima settimana guardata)
+  currentDate = new Date()
+
   await loadRicette()
   await loadReparti()
   await loadDipendenti()
