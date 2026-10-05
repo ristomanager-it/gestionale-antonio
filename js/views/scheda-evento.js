@@ -91,6 +91,7 @@ async function scheda(box, az, id) {
       ${p.intolleranze ? `<div class="se-att">⚠ ${esc(p.intolleranze)}</div>` : ""}
       <div class="se-info">Le fasi si salvano sulla ricetta e restano per i prossimi eventi. Il nome di chi le fa vale per questo evento.</div>
       ${nomiSez.map((s) => `<div class="se-sez"><div class="se-sez-t">${esc(s)}</div>
+        ${sezBuffet(s) && (modelli || []).length ? `<select class="se-in se-mod" data-sez="${esc(s)}"><option value="">📋 Usa un modello buffet…</option>${(modelli || []).map((m) => `<option value="${m.id}">${esc(m.nome)}</option>`).join("")}</select>` : ""}
         ${gruppi[s].map((i) => piatto(i)).join("")}
         <div class="se-add" data-sez="${esc(s)}"><input class="se-in" placeholder="＋ Aggiungi un piatto a ${esc(s)}: cerca nel ricettario"><div class="se-ris"></div></div>
       </div>`).join("")}
