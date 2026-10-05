@@ -467,6 +467,7 @@ export async function renderOrdini(container, azienda) {
       if (target) target.style.display = "block";
 
       if (btn.dataset.tab === "storico-trasf") loadStoricoTrasferimenti();
+      if (btn.dataset.tab === "inviati") loadOrdiniInviati();
     });
   });
 
