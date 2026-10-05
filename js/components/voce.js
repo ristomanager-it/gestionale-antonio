@@ -21,6 +21,10 @@ let ctxAudio = null, stream = null, rec = null, pezzi = [], mimeRec = "";
 let timerSilenzio = null, timerMax = null, rafVad = null;
 let timerConferma = null, azioneInAttesa = null, trascrizioneInAttesa = "";
 let silenzioso = null, canale = null, ultimoTrigger = 0;
+// Dettatura (ricette lunghe): niente stop sulle pause, si ferma col tocco. Si attiva nelle pagine
+// delle ricette o da sola se parli piu' di 6 secondi di fila.
+let dettatura = false;
+const DETTATURA_MAX = 180000, DETTATURA_SILENZIO = 30000;
 let diag = { picco: 0, fondo: 0, parlato: false, vad: false, inizio: 0 };
 
 const sb = () => window.supabaseClient || window.supabase;
