@@ -90,7 +90,8 @@ export async function render(app) {
       alert(res.error ? "Errore invio ordine" : "✓ Ordine inviato a " + f.nome);
     }));
     box.querySelectorAll("[data-wa]").forEach((b) => b.addEventListener("click", () => {
-      const f = G[b.dataset.wa]; const { testo } = testoOrdine(f);
+      const f = G[b.dataset.wa]; const { testo, righe: rw } = testoOrdine(f);
+      registra(b.dataset.wa, rw, "WhatsApp");
       const tel = String(f.tel || "").replace(/\D/g, "");
       window.open("https://wa.me/" + (tel ? (tel.startsWith("39") ? tel : "39" + tel) : "") + "?text=" + encodeURIComponent(testo), "_blank");
     }));
