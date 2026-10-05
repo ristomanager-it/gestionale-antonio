@@ -482,7 +482,7 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
         if (rr.ok) ok++; else ultimo = rr;
       }
     }
-    if (ok === dest.length) { alert("🏷 Etichette inviate: " + quante + " per ognuno dei " + dest.length + " eventi (" + dest.map((d) => d.evento_titolo).join(", ") + ")"); return; }
+    if (ok === tot) { alert("🏷 " + tot + " etichette inviate: " + dest.map((d, i) => d.evento_titolo + " " + conte[i]).join(", ")); return; }
     if (ultimo && ultimo.motivo !== "nessuna_stampante") { alert("Errore invio etichette: " + ultimo.motivo); return; }
   }
   const r = await inviaEtichetteLotto({ etichetta, produttore, info, peso, copie: quante, formato });
