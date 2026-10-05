@@ -4450,6 +4450,20 @@ async function preloadFromPlanner(plannerId){
 
   if(!data) return
 
+  // la riga appartiene a un lotto di evento (EV...) e lavora la stessa ricetta: apro QUEL lotto
+  // (ricetta, fasi HACCP, firme gia' fatte, kg previsti). Se lavora un componente (es. il ripieno)
+  // si parte dalla ricetta del componente.
+  const codiceLotto = (String(data.note || "").match(/lotto ([A-Za-z0-9-]+)/) || [])[1]
+  if (codiceLotto) {
+    const { data: lt } = await supabase.from("produzione_lotti")
+      .select("lotto_uuid, ricetta_id, stato").eq("codice_lotto", codiceLotto).eq("azienda_id", window.state?.azienda?.id).maybeSingle()
+    if (lt?.lotto_uuid && String(lt.ricetta_id) === String(data.ricetta_id) && lt.stato !== "annullato") {
+      await resumeDaLotto(lt.lotto_uuid)
+      if (typeof setRicettaInfo === "function") setRicettaInfo("Lotto " + codiceLotto + " aperto dal planning ✔")
+      return
+    }
+  }
+
   // DATA
   const dataEl = document.getElementById("prod-data")
   if(dataEl && data.data){
