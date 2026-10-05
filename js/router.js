@@ -163,6 +163,7 @@ const routes = {
   "scadenze": () => imp("./views/scadenze.js"),
   "scheda-evento": () => imp("./views/scheda-evento.js"),
   "modelli-buffet": () => imp("./views/modelli-buffet.js"),
+  "giorni-lavorazione": () => imp("./views/giorni-lavorazione.js"),
 
   // Agenzia viaggi: modulo in prova, solo azienda Ristoflow.
   "agenzia-viaggi": () => imp("./views/agenzia-viaggi.js"),
