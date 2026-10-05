@@ -185,10 +185,8 @@ async function copertiDelGiorno(supabase, aziendaId, sedeId, giorno) {
 
 async function statoSquadra(supabase, aziendaId, sedeId, giorno) {
   if (!aziendaId) return { inTurno: 0, previsti: 0, senzaTimbratura: [] };
-  const { data: timb } = await supabase.from("timbrature")
-    .select("dipendente_id, dip_nome, tipo, timestamp")
-    .eq("azienda_id", aziendaId).eq("data_turno", giorno)
-    .order("timestamp", { ascending: true });
+  // solo i presenti del giorno (le timbrature degli altri non sono piu' leggibili dai manager)
+  const { data: timb } = await supabase.rpc("presenti_giorno", { p_azienda: aziendaId, p_giorno: giorno });
 
   const ultimo = new Map();
   (timb || []).forEach(t => ultimo.set(t.dipendente_id, t));
