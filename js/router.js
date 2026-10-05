@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=58";
+import { initMenu } from "./menu.js?v=59";
 window.initMenu = initMenu;
 
 /* =========================================================
