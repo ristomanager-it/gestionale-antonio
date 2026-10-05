@@ -4591,7 +4591,24 @@ async function resumeDaLotto(lottoUuid) {
   const scadRipEl = document.getElementById("prod-scadenza")
   if (scadRipEl && lotto.data_scadenza) scadRipEl.value = lotto.data_scadenza
   const pesoEl = document.getElementById("prod-peso-reale")
-  if (pesoEl && lotto.quantita_output) pesoEl.value = lotto.quantita_output
+  if (pesoEl && lotto.quantita_output) {
+    // i lotti degli eventi contano pezzi/porzioni, non kg: non li metto nel peso reale
+    const umL = String(lotto.unita_misura || "").toLowerCase()
+    if (["pz", "pezzi", "porzioni", "porz"].includes(umL)) {
+      pesoEl.value = ""
+      let kgPrev = null
+      try {
+        const { data: rp } = await supabase.from("ricette").select("peso_porzionatura_g").eq("id", lotto.ricetta_id).maybeSingle()
+        const g = Number(rp?.peso_porzionatura_g) || 0
+        const porz = Number(lotto.porzioni_equivalenti) || Number(lotto.quantita_output) || 0
+        if (g > 0 && porz > 0) kgPrev = Math.round(porz * g / 100) / 10
+      } catch (_) {}
+      const pz = Number(lotto.quantita_output).toLocaleString("it-IT")
+      pesoEl.placeholder = "Previsti " + pz + " pz" + (kgPrev ? " · circa " + String(kgPrev).replace(".", ",") + " kg" : "") + ": pesa e scrivi il reale"
+    } else {
+      pesoEl.value = lotto.quantita_output
+    }
+  }
   const noteEl = document.getElementById("prod-note-lotto")
   if (noteEl && lotto.note) noteEl.value = lotto.note
   const consLibEl = document.getElementById("prod-conservazione-libera")
