@@ -112,7 +112,7 @@ export async function render(app) {
     });
     box.querySelector(".mb-add")?.addEventListener("click", async () => {
       const { data, error } = await sb().from("modelli_buffet_voci").insert({ azienda_id: az, modello_id: attivo, ordine: (voci.length ? (voci[voci.length - 1].ordine || 0) : 0) + 1, piatto: "", angolo: voci.length ? voci[voci.length - 1].angolo : null })
-        .select("id, ordine, piatto, ricetta_id, percentuale, fasi, parametri, titolo").single();
+        .select("id, ordine, angolo, piatto, ricetta_id, percentuale, fasi, parametri, titolo").single();
       if (error) { alert(error.message); return; }
       voci.push(data); disegna();
       box.querySelector(`.mb-v[data-i="${voci.length - 1}"] .mb-piatto`)?.focus();
