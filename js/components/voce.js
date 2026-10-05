@@ -363,8 +363,10 @@ async function avviaRegistrazione() {
   rec.ondataavailable = (e) => { if (e.data?.size) pezzi.push(e.data); };
   rec.onstop = invia;
   rec.start(200);
-  dettatura = /ricett/.test(pagina || ""); aggiornaFab();
-  mostra(dettatura
+  dettatura = /ricett/.test(pagina || "") || modoCervello(); aggiornaFab();
+  mostra(modoCervello()
+    ? { t: "🧠 Istruisci il cervello", c: "Detta le regole con calma (giorni, fasi, chi fa cosa, ricorrenti, buffet). Tocca 🎙️ quando hai finito." }
+    : dettatura
     ? { t: "📝 Dettatura", c: "Detta con calma, anche con pause. Tocca 🎙️ quando hai finito." }
     : { t: "Ti ascolto…", c: "Parla, poi fermati: mi accorgo da solo" });
   ascoltaSilenzio();
