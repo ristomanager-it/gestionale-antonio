@@ -1033,7 +1033,12 @@ async function loadAziendeForUser(userId) {
 
   if (error) {
     console.error("Errore caricamento aziende:", error);
-    return [];
+    // con poco segnale la richiesta puo' fallire: un errore di rete non vuol dire
+    // "nessuna azienda". Riprovo una volta, poi tengo quelle gia' in memoria.
+    await new Promise((r) => setTimeout(r, 700));
+    const again = await loadAziendeForUser._retry(userId);
+    if (again) return again;
+    return (window.state?.aziende || []).filter((a) => a.aziende);
   }
 
   return (aziende || []).filter((a) => a.aziende);
