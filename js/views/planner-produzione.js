@@ -590,7 +590,8 @@ function renderCard(r){
 
       <div class="planner-card-meta">
         Q.tà: ${formatNumber(r.quantita)}<br>
-        Operatore: ${escapeHtml(nomeDipendente)}<br>
+        ${r.n_supporti > 0 ? "Responsabile" : "Operatore"}: ${escapeHtml(nomeDipendente)}<br>
+        ${r.n_supporti > 0 ? `👥 Supporto: ${(r.supporti || []).length ? r.supporti.map((id) => escapeHtml(getDipendenteLabel(id))).join(", ") : r.n_supporti + (r.n_supporti === 1 ? " persona" : " persone") + " da assegnare"}<br>` : ""}
         Tempo: ${r.tempo_stimato_minuti ? `${r.tempo_stimato_minuti} min` : "—"}<br>
         Stato: ${formatStato(r.stato)}
       </div>
