@@ -347,6 +347,7 @@ export async function render(container) {
         const dipId = card.dataset.dipId;
         container.querySelector('#filtro-dip').value = dipId;
         filtroDipId = dipId;
+        registraVistaDipendente(dipId, card.textContent.trim().split('\n')[0].trim());
         const suoi = timbratureCorrente.filter(t => t.dipendente_id === dipId);
         mostraAnomalieDip(dipId, suoi);
         renderTabella(suoi);
