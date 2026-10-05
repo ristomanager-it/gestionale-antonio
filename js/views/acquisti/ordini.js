@@ -457,7 +457,7 @@ export async function renderOrdini(container, azienda) {
       });
       btn.className = "btn-primary tab-ordini-btn active";
 
-      ["tab-ordini-fornitori", "tab-trasferimenti", "tab-storico-trasf"].forEach(id => {
+      ["tab-ordini-fornitori", "tab-trasferimenti", "tab-storico-trasf", "tab-inviati"].forEach(id => {
         const el = container.querySelector("#" + id);
         if (el) el.style.display = "none";
       });
