@@ -200,11 +200,15 @@ async function scheda(box, az, id) {
         .eq("modello_id", Number(sel.value)).order("ordine").order("id");
       const invitati = p.n_invitati || adulti;
       const nuove = (voci || []).filter((v) => (v.piatto || "").trim() || v.ricetta_id);
-      if (!nuove.length) { alert("Il modello è vuoto: compilalo in Produzione › Modelli buffet."); sel.value = ""; return; }
-      if (!confirm("Aggiungo " + nuove.length + " piatti del modello «" + sel.selectedOptions[0].text + "» a " + sel.dataset.sez + ", calcolati su " + invitati + " invitati?")) { sel.value = ""; return; }
-      nuove.forEach((v) => M.righe.push({ sezione_menu: sel.dataset.sez, nome_portata: v.piatto || v.ricette?.nome, ricetta_id: v.ricetta_id || null,
-        ricetta_nome: v.ricette?.nome || null, quantita: v.percentuale ? Math.ceil(Number(v.percentuale) * invitati / 100) : invitati, _nuova: true }));
-      await caricaFasi(nuove.map((v) => v.ricetta_id).filter(Boolean));
+      const nomeMod = sel.selectedOptions[0].text;
+      sel.value = "";
+      if (!nuove.length) { alert("Il modello è vuoto: compilalo in Produzione › Modelli buffet."); return; }
+      // scelta per questo evento: quali piatti e con che % (il modello resta com'e')
+      const scelte = await scegliDalModello(nomeMod, nuove, invitati);
+      if (!scelte) return;
+      scelte.forEach((v) => M.righe.push({ sezione_menu: sel.dataset.sez, nome_portata: v.piatto || v.ricette?.nome, ricetta_id: v.ricetta_id || null,
+        ricetta_nome: v.ricette?.nome || null, quantita: v.perc ? Math.ceil(v.perc * invitati / 100) : invitati, _nuova: true }));
+      await caricaFasi(scelte.map((v) => v.ricetta_id).filter(Boolean));
       modificato = true; disegna();
     }));
     box.querySelector(".se-salva")?.addEventListener("click", salva);
