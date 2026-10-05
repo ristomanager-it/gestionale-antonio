@@ -466,7 +466,7 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
   if (!formato) return;
   // lotto unico per piu' eventi: stessa etichetta, una per evento con "PER: ..."
   const supaD = window.supabaseClient || window.supabase;
-  const { data: dest } = info.id ? await supaD.from("produzione_lotti_destinazioni").select("evento_titolo, quantita").eq("lotto_id", info.id).order("id") : { data: [] };
+  const { data: dest } = info.id ? await supaD.from("produzione_lotti_destinazioni").select("evento_titolo, quantita, formato").eq("lotto_id", info.id).order("id") : { data: [] };
   if ((dest || []).length > 1) {
     // quante etichette per ogni evento (es. il ragu' di un evento in due sacchetti)
     const conte = await chiediEtichettePerEvento(dest, quante);
