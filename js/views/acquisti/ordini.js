@@ -50,6 +50,7 @@ export async function renderOrdini(container, azienda) {
     </div>
 
     <div id="tab-ordini-fornitori">
+    <div id="ordini-da-banchetti"></div>
     <h3>Scrivi ordine</h3>
 
     <div id="lista-ordine"></div>
