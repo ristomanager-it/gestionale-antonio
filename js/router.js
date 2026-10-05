@@ -748,6 +748,8 @@ function hasPermission(area) {
       "modelli-buffet",
       "giorni-lavorazione",
       "cc-sedi",
+      "spesa-banchetti",
+      "banchetto-foto",
       "registro-messaggi",
       "recensioni",
       "recensioni-ricevute",
