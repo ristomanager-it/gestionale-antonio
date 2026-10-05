@@ -587,6 +587,8 @@ function renderCard(r){
       </div>
       ${r.lavorazione ? `<div style="font-weight:400;font-size:14px;line-height:1.4;color:#334155;margin:4px 0 6px;">${escapeHtml(r.lavorazione)}</div>` : ""}
       ${perChi(r.note) ? `<div style="font-weight:600;font-size:12.5px;color:#0E5A7A;margin-bottom:4px;">Per: ${escapeHtml(perChi(r.note))}</div>` : ""}
+      ${r.in_coda_da ? `<div style="display:inline-block;font-weight:700;font-size:12px;color:#92400e;background:#fef3c7;border-radius:6px;padding:2px 7px;margin-bottom:4px;">🔁 in coda da ${new Date(r.in_coda_da + "T00:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric" })}</div>`
+        : r.spostato ? `<div style="display:inline-block;font-weight:700;font-size:12px;color:#334155;background:#f1f5f9;border-radius:6px;padding:2px 7px;margin-bottom:4px;">✋ spostata a mano</div>` : ""}
 
       <div class="planner-card-meta">
         Q.tà: ${formatNumber(r.quantita)}<br>
