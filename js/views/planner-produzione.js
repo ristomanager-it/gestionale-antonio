@@ -568,6 +568,12 @@ function renderSingleDayColumn(day, righe, muted){
   `
 }
 
+// lotto unico per piu' eventi: "per: Battesimo 45 + Agostino 21" scritto nelle note dal cervello
+function perChi(note){
+  const m = String(note || "").match(/· per: ([^·]+)/)
+  return m ? m[1].trim() : ""
+}
+
 function renderCard(r){
   const nomeDipendente = getDipendenteLabel(r.dipendente_id)
 
