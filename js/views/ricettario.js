@@ -330,6 +330,7 @@ async function loadRicette() {
       modificato_il,
       created_at,
       creato_da_tony,
+      sede_id,
       ricette_output (
         peso_finale,
         unita_misura
