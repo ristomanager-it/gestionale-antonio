@@ -455,22 +455,95 @@ export async function renderOrdini(container, azienda) {
   async function daOrdinare(giorni) {
     const box = container.querySelector("#ordini-da-banchetti");
     if (!box) return;
-    try {
-      const { data } = await supabase.rpc("spesa_banchetti", { p_azienda: azienda.id, p_giorni: 7 });
-      const righe = Array.isArray(data) ? data : [];
-      if (!righe.length) return;
-      const forn = new Set(righe.filter(r => r.fornitore_id).map(r => r.fornitore_id)).size;
-      const senza = righe.filter(r => !r.fornitore_id).length;
-      box.innerHTML = `
-        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 14px;margin-bottom:14px;">
-          <div style="font-weight:800;">🛒 Da ordinare per i banchetti dei prossimi 7 giorni</div>
-          <div style="font-size:13px;color:#7c2d12;margin-top:3px;">
-            ${righe.length} prodotti da ${forn} fornitori${senza ? ` · ${senza} senza fornitore` : ""}
+    const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const num = (n) => Number(n || 0).toLocaleString("it-IT", { maximumFractionDigits: 2 });
+    const fd = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "numeric" }) : "";
+    box.innerHTML = `<div style="color:#64748b;font-size:13px;margin-bottom:12px;">Calcolo cosa c'è da ordinare…</div>`;
+    const { data, error } = await supabase.rpc("fabbisogno_acquisti", { p_azienda: azienda.id, p_giorni: giorni });
+    if (error) { box.innerHTML = `<div style="color:#b91c1c;font-size:13px;margin-bottom:12px;">Non riesco a calcolare il fabbisogno.</div>`; return; }
+    const righe = (Array.isArray(data) ? data : []).map((r, k) => ({ ...r, k, ok: true, q: Number(r.quantita) || 0 }));
+    const gruppi = {};
+    righe.forEach((r) => { const id = r.fornitore_id ? String(r.fornitore_id) : "_"; (gruppi[id] ||= { id, nome: r.fornitore || "Senza fornitore", email: r.email, tel: r.telefono, righe: [] }).righe.push(r); });
+    const ordine = Object.values(gruppi).sort((a, b) => (a.id === "_") - (b.id === "_") || a.nome.localeCompare(b.nome));
+
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <h3 style="margin:0;">🛒 Da ordinare</h3>
+        <div style="display:flex;gap:6px;">
+          ${[7, 14].map((g) => `<button class="${g === giorni ? "btn-primary" : "btn-secondary"}" data-giorni="${g}">${g} giorni</button>`).join("")}
+        </div>
+      </div>
+      <div style="font-size:12.5px;color:#64748b;margin-bottom:10px;">Banchetti confermati, preparazioni in planning di tutte le sedi e prodotti sotto scorta. Togli la spunta o cambia la quantità prima di inviare.</div>
+      ${!righe.length ? `<div style="color:#64748b;font-size:13px;margin-bottom:14px;">Niente da ordinare nei prossimi ${giorni} giorni.</div>` : ordine.map((g) => `
+        <div class="card" style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <strong>${esc(g.nome)}</strong>
+            <span style="font-size:12px;color:#64748b;">${g.righe.length} prodotti</span>
           </div>
-          <button class="btn-primary" id="vai-spesa-banchetti" style="margin-top:8px;">Prepara e invia gli ordini</button>
-        </div>`;
-      box.querySelector("#vai-spesa-banchetti").addEventListener("click", () => { window.location.hash = "#/spesa-banchetti"; });
-    } catch (e) { console.warn("spesa banchetti:", e); }
+          ${g.righe.map((r) => `
+            <div class="do-r" data-k="${r.k}" style="display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid #f1f5f9;">
+              <input type="checkbox" data-ok checked style="width:20px;height:20px;flex:none;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:14px;">${esc(r.nome)}</div>
+                <div style="font-size:11.5px;color:#64748b;">per ${esc(r.per || "")}${r.serve_il ? " · entro " + fd(r.serve_il) : ""}${r.in_magazzino != null ? " · in magazzino " + num(r.in_magazzino) + " " + esc(r.unita_magazzino || "") : ""}</div>
+                ${g.id === "_" ? `<select data-forn style="margin-top:4px;font-size:12px;max-width:100%;"><option value="">Assegna fornitore…</option>${fornitori.map((f) => `<option value="${f.id}">${esc(f.ragione_sociale)}</option>`).join("")}</select>` : ""}
+              </div>
+              <input type="number" step="0.1" min="0" data-q value="${r.q}" style="width:76px;flex:none;">
+              <span style="width:28px;font-size:12px;color:#64748b;flex:none;">${esc(r.unita || "")}</span>
+            </div>`).join("")}
+          ${g.id !== "_" ? `
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+              <button class="btn-primary" data-invia="${g.id}">✉️ Invia${g.email ? "" : " (manca email)"}</button>
+              <button class="btn-secondary" data-wa="${g.id}">WhatsApp</button>
+              <button class="btn-secondary" data-copia="${g.id}">Copia</button>
+            </div>` : `<div style="font-size:12px;color:#92400e;margin-top:6px;">Assegna un fornitore: il prodotto passa nel suo ordine.</div>`}
+        </div>`).join("")}`;
+
+    box.querySelectorAll("[data-giorni]").forEach((b) => b.addEventListener("click", () => daOrdinare(Number(b.dataset.giorni))));
+    box.querySelectorAll(".do-r").forEach((el) => {
+      const r = righe[Number(el.dataset.k)];
+      el.querySelector("[data-ok]").addEventListener("change", (e) => { r.ok = e.target.checked; el.style.opacity = r.ok ? 1 : 0.45; });
+      el.querySelector("[data-q]").addEventListener("input", (e) => { r.q = Number(e.target.value) || 0; });
+      const sel = el.querySelector("[data-forn]");
+      if (sel) sel.addEventListener("change", async (e) => {
+        if (!e.target.value || !r.prodotto_id) { if (!r.prodotto_id) alert("Questo ingrediente non è collegato a un prodotto di magazzino: collegalo nella ricetta."); return; }
+        await supabase.from("prodotti").update({ fornitore_preferito_id: Number(e.target.value) }).eq("id", r.prodotto_id);
+        daOrdinare(giorni);
+      });
+    });
+    const scelti = (g) => g.righe.filter((r) => r.ok && r.q > 0);
+    const testo = (g) => `Ordine ${azienda.nome || ""}\n` + scelti(g).map((r) => `- ${r.nome}: ${num(r.q)} ${r.unita || ""}${r.serve_il ? " (entro " + fd(r.serve_il) + ")" : ""}`).join("\n");
+    const registra = async (g, canale) => {
+      const { error: e } = await supabase.rpc("registra_ordine_inviato", {
+        p_azienda: azienda.id, p_sede: window.state?.sedeAttiva?.id || null, p_fornitore: Number(g.id),
+        p_righe: scelti(g).map((r) => ({ prodotto_id: r.prodotto_id, quantita: r.q, um: r.unita || "", note: "per " + (r.per || "") })),
+        p_origine: "acquisti", p_canale: canale });
+      if (e) console.warn("registra ordine:", e);
+    };
+    box.querySelectorAll("[data-invia]").forEach((b) => b.addEventListener("click", async () => {
+      const g = gruppi[b.dataset.invia];
+      if (!scelti(g).length) { alert("Nessun prodotto selezionato."); return; }
+      if (!g.email) { alert("Manca l'email ordini di " + g.nome + ": aggiungila in Fornitori, oppure usa WhatsApp o Copia."); return; }
+      if (!confirm("Invio l'ordine a " + g.nome + " (" + g.email + ") con " + scelti(g).length + " prodotti?")) return;
+      b.disabled = true;
+      const res = await supabase.functions.invoke("send-order-email", { body: { email: g.email, fornitore_nome: g.nome, azienda_nome: azienda.nome,
+        prodotti: scelti(g).map((r) => ({ nome: r.nome, quantita: r.q, um: r.unita || "" })) } });
+      b.disabled = false;
+      if (res.error) { alert("Errore invio ordine"); return; }
+      await registra(g, "email");
+      alert("✓ Ordine inviato a " + g.nome);
+    }));
+    box.querySelectorAll("[data-wa]").forEach((b) => b.addEventListener("click", () => {
+      const g = gruppi[b.dataset.wa];
+      if (!scelti(g).length) { alert("Nessun prodotto selezionato."); return; }
+      const tel = String(g.tel || "").replace(/\D/g, "");
+      registra(g, "WhatsApp");
+      window.open("https://wa.me/" + (tel ? (tel.startsWith("39") ? tel : "39" + tel) : "") + "?text=" + encodeURIComponent(testo(g)), "_blank");
+    }));
+    box.querySelectorAll("[data-copia]").forEach((b) => b.addEventListener("click", async () => {
+      const g = gruppi[b.dataset.copia];
+      try { await navigator.clipboard.writeText(testo(g)); b.textContent = "✓ Copiato"; } catch (_) { prompt("Copia il testo:", testo(g)); }
+    }));
   }
 
   // ── Tab switching ──
