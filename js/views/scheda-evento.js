@@ -65,6 +65,8 @@ async function scheda(box, az, id) {
   const M = { righe: (righe || []).map((r) => ({ ...r, ricetta_nome: r.ricette?.nome || null })), tolte: [], fasi: {}, fasiTolte: [], chi: {} };
   await caricaFasi(M.righe.map((r) => r.ricetta_id).filter(Boolean));
   const { data: ass } = await sb().from("evento_assegnazioni").select("fase_id, dipendente_id").eq("preventivo_id", id);
+  const { data: modelli } = await sb().from("modelli_buffet").select("id, nome").eq("azienda_id", az).order("ordine").order("id");
+  const sezBuffet = (n) => /buffet|aperitiv|dolci|antipast/i.test(n || "");
   (ass || []).forEach((a) => { M.chi[a.fase_id] = a.dipendente_id; });
   let modificato = false;
 
