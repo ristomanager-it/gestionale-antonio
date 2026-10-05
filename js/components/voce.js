@@ -374,7 +374,7 @@ function ascoltaSilenzio() {
     an.fftSize = 1024; src.connect(an);
     const dati = new Float32Array(an.fftSize);
     const inizio = Date.now();
-    let fondo = 0, campioni = 0, parlato = false, ultimaVoce = Date.now();
+    let fondo = 0, campioni = 0, parlato = false, ultimaVoce = Date.now(), primaVoce = 0;
     const giro = () => {
       if (stato !== "registra") return;
       an.getFloatTimeDomainData(dati);
