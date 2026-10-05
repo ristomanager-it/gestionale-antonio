@@ -188,6 +188,8 @@ function stile() {
   .mb-ris button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #f1f5f9;background:#fff;padding:9px;font-size:14px;cursor:pointer;}
   .mb-add{width:100%;border:1.5px dashed #0E5A7A;background:#f0f9ff;color:#0E5A7A;border-radius:12px;padding:12px;font-weight:800;cursor:pointer;}
   .mb-tot{text-align:right;font-size:13.5px;margin-top:10px;}
+  .mb-ang{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0E5A7A;margin:16px 0 6px;}
+  .mb-angin{font-size:12px;padding:5px 8px;color:#0E5A7A;font-weight:700;}
   .mb-stato{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));background:#0f172a;color:#fff;border-radius:20px;padding:6px 12px;font-size:12px;opacity:.85;}
   .mb-vuoto{color:#64748b;text-align:center;padding:16px;font-size:13.5px;}
   </style>`;
