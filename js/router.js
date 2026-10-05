@@ -350,7 +350,8 @@ const BO_ROUTES = new Set([
   "bo-magazzino",
   "ordini",
   "ordine",
-  "acquisti",
+  // "acquisti" non e' piu' qui: come rotta backoffice saltava il contesto operativo e,
+  // per chi ha piu' aziende (superadmin), a volte si apriva senza azienda ("Ristoflow").
   "food-cost-mancanti",
   "spese-fisse",
   "menu-giorno",
