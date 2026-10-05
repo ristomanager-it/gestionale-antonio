@@ -196,7 +196,7 @@ async function scheda(box, az, id) {
     // modello buffet: i piatti del modello entrano nella sezione, quantita' = % sugli invitati
     box.querySelectorAll(".se-mod").forEach((sel) => sel.addEventListener("change", async () => {
       if (!sel.value) return;
-      const { data: voci } = await sb().from("modelli_buffet_voci").select("piatto, ricetta_id, percentuale, ricette(nome)")
+      const { data: voci } = await sb().from("modelli_buffet_voci").select("angolo, piatto, ricetta_id, percentuale, ricette(nome)")
         .eq("modello_id", Number(sel.value)).order("ordine").order("id");
       const invitati = p.n_invitati || adulti;
       const nuove = (voci || []).filter((v) => (v.piatto || "").trim() || v.ricetta_id);
