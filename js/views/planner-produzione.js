@@ -592,6 +592,7 @@ function renderCard(r){
         Q.tà: ${formatNumber(r.quantita)}<br>
         ${r.n_supporti > 0 ? "Responsabile" : "Operatore"}: ${escapeHtml(nomeDipendente)}<br>
         ${r.n_supporti > 0 ? `👥 Supporto: ${(r.supporti || []).length ? r.supporti.map((id) => escapeHtml(getDipendenteLabel(id))).join(", ") : r.n_supporti + (r.n_supporti === 1 ? " persona" : " persone") + " da assegnare"}<br>` : ""}
+        ${String(r.prodotto || "").startsWith("🍽") ? "" : `📦 Stoccaggio: ${r.stoccaggio ? escapeHtml(r.stoccaggio) : "da indicare"}<br>`}
         Tempo: ${r.tempo_stimato_minuti ? `${r.tempo_stimato_minuti} min` : "—"}<br>
         Stato: ${formatStato(r.stato)}
       </div>
