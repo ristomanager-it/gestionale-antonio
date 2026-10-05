@@ -1455,7 +1455,7 @@ function apriVideo(u){
     </div>`).join("")}
   </div>`).join("");
 
-    const menuScript = `<script>function filtraMenu(id,btn){document.querySelectorAll('.menu-cat').forEach(el=>el.style.display='none');document.querySelectorAll('.mcat-btn').forEach(b=>b.classList.remove('active'));var el=document.querySelector('.menu-cat[data-cat="'+id+'"]');if(el)el.style.display='';if(btn)btn.classList.add('active')}</script>`;
+    const menuScript = `<script>function filtraMenu(id,btn){document.querySelectorAll('.menu-cat').forEach(el=>el.style.display='none');document.querySelectorAll('.mcat-btn').forEach(b=>b.classList.remove('active'));var el=document.querySelector('.menu-cat[data-cat="'+id+'"]');if(el)el.style.display='';if(btn)btn.classList.add('active')}</script>${sedeId ? menuLive(sedeId) : ""}`;
 
     // ── HOME ──────────────────────────────────────────────────
     const home = `${head(nome)}
