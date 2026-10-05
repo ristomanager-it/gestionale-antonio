@@ -292,5 +292,6 @@ function stile() {
   .se-salva{border:0;border-radius:11px;padding:11px 14px;background:#0E5A7A;color:#fff;font-weight:800;cursor:pointer;}
   .se-salva:disabled{opacity:.45;}
   .se-vuoto{color:#64748b;text-align:center;padding:24px;}
+  .se-mod{margin-bottom:8px;background:#f0f9ff;border-color:#bae6fd;font-weight:700;color:#0E5A7A;}
   </style>`;
 }
