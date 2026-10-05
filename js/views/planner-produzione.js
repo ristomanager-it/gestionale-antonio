@@ -599,7 +599,7 @@ function renderCard(r){
         : r.spostato ? `<div style="display:inline-block;font-weight:700;font-size:12px;color:#334155;background:#f1f5f9;border-radius:6px;padding:2px 7px;margin-bottom:4px;">✋ spostata a mano</div>` : ""}
 
       <div class="planner-card-meta">
-        Q.tà: ${formatNumber(r.quantita)}<br>
+        Q.tà: ${formatNumber(r.quantita)}${r.unita ? " " + escapeHtml(r.unita) : ""}<br>
         ${r.n_supporti > 0 ? "Responsabile" : "Operatore"}: ${escapeHtml(nomeDipendente)}<br>
         ${r.n_supporti > 0 ? `👥 Supporto: ${(r.supporti || []).length ? r.supporti.map((id) => escapeHtml(getDipendenteLabel(id))).join(", ") : r.n_supporti + (r.n_supporti === 1 ? " persona" : " persone") + " da assegnare"}<br>` : ""}
         ${String(r.prodotto || "").startsWith("🍽") ? "" : `📦 Stoccaggio: ${r.stoccaggio ? escapeHtml(r.stoccaggio) : "da indicare"}<br>`}
