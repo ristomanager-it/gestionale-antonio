@@ -1524,6 +1524,7 @@ ${sezioniState.menu && menuCats.length ? `
     <div class="eyebrow">Il menu</div>
     <h2 class="h2" style="margin-bottom:8px;">Cosa portiamo<br><em>in tavola</em></h2>
     <p style="font-size:13px;color:var(--grigio);margin-bottom:20px;">Anteprima. <a href="menu.html" style="color:var(--acc);font-weight:600;">Vedi menu completo →</a></p>
+    <div data-menu-live>
     <div class="mcat">${menuCats.map((c,i) => `<button class="mcat-btn${i===0?' active':''}" onclick="filtraMenu('${c.id}',this)">${esc(c.nome)}</button>`).join("")}</div>
     <div>${menuItemsHTML}</div>
     <a class="btn" href="${esc(formUrl)}" style="margin-top:32px;">🗓 ${esc(cta)}</a>
