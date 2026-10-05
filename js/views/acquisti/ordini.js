@@ -46,6 +46,7 @@ export async function renderOrdini(container, azienda) {
       <button class="btn-primary tab-ordini-btn active" data-tab="ordini-fornitori">📦 Ordine fornitore</button>
       <button class="btn-secondary tab-ordini-btn" data-tab="trasferimenti">🔄 Trasferimento interno</button>
       <button class="btn-secondary tab-ordini-btn" data-tab="storico-trasf">📋 Storico trasferimenti</button>
+      <button class="btn-secondary tab-ordini-btn" data-tab="inviati">📨 Ordini inviati</button>
     </div>
 
     <div id="tab-ordini-fornitori">
