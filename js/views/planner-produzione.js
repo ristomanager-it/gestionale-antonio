@@ -585,6 +585,8 @@ function renderCard(r){
       <div class="planner-card-title">
         ${escapeHtml(r.prodotto || "Produzione")}
       </div>
+      ${r.lavorazione ? `<div style="font-weight:400;font-size:14px;line-height:1.4;color:#334155;margin:4px 0 6px;">${escapeHtml(r.lavorazione)}</div>` : ""}
+      ${perChi(r.note) ? `<div style="font-weight:600;font-size:12.5px;color:#0E5A7A;margin-bottom:4px;">Per: ${escapeHtml(perChi(r.note))}</div>` : ""}
 
       <div class="planner-card-meta">
         Q.tà: ${formatNumber(r.quantita)}<br>
