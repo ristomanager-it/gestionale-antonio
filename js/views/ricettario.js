@@ -9,6 +9,10 @@ let filtroComplete = false;
 // altri filtri invece di sostituirli. Sono le ricette che finiscono in vendita
 // dentro una confezione con una grafica sopra.
 let filtroMarket = false;
+// Il Centro cottura cucina per tutte le sedi: di default vede tutte le ricette dell'azienda
+let tutteLeSedi = null;
+let nomiSedi = {};
+const mostraTutteLeSedi = () => tutteLeSedi ?? /centro cottura/i.test(window.state?.sedeAttiva?.nome || "");
 
 
 // ============================================================
