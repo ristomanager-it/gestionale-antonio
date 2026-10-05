@@ -381,8 +381,9 @@ async function loadReparti(){
 
   reparti = data || []
 
-  if(reparti.length && !repartoAttivoId){
-    repartoAttivoId = reparti[0].id
+  // reparto di partenza: Cucina (le produzioni stanno li'), non il primo in ordine alfabetico
+  if(reparti.length && (!repartoAttivoId || !reparti.some(r => r.id === repartoAttivoId))){
+    repartoAttivoId = (reparti.find(r => /cucina/i.test(r.nome || "")) || reparti[0]).id
   }
 }
 
