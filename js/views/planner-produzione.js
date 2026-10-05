@@ -886,6 +886,8 @@ async function saveProduzione(mode, id, fallbackDate){
   const tempo_stimato_minuti = parseInt(document.getElementById("planner-tempo").value || 0, 10) || null
   const stato = document.getElementById("planner-stato").value || "da_fare"
   const note = (document.getElementById("planner-note").value || "").trim() || null
+  const supporti = [...document.querySelectorAll("#planner-supporti input:checked")].map(x => x.value).filter(v => v !== dipendente_id)
+  const stoccaggio = document.getElementById("planner-stoccaggio")?.value || null
 
   if(!prodotto){
     alert("Inserisci il nome della lavorazione/prodotto")
