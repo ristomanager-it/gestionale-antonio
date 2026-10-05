@@ -245,6 +245,10 @@ export async function render(container) {
     }
     filtroSedeId = container.querySelector('#filtro-sede').value;
     filtroDipId = container.querySelector('#filtro-dip').value;
+    if (filtroDipId) {
+      const opt = container.querySelector('#filtro-dip').selectedOptions[0];
+      registraVistaDipendente(filtroDipId, opt ? opt.textContent.trim() : '');
+    }
 
     let q = supa()
       .from('timbrature')
