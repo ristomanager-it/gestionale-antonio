@@ -237,6 +237,12 @@ export async function render(container) {
       dataFine = container.querySelector('#filtro-al').value;
     }
 
+    // non admin: solo le proprie ore, filtro dipendente nascosto
+    if (soloProprie()) {
+      const sel = container.querySelector('#filtro-dip');
+      const mio = window.state?.dipendente?.id || '';
+      if (sel) { if (![...sel.options].some(o => o.value === mio)) sel.insertAdjacentHTML('beforeend', `<option value="${mio}"></option>`); sel.value = mio; sel.parentElement.style.display = 'none'; }
+    }
     filtroSedeId = container.querySelector('#filtro-sede').value;
     filtroDipId = container.querySelector('#filtro-dip').value;
 
