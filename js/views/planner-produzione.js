@@ -628,7 +628,7 @@ function bindCalendarEvents(){
 
       await window.supabaseClient
         .from("produzioni_settimanali")
-        .update({ data: newDate })
+        .update({ data: newDate, spostato: true })  // spostata a mano: il cervello non la rimette al suo giorno
         .eq("id", id)
 
       await renderCurrentView()
