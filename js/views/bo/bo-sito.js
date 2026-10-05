@@ -4,6 +4,19 @@
 
 const SUPABASE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
 const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+// Il menu nelle pagine pubblicate si aggiorna da solo: all'apertura la pagina
+// rilegge il menu della sede. Se la lettura fallisce resta quello pubblicato.
+function menuLive(sedeId) {
+  return `<script>(function(){var u=${JSON.stringify(SUPABASE_URL)}+"/rest/v1/rpc/menu_sito",k=${JSON.stringify(ANON_KEY)};
+function e(t){return String(t==null?"":t).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+fetch(u,{method:"POST",headers:{"apikey":k,"Authorization":"Bearer "+k,"Content-Type":"application/json"},body:JSON.stringify({p_sede:${JSON.stringify(sedeId)}})})
+.then(function(r){return r.ok?r.json():null}).then(function(d){if(!d||!d.cats||!d.cats.length)return;
+var h='<div class="mcat">'+d.cats.map(function(c,i){return'<button class="mcat-btn'+(i?'':' active')+'" data-c="'+e(c.id)+'" onclick="filtraMenu(this.dataset.c,this)">'+e(c.nome)+'</button>'}).join("")+'</div><div>'+
+d.cats.map(function(c,i){return'<div class="menu-cat" data-cat="'+e(c.id)+'" style="'+(i?'display:none':'')+'">'+d.voci.filter(function(v){return v.categoria_id===c.id}).map(function(v){
+return'<div class="mi"><div><div class="mi-n">'+e(v.nome)+'</div>'+(v.descrizione?'<div class="mi-d">'+e(v.descrizione)+'</div>':'')+'</div>'+(Number(v.prezzo)?'<div class="mi-p">\u20ac '+Number(v.prezzo).toFixed(2)+'</div>':'')+'</div>'}).join("")+'</div>'}).join("")+'</div>';
+document.querySelectorAll("[data-menu-live]").forEach(function(x){x.innerHTML=h})}).catch(function(){})})();</script>`;
+}
+
 const GITHUB_OWNER = "ristomanager-it";
 const GITHUB_REPO  = "siti-clienti";
 
