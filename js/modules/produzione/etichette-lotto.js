@@ -76,8 +76,16 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   ctx.font = "bold 31px " + F; ctx.fillStyle = "#000";
   const yL = yS - 36;
   ctx.fillText("LOTTO " + (info.codice_lotto || ""), ET_PAD, yL);
-  ctx.fillRect(ET_PAD, yL - 9, W, 3);
-  const limite = yL - 16;
+  // lotto unico per piu' eventi: un'etichetta per evento, con la sua destinazione
+  let yTop = yL;
+  if (info.destinazione) {
+    ctx.font = "bold 26px " + F;
+    const per = etWrap(ctx, "PER: " + info.destinazione, W).slice(0, 1);
+    yTop = yL - 34;
+    per.forEach((r) => ctx.fillText(r, ET_PAD, yTop));
+  }
+  ctx.fillRect(ET_PAD, yTop - 9, W, 3);
+  const limite = yTop - 16;
 
   // --- alto: nome e peso, poi ingredienti, allergeni, origine, conservazione
   const allerg = Array.isArray(etichetta.allergeni) ? etichetta.allergeni.filter(Boolean) : [];
