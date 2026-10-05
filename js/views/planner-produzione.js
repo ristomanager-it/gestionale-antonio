@@ -773,6 +773,24 @@ function renderFormHtml({ mode, id, date, record, suggerimento }){
           </select>
         </div>
 
+        <div class="planner-field full">
+          <label>Supporto (a scelta: nessuno, una o più persone)</label>
+          <div id="planner-supporti" style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${dipendenti.map(d => `<label style="display:flex;align-items:center;gap:5px;border:1.5px solid #e2e8f0;border-radius:20px;padding:5px 10px;font-size:13px;font-weight:600;">
+              <input type="checkbox" value="${d.id}" ${(record.supporti || []).map(String).includes(String(d.id)) ? "checked" : ""}>
+              ${escapeHtml(`${d.nome || ""} ${d.cognome || ""}`.trim())}</label>`).join("")}
+          </div>
+        </div>
+
+        <div class="planner-field">
+          <label>Stoccaggio${record.stoccaggio ? "" : " (non indicato in ricetta: scegli)"}</label>
+          <select id="planner-stoccaggio">
+            <option value="">—</option>
+            ${[["frigo","Frigo 0/+4 °C"],["sottovuoto","Sottovuoto"],["abbattuto","Abbattuto (positivo)"],["congelato","Abbattuto in negativo / congelato"],["ambiente","In giornata"]]
+              .map(([k, t]) => `<option value="${k}" ${record.stoccaggio === k ? "selected" : ""}>${t}</option>`).join("")}
+          </select>
+        </div>
+
         <div class="planner-field">
           <label>Tempo stimato medio (min)</label>
           <input id="planner-tempo" type="number" min="0" value="${escapeAttr(record.tempo_stimato_minuti || "")}" placeholder="Es. 45">
