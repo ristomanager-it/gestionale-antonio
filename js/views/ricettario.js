@@ -345,7 +345,11 @@ async function loadRicette() {
     query = query.or(`sede_id.eq.${sedeId},sede_id.is.null`);
   }
 
-  const { data, error } = await query;
+  const [{ data, error }, { data: sediData }] = await Promise.all([
+    query,
+    supabase.from("sedi").select("id, nome").eq("azienda_id", aziendaId),
+  ]);
+  nomiSedi = Object.fromEntries((sediData || []).map(s => [s.id, s.nome]));
 
   if (error) {
     console.error("Errore caricamento ricette:", error);
