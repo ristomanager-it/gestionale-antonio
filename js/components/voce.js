@@ -11,6 +11,11 @@
 const URL_EF = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-voce";
 const ESEGUIBILI = ["chiama_uscita", "uscita_pronta", "preparazione", "nuova_ricetta", "lavorazione", "inizio_lavoro", "stampa_etichette"];
 const SECONDI_ANNULLA = 5;
+// 🧠 Sulle pagine del cervello operativo, l'admin detta le regole: Tony propone le modifiche e aspetta la conferma
+const URL_CERVELLO = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-cervello-voce";
+const modoCervello = () => /^(giorni-lavorazione|modelli-buffet|cc-sedi|scheda-evento)/.test(pagina || "")
+  && ["admin", "superadmin"].includes(String(window.state?.ruoloRaw || window.state?.ruolo || "").toLowerCase());
+let propostaCervello = null;
 const VAPID_PUBBLICA = "BNb6u5McWxUNv_4pyvih-b5gl7KyJezR7pSefqdKnXU_4udgvkDbd0uqxa-bRI46HSCFw5pNO7mUWOqnJafQpF8";
 const VIBRA = [300, 120, 300, 120, 600];
 
