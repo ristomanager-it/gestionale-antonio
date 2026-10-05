@@ -516,7 +516,7 @@ function chiediEtichettePerEvento(dest, quante) {
       <div style="font-size:18px;font-weight:800;">🏷 Etichette per evento</div>
       <div style="font-size:13px;color:#64748b;margin:4px 0 12px;">Stesso lotto, un'etichetta per ogni sacchetto o contenitore. Se un evento ne ha più di una, escono numerate (1/2, 2/2).</div>
       ${dest.map((d, i) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
-        <div style="flex:1;"><b>${escapeHtml(d.evento_titolo || "Evento")}</b><div style="font-size:12.5px;color:#64748b;">${d.quantita ? formatNum(d.quantita) + " pz" : ""}</div></div>
+        <div style="flex:1;"><b>${escapeHtml(d.evento_titolo || "Evento")}</b><div style="font-size:12.5px;color:#64748b;">${d.quantita ? formatNum(d.quantita) + " pz" : ""}${d.formato ? " · " + escapeHtml(d.formato) : ""}</div></div>
         <button type="button" data-m="${i}" style="width:38px;height:38px;border:0;border-radius:10px;background:#f1f5f9;font-size:20px;">−</button>
         <input data-n="${i}" type="number" min="0" value="${Math.max(1, Number(quante) || 1)}" style="width:56px;text-align:center;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;font-size:16px;">
         <button type="button" data-p="${i}" style="width:38px;height:38px;border:0;border-radius:10px;background:#f1f5f9;font-size:20px;">+</button>
