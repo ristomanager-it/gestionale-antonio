@@ -431,7 +431,13 @@ export async function renderOrdini(container, azienda) {
         if(res.error){
           alert("Errore invio ordine");
         }else{
-          alert("Ordine inviato");
+          // l'ordine resta registrato: lo si ritrova in "Ordini inviati" e in Ordini
+          const { error: errReg } = await supabase.rpc("registra_ordine_inviato", {
+            p_azienda: azienda.id, p_sede: window.state?.sedeAttiva?.id || null, p_fornitore: Number(fid),
+            p_righe: prodottiForn, p_origine: "acquisti", p_canale: "email"
+          });
+          if (errReg) console.warn("registra ordine:", errReg);
+          alert("Ordine inviato" + (errReg ? " (non registrato nello storico)" : ""));
         }
 
       });
