@@ -464,6 +464,19 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
   if (peso && g > 0 && g < 20 && !confirm("Peso netto " + peso + " g: è giusto?\n\nSe intendevi " + peso + " kg, premi Annulla e scrivi " + Math.round(g * 1000) + ".")) return;
   const formato = await scegliFormatoEtichetta();
   if (!formato) return;
+  // lotto unico per piu' eventi: stessa etichetta, una per evento con "PER: ..."
+  const supaD = window.supabaseClient || window.supabase;
+  const { data: dest } = info.id ? await supaD.from("produzione_lotti_destinazioni").select("evento_titolo, quantita").eq("lotto_id", info.id).order("id") : { data: [] };
+  if ((dest || []).length > 1) {
+    let ok = 0, ultimo = null;
+    for (const d of dest) {
+      const rr = await inviaEtichetteLotto({ etichetta, produttore, info: { ...info, destinazione: (d.evento_titolo || "evento") + (d.quantita ? " · " + formatNum(d.quantita) + " pz" : "") }, peso, copie: quante, formato });
+      if (rr.motivo === "troppo_lungo") { alert("Il testo non entra nell'etichetta: allungala o accorcia ingredienti e conservazione."); return; }
+      if (rr.ok) ok++; else ultimo = rr;
+    }
+    if (ok === dest.length) { alert("🏷 Etichette inviate: " + quante + " per ognuno dei " + dest.length + " eventi (" + dest.map((d) => d.evento_titolo).join(", ") + ")"); return; }
+    if (ultimo && ultimo.motivo !== "nessuna_stampante") { alert("Errore invio etichette: " + ultimo.motivo); return; }
+  }
   const r = await inviaEtichetteLotto({ etichetta, produttore, info, peso, copie: quante, formato });
   if (r.motivo === "troppo_lungo") {
     alert("Il testo non entra nell'etichetta " + formato.larghezzaMm + "x" + formato.lunghezzaMm + " senza scendere sotto la misura minima di legge.\n\nAllunga l'etichetta, oppure accorcia ingredienti o conservazione nella scheda etichetta della ricetta.");
