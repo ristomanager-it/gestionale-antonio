@@ -384,6 +384,7 @@ async function loadRicette() {
       codice: r.codice || null,
       market: r.tipo_ricetta === "market",
       stato: r.stato_strutturale || "bozza",
+      sede_nome: r.sede_id ? (nomiSedi[r.sede_id] || null) : null,
       resa: out?.peso_finale ?? null,
       um: out?.unita_misura ?? null,
       generata: !!r.generata_automaticamente,
