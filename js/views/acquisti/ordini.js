@@ -451,9 +451,8 @@ export async function renderOrdini(container, azienda) {
   await initOrdineDraft();
   daOrdinare(7);
 
-  // Ordini da inviare per gli eventi confermati: si preparano in Spesa banchetti,
-  // qui si vede subito quanti ce ne sono e ci si arriva con un tocco.
-  async function avvisoBanchetti() {
+  // ── DA ORDINARE: banchetti, preparazioni delle sedi (trattoria compresa) e sotto scorta, tutto insieme ──
+  async function daOrdinare(giorni) {
     const box = container.querySelector("#ordini-da-banchetti");
     if (!box) return;
     try {
