@@ -165,6 +165,8 @@ const routes = {
   "modelli-buffet": () => imp("./views/modelli-buffet.js"),
   "giorni-lavorazione": () => imp("./views/giorni-lavorazione.js"),
   "cc-sedi": () => imp("./views/cc-sedi.js"),
+  "spesa-banchetti": () => imp("./views/spesa-banchetti.js"),
+  "banchetto-foto": () => imp("./views/banchetto-foto.js"),
 
   // Agenzia viaggi: modulo in prova, solo azienda Ristoflow.
   "agenzia-viaggi": () => imp("./views/agenzia-viaggi.js"),
