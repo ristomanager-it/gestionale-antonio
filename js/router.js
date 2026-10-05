@@ -1044,6 +1044,14 @@ async function loadAziendeForUser(userId) {
   return (aziende || []).filter((a) => a.aziende);
 }
 
+loadAziendeForUser._retry = async (userId) => {
+  const { data, error } = await supabase.from("utenti_aziende")
+    .select(`ruolo, permessi_override, aziende:azienda_id ( id, nome, codice, stato, attiva, data_scadenza, features, logo_path, logo_url, piano_id, stato_attivazione, profilo_completato )`)
+    .eq("user_id", userId).eq("attivo", true);
+  if (error) return null;
+  return (data || []).filter((a) => a.aziende);
+};
+
 function pickActiveAzienda(aziendePulite, preferBozza = false) {
   // Se cerchiamo la bozza (es. route completaAzienda), priorità assoluta
   if (preferBozza) {
