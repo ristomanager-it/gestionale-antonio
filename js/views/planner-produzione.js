@@ -756,10 +756,15 @@ function renderFormHtml({ mode, id, date, record, suggerimento }){
           </div>
         </div>
 
+        ${record.lavorazione ? `<div class="planner-field full">
+          <label>Lavorazione da fare</label>
+          <div style="font-size:14px;line-height:1.45;color:#334155;background:#f8fafc;border-radius:10px;padding:8px 10px;">${escapeHtml(record.lavorazione)}</div>
+        </div>` : ""}
+
         <div class="planner-field">
-          <label>Chi lo fa</label>
+          <label>Responsabile</label>
           <select id="planner-dipendente">
-            <option value="">Seleziona operatore</option>
+            <option value="">Seleziona responsabile</option>
             ${dipendenti.map(d => `
               <option value="${d.id}" ${String(record.dipendente_id || "") === String(d.id) ? "selected" : ""}>
                 ${escapeHtml(`${d.nome || ""} ${d.cognome || ""}`.trim())}
