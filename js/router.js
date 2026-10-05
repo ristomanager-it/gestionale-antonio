@@ -161,6 +161,7 @@ const routes = {
   "registro-lotti": () => imp("./views/registro-lotti.js"),
   "lotti-fornitore": () => imp("./views/lotti-fornitore.js"),
   "scadenze": () => imp("./views/scadenze.js"),
+  "scheda-evento": () => imp("./views/scheda-evento.js"),
 
   // Agenzia viaggi: modulo in prova, solo azienda Ristoflow.
   "agenzia-viaggi": () => imp("./views/agenzia-viaggi.js"),
