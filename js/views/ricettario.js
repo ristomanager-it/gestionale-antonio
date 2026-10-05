@@ -473,6 +473,7 @@ function getRicetteFiltrate() {
   let risultati = [...ricetteCache];
 
   const filtriAttivi = filtroBozza || filtroInCompletamento || filtroComplete;
+  const cercando = !!normalize(document.getElementById("ric-search")?.value || "");
 
   if (filtriAttivi) {
     risultati = risultati.filter(r => {
