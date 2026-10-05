@@ -55,6 +55,7 @@ export async function render(app) {
   function voce(v, i) {
     const n = pz(v.percentuale);
     return `<div class="mb-v" data-i="${i}">
+      <input class="mb-in mb-angin" data-k="angolo" value="${esc(v.angolo || "")}" placeholder="Angolo (es. Angolo dei fritti)">
       <div class="mb-r"><input class="mb-in mb-piatto" data-k="piatto" value="${esc(v.piatto)}" placeholder="Piatto (es. supplì)"><button class="mb-x" data-via="1">✕</button></div>
       <div class="mb-r">
         <div class="mb-perc"><input class="mb-in" data-k="percentuale" type="number" min="0" step="5" value="${esc(v.percentuale ?? "")}" placeholder="%"><span>% invitati</span></div>
