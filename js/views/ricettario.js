@@ -173,6 +173,10 @@ export async function render(app) {
               <input type="checkbox" id="f-market">
               Market / Conserve 🫙
             </label>
+            <label>
+              <input type="checkbox" id="f-tutte-sedi" ${mostraTutteLeSedi() ? "checked" : ""}>
+              Tutte le sedi 🏢
+            </label>
           </div>
         `
       })}
