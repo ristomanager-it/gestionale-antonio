@@ -460,7 +460,7 @@ async function renderView(routeName) {
       && Date.now() - (window.__rfRecuperoTs || 0) > 5000) {
     window.__rfRecuperoTs = Date.now();
     app.innerHTML = `<div class="view" style="padding:40px;text-align:center;color:#64748b;">Un attimo…</div>`;
-    setTimeout(() => { Promise.resolve(resolve()).finally(() => { window.__rfRecuperoAzienda = false; }); }, 0);
+    setTimeout(() => resolve(), 0);
     return;
   }
 
