@@ -408,6 +408,7 @@ export function initMenu() {
           { label: "🟢 Produzioni aperte",   route: "produzioni-aperte"  },
           { label: "🧪 Preparazioni",        route: "preparazioni"       },
           { label: "📋 Planning",            route: "planner-produzione" },
+          { label: "📷 Banchetto da foto",   route: "banchetto-foto"    },
           { label: "🗂 Schede evento",       route: "scheda-evento"     },
           { label: "🥂 Modelli buffet",      route: "modelli-buffet"    },
           { label: "📅 Giorni di lavorazione", route: "giorni-lavorazione" },
