@@ -60,6 +60,16 @@ export async function render(app) {
     return { righe: r, testo: `Ordine ${az.nome || ""}\n` + r.map((x) => `- ${x.nome}: ${num(scelte[x.k].q)} ${x.unita || ""} (entro ${fd(x.serve_il)})`).join("\n") };
   }
 
+  // l'ordine mandato resta nello storico (Acquisti › Ordini inviati)
+  async function registra(fid, r, canale) {
+    if (!fid || fid === "_" || !r?.length) return;
+    const { error } = await sb().rpc("registra_ordine_inviato", {
+      p_azienda: az.id, p_sede: window.state?.sedeAttiva?.id || null, p_fornitore: Number(fid),
+      p_righe: r.map((x) => ({ prodotto_id: x.prodotto_id, quantita: scelte[x.k].q, um: x.unita || "", note: x.serve_il ? "serve entro " + fd(x.serve_il) : "" })),
+      p_origine: "spesa banchetti", p_canale: canale });
+    if (error) console.warn("registra ordine:", error);
+  }
+
   function collega() {
     box.querySelectorAll("[data-g]").forEach((b) => b.addEventListener("click", () => { giorni = Number(b.dataset.g); carica(); }));
     box.querySelectorAll(".sp-r").forEach((el) => {
