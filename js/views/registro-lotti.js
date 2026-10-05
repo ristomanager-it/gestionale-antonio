@@ -507,6 +507,33 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
   document.body.appendChild(ov);
 }
 
+// Lotto unico per piu' eventi: chiede quante etichette per ogni evento (sacchetti, vaschette...)
+function chiediEtichettePerEvento(dest, quante) {
+  return new Promise((risolvi) => {
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+    ov.innerHTML = `<div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));box-sizing:border-box;">
+      <div style="font-size:18px;font-weight:800;">🏷 Etichette per evento</div>
+      <div style="font-size:13px;color:#64748b;margin:4px 0 12px;">Stesso lotto, un'etichetta per ogni sacchetto o contenitore. Se un evento ne ha più di una, escono numerate (1/2, 2/2).</div>
+      ${dest.map((d, i) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+        <div style="flex:1;"><b>${escapeHtml(d.evento_titolo || "Evento")}</b><div style="font-size:12.5px;color:#64748b;">${d.quantita ? formatNum(d.quantita) + " pz" : ""}</div></div>
+        <button type="button" data-m="${i}" style="width:38px;height:38px;border:0;border-radius:10px;background:#f1f5f9;font-size:20px;">−</button>
+        <input data-n="${i}" type="number" min="0" value="${Math.max(1, Number(quante) || 1)}" style="width:56px;text-align:center;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;font-size:16px;">
+        <button type="button" data-p="${i}" style="width:38px;height:38px;border:0;border-radius:10px;background:#f1f5f9;font-size:20px;">+</button>
+      </div>`).join("")}
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button type="button" data-no style="flex:1;border:0;border-radius:12px;padding:13px;font-weight:700;background:#f1f5f9;">Annulla</button>
+        <button type="button" data-si style="flex:2;border:0;border-radius:12px;padding:13px;font-weight:800;background:#0E5A7A;color:#fff;">Stampa</button>
+      </div></div>`;
+    const leggi = () => dest.map((_, i) => Math.max(0, Math.round(Number(ov.querySelector(`[data-n="${i}"]`).value) || 0)));
+    ov.querySelectorAll("[data-m]").forEach((b) => b.onclick = () => { const x = ov.querySelector(`[data-n="${b.dataset.m}"]`); x.value = Math.max(0, (Number(x.value) || 0) - 1); });
+    ov.querySelectorAll("[data-p]").forEach((b) => b.onclick = () => { const x = ov.querySelector(`[data-n="${b.dataset.p}"]`); x.value = (Number(x.value) || 0) + 1; });
+    ov.querySelector("[data-no]").onclick = () => { ov.remove(); risolvi(null); };
+    ov.querySelector("[data-si]").onclick = () => { const c = leggi(); ov.remove(); risolvi(c.some((n) => n > 0) ? c : null); };
+    document.body.appendChild(ov);
+  });
+}
+
 // Stampa il registro cosi' come e' filtrato a schermo: e' il documento
 // che si mostra in caso di controllo.
 function stampaRegistro() {
