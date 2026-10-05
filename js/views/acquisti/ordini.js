@@ -462,7 +462,8 @@ export async function renderOrdini(container, azienda) {
         if (el) el.style.display = "none";
       });
 
-      const target = container.querySelector("#" + btn.dataset.tab);
+      // gli id dei pannelli hanno il prefisso "tab-": prima non si trovavano e restava tutto vuoto
+      const target = container.querySelector("#tab-" + btn.dataset.tab);
       if (target) target.style.display = "block";
 
       if (btn.dataset.tab === "storico-trasf") loadStoricoTrasferimenti();
