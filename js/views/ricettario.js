@@ -286,6 +286,13 @@ function bindFiltri() {
     filtroMarket = e.target.checked;
     renderRicetteList();
   });
+
+  document.getElementById("f-tutte-sedi")?.addEventListener("change", async e => {
+    tutteLeSedi = e.target.checked;
+    await loadRicette();
+    renderStats();
+    renderRicetteList();
+  });
 }
 
 async function loadAll() {
