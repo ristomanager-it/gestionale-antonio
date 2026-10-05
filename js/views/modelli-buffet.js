@@ -23,7 +23,7 @@ export async function render(app) {
   }
   async function caricaVoci() {
     if (!attivo) { voci = []; return; }
-    const { data } = await sb().from("modelli_buffet_voci").select("id, ordine, piatto, ricetta_id, percentuale, fasi, parametri, titolo, ricette(nome)")
+    const { data } = await sb().from("modelli_buffet_voci").select("id, ordine, angolo, piatto, ricetta_id, percentuale, fasi, parametri, titolo, ricette(nome)")
       .eq("modello_id", attivo).order("ordine").order("id");
     voci = data || [];
   }
