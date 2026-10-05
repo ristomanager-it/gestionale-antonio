@@ -666,6 +666,12 @@ function hasPermission(area) {
     // Il cervello di Tony: chi lo apre riscrive come parla il locale.
     // Non e' roba da manager, e' una decisione di chi risponde del marchio.
     "tony-cervello",
+    // Il cervello operativo (cosa, quando, dove, chi): lo imposta solo l'admin.
+    // Gli altri vedono i risultati: planning, le proprie lavorazioni, gli avvisi.
+    "scheda-evento",
+    "modelli-buffet",
+    "giorni-lavorazione",
+    "cc-sedi",
   ]);
 
   if (ADMIN_ONLY_ROUTES.has(area)) {
