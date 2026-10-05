@@ -1626,6 +1626,7 @@ ${nav}
     <div class="eyebrow">Il menu</div>
     <h1 class="h2" style="margin-bottom:20px;">Cosa portiamo<br><em>in tavola</em></h1>
     ${menuCats.length ? `
+    <div data-menu-live>
     <div class="mcat">${menuCats.map((c,i) => `<button class="mcat-btn${i===0?' active':''}" onclick="filtraMenu('${c.id}',this)">${esc(c.nome)}</button>`).join("")}</div>
     <div>${menuItemsHTML}</div>` : `<p style="color:var(--grigio);">Menu non disponibile al momento.</p>`}
     <a class="btn" href="${esc(formUrl)}" style="margin-top:32px;">🗓 ${esc(cta)}</a>
