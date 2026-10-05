@@ -13,6 +13,28 @@ function isAdminCorrezioni() {
   return r.includes('admin') || r === 'superadmin';
 }
 
+// Chi non e' admin vede solo le proprie timbrature e il proprio cartellino.
+function soloProprie() { return !isAdminCorrezioni(); }
+
+// Registro: quale dipendente viene guardato (come le pagine aperte, in app_accessi)
+let __ultimoDipLog = '';
+function registraVistaDipendente(dipId, nomeDip) {
+  try {
+    if (!dipId || dipId === __ultimoDipLog) return;
+    __ultimoDipLog = dipId;
+    const u = window.state?.user, d = window.state?.dipendente;
+    if (!u) return;
+    supa().from('app_accessi').insert({
+      azienda_id: window.state?.azienda?.id || null, user_id: u.id, dipendente_id: d?.id || null,
+      nome: d ? ((d.nome || '') + ' ' + (d.cognome || '')).trim() : (u.email || ''),
+      route: 'bo-presenze',
+      hash: ('#/bo-presenze?dipendente=' + dipId + (nomeDip ? '&nome=' + nomeDip : '')).slice(0, 200),
+      user_agent: String(navigator.userAgent || '').slice(0, 250),
+      schermo: (window.screen?.width || 0) + 'x' + (window.screen?.height || 0)
+    }).then(() => {}, () => {});
+  } catch (_) {}
+}
+
 function esc(v) {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
