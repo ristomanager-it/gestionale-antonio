@@ -292,6 +292,7 @@ export async function renderOrdini(container, azienda) {
 
       ordini[fornId].push({
         nome:prodotto.nome,
+        prodotto_id:prodotto.id,
         quantita:qta,
         um:um||prodotto.unita_misura
       });
