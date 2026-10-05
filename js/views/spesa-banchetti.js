@@ -86,6 +86,7 @@ export async function render(app) {
       const res = await sb().functions.invoke("send-order-email", { body: { email: f.email, fornitore_nome: f.nome, azienda_nome: az.nome,
         prodotti: r.map((x) => ({ nome: x.nome, quantita: scelte[x.k].q, um: x.unita || "" })) } });
       b.disabled = false;
+      if (!res.error) await registra(b.dataset.invia, r, "email");
       alert(res.error ? "Errore invio ordine" : "✓ Ordine inviato a " + f.nome);
     }));
     box.querySelectorAll("[data-wa]").forEach((b) => b.addEventListener("click", () => {
