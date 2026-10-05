@@ -4501,14 +4501,20 @@ async function preloadFromPlanner(plannerId){
         await loadConservazioni(ricetta.id)
       }
 
+      // anche le fasi HACCP e gli stadi della ricetta (prima mancavano: "Seleziona una ricetta...")
+      await Promise.all([
+        typeof loadFasiHaccp === "function" ? loadFasiHaccp(ricetta.id) : null,
+        typeof loadStadiRicetta === "function" ? loadStadiRicetta(ricetta.id) : null,
+      ])
+
     }
   }
 
-  // QUANTITÀ → PESO
+  // QUANTITÀ: nel planning sono pezzi/porzioni, non kg: la mostro come promemoria, il peso reale lo scrive chi pesa
   if(data.quantita){
     const pesoEl = document.getElementById("prod-peso-reale")
     if(pesoEl && !pesoEl.value){
-      pesoEl.value = data.quantita
+      pesoEl.placeholder = "Previsti " + Number(data.quantita).toLocaleString("it-IT") + " (dal planning): pesa e scrivi il reale in kg"
     }
   }
 
