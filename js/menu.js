@@ -410,6 +410,7 @@ export function initMenu() {
           { label: "📋 Planning",            route: "planner-produzione" },
           { label: "🗂 Schede evento",       route: "scheda-evento"     },
           { label: "🥂 Modelli buffet",      route: "modelli-buffet"    },
+          { label: "📅 Giorni di lavorazione", route: "giorni-lavorazione" },
           { label: "📒 Registro lotti",      route: "registro-lotti"    },
           { label: "📷 Lotti in arrivo",     route: "lotti-fornitore"   },
           { label: "⏰ Scadenze",            route: "scadenze"          },
