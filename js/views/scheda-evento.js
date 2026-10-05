@@ -268,6 +268,43 @@ async function scheda(box, az, id) {
   disegna();
 }
 
+// Finestra "Usa modello": spunta i piatti e cambia le % solo per questo evento
+function scegliDalModello(nome, voci, invitati) {
+  return new Promise((risolvi) => {
+    const righe = voci.map((v) => ({ ...v, ok: true, perc: v.percentuale != null ? Number(v.percentuale) : null }));
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+    const pz = (r) => (r.perc ? Math.ceil(r.perc * invitati / 100) : invitati);
+    function disegna() {
+      const angoli = [...new Set(righe.map((r) => r.angolo || "Senza angolo"))];
+      ov.innerHTML = `<div style="background:#fff;width:100%;max-width:620px;max-height:90vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));box-sizing:border-box;">
+        <div style="font-size:18px;font-weight:800;">📋 ${esc(nome)}</div>
+        <div style="font-size:13px;color:#64748b;margin:3px 0 10px;">${invitati} invitati. Spunta i piatti e cambia le % solo per questo evento: il modello resta com'è.</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;font-size:13px;"><b>Tutti:</b>
+          <input data-tutti type="number" min="0" step="5" placeholder="%" style="width:70px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;"> <span>%</span></div>
+        ${angoli.map((a) => `<div style="margin-top:12px;display:flex;gap:6px;align-items:center;">
+            <b style="flex:1;font-size:13px;color:#0E5A7A;text-transform:uppercase;letter-spacing:.4px;">${esc(a)}</b>
+            <input data-ang="${esc(a)}" type="number" min="0" step="5" placeholder="%" style="width:64px;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px;font-size:13px;"></div>
+          ${righe.map((r, i) => (r.angolo || "Senza angolo") !== a ? "" : `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9;${r.ok ? "" : "opacity:.45;"}">
+            <input type="checkbox" data-ok="${i}" ${r.ok ? "checked" : ""} style="width:20px;height:20px;flex:none;">
+            <span style="flex:1;font-size:14px;">${esc(r.piatto || r.ricette?.nome || "")}</span>
+            <input data-perc="${i}" type="number" min="0" step="5" value="${r.perc ?? ""}" placeholder="%" style="width:58px;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px;text-align:right;">
+            <span style="width:54px;text-align:right;font-size:12.5px;color:#0E5A7A;font-weight:700;">${pz(r)} pz</span></div>`).join("")}`).join("")}
+        <div style="display:flex;gap:8px;margin-top:14px;position:sticky;bottom:0;background:#fff;padding-top:6px;">
+          <button data-no style="flex:1;border:0;border-radius:12px;padding:13px;font-weight:700;background:#f1f5f9;">Annulla</button>
+          <button data-si style="flex:2;border:0;border-radius:12px;padding:13px;font-weight:800;background:#0E5A7A;color:#fff;">Aggiungi ${righe.filter((r) => r.ok).length} piatti</button></div></div>`;
+      ov.querySelectorAll("[data-ok]").forEach((c) => c.onchange = () => { righe[Number(c.dataset.ok)].ok = c.checked; disegna(); });
+      ov.querySelectorAll("[data-perc]").forEach((c) => c.onchange = () => { righe[Number(c.dataset.perc)].perc = c.value === "" ? null : Number(c.value); disegna(); });
+      ov.querySelectorAll("[data-ang]").forEach((c) => c.onchange = () => { if (c.value === "") return; righe.forEach((r) => { if ((r.angolo || "Senza angolo") === c.dataset.ang) r.perc = Number(c.value); }); disegna(); });
+      ov.querySelector("[data-tutti]").onchange = (e) => { if (e.target.value === "") return; righe.forEach((r) => { r.perc = Number(e.target.value); }); disegna(); };
+      ov.querySelector("[data-no]").onclick = () => { ov.remove(); risolvi(null); };
+      ov.querySelector("[data-si]").onclick = () => { const s = righe.filter((r) => r.ok); ov.remove(); risolvi(s.length ? s : null); };
+    }
+    disegna();
+    document.body.appendChild(ov);
+  });
+}
+
 function stile() {
   return `<style>
   .se{max-width:760px;margin:0 auto;padding:16px 14px 90px;}
