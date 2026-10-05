@@ -475,7 +475,8 @@ function getRicetteFiltrate() {
   const filtriAttivi = filtroBozza || filtroInCompletamento || filtroComplete;
   const cercando = !!normalize(document.getElementById("ric-search")?.value || "");
 
-  if (filtriAttivi) {
+  // quando cerchi un nome, la ricerca guarda tutti gli stati (bozze, in completamento, complete)
+  if (filtriAttivi && !cercando) {
     risultati = risultati.filter(r => {
       if (filtroBozza && r.stato === "bozza") return true;
       if (filtroInCompletamento && r.stato === "in_completamento") return true;
