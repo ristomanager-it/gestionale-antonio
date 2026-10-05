@@ -363,7 +363,7 @@ async function avviaRegistrazione() {
     ? { t: "📝 Dettatura", c: "Detta con calma, anche con pause. Tocca 🎙️ quando hai finito." }
     : { t: "Ti ascolto…", c: "Parla, poi fermati: mi accorgo da solo" });
   ascoltaSilenzio();
-  timerMax = setTimeout(fermaRegistrazione, 15000);
+  timerMax = setTimeout(fermaRegistrazione, dettatura ? DETTATURA_MAX : 15000);
 }
 
 // Si ferma da solo: 1,5 s di silenzio dopo che hai parlato, o 6 s se non parli proprio
