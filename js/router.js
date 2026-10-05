@@ -1385,7 +1385,24 @@ async function doLogout() {
    ROUTER CORE
 ========================================================= */
 
-async function resolve() {
+// Una navigazione alla volta: il cambio sede chiamava resolve() due volte insieme e,
+// con la rete lenta, una delle due poteva azzerare l'azienda mentre l'altra disegnava
+// la pagina ("Ristoflow" + "Nessuna azienda attiva"). Le chiamate in arrivo durante
+// una navigazione ne fanno partire una sola, subito dopo.
+let __rfInCorso = null, __rfDiNuovo = false;
+function resolve() {
+  if (__rfInCorso) { __rfDiNuovo = true; return __rfInCorso; }
+  __rfInCorso = (async () => {
+    try { await _resolve(); }
+    finally {
+      __rfInCorso = null;
+      if (__rfDiNuovo) { __rfDiNuovo = false; setTimeout(() => resolve(), 0); }
+    }
+  })();
+  return __rfInCorso;
+}
+
+async function _resolve() {
   if (!app) return;
 
   if (!window.location.hash) {
