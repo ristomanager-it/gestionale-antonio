@@ -733,6 +733,7 @@ function hasPermission(area) {
       "lotti-fornitore",
       "scadenze",
       "scheda-evento",
+      "modelli-buffet",
       "registro-messaggi",
       "recensioni",
       "recensioni-ricevute",
