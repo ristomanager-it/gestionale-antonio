@@ -46,13 +46,28 @@ export async function render(container) {
   PORTATE.forEach(p => { perPortata[p.key] = ricette.filter(r => r.categoria_food === p.key); });
 
   // Menu componibili salvati (lista) + eventuale menu in modifica via hash ?id=
-  const hashId = (location.hash.split("?")[1] || "").split("&").map(x=>x.split("=")).reduce((a,[k,v])=>(k?(a[k]=decodeURIComponent(v||""),a):a),{}).id || null;
-  const { data: listaMenu } = await s.from("menu_componibile").select("id, titolo, nome_gruppo, data, updated_at, voci").eq("azienda_id", azienda.id).order("updated_at", { ascending: false }).limit(50);
+  const hashParams = (location.hash.split("?")[1] || "").split("&").map(x=>x.split("=")).reduce((a,[k,v])=>(k?(a[k]=decodeURIComponent(v||""),a):a),{});
+  let hashId = hashParams.id || null;
+  const prenParam = hashParams.pren ? Number(hashParams.pren) : null;
+  const stampaAuto = hashParams.stampa === "1";
+  // Arrivo da una prenotazione senza id: se esiste già un menu collegato apro quello
+  if (!hashId && prenParam) {
+    const { data: giaColl } = await s.from("menu_componibile").select("id").eq("azienda_id", azienda.id).eq("prenotazione_id", prenParam).limit(1).maybeSingle();
+    if (giaColl) hashId = giaColl.id;
+  }
+  const { data: listaMenu } = await s.from("menu_componibile").select("id, titolo, nome_gruppo, data, updated_at, voci, prenotazione_id").eq("azienda_id", azienda.id).order("updated_at", { ascending: false }).limit(50);
   let q = s.from("menu_componibile").select("*").eq("azienda_id", azienda.id);
   if (hashId) q = q.eq("id", hashId); else q = q.eq("id", "00000000-0000-0000-0000-000000000000");
-  q = sede?.id ? q.eq("sede_id", sede.id) : q.is("sede_id", null);
+  if (!hashId) q = sede?.id ? q.eq("sede_id", sede.id) : q.is("sede_id", null);
   const { data: mgData } = await q.maybeSingle();
   let mgEsistente = mgData || null;
+  // Prenotazione collegata (dal menu salvato o dal parametro pren)
+  const prenIdColl = (mgEsistente && mgEsistente.prenotazione_id) || prenParam || null;
+  let prenColl = null;
+  if (prenIdColl) {
+    const { data: pr } = await s.from("prenotazioni_tavoli").select("id, data, ora, coperti, cliente_nome, cognome").eq("id", prenIdColl).eq("azienda_id", azienda.id).maybeSingle();
+    prenColl = pr || null;
+  }
   const sel = {};
   const liberiEsistenti = {};
   PORTATE.forEach(p => { sel[p.key] = new Array(p.slots).fill(""); liberiEsistenti[p.key] = []; });
@@ -66,7 +81,8 @@ export async function render(container) {
   let mezzaPensione = mgEsistente ? !!mgEsistente.mezza_pensione : false;
   let prezzoFisso = mgEsistente && mgEsistente.prezzo_fisso != null ? Number(mgEsistente.prezzo_fisso) : null;
   const titoloVal = (mgEsistente && mgEsistente.titolo) ? mgEsistente.titolo : "Menu gruppo";
-  const nomeGruppoVal = (mgEsistente && mgEsistente.nome_gruppo) ? mgEsistente.nome_gruppo : "";
+  const nomeGruppoVal = (mgEsistente && mgEsistente.nome_gruppo) ? mgEsistente.nome_gruppo : (prenColl ? [prenColl.cliente_nome, prenColl.cognome].filter(Boolean).join(" ") : "");
+  const dataVal = (mgEsistente && mgEsistente.data) ? String(mgEsistente.data) : (prenColl && prenColl.data ? String(prenColl.data) : oggi);
   const testoInclusoVal = (mgEsistente && mgEsistente.testo_incluso != null) ? mgEsistente.testo_incluso : "Acqua e caffè inclusi";
   const fontFamVal = (mgEsistente && mgEsistente.font_family) ? mgEsistente.font_family : "Georgia, serif";
   const fontSizeVal = (mgEsistente && mgEsistente.font_size) ? mgEsistente.font_size : "medio";
@@ -132,12 +148,13 @@ export async function render(container) {
   html += '<div class="card" style="border-radius:12px;padding:16px;margin-bottom:14px;">'
     + '<h2 style="margin:0 0 4px;color:' + COLORE + ';">🧩 Menu Componibile <span id="mg-titolo-prezzo" style="font-size:16px;color:#16a34a;font-weight:700;">' + (prezzoFisso && prezzoFisso > 0 ? '— € ' + money(prezzoFisso) : '') + '</span></h2>'
     + '<p style="margin:0 0 12px;color:#64748b;font-size:13px;">Crea un menu al volo per gruppi e agenzie di viaggio' + (sede?.nome ? ' — ' + esc(sede.nome) : '') + '. Puoi salvarne quanti vuoi e stamparli.</p>'
+    + (prenColl ? '<div style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="display:inline-block;background:#e0f2fe;color:#075985;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;">📅 Prenotazione #' + prenColl.id + ' · ' + esc(formatDataIta(prenColl.data)) + ' ore ' + esc(String(prenColl.ora || "").slice(0, 5)) + ' · ' + (Number(prenColl.coperti) || 0) + ' coperti</span><a href="#/prenotazioni-dettaglio?id=' + prenColl.id + '" style="font-size:12px;color:#0E5A7A;font-weight:600;text-decoration:none;">← Torna alla prenotazione</a></div>' : '')
     + renderListaMenu(listaMenu, hashId)
     + '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">'
     + '<label style="font-size:13px;color:#334155;">📝 Titolo <input id="mg-titolo" value="' + esc(titoloVal) + '" placeholder="Menu gruppo" style="width:170px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;">👥 Gruppo/Agenzia <input id="mg-gruppo" value="' + esc(nomeGruppoVal) + '" placeholder="Es. Agenzia Rossi Tours" style="width:200px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;">🍷 Inclusi <input id="mg-incluso" value="' + esc(testoInclusoVal) + '" placeholder="Es. Acqua e vino inclusi" style="width:200px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
-    + '<label style="font-size:13px;color:#334155;">Data <input id="mg-data" type="date" value="' + oggi + '" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
+    + '<label style="font-size:13px;color:#334155;">Data <input id="mg-data" type="date" value="' + esc(dataVal) + '" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;">💶 Prezzo fisso € <input id="mg-prezzo" type="number" step="0.5" min="0" value="' + (prezzoFisso != null ? prezzoFisso : '') + '" placeholder="—" style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-mp" type="checkbox"' + (mezzaPensione ? ' checked' : '') + '> Mezza pensione</label>'
     + '<label style="font-size:13px;color:#334155;">Font <select id="mg-font" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;">'
@@ -375,7 +392,7 @@ export async function render(container) {
     const s2 = supa();
     const { data: sess } = await s2.auth.getUser();
     const uid = sess?.user?.id || null;
-    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, nome_gruppo, testo_incluso, mezza_pensione: mp, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
+    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, nome_gruppo, testo_incluso, mezza_pensione: mp, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, prenotazione_id: prenColl ? prenColl.id : ((mgEsistente && mgEsistente.prenotazione_id) || null), created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
       const { error } = await s2.from("menu_componibile").update(payload).eq("id", mgEsistente.id);
       if (error) throw error;
@@ -469,6 +486,10 @@ export async function render(container) {
 
   const btnStampa = container.querySelector("#mg-stampa");
   if (btnStampa) btnStampa.addEventListener("click", stampa);
+  if (stampaAuto && mgEsistente) {
+    history.replaceState(null, "", location.pathname + location.search + "#/menu-componibile?id=" + mgEsistente.id + (prenColl ? "&pren=" + prenColl.id : ""));
+    setTimeout(stampa, 50);
+  }
 
   const btnSalva = container.querySelector("#mg-salva");
   btnSalva.addEventListener("click", async () => {
@@ -520,7 +541,7 @@ function renderListaMenu(lista, attivoId) {
   lista.forEach(m => {
     const attivo = String(m.id) === String(attivoId);
     const nPiatti = Array.isArray(m.voci) ? m.voci.length : 0;
-    const sub = [m.nome_gruppo, (nPiatti + ' piatti')].filter(Boolean).join(' · ');
+    const sub = [m.nome_gruppo, (m.data ? formatDataIta(m.data) : ''), (nPiatti + ' piatti'), (m.prenotazione_id ? '📅 #' + m.prenotazione_id : '')].filter(Boolean).join(' · ');
     h += '<div class="mc-apri" data-id="' + m.id + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;background:' + (attivo ? '#e0f2fe' : '#fff') + ';border:1px solid ' + (attivo ? '#7dd3fc' : '#e2e8f0') + ';">'
       + '<div style="min-width:0;"><div style="font-size:13px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(m.titolo || 'Menu') + '</div>'
       + '<div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(sub) + '</div></div>'
