@@ -506,7 +506,10 @@ export async function renderOrdini(container, azienda) {
     box.querySelectorAll(".do-r").forEach((el) => {
       const r = righe[Number(el.dataset.k)];
       el.querySelector("[data-ok]").addEventListener("change", (e) => { r.ok = e.target.checked; el.style.opacity = r.ok ? 1 : 0.45; });
-      el.querySelector("[data-q]").addEventListener("input", (e) => { r.q = Number(e.target.value) || 0; });
+      el.querySelector("[data-q]").addEventListener("input", (e) => {
+        r.q = Number(e.target.value) || 0;
+        const c = el.querySelector("[data-cart]"); if (c) c.textContent = cartoni(r) ? "(" + cartoni(r) + " cart.)" : "";
+      });
       const sel = el.querySelector("[data-forn]");
       if (sel) sel.addEventListener("change", async (e) => {
         if (!e.target.value || !r.prodotto_id) { if (!r.prodotto_id) alert("Questo ingrediente non è collegato a un prodotto di magazzino: collegalo nella ricetta."); return; }
