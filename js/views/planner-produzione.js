@@ -670,6 +670,7 @@ function renderCard(r){
       draggable="true"
       data-id="${r.id}">
       ${fatta ? `<div style="font-size:11.5px;font-weight:800;color:#15803d;margin-bottom:2px;">✓ FATTA</div>` : ritardo ? `<div style="font-size:11.5px;font-weight:800;color:#b91c1c;margin-bottom:2px;">⚠ IN RITARDO</div>` : ""}
+      ${badgeOrario(r)}
       <div class="planner-card-title">
         ${escapeHtml(r.prodotto || "Produzione")}
       </div>
