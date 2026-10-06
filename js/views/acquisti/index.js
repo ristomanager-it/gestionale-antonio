@@ -4,7 +4,7 @@ import { renderPagamenti } from "./pagamenti.js";
 import { renderFornitori } from "./fornitori.js";
 import { renderListini } from "./listini.js";
 import { renderRiordino } from "./riordino.js";
-import { renderOrdini } from "./ordini.js?v=20261005-33";
+import { renderOrdini } from "./ordini.js?v=20261005-34";
 
 export async function render(container) {
 
