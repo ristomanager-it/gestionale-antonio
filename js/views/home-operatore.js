@@ -103,7 +103,18 @@ export async function render(container) {
           <p>${esc(com.testo)}</p>
         </div>` : ""}
 
+      ${lavDomani.length ? `
+        <div class="op-sez">Domani</div>
+        <div class="op-lav">
+          ${lavDomani.map(l => `
+            <div class="l" style="opacity:.75;">
+              <div class="ck"></div>
+              <div class="t">${esc(l.titolo)}<span>${esc(l.sotto)}</span></div>
+            </div>`).join("")}
+        </div>` : ""}
+
       <div class="op-scorc">
+        <a href="#/preparazioni" class="s"><i>🔪</i><span>Nuova lavorazione (fuori programma)</span><b>›</b></a>
         <a href="#/mansionario-operatore" class="s"><i>📋</i><span>Mansionario</span><b>›</b></a>
         <a href="#/hr-richieste" class="s"><i>📆</i><span>Ferie e permessi</span><b>›</b></a>
         ${linkQr ? `<a href="${linkQr}" class="s"><i>⭐</i><span>Il mio QR recensioni</span><b>›</b></a>` : ""}
