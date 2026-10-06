@@ -291,7 +291,9 @@ async function lavorazioniOggi(supabase, aziendaId, dipId, oggiISO) {
       const q = l.quantita != null ? (Number(l.quantita).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " " + (l.unita || "")) : null;
       const quando = l.ora ? String(l.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[l.fascia] || null);
       return {
-        id: l.id, fatta, ricetta: !!l.ricetta_id, inCorso: l.stato === "in_corso",
+        id: l.id, fatta, inCorso: l.stato === "in_corso",
+        // si apre la lavorazione (fasi, firme) se ha la ricetta e non e' una fase "libera" fuori programma
+        ricetta: !!l.ricetta_id && !/\(fuori programma\)$/.test(String(l.lavorazione || "")),
         titolo: String(l.prodotto || "Lavorazione").replace(/^🍽 Al servizio · /, "🍽 "),
         sotto: [String(l.lavorazione || "").split(" · ")[0], q, quando,
                 String(l.dipendente_id) !== String(dipId) ? "supporto" : null, fatta ? "fatto" : null]
