@@ -21,10 +21,10 @@ export async function renderListini(container, azienda) {
 
   // Prodotti e fornitori dell'azienda: per datalist + aggancio automatico per nome
   const [{ data: prodotti }, { data: fornitori }] = await Promise.all([
-    supabase.from("prodotti")
+    leggiTutto(() => supabase.from("prodotti")
       .select("id,nome,costo_medio")
       .eq("azienda_id", azienda.id)
-      .limit(2000),
+      .order("id", { ascending: true })),
     supabase.from("fornitori")
       .select("id,ragione_sociale")
       .eq("azienda_id", azienda.id)
