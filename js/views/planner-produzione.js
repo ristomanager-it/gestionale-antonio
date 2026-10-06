@@ -999,6 +999,8 @@ async function saveProduzione(mode, id, fallbackDate){
   const note = (document.getElementById("planner-note").value || "").trim() || null
   const supporti = [...document.querySelectorAll("#planner-supporti input:checked")].map(x => x.value).filter(v => v !== dipendente_id)
   const stoccaggio = document.getElementById("planner-stoccaggio")?.value || null
+  const fascia = document.getElementById("planner-fascia")?.value || null
+  const ora = document.getElementById("planner-ora")?.value || null
 
   if(!prodotto){
     alert("Inserisci il nome della lavorazione/prodotto")
