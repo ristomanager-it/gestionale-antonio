@@ -2944,6 +2944,27 @@ function renderFasiHaccp() {
     </div>`;
   }).join("");
 
+  // solo le fasi della lavorazione aperta dal planning
+  {
+    const vis = fasiDelPlanning();
+    if (vis) {
+      list.querySelectorAll(":scope > .azienda-card[data-idx]").forEach((el) => {
+        if (vis.has(+el.dataset.idx)) return;
+        el.style.display = "none";
+        const prima = el.previousElementSibling;   // il passo "resa" sta subito prima del confezionamento
+        if (prima && !prima.hasAttribute("data-idx")) prima.style.display = "none";
+      });
+      const nascoste = fasiCache.length - vis.size;
+      if (nascoste > 0) {
+        const nomi = Array.from(vis).map((i) => fasiCache[i]?.nome_fase).filter(Boolean).join(", ");
+        list.insertAdjacentHTML("afterbegin", `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;">
+          <b>Da fare adesso:</b> ${escapeHtml(nomi)}
+          <div style="margin-top:4px;"><a href="#" id="rf-mostra-tutte" style="font-size:12.5px;">Mostra tutte le fasi (${fasiCache.length})</a></div></div>`);
+        list.querySelector("#rf-mostra-tutte")?.addEventListener("click", (e) => { e.preventDefault(); window.__rfMostraTutteFasi = true; renderFasiHaccp(); });
+      }
+    }
+  }
+
   /* Il confezionamento si segna DENTRO la sua fase, non in una card a mezzo
      metro di distanza: chi confeziona firma e conta le confezioni nello stesso
      punto, con lo stesso gesto. Sposto il nodo invece di ridisegnarlo altrove,
