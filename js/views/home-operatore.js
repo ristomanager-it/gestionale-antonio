@@ -84,6 +84,9 @@ export async function render(container) {
           : "—"}</b></div>
       </div>
 
+      ${!lavorazioni.length ? `
+        <div class="op-sez">Oggi tocca a te</div>
+        <div style="font-size:13.5px;color:#64748b;padding:4px 2px 10px;">Nessuna lavorazione in programma per te oggi.</div>` : ""}
       ${lavorazioni.length ? `
         <div class="op-sez">Oggi tocca a te</div>
         <div class="op-lav">
