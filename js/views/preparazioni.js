@@ -445,7 +445,15 @@ await Promise.all([preloadRicette(), preloadDipendenti(), preloadProdotti()]);
 // =========================
 // 🔥 PRELOAD DA PLANNER
 // =========================
+window.__rfLavorazionePlanning = null
+window.__rfMostraTutteFasi = false
 if (plannerId) {
+  // quale lavorazione del planning si sta facendo: si mostrano solo le sue fasi
+  try {
+    const { data: rp } = await (window.supabaseClient || window.supabase)
+      .from("produzioni_settimanali").select("lavorazione").eq("id", plannerId).maybeSingle()
+    window.__rfLavorazionePlanning = rp?.lavorazione || null
+  } catch (_) {}
   await preloadFromPlanner(plannerId)
 }
 
