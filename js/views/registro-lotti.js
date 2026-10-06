@@ -469,8 +469,9 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
   const { data: dest } = info.id ? await supaD.from("produzione_lotti_destinazioni").select("evento_titolo, quantita, formato").eq("lotto_id", info.id).order("id") : { data: [] };
   if ((dest || []).length > 1) {
     // quante etichette per ogni evento (es. il ragu' di un evento in due sacchetti)
-    const conte = await chiediEtichettePerEvento(dest, quante);
-    if (!conte) return;
+    const scelta = await chiediEtichettePerEvento(dest, quante, peso);
+    if (!scelta) return;
+    const conte = scelta.map((x) => x.n);
     let ok = 0, tot = 0, ultimo = null;
     for (let i = 0; i < dest.length; i++) {
       const d = dest[i], n = conte[i];
