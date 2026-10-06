@@ -597,6 +597,47 @@ function chipsEventi(r){
     `<span style="display:inline-block;background:#e0f2fe;color:#0c4a6e;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;">🎉 ${escapeHtml(e.nome)}${e.q ? ` · <span style="font-weight:800;">${escapeHtml(e.q)}</span>` : ""}</span>`).join("")}</div>`
 }
 
+// Stessa lavorazione per ricette diverse, stesso giorno e stessa persona (es. pelatura patate
+// per tortini e crocchette): una scheda sola con il totale, e sotto ogni ricetta con la sua parte.
+function renderItems(items){
+  const gruppi = new Map(), singoli = []
+  items.forEach((r) => {
+    const lav = String(r.lavorazione || "").split(" · ")[0].replace(/\s*\([^)]*\)\s*$/, "").trim().toLowerCase()
+    const unibile = r.unita && lav && !String(r.prodotto || "").startsWith("🍽") && r.stato !== "completato"
+    if (!unibile) { singoli.push(r); return }
+    const k = lav + "|" + r.unita + "|" + (r.dipendente_id || "")
+    if (!gruppi.has(k)) gruppi.set(k, [])
+    gruppi.get(k).push(r)
+  })
+  let html = ""
+  gruppi.forEach((g) => {
+    if (g.length === 1) { singoli.push(g[0]); return }
+    html += renderGruppo(g)
+  })
+  return html + singoli.map(renderCard).join("")
+}
+
+function renderGruppo(g){
+  const r0 = g[0]
+  const tot = g.reduce((a, r) => a + (Number(r.quantita) || 0), 0)
+  const lav = String(r0.lavorazione || "").split(" · ")[0]
+  return `
+    <div class="planner-card planner-gruppo" style="border-left:5px solid #0E5A7A;">
+      <div style="font-size:11.5px;font-weight:800;color:#0E5A7A;margin-bottom:2px;">🔗 LAVORAZIONE UNICA · ${g.length} ricette</div>
+      <div class="planner-card-title">${escapeHtml(lav)}</div>
+      <div style="font-size:15px;font-weight:800;margin:2px 0 6px;">Totale ${formatNumber(tot)} ${escapeHtml(r0.unita)}</div>
+      ${g.map((r) => `
+        <div class="planner-sub" data-id="${r.id}" style="border-top:1px solid #e2e8f0;padding:6px 0;cursor:pointer;">
+          <div style="font-weight:700;font-size:13.5px;">${escapeHtml(r.prodotto || "")} · ${formatNumber(r.quantita)} ${escapeHtml(r.unita)}</div>
+          ${chipsEventi(r)}
+        </div>`).join("")}
+      <div class="planner-card-meta">
+        Operatore: ${escapeHtml(getDipendenteLabel(r0.dipendente_id))}<br>
+        Stato: ${formatStato(r0.stato)}
+      </div>
+    </div>`
+}
+
 function renderCard(r){
   const nomeDipendente = getDipendenteLabel(r.dipendente_id)
   // verde = lotto chiuso / fatta; rosso = in ritardo (passata in coda o giorno gia' passato)
