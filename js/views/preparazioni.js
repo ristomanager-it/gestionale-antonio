@@ -2999,6 +2999,10 @@ function renderFasiHaccp() {
         dest.appendChild(blocco);
         if (cardConf) cardConf.style.display = "none";
       }
+      // nella fase di confezionamento la prima riga e' gia' pronta: si scrive cosa, peso e quante
+      if (dest && !savedLotto && Array.isArray(confezioniRows) && !confezioniRows.length && ricettaSelezionata?.id) {
+        addConfezioneRow();
+      }
       const pesoB = document.getElementById("peso-blocco");
       const destPeso = document.getElementById("resa-prima-conf");
       if (pesoB && destPeso && pesoB.parentElement !== destPeso) destPeso.appendChild(pesoB); else if (!dest && cardConf) {
