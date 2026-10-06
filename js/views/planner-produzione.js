@@ -574,6 +574,29 @@ function perChi(note){
   return m ? m[1].trim() : ""
 }
 
+// per quali eventi e' la lavorazione: con il lotto unico ogni evento con la sua quantita',
+// altrimenti il nome dell'evento (e' la prima parte delle note scritte dal cervello)
+function eventiDellaRiga(r){
+  const per = perChi(r.note)
+  if (per) {
+    return per.split(" + ").map((x) => {
+      const m = x.trim().match(/^(.*?)\s+([\d.,]+)$/)
+      return m ? { nome: m[1], q: m[2] } : { nome: x.trim(), q: "" }
+    })
+  }
+  const note = String(r.note || "")
+  if (!/· (lotto |regola «|riga \d)/.test(note) && !/mousse per aperitivo/.test(note)) return []
+  const nome = note.split(" · ")[0].trim()
+  return nome ? [{ nome, q: "" }] : []
+}
+
+function chipsEventi(r){
+  const ev = eventiDellaRiga(r)
+  if (!ev.length) return ""
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 6px;">${ev.map((e) =>
+    `<span style="display:inline-block;background:#e0f2fe;color:#0c4a6e;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;">🎉 ${escapeHtml(e.nome)}${e.q ? ` · <span style="font-weight:800;">${escapeHtml(e.q)}</span>` : ""}</span>`).join("")}</div>`
+}
+
 function renderCard(r){
   const nomeDipendente = getDipendenteLabel(r.dipendente_id)
   // verde = lotto chiuso / fatta; rosso = in ritardo (passata in coda o giorno gia' passato)
