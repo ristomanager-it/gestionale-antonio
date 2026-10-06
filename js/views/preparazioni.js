@@ -4452,8 +4452,21 @@ async function stampaEtichetteBrother() {
       if (!esito.ok) return alert("Errore invio etichette: " + esito.motivo);
       tot += r.numero_confezioni;
     }
-    // etichettare chiude la lavorazione della giornata (sul planning diventa ✓ FATTA)
+    // etichettare chiude il lotto: lo chiude chi lavora, con le etichette (non piu' da solo col peso)
     let chiusa = "";
+    try {
+      const lt = lottoCorrente();
+      const daFare = (logHaccp || []).filter((l, i) => !eFaseDelServizio(fasiCache[i]) && !(Array.isArray(l.firme) && l.firme.length) && !l.firmato);
+      if (lt?.lotto_uuid && (!daFare.length || confirm("Ci sono " + daFare.length + " fasi non firmate. Chiudo comunque il lotto?"))) {
+        const firmatari = operatoriDelLotto();
+        const chi = (logHaccp || []).flatMap((l) => (Array.isArray(l.firme) ? l.firme : [])).find((f) => f?.operatore_id)?.operatore_id || null;
+        const { error: eL } = await supabase.from("produzione_lotti").update({
+          stato: "firmato", firmato_at: new Date().toISOString(), chiuso_at: new Date().toISOString(),
+          chiuso_da: chi, firma_tramite: "etichettatura", conforme: true,
+        }).eq("lotto_uuid", lt.lotto_uuid).in("stato", ["aperta", "bozza"]);
+        if (!eL) chiusa = "\n✓ Lotto chiuso" + (firmatari ? " da " + firmatari : "") + ".";
+      }
+    } catch (_) {}
     if (window.__rfPlannerIdCorrente) {
       try {
         const { error: eF } = await supabase.rpc("lavorazione_finita", { p_id: window.__rfPlannerIdCorrente });
