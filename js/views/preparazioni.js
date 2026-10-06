@@ -3284,10 +3284,12 @@ function fasiDelPlanning() {
   if (window.__rfMostraTutteFasi) return null;
   const lav = String(window.__rfLavorazionePlanning || "").split(" · ")[0].toLowerCase();
   if (!lav || !fasiCache.length) return null;
-  const pezzi = lav.split("→").map((x) => x.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim()).filter((x) => x.length > 3);
+  // stesso trattamento per i due testi: niente parentesi, punteggiatura e simboli (°, virgole...)
+  const pulisci = (x) => String(x || "").toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9àèéìòù]+/g, " ").replace(/\s+/g, " ").trim();
+  const pezzi = lav.split("→").map(pulisci).filter((x) => x.length > 3);
   const set = new Set();
   fasiCache.forEach((f, i) => {
-    const n = String(f.nome_fase || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const n = pulisci(f.nome_fase);
     if (n.length > 3 && pezzi.some((p) => p.includes(n) || n.includes(p))) set.add(i);
   });
   return set.size ? set : null;
