@@ -26,7 +26,7 @@ export async function render(container) {
 
   container.innerHTML = `<div class="mg-home"><div class="mg-caric">Un attimo…</div></div>${stile()}`;
 
-  const [mie, coperti, copertiDom, squadra, produzioni, prodDom, avvisi, comandamenti] = await Promise.all([
+  const [mie, coperti, copertiDom, squadra, produzioni, prodDom, avvisi, comandamenti, planning] = await Promise.all([
     mieTimbrature(supabase, azienda?.id, dip?.id),
     copertiDelGiorno(supabase, azienda?.id, sede?.id, oggiISO),
     copertiDelGiorno(supabase, azienda?.id, sede?.id, domaniISO),
