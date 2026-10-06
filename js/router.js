@@ -520,7 +520,8 @@ async function renderView(routeName) {
           route: routeName,
           hash: String(window.location.hash || "").slice(0, 200),
           user_agent: String(navigator.userAgent || "").slice(0, 250),
-          schermo: (window.screen?.width || 0) + "x" + (window.screen?.height || 0)
+          schermo: (window.screen?.width || 0) + "x" + (window.screen?.height || 0),
+          versione: APP_V
         }).then(() => {}, () => {});
       }
     }
