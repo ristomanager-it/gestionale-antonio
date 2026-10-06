@@ -1089,6 +1089,27 @@ async function primoIngrediente(ricettaId) {
   return data && data.length ? data[0].prodotto_id : null;
 }
 
+// Promemoria di porzionatura e confezionamento (es. tagliata: 180 g ricevimento, 250 g Trattoria)
+// mostrato dove si registrano porzioni, coprodotti e sottoprodotti.
+async function notaPorzionatura(supabase, ricettaId) {
+  const box = document.getElementById("nota-porzionatura");
+  if (!box) return;
+  box.innerHTML = "";
+  const [{ data: r }, { data: f }] = await Promise.all([
+    supabase.from("ricette").select("porzione_base_note, stoccaggio").eq("id", ricettaId).maybeSingle(),
+    supabase.from("ricette_preparazione_fasi").select("nome_fase, descrizione_operativa").eq("ricetta_id", ricettaId)
+      .or("nome_fase.ilike.%porzion%,nome_fase.ilike.%confezion%").order("ordine")
+  ]);
+  const righe = []
+  if (r?.porzione_base_note) righe.push(r.porzione_base_note)
+  ;(f || []).forEach((x) => { if (x.descrizione_operativa) righe.push(x.descrizione_operativa) })
+  if (!righe.length) return;
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  box.innerHTML = `<div style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.45;">
+    <div style="font-weight:800;margin-bottom:4px;">📏 Come porzionare e confezionare</div>
+    ${righe.map((t) => `<div>• ${esc(t)}</div>`).join("")}</div>`;
+}
+
 function setRicettaInfo(text) {
   const el = document.getElementById("prod-ricetta-info");
   if (el) el.innerText = text;
