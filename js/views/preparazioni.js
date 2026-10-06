@@ -2949,7 +2949,7 @@ function renderFasiHaccp() {
         <button type="button" class="app-button small secondary rf-copro-apri" data-idx="${idx}">♻️ Coprodotto / sottoprodotto</button>
       </div>
 
-      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;display:flex;gap:4px;align-items:center;">
+      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;display:${["admin", "superadmin"].includes(String(window.state?.ruolo || "").toLowerCase()) ? "flex" : "none"};gap:4px;align-items:center;">
         <span style="font-size:10.5px;color:#b6c0cc;flex-shrink:0;">+ fase:</span>
         <button type="button" class="haccp-add-after" data-after="${idx}" data-tipo="abbattimento" title="Abbattimento"
           style="flex:1;min-width:0;background:#0891b2;color:#fff;border:none;border-radius:7px;padding:6px 2px;font-size:11px;cursor:pointer;">❄️</button>
