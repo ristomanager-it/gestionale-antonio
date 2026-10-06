@@ -362,8 +362,79 @@ function formattaOre(n) {
   const tot = Math.round((Number(n) || 0) * 60);
   return Math.floor(tot / 60) + "h " + String(tot % 60).padStart(2, "0") + "m";
 }
-// "Sto facendo un'altra lavorazione": la si scrive (o si sceglie una ricetta) e parte subito
+// "Sto facendo un'altra lavorazione": si scrive cosa si fa. Se e' una fase di una ricetta
+// (es. "Pulizia cozze" dell'Impepata) si collega alla ricetta, cosi' tempi e costi vanno al piatto giusto.
 async function fuoriProgramma(supabase, azienda, sede, dip, container) {
+  const [{ data: ric }, { data: fasi }] = await Promise.all([
+    supabase.from("ricette").select("id, nome").eq("azienda_id", azienda.id).eq("attivo", true).order("nome").limit(1000),
+    supabase.from("ricette_preparazione_fasi").select("ricetta_id, nome_fase").eq("azienda_id", azienda.id).limit(3000),
+  ]);
+  const nomeRic = new Map((ric || []).map(r => [r.id, r.nome]));
+  const opzFasi = (fasi || []).filter(f => f.nome_fase && nomeRic.has(f.ricetta_id))
+    .map(f => ({ testo: f.nome_fase + " — " + nomeRic.get(f.ricetta_id), ricetta_id: f.ricetta_id, fase: f.nome_fase }));
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+  const box = (html) => { ov.innerHTML = `<div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto;">${html}</div>`; };
+  const btn = "border:0;border-radius:12px;padding:13px;font-weight:800;";
+  box(`
+      <div style="font-size:17px;font-weight:800;">➕ Cosa stai facendo?</div>
+      <div style="font-size:12.5px;color:#64748b;margin:4px 0 10px;">Anche se non è in programma: scrivilo, parte subito il tempo e lo vede anche lo chef.</div>
+      <input id="fp-cosa" list="fp-ricette" placeholder="Es: pulizia cozze" style="width:100%;font-size:16px;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;">
+      <datalist id="fp-ricette">${opzFasi.map(o => `<option value="${esc(o.testo)}">`).join("")}${(ric || []).map(r => `<option value="${esc(r.nome)}">`).join("")}</datalist>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input id="fp-q" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Quantità (facoltativa)" style="flex:1;font-size:16px;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;">
+        <select id="fp-um" style="width:80px;font-size:16px;border:1.5px solid #e2e8f0;border-radius:10px;"><option>kg</option><option>pz</option><option>lt</option></select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button type="button" data-no style="flex:1;${btn}background:#f1f5f9;">Annulla</button>
+        <button type="button" data-si style="flex:2;${btn}background:#0E5A7A;color:#fff;">Avanti</button>
+      </div>`);
+  document.body.appendChild(ov);
+  ov.querySelector("[data-no]").onclick = () => ov.remove();
+
+  const parti = async ({ prodotto, ricetta_id = null, lavorazione = null, apri = false }, q, um) => {
+    const { data: id, error } = await supabase.rpc("lavorazione_fuori_programma", {
+      p_azienda: azienda.id, p_sede: sede?.id || null, p_dip: dip?.id || null, p_cosa: prodotto,
+      p_quantita: q, p_unita: q ? um : null, p_ricetta: ricetta_id, p_lavorazione: lavorazione });
+    if (error) return alert("Non è andata: " + error.message);
+    ov.remove();
+    if (apri) location.hash = "#/preparazioni?planner_id=" + id;   // fasi, Inizia e Firma fase, etichette
+    else render(container);                                        // in corso, poi "✓ Finito"
+  };
+
+  ov.querySelector("[data-si]").onclick = () => {
+    const cosa = ov.querySelector("#fp-cosa").value.trim();
+    if (!cosa) return alert("Scrivi cosa stai facendo.");
+    const q = Number(String(ov.querySelector("#fp-q").value || "").replace(",", ".")) || null;
+    const um = ov.querySelector("#fp-um").value;
+    const low = cosa.toLowerCase();
+    // 1) una fase di una ricetta scelta dai suggerimenti
+    const fase = opzFasi.find(o => o.testo.toLowerCase() === low);
+    if (fase) return parti({ prodotto: nomeRic.get(fase.ricetta_id), ricetta_id: fase.ricetta_id, lavorazione: fase.fase, apri: true }, q, um);
+    // 2) una ricetta intera
+    const r = (ric || []).find(x => String(x.nome).toLowerCase() === low);
+    if (r) return parti({ prodotto: r.nome, ricetta_id: r.id, apri: true }, q, um);
+    // 3) testo libero: per quale ricetta? (quelle con parole in comune)
+    const parole = low.split(/[^a-zà-ù0-9]+/).filter(w => w.length >= 4).map(w => w.slice(0, -1));
+    const simili = (ric || []).filter(x => parole.some(w => String(x.nome).toLowerCase().includes(w))).slice(0, 8);
+    box(`
+      <div style="font-size:17px;font-weight:800;">${esc(cosa)}</div>
+      <div style="font-size:13.5px;color:#475569;margin:6px 0 12px;">È per una di queste ricette?</div>
+      ${simili.map(x => `<button type="button" data-ric="${x.id}" style="display:block;width:100%;text-align:left;margin-bottom:6px;${btn}background:#eff6ff;color:#0c4a6e;">${esc(x.nome)}</button>`).join("")}
+      <button type="button" data-ric="" style="display:block;width:100%;text-align:left;margin-bottom:6px;${btn}background:#f1f5f9;color:#334155;">No, nessuna ricetta</button>
+      <button type="button" data-no style="width:100%;margin-top:6px;${btn}background:#fff;border:1px solid #e2e8f0;">Annulla</button>`);
+    ov.querySelector("[data-no]").onclick = () => ov.remove();
+    ov.querySelectorAll("[data-ric]").forEach(b => b.addEventListener("click", () => {
+      const id = b.getAttribute("data-ric");
+      if (!id) return parti({ prodotto: cosa }, q, um);
+      // fase non scritta nella ricetta: resta collegata al piatto, si chiude con "✓ Finito"
+      return parti({ prodotto: nomeRic.get(Number(id)), ricetta_id: Number(id), lavorazione: cosa + " (fuori programma)" }, q, um);
+    }));
+  };
+}
+
+// versione precedente, non piu' usata
+async function _fuoriProgrammaPrima(supabase, azienda, sede, dip, container) {
   const { data: ric } = await supabase.from("ricette").select("id, nome").eq("azienda_id", azienda.id).eq("attivo", true).order("nome").limit(1000);
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
