@@ -3561,8 +3561,9 @@ function apriCoproFase(idx) {
     const riga = {
       azienda_id: window.state?.azienda?.id, lotto_uuid: lotto.lotto_uuid, codice_lotto: lotto.codice_lotto || null,
       fase_id: f.id, fase_nome: f.nome_fase || null, tipo, prodotto_id: prod?.id || null, nome: prod?.nome || nome,
-      quantita: q, unita: ov.querySelector("#cp-um").value, data_scadenza: ov.querySelector("#cp-scad").value || null,
-      creato_da: operatoreRisolto?.nome || window.state?.dipendente?.nome || null
+      quantita: q, unita: ov.querySelector("#cp-um").value, data_scadenza: scadEl.value,
+      creato_da: firma.nome, operatore_id: firma.id || null,
+      note: consSel.value ? "Conservazione: " + (consSel.selectedOptions[0]?.textContent || "") : null
     };
     const { data, error } = await cli.from("produzione_fasi_coprodotti").insert(riga).select().single();
     if (error) return alert("Non salvato: " + error.message);
