@@ -675,7 +675,12 @@ function renderCard(r){
 }
 
 function bindCalendarEvents(){
-  document.querySelectorAll(".planner-card").forEach(card => {
+  // nella scheda unica ogni ricetta si apre per conto suo
+  document.querySelectorAll(".planner-sub").forEach(sub => {
+    sub.onclick = (e) => { e.stopPropagation(); window.plannerProduzioneOpenEdit(sub.dataset.id) }
+  })
+
+  document.querySelectorAll(".planner-card[data-id]").forEach(card => {
     card.ondragstart = e => {
       e.dataTransfer.setData("id", card.dataset.id)
     }
