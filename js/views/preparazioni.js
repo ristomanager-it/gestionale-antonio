@@ -438,6 +438,7 @@ export async function render(container) {
 // =========================
 const params = new URLSearchParams(location.hash.split("?")[1] || "")
 const plannerId = params.get("planner_id")
+window.__rfPlannerIdCorrente = plannerId || null
 
 await Promise.all([preloadRicette(), preloadDipendenti(), preloadProdotti()]);
 
