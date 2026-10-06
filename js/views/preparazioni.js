@@ -3264,9 +3264,26 @@ function firmaFaseHaccp(idx) {
    sono i punti critici (CCP) con un loro orario/temperatura da tracciare a se'. */
 const TIPI_FASE_CONTINUA = ["preparazione", "cottura"];
 
+/* Aperta dal planning, la lavorazione mostra solo le fasi di quella riga
+   (es. "Pelatura patate"): le fasi dopo le fa chi ha la riga successiva. */
+function fasiDelPlanning() {
+  if (window.__rfMostraTutteFasi) return null;
+  const lav = String(window.__rfLavorazionePlanning || "").split(" · ")[0].toLowerCase();
+  if (!lav || !fasiCache.length) return null;
+  const pezzi = lav.split("→").map((x) => x.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim()).filter((x) => x.length > 3);
+  const set = new Set();
+  fasiCache.forEach((f, i) => {
+    const n = String(f.nome_fase || "").toLowerCase().replace(/\s+/g, " ").trim();
+    if (n.length > 3 && pezzi.some((p) => p.includes(n) || n.includes(p))) set.add(i);
+  });
+  return set.size ? set : null;
+}
+
 function idxFasiContinueDaFirmare() {
+  const vis = fasiDelPlanning();
   return logHaccp
     .map((log, idx) => ({ log, idx, tipo: String(fasiCache[idx]?.tipo_fase || "").toLowerCase() }))
+    .filter((r) => !vis || vis.has(r.idx))
     .filter((r) => TIPI_FASE_CONTINUA.includes(r.tipo) && (!Array.isArray(r.log.firme) || r.log.firme.length === 0))
     .map((r) => r.idx);
 }
