@@ -458,6 +458,9 @@ export async function renderOrdini(container, azienda) {
     const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const num = (n) => Number(n || 0).toLocaleString("it-IT", { maximumFractionDigits: 2 });
     const fd = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "numeric" }) : "";
+    // a pezzi, con accanto i cartoni (se il prodotto ha i pezzi per cartone)
+    const cartoni = (r) => (Number(r.pezzi_cartone) > 0 && /^pz$/i.test(r.unita || "") && r.q > 0) ? Math.ceil(r.q / Number(r.pezzi_cartone)) : 0;
+    const umOrdine = (r) => (r.unita || "") + (cartoni(r) ? ` (${cartoni(r)} ${cartoni(r) === 1 ? "cartone" : "cartoni"})` : "");
     box.innerHTML = `<div style="color:#64748b;font-size:13px;margin-bottom:12px;">Calcolo cosa c'è da ordinare…</div>`;
     const { data, error } = await supabase.rpc("fabbisogno_acquisti", { p_azienda: azienda.id, p_giorni: giorni });
     if (error) { box.innerHTML = `<div style="color:#b91c1c;font-size:13px;margin-bottom:12px;">Non riesco a calcolare il fabbisogno.</div>`; return; }
