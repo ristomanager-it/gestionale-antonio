@@ -238,19 +238,30 @@ async function turniVicini(supabase, aziendaId, dipId, oggiISO) {
   return data || [];
 }
 
+// Le lavorazioni di oggi dal planning: quelle di cui sei responsabile o supporto.
+// Toccandone una si apre la lavorazione (fasi, Inizia fase, Firma fase).
 async function lavorazioniOggi(supabase, aziendaId, dipId, oggiISO) {
   if (!aziendaId || !dipId) return [];
-  const { data } = await supabase.from("produzione_lotti")
-    .select("id, stato, quantita_output, unita_misura, ricetta_id, ricette(nome)")
-    .eq("azienda_id", aziendaId).eq("operatore_id", dipId)
-    .eq("data_produzione", oggiISO).limit(12);
-  return (data || []).map(l => ({
-    fatta: String(l.stato || "").toLowerCase().startsWith("chius"),
-    titolo: l.ricette?.nome || "Lavorazione",
-    sotto: [l.quantita_output ? (Number(l.quantita_output) + " " + (l.unita_misura || "")) : null,
-            String(l.stato || "").toLowerCase().startsWith("chius") ? "fatto" : null]
-            .filter(Boolean).join(" · "),
-  }));
+  const { data } = await supabase.from("produzioni_settimanali")
+    .select("id, prodotto, lavorazione, quantita, unita, stato, fascia, ora, dipendente_id, supporti")
+    .eq("azienda_id", aziendaId).eq("data", oggiISO)
+    .or(`dipendente_id.eq.${dipId},supporti.cs.{${dipId}}`)
+    .limit(40);
+  const ordF = { mattina: 1, pomeriggio: 2, sera: 3 };
+  return (data || [])
+    .sort((a, b) => (ordF[a.fascia] || 9) - (ordF[b.fascia] || 9) || String(a.ora || "99").localeCompare(String(b.ora || "99")))
+    .map(l => {
+      const fatta = l.stato === "completato";
+      const q = l.quantita != null ? (Number(l.quantita).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " " + (l.unita || "")) : null;
+      const quando = l.ora ? String(l.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[l.fascia] || null);
+      return {
+        id: l.id, fatta,
+        titolo: String(l.prodotto || "Lavorazione").replace(/^🍽 Al servizio · /, "🍽 "),
+        sotto: [String(l.lavorazione || "").split(" · ")[0], q, quando,
+                String(l.dipendente_id) !== String(dipId) ? "supporto" : null, fatta ? "fatto" : null]
+                .filter(Boolean).join(" · "),
+      };
+    });
 }
 
 async function listaComandamenti(supabase, aziendaId) {
