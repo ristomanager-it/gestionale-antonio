@@ -5064,7 +5064,8 @@ async function resumeDaLotto(lottoUuid) {
   // e servono confezioni, firme e pesi. Si blocca solo quando e' chiuso o firmato.
   savedLottoUUID = lotto.lotto_uuid;
   lottoApertoCodice = lotto.codice_lotto || null;
-  const lottoInLavorazione = String(lotto.stato || "").toLowerCase() === "aperta";
+  // "bozza" = lotto di un evento in programma: si lavora anche quello (prima restava bloccato)
+  const lottoInLavorazione = ["aperta", "bozza"].includes(String(lotto.stato || "").toLowerCase());
   savedLotto = lottoInLavorazione
     ? null
     : { lotto_uuid: lotto.lotto_uuid, id: lotto.id, codice_lotto: lotto.codice_lotto };
