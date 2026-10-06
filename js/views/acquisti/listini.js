@@ -1,4 +1,5 @@
 import { escapeHtml, parseLocaleNumber, formatMoney, normalizeInputDate } from "./utils.js";
+import { leggiTutto } from "./ocr.js?v=20261006";
 
 // Normalizzazione IDENTICA a public.normalize_product_name (unaccent + lower + [^a-z0-9]->spazio + collapse)
 // Serve solo per l'aggancio automatico lato client; il match reale nel food cost avviene in SQL.
