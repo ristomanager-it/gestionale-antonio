@@ -13,8 +13,9 @@ import {
 import {
   findBestProductMatch,
   loadProdottiAliasOcr,
-  saveProdottoAliasOcr
-} from "./ocr.js";
+  saveProdottoAliasOcr,
+  leggiTutto
+} from "./ocr.js?v=20261006";
 
 import "../../db.js";
 
