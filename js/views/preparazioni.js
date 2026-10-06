@@ -4452,7 +4452,15 @@ async function stampaEtichetteBrother() {
       if (!esito.ok) return alert("Errore invio etichette: " + esito.motivo);
       tot += r.numero_confezioni;
     }
-    alert("🏷 " + tot + " etichette inviate alla Brother.");
+    // etichettare chiude la lavorazione della giornata (sul planning diventa ✓ FATTA)
+    let chiusa = "";
+    if (window.__rfPlannerIdCorrente) {
+      try {
+        const { error: eF } = await supabase.rpc("lavorazione_finita", { p_id: window.__rfPlannerIdCorrente });
+        if (!eF) chiusa = "\n✓ Lavorazione chiusa nel planning.";
+      } catch (_) {}
+    }
+    alert("🏷 " + tot + " etichette inviate alla Brother." + chiusa);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = "🖨️ Stampa su etichettatrice"; }
   }
