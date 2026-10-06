@@ -239,12 +239,27 @@ export function findBestProductMatch(nome, prodottiCache, aliasCache = []) {
 OCR ALIAS LEARNING
 ========================= */
 
+// Il server restituisce al massimo 1000 righe per richiesta: con piu' di 1000 prodotti
+// (o alias) quelli in fondo all'elenco non venivano mai trovati (es. "uova..." in fattura).
+// Si leggono a pagine da 1000 finche' finiscono.
+export async function leggiTutto(build) {
+  let out = [];
+  for (let da = 0; da < 50000; da += 1000) {
+    const { data, error } = await build().range(da, da + 999);
+    if (error) return { data: out.length ? out : null, error };
+    out = out.concat(data || []);
+    if (!data || data.length < 1000) break;
+  }
+  return { data: out, error: null };
+}
+
 export async function loadProdottiAliasOcr(supabase, aziendaId) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await leggiTutto(() => supabase
       .from("prodotti_alias_ocr")
       .select("id, testo_ocr, prodotto_id")
-      .eq("azienda_id", aziendaId);
+      .eq("azienda_id", aziendaId)
+      .order("id", { ascending: true }));
 
     if (error) {
       console.warn(
