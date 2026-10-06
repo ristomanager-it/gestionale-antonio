@@ -1026,7 +1026,9 @@ async function saveProduzione(mode, id, fallbackDate){
     note,
     supporti: supporti.length ? supporti : null,
     n_supporti: supporti.length,
-    stoccaggio
+    stoccaggio,
+    fascia,
+    ora
   }
 
   if(mode === "edit" && id){
