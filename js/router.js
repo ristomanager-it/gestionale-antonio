@@ -460,8 +460,22 @@ async function renderView(routeName) {
       && Date.now() - (window.__rfRecuperoTs || 0) > 5000) {
     window.__rfRecuperoTs = Date.now();
     app.innerHTML = `<div class="view" style="padding:40px;text-align:center;color:#64748b;">Un attimo…</div>`;
-    setTimeout(() => resolve(), 0);
-    return;
+    let recuperata = false;
+    try {
+      const ctx = await ensureAziendaContext(routeName);
+      recuperata = !!(ctx?.ok && window.state?.azienda?.id);
+      if (recuperata && window.stateActions?.caricaSedi) await window.stateActions.caricaSedi();
+    } catch (_) {}
+    // diagnostica: resta traccia di quando succede e di chi aveva azzerato l'azienda
+    try {
+      (window.supabaseClient || supabase).from("debug_eventi").insert({
+        tipo: "azienda_persa",
+        dati: { route: routeName, hash: String(window.location.hash || ""), versione: APP_V, recuperata,
+                aziende: (window.state?.aziende || []).length, salvata: localStorage.getItem("active_azienda_id"),
+                sede_salvata: localStorage.getItem("active_sede_id"), ultimo_reset: window.__rfUltimoReset || null }
+      }).then(() => {}, () => {});
+    } catch (_) {}
+    if (!recuperata) { setTimeout(() => resolve(), 0); return; }
   }
 
   const module =
