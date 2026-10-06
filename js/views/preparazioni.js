@@ -3014,6 +3014,9 @@ function renderFasiHaccp() {
   list.querySelectorAll(".haccp-firma").forEach(btn => {
     btn.addEventListener("click", () => firmaFaseHaccp(+btn.dataset.idx));
   });
+  list.querySelectorAll(".haccp-apri").forEach(btn => {
+    btn.addEventListener("click", () => { avviaFase(+btn.dataset.idx, "apri_fase"); renderFasiHaccp(); });
+  });
   list.querySelectorAll(".haccp-add-after").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
