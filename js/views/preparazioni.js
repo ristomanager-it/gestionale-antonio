@@ -3154,6 +3154,33 @@ function applicaScenarioDaPh(v) {
     + " → " + escapeHtml(scelto.scenario_label || "scenario") + (scelto.shelf_life_giorni ? " (" + scelto.shelf_life_giorni + " giorni)" : "") + "</b>";
 }
 
+/* TEMPI REALI SENZA TIMER: l'inizio di una fase e' quando si apre la lavorazione
+   (dal planning) o si preme "Apri fase"; la fine e' la firma. Niente start/stop
+   da ricordarsi: si usano gesti che in cucina si fanno comunque. */
+function oraLocaleRf(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function oraBreve(v) {
+  const d = new Date(v);
+  return isNaN(d) ? String(v).slice(11, 16) : d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+}
+function avviaFase(idx, origine) {
+  const log = logHaccp[idx];
+  if (!log || (Array.isArray(log.firme) && log.firme.length)) return;
+  log.ora_inizio = oraLocaleRf(new Date());
+  log.inizio_origine = origine;
+  try {
+    const _uuid = resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid) || null;
+    const _cli = window.supabaseClient || window.supabase;
+    if (_uuid && _cli && log.fase_id) {
+      _cli.from("produzione_log_haccp").update({ ora_inizio: new Date(log.ora_inizio).toISOString(), inizio_origine: origine })
+        .eq("lotto_id", _uuid).eq("fase_id", log.fase_id)
+        .then((r) => { if (r && r.error) console.warn("inizio fase non salvato:", r.error.message); });
+    }
+  } catch (e) { console.warn("inizio fase:", e); }
+}
+
 function firmaFaseHaccp(idx) {
   const log = logHaccp[idx];
   const fase = fasiCache[idx];
