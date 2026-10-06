@@ -360,6 +360,43 @@ function formattaOre(n) {
   const tot = Math.round((Number(n) || 0) * 60);
   return Math.floor(tot / 60) + "h " + String(tot % 60).padStart(2, "0") + "m";
 }
+// "Sto facendo un'altra lavorazione": la si scrive (o si sceglie una ricetta) e parte subito
+async function fuoriProgramma(supabase, azienda, sede, dip, container) {
+  const { data: ric } = await supabase.from("ricette").select("id, nome").eq("azienda_id", azienda.id).eq("attivo", true).order("nome").limit(1000);
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+  ov.innerHTML = `
+    <div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));">
+      <div style="font-size:17px;font-weight:800;">➕ Cosa stai facendo?</div>
+      <div style="font-size:12.5px;color:#64748b;margin:4px 0 10px;">Anche se non è in programma: scrivilo, parte subito il tempo e lo vede anche lo chef.</div>
+      <input id="fp-cosa" list="fp-ricette" placeholder="Es: pulizia cozze" style="width:100%;font-size:16px;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;">
+      <datalist id="fp-ricette">${(ric || []).map(r => `<option value="${esc(r.nome)}">`).join("")}</datalist>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input id="fp-q" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Quantità (facoltativa)" style="flex:1;font-size:16px;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;">
+        <select id="fp-um" style="width:80px;font-size:16px;border:1.5px solid #e2e8f0;border-radius:10px;"><option>kg</option><option>pz</option><option>lt</option></select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button type="button" data-no style="flex:1;border:0;border-radius:12px;padding:13px;background:#f1f5f9;font-weight:700;">Annulla</button>
+        <button type="button" data-si style="flex:2;border:0;border-radius:12px;padding:13px;background:#0E5A7A;color:#fff;font-weight:800;">▶ Inizio adesso</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector("[data-no]").onclick = () => ov.remove();
+  ov.querySelector("[data-si]").onclick = async () => {
+    const cosa = ov.querySelector("#fp-cosa").value.trim();
+    if (!cosa) return alert("Scrivi cosa stai facendo.");
+    const r = (ric || []).find(x => String(x.nome).toLowerCase() === cosa.toLowerCase()) || null;
+    const q = Number(String(ov.querySelector("#fp-q").value || "").replace(",", ".")) || null;
+    const { data: id, error } = await supabase.rpc("lavorazione_fuori_programma", {
+      p_azienda: azienda.id, p_sede: sede?.id || null, p_dip: dip?.id || null, p_cosa: r ? r.nome : cosa,
+      p_quantita: q, p_unita: q ? ov.querySelector("#fp-um").value : null, p_ricetta: r ? r.id : null });
+    if (error) return alert("Non è andata: " + error.message);
+    ov.remove();
+    if (r) location.hash = "#/preparazioni?planner_id=" + id;   // con la ricetta: fasi, Inizia e Firma fase
+    else render(container);                                    // senza ricetta: in corso, poi "✓ Finito"
+  };
+}
+
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
