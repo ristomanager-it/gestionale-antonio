@@ -167,6 +167,19 @@ export async function render(container) {
     });
   });
 
+  // ── lavorazioni fuori programma ─────────────────────────────────────────
+  container.querySelectorAll("[data-finito]").forEach(b => {
+    b.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      b.disabled = true; b.textContent = "…";
+      const { data: min, error } = await supabase.rpc("lavorazione_finita", { p_id: b.getAttribute("data-finito") });
+      if (error) { alert("Non è andata: " + error.message); b.disabled = false; return; }
+      if (min) alert("Fatto in " + min + " minuti 👍");
+      render(container);
+    });
+  });
+  container.querySelector("[data-fuori]")?.addEventListener("click", () => fuoriProgramma(supabase, azienda, sede, dip, container));
+
   import("../components/camera.js?v=" + (window.APP_V || "1"))
     .then(m => m.montaBottoneCamera())
     .catch(e => console.warn("camera non caricata:", e));
