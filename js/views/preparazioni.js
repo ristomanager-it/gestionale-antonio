@@ -4659,6 +4659,12 @@ async function resumeDaLotto(lottoUuid) {
     renderFasiHaccp()
   }
 
+  // aprire la lavorazione fa partire il tempo della prima fase ancora da fare
+  {
+    const iPrima = logHaccp.findIndex((l) => !(Array.isArray(l.firme) && l.firme.length) && !l.firmato)
+    if (iPrima >= 0 && !logHaccp[iPrima].ora_inizio) { avviaFase(iPrima, "apertura"); renderFasiHaccp() }
+  }
+
   // Prefill data / peso / note
   const dataEl = document.getElementById("prod-data")
   if (dataEl && lotto.data_produzione) dataEl.value = lotto.data_produzione
