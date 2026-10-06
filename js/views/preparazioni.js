@@ -451,10 +451,12 @@ if (plannerId) {
   // quale lavorazione del planning si sta facendo: si mostrano solo le sue fasi
   try {
     const { data: rp } = await (window.supabaseClient || window.supabase)
-      .from("produzioni_settimanali").select("lavorazione").eq("id", plannerId).maybeSingle()
+      .from("produzioni_settimanali").select("lavorazione, prodotto").eq("id", plannerId).maybeSingle()
     window.__rfLavorazionePlanning = rp?.lavorazione || null
+    window.__rfProdottoPlanning = rp?.prodotto || null
   } catch (_) {}
   await preloadFromPlanner(plannerId)
+  soloLaFase(container)
 }
 
 // =========================
