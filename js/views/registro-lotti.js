@@ -511,7 +511,11 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
 }
 
 // Lotto unico per piu' eventi: chiede quante etichette per ogni evento (sacchetti, vaschette...)
-function chiediEtichettePerEvento(dest, quante) {
+function chiediEtichettePerEvento(dest, quante, pesoTot) {
+  // peso proposto: quello del lotto diviso in proporzione alle quantita' di ogni evento
+  const tot = Number(String(pesoTot || "").replace(",", ".")) || 0;
+  const somma = dest.reduce((a, d) => a + (Number(d.quantita) || 0), 0);
+  const pesoProposto = (i) => tot > 0 && somma > 0 ? Math.round(tot * (Number(dest[i].quantita) || 0) / somma) : "";
   return new Promise((risolvi) => {
     const ov = document.createElement("div");
     ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
