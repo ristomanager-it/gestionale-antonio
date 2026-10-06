@@ -278,7 +278,7 @@ async function lavorazioniOggi(supabase, aziendaId, dipId, oggiISO) {
       const q = l.quantita != null ? (Number(l.quantita).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " " + (l.unita || "")) : null;
       const quando = l.ora ? String(l.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[l.fascia] || null);
       return {
-        id: l.id, fatta,
+        id: l.id, fatta, ricetta: !!l.ricetta_id, inCorso: l.stato === "in_corso",
         titolo: String(l.prodotto || "Lavorazione").replace(/^🍽 Al servizio · /, "🍽 "),
         sotto: [String(l.lavorazione || "").split(" · ")[0], q, quando,
                 String(l.dipendente_id) !== String(dipId) ? "supporto" : null, fatta ? "fatto" : null]
