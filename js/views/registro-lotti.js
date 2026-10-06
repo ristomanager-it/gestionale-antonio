@@ -527,6 +527,10 @@ function chiediEtichettePerEvento(dest, quante, pesoTot) {
         <button type="button" data-m="${i}" style="width:38px;height:38px;border:0;border-radius:10px;background:#f1f5f9;font-size:20px;">−</button>
         <input data-n="${i}" type="number" min="0" value="${Math.max(1, Number(quante) || 1)}" style="width:56px;text-align:center;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;font-size:16px;">
         <button type="button" data-p="${i}" style="width:38px;height:38px;border:0;border-radius:10px;background:#f1f5f9;font-size:20px;">+</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:2px 0 8px;font-size:13px;color:#475569;">
+        Peso netto ${escapeHtml(d.evento_titolo || "evento")}
+        <input data-g="${i}" type="number" min="0" inputmode="numeric" placeholder="g" value="${pesoProposto(i)}" style="width:96px;border:1.5px solid #e2e8f0;border-radius:10px;padding:7px;font-size:15px;"> g
       </div>`).join("")}
       <div style="display:flex;gap:8px;margin-top:14px;">
         <button type="button" data-no style="flex:1;border:0;border-radius:12px;padding:13px;font-weight:700;background:#f1f5f9;">Annulla</button>
