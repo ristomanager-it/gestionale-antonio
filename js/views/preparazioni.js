@@ -2865,6 +2865,7 @@ function renderFasiHaccp() {
         </div>
       </div>` : `
       <div class="form-grid" style="margin-bottom:10px;">
+        ${automatico ? `
         <div class="form-group">
           <label style="font-size:11px;">Ora inizio</label>
           <input type="datetime-local" class="input haccp-inizio" data-idx="${idx}" value="${log.ora_inizio || ""}" ${ro} style="${bgAuto}">
@@ -2872,7 +2873,10 @@ function renderFasiHaccp() {
         <div class="form-group">
           <label style="font-size:11px;">Ora fine</label>
           <input type="datetime-local" class="input haccp-fine" data-idx="${idx}" value="${log.ora_fine || ""}" ${ro} style="${bgAuto}">
-        </div>
+        </div>` : log.ora_fine ? `
+        <div class="form-group" style="grid-column:1/-1;font-size:13px;color:#334155;">
+          ⏱ ${log.ora_inizio ? "dalle " + escapeHtml(oraBreve(log.ora_inizio)) : ""}${log.ora_fine ? " alle " + escapeHtml(oraBreve(log.ora_fine)) : ""}${log.durata_reale_min ? " · <b>" + Math.round(log.durata_reale_min) + " min</b>" : ""}
+        </div>` : ""}
         ${hasTempPrevista ? `
         <div class="form-group">
           <label style="font-size:11px;">Temp. rilevata (°C)</label>
