@@ -104,14 +104,18 @@ export async function render(container) {
         </div>` : ""}
 
       ${lavDomani.length ? `
-        <div class="op-sez">Domani</div>
-        <div class="op-lav">
-          ${lavDomani.map(l => `
-            <div class="l" style="opacity:.75;">
-              <div class="ck"></div>
-              <div class="t">${esc(l.titolo)}<span>${esc(l.sotto)}</span></div>
-            </div>`).join("")}
-        </div>` : ""}
+        <div class="op-sez">I prossimi giorni</div>
+        ${raggruppaPerGiorno(lavDomani).map(([g, lista], i) => `
+          <details ${i === 0 ? "open" : ""} style="margin-bottom:8px;">
+            <summary style="cursor:pointer;font-weight:800;font-size:14px;padding:6px 2px;">${esc(giornoLungo(g))} · ${lista.length} ${lista.length === 1 ? "lavorazione" : "lavorazioni"}</summary>
+            <div class="op-lav">
+              ${lista.map(l => `
+                <div class="l" style="opacity:.8;">
+                  <div class="ck"></div>
+                  <div class="t">${esc(l.titolo)}<span>${esc(l.sotto)}</span></div>
+                </div>`).join("")}
+            </div>
+          </details>`).join("")}` : ""}
 
       <div class="op-scorc">
         <a href="#/preparazioni" class="s"><i>🔪</i><span>Nuova lavorazione (fuori programma)</span><b>›</b></a>
