@@ -354,6 +354,7 @@ export async function render(container) {
               <button type="button" id="btn-add-confezione" class="app-button secondary" ${savedLotto ? "disabled" : ""}>+ Aggiungi confezione</button>
             </div>
 
+            <div id="nota-porzionatura" style="margin-top:10px;"></div>
             <div class="form-help" style="margin-top:10px;">
               1 riga = 1 tipologia confezione. Stampa: 1 etichetta per confezione.
             </div>
