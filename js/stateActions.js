@@ -81,6 +81,12 @@ window.stateActions = {
   },
 
   resetAzienda() {
+    // diagnostica: chi ha azzerato l'azienda e da dove (serve a trovare "Nessuna azienda attiva")
+    try {
+      window.__rfUltimoReset = { ts: new Date().toISOString(), hash: String(window.location.hash || ""),
+        stack: String(new Error().stack || "").split("\n").slice(1, 7).join(" | ") };
+      if (window.state?.azienda?.id) localStorage.setItem("rf_ultima_azienda", window.state.azienda.id);
+    } catch (_) {}
     window.state.azienda = null;
     window.state.sedi = [];
     window.state.sedeAttiva = null;
