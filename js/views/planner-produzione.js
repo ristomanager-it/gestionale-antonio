@@ -559,7 +559,7 @@ function renderSingleDayColumn(day, righe, muted){
         ⏱ ${totaleMinuti} min
       </div>
 
-      ${items.map(renderCard).join("")}
+      ${renderItems(items)}
 
       <div class="planner-add-day" data-date="${dateStr}">
         + aggiungi produzione
