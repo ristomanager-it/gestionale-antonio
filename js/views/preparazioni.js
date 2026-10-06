@@ -3517,8 +3517,15 @@ function apriCoproFase(idx) {
         <div style="width:90px;"><label style="font-size:12px;font-weight:700;">Unità</label>
           <select id="cp-um" class="input" style="width:100%;"><option>kg</option><option>g</option><option>pz</option><option>lt</option></select></div>
       </div>
-      <label style="font-size:12px;font-weight:700;margin-top:8px;display:block;">Scadenza (facoltativa)</label>
+      <label style="font-size:12px;font-weight:700;margin-top:8px;display:block;">Conservazione</label>
+      <select id="cp-cons" class="input" style="width:100%;">
+        ${(scenariConservazione || []).map((sc) => `<option value="${escapeAttr(String(sc.id))}" data-gg="${Number(sc.shelf_life_giorni) || 0}" ${String(sc.id) === String(document.getElementById("prod-conservazione")?.value || "") ? "selected" : ""}>${escapeHtml(sc.scenario_label || "Conservazione")} · ${Number(sc.shelf_life_giorni) || 0} gg</option>`).join("")}
+        <option value="" data-gg="">Altro: scrivo io la data</option>
+      </select>
+      <label style="font-size:12px;font-weight:700;margin-top:8px;display:block;">Scadenza</label>
       <input id="cp-scad" class="input" type="date" style="width:100%;">
+      <label style="font-size:12px;font-weight:700;margin-top:8px;display:block;">Firma: PIN di chi lo fa</label>
+      <input id="cp-pin" class="input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" style="width:100%;">
       <div style="display:flex;gap:8px;margin-top:14px;">
         <button type="button" data-no class="app-button gray" style="flex:1;">Annulla</button>
         <button type="button" data-si class="app-button" style="flex:2;">Salva e stampa 🏷</button>
