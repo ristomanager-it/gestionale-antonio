@@ -2938,7 +2938,7 @@ function renderFasiHaccp() {
         ${(Array.isArray(log.firme) && log.firme.length) ? `<span style="font-size:11px;color:#64748b;margin-left:8px;">${escapeHtml(new Date(log.firme[0].firmato_il).toLocaleString("it-IT"))}</span>` : ""}
       </div>
 
-      ${String(log.fase_tipo || "").toLowerCase() === "confezionamento"
+      ${idx === idxConfezionamento()
         ? `<div id="conf-dentro-fase-${idx}" style="margin-top:12px;padding-top:12px;border-top:2px solid #ede9fe;">
              <div style="font-size:12px;font-weight:700;color:#6d28d9;margin-bottom:8px;">📦 Confezioni uscite da questo lotto</div>
            </div>`
