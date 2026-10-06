@@ -3305,8 +3305,22 @@ function soloLaFase(container) {
   let card = wrap;
   while (card && card.parentElement !== padre) card = card.parentElement;
   if (!card) return;
+  // Se la fase da fare e' quella che chiude il lavoro (porzionatura, confezionamento, sottovuoto)
+  // o l'ultima prima del servizio, restano visibili anche confezioni e stampa etichette:
+  // es. tagliata: si porziona, si mette sottovuoto e si etichetta; la cottura e' al banchetto.
+  const vis = fasiDelPlanning();
+  const ultimaPrimaDelServizio = (() => {
+    let k = -1;
+    fasiCache.forEach((f, i) => { if (!/servizio/i.test(String(f.momento || "") + " " + String(f.nome_fase || ""))) k = i; });
+    return k;
+  })();
+  const chiudeIlLavoro = !vis || Array.from(vis).some((i) =>
+    /porzion|confezion|sottovuot|stoccag|etichett|abbatt/i.test(String(fasiCache[i]?.nome_fase || "")) || i === ultimaPrimaDelServizio);
+  const stampa = document.getElementById("btn-print-etichettatrice");
+  const cons = document.getElementById("prod-conservazione");   // la scadenza serve all'etichetta
+  const daTenere = (el) => chiudeIlLavoro && (el.id === "card-confezionamento" || (stampa && el.contains(stampa)) || (cons && el.contains(cons)));
   const nascosti = [];
-  Array.from(padre.children).forEach((el) => { if (el !== card && el.style.display !== "none") { el.style.display = "none"; nascosti.push(el); } });
+  Array.from(padre.children).forEach((el) => { if (el !== card && !daTenere(el) && el.style.display !== "none") { el.style.display = "none"; nascosti.push(el); } });
   const lav = String(window.__rfLavorazionePlanning || "").split(" · ")[0];
   const banner = document.createElement("div");
   banner.style.cssText = "background:#0E5A7A;color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;";
