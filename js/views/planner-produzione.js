@@ -667,6 +667,7 @@ function renderGruppo(g){
       <div style="font-size:15px;font-weight:800;margin:2px 0 6px;">Totale ${formatNumber(tot)} ${escapeHtml(r0.unita)}</div>
       ${g.map((r) => `
         <div class="planner-sub" data-id="${r.id}" style="border-top:1px solid #e2e8f0;padding:6px 0;cursor:pointer;">
+          ${badgeInCorso(r)}
           <div style="font-weight:700;font-size:13.5px;">${escapeHtml(r.prodotto || "")} · ${formatNumber(r.quantita)} ${escapeHtml(r.unita)}</div>
           ${chipsEventi(r)}
         </div>`).join("")}
