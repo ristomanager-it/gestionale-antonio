@@ -4468,8 +4468,10 @@ async function stampaEtichetteBrother() {
     let chiusa = "";
     try {
       const lt = lottoCorrente();
+      // il lotto si chiude solo quando non restano fasi da fare (escluse quelle al servizio):
+      // la Wellington etichettata il martedi' resta aperta fino alla cottura e all'assemblaggio
       const daFare = (logHaccp || []).filter((l, i) => !eFaseDelServizio(fasiCache[i]) && !(Array.isArray(l.firme) && l.firme.length) && !l.firmato);
-      if (lt?.lotto_uuid && (!daFare.length || confirm("Ci sono " + daFare.length + " fasi non firmate. Chiudo comunque il lotto?"))) {
+      if (lt?.lotto_uuid && !daFare.length) {
         const firmatari = operatoriDelLotto();
         const chi = (logHaccp || []).flatMap((l) => (Array.isArray(l.firme) ? l.firme : [])).find((f) => f?.operatore_id)?.operatore_id || null;
         const { error: eL } = await supabase.from("produzione_lotti").update({
