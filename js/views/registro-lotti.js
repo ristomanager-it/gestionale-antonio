@@ -464,6 +464,10 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
   if (peso && g > 0 && g < 20 && !confirm("Peso netto " + peso + " g: è giusto?\n\nSe intendevi " + peso + " kg, premi Annulla e scrivi " + Math.round(g * 1000) + ".")) return;
   const formato = await scegliFormatoEtichetta();
   if (!formato) return;
+  // chi ha firmato le fasi del lotto va sull'etichetta
+  if (info.id && !info.operatore) {
+    try { const { data: op } = await (window.supabaseClient || window.supabase).rpc("operatori_lotto", { p_lotto: info.id }); if (op) info.operatore = op; } catch (_) {}
+  }
   // lotto unico per piu' eventi: stessa etichetta, una per evento con "PER: ..."
   const supaD = window.supabaseClient || window.supabase;
   const { data: dest } = info.id ? await supaD.from("produzione_lotti_destinazioni").select("evento_titolo, quantita, formato").eq("lotto_id", info.id).order("id") : { data: [] };
