@@ -2993,7 +2993,7 @@ function renderFasiHaccp() {
     const blocco = document.getElementById("confezioni-blocco");
     const cardConf = document.getElementById("card-confezionamento");
     if (blocco) {
-      const iConf = logHaccp.findIndex((l) => String(l.fase_tipo || "").toLowerCase() === "confezionamento");
+      const iConf = idxConfezionamento();
       const dest = iConf >= 0 ? document.getElementById("conf-dentro-fase-" + iConf) : null;
       if (dest && blocco.parentElement !== dest) {
         dest.appendChild(blocco);
