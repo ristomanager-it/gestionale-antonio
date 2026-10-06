@@ -2904,7 +2904,7 @@ function renderFasiHaccp() {
           </div>` : ""}
         ${!(log.firme && log.firme.length) ? (log.ora_inizio
           ? `<div style="font-size:12px;font-weight:700;color:#0e7490;margin-bottom:6px;">⏱ In corso dalle ${escapeHtml(oraBreve(log.ora_inizio))}</div>`
-          : `<button type="button" class="app-button small haccp-apri" data-idx="${idx}" style="background:#0e7490;margin-right:6px;">▶ Apri fase</button>`) : ""}
+          : "") : ""}
         <button type="button" class="app-button small ${(log.firme && log.firme.length) ? "gray" : ""} haccp-firma" data-idx="${idx}">
           ${(log.firme && log.firme.length) ? "➕ Aggiungi firma" : "✍️ Firma fase"}
         </button>
