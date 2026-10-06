@@ -533,7 +533,7 @@ export async function renderOrdini(container, azienda) {
       if (!confirm("Invio l'ordine a " + g.nome + " (" + g.email + ") con " + scelti(g).length + " prodotti?")) return;
       b.disabled = true;
       const res = await supabase.functions.invoke("send-order-email", { body: { email: g.email, fornitore_nome: g.nome, azienda_nome: azienda.nome,
-        prodotti: scelti(g).map((r) => ({ nome: r.nome, quantita: r.q, um: r.unita || "" })) } });
+        prodotti: scelti(g).map((r) => ({ nome: r.nome, quantita: r.q, um: umOrdine(r) })) } });
       b.disabled = false;
       if (res.error) { alert("Errore invio ordine"); return; }
       await registra(g, "email");
