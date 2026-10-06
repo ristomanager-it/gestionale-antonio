@@ -599,6 +599,22 @@ function chipsEventi(r){
 
 // Stessa lavorazione per ricette diverse, stesso giorno e stessa persona (es. pelatura patate
 // per tortini e crocchette): una scheda sola con il totale, e sotto ogni ricetta con la sua parte.
+// mattina, pomeriggio, sera; al servizio per ora della portata
+const ORDINE_FASCIA = { mattina: 1, pomeriggio: 2, sera: 3 }
+function ordineOrario(a, b){
+  const fa = ORDINE_FASCIA[a.fascia] || 9, fb = ORDINE_FASCIA[b.fascia] || 9
+  if (fa !== fb) return fa - fb
+  return String(a.ora || "99").localeCompare(String(b.ora || "99"))
+}
+function badgeOrario(r){
+  const servizio = String(r.prodotto || "").startsWith("🍽")
+  if (servizio && r.ora) {
+    return `<div style="display:inline-block;font-weight:800;font-size:12.5px;color:#7c2d12;background:#ffedd5;border-radius:6px;padding:2px 8px;margin-bottom:4px;">🕐 ${escapeHtml(String(r.ora).slice(0, 5))}${r.portata ? " · " + escapeHtml(r.portata) : ""}</div>`
+  }
+  const f = { mattina: "🌅 Mattina", pomeriggio: "🌇 Pomeriggio", sera: "🌙 Sera" }[r.fascia]
+  return f ? `<div style="display:inline-block;font-weight:700;font-size:12px;color:#334155;background:#f1f5f9;border-radius:6px;padding:2px 8px;margin-bottom:4px;">${f}</div>` : ""
+}
+
 function renderItems(items){
   const gruppi = new Map(), singoli = []
   items.forEach((r) => {
