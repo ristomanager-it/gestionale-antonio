@@ -3211,6 +3211,9 @@ function avviaFase(idx, origine) {
       _cli.from("produzione_log_haccp").update({ ora_inizio: new Date(log.ora_inizio).toISOString(), inizio_origine: origine })
         .eq("lotto_id", _uuid).eq("fase_id", log.fase_id)
         .then((r) => { if (r && r.error) console.warn("inizio fase non salvato:", r.error.message); });
+      // il lotto passa da "in programma" ad "aperto": compare sullo schermo produzioni (KDS)
+      _cli.from("produzione_lotti").update({ stato: "aperta" }).eq("lotto_uuid", _uuid).eq("stato", "bozza")
+        .then((r) => { if (r && r.error) console.warn("lotto non aperto:", r.error.message); });
     }
   } catch (e) { console.warn("inizio fase:", e); }
   // sul planning la lavorazione compare IN CORSO, con l'ora e chi l'ha iniziata
