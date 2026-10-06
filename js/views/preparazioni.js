@@ -3435,6 +3435,114 @@ window.__rimuoviFirmaFase = rimuoviFirmaFase;
 // ── Lotto aperto: salvataggio di resa, confezioni, scadenza e note sul lotto ──
 let lottoApertoCodice = null;
 // Lotto su cui si lavora: chiuso (savedLotto) oppure aperto/ripreso (resumeLottoUUID)
+/* ============ COPRODOTTI E SOTTOPRODOTTI DI FASE ============
+   Durante una fase (es. porzionatura) si registrano ritagli e scarti,
+   ognuno con la sua etichetta stampata subito. */
+const _coproCache = {};
+async function caricaCoproFasi(list) {
+  const lotto = lottoCorrente();
+  const cli = window.supabaseClient || window.supabase;
+  if (!lotto?.lotto_uuid || !cli) return;
+  const { data } = await cli.from("produzione_fasi_coprodotti").select("*").eq("lotto_uuid", lotto.lotto_uuid).order("id");
+  (data || []).forEach((r) => { (_coproCache[r.fase_id] ||= new Map()).set(r.id, r); });
+  list.querySelectorAll(".rf-copro-lista").forEach((box) => {
+    const f = fasiCache[+box.dataset.idx];
+    const righe = f ? Array.from((_coproCache[f.id] || new Map()).values()) : [];
+    box.innerHTML = righe.map((r) => `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;padding:5px 0;">
+        <span><b>${r.tipo === "sottoprodotto" ? "🗑 Sottoprodotto" : "♻️ Coprodotto"}</b> · ${escapeHtml(r.nome)} · ${formatNumber(r.quantita)} ${escapeHtml(r.unita || "")}</span>
+        <button type="button" class="app-button small gray rf-copro-stampa" data-id="${r.id}" data-fase="${f.id}">🏷</button>
+      </div>`).join("");
+    box.querySelectorAll(".rf-copro-stampa").forEach((b) => b.addEventListener("click", () => {
+      const r = _coproCache[b.dataset.fase]?.get(+b.dataset.id); if (r) stampaCoproFase(r);
+    }));
+  });
+}
+
+function apriCoproFase(idx) {
+  const f = fasiCache[idx];
+  if (!f) return;
+  if (!lottoCorrente()?.lotto_uuid) return alert("Apri prima la lavorazione dal planning o riprendi il lotto.");
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+  const nomiProdotti = (prodottiCache || []).map((p) => p.nome).filter(Boolean).slice(0, 3000);
+  ov.innerHTML = `
+    <div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));">
+      <div style="font-size:17px;font-weight:800;">♻️ ${escapeHtml(f.nome_fase || "Fase")}</div>
+      <div style="display:flex;gap:6px;margin:12px 0;">
+        <button type="button" data-tipo="coprodotto" class="app-button" style="flex:1;">♻️ Coprodotto</button>
+        <button type="button" data-tipo="sottoprodotto" class="app-button gray" style="flex:1;">🗑 Sottoprodotto</button>
+      </div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Coprodotto: si riusa (ritagli per ragù, ripieni…). Sottoprodotto: scarto per brodo, fondi o smaltimento.</div>
+      <label style="font-size:12px;font-weight:700;">Cos'è</label>
+      <input id="cp-nome" class="input" list="cp-prodotti" placeholder="Es: ritagli di manzo" style="width:100%;margin-bottom:8px;">
+      <datalist id="cp-prodotti">${nomiProdotti.map((n) => `<option value="${escapeAttr(n)}">`).join("")}</datalist>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;"><label style="font-size:12px;font-weight:700;">Quantità</label>
+          <input id="cp-q" class="input" type="number" inputmode="decimal" step="0.001" min="0" placeholder="0,500" style="width:100%;"></div>
+        <div style="width:90px;"><label style="font-size:12px;font-weight:700;">Unità</label>
+          <select id="cp-um" class="input" style="width:100%;"><option>kg</option><option>g</option><option>pz</option><option>lt</option></select></div>
+      </div>
+      <label style="font-size:12px;font-weight:700;margin-top:8px;display:block;">Scadenza (facoltativa)</label>
+      <input id="cp-scad" class="input" type="date" style="width:100%;">
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button type="button" data-no class="app-button gray" style="flex:1;">Annulla</button>
+        <button type="button" data-si class="app-button" style="flex:2;">Salva e stampa 🏷</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  let tipo = "coprodotto";
+  ov.querySelectorAll("[data-tipo]").forEach((b) => b.addEventListener("click", () => {
+    tipo = b.dataset.tipo;
+    ov.querySelectorAll("[data-tipo]").forEach((x) => x.classList.toggle("gray", x !== b));
+  }));
+  ov.querySelector("[data-no]").onclick = () => ov.remove();
+  ov.querySelector("[data-si]").onclick = async () => {
+    const nome = ov.querySelector("#cp-nome").value.trim();
+    const q = Number(String(ov.querySelector("#cp-q").value || "").replace(",", "."));
+    if (!nome || !(q > 0)) return alert("Scrivi cos'è e la quantità.");
+    const prod = (prodottiCache || []).find((p) => String(p.nome || "").toLowerCase() === nome.toLowerCase()) || null;
+    const lotto = lottoCorrente();
+    const cli = window.supabaseClient || window.supabase;
+    const riga = {
+      azienda_id: window.state?.azienda?.id, lotto_uuid: lotto.lotto_uuid, codice_lotto: lotto.codice_lotto || null,
+      fase_id: f.id, fase_nome: f.nome_fase || null, tipo, prodotto_id: prod?.id || null, nome: prod?.nome || nome,
+      quantita: q, unita: ov.querySelector("#cp-um").value, data_scadenza: ov.querySelector("#cp-scad").value || null,
+      creato_da: operatoreRisolto?.nome || window.state?.dipendente?.nome || null
+    };
+    const { data, error } = await cli.from("produzione_fasi_coprodotti").insert(riga).select().single();
+    if (error) return alert("Non salvato: " + error.message);
+    ov.remove();
+    (_coproCache[f.id] ||= new Map()).set(data.id, data);
+    renderFasiHaccp();
+    stampaCoproFase(data);
+  };
+}
+
+function stampaCoproFase(r) {
+  rfChooseLabelFormat().then(async (format) => {
+    if (!format) return;
+    const oggiISO = new Date().toISOString().slice(0, 10);
+    await rfPrintLabelsPdf({
+      format,
+      title: r.tipo === "sottoprodotto" ? "Etichetta sottoprodotto" : "Etichetta coprodotto",
+      labels: [{
+        titolo: (r.tipo === "sottoprodotto" ? "SOTTOPRODOTTO · " : "COPRODOTTO · ") + String(r.nome || ""),
+        lotto: r.codice_lotto || ("LOTTO-" + String(r.lotto_uuid || "").slice(0, 8)),
+        lotto_uuid: r.lotto_uuid || null,
+        dataProduzione: rfFormatDateITA(String(r.created_at || oggiISO).slice(0, 10)),
+        dataScadenza: r.data_scadenza ? rfFormatDateITA(r.data_scadenza) : "",
+        rows: [
+          { k: "Quantità", v: `${formatNumber(r.quantita)} ${r.unita || ""}` },
+          r.fase_nome ? { k: "Da fase", v: r.fase_nome } : null,
+          r.creato_da ? { k: "Operatore", v: r.creato_da } : null
+        ],
+        footer: "Generato da Ristoflow — Produzione"
+      }]
+    });
+  });
+}
+
 function lottoCorrente() {
   if (savedLotto) return savedLotto;
   if (resumeLottoUUID) return { lotto_uuid: resumeLottoUUID, codice_lotto: lottoApertoCodice || null };
