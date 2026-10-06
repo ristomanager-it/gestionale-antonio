@@ -2497,6 +2497,7 @@ async function loadFasiHaccp(ricettaId, stadioDa, stadioA) {
   const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   if (!supabase || !aziendaId || !ricettaId) return;
+  notaPorzionatura(supabase, ricettaId);
 
   // Entrando da uno stadio successivo, le fasi precedenti sono gia' state eseguite e
   // firmate sul lotto del semilavorato: non vanno rifirmate qui.
