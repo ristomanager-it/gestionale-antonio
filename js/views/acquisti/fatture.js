@@ -2423,7 +2423,8 @@ async function renderRigheFiscali(box, documentoId, azienda) {
     supa.from("fiscale_documenti_righe")
       .select("id, numero_riga, descrizione_originale, quantita, unita_misura, prezzo_unitario, totale_riga, prodotto_id, match_metodo, match_confidenza, match_confermato")
       .eq("documento_id", documentoId),
-    supa.from("prodotti").select("id, nome, nome_interno, categoria_bilancio_id, categoria_interna").eq("azienda_id", azienda.id).eq("attivo", true).order("nome"),
+    // tutti i prodotti, non solo i primi 1000 (prima "uova..." risultava non collegato: era oltre il 1000°)
+    leggiTutto(() => supa.from("prodotti").select("id, nome, nome_interno, categoria_bilancio_id, categoria_interna").eq("azienda_id", azienda.id).eq("attivo", true).order("nome").order("id")),
     supa.from("categorie_bilancio").select("id, nome, tipo, solo_costo, ordine").eq("tipo", "costo").order("ordine"),
     supa.from("fiscale_documenti").select("stato").eq("id", documentoId).maybeSingle()
   ]);
