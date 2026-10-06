@@ -41,7 +41,7 @@ export async function render(container) {
     turniVicini(supabase, azienda?.id, dip?.id, oggiISO),
     lavorazioniOggi(supabase, azienda?.id, dip?.id, oggiISO),
     listaComandamenti(supabase, azienda?.id),
-    lavorazioniOggi(supabase, azienda?.id, dip?.id, domaniISO),
+    lavorazioniProssime(supabase, azienda?.id, dip?.id, domaniISO, 7),
   ]);
 
   const stato = statoDaTimbrature(timbr);
