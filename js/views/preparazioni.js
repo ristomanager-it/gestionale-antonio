@@ -3553,7 +3553,41 @@ function apriCoproFase(idx) {
   };
 }
 
-function stampaCoproFase(r) {
+// chi ha firmato le fasi di questo lotto (va sull'etichetta)
+function operatoriDelLotto() {
+  const nomi = [];
+  (logHaccp || []).forEach((l) => {
+    (Array.isArray(l.firme) ? l.firme : []).forEach((f) => { if (f?.operatore_nome && !nomi.includes(f.operatore_nome)) nomi.push(f.operatore_nome); });
+    if (l.operatore_nome && !nomi.includes(l.operatore_nome)) nomi.push(l.operatore_nome);
+  });
+  return nomi.join(", ");
+}
+
+// Etichetta coprodotto/sottoprodotto sulla Brother (Raspberry), come quelle del lotto
+async function stampaCoproFase(r) {
+  const supabase = window.supabaseClient || window.supabase;
+  const { data: produttore } = await supabase.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva")
+    .eq("azienda_id", window.state?.azienda?.id).limit(1).maybeSingle();
+  const formato = await scegliFormatoEtichetta();
+  if (!formato) return;
+  const um = String(r.unita || "").toLowerCase();
+  const peso = um === "kg" ? Math.round(Number(r.quantita) * 1000) : um === "g" ? Math.round(Number(r.quantita)) : null;
+  const etichetta = {
+    denominazione: (r.tipo === "sottoprodotto" ? "SOTTOPRODOTTO · " : "COPRODOTTO · ") + String(r.nome || ""),
+    ingredienti: null, allergeni: [],
+    conservazione: "Da " + (window.__rfProdottoPlanning || ricettaSelezionata?.nome || "lavorazione") + (r.fase_nome ? " · fase " + r.fase_nome : "")
+      + (peso ? "" : " · " + formatNumber(r.quantita) + " " + (r.unita || "")),
+    confermata: true,
+  };
+  const info = { codice_lotto: r.codice_lotto || lottoCorrente()?.codice_lotto || "", data_scadenza: r.data_scadenza || null,
+                 operatore: r.creato_da || operatoriDelLotto() };
+  const esito = await inviaEtichetteLotto({ etichetta, produttore: produttore || {}, info, peso, copie: 1, formato });
+  if (esito.motivo === "troppo_lungo") return alert("Il testo non entra nell'etichetta: allungala nella scelta del formato.");
+  if (!esito.ok) return alert("Errore invio etichetta: " + esito.motivo);
+  alert("🏷 Etichetta inviata alla Brother.");
+}
+
+function stampaCoproFasePdf(r) {
   rfChooseLabelFormat().then(async (format) => {
     if (!format) return;
     const oggiISO = new Date().toISOString().slice(0, 10);
