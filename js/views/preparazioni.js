@@ -2902,6 +2902,9 @@ function renderFasiHaccp() {
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
             ${log.firme.map((f, i) => `<span style="background:#dcfce7;color:#166534;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:600;">✅ ${escapeHtml(f.operatore_nome)}<span style="color:#16a34a;cursor:pointer;margin-left:6px;" onclick="window.__rimuoviFirmaFase(${idx},${i})">✕</span></span>`).join("")}
           </div>` : ""}
+        ${!(log.firme && log.firme.length) ? (log.ora_inizio
+          ? `<div style="font-size:12px;font-weight:700;color:#0e7490;margin-bottom:6px;">⏱ In corso dalle ${escapeHtml(oraBreve(log.ora_inizio))}</div>`
+          : `<button type="button" class="app-button small haccp-apri" data-idx="${idx}" style="background:#0e7490;margin-right:6px;">▶ Apri fase</button>`) : ""}
         <button type="button" class="app-button small ${(log.firme && log.firme.length) ? "gray" : ""} haccp-firma" data-idx="${idx}">
           ${(log.firme && log.firme.length) ? "➕ Aggiungi firma" : "✍️ Firma fase"}
         </button>
