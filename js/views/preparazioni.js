@@ -3551,6 +3551,10 @@ function apriCoproFase(idx) {
     const nome = ov.querySelector("#cp-nome").value.trim();
     const q = Number(String(ov.querySelector("#cp-q").value || "").replace(",", "."));
     if (!nome || !(q > 0)) return alert("Scrivi cos'è e la quantità.");
+    if (!scadEl.value) return alert("La scadenza è obbligatoria.");
+    const pin = String(ov.querySelector("#cp-pin").value || "").trim();
+    const firma = pin ? dipendentiCache.find((d) => (d.pin ?? "").toString() === pin) : null;
+    if (!firma) return alert(pin ? "PIN non valido ❌" : "Serve la firma: inserisci il PIN di chi lo fa.");
     const prod = (prodottiCache || []).find((p) => String(p.nome || "").toLowerCase() === nome.toLowerCase()) || null;
     const lotto = lottoCorrente();
     const cli = window.supabaseClient || window.supabase;
