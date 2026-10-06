@@ -244,6 +244,30 @@ async function produzioniDelGiorno(supabase, aziendaId, giorno) {
   };
 }
 
+// Il planning di oggi: chi sta facendo cosa (in corso), cosa manca e quante sono fatte
+async function planningOggi(supabase, aziendaId, giorno) {
+  const vuoto = { inCorso: [], daFare: [], fatte: 0 };
+  if (!aziendaId) return vuoto;
+  const { data } = await supabase.from("produzioni_settimanali")
+    .select("id, prodotto, lavorazione, stato, fascia, ora, iniziata_il, iniziata_da, dipendenti:dipendente_id(nome)")
+    .eq("azienda_id", aziendaId).eq("data", giorno).limit(200);
+  const ordF = { mattina: 1, pomeriggio: 2, sera: 3 };
+  const righe = (data || []).map(r => ({
+    id: r.id, stato: r.stato,
+    titolo: String(r.prodotto || "Lavorazione").replace(/^🍽 Al servizio · /, "🍽 "),
+    lav: String(r.lavorazione || "").split(" · ")[0].replace(/\s*\([^)]*\)\s*$/, ""),
+    chi: r.iniziata_da || r.dipendenti?.nome || "",
+    dalle: r.iniziata_il ? new Date(r.iniziata_il).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "",
+    quando: r.ora ? String(r.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[r.fascia] || ""),
+    f: (ordF[r.fascia] || 9) * 10000 + Number(String(r.ora || "99:99").replace(":", "").slice(0, 4)),
+  }));
+  return {
+    inCorso: righe.filter(r => r.stato === "in_corso"),
+    daFare: righe.filter(r => r.stato !== "in_corso" && r.stato !== "completato").sort((a, b) => a.f - b.f),
+    fatte: righe.filter(r => r.stato === "completato").length,
+  };
+}
+
 async function listaComandamenti(supabase, aziendaId) {
   if (!aziendaId) return [];
   const { data } = await supabase.from("comandamenti")
