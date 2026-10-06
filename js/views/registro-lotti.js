@@ -540,7 +540,12 @@ function chiediEtichettePerEvento(dest, quante, pesoTot) {
     ov.querySelectorAll("[data-m]").forEach((b) => b.onclick = () => { const x = ov.querySelector(`[data-n="${b.dataset.m}"]`); x.value = Math.max(0, (Number(x.value) || 0) - 1); });
     ov.querySelectorAll("[data-p]").forEach((b) => b.onclick = () => { const x = ov.querySelector(`[data-n="${b.dataset.p}"]`); x.value = (Number(x.value) || 0) + 1; });
     ov.querySelector("[data-no]").onclick = () => { ov.remove(); risolvi(null); };
-    ov.querySelector("[data-si]").onclick = () => { const c = leggi(); ov.remove(); risolvi(c.some((n) => n > 0) ? c : null); };
+    ov.querySelector("[data-si]").onclick = () => {
+      const c = leggi();
+      const pesi = dest.map((_, i) => Number(String(ov.querySelector(`[data-g="${i}"]`).value || "").replace(",", ".")) || 0);
+      ov.remove();
+      risolvi(c.some((n) => n > 0) ? c.map((n, i) => ({ n, peso: pesi[i] })) : null);
+    };
     document.body.appendChild(ov);
   });
 }
