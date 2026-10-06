@@ -124,6 +124,7 @@ window.stateActions = {
   },
 
   setAzienda(azienda) {
+    try { if (azienda?.id) localStorage.setItem("rf_ultima_azienda", azienda.id); } catch (_) {}
     // FIX: prima si controllava solo window.state.azienda per capire se
     // l'azienda era "cambiata" — ma window.state.azienda parte sempre vuoto
     // ad ogni refresh/apertura pagina (è in-memory, non persistito), quindi
