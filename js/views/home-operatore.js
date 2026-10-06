@@ -85,7 +85,7 @@ export async function render(container) {
         <div class="op-sez">Oggi tocca a te</div>
         <div class="op-lav">
           ${lavorazioni.map(l => `
-            <div class="l ${l.fatta ? "fatto" : ""}">
+            <div class="l ${l.fatta ? "fatto" : ""}" onclick="location.hash='#/preparazioni?planner_id=${l.id}'" style="cursor:pointer;">
               <div class="ck"></div>
               <div class="t">${esc(l.titolo)}<span>${esc(l.sotto)}</span></div>
             </div>`).join("")}
