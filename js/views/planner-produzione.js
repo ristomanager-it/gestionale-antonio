@@ -640,6 +640,7 @@ function renderGruppo(g){
   return `
     <div class="planner-card planner-gruppo" style="border-left:5px solid #0E5A7A;">
       <div style="font-size:11.5px;font-weight:800;color:#0E5A7A;margin-bottom:2px;">🔗 LAVORAZIONE UNICA · ${g.length} ricette</div>
+      ${badgeOrario(r0)}
       <div class="planner-card-title">${escapeHtml(lav)}</div>
       <div style="font-size:15px;font-weight:800;margin:2px 0 6px;">Totale ${formatNumber(tot)} ${escapeHtml(r0.unita)}</div>
       ${g.map((r) => `
