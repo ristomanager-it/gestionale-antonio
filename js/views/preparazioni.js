@@ -2734,6 +2734,19 @@ function formattaDurata(min) {
   return m ? (h + "h " + m + "min") : (h + "h");
 }
 
+/* In quale fase si fanno resa e confezioni: quella di tipo confezionamento,
+   altrimenti quella che nel nome confeziona o mette sottovuoto (es. tagliata:
+   "Sottovuoto, etichettatura e stoccaggio"), altrimenti la porzionatura. */
+function idxConfezionamento() {
+  const tipo = (i) => String(logHaccp[i]?.fase_tipo || fasiCache[i]?.tipo_fase || "").toLowerCase();
+  const nome = (i) => String(logHaccp[i]?.fase_nome || fasiCache[i]?.nome_fase || "");
+  const n = Math.max(logHaccp.length, fasiCache.length);
+  for (let i = 0; i < n; i++) if (tipo(i) === "confezionamento") return i;
+  for (let i = 0; i < n; i++) if (/confezion|sottovuot/i.test(nome(i))) return i;
+  for (let i = 0; i < n; i++) if (/porzionat/i.test(nome(i))) return i;
+  return -1;
+}
+
 function renderFasiHaccp() {
   const emptyEl = document.getElementById("haccp-empty-msg");
   const wrap = document.getElementById("haccp-fasi-wrap");
