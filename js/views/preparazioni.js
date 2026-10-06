@@ -2825,8 +2825,7 @@ function renderFasiHaccp() {
 
     const tipoF = String(log?.fase_tipo || f.tipo_fase || "").toLowerCase();
     const isPh = /\bph\b/i.test(String(log?.fase_nome || f.nome_fase || ""));
-    const primaConf = String(log?.fase_tipo || f.tipo_fase || "").toLowerCase() === "confezionamento"
-      && logHaccp.findIndex((l) => String(l.fase_tipo || "").toLowerCase() === "confezionamento") === idx;
+    const primaConf = idx === idxConfezionamento();
     const passoResa = primaConf
       ? `<div class="azienda-card" style="margin-bottom:12px;border-left:4px solid #16a34a;background:#f0fdf4;">
            <strong>⚖️ Resa del lotto</strong>
