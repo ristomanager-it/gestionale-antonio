@@ -3180,6 +3180,17 @@ function avviaFase(idx, origine) {
         .then((r) => { if (r && r.error) console.warn("inizio fase non salvato:", r.error.message); });
     }
   } catch (e) { console.warn("inizio fase:", e); }
+  // sul planning la lavorazione compare IN CORSO, con l'ora e chi l'ha iniziata
+  try {
+    const pid = window.__rfPlannerIdCorrente;
+    const _cli = window.supabaseClient || window.supabase;
+    const chi = operatoreRisolto?.nome || window.state?.dipendente?.nome || "";
+    if (pid && _cli) {
+      _cli.from("produzioni_settimanali").update({ stato: "in_corso", iniziata_il: new Date().toISOString(), iniziata_da: chi || null })
+        .eq("id", pid).neq("stato", "completato")
+        .then((r) => { if (r && r.error) console.warn("in corso non segnato:", r.error.message); });
+    }
+  } catch (e) { console.warn("in corso:", e); }
 }
 
 function firmaFaseHaccp(idx) {
