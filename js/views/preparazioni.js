@@ -3053,6 +3053,10 @@ function renderFasiHaccp() {
   list.querySelectorAll(".haccp-firma").forEach(btn => {
     btn.addEventListener("click", () => firmaFaseHaccp(+btn.dataset.idx));
   });
+  list.querySelectorAll(".rf-copro-apri").forEach(btn => {
+    btn.addEventListener("click", () => apriCoproFase(+btn.dataset.idx));
+  });
+  caricaCoproFasi(list);
   list.querySelectorAll(".haccp-apri").forEach(btn => {
     btn.addEventListener("click", () => { avviaFase(+btn.dataset.idx, "apri_fase"); renderFasiHaccp(); });
   });
