@@ -1118,6 +1118,13 @@ function pickActiveAzienda(aziendePulite, preferBozza = false) {
     return aziendePulite[0].aziende;
   }
 
+  // l'ultima azienda usata, anche se qualcosa ha cancellato quella salvata
+  try {
+    const ultima = localStorage.getItem("rf_ultima_azienda");
+    const m = ultima && aziendePulite.find((a) => String(a.aziende?.id) === String(ultima));
+    if (m?.aziende) return m.aziende;
+  } catch (_) {}
+
   // Più aziende, nessun match da localStorage: provo a dedurre l'azienda
   // dalla sede attiva salvata (una sede appartiene a una sola azienda).
   try {
