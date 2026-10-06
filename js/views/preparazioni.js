@@ -4470,7 +4470,7 @@ async function stampaEtichetteBrother() {
     if (window.__rfPlannerIdCorrente) {
       try {
         const { error: eF } = await supabase.rpc("lavorazione_finita", { p_id: window.__rfPlannerIdCorrente });
-        if (!eF) chiusa = "\n✓ Lavorazione chiusa nel planning.";
+        if (!eF) chiusa += "\n✓ Lavorazione chiusa nel planning.";
       } catch (_) {}
     }
     alert("🏷 " + tot + " etichette inviate alla Brother." + chiusa);
