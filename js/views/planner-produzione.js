@@ -622,6 +622,12 @@ function ordineOrario(a, b){
   if (fa !== fb) return fa - fb
   return String(a.ora || "99").localeCompare(String(b.ora || "99"))
 }
+function badgeInCorso(r){
+  if (r.stato !== "in_corso") return ""
+  const h = r.iniziata_il ? new Date(r.iniziata_il).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : ""
+  return `<div style="display:block;font-weight:800;font-size:12.5px;color:#fff;background:#2563eb;border-radius:6px;padding:3px 8px;margin-bottom:4px;">▶ IN CORSO${h ? " dalle " + h : ""}${r.iniziata_da ? " · " + escapeHtml(r.iniziata_da) : ""}</div>`
+}
+
 function badgeOrario(r){
   const servizio = String(r.prodotto || "").startsWith("🍽")
   if (servizio && r.ora) {
