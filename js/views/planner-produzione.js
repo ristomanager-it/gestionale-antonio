@@ -273,6 +273,14 @@ export async function render(container){
   ensureWindowBindings()
   refreshToolbarState()
   await renderCurrentView()
+
+  // ogni minuto il planning si aggiorna da solo: chi preme "Inizia fase" compare subito come IN CORSO
+  clearInterval(window.__rfPlanningLive)
+  window.__rfPlanningLive = setInterval(() => {
+    if (!document.querySelector(".planner-card") || document.hidden) return
+    if (document.querySelector(".planner-modal, #planner-modal-backdrop")) return
+    renderCurrentView()
+  }, 60000)
 }
 
 function ensureWindowBindings(){
