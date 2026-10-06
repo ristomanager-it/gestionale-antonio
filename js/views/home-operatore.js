@@ -266,7 +266,7 @@ async function turniVicini(supabase, aziendaId, dipId, oggiISO) {
 async function lavorazioniOggi(supabase, aziendaId, dipId, oggiISO) {
   if (!aziendaId || !dipId) return [];
   const { data } = await supabase.from("produzioni_settimanali")
-    .select("id, prodotto, lavorazione, quantita, unita, stato, fascia, ora, dipendente_id, supporti")
+    .select("id, prodotto, lavorazione, quantita, unita, stato, fascia, ora, dipendente_id, supporti, ricetta_id")
     .eq("azienda_id", aziendaId).eq("data", oggiISO)
     .or(`dipendente_id.eq.${dipId},supporti.cs.{${dipId}}`)
     .limit(40);
