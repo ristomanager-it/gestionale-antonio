@@ -3280,8 +3280,30 @@ const TIPI_FASE_CONTINUA = ["preparazione", "cottura"];
 
 /* Aperta dal planning, la lavorazione mostra solo le fasi di quella riga
    (es. "Pelatura patate"): le fasi dopo le fa chi ha la riga successiva. */
+function eFaseDelServizio(f) {
+  return String(f?.momento || "").toLowerCase() === "servizio";
+}
+function apertaDalServizio() {
+  return String(window.__rfProdottoPlanning || "").startsWith("🍽");
+}
 function fasiDelPlanning() {
   if (window.__rfMostraTutteFasi) return null;
+  // aperta dal planning: le fasi "al servizio" (es. cottura al banchetto) non sono di oggi,
+  // a meno che la riga aperta sia proprio quella del servizio
+  if (window.__rfPlannerIdCorrente && !apertaDalServizio()) {
+    const base = fasiDelPlanningTesto();
+    const set = new Set((base ? Array.from(base) : fasiCache.map((_, i) => i)).filter((i) => !eFaseDelServizio(fasiCache[i])));
+    return set.size ? set : base;
+  }
+  // aperta da fuori (Produzioni aperte, registro...): le fasi del servizio restano nascoste
+  // fino al banchetto, dove si firmano dalla riga "al servizio" del planning
+  if (!window.__rfPlannerIdCorrente && fasiCache.some(eFaseDelServizio)) {
+    const set = new Set(fasiCache.map((_, i) => i).filter((i) => !eFaseDelServizio(fasiCache[i])));
+    return set.size ? set : null;
+  }
+  return fasiDelPlanningTesto();
+}
+function fasiDelPlanningTesto() {
   const lav = String(window.__rfLavorazionePlanning || "").split(" · ")[0].toLowerCase();
   if (!lav || !fasiCache.length) return null;
   // stesso trattamento per i due testi: niente parentesi, punteggiatura e simboli (°, virgole...)
