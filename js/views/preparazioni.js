@@ -4671,11 +4671,7 @@ async function resumeDaLotto(lottoUuid) {
     renderFasiHaccp()
   }
 
-  // aprire la lavorazione fa partire il tempo della prima fase ancora da fare
-  {
-    const iPrima = logHaccp.findIndex((l) => !(Array.isArray(l.firme) && l.firme.length) && !l.firmato)
-    if (iPrima >= 0 && !logHaccp[iPrima].ora_inizio) { avviaFase(iPrima, "apertura"); renderFasiHaccp() }
-  }
+  // il tempo parte con "▶ Inizia fase" (aprire la lavorazione non basta: magari si guarda soltanto)
 
   // Prefill data / peso / note
   const dataEl = document.getElementById("prod-data")
