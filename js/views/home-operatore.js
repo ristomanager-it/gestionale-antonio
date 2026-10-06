@@ -32,7 +32,9 @@ export async function render(container) {
   container.innerHTML = `<div class="op-home"><div class="op-caric">Un attimo…</div></div>${stile()}`;
 
   // ── dati, tutti in parallelo e tutti tolleranti agli errori ─────────────
-  const [timbr, pausa, oreSett, turni, lavorazioni, comandamenti] = await Promise.all([
+  const domaniD = new Date(oggi.getTime() + 86400000);
+  const domaniISO = domaniD.getFullYear() + "-" + String(domaniD.getMonth() + 1).padStart(2, "0") + "-" + String(domaniD.getDate()).padStart(2, "0");
+  const [timbr, pausa, oreSett, turni, lavorazioni, comandamenti, lavDomani] = await Promise.all([
     ultimeTimbrature(supabase, azienda?.id, dip?.id),
     pausaAperta(supabase, azienda?.id, dip?.id),
     oreSettimana(supabase, azienda?.id, dip?.id, oggi),
