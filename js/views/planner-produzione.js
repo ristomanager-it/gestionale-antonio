@@ -1033,8 +1033,10 @@ async function saveProduzione(mode, id, fallbackDate){
 
   if(mode === "edit" && id){
     // cambio di giorno fatto a mano: resta, anche quando il cervello ricalcola
-    const { data: cur } = await window.supabaseClient.from("produzioni_settimanali").select("data").eq("id", id).maybeSingle()
+    const { data: cur } = await window.supabaseClient.from("produzioni_settimanali").select("data, fascia").eq("id", id).maybeSingle()
     if (cur && cur.data !== data) payload.spostato = true
+    // fascia scelta a mano: il cervello non la ricalcola piu'
+    if (cur && (cur.fascia || null) !== fascia) payload.fascia_manuale = true
     await window.supabaseClient
       .from("produzioni_settimanali")
       .update(payload)
