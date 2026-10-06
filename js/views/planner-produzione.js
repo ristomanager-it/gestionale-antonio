@@ -889,6 +889,20 @@ function renderFormHtml({ mode, id, date, record, suggerimento }){
         </div>
 
         <div class="planner-field">
+          <label>Fascia</label>
+          <select id="planner-fascia">
+            <option value="">—</option>
+            ${[["mattina","🌅 Mattina"],["pomeriggio","🌇 Pomeriggio"],["sera","🌙 Sera"]]
+              .map(([k, t]) => `<option value="${k}" ${record.fascia === k ? "selected" : ""}>${t}</option>`).join("")}
+          </select>
+        </div>
+
+        <div class="planner-field">
+          <label>Ora (servizio)</label>
+          <input id="planner-ora" type="time" value="${escapeAttr(record.ora ? String(record.ora).slice(0, 5) : "")}">
+        </div>
+
+        <div class="planner-field">
           <label>Tempo stimato medio (min)</label>
           <input id="planner-tempo" type="number" min="0" value="${escapeAttr(record.tempo_stimato_minuti || "")}" placeholder="Es. 45">
         </div>
