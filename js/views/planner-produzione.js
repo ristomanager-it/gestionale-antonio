@@ -341,7 +341,10 @@ function ensureWindowBindings(){
     await deleteProduzione(id)
   }
 
+  // Solo l'admin programma (giorno, orari, chi la fa). Manager e operatori,
+  // toccando una lavorazione, aprono direttamente la lavorazione da fare.
   window.plannerProduzioneOpenEdit = async function(id){
+    if (!puoProgrammare()) { window.plannerProduzioneGoPreparazione(id); return }
     await openEdit(id)
   }
 
