@@ -285,6 +285,41 @@ async function lavorazioniOggi(supabase, aziendaId, dipId, oggiISO) {
     });
 }
 
+// Le lavorazioni dei prossimi giorni (planning), raggruppate per giorno
+async function lavorazioniProssime(supabase, aziendaId, dipId, daISO, giorni) {
+  if (!aziendaId || !dipId) return [];
+  const a = new Date(daISO + "T12:00:00"); a.setDate(a.getDate() + giorni - 1);
+  const aISO = a.getFullYear() + "-" + String(a.getMonth() + 1).padStart(2, "0") + "-" + String(a.getDate()).padStart(2, "0");
+  const { data } = await supabase.from("produzioni_settimanali")
+    .select("id, data, prodotto, lavorazione, quantita, unita, stato, fascia, ora, dipendente_id, supporti")
+    .eq("azienda_id", aziendaId).gte("data", daISO).lte("data", aISO)
+    .or(`dipendente_id.eq.${dipId},supporti.cs.{${dipId}}`)
+    .order("data").limit(150);
+  const ordF = { mattina: 1, pomeriggio: 2, sera: 3 };
+  return (data || [])
+    .sort((x, y) => String(x.data).localeCompare(String(y.data)) || (ordF[x.fascia] || 9) - (ordF[y.fascia] || 9) || String(x.ora || "99").localeCompare(String(y.ora || "99")))
+    .map(l => {
+      const q = l.quantita != null ? (Number(l.quantita).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " " + (l.unita || "")) : null;
+      const quando = l.ora ? String(l.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[l.fascia] || null);
+      return {
+        id: l.id, data: l.data,
+        titolo: String(l.prodotto || "Lavorazione").replace(/^🍽 Al servizio · /, "🍽 "),
+        sotto: [String(l.lavorazione || "").split(" · ")[0], q, quando, String(l.dipendente_id) !== String(dipId) ? "supporto" : null]
+                .filter(Boolean).join(" · "),
+      };
+    });
+}
+function raggruppaPerGiorno(lista) {
+  const m = new Map();
+  lista.forEach(l => { if (!m.has(l.data)) m.set(l.data, []); m.get(l.data).push(l); });
+  return Array.from(m.entries());
+}
+function giornoLungo(iso) {
+  const d = new Date(iso + "T12:00:00");
+  const t = d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 async function listaComandamenti(supabase, aziendaId) {
   if (!aziendaId) return [];
   const { data } = await supabase.from("comandamenti")
