@@ -492,7 +492,7 @@ export async function renderOrdini(container, azienda) {
                 ${g.id === "_" ? `<select data-forn style="margin-top:4px;font-size:12px;max-width:100%;"><option value="">Assegna fornitore…</option>${fornitori.map((f) => `<option value="${f.id}">${esc(f.ragione_sociale)}</option>`).join("")}</select>` : ""}
               </div>
               <input type="number" step="0.1" min="0" data-q value="${r.q}" style="width:76px;flex:none;">
-              <span style="width:28px;font-size:12px;color:#64748b;flex:none;">${esc(r.unita || "")}</span>
+              <span style="min-width:28px;font-size:12px;color:#64748b;flex:none;">${esc(r.unita || "")}${Number(r.pezzi_cartone) > 0 ? `<br><span data-cart style="font-weight:700;color:#0f766e;">${cartoni(r) ? "(" + cartoni(r) + " cart.)" : ""}</span>` : ""}</span>
             </div>`).join("")}
           ${g.id !== "_" ? `
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
