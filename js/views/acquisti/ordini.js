@@ -518,7 +518,7 @@ export async function renderOrdini(container, azienda) {
       });
     });
     const scelti = (g) => g.righe.filter((r) => r.ok && r.q > 0);
-    const testo = (g) => `Ordine ${azienda.nome || ""}\n` + scelti(g).map((r) => `- ${r.nome}: ${num(r.q)} ${r.unita || ""}${r.serve_il ? " (entro " + fd(r.serve_il) + ")" : ""}`).join("\n");
+    const testo = (g) => `Ordine ${azienda.nome || ""}\n` + scelti(g).map((r) => `- ${r.nome}: ${num(r.q)} ${umOrdine(r)}${r.serve_il ? " (entro " + fd(r.serve_il) + ")" : ""}`).join("\n");
     const registra = async (g, canale) => {
       const { error: e } = await supabase.rpc("registra_ordine_inviato", {
         p_azienda: azienda.id, p_sede: window.state?.sedeAttiva?.id || null, p_fornitore: Number(g.id),
