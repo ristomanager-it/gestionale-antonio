@@ -3532,6 +3532,15 @@ function apriCoproFase(idx) {
       </div>
     </div>`;
   document.body.appendChild(ov);
+  // scadenza con gli stessi parametri della ricetta: oggi + giorni della conservazione scelta
+  const consSel = ov.querySelector("#cp-cons"), scadEl = ov.querySelector("#cp-scad");
+  const oggiISO = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
+  const ricalcola = () => {
+    const gg = consSel.selectedOptions[0]?.dataset.gg;
+    if (gg !== "" && gg != null) scadEl.value = addDaysISO(document.getElementById("prod-data")?.value || oggiISO, Number(gg) || 0);
+  };
+  consSel.addEventListener("change", ricalcola);
+  if (consSel.value) ricalcola(); else scadEl.value = document.getElementById("prod-scadenza")?.value || "";
   let tipo = "coprodotto";
   ov.querySelectorAll("[data-tipo]").forEach((b) => b.addEventListener("click", () => {
     tipo = b.dataset.tipo;
