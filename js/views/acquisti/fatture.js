@@ -641,13 +641,13 @@ async function openDocumentoUploadModal(azienda) {
       .select("id, ragione_sociale, partita_iva")
       .eq("azienda_id", azienda.id)
       .order("ragione_sociale", { ascending: true }),
-    supabase
+    leggiTutto(() => supabase
       .from("prodotti")
       .select("id, nome, descrizione, codice_interno, um, categoria_bilancio_id, categoria_interna_id, quantita_riordino, scorta_minima")
       .eq("azienda_id", azienda.id)
       .eq("attivo", true)
       .order("nome", { ascending: true })
-      .limit(3000),
+      .order("id", { ascending: true })),
     loadProdottiAliasOcr(supabase, azienda.id),
     supabase
       .from("categorie_interne_prodotti")
