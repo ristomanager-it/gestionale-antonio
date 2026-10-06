@@ -385,6 +385,11 @@ export async function render(container) {
         </div>
       </div>
 
+      <div class="pren-det-card" id="pren-menu-card">
+        <div class="pren-det-section-title">🧩 Menu del gruppo</div>
+        <div id="pren-menu-box" style="font-size:13px;color:#94a3b8;">Caricamento menu…</div>
+      </div>
+
       <div class="pren-det-card">
         <div class="pren-det-section-title">Prenotazione</div>
 
@@ -401,7 +406,7 @@ export async function render(container) {
 
           <div class="pren-det-field">
             <label class="pren-det-label" for="pren-coperti">Coperti</label>
-            <input id="pren-coperti" class="pren-det-input" type="number" min="1" step="1" <input id="pren-cognome" class="pren-det-input" type="text" value="${escapeAttribute(String(p.cognome || ""))}">
+            <input id="pren-coperti" class="pren-det-input" type="number" min="1" step="1" value="${escapeAttribute(String(Number(p.coperti) || ""))}">
           </div>
 
           <div class="pren-det-field">
@@ -479,6 +484,7 @@ export async function render(container) {
     `;
 
     bindFormEvents();
+    caricaMenuCollegato();
   }
 
   async function stampaTalloncino() {
@@ -574,6 +580,63 @@ export async function render(container) {
     const win = window.open("", "_blank");
     if (!win) { alert("Consenti i popup per la stampa."); return; }
     win.document.open(); win.document.write(html); win.document.close();
+  }
+
+  // Menu componibile collegato alla prenotazione (menu_componibile.prenotazione_id)
+  async function caricaMenuCollegato() {
+    const box = container.querySelector("#pren-menu-box");
+    const p = pageState.prenotazione;
+    if (!box || !p) return;
+    const sb = window.supabaseClient || window.supabase;
+    const { data: m, error } = await sb.from("menu_componibile")
+      .select("id, titolo, nome_gruppo, data, prezzo_fisso, voci, testo_incluso")
+      .eq("prenotazione_id", p.id).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    if (error) { box.innerHTML = '<span style="color:#b91c1c;">Errore caricamento menu</span>'; return; }
+    const btn = (id, label, primary) => '<button id="' + id + '" type="button" style="border:0;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;' + (primary ? 'background:#0E5A7A;color:#fff;' : 'background:#e2e8f0;color:#0f172a;') + '">' + label + '</button>';
+    if (m) {
+      const voci = Array.isArray(m.voci) ? m.voci : [];
+      const dataIt = m.data ? String(m.data).split("-").reverse().join("/") : "";
+      const prezzo = m.prezzo_fisso ? "€ " + Number(m.prezzo_fisso).toFixed(2).replace(".", ",") + " a persona" : "";
+      const sub = [dataIt, prezzo, voci.length + " piatti"].filter(Boolean).join(" · ");
+      box.innerHTML = '<div style="border:1px solid #7dd3fc;background:#f0f9ff;border-radius:12px;padding:12px;color:#0f172a;">'
+        + '<div style="font-weight:700;font-size:15px;">' + escapeHtml([m.titolo || "Menu", m.nome_gruppo].filter(Boolean).join(" · ")) + '</div>'
+        + '<div style="font-size:12px;color:#475569;margin:2px 0 8px;">' + escapeHtml(sub) + '</div>'
+        + '<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.6;">' + voci.map(v => '<li>' + escapeHtml(v.nome || "") + '</li>').join("") + '</ul>'
+        + (m.testo_incluso ? '<div style="font-size:12px;color:#475569;margin-top:6px;font-style:italic;">' + escapeHtml(m.testo_incluso) + '</div>' : '')
+        + '</div>'
+        + '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
+        + btn("pren-menu-apri", "✏️ Apri menu", true) + btn("pren-menu-stampa", "🖨️ Stampa", false) + btn("pren-menu-scollega", "Scollega", false)
+        + '</div>';
+      container.querySelector("#pren-menu-apri").onclick = () => { window.location.hash = "#/menu-componibile?id=" + m.id + "&pren=" + p.id; };
+      container.querySelector("#pren-menu-stampa").onclick = () => { window.location.hash = "#/menu-componibile?id=" + m.id + "&pren=" + p.id + "&stampa=1"; };
+      container.querySelector("#pren-menu-scollega").onclick = async () => {
+        if (!confirm("Scollegare il menu da questa prenotazione? Il menu resta salvato in Menu Componibile.")) return;
+        const { error: e2 } = await sb.from("menu_componibile").update({ prenotazione_id: null }).eq("id", m.id);
+        if (e2) { alert("Errore: " + e2.message); return; }
+        caricaMenuCollegato();
+      };
+      return;
+    }
+    box.innerHTML = '<div style="border:1px dashed #cbd5e1;border-radius:12px;padding:12px;font-size:13px;color:#64748b;">Nessun menu collegato.</div>'
+      + '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
+      + btn("pren-menu-crea", "➕ Crea menu", true) + btn("pren-menu-collega", "📁 Collega menu esistente", false)
+      + '</div><div id="pren-menu-scelta" style="margin-top:10px;"></div>';
+    container.querySelector("#pren-menu-crea").onclick = () => { window.location.hash = "#/menu-componibile?pren=" + p.id; };
+    container.querySelector("#pren-menu-collega").onclick = async () => {
+      const dove = container.querySelector("#pren-menu-scelta");
+      const { data: lista } = await sb.from("menu_componibile").select("id, titolo, nome_gruppo, data")
+        .eq("azienda_id", p.azienda_id).is("prenotazione_id", null).order("updated_at", { ascending: false }).limit(30);
+      if (!lista || !lista.length) { dove.innerHTML = '<div style="font-size:13px;color:#64748b;">Nessun menu libero da collegare.</div>'; return; }
+      dove.innerHTML = '<select id="pren-menu-sel" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;">'
+        + lista.map(x => '<option value="' + x.id + '">' + escapeHtml([x.titolo || "Menu", x.nome_gruppo, x.data ? String(x.data).split("-").reverse().join("/") : ""].filter(Boolean).join(" · ")) + '</option>').join("")
+        + '</select><div style="margin-top:8px;">' + btn("pren-menu-conferma", "Collega", true) + '</div>';
+      container.querySelector("#pren-menu-conferma").onclick = async () => {
+        const id = container.querySelector("#pren-menu-sel").value;
+        const { error: e3 } = await sb.from("menu_componibile").update({ prenotazione_id: p.id }).eq("id", id);
+        if (e3) { alert("Errore: " + e3.message); return; }
+        caricaMenuCollegato();
+      };
+    };
   }
 
   function bindFormEvents() {

@@ -116,12 +116,13 @@ export async function render(container) {
         <!-- DISPONIBILITÀ SLOT -->
         <div id="slot-info" style="margin-top:12px;display:none;"></div>
 
-        <div style="margin-top:20px;display:flex;gap:10px;">
+        <div id="form-msg" style="margin-top:12px;font-size:13px;"></div>
+
+        <div style="margin-top:12px;margin-bottom:90px;display:flex;gap:10px;">
           <button class="app-button primary" id="btn-salva">Salva prenotazione</button>
           <button class="app-button gray" id="btn-annulla">Annulla</button>
         </div>
 
-        <div id="form-msg" style="margin-top:10px;font-size:13px;"></div>
       </div>
     </div>
   `;
