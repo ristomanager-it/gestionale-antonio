@@ -532,7 +532,7 @@ async function renderMonthView(){
 
 function renderSingleDayColumn(day, righe, muted){
   const dateStr = formatDateLocal(day)
-  const items = righe.filter(r => r.data === dateStr)
+  const items = righe.filter(r => r.data === dateStr).sort(ordineOrario)
 
   const totaleMinuti = items.reduce((sum, r) => {
     return sum + Number(r.tempo_stimato_minuti || 0)
