@@ -478,7 +478,9 @@ async function stampaEtichette({ etichetta, produttore, info, peso, quante }) {
       for (let k = 1; k <= n; k++) {
         tot++;
         const quale = (d.evento_titolo || "evento") + (d.formato ? " · " + d.formato : "") + (n > 1 ? " · " + k + "/" + n : (d.quantita ? " · " + formatNum(d.quantita) + " pz" : ""));
-        const rr = await inviaEtichetteLotto({ etichetta, produttore, info: { ...info, destinazione: quale }, peso, copie: 1, formato });
+        // peso netto dell'evento, diviso tra le sue etichette (es. 2 teglie = meta' ciascuna)
+        const pesoEv = Number(scelta[i].peso) > 0 ? String(Math.round(Number(scelta[i].peso) / n)) : peso;
+        const rr = await inviaEtichetteLotto({ etichetta, produttore, info: { ...info, destinazione: quale }, peso: pesoEv, copie: 1, formato });
         if (rr.motivo === "troppo_lungo") { alert("Il testo non entra nell'etichetta: allungala o accorcia ingredienti e conservazione."); return; }
         if (rr.ok) ok++; else ultimo = rr;
       }
