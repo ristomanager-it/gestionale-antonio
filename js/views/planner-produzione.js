@@ -739,6 +739,7 @@ function bindCalendarEvents(){
       if(!day.classList.contains("planner-day-col") && !day.classList.contains("planner-month-cell")){
         return
       }
+      if (!puoProgrammare()) { e.preventDefault(); return }
 
       e.preventDefault()
 
