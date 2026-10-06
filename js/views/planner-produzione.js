@@ -353,6 +353,11 @@ function ensureWindowBindings(){
   }
 }
 
+function puoProgrammare(){
+  const r = String(window.state?.ruolo || "").toLowerCase()
+  return r === "admin" || r === "superadmin"
+}
+
 function refreshToolbarState(){
   const viewIds = ["day", "week", "month"]
   viewIds.forEach(v => {
