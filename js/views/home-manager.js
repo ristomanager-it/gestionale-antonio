@@ -75,6 +75,28 @@ export async function render(container) {
         ${copertiDom.prenotazioni ? `<span>${copertiDom.prenotazioni} prenotazioni</span>` : ""}
       </div>
 
+      <div class="mg-sez" style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span>Planning di oggi</span>
+        <a href="#/planner-produzione" style="font-size:12.5px;font-weight:700;text-transform:none;letter-spacing:0;">Apri planning ›</a>
+      </div>
+      <div style="font-size:12.5px;color:#64748b;margin:-4px 2px 8px;">${planning.inCorso.length} in corso · ${planning.daFare.length} da fare · ${planning.fatte} fatte</div>
+      <div class="mg-avvisi">
+        ${planning.inCorso.map(l => `
+          <a href="#/preparazioni?planner_id=${l.id}" class="a" style="border-left:4px solid #2563eb;">
+            <i class="pun" style="background:#2563eb;"></i>
+            <div class="t">${esc(l.titolo)}<span>▶ ${esc(l.chi || "")}${l.dalle ? " dalle " + esc(l.dalle) : ""}${l.lav ? " · " + esc(l.lav) : ""}</span></div>
+            <b>›</b>
+          </a>`).join("")}
+        ${planning.daFare.slice(0, 8).map(l => `
+          <a href="#/preparazioni?planner_id=${l.id}" class="a">
+            <i class="pun" style="background:#cbd5e1;"></i>
+            <div class="t">${esc(l.titolo)}<span>${esc(l.chi || "senza persona")}${l.quando ? " · " + esc(l.quando) : ""}${l.lav ? " · " + esc(l.lav) : ""}</span></div>
+            <b>›</b>
+          </a>`).join("")}
+        ${planning.daFare.length > 8 ? `<a href="#/planner-produzione" class="a"><div class="t">…e altre ${planning.daFare.length - 8}<span>Apri il planning completo</span></div><b>›</b></a>` : ""}
+        ${!planning.inCorso.length && !planning.daFare.length ? `<div class="vuoto">${planning.fatte ? "Tutto fatto per oggi 👏" : "Niente in programma oggi."}</div>` : ""}
+      </div>
+
       <div class="mg-sez">Da guardare adesso</div>
       <div class="mg-avvisi">
         ${avvisi.length
