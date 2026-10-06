@@ -3293,6 +3293,36 @@ function fasiDelPlanning() {
   return set.size ? set : null;
 }
 
+/* Aperta dal planning (o dalla home operatore) la pagina mostra SOLO la fase da fare:
+   niente modulo ricetta, peso, confezioni... Chi vuole la scheda intera la riapre. */
+function soloLaFase(container) {
+  const wrap = document.getElementById("haccp-fasi-wrap");
+  const azioni = container.querySelector(".form-actions");
+  if (!wrap || !azioni) return;
+  const padre = azioni.parentElement;
+  let card = wrap;
+  while (card && card.parentElement !== padre) card = card.parentElement;
+  if (!card) return;
+  const nascosti = [];
+  Array.from(padre.children).forEach((el) => { if (el !== card && el.style.display !== "none") { el.style.display = "none"; nascosti.push(el); } });
+  const lav = String(window.__rfLavorazionePlanning || "").split(" · ")[0];
+  const banner = document.createElement("div");
+  banner.style.cssText = "background:#0E5A7A;color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;";
+  banner.innerHTML = `<div style="font-size:12px;opacity:.85;">Lavorazione da fare</div>
+    <div style="font-size:18px;font-weight:800;line-height:1.25;">${escapeHtml(window.__rfProdottoPlanning || "")}</div>
+    ${lav ? `<div style="font-size:14.5px;margin-top:2px;">${escapeHtml(lav)}</div>` : ""}
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+      <button type="button" data-home style="border:0;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.18);color:#fff;font-weight:700;">← Le mie lavorazioni</button>
+      <button type="button" data-tutto style="border:0;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.18);color:#fff;font-weight:700;">Scheda completa</button>
+    </div>`;
+  padre.insertBefore(banner, card);
+  banner.querySelector("[data-home]").onclick = () => { location.hash = "#/home"; };
+  banner.querySelector("[data-tutto]").onclick = () => { nascosti.forEach((el) => { el.style.display = ""; }); banner.remove(); };
+  // il titolo "Produzione" e la descrizione in alto non servono qui
+  try { const h = container.querySelector("h1, h2"); const sub = h?.parentElement?.querySelector("p"); if (sub) sub.style.display = "none"; } catch (_) {}
+  window.scrollTo(0, 0);
+}
+
 function idxFasiContinueDaFirmare() {
   const vis = fasiDelPlanning();
   return logHaccp
