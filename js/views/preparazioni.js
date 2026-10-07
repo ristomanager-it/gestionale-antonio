@@ -4489,6 +4489,69 @@ function buildTestoConservazione(scenarioId) {
     return `${tipo}${temp}${durata}`;
   }).join(" → ");
 }
+const ALLERGENI_UE = ["glutine", "crostacei", "uova", "pesce", "arachidi", "soia", "latte", "frutta a guscio", "sedano", "senape", "sesamo", "solfiti", "lupini", "molluschi"];
+
+/* Scheda etichetta di legge compilata al momento della stampa: denominazione, ingredienti,
+   allergeni e conservazione, gia' proposti dalla ricetta. Salvata e confermata, vale per sempre. */
+function schedaEtichettaRapida(esistente) {
+  return new Promise(async (risolvi) => {
+    const supabase = window.supabaseClient || window.supabase;
+    const aziendaId = window.state?.azienda?.id;
+    const { data: ing } = await supabase.from("ricetta_ingredienti").select("nome_prodotto, quantita, prodotti(nome)")
+      .eq("ricetta_id", ricettaSelezionata?.id).order("quantita", { ascending: false });
+    const nomi = (ing || []).map((i) => String(i.prodotti?.nome || i.nome_prodotto || "").trim()).filter(Boolean);
+    const ingredienti = esistente?.ingredienti || nomi.join(", ");
+    const testo = (ingredienti + " " + (ricettaSelezionata?.nome || "")).toLowerCase();
+    const indovina = { glutine: /farin|pane|pasta|semola|savoiard|grano|orzo/, uova: /uov|tuorl|album/, latte: /latte|burro|panna|mascarpone|formagg|parmigian|reggian|ricott|mozzarell|pecorin/,
+      pesce: /alic|tonno|salmon|pesce|acciug/, molluschi: /cozz|vongol|calamar|polp|seppi/, crostacei: /gamber|scamp|astic/, "frutta a guscio": /noci|nocciol|mandorl|pistacch/,
+      sedano: /sedano|mirepoix/, senape: /senape/, sesamo: /sesamo/, soia: /soia/, solfiti: /vino|aceto|solfit/, arachidi: /arachid/, lupini: /lupin/ };
+    const scelti = new Set(esistente?.allergeni?.length ? esistente.allergeni : ALLERGENI_UE.filter((a) => indovina[a]?.test(testo)));
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+    ov.innerHTML = `
+      <div style="background:#fff;width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto;">
+        <div style="font-size:17px;font-weight:800;">🏷 Etichetta di legge</div>
+        <div style="font-size:12.5px;color:#64748b;margin:4px 0 10px;">Questa ricetta non ha ancora la scheda etichetta. Controlla, correggi e salva: poi si stampa e vale anche le prossime volte.</div>
+        <label style="font-size:12px;font-weight:700;">Denominazione</label>
+        <input id="et-den" class="input" style="width:100%;margin-bottom:8px;" value="${escapeAttr(esistente?.denominazione || ricettaSelezionata?.nome || "")}">
+        <label style="font-size:12px;font-weight:700;">Ingredienti (in ordine di quantità)</label>
+        <textarea id="et-ing" class="input" rows="3" style="width:100%;margin-bottom:8px;">${escapeHtml(ingredienti)}</textarea>
+        <label style="font-size:12px;font-weight:700;">Allergeni</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px;">
+          ${ALLERGENI_UE.map((a) => `<label style="display:flex;align-items:center;gap:4px;font-size:13px;background:#f1f5f9;border-radius:8px;padding:5px 8px;">
+            <input type="checkbox" value="${escapeAttr(a)}" ${scelti.has(a) ? "checked" : ""}> ${escapeHtml(a)}</label>`).join("")}
+        </div>
+        <label style="font-size:12px;font-weight:700;">Conservazione</label>
+        <input id="et-cons" class="input" style="width:100%;" value="${escapeAttr(esistente?.conservazione || "Conservare in frigorifero tra 0 e +4 °C")}">
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button type="button" data-no class="app-button gray" style="flex:1;">Annulla</button>
+          <button type="button" data-si class="app-button" style="flex:2;">Salva e stampa 🏷</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector("[data-no]").onclick = () => { ov.remove(); risolvi(null); };
+    ov.querySelector("[data-si]").onclick = async () => {
+      const riga = {
+        azienda_id: aziendaId, ricetta_id: ricettaSelezionata?.id,
+        denominazione: ov.querySelector("#et-den").value.trim(),
+        ingredienti: ov.querySelector("#et-ing").value.trim(),
+        allergeni: Array.from(ov.querySelectorAll("input[type=checkbox]:checked")).map((c) => c.value),
+        conservazione: ov.querySelector("#et-cons").value.trim(),
+        tmc_dicitura: esistente?.tmc_dicitura || "Da consumarsi entro",
+        nutrizionale_esente: true, confermata: true,
+      };
+      if (!riga.denominazione || !riga.ingredienti) return alert("Servono almeno denominazione e ingredienti.");
+      const q = esistente?.id
+        ? supabase.from("etichette").update(riga).eq("id", esistente.id).select().single()
+        : supabase.from("etichette").insert(riga).select().single();
+      const { data, error } = await q;
+      if (error) return alert("Non salvata: " + error.message);
+      ov.remove();
+      risolvi(data);
+    };
+  });
+}
+
 async function stampaEtichetteBrother() {
   const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
