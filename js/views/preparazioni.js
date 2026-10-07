@@ -3335,7 +3335,55 @@ function fasiDelPlanningTesto() {
 
 /* Aperta dal planning (o dalla home operatore) la pagina mostra SOLO la fase da fare:
    niente modulo ricetta, peso, confezioni... Chi vuole la scheda intera la riapre. */
+// Lavorazione del planning SENZA ricetta in archivio (es. "Pan di Spagna: basi" della torta):
+// niente fasi da firmare, ma si puo' iniziare e finire, cosi' tempo e stato restano registrati.
+function lavorazioneSenzaRicetta(container) {
+  const pid = window.__rfPlannerIdCorrente;
+  const azioni = container.querySelector(".form-actions");
+  if (!pid || !azioni) return;
+  const padre = azioni.parentElement;
+  Array.from(padre.children).forEach((el) => { el.style.display = "none"; });
+  const sb = window.supabaseClient || window.supabase;
+  const box = document.createElement("div");
+  padre.insertBefore(box, padre.firstChild);
+  const disegna = async () => {
+    const { data: r } = await sb.from("produzioni_settimanali").select("stato, iniziata_il, iniziata_da, quantita, unita, note").eq("id", pid).maybeSingle();
+    const st = r?.stato || "da_fare";
+    const dalle = r?.iniziata_il ? new Date(r.iniziata_il).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "";
+    box.innerHTML = `
+      <div style="background:#0E5A7A;color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:12px;opacity:.85;">Lavorazione da fare</div>
+        <div style="font-size:18px;font-weight:800;line-height:1.25;">${escapeHtml(window.__rfProdottoPlanning || "")}</div>
+        ${r?.quantita ? `<div style="font-size:14.5px;margin-top:2px;">${formatNumber(r.quantita)} ${escapeHtml(r.unita || "")}</div>` : ""}
+        <button type="button" data-home style="margin-top:10px;border:0;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.18);color:#fff;font-weight:700;">← Le mie lavorazioni</button>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div style="font-size:13.5px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+          Questa lavorazione non ha ancora una ricetta in archivio: niente fasi da firmare. Segna quando inizi e quando hai finito.
+        </div>
+        ${st === "completato" ? `<div style="font-size:16px;font-weight:800;color:#166534;">✓ Fatta</div>` :
+          st === "in_corso" ? `<div style="font-size:15px;font-weight:700;color:#1d4ed8;margin-bottom:10px;">▶ In corso${dalle ? " dalle " + dalle : ""}${r?.iniziata_da ? " · " + escapeHtml(r.iniziata_da) : ""}</div>
+            <button type="button" data-fine class="app-button" style="width:100%;background:#16a34a;">✓ Finito</button>` :
+          `<button type="button" data-inizio class="app-button" style="width:100%;background:#0e7490;">▶ Inizia</button>`}
+      </div>`;
+    box.querySelector("[data-home]").onclick = () => { location.hash = "#/home"; };
+    box.querySelector("[data-inizio]")?.addEventListener("click", async () => {
+      await sb.from("produzioni_settimanali").update({ stato: "in_corso", iniziata_il: new Date().toISOString(),
+        iniziata_da: window.state?.dipendente?.nome || null }).eq("id", pid);
+      disegna();
+    });
+    box.querySelector("[data-fine]")?.addEventListener("click", async () => {
+      const { data: min } = await sb.rpc("lavorazione_finita", { p_id: pid });
+      if (min) alert("Fatto in " + min + " minuti 👍");
+      disegna();
+    });
+  };
+  disegna();
+  window.scrollTo(0, 0);
+}
+
 function soloLaFase(container) {
+  if (!ricettaSelezionata?.id) { lavorazioneSenzaRicetta(container); return; }
   const wrap = document.getElementById("haccp-fasi-wrap");
   const azioni = container.querySelector(".form-actions");
   if (!wrap || !azioni) return;
