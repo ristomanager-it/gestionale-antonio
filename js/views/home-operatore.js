@@ -94,7 +94,9 @@ export async function render(container) {
             <div class="l ${l.fatta ? "fatto" : ""}" ${l.ricetta ? `onclick="location.hash='#/preparazioni?planner_id=${l.id}'"` : ""} style="cursor:pointer;">
               <div class="ck"></div>
               <div class="t">${esc(l.titolo)}<span>${esc(l.sotto)}${l.inCorso ? " · ▶ in corso" : ""}</span></div>
-              ${!l.ricetta && !l.fatta ? `<button type="button" data-finito="${l.id}" style="margin-left:auto;border:0;border-radius:10px;background:#16a34a;color:#fff;font-weight:800;padding:8px 12px;">✓ Finito</button>` : ""}
+              ${!l.ricetta && !l.fatta ? (l.inCorso
+                ? `<button type="button" data-finito="${l.id}" style="margin-left:auto;border:0;border-radius:10px;background:#16a34a;color:#fff;font-weight:800;padding:8px 12px;">✓ Finito</button>`
+                : `<button type="button" data-inizia="${l.id}" style="margin-left:auto;border:0;border-radius:10px;background:#0e7490;color:#fff;font-weight:800;padding:8px 12px;">▶ Inizia</button>`) : ""}
             </div>`).join("")}
         </div>` : ""}
       <button type="button" data-fuori style="width:100%;margin:6px 0 14px;border:1.5px dashed #94a3b8;background:#fff;border-radius:12px;padding:12px;font-weight:800;font-size:14.5px;color:#334155;">➕ Sto facendo un'altra lavorazione</button>
