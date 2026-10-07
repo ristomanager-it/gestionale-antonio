@@ -4497,8 +4497,11 @@ async function stampaEtichetteBrother() {
     supabase.from("etichette").select("*").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata?.id).order("id", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", aziendaId).limit(1).maybeSingle(),
   ]);
-  if (!etichetta) return alert("Manca la scheda etichetta di questa ricetta (ingredienti, allergeni, conservazione): compilala in Crea ricetta › Etichetta di legge.");
-  if (etichetta.confermata === false) return alert("La scheda etichetta di questa ricetta è una bozza: controlla e conferma ingredienti e allergeni in Crea ricetta › Etichetta di legge.");
+  // scheda etichetta mancante o da confermare: si compila subito qui, poi si stampa
+  if (!etichetta || etichetta.confermata === false) {
+    etichetta = await schedaEtichettaRapida(etichetta);
+    if (!etichetta) return;
+  }
   const scadenza = document.getElementById("prod-scadenza")?.value || null;
   if (!scadenza) return alert("Manca la data di scadenza del lotto: impostala in Conservazione.");
   const righe = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0 && r.kg_per_confezione > 0);
