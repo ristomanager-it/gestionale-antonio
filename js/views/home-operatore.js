@@ -180,6 +180,15 @@ export async function render(container) {
       render(container);
     });
   });
+  container.querySelectorAll("[data-inizia]").forEach(b => {
+    b.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      b.disabled = true;
+      await supabase.from("produzioni_settimanali").update({ stato: "in_corso", iniziata_il: new Date().toISOString(), iniziata_da: dip?.nome || null })
+        .eq("id", b.getAttribute("data-inizia"));
+      render(container);
+    });
+  });
   container.querySelector("[data-fuori]")?.addEventListener("click", () => fuoriProgramma(supabase, azienda, sede, dip, container));
 
   import("../components/camera.js?v=" + (window.APP_V || "1"))
