@@ -4493,7 +4493,7 @@ async function stampaEtichetteBrother() {
   const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   const btn = document.getElementById("btn-print-etichettatrice");
-  const [{ data: etichetta }, { data: produttore }] = await Promise.all([
+  let [{ data: etichetta }, { data: produttore }] = await Promise.all([
     supabase.from("etichette").select("*").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata?.id).order("id", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", aziendaId).limit(1).maybeSingle(),
   ]);
