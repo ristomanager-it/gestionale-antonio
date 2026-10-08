@@ -395,7 +395,7 @@ function ascoltaSilenzio() {
       const soglia = Math.max(0.015, Math.min(0.02, campioni ? fondo / campioni : 0.01) * 2.2); // se parli subito il "fondo" non deve alzare troppo la soglia
       if (rms > soglia) { if (!parlato) primaVoce = Date.now(); parlato = true; diag.parlato = true; ultimaVoce = Date.now(); }
       // parla da piu' di 6 secondi: e' una dettatura (es. "nuova ricetta..."), non un comando
-      if (!dettatura && parlato && Date.now() - primaVoce > 6000 && Date.now() - ultimaVoce < 1200) {
+      if (!dettatura && parlato && Date.now() - primaVoce > 4000 && Date.now() - ultimaVoce < 1500) {
         dettatura = true; aggiornaFab();
         clearTimeout(timerMax); timerMax = setTimeout(fermaRegistrazione, DETTATURA_MAX);
         mostra({ t: "📝 Dettatura", c: "Continua con calma, anche con pause. Tocca 🎙️ quando hai finito." });
