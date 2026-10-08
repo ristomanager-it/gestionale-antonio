@@ -29,7 +29,7 @@ let silenzioso = null, canale = null, ultimoTrigger = 0;
 // Dettatura (ricette lunghe): niente stop sulle pause, si ferma col tocco. Si attiva nelle pagine
 // delle ricette o da sola se parli piu' di 6 secondi di fila.
 let dettatura = false;
-const DETTATURA_MAX = 180000, DETTATURA_SILENZIO = 30000;
+const DETTATURA_MAX = 600000, DETTATURA_SILENZIO = 45000;   // dettatura: fino a 10 minuti, si ferma dopo 45 s di silenzio o al tocco
 let diag = { picco: 0, fondo: 0, parlato: false, vad: false, inizio: 0 };
 
 const sb = () => window.supabaseClient || window.supabase;
