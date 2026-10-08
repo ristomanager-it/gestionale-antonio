@@ -4681,7 +4681,9 @@ async function stampaEtichetteBrother() {
       const peso = Number(r.kg_per_confezione) > 0 ? Math.round(r.kg_per_confezione * 1000) : null;
       const pz = Number(r.pezzi_per_confezione) || 0;
       const et = peso ? etichetta : { ...etichetta, denominazione: String(etichetta.denominazione || "") + (pz > 1 ? " · " + pz + " pz" : "") };
-      const esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info, peso, copie: r.numero_confezioni, formato });
+      // la nota della confezione (banchetto, ristorante, evento...) va in etichetta come "PER: ..."
+      const dest = String(r.note || "").trim();
+      const esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: dest ? { ...info, destinazione: dest } : info, peso, copie: r.numero_confezioni, formato });
       if (esito.motivo === "troppo_lungo") return alert("Il testo della scheda etichetta non entra nel " + formato.larghezzaMm + "x" + formato.lunghezzaMm + " a norma: allunga l'etichetta oppure accorcia ingredienti o conservazione.");
       if (!esito.ok) return alert("Errore invio etichette: " + esito.motivo);
       tot += r.numero_confezioni;
