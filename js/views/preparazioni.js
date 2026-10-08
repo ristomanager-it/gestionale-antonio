@@ -4000,10 +4000,17 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
     firme: log.firme || []
   }));
 
+  // Alla registrazione il database crea gia' da solo le righe delle fasi del lotto:
+  // l'inserimento allora va in conflitto e le firme gia' fatte sulla pagina andavano perse.
+  // Se le righe esistono, le aggiorno con firme, orari e note.
+  let errIns = null;
   try {
-    await supabase.from("produzione_log_haccp").insert(rows);
-  } catch (e) {
-    console.warn("Log HACCP non salvato (best-effort):", e);
+    const r = await supabase.from("produzione_log_haccp").insert(rows);
+    errIns = r?.error || null;
+  } catch (e) { errIns = e; }
+  if (errIns) {
+    console.warn("Fasi gia' create, aggiorno le righe:", errIns?.message || errIns);
+    await salvaLogHaccpConLotto(lottoUUID, aziendaId, true);
   }
 }
 
