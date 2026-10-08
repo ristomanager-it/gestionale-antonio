@@ -486,9 +486,22 @@ if (lavoroParam) {
     if (lv) {
       window.__rfLavoroVoce = lv.id
       const t = String(lv.testo || "").toLowerCase().replace(/^(sto |ok |allora )?(comincio|inizio|iniziando|cominciando|attacco|parto) a /, "").trim()
-      const r = ricetteCache.find((x) => String(x.nome || "").toLowerCase() === t)
-        || ricetteCache.find((x) => t.startsWith(String(x.nome || "").toLowerCase()) || String(x.nome || "").toLowerCase().startsWith(t))
-        || ricetteCache.find((x) => t.includes(String(x.nome || "").toLowerCase()) && String(x.nome || "").length > 6)
+      // la ricetta con piu' parole in comune ("Pulizia e porzionatura filetto di manzo" =
+      // "Filetto di manzo - pulizia e porzionatura"), anche in ordine diverso
+      const parole = (x) => String(x || "").toLowerCase().split(/[^a-zà-ù0-9]+/).filter((w) => w.length >= 4)
+      const pt = parole(t)
+      let r = ricetteCache.find((x) => String(x.nome || "").toLowerCase() === t) || null
+      if (!r && pt.length) {
+        let best = 0
+        ricetteCache.forEach((x) => {
+          const pr = parole(x.nome)
+          if (!pr.length) return
+          const comuni = pt.filter((w) => pr.some((q) => q.startsWith(w.slice(0, -1)) || w.startsWith(q.slice(0, -1)))).length
+          const punti = comuni / Math.max(pt.length, pr.length)
+          if (punti > best) { best = punti; r = x }
+        })
+        if (best < 0.6) r = null
+      }
       if (r) {
         ricettaSelezionata = r
         const inp = document.getElementById("prod-ricetta-search"), hid = document.getElementById("prod-ricetta-id")
