@@ -1388,6 +1388,22 @@ function setupOperatorePIN() {
 /* CONFEZIONI */
 /* ========================================================= */
 
+// "3,944 + 3,894 + 1,9" -> tre buste da 1, ognuna col suo peso (stampa: un'etichetta per busta)
+function aggiungiPesateBuste() {
+  const el = document.getElementById("pesate-buste");
+  const pesi = String(el?.value || "").split(/[+;\n]|\s{2,}/).map((x) => Number(String(x).trim().replace(",", "."))).filter((n) => n > 0);
+  if (!pesi.length) return alert("Scrivi i pesi delle buste, per esempio 3,944 + 3,894 + 1,9");
+  confezioniRows = (confezioniRows || []).filter((r) => r.porzione_id || r.confezione_label || Number(r.numero_confezioni) > 0);
+  pesi.forEach((kg) => confezioniRows.push({
+    id: cryptoRandomId(), porzione_id: "", confezione_label: "Busta sottovuoto " + String(kg).replace(".", ",") + " kg",
+    peso_kg: kg, pezzi_per_confezione: 1, numero_confezioni: 1, note: ""
+  }));
+  if (el) el.value = "";
+  renderConfezioniRows();
+  recalcResaUI();
+  try { pianificaSalvataggioLottoAperto(); } catch (_) {}
+}
+
 function addConfezioneRow() {
   confezioniRows.push({
     id: cryptoRandomId(),
