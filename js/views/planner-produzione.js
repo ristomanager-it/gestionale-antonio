@@ -39,6 +39,12 @@ export async function render(container){
         </div>
       </div>
 
+      <div style="position:sticky;top:0;z-index:20;background:var(--bg, #f5f7fb);padding:6px 0 8px;margin-bottom:6px;">
+        <input id="planner-cerca" type="search" autocomplete="off" placeholder="🔍 Cerca: piatto, lavorazione, persona, evento…"
+          style="width:100%;font-size:16px;padding:11px 14px;border:1.5px solid #cbd5e1;border-radius:12px;background:#fff;">
+        <div id="planner-cerca-esito" style="font-size:12.5px;color:#64748b;margin-top:4px;display:none;"></div>
+      </div>
+
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
         <button id="view-day-btn" class="app-button small" onclick="window.plannerProduzioneSetView('day')">
           Day
