@@ -722,7 +722,29 @@ function renderCard(r){
   `
 }
 
+// Cerca nel planning: con 30 lavorazioni in un giorno si trova subito quella giusta.
+// Il filtro resta attivo anche quando il planning si aggiorna da solo.
+function applicaCerca(){
+  const q = String(document.getElementById("planner-cerca")?.value || "").trim().toLowerCase()
+  const esito = document.getElementById("planner-cerca-esito")
+  let viste = 0
+  document.querySelectorAll(".planner-card").forEach(c => {
+    if (!q) { c.style.display = ""; c.querySelectorAll(".planner-sub").forEach(s => { s.style.display = "" }); return }
+    const subs = c.querySelectorAll(".planner-sub")
+    let ok = c.textContent.toLowerCase().includes(q)
+    if (subs.length) {
+      let qualcuna = false
+      subs.forEach(s => { const m = s.textContent.toLowerCase().includes(q); s.style.display = (m || c.querySelector(".planner-card-title")?.textContent.toLowerCase().includes(q)) ? "" : "none"; if (m) qualcuna = true })
+      ok = ok && (qualcuna || c.querySelector(".planner-card-title")?.textContent.toLowerCase().includes(q))
+    }
+    c.style.display = ok ? "" : "none"
+    if (ok) viste++
+  })
+  if (esito) { esito.style.display = q ? "" : "none"; esito.textContent = q ? (viste ? viste + " lavorazioni trovate" : "Nessuna lavorazione trovata") : "" }
+}
+
 function bindCalendarEvents(){
+  applicaCerca()
   // nella scheda unica ogni ricetta si apre per conto suo
   document.querySelectorAll(".planner-sub").forEach(sub => {
     sub.onclick = (e) => { e.stopPropagation(); window.plannerProduzioneOpenEdit(sub.dataset.id) }
