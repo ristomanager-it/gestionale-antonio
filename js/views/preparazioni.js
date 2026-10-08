@@ -2449,6 +2449,7 @@ function bindEvents() {
   document.getElementById("confezioni-wrap")?.addEventListener("input", (e) => { onConfezioniChange(e); pianificaSalvataggioLottoAperto(); });
   document.getElementById("confezioni-wrap")?.addEventListener("click", (e) => { onConfezioniClick(e); pianificaSalvataggioLottoAperto(); });
   document.getElementById("prod-peso-reale")?.addEventListener("input", () => pianificaSalvataggioLottoAperto());
+  document.getElementById("btn-pesate-buste")?.addEventListener("click", aggiungiPesateBuste);
   // piu' pesate: "3,944 + 3,894 + 1,9" diventa il totale quando si esce dal campo
   document.getElementById("prod-peso-reale")?.addEventListener("change", (e) => {
     const v = String(e.target.value || "");
