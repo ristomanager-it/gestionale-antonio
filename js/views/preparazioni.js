@@ -2424,6 +2424,14 @@ function bindEvents() {
   document.getElementById("confezioni-wrap")?.addEventListener("input", (e) => { onConfezioniChange(e); pianificaSalvataggioLottoAperto(); });
   document.getElementById("confezioni-wrap")?.addEventListener("click", (e) => { onConfezioniClick(e); pianificaSalvataggioLottoAperto(); });
   document.getElementById("prod-peso-reale")?.addEventListener("input", () => pianificaSalvataggioLottoAperto());
+  // piu' pesate: "3,944 + 3,894 + 1,9" diventa il totale quando si esce dal campo
+  document.getElementById("prod-peso-reale")?.addEventListener("change", (e) => {
+    const v = String(e.target.value || "");
+    if (!v.includes("+")) return;
+    const tot = v.split("+").map((x) => Number(String(x).trim().replace(",", ".")) || 0).reduce((a, b) => a + b, 0);
+    e.target.value = String(Math.round(tot * 1000) / 1000);
+    e.target.dispatchEvent(new Event("input", { bubbles: true }));
+  });
   document.getElementById("prod-scadenza")?.addEventListener("change", () => pianificaSalvataggioLottoAperto());
 
   document.getElementById("btn-add-coprodotto")?.addEventListener("click", () => {
