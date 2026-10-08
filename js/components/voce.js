@@ -400,8 +400,8 @@ function ascoltaSilenzio() {
         clearTimeout(timerMax); timerMax = setTimeout(fermaRegistrazione, DETTATURA_MAX);
         mostra({ t: "📝 Dettatura", c: "Continua con calma, anche con pause. Tocca 🎙️ quando hai finito." });
       }
-      if (parlato && Date.now() - ultimaVoce > (dettatura ? DETTATURA_SILENZIO : 1500)) return fermaRegistrazione();
-      if (!parlato && t > (dettatura ? 15000 : 6000)) return fermaRegistrazione();
+      if (parlato && Date.now() - ultimaVoce > (dettatura ? DETTATURA_SILENZIO : 2500)) return fermaRegistrazione();
+      if (!parlato && t > (dettatura ? 30000 : 6000)) return fermaRegistrazione();
       rafVad = requestAnimationFrame(giro);
     };
     rafVad = requestAnimationFrame(giro);
