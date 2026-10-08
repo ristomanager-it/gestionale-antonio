@@ -4698,7 +4698,10 @@ async function stampaEtichetteBrother() {
       if (esito.motivo === "troppo_lungo") return alert("Il testo della scheda etichetta non entra nel " + formato.larghezzaMm + "x" + formato.lunghezzaMm + " a norma: allunga l'etichetta oppure accorcia ingredienti o conservazione.");
       if (!esito.ok) return alert("Errore invio etichette: " + esito.motivo);
       tot += r.numero_confezioni;
+      const riga = (confezioniRows || []).find((c) => c.id === r._rowId);
+      if (riga) riga.stampata = true;
     }
+    try { renderConfezioniRows(); pianificaSalvataggioLottoAperto(); } catch (_) {}
     // etichettare chiude il lotto: lo chiude chi lavora, con le etichette (non piu' da solo col peso)
     let chiusa = "";
     try {
