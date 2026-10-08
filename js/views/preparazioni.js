@@ -3953,6 +3953,8 @@ function buildDettaglioConfezionamento() {
           kg_per_confezione: pesoKg * (Number(c.pezzi_per_confezione) || 1),
           kg_totali_riga: pesoKg * (Number(c.pezzi_per_confezione) || 1) * Number(c.numero_confezioni),
           note: c.note || "",
+          stampata: !!c.stampata,
+          _rowId: c.id,
         };
       });
   } catch (e) { return []; }
