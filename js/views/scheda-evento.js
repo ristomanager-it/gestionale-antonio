@@ -51,7 +51,7 @@ async function elencoEventi(box, az) {
 async function scheda(box, az, id) {
   const [{ data: p }, { data: righe }, { data: sezioni }, { data: dip }] = await Promise.all([
     sb().from("preventivi").select("id, titolo_evento, data_evento, ora_evento, n_invitati, n_bambini, intolleranze, sede_uuid, stato").eq("id", id).maybeSingle(),
-    sb().from("preventivi_righe").select("id, sezione_menu, nome_portata, ricetta_id, quantita, ricette(nome)").eq("preventivo_id", id).order("id"),
+    sb().from("preventivi_righe").select("id, sezione_menu, nome_portata, ricetta_id, quantita, ricette(nome)").eq("preventivo_id", id).is("semilavorato_di", null).order("id"),
     sb().from("sezioni_menu").select("nome, ordine, per_bambini").eq("azienda_id", az),
     sb().from("dipendenti").select("id, nome, cognome, mansione, attivo").eq("azienda_id", az).order("mansione").order("nome"),
   ]);
