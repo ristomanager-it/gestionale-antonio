@@ -4668,8 +4668,9 @@ async function stampaEtichetteBrother() {
   } catch (_) {}
   const scadenza = document.getElementById("prod-scadenza")?.value || null;
   if (!scadenza) return alert("Manca la data di scadenza del lotto: impostala in Conservazione.");
-  const righe = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0 && r.kg_per_confezione > 0);
-  if (!righe.length) return alert("Nessuna confezione con peso e numero: aggiungile nel confezionamento.");
+  // basta il numero di confezioni: se il peso non c'e' (es. crocchette a pezzi) l'etichetta riporta i pezzi
+  const righe = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0);
+  if (!righe.length) return alert("Nessuna confezione: nel confezionamento scrivi quante confezioni hai fatto.");
   const info = { codice_lotto: lottoCorrente().codice_lotto || "", data_scadenza: scadenza, operatore: operatoriDelLotto() };
   const formato = await scegliFormatoEtichetta();
   if (!formato) return;
