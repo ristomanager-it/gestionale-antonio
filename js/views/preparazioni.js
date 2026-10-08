@@ -5273,7 +5273,8 @@ async function resumeDaLotto(lottoUuid) {
         peso_kg: d.peso_porzione_kg ?? d.peso_kg ?? "",
         pezzi_per_confezione: d.pezzi_per_confezione ?? 1,
         numero_confezioni: d.numero_confezioni ?? "",
-        note: d.note ?? ""
+        note: d.note ?? "",
+        stampata: !!d.stampata
       }));
       renderConfezioniRows();
     }
