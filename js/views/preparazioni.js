@@ -4671,8 +4671,17 @@ async function stampaEtichetteBrother() {
   const scadenza = document.getElementById("prod-scadenza")?.value || null;
   if (!scadenza) return alert("Manca la data di scadenza del lotto: impostala in Conservazione.");
   // basta il numero di confezioni: se il peso non c'e' (es. crocchette a pezzi) l'etichetta riporta i pezzi
-  const righe = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0);
-  if (!righe.length) return alert("Nessuna confezione: nel confezionamento scrivi quante confezioni hai fatto.");
+  const tutte = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0);
+  if (!tutte.length) return alert("Nessuna confezione: nel confezionamento scrivi quante confezioni hai fatto.");
+  // si stampano solo le confezioni nuove: quelle gia' stampate non escono di nuovo
+  let righe = tutte.filter((r) => !r.stampata);
+  if (!righe.length) {
+    if (!confirm("Le etichette di tutte queste confezioni sono già state stampate. Le ristampo?")) return;
+    righe = tutte;
+  } else if (righe.length < tutte.length) {
+    const n = righe.reduce((a, r) => a + r.numero_confezioni, 0);
+    if (!confirm("Stampo solo le confezioni nuove: " + n + " etichette (" + righe.map((r) => r.label + (r.note ? " · " + r.note : "")).join(", ") + "). Le altre sono già state stampate.")) return;
+  }
   const info = { codice_lotto: lottoCorrente().codice_lotto || "", data_scadenza: scadenza, operatore: operatoriDelLotto() };
   const formato = await scegliFormatoEtichetta();
   if (!formato) return;
