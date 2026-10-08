@@ -4565,6 +4565,14 @@ async function stampaEtichetteBrother() {
     etichetta = await schedaEtichettaRapida(etichetta);
     if (!etichetta) return;
   }
+  // la conservazione scritta in etichetta segue lo scenario scelto per questo lotto (es. abbattuto a -18)
+  try {
+    const scSel = (scenariConservazione || []).find((x) => String(x.id) === String(document.getElementById("prod-conservazione")?.value || ""));
+    const t = (String(scSel?.scenario_label || "") + " " + String(scSel?.temperatura || "")).toLowerCase();
+    if (/-\s?18|negativ|congel|surgel/.test(t)) {
+      etichetta = { ...etichetta, conservazione: "Conservare in congelatore a -18 °C. Una volta scongelato conservare in frigorifero tra 0 e +4 °C e non ricongelare." };
+    }
+  } catch (_) {}
   const scadenza = document.getElementById("prod-scadenza")?.value || null;
   if (!scadenza) return alert("Manca la data di scadenza del lotto: impostala in Conservazione.");
   const righe = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0 && r.kg_per_confezione > 0);
