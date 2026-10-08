@@ -1069,7 +1069,7 @@ async function salva(container, supabase, azienda, sede) {
   }
 
   await Promise.all([
-    supabase.from("preventivi_righe").delete().eq("preventivo_id", id),
+    supabase.from("preventivi_righe").delete().eq("preventivo_id", id).is("semilavorato_di", null),
     supabase.from("preventivi_extra").delete().eq("preventivo_id", id),
   ]);
 
