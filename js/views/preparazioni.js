@@ -502,7 +502,8 @@ if (lavoroParam) {
         const inp = document.getElementById("prod-ricetta-search"); if (inp) inp.value = lv.testo || ""
         setRicettaInfo("Scegli la ricetta di questo lavoro dall'elenco")
       }
-      setTimeout(() => document.getElementById("prod-peso-reale")?.scrollIntoView({ behavior: "smooth", block: "center" }), 400)
+      // si comincia dalle fasi (il peso si segna dopo, nel confezionamento)
+      setTimeout(() => document.getElementById("haccp-fasi-wrap")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400)
     }
   } catch (e) { console.warn("lavoro:", e) }
 }
