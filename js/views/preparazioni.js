@@ -4725,17 +4725,10 @@ async function stampaEtichetteBrother() {
     let chiusa = "";
     try {
       const lt = lottoCorrente();
-      // il lotto si chiude solo quando non restano fasi da fare (escluse quelle al servizio):
-      // la Wellington etichettata il martedi' resta aperta fino alla cottura e all'assemblaggio
-      const daFare = (logHaccp || []).filter((l, i) => !eFaseDelServizio(fasiCache[i]) && !(Array.isArray(l.firme) && l.firme.length) && !l.firmato);
-      if (lt?.lotto_uuid && !daFare.length) {
-        const firmatari = operatoriDelLotto();
-        const chi = (logHaccp || []).flatMap((l) => (Array.isArray(l.firme) ? l.firme : [])).find((f) => f?.operatore_id)?.operatore_id || null;
-        const { error: eL } = await supabase.from("produzione_lotti").update({
-          stato: "firmato", firmato_at: new Date().toISOString(), chiuso_at: new Date().toISOString(),
-          chiuso_da: chi, firma_tramite: "etichettatura", conforme: true,
-        }).eq("lotto_uuid", lt.lotto_uuid).in("stato", ["aperta", "bozza"]);
-        if (!eL) chiusa = "\n✓ Lotto chiuso" + (firmatari ? " da " + firmatari : "") + ".";
+      if (lt?.lotto_uuid) {
+        await supabase.rpc("chiudi_lotto_se_completo", { p_lotto_uuid: lt.lotto_uuid });
+        const { data: st } = await supabase.from("produzione_lotti").select("stato").eq("lotto_uuid", lt.lotto_uuid).maybeSingle();
+        chiusa = st?.stato === "firmato" ? "\n✓ Lotto chiuso." : "\nIl lotto resta aperto: mancano fasi da firmare.";
       }
     } catch (_) {}
     if (window.__rfPlannerIdCorrente) {
