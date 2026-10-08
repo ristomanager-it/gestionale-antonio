@@ -3871,6 +3871,12 @@ async function salvaProduzione() {
     savedLottoUUID = luuid;
     resumeLottoUUID = luuid;
     lottoApertoCodice = nuovo.codice_lotto || String(luuid).slice(0, 8);
+    // il lavoro partito a voce diventa questo lotto: sparisce da "lavoro in corso"
+    if (window.__rfLavoroVoce) {
+      supabase.from("voce_lavori_aperti").update({ chiuso_at: new Date().toISOString(), lotto_id: nuovo?.id || null })
+        .eq("id", window.__rfLavoroVoce).then(() => {}, () => {});
+      window.__rfLavoroVoce = null;
+    }
     aggiornaAbilitazioneStampe();
     setEsito("✅ Produzione aperta. Lotto: " + lottoApertoCodice + ". Resa e confezioni si salvano da sole.", false);
     if (btn) { btn.disabled = false; btn.textContent = "💾 Salva avanzamento"; }
