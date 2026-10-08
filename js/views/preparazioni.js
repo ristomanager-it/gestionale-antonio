@@ -467,6 +467,38 @@ if (lottoParam) {
   await resumeDaLotto(lottoParam)
 }
 
+// Lavoro partito a voce o dallo schermo produzioni (es. "Arista... in sottovuoto"):
+// si apre con la sua ricetta, si segnano i pesi e si registra il lotto; il lavoro si chiude da solo.
+window.__rfLavoroVoce = null
+const lavoroParam = params.get("lavoro")
+if (lavoroParam) {
+  try {
+    const sbL = window.supabaseClient || window.supabase
+    const { data: lv } = await sbL.from("voce_lavori_aperti").select("id, testo").eq("id", lavoroParam).maybeSingle()
+    if (lv) {
+      window.__rfLavoroVoce = lv.id
+      const t = String(lv.testo || "").toLowerCase().replace(/^(sto |ok |allora )?(comincio|inizio|iniziando|cominciando|attacco|parto) a /, "").trim()
+      const r = ricetteCache.find((x) => String(x.nome || "").toLowerCase() === t)
+        || ricetteCache.find((x) => t.startsWith(String(x.nome || "").toLowerCase()) || String(x.nome || "").toLowerCase().startsWith(t))
+        || ricetteCache.find((x) => t.includes(String(x.nome || "").toLowerCase()) && String(x.nome || "").length > 6)
+      if (r) {
+        ricettaSelezionata = r
+        const inp = document.getElementById("prod-ricetta-search"), hid = document.getElementById("prod-ricetta-id")
+        if (inp) inp.value = r.nome
+        if (hid) hid.value = r.id
+        const bv = document.getElementById("btn-vedi-ricetta"); if (bv) bv.disabled = false
+        setRicettaInfo("Dal lavoro in corso ✔")
+        await Promise.all([loadPorzioniRicetta(r.id), loadConservazioni(r.id), loadFasiHaccp(r.id), loadStadiRicetta(r.id), loadConfezioniMemoria()])
+        recalcResaUI()
+      } else {
+        const inp = document.getElementById("prod-ricetta-search"); if (inp) inp.value = lv.testo || ""
+        setRicettaInfo("Scegli la ricetta di questo lavoro dall'elenco")
+      }
+      setTimeout(() => document.getElementById("prod-peso-reale")?.scrollIntoView({ behavior: "smooth", block: "center" }), 400)
+    }
+  } catch (e) { console.warn("lavoro:", e) }
+}
+
 setupAutocompleteRicette();
 setupOperatorePIN();
 bindEvents();
