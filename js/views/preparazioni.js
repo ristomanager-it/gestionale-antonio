@@ -1975,7 +1975,8 @@ function getResaTeoricaKg() {
 function getPesoRealeKg() {
   const el = document.getElementById("prod-peso-reale");
   const raw = (el?.value ?? "").toString().trim();
-  const n = parseFloat(raw.replace(",", "."));
+  // anche piu' pesate scritte di fila: "3,944 + 3,894 + 1,9"
+  const n = raw.split("+").map((x) => parseFloat(String(x).trim().replace(",", ".")) || 0).reduce((a, b) => a + b, 0);
   if (!Number.isFinite(n) || n < 0) return 0;
   return n;
 }
