@@ -3592,6 +3592,7 @@ function applicaFirmaAIdx(idx, match) {
         ora_fine: log.ora_fine ? new Date(log.ora_fine).toISOString() : null,
         valore_misurato: log.valore_misurato ?? null, valore_um: log.valore_um || null,
         durata_reale_min: log.durata_reale_min ?? null,
+        inizio_origine: log.inizio_origine || null,
         esito: log.esito || "ok",
         note: log.note || null,
         firmato_da: log.firmato_da || null,
