@@ -5178,6 +5178,8 @@ async function resumeDaLotto(lottoUuid) {
   const supabase = window.supabaseClient
   const aziendaId = window.state?.azienda?.id
   if (!supabase || !aziendaId) return
+  // ogni fase della ricetta deve avere la sua riga nel lotto, altrimenti la firma non ha dove salvarsi
+  try { await supabase.rpc("crea_fasi_mancanti_lotto", { p_lotto_uuid: lottoUuid }) } catch (_) {}
 
   const { data: lotto } = await supabase
     .from("produzione_lotti")
