@@ -3552,6 +3552,22 @@ function applicaFirmaAIdx(idx, match) {
   }
   calcolaHaccpDurata(idx);
 
+  /* Tempo che non torna (Inizia fase premuto solo alla fine, o mai): invece di salvare
+     "0 minuti", che falsano le medie, si chiede quanto ci si e' messo. Vuoto = non lo so. */
+  if (!["porzionatura", "conservazione", "raffreddamento", "abbattimento", "attesa"].includes(_tipoFirma)
+      && !(Number(log.durata_reale_min) >= 2)) {
+    const risp = window.prompt("Quanti minuti ci hai messo per \"" + (log.fase_nome || "questa fase") + "\"?\n(Lascia vuoto se non lo sai)", "");
+    const min = Number(String(risp || "").replace(",", "."));
+    if (min > 0 && min < 1440) {
+      const fine = new Date(log.ora_fine || Date.now());
+      log.ora_inizio = _oraLocale(new Date(fine.getTime() - min * 60000));
+      log.durata_reale_min = Math.round(min);
+      log.inizio_origine = "dichiarato";
+    } else {
+      log.durata_reale_min = null;
+    }
+  }
+
   /* La firma va nel database SUBITO, non al salvataggio della produzione.
      Prima le firme restavano nel browser fino a "Registra produzione": il KDS
      mostrava 4/7 mentre in cucina ne erano state firmate sei, e tutte
