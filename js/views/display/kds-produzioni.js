@@ -139,7 +139,7 @@ async function caricaLavori(sedeId) {
       <div style="font-size:15px;font-weight:700;margin-top:3px;">${sc.slice(0, 8).map((x) => e(x.nome) + (x.giorni < 0 ? " (scaduto)" : "")).join(" · ")}${sc.length > 8 ? " · e altri " + (sc.length - 8) : ""}</div>
     </div>` : "";
   box.innerHTML = scHtml + (lavoriCache.length ? `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px;">${lavoriCache.map((l) => `
-    <div style="background:#0b3b52;border:1px solid #1e6a8a;border-radius:12px;padding:10px 14px;color:#e2f2f9;min-width:220px;">
+    <div onclick="location.hash='#/preparazioni?lavoro=${l.id}'" style="cursor:pointer;background:#0b3b52;border:1px solid #1e6a8a;border-radius:12px;padding:10px 14px;color:#e2f2f9;min-width:220px;">
       <div style="font-size:11px;letter-spacing:.6px;color:#7dd3fc;font-weight:800;">⏱ LAVORO IN CORSO</div>
       <div style="font-size:16px;font-weight:800;margin-top:2px;">${e(String(l.testo || "").replace(/^(sto |ok |allora )?(comincio|inizio|iniziando|cominciando|attacco|parto) a /i, ""))}</div>
       <div style="font-size:13px;margin-top:4px;">${e(l.operatore_nome || "")} · <b data-since="${new Date(l.inizio_at).getTime()}"></b></div>
