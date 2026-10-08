@@ -97,7 +97,8 @@ function nuovo(azienda, sede) {
 async function caricaPreventivo(supabase, id) {
   const [p, r, e, q, f, pg, lot] = await Promise.all([
     supabase.from("preventivi").select("*").eq("id", id).maybeSingle(),
-    supabase.from("preventivi_righe").select("*").eq("preventivo_id", id).order("id"),
+    // le righe dei semilavorati le genera il sistema per il planning: non sono portate del menu
+    supabase.from("preventivi_righe").select("*").eq("preventivo_id", id).is("semilavorato_di", null).order("id"),
     supabase.from("preventivi_extra").select("*").eq("preventivo_id", id).order("id"),
     supabase.from("preventivi_richieste").select("*").eq("preventivo_id", id).order("creata_il", { ascending: false }),
     supabase.from("preventivi_allegati").select("*").eq("preventivo_id", id).order("ordine"),
