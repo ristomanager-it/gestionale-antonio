@@ -348,6 +348,14 @@ export async function render(container) {
         body: `
           <div id="confezioni-casa"><div id="confezioni-blocco">
             <div id="rimanenza-conf" style="position:sticky;top:0;z-index:5;margin-bottom:10px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:700;background:#f1f5f9;color:#334155;">Inserisci la resa per vedere quanto resta da confezionare</div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+              <div style="font-weight:800;font-size:13.5px;">⚖️ Pesi delle buste — un'etichetta per busta</div>
+              <div style="font-size:12px;color:#475569;margin:2px 0 6px;">Per i pezzi di peso diverso (arista, roast-beef…): scrivi i pesi, ognuno avrà la sua etichetta col suo peso.</div>
+              <div style="display:flex;gap:6px;">
+                <input id="pesate-buste" class="input" type="text" inputmode="decimal" placeholder="3,944 + 3,894 + 1,9" style="flex:1;">
+                <button type="button" id="btn-pesate-buste" class="app-button">Aggiungi</button>
+              </div>
+            </div>
             <div id="confezioni-wrap"></div>
 
             <div class="form-actions" style="margin-top:10px;">
