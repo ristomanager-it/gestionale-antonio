@@ -262,7 +262,7 @@ export async function render(container) {
 
             <div id="peso-casa"><div id="peso-blocco" class="form-group">
               <label>⚖️ Resa: peso totale reale prodotto (kg)</label>
-              <input id="prod-peso-reale" class="input" type="number" min="0" step="0.001" inputmode="decimal" placeholder="Es: 12,500" ${savedLotto ? "disabled" : ""} />
+              <input id="prod-peso-reale" class="input" type="text" inputmode="decimal" placeholder="Es: 12,500 — più pesate: 3,944 + 3,894 + 1,9" ${savedLotto ? "disabled" : ""} />
               <div class="form-help">Pesa il prodotto finito, prima di confezionarlo.</div>
             </div></div>
 
