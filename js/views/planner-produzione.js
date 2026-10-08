@@ -278,6 +278,7 @@ export async function render(container){
 
   ensureWindowBindings()
   refreshToolbarState()
+  document.getElementById("planner-cerca")?.addEventListener("input", applicaCerca)
   await renderCurrentView()
 
   // ogni minuto il planning si aggiorna da solo: chi preme "Inizia fase" compare subito come IN CORSO
