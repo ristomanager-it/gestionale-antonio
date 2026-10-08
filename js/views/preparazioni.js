@@ -4719,7 +4719,9 @@ async function stampaEtichetteBrother() {
       if (riga) riga.stampata = true;
     }
     try { renderConfezioniRows(); pianificaSalvataggioLottoAperto(); } catch (_) {}
-    // etichettare chiude il lotto: lo chiude chi lavora, con le etichette (non piu' da solo col peso)
+    // Il lotto si chiude da solo sul server quando TUTTE le fasi risultano firmate nel registro
+    // e le etichette sono stampate (prima lo decideva la pagina, che poteva credere firmate
+    // fasi mai salvate). Qui si chiede solo com'e' andata.
     let chiusa = "";
     try {
       const lt = lottoCorrente();
