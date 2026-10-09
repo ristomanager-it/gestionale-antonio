@@ -18,6 +18,7 @@ export async function render(container){
 
   // si apre sempre sulla settimana di oggi (prima restava sull'ultima settimana guardata)
   currentDate = new Date()
+  window.__rfPlannerSuOggi = false
 
   await loadRicette()
   await loadReparti()
