@@ -191,6 +191,14 @@ export async function render(container) {
       render(container);
     });
   });
+  // scadenze brevi: avviso in cima alla lista (conservati al volo e lotti in giacenza)
+  supabase.rpc("scadenze_brevi", { p_azienda: azienda?.id, p_giorni: 1 }).then(({ data: sc }) => {
+    const box = container.querySelector("#op-scadenze");
+    if (!box || !(sc || []).length) return;
+    box.innerHTML = `<a href="#/magazzino" style="display:block;text-decoration:none;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:10px 12px;margin:6px 0 4px;color:#9a3412;">
+      <b>⏰ ${sc.length === 1 ? "1 prodotto scade" : sc.length + " prodotti scadono"} a breve</b>
+      <div style="font-size:12.5px;margin-top:2px;">${sc.slice(0, 4).map(x => esc(x.cosa) + (x.giorni < 0 ? " · SCADUTO" : x.giorni === 0 ? " · oggi" : " · domani")).join("<br>")}</div></a>`;
+  }, () => {});
   container.querySelector("[data-fuori]")?.addEventListener("click", () => fuoriProgramma(supabase, azienda, sede, dip, container));
 
   import("../components/camera.js?v=" + (window.APP_V || "1"))
