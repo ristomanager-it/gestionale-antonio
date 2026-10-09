@@ -63,8 +63,10 @@ async function conservatiAlVolo(azienda) {
         <div style="font-size:12.5px;color:#64748b;">${esc(r.conservazione || "")} · ${esc(r.codice)}${r.operatore_nome ? " · " + esc(r.operatore_nome) : ""}</div>
         <div style="font-size:12.5px;font-weight:800;color:${col};">${quando}</div>
       </div>
-      <button type="button" data-esito="usato" data-id="${r.id}" style="border:0;border-radius:10px;padding:8px 10px;background:#dcfce7;color:#166534;font-weight:800;">✓ Usato</button>
-      <button type="button" data-esito="buttato" data-id="${r.id}" style="border:0;border-radius:10px;padding:8px 10px;background:#fee2e2;color:#b91c1c;font-weight:800;">🗑</button>
+      <button type="button" data-esito="usato" data-id="${r.id}" title="Usato" style="border:0;border-radius:10px;padding:8px 9px;background:#dcfce7;color:#166534;font-weight:800;">✓</button>
+      <button type="button" data-esito="pasto" data-id="${r.id}" title="Pasto del personale" style="border:0;border-radius:10px;padding:8px 9px;background:#e0f2fe;font-weight:800;">🍽</button>
+      <button type="button" data-esito="congelato" data-id="${r.id}" data-nome="${esc(r.cosa)}" title="Abbatti in negativo" style="border:0;border-radius:10px;padding:8px 9px;background:#ede9fe;font-weight:800;">❄️</button>
+      <button type="button" data-esito="buttato" data-id="${r.id}" title="Buttato" style="border:0;border-radius:10px;padding:8px 9px;background:#fee2e2;color:#b91c1c;font-weight:800;">🗑</button>
     </div>`;
   }).join("");
   box.innerHTML = `
