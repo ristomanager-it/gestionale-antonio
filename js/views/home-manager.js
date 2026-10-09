@@ -119,6 +119,7 @@ export async function render(container) {
       <div class="mg-griglia">
         <a href="#/prenotazioni" class="p"><i>🪑</i><b>Prenotazioni</b><span>Sala e tavoli</span></a>
         <a href="#/planner-produzione" class="p"><i>📋</i><b>Planning</b><span>Lavorazioni della settimana</span></a>
+        <a href="#" class="p" onclick="event.preventDefault();import('./js/components/etichetta-veloce.js?v='+(window.APP_V||1)).then(m=>m.apriEtichettaVeloce())"><i>🏷</i><b>Etichetta veloce</b><span>Conservare al volo</span></a>
         <a href="#/ordini" class="p"><i>📦</i><b>Ordini</b><span>Fornitori</span></a>
         <a href="#/magazzino" class="p"><i>🧊</i><b>Magazzino</b><span>Giacenze e scorte</span></a>
         <a href="#/planning-lavoro" class="p"><i>📆</i><b>Turni</b><span>Planning squadra</span></a>
