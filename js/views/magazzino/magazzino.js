@@ -70,7 +70,10 @@ function renderHome(azienda) {
     <div class="rf-magazzino-hint">
       Tocca una funzione per aprire la card mobile dal basso.
     </div>
+
+    <div id="rf-conservati" style="margin-top:16px;"></div>
   `;
+  conservatiAlVolo(azienda);
 
   const btnMP = home.querySelector("#btn-materie-prime");
   const btnPrep = home.querySelector("#btn-preparazioni");
