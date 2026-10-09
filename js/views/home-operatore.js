@@ -99,6 +99,7 @@ export async function render(container) {
                 : `<button type="button" data-inizia="${l.id}" style="margin-left:auto;border:0;border-radius:10px;background:#0e7490;color:#fff;font-weight:800;padding:8px 12px;">▶ Inizia</button>`) : ""}
             </div>`).join("")}
         </div>` : ""}
+      <div id="op-scadenze"></div>
       <button type="button" data-fuori style="width:100%;margin:6px 0 14px;border:1.5px dashed #94a3b8;background:#fff;border-radius:12px;padding:12px;font-weight:800;font-size:14.5px;color:#334155;">➕ Sto facendo un'altra lavorazione</button>
 
       ${com ? `
