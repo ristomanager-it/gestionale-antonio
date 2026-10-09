@@ -83,7 +83,9 @@ export async function apriEtichettaVeloce() {
     const scadISO = iso(scadenza());
     const { data: produttore } = await sb.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", az).limit(1).maybeSingle();
     const esito = await inviaEtichetteLotto({
-      etichetta: { denominazione: cosa, ingredienti: null, allergeni: [], conservazione: CONSERVAZIONI[cons].testo, confermata: true },
+      etichetta: { denominazione: cosa, ingredienti: null,
+                   allergeni: (() => { const a = Array.from(ov.querySelectorAll(".ev-all:checked")).map((c) => c.value); return a.length ? a : null; })(),
+                   conservazione: CONSERVAZIONI[cons].testo, confermata: true },
       produttore: produttore || {}, info: { codice_lotto: codice, data_scadenza: scadISO, operatore: chi.nome },
       peso: null, copie, formato,
     });
