@@ -518,6 +518,19 @@ async function renderWeekView(){
   `
 
   bindCalendarEvents()
+
+  // all'apertura la settimana si posiziona su oggi (una volta sola: l'aggiornamento
+  // automatico di ogni minuto non deve far saltare la pagina mentre si scorre)
+  if (!window.__rfPlannerSuOggi) {
+    const oggiCol = document.querySelector(`.planner-day-col[data-date="${formatDateLocal(new Date())}"]`)
+    if (oggiCol) {
+      window.__rfPlannerSuOggi = true
+      setTimeout(() => {
+        oggiCol.scrollIntoView({ behavior: "auto", block: "start", inline: "start" })
+        window.scrollBy(0, -80)   // lascia visibile la barra di ricerca
+      }, 50)
+    }
+  }
 }
 
 async function renderMonthView(){
