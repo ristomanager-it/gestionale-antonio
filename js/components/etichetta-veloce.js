@@ -99,6 +99,7 @@ export async function apriEtichettaVeloce(pre = {}) {
       operatore_id: chi.id || null, operatore_nome: chi.nome, copie }).then(() => {}, () => {});
     ov.remove();
     alert("🏷 Etichetta inviata alla Brother.");
+    try { pre.dopo && pre.dopo(); } catch (_) {}
   };
 }
 
