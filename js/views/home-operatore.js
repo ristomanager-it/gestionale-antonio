@@ -122,6 +122,7 @@ export async function render(container) {
           </details>`).join("")}` : ""}
 
       <div class="op-scorc">
+        <a href="#" class="s" onclick="event.preventDefault();import('./js/components/etichetta-veloce.js?v='+(window.APP_V||1)).then(m=>m.apriEtichettaVeloce())"><i>🏷</i><span>Etichetta veloce</span><b>›</b></a>
         <a href="#/preparazioni" class="s"><i>🔪</i><span>Nuova lavorazione (fuori programma)</span><b>›</b></a>
         <a href="#/mansionario-operatore" class="s"><i>📋</i><span>Mansionario</span><b>›</b></a>
         <a href="#/hr-richieste" class="s"><i>📆</i><span>Ferie e permessi</span><b>›</b></a>
