@@ -76,9 +76,19 @@ async function conservatiAlVolo(azienda) {
     </div>
     <div style="font-size:12px;color:#64748b;margin-top:6px;">✓ usato · 🍽 pasto del personale · ❄️ abbatti in negativo (nuova etichetta, 180 gg) · 🗑 buttato</div>`;
   box.querySelectorAll("[data-esito]").forEach((b) => b.addEventListener("click", async () => {
+    if (b.dataset.esito === "buttato" && !confirm("Lo segno come buttato? Finisce negli sprechi.")) return;
     b.disabled = true;
-    await sb.from("etichette_veloci").update({ esito: b.dataset.esito, chiuso_at: new Date().toISOString(),
-      chiuso_da: window.state?.dipendente?.nome || null }).eq("id", b.dataset.id);
+    if (b.dataset.esito === "congelato") {
+      // abbattuto in negativo: si chiude questo e si stampa l'etichetta nuova (-18 °C, 180 giorni)
+      await sb.from("etichette_veloci").update({ esito: "abbattuto", chiuso_at: new Date().toISOString(),
+        chiuso_da: window.state?.dipendente?.nome || null }).eq("id", b.dataset.id);
+      const m = await import("../../components/etichetta-veloce.js?v=" + (window.APP_V || 1));
+      m.apriEtichettaVeloce({ cosa: b.dataset.nome, cons: 2, dopo: () => conservatiAlVolo(azienda) });
+      conservatiAlVolo(azienda);
+      return;
+    }
+    const { error } = await sb.rpc("scadenza_esito", { p_tipo: "veloce", p_id: Number(b.dataset.id), p_esito: b.dataset.esito });
+    if (error) { alert("Non salvato: " + error.message); b.disabled = false; return; }
     conservatiAlVolo(azienda);
   }));
 }
