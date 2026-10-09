@@ -280,6 +280,19 @@ async function listaAvvisi(supabase, aziendaId, sedeId, oggiISO) {
   const out = [];
   if (!aziendaId) return out;
 
+  // scadenze brevi: conservati al volo e lotti in giacenza che scadono oggi o domani
+  try {
+    const { data: sc } = await supabase.rpc("scadenze_brevi", { p_azienda: aziendaId, p_giorni: 1 });
+    if ((sc || []).length) {
+      const scaduti = sc.filter(x => x.giorni < 0).length;
+      out.push({
+        livello: scaduti ? "rosso" : "giallo", link: "#/magazzino",
+        titolo: (scaduti ? scaduti + " già scaduti · " : "") + sc.length + (sc.length === 1 ? " prodotto scade a breve" : " prodotti scadono a breve"),
+        sotto: sc.slice(0, 3).map(x => x.cosa + (x.giorni < 0 ? " (scaduto)" : x.giorni === 0 ? " (oggi)" : " (domani)")).join(", "),
+      });
+    }
+  } catch (_) {}
+
   const squadra = await statoSquadra(supabase, aziendaId, sedeId, oggiISO);
   if (squadra.senzaTimbratura.length) {
     out.push({
