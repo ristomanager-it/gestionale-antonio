@@ -32,6 +32,11 @@ export async function apriEtichettaVeloce() {
       <div id="ev-cons" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;">
         ${CONSERVAZIONI.map((c, i) => `<button type="button" data-c="${i}" style="border:1.5px solid #cbd5e1;background:${i === 0 ? "#0E5A7A" : "#fff"};color:${i === 0 ? "#fff" : "#334155"};border-radius:10px;padding:8px 10px;font-weight:700;font-size:13.5px;">${esc(c.t)}</button>`).join("")}
       </div>
+      <label style="font-size:12px;font-weight:700;">Allergeni (se ci sono)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 10px;">
+        ${["glutine","crostacei","uova","pesce","arachidi","soia","latte","frutta a guscio","sedano","senape","sesamo","solfiti","lupini","molluschi"].map((a) =>
+          `<label style="display:flex;align-items:center;gap:4px;font-size:12.5px;background:#f1f5f9;border-radius:8px;padding:4px 7px;"><input type="checkbox" class="ev-all" value="${a}"> ${a}</label>`).join("")}
+      </div>
       <div style="display:flex;gap:8px;">
         <div style="flex:1;"><label style="font-size:12px;font-weight:700;">Giorni di vita</label>
           <input id="ev-gg" type="number" inputmode="numeric" min="0" value="${CONSERVAZIONI[0].gg}" style="${st}"></div>
