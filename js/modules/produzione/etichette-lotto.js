@@ -98,7 +98,8 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   const allerg = Array.isArray(etichetta.allergeni) ? etichetta.allergeni.filter(Boolean) : [];
   const pezzi = [];
   if (etichetta.ingredienti) pezzi.push({ b: "Ingredienti:", t: etichetta.ingredienti });
-  pezzi.push({ b: "Allergeni:", t: allerg.length ? allerg.join(", ") : "nessuno", rosso: allerg.length > 0 });
+  // allergeni === null: non dichiarati (etichetta veloce senza scelta) -> la riga non si stampa
+  if (etichetta.allergeni !== null) pezzi.push({ b: "Allergeni:", t: allerg.length ? allerg.join(", ") : "nessuno", rosso: allerg.length > 0 });
   if (etichetta.origine) pezzi.push({ b: "Origine:", t: etichetta.origine });
   if (etichetta.peso_sgocciolato_g) pezzi.push({ b: "Sgocciolato:", t: etichetta.peso_sgocciolato_g + " g" });
   // conservazione e dopo apertura: due frasi, col punto in mezzo anche se nella scheda manca
