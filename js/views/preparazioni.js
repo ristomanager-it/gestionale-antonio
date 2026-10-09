@@ -89,6 +89,7 @@ export async function render(container) {
       <div class="form-actions" style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap;">
         <button type="button" id="btn-salva-produzione-top" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra / apri in Produzioni</button>
         <button type="button" id="btn-back" class="app-button secondary">← Centro Produzione</button>
+        <button type="button" class="app-button secondary" onclick="import('./js/components/etichetta-veloce.js?v='+(window.APP_V||1)).then(m=>m.apriEtichettaVeloce())">🏷 Etichetta veloce</button>
         <button type="button" id="btn-guida-preparazioni" class="app-button secondary">❓ Come si usa</button>
         <button type="button" id="btn-scheda-tecnica" class="app-button secondary">📘 Scheda tecnica</button>
         <button type="button" id="btn-stampa-produzione" class="app-button secondary">🖨 Stampa scheda produzione</button>
