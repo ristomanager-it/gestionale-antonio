@@ -60,6 +60,14 @@ export async function render(app) {
     if (error || !data?.ok) { alert("Non salvato: " + (error?.message || data?.messaggio)); b.disabled = false; return; }
     const card = b.closest(".sc-card");
     card.innerHTML = `<div class="sc-fatto">${esc(data.messaggio)}</div>`;
+    // abbattuto in negativo: serve l'etichetta nuova con la scadenza nuova
+    if (b.dataset.e === "congelato") {
+      if (b.dataset.t === "veloce") {
+        import("../components/etichetta-veloce.js?v=" + (window.APP_V || 1)).then((m) => m.apriEtichettaVeloce({ cosa: b.dataset.nome, cons: 2 }));
+      } else {
+        alert("Abbattuto in negativo: ristampa l'etichetta del lotto con la nuova scadenza (dalla lavorazione o dal Registro lotti).");
+      }
+    }
     setTimeout(() => { carica(); caricaSprechi(); }, 1200);
   }
 
