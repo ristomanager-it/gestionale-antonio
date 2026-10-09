@@ -73,7 +73,8 @@ async function conservatiAlVolo(azienda) {
     <div style="font-weight:800;font-size:15px;margin-bottom:6px;">🏷 Conservati al volo <span style="font-weight:600;color:#64748b;font-size:13px;">(${(data || []).length})</span></div>
     <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
       ${righe || `<div style="padding:12px;color:#64748b;font-size:13.5px;">Niente in giacenza: quello che metti via con l'etichetta veloce compare qui.</div>`}
-    </div>`;
+    </div>
+    <div style="font-size:12px;color:#64748b;margin-top:6px;">✓ usato · 🍽 pasto del personale · ❄️ abbatti in negativo (nuova etichetta, 180 gg) · 🗑 buttato</div>`;
   box.querySelectorAll("[data-esito]").forEach((b) => b.addEventListener("click", async () => {
     b.disabled = true;
     await sb.from("etichette_veloci").update({ esito: b.dataset.esito, chiuso_at: new Date().toISOString(),
