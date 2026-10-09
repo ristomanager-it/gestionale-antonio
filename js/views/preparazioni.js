@@ -2605,10 +2605,61 @@ function getLottoRefId(lotto) {
 /* HACCP — FASI PRODUZIONE                                   */
 /* ========================================================= */
 
+/* Ricette "a gusti" (paninetti, cornetti, tramezzini): per ogni ricevimento chi lavora
+   sceglie 3 gusti tra le ricette Aperitivi, almeno uno vegetariano e uno con pesce.
+   La scelta resta sul lotto; le quantita' si dividono tra i gusti. */
+async function sceltaGusti(ricettaId) {
+  const sb = window.supabaseClient || window.supabase;
+  const wrap = document.getElementById("haccp-fasi-wrap");
+  if (!sb || !wrap) return;
+  document.getElementById("rf-gusti")?.remove();
+  const { data: ric } = await sb.from("ricette").select("gusti_tipologia, nome").eq("id", ricettaId).maybeSingle();
+  if (!ric?.gusti_tipologia) return;
+  const pref = ric.gusti_tipologia;
+  const [{ data: opz }, lotto] = [await sb.from("ricette").select("id, nome, vegetariano, con_pesce")
+      .eq("azienda_id", window.state?.azienda?.id).eq("attivo", true).ilike("nome", pref + " %").order("nome"), lottoCorrente()];
+  let scelti = [], tot = null;
+  if (lotto?.lotto_uuid) {
+    const { data: lt } = await sb.from("produzione_lotti").select("gusti, quantita_output").eq("lotto_uuid", lotto.lotto_uuid).maybeSingle();
+    scelti = (lt?.gusti || []).map(Number);
+    tot = Number(lt?.quantita_output) || null;
+  }
+  const box = document.createElement("div");
+  box.id = "rf-gusti";
+  box.style.cssText = "background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 14px;margin-bottom:12px;";
+  const disegna = () => {
+    const sel = (opz || []).filter((o) => scelti.includes(Number(o.id)));
+    const okVeg = sel.some((o) => o.vegetariano), okPesce = sel.some((o) => o.con_pesce);
+    box.innerHTML = `
+      <div style="font-weight:800;font-size:15px;">🥪 ${escapeHtml(ric.nome)}: scegli 3 gusti</div>
+      <div style="font-size:12.5px;color:#9a3412;margin:2px 0 8px;">Almeno uno 🌱 vegetariano e uno 🐟 con pesce.</div>
+      ${(opz || []).map((o) => `
+        <label style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #fde7d2;font-size:14px;">
+          <input type="checkbox" data-g="${o.id}" ${scelti.includes(Number(o.id)) ? "checked" : ""}>
+          <span style="flex:1;">${escapeHtml(String(o.nome).slice(pref.length + 1))}</span>
+          ${o.vegetariano ? "<span title='vegetariano'>🌱</span>" : ""}${o.con_pesce ? "<span title='con pesce'>🐟</span>" : ""}
+        </label>`).join("")}
+      <div style="margin-top:8px;font-size:13px;font-weight:700;color:${sel.length === 3 && okVeg && okPesce ? "#166534" : "#9a3412"};">
+        ${sel.length}/3 scelti${sel.length ? " · " + (okVeg ? "🌱 ok" : "manca il vegetariano") + " · " + (okPesce ? "🐟 ok" : "manca quello con pesce") : ""}
+        ${sel.length === 3 && tot ? " · circa " + Math.ceil(tot / 3) + " pezzi per gusto" : ""}
+      </div>`;
+    box.querySelectorAll("[data-g]").forEach((c) => c.addEventListener("change", async () => {
+      const id = Number(c.dataset.g);
+      if (c.checked) { if (scelti.length >= 3) { c.checked = false; return alert("Massimo 3 gusti: togline uno prima."); } scelti.push(id); }
+      else scelti = scelti.filter((x) => x !== id);
+      if (lotto?.lotto_uuid) await sb.from("produzione_lotti").update({ gusti: scelti }).eq("lotto_uuid", lotto.lotto_uuid);
+      disegna();
+    }));
+  };
+  disegna();
+  wrap.prepend(box);
+}
+
 async function loadFasiHaccp(ricettaId, stadioDa, stadioA) {
   const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   if (!supabase || !aziendaId || !ricettaId) return;
+  sceltaGusti(ricettaId);
   notaPorzionatura(supabase, ricettaId);
 
   // Entrando da uno stadio successivo, le fasi precedenti sono gia' state eseguite e
