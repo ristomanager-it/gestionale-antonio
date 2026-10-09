@@ -41,6 +41,45 @@ export async function render(container) {
   renderHome(azienda);
 }
 
+/* Conservati al volo: quello che e' stato messo via con l'etichetta veloce
+   (mezzo pomodoro, una salsa avanzata...). Resta qui finche' non si segna usato o buttato;
+   i primi della lista sono quelli che scadono prima. */
+async function conservatiAlVolo(azienda) {
+  const box = document.getElementById("rf-conservati");
+  const sb = window.supabaseClient || window.supabase;
+  if (!box || !sb) return;
+  const { data } = await sb.from("etichette_veloci").select("id, codice, cosa, conservazione, data_scadenza, operatore_nome, created_at")
+    .eq("azienda_id", azienda.id).is("esito", null).order("data_scadenza", { ascending: true }).limit(200);
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const righe = (data || []).map((r) => {
+    const sc = r.data_scadenza ? new Date(r.data_scadenza + "T00:00:00") : null;
+    const gg = sc ? Math.round((sc - oggi) / 86400000) : null;
+    const col = gg === null ? "#64748b" : gg < 0 ? "#b91c1c" : gg <= 1 ? "#c2410c" : "#166534";
+    const quando = gg === null ? "" : gg < 0 ? "SCADUTO" : gg === 0 ? "scade oggi" : gg === 1 ? "scade domani" : "scade il " + sc.toLocaleDateString("it-IT");
+    return `<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid #eef2f7;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;">${esc(r.cosa)}</div>
+        <div style="font-size:12.5px;color:#64748b;">${esc(r.conservazione || "")} · ${esc(r.codice)}${r.operatore_nome ? " · " + esc(r.operatore_nome) : ""}</div>
+        <div style="font-size:12.5px;font-weight:800;color:${col};">${quando}</div>
+      </div>
+      <button type="button" data-esito="usato" data-id="${r.id}" style="border:0;border-radius:10px;padding:8px 10px;background:#dcfce7;color:#166534;font-weight:800;">✓ Usato</button>
+      <button type="button" data-esito="buttato" data-id="${r.id}" style="border:0;border-radius:10px;padding:8px 10px;background:#fee2e2;color:#b91c1c;font-weight:800;">🗑</button>
+    </div>`;
+  }).join("");
+  box.innerHTML = `
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px;">🏷 Conservati al volo <span style="font-weight:600;color:#64748b;font-size:13px;">(${(data || []).length})</span></div>
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+      ${righe || `<div style="padding:12px;color:#64748b;font-size:13.5px;">Niente in giacenza: quello che metti via con l'etichetta veloce compare qui.</div>`}
+    </div>`;
+  box.querySelectorAll("[data-esito]").forEach((b) => b.addEventListener("click", async () => {
+    b.disabled = true;
+    await sb.from("etichette_veloci").update({ esito: b.dataset.esito, chiuso_at: new Date().toISOString(),
+      chiuso_da: window.state?.dipendente?.nome || null }).eq("id", b.dataset.id);
+    conservatiAlVolo(azienda);
+  }));
+}
+
 function renderHome(azienda) {
   const home = document.getElementById("magazzino-home");
 
