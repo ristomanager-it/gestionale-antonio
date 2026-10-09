@@ -55,6 +55,9 @@ export async function apriEtichettaVeloce(pre = {}) {
 
   let cons = 0;
   const gg = ov.querySelector("#ev-gg"), scad = ov.querySelector("#ev-scad");
+  // precompilata (es. "abbatti in negativo" dal magazzino): cosa e conservazione gia' scelti
+  if (pre.cosa) ov.querySelector("#ev-cosa").value = pre.cosa;
+  if (Number.isInteger(pre.cons)) setTimeout(() => ov.querySelector(`[data-c="${pre.cons}"]`)?.click(), 0);
   const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   const scadenza = () => { const d = new Date(); d.setDate(d.getDate() + (Number(gg.value) || 0)); return d; };
   const mostra = () => { scad.textContent = "Scade il " + scadenza().toLocaleDateString("it-IT"); };
