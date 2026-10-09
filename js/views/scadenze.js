@@ -46,7 +46,8 @@ export async function render(app) {
         <div class="sc-r2">Lotto ${esc(v.lotto || "—")} · scade ${fd(v.scadenza)}${v.quantita ? " · " + esc(String(v.quantita).replace(".", ",")) + " " + esc(v.unita || "") : ""}${v.luogo ? " · " + esc(v.luogo) : ""}${v.costo ? " · vale " + euro(v.costo) : ""}</div>
         <div class="sc-az">
           <button data-e="usato" data-t="${v.tipo}" data-id="${v.id}">✓ Usato</button>
-          <button data-e="congelato" data-t="${v.tipo}" data-id="${v.id}">❄️ Congelato</button>
+          <button data-e="pasto" data-t="${v.tipo}" data-id="${v.id}">🍽 Pasto personale</button>
+          <button data-e="congelato" data-t="${v.tipo}" data-id="${v.id}" data-nome="${esc(v.nome)}">❄️ Abbatti -18 °C</button>
           <button data-e="buttato" data-t="${v.tipo}" data-id="${v.id}" class="sc-but">🗑 Buttato</button>
         </div></div>`).join("")}`).join("");
     el.querySelectorAll(".sc-az button").forEach((b) => b.addEventListener("click", () => esito(b)));
