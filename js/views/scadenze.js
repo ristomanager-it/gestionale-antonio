@@ -42,7 +42,7 @@ export async function render(app) {
     el.innerHTML = gruppi.map(([tit, lista, col]) => `
       <div class="sc-gr" style="color:${col}">${tit} · ${lista.length}</div>
       ${lista.map((v) => `<div class="sc-card" style="border-left-color:${col}">
-        <div class="sc-r1"><b>${esc(v.nome)}</b><span>${v.tipo === "fornitore" ? "fornitore" : "produzione"}</span></div>
+        <div class="sc-r1"><b>${esc(v.nome)}</b><span>${v.tipo === "fornitore" ? "fornitore" : v.tipo === "veloce" ? "🏷 al volo" : "produzione"}</span></div>
         <div class="sc-r2">Lotto ${esc(v.lotto || "—")} · scade ${fd(v.scadenza)}${v.quantita ? " · " + esc(String(v.quantita).replace(".", ",")) + " " + esc(v.unita || "") : ""}${v.luogo ? " · " + esc(v.luogo) : ""}${v.costo ? " · vale " + euro(v.costo) : ""}</div>
         <div class="sc-az">
           <button data-e="usato" data-t="${v.tipo}" data-id="${v.id}">✓ Usato</button>
