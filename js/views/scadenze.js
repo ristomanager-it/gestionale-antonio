@@ -73,7 +73,9 @@ export async function render(app) {
 
   async function caricaSprechi() {
     const inizio = new Date(); inizio.setDate(1); inizio.setHours(0, 0, 0, 0);
-    const { data } = await sb().from("sprechi").select("nome, costo, quantita, unita").eq("azienda_id", az).gte("created_at", inizio.toISOString()).limit(1000);
+    // i pasti del personale non sono sprechi
+    const { data } = await sb().from("sprechi").select("nome, costo, quantita, unita").eq("azienda_id", az).gte("created_at", inizio.toISOString())
+      .or("motivo.is.null,motivo.neq.pasto personale").limit(1000);
     const el = app.querySelector("#sc-sprechi");
     const righe = data || [];
     const tot = righe.reduce((s, r) => s + Number(r.costo || 0), 0);
