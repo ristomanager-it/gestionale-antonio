@@ -12,7 +12,7 @@ const CONSERVAZIONI = [
   { t: "Ambiente", testo: "Conservare in luogo fresco e asciutto", gg: 1 },
 ];
 
-export async function apriEtichettaVeloce() {
+export async function apriEtichettaVeloce(pre = {}) {
   const sb = window.supabaseClient || window.supabase;
   const az = window.state?.azienda?.id;
   if (!sb || !az) return;
