@@ -8,7 +8,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const CONSERVAZIONI = [
   { t: "Frigo +4 °C", testo: "Conservare in frigorifero tra 0 e +4 °C", gg: 2 },
   { t: "Sottovuoto in frigo", testo: "Sottovuoto, in frigorifero tra 0 e +4 °C", gg: 5 },
-  { t: "Congelato -18 °C", testo: "Conservare in congelatore a -18 °C. Una volta scongelato non ricongelare", gg: 90 },
+  { t: "Abbattuto -18 °C", testo: "Abbattuto in negativo. Conservare a -18 °C. Una volta scongelato non ricongelare", gg: 180 },
   { t: "Ambiente", testo: "Conservare in luogo fresco e asciutto", gg: 1 },
 ];
 
