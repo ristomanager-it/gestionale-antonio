@@ -177,7 +177,8 @@ export async function apriEtichettaVeloce(pre = {}) {
     sb.from("etichette_veloci").insert({ azienda_id: az, sede_id: window.state?.sedeAttiva?.id || null, codice, cosa,
       conservazione: CONSERVAZIONI[cons].t, giorni: Number(gg.value) || 0, data_scadenza: scadISO,
       operatore_id: chi.id || null, operatore_nome: chi.nome, copie,
-      quantita: qv > 0 ? qv : null, unita: qv > 0 ? um : null, destinazione: dest || null }).then(() => {}, () => {});
+      quantita: qv > 0 ? qv : null, unita: qv > 0 ? um : null, destinazione: dest || null,
+      allergeni: Array.from(ov.querySelectorAll(".ev-all:checked")).map((c) => c.value) }).then(() => {}, () => {});
     ov.remove();
     alert("🏷 Etichetta inviata alla Brother.");
     try { pre.dopo && pre.dopo(); } catch (_) {}
