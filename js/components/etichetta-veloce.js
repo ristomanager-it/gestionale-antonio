@@ -51,10 +51,17 @@ export async function apriEtichettaVeloce(pre = {}) {
         ${["glutine","crostacei","uova","pesce","arachidi","soia","latte","frutta a guscio","sedano","senape","sesamo","solfiti","lupini","molluschi"].map((a) =>
           `<label style="display:flex;align-items:center;gap:4px;font-size:12.5px;background:#f1f5f9;border-radius:8px;padding:4px 7px;"><input type="checkbox" class="ev-all" value="${a}"> ${a}</label>`).join("")}
       </div>
+      <label style="font-size:12px;font-weight:700;">Giorni di vita</label>
+      <div id="ev-ggq" style="display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 6px;">
+        ${[1, 2, 3, 5, 7, 10, 15, 30, 60, 90, 180].map((n) => `<button type="button" data-gg="${n}" style="min-width:42px;border:1.5px solid #cbd5e1;background:#fff;border-radius:9px;padding:7px 8px;font-weight:800;font-size:13.5px;">${n}</button>`).join("")}
+      </div>
       <div style="display:flex;gap:8px;">
-        <div style="flex:1;"><label style="font-size:12px;font-weight:700;">Giorni di vita</label>
+        <div style="flex:1;"><label style="font-size:12px;font-weight:700;">Giorni (o scrivili)</label>
           <input id="ev-gg" type="number" inputmode="numeric" min="0" value="${CONSERVAZIONI[0].gg}" style="${st}"></div>
-        <div style="width:100px;"><label style="font-size:12px;font-weight:700;">Copie</label>
+        <div style="flex:1;"><label style="font-size:12px;font-weight:700;">Peso (facoltativo)</label>
+          <div style="display:flex;gap:4px;"><input id="ev-peso" type="text" inputmode="decimal" placeholder="es. 350" style="${st}">
+          <select id="ev-um" style="border:1.5px solid #e2e8f0;border-radius:10px;font-size:15px;"><option value="g">g</option><option value="kg">kg</option></select></div></div>
+        <div style="width:80px;"><label style="font-size:12px;font-weight:700;">Copie</label>
           <input id="ev-copie" type="number" inputmode="numeric" min="1" value="1" style="${st}"></div>
       </div>
       <div id="ev-scad" style="font-size:13px;color:#b91c1c;font-weight:700;margin:6px 2px 10px;"></div>
