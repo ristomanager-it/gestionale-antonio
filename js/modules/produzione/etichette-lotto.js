@@ -107,9 +107,11 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
     .map(t => /[.!?]$/.test(t) ? t : t + ".").join(" ");
   if (cons) pezzi.push({ b: "", t: cons });
 
+  // titolo_grande: nome piu' grande (etichetta veloce); se non entra si torna alla misura normale
+  let grande = Number(etichetta.titolo_grande) > 1 ? Number(etichetta.titolo_grande) : 1;
   function fai(scala, disegna) {
     let y = ET_PAD - 2;
-    const fT = Math.round(34 * scala), fB = Math.max(25, Math.round(27 * scala)), lh = fB * 1.18;
+    const fT = Math.round(34 * scala * grande), fB = Math.max(25, Math.round(27 * scala)), lh = fB * 1.18;
     ctx.font = "bold " + fT + "px " + F;
     const tit = etWrap(ctx, (etichetta.denominazione || "") + (peso ? " · " + peso + " g" : ""), W).slice(0, 2);
     tit.forEach(r => { if (disegna) { ctx.fillStyle = "#000"; ctx.fillText(r, ET_PAD, y); } y += fT * 1.12; });
