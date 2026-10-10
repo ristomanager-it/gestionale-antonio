@@ -93,9 +93,13 @@ export async function apriEtichettaVeloce(pre = {}) {
   if (Number.isInteger(pre.cons)) setTimeout(() => ov.querySelector(`[data-c="${pre.cons}"]`)?.click(), 0);
   const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   const scadenza = () => { const d = new Date(); d.setDate(d.getDate() + (Number(gg.value) || 0)); return d; };
-  const mostra = () => { scad.textContent = "Scade il " + scadenza().toLocaleDateString("it-IT"); };
+  const mostra = () => {
+    scad.textContent = "Scade il " + scadenza().toLocaleDateString("it-IT");
+    ov.querySelectorAll("[data-gg]").forEach((b) => { const on = Number(b.dataset.gg) === Number(gg.value); b.style.background = on ? "#b91c1c" : "#fff"; b.style.color = on ? "#fff" : "#334155"; });
+  };
   mostra();
   gg.addEventListener("input", mostra);
+  ov.querySelectorAll("[data-gg]").forEach((b) => b.addEventListener("click", () => { gg.value = b.dataset.gg; mostra(); }));
   ov.querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => {
     cons = Number(b.dataset.c);
     ov.querySelectorAll("[data-c]").forEach((x) => { const on = x === b; x.style.background = on ? "#0E5A7A" : "#fff"; x.style.color = on ? "#fff" : "#334155"; });
