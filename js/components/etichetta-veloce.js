@@ -2,7 +2,7 @@
 // (mezzo pomodoro, una salsa avanzata, un trancio di pesce). Si scrive cosa è,
 // si sceglie la conservazione e i giorni, si firma col PIN: esce dalla Brother
 // con un codice (V-AAMMGG-HHMM), la scadenza e il nome di chi l'ha fatta.
-import { inviaEtichetteLotto, scegliFormatoEtichetta } from "../modules/produzione/etichette-lotto.js?v=20261009";
+import { inviaEtichetteLotto, scegliFormatoEtichetta } from "../modules/produzione/etichette-lotto.js?v=20261010";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const CONSERVAZIONI = [
@@ -16,7 +16,19 @@ export async function apriEtichettaVeloce(pre = {}) {
   const sb = window.supabaseClient || window.supabase;
   const az = window.state?.azienda?.id;
   if (!sb || !az) return;
-  const { data: dip } = await sb.from("dipendenti").select("id, nome, pin").eq("azienda_id", az).eq("attivo", true);
+  const [{ data: dip }, { data: ric }, { data: prod }] = await Promise.all([
+    sb.from("dipendenti").select("id, nome, pin").eq("azienda_id", az).eq("attivo", true),
+    sb.from("etichette").select("ricetta_id, denominazione, ingredienti, allergeni, origine").eq("azienda_id", az).eq("confermata", true).limit(2000),
+    sb.from("prodotti").select("id, nome, nome_etichetta, allergeni").eq("azienda_id", az).limit(3000),
+  ]);
+  // suggerimenti: prodotti gia' esistenti (da produzione con la loro scheda etichetta, o da acquisti)
+  const SUGG = new Map();
+  (ric || []).forEach((e) => { if (e.denominazione) SUGG.set("🍳 " + e.denominazione, { nome: e.denominazione, ingredienti: e.ingredienti, allergeni: e.allergeni || [], origine: e.origine, da: "ricetta" }); });
+  (prod || []).forEach((p) => {
+    const n = String(p.nome_etichetta || p.nome || "").trim();
+    if (n && !SUGG.has("📦 " + n)) SUGG.set("📦 " + n, { nome: n.charAt(0).toUpperCase() + n.slice(1), ingredienti: null, allergeni: p.allergeni || [], origine: null, da: "acquisti" });
+  });
+  let scelto = null;
   const io = window.state?.dipendente || null;
 
   const ov = document.createElement("div");
@@ -27,7 +39,9 @@ export async function apriEtichettaVeloce(pre = {}) {
       <div style="font-size:17px;font-weight:800;">🏷 Etichetta veloce</div>
       <div style="font-size:12.5px;color:#64748b;margin:4px 0 12px;">Per conservare al volo qualcosa che non ha una ricetta: scrivi cos'è, scegli come lo conservi, firma.</div>
       <label style="font-size:12px;font-weight:700;">Cos'è</label>
-      <input id="ev-cosa" placeholder="Es: mezzo pomodoro cuore di bue" style="${st}margin-bottom:10px;">
+      <input id="ev-cosa" list="ev-sugg" autocomplete="off" placeholder="Es: mezzo pomodoro cuore di bue — o cerca un prodotto" style="${st}margin-bottom:4px;">
+      <datalist id="ev-sugg">${Array.from(SUGG.keys()).map((k) => `<option value="${esc(k)}">`).join("")}</datalist>
+      <div id="ev-info" style="font-size:12px;color:#166534;font-weight:700;min-height:16px;margin:0 2px 8px;"></div>
       <label style="font-size:12px;font-weight:700;">Conservazione</label>
       <div id="ev-cons" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;">
         ${CONSERVAZIONI.map((c, i) => `<button type="button" data-c="${i}" style="border:1.5px solid #cbd5e1;background:${i === 0 ? "#0E5A7A" : "#fff"};color:${i === 0 ? "#fff" : "#334155"};border-radius:10px;padding:8px 10px;font-weight:700;font-size:13.5px;">${esc(c.t)}</button>`).join("")}
@@ -55,6 +69,18 @@ export async function apriEtichettaVeloce(pre = {}) {
 
   let cons = 0;
   const gg = ov.querySelector("#ev-gg"), scad = ov.querySelector("#ev-scad");
+  // prodotto gia' esistente: nome pulito, ingredienti e allergeni dalla sua scheda
+  const cosaEl = ov.querySelector("#ev-cosa"), info = ov.querySelector("#ev-info");
+  const applica = () => {
+    const s = SUGG.get(cosaEl.value);
+    if (!s) { if (scelto && cosaEl.value !== scelto.nome) { scelto = null; info.textContent = ""; } return; }
+    scelto = s;
+    cosaEl.value = s.nome;
+    ov.querySelectorAll(".ev-all").forEach((c) => { c.checked = (s.allergeni || []).includes(c.value); });
+    info.textContent = s.da === "ricetta" ? "📋 Etichetta completa dalla ricetta: ingredienti e allergeni" : "📦 Prodotto degli acquisti: allergeni dalla sua scheda";
+  };
+  cosaEl.addEventListener("input", applica);
+  cosaEl.addEventListener("change", applica);
   // precompilata (es. "abbatti in negativo" dal magazzino): cosa e conservazione gia' scelti
   if (pre.cosa) ov.querySelector("#ev-cosa").value = pre.cosa;
   if (Number.isInteger(pre.cons)) setTimeout(() => ov.querySelector(`[data-c="${pre.cons}"]`)?.click(), 0);
@@ -86,8 +112,10 @@ export async function apriEtichettaVeloce(pre = {}) {
     const scadISO = iso(scadenza());
     const { data: produttore } = await sb.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", az).limit(1).maybeSingle();
     const esito = await inviaEtichetteLotto({
-      etichetta: { denominazione: cosa, ingredienti: null,
-                   allergeni: (() => { const a = Array.from(ov.querySelectorAll(".ev-all:checked")).map((c) => c.value); return a.length ? a : null; })(),
+      etichetta: { denominazione: cosa, ingredienti: (scelto && scelto.nome === cosa) ? scelto.ingredienti : null,
+                   origine: (scelto && scelto.nome === cosa) ? scelto.origine : null, titolo_grande: 1.4,
+                   allergeni: (() => { const a = Array.from(ov.querySelectorAll(".ev-all:checked")).map((c) => c.value);
+                     return a.length ? a : (scelto && scelto.nome === cosa && scelto.da === "ricetta" ? [] : null); })(),
                    conservazione: CONSERVAZIONI[cons].testo, confermata: true },
       produttore: produttore || {}, info: { codice_lotto: codice, data_scadenza: scadISO, operatore: chi.nome },
       peso: null, copie, formato,
