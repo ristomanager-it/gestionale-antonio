@@ -21,11 +21,11 @@ export async function apriEtichettaVeloce(pre = {}) {
     sb.from("dipendenti").select("id, nome, pin").eq("azienda_id", az).eq("attivo", true),
     sb.from("etichette").select("ricetta_id, denominazione, ingredienti, allergeni, origine").eq("azienda_id", az).eq("confermata", true).limit(2000),
     sb.from("prodotti").select("id, nome, nome_etichetta, allergeni").eq("azienda_id", az).limit(3000),
-    sb.from("preventivi").select("titolo_evento, data_evento").eq("azienda_id", az).eq("stato", "confermato")
-      .gte("data_evento", oggiISO).order("data_evento").limit(30),
+    sb.from("etichette_veloci").select("destinazione").eq("azienda_id", az).not("destinazione", "is", null)
+      .order("created_at", { ascending: false }).limit(200),
   ]);
-  const DEST = (ev || []).map((e) => e.titolo_evento + " (" + new Date(e.data_evento + "T12:00:00").toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + ")")
-    .concat(["Trattoria", "Ristorante", "Banchetto", "Buffet", "Pasto del personale"]);
+  // destinazione scritta dall'operatore; come suggerimento solo quelle gia' scritte di recente
+  const DEST = Array.from(new Set((ev || []).map((e) => String(e.destinazione || "").trim()).filter(Boolean))).slice(0, 20);
   // suggerimenti: prodotti gia' esistenti (da produzione con la loro scheda etichetta, o da acquisti)
   const SUGG = new Map();
   (ric || []).forEach((e) => { if (e.denominazione) SUGG.set("🍳 " + e.denominazione, { nome: e.denominazione, ingredienti: e.ingredienti, allergeni: e.allergeni || [], origine: e.origine, da: "ricetta" }); });
