@@ -168,7 +168,8 @@ export async function apriEtichettaVeloce(pre = {}) {
                    allergeni: (() => { const a = Array.from(ov.querySelectorAll(".ev-all:checked")).map((c) => c.value);
                      return a.length ? a : (scelto && scelto.nome === cosa && scelto.da === "ricetta" ? [] : null); })(),
                    conservazione: CONSERVAZIONI[cons].testo, confermata: true },
-      produttore: produttore || {}, info: { codice_lotto: codice, data_scadenza: scadISO, operatore: chi.nome, destinazione: dest || null },
+      // il codice non si stampa: resta nell'app per ritrovarla in magazzino
+      produttore: produttore || {}, info: { codice_lotto: null, data_scadenza: scadISO, operatore: chi.nome, destinazione: dest || null },
       peso, copie, formato,
     });
     if (esito.motivo === "troppo_lungo") return alert("Il testo non entra nell'etichetta: accorcialo o allunga l'etichetta.");
