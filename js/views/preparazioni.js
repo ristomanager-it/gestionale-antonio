@@ -2673,11 +2673,63 @@ async function sceltaGusti(ricettaId) {
   wrap.prepend(box);
 }
 
+/* Porzionatura carne: una sola ricetta, il taglio si sceglie qui (dai prodotti degli acquisti)
+   con fornitore e lotto del fornitore. Il nome in etichetta diventa "<taglio> porzionato". */
+window.__rfTaglio = null;
+async function pannelloTaglio(ricettaId) {
+  const sb = window.supabaseClient || window.supabase;
+  const wrap = document.getElementById("haccp-fasi-wrap");
+  document.getElementById("rf-taglio")?.remove();
+  window.__rfTaglio = null;
+  if (!sb || !wrap) return;
+  const { data: ric } = await sb.from("ricette").select("taglio_da_scegliere").eq("id", ricettaId).maybeSingle();
+  if (!ric?.taglio_da_scegliere) return;
+  const az = window.state?.azienda?.id;
+  const [{ data: prod }, lotto] = [await sb.from("prodotti").select("id, nome, nome_etichetta, allergeni, fornitore_preferito")
+    .eq("azienda_id", az).order("nome").limit(3000), lottoCorrente()];
+  let att = {};
+  if (lotto?.lotto_uuid) {
+    const { data: lt } = await sb.from("produzione_lotti").select("taglio_prodotto_id, taglio_nome, fornitore_materia, lotto_fornitore_materia").eq("lotto_uuid", lotto.lotto_uuid).maybeSingle();
+    att = lt || {};
+  }
+  const nomeP = (p) => String(p.nome_etichetta || p.nome || "").trim();
+  const box = document.createElement("div");
+  box.id = "rf-taglio";
+  box.style.cssText = "background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 14px;margin-bottom:12px;";
+  box.innerHTML = `
+    <div style="font-weight:800;font-size:15px;">🥩 Taglio e provenienza</div>
+    <label style="font-size:12px;font-weight:700;margin-top:6px;display:block;">Taglio (dai prodotti acquistati)</label>
+    <input id="tg-nome" class="input" list="tg-prod" autocomplete="off" placeholder="Es: lombo di maiale" style="width:100%;" value="${escapeAttr(att.taglio_nome || "")}">
+    <datalist id="tg-prod">${(prod || []).map((p) => `<option value="${escapeAttr(nomeP(p))}">`).join("")}</datalist>
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <div style="flex:1;"><label style="font-size:12px;font-weight:700;">Fornitore</label>
+        <input id="tg-forn" class="input" style="width:100%;" value="${escapeAttr(att.fornitore_materia || "")}"></div>
+      <div style="flex:1;"><label style="font-size:12px;font-weight:700;">Lotto del fornitore</label>
+        <input id="tg-lotto" class="input" style="width:100%;" placeholder="dall'etichetta della carne" value="${escapeAttr(att.lotto_fornitore_materia || "")}"></div>
+    </div>
+    <div id="tg-esito" style="font-size:12px;color:#166534;font-weight:700;margin-top:6px;"></div>`;
+  wrap.prepend(box);
+  const salva = async () => {
+    const n = box.querySelector("#tg-nome").value.trim();
+    const p = (prod || []).find((x) => nomeP(x).toLowerCase() === n.toLowerCase());
+    if (p && !box.querySelector("#tg-forn").value.trim() && p.fornitore_preferito) box.querySelector("#tg-forn").value = p.fornitore_preferito;
+    window.__rfTaglio = n ? { nome: n, prodotto_id: p?.id || null, allergeni: p?.allergeni || [] } : null;
+    box.querySelector("#tg-esito").textContent = n ? "In etichetta: " + n.charAt(0).toUpperCase() + n.slice(1) + " porzionato" : "";
+    const lt = lottoCorrente();
+    if (lt?.lotto_uuid) await sb.from("produzione_lotti").update({ taglio_nome: n || null, taglio_prodotto_id: p?.id || null,
+      fornitore_materia: box.querySelector("#tg-forn").value.trim() || null, lotto_fornitore_materia: box.querySelector("#tg-lotto").value.trim() || null })
+      .eq("lotto_uuid", lt.lotto_uuid);
+  };
+  box.querySelectorAll("input").forEach((i) => i.addEventListener("change", salva));
+  if (att.taglio_nome) salva();
+}
+
 async function loadFasiHaccp(ricettaId, stadioDa, stadioA) {
   const supabase = window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
   if (!supabase || !aziendaId || !ricettaId) return;
   sceltaGusti(ricettaId);
+  pannelloTaglio(ricettaId);
   notaPorzionatura(supabase, ricettaId);
 
   // Entrando da uno stadio successivo, le fasi precedenti sono gia' state eseguite e
