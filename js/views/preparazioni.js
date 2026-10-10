@@ -1388,8 +1388,9 @@ function setupOperatorePIN() {
 
     const pin = (pinInput.value || "").trim();
     if (!pin) {
-      operatoreRisolto = null;
-      info.innerText = "Nessun operatore identificato";
+      const auto = firmatarioDelTelefono();
+      operatoreRisolto = auto;
+      info.innerText = auto ? "✍️ Firmi come " + auto.nome + " (telefono personale)" : "Nessun operatore identificato";
       return;
     }
 
