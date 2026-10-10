@@ -143,7 +143,7 @@ export async function apriEtichettaVeloce(pre = {}) {
     const um = ov.querySelector("#ev-um").value;
     const peso = qv > 0 && (um === "g" || um === "kg") ? Math.round(um === "kg" ? qv * 1000 : qv) : null;
     const nomeEt = cosa + (qv > 0 && !peso ? " · " + String(qv).replace(".", ",") + " " + um : "");
-    const dest = ov.querySelector("#ev-dest").value.trim().replace(/\s*\(\d{2}\/\d{2}\)$/, "");
+    const dest = ov.querySelector("#ev-dest").value.trim();
     const esito = await inviaEtichetteLotto({
       etichetta: { denominazione: nomeEt, ingredienti: (scelto && scelto.nome === cosa) ? scelto.ingredienti : null,
                    origine: (scelto && scelto.nome === cosa) ? scelto.origine : null, titolo_grande: 1.4,
