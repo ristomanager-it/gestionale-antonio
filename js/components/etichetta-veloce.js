@@ -125,7 +125,8 @@ export async function apriEtichettaVeloce(pre = {}) {
                      return a.length ? a : (scelto && scelto.nome === cosa && scelto.da === "ricetta" ? [] : null); })(),
                    conservazione: CONSERVAZIONI[cons].testo, confermata: true },
       produttore: produttore || {}, info: { codice_lotto: codice, data_scadenza: scadISO, operatore: chi.nome },
-      peso: null, copie, formato,
+      peso: (() => { const v = Number(String(ov.querySelector("#ev-peso").value || "").replace(",", ".")); if (!(v > 0)) return null;
+                     return Math.round(ov.querySelector("#ev-um").value === "kg" ? v * 1000 : v); })(), copie, formato,
     });
     if (esito.motivo === "troppo_lungo") return alert("Il testo non entra nell'etichetta: accorcialo o allunga l'etichetta.");
     if (!esito.ok) return alert("Errore invio etichetta: " + esito.motivo);
