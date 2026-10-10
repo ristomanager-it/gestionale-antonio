@@ -74,8 +74,9 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   ctx.fillStyle = ROSSO;
   sc.forEach((r, i) => ctx.fillText(r, ET_PAD, yS + i * 30));
   ctx.font = "bold 31px " + F; ctx.fillStyle = "#000";
-  const yL = yS - 36;
-  ctx.fillText("LOTTO " + (info.codice_lotto || ""), ET_PAD, yL);
+  // senza codice (etichetta veloce) la riga LOTTO non si stampa
+  const yL = info.codice_lotto ? yS - 36 : yS;
+  if (info.codice_lotto) ctx.fillText("LOTTO " + info.codice_lotto, ET_PAD, yL);
   // lotto unico per piu' eventi: un'etichetta per evento, con la sua destinazione
   let yTop = yL;
   if (info.destinazione) {
