@@ -98,6 +98,7 @@ ${sintesi(ora)}
       <div class="ad-griglia">
         <a href="#/prenotazioni" class="p spicca"><i>📖</i><b>Prenotazioni</b><span>Sala e coperti</span></a>
         <a href="#/planner-produzione" class="p spicca"><i>📋</i><b>Planning</b><span>Produzione della settimana</span></a>
+        <a href="#" class="p" onclick="event.preventDefault();import('./js/components/etichetta-veloce.js?v='+(window.APP_V||1)).then(m=>m.apriEtichettaVeloce())"><i>🏷</i><b>Etichetta veloce</b><span>Conservare al volo</span></a>
         <a href="#/bo-bilancio" class="p"><i>📊</i><b>Bilancio</b><span>Conto economico</span></a>
         <a href="#/menu-intelligence" class="p"><i>🍽️</i><b>Menu engineering</b><span>Cosa rende davvero</span></a>
         <a href="#/acquisti" class="p"><i>🧾</i><b>Fatture</b><span>Acquisti e costi</span></a>
