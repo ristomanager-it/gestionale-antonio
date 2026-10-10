@@ -4741,6 +4741,14 @@ async function stampaEtichetteBrother() {
     supabase.from("etichette").select("*").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata?.id).order("id", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", aziendaId).limit(1).maybeSingle(),
   ]);
+  // porzionatura carne: l'etichetta e' quella del taglio scelto
+  if (document.getElementById("rf-taglio")) {
+    const tg = window.__rfTaglio;
+    if (!tg?.nome) return alert("Scegli prima il taglio (es. lombo di maiale) nel riquadro 🥩 Taglio e provenienza.");
+    const nome = tg.nome.charAt(0).toUpperCase() + tg.nome.slice(1);
+    etichetta = { denominazione: nome + " porzionato", ingredienti: nome, allergeni: tg.allergeni || [],
+                  conservazione: "Conservare in frigorifero tra 0 e +4 °C", tmc_dicitura: "Da consumarsi entro", confermata: true };
+  }
   // scheda etichetta mancante o da confermare: si compila subito qui, poi si stampa
   if (!etichetta || etichetta.confermata === false) {
     etichetta = await schedaEtichettaRapida(etichetta);
