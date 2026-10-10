@@ -74,7 +74,7 @@ export async function apriEtichettaVeloce(pre = {}) {
         </select>
       </div>
       <label style="font-size:12px;font-weight:700;margin-top:8px;display:block;">Destinazione (facoltativa)</label>
-      <input id="ev-dest" list="ev-dest-l" autocomplete="off" placeholder="Matrimonio di…, Battesimo…, Trattoria…" style="${st}">
+      <input id="ev-dest" list="ev-dest-l" autocomplete="off" placeholder="Scrivi per chi è: es. matrimonio, trattoria…" style="${st}">
       <datalist id="ev-dest-l">${DEST.map((d) => `<option value="${esc(d)}">`).join("")}</datalist>
       <div id="ev-scad" style="font-size:13px;color:#b91c1c;font-weight:700;margin:6px 2px 10px;"></div>
       <label style="font-size:12px;font-weight:700;">Firma: PIN di chi lo fa</label>
