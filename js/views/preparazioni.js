@@ -3791,7 +3791,7 @@ function apriCoproFase(idx) {
       <label style="font-size:12px;font-weight:700;margin-top:8px;display:block;">Scadenza</label>
       <input id="cp-scad" class="input" type="date" style="width:100%;">
       <label style="font-size:12px;font-weight:700;margin-top:8px;display:block;">Firma: PIN di chi lo fa</label>
-      <input id="cp-pin" class="input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" style="width:100%;">
+      <input id="cp-pin" class="input" type="password" inputmode="numeric" autocomplete="off" placeholder="${firmatarioDelTelefono() ? "vuoto = firmi tu (" + escapeAttr(firmatarioDelTelefono().nome) + ")" : "PIN"}" style="width:100%;">
       <div style="display:flex;gap:8px;margin-top:14px;">
         <button type="button" data-no class="app-button gray" style="flex:1;">Annulla</button>
         <button type="button" data-si class="app-button" style="flex:2;">Salva e stampa 🏷</button>
