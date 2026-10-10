@@ -21,8 +21,8 @@ export async function apriEtichettaVeloce(pre = {}) {
     sb.from("dipendenti").select("id, nome, pin").eq("azienda_id", az).eq("attivo", true),
     sb.from("etichette").select("ricetta_id, denominazione, ingredienti, allergeni, origine").eq("azienda_id", az).eq("confermata", true).limit(2000),
     sb.from("prodotti").select("id, nome, nome_etichetta, allergeni").eq("azienda_id", az).limit(3000),
-    sb.from("etichette_veloci").select("destinazione").eq("azienda_id", az).not("destinazione", "is", null)
-      .order("created_at", { ascending: false }).limit(200),
+    sb.from("etichette_veloci").select("cosa, destinazione, allergeni, conservazione, giorni, unita")
+      .eq("azienda_id", az).order("created_at", { ascending: false }).limit(400),
   ]);
   // destinazione scritta dall'operatore; come suggerimento solo quelle gia' scritte di recente
   const DEST = Array.from(new Set((ev || []).map((e) => String(e.destinazione || "").trim()).filter(Boolean))).slice(0, 20);
