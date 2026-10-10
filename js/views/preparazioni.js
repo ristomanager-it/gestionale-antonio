@@ -1354,6 +1354,17 @@ function suggerisciScenario() {
 /* DIPENDENTI / PIN */
 /* ========================================================= */
 
+/* Firma automatica: chi lavora dal SUO telefono (account collegato a un dipendente)
+   firma col suo nome senza PIN. Sul tablet condiviso (account non collegato a una
+   persona, o dispositivo segnato come condiviso) il PIN si chiede sempre. */
+function firmatarioDelTelefono() {
+  try { if (localStorage.getItem("rf_dispositivo_condiviso") === "1") return null; } catch (_) {}
+  const io = window.state?.dipendente;
+  if (!io?.id) return null;
+  return dipendentiCache.find((d) => String(d.id) === String(io.id)) || { id: io.id, nome: io.nome };
+}
+window.firmatarioDelTelefono = firmatarioDelTelefono;
+
 function setupOperatorePIN() {
   const pinInput = document.getElementById("prod-operatore-pin");
   const info = document.getElementById("prod-operatore-info");
@@ -1361,6 +1372,11 @@ function setupOperatorePIN() {
 
   operatoreRisolto = null;
   info.innerText = "Nessun operatore identificato";
+  const auto = firmatarioDelTelefono();
+  if (auto) {
+    operatoreRisolto = auto;
+    info.innerText = "✍️ Firmi come " + auto.nome + " (telefono personale)";
+  }
 
   /* Il campo e' type="password" e iPhone lo riempie da solo con una password
      salvata: con l'autofill l'evento "input" non scatta e il PIN non veniva
