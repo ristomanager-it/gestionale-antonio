@@ -108,7 +108,13 @@ export async function apriEtichettaVeloce(pre = {}) {
     scelto = s;
     cosaEl.value = s.nome;
     ov.querySelectorAll(".ev-all").forEach((c) => { c.checked = (s.allergeni || []).includes(c.value); });
-    info.textContent = s.da === "ricetta" ? "📋 Etichetta completa dalla ricetta: ingredienti e allergeni" : "📦 Prodotto degli acquisti: allergeni dalla sua scheda";
+    if (s.da === "veloce") {
+      if (Number.isInteger(s.cons)) ov.querySelector(`[data-c="${s.cons}"]`)?.click();
+      if (s.gg != null) { gg.value = s.gg; mostra(); }
+      if (s.um) ov.querySelector("#ev-um").value = s.um;
+    }
+    info.textContent = s.da === "ricetta" ? "📋 Etichetta completa dalla ricetta: ingredienti e allergeni"
+      : s.da === "veloce" ? "🏷 Già usato: allergeni, conservazione e giorni come l'ultima volta" : "📦 Prodotto degli acquisti: allergeni dalla sua scheda";
   };
   cosaEl.addEventListener("input", applica);
   cosaEl.addEventListener("change", applica);
