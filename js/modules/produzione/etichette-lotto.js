@@ -134,6 +134,7 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   }
   let scala = 1;
   while (scala > 0.9 && fai(scala, false) > limite) scala -= 0.02;
+  if (fai(scala, false) > limite && grande > 1) { grande = 1; scala = 1; while (scala > 0.9 && fai(scala, false) > limite) scala -= 0.02; }
   if (fai(scala, false) > limite) return { png: null, troppoLungo: true };
   fai(scala, true);
   riduciATreColori(ctx, ET_W, ET_H);
