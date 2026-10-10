@@ -33,8 +33,20 @@ export async function apriEtichettaVeloce(pre = {}) {
     const n = String(p.nome_etichetta || p.nome || "").trim();
     if (n && !SUGG.has("📦 " + n)) SUGG.set("📦 " + n, { nome: n.charAt(0).toUpperCase() + n.slice(1), ingredienti: null, allergeni: p.allergeni || [], origine: null, da: "acquisti" });
   });
+  // prodotti veloci: quello che e' gia' stato scritto almeno una volta resta in memoria,
+  // con allergeni, conservazione, giorni e unita' dell'ultima volta
+  (ev || []).forEach((v) => {
+    const n = String(v.cosa || "").trim();
+    if (!n || SUGG.has("🏷 " + n)) return;
+    const ci = CONSERVAZIONI.findIndex((c) => c.t === v.conservazione);
+    SUGG.set("🏷 " + n, { nome: n, ingredienti: null, allergeni: v.allergeni || [], origine: null, da: "veloce",
+                          cons: ci >= 0 ? ci : null, gg: v.giorni, um: v.unita });
+  });
   let scelto = null;
-  const io = window.state?.dipendente || null;
+  // telefono personale: firma chi e' entrato; tablet condiviso (o account non collegato a una persona): PIN
+  let condiviso = false;
+  try { condiviso = localStorage.getItem("rf_dispositivo_condiviso") === "1"; } catch (_) {}
+  const io = condiviso ? null : (window.state?.dipendente || null);
 
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
