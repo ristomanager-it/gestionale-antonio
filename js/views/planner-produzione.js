@@ -902,7 +902,7 @@ function renderFormHtml({ mode, id, date, record, suggerimento }){
 
         <div class="planner-field">
           <label>Ricetta</label>
-          <select id="planner-ricetta">
+          <select id="planner-ricetta" onchange="(function(s){var p=document.getElementById('planner-prodotto');if(p&&!p.value.trim()&&s.value)p.value=s.options[s.selectedIndex].text.trim();})(this)">
             <option value="">Nessuna</option>
             ${ricette.map(r => `
               <option value="${r.id}" ${String(record.ricetta_id || "") === String(r.id) ? "selected" : ""}>
