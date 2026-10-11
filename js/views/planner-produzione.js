@@ -855,9 +855,9 @@ async function openCreate(date, preset){
     mode: "create",
     date,
     record: {
-      prodotto: "",
+      prodotto: preset?.prodotto || "",
       quantita: 1,
-      ricetta_id: "",
+      ricetta_id: preset?.ricetta_id || "",
       dipendente_id: "",
       tempo_stimato_minuti: "",
       stato: "da_fare",
