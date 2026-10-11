@@ -895,9 +895,9 @@ function renderFormHtml({ mode, id, date, record, suggerimento }){
 
         <div class="planner-field full">
           <label>Prodotto / Lavorazione</label>
-          <input id="planner-prodotto" type="text" list="planner-ricette-lista" autocomplete="off" value="${escapeAttr(record.prodotto || "")}" placeholder="Scrivi: ti propone le ricette (es. Norcina)"
-            oninput="(function(el){var s=document.getElementById('planner-ricetta');if(!s)return;var v=el.value.trim().toLowerCase();for(var i=0;i<s.options.length;i++){if(s.options[i].text.trim().toLowerCase()===v){s.value=s.options[i].value;break;}}})(this)">
-          <datalist id="planner-ricette-lista">${ricette.map(r => `<option value="${escapeAttr(r.nome)}">`).join("")}</datalist>
+          <input id="planner-prodotto" type="text" autocomplete="off" value="${escapeAttr(record.prodotto || "")}" placeholder="Scrivi: ti propone le ricette (es. Norcina)"
+            oninput="window.__rfPlannerSuggerisci && window.__rfPlannerSuggerisci(this)">
+          <div id="planner-ricette-sugg" style="display:flex;flex-direction:column;gap:4px;margin-top:6px;"></div>
         </div>
 
         <div class="planner-field">
