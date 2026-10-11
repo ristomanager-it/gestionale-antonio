@@ -867,6 +867,7 @@ async function openCreate(date, preset){
   })
 
   bindFormEvents("create", null, date)
+  if (preset) document.getElementById("planner-prodotto")?.scrollIntoView({ behavior: "smooth", block: "center" })
 }
 
 async function openEdit(id){
