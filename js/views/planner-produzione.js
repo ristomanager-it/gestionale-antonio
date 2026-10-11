@@ -361,6 +361,28 @@ function ensureWindowBindings(){
   }
 }
 
+// Suggerimenti ricette mentre si scrive (il datalist su iPhone non mostra niente)
+window.__rfPlannerSuggerisci = function(el){
+  const box = document.getElementById("planner-ricette-sugg")
+  const sel = document.getElementById("planner-ricetta")
+  if (!box) return
+  const v = String(el.value || "").trim().toLowerCase()
+  const esatta = ricette.find(r => String(r.nome).trim().toLowerCase() === v)
+  if (esatta && sel) sel.value = String(esatta.id)
+  if (v.length < 2 || esatta) { box.innerHTML = ""; return }
+  const parole = v.split(/\s+/).filter(Boolean)
+  const trovate = ricette.filter(r => { const n = String(r.nome).toLowerCase(); return parole.every(p => n.includes(p)) }).slice(0, 8)
+  box.innerHTML = trovate.map(r => `<button type="button" data-rid="${r.id}" style="text-align:left;border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;padding:10px 12px;font-size:15px;">📖 ${escapeHtml(r.nome)}</button>`).join("")
+    || `<div style="font-size:13px;color:#64748b;">Nessuna ricetta con "${escapeHtml(el.value)}": va bene anche come lavorazione libera.</div>`
+  box.querySelectorAll("[data-rid]").forEach(b => b.addEventListener("click", () => {
+    const r = ricette.find(x => String(x.id) === b.dataset.rid)
+    if (!r) return
+    el.value = r.nome
+    if (sel) sel.value = String(r.id)
+    box.innerHTML = ""
+  }))
+}
+
 function puoProgrammare(){
   const r = String(window.state?.ruolo || "").toLowerCase()
   return r === "admin" || r === "superadmin"
