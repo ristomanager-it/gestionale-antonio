@@ -777,7 +777,23 @@ function applicaCerca(){
     c.style.display = ok ? "" : "none"
     if (ok) viste++
   })
-  if (esito) { esito.style.display = q ? "" : "none"; esito.textContent = q ? (viste ? viste + " lavorazioni trovate" : "Nessuna lavorazione trovata") : "" }
+  if (esito) {
+    esito.style.display = q ? "" : "none"
+    esito.textContent = q ? (viste ? viste + " lavorazioni trovate" : "Nessuna lavorazione in programma") : ""
+    // non e' nel planning? proponi le ricette con quel nome, da programmare con un tocco
+    if (q.length >= 3 && puoProgrammare()) {
+      const parole = q.split(/\s+/).filter(Boolean)
+      const ric = ricette.filter(r => { const n = String(r.nome).toLowerCase(); return parole.every(p => n.includes(p)) }).slice(0, 6)
+      if (ric.length) {
+        esito.insertAdjacentHTML("beforeend", `<div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">
+          ${ric.map(r => `<button type="button" data-prog="${r.id}" style="text-align:left;border:1px solid #93c5fd;background:#eff6ff;border-radius:10px;padding:9px 12px;font-size:14.5px;color:#0c4a6e;">➕ Programma: ${escapeHtml(r.nome)}</button>`).join("")}</div>`)
+        esito.querySelectorAll("[data-prog]").forEach(b => b.addEventListener("click", () => {
+          const r = ricette.find(x => String(x.id) === b.dataset.prog)
+          if (r) openCreate(formatDateLocal(new Date()), { prodotto: r.nome, ricetta_id: r.id })
+        }))
+      }
+    }
+  }
 }
 
 function bindCalendarEvents(){
