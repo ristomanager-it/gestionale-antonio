@@ -847,7 +847,7 @@ function bindCalendarEvents(){
   })
 }
 
-async function openCreate(date){
+async function openCreate(date, preset){
   await loadDipendenti()
 
   const calendar = document.getElementById("calendar")
