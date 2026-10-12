@@ -3474,7 +3474,29 @@ function aggiungiFase(initial = {}) {
     </div>
 
     <div class="form-grid" style="margin-top:12px;">
-      
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Nome della fase</label>
+        <input class="fase-nome input" value="${escapeAttr(["preparazione","cottura","attesa","raffreddamento","abbattimento","confezionamento"].includes(String(initial.nome_fase || "").toLowerCase()) ? "" : (initial.nome_fase || ""))}" placeholder="Es. Crema di champignon, Cottura sottovuoto dei filetti" />
+      </div>
+
+      <div class="form-group">
+        <label>Quando si fa</label>
+        <select class="fase-quando input">
+          <option value="">— come da regole —</option>
+          <option value="servizio">Al servizio</option>
+          <option value="g0">Il giorno del servizio (prima)</option>
+          ${[1,2,3,4,5].map(n => `<option value="g${n}">${n} ${n === 1 ? "giorno" : "giorni"} prima</option>`).join("")}
+          ${["lunedì","martedì","mercoledì","giovedì","venerdì","sabato","domenica"].map((g, i) => `<option value="w${i + 1}">Ogni ${g}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600;">
+          <input type="checkbox" class="fase-separata" ${initial.riga_separata ? "checked" : ""} />
+          Riga a sé nel planning
+        </label>
+      </div>
+
       <div class="form-group" style="grid-column:1/-1;">
         <label>Descrizione operativa</label>
         <textarea class="fase-descrizione input" rows="4" placeholder="Istruzioni operative per l’operatore...">${escapeHtml(initial.descrizione_operativa || "")}</textarea>
