@@ -3614,6 +3614,8 @@ function soloLaFase(container) {
   banner.innerHTML = `<div style="font-size:12px;opacity:.85;">Lavorazione da fare</div>
     <div style="font-size:18px;font-weight:800;line-height:1.25;">${escapeHtml(window.__rfProdottoPlanning || "")}</div>
     ${lav ? `<div style="font-size:14.5px;margin-top:2px;">${escapeHtml(lav)}</div>` : ""}
+    ${(() => { const ingr = String(window.__rfLavorazionePlanning || "").split(" · ").slice(1).join(" · ").trim();
+       return ingr ? `<div style="margin-top:8px;background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;font-size:14px;"><b>🧾 Ti servono:</b> ${escapeHtml(ingr)}</div>` : ""; })()}
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
       <button type="button" data-home style="border:0;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.18);color:#fff;font-weight:700;">← Le mie lavorazioni</button>
       <button type="button" data-tutto style="border:0;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.18);color:#fff;font-weight:700;">Scheda completa</button>
