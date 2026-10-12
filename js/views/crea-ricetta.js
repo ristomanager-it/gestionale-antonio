@@ -3568,6 +3568,12 @@ function aggiungiFase(initial = {}) {
 
   const selTipo = card.querySelector(".fase-tipo");
   if (selTipo) selTipo.value = initial.tipo_fase || "preparazione";
+  // chiave stabile della fase: serve a legarle gli ingredienti (mini-ricetta)
+  card.dataset.faseId = initial.id ? String(initial.id) : "";
+  card.dataset.faseKey = initial.id ? "f" + initial.id : "n" + Math.random().toString(36).slice(2, 8);
+  const selQuando = card.querySelector(".fase-quando");
+  if (selQuando) selQuando.value = String(initial.momento || "") === "servizio" ? "servizio"
+    : (initial.giorno_settimana != null ? "w" + initial.giorno_settimana : (initial.giorni_prima != null ? "g" + initial.giorni_prima : ""));
 
   const btnUp = card.querySelector('[data-action="up"]');
   const btnDown = card.querySelector('[data-action="down"]');
