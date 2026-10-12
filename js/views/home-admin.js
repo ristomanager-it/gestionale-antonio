@@ -115,9 +115,7 @@ ${sintesi(ora)}
     .then(m => m.initNotificheTab())
     .catch(e => console.warn("tab notifiche non caricato:", e));
 
-  import("../components/camera.js?v=" + (window.APP_V || "1"))
-    .then(m => m.montaBottoneCamera())
-    .catch(e => console.warn("camera non caricata:", e));
+  // fotocamera: ora solo nella galleria foto (bo-media), la monta il router
 
   // Super Tony non e' piu' un pulsante flottante: stava sopra quello delle
   // prenotazioni e copriva il +. Si apre dal menu.
