@@ -4697,6 +4697,7 @@ async function salvaTutto() {
         dispositivo_id: r.querySelector(".fase-dispositivo")?.value || null,
         ruolo: (r.querySelector(".fase-ruolo")?.value || "").trim() || null,
         riga_separata: !!r.querySelector(".fase-separata")?.checked,
+        semilavorato_nome: (r.querySelector(".fase-semilavorato")?.value || "").trim() || null,
       };
       if (quando === "servizio") Object.assign(campi, { momento: "servizio", giorni_prima: 0, giorno_settimana: null });
       else if (/^g\d$/.test(quando)) Object.assign(campi, { momento: "preparazione", giorni_prima: Number(quando.slice(1)), giorno_settimana: null });
