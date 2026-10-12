@@ -149,6 +149,7 @@ function creaInterfaccia() {
   #voce-fab{position:fixed;left:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:9990;width:62px;height:62px;border-radius:50%;
     border:none;background:#023C59;color:#fff;font-size:27px;box-shadow:0 6px 20px rgba(2,60,89,.35);cursor:pointer;
     display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;}
+  #voce-fab.in-header{position:static;width:38px;height:38px;font-size:19px;box-shadow:none;margin-right:6px;flex-shrink:0;z-index:auto;}
   #voce-fab.registra{background:#DC2626;animation:vocePulse 1s infinite;}
   #voce-fab.elabora{background:#E66101;}
   #voce-fab.conferma{background:#348127;}
