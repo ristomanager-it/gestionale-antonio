@@ -3194,6 +3194,11 @@ function aggiungiIngrediente(initial = {}) {
         </select>
       </div>
 
+      <div class="form-group">
+        <label>In quale fase</label>
+        <select class="ing-fase input"><option value="">— tutta la ricetta —</option></select>
+      </div>
+
       <div class="form-group" style="grid-column:1/-1;">
         <label>Note (opz.)</label>
         <input class="ing-note input" value="${escapeAttr(initial.note || "")}" />
