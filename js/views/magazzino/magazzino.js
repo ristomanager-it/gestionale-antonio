@@ -26,9 +26,7 @@ export async function render(container) {
     </div>
   `;
 
-  container.querySelector("#btn-back-dashboard").onclick = () => {
-    window.location.hash = "#/home";
-  };
+  // (tornare alla home: barra in basso)
 
   if (!document.getElementById("rf-carico-backdrop")) {
     document.body.insertAdjacentHTML("beforeend", renderCaricoModal());
