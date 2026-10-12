@@ -4735,7 +4735,11 @@ async function salvaTutto() {
       const nomeProd = (r.querySelector(".ing-search")?.value || "").trim();
       const qta = toNumOrNull(r.querySelector(".ing-qta")?.value);
 
-      if (!qta || qta <= 0) return;
+      if (qta == null || qta < 0) return;
+      // fase della ricetta a cui appartiene l'ingrediente (mini-ricetta)
+      const chiaveFase = r.querySelector(".ing-fase")?.value || r.dataset.faseInit || "";
+      const fase_id = chiaveFase ? (faseKeyToId[chiaveFase] ?? null) : null;
+      const extra = { fase_id, note: (r.querySelector(".ing-note")?.value || "").trim() || null, stadio: r.dataset.stadio ? Number(r.dataset.stadio) : 1 };
 
       if (pid) {
         // Ingrediente a catalogo (abbinato)
