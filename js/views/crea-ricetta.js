@@ -3498,6 +3498,11 @@ function aggiungiFase(initial = {}) {
       </div>
 
       <div class="form-group" style="grid-column:1/-1;">
+        <label>Finisce in frigo come semilavorato? (nome)</label>
+        <input class="fase-semilavorato input" value="${escapeAttr(initial.semilavorato_nome || "")}" placeholder="Es. Filetti cotti sottovuoto — lascia vuoto se la fase non va in frigo" />
+      </div>
+
+      <div class="form-group" style="grid-column:1/-1;">
         <label>Descrizione operativa</label>
         <textarea class="fase-descrizione input" rows="4" placeholder="Istruzioni operative per l’operatore...">${escapeHtml(initial.descrizione_operativa || "")}</textarea>
       </div>
