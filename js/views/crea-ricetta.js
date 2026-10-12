@@ -3205,6 +3205,23 @@ function aggiungiIngrediente(initial = {}) {
       </div>
     </div>
   `;
+  card.dataset.faseInit = initial.fase_id ? "f" + initial.fase_id : "";
+  card.dataset.stadio = initial.stadio != null ? String(initial.stadio) : "";
+  const selFase = card.querySelector(".ing-fase");
+  const riempiFasi = () => {
+    const attuale = selFase.value || card.dataset.faseInit || "";
+    const fasi = [...document.querySelectorAll("#fasi-container .azienda-card")];
+    selFase.innerHTML = `<option value="">— tutta la ricetta —</option>` + fasi.map((c, n) => {
+      const nome = (c.querySelector(".fase-nome")?.value || "").trim() || (c.querySelector(".fase-tipo")?.value || "fase");
+      return `<option value="${escapeAttr(c.dataset.faseKey || "")}">${n + 1}. ${escapeHtml(nome)}</option>`;
+    }).join("");
+    selFase.value = attuale;
+    if (selFase.value !== attuale) selFase.value = "";
+  };
+  ["focus", "mousedown", "touchstart"].forEach((ev) => selFase.addEventListener(ev, riempiFasi));
+  selFase.addEventListener("change", () => { card.dataset.faseInit = selFase.value; });
+  setTimeout(riempiFasi, 400);
+  setTimeout(riempiFasi, 1500);
 
   // riordino
   card.querySelector('[data-action="up"]').addEventListener("click", () => {
