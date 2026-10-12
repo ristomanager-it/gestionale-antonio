@@ -4753,7 +4753,8 @@ async function salvaTutto() {
           quantita: qta,
           unita_misura: um,
           azienda_id: aziendaId,
-          mapping_stato: "ok"
+          mapping_stato: "ok",
+          ...extra
         });
 
         ingredientRowsForCost.push({
