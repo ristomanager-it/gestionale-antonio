@@ -4606,6 +4606,64 @@ async function salvaTutto() {
     }
   }
 
+  // fasi (procedimento): si aggiornano quelle esistenti invece di cancellarle e ricrearle,
+  // cosi' restano nome, giorni, persona, regole e il legame con lotti e ingredienti
+  const faseKeyToId = {};
+  {
+    const cards = [...document.querySelectorAll("#fasi-container .azienda-card")];
+    const { data: esistenti } = await supabase.from("ricette_preparazione_fasi").select("id").eq("ricetta_id", ricettaIdNum).eq("azienda_id", aziendaId);
+    const idEsistenti = new Set((esistenti || []).map((x) => String(x.id)));
+    const tenuti = new Set(cards.map((c) => c.dataset.faseId).filter((id) => id && idEsistenti.has(id)));
+    const daTogliere = [...idEsistenti].filter((id) => !tenuti.has(id));
+    if (daTogliere.length) {
+      const { error: delFasiErr } = await supabase.from("ricette_preparazione_fasi").delete().in("id", daTogliere.map(Number));
+      if (delFasiErr) { console.error(delFasiErr); if (esito) esito.innerText = ""; return alert("Errore salvataggio fasi."); }
+    }
+    // ordine provvisorio per non scontrarsi col vincolo (ricetta, ordine) durante il riordino
+    for (const c of cards) {
+      if (c.dataset.faseId && tenuti.has(c.dataset.faseId)) {
+        await supabase.from("ricette_preparazione_fasi").update({ ordine: 10000 + Number(c.dataset.faseId) % 10000 }).eq("id", Number(c.dataset.faseId));
+      }
+    }
+    for (let idx = 0; idx < cards.length; idx++) {
+      const r = cards[idx];
+      const tipo_fase = (r.querySelector(".fase-tipo")?.value || "preparazione").trim();
+      const quando = r.querySelector(".fase-quando")?.value || "";
+      const campi = {
+        ordine: idx + 1,
+        nome_fase: (r.querySelector(".fase-nome")?.value || "").trim() || tipo_fase,
+        tipo_fase,
+        durata_min: ((toIntOrNull(r.querySelector(".fase-durata-h")?.value) ?? 0) * 60) + (toIntOrNull(r.querySelector(".fase-durata-m")?.value) ?? 0),
+        lavoro_umano_min: ((toIntOrNull(r.querySelector(".fase-lavoro-h")?.value) ?? 0) * 60) + (toIntOrNull(r.querySelector(".fase-lavoro-m")?.value) ?? 0),
+        tecnologia: (r.querySelector(".fase-tecnologia")?.value || "").trim() || null,
+        temperatura: toNumOrNull(r.querySelector(".fase-temperatura")?.value),
+        note: (r.querySelector(".fase-note")?.value || "").trim() || null,
+        descrizione_operativa: (r.querySelector(".fase-descrizione")?.value || "").trim() || null,
+        dispositivo_id: r.querySelector(".fase-dispositivo")?.value || null,
+        ruolo: (r.querySelector(".fase-ruolo")?.value || "").trim() || null,
+        riga_separata: !!r.querySelector(".fase-separata")?.checked,
+      };
+      if (quando === "servizio") Object.assign(campi, { momento: "servizio", giorni_prima: 0, giorno_settimana: null });
+      else if (/^g\d$/.test(quando)) Object.assign(campi, { momento: "preparazione", giorni_prima: Number(quando.slice(1)), giorno_settimana: null });
+      else if (/^w\d$/.test(quando)) Object.assign(campi, { momento: "preparazione", giorno_settimana: Number(quando.slice(1)), giorni_prima: null });
+      let id = r.dataset.faseId && tenuti.has(r.dataset.faseId) ? Number(r.dataset.faseId) : null;
+      if (id) {
+        const { error } = await supabase.from("ricette_preparazione_fasi").update(campi).eq("id", id);
+        if (error) { console.error(error); if (esito) esito.innerText = ""; return alert("Errore salvataggio fasi."); }
+      } else {
+        const { data: nuova, error } = await supabase.from("ricette_preparazione_fasi")
+          .insert({ ...campi, ricetta_id: ricettaIdNum, azienda_id: aziendaId, richiede_conferma: false, fase_template_id: null, parametri: {} })
+          .select("id").single();
+        if (error) { console.error(error); if (esito) esito.innerText = ""; return alert("Errore salvataggio fasi."); }
+        id = nuova.id;
+        r.dataset.faseId = String(id);
+      }
+      faseKeyToId[r.dataset.faseKey] = id;
+      r.dataset.faseKey = "f" + id;
+    }
+  }
+
+
   // ingredienti
   let ingredientRowsForCost = [];
   {
