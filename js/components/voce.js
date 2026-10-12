@@ -205,7 +205,7 @@ function creaInterfaccia() {
 
 function aggiornaFab() {
   if (!fab) return;
-  fab.className = stato === "riposo" ? "" : stato;
+  fab.className = (stato === "riposo" ? "" : stato) + (fab.parentElement?.id === "header-right" ? " in-header" : "");
   fab.textContent = stato === "registra" ? (dettatura ? "⏹" : "⏺") : stato === "elabora" ? "⏳" : stato === "conferma" ? "✋" : "🎙️";
 }
 
