@@ -87,7 +87,40 @@ async function conservatiAlVolo(azienda) {
   }));
 }
 
+// Pagina Magazzino a tessere, come la home (niente pulsanti in fila, niente liste sotto)
 function renderHome(azienda) {
+  const home = document.getElementById("magazzino-home");
+  home.innerHTML = `
+    <style>
+      .mg-griglia{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+      .mg-griglia .p{background:#fff;border:1px solid #E2E6EA;border-radius:16px;padding:16px 14px;text-decoration:none;color:#023C59;text-align:left;font:inherit;cursor:pointer;}
+      .mg-griglia .p i{font-style:normal;font-size:22px;display:block;margin-bottom:8px;}
+      .mg-griglia .p b{display:block;font-size:15.5px;}
+      .mg-griglia .p span{font-size:12.5px;color:#6B7A83;}
+      .mg-griglia .p.spicca{background:#F6FAFC;border-color:#CFE0E8;}
+    </style>
+    <div class="mg-griglia">
+      <button type="button" class="p spicca" data-mg="ricezione"><i>📥</i><b>Ricezione merce</b><span>Controllo e carico all'arrivo</span></button>
+      <button type="button" class="p spicca" data-mg="ordini"><i>🛒</i><b>Ordini</b><span>Da ordinare e inviati</span></button>
+      <button type="button" class="p" data-mg="materie"><i>🥕</i><b>Materie prime</b><span>Giacenze e prodotti</span></button>
+      <button type="button" class="p" data-mg="preparazioni"><i>🍲</i><b>Preparazioni</b><span>Semilavorati in giacenza</span></button>
+      <button type="button" class="p" data-mg="carico"><i>➕</i><b>Carico giacenza</b><span>Aggiungi a mano</span></button>
+      <button type="button" class="p" data-mg="riordino"><i>⚠️</i><b>Da riordinare</b><span>Sotto scorta</span></button>
+    </div>
+  `;
+  const azioni = {
+    ricezione: () => apriRicezioneModal(azienda),
+    ordini: () => { window.location.hash = "#/acquisti?tab=ordini"; },
+    materie: () => renderMateriePrime(document.body, azienda),
+    preparazioni: () => renderPreparazioni(document.body, azienda),
+    carico: () => apriCaricoModal({ aziendaId: azienda.id }),
+    riordino: () => { window.location.hash = "#/acquisti?tab=riordino"; },
+  };
+  home.querySelectorAll("[data-mg]").forEach((b) => b.addEventListener("click", () => azioni[b.dataset.mg]?.()));
+}
+
+// versione precedente (pulsanti + conservati al volo), non piu' usata
+function renderHomeVecchia(azienda) {
   const home = document.getElementById("magazzino-home");
 
   home.innerHTML = `
