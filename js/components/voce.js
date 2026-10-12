@@ -129,6 +129,19 @@ function proponiNotifiche() {
   pannello.querySelector("[data-pno]")?.addEventListener("click", () => { pannello.style.display = "none"; });
 }
 
+/* Il microfono sta nell'header, accanto a WhatsApp e Tony (prima era un pulsante
+   flottante in basso che copriva i contenuti). Se l'header viene ridisegnato, ci torna. */
+function mettiNellHeader() {
+  const hr = document.getElementById("header-right");
+  if (!fab || !hr) return;
+  if (fab.parentElement !== hr) hr.insertBefore(fab, hr.firstChild);
+  fab.classList.add("in-header");
+  if (!mettiNellHeader.osserva) {
+    mettiNellHeader.osserva = new MutationObserver(() => { if (fab && fab.parentElement !== hr && fab.style.display !== "none") hr.insertBefore(fab, hr.firstChild); });
+    mettiNellHeader.osserva.observe(hr, { childList: true });
+  }
+}
+
 /* ─────────────── interfaccia ─────────────── */
 function creaInterfaccia() {
   const st = document.createElement("style");
