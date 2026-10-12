@@ -4678,8 +4678,8 @@ async function salvaTutto() {
     }
   }
 
-  // fasi (procedimento)
-  {
+  // fasi: ora si salvano prima degli ingredienti (vecchio blocco disattivato)
+  if (false) {
     const { error: delFasiErr } = await supabase
       .from("ricette_preparazione_fasi")
       .delete()
