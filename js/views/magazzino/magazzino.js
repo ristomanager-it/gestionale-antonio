@@ -19,11 +19,7 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="view">
-      <button class="app-button tiny gray" id="btn-back-dashboard" style="margin-bottom:10px;">
-        ← Torna alla Dashboard
-      </button>
-
-      <h2>Magazzino</h2>
+      <h2 style="margin:4px 0 14px;">Magazzino</h2>
 
       <div id="magazzino-home"></div>
       <div id="magazzino-content"></div>
