@@ -4816,6 +4816,10 @@ async function stampaEtichetteBrother() {
       etichetta = { ...etichetta, conservazione: "Conservare in congelatore a -18 °C. Una volta scongelato conservare in frigorifero tra 0 e +4 °C e non ricongelare." };
     }
   } catch (_) {}
+  // fase che finisce in frigo (mini-ricetta): l'etichetta e' quella del semilavorato
+  const fSemi = faseSemilavoratoCorrente();
+  if (fSemi) etichetta = { ...etichetta, confermata: true,
+    denominazione: fSemi.semilavorato_nome + " — semilavorato per " + String(ricettaSelezionata?.nome || window.__rfProdottoPlanning || "") };
   const scadenza = document.getElementById("prod-scadenza")?.value || null;
   if (!scadenza) return alert("Manca la data di scadenza del lotto: impostala in Conservazione.");
   // basta il numero di confezioni: se il peso non c'e' (es. crocchette a pezzi) l'etichetta riporta i pezzi
