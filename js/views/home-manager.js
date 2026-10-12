@@ -145,9 +145,7 @@ export async function render(container) {
     });
   });
 
-  import("../components/camera.js?v=" + (window.APP_V || "1"))
-    .then(m => m.montaBottoneCamera())
-    .catch(e => console.warn("camera non caricata:", e));
+  // fotocamera: ora solo nella galleria foto (bo-media), la monta il router
 
   import("../components/messaggi-personale.js?v=" + (window.APP_V || "1"))
     .then(m => m.montaMessaggiHome())
