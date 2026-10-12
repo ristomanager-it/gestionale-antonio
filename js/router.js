@@ -491,6 +491,18 @@ async function renderView(routeName) {
 
   await module.render(app);
 
+  // Barra in basso con i comandi veloci (admin e manager)
+  try { imp("./components/footer-nav.js").then(m => m.aggiornaFooter(routeName)).catch(() => {}); } catch (e) {}
+
+  // 📷 La fotocamera del locale solo nella galleria foto (prima restava su tutte le pagine)
+  try {
+    if (routeName === "bo-media" || document.getElementById("cam-fab")) {
+      imp("./components/camera.js").then(m => {
+        if (routeName === "bo-media" && window.state?.user) m.montaBottoneCamera(); else m.smontaBottoneCamera();
+      }).catch(() => {});
+    }
+  } catch (e) {}
+
   // 🎙️ Comandi vocali: pulsante globale per chi e' entrato (sala, cucina, preparazioni, ricette)
   try {
     if (window.state?.user && window.state?.azienda?.id) {
