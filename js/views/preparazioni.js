@@ -4854,6 +4854,20 @@ async function stampaEtichetteBrother() {
       if (riga) riga.stampata = true;
     }
     try { renderConfezioniRows(); pianificaSalvataggioLottoAperto(); } catch (_) {}
+    // semilavorato in frigo: resta registrato finche' la fase dopo non lo preleva
+    if (fSemi) {
+      try {
+        const kg = righe.reduce((a, r) => a + (Number(r.kg_per_confezione) || 0) * (Number(r.numero_confezioni) || 0), 0);
+        const lt = lottoCorrente();
+        await supabase.from("produzione_semilavorati_fase").insert({
+          azienda_id: aziendaId, lotto_uuid: lt?.lotto_uuid, codice_lotto: lt?.codice_lotto || null,
+          fase_id: fSemi.id, fase_ordine: fSemi.ordine, nome: fSemi.semilavorato_nome,
+          quantita: kg > 0 ? Math.round(kg * 1000) / 1000 : null, unita: kg > 0 ? "kg" : null,
+          confezioni: righe.reduce((a, r) => a + (Number(r.numero_confezioni) || 0), 0),
+          data_scadenza: scadenza, creato_da: operatoriDelLotto() || window.state?.dipendente?.nome || null,
+        });
+      } catch (e) { console.warn("semilavorato non registrato:", e); }
+    }
     // Il lotto si chiude da solo sul server quando TUTTE le fasi risultano firmate nel registro
     // e le etichette sono stampate (prima lo decideva la pagina, che poteva credere firmate
     // fasi mai salvate). Qui si chiede solo com'e' andata.
