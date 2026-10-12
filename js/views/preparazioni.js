@@ -3621,6 +3621,7 @@ function soloLaFase(container) {
       <button type="button" data-tutto style="border:0;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.18);color:#fff;font-weight:700;">Scheda completa</button>
     </div>`;
   padre.insertBefore(banner, card);
+  mostraDaPrelevare(card).catch(() => {});
   banner.querySelector("[data-home]").onclick = () => { location.hash = "#/home"; };
   banner.querySelector("[data-tutto]").onclick = () => { nascosti.forEach((el) => { el.style.display = ""; }); banner.remove(); };
   // il titolo "Produzione" e la descrizione in alto non servono qui
