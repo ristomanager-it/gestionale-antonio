@@ -2942,6 +2942,15 @@ function idxConfezionamento() {
   const tipo = (i) => String(logHaccp[i]?.fase_tipo || fasiCache[i]?.tipo_fase || "").toLowerCase();
   const nome = (i) => String(logHaccp[i]?.fase_nome || fasiCache[i]?.nome_fase || "");
   const n = Math.max(logHaccp.length, fasiCache.length);
+  // aperta dal planning: si confeziona nella fase di adesso (es. mercoledi' i filetti cotti)
+  let vis = null;
+  try { vis = typeof fasiDelPlanning === "function" ? fasiDelPlanning() : null; } catch (_) {}
+  if (vis && vis.size) {
+    const v = Array.from(vis).sort((a, b) => a - b);
+    const t = v.find((i) => tipo(i) === "confezionamento"); if (t != null) return t;
+    const sl = v.filter((i) => fasiCache[i]?.semilavorato_nome).pop(); if (sl != null) return sl;
+    const nm = v.find((i) => /confezion|sottovuot|porzionat/i.test(nome(i))); if (nm != null) return nm;
+  }
   for (let i = 0; i < n; i++) if (tipo(i) === "confezionamento") return i;
   for (let i = 0; i < n; i++) if (/confezion|sottovuot/i.test(nome(i))) return i;
   for (let i = 0; i < n; i++) if (/porzionat/i.test(nome(i))) return i;
