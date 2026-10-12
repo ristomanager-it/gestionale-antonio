@@ -53,6 +53,7 @@ export function initVoce(routeName) {
   }
   if (!fab) creaInterfaccia();
   fab.style.display = "";
+  mettiNellHeader();
   avviaAnnunci();
   registraServiceWorker();
   if (pagina === "bo-comande" || pagina === "display-cucina") setTimeout(proponiNotifiche, 1500);
