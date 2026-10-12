@@ -3628,6 +3628,47 @@ function soloLaFase(container) {
   window.scrollTo(0, 0);
 }
 
+// la fase (tra quelle da fare adesso) che produce un semilavorato da mettere in frigo
+function faseSemilavoratoCorrente() {
+  const vis = fasiDelPlanning();
+  if (!vis) return null;
+  const idx = Array.from(vis).filter((i) => fasiCache[i]?.semilavorato_nome).sort((a, b) => b - a)[0];
+  return idx != null ? fasiCache[idx] : null;
+}
+
+// semilavorati delle fasi prima, in frigo, da prendere per la fase di adesso
+async function mostraDaPrelevare(contenitore) {
+  const lt = lottoCorrente();
+  const vis = fasiDelPlanning();
+  const cli = window.supabaseClient || window.supabase;
+  if (!lt?.lotto_uuid || !vis || !contenitore || !cli) return;
+  const primo = Math.min(...Array.from(vis).map((i) => Number(fasiCache[i]?.ordine) || 999));
+  const { data } = await cli.from("produzione_semilavorati_fase").select("*").eq("lotto_uuid", lt.lotto_uuid).is("prelevato_il", null).order("fase_ordine");
+  const righe = (data || []).filter((r) => (Number(r.fase_ordine) || 0) < primo);
+  if (!righe.length) return;
+  const box = document.createElement("div");
+  box.style.cssText = "background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 14px;margin-bottom:12px;";
+  const disegna = () => {
+    box.innerHTML = `<div style="font-weight:800;margin-bottom:6px;">🧩 Prendi dal frigo</div>` + righe.map((r) => `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #fde7cf;">
+        <div style="font-size:14px;"><b>${escapeHtml(r.nome)}</b>${r.quantita ? " · " + formatNumber(r.quantita) + " " + escapeHtml(r.unita || "") : ""}${r.confezioni ? " · " + r.confezioni + " conf." : ""}
+          <div style="font-size:12px;color:#7c2d12;">lotto ${escapeHtml(r.codice_lotto || "")}${r.data_scadenza ? " · scade " + escapeHtml(rfFormatDateITA(r.data_scadenza)) : ""}${r.creato_da ? " · " + escapeHtml(r.creato_da) : ""}</div></div>
+        ${r.prelevato_il ? `<span style="color:#15803d;font-weight:800;">✓ preso</span>`
+          : `<button type="button" data-prel="${r.id}" style="border:0;border-radius:10px;padding:8px 12px;background:#ea580c;color:#fff;font-weight:800;">✓ Preso</button>`}
+      </div>`).join("");
+    box.querySelectorAll("[data-prel]").forEach((b) => b.addEventListener("click", async () => {
+      const r = righe.find((x) => String(x.id) === b.dataset.prel);
+      const quando = new Date().toISOString();
+      const chi = operatoreRisolto?.nome || window.state?.dipendente?.nome || null;
+      const { error } = await cli.from("produzione_semilavorati_fase").update({ prelevato_il: quando, prelevato_da: chi }).eq("id", r.id);
+      if (error) return alert("Non registrato: " + error.message);
+      r.prelevato_il = quando; disegna();
+    }));
+  };
+  disegna();
+  contenitore.parentElement.insertBefore(box, contenitore);
+}
+
 function idxFasiContinueDaFirmare() {
   const vis = fasiDelPlanning();
   return logHaccp
