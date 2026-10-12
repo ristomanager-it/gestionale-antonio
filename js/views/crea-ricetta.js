@@ -4773,7 +4773,8 @@ async function salvaTutto() {
           quantita: qta,
           unita_misura: um,
           azienda_id: aziendaId,
-          mapping_stato: "da_mappare"
+          mapping_stato: "da_mappare",
+          ...extra
         });
       }
     });
