@@ -4764,7 +4764,8 @@ async function salvaTutto() {
       // fase della ricetta a cui appartiene l'ingrediente (mini-ricetta)
       const chiaveFase = r.querySelector(".ing-fase")?.value || r.dataset.faseInit || "";
       const fase_id = chiaveFase ? (faseKeyToId[chiaveFase] ?? null) : null;
-      const extra = { fase_id, note: (r.querySelector(".ing-note")?.value || "").trim() || null, stadio: r.dataset.stadio ? Number(r.dataset.stadio) : 1 };
+      const extra = { fase_id, note: (r.querySelector(".ing-note")?.value || "").trim() || null, stadio: r.dataset.stadio ? Number(r.dataset.stadio) : 1,
+        alternativa_prodotto_id: r.dataset.altId && (r.querySelector(".ing-alt")?.value || "").trim() ? Number(r.dataset.altId) : null };
 
       if (pid) {
         // Ingrediente a catalogo (abbinato)
