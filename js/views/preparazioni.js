@@ -3624,7 +3624,15 @@ function soloLaFase(container) {
   banner.innerHTML = `<div style="font-size:12px;opacity:.85;">Lavorazione da fare</div>
     <div style="font-size:18px;font-weight:800;line-height:1.25;">${escapeHtml(window.__rfProdottoPlanning || "")}</div>
     ${lav ? `<div style="font-size:14.5px;margin-top:2px;">${escapeHtml(lav)}</div>` : ""}
-    ${(() => { const ingr = String(window.__rfLavorazionePlanning || "").split(" · ").slice(1).join(" · ").trim();
+    ${(() => {
+       const sc = window.__rfDosiPlanning;
+       if (sc && Array.isArray(sc.ingredienti) && sc.ingredienti.length) {
+         return `<div style="margin-top:8px;background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;font-size:14px;">
+           <b>🧾 Dosi${sc.porzioni_risultanti ? " per " + escapeHtml(String(sc.porzioni_risultanti)) + " porzioni" : ""}</b>
+           <table style="width:100%;border-collapse:collapse;margin-top:4px;">${sc.ingredienti.map((r) =>
+             `<tr><td style="padding:2px 0;">${escapeHtml(r.ingrediente)}</td><td style="padding:2px 0;text-align:right;font-weight:800;white-space:nowrap;">${escapeHtml(r.dose || "")}</td></tr>`).join("")}</table></div>`;
+       }
+       const ingr = String(window.__rfLavorazionePlanning || "").split(" · ").slice(1).join(" · ").trim();
        return ingr ? `<div style="margin-top:8px;background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;font-size:14px;"><b>🧾 Ti servono:</b> ${escapeHtml(ingr)}</div>` : ""; })()}
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
       <button type="button" data-home style="border:0;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.18);color:#fff;font-weight:700;">← Le mie lavorazioni</button>
