@@ -2555,6 +2555,7 @@ function bindEvents() {
 
   document.getElementById("btn-print-lotto")?.addEventListener("click", stampaEtichetteConfezioni);
   document.getElementById("btn-print-etichettatrice")?.addEventListener("click", stampaEtichetteSuEtichettatrice);
+  document.getElementById("btn-rotolo")?.addEventListener("click", () => scegliFormatoEtichetta({ chiedi: true }));
   document.getElementById("btn-print-coprodotti")?.addEventListener("click", stampaEtichetteCoprodotti);
   document.getElementById("btn-print-haccp")?.addEventListener("click", stampaRegistroHaccp);
 }
