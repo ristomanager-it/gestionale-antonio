@@ -1206,6 +1206,9 @@ async function saveProduzione(mode, id, fallbackDate){
     fascia,
     ora
   }
+  if (inKg && window.__rfPlannerBase) {
+    payload.lavorazione = `${prodotto} · ${window.__rfPlannerBase.nome} ${String(window.__rfPlannerBase.kg).replace(".", ",")} kg`
+  }
 
   if(mode === "edit" && id){
     // cambio di giorno fatto a mano: resta, anche quando il cervello ricalcola
