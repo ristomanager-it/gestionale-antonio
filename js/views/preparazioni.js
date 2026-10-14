@@ -4243,6 +4243,14 @@ async function salvaProduzione(opzioni = {}) {
         .select("lotto_uuid, codice_lotto, created_at").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata.id)
         .eq("stato", "aperta").eq("data_produzione", dataProd).order("created_at", { ascending: false }).limit(1);
       const g = gia && gia[0];
+      if (g && opzioni.auto) {
+        // firma automatica: si aggancia al lotto gia' aperto oggi, senza chiedere
+        resumeLottoUUID = g.lotto_uuid;
+        lottoApertoCodice = g.codice_lotto || null;
+        await salvaLogHaccpConLotto(g.lotto_uuid, aziendaId, true);
+        if (btn) { btn.disabled = false; btn.textContent = "💾 Salva avanzamento"; }
+        return;
+      }
       if (g) {
         const ora = new Date(g.created_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
         if (confirm(`C'è già un lotto aperto oggi per questa ricetta: ${g.codice_lotto} (aperto alle ${ora}).\n\nOK = continua su quello\nAnnulla = apri un lotto nuovo`)) {
