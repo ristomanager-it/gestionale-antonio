@@ -3911,6 +3911,10 @@ function applicaFirmaAIdx(idx, match) {
      Niente async e niente await: se la rete e' lenta la cucina non aspetta,
      e in caso di errore la firma resta a schermo e viene comunque riscritta
      dal salvataggio finale. */
+  // nessun lotto ancora: lo apro adesso e salvo tutte le firme fatte finora
+  if (!(resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid)) && ricettaSelezionata?.id) {
+    assicuraLottoPerFirme();
+  }
   try {
     const _uuid = resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid) || null;
     const _cli = window.supabaseClient || window.supabase;
