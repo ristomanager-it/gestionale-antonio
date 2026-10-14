@@ -3661,6 +3661,53 @@ function soloLaFase(container) {
   window.scrollTo(0, 0);
 }
 
+/* Ingredienti con "se non basta, compra" (es. ritagli di vitellone -> reale): se in magazzino
+   c'e' gia' qualcosa del primo, all'apertura della lavorazione un avviso dice di usare prima quello
+   e quanto prendere dell'alternativa. Nessuno deve scrivere niente. */
+async function avvisoGiacenzaAlternative() {
+  const cli = window.supabaseClient || window.supabase;
+  if (!ricettaSelezionata?.id || !cli) return;
+  const { data: ing } = await cli.from("ricetta_ingredienti")
+    .select("nome_prodotto, prodotto_id, alternativa_prodotto_id, quantita, unita_misura")
+    .eq("ricetta_id", ricettaSelezionata.id).not("alternativa_prodotto_id", "is", null);
+  if (!ing || !ing.length) return;
+  const ids = [...new Set(ing.flatMap((i) => [i.prodotto_id, i.alternativa_prodotto_id]).filter(Boolean))];
+  const [{ data: gia }, { data: prod }] = await Promise.all([
+    cli.from("v_magazzino_giacenze").select("prodotto_id, giacenza_attuale").in("prodotto_id", ids),
+    cli.from("prodotti").select("id, nome").in("id", ids),
+  ]);
+  const g = new Map((gia || []).map((x) => [String(x.prodotto_id), Number(x.giacenza_attuale) || 0]));
+  const nome = new Map((prod || []).map((x) => [String(x.id), x.nome]));
+  const kg = (q, u) => { u = String(u || "").toLowerCase(); q = Number(q) || 0; return u === "kg" ? q : ["gr", "g", "grammi"].includes(u) ? q / 1000 : null; };
+  const fmt = (n) => (Math.round(n * 100) / 100).toLocaleString("it-IT");
+  const righe = [];
+  for (const i of ing) {
+    const disp = g.get(String(i.prodotto_id)) || 0;
+    if (disp <= 0) continue;
+    // quanto serve: dalle dosi della lavorazione (planning), se ci sono
+    const dose = (window.__rfDosiPlanning?.ingredienti || []).find((r) => String(r.ingrediente || "").toLowerCase() === String(i.nome_prodotto || "").toLowerCase());
+    const serve = dose ? kg(dose.quantita, dose.unita_misura) : null;
+    const alt = nome.get(String(i.alternativa_prodotto_id)) || "l'alternativa";
+    const primo = nome.get(String(i.prodotto_id)) || i.nome_prodotto;
+    if (serve != null && serve > 0) {
+      const usa = Math.min(disp, serve), manca = Math.max(serve - disp, 0);
+      righe.push(`Servono <b>${fmt(serve)} kg</b> di carne: prendi <b>${fmt(usa)} kg di ${escapeHtml(primo)}</b> dal magazzino`
+        + (manca > 0 ? ` e <b>${fmt(manca)} kg di ${escapeHtml(alt)}</b>.` : `: bastano, niente ${escapeHtml(alt)}.`));
+    } else {
+      righe.push(`In magazzino ci sono <b>${fmt(disp)} kg di ${escapeHtml(primo)}</b>: usa prima quelli, poi ${escapeHtml(alt)} per quello che manca.`);
+    }
+  }
+  if (!righe.length) return;
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+  ov.innerHTML = `<div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));">
+    <div style="font-size:17px;font-weight:800;margin-bottom:8px;">♻️ Prima usa quello che c'è</div>
+    ${righe.map((t) => `<div style="font-size:15px;line-height:1.45;margin-bottom:8px;">${t}</div>`).join("")}
+    <button type="button" style="width:100%;margin-top:6px;border:0;border-radius:12px;padding:13px;background:#0E5A7A;color:#fff;font-weight:800;">Ok</button></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector("button").onclick = () => ov.remove();
+}
+
 // Nel riquadro "Lavorazione da fare": scrivo quanto ho di un ingrediente e l'app sviluppa le dosi del resto
 async function aggiungiCalcoloDosi(banner) {
   if (!ricettaSelezionata?.id || !banner) return;
