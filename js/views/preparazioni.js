@@ -3647,6 +3647,35 @@ function soloLaFase(container) {
   window.scrollTo(0, 0);
 }
 
+// Scelta veloce della conservazione quando il lotto non ha ancora la scadenza
+function scegliConservazioneAlVolo() {
+  return new Promise((resolve) => {
+    const sc = (scenariConservazione || []).filter((x) => x && x.id != null);
+    if (!sc.length) { alert("Manca la data di scadenza: questa ricetta non ha conservazioni impostate (Crea ricetta › Conservazione)."); return resolve(null); }
+    const base = document.getElementById("prod-data")?.value || new Date().toISOString().slice(0, 10);
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+    ov.innerHTML = `<div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));">
+      <div style="font-size:17px;font-weight:800;margin-bottom:4px;">Come si conserva?</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:10px;">Serve per la scadenza sull'etichetta.</div>
+      ${sc.map((x) => { const gg = Number(x.shelf_life_giorni) || 0; return `<button type="button" data-sc="${escapeAttr(String(x.id))}" data-gg="${gg}"
+        style="display:block;width:100%;text-align:left;margin-bottom:6px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:12px;padding:12px;font-size:15px;">
+        <b>${escapeHtml(x.scenario_label || "Conservazione")}</b> · ${gg} gg → scade il ${escapeHtml(rfFormatDateITA(addDaysISO(base, gg)))}</button>`; }).join("")}
+      <button type="button" data-no style="width:100%;margin-top:4px;border:0;border-radius:12px;padding:12px;background:#f1f5f9;font-weight:700;">Annulla</button></div>`;
+    document.body.appendChild(ov);
+    ov.querySelector("[data-no]").onclick = () => { ov.remove(); resolve(null); };
+    ov.querySelectorAll("[data-sc]").forEach((b) => b.addEventListener("click", () => {
+      const iso = addDaysISO(base, Number(b.dataset.gg) || 0);
+      const sel = document.getElementById("prod-conservazione");
+      if (sel) { sel.value = b.dataset.sc; sel.dispatchEvent(new Event("change")); }
+      const scEl = document.getElementById("prod-scadenza");
+      if (scEl) scEl.value = iso;
+      ov.remove();
+      resolve(iso);
+    }));
+  });
+}
+
 // la fase (tra quelle da fare adesso) che produce un semilavorato da mettere in frigo
 function faseSemilavoratoCorrente() {
   const vis = fasiDelPlanning();
