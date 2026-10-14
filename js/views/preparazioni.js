@@ -392,8 +392,9 @@ export async function render(container) {
         body: `
           <div class="form-actions">
             <button type="button" id="btn-salva-produzione" class="app-button" ${savedLotto ? "disabled" : ""}>💾 Registra / apri in Produzioni</button>
-            <button type="button" id="btn-print-lotto" class="app-button secondary" disabled>🏷 Stampa etichette (PDF)</button>
-            <button type="button" id="btn-print-etichettatrice" class="app-button secondary" disabled>🖨️ Stampa su etichettatrice</button>
+            <button type="button" id="btn-print-lotto" class="app-button secondary" disabled style="display:none;">🏷 Stampa etichette (PDF)</button>
+            <button type="button" id="btn-print-etichettatrice" class="app-button" disabled>🖨️ Stampa etichette</button>
+            <button type="button" id="btn-rotolo" class="app-button gray small" title="Cambia il rotolo della Brother">⚙️ Rotolo</button>
             <button type="button" id="btn-print-coprodotti" class="app-button secondary" disabled>🏷 Stampa etichette coprodotti</button>
             <button type="button" id="btn-print-haccp" class="app-button gray small">📋 Stampa registro HACCP</button>
           </div>
