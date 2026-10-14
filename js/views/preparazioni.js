@@ -4199,7 +4199,18 @@ async function aggiornaLottoAperto(manuale) {
   }
 }
 
-async function salvaProduzione() {
+// Firma senza lotto ancora registrato: il lotto si apre da solo, cosi' la firma va nel database.
+// (Prima restava solo sul telefono: chi usciva senza "Registra" perdeva tutte le firme.)
+function assicuraLottoPerFirme() {
+  if (window.__rfCreaLottoPromise) return window.__rfCreaLottoPromise;
+  window.__rfCreaLottoPromise = (async () => {
+    try { await salvaProduzione({ auto: true }); } catch (e) { console.warn("lotto per firme:", e); }
+    finally { window.__rfCreaLottoPromise = null; }
+  })();
+  return window.__rfCreaLottoPromise;
+}
+
+async function salvaProduzione(opzioni = {}) {
   const esito = document.getElementById("r-esito") || null;
   const setEsito = (msg, err) => { if (esito) { esito.textContent = msg; esito.style.color = err ? "#b91c1c" : "#15803d"; } };
 
