@@ -137,6 +137,7 @@ export async function render(container) {
               <input id="scala-um" class="input" placeholder="kg" style="width:66px;display:none;" value="kg" />
             </div>
             <input id="scala-ingr" class="input" placeholder="quale ingrediente (es. pelati)" style="margin-top:6px;display:none;" />
+            <select id="scala-ingr-sel" class="input" style="margin-top:6px;display:none;"></select>
             <button type="button" id="btn-scala" class="app-button" style="width:100%;margin-top:9px;">Calcola le dosi</button>
             <div id="scala-esito" style="margin-top:10px;"></div>
           </div>
