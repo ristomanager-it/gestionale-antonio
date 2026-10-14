@@ -232,12 +232,16 @@ function mostraAvvisoStampa(testo) {
 /* Prima di stampare: quale rotolo c'e' nella Brother e quanto lunga tagliare l'etichetta.
    La scelta resta salvata sulla stampante (per admin e manager) e su questo dispositivo.
    Ritorna le misure da passare a inviaEtichetteLotto, oppure null se si annulla. */
-export async function scegliFormatoEtichetta() {
+export async function scegliFormatoEtichetta(opzioni = {}) {
   const st = await stampanteEtichette();
   let locale = {};
   try { locale = JSON.parse(localStorage.getItem("rf_brother_formato") || "{}"); } catch (e) { locale = {}; }
   const idIniz = (st && st.etichetta_formato) || locale.id || "62red";
   const lungIniz = (st && st.etichetta_lunghezza_mm) || locale.lunghezza || 40;
+  // rotolo gia' impostato sulla stampante (o su questo telefono): si stampa e basta, senza chiedere
+  if (!opzioni.chiedi && ((st && st.etichetta_formato) || locale.id) && FORMATI_ETICHETTA[idIniz]) {
+    return misureEtichetta(idIniz, lungIniz);
+  }
 
   return new Promise((resolve) => {
     const bg = document.createElement("div");
