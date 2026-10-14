@@ -489,6 +489,7 @@ export async function renderOrdini(container, azienda) {
               <div style="flex:1;min-width:0;">
                 <div style="font-weight:600;font-size:14px;">${esc(r.nome)}</div>
                 <div style="font-size:11.5px;color:#64748b;">per ${esc(r.per || "")}${r.serve_il ? " · entro " + fd(r.serve_il) : ""}${r.in_magazzino != null ? " · in magazzino " + num(r.in_magazzino) + " " + esc(r.unita_magazzino || "") : ""}</div>
+                ${r.prima_usa ? `<div style="font-size:11.5px;color:#b45309;font-weight:700;">♻️ prima si usano ${esc(r.prima_usa)} in giacenza (${num(r.prima_usa_kg || 0)} kg): qui solo quello che manca</div>` : ""}
                 ${g.id === "_" ? `<select data-forn style="margin-top:4px;font-size:12px;max-width:100%;"><option value="">Assegna fornitore…</option>${fornitori.map((f) => `<option value="${f.id}">${esc(f.ragione_sociale)}</option>`).join("")}</select>` : ""}
               </div>
               <input type="number" step="0.1" min="0" data-q value="${r.q}" style="width:76px;flex:none;">
