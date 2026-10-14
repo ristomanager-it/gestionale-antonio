@@ -3652,6 +3652,7 @@ function soloLaFase(container) {
     </div>`;
   padre.insertBefore(banner, card);
   mostraDaPrelevare(card).catch(() => {});
+  aggiungiCalcoloDosi(banner).catch(() => {});
   banner.querySelector("[data-home]").onclick = () => { location.hash = "#/home"; };
   banner.querySelector("[data-tutto]").onclick = () => { nascosti.forEach((el) => { el.style.display = ""; }); banner.remove(); };
   // il titolo "Produzione" e la descrizione in alto non servono qui
