@@ -5359,6 +5359,20 @@ async function preloadFromPlanner(plannerId){
     }
   }
 
+  // DOSI: le porzioni della riga del planning (anche quelle ricavate dai kg di carne) -> dosi di ogni ingrediente
+  window.__rfDosiPlanning = null
+  if (data.ricetta_id && Number(data.quantita) > 0) {
+    try {
+      const { data: sc } = await (window.supabaseClient || window.supabase).rpc("scala_ricetta", {
+        p_ricetta_id: Number(data.ricetta_id), p_modo: "porzioni", p_valore: Number(data.quantita), p_ingrediente: null, p_um: null })
+      if (sc && sc.ok === true) {
+        window.__rfDosiPlanning = sc
+        const v = document.getElementById("scala-valore"); if (v) v.value = Number(data.quantita)
+        mostraEsitoScala(document.getElementById("scala-esito"), sc, "Dosi per la quantità del planning")
+      }
+    } catch (e) { console.warn("dosi dal planning:", e) }
+  }
+
   // QUANTITÀ: nel planning sono pezzi/porzioni, non kg: la mostro come promemoria, il peso reale lo scrive chi pesa
   if(data.quantita){
     const pesoEl = document.getElementById("prod-peso-reale")
