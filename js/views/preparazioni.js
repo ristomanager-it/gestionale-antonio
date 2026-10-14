@@ -5105,7 +5105,16 @@ async function stampaEtichetteBrother() {
       if (lt?.lotto_uuid) {
         await supabase.rpc("chiudi_lotto_se_completo", { p_lotto_uuid: lt.lotto_uuid });
         const { data: st } = await supabase.from("produzione_lotti").select("stato").eq("lotto_uuid", lt.lotto_uuid).maybeSingle();
-        chiusa = st?.stato === "firmato" ? "\n✓ Lotto chiuso." : "\nIl lotto resta aperto: mancano fasi da firmare.";
+        if (st?.stato === "firmato") chiusa = "\n✓ Lotto chiuso.";
+        else {
+          // dico QUALI fasi mancano (es. abbattimento), cosi' si sa cosa firmare per chiudere
+          const { data: man } = await supabase.from("produzione_log_haccp").select("fase_nome, firmato_da, firme, fase_id")
+            .eq("lotto_id", lt.lotto_uuid).is("firmato_da", null).order("fase_ordine");
+          const nomi = (man || []).filter((h) => !(Array.isArray(h.firme) && h.firme.length))
+            .filter((h) => !eFaseDelServizio(fasiCache.find((f) => String(f.id) === String(h.fase_id))))
+            .filter((h) => !/stoccag/i.test(String(h.fase_nome || ""))).map((h) => h.fase_nome);
+          chiusa = nomi.length ? "\nIl lotto resta aperto: manca la firma di " + nomi.join(", ") + "." : "\nIl lotto resta aperto.";
+        }
       }
     } catch (_) {}
     if (window.__rfPlannerIdCorrente) {
