@@ -455,6 +455,7 @@ await Promise.all([preloadRicette(), preloadDipendenti(), preloadProdotti()]);
 // 🔥 PRELOAD DA PLANNER
 // =========================
 window.__rfLavorazionePlanning = null
+window.__rfDosiPlanning = null
 window.__rfMostraTutteFasi = false
 if (plannerId) {
   // quale lavorazione del planning si sta facendo: si mostrano solo le sue fasi
