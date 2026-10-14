@@ -3212,6 +3212,19 @@ function aggiungiIngrediente(initial = {}) {
     </div>
   `;
   card.dataset.faseInit = initial.fase_id ? "f" + initial.fase_id : "";
+  // alternativa da comprare: prima si usa questo ingrediente (es. ritagli in giacenza), se non basta si ordina l'altro
+  card.dataset.altId = initial.alternativa_prodotto_id ? String(initial.alternativa_prodotto_id) : "";
+  const altIn = card.querySelector(".ing-alt"), altBox = card.querySelector(".ing-alt-sugg");
+  altIn?.addEventListener("input", () => {
+    const v = altIn.value.trim().toLowerCase();
+    if (!v) { card.dataset.altId = ""; altBox.innerHTML = ""; return; }
+    const parole = v.split(/\s+/);
+    const trovati = (prodottiCache || []).filter((p) => { const n = String(p.descrizione || p.nome || "").toLowerCase(); return parole.every((w) => n.includes(w)); }).slice(0, 6);
+    altBox.innerHTML = trovati.map((p) => `<button type="button" data-pid="${escapeAttr(String(p.id))}" style="text-align:left;border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;padding:7px 9px;font-size:13.5px;">${escapeHtml(p.descrizione || p.nome || "")}</button>`).join("");
+    altBox.querySelectorAll("[data-pid]").forEach((b) => b.addEventListener("click", () => {
+      card.dataset.altId = b.dataset.pid; altIn.value = b.textContent.trim(); altBox.innerHTML = "";
+    }));
+  });
   card.dataset.stadio = initial.stadio != null ? String(initial.stadio) : "";
   const selFase = card.querySelector(".ing-fase");
   const riempiFasi = () => {
