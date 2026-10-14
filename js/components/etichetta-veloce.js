@@ -56,8 +56,8 @@ export async function apriEtichettaVeloce(pre = {}) {
       <div style="font-size:17px;font-weight:800;">🏷 Etichetta veloce</div>
       <div style="font-size:12.5px;color:#64748b;margin:4px 0 12px;">Per conservare al volo qualcosa che non ha una ricetta: scrivi cos'è, scegli come lo conservi, firma.</div>
       <label style="font-size:12px;font-weight:700;">Cos'è</label>
-      <input id="ev-cosa" list="ev-sugg" autocomplete="off" placeholder="Es: mezzo pomodoro cuore di bue — o cerca un prodotto" style="${st}margin-bottom:4px;">
-      <datalist id="ev-sugg">${Array.from(SUGG.keys()).map((k) => `<option value="${esc(k)}">`).join("")}</datalist>
+      <input id="ev-cosa" autocomplete="off" placeholder="Es: mezzo pomodoro cuore di bue — o cerca un prodotto" style="${st}margin-bottom:4px;">
+      <div id="ev-tendina" style="display:none;max-height:240px;overflow:auto;border:1px solid #cbd5e1;border-radius:10px;margin-bottom:6px;background:#fff;"></div>
       <div id="ev-info" style="font-size:12px;color:#166534;font-weight:700;min-height:16px;margin:0 2px 8px;"></div>
       <label style="font-size:12px;font-weight:700;">Conservazione</label>
       <div id="ev-cons" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;">
