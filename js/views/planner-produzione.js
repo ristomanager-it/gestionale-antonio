@@ -371,7 +371,11 @@ window.__rfPlannerSuggerisci = function(el){
   if (esatta && sel) sel.value = String(esatta.id)
   if (v.length < 2 || esatta) { box.innerHTML = ""; return }
   const parole = v.split(/\s+/).filter(Boolean)
-  const trovate = ricette.filter(r => { const n = String(r.nome).toLowerCase(); return parole.every(p => n.includes(p)) }).slice(0, 8)
+  // prima quelle che iniziano con quello che scrivi ("Patate…"), poi quelle con una parola che inizia cosi', poi il resto
+  const punteggio = (n) => n.startsWith(v) ? 0 : (" " + n).includes(" " + parole[0]) ? 1 : 2
+  const trovate = ricette.filter(r => { const n = String(r.nome).toLowerCase(); return parole.every(p => n.includes(p)) })
+    .sort((a, b) => { const na = String(a.nome).toLowerCase(), nb = String(b.nome).toLowerCase(); return punteggio(na) - punteggio(nb) || na.length - nb.length })
+    .slice(0, 12)
   box.innerHTML = trovate.map(r => `<button type="button" data-rid="${r.id}" style="text-align:left;border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;padding:10px 12px;font-size:15px;">📖 ${escapeHtml(r.nome)}</button>`).join("")
     || `<div style="font-size:13px;color:#64748b;">Nessuna ricetta con "${escapeHtml(el.value)}": va bene anche come lavorazione libera.</div>`
   box.querySelectorAll("[data-rid]").forEach(b => b.addEventListener("click", () => {
