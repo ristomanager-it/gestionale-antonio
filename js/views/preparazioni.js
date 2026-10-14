@@ -911,12 +911,23 @@ function setupAutocompleteRicette() {
      "ho 1,4 kg di pelati, adattami il resto". */
   const scalaModo = document.getElementById("scala-modo");
   if (scalaModo) {
-    scalaModo.addEventListener("change", () => {
+    scalaModo.addEventListener("change", async () => {
       const vincolo = scalaModo.value === "vincolo";
       const ing = document.getElementById("scala-ingr");
       const um = document.getElementById("scala-um");
-      if (ing) ing.style.display = vincolo ? "block" : "none";
+      const sel = document.getElementById("scala-ingr-sel");
       if (um) um.style.display = vincolo ? "block" : "none";
+      // l'ingrediente si sceglie dall'elenco della ricetta; se l'elenco non c'e' resta il campo libero
+      const lista = vincolo && ricettaSelezionata?.id ? await elencoIngredientiRicetta(ricettaSelezionata.id) : [];
+      if (sel && lista.length) {
+        sel.innerHTML = lista.map((x) => `<option value="${escapeAttr(x.nome)}" data-um="${escapeAttr(x.um)}">${escapeHtml(x.nome)}</option>`).join("");
+        const applica = () => { if (ing) ing.value = sel.value; const u = sel.selectedOptions[0]?.dataset.um; if (um && u) um.value = u; };
+        sel.onchange = applica; applica();
+        sel.style.display = "block"; if (ing) ing.style.display = "none";
+      } else {
+        if (sel) sel.style.display = "none";
+        if (ing) ing.style.display = vincolo ? "block" : "none";
+      }
     });
   }
 
