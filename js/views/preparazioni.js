@@ -3659,6 +3659,49 @@ function soloLaFase(container) {
   window.scrollTo(0, 0);
 }
 
+// Nel riquadro "Lavorazione da fare": scrivo quanto ho di un ingrediente e l'app sviluppa le dosi del resto
+async function aggiungiCalcoloDosi(banner) {
+  if (!ricettaSelezionata?.id || !banner) return;
+  const lista = await elencoIngredientiRicetta(ricettaSelezionata.id);
+  if (!lista.length) return;
+  const box = document.createElement("div");
+  box.style.cssText = "margin-top:10px;background:#fff;color:#0f2b3d;border-radius:10px;padding:10px;";
+  box.innerHTML = `<div style="font-weight:800;font-size:14px;margin-bottom:6px;">📐 Ho questa quantità di…</div>
+    <select id="bd-ing" class="input" style="width:100%;margin-bottom:6px;">${lista.map((x) => `<option value="${escapeAttr(x.nome)}" data-um="${escapeAttr(x.um)}">${escapeHtml(x.nome)}</option>`).join("")}</select>
+    <div style="display:flex;gap:6px;">
+      <input id="bd-q" class="input" type="number" inputmode="decimal" step="0.01" min="0" placeholder="quanto" style="flex:1;min-width:0;">
+      <select id="bd-um" class="input" style="width:80px;"><option>kg</option><option>g</option><option>l</option><option>pz</option></select>
+      <button type="button" id="bd-calc" class="app-button" style="white-space:nowrap;">Calcola</button>
+    </div>
+    <div id="bd-esito" style="margin-top:6px;"></div>`;
+  banner.appendChild(box);
+  const selI = box.querySelector("#bd-ing"), selU = box.querySelector("#bd-um");
+  const unita = () => { const u = selI.selectedOptions[0]?.dataset.um; if (u && [...selU.options].some((o) => o.value === u)) selU.value = u; };
+  selI.addEventListener("change", unita); unita();
+  box.querySelector("#bd-calc").addEventListener("click", async () => {
+    const esito = box.querySelector("#bd-esito");
+    const q = Number(String(box.querySelector("#bd-q").value || "").replace(",", "."));
+    if (!(q > 0)) { esito.textContent = "Scrivi quanto ne hai."; return; }
+    const um = selU.value === "g" ? "kg" : selU.value;
+    const valore = selU.value === "g" ? q / 1000 : q;
+    const { data, error } = await (window.supabaseClient || window.supabase).rpc("scala_ricetta", {
+      p_ricetta_id: ricettaSelezionata.id, p_modo: "vincolo", p_valore: valore, p_ingrediente: selI.value, p_um: um });
+    if (error || !data || data.ok !== true) { esito.textContent = data?.errore || error?.message || "Non riesco a calcolare le dosi."; return; }
+    mostraEsitoScala(esito, data, "");
+  });
+}
+
+// Ingredienti della ricetta per "ho questa quantita' di..." (unita' proposta: kg, l o pz)
+const _ingrScala = {};
+async function elencoIngredientiRicetta(ricettaId) {
+  if (_ingrScala[ricettaId]) return _ingrScala[ricettaId];
+  const { data } = await (window.supabaseClient || window.supabase).from("ricetta_ingredienti")
+    .select("nome_prodotto, unita_misura, quantita").eq("ricetta_id", ricettaId).order("ordine");
+  const um = (u) => { u = String(u || "").toLowerCase(); return ["gr", "g", "kg", "grammi"].includes(u) ? "kg" : ["ml", "lt", "l"].includes(u) ? "l" : (u || "kg"); };
+  return (_ingrScala[ricettaId] = (data || []).filter((x) => x.nome_prodotto && Number(x.quantita) > 0)
+    .map((x) => ({ nome: x.nome_prodotto, um: um(x.unita_misura) })));
+}
+
 // Scelta veloce della conservazione quando il lotto non ha ancora la scadenza
 function scegliConservazioneAlVolo() {
   return new Promise((resolve) => {
