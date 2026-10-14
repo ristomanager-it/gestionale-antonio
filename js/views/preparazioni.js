@@ -4209,6 +4209,23 @@ async function salvaProduzione() {
     const conservazioneLibera = (document.getElementById("prod-conservazione-libera")?.value || "").trim() || null;
     const lottoUuid = (crypto?.randomUUID && crypto.randomUUID()) || null;
 
+    // 0) c'e' gia' un lotto aperto oggi della stessa ricetta? si continua su quello invece di farne un doppione
+    //    (oggi: 4 lotti di crostata aperti in 3 minuti premendo piu' volte)
+    {
+      const { data: gia } = await supabase.from("produzione_lotti")
+        .select("lotto_uuid, codice_lotto, created_at").eq("azienda_id", aziendaId).eq("ricetta_id", ricettaSelezionata.id)
+        .eq("stato", "aperta").eq("data_produzione", dataProd).order("created_at", { ascending: false }).limit(1);
+      const g = gia && gia[0];
+      if (g) {
+        const ora = new Date(g.created_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+        if (confirm(`C'è già un lotto aperto oggi per questa ricetta: ${g.codice_lotto} (aperto alle ${ora}).\n\nOK = continua su quello\nAnnulla = apri un lotto nuovo`)) {
+          if (btn) { btn.disabled = false; btn.textContent = "💾 Registra / apri in Produzioni"; }
+          await resumeDaLotto(g.lotto_uuid);
+          return;
+        }
+      }
+    }
+
     // 1) crea il lotto in stato "aperta" -> comparirà in Produzioni aperte
     const { data: nuovo, error } = await supabase.from("produzione_lotti").insert({
       azienda_id: aziendaId,
