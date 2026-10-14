@@ -1143,8 +1143,12 @@ function bindFormEvents(mode, id, fallbackDate){
         prodottoInput.value = ricetta.nome || ""
       }
       refreshSuggerimento()
+      window.__rfPlannerCalcola()
     }
   }
+  document.getElementById("planner-quantita")?.addEventListener("input", () => window.__rfPlannerCalcola())
+  document.getElementById("planner-qunita")?.addEventListener("change", () => window.__rfPlannerCalcola())
+  window.__rfPlannerCalcola()
 
   if(prodottoInput){
     prodottoInput.onchange = refreshSuggerimento
