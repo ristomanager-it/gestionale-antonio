@@ -5113,10 +5113,8 @@ async function stampaEtichetteSuEtichettatrice() {
   if (await stampanteEtichetteBrother()) { await stampaEtichetteBrother(); return; }
 
   const stampante = await getStampanteEtichette();
-  if (!stampante) {
-    alert("Nessuna etichettatrice configurata.\n\nVai in Configurazione → Stampanti e aggiungi la TM-L100 (tipo: etichette) con il suo indirizzo IP.");
-    return;
-  }
+  // nessuna etichettatrice in questa sede: si stampano in PDF, senza chiedere niente
+  if (!stampante) { await stampaEtichetteConfezioni(); return; }
 
   // costruisco le label riusando i dati delle confezioni
   const dataProdISO = document.getElementById("prod-data")?.value || "";
