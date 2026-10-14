@@ -116,7 +116,22 @@ export async function apriEtichettaVeloce(pre = {}) {
     info.textContent = s.da === "ricetta" ? "📋 Etichetta completa dalla ricetta: ingredienti e allergeni"
       : s.da === "veloce" ? "🏷 Già usato: allergeni, conservazione e giorni come l'ultima volta" : "📦 Prodotto degli acquisti: allergeni dalla sua scheda";
   };
-  cosaEl.addEventListener("input", applica);
+  // tendina con i nomi interi (la lista del telefono li tagliava): prodotti, ricette e quelli gia' usati
+  const tendina = ov.querySelector("#ev-tendina");
+  const apriTendina = () => {
+    const v = cosaEl.value.trim().toLowerCase();
+    if (v.length < 2) { tendina.style.display = "none"; tendina.innerHTML = ""; return; }
+    const parole = v.split(/\s+/);
+    const voci = Array.from(SUGG.entries()).filter(([k]) => { const n = k.toLowerCase(); return parole.every((w) => n.includes(w)); }).slice(0, 12);
+    if (!voci.length || (voci.length === 1 && voci[0][0] === cosaEl.value)) { tendina.style.display = "none"; tendina.innerHTML = ""; return; }
+    const icona = (d) => d === "ricetta" ? "📋" : d === "veloce" ? "🏷" : "📦";
+    tendina.innerHTML = voci.map(([k, x]) => `<button type="button" data-k="${esc(k)}" style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eef2f7;background:#fff;padding:10px 12px;font-size:15px;line-height:1.3;white-space:normal;">${icona(x.da)} ${esc(k)}</button>`).join("");
+    tendina.style.display = "block";
+    tendina.querySelectorAll("[data-k]").forEach((b) => b.addEventListener("click", () => {
+      cosaEl.value = b.dataset.k; tendina.style.display = "none"; tendina.innerHTML = ""; applica();
+    }));
+  };
+  cosaEl.addEventListener("input", () => { applica(); apriTendina(); });
   cosaEl.addEventListener("change", applica);
   // precompilata (es. "abbatti in negativo" dal magazzino): cosa e conservazione gia' scelti
   if (pre.cosa) ov.querySelector("#ev-cosa").value = pre.cosa;
