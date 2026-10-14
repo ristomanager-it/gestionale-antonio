@@ -953,7 +953,11 @@ function renderFormHtml({ mode, id, date, record, suggerimento }){
 
         <div class="planner-field">
           <label>Quantità</label>
-          <input id="planner-quantita" type="number" step="0.01" min="0" value="${escapeAttr(record.quantita ?? 1)}">
+          <div style="display:flex;gap:6px;">
+            <input id="planner-quantita" type="number" step="0.01" min="0" value="${escapeAttr(record.quantita ?? 1)}" style="flex:1;min-width:0;">
+            <select id="planner-qunita" style="width:auto;max-width:55%;"><option value="porzioni">porzioni</option></select>
+          </div>
+          <div id="planner-calc" style="font-size:13px;line-height:1.45;color:#334155;margin-top:6px;"></div>
         </div>
 
         <div class="planner-field full">
