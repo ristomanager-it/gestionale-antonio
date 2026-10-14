@@ -5063,7 +5063,15 @@ async function stampaEtichetteBrother() {
     const n = righe.reduce((a, r) => a + r.numero_confezioni, 0);
     if (!confirm("Stampo solo le confezioni nuove: " + n + " etichette (" + righe.map((r) => r.label + (r.note ? " · " + r.note : "")).join(", ") + "). Le altre sono già state stampate.")) return;
   }
-  const info = { codice_lotto: lottoCorrente().codice_lotto || "", data_scadenza: scadenza, operatore: operatoriDelLotto() };
+  // il codice lotto deve esserci SEMPRE sull'etichetta: se in memoria manca, lo prendo dal database
+  let codiceLotto = lottoCorrente().codice_lotto || "";
+  if (!codiceLotto && lottoCorrente().lotto_uuid) {
+    const { data: lc } = await supabase.from("produzione_lotti").select("codice_lotto").eq("lotto_uuid", lottoCorrente().lotto_uuid).maybeSingle();
+    codiceLotto = lc?.codice_lotto || "";
+    if (codiceLotto) lottoApertoCodice = codiceLotto;
+  }
+  if (!codiceLotto) return alert("Questo lotto non ha ancora un codice: premi prima 💾 Registra / apri, poi stampa.");
+  const info = { codice_lotto: codiceLotto, data_scadenza: scadenza, operatore: operatoriDelLotto() };
   const formato = await scegliFormatoEtichetta();
   if (!formato) return;
   if (btn) { btn.disabled = true; btn.textContent = "🖨️ Invio..."; }
