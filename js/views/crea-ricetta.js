@@ -3199,6 +3199,12 @@ function aggiungiIngrediente(initial = {}) {
         <select class="ing-fase input"><option value="">— tutta la ricetta —</option></select>
       </div>
 
+      <div class="form-group">
+        <label>Se non basta, compra</label>
+        <input class="ing-alt input" autocomplete="off" placeholder="facoltativo: es. reale di bovino" value="${escapeAttr((() => { const a = initial.alternativa_prodotto_id ? prodottiMap?.get?.(String(initial.alternativa_prodotto_id)) : null; return a ? (a.descrizione || a.nome || "") : ""; })())}" />
+        <div class="ing-alt-sugg" style="display:flex;flex-direction:column;gap:3px;margin-top:4px;"></div>
+      </div>
+
       <div class="form-group" style="grid-column:1/-1;">
         <label>Note (opz.)</label>
         <input class="ing-note input" value="${escapeAttr(initial.note || "")}" />
