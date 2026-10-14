@@ -529,9 +529,13 @@ setupAutocompleteRicette();
 setupOperatorePIN();
 bindEvents();
 
-resetConservazioneUI();
-resetConservazioneDettagli();
-resetScadenza();
+// azzero conservazione e scadenza solo su una pagina nuova: se la lavorazione arriva dal planning
+// o da un lotto aperto, le hanno appena caricate (prima venivano cancellate subito dopo: tendina vuota)
+if (!plannerId && !lottoParam) {
+  resetConservazioneUI();
+  resetConservazioneDettagli();
+  resetScadenza();
+}
 
 renderConfezioniRows();
 renderCoprodottiRows();
