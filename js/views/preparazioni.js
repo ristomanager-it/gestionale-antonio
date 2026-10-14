@@ -794,6 +794,20 @@ async function loadConservazioni(ricettaId) {
 
   resetScadenza();
   resetConservazioneDettagli();
+
+  // la conservazione di default della ricetta (prima quella in frigo, il -18 solo se c'e' solo quello):
+  // cosi' la scadenza e' gia' calcolata e nessuno deve sceglierla a mano
+  if (!select.value && scenariConservazione.length) {
+    const negativo = (x) => /-\s*18|negativ|congel|surgel/i.test(String(x.scenario_label || ""));
+    const def = scenariConservazione.find((x) => !negativo(x)) || scenariConservazione[0];
+    select.value = String(def.id);
+    select.dispatchEvent(new Event("change"));
+    const sc = document.getElementById("prod-scadenza");
+    if (sc && !sc.value && Number(def.shelf_life_giorni) >= 0) {
+      const base = document.getElementById("prod-data")?.value || new Date().toISOString().slice(0, 10);
+      sc.value = addDaysISO(base, Number(def.shelf_life_giorni) || 0);
+    }
+  }
 }
 
 /* ========================================================= */
