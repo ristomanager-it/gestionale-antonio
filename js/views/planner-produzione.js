@@ -380,7 +380,63 @@ window.__rfPlannerSuggerisci = function(el){
     el.value = r.nome
     if (sel) sel.value = String(r.id)
     box.innerHTML = ""
+    window.__rfPlannerCalcola && window.__rfPlannerCalcola()
   }))
+}
+
+/* Quantita' della lavorazione: in porzioni oppure in kg dell'ingrediente principale
+   (es. 10 kg di carne): l'app ricava le porzioni e mostra tutti gli ingredienti che servono. */
+const _ingrCache = {}
+async function ingredientiRicetta(ricId){
+  if (_ingrCache[ricId]) return _ingrCache[ricId]
+  const sb = window.supabaseClient
+  const [{ data: r }, { data: ing }] = await Promise.all([
+    sb.from("ricette").select("porzioni").eq("id", ricId).maybeSingle(),
+    sb.from("ricetta_ingredienti").select("nome_prodotto, quantita, unita_misura, ordine").eq("ricetta_id", ricId).order("ordine")
+  ])
+  const grammi = (q, u) => { u = String(u || "").toLowerCase(); q = Number(q) || 0
+    return ["kg", "lt", "l"].includes(u) ? q * 1000 : ["gr", "g", "grammi", "ml"].includes(u) ? q : null }
+  const righe = (ing || []).map(i => ({ nome: i.nome_prodotto, q: Number(i.quantita) || 0, u: String(i.unita_misura || ""), g: grammi(i.quantita, i.unita_misura) }))
+  return (_ingrCache[ricId] = { porzioni: Number(r?.porzioni) || 1, righe })
+}
+function _nomeBreve(t){
+  return String(t || "").toLowerCase().replace(/\([^)]*\)/g, " ").split(/\s+/)
+    .filter(w => w && !/\d/.test(w) && !["dis","surg","bs","int","cal","cat","kg","gr","lt","ml","pz","sfuso"].includes(w)).slice(0, 3).join(" ")
+}
+function _fmtQ(g, u){
+  u = String(u || "").toLowerCase()
+  if (g == null) return null
+  const liquido = ["lt", "l", "ml"].includes(u)
+  if (g >= 1000) return (Math.round(g / 100) / 10).toLocaleString("it-IT") + (liquido ? " l" : " kg")
+  return Math.round(g) + (liquido ? " ml" : " g")
+}
+window.__rfPlannerCalcola = async function(){
+  const sel = document.getElementById("planner-ricetta"), qEl = document.getElementById("planner-quantita")
+  const uEl = document.getElementById("planner-qunita"), box = document.getElementById("planner-calc")
+  if (!sel || !qEl || !uEl || !box) return
+  window.__rfPlannerPorzioniCalc = null
+  if (!sel.value) { uEl.innerHTML = `<option value="porzioni">porzioni</option>`; box.innerHTML = ""; return }
+  const dati = await ingredientiRicetta(sel.value)
+  const pesanti = dati.righe.filter(r => r.g != null && r.g > 0).sort((a, b) => b.g - a.g).slice(0, 3)
+  const prima = uEl.value
+  uEl.innerHTML = `<option value="porzioni">porzioni</option>` + pesanti.map((r, i) => `<option value="i${i}">kg di ${escapeHtml(_nomeBreve(r.nome))}</option>`).join("")
+  if ([...uEl.options].some(o => o.value === prima)) uEl.value = prima
+  const q = Number(qEl.value) || 0
+  let porz = q
+  let base = null
+  if (uEl.value !== "porzioni") {
+    base = pesanti[Number(uEl.value.slice(1))]
+    porz = base ? q * 1000 / (base.g / dati.porzioni) : q
+  }
+  porz = Math.round(porz * 100) / 100
+  window.__rfPlannerPorzioniCalc = porz
+  window.__rfPlannerBase = base ? { nome: _nomeBreve(base.nome), kg: q } : null
+  const k = porz / dati.porzioni
+  const lista = dati.righe.filter(r => r.q > 0).map(r => {
+    const t = r.g != null ? _fmtQ(r.g * k, r.u) : (Math.round(r.q * k * 10) / 10).toLocaleString("it-IT") + " " + r.u
+    return `${escapeHtml(_nomeBreve(r.nome))} <b>${escapeHtml(t)}</b>`
+  })
+  box.innerHTML = q > 0 ? `${base ? `= <b>${porz.toLocaleString("it-IT")} porzioni</b> · ` : ""}🧾 Ti servono: ${lista.join(", ") || "—"}` : ""
 }
 
 function puoProgrammare(){
