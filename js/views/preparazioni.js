@@ -4880,8 +4880,11 @@ async function stampaEtichetteBrother() {
   const fSemi = faseSemilavoratoCorrente();
   if (fSemi) etichetta = { ...etichetta, confermata: true,
     denominazione: fSemi.semilavorato_nome + " — semilavorato per " + String(ricettaSelezionata?.nome || window.__rfProdottoPlanning || "") };
-  const scadenza = document.getElementById("prod-scadenza")?.value || null;
-  if (!scadenza) return alert("Manca la data di scadenza del lotto: impostala in Conservazione.");
+  // senza scadenza la stampa non partiva in silenzio (o con un avviso su un campo nascosto):
+  // ora si sceglie la conservazione al volo e la scadenza si calcola da sola
+  let scadenza = document.getElementById("prod-scadenza")?.value || null;
+  if (!scadenza) scadenza = await scegliConservazioneAlVolo();
+  if (!scadenza) return;
   // basta il numero di confezioni: se il peso non c'e' (es. crocchette a pezzi) l'etichetta riporta i pezzi
   const tutte = buildDettaglioConfezionamento().filter((r) => r.numero_confezioni > 0);
   if (!tutte.length) return alert("Nessuna confezione: nel confezionamento scrivi quante confezioni hai fatto.");
