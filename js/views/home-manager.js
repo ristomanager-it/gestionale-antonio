@@ -136,7 +136,8 @@ export async function render(container) {
       const tipo = b.getAttribute("data-timbra");
       b.disabled = true; b.textContent = "…";
       const { error } = await supabase.from("timbrature").insert({
-        azienda_id: azienda.id, sede_id: sede.id, dipendente_id: dip?.id,
+        // la timbratura va sempre sulla sede del dipendente (non su quella scelta in alto nell'app)
+        azienda_id: azienda.id, sede_id: dip?.sede_id || sede.id, dipendente_id: dip?.id,
         dip_nome: [dip?.nome, dip?.cognome].filter(Boolean).join(" "),
         tipo, canale: "web", timestamp: new Date().toISOString(),
       });
