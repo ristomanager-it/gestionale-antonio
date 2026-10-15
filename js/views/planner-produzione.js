@@ -719,11 +719,12 @@ function chipsEventi(r){
 // Stessa lavorazione per ricette diverse, stesso giorno e stessa persona (es. pelatura patate
 // per tortini e crocchette): una scheda sola con il totale, e sotto ogni ricetta con la sua parte.
 // mattina, pomeriggio, sera; al servizio per ora della portata
-const ORDINE_FASCIA = { mattina: 1, pomeriggio: 2, sera: 3 }
+// 15/10/2026: prima conta l'ORA scritta; senza ora la fascia vale come un orario indicativo
+// (mattina 09:00, pomeriggio 15:00, sera 19:00); senza nessuno dei due in fondo.
+const ORA_FASCIA = { mattina: "09:00", pomeriggio: "15:00", sera: "19:00" }
+function oraEffettiva(r){ return r.ora ? String(r.ora).slice(0, 5) : (ORA_FASCIA[r.fascia] || "99:99") }
 function ordineOrario(a, b){
-  const fa = ORDINE_FASCIA[a.fascia] || 9, fb = ORDINE_FASCIA[b.fascia] || 9
-  if (fa !== fb) return fa - fb
-  return String(a.ora || "99").localeCompare(String(b.ora || "99"))
+  return oraEffettiva(a).localeCompare(oraEffettiva(b))
 }
 function badgeInCorso(r){
   if (r.stato !== "in_corso") return ""
