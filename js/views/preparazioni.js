@@ -1614,8 +1614,9 @@ function aggiornaRiepilogoRiga(card, row) {
     : (porz ? toKg(porz.peso_porzione, porz.unita_misura) : 0);
   const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 1));
   const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni) || 0));
-  if (boxConf) boxConf.value = formatNumber(pesoKg * pezzi) + " kg";
-  if (boxTot) boxTot.value = formatNumber(pesoKg * pezzi * numConf) + " kg";
+  const kgConfR = toNumber(row.peso_kg) > 0 ? toNumber(row.peso_kg) : pesoKg * pezzi;
+  if (boxConf) boxConf.value = formatNumber(kgConfR) + " kg";
+  if (boxTot) boxTot.value = formatNumber(kgConfR * numConf) + " kg";
 }
 
 function onConfezioniChange(e) {
