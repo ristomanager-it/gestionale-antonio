@@ -542,8 +542,12 @@ function addMessage(text, type, opts = {}) {
     bubble.appendChild(passa);
   }
 
+  // una scheda per ogni azione di Tony (puo' proporne piu' d'una nello stesso messaggio)
+  const listaAzioni = (Array.isArray(opts.azioni) && opts.azioni.length) ? opts.azioni : (opts.azione ? [opts.azione] : []);
+  const pulsantiConferma = [];
+  for (const azX of listaAzioni) {
   // Tony ha gia' fatto l'azione (es. produzione aperta): esito + pulsante per andarci
-  if (opts.azione && opts.azione.fatto) {
+  if (azX && azX.fatto) {
     const card = document.createElement("div");
     card.style.cssText = "margin-top:10px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:12px;padding:10px;";
     const t = document.createElement("div");
