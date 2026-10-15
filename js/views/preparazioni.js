@@ -2098,7 +2098,7 @@ function getTotaleConfezionatoKg() {
 
     if (pezzi <= 0 || numConf <= 0) continue;
 
-    tot += pesoKg * pezzi * numConf;
+    tot += (toNumber(r.peso_kg) > 0 ? toNumber(r.peso_kg) : pesoKg * pezzi) * numConf;
   }
 
   return tot;
