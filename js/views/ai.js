@@ -609,7 +609,17 @@ function addMessage(text, type, opts = {}) {
       }
     };
     card.append(t, ok, no);
+    pulsantiConferma.push(ok);
     bubble.appendChild(card);
+  }
+
+  }
+  if (pulsantiConferma.length > 1) {
+    const tutte = document.createElement("button");
+    tutte.textContent = "✅ Conferma tutte (" + pulsantiConferma.length + ")";
+    tutte.style.cssText = "margin-top:10px;width:100%;background:#047857;color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:800;";
+    tutte.onclick = async () => { tutte.disabled = true; for (const b of pulsantiConferma) { if (!b.disabled) { b.click(); await new Promise((r) => setTimeout(r, 900)); } } tutte.remove(); };
+    bubble.appendChild(tutte);
   }
 
   if (opts.action && opts.actionExecuted) {
