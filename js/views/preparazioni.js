@@ -1552,6 +1552,7 @@ function renderConfezioniRows() {
                 value="${escapeAttr(String(row.pezzi_per_confezione ?? ""))}"
                 placeholder="Es: 10"
                 ${savedLotto ? "readonly" : ""} />
+              <div class="form-help">Quanti pezzi ci sono dentro (va anche in etichetta).</div>
             </div>
 
             <div class="form-group">
