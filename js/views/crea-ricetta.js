@@ -1941,12 +1941,22 @@ async function loadProdotti() {
   const supabase = window.supabaseClient;
   const aziendaId = window.state.azienda.id;
 
-  const { data, error } = await supabase
-    .from("prodotti")
-    .select("id, nome, nome_interno, categoria_bilancio_id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione, contenuto_confezione, um_costo, tipo_prodotto, ricetta_id")
-    .eq("azienda_id", aziendaId)
-    .eq("attivo", true)
-    .order("descrizione");
+  // a pagine da 1000: il server ne restituisce al massimo 1000 per volta, e con piu' di 1000
+  // prodotti quelli in fondo all'alfabeto (sale, zucchero...) non comparivano
+  let data = [], error = null;
+  for (let da = 0; da < 20000; da += 1000) {
+    const r = await supabase
+      .from("prodotti")
+      .select("id, nome, nome_interno, categoria_bilancio_id, descrizione, um, unita_base, costo_medio, quantita_confezione, um_confezione, contenuto_confezione, um_costo, tipo_prodotto, ricetta_id")
+      .eq("azienda_id", aziendaId)
+      .eq("attivo", true)
+      .order("descrizione")
+      .order("id")
+      .range(da, da + 999);
+    if (r.error) { error = r.error; break; }
+    data = data.concat(r.data || []);
+    if (!r.data || r.data.length < 1000) break;
+  }
 
   // alias (fatture + scelte fatte in ricetta): testo_norm -> prodotto
   try {
