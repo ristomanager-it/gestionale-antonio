@@ -1376,7 +1376,7 @@ async function sendMessageSilent(hiddenPrompt) {
     const data = await callTony(conversation);
     if (loading) loading.parentElement?.remove();
     const reply = data?.reply || "Nessuna risposta.";
-    addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed, fonte: data?.fonte, azione: data?.azione });
+    addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed, fonte: data?.fonte, azione: data?.azione, azioni: data?.azioni });
     conversation.push({ role: "assistant", content: reply });
     salvaTonyMsg("assistant", reply);
     ttsParla(reply);
