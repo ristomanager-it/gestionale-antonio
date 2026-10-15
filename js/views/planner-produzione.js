@@ -751,12 +751,14 @@ function renderItems(items){
     if (!gruppi.has(k)) gruppi.set(k, [])
     gruppi.get(k).push(r)
   })
-  let html = ""
+  // gruppi e schede singole insieme, in ordine di ora
+  const blocchi = []
   gruppi.forEach((g) => {
     if (g.length === 1) { singoli.push(g[0]); return }
-    html += renderGruppo(g)
+    blocchi.push({ r: g.slice().sort(ordineOrario)[0], html: renderGruppo(g) })
   })
-  return html + singoli.map(renderCard).join("")
+  singoli.forEach((r) => blocchi.push({ r, html: renderCard(r) }))
+  return blocchi.sort((x, y) => ordineOrario(x.r, y.r)).map((b) => b.html).join("")
 }
 
 function renderGruppo(g){
