@@ -18,7 +18,7 @@ export async function render(container) {
   let dip = window.state?.dipendente || null;
   if ((!dip || !dip.id) && azienda?.id && user?.id) {
     const { data } = await supabase.from("dipendenti")
-      .select("id, nome, cognome, reparto_id, codice_recensione")
+      .select("id, nome, cognome, reparto_id, codice_recensione, sede_id")
       .eq("azienda_id", azienda.id).eq("user_id", user.id).limit(1).maybeSingle();
     dip = data || null;
     if (dip) window.state.dipendente = { ...(window.state.dipendente || {}), ...dip };
