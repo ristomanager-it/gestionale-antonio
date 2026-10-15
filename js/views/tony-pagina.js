@@ -12,6 +12,9 @@ const TIPI = {
 export async function render(app) {
   const supa = window.supabaseClient || window.supabase;
   const az = window.state?.azienda?.id;
+  // solo per l'admin: costi e registro di Tony
+  const ruolo = String(window.state?.ruoloRaw || window.state?.ruolo || "").toLowerCase();
+  if (!["admin", "superadmin"].includes(ruolo)) { app.innerHTML = `<div style="padding:24px;">Questa pagina è riservata all'amministratore.</div>`; return; }
   app.innerHTML = `
     <div style="max-width:900px;margin:0 auto;padding:16px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
