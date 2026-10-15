@@ -3474,6 +3474,11 @@ function avviaFase(idx, origine) {
   if (!log || (Array.isArray(log.firme) && log.firme.length)) return;
   log.ora_inizio = oraLocaleRf(new Date());
   log.inizio_origine = origine;
+  // nessun lotto ancora (lavorazione dal planning senza evento): lo apro adesso, cosi' la
+  // lavorazione compare sullo schermo produzioni e in Produzioni aperte (e l'inizio si salva)
+  if (!(resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid)) && ricettaSelezionata?.id) {
+    assicuraLottoPerFirme();
+  }
   try {
     const _uuid = resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid) || null;
     const _cli = window.supabaseClient || window.supabase;
