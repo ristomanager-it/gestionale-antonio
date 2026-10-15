@@ -3637,7 +3637,8 @@ function lavorazioneSenzaRicetta(container) {
       disegna();
     });
     box.querySelector("[data-fine]")?.addEventListener("click", async () => {
-      const { data: min } = await sb.rpc("lavorazione_finita", { p_id: pid });
+      const { data: min, error: eFin } = await sb.rpc("lavorazione_finita", { p_id: pid });
+      if (eFin) { alert(eFin.message); return; }
       if (min) alert("Fatto in " + min + " minuti 👍");
       disegna();
     });
