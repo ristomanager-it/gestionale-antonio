@@ -539,6 +539,54 @@ function addMessage(text, type, opts = {}) {
     bubble.appendChild(passa);
   }
 
+  // Tony propone una modifica: scheda con Conferma / Annulla (si salva solo col tocco)
+  if (opts.azione && opts.azione.firma) {
+    const card = document.createElement("div");
+    card.style.cssText = "margin-top:10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:10px;";
+    const t = document.createElement("div");
+    t.style.cssText = "font-weight:700;color:#0E5A7A;margin-bottom:8px;";
+    t.textContent = opts.azione.riepilogo || "Modifica proposta";
+    const ok = document.createElement("button");
+    ok.textContent = "✅ Conferma";
+    ok.style.cssText = "background:#0E5A7A;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;margin-right:8px;";
+    const no = document.createElement("button");
+    no.textContent = "Annulla";
+    no.style.cssText = "background:#e2e8f0;color:#0f172a;border:0;border-radius:10px;padding:10px 16px;font-weight:700;";
+    no.onclick = () => { card.innerHTML = "<span style='color:#64748b'>Annullato.</span>"; };
+    ok.onclick = async () => {
+      ok.disabled = true; no.disabled = true; ok.textContent = "Salvo…";
+      try {
+        const supaAuth = window.supabaseClient || window.supabase;
+        const ses = await supaAuth?.auth?.getSession();
+        const tok = ses?.data?.session?.access_token || "";
+        const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tok}`, "apikey": tok },
+          body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null,
+            ruolo: window.state?.ruolo || "operatore", conferma: opts.azione }),
+        });
+        const j = await r.json().catch(() => ({}));
+        card.innerHTML = "";
+        const esito = document.createElement("div");
+        esito.style.cssText = "font-weight:700;color:" + (j.success ? "#047857" : "#b91c1c") + ";";
+        esito.textContent = j.reply || j.error || "Non riuscito.";
+        card.appendChild(esito);
+        if (j.success && j.link) {
+          const vai = document.createElement("button");
+          vai.textContent = j.link.includes("preparazioni") ? "▶ Apri la lavorazione" : "📋 Apri il planning";
+          vai.style.cssText = "margin-top:8px;background:#0E5A7A;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;";
+          vai.onclick = () => { location.hash = j.link; };
+          card.appendChild(vai);
+        }
+      } catch (e) {
+        ok.disabled = false; no.disabled = false; ok.textContent = "✅ Conferma";
+        alert("Non riesco a contattare Tony: riprova.");
+      }
+    };
+    card.append(t, ok, no);
+    bubble.appendChild(card);
+  }
+
   if (opts.action && opts.actionExecuted) {
     const card = document.createElement("div");
     card.className = "msg-action-card";
