@@ -400,18 +400,21 @@ export async function render(app) {
 
   <div id="chat-messages" class="chat-messages"></div>
 
-  <div class="chat-quick-actions">${chips}</div>
-
   <div id="voice-transcript-bar">
     🎤 <span id="voice-transcript-text">Trascrizione in corso...</span>
   </div>
 
+  <!-- la casella per scrivere sta sopra alle domande pronte, ed e' grande -->
   <div class="chat-input-bar">
-    <button id="chat-mic" class="chat-mic-btn" title="Parla con Tony">🎤</button>
-    <textarea id="chat-input" rows="1" placeholder="Scrivi a Tony..."></textarea>
-    <button id="chat-tts" class="chat-mic-btn" title="Attiva voce Tony" style="font-size:18px;opacity:0.4;" aria-pressed="false">🔊</button>
-    <button id="chat-send" class="chat-send-btn">➤</button>
+    <textarea id="chat-input" rows="3" placeholder="Scrivi a Tony..."></textarea>
+    <div class="chat-input-tasti">
+      <button id="chat-mic" class="chat-mic-btn" title="Parla con Tony">🎤</button>
+      <button id="chat-tts" class="chat-mic-btn" title="Attiva voce Tony" style="font-size:18px;opacity:0.4;" aria-pressed="false">🔊</button>
+      <button id="chat-send" class="chat-send-btn">➤</button>
+    </div>
   </div>
+
+  <div class="chat-quick-actions">${chips}</div>
 
 </div>
 `;
