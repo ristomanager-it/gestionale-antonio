@@ -209,6 +209,7 @@ const routes = {
   creaPreventivo: () => imp("./views/crea-preventivo.js"),
   "preventivo-vecchio": () => imp("./views/crea-preventivo-vecchio.js"),
   ai: () => imp("./views/ai.js"),
+  "tony-pagina": () => imp("./views/tony-pagina.js"),
 
   permessi: () => imp("./views/permessi-ferie.js"),
 
