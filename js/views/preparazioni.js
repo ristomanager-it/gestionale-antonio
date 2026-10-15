@@ -1517,7 +1517,9 @@ function renderConfezioniRows() {
       const pesoKg = toNumber(row.peso_kg) > 0 ? toNumber(row.peso_kg) : pesoKgFormato;
       const pezzi = Math.max(0, Math.floor(toNumber(row.pezzi_per_confezione) || 1));
       const numConf = Math.max(0, Math.floor(toNumber(row.numero_confezioni) || 0));
-      const kgConf = pesoKg * pezzi;
+      // peso scritto = peso della confezione intera (i pezzi dentro sono solo da contare);
+      // senza peso scritto: peso del formato x pezzi
+      const kgConf = toNumber(row.peso_kg) > 0 ? toNumber(row.peso_kg) : pesoKgFormato * pezzi;
       const kgTot = kgConf * numConf;
 
       return `
