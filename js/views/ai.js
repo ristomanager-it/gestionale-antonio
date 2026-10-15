@@ -966,7 +966,10 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   const timeoutId = setTimeout(() => controller.abort(), 90000);
 
   try {
-    const res = await fetch(`${supabaseUrl}/functions/v1/tony-router`, {
+    // le domande normali (scritte o a voce) vanno al Tony nuovo, che legge planning, ricette,
+    // prenotazioni, eventi e lotti; i messaggi speciali (benvenuto, ecc.) restano al vecchio
+    const funzioneTony = tipoMessaggio ? "tony-router" : "tony";
+    const res = await fetch(`${supabaseUrl}/functions/v1/${funzioneTony}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
