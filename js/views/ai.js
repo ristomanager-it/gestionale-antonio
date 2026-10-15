@@ -558,7 +558,7 @@ function addMessage(text, type, opts = {}) {
       const vai = document.createElement("button");
       vai.textContent = azX.link.includes("preparazioni") ? "▶ Apri la lavorazione" : "Apri";
       vai.style.cssText = "margin-top:8px;background:#0E5A7A;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;";
-      vai.onclick = () => { location.hash = opts.azione.link; };
+      vai.onclick = () => { location.hash = azX.link; };
       card.appendChild(vai);
     }
     bubble.appendChild(card);
