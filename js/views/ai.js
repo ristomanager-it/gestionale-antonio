@@ -539,6 +539,24 @@ function addMessage(text, type, opts = {}) {
     bubble.appendChild(passa);
   }
 
+  // Tony ha gia' fatto l'azione (es. produzione aperta): esito + pulsante per andarci
+  if (opts.azione && opts.azione.fatto) {
+    const card = document.createElement("div");
+    card.style.cssText = "margin-top:10px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:12px;padding:10px;";
+    const t = document.createElement("div");
+    t.style.cssText = "font-weight:700;color:#047857;";
+    t.textContent = opts.azione.riepilogo || "Fatto.";
+    card.appendChild(t);
+    if (opts.azione.link) {
+      const vai = document.createElement("button");
+      vai.textContent = opts.azione.link.includes("preparazioni") ? "▶ Apri la lavorazione" : "Apri";
+      vai.style.cssText = "margin-top:8px;background:#0E5A7A;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;";
+      vai.onclick = () => { location.hash = opts.azione.link; };
+      card.appendChild(vai);
+    }
+    bubble.appendChild(card);
+  }
+
   // Tony propone una modifica: scheda con Conferma / Annulla (si salva solo col tocco)
   if (opts.azione && opts.azione.firma) {
     const card = document.createElement("div");
