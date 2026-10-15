@@ -1539,7 +1539,7 @@ function renderConfezioniRows() {
               <input class="input" type="number" min="0" step="0.001" data-field="peso_kg"
                 value="${escapeAttr(String(row.peso_kg ?? (pesoKgFormato || "")))}"
                 placeholder="Es: 1.000" ${savedLotto ? "readonly" : ""} />
-              <div class="form-help">Libero: metti il peso reale pesato.</div>
+              <div class="form-help">Il peso reale della busta/vaschetta piena.</div>
             </div>
 
             <div class="form-group">
