@@ -414,8 +414,11 @@ export async function render(app) {
 
   <!-- la casella per scrivere sta sopra alle domande pronte, ed e' grande -->
   <div class="chat-input-bar">
+    <div id="chat-foto-anteprima" style="display:none;align-items:center;gap:8px;font-size:13px;color:#0E5A7A;font-weight:700;"></div>
     <textarea id="chat-input" rows="3" placeholder="Scrivi a Tony..."></textarea>
     <div class="chat-input-tasti">
+      <input id="chat-foto-file" type="file" accept="image/*" style="display:none">
+      <button id="chat-foto" class="chat-mic-btn" title="Fai vedere una foto a Tony">📷</button>
       <button id="chat-mic" class="chat-mic-btn" title="Parla con Tony">🎤</button>
       <button id="chat-tts" class="chat-mic-btn" title="Attiva voce Tony" style="font-size:18px;opacity:0.4;" aria-pressed="false">🔊</button>
       <button id="chat-send" class="chat-send-btn">➤</button>
