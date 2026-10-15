@@ -1137,7 +1137,7 @@ async function sendVoiceMessage() {
     }
 
     const reply = puliscilReply(data?.reply) || "Non ho capito, puoi ripetere?";
-    addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed, fonte: data?.fonte });
+    addMessage(reply, "ai", { action: data?.action, actionExecuted: data?.action_executed, fonte: data?.fonte, azione: data?.azione });
     conversation.push({ role: "assistant", content: reply });
     salvaTonyMsg("assistant", reply);
     ttsParla(reply);
