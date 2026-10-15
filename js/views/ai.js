@@ -311,20 +311,28 @@ export async function render(app) {
 .chat-input-bar {
   flex-shrink: 0;
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 10px 10px 8px;
   background: #f0f2f5;
-  align-items: flex-end;
+}
+.chat-input-tasti {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 #chat-input {
-  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
   resize: none;
-  padding: 10px 14px;
-  border-radius: 20px;
+  padding: 12px 14px;
+  border-radius: 14px;
   border: 1px solid #ccc;
-  font-size: 14px;
-  max-height: 100px;
+  font-size: 17px;
+  min-height: 84px;
+  max-height: 200px;
   overflow-y: auto;
   line-height: 1.4;
 }
