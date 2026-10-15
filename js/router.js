@@ -1448,6 +1448,7 @@ function resolve() {
 }
 
 async function _resolve() {
+  window.__rfNavT0 = performance.now();   // per misurare quanto ci mette ogni pagina ad aprirsi
   if (!app) return;
 
   if (!window.location.hash) {
