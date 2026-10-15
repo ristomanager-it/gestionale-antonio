@@ -52,8 +52,9 @@ export function initVoce(routeName) {
     return;
   }
   if (!fab) creaInterfaccia();
-  fab.style.display = "";
-  mettiNellHeader();
+  // 15/10/2026: il microfono in alto non serve piu' (si parla con Tony nella chat): resta nascosto,
+  // ma gli annunci di sala e cucina ("tavolo 12, seconda uscita") continuano ad arrivare
+  fab.style.display = "none";
   avviaAnnunci();
   registraServiceWorker();
   if (pagina === "bo-comande" || pagina === "display-cucina") setTimeout(proponiNotifiche, 1500);
