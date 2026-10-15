@@ -736,6 +736,83 @@ export async function render(container) {
       datiDip[nome] = { turni, totMin };
     }
 
+    // PDF vero (jsPDF): sul telefono la finestra di stampa non funziona, quindi si crea il file
+    // e si apre il foglio di condivisione (Salva su File, Stampa, WhatsApp, Mail…)
+    if (window.jspdf?.jsPDF) {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const W = 210, M = 14;
+        let y = 16;
+        const nuovaPagina = () => { doc.addPage(); y = 16; };
+        const spazio = (h) => { if (y + h > 285) nuovaPagina(); };
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(14, 90, 122);
+        doc.text('Cartellino ore lavorate', M, y); y += 6;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90);
+        doc.text(`${azienda ? azienda + ' · ' : ''}${periodoLabel} · estratto il ${new Date().toLocaleDateString('it-IT')}`, M, y); y += 3;
+        doc.setDrawColor(14, 90, 122); doc.setLineWidth(0.5); doc.line(M, y, W - M, y); y += 8;
+
+        // resoconto
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(14, 90, 122);
+        doc.text('Resoconto', M, y); y += 5;
+        doc.setFontSize(9); doc.setTextColor(0); doc.setFillColor(241, 245, 249); doc.rect(M, y - 4, W - 2 * M, 6, 'F');
+        doc.text('Dipendente', M + 2, y); doc.text('Ore totali', 130, y, { align: 'right' }); doc.text('Turni', 155, y, { align: 'center' }); doc.text('Anomalie', 182, y, { align: 'center' });
+        y += 6; doc.setFont('helvetica', 'normal');
+        for (const nome of nomi) {
+          spazio(6);
+          const d = datiDip[nome];
+          doc.text(nome, M + 2, y);
+          doc.setFont('helvetica', 'bold'); doc.text(fmtMin(d.totMin), 130, y, { align: 'right' }); doc.setFont('helvetica', 'normal');
+          doc.text(String(d.turni.filter(t => !t.anomalia).length), 155, y, { align: 'center' });
+          const an = d.turni.filter(t => t.anomalia).length;
+          if (an) doc.setTextColor(185, 28, 28);
+          doc.text(String(an), 182, y, { align: 'center' }); doc.setTextColor(0);
+          doc.setDrawColor(230); doc.setLineWidth(0.2); doc.line(M, y + 2, W - M, y + 2);
+          y += 6;
+        }
+        y += 4;
+
+        // dettaglio per dipendente
+        for (const nome of nomi) {
+          const d = datiDip[nome];
+          spazio(20);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(14, 90, 122);
+          doc.text(nome, M, y); y += 5;
+          doc.setFontSize(9); doc.setTextColor(0); doc.setFillColor(241, 245, 249); doc.rect(M, y - 4, W - 2 * M, 6, 'F');
+          doc.text('Giorno', M + 2, y); doc.text('Ingresso', 85, y, { align: 'center' }); doc.text('Uscita', 120, y, { align: 'center' }); doc.text('Ore', W - M - 2, y, { align: 'right' });
+          y += 6; doc.setFont('helvetica', 'normal');
+          for (const t of d.turni) {
+            spazio(6);
+            doc.text(giornoDi(t.ingresso || t.uscita), M + 2, y);
+            doc.text(oraDi(t.ingresso), 85, y, { align: 'center' });
+            doc.text(oraDi(t.uscita), 120, y, { align: 'center' });
+            if (t.anomalia) { doc.setTextColor(185, 28, 28); doc.text('! ' + t.anomalia, W - M - 2, y, { align: 'right' }); doc.setTextColor(0); }
+            else doc.text(t.minuti ? fmtMin(t.minuti) : '-', W - M - 2, y, { align: 'right' });
+            doc.setDrawColor(235); doc.setLineWidth(0.2); doc.line(M, y + 2, W - M, y + 2);
+            y += 5.5;
+          }
+          spazio(8);
+          doc.setDrawColor(14, 90, 122); doc.setLineWidth(0.4); doc.line(M, y - 2, W - M, y - 2);
+          doc.setFont('helvetica', 'bold'); doc.setTextColor(14, 90, 122);
+          doc.text('TOTALE', M + 2, y + 2); doc.text(fmtMin(d.totMin), W - M - 2, y + 2, { align: 'right' });
+          doc.setTextColor(0); doc.setFont('helvetica', 'normal');
+          y += 12;
+        }
+
+        const nomeFile = `cartellino-${(nomi.length === 1 ? nomi[0] : 'dipendenti').replace(/\s+/g, '-').toLowerCase()}-${String(periodoLabel).replace(/\s+/g, '-')}.pdf`;
+        const blobPdf = doc.output('blob');
+        const filePdf = new File([blobPdf], nomeFile, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [filePdf] })) {
+          navigator.share({ files: [filePdf], title: 'Cartellino ore' }).catch(() => {});
+        } else {
+          doc.save(nomeFile);
+        }
+        return;
+      } catch (e) {
+        console.warn('PDF cartellino non riuscito, apro la versione da stampare', e);
+      }
+    }
+
     // ── RESOCONTO ──
     const resoconto = nomi.map(nome => {
       const d = datiDip[nome];
