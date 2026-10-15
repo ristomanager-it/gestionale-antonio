@@ -278,7 +278,7 @@ export async function render(app) {
   flex-shrink: 0;
   display: flex;
   gap: 7px;
-  padding: 7px 10px;
+  padding: 7px 10px calc(7px + env(safe-area-inset-bottom, 0px));
   overflow-x: auto;
   background: #f8fafc;
   scrollbar-width: none;
