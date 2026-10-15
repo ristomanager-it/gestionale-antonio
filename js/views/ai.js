@@ -588,7 +588,7 @@ function addMessage(text, type, opts = {}) {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tok}`, "apikey": tok },
           body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null,
-            ruolo: window.state?.ruolo || "operatore", conferma: opts.azione }),
+            ruolo: window.state?.ruolo || "operatore", conferma: azX }),
         });
         const j = await r.json().catch(() => ({}));
         card.innerHTML = "";
