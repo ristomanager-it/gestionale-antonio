@@ -565,7 +565,7 @@ function addMessage(text, type, opts = {}) {
   }
 
   // Tony propone una modifica: scheda con Conferma / Annulla (si salva solo col tocco)
-  if (opts.azione && opts.azione.firma) {
+  if (azX && azX.firma) {
     const card = document.createElement("div");
     card.style.cssText = "margin-top:10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:10px;";
     const t = document.createElement("div");
