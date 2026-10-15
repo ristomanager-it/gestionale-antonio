@@ -1019,6 +1019,14 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   };
   if (audioBase64) body.audio_base64 = audioBase64;
   if (tipoMessaggio) body.tipo_messaggio = tipoMessaggio;
+  // foto allegata (etichetta, foglio, ricetta, piatto): parte con questa domanda e poi si svuota
+  if (window.__tonyFoto && !tipoMessaggio) {
+    body.immagine_base64 = window.__tonyFoto;
+    body.immagine_tipo = "image/jpeg";
+    window.__tonyFoto = null;
+    const ant = document.getElementById("chat-foto-anteprima");
+    if (ant) { ant.style.display = "none"; ant.innerHTML = ""; }
+  }
 
   // Fetch diretto con timeout 60s invece di supabase.functions.invoke
   const supabaseUrl = "https://cuhcscpvhypoaplcmtjk.supabase.co";
