@@ -891,6 +891,11 @@ async function listaDecisioni(supabase, aziendaId) {
 }
 
 async function listaComandamenti(supabase, aziendaId) {
+  // messaggio del coach per oggi (scritto da admin/manager, a tutti o a me): vince sul pensiero di default
+  try {
+    const { data: coach } = await supabase.rpc("messaggio_coach_oggi", { p_azienda: aziendaId });
+    if (coach) return [{ testo: coach }];
+  } catch (_) {}
   const { data } = await supabase.from("comandamenti")
     .select("testo").eq("azienda_id", aziendaId).eq("attivo", true).order("ordine");
   return data || [];
