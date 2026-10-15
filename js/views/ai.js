@@ -1521,6 +1521,35 @@ function initChat(ruolo) {
   ttsInit();
   document.getElementById("chat-tts")?.addEventListener("click", ttsToggle);
 
+  // 📷 foto per Tony: si rimpicciolisce sul telefono (max 1400 px) prima di partire
+  const fotoBtn = document.getElementById("chat-foto");
+  const fotoFile = document.getElementById("chat-foto-file");
+  fotoBtn?.addEventListener("click", () => fotoFile?.click());
+  fotoFile?.addEventListener("change", async () => {
+    const f = fotoFile.files?.[0];
+    fotoFile.value = "";
+    if (!f) return;
+    try {
+      const url = URL.createObjectURL(f);
+      const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
+      const max = 1400, k = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      window.__tonyFoto = cv.toDataURL("image/jpeg", 0.82).split(",")[1];
+      const ant = document.getElementById("chat-foto-anteprima");
+      if (ant) {
+        ant.style.display = "flex";
+        ant.innerHTML = `<img src="data:image/jpeg;base64,${window.__tonyFoto}" style="height:54px;border-radius:8px;"> Foto pronta: scrivi cosa vuoi (o premi ➤) <button type="button" id="chat-foto-togli" style="margin-left:auto;border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:700;">✕</button>`;
+        document.getElementById("chat-foto-togli").onclick = () => { window.__tonyFoto = null; ant.style.display = "none"; ant.innerHTML = ""; };
+      }
+      document.getElementById("chat-input")?.focus();
+    } catch (e) {
+      alert("Non riesco a leggere la foto: riprova.");
+    }
+  });
+
   // Storico: se ci sono conversazioni passate, riprendi da lì; altrimenti benvenuto
   caricaStoricoTony().then((haStorico) => {
     if (!haStorico) loadMessaggioIniziale(ruolo);
