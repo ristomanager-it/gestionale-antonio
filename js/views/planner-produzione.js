@@ -734,7 +734,7 @@ function badgeInCorso(r){
 
 function badgeOrario(r){
   const servizio = String(r.prodotto || "").startsWith("🍽")
-  if (servizio && r.ora) {
+  if (r.ora) {
     return `<div style="display:inline-block;font-weight:800;font-size:12.5px;color:#7c2d12;background:#ffedd5;border-radius:6px;padding:2px 8px;margin-bottom:4px;">🕐 ${escapeHtml(String(r.ora).slice(0, 5))}${r.portata ? " · " + escapeHtml(r.portata) : ""}</div>`
   }
   const f = { mattina: "🌅 Mattina", pomeriggio: "🌇 Pomeriggio", sera: "🌙 Sera" }[r.fascia]
