@@ -5116,7 +5116,7 @@ async function stampaEtichetteBrother() {
     for (const r of righe) {
       const peso = Number(r.kg_per_confezione) > 0 ? Math.round(r.kg_per_confezione * 1000) : null;
       const pz = Number(r.pezzi_per_confezione) || 0;
-      const et = peso ? etichetta : { ...etichetta, denominazione: String(etichetta.denominazione || "") + (pz > 1 ? " · " + pz + " pz" : "") };
+      const et = pz > 1 ? { ...etichetta, denominazione: String(etichetta.denominazione || "") + " · " + pz + " pz" } : etichetta;
       // la nota della confezione (banchetto, ristorante, evento...) va in etichetta come "PER: ..."
       const dest = String(r.note || "").trim();
       const esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: dest ? { ...info, destinazione: dest } : info, peso, copie: r.numero_confezioni, formato });
