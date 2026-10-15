@@ -3534,6 +3534,18 @@ function firmaFaseHaccp(idx) {
   }
   if (!match) { alert("Inserisci prima il PIN operatore in alto ❌"); return; }
   if (log.firme.some((f) => String(f.operatore_id) === String(match.id))) { alert(match.nome + " ha già firmato questa fase."); return; }
+  // Firme a raffica: se la fase dura un po' ma la precedente e' stata firmata da meno di 2 minuti,
+  // si chiede conferma. Firmare quando la fase finisce davvero rende misurabili i tempi delle ricette.
+  try {
+    const durata = Number(fase?.durata_min) || 0;
+    const ultime = logHaccp.map((l, i) => (i !== idx && l?.firmato_il ? new Date(l.firmato_il).getTime() : 0)).filter((t) => t > 0);
+    const ultima = ultime.length ? Math.max(...ultime) : 0;
+    const minuti = ultima ? (Date.now() - ultima) / 60000 : 999;
+    if (primaFirma && durata >= 15 && minuti < 2) {
+      const ok = confirm(`La fase «${nomeFase}» dura circa ${durata} minuti, ma la fase prima è stata firmata ${Math.max(0, Math.round(minuti))} minuti fa.\n\nFirma quando la fase è finita davvero: così i tempi delle ricette diventano giusti.\n\nL'hai finita adesso?`);
+      if (!ok) return;
+    }
+  } catch (_) {}
   applicaFirmaAIdx(idx, match);
   renderFasiHaccp();
   aggiornaAbilitazioneStampe();
