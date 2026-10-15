@@ -1240,10 +1240,25 @@ REGOLE PRECISE:
 - Il messaggio deve essere DIVERSO ogni giorno grazie al seed: ${seed}
 - Ruolo utente: ${ruolo}`;
 
-    const data = await callTony([{ role: "user", content: prompt }], null, "messaggio_iniziale");
+    // saluto del mattino del Tony nuovo: cosa c'e' oggi per te (planning, produzioni aperte, eventi)
+    void prompt;
+    window.__tonySaluto = true;
+    const data = await callTony([{ role: "user", content: "Saluto del mattino" }], null, null);
     const reply = puliscilReply(data?.reply) || `${saluto}! Sono Tony, il tuo assistente operativo. Cosa possiamo fare di grande oggi?`;
 
-    addMessage(reply, "ai");
+    const bollaSaluto = addMessage(reply, "ai");
+    // detto a voce una volta al giorno; se il telefono blocca l'audio automatico resta il pulsante
+    try {
+      const chiave = "tony_saluto_" + seed;
+      if (bollaSaluto) {
+        const ascolta = document.createElement("button");
+        ascolta.textContent = "🔊 Ascolta";
+        ascolta.style.cssText = "margin-top:8px;background:#0E5A7A;color:#fff;border:0;border-radius:10px;padding:8px 14px;font-weight:800;";
+        ascolta.onclick = () => { try { ttsParla(reply); } catch (_) {} };
+        bollaSaluto.appendChild(ascolta);
+      }
+      if (!localStorage.getItem(chiave)) { localStorage.setItem(chiave, "1"); try { ttsParla(reply); } catch (_) {} }
+    } catch (_) {}
     conversation.push({ role: "assistant", content: reply });
     salvaTonyMsg("assistant", reply);
     setStatus("Assistente operativo");
