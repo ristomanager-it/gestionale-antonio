@@ -1080,7 +1080,7 @@ loadAziendeForUser._server = async function (userId) {
   }
 
   return (aziende || []).filter((a) => a.aziende);
-}
+};
 
 loadAziendeForUser._retry = async (userId) => {
   const { data, error } = await supabase.from("utenti_aziende")
