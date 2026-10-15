@@ -850,6 +850,9 @@ const routePermissions = {
   "planner-produzione":
     "planning.write",
 
+  "tony-pagina":
+    "planning.write",
+
   "acquisti":
     "acquisti.write",
 
