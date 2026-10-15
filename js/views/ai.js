@@ -1529,7 +1529,7 @@ function initChat(ruolo) {
     });
     input.addEventListener("input", () => {
       input.style.height = "auto";
-      input.style.height = Math.min(input.scrollHeight, 100) + "px";
+      input.style.height = Math.max(84, Math.min(input.scrollHeight, 200)) + "px";
     });
   }
 
