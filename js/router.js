@@ -1033,7 +1033,17 @@ async function getValidSession() {
   return session;
 }
 
+// ⚡ Le aziende dell'utente cambiano di rado: le tengo in memoria 15 minuti invece di
+// richiederle al server a ogni cambio pagina (era una delle attese di ogni apertura).
 async function loadAziendeForUser(userId) {
+  const c = window.__rfAziendeCache;
+  if (c && c.uid === userId && Date.now() - c.t < 900000 && Array.isArray(c.data) && c.data.length) return c.data;
+  const ris = await loadAziendeForUser._server(userId);
+  if (Array.isArray(ris) && ris.length) window.__rfAziendeCache = { uid: userId, t: Date.now(), data: ris };
+  return ris;
+}
+
+loadAziendeForUser._server = async function (userId) {
   const { data: aziende, error } = await supabase
     .from("utenti_aziende")
     .select(
