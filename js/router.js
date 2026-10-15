@@ -1611,7 +1611,8 @@ async function _resolve() {
   // azienda, sede e "vedi come", non richiedo di nuovo al server profilo, piano, ruolo e permessi.
   const __chiave = () => [session.user.id, window.state?.azienda?.id || "", window.state?.sedeAttiva?.id || "", window.state?.viewAs || ""].join("|");
   const __cc = window.__rfCtx;
-  const caldo = !!(__cc && __cc.key === __chiave() && Date.now() - __cc.t < 180000
+  // ⚡ 20 minuti (prima 3): profilo, piano, ruolo e permessi non cambiano a ogni pagina
+  const caldo = !!(__cc && __cc.key === __chiave() && Date.now() - __cc.t < 1200000
     && !PREHOME_ROUTES.has(route) && !PLATFORM_ROUTES.has(route));
   let __contesto = null;
 
