@@ -5191,7 +5191,16 @@ async function stampaEtichetteSuEtichettatrice() {
   if (!lottoCorrente()) return alert("Registra o riprendi prima la produzione.");
 
   // Brother 62x40 (via Raspberry): etichetta di legge, una per confezione, col peso della confezione
-  if (await stampanteEtichetteBrother()) { await stampaEtichetteBrother(); return; }
+  // un errore a meta' stampa prima finiva nel nulla (nessun messaggio, nessuna etichetta): ora si vede
+  if (await stampanteEtichetteBrother()) {
+    try { await stampaEtichetteBrother(); }
+    catch (e) {
+      console.error("stampa etichette:", e);
+      alert("Stampa non riuscita: " + (e?.message || e) + "\n\nFai uno screenshot di questo messaggio.");
+      try { await (window.supabaseClient || window.supabase).from("tony_registro").insert({ azienda_id: window.state?.azienda?.id, tipo: "errore_stampa_etichette", dati: { messaggio: String(e?.message || e), stack: String(e?.stack || "").slice(0, 1500), lotto: lottoCorrente()?.codice_lotto || null }, esito: "errore", ok: false }); } catch (_) {}
+    }
+    return;
+  }
 
   const stampante = await getStampanteEtichette();
   // nessuna etichettatrice in questa sede: si stampano in PDF, senza chiedere niente
