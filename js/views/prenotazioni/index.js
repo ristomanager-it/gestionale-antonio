@@ -452,7 +452,8 @@ export async function render(container) {
       background:rgba(17,24,39,0.42);
       display:none;
       align-items:flex-end;
-      z-index:50;
+      /* 16/10/2026: sopra la barra in basso (Home/Prenotazioni/...), che copriva i pulsanti Conferma */
+      z-index:10050;
     }
 
     .pren-modal.open{
