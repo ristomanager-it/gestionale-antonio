@@ -22,6 +22,7 @@ export const FORMATI_ETICHETTA = {
   "38":     { nome: "38 mm solo nero (DK-22225)",    w: 413, rosso: false, continuo: true },
   "29":     { nome: "29 mm solo nero (DK-22210)",    w: 306, rosso: false, continuo: true },
   "62x29":  { nome: "Pretagliate 62 x 29 mm (DK-11209)",  w: 696, h: 271,  rosso: false, continuo: false },
+  "29x90":  { nome: "Pretagliate 29 x 90 mm (DK-11201)",  w: 306, h: 991,  rosso: false, continuo: false },
   "62x100": { nome: "Pretagliate 62 x 100 mm (DK-11202)", w: 696, h: 1109, rosso: false, continuo: false },
 };
 
