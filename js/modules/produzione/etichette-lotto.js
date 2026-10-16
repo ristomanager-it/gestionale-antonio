@@ -60,6 +60,9 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   ctx.textBaseline = "top";
   const F = "Arial, Helvetica, sans-serif";
   const W = ET_W - ET_PAD * 2;
+  // 16/10/2026: rotoli stretti (29/38 mm): piu' righe per titolo, destinazione, operatore e produttore,
+  // e il codice lotto si rimpicciolisce finche' entra in larghezza
+  const stretta = ET_W < 450;
 
   // --- fondo, sempre nello stesso posto: produttore, lotto, scadenza
   ctx.font = "25px " + F;
