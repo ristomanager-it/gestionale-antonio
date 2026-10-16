@@ -93,9 +93,9 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   // chi ha lavorato il lotto (chi ha firmato le fasi)
   if (info.operatore) {
     ctx.font = "24px " + F;
-    const op = etWrap(ctx, "Operatore: " + info.operatore, W).slice(0, 1);
-    yTop = yTop - 30;
-    op.forEach((r) => ctx.fillText(r, ET_PAD, yTop));
+    const op = etWrap(ctx, "Operatore: " + info.operatore, W).slice(0, stretta ? 2 : 1);
+    yTop = yTop - 30 * op.length;
+    op.forEach((r, i) => ctx.fillText(r, ET_PAD, yTop + i * 30));
   }
   ctx.fillRect(ET_PAD, yTop - 9, W, 3);
   const limite = yTop - 16;
