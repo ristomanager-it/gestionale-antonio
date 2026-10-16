@@ -112,7 +112,8 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   let grande = Number(etichetta.titolo_grande) > 1 ? Number(etichetta.titolo_grande) : 1;
   function fai(scala, disegna) {
     let y = ET_PAD - 2;
-    const fT = Math.round(34 * scala * grande), fB = Math.max(25, Math.round(27 * scala)), lh = fB * 1.18;
+    // 16/10/2026: il testo puo' scendere fino a 21 px (circa 1,8 mm a 300 dpi, sopra il minimo di legge di 1,2 mm)
+    const fT = Math.round(34 * scala * grande), fB = Math.max(21, Math.round(27 * scala)), lh = fB * 1.18;
     ctx.font = "bold " + fT + "px " + F;
     const tit = etWrap(ctx, (etichetta.denominazione || "") + (peso ? " · " + peso + " g" : ""), W).slice(0, 2);
     tit.forEach(r => { if (disegna) { ctx.fillStyle = "#000"; ctx.fillText(r, ET_PAD, y); } y += fT * 1.12; });
