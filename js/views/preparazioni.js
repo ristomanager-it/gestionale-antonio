@@ -2,7 +2,7 @@
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
 import { apriGuidaPreparazioni } from "./guida-preparazioni.js";
 import { getStampanteEtichette, stampaEtichetteEpos } from "../modules/produzione/epos-etichette.js";
-import { inviaEtichetteLotto, scegliFormatoEtichetta, misureEtichetta, disegnaEtichetta, FORMATI_ETICHETTA, stampanteEtichette as stampanteEtichetteBrother } from "../modules/produzione/etichette-lotto.js?v=20261016";
+import { inviaEtichetteLotto, scegliFormatoEtichetta, misureEtichetta, disegnaEtichetta, FORMATI_ETICHETTA, stampanteEtichette as stampanteEtichetteBrother } from "../modules/produzione/etichette-lotto.js?v=20261016b";
 
 /*
   PRODUZIONE (flusso industriale)
