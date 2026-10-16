@@ -5133,11 +5133,20 @@ async function stampaEtichetteBrother() {
       // la nota della confezione (banchetto, ristorante, evento...) va in etichetta come "PER: ..."
       const dest = String(r.note || "").trim();
       let esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: dest ? { ...info, destinazione: dest } : info, peso, copie: r.numero_confezioni, formato });
-      // 16/10/2026: di norma 62x40; se il testo non entra si chiede di passare a 62x50 per questa stampa
-      if (esito.motivo === "troppo_lungo" && Number(formato.lunghezzaMm) < 50 && String(formato.descr || "").includes("x")) {
-        if (!confirm("Il testo non entra nell'etichetta " + formato.descr + " mm.\n\nLa stampo da " + formato.larghezzaMm + "x50 mm?")) return;
-        formato = misureEtichetta(formato.id, 50);
-        esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: dest ? { ...info, destinazione: dest } : info, peso, copie: r.numero_confezioni, formato });
+      // 16/10/2026: se il testo non entra, sui rotoli continui si cerca la lunghezza piu' corta in cui ci sta
+      // (62 mm: di solito 50; 29 mm: anche 90-120) e si chiede se stamparla cosi'
+      if (esito.motivo === "troppo_lungo" && FORMATI_ETICHETTA[formato.id]?.continuo) {
+        const infoR = dest ? { ...info, destinazione: dest } : info;
+        let lungOk = null;
+        for (let L = Math.max(50, Number(formato.lunghezzaMm) + 10); L <= 200; L += 10) {
+          const prova = disegnaEtichetta({ etichetta: et, produttore: produttore || {}, info: infoR, peso, formato: misureEtichetta(formato.id, L) });
+          if (prova?.png) { lungOk = L; break; }
+        }
+        if (lungOk) {
+          if (!confirm("Il testo non entra nell'etichetta " + formato.descr + " mm.\n\nLa stampo da " + formato.larghezzaMm + "x" + lungOk + " mm?")) return;
+          formato = misureEtichetta(formato.id, lungOk);
+          esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: infoR, peso, copie: r.numero_confezioni, formato });
+        }
       }
       if (esito.motivo === "troppo_lungo") return alert("Il testo della scheda etichetta non entra nel " + formato.larghezzaMm + "x" + formato.lunghezzaMm + " a norma: allunga l'etichetta oppure accorcia ingredienti o conservazione.");
       if (!esito.ok) return alert("Errore invio etichette: " + esito.motivo);
