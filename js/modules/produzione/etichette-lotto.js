@@ -135,8 +135,12 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
     return y;
   }
   let scala = 1;
-  while (scala > 0.9 && fai(scala, false) > limite) scala -= 0.02;
-  if (fai(scala, false) > limite && grande > 1) { grande = 1; scala = 1; while (scala > 0.9 && fai(scala, false) > limite) scala -= 0.02; }
+  while (scala > 0.78 && fai(scala, false) > limite) scala -= 0.02;
+  if (fai(scala, false) > limite && grande > 1) { grande = 1; scala = 1; while (scala > 0.78 && fai(scala, false) > limite) scala -= 0.02; }
+  // non entra ancora: si toglie la riga "Operatore" (non obbligatoria) e si riprova
+  if (fai(scala, false) > limite && info.operatore && !info.__senzaOperatore) {
+    return disegnaEtichetta({ etichetta, produttore, info: { ...info, operatore: null, __senzaOperatore: true }, peso, formato });
+  }
   if (fai(scala, false) > limite) return { png: null, troppoLungo: true };
   fai(scala, true);
   riduciATreColori(ctx, ET_W, ET_H);
