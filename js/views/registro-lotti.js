@@ -1,4 +1,4 @@
-import { inviaEtichetteLotto, scegliFormatoEtichetta } from "../modules/produzione/etichette-lotto.js?v=20261014";
+import { inviaEtichetteLotto, scegliFormatoEtichetta } from "../modules/produzione/etichette-lotto.js?v=20261016";
 /* =========================================================
    REGISTRO LOTTI — storico produzioni (sola lettura)
    Tutti i lotti (aperta/firmato/chiuso/...) con filtri e dettaglio HACCP
