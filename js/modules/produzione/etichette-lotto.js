@@ -120,7 +120,7 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
     // 16/10/2026: il testo puo' scendere fino a 21 px (circa 1,8 mm a 300 dpi, sopra il minimo di legge di 1,2 mm)
     const fT = Math.round(34 * scala * grande), fB = Math.max(21, Math.round(27 * scala)), lh = fB * 1.18;
     ctx.font = "bold " + fT + "px " + F;
-    const tit = etWrap(ctx, (etichetta.denominazione || "") + (peso ? " · " + peso + " g" : ""), W).slice(0, 2);
+    const tit = etWrap(ctx, (etichetta.denominazione || "") + (peso ? " · " + peso + " g" : ""), W).slice(0, stretta ? 4 : 2);
     tit.forEach(r => { if (disegna) { ctx.fillStyle = "#000"; ctx.fillText(r, ET_PAD, y); } y += fT * 1.12; });
     y += 4;
     pezzi.forEach(p => {
