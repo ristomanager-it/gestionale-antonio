@@ -86,9 +86,9 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   let yTop = yL;
   if (info.destinazione) {
     ctx.font = "bold 26px " + F;
-    const per = etWrap(ctx, "PER: " + info.destinazione, W).slice(0, 1);
-    yTop = yL - 34;
-    per.forEach((r) => ctx.fillText(r, ET_PAD, yTop));
+    const per = etWrap(ctx, "PER: " + info.destinazione, W).slice(0, stretta ? 3 : 1);
+    yTop = yL - 34 * per.length;
+    per.forEach((r, i) => ctx.fillText(r, ET_PAD, yTop + i * 34));
   }
   // chi ha lavorato il lotto (chi ha firmato le fasi)
   if (info.operatore) {
