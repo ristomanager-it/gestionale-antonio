@@ -66,7 +66,7 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
 
   // --- fondo, sempre nello stesso posto: produttore, lotto, scadenza
   ctx.font = "25px " + F;
-  const prod = etWrap(ctx, [produttore.ragione_sociale, produttore.indirizzo, produttore.partita_iva ? "P.IVA " + produttore.partita_iva : ""].filter(Boolean).join(" — "), W).slice(0, 3);
+  const prod = etWrap(ctx, [produttore.ragione_sociale, produttore.indirizzo, produttore.partita_iva ? "P.IVA " + produttore.partita_iva : ""].filter(Boolean).join(" — "), W).slice(0, stretta ? 7 : 3);
   const yP = ET_H - ET_PAD + 2 - prod.length * 28;
   ctx.fillStyle = "#000";
   prod.forEach((r, i) => ctx.fillText(r, ET_PAD, yP + i * 28));
