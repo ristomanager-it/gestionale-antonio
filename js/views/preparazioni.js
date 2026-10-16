@@ -5121,7 +5121,7 @@ async function stampaEtichetteBrother() {
   }
   if (!codiceLotto) return alert("Questo lotto non ha ancora un codice: premi prima 💾 Registra / apri, poi stampa.");
   const info = { codice_lotto: codiceLotto, data_scadenza: scadenza, operatore: operatoriDelLotto() };
-  const formato = await scegliFormatoEtichetta();
+  let formato = await scegliFormatoEtichetta();
   if (!formato) return;
   if (btn) { btn.disabled = true; btn.textContent = "🖨️ Invio..."; }
   let tot = 0;
