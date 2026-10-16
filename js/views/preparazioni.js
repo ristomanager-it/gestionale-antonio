@@ -5132,7 +5132,13 @@ async function stampaEtichetteBrother() {
       const et = pz > 1 ? { ...etichetta, denominazione: String(etichetta.denominazione || "") + " · " + pz + " pz" } : etichetta;
       // la nota della confezione (banchetto, ristorante, evento...) va in etichetta come "PER: ..."
       const dest = String(r.note || "").trim();
-      const esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: dest ? { ...info, destinazione: dest } : info, peso, copie: r.numero_confezioni, formato });
+      let esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: dest ? { ...info, destinazione: dest } : info, peso, copie: r.numero_confezioni, formato });
+      // 16/10/2026: di norma 62x40; se il testo non entra si chiede di passare a 62x50 per questa stampa
+      if (esito.motivo === "troppo_lungo" && Number(formato.lunghezzaMm) < 50 && String(formato.descr || "").includes("x")) {
+        if (!confirm("Il testo non entra nell'etichetta " + formato.descr + " mm.\n\nLa stampo da " + formato.larghezzaMm + "x50 mm?")) return;
+        formato = misureEtichetta(formato.id, 50);
+        esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: dest ? { ...info, destinazione: dest } : info, peso, copie: r.numero_confezioni, formato });
+      }
       if (esito.motivo === "troppo_lungo") return alert("Il testo della scheda etichetta non entra nel " + formato.larghezzaMm + "x" + formato.lunghezzaMm + " a norma: allunga l'etichetta oppure accorcia ingredienti o conservazione.");
       if (!esito.ok) return alert("Errore invio etichette: " + esito.motivo);
       tot += r.numero_confezioni;
