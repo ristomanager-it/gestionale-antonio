@@ -5129,7 +5129,14 @@ async function stampaEtichetteBrother() {
     for (const r of righe) {
       const peso = Number(r.kg_per_confezione) > 0 ? Math.round(r.kg_per_confezione * 1000) : null;
       const pz = Number(r.pezzi_per_confezione) || 0;
-      const et = pz > 1 ? { ...etichetta, denominazione: String(etichetta.denominazione || "") + " · " + pz + " pz" } : etichetta;
+      // 17/10/2026: il nome della confezione (es. "Busta straccetti") va in etichetta sotto la ricetta,
+      // cosi' righe diverse dello stesso lotto (filetti / straccetti) si distinguono; contenitori generici no
+      const nomeConf = String(r.label || "").replace(/^(sacchetto|sacco|busta|buste|vaschetta|vaso|teglia|gastronorm|contenitore|secchio|barattolo)\s*(sottovuoto)?\s*/i, "")
+        .replace(/\b\d+([.,]\d+)?\s*(kg|g|gr|l|lt|ml)\b/gi, "").trim();
+      let den = String(etichetta.denominazione || "");
+      if (nomeConf.length >= 3) den += " · " + nomeConf.charAt(0).toUpperCase() + nomeConf.slice(1);
+      if (pz > 1) den += " · " + pz + " pz";
+      const et = den !== String(etichetta.denominazione || "") ? { ...etichetta, denominazione: den } : etichetta;
       // la nota della confezione (banchetto, ristorante, evento...) va in etichetta come "PER: ..."
       const dest = String(r.note || "").trim();
       let esito = await inviaEtichetteLotto({ etichetta: et, produttore: produttore || {}, info: dest ? { ...info, destinazione: dest } : info, peso, copie: r.numero_confezioni, formato });
