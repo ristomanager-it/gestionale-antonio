@@ -86,10 +86,15 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   // lotto unico per piu' eventi: un'etichetta per evento, con la sua destinazione
   let yTop = yL;
   if (info.destinazione) {
-    ctx.font = "bold 26px " + F;
-    const per = etWrap(ctx, "PER: " + info.destinazione, W).slice(0, stretta ? 3 : 1);
-    yTop = yL - 34 * per.length;
-    per.forEach((r, i) => ctx.fillText(r, ET_PAD, yTop + i * 34));
+    // 17/10/2026: la destinazione si deve leggere da lontano: piu' grande, bianco su fascia nera
+    ctx.font = "bold 34px " + F;
+    const per = etWrap(ctx, "PER: " + info.destinazione, W - 12).slice(0, stretta ? 3 : 2);
+    yTop = yL - 6 - 42 * per.length;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(ET_PAD - 2, yTop - 3, W + 4, 42 * per.length + 2);
+    ctx.fillStyle = "#fff";
+    per.forEach((r, i) => ctx.fillText(r, ET_PAD + 6, yTop + 2 + i * 42));
+    ctx.fillStyle = "#000";
   }
   // chi ha lavorato il lotto (chi ha firmato le fasi)
   if (info.operatore) {
