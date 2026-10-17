@@ -1036,10 +1036,12 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   if (tipoMessaggio) body.tipo_messaggio = tipoMessaggio;
   if (window.__tonySaluto) { body.saluto = true; window.__tonySaluto = false; }
   // foto allegata (etichetta, foglio, ricetta, piatto): parte con questa domanda e poi si svuota
-  if (window.__tonyFoto && !tipoMessaggio) {
-    body.immagine_base64 = window.__tonyFoto;
+  // 16/10/2026: piu' foto nello stesso messaggio (window.__tonyFoti); immagine_base64 resta la prima
+  if ((window.__tonyFoti || []).length && !tipoMessaggio) {
+    body.immagini = window.__tonyFoti.map((b) => ({ base64: b, tipo: "image/jpeg" }));
+    body.immagine_base64 = window.__tonyFoti[0];
     body.immagine_tipo = "image/jpeg";
-    window.__tonyFoto = null;
+    window.__tonyFoti = []; window.__tonyFoto = null;
     const ant = document.getElementById("chat-foto-anteprima");
     if (ant) { ant.style.display = "none"; ant.innerHTML = ""; }
   }
