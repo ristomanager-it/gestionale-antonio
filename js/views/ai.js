@@ -1558,29 +1558,43 @@ function initChat(ruolo) {
   const fotoBtn = document.getElementById("chat-foto");
   const fotoFile = document.getElementById("chat-foto-file");
   fotoBtn?.addEventListener("click", () => fotoFile?.click());
+  // piu' foto insieme (fino a 6): si scelgono in una volta sola o si aggiungono premendo di nuovo 📷
+  window.__tonyFoti = window.__tonyFoti || [];
+  const MAX_FOTO = 6;
+  const mostraAnteprime = () => {
+    const ant = document.getElementById("chat-foto-anteprima");
+    if (!ant) return;
+    const n = window.__tonyFoti.length;
+    if (!n) { ant.style.display = "none"; ant.innerHTML = ""; window.__tonyFoto = null; return; }
+    window.__tonyFoto = window.__tonyFoti[0];
+    ant.style.display = "flex";
+    ant.innerHTML = `<div style="display:flex;gap:6px;overflow-x:auto;max-width:60%;">${window.__tonyFoti.map((b) => `<img src="data:image/jpeg;base64,${b}" style="height:54px;border-radius:8px;flex:none;">`).join("")}</div>
+      <span style="font-size:13px;">${n === 1 ? "Foto pronta" : n + " foto pronte"}: scrivi cosa vuoi (o premi ➤)${n < MAX_FOTO ? " · 📷 per aggiungerne" : ""}</span>
+      <button type="button" id="chat-foto-togli" style="margin-left:auto;border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:700;">✕</button>`;
+    document.getElementById("chat-foto-togli").onclick = () => { window.__tonyFoti = []; mostraAnteprime(); };
+  };
   fotoFile?.addEventListener("change", async () => {
-    const f = fotoFile.files?.[0];
+    const files = [...(fotoFile.files || [])];
     fotoFile.value = "";
-    if (!f) return;
-    try {
-      const url = URL.createObjectURL(f);
-      const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
-      const max = 1400, k = Math.min(1, max / Math.max(img.width, img.height));
-      const cv = document.createElement("canvas");
-      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-      URL.revokeObjectURL(url);
-      window.__tonyFoto = cv.toDataURL("image/jpeg", 0.82).split(",")[1];
-      const ant = document.getElementById("chat-foto-anteprima");
-      if (ant) {
-        ant.style.display = "flex";
-        ant.innerHTML = `<img src="data:image/jpeg;base64,${window.__tonyFoto}" style="height:54px;border-radius:8px;"> Foto pronta: scrivi cosa vuoi (o premi ➤) <button type="button" id="chat-foto-togli" style="margin-left:auto;border:0;background:#e2e8f0;border-radius:8px;padding:6px 10px;font-weight:700;">✕</button>`;
-        document.getElementById("chat-foto-togli").onclick = () => { window.__tonyFoto = null; ant.style.display = "none"; ant.innerHTML = ""; };
+    if (!files.length) return;
+    const posto = MAX_FOTO - window.__tonyFoti.length;
+    if (files.length > posto) alert(`Al massimo ${MAX_FOTO} foto per messaggio: prendo le prime ${Math.max(0, posto)}.`);
+    for (const f of files.slice(0, Math.max(0, posto))) {
+      try {
+        const url = URL.createObjectURL(f);
+        const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
+        const max = 1400, k = Math.min(1, max / Math.max(img.width, img.height));
+        const cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url);
+        window.__tonyFoti.push(cv.toDataURL("image/jpeg", 0.82).split(",")[1]);
+      } catch (e) {
+        alert("Non riesco a leggere una delle foto: riprova.");
       }
-      document.getElementById("chat-input")?.focus();
-    } catch (e) {
-      alert("Non riesco a leggere la foto: riprova.");
     }
+    mostraAnteprime();
+    document.getElementById("chat-input")?.focus();
   });
 
   // Storico: se ci sono conversazioni passate, riprendi da lì; altrimenti benvenuto
