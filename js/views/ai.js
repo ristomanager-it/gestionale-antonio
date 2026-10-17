@@ -1627,15 +1627,21 @@ function initChat(ruolo) {
 
   async function sendMessage(prompt) {
     prompt = (prompt || input?.value || "").trim();
-    if (!prompt && window.__tonyFoto) prompt = "Guarda questa foto";
+    const fotiInvio = window.__tonyFoti || [];
+    if (!prompt && fotiInvio.length) prompt = fotiInvio.length > 1 ? "Guarda queste foto" : "Guarda questa foto";
     if (!prompt) return;
 
     const bollaUtente = addMessage(prompt, "user");
-    if (window.__tonyFoto && bollaUtente) {
-      const im = document.createElement("img");
-      im.src = "data:image/jpeg;base64," + window.__tonyFoto;
-      im.style.cssText = "display:block;max-width:180px;border-radius:10px;margin-bottom:6px;";
-      bollaUtente.insertBefore(im, bollaUtente.firstChild);
+    if (fotiInvio.length && bollaUtente) {
+      const riga = document.createElement("div");
+      riga.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;";
+      fotiInvio.forEach((b) => {
+        const im = document.createElement("img");
+        im.src = "data:image/jpeg;base64," + b;
+        im.style.cssText = `display:block;max-width:${fotiInvio.length > 1 ? 110 : 180}px;border-radius:10px;`;
+        riga.appendChild(im);
+      });
+      bollaUtente.insertBefore(riga, bollaUtente.firstChild);
     }
     conversation.push({ role: "user", content: prompt });
     salvaTonyMsg("user", prompt);
