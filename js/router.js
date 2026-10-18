@@ -2005,6 +2005,7 @@ const ROUTE_FEATURES = {
   "ricette":         "ricettario",
   "grammature-servizio": "ricettario",
   "planner-produzione": "ricettario",
+  "sezionatura":     "ricettario",
 
   // Personale
   "bo-presenze":     "hr_timbrature",
