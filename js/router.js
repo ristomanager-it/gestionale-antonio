@@ -160,6 +160,8 @@ const routes = {
   "produzioni-aperte": () => imp("./views/produzioni-aperte.js"),
   "registro-lotti": () => imp("./views/registro-lotti.js"),
   "lotti-fornitore": () => imp("./views/lotti-fornitore.js"),
+  // Sezionatura: dai pezzi di carne ai tagli, con rese attese e reali e costo vero di ogni taglio
+  sezionatura: () => imp("./views/sezionatura.js"),
   "scadenze": () => imp("./views/scadenze.js"),
   "scheda-evento": () => imp("./views/scheda-evento.js"),
   "modelli-buffet": () => imp("./views/modelli-buffet.js"),
