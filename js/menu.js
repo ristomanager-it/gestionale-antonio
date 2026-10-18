@@ -416,6 +416,7 @@ export function initMenu() {
           { label: "🏭 Per le sedi",         route: "cc-sedi"           },
           { label: "📒 Registro lotti",      route: "registro-lotti"    },
           { label: "📷 Lotti in arrivo",     route: "lotti-fornitore"   },
+          { label: "🔪 Sezionatura",         route: "sezionatura"       },
           { label: "⏰ Scadenze",            route: "scadenze"          },
           { label: "📊 Produttività",        route: "produttivita-produzione" },
         ] },
