@@ -801,6 +801,7 @@ function hasPermission(area) {
       "briefing-servizio",
       "registro-lotti",
       "lotti-fornitore",
+      "sezionatura",
       "scadenze",
       "scheda-evento",
       "modelli-buffet",
