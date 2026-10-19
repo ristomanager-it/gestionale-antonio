@@ -65,6 +65,12 @@ export async function render(container, params = {}) {
     supabase.from("modelli_menu").select("*").eq("azienda_id", azienda.id).eq("attivo", true),
   ]);
   ricette = ric.data || [];
+  // elenchi "- proposte" del ricettario (buffet, finger food, aperitivo ricco): servono a "aggiungi portata"
+  const elenchi = ricette.filter(r => /-\s*proposte\s*$/i.test(r.nome || "") && r.attivo !== false);
+  if (elenchi.length) {
+    const { data: figli } = await supabase.from("ricette_componenti").select("ricetta_id, sotto_ricetta_id").in("ricetta_id", elenchi.map(r => r.id));
+    proposte = elenchi.map(r => ({ id: String(r.id), nome: r.nome, figli: (figli || []).filter(f => f.ricetta_id === r.id).map(f => String(f.sotto_ricetta_id)) }));
+  }
   locations = loc.data || [];
   listinoServizi = serv.data || [];
   sezioniInfo = sez.data || [];
