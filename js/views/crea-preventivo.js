@@ -598,6 +598,19 @@ function rigaPortata(r, i) {
     ${vedoICosti && apertoDettaglio === i ? dettaglioStima(r) : ""}`;
 }
 
+// Le ricette proposte per una sezione: buffet -> proposte del buffet + finger food; aperitivo -> aperitivo ricco + finger food.
+// Gli elenchi dentro gli elenchi (il finger food dentro il buffet) si aprono. null = nessun elenco per questa sezione.
+function proposteDiSezione(sez) {
+  const s = norm(sez);
+  const quali = /buffet/.test(s) ? /buffet|finger/ : /aperitiv/.test(s) ? /aperitiv|finger/ : /finger/.test(s) ? /finger/ : null;
+  if (!quali) return null;
+  const ids = new Set(), visti = new Set();
+  const apri = (el) => { if (visti.has(el.id)) return; visti.add(el.id);
+    for (const f of el.figli) { const sub = proposte.find(x => x.id === f); if (sub) apri(sub); else ids.add(f); } };
+  proposte.filter(x => quali.test(norm(x.nome))).forEach(apri);
+  return ids.size ? ids : null;
+}
+
 // Finestra "aggiungi portata": ricette attive della categoria della sezione (o tutto il ricettario),
 // senza quelle gia' nel menu, con ricerca. Si toccano i piatti da aggiungere e poi "Aggiungi".
 function sceltaPiatti(sez, fatto) {
