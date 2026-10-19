@@ -56,7 +56,7 @@ export async function render(container, params = {}) {
   container.innerHTML = `<div class="pv2"><div class="pv2-caric">Un attimo…</div></div>${stile()}`;
 
   const [ric, loc, serv, sez, mod] = await Promise.all([
-    supabase.from("ricette").select("id, nome, costo_porzione, costo_materia_prima, porzioni, categoria_portata_id").eq("azienda_id", azienda.id).limit(3000),
+    supabase.from("ricette").select("id, nome, costo_porzione, costo_materia_prima, porzioni, categoria_portata_id, attivo").eq("azienda_id", azienda.id).limit(3000),
     supabase.from("location_ricevimenti").select("id, nome, capienza_min, capienza_max, prezzo_affitto_base")
       .eq("azienda_id", azienda.id).eq("attiva", true).order("nome"),
     supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).eq("attivo", true).order("categoria"),
