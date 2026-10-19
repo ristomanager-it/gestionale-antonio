@@ -606,7 +606,7 @@ function sceltaPiatti(sez, fatto) {
   const ammessi = proposteDiSezione(sez);
   const valide = ricette.filter(r => r.attivo !== false && !/-\s*proposte\s*$/i.test(r.nome || "") && !gia.has(String(r.id)))
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "it"));
-  let tutte = !cat, cerca = "";
+  let tutte = !cat && !ammessi, cerca = "";
   const scelte = new Map();
   const m = document.createElement("div");
   m.className = "pv2-scelta";
