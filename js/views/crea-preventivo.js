@@ -677,8 +677,13 @@ function aggancia(container, supabase, azienda, sede) {
   container.querySelectorAll("[data-del-portata]").forEach(el => {
     el.addEventListener("click", () => { righe.splice(Number(el.dataset.delPortata), 1); ri(); });
   });
+  // + aggiungi portata: elenco delle ricette della sezione non ancora scelte (si possono toccarne piu' di una)
   container.querySelectorAll("[data-add-portata]").forEach(el => {
-    el.addEventListener("click", () => { righe.push({ nome: "", sezione: el.dataset.addPortata, prezzo: 0, ricetta_id: null }); ri(); });
+    el.addEventListener("click", () => sceltaPiatti(el.dataset.addPortata, (scelte, libero) => {
+      for (const r of scelte) righe.push({ nome: r.nome, sezione: el.dataset.addPortata, prezzo: 0, ricetta_id: r.id });
+      if (libero) righe.push({ nome: "", sezione: el.dataset.addPortata, prezzo: 0, ricetta_id: null });
+      ri();
+    }));
   });
 
   const selSez = container.querySelector("#pv2-sez-scelta");
