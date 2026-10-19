@@ -591,6 +591,47 @@ function rigaPortata(r, i) {
     ${vedoICosti && apertoDettaglio === i ? dettaglioStima(r) : ""}`;
 }
 
+// Finestra "aggiungi portata": ricette attive della categoria della sezione (o tutto il ricettario),
+// senza quelle gia' nel menu, con ricerca. Si toccano i piatti da aggiungere e poi "Aggiungi".
+function sceltaPiatti(sez, fatto) {
+  const gia = new Set(righe.filter(x => x.ricetta_id).map(x => String(x.ricetta_id)));
+  const cat = catDiSezione(sez);
+  const valide = ricette.filter(r => r.attivo !== false && !/-\s*proposte\s*$/i.test(r.nome || "") && !gia.has(String(r.id)))
+    .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "it"));
+  let tutte = !cat, cerca = "";
+  const scelte = new Map();
+  const m = document.createElement("div");
+  m.className = "pv2-scelta";
+  document.body.appendChild(m);
+  const chiudi = () => m.remove();
+  const disegnaLista = () => {
+    const q = norm(cerca);
+    const lista = valide.filter(r => (tutte || String(r.categoria_portata_id) === String(cat)) && (!q || norm(r.nome).includes(q))).slice(0, 300);
+    m.querySelector(".pv2-sc-lista").innerHTML = lista.length
+      ? lista.map(r => `<button type="button" class="pv2-sc-voce ${scelte.has(r.id) ? "on" : ""}" data-id="${r.id}"><span>${esc(r.nome)}</span><b>${scelte.has(r.id) ? "✓" : "+"}</b></button>`).join("")
+      : `<div class="pv2-sc-vuoto">Nessuna ricetta${q ? " con questo nome" : ""}${!tutte ? ". Prova \"tutto il ricettario\"" : ""}.</div>`;
+    m.querySelectorAll(".pv2-sc-voce").forEach(b => b.addEventListener("click", () => {
+      const r = valide.find(x => String(x.id) === b.dataset.id);
+      if (scelte.has(r.id)) scelte.delete(r.id); else scelte.set(r.id, r);
+      disegnaLista(); aggiornaBottone();
+    }));
+  };
+  const aggiornaBottone = () => { const b = m.querySelector(".pv2-sc-ok"); b.textContent = scelte.size ? `Aggiungi ${scelte.size}` : "Chiudi"; };
+  m.innerHTML = `<div class="pv2-sc-box">
+      <div class="pv2-sc-tit">${esc(sez)}: scegli i piatti</div>
+      <input class="pv2-sc-cerca" placeholder="Cerca nel ricettario…" autocomplete="off">
+      ${cat ? `<label class="pv2-sc-tutto"><input type="checkbox"> tutto il ricettario (non solo questa categoria)</label>` : ""}
+      <div class="pv2-sc-lista"></div>
+      <div class="pv2-sc-az"><button type="button" class="pv2-sc-libero">✏️ Piatto non in ricettario</button><button type="button" class="pv2-sc-ok">Chiudi</button></div>
+    </div>`;
+  m.addEventListener("click", e => { if (e.target === m) chiudi(); });
+  m.querySelector(".pv2-sc-cerca").addEventListener("input", e => { cerca = e.target.value; disegnaLista(); });
+  m.querySelector(".pv2-sc-tutto input")?.addEventListener("change", e => { tutte = e.target.checked; disegnaLista(); });
+  m.querySelector(".pv2-sc-libero").addEventListener("click", () => { chiudi(); fatto([...scelte.values()], true); });
+  m.querySelector(".pv2-sc-ok").addEventListener("click", () => { chiudi(); if (scelte.size) fatto([...scelte.values()], false); });
+  disegnaLista();
+}
+
 // Il ragionamento di Tony, in chiaro: ingredienti, quantita' e cosa non sapeva
 function dettaglioStima(r) {
   const s = stime[norm(r.nome)];
