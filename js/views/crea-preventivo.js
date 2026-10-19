@@ -603,6 +603,7 @@ function rigaPortata(r, i) {
 function sceltaPiatti(sez, fatto) {
   const gia = new Set(righe.filter(x => x.ricetta_id).map(x => String(x.ricetta_id)));
   const cat = catDiSezione(sez);
+  const ammessi = proposteDiSezione(sez);
   const valide = ricette.filter(r => r.attivo !== false && !/-\s*proposte\s*$/i.test(r.nome || "") && !gia.has(String(r.id)))
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), "it"));
   let tutte = !cat, cerca = "";
