@@ -628,7 +628,7 @@ function sceltaPiatti(sez, fatto) {
   m.innerHTML = `<div class="pv2-sc-box">
       <div class="pv2-sc-tit">${esc(sez)}: scegli i piatti</div>
       <input class="pv2-sc-cerca" placeholder="Cerca nel ricettario…" autocomplete="off">
-      ${cat ? `<label class="pv2-sc-tutto"><input type="checkbox"> tutto il ricettario (non solo questa categoria)</label>` : ""}
+      ${cat || ammessi ? `<label class="pv2-sc-tutto"><input type="checkbox"> tutto il ricettario (non solo ${ammessi ? "le proposte" : "questa categoria"})</label>` : ""}
       <div class="pv2-sc-lista"></div>
       <div class="pv2-sc-az"><button type="button" class="pv2-sc-libero">✏️ Piatto non in ricettario</button><button type="button" class="pv2-sc-ok">Chiudi</button></div>
     </div>`;
