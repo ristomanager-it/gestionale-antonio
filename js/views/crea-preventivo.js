@@ -8,6 +8,7 @@
 const EF_STIMA = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stima-piatto";
 
 let P = null;            // il preventivo in lavorazione
+let proposte = [];       // elenchi "- proposte" con le ricette collegate
 let righe = [];          // portate
 let extra = [];          // servizi
 let ricette = [];        // catalogo per l'aggancio dei costi
