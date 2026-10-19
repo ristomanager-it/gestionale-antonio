@@ -1205,7 +1205,7 @@ async function salva(container, supabase, azienda, sede) {
   disegna(container, supabase, azienda, sede);
   msg(container, create
     ? `Salvato. ${create === 1 ? "Un piatto è entrato" : create + " piatti sono entrati"} in ricettario come bozza.`
-    : "Salvato.");
+    : "Salvato." + (pianificato ? " Planning della produzione aggiornato." : ""));
 }
 
 /* ── utilità ─────────────────────────────────────────────────────────── */
