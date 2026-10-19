@@ -1270,6 +1270,19 @@ function stile() {
   .pv2-card h2{font-size:16px;margin-bottom:3px;}
   .pv2-card .aiuto{font-size:12.5px;color:var(--muto);margin-bottom:13px;}
   .griglia{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;}
+  .pv2-scelta{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:10060;display:flex;align-items:flex-end;justify-content:center;}
+  .pv2-sc-box{background:#fff;width:100%;max-width:560px;height:82vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;padding:14px 14px calc(12px + env(safe-area-inset-bottom));box-sizing:border-box;}
+  .pv2-sc-tit{font-weight:800;font-size:17px;color:#023C59;margin-bottom:8px;}
+  .pv2-sc-cerca{width:100%;box-sizing:border-box;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:16px;font-family:inherit;}
+  .pv2-sc-tutto{display:flex;gap:6px;align-items:center;font-size:13px;color:#64748b;margin:8px 0 2px;}
+  .pv2-sc-lista{flex:1;overflow:auto;margin-top:8px;}
+  .pv2-sc-voce{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;border:0;border-bottom:1px solid #f1f5f9;background:#fff;padding:12px 6px;font:inherit;font-size:15px;cursor:pointer;color:#0f172a;}
+  .pv2-sc-voce b{color:#023C59;font-size:18px;}
+  .pv2-sc-voce.on{background:#f0fdf4;} .pv2-sc-voce.on b{color:#348127;}
+  .pv2-sc-vuoto{color:#64748b;text-align:center;padding:24px;}
+  .pv2-sc-az{display:flex;gap:8px;margin-top:10px;}
+  .pv2-sc-az button{flex:1;border:0;border-radius:12px;padding:13px;font-weight:800;font-size:14px;cursor:pointer;}
+  .pv2-sc-libero{background:#f1f5f9;color:#023C59;} .pv2-sc-ok{background:#023C59;color:#fff;}
   .pv2 label{display:block;font-size:12px;font-weight:700;color:var(--muto);margin-bottom:4px;}
   .pv2 .in{width:100%;padding:10px;border:1.5px solid var(--riga);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;}
 
