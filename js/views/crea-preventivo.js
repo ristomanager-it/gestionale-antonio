@@ -1189,6 +1189,13 @@ async function salva(container, supabase, azienda, sede) {
     try { await supabase.rpc("sezione_menu_usata", { p_azienda: azienda.id, p_nome: sez }); } catch (e) { /* niente */ }
   }
 
+  // evento gia' confermato: il planning si rifa' con il menu nuovo (lavorazioni unite, regole, ripasso)
+  let pianificato = false;
+  if (P.stato === "confermato") {
+    const { error: es } = await supabase.rpc("evento_sincronizza_produzione", { p_preventivo: id });
+    pianificato = !es;
+  }
+
   await caricaPreventivo(supabase, id);
   if (create) {
     const { data: rr } = await supabase.from("ricette")
