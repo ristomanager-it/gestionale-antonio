@@ -481,6 +481,11 @@ if (lottoParam) {
   await resumeDaLotto(lottoParam)
 }
 
+// 📷 cartellini della materia prima (tracciabilita'): foto -> lotto fornitore legato a questa lavorazione
+import("../utils/cartellini-lotto.js")
+  .then((m) => m.montaCartellini(document.getElementById("card-cartellini"), { lotto: () => lottoCorrente() }))
+  .catch((e) => console.warn("[preparazioni] cartellini non disponibili", e))
+
 // Lavoro partito a voce o dallo schermo produzioni (es. "Arista... in sottovuoto"):
 // si apre con la sua ricetta, si segnano i pesi e si registra il lotto; il lavoro si chiude da solo.
 window.__rfLavoroVoce = null
