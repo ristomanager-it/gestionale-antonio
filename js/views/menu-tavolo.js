@@ -285,7 +285,7 @@ export async function render(app) {
       if (el.dataset.k === "formato.nome" && FORMATI[v]) { sp.formato.larghezza_mm = FORMATI[v][0]; sp.formato.altezza_mm = FORMATI[v][1]; }
       modello.spec = sp;
       if (el.dataset.k === "formato.nome") disegnaForm();
-      anteprima();
+      anteprima(); infoImpo();
     }));
     f.querySelector("#mt-salva").addEventListener("click", async () => {
       const pred = f.querySelector("#mt-pred").checked;
