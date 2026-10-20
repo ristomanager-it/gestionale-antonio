@@ -183,7 +183,32 @@ export async function render(app) {
     } else modello = modelli.find((x) => x.id === $("#mt-mod").value) || null;
     riempiModelli(); disegnaForm(); anteprima();
   });
-  $("#mt-tavoli").addEventListener("input", anteprima);
+  $("#mt-tavoli").addEventListener("input", () => { anteprima(); infoImpo(); });
+  $("#mt-copie").addEventListener("input", infoImpo);
+  $("#mt-carta").addEventListener("change", infoImpo);
+  // quanti menu stanno su un foglio: prova il foglio dritto e girato, lascia 5 mm di bordo per la stampante
+  function impaginazione(w, h, carta) {
+    const fogli = { A4: [210, 297], A3: [297, 420] };
+    if (!fogli[carta]) return null;
+    const [fw, fh] = fogli[carta], m = 5;
+    const prova = (W, H) => {
+      const vert = { c: Math.floor((W - 2 * m) / w), r: Math.floor((H - 2 * m) / h), ruota: false };
+      const giro = { c: Math.floor((W - 2 * m) / h), r: Math.floor((H - 2 * m) / w), ruota: true };
+      const best = vert.c * vert.r >= giro.c * giro.r ? vert : giro;
+      return { ...best, W, H, n: best.c * best.r };
+    };
+    const a = prova(fw, fh), b = prova(fh, fw);
+    return a.n >= b.n ? a : b;
+  }
+  function infoImpo() {
+    const s = unisci(BASE, modello?.spec || {});
+    const imp = impaginazione(Number(s.formato.larghezza_mm), Number(s.formato.altezza_mm), $("#mt-carta").value);
+    const tavoli = $("#mt-tavoli").value.split("\n").map((x) => x.trim()).filter(Boolean);
+    const tot = Math.max(1, tavoli.length) * Math.max(1, Number($("#mt-copie").value) || 1);
+    $("#mt-impo").textContent = !$("#mt-carta").value ? `Si stampa un menu per foglio da ${s.formato.larghezza_mm}×${s.formato.altezza_mm} mm.`
+      : !imp || !imp.n ? "Il menu è più grande del foglio: scegli un foglio più grande o la carta già tagliata."
+      : `${imp.n} menu per foglio ${$("#mt-carta").value}${imp.W > imp.H ? " orizzontale" : ""}${imp.ruota ? " (menu girati)" : ""} · ${tot} menu = ${Math.ceil(tot / imp.n)} ${Math.ceil(tot / imp.n) === 1 ? "foglio" : "fogli"}. Stampa al 100%, senza "adatta alla pagina".`;
+  }
   window.addEventListener("resize", anteprima);
 
   $("#mt-stampa").addEventListener("click", () => {
