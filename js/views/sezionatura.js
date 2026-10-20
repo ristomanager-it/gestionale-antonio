@@ -335,5 +335,8 @@ function stile() {
   .sz-cerca{position:relative;}
   .sz-sugg{position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid #e2e8f0;border-radius:10px;z-index:5;box-shadow:0 8px 20px rgba(0,0,0,.08);}
   .sz-sugg button{display:block;width:100%;text-align:left;border:0;background:#fff;padding:9px 10px;font:inherit;cursor:pointer;border-bottom:1px solid #f1f5f9;}
+  .sz-cart{background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:10px;margin-top:8px;}
+  .sz-cart-r{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;padding:5px 0;}
+  .sz-cart-r small{color:#64748b;}
   </style>`;
 }
