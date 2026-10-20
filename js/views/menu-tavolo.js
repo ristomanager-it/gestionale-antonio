@@ -242,7 +242,7 @@ export async function render(app) {
     }
     const fam = [...new Set([spec.font_titolo, spec.font_testo])].map((f) => "family=" + encodeURIComponent(f) + ":ital,wght@0,400;0,600;1,400").join("&");
     // anteprima dentro l'app (sul telefono la finestra nuova non si chiudeva e si vedeva in formato desktop)
-    const { apriAnteprimaStampa } = await import("../utils/anteprima-stampa.js");
+    const { apriAnteprimaStampa } = await import("../utils/anteprima-stampa.js?v=" + (window.APP_V || ""));
     apriAnteprimaStampa({ titolo: `Menu ${dati.evento || ""}`, pagina, fontHref: `https://fonts.googleapis.com/css2?${fam}&display=swap`,
       css: `${imp && imp.n ? ".mt-foglio{page-break-after:always;break-after:page;background:#fff;margin-bottom:6mm;box-shadow:0 4px 14px rgba(0,0,0,.15)}.mt-taglio{position:absolute}" : ".mt-pagina{page-break-after:always;break-after:page;margin-bottom:6mm;box-shadow:0 4px 14px rgba(0,0,0,.15)}"}
         .mt-pagina{-webkit-print-color-adjust:exact;print-color-adjust:exact} @media print{.mt-foglio,.mt-pagina{margin-bottom:0!important;box-shadow:none!important}} ${CSS_PAGINA}`,
