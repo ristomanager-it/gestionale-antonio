@@ -215,7 +215,31 @@ export async function render(app) {
     const spec = unisci(BASE, modello?.spec || {});
     const tavoli = $("#mt-tavoli").value.split("\n").map((x) => x.trim()).filter(Boolean);
     const copie = Math.max(1, Number($("#mt-copie").value) || 1);
-    const pagine = (tavoli.length ? tavoli : [""]).flatMap((t) => Array.from({ length: copie }, () => paginaMenu(spec, { ...dati, tavolo: t })));
+    let pagine = (tavoli.length ? tavoli : [""]).flatMap((t) => Array.from({ length: copie }, () => paginaMenu(spec, { ...dati, tavolo: t })));
+    const w0 = Number(spec.formato.larghezza_mm), h0 = Number(spec.formato.altezza_mm);
+    const carta = $("#mt-carta").value;
+    const imp = impaginazione(w0, h0, carta);
+    let pagina = `${w0}mm ${h0}mm`;
+    if (imp && imp.n) {
+      // piu' menu sullo stesso foglio, centrati, con i segni di taglio agli angoli
+      pagina = `${imp.W}mm ${imp.H}mm`;
+      const cw = imp.ruota ? h0 : w0, ch = imp.ruota ? w0 : h0;
+      const x0 = (imp.W - imp.c * cw) / 2, y0 = (imp.H - imp.r * ch) / 2;
+      const fogli = [];
+      for (let i = 0; i < pagine.length; i += imp.n) {
+        let celle = "";
+        pagine.slice(i, i + imp.n).forEach((pg, k) => {
+          const x = x0 + (k % imp.c) * cw, y = y0 + Math.floor(k / imp.c) * ch;
+          celle += `<div style="position:absolute;left:${x}mm;top:${y}mm;width:${cw}mm;height:${ch}mm;">`
+            + (imp.ruota ? `<div style="position:absolute;left:0;top:0;width:${w0}mm;height:${h0}mm;transform-origin:0 0;transform:translateX(${cw}mm) rotate(90deg);">${pg}</div>` : pg) + `</div>`;
+        });
+        let segni = "";
+        for (let cc = 0; cc <= imp.c; cc++) { const x = x0 + cc * cw; segni += `<div class="mt-taglio" style="left:${x}mm;top:0;width:0;height:${Math.max(1, y0 - 1)}mm;border-left:.3pt solid #999"></div><div class="mt-taglio" style="left:${x}mm;top:${y0 + imp.r * ch + 1}mm;width:0;height:${Math.max(1, y0 - 1)}mm;border-left:.3pt solid #999"></div>`; }
+        for (let rr = 0; rr <= imp.r; rr++) { const y = y0 + rr * ch; segni += `<div class="mt-taglio" style="top:${y}mm;left:0;height:0;width:${Math.max(1, x0 - 1)}mm;border-top:.3pt solid #999"></div><div class="mt-taglio" style="top:${y}mm;left:${x0 + imp.c * cw + 1}mm;height:0;width:${Math.max(1, x0 - 1)}mm;border-top:.3pt solid #999"></div>`; }
+        fogli.push(`<div class="mt-foglio" style="position:relative;width:${imp.W}mm;height:${imp.H}mm;overflow:hidden;">${celle}${segni}</div>`);
+      }
+      pagine = fogli;
+    }
     const w = window.open("", "_blank");
     if (!w) { alert("Il telefono ha bloccato la finestra di stampa: consenti i popup e riprova."); return; }
     const fam = [...new Set([spec.font_titolo, spec.font_testo])].map((f) => "family=" + encodeURIComponent(f) + ":ital,wght@0,400;0,600;1,400").join("&");
