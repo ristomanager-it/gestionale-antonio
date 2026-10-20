@@ -376,6 +376,7 @@ export function initMenu() {
       items: [
         { label: "🪑 Comande",           route: "bo-comande"         },
         { label: "📅 Prenotazioni",      route: "prenotazioni"       },
+        { label: "🖨 Menu da tavolo",    route: "menu-tavolo"        },
         { label: "📋 Mansionario Sala",  route: "mansionario-sala"   },
         { label: "🗺️ Mappa Sala",       route: "sala"               },
       ]
