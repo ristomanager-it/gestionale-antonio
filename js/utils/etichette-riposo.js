@@ -81,16 +81,26 @@ export function montaRiposi(box, { lotto }) {
       <div class="et-riga"><span>Inizio</span><b>${esc(leggibile(p.ini))}</b></div>
       <div class="et-pronto"><span>PRONTO</span><b>${esc(leggibile(p.fine))}</b><small>dopo ${esc(durataTesto(p.min))}</small></div>
       <div class="et-poi">Poi: <b>${esc(dopo?.nome_fase || "—")}</b></div></div>`;
-    const { apriAnteprimaStampa } = await import("./anteprima-stampa.js");
-    apriAnteprimaStampa({ titolo: "Stampa fase", pagina: "100mm 60mm", corpo: etichetta, css: `
-      .et{width:100mm;height:60mm;box-sizing:border-box;padding:4mm 5mm;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;display:flex;flex-direction:column;gap:1.2mm;overflow:hidden;}
-      .et-cosa{font-size:13pt;font-weight:800;line-height:1.1;}
-      .et-fase{font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-bottom:.4mm solid #000;padding-bottom:1mm;}
-      .et-riga{display:flex;justify-content:space-between;font-size:9.5pt;}
+    // rotolo da 62 mm: l'altezza si adatta al contenuto (si misura prima di stampare)
+    const css = `
+      .et{width:62mm;box-sizing:border-box;padding:3mm 3mm 4mm;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;}
+      .et>div{margin-bottom:1.4mm;}
+      .et-cosa{font-size:12pt;font-weight:800;line-height:1.15;}
+      .et-fase{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.03em;border-bottom:.4mm solid #000;padding-bottom:1mm;}
+      .et-riga{display:flex;justify-content:space-between;gap:2mm;font-size:9pt;}
       .et-riga span{color:#333;}
-      .et-pronto{display:flex;align-items:baseline;gap:2mm;border:.5mm solid #000;border-radius:1.5mm;padding:1.2mm 2mm;margin-top:auto;}
-      .et-pronto span{font-size:9pt;font-weight:800;} .et-pronto b{font-size:14pt;} .et-pronto small{font-size:8pt;margin-left:auto;}
-      .et-poi{font-size:9.5pt;}` });
+      .et-pronto{border:.5mm solid #000;border-radius:1.5mm;padding:1.2mm 2mm;}
+      .et-pronto span{display:block;font-size:8pt;font-weight:800;} .et-pronto b{display:block;font-size:13pt;line-height:1.15;} .et-pronto small{display:block;font-size:8pt;}
+      .et-poi{font-size:9pt;}`;
+    const prova = document.createElement("div");
+    prova.style.cssText = "position:fixed;left:-9999px;top:0;visibility:hidden;";
+    const ombra = prova.attachShadow({ mode: "open" });
+    ombra.innerHTML = `<style>${css}</style>${etichetta}`;
+    document.body.appendChild(prova);
+    const hmm = Math.ceil(ombra.querySelector(".et").getBoundingClientRect().height * 25.4 / 96) + 1;
+    prova.remove();
+    const { apriAnteprimaStampa } = await import("./anteprima-stampa.js");
+    apriAnteprimaStampa({ titolo: "Stampa fase", pagina: `62mm ${hmm}mm`, corpo: etichetta, css });
   }
 
   carica();
