@@ -10,7 +10,7 @@ export function apriAnteprimaStampa({ titolo = "Anteprima di stampa", css = "", 
   const st = document.createElement("style");
   st.id = "rf-stampa-stile";
   st.textContent = `
-    #rf-stampa{position:fixed;inset:0;z-index:10080;background:#d9dde3;display:flex;flex-direction:column;}
+    #rf-stampa{position:fixed;inset:0;z-index:2147483000;background:#d9dde3;display:flex;flex-direction:column;}
     #rf-stampa .rf-st-bar{display:flex;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;background:#fff;border-bottom:1px solid #e2e8f0;}
     #rf-stampa .rf-st-bar b{flex:1;font:700 15px system-ui,-apple-system,sans-serif;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     #rf-stampa .rf-st-bar button{border:0;border-radius:999px;padding:11px 16px;font:700 14px system-ui,-apple-system,sans-serif;cursor:pointer;}
@@ -18,7 +18,7 @@ export function apriAnteprimaStampa({ titolo = "Anteprima di stampa", css = "", 
     #rf-stampa .rf-st-area{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:12px 12px calc(24px + env(safe-area-inset-bottom,0px));}
     #rf-stampa .rf-st-scala{transform-origin:top left;}
     @media print {
-      ${pagina ? `@page{size:${pagina};margin:0}` : ""}
+      @page{${pagina ? `size:${pagina};` : ""}margin:0}
       html,body{background:#fff!important;margin:0!important;padding:0!important;height:auto!important;overflow:visible!important;}
       body>*:not(#rf-stampa){display:none!important;}
       #rf-stampa{position:static!important;display:block!important;background:#fff!important;}
@@ -53,7 +53,15 @@ export function apriAnteprimaStampa({ titolo = "Anteprima di stampa", css = "", 
   if (document.fonts?.ready) document.fonts.ready.then(adatta);
   window.addEventListener("resize", adatta);
   ov.querySelector(".rf-st-chiudi").addEventListener("click", chiudiAnteprimaStampa);
-  ov.querySelector(".rf-st-stampa").addEventListener("click", () => window.print());
+  // stampa: margini a zero e titolo vuoto, cosi' il telefono non aggiunge in testa e in fondo al foglio
+  // indirizzo della pagina, data, titolo e numero di pagina; finita la stampa l'anteprima si chiude da sola
+  ov.querySelector(".rf-st-stampa").addEventListener("click", () => {
+    const titoloApp = document.title;
+    document.title = " ";
+    const fine = () => { document.title = titoloApp; chiudiAnteprimaStampa(); };
+    window.addEventListener("afterprint", fine, { once: true });
+    window.print();
+  });
   // tornando indietro con il telefono si chiude l'anteprima
   const suHash = () => chiudiAnteprimaStampa();
   window.addEventListener("hashchange", suHash, { once: true });
