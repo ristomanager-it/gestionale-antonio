@@ -1,7 +1,8 @@
 // js/utils/etichette-riposo.js
-// 🏷 Etichette dei RIPOSI dentro la lavorazione. Per ogni fase di riposo (biga, lievitazione, marinatura,
-// raffreddamento, abbattimento...) si stampa l'etichetta da mettere sul contenitore: cos'e', lotto, quando e'
-// iniziato il riposo, A CHE ORA fare la fase dopo e quale. L'inizio e' la firma della fase (o adesso).
+// 🖨 STAMPA FASE dentro la scheda di ogni fase di riposo (rigenero, biga, lievitazione, marinatura,
+// raffreddamento...). Etichetta per il contenitore su rotolo da 62 mm: cos'e', lotto, inizio, A CHE ORA fare
+// la fase dopo e quale. L'inizio e' la firma della fase (o della fase prima, o adesso). La schermata delle
+// fasi si ridisegna spesso: un osservatore rimette il pulsante nelle fasi ogni volta.
 const sb = () => window.supabaseClient || window.supabase;
 const esc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pad = (n) => String(n).padStart(2, "0");
@@ -9,54 +10,57 @@ const perInput = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.get
 const leggibile = (d) => d.toLocaleString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 const durataTesto = (min) => { const h = Math.floor(min / 60), m = min % 60; return h && m ? `${h} h ${m}′` : h ? `${h} h` : `${m}′`; };
 
-export function montaRiposi(box, { lotto }) {
-  if (!box) return;
-  box.innerHTML = `<style>${stile()}</style><div class="rp"><div class="rp-tit">🖨 Stampa fase</div>
-    <div class="rp-lista"></div></div>`;
-  const elLista = box.querySelector(".rp-lista");
-  let dati = null;
+export function montaRiposi(vecchiaCard, { lotto }) {
+  if (vecchiaCard) vecchiaCard.style.display = "none";
+  if (!document.getElementById("sf-stile")) {
+    const st = document.createElement("style"); st.id = "sf-stile"; st.textContent = stile(); document.head.appendChild(st);
+  }
+  let base = null; // ricetta e fasi del lotto aperto
 
-  async function carica() {
+  async function leggi() {
     const l = lotto?.();
-    if (!l?.lotto_uuid) { box.style.display = "none"; return; }
-    const { data: r } = await sb().from("produzione_lotti").select("id, codice_lotto, ricetta_id, ricette(nome)").eq("lotto_uuid", l.lotto_uuid).maybeSingle();
-    if (!r) { box.style.display = "none"; return; }
-    const [{ data: fasi }, { data: firme }] = await Promise.all([
-      sb().from("ricette_preparazione_fasi").select("id, ordine, nome_fase, durata_min, temperatura, riposo").eq("ricetta_id", r.ricetta_id).order("ordine"),
-      sb().from("produzione_log_haccp").select("fase_id, fase_ordine, firmato_il").eq("lotto_id", l.lotto_uuid),
-    ]);
-    const F = fasi || [];
-    const riposi = F.filter((f) => f.riposo && F.some((n) => n.ordine > f.ordine));
-    if (!riposi.length) { box.style.display = "none"; return; }
-    box.style.display = "";
-    const firmaDi = (f) => (firme || []).find((x) => x.fase_id === f.id || x.fase_ordine === f.ordine)?.firmato_il || null;
-    dati = { r, F, riposi };
-    elLista.innerHTML = riposi.map((f, i) => {
-      const dopo = F.find((n) => n.ordine > f.ordine);
-      // il riposo comincia quando si firma la fase di riposo, oppure finita la fase prima
-      const prima = [...F].reverse().find((n) => n.ordine < f.ordine);
-      const inizio = firmaDi(f) || (prima && firmaDi(prima)) || new Date().toISOString();
-      return `<div class="rp-riga" data-i="${i}">
-        <div><b>${esc(f.ordine)}. ${esc(f.nome_fase)}</b>${f.temperatura ? ` · ${esc(f.temperatura)} °C` : ""}</div>
-        <div class="rp-r3">poi: ${esc(dopo?.nome_fase || "—")}</div>
-        <div class="rp-g">
-          <label>Inizio<input type="datetime-local" class="rp-in" data-k="inizio" value="${perInput(new Date(inizio))}"></label>
-          <label>Ore<input class="rp-in" inputmode="decimal" data-k="ore" value="${f.durata_min ? String(Math.round(f.durata_min / 6) / 10).replace(".", ",") : ""}" placeholder="?"></label>
-        </div>
-        <div class="rp-pronto" data-k="pronto"></div>
-        ${!f.durata_min ? `<label class="rp-ck"><input type="checkbox" data-k="salva" checked> salva questa durata nella ricetta</label>` : ""}
-        <button type="button" class="rp-pri" data-stampa="${i}">🖨 Stampa fase</button>
-      </div>`;
-    }).join("");
-    elLista.querySelectorAll(".rp-riga").forEach((el) => {
-      const aggiorna = () => {
-        const p = calcola(el);
-        el.querySelector('[data-k="pronto"]').innerHTML = p ? `Fase dopo: <b>${esc(leggibile(p.fine))}</b> (dopo ${esc(durataTesto(p.min))})` : `<span style="color:#b45309">Scrivi quante ore dura il riposo</span>`;
-      };
-      el.querySelectorAll("input").forEach((x) => x.addEventListener("input", aggiorna));
-      aggiorna();
-    });
-    elLista.querySelectorAll("[data-stampa]").forEach((b) => b.addEventListener("click", () => stampa(Number(b.dataset.stampa))));
+    if (!l?.lotto_uuid) return null;
+    if (!base || base.uuid !== l.lotto_uuid) {
+      const { data: r } = await sb().from("produzione_lotti").select("id, codice_lotto, ricetta_id, ricette(nome)").eq("lotto_uuid", l.lotto_uuid).maybeSingle();
+      if (!r) return null;
+      const { data: fasi } = await sb().from("ricette_preparazione_fasi").select("id, ordine, nome_fase, durata_min, temperatura, riposo").eq("ricetta_id", r.ricetta_id).order("ordine");
+      base = { uuid: l.lotto_uuid, r, F: fasi || [] };
+    }
+    const { data: firme } = await sb().from("produzione_log_haccp").select("fase_id, fase_ordine, firmato_il").eq("lotto_id", l.lotto_uuid);
+    return { ...base, firme: firme || [] };
+  }
+
+  let occupato = false;
+  async function riempi() {
+    const vuoti = [...document.querySelectorAll(".rf-stampa-fase:not([data-fatto])")];
+    if (!vuoti.length || occupato) return;
+    occupato = true;
+    try {
+      const d = await leggi();
+      if (!d) return;
+      const firmaDi = (f) => d.firme.find((x) => x.fase_id === f.id || x.fase_ordine === f.ordine)?.firmato_il || null;
+      for (const el of vuoti) {
+        el.dataset.fatto = "1";
+        const f = d.F.find((x) => x.ordine === Number(el.dataset.ordine));
+        const dopo = f && d.F.find((n) => n.ordine > f.ordine);
+        if (!f || !f.riposo || !dopo) continue;
+        const prima = [...d.F].reverse().find((n) => n.ordine < f.ordine);
+        const inizio = firmaDi(f) || (prima && firmaDi(prima)) || new Date().toISOString();
+        el.innerHTML = `<div class="sf">
+          <div class="sf-g"><label>Inizio<input type="datetime-local" class="sf-in" data-k="inizio" value="${perInput(new Date(inizio))}"></label>
+            <label>Ore<input class="sf-in" inputmode="decimal" data-k="ore" value="${f.durata_min ? String(Math.round(f.durata_min / 6) / 10).replace(".", ",") : ""}" placeholder="?"></label></div>
+          <div class="sf-pronto" data-k="pronto"></div>
+          ${!f.durata_min ? `<label class="sf-ck"><input type="checkbox" data-k="salva" checked> salva questa durata nella ricetta</label>` : ""}
+          <button type="button" class="sf-btn">🖨 Stampa fase</button></div>`;
+        const aggiorna = () => {
+          const p = calcola(el);
+          el.querySelector('[data-k="pronto"]').innerHTML = p ? `Poi <b>${esc(dopo.nome_fase)}</b> alle <b>${esc(leggibile(p.fine))}</b>` : `<span style="color:#b45309">Scrivi quante ore dura</span>`;
+        };
+        el.querySelectorAll("input").forEach((x) => x.addEventListener("input", aggiorna));
+        aggiorna();
+        el.querySelector(".sf-btn").addEventListener("click", () => stampa(el, d, f, dopo));
+      }
+    } finally { occupato = false; }
   }
 
   function calcola(el) {
@@ -67,17 +71,14 @@ export function montaRiposi(box, { lotto }) {
     return { ini, min, fine: new Date(ini.getTime() + min * 60000) };
   }
 
-  async function stampa(i) {
-    const el = elLista.querySelector(`.rp-riga[data-i="${i}"]`);
+  async function stampa(el, d, f, dopo) {
     const p = calcola(el);
-    if (!p) { alert("Scrivi quante ore dura il riposo."); return; }
-    const f = dati.riposi[i];
-    const dopo = dati.F.find((n) => n.ordine > f.ordine);
-    if (el.querySelector('[data-k="salva"]')?.checked) await sb().from("ricette_preparazione_fasi").update({ durata_min: p.min }).eq("id", f.id);
+    if (!p) { alert("Scrivi quante ore dura."); return; }
+    if (el.querySelector('[data-k="salva"]')?.checked) { await sb().from("ricette_preparazione_fasi").update({ durata_min: p.min }).eq("id", f.id); f.durata_min = p.min; }
     const etichetta = `<div class="et">
-      <div class="et-cosa">${esc(dati.r.ricette?.nome || "")}</div>
+      <div class="et-cosa">${esc(d.r.ricette?.nome || "")}</div>
       <div class="et-fase">${esc(f.nome_fase)}${f.temperatura ? ` · ${esc(f.temperatura)} °C` : ""}</div>
-      <div class="et-riga"><span>Lotto</span><b>${esc(dati.r.codice_lotto)}</b></div>
+      <div class="et-riga"><span>Lotto</span><b>${esc(d.r.codice_lotto)}</b></div>
       <div class="et-riga"><span>Inizio</span><b>${esc(leggibile(p.ini))}</b></div>
       <div class="et-pronto"><span>PRONTO</span><b>${esc(leggibile(p.fine))}</b><small>dopo ${esc(durataTesto(p.min))}</small></div>
       <div class="et-poi">Poi: <b>${esc(dopo?.nome_fase || "—")}</b></div></div>`;
@@ -103,27 +104,22 @@ export function montaRiposi(box, { lotto }) {
     apriAnteprimaStampa({ titolo: "Stampa fase", pagina: `62mm ${hmm}mm`, corpo: etichetta, css });
   }
 
-  carica();
-  // la lavorazione puo' aprirsi dopo (prima firma): finche' non c'e' si ricontrolla ogni 5 secondi
-  const attesa = setInterval(() => {
-    if (!document.body.contains(box)) { clearInterval(attesa); return; }
-    if (!dati && lotto?.()?.lotto_uuid) carica();
-    if (dati) clearInterval(attesa);
-  }, 5000);
-  box.querySelector(".rp-tit").addEventListener("click", carica);
+  // le schede delle fasi si ridisegnano: si rimette il pulsante ogni volta che compaiono
+  let t = null;
+  const oss = new MutationObserver(() => { clearTimeout(t); t = setTimeout(riempi, 200); });
+  oss.observe(document.body, { childList: true, subtree: true });
+  const via = () => { if (!location.hash.startsWith("#/preparazioni")) { oss.disconnect(); window.removeEventListener("hashchange", via); } };
+  window.addEventListener("hashchange", via);
+  riempi();
 }
 
 function stile() {
   return `
-  .rp{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin:12px 0;}
-  .rp-tit{font-weight:800;font-size:16px;cursor:pointer;}
-  .rp-sub{font-size:13px;color:#64748b;margin:3px 0 6px;}
-  .rp-riga{border-top:1px solid #f1f5f9;padding:10px 0;font-size:14px;}
-  .rp-r3{font-size:12.5px;color:#64748b;margin-top:2px;}
-  .rp-g{display:grid;grid-template-columns:1.8fr .8fr;gap:8px;margin-top:6px;}
-  .rp-g label{font-size:12px;font-weight:700;color:#64748b;}
-  .rp-in{width:100%;box-sizing:border-box;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px;font-size:15px;font-family:inherit;background:#fff;color:#0f172a;margin-top:2px;}
-  .rp-pronto{font-size:13.5px;margin-top:6px;}
-  .rp-ck{display:flex;gap:6px;align-items:center;font-size:12.5px;color:#475569;margin-top:6px;}
-  .rp-pri{width:100%;border:0;border-radius:11px;padding:11px;background:#0E5A7A;color:#fff;font-weight:800;font-size:14px;cursor:pointer;margin-top:8px;}`;
+  .sf{margin-top:10px;padding:10px;border:1.5px solid #e9d5ff;background:#faf5ff;border-radius:12px;}
+  .sf-g{display:grid;grid-template-columns:1.8fr .8fr;gap:8px;}
+  .sf-g label{font-size:12px;font-weight:700;color:#64748b;}
+  .sf-in{width:100%;box-sizing:border-box;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px;font-size:15px;font-family:inherit;background:#fff;color:#0f172a;margin-top:2px;}
+  .sf-pronto{font-size:13.5px;margin-top:6px;}
+  .sf-ck{display:flex;gap:6px;align-items:center;font-size:12.5px;color:#475569;margin-top:6px;}
+  .sf-btn{width:100%;border:0;border-radius:11px;padding:11px;background:#0E5A7A;color:#fff;font-weight:800;font-size:14px;cursor:pointer;margin-top:8px;}`;
 }
