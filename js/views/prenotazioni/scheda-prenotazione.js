@@ -466,6 +466,10 @@ export async function render(container) {
             <span>🖨 Stampa talloncino</span>
             <small>Nome, coperti, allergie e QR menu</small>
           </button>
+          <button type="button" id="pren-menu-tavolo" class="pren-det-link">
+            <span>🖨 Menu da tavolo</span>
+            <small>Stampa i menu per i tavoli con il modello della sede</small>
+          </button>
           <button type="button" id="pren-open-wa" class="pren-det-link" ${telefono ? "" : "disabled"} style="${telefono ? "" : "opacity:.55;cursor:not-allowed;"}">
             <span>Apri WhatsApp</span>
             <small>${telefono ? escapeHtml(telefono) : "Telefono non disponibile"}</small>
