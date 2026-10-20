@@ -143,6 +143,8 @@ export async function render(app) {
       .gte("data_evento", new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10)).order("data_evento").limit(60),
   ]);
   modelli = m || []; eventi = ev || [];
+  const datiPren = par.get("pren") ? await datiPrenotazione(par.get("pren")) : null;
+  if (datiPren) $("#mt-ev").innerHTML = `<option value="__pren" selected>Prenotazione: ${esc(datiPren.evento)}</option>` + $("#mt-ev").innerHTML;
   $("#mt-ev").innerHTML += eventi.map((e) => `<option value="${e.id}" ${String(e.id) === eventoId ? "selected" : ""}>${esc(new Date(e.data_evento + "T12:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "numeric" }))} · ${esc(e.titolo_evento)}</option>`).join("");
 
   const scegliModello = (sede) => modelli.find((x) => x.sede_id === sede && x.predefinito) || modelli.find((x) => x.sede_id === sedeAttiva && x.predefinito) || modelli.find((x) => x.predefinito) || modelli[0] || null;
