@@ -169,6 +169,8 @@ const routes = {
   "cc-sedi": () => imp("./views/cc-sedi.js"),
   "spesa-banchetti": () => imp("./views/spesa-banchetti.js"),
   "banchetto-foto": () => imp("./views/banchetto-foto.js"),
+  // Menu da tavolo dei ricevimenti: modelli grafici per sede, anteprima e stampa
+  "menu-tavolo": () => imp("./views/menu-tavolo.js"),
 
   // Agenzia viaggi: modulo in prova, solo azienda Ristoflow.
   "agenzia-viaggi": () => imp("./views/agenzia-viaggi.js"),
