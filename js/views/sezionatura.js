@@ -129,6 +129,30 @@ export async function render(app) {
       }).join("")}</div>${vedeCosti && costoUtile ? `<div class="sz-r3">Costo del pezzo ${f2(kg * eur)} € · costo vero dei tagli utili <b>${f2(costoUtile)} €/kg</b></div>` : ""}`;
     };
     elScheda.querySelector("#sz-calc-kg").addEventListener("input", calc);
+
+    // ⚖️ peso lordo dai cartellini fotografati negli ultimi 3 giorni (arrivo merce o dentro la lavorazione)
+    (async () => {
+      const box = elScheda.querySelector("#sz-cart");
+      if (!box || !p.prodotto_id) return;
+      const { data: cart } = await sb().from("lotti_fornitore").select("id, lotto, quantita, unita, data_scadenza, produttore, letto_da")
+        .eq("azienda_id", az).eq("prodotto_id", p.prodotto_id).eq("stato", "in_uso")
+        .gte("ricevuto_il", new Date(Date.now() - 3 * 86400000).toISOString()).order("ricevuto_il", { ascending: false }).limit(12);
+      const c = (cart || []).filter((x) => Number(x.quantita) > 0);
+      if (!c.length) return;
+      box.innerHTML = `<div class="sz-cart"><div class="sz-lab" style="margin:0 0 4px">📷 Cartellini fotografati (ultimi 3 giorni)</div>
+        ${c.map((x) => `<label class="sz-cart-r"><input type="checkbox" data-c="${x.id}" data-kg="${x.quantita}" data-l="${esc(x.lotto || "")}" checked>
+          <span>lotto <b>${esc(x.lotto || "—")}</b> · ${f2(Number(x.quantita))} kg${x.data_scadenza ? " · scade " + fd(x.data_scadenza) : ""}${x.letto_da?.origine ? `<br><small>${esc(x.letto_da.origine)}</small>` : ""}</span></label>`).join("")}
+        <button type="button" class="sz-sec" id="sz-cart-usa" style="width:100%;margin-top:6px">⚖️ Usa il peso dei cartellini scelti</button></div>`;
+      box.querySelector("#sz-cart-usa").addEventListener("click", () => {
+        const sel = [...box.querySelectorAll("input[data-c]:checked")];
+        if (!sel.length) return;
+        const kg = sel.reduce((s, i) => s + Number(i.dataset.kg), 0);
+        elScheda.querySelector("#sz-reg-kg").value = String(Math.round(kg * 1000) / 1000).replace(".", ",");
+        const note = elScheda.querySelector("#sz-reg-note");
+        const lotti = "Cartellini: " + sel.map((i) => `${i.dataset.l} (${f2(Number(i.dataset.kg))} kg)`).join(", ");
+        note.value = note.value && !note.value.startsWith("Cartellini:") ? note.value + " · " + lotti : lotti;
+      });
+    })();
     elScheda.querySelector("#sz-calc-eur")?.addEventListener("input", calc);
 
     elScheda.querySelector("#sz-reg-salva").addEventListener("click", async () => {
