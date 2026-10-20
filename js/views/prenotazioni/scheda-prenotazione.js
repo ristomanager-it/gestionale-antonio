@@ -498,7 +498,14 @@ export async function render(container) {
     const nomeCliente = [p.cliente_nome, p.cognome].filter(Boolean).join(" ") || p.cliente_nome || "Ospite";
     const dataIt = p.data ? new Date(p.data + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "2-digit", month: "long" }) : "—";
     const ora = (p.ora || "").toString().slice(0, 5);
-    const note = (p.note || "").trim();
+    // sul talloncino solo cio' che serve al tavolo: per gli eventi le intolleranze del preventivo,
+    // mai le note interne ("EVENTO PRIVATO · IN ATTESA DI ACCONTO · da preventivo N")
+    let note = (p.note || "").trim();
+    const daEvento = note.match(/da preventivo (\d+)/i);
+    if (daEvento) {
+      const { data: pv } = await supabase.from("preventivi").select("intolleranze").eq("id", daEvento[1]).maybeSingle();
+      note = String(pv?.intolleranze || "").trim();
+    }
 
     // sede + menu attivo (per il QR)
     let sedeNome = window.state?.azienda?.nome || "";
