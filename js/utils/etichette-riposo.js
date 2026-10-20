@@ -175,7 +175,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
       .et-pronto{border:.5mm solid #000;border-radius:1.5mm;padding:1.2mm 2mm;}
       .et-pronto span{display:block;font-size:8pt;font-weight:800;} .et-pronto b{display:block;font-size:13pt;line-height:1.15;} .et-pronto small{display:block;font-size:8pt;}
       .et-poi{font-size:9pt;}`;
-    const { apriAnteprimaStampa } = await import("./anteprima-stampa.js");
+    const { apriAnteprimaStampa } = await import("./anteprima-stampa.js?v=" + (window.APP_V || ""));
     apriAnteprimaStampa({ titolo: "Stampa fase", pagina: "62mm 60mm", corpo: etichetta, css });
   }
 
