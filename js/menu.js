@@ -73,6 +73,36 @@ export function initMenu() {
 
     setTimeout(() => { pollWaBadge(); setInterval(pollWaBadge, 30000); }, 3000);
 
+    // ── AVVISO FERIE / PERMESSI / MALATTIA DA APPROVARE (admin, manager, consulente) ──
+    async function pollAssenze() {
+      const aziendaId = window.state?.azienda?.id;
+      const r = String((window.normalizeRuolo ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo) : (window.state?.viewAs || window.state?.ruolo)) || "").toLowerCase();
+      let el = document.getElementById("avviso-assenze");
+      if (!aziendaId || !["admin", "superadmin", "manager", "consulente_lavoro"].includes(r)) { el?.remove(); return; }
+      try {
+        const { data } = await (window.supabaseClient || window.supabase).from("richieste_assenze")
+          .select("id, tipo").eq("azienda_id", aziendaId).eq("stato", "richiesto");
+        const n = (data || []).length;
+        const firma = (data || []).map((x) => x.id).sort().join(",");
+        if (!n || sessionStorage.getItem("avviso-assenze-chiuso") === firma || location.hash.startsWith("#/hr-admin")) { el?.remove(); return; }
+        const mal = (data || []).filter((x) => x.tipo === "malattia").length;
+        if (!el) {
+          el = document.createElement("div");
+          el.id = "avviso-assenze";
+          el.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);top:calc(70px + env(safe-area-inset-top,0px));z-index:9990;display:flex;align-items:center;gap:8px;background:#fff7ed;border:1.5px solid #fdba74;color:#9a3412;border-radius:999px;padding:8px 8px 8px 14px;font:700 13.5px system-ui,-apple-system,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.12);max-width:92vw;";
+          document.body.appendChild(el);
+        }
+        el.innerHTML = `<span style="cursor:pointer" data-apri>${mal ? "🤒" : "📆"} ${n} ${n === 1 ? "richiesta" : "richieste"} da approvare${mal ? ` (${mal} malattia)` : ""} · Apri</span>
+          <button type="button" data-chiudi style="border:0;background:#fed7aa;color:#9a3412;border-radius:50%;width:24px;height:24px;font-weight:800;cursor:pointer;">✕</button>`;
+        el.querySelector("[data-apri]").onclick = () => { window.location.hash = "#/hr-admin"; el.remove(); };
+        el.querySelector("[data-chiudi]").onclick = () => { sessionStorage.setItem("avviso-assenze-chiuso", firma); el.remove(); };
+      } catch {}
+    }
+    if (!window.__avvisoAssenze) {
+      window.__avvisoAssenze = true;
+      setTimeout(() => { pollAssenze(); setInterval(pollAssenze, 60000); window.addEventListener("hashchange", pollAssenze); }, 3500);
+    }
+
     // ── PULSANTE TONY AI — in header ─────────────────────────────────────
     if (!document.getElementById("tony-btn-header")) {
       const tonyBtn = document.createElement("div");
