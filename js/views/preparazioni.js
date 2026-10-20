@@ -483,7 +483,7 @@ if (lottoParam) {
 }
 
 // 📷 cartellini della materia prima (tracciabilita'): foto -> lotto fornitore legato a questa lavorazione
-import("../utils/cartellini-lotto.js")
+import("../utils/cartellini-lotto.js?v=" + (window.APP_V || ""))
   .then((m) => m.montaCartellini(document.getElementById("card-cartellini"), { lotto: () => lottoCorrente() }))
   .catch((e) => console.warn("[preparazioni] cartellini non disponibili", e))
 // 🏷 etichette dei riposi: cos'e', inizio, a che ora la fase dopo
