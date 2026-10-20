@@ -245,8 +245,9 @@ export async function render(app) {
     const fam = [...new Set([spec.font_titolo, spec.font_testo])].map((f) => "family=" + encodeURIComponent(f) + ":ital,wght@0,400;0,600;1,400").join("&");
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Menu ${esc(dati.evento || "")}</title>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fam}&display=swap">
-      <style>@page{size:${spec.formato.larghezza_mm}mm ${spec.formato.altezza_mm}mm;margin:0}html,body{margin:0;padding:0}
-      .mt-pagina{page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}${CSS_PAGINA}</style></head>
+      <style>@page{size:${pagina};margin:0}html,body{margin:0;padding:0}
+      ${imp && imp.n ? ".mt-foglio{page-break-after:always;break-after:page}.mt-taglio{position:absolute}" : ".mt-pagina{page-break-after:always;break-after:page}"}
+      .mt-pagina{-webkit-print-color-adjust:exact;print-color-adjust:exact}${CSS_PAGINA}</style></head>
       <body>${pagine.join("")}<script>document.fonts.ready.then(()=>setTimeout(()=>print(),300))<\/script></body></html>`);
     w.document.close();
   });
