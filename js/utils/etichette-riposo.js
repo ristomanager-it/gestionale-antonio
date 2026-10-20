@@ -82,7 +82,7 @@ export function montaRiposi(box, { lotto }) {
       <div class="et-pronto"><span>PRONTO</span><b>${esc(leggibile(p.fine))}</b><small>dopo ${esc(durataTesto(p.min))}</small></div>
       <div class="et-poi">Poi: <b>${esc(dopo?.nome_fase || "—")}</b></div></div>`;
     const { apriAnteprimaStampa } = await import("./anteprima-stampa.js");
-    apriAnteprimaStampa({ titolo: "Etichetta riposo", pagina: "100mm 60mm", corpo: etichetta, css: `
+    apriAnteprimaStampa({ titolo: "Stampa fase", pagina: "100mm 60mm", corpo: etichetta, css: `
       .et{width:100mm;height:60mm;box-sizing:border-box;padding:4mm 5mm;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;display:flex;flex-direction:column;gap:1.2mm;overflow:hidden;}
       .et-cosa{font-size:13pt;font-weight:800;line-height:1.1;}
       .et-fase{font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-bottom:.4mm solid #000;padding-bottom:1mm;}
