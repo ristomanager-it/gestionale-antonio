@@ -75,6 +75,89 @@ export function montaRiposi(vecchiaCard, { lotto }) {
     const p = calcola(el);
     if (!p) { alert("Scrivi quante ore dura."); return; }
     if (el.querySelector('[data-k="salva"]')?.checked) { await sb().from("ricette_preparazione_fasi").update({ durata_min: p.min }).eq("id", f.id); f.durata_min = p.min; }
+    const btn = el.querySelector(".sf-btn");
+    btn.disabled = true; btn.textContent = "Invio all'etichettatrice…";
+    try {
+      // come le etichette dei lotti: immagine alla risoluzione della Brother, in coda al Raspberry
+      const et = await import("../modules/produzione/etichette-lotto.js");
+      const st = await et.stampanteEtichette();
+      // rotolo da 62 mm (continuo o pretagliato da 62); qualsiasi altra misura salvata -> 62 continuo
+      const id = /^62/.test(String(st?.etichetta_formato || "")) && et.FORMATI_ETICHETTA[st.etichetta_formato] ? st.etichetta_formato : "62";
+      const base = et.FORMATI_ETICHETTA[id];
+      const png = disegna(d, f, dopo, p, base.w, base.continuo ? null : base.h);
+      if (!png) { alert("Sul rotolo montato l'etichetta non entra: monta il rotolo continuo da 62 mm."); return; }
+      if (!st) { await anteprima(d, f, dopo, p); return; }
+      const fmt = et.misureEtichetta(id, png.mm);
+      const { error } = await sb().from("coda_stampe").insert({
+        azienda_id: window.state.azienda.id, sede_id: st.sede_id || window.state?.sedeAttiva?.id || null,
+        stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: fmt.larghezzaMm,
+        tipo: "etichetta", reparto: "etichette",
+        contenuto: { png: png.url, copie: 1, formato: fmt.descr, label: fmt.label, rosso: false, lotto: d.r.codice_lotto },
+      });
+      if (error) { alert("Non mandata all'etichettatrice: " + error.message); return; }
+      btn.textContent = "✅ Mandata all'etichettatrice";
+      setTimeout(() => { btn.textContent = "🖨 Stampa fase"; }, 4000);
+    } finally { btn.disabled = false; if (btn.textContent.startsWith("Invio")) btn.textContent = "🖨 Stampa fase"; }
+  }
+
+  // etichetta disegnata come immagine (300 dpi, bianco e nero) larga quanto il rotolo; altezza sul contenuto
+  function disegna(d, f, dopo, p, larghezza, altezzaFissa) {
+    const DPMM = 300 / 25.4, PAD = 26, W = larghezza - PAD * 2, F = "Arial, Helvetica, sans-serif";
+    const c = document.createElement("canvas");
+    const ctx = c.getContext("2d");
+    const righe = (testo, font) => {
+      ctx.font = font;
+      const out = []; let r = "";
+      for (const w of String(testo || "").split(/\s+/).filter(Boolean)) {
+        const prova = r ? r + " " + w : w;
+        if (ctx.measureText(prova).width <= W || !r) r = prova; else { out.push(r); r = w; }
+      }
+      if (r) out.push(r);
+      return out;
+    };
+    const fai = (scrivi) => {
+      let y = PAD;
+      const testo = (t, font, lh, x = PAD) => { ctx.font = font; if (scrivi) ctx.fillText(t, x, y); y += lh; };
+      for (const r of righe(d.r.ricette?.nome || "", "bold 46px " + F)) testo(r, "bold 46px " + F, 52);
+      y += 4;
+      const fase = (f.nome_fase + (f.temperatura ? ` · ${f.temperatura} °C` : "")).toUpperCase();
+      for (const r of righe(fase, "bold 34px " + F)) testo(r, "bold 34px " + F, 40);
+      if (scrivi) ctx.fillRect(PAD, y + 4, W, 5);
+      y += 20;
+      const coppia = (a, b) => {
+        if (scrivi) { ctx.font = "31px " + F; ctx.fillText(a, PAD, y); ctx.font = "bold 31px " + F; ctx.fillText(b, PAD + W - ctx.measureText(b).width, y); }
+        y += 42;
+      };
+      coppia("Lotto", d.r.codice_lotto);
+      coppia("Inizio", leggibile(p.ini));
+      y += 6;
+      const top = y;
+      y += 14;
+      testo("PRONTO", "bold 30px " + F, 38, PAD + 18);
+      for (const r of righe(leggibile(p.fine), "bold 58px " + F)) testo(r, "bold 58px " + F, 64, PAD + 18);
+      testo("dopo " + durataTesto(p.min), "30px " + F, 38, PAD + 18);
+      y += 8;
+      if (scrivi) { ctx.lineWidth = 5; ctx.strokeRect(PAD + 2, top, W - 4, y - top); }
+      y += 16;
+      const poi = righe("Poi: " + (dopo?.nome_fase || "—"), "bold 32px " + F);
+      poi.forEach((r) => testo(r, "bold 32px " + F, 40));
+      return y + PAD;
+    };
+    c.width = larghezza; c.height = 2000;
+    ctx.textBaseline = "top";
+    const hNec = fai(false);
+    let mm = Math.max(25, Math.ceil(hNec / DPMM));
+    const h = altezzaFissa || Math.round(mm * DPMM);
+    if (altezzaFissa && hNec > altezzaFissa) return null;
+    c.height = h;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, larghezza, h);
+    ctx.fillStyle = "#000"; ctx.strokeStyle = "#000"; ctx.textBaseline = "top";
+    fai(true);
+    return { url: c.toDataURL("image/png"), mm };
+  }
+
+  // senza etichettatrice configurata: anteprima e stampa dal telefono
+  async function anteprima(d, f, dopo, p) {
     const etichetta = `<div class="et">
       <div class="et-cosa">${esc(d.r.ricette?.nome || "")}</div>
       <div class="et-fase">${esc(f.nome_fase)}${f.temperatura ? ` · ${esc(f.temperatura)} °C` : ""}</div>
@@ -82,7 +165,6 @@ export function montaRiposi(vecchiaCard, { lotto }) {
       <div class="et-riga"><span>Inizio</span><b>${esc(leggibile(p.ini))}</b></div>
       <div class="et-pronto"><span>PRONTO</span><b>${esc(leggibile(p.fine))}</b><small>dopo ${esc(durataTesto(p.min))}</small></div>
       <div class="et-poi">Poi: <b>${esc(dopo?.nome_fase || "—")}</b></div></div>`;
-    // rotolo da 62 mm: l'altezza si adatta al contenuto (si misura prima di stampare)
     const css = `
       .et{width:62mm;box-sizing:border-box;padding:3mm 3mm 4mm;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;}
       .et>div{margin-bottom:1.4mm;}
@@ -93,15 +175,8 @@ export function montaRiposi(vecchiaCard, { lotto }) {
       .et-pronto{border:.5mm solid #000;border-radius:1.5mm;padding:1.2mm 2mm;}
       .et-pronto span{display:block;font-size:8pt;font-weight:800;} .et-pronto b{display:block;font-size:13pt;line-height:1.15;} .et-pronto small{display:block;font-size:8pt;}
       .et-poi{font-size:9pt;}`;
-    const prova = document.createElement("div");
-    prova.style.cssText = "position:fixed;left:-9999px;top:0;visibility:hidden;";
-    const ombra = prova.attachShadow({ mode: "open" });
-    ombra.innerHTML = `<style>${css}</style>${etichetta}`;
-    document.body.appendChild(prova);
-    const hmm = Math.ceil(ombra.querySelector(".et").getBoundingClientRect().height * 25.4 / 96) + 1;
-    prova.remove();
     const { apriAnteprimaStampa } = await import("./anteprima-stampa.js");
-    apriAnteprimaStampa({ titolo: "Stampa fase", pagina: `62mm ${hmm}mm`, corpo: etichetta, css });
+    apriAnteprimaStampa({ titolo: "Stampa fase", pagina: "62mm 60mm", corpo: etichetta, css });
   }
 
   // le schede delle fasi si ridisegnano: si rimette il pulsante ogni volta che compaiono
