@@ -78,7 +78,7 @@ export function initMenu() {
       const aziendaId = window.state?.azienda?.id;
       const r = String((window.normalizeRuolo ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo) : (window.state?.viewAs || window.state?.ruolo)) || "").toLowerCase();
       let el = document.getElementById("avviso-assenze");
-      if (!aziendaId || !["admin", "superadmin", "manager", "consulente_lavoro"].includes(r)) { el?.remove(); return; }
+      if (!aziendaId || !["admin", "superadmin"].includes(r)) { el?.remove(); return; }
       try {
         const { data } = await (window.supabaseClient || window.supabase).from("richieste_assenze")
           .select("id, tipo").eq("azienda_id", aziendaId).eq("stato", "richiesto");
