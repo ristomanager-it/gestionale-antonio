@@ -45,7 +45,7 @@ export function montaRiposi(box, { lotto }) {
         </div>
         <div class="rp-pronto" data-k="pronto"></div>
         ${!f.durata_min ? `<label class="rp-ck"><input type="checkbox" data-k="salva" checked> salva questa durata nella ricetta</label>` : ""}
-        <button type="button" class="rp-pri" data-stampa="${i}">🏷 Stampa etichetta</button>
+        <button type="button" class="rp-pri" data-stampa="${i}">🖨 Stampa fase</button>
       </div>`;
     }).join("");
     elLista.querySelectorAll(".rp-riga").forEach((el) => {
