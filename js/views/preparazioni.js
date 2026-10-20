@@ -3203,6 +3203,8 @@ function renderFasiHaccp() {
            </div>`
         : ""}
 
+      <div class="rf-stampa-fase" data-ordine="${f.ordine}"></div>
+
       <div class="rf-copro" data-idx="${idx}" style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0;">
         <div class="rf-copro-lista" data-idx="${idx}"></div>
         <button type="button" class="app-button small secondary rf-copro-apri" data-idx="${idx}">♻️ Coprodotto / sottoprodotto</button>
