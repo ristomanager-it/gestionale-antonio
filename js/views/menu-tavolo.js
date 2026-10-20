@@ -240,16 +240,13 @@ export async function render(app) {
       }
       pagine = fogli;
     }
-    const w = window.open("", "_blank");
-    if (!w) { alert("Il telefono ha bloccato la finestra di stampa: consenti i popup e riprova."); return; }
     const fam = [...new Set([spec.font_titolo, spec.font_testo])].map((f) => "family=" + encodeURIComponent(f) + ":ital,wght@0,400;0,600;1,400").join("&");
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Menu ${esc(dati.evento || "")}</title>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fam}&display=swap">
-      <style>@page{size:${pagina};margin:0}html,body{margin:0;padding:0}
-      ${imp && imp.n ? ".mt-foglio{page-break-after:always;break-after:page}.mt-taglio{position:absolute}" : ".mt-pagina{page-break-after:always;break-after:page}"}
-      .mt-pagina{-webkit-print-color-adjust:exact;print-color-adjust:exact}${CSS_PAGINA}</style></head>
-      <body>${pagine.join("")}<script>document.fonts.ready.then(()=>setTimeout(()=>print(),300))<\/script></body></html>`);
-    w.document.close();
+    // anteprima dentro l'app (sul telefono la finestra nuova non si chiudeva e si vedeva in formato desktop)
+    const { apriAnteprimaStampa } = await import("../utils/anteprima-stampa.js");
+    apriAnteprimaStampa({ titolo: `Menu ${dati.evento || ""}`, pagina, fontHref: `https://fonts.googleapis.com/css2?${fam}&display=swap`,
+      css: `${imp && imp.n ? ".mt-foglio{page-break-after:always;break-after:page;background:#fff;margin-bottom:6mm;box-shadow:0 4px 14px rgba(0,0,0,.15)}.mt-taglio{position:absolute}" : ".mt-pagina{page-break-after:always;break-after:page;margin-bottom:6mm;box-shadow:0 4px 14px rgba(0,0,0,.15)}"}
+        .mt-pagina{-webkit-print-color-adjust:exact;print-color-adjust:exact} @media print{.mt-foglio,.mt-pagina{margin-bottom:0!important;box-shadow:none!important}} ${CSS_PAGINA}`,
+      corpo: pagine.join("") });
   });
 
   function disegnaForm() {
