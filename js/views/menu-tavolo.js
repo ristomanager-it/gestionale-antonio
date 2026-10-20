@@ -92,6 +92,27 @@ async function datiEvento(id) {
     data: p.data_evento ? new Date(p.data_evento + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "",
     sezioni: [...gruppi.entries()].sort((a, b) => pos(a[0]) - pos(b[0])).map(([titolo, piatti]) => ({ titolo, piatti })) };
 }
+// dalla prenotazione: se nasce da un evento usa il preventivo, altrimenti il menu componibile del gruppo
+const PORTATE = { antipasti: "Antipasti", primi: "Primi", secondi: "Secondi", contorni: "Contorni", dessert: "Dolci", dolci: "Dolci" };
+async function datiPrenotazione(id) {
+  const { data: p } = await sb().from("prenotazioni_tavoli").select("id, cliente_nome, data, sede_id, note").eq("id", id).maybeSingle();
+  if (!p) return null;
+  const ev = String(p.note || "").match(/da preventivo (\d+)/i);
+  if (ev) { const d = await datiEvento(ev[1]); if (d) return { ...d, pren: true }; }
+  const { data: m } = await sb().from("menu_componibile").select("titolo, nome_gruppo, data, voci").eq("prenotazione_id", id).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  const gruppi = new Map();
+  for (const v of Array.isArray(m?.voci) ? m.voci : []) {
+    const nome = String(v.nome || "").trim(); if (!nome) continue;
+    const sez = PORTATE[String(v.portata || "").toLowerCase()] || (v.portata ? String(v.portata).charAt(0).toUpperCase() + String(v.portata).slice(1) : "Menu");
+    if (!gruppi.has(sez)) gruppi.set(sez, []);
+    gruppi.get(sez).push(nome.charAt(0).toUpperCase() + nome.slice(1));
+  }
+  const pos = (x) => { const i = ORDINE_SEZ.findIndex((s) => s.toLowerCase() === x.toLowerCase()); return i < 0 ? 50 : i; };
+  const dd = m?.data || p.data;
+  return { pren: true, sede: p.sede_id, evento: m?.titolo || m?.nome_gruppo || p.cliente_nome,
+    data: dd ? new Date(dd + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "",
+    sezioni: [...gruppi.entries()].sort((a, b) => pos(a[0]) - pos(b[0])).map(([titolo, piatti]) => ({ titolo, piatti })) };
+}
 const ESEMPIO = { evento: "Battesimo di Federica", data: "domenica 25 ottobre 2026", sezioni: [
   { titolo: "Antipasti", piatti: ["Antipasto Campo Antico"] },
   { titolo: "Primi", piatti: ["Risotto ai fiori di zucca con stracciatella", "Cappellacci verdi di vitella e porcini al tartufo"] },
