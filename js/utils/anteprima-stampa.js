@@ -69,6 +69,6 @@ export function apriAnteprimaStampa({ titolo = "Anteprima di stampa", css = "", 
 
 export function chiudiAnteprimaStampa() {
   const ov = document.getElementById("rf-stampa");
-  if (ov) { ov._pulisci?.(); ov.remove(); }
+  if (ov) { ov._pulisci?.(); if (ov._titolo) document.title = ov._titolo; ov.remove(); }
   document.getElementById("rf-stampa-stile")?.remove();
 }
