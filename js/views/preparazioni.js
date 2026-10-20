@@ -345,6 +345,8 @@ export async function render(container) {
         `
       })}
 
+      <div id="card-cartellini"></div>
+
       <div id="card-confezionamento">${createCard({
         title: "Confezionamento reale (porzionature)",
         body: `
