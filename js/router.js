@@ -811,6 +811,7 @@ function hasPermission(area) {
       "cc-sedi",
       "spesa-banchetti",
       "banchetto-foto",
+      "menu-tavolo",
       "registro-messaggi",
       "recensioni",
       "recensioni-ricevute",
