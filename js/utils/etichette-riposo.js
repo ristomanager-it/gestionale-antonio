@@ -11,8 +11,7 @@ const durataTesto = (min) => { const h = Math.floor(min / 60), m = min % 60; ret
 
 export function montaRiposi(box, { lotto }) {
   if (!box) return;
-  box.innerHTML = `<style>${stile()}</style><div class="rp"><div class="rp-tit">🏷 Etichette dei riposi</div>
-    <div class="rp-sub">Per le fasi di riposo stampa l'etichetta per il contenitore: cos'è, quando è iniziato e a che ora fare la fase dopo.</div>
+  box.innerHTML = `<style>${stile()}</style><div class="rp"><div class="rp-tit">🖨 Stampa fase</div>
     <div class="rp-lista"></div></div>`;
   const elLista = box.querySelector(".rp-lista");
   let dati = null;
