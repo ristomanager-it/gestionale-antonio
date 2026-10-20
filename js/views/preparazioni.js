@@ -487,7 +487,7 @@ import("../utils/cartellini-lotto.js?v=" + (window.APP_V || ""))
   .then((m) => m.montaCartellini(document.getElementById("card-cartellini"), { lotto: () => lottoCorrente() }))
   .catch((e) => console.warn("[preparazioni] cartellini non disponibili", e))
 // 🏷 etichette dei riposi: cos'e', inizio, a che ora la fase dopo
-import("../utils/etichette-riposo.js")
+import("../utils/etichette-riposo.js?v=" + (window.APP_V || ""))
   .then((m) => m.montaRiposi(document.getElementById("card-riposi"), { lotto: () => lottoCorrente() }))
   .catch((e) => console.warn("[preparazioni] etichette riposi non disponibili", e))
 
