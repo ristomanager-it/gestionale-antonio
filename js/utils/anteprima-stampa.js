@@ -54,12 +54,11 @@ export function apriAnteprimaStampa({ titolo = "Anteprima di stampa", css = "", 
   window.addEventListener("resize", adatta);
   ov.querySelector(".rf-st-chiudi").addEventListener("click", chiudiAnteprimaStampa);
   // stampa: margini a zero e titolo vuoto, cosi' il telefono non aggiunge in testa e in fondo al foglio
-  // indirizzo della pagina, data, titolo e numero di pagina; finita la stampa l'anteprima si chiude da sola
+  // indirizzo della pagina, data, titolo e numero di pagina. L'anteprima NON si chiude da sola: su iPhone
+  // "afterprint" arriva subito, prima che la stampa parta, e si stampava la pagina dell'app sotto.
   ov.querySelector(".rf-st-stampa").addEventListener("click", () => {
-    const titoloApp = document.title;
+    if (!ov._titolo) ov._titolo = document.title;
     document.title = " ";
-    const fine = () => { document.title = titoloApp; chiudiAnteprimaStampa(); };
-    window.addEventListener("afterprint", fine, { once: true });
     window.print();
   });
   // tornando indietro con il telefono si chiude l'anteprima
