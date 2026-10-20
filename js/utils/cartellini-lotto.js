@@ -26,7 +26,7 @@ export function montaCartellini(box, { lotto }) {
   let letti = []; // cartellini letti da confermare
   box.innerHTML = `<style>${stile()}</style><div class="ct">
     <div class="ct-tit">📷 Cartellini della materia prima</div>
-    <div class="ct-sub">Fotografa i cartellini della carne o della merce che usi: lotto, scadenza, peso e provenienza restano legati a questa lavorazione.</div>
+    <div class="ct-sub">Fotografa i cartellini della merce che usi (carne, formaggi…) o le etichette delle nostre preparazioni (ragù, besciamella…): lotto, scadenza, peso e provenienza restano legati a questa lavorazione.</div>
     <label class="ct-foto">📷 Fotografa i cartellini<input type="file" accept="image/*" multiple hidden></label>
     <div class="ct-schede"></div><div class="ct-lista"></div></div>`;
   const elSchede = box.querySelector(".ct-schede"), elLista = box.querySelector(".ct-lista");
@@ -42,8 +42,8 @@ export function montaCartellini(box, { lotto }) {
     const r = await rigaLotto();
     if (!r) { elLista.innerHTML = `<div class="ct-nota">I cartellini si legano quando la lavorazione è aperta (prima firma o "Registra").</div>`; return; }
     const { data } = await sb().from("produzione_lotto_ingredienti")
-      .select("id, quantita, unita_misura, lotto_materia_prima, scadenza_materia_prima, lotto_fornitore_id, lotti_fornitore(prodotto_letto, produttore, lotto, data_scadenza, quantita, unita, foto_url, letto_da), prodotti(nome)")
-      .eq("lotto_id", r.id).not("lotto_fornitore_id", "is", null);
+      .select("id, quantita, unita_misura, lotto_materia_prima, scadenza_materia_prima, lotto_fornitore_id, lotto_interno_id, scelto_auto, lotti_fornitore(prodotto_letto, produttore, lotto, data_scadenza, quantita, unita, foto_url, letto_da), prodotti(nome)")
+      .eq("lotto_id", r.id).or("lotto_fornitore_id.not.is.null,and(lotto_interno_id.not.is.null,scelto_auto.eq.false)");
     const righe = data || [];
     if (!righe.length) { elLista.innerHTML = ""; return; }
     const kg = righe.reduce((t, x) => t + (x.lotti_fornitore?.unita === "kg" || !x.lotti_fornitore?.unita ? Number(x.lotti_fornitore?.quantita) || 0 : 0), 0);
@@ -52,6 +52,8 @@ export function montaCartellini(box, { lotto }) {
     elLista.innerHTML = `<div class="ct-tot">Materia prima legata: ${righe.length} ${righe.length === 1 ? "cartellino" : "cartellini"}${kg ? ` · <b>${kg.toLocaleString("it-IT", { maximumFractionDigits: 3 })} kg</b>` : ""}${scadMin ? ` · scade il ${fd(scadMin)}` : ""}</div>
       ${oltre ? `<div class="ct-avviso">⚠ La scadenza di questa lavorazione (${fd(r.data_scadenza)}) supera quella della materia prima (${fd(scadMin)}). Controlla la conservazione scelta.</div>` : ""}
       ${righe.map((x) => { const f = x.lotti_fornitore || {}; const o = f.letto_da?.origine;
+        if (!x.lotto_fornitore_id) return `<div class="ct-riga"><div class="ct-noimg">🏷</div><div><b>${esc(x.prodotti?.nome || "Nostra produzione")}</b>
+          <div class="ct-r3">nostro lotto <b>${esc(x.lotto_materia_prima || "—")}</b> · scade ${fd(x.scadenza_materia_prima)}</div></div></div>`;
         return `<div class="ct-riga">${f.foto_url ? `<a href="${esc(f.foto_url)}" target="_blank"><img src="${esc(f.foto_url)}" alt=""></a>` : `<div class="ct-noimg">📄</div>`}
           <div><b>${esc(x.prodotti?.nome || f.prodotto_letto || "Materia prima")}</b>
           <div class="ct-r3">lotto <b>${esc(f.lotto || x.lotto_materia_prima || "—")}</b> · scade ${fd(f.data_scadenza || x.scadenza_materia_prima)}${f.quantita ? ` · ${esc(f.quantita)} ${esc(f.unita || "kg")}` : ""}</div>
@@ -75,7 +77,15 @@ export function montaCartellini(box, { lotto }) {
         const res = await fetch(URL_EF, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session?.access_token || "") },
           body: JSON.stringify({ azienda_id: az, immagine_base64: b64, mime: "image/jpeg" }) });
         const d = await res.json();
-        return { letto: d.letto || {}, candidati: d.candidati || [], foto_url: await up, errore: res.ok ? "" : (d.errore || "non letto") };
+        // etichetta NOSTRA (ragu', besciamella... fatti da noi): il lotto e' un lotto interno, si lega quello
+        let interno = null;
+        const cod = String(d.letto?.lotto || "").trim();
+        if (cod.length >= 4) {
+          const { data: li } = await sb().from("produzione_lotti").select("id, codice_lotto, data_scadenza, ricetta_id, ricette(nome)")
+            .eq("azienda_id", az).ilike("codice_lotto", cod).neq("id", r.id).limit(1);
+          if (li?.[0]) interno = { ...li[0], nome: li[0].ricette?.nome || "" };
+        }
+        return { letto: d.letto || {}, candidati: d.candidati || [], interno, foto_url: await up, errore: res.ok ? "" : (d.errore || "non letto") };
       } catch (err) { return { letto: {}, candidati: [], foto_url: "", errore: String(err?.message || err) }; }
     }));
     disegnaSchede(r, ing || []);
@@ -85,6 +95,12 @@ export function montaCartellini(box, { lotto }) {
     if (!letti.length) { elSchede.innerHTML = ""; return; }
     elSchede.innerHTML = letti.map((c, i) => {
       const L = c.letto || {};
+      if (c.interno) return `<div class="ct-scheda ct-interno" data-i="${i}">
+        ${c.foto_url ? `<img class="ct-mini" src="${esc(c.foto_url)}" alt="">` : ""}
+        <div><b>🏷 Nostra produzione: ${esc(c.interno.nome || L.prodotto || "")}</b></div>
+        <div class="ct-r3">lotto <b>${esc(c.interno.codice_lotto)}</b> · scade ${fd(c.interno.data_scadenza)}</div>
+        <div class="ct-az"><button type="button" class="ct-sec" data-scarta="${i}">Scarta</button><button type="button" class="ct-pri" data-salva="${i}">💾 Lega alla lavorazione</button></div>
+      </div>`;
       // prima gli ingredienti della ricetta (di solito e' uno di quelli), poi i prodotti simili trovati da Tony
       const opz = [...ing.map((x) => ({ id: x.prodotto_id, nome: x.nome_prodotto, ric: true })), ...c.candidati.filter((x) => !ing.some((y) => y.prodotto_id === x.id))];
       const pre = opz.find((o) => c.candidati[0] && o.id === c.candidati[0].id) || (ing.length === 1 ? opz[0] : null);
@@ -114,7 +130,23 @@ export function montaCartellini(box, { lotto }) {
     });
   }
 
+  // lotto interno (semilavorato fatto da noi): si lega alla riga del suo ingrediente nella ricetta
+  async function salvaInterno(r, c) {
+    const li = c.interno;
+    const { data: prod } = await sb().from("prodotti").select("id").eq("azienda_id", az).eq("ricetta_id", li.ricetta_id).limit(5);
+    const pids = (prod || []).map((x) => x.id);
+    const { data: righe } = pids.length ? await sb().from("produzione_lotto_ingredienti").select("id, lotto_interno_id, scelto_auto, prodotto_id").eq("lotto_id", r.id).in("prodotto_id", pids) : { data: [] };
+    const riga = (righe || []).find((x) => !x.lotto_interno_id) || (righe || []).find((x) => x.scelto_auto) || null;
+    const val = { lotto_interno_id: li.id, lotto_materia_prima: li.codice_lotto, scadenza_materia_prima: li.data_scadenza, scelto_auto: false };
+    const { error } = riga
+      ? await sb().from("produzione_lotto_ingredienti").update(val).eq("id", riga.id)
+      : await sb().from("produzione_lotto_ingredienti").insert({ lotto_id: r.id, ricetta_id: r.ricetta_id, prodotto_id: pids[0] || null, azienda_id: az, ...val });
+    if (error) { alert("Non legato: " + error.message); return false; }
+    return true;
+  }
+
   async function salva(r, i) {
+    if (letti[i]?.interno) return salvaInterno(r, letti[i]);
     const el = elSchede.querySelector(`.ct-scheda[data-i="${i}"]`);
     const v = (k) => el.querySelector(`[data-k="${k}"]`).value.trim();
     const pid = Number(v("prodotto")) || null;
@@ -152,6 +184,7 @@ function stile() {
   .ct-sub{font-size:13px;color:#64748b;margin:3px 0 10px;}
   .ct-foto{display:block;text-align:center;background:#0E5A7A;color:#fff;border-radius:12px;padding:13px;font-weight:800;font-size:15px;cursor:pointer;}
   .ct-nota{font-size:13px;color:#64748b;margin-top:10px;}
+  .ct-interno{border-color:#86efac!important;background:#f0fdf4!important;}
   .ct-scheda{border:1.5px solid #bfdbfe;background:#f8fbff;border-radius:12px;padding:10px;margin-top:10px;}
   .ct-scheda label{display:block;font-size:12px;font-weight:700;color:#64748b;margin-top:6px;}
   .ct-in{width:100%;box-sizing:border-box;border:1.5px solid #e2e8f0;border-radius:9px;padding:9px;font-size:15px;font-family:inherit;background:#fff;color:#0f172a;margin-top:2px;}
