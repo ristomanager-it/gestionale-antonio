@@ -588,9 +588,12 @@ export async function render(container) {
       </div>
     </body></html>`;
 
-    const win = window.open("", "_blank");
-    if (!win) { alert("Consenti i popup per la stampa."); return; }
-    win.document.open(); win.document.write(html); win.document.close();
+    // anteprima dentro l'app: sul telefono la finestra nuova non si chiudeva e si vedeva in formato desktop
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    doc.querySelector(".no-print")?.remove();
+    const css = [...doc.querySelectorAll("style")].map((s) => s.textContent).join("\n");
+    const { apriAnteprimaStampa } = await import("../../utils/anteprima-stampa.js");
+    apriAnteprimaStampa({ titolo: "Talloncino · " + nomeCliente, css, corpo: doc.body.innerHTML });
   }
 
   // Menu componibile collegato alla prenotazione (menu_componibile.prenotazione_id)
