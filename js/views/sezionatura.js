@@ -97,6 +97,7 @@ export async function render(app) {
       <div class="sz-sub" style="margin:0 0 6px">Scrivi il peso del pezzo e quanto hai ricavato di ogni taglio.</div>
       <div class="sz-g2"><div><label class="sz-lab">Data</label><input id="sz-reg-data" type="date" class="sz-in" value="${new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" })}"></div>
         <div><label class="sz-lab">Peso lordo (kg)</label><input id="sz-reg-kg" class="sz-in" inputmode="decimal"></div></div>
+      <div id="sz-cart"></div>
       ${vedeCosti ? `<label class="sz-lab">Costo €/kg (dalla fattura)</label><input id="sz-reg-eur" class="sz-in" inputmode="decimal" value="${costoProd ? String(costoProd).replace(".", ",") : ""}">` : ""}
       ${T.map((t) => `<div class="sz-reg-riga"><span>${esc(t.nome)}</span>
         <input class="sz-in sz-reg-t" data-t="${t.id}" inputmode="decimal" placeholder="kg">
