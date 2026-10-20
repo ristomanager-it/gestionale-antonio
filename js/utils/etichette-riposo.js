@@ -79,7 +79,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
     btn.disabled = true; btn.textContent = "Invio all'etichettatrice…";
     try {
       // come le etichette dei lotti: immagine alla risoluzione della Brother, in coda al Raspberry
-      const et = await import("../modules/produzione/etichette-lotto.js");
+      const et = await import("../modules/produzione/etichette-lotto.js?v=" + (window.APP_V || ""));
       const st = await et.stampanteEtichette();
       // rotolo da 62 mm (continuo o pretagliato da 62); qualsiasi altra misura salvata -> 62 continuo
       const id = /^62/.test(String(st?.etichetta_formato || "")) && et.FORMATI_ETICHETTA[st.etichetta_formato] ? st.etichetta_formato : "62";
