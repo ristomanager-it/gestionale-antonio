@@ -170,7 +170,7 @@ export async function render(app) {
     dati = eventoId === "__pren" ? datiPren || ESEMPIO : eventoId ? (await datiEvento(eventoId)) || ESEMPIO : ESEMPIO;
     if (dati.pren && !dati.sezioni.length) dati = { ...dati, sezioni: [{ titolo: "", piatti: ["(nessun menu collegato a questa prenotazione)"] }] };
     modello = scegliModello(dati.sede || sedeAttiva);
-    riempiModelli(); disegnaForm(); anteprima();
+    riempiModelli(); disegnaForm(); anteprima(); infoImpo();
   };
   $("#mt-ev").addEventListener("change", caricaEvento);
   $("#mt-mod").addEventListener("change", async () => {
