@@ -211,7 +211,7 @@ export async function render(app) {
   }
   window.addEventListener("resize", anteprima);
 
-  $("#mt-stampa").addEventListener("click", () => {
+  $("#mt-stampa").addEventListener("click", async () => {
     const spec = unisci(BASE, modello?.spec || {});
     const tavoli = $("#mt-tavoli").value.split("\n").map((x) => x.trim()).filter(Boolean);
     const copie = Math.max(1, Number($("#mt-copie").value) || 1);
