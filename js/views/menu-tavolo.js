@@ -162,7 +162,8 @@ export async function render(app) {
   };
   const caricaEvento = async () => {
     eventoId = $("#mt-ev").value;
-    dati = eventoId ? (await datiEvento(eventoId)) || ESEMPIO : ESEMPIO;
+    dati = eventoId === "__pren" ? datiPren || ESEMPIO : eventoId ? (await datiEvento(eventoId)) || ESEMPIO : ESEMPIO;
+    if (dati.pren && !dati.sezioni.length) dati = { ...dati, sezioni: [{ titolo: "", piatti: ["(nessun menu collegato a questa prenotazione)"] }] };
     modello = scegliModello(dati.sede || sedeAttiva);
     riempiModelli(); disegnaForm(); anteprima();
   };
