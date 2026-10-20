@@ -73,7 +73,7 @@ export function initMenu() {
 
     setTimeout(() => { pollWaBadge(); setInterval(pollWaBadge, 30000); }, 3000);
 
-    // ── AVVISO FERIE / PERMESSI / MALATTIA DA APPROVARE (admin, manager, consulente) ──
+    // ── AVVISO FERIE / PERMESSI / MALATTIA DA APPROVARE (solo admin) ──
     async function pollAssenze() {
       const aziendaId = window.state?.azienda?.id;
       const r = String((window.normalizeRuolo ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo) : (window.state?.viewAs || window.state?.ruolo)) || "").toLowerCase();
