@@ -486,6 +486,10 @@ if (lottoParam) {
 import("../utils/cartellini-lotto.js")
   .then((m) => m.montaCartellini(document.getElementById("card-cartellini"), { lotto: () => lottoCorrente() }))
   .catch((e) => console.warn("[preparazioni] cartellini non disponibili", e))
+// 🏷 etichette dei riposi: cos'e', inizio, a che ora la fase dopo
+import("../utils/etichette-riposo.js")
+  .then((m) => m.montaRiposi(document.getElementById("card-riposi"), { lotto: () => lottoCorrente() }))
+  .catch((e) => console.warn("[preparazioni] etichette riposi non disponibili", e))
 
 // Lavoro partito a voce o dallo schermo produzioni (es. "Arista... in sottovuoto"):
 // si apre con la sua ricetta, si segnano i pesi e si registra il lotto; il lavoro si chiude da solo.
