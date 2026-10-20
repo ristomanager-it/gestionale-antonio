@@ -650,6 +650,8 @@ export async function render(container) {
     const btnOpenWa = container.querySelector("#pren-open-wa");
     const btnStampa = container.querySelector("#pren-stampa");
     if (btnStampa) btnStampa.onclick = () => stampaTalloncino();
+    const btnMt = container.querySelector("#pren-menu-tavolo");
+    if (btnMt) btnMt.onclick = () => { window.location.hash = "#/menu-tavolo?pren=" + pageState.prenotazione.id; };
 
     if (btnBackList) {
       btnBackList.onclick = () => {
