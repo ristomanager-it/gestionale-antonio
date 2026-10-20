@@ -132,6 +132,11 @@ export async function render(app) {
     <div class="mt-anteprima"><div id="mt-scala"></div></div>
     <div class="mt-g2"><label>Copie<input id="mt-copie" class="mt-in" type="number" min="1" value="1"></label>
       <label>Tavoli (uno per riga, facoltativo)<textarea id="mt-tavoli" class="mt-in" rows="2" placeholder="Tavolo degli sposi&#10;Tavolo 1"></textarea></label></div>
+    <label>Carta della stampante<select id="mt-carta" class="mt-in">
+      <option value="">Stesso formato del menu (carta già tagliata)</option>
+      <option value="A4" selected>Fogli A4: più menu per foglio, con i segni di taglio</option>
+      <option value="A3">Fogli A3: più menu per foglio, con i segni di taglio</option></select></label>
+    <div id="mt-impo" class="mt-sub" style="margin:4px 0 0"></div>
     <button id="mt-stampa" class="mt-pri" type="button">🖨 Stampa</button>
     <details class="mt-ed" id="mt-ed"><summary>✏️ Modifica il modello</summary><div id="mt-form"></div></details>
   </div>`;
