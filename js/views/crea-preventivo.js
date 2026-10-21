@@ -774,6 +774,8 @@ function aggancia(container, supabase, azienda, sede) {
     el.addEventListener("change", async () => {
       const k = el.dataset.campo;
       P[k] = el.type === "number" ? Number(el.value) || 0 : el.value;
+      // i servizi "a persona" seguono il numero degli invitati
+      if (k === "n_invitati") extra.forEach(x => { if (x.ppPrezzo != null) x.prezzo = x.ppPrezzo * Math.max(Number(P.n_invitati) || 1, 1); });
       if (k === "location_id") {
         const l = locations.find(x => String(x.id) === String(P.location_id));
         if (l) { P.location = l.nome; P.location_prezzo = Number(l.prezzo_affitto_base) || 0; }
