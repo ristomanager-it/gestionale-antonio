@@ -335,8 +335,8 @@ function disegna(container, supabase, azienda, sede) {
         </div>
         ${P.id ? `<div class="pv2-scad ${scaduto() ? "ko" : ""}">${esc(testoScadenza())}</div>` : ""}
         <select id="pv2-stato" class="pv2-stato">
-          ${["trattativa", "confermato", "perso"].map(s =>
-            `<option value="${s}"${P.stato === s ? " selected" : ""}>${s === "trattativa" ? "In trattativa" : s === "confermato" ? "Confermato" : "Perso"}</option>`).join("")}
+          ${["trattativa", "accettato", "confermato", "perso"].map(s =>
+            `<option value="${s}"${P.stato === s ? " selected" : ""}>${s === "trattativa" ? "In trattativa" : s === "accettato" ? "Accettato · attende l'acconto" : s === "confermato" ? "Confermato" : "Perso"}</option>`).join("")}
         </select>
       </div>
 
