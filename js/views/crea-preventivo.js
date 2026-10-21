@@ -1206,14 +1206,15 @@ async function salva(container, supabase, azienda, sede) {
     id = data.id;
   }
 
-  await Promise.all([
-    supabase.from("preventivi_righe").delete().eq("preventivo_id", id).is("semilavorato_di", null),
-    supabase.from("preventivi_extra").delete().eq("preventivo_id", id),
+  // prima si scrivono le righe nuove, poi si tolgono le vecchie: se qualcosa va storto il menu non si perde
+  const [{ data: vecchieR }, { data: vecchieE }] = await Promise.all([
+    supabase.from("preventivi_righe").select("id").eq("preventivo_id", id).is("semilavorato_di", null),
+    supabase.from("preventivi_extra").select("id").eq("preventivo_id", id),
   ]);
 
   const daSalvare = righe.filter(r => r.nome);
   if (daSalvare.length) {
-    await supabase.from("preventivi_righe").insert(daSalvare.map(r => {
+    const insR = await supabase.from("preventivi_righe").insert(daSalvare.map(r => {
       const co = costoDi(r);
       return {
         azienda_id: azienda.id, sede_uuid: sede?.id || null, preventivo_id: id,
@@ -1221,22 +1222,31 @@ async function salva(container, supabase, azienda, sede) {
         // al buffet si produce il 65% degli invitati per proposta, al piatto il 100%
         quantita: perBambini(r.sezione) ? c.bimbi : /buffet/i.test(r.sezione || "") ? Math.ceil(c.inv * 0.65) : c.inv,
         prezzo_unitario: Number(r.prezzo) || 0,
-        totale: (Number(r.prezzo) || 0) * (perBambini(r.sezione) ? c.bimbi : c.inv),
         food_cost_snapshot: co.costo || 0,
         costo_manuale: co.manuale === true,
         ricetta_placeholder: Boolean(co.stimato || co.mancante),
         stima_dettaglio: stime[norm(r.nome)] || null,
       };
     }));
+    if (insR.error) return msg(container, "Il menu NON è stato salvato (quello di prima è rimasto com'era): " + insR.error.message, true);
   }
   if (extra.length) {
-    await supabase.from("preventivi_extra").insert(extra.map(x => ({
+    const insE = await supabase.from("preventivi_extra").insert(extra.map(x => ({
       azienda_id: azienda.id, sede_uuid: sede?.id || null, preventivo_id: id,
       descrizione: x.descrizione, quantita: 1,
-      prezzo_unitario: Number(x.prezzo) || 0, prezzo_totale: Number(x.prezzo) || 0,
+      prezzo_unitario: Number(x.prezzo) || 0,
       costo_totale: Number(x.costo) || 0,
     })));
+    if (insE.error) {
+      // le righe del menu appena scritte si tolgono: resta quello di prima, intero
+      if (daSalvare.length) await supabase.from("preventivi_righe").delete().eq("preventivo_id", id).is("semilavorato_di", null).not("id", "in", "(" + [0, ...(vecchieR || []).map(x => x.id)].join(",") + ")");
+      return msg(container, "I servizi NON sono stati salvati (non è cambiato niente): " + insE.error.message, true);
+    }
   }
+  // tutto scritto: ora si tolgono le righe vecchie
+  const idR = (vecchieR || []).map(x => x.id), idE = (vecchieE || []).map(x => x.id);
+  if (idR.length) await supabase.from("preventivi_righe").delete().in("id", idR);
+  if (idE.length) await supabase.from("preventivi_extra").delete().in("id", idE);
 
   // I piatti stimati diventano ricette bozza da soli: hanno gia' ingredienti e
   // costo, quindi la scheda nasce utile invece che vuota come faceva la vecchia.
