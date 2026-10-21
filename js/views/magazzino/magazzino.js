@@ -69,7 +69,7 @@ async function conservatiAlVolo(azienda) {
     <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
       ${righe || `<div style="padding:12px;color:#64748b;font-size:13.5px;">Niente in giacenza: quello che metti via con l'etichetta veloce compare qui.</div>`}
     </div>
-    <div style="font-size:12px;color:#64748b;margin-top:6px;">✓ usato · 🍽 pasto del personale · ❄️ abbatti in negativo (nuova etichetta, 180 gg) · 🗑 buttato</div>`;
+    <div style="font-size:12px;color:#64748b;margin-top:6px;">🖨 ristampa · ✓ usato · 🍽 pasto del personale · ❄️ abbatti in negativo (nuova etichetta, 180 gg) · 🗑 buttato</div>`;
   box.querySelectorAll("[data-esito]").forEach((b) => b.addEventListener("click", async () => {
     if (b.dataset.esito === "buttato" && !confirm("Lo segno come buttato? Finisce negli sprechi.")) return;
     b.disabled = true;
