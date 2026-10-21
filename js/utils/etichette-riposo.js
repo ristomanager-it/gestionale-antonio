@@ -68,7 +68,8 @@ export function montaRiposi(vecchiaCard, { lotto }) {
         el.dataset.fatto = "1";
         const f = d.F.find((x) => x.ordine === Number(el.dataset.ordine));
         const dopo = f && d.F.find((n) => n.ordine > f.ordine);
-        if (!f || !f.riposo || !dopo) continue;
+        if (!f) continue;
+        const attesa = Boolean(f.riposo && dopo);   // fase di riposo: serve la durata, l'etichetta dice a che ora e' pronta
         const prima = [...d.F].reverse().find((n) => n.ordine < f.ordine);
         const inizio = firmaDi(f) || (prima && firmaDi(prima)) || new Date().toISOString();
         el.innerHTML = `<div class="sf">
