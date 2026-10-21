@@ -3277,6 +3277,19 @@ function renderFasiHaccp() {
     console.warn("confezioni nella fase:", e);
   }
 
+  // FASI BLOCCATE: chi lavora le fa dal Planning, dove c'e' scritto cosa fare e quando.
+  // Aperte da altrove (Produzioni aperte, registro...) si leggono ma non si avviano ne' si firmano.
+  // Admin e manager non sono bloccati.
+  if (!window.__rfPlannerIdCorrente && !isManagerAnagrafante()) {
+    list.querySelectorAll(":scope > .azienda-card[data-idx]").forEach((card) => {
+      card.querySelectorAll("button, input, select, textarea").forEach((el) => { el.disabled = true; });
+      card.style.opacity = "0.7";
+    });
+    list.insertAdjacentHTML("afterbegin", `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:14px;">
+      🔒 <b>Le fasi si fanno dal Planning.</b> Lì trovi cosa devi fare oggi: aprila da lì per iniziare e firmare.
+      <div style="margin-top:6px;"><a href="#/planner-produzione" style="font-weight:700;">Vai al Planning →</a></div></div>`);
+  }
+
   // Bind eventi
   list.querySelectorAll(".haccp-ph").forEach(el => {
     el.addEventListener("change", e => {
