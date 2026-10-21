@@ -195,6 +195,8 @@ function schedaPersonale() {
 /* ── conti ───────────────────────────────────────────────────────────── */
 
 function costoDi(r) {
+  // il costo scritto a mano nel preventivo vince su tutto
+  if (r.costoManuale != null) return { costo: Number(r.costoManuale) || 0, stimato: false, manuale: true, fonte: "scritto da te" };
   if (r.ricetta_id) {
     const ric = ricette.find(x => String(x.id) === String(r.ricetta_id));
     if (ric) {
