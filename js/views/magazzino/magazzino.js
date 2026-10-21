@@ -124,6 +124,7 @@ function renderHome(azienda) {
     preparazioni: () => renderPreparazioni(document.body, azienda),
     carico: () => apriCaricoModal({ aziendaId: azienda.id }),
     riordino: () => { window.location.hash = "#/acquisti?tab=riordino"; },
+    volo: () => apriConservati(azienda),
   };
   home.querySelectorAll("[data-mg]").forEach((b) => b.addEventListener("click", () => azioni[b.dataset.mg]?.()));
 }
