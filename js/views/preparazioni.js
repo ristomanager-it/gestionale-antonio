@@ -3111,7 +3111,8 @@ function renderFasiHaccp() {
         </div>
       </div>
 
-      ${f.descrizione_operativa ? `<div style="background:var(--bg,#f8fafc);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:10px;border:1px solid #e5e7eb;">📋 ${escapeHtml(f.descrizione_operativa)}</div>` : ""}
+      <div class="rf-ing-fase" data-ordine="${f.ordine}"></div>
+      ${f.descrizione_operativa ? `<div style="background:var(--bg,#f8fafc);border-radius:8px;padding:9px 12px;font-size:15.5px;line-height:1.45;margin-bottom:10px;border:1px solid #e5e7eb;">📋 ${escapeHtml(f.descrizione_operativa)}</div>` : ""}
       ${automatico ? `<div style="background:#dcfce7;border-radius:8px;padding:8px 12px;font-size:12px;color:#15803d;margin-bottom:10px;">🤖 Dati automatici da <strong>${escapeHtml(disp.nome)}</strong> — aggiungi note se necessario.</div>` : ""}
 
       ${tipoF === "porzionatura" ? `
