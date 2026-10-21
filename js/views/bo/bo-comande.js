@@ -139,7 +139,7 @@ export async function render(container) {
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
               ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n => `
                 <button data-key="${n}" style="
-                  height:60px;border-radius:14px;border:none;font-size:20px;font-weight:600;cursor:pointer;
+                  height:54px;border-radius:14px;border:none;font-size:20px;font-weight:600;cursor:pointer;
                   background:${n==='' ? 'transparent' : '#f1f5f9'};color:#0f172a;
                   transition:background 0.1s;
                   ${n==='' ? 'pointer-events:none;' : ''}
