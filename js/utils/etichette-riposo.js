@@ -23,8 +23,15 @@ export function montaRiposi(vecchiaCard, { lotto }) {
     if (!base || base.uuid !== l.lotto_uuid) {
       const { data: r } = await sb().from("produzione_lotti").select("id, codice_lotto, ricetta_id, ricette(nome)").eq("lotto_uuid", l.lotto_uuid).maybeSingle();
       if (!r) return null;
-      const { data: fasi } = await sb().from("ricette_preparazione_fasi").select("id, ordine, nome_fase, durata_min, temperatura, riposo").eq("ricetta_id", r.ricetta_id).order("ordine");
-      base = { uuid: l.lotto_uuid, r, F: fasi || [] };
+      const [{ data: fasi }, { data: ing }, { data: ric }, { data: lp }] = await Promise.all([
+        sb().from("ricette_preparazione_fasi").select("id, ordine, nome_fase, durata_min, temperatura, riposo").eq("ricetta_id", r.ricetta_id).order("ordine"),
+        sb().from("ricetta_ingredienti").select("nome_prodotto, quantita, unita_misura, fase_id, ordine").eq("ricetta_id", r.ricetta_id).order("ordine"),
+        sb().from("ricette").select("porzioni").eq("id", r.ricetta_id).maybeSingle(),
+        sb().from("produzione_lotti").select("porzioni_equivalenti").eq("lotto_uuid", l.lotto_uuid).maybeSingle(),
+      ]);
+      // grammature riportate alla quantita' di questa lavorazione
+      const k = Number(lp?.porzioni_equivalenti) > 0 && Number(ric?.porzioni) > 0 ? Number(lp.porzioni_equivalenti) / Number(ric.porzioni) : 1;
+      base = { uuid: l.lotto_uuid, r, F: fasi || [], ing: ing || [], k };
     }
     const { data: firme } = await sb().from("produzione_log_haccp").select("fase_id, fase_ordine, firmato_il").eq("lotto_id", l.lotto_uuid);
     return { ...base, firme: firme || [] };
