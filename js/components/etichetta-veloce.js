@@ -60,6 +60,12 @@ export async function apriEtichettaVeloce(pre = {}) {
       <input id="ev-cosa" autocomplete="off" placeholder="Es: mezzo pomodoro cuore di bue — o cerca un prodotto" style="${st}margin-bottom:4px;">
       <div id="ev-tendina" style="display:none;max-height:240px;overflow:auto;border:1px solid #cbd5e1;border-radius:10px;margin-bottom:6px;background:#fff;"></div>
       <div id="ev-info" style="font-size:12px;color:#166534;font-weight:700;min-height:16px;margin:0 2px 8px;"></div>
+      <label style="font-size:12px;font-weight:700;">Lotto d'origine (se è un pezzo di una confezione più grande)</label>
+      <div style="display:flex;gap:6px;margin:4px 0 4px;">
+        <input id="ev-lotto" autocomplete="off" placeholder="Lotto del pezzo intero" style="${st}flex:1;">
+        <label style="flex:none;display:flex;align-items:center;justify-content:center;border:0;border-radius:10px;padding:0 14px;background:#0E5A7A;color:#fff;font-weight:800;font-size:15px;cursor:pointer;">📷<input id="ev-foto" type="file" accept="image/*" hidden></label>
+      </div>
+      <div id="ev-lotto-info" style="font-size:12px;color:#475569;min-height:14px;margin:0 2px 10px;"></div>
       <label style="font-size:12px;font-weight:700;">Conservazione</label>
       <div id="ev-cons" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;">
         ${CONSERVAZIONI.map((c, i) => `<button type="button" data-c="${i}" style="border:1.5px solid #cbd5e1;background:#fff;color:#334155;border-radius:10px;padding:8px 10px;font-weight:700;font-size:13.5px;">${esc(c.t)}</button>`).join("")}
