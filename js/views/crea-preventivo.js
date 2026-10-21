@@ -748,6 +748,15 @@ function aggancia(container, supabase, azienda, sede) {
     });
   });
 
+  // location: si scrive liberamente; se il nome e' uno di quelli censiti si collega e prende il prezzo
+  container.querySelector("#pv2-loc")?.addEventListener("change", (e) => {
+    P.location = e.target.value.trim();
+    const l = locations.find(x => norm(x.nome) === norm(P.location));
+    if (l) { P.location_id = l.id; P.location = l.nome; P.location_prezzo = Number(l.prezzo_affitto_base) || 0; }
+    else P.location_id = null;
+    ri();
+  });
+
   container.querySelector("#pv2-stato")?.addEventListener("change", (e) => {
     P.stato = e.target.value;
     if (P.stato === "confermato") {
