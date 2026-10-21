@@ -397,7 +397,7 @@ window.stateActions = {
       if (!storedSedeId) return null;
       const { data, error } = await window.supabase
         .from("sedi")
-        .select("id, nome, indirizzo, latitudine, longitudine")
+        .select("id, nome, indirizzo, latitudine, longitudine, logo_url")
         .eq("id", storedSedeId)
         .eq("azienda_id", aziendaId)
         .maybeSingle();
