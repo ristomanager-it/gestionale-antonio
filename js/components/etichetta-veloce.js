@@ -283,7 +283,8 @@ export async function ristampaEtichettaVeloce(id, dopo) {
   const esito = await inviaEtichetteLotto({
     etichetta: { denominazione: nomeEt, ingredienti: null, origine: origineTxt, titolo_grande: 1.4, allergeni: all,
                  conservazione: c ? c.testo : r.conservazione, confermata: true },
-    produttore: produttore || {}, info: { codice_lotto: r.lotto_origine || null, data_scadenza: r.data_scadenza, operatore: r.operatore_nome, destinazione: r.destinazione || null },
+    produttore: produttore || {}, info: { codice_lotto: r.lotto_origine || null, data_scadenza: r.data_scadenza, operatore: r.operatore_nome, destinazione: r.destinazione || null,
+            scadenza_origine: r.scadenza_origine || null, tipo_origine: tipoOrigine },
     peso, copie, formato,
   });
   if (esito.motivo === "troppo_lungo") return alert("Il testo non entra nell'etichetta: allunga l'etichetta.");
