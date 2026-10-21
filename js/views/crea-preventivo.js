@@ -629,7 +629,7 @@ function rigaPortata(r, i) {
   return `
     <div class="riga">
       <div class="n">
-        <input class="nome" value="${esc(r.nome)}" data-portata="${i}" placeholder="Scrivi il piatto…" list="${idListaSezione(r.sezione || "Menu")}">
+        <input class="nome" value="${esc(r.nome)}" data-portata="${i}" placeholder="${eBevanda(r.sezione) ? "Scrivi la bevanda…" : "Scrivi il piatto…"}" list="${idListaSezione(r.sezione || "Menu")}">
         ${vedoICosti ? `<small>${!r.nome ? ""
           : c.mancante ? (c.resaSenzaPorzioni ? "la ricetta ha il costo totale ma non le porzioni"
                           : r.ricetta_id ? "ricetta collegata ma senza costo" : "nessuna ricetta collegata")
