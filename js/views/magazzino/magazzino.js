@@ -114,6 +114,7 @@ function renderHome(azienda) {
       <button type="button" class="p" data-mg="preparazioni"><i>🍲</i><b>Preparazioni</b><span>Semilavorati in giacenza</span></button>
       <button type="button" class="p" data-mg="carico"><i>➕</i><b>Carico giacenza</b><span>Aggiungi a mano</span></button>
       <button type="button" class="p" data-mg="riordino"><i>⚠️</i><b>Da riordinare</b><span>Sotto scorta</span></button>
+      <button type="button" class="p" data-mg="volo"><i>🏷</i><b>Conservati al volo</b><span>Etichette veloci e ristampa</span></button>
     </div>
   `;
   const azioni = {
