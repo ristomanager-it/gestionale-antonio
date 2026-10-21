@@ -1337,12 +1337,13 @@ async function salva(container, supabase, azienda, sede) {
   await caricaPreventivo(supabase, id);
   if (create) {
     const { data: rr } = await supabase.from("ricette")
-      .select("id, nome, costo_porzione, costo_materia_prima, porzioni").eq("azienda_id", azienda.id).limit(3000);
+      .select("id, nome, costo_porzione, costo_materia_prima, porzioni, categoria_portata_id, attivo").eq("azienda_id", azienda.id).limit(3000);
     ricette = rr || ricette;
   }
   disegna(container, supabase, azienda, sede);
   msg(container, create
-    ? `Salvato. ${create === 1 ? "Un piatto è entrato" : create + " piatti sono entrati"} in ricettario come bozza.`
+    ? `Salvato. ${create === 1 ? "Un piatto è entrato" : create + " piatti sono entrati"} in ricettario come bozza` +
+      (daFoodcostare ? `, ${daFoodcostare === 1 ? "uno da foodcostare" : daFoodcostare + " da foodcostare"}.` : ".")
     : "Salvato." + (pianificato ? " Planning della produzione aggiornato." : ""));
 }
 
