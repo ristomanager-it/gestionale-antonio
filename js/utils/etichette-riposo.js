@@ -79,8 +79,10 @@ export function montaRiposi(vecchiaCard, { lotto }) {
           ${!f.durata_min ? `<label class="sf-ck"><input type="checkbox" data-k="salva" checked> salva questa durata nella ricetta</label>` : ""}
           <button type="button" class="sf-btn">🖨 Stampa fase</button></div>`;
         const aggiorna = () => {
-          const p = calcola(el);
-          el.querySelector('[data-k="pronto"]').innerHTML = p ? `Poi <b>${esc(dopo.nome_fase)}</b> alle <b>${esc(leggibile(p.fine))}</b>` : `<span style="color:#b45309">Scrivi quante ore dura</span>`;
+          const p = calcola(el, attesa);
+          el.querySelector('[data-k="pronto"]').innerHTML = !attesa
+            ? (p && p.fine ? `Finisce alle <b>${esc(leggibile(p.fine))}</b>` : "")
+            : p ? `Poi <b>${esc(dopo.nome_fase)}</b> alle <b>${esc(leggibile(p.fine))}</b>` : `<span style="color:#b45309">Scrivi quante ore dura</span>`;
         };
         el.querySelectorAll("input").forEach((x) => x.addEventListener("input", aggiorna));
         aggiorna();
