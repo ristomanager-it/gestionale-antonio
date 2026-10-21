@@ -3186,6 +3186,30 @@ export async function render(container) {
     if (data) { sale.push(data); renderSaleTabs(); }
   }
 
+  // 🛒 Banco: la cassa per chi paga al volo (caffe', asporto, bar) senza aprire un tavolo vero.
+  // Usa un tavolo speciale chiamato "Banco", creato la prima volta e poi riusato.
+  async function apriBanco() {
+    if (cameriereAttivo?.ruolo === 'limited') { mostraToast('⛔ Non hai il permesso di aprire nuovi tavoli', 'error'); return; }
+    if (!sedeId) { mostraToast('Scegli prima la sede', 'error'); return; }
+    let banco = tavoli.find(t => /^banco$/i.test(String(t.nome || '').trim()));
+    if (!banco) {
+      const { data: esiste } = await supa().from('tavoli').select('*')
+        .eq('azienda_id', aziendaId).eq('sede_id', sedeId).ilike('nome', 'banco').limit(1);
+      banco = (esiste || [])[0] || null;
+      if (!banco) {
+        const { data, error } = await supa().from('tavoli').insert({
+          azienda_id: aziendaId, sede_id: sedeId, sala_id: sale[0]?.id || null,
+          nome: 'Banco', coperti_min: 1, coperti_max: 1, attivo: true,
+        }).select('*').single();
+        if (error) { mostraToast('Errore creazione Banco: ' + error.message, 'error'); return; }
+        banco = data;
+      }
+      tavoli.push(banco);
+      renderMapTavoli();
+    }
+    await apriComanda(banco.id, { coperti: 1 });
+  }
+
   async function creaNuovoTavolo() {
     if (cameriereAttivo?.ruolo !== 'manager' && cameriereAttivo?.ruolo !== 'full') {
       mostraToast('Solo manager e camerieri full possono creare tavoli', 'error'); return;
