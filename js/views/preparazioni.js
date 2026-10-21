@@ -3932,6 +3932,8 @@ function applicaFirmaAIdx(idx, match) {
   if (!log.ora_inizio && _tipoFirma !== "porzionatura") {
     let inizio = null;
     for (let k = idx - 1; k >= 0; k--) {
+      // dopo un riposo partito da solo l'inizio vero non si sa: si chiede quanto ci si e' messo
+      if (logHaccp[k]?.inizio_origine === "automatica") break;
       if (logHaccp[k]?.ora_fine) { inizio = logHaccp[k].ora_fine; break; }
     }
     log.ora_inizio = inizio || log.ora_fine;
