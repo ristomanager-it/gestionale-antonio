@@ -75,9 +75,28 @@ export async function render(container) {
 
   if (pag.gia_versato) {
     container.innerHTML = guscio(`<div class="pg-errore">
-      ✅ L'acconto risulta già versato. Grazie!
+      ✅ Acconto ricevuto: la data è vostra. Grazie!
       <a class="pg-torna" href="#/preventivo?t=${encodeURIComponent(token)}">← Torna alla proposta</a>
     </div>`);
+    return;
+  }
+
+  // ritorno da Stripe dopo il pagamento: la conferma arriva dal webhook, qualche secondo dopo
+  if (esitoRitorno === "ok") {
+    const tornaA = `<a class="pg-torna" href="#/preventivo?t=${encodeURIComponent(token)}">← Torna alla proposta</a>`;
+    container.innerHTML = guscio(`<div class="pg-errore">⏳ Pagamento ricevuto, stiamo confermando la data…</div>`);
+    for (let i = 0; i < 15; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      let q = null;
+      try { q = (await supabase.rpc("preventivo_pagamento", { p_token: token })).data; } catch (e) { /* riprova */ }
+      if (q?.gia_versato) {
+        container.innerHTML = guscio(`<div class="pg-errore">✅ Pagamento ricevuto: la data è vostra.<br>
+          Vi arriva una mail di conferma. ${tornaA}</div>`);
+        return;
+      }
+    }
+    container.innerHTML = guscio(`<div class="pg-errore">Il pagamento è andato a buon fine: stiamo registrando la conferma
+      e vi scriviamo appena è tutto a posto. ${tornaA}</div>`);
     return;
   }
 
