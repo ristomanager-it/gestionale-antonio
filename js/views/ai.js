@@ -1694,7 +1694,9 @@ function initChat(ruolo) {
 
   if (input) {
     input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      // sul telefono "Invio" va a capo: si manda solo con ➤ (prima partiva il messaggio a meta')
+      const touch = window.matchMedia?.("(pointer: coarse)").matches || "ontouchstart" in window;
+      if (e.key === "Enter" && !e.shiftKey && !touch && !e.isComposing) { e.preventDefault(); sendMessage(); }
     });
     input.addEventListener("input", () => {
       input.style.height = "auto";
