@@ -126,14 +126,14 @@ export async function render(container) {
       <div style="flex:1;overflow:hidden;display:flex;position:relative;">
 
         <!-- 🔐 Vista PIN -->
-        <div id="view-pin" style="flex:1;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0E5A7A 0%,#0a3d52 100%);">
-          <div style="background:white;border-radius:24px;padding:40px 32px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;">
-            <div style="font-size:48px;margin-bottom:8px;">🍽️</div>
+        <div id="view-pin" style="flex:1;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:12px 0 170px;box-sizing:border-box;background:linear-gradient(135deg,#0E5A7A 0%,#0a3d52 100%);">
+          <div style="background:white;border-radius:24px;padding:20px 28px;width:320px;max-width:92%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;">
+            <div style="font-size:36px;margin-bottom:4px;">🍽️</div>
             <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:4px;">Ristoflow Comande</div>
-            <div style="font-size:13px;color:#64748b;margin-bottom:28px;">Inserisci il tuo PIN per accedere</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:12px;">Inserisci il tuo PIN per accedere</div>
 
             <!-- Display PIN -->
-            <div id="pin-display" style="font-size:32px;letter-spacing:12px;height:48px;margin-bottom:20px;color:#0E5A7A;font-weight:700;">____</div>
+            <div id="pin-display" style="font-size:32px;letter-spacing:12px;height:40px;margin-bottom:10px;color:#0E5A7A;font-weight:700;">____</div>
 
             <!-- Tastierino -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
