@@ -120,6 +120,7 @@ function stile() {
   .rv-caric{padding:40px;text-align:center;color:#94a3b8;}
   .rv h1{font-size:22px;margin:0 0 4px;}
   .rv-sub{font-size:13.5px;color:var(--muto);line-height:1.55;margin-bottom:16px;}
+  .rv-h2{font-size:17px;margin:24px 0 4px;}
   .rv-conta{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muto);margin-bottom:10px;}
   .rv-vuoto{background:#F6FBF3;border:1px solid #CFE4C2;border-radius:14px;padding:20px;color:var(--verde);font-size:15px;}
   .rv-card{background:#fff;border:1px solid var(--riga);border-radius:14px;padding:14px 16px;margin-bottom:11px;}
