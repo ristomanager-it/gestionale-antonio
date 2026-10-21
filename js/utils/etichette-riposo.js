@@ -114,7 +114,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
       if (!st) { await anteprima(d, f, dopo, p); return; }
       const fmt = et.misureEtichetta(id, png.mm);
       const { error } = await sb().from("coda_stampe").insert({
-        azienda_id: window.state.azienda.id, sede_id: st.sede_id || window.state?.sedeAttiva?.id || null,
+        azienda_id: window.state.azienda.id, sede_id: st.sede_id || null,   // la stampa segue la stampante, non la sede in cui sta lavorando chi stampa
         stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: fmt.larghezzaMm,
         tipo: "etichetta", reparto: "etichette",
         // "lotto_fase", non "lotto": l'etichetta del lotto chiude la lavorazione, quella della fase no
