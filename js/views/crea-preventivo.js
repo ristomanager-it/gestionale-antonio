@@ -525,21 +525,7 @@ function disegna(container, supabase, azienda, sede) {
         </div>
       </div>
 
-      ${vedoICosti && personale?.figure?.length ? `
-        <div class="pv2-card">
-          <h2>Personale in servizio</h2>
-          <div class="aiuto">Calcolato sulle vostre regole: si cambiano in Servizi e personale eventi.</div>
-          ${personale.figure.map(f => `
-            <div class="pv2-pers">
-              <div class="n"><b>${f.addetti}</b><span>${esc(f.mansione)}</span></div>
-              <div class="d">
-                <div>Uno ogni <b>${f.ogni}</b> ${f.conta_su === "bambini" ? "bambini" : "ospiti"}${f.minimo ? `, mai meno di <b>${f.minimo}</b>` : ""}</div>
-                <div>${f.ore} ore a testa · ${euro(f.costo_orario)} l'ora</div>
-                ${f.per_minimo ? `<div class="min">Ne basterebbero meno: vale il minimo di ${f.minimo}.</div>` : ""}
-              </div>
-              <div class="c">${euro(f.costo)}</div>
-            </div>`).join("")}
-        </div>` : ""}
+      ${schedaPersonale()}
 
       ${P.id ? `
         <div class="pv2-card">
