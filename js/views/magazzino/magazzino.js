@@ -95,6 +95,25 @@ async function conservatiAlVolo(azienda) {
   }));
 }
 
+// 🏷 Conservati al volo a tutto schermo: elenco, ristampa dell'etichetta, esiti e nuova etichetta veloce
+function apriConservati(azienda) {
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:9990;background:#f1f5f9;overflow:auto;-webkit-overflow-scrolling:touch;";
+  ov.innerHTML = `<div style="max-width:640px;margin:0 auto;padding:0 14px 40px;">
+    <div style="position:sticky;top:0;z-index:2;background:#f1f5f9;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top,0px)) 0 10px;">
+      <button type="button" id="rf-cv-nuova" style="border:0;border-radius:12px;padding:11px 14px;background:#0E5A7A;color:#fff;font-weight:800;font-size:14px;">＋ Nuova etichetta veloce</button>
+      <button type="button" id="rf-cv-chiudi" class="app-button secondary">✕ Chiudi</button>
+    </div>
+    <div id="rf-conservati"></div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector("#rf-cv-chiudi").onclick = () => ov.remove();
+  ov.querySelector("#rf-cv-nuova").onclick = async () => {
+    const mod = await import("../../components/etichetta-veloce.js?v=" + (window.APP_V || 1));
+    mod.apriEtichettaVeloce({ dopo: () => conservatiAlVolo(azienda) });
+  };
+  conservatiAlVolo(azienda);
+}
+
 // Pagina Magazzino a tessere, come la home (niente pulsanti in fila, niente liste sotto)
 function renderHome(azienda) {
   const home = document.getElementById("magazzino-home");
