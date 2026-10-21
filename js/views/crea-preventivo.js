@@ -638,6 +638,9 @@ function rigaPortata(r, i) {
   const c = costoDi(r);
   const prezzo = Number(r.prezzo) || 0;
   const marg = prezzo > 0 && c.costo > 0 ? ((prezzo - c.costo) / prezzo) * 100 : null;
+  const bev = eBevanda(r.sezione);
+  const cu = c.unita != null ? c.unita : c.costo;
+  const ppTesto = r.pp ? String(Math.round(r.pp * 1000) / 1000).replace(".", ",") : "";
   return `
     <div class="riga">
       <div class="n">
@@ -645,9 +648,12 @@ function rigaPortata(r, i) {
         ${vedoICosti ? `<small>${!r.nome ? ""
           : c.mancante ? (c.resaSenzaPorzioni ? "la ricetta ha il costo totale ma non le porzioni"
                           : r.ricetta_id ? "ricetta collegata ma senza costo" : "nessuna ricetta collegata")
+          : bev ? (c.pp ? "costo a persona " + euro(c.costo) + " (" + euro(cu) + " × " + ppTesto + ") · " + (c.stimato ? "stimato da Tony" : esc(c.fonte || "da ricetta"))
+                        : "costo " + euro(c.costo) + " l'unità · scrivi la regola pp per avere il costo a persona")
           : "costo " + euro(c.costo) + " · " + (c.stimato ? "stimato da Tony" : esc(c.fonte || "da ricetta"))}</small>` : ""}
       </div>
-      ${vedoICosti ? `<input class="pz" type="number" step="0.01" min="0" value="${c.mancante ? "" : Math.round(c.costo * 100) / 100}" placeholder="costo" data-costo="${i}" title="costo a persona: puoi scriverlo tu">` : ""}
+      ${vedoICosti ? `<input class="pz" type="number" step="0.01" min="0" value="${c.mancante ? "" : Math.round(cu * 100) / 100}" placeholder="costo" data-costo="${i}" title="${bev ? "costo di una bottiglia / unità: puoi scriverlo tu" : "costo a persona: puoi scriverlo tu"}">` : ""}
+      ${vedoICosti && bev ? `<input class="pz pp" type="text" inputmode="decimal" value="${ppTesto}" placeholder="pp" data-pp="${i}" title="regola per persona: 0,33 oppure 1/3 = una bottiglia ogni 3 persone">` : ""}
       <input class="pz" type="number" step="0.01" value="${prezzo}" data-prezzo="${i}" title="prezzo a persona">
       ${vedoICosti ? `<div class="mg ${marg == null ? "" : marg >= 55 ? "ok" : "ko"}">${marg == null ? "—" : marg.toFixed(0) + "%"}</div>` : ""}
       ${vedoICosti && c.stimato ? `<button class="lente" data-dettaglio="${i}" title="Come ha fatto il conto">${apertoDettaglio === i ? "▲" : "🔍"}</button>` : ""}
