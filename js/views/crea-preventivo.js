@@ -1466,6 +1466,7 @@ function stile() {
   .pv2 .riga .n .nome{width:100%;border:none;font-size:15px;font-family:inherit;padding:2px 0;background:transparent;}
   .pv2 .riga .n small{display:block;font-size:11.5px;color:var(--muto);}
   .pv2 .riga .pz{width:86px;padding:7px;border:1.5px solid var(--riga);border-radius:8px;font-size:14px;text-align:right;font-family:inherit;}
+  .pv2 .riga .pz.pp{width:62px;}
   .pv2 .riga .mg{width:48px;text-align:right;font-size:13px;font-weight:700;color:var(--muto);}
   .pv2 .riga .mg.ok{color:var(--verde);} .pv2 .riga .mg.ko{color:var(--rosso);}
   .pv2 .riga .x{background:none;border:none;color:#CBD5DB;font-size:16px;cursor:pointer;}
