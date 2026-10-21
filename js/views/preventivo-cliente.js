@@ -338,10 +338,15 @@ export async function render(container) {
           <div id="pv-esito" style="font-size:13.5px;color:var(--muto);margin-top:10px;"></div>
         </div>
 
+        ${d.confermato ? "" : `
         <div class="pv-cta">
-          <a href="#" id="pv-conferma">Confermo la proposta</a>
-          <p>Oppure rispondete al messaggio: modifichiamo insieme quello che serve.</p>
-        </div>
+          ${d.accettato
+            ? `<a href="#/pagamento?t=${encodeURIComponent(token)}">Verso l'acconto e blocco la data</a>
+               <p>Avete accettato la proposta: la data è vostra appena versate l'acconto.</p>`
+            : `<a href="#" id="pv-conferma">Accetto la proposta</a>
+               <p>Dopo averla accettata vi portiamo a versare l'acconto: la data è vostra quando l'acconto è arrivato.
+                  Oppure rispondete al messaggio: modifichiamo insieme quello che serve.</p>`}
+        </div>`}
 
         <div class="pv-note">${esc(d.condizioni || "")}</div>
       </div>
