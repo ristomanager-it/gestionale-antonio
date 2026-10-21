@@ -252,11 +252,7 @@ export async function render(container) {
             <div class="pv-tot"><span>Saldo il giorno dell'evento</span><b>${euro(d.saldo != null ? d.saldo : Math.max(totale - acconto, 0))}</b></div>` : ""}
         </div>
 
-        ${acconto ? `
-          <div class="pv-pag">
-            <div class="r"><span>Acconto alla conferma</span><b>${euro(acconto)}</b></div>
-            <div class="r"><span>Saldo il giorno dell'evento</span><b>${euro(totale - acconto)}</b></div>
-          </div>` : ""}
+        <!-- acconto e saldo stanno nel riquadro del conto -->
 
         ${pag ? `
           <h2>Come versare l'acconto</h2>
