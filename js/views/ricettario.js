@@ -555,7 +555,10 @@ function renderRicetteList() {
               ${r.modificato_da_nome ? ` · ✏️ ${escapeHtml(r.modificato_da_nome)} ${r.modificato_il ? "il " + new Date(r.modificato_il).toLocaleDateString("it-IT") : ""}` : ""}
             </div>
           </div>
-          <div style="display:flex; gap:6px; flex-shrink:0;">
+          <div style="display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;">
+            <button class="app-button secondary" type="button" data-vedi-ricetta="${escapeAttribute(r.id)}">
+              👁 Vedi ricetta
+            </button>
             <button class="app-button" type="button" data-edit-ricetta="${escapeAttribute(r.id)}">
               ✏️ Completa
             </button>
