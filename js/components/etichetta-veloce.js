@@ -232,7 +232,19 @@ export async function apriEtichettaVeloce(pre = {}) {
     });
     if (esito.motivo === "troppo_lungo") return alert("Il testo non entra nell'etichetta: accorcialo o allunga l'etichetta.");
     if (!esito.ok) return alert("Errore invio etichetta: " + esito.motivo);
+    // il pezzo intero fotografato resta registrato come lotto fornitore, con la foto
+    const lottoOrig = ov.querySelector("#ev-lotto").value.trim() || null;
+    let lfId = null;
+    if (lottoOrig && origine?.foto_url) {
+      const { data: lf } = await sb.from("lotti_fornitore").insert({ azienda_id: az, sede_id: window.state?.sedeAttiva?.id || null,
+        prodotto_id: origine.prodotto_id, prodotto_letto: origine.prodotto, produttore: origine.produttore, lotto: lottoOrig,
+        data_scadenza: origine.scadenza, tipo_data: origine.letto?.tipo_data === "tmc" ? "tmc" : "scadenza", quantita: origine.letto?.peso ?? null,
+        unita: origine.letto?.unita || "kg", foto_url: origine.foto_url, letto_da: { ...origine.letto, fonte: "etichetta veloce" }, stato: "in_uso",
+        ricevuto_il: new Date().toISOString(), creato_da: window.state?.user?.id || null }).select("id").single().then((x) => x, () => ({ data: null }));
+      lfId = lf?.id || null;
+    }
     sb.from("etichette_veloci").insert({ azienda_id: az, sede_id: window.state?.sedeAttiva?.id || null, codice, cosa,
+      lotto_origine: lottoOrig, scadenza_origine: origine?.scadenza || null, lotto_fornitore_id: lfId, foto_origine_url: origine?.foto_url || null,
       conservazione: CONSERVAZIONI[cons].t, giorni: Number(gg.value) || 0, data_scadenza: scadISO,
       operatore_id: chi.id || null, operatore_nome: chi.nome, copie,
       quantita: qv > 0 ? qv : null, unita: qv > 0 ? um : null, destinazione: dest || null,
