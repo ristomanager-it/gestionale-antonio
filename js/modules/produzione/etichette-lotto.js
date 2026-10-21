@@ -80,8 +80,18 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   let fL = 31;
   ctx.font = "bold " + fL + "px " + F; ctx.fillStyle = "#000";
   while (fL > 18 && info.codice_lotto && ctx.measureText("LOTTO " + info.codice_lotto).width > W) { fL -= 1; ctx.font = "bold " + fL + "px " + F; }
+  // pezzo preso da una confezione piu' grande (etichetta veloce): sotto il lotto anche la scadenza (o TMC) del pezzo intero
+  const dOrig = info.scadenza_origine ? new Date(info.scadenza_origine).toLocaleDateString("it-IT") : "";
+  let yBase = yS;
+  if (dOrig && info.codice_lotto) {
+    ctx.font = "bold 24px " + F; ctx.fillStyle = "#000";
+    const o = etWrap(ctx, (info.tipo_origine === "tmc" ? "TMC pezzo intero: " : "Scad. pezzo intero: ") + dOrig, W).slice(0, stretta ? 2 : 1);
+    yBase = yS - 28 * o.length;
+    o.forEach((r, i) => ctx.fillText(r, ET_PAD, yBase + i * 28));
+    ctx.font = "bold " + fL + "px " + F;
+  }
   // senza codice (etichetta veloce) la riga LOTTO non si stampa
-  const yL = info.codice_lotto ? yS - (fL + 5) : yS;
+  const yL = info.codice_lotto ? yBase - (fL + 5) : yBase;
   if (info.codice_lotto) ctx.fillText("LOTTO " + info.codice_lotto, ET_PAD, yL);
   // lotto unico per piu' eventi: un'etichetta per evento, con la sua destinazione
   let yTop = yL;
