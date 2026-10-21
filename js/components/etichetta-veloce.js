@@ -270,10 +270,11 @@ export async function ristampaEtichettaVeloce(id, dopo) {
   const formato = await scegliFormatoEtichetta();
   if (!formato) return;
   const { data: produttore } = await sb.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", az).limit(1).maybeSingle();
-  let origineTxt = null;
+  let origineTxt = null, tipoOrigine = null;
   if (r.lotto_fornitore_id) {
-    const { data: lf } = await sb.from("lotti_fornitore").select("letto_da").eq("id", r.lotto_fornitore_id).maybeSingle();
+    const { data: lf } = await sb.from("lotti_fornitore").select("letto_da, tipo_data").eq("id", r.lotto_fornitore_id).maybeSingle();
     origineTxt = lf?.letto_da?.origine || null;
+    tipoOrigine = lf?.tipo_data || lf?.letto_da?.tipo_data || null;
   }
   const qv = Number(r.quantita) || 0, um = r.unita;
   const peso = qv > 0 && (um === "g" || um === "kg") ? Math.round(um === "kg" ? qv * 1000 : qv) : null;
