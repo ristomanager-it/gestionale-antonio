@@ -43,6 +43,7 @@ export async function apriEtichettaVeloce(pre = {}) {
                           cons: ci >= 0 ? ci : null, gg: v.giorni, um: v.unita });
   });
   let scelto = null;
+  let origine = null;   // pezzo intero fotografato: { lotto, scadenza, produttore, prodotto, prodotto_id, foto_url, letto }
   // telefono personale: firma chi e' entrato; tablet condiviso (o account non collegato a una persona): PIN
   let condiviso = false;
   try { condiviso = localStorage.getItem("rf_dispositivo_condiviso") === "1"; } catch (_) {}
