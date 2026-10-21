@@ -92,7 +92,8 @@ export function montaRiposi(vecchiaCard, { lotto }) {
         azienda_id: window.state.azienda.id, sede_id: st.sede_id || window.state?.sedeAttiva?.id || null,
         stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: fmt.larghezzaMm,
         tipo: "etichetta", reparto: "etichette",
-        contenuto: { png: png.url, copie: 1, formato: fmt.descr, label: fmt.label, rosso: false, lotto: d.r.codice_lotto },
+        // "lotto_fase", non "lotto": l'etichetta del lotto chiude la lavorazione, quella della fase no
+        contenuto: { png: png.url, copie: 1, formato: fmt.descr, label: fmt.label, rosso: false, lotto_fase: d.r.codice_lotto },
       });
       if (error) { alert("Non mandata all'etichettatrice: " + error.message); return; }
       btn.textContent = "✅ Mandata all'etichettatrice";
