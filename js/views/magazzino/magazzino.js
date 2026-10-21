@@ -178,7 +178,7 @@ function apriConservati(azienda) {
   ov.querySelector("#rf-cv-chiudi").onclick = () => ov.remove();
   ov.querySelector("#rf-cv-nuova").onclick = async () => {
     const mod = await import("../../components/etichetta-veloce.js?v=" + (window.APP_V || 1));
-    mod.apriEtichettaVeloce({ dopo: () => conservatiAlVolo(azienda) });
+    mod.apriEtichettaVeloce({ dopo: () => conservatiAlVolo(azienda, document.getElementById("rf-cv-cerca")?.value || "") });
   };
   conservatiAlVolo(azienda);
 }
