@@ -3279,8 +3279,8 @@ function renderFasiHaccp() {
 
   // FASI BLOCCATE: chi lavora le fa dal Planning, dove c'e' scritto cosa fare e quando.
   // Aperte da altrove (Produzioni aperte, registro...) si leggono ma non si avviano ne' si firmano.
-  // Admin e manager non sono bloccati.
-  if (!window.__rfPlannerIdCorrente && !isManagerAnagrafante()) {
+  // Solo l'admin non e' mai bloccato: il manager si, come gli altri.
+  if (!window.__rfPlannerIdCorrente && !["admin", "superadmin"].includes(String(window.state?.ruolo || "").toLowerCase())) {
     list.querySelectorAll(":scope > .azienda-card[data-idx]").forEach((card) => {
       card.querySelectorAll("button, input, select, textarea").forEach((el) => { el.disabled = true; });
       card.style.opacity = "0.7";
