@@ -723,8 +723,20 @@ function sceltaPiatti(sez, fatto) {
   const disegnaLista = () => {
     const q = norm(cerca);
     const lista = valide.filter(r => (tutte || (ammessi ? ammessi.has(String(r.id)) : cat.includes(String(r.categoria_portata_id)))) && (!q || norm(r.nome).includes(q))).slice(0, 300);
+    // i piatti si dividono per categoria, come nel ricettario: titolo della categoria e sotto i suoi piatti
+    const voce = r => `<button type="button" class="pv2-sc-voce ${scelte.has(r.id) ? "on" : ""}" data-id="${r.id}"><span>${esc(r.nome)}</span><b>${scelte.has(r.id) ? "✓" : "+"}</b></button>`;
+    const gruppi = new Map();
+    lista.forEach(r => {
+      const c = catNomi.get(String(r.categoria_portata_id));
+      const k = c ? String(r.categoria_portata_id) : "senza";
+      if (!gruppi.has(k)) gruppi.set(k, { nome: c ? c.nome : "Senza categoria", ordine: c ? c.ordine : 999, voci: [] });
+      gruppi.get(k).voci.push(r);
+    });
+    const ordinati = [...gruppi.values()].sort((a, b) => a.ordine - b.ordine || a.nome.localeCompare(b.nome, "it"));
     m.querySelector(".pv2-sc-lista").innerHTML = lista.length
-      ? lista.map(r => `<button type="button" class="pv2-sc-voce ${scelte.has(r.id) ? "on" : ""}" data-id="${r.id}"><span>${esc(r.nome)}</span><b>${scelte.has(r.id) ? "✓" : "+"}</b></button>`).join("")
+      ? (ordinati.length > 1
+          ? ordinati.map(g => `<div class="pv2-sc-cat">${esc(g.nome)} <small>${g.voci.length}</small></div>${g.voci.map(voce).join("")}`).join("")
+          : lista.map(voce).join(""))
       : `<div class="pv2-sc-vuoto">Nessuna ricetta${q ? " con questo nome" : ""}${!tutte ? ". Prova \"tutto il ricettario\"" : ""}.</div>`;
     m.querySelectorAll(".pv2-sc-voce").forEach(b => b.addEventListener("click", () => {
       const r = valide.find(x => String(x.id) === b.dataset.id);
