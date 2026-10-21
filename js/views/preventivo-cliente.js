@@ -201,8 +201,10 @@ export async function render(container) {
         <h1>${esc(d.cliente || "")}</h1>
         <div class="pv-quando">${esc(dataLunga(d.data_evento))}${invitati ? " · " + invitati + " invitati" : ""}</div>
         ${d.confermato
-          ? `<div class="pv-timer ok">✅ Proposta confermata — grazie!</div>`
-          : `<div class="pv-timer">${esc(scadenzaTesto(d.scadenza))}</div>`}
+          ? `<div class="pv-timer ok">✅ Evento confermato — grazie!</div>`
+          : d.accettato
+            ? `<div class="pv-timer ok">Proposta accettata: la data è vostra appena versate l'acconto</div>`
+            : `<div class="pv-timer">${esc(scadenzaTesto(d.scadenza))}</div>`}
         <button class="pv-stampa" id="pv-print">🖨️ Stampa o salva in PDF</button>
       </div>
 
