@@ -938,7 +938,7 @@ function aggancia(container, supabase, azienda, sede) {
     const scelta = selSez?.value || "";
     const n = scelta === "__nuova__" ? (inpSez?.value || "").trim() : scelta;
     if (!n) { msg(container, "Scegli o scrivi il nome della sezione.", true); return; }
-    righe.push({ nome: "", sezione: n, prezzo: 0, ricetta_id: null });
+    righe.push({ nome: "", sezione: n, prezzo: 0, ricetta_id: null, pp: ppSezione(n) });
     // la sezione nuova entra subito in elenco, anche prima di salvare
     if (!sezioniNote.some(x => norm(x) === norm(n))) {
       sezioniNote.push(n);
