@@ -165,6 +165,35 @@ export async function apriEtichettaVeloce(pre = {}) {
     if (gg.value === "") gg.value = CONSERVAZIONI[cons].gg;   // proposta: si cambia dalla griglia
     mostra();
   }));
+  // 📷 etichetta del pezzo intero: Tony legge lotto e scadenza, i pezzi piccoli portano lo stesso lotto
+  ov.querySelector("#ev-foto").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0]; e.target.value = "";
+    if (!file) return;
+    const li = ov.querySelector("#ev-lotto-info");
+    li.textContent = "🔎 Tony legge l'etichetta…";
+    try {
+      const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = URL.createObjectURL(file); });
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.82));
+      const percorso = `lotti-fornitore/${az}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+      const up = sb.storage.from("media-aziende").upload(percorso, blob, { upsert: false, cacheControl: "31536000", contentType: "image/jpeg" })
+        .then(({ error }) => error ? "" : sb.storage.from("media-aziende").getPublicUrl(percorso).data?.publicUrl || "").catch(() => "");
+      const { data: { session } } = await sb.auth.getSession();
+      const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-etichetta-lotto", { method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session?.access_token || "") },
+        body: JSON.stringify({ azienda_id: az, immagine_base64: c.toDataURL("image/jpeg", 0.82).split(",")[1], mime: "image/jpeg" }) });
+      const d = await r.json();
+      const L = d.letto || {};
+      origine = { lotto: L.lotto || "", scadenza: L.scadenza || null, produttore: L.produttore || null, prodotto: L.prodotto || null,
+                  prodotto_id: d.candidati?.[0]?.id || null, foto_url: await up, letto: L };
+      ov.querySelector("#ev-lotto").value = origine.lotto;
+      if (!cosaEl.value.trim() && L.prodotto) { cosaEl.value = L.prodotto; applica(); }
+      li.innerHTML = `✅ Letto: <b>${esc(L.prodotto || "")}</b>${L.produttore ? " · " + esc(L.produttore) : ""}${origine.lotto ? " · lotto <b>" + esc(origine.lotto) + "</b>" : ""}${origine.scadenza ? " · scade " + new Date(origine.scadenza + "T12:00:00").toLocaleDateString("it-IT") : ""}${L.dubbi ? `<br><span style="color:#b45309">⚠ ${esc(L.dubbi)}</span>` : ""}`;
+      mostra();
+    } catch (err) { li.textContent = "Lettura non riuscita: scrivi il lotto a mano."; }
+  });
   ov.querySelector("[data-no]").onclick = () => ov.remove();
   setTimeout(() => ov.querySelector("#ev-cosa")?.focus(), 50);
 
