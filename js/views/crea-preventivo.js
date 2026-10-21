@@ -616,7 +616,7 @@ function idListaSezione(sez) { return "dl-" + norm(sez).replace(/ /g, "-"); }
 
 function datalistSezione(sez) {
   const cat = catDiSezione(sez);
-  const piatti = cat ? ricette.filter(r => String(r.categoria_portata_id) === String(cat)) : ricette;
+  const piatti = cat ? ricette.filter(r => cat.includes(String(r.categoria_portata_id))) : ricette;
   return `<datalist id="${idListaSezione(sez)}">
     ${piatti.slice(0, 600).map(r => `<option value="${esc(r.nome)}">`).join("")}
   </datalist>`;
