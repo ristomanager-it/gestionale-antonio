@@ -1264,7 +1264,7 @@ async function salva(container, supabase, azienda, sede) {
     const insR = await supabase.from("preventivi_righe").insert(daSalvare.map(r => {
       const co = costoDi(r);
       return {
-        azienda_id: azienda.id, sede_uuid: sede?.id || null, preventivo_id: id,
+        azienda_id: azienda.id, sede_uuid: P.sede_uuid || sede?.id || null, preventivo_id: id,
         ricetta_id: r.ricetta_id || null, nome_portata: r.nome, sezione_menu: r.sezione || "Menu",
         // al buffet si produce il 65% degli invitati per proposta, al piatto il 100%
         quantita: perBambini(r.sezione) ? c.bimbi : /buffet/i.test(r.sezione || "") ? Math.ceil(c.inv * 0.65) : c.inv,
