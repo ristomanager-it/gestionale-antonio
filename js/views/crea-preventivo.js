@@ -113,11 +113,17 @@ async function caricaPreventivo(supabase, id) {
     supabase.from("produzione_lotti").select("id", { count: "exact", head: true }).eq("preventivo_id", id),
   ]);
   P = p.data || null;
-  righe = (r.data || []).map(x => ({
-    nome: x.nome_portata, ricetta_id: x.ricetta_id, sezione: x.sezione_menu || "Menu",
-    prezzo: Number(x.prezzo_unitario) || 0, costoSalvato: Number(x.food_cost_snapshot) || 0,
-    costoManuale: x.costo_manuale ? (Number(x.food_cost_snapshot) || 0) : null,
-  }));
+  righe = (r.data || []).map(x => {
+    const pp = Number(x.pp) > 0 ? Number(x.pp) : null;
+    const k = pp || 1;
+    return {
+      nome: x.nome_portata, ricetta_id: x.ricetta_id, sezione: x.sezione_menu || "Menu",
+      prezzo: Number(x.prezzo_unitario) || 0, pp,
+      // il costo salvato e' gia' "a persona": si torna al costo dell'unita' (la bottiglia) dividendo per pp
+      costoSalvato: (Number(x.food_cost_snapshot) || 0) / k,
+      costoManuale: x.costo_manuale ? (Number(x.food_cost_snapshot) || 0) / k : null,
+    };
+  });
   // le stime tornano com'erano: numero E ragionamento
   (r.data || []).forEach(x => {
     if (x.stima_dettaglio) stime[norm(x.nome_portata)] = x.stima_dettaglio;
