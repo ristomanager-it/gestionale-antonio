@@ -77,6 +77,9 @@ export async function render(container, params = {}) {
   listinoServizi = serv.data || [];
   sezioniInfo = sez.data || [];
   modelli = mod.data || [];
+  try {
+    sediAz = (await supabase.from("sedi").select("id, nome, logo_url").eq("azienda_id", azienda.id)).data || [];
+  } catch (e) { sediAz = []; }
   sezioniNote = sezioniInfo.map(x => x.nome);
 
   if (id) await caricaPreventivo(supabase, id);
