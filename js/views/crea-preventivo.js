@@ -24,6 +24,7 @@ let lotti = 0;        // quanti lotti di produzione sono nati da questo evento
 let vedoICosti = true;   // falso per le agenzie
 let personale = null;    // quanti camerieri servono e quanto costano
 let apertoDettaglio = null;  // riga di cui si stanno guardando i conti di Tony
+let catNomi = new Map(); // categorie del ricettario: id -> nome e ordine, per dividere l'elenco dei piatti
 let sediAz = [];         // sedi dell'azienda: l'intestazione (logo) del documento e' quella della sede scelta
 let foto = [];           // immagini del preventivo: le nostre e quelle degli sposi
 
