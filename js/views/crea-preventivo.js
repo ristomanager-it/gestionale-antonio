@@ -927,7 +927,7 @@ function aggancia(container, supabase, azienda, sede) {
     schema.forEach(s => {
       const quante = Math.max(Number(s.quante) || 1, 1);
       for (let i = 0; i < quante; i++) {
-        righe.push({ nome: "", sezione: s.nome, prezzo: 0, ricetta_id: null });
+        righe.push({ nome: "", sezione: s.nome, prezzo: 0, ricetta_id: null, pp: ppSezione(s.nome) });
       }
     });
     msg(container, "Schema pronto: scrivi i piatti, le righe che avanzano si tolgono con la ✕.");
