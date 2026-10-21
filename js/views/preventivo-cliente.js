@@ -473,7 +473,7 @@ export async function render(container) {
           "Il cambio di invitati va valutato da noi: vi rispondiamo prima di chiudere la proposta.");
         return;
       }
-    } else if (!confirm("Confermate la proposta così com'è?")) {
+    } else if (!confirm("Accettate la proposta così com'è? La data sarà vostra quando versate l'acconto.")) {
       return;
     }
 
