@@ -631,6 +631,7 @@ function rigaPortata(r, i) {
                           : r.ricetta_id ? "ricetta collegata ma senza costo" : "nessuna ricetta collegata")
           : "costo " + euro(c.costo) + " · " + (c.stimato ? "stimato da Tony" : esc(c.fonte || "da ricetta"))}</small>` : ""}
       </div>
+      ${vedoICosti ? `<input class="pz" type="number" step="0.01" min="0" value="${c.mancante ? "" : Math.round(c.costo * 100) / 100}" placeholder="costo" data-costo="${i}" title="costo a persona: puoi scriverlo tu">` : ""}
       <input class="pz" type="number" step="0.01" value="${prezzo}" data-prezzo="${i}" title="prezzo a persona">
       ${vedoICosti ? `<div class="mg ${marg == null ? "" : marg >= 55 ? "ok" : "ko"}">${marg == null ? "—" : marg.toFixed(0) + "%"}</div>` : ""}
       ${vedoICosti && c.stimato ? `<button class="lente" data-dettaglio="${i}" title="Come ha fatto il conto">${apertoDettaglio === i ? "▲" : "🔍"}</button>` : ""}
