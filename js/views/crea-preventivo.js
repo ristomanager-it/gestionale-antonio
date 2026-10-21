@@ -1222,7 +1222,7 @@ function aggancia(container, supabase, azienda, sede) {
 async function salva(container, supabase, azienda, sede) {
   const c = conti();
   const testata = {
-    azienda_id: azienda.id, sede_uuid: sede?.id || null,
+    azienda_id: azienda.id, sede_uuid: P.sede_uuid || sede?.id || null,
     stato: P.stato, titolo_evento: P.titolo_evento, tipo_servizio: P.tipo_servizio || null,
     cliente_nome: P.cliente_nome, cliente_cognome: P.cliente_cognome,
     cliente_email: P.cliente_email, cliente_telefono: P.cliente_telefono,
