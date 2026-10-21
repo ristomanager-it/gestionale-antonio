@@ -165,29 +165,14 @@ export async function render(container) {
     const b = e.currentTarget;
     b.disabled = true; b.textContent = "Un attimo…";
     try {
-      const res = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/stripe-checkout", {
+      const res = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/preventivo-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create_session",
-          azienda_id: pag.azienda_id,
-          tipo: "preventivo",
-          riferimento_id: pag.preventivo_id,
-          importo_centesimi: Math.round(Number(pag.importo || 0) * 100),
-          descrizione: pag.causale,
-          cliente_nome: pag.cliente || "",
-          metadata: { token },
-        }),
+        body: JSON.stringify({ token }),
       });
       const r = await res.json();
-      if (r?.checkout_url) {
-        await supabase.rpc("preventivo_pagamento_registra", {
-          p_token: token, p_metodo: "carta", p_importo: Number(pag.importo || 0),
-          p_url: null, p_nota: "Checkout carta avviato",
-        });
-        window.location.href = r.checkout_url;
-        return;
-      }
+      if (r?.checkout_url) { window.location.href = r.checkout_url; return; }
+      if (r?.error) console.warn("preventivo-checkout:", r.error);
       alert("Il pagamento con carta non è disponibile in questo momento: potete usare il bonifico.");
     } catch (err) {
       alert("Il pagamento con carta non è disponibile in questo momento: potete usare il bonifico.");
