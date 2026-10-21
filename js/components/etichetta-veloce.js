@@ -227,7 +227,8 @@ export async function apriEtichettaVeloce(pre = {}) {
                    conservazione: CONSERVAZIONI[cons].testo, confermata: true },
       // il codice non si stampa: resta nell'app per ritrovarla in magazzino
       // lotto d'origine: i pezzi portano il lotto del pezzo intero (tracciabilita' nel frazionamento)
-      produttore: produttore || {}, info: { codice_lotto: ov.querySelector("#ev-lotto").value.trim() || null, data_scadenza: scadISO, operatore: chi.nome, destinazione: dest || null },
+      produttore: produttore || {}, info: { codice_lotto: ov.querySelector("#ev-lotto").value.trim() || null, data_scadenza: scadISO, operatore: chi.nome, destinazione: dest || null,
+              scadenza_origine: origine?.scadenza || null, tipo_origine: origine?.letto?.tipo_data || null },
       peso, copie, formato,
     });
     if (esito.motivo === "troppo_lungo") return alert("Il testo non entra nell'etichetta: accorcialo o allunga l'etichetta.");
