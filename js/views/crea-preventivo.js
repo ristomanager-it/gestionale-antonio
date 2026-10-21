@@ -132,7 +132,8 @@ async function caricaPreventivo(supabase, id) {
   (r.data || []).forEach(x => {
     if (x.stima_dettaglio) stime[norm(x.nome_portata)] = x.stima_dettaglio;
   });
-  extra = (e.data || []).map(x => ({ descrizione: x.descrizione, prezzo: Number(x.prezzo_totale) || 0, costo: Number(x.costo_totale) || 0 }));
+  extra = (e.data || []).map(x => ({ descrizione: x.descrizione, prezzo: Number(x.prezzo_totale) || 0, costo: Number(x.costo_totale) || 0,
+    ppPrezzo: x.prezzo_a_persona != null ? Number(x.prezzo_a_persona) : null }));
   richieste = q.data || [];
   pagamenti = pg.data || [];
   lotti = Number(lot.count) || 0;
