@@ -82,6 +82,15 @@ export async function render(container) {
             </div>`;
           }).join("")}
         `}
+        ${daFoodcostare.length ? `
+          <h2 class="rv-h2">🧮 Da foodcostare (${daFoodcostare.length})</h2>
+          <p class="rv-sub">Piatti scritti in un preventivo che non erano ancora in ricettario. Servono ingredienti e quantità:
+            appena la ricetta ha un costo, esce da qui da sola.</p>
+          ${daFoodcostare.map(r => `
+            <div class="rv-card"><div class="rv-top">
+              <div class="t"><b>${esc(r.nome)}</b></div>
+              <div class="a"><a class="rv-btn sec" href="#/crea-ricetta-avanzata?id=${r.id}">✏️ Completa la ricetta</a></div>
+            </div></div>`).join("")}` : ""}
         <div id="rv-esito" class="rv-esito"></div>
       </div>
       ${stile()}`;
