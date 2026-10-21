@@ -820,9 +820,6 @@ export async function render(container) {
     if (comanda) {
       // Tavolo già aperto: vai diretto alla comanda
       apriComanda(tavoloId);
-    } else if (/^banco$/i.test(String(tavoli.find(t => String(t.id) === String(tavoloId))?.nome || '').trim())) {
-      // Banco: vendita al volo, niente coperti ne' nominativo
-      apriComanda(tavoloId, { coperti: 1 });
     } else {
       // Tavolo libero: mostra modal apertura
       _tavoloInApertura = tavoloId;
