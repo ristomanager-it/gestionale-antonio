@@ -896,7 +896,7 @@ function aggancia(container, supabase, azienda, sede) {
   container.querySelectorAll("[data-add-portata]").forEach(el => {
     el.addEventListener("click", () => sceltaPiatti(el.dataset.addPortata, (scelte, libero) => {
       for (const r of scelte) righe.push({ nome: r.nome, sezione: el.dataset.addPortata, prezzo: 0, ricetta_id: r.id, pp: ppSezione(el.dataset.addPortata) });
-      if (libero) righe.push({ nome: "", sezione: el.dataset.addPortata, prezzo: 0, ricetta_id: null });
+      if (libero) righe.push({ nome: "", sezione: el.dataset.addPortata, prezzo: 0, ricetta_id: null, pp: ppSezione(el.dataset.addPortata) });
       ri();
     }));
   });
