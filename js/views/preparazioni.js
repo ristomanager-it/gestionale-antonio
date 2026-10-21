@@ -3574,6 +3574,7 @@ function firmaFaseHaccp(idx) {
     }
   } catch (_) {}
   applicaFirmaAIdx(idx, match);
+  if (primaFirma) autoFirmaRiposi(idx, match);
   renderFasiHaccp();
   aggiornaAbilitazioneStampe();
 }
