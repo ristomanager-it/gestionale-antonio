@@ -250,7 +250,7 @@ export async function render(container) {
           ${invitati ? `<div class="r"><span>A persona</span><b>${euro(totale / invitati)}</b></div>` : ""}
           <div class="pv-tot"><span>Totale</span><b>${euro(totale)}</b></div>
           ${acconto ? `
-            <div class="r"><span>Acconto alla conferma</span><b>− ${euro(acconto)}</b></div>
+            <div class="r"><span>Acconto per bloccare la data</span><b>− ${euro(acconto)}</b></div>
             <div class="pv-tot"><span>Saldo il giorno dell'evento</span><b>${euro(d.saldo != null ? d.saldo : Math.max(totale - acconto, 0))}</b></div>` : ""}
         </div>
 
