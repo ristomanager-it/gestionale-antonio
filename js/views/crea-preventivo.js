@@ -1265,6 +1265,7 @@ async function salva(container, supabase, azienda, sede) {
         // al buffet si produce il 65% degli invitati per proposta, al piatto il 100%
         quantita: perBambini(r.sezione) ? c.bimbi : /buffet/i.test(r.sezione || "") ? Math.ceil(c.inv * 0.65) : c.inv,
         prezzo_unitario: Number(r.prezzo) || 0,
+        pp: Number(r.pp) > 0 ? Number(r.pp) : null,
         food_cost_snapshot: co.costo || 0,
         costo_manuale: co.manuale === true,
         ricetta_placeholder: Boolean(co.stimato || co.mancante),
