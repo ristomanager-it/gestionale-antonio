@@ -62,7 +62,7 @@ export async function render(container, params = {}) {
     supabase.from("location_ricevimenti").select("id, nome, capienza_min, capienza_max, prezzo_affitto_base")
       .eq("azienda_id", azienda.id).eq("attiva", true).order("nome"),
     supabase.from("servizi_evento").select("*").eq("azienda_id", azienda.id).eq("attivo", true).order("categoria"),
-    supabase.from("sezioni_menu").select("nome, ordine, usata_volte, categoria_portata_id, categorie_ids, separata, per_bambini").eq("azienda_id", azienda.id)
+    supabase.from("sezioni_menu").select("nome, ordine, usata_volte, categoria_portata_id, categorie_ids, separata, per_bambini, pp_default").eq("azienda_id", azienda.id)
       .eq("attiva", true).order("ordine").order("usata_volte", { ascending: false }),
     supabase.from("modelli_menu").select("*").eq("azienda_id", azienda.id).eq("attivo", true),
   ]);
