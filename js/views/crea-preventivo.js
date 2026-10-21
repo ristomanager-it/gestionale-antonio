@@ -1129,6 +1129,8 @@ function aggancia(container, supabase, azienda, sede) {
 
   container.querySelector("#pv2-invia")?.addEventListener("click", async (e) => {
     const b = e.currentTarget;
+    // un preventivo senza piatti arriva al cliente con i soli totali: meglio chiederlo prima
+    if (!righe.some(r => r.nome) && !confirm("Questo preventivo non ha nessun piatto nel menu: il cliente vedrebbe solo i totali.\n\nLo mando lo stesso?")) return;
     b.disabled = true; b.textContent = "Mando…";
     try {
       const token = (await supabase.auth.getSession())?.data?.session?.access_token || "";
