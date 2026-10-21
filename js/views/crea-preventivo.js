@@ -603,7 +603,14 @@ function disegna(container, supabase, azienda, sede) {
 // una tendina con 500 voci non si usa.
 function catDiSezione(sez) {
   const info = sezioniInfo.find(x => norm(x.nome) === norm(sez));
-  return info?.categoria_portata_id || null;
+  const ids = Array.isArray(info?.categorie_ids) && info.categorie_ids.length
+    ? info.categorie_ids : (info?.categoria_portata_id ? [info.categoria_portata_id] : []);
+  return ids.length ? ids.map(String) : null;
+}
+// le bevande e i vini non sono "portate": le parole cambiano
+function eBevanda(sez) {
+  const info = sezioniInfo.find(x => norm(x.nome) === norm(sez));
+  return Boolean(info?.separata) || /bevand|\bvin|bollicin|bibit|amar|liquor/.test(norm(sez));
 }
 function idListaSezione(sez) { return "dl-" + norm(sez).replace(/ /g, "-"); }
 
