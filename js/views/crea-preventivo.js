@@ -1432,6 +1432,13 @@ function stile() {
   .pv2-pers .d{flex:1;min-width:170px;font-size:13.5px;color:#3D4C55;line-height:1.6;}
   .pv2-pers .d .min{color:#9A6A00;}
   .pv2-pers .c{font-family:Georgia,serif;font-size:22px;color:#9A6A00;}
+  .pv2-pe{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#F7F9FB;border-radius:12px;padding:10px 12px;margin-top:8px;}
+  .pv2-pe input{padding:7px;border:1.5px solid var(--riga);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;}
+  .pv2-pe .q{width:54px;text-align:center;font-weight:700;} .pv2-pe .m{flex:1;min-width:130px;}
+  .pv2-pe .o{width:62px;text-align:right;} .pv2-pe .e{width:72px;text-align:right;}
+  .pv2-pe small{font-size:11.5px;color:var(--muto);}
+  .pv2-pe .c{margin-left:auto;font-family:Georgia,serif;font-size:19px;color:#9A6A00;}
+  .pv2-pe .x{background:none;border:none;color:#CBD5DB;font-size:16px;cursor:pointer;}
   .pv2 .riga .lente{background:none;border:none;font-size:14px;cursor:pointer;color:var(--muto);}
   .pv2-dett{background:#FFFCF3;border-top:1px solid #F5DFA0;padding:12px 14px;font-size:13px;}
   .pv2-dett .tit{font-weight:700;color:#9A6A00;margin-bottom:7px;}
