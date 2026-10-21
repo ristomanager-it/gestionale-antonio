@@ -806,6 +806,16 @@ function aggancia(container, supabase, azienda, sede) {
       ri();
     });
   });
+  container.querySelectorAll("[data-pp]").forEach(el => {
+    el.addEventListener("change", () => {
+      const v = String(el.value).trim().replace(",", ".");
+      let n = null;
+      if (v.includes("/")) { const [a, b] = v.split("/").map(Number); n = b ? a / b : null; }
+      else if (v !== "") n = Number(v);
+      righe[Number(el.dataset.pp)].pp = n > 0 ? n : null;
+      ri();
+    });
+  });
   container.querySelectorAll("[data-costo]").forEach(el => {
     el.addEventListener("change", () => {
       righe[Number(el.dataset.costo)].costoManuale = el.value === "" ? null : Math.max(Number(el.value) || 0, 0);
