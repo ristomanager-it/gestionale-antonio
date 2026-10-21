@@ -3295,6 +3295,7 @@ export async function render(container) {
   container.querySelector('#btn-chiudi-comanda').onclick = () => chiudiComanda();
   container.querySelector('#btn-nuova-sala').onclick = () => creaNuovaSala();
   container.querySelector('#btn-nuovo-tavolo').onclick = () => creaNuovoTavolo();
+  container.querySelector('#btn-banco').onclick = () => apriBanco();
   container.querySelector('#search-prodotto').addEventListener('input', e => renderGrigliaProdotti(e.target.value));
 
   // ── AGGIORNAMENTO AUTOMATICO (realtime) ──────────────────────────
