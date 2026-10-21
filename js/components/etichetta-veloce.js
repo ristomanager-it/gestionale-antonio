@@ -2,7 +2,7 @@
 // (mezzo pomodoro, una salsa avanzata, un trancio di pesce). Si scrive cosa è,
 // si sceglie la conservazione e i giorni, si firma col PIN: esce dalla Brother
 // con un codice (V-AAMMGG-HHMM), la scadenza e il nome di chi l'ha fatta.
-import { inviaEtichetteLotto, scegliFormatoEtichetta } from "../modules/produzione/etichette-lotto.js?v=20261016c";
+import { inviaEtichetteLotto, scegliFormatoEtichetta } from "../modules/produzione/etichette-lotto.js?v=20261021a";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const CONSERVAZIONI = [
