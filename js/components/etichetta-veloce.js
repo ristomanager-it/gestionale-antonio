@@ -221,7 +221,8 @@ export async function apriEtichettaVeloce(pre = {}) {
     const dest = ov.querySelector("#ev-dest").value.trim();
     const esito = await inviaEtichetteLotto({
       etichetta: { denominazione: nomeEt, ingredienti: (scelto && scelto.nome === cosa) ? scelto.ingredienti : null,
-                   origine: (scelto && scelto.nome === cosa) ? scelto.origine : null, titolo_grande: 1.4,
+                   // carni: la provenienza letta dal cartellino del pezzo intero (nato, allevato, macellato, sezionato)
+                   origine: (scelto && scelto.nome === cosa && scelto.origine) ? scelto.origine : (ov.querySelector("#ev-lotto").value.trim() && origine?.letto?.origine) || null, titolo_grande: 1.4,
                    allergeni: (() => { const a = Array.from(ov.querySelectorAll(".ev-all:checked")).map((c) => c.value);
                      return a.length ? a : (scelto && scelto.nome === cosa && scelto.da === "ricetta" ? [] : null); })(),
                    conservazione: CONSERVAZIONI[cons].testo, confermata: true },
