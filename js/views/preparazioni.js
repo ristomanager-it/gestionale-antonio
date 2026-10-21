@@ -2180,27 +2180,26 @@ async function apriModalRicetta() {
         </div>
       ` : ""}
 
-      <div class="card">
-        <div class="form-group">
-          <label>Ingredienti</label>
-          ${ingredienti.length ? `
-            <ul style="margin:0; padding-left:18px;">
-              ${ingredienti.map((i) => `<li>${escapeHtml(i.nome_ingrediente || i.nome || i.nome_prodotto || "Ingrediente")} ${formatQta(i)}</li>`).join("")}
-            </ul>
-          ` : `<div class="form-help">Nessun ingrediente disponibile</div>`}
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="form-group">
-          <label>Fasi di preparazione</label>
-          ${fasi.length ? `
-            <ol style="margin:0; padding-left:18px;">
-              ${fasi.map((f) => `<li style="margin-bottom:8px;">${escapeHtml(f.nome_fase || f.testo || f.descrizione || "Fase")}</li>`).join("")}
-            </ol>
-          ` : `<div class="form-help">Nessuna fase disponibile</div>`}
-        </div>
-      </div>
+      ${(() => {
+        // ogni fase con le sue grammature: non serve riaprire la ricetta per sapere quanto mettere
+        const nomeIng = (i) => escapeHtml(i.nome_ingrediente || i.nome || i.nome_prodotto || "Ingrediente");
+        const ingFase = (id) => ingredienti.filter((i) => i.fase_id === id);
+        const senzaFase = ingredienti.filter((i) => !i.fase_id || !fasi.some((f) => f.id === i.fase_id));
+        const riga = (i) => `<li style="display:flex; justify-content:space-between; gap:10px; padding:5px 0; border-bottom:1px solid #f1f5f9;"><span>${nomeIng(i)}</span><b style="white-space:nowrap;">${escapeHtml([i.qta ?? i.quantita ?? "", i.unita ?? i.unita_misura ?? ""].filter((x) => x !== "" && x !== null).join(" ").replace(/\.000\b/, ""))}</b></li>`;
+        const meta = (f) => [f.temperatura ? `🌡 ${escapeHtml(f.temperatura)} °C` : "", f.durata_min ? `⏱ ${f.durata_min >= 60 ? (Math.round(f.durata_min / 6) / 10).toString().replace(".", ",") + " h" : f.durata_min + " min"}` : "", f.giorni_prima ? `📅 ${f.giorni_prima} ${f.giorni_prima === 1 ? "giorno" : "giorni"} prima` : ""].filter(Boolean).join(" · ");
+        return `
+          ${senzaFase.length ? `<div class="card"><div class="form-group"><label style="font-size:15px;">Ingredienti</label>
+            <ul style="margin:0; padding:0; list-style:none;">${senzaFase.map(riga).join("")}</ul></div></div>` : ""}
+          ${fasi.length ? fasi.map((f) => {
+            const ii = ingFase(f.id);
+            return `<div class="card" style="padding:14px;">
+              <div style="font-weight:800; font-size:18px;">${escapeHtml(f.ordine ?? "")}. ${escapeHtml(f.nome_fase || "Fase")}</div>
+              ${meta(f) ? `<div style="color:#64748b; font-size:15px; margin-top:3px;">${meta(f)}</div>` : ""}
+              ${ii.length ? `<ul style="margin:10px 0 0; padding:10px 12px; list-style:none; background:#f8fafc; border-radius:10px;">${ii.map(riga).join("")}</ul>` : ""}
+              ${f.descrizione_operativa ? `<div style="margin-top:10px; line-height:1.45;">${escapeHtml(f.descrizione_operativa)}</div>` : ""}
+            </div>`;
+          }).join("") : `<div class="card"><div class="form-help">Nessuna fase disponibile</div></div>`}`;
+      })()}
 
     </div>
   `;
