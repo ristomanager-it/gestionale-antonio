@@ -9,6 +9,7 @@ export async function render(container) {
   const supabase = window.supabase || window.supabaseClient;
   const qs = new URLSearchParams((window.location.hash || "").split("?")[1] || "");
   const token = (qs.get("t") || "").trim();
+  const esitoRitorno = (qs.get("esito") || "").trim();   // ok | annullato: al ritorno da Stripe
 
   const guscio = (dentro) => `
     <style>
