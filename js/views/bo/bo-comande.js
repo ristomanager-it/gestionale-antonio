@@ -157,7 +157,7 @@ export async function render(container) {
             <div id="sale-tabs" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
             <button id="btn-nuova-sala" style="padding:6px 12px;background:#e2e8f0;border:none;border-radius:8px;cursor:pointer;font-size:12px;">+ Sala</button>
             <button id="btn-nuovo-tavolo" style="padding:6px 12px;background:#e2e8f0;border:none;border-radius:8px;cursor:pointer;font-size:12px;">+ Tavolo</button>
-            <button id="btn-banco" style="padding:6px 14px;background:#0E5A7A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">🛒 Banco</button>
+            <button id="btn-cassa" style="padding:6px 14px;background:#0E5A7A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">💶 Cassa</button>
           </div>
           <div id="mappa-tavoli" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
         </div>
