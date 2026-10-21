@@ -1294,6 +1294,7 @@ async function salva(container, supabase, azienda, sede) {
       azienda_id: azienda.id, sede_uuid: P.sede_uuid || sede?.id || null, preventivo_id: id,
       descrizione: x.descrizione, quantita: 1,
       prezzo_unitario: Number(x.prezzo) || 0,
+      prezzo_a_persona: x.ppPrezzo != null ? Number(x.ppPrezzo) : null,
       costo_totale: Number(x.costo) || 0,
     })));
     if (insE.error) {
