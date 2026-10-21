@@ -142,8 +142,54 @@ async function calcolaPersonale(supabase, azienda) {
       p_invitati: Math.max(Number(P.n_invitati) || 1, 1),
       p_bambini: Math.max(Number(P.n_bambini) || 0, 0),
     });
-    personale = data?.ok ? data : null;
-  } catch (e) { personale = null; }
+    personale = data?.ok ? data : { ok: true, figure: [], costo: 0 };
+  } catch (e) { personale = { ok: true, figure: [], costo: 0 }; }
+}
+
+function sommaPersonale() {
+  if (!personale) return;
+  personale.figure.forEach(f => {
+    f.costo = Math.round((Number(f.addetti) || 0) * (Number(f.ore) || 0) * (Number(f.costo_orario) || 0) * 100) / 100;
+  });
+  personale.costo = personale.figure.reduce((s, f) => s + (Number(f.costo) || 0), 0);
+}
+
+// chi tocca un numero del personale lo "congela" nel preventivo
+function memorizzaPersonale() {
+  sommaPersonale();
+  P.personale_figure = personale.figure.map(f => ({
+    mansione: f.mansione || "", addetti: Number(f.addetti) || 0,
+    ore: Number(f.ore) || 0, costo_orario: Number(f.costo_orario) || 0,
+  }));
+  personale.manuale = true;
+}
+
+function schedaPersonale() {
+  if (!vedoICosti) return "";
+  const figure = personale?.figure || [];
+  return `
+    <div class="pv2-card">
+      <h2>Personale in servizio</h2>
+      <div class="aiuto">${personale?.manuale
+        ? "Valori scritti a mano per questo preventivo."
+        : "Calcolato sulle regole del tipo di evento (si cambiano in Servizi e personale eventi)."}
+        Qui puoi cambiare quanti sono, le ore e il costo orario, e aggiungere altre figure.</div>
+      ${figure.map((f, i) => `
+        <div class="pv2-pe">
+          <input class="q" type="number" min="0" step="1" value="${Number(f.addetti) || 0}" data-pers="${i}" data-pers-f="addetti" title="quanti">
+          <input class="m" value="${esc(f.mansione || "")}" data-pers="${i}" data-pers-f="mansione" placeholder="figura (cameriere, barman…)">
+          <input class="o" type="number" min="0" step="0.5" value="${Number(f.ore) || 0}" data-pers="${i}" data-pers-f="ore" title="ore a testa"><small>ore</small>
+          <input class="e" type="number" min="0" step="0.5" value="${Number(f.costo_orario) || 0}" data-pers="${i}" data-pers-f="costo_orario" title="costo orario"><small>€/ora</small>
+          <div class="c">${euro(f.costo)}</div>
+          <button class="x" data-del-pers="${i}" title="Toglie questa figura">✕</button>
+        </div>
+        ${f.per_minimo && !personale?.manuale ? `<div class="aiuto" style="color:#9A6A00;">Ne basterebbero meno: vale il minimo di ${f.minimo}.</div>` : ""}`).join("")}
+      ${figure.length ? "" : `<div class="aiuto">Nessuna figura prevista per questo evento.</div>`}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        <button class="pv2-btn piccolo" id="pv2-pers-add">＋ Aggiungi figura</button>
+        ${personale?.manuale ? `<button class="pv2-btn piccolo" id="pv2-pers-reset">↺ Ricalcola dalle regole</button>` : ""}
+      </div>
+    </div>`;
 }
 
 /* ── conti ───────────────────────────────────────────────────────────── */
