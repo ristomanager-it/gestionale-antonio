@@ -1280,7 +1280,7 @@ async function salva(container, supabase, azienda, sede) {
   }
   if (extra.length) {
     const insE = await supabase.from("preventivi_extra").insert(extra.map(x => ({
-      azienda_id: azienda.id, sede_uuid: sede?.id || null, preventivo_id: id,
+      azienda_id: azienda.id, sede_uuid: P.sede_uuid || sede?.id || null, preventivo_id: id,
       descrizione: x.descrizione, quantita: 1,
       prezzo_unitario: Number(x.prezzo) || 0,
       costo_totale: Number(x.costo) || 0,
