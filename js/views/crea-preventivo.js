@@ -673,7 +673,7 @@ function sceltaPiatti(sez, fatto) {
   const chiudi = () => m.remove();
   const disegnaLista = () => {
     const q = norm(cerca);
-    const lista = valide.filter(r => (tutte || (ammessi ? ammessi.has(String(r.id)) : String(r.categoria_portata_id) === String(cat))) && (!q || norm(r.nome).includes(q))).slice(0, 300);
+    const lista = valide.filter(r => (tutte || (ammessi ? ammessi.has(String(r.id)) : cat.includes(String(r.categoria_portata_id)))) && (!q || norm(r.nome).includes(q))).slice(0, 300);
     m.querySelector(".pv2-sc-lista").innerHTML = lista.length
       ? lista.map(r => `<button type="button" class="pv2-sc-voce ${scelte.has(r.id) ? "on" : ""}" data-id="${r.id}"><span>${esc(r.nome)}</span><b>${scelte.has(r.id) ? "✓" : "+"}</b></button>`).join("")
       : `<div class="pv2-sc-vuoto">Nessuna ricetta${q ? " con questo nome" : ""}${!tutte ? ". Prova \"tutto il ricettario\"" : ""}.</div>`;
