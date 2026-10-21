@@ -368,7 +368,7 @@ window.stateActions = {
 
     const { data, error } = await window.supabase
       .from("sedi")
-      .select("id, nome, indirizzo, latitudine, longitudine")
+      .select("id, nome, indirizzo, latitudine, longitudine, logo_url")
       .eq("azienda_id", azienda.id)
       .order("nome", { ascending: true });
 
