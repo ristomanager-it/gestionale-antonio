@@ -245,6 +245,7 @@ export async function render(container) {
           </div>` : ""}
 
         <div class="pv-conto">
+          ${invitati ? `<div class="r"><span>A persona</span><b>${euro(totale / invitati)}</b></div>` : ""}
           <div class="pv-tot"><span>Totale</span><b>${euro(totale)}</b></div>
           ${d.mostra_prezzo_a_persona && invitati ? `<div class="pv-pp">${euro(totale / invitati)} a persona</div>` : ""}
         </div>
