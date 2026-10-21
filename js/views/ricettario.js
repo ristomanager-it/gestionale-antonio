@@ -600,6 +600,77 @@ function renderRicetteList() {
   });
 }
 
+// 👁 Vedi ricetta: la stessa lettura di Preparazioni, ingredienti con le grammature dentro ogni fase
+async function apriVediRicetta(id) {
+  if (!id) return;
+  const supabase = window.supabaseClient || window.supabase;
+  document.getElementById("ric-vedi-overlay")?.remove();
+  const overlay = document.createElement("div");
+  overlay.id = "ric-vedi-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:10000;display:flex;align-items:flex-end;justify-content:center;";
+  overlay.innerHTML = `
+    <div style="background:#fff;width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(28px + env(safe-area-inset-bottom, 0px));">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+        <div id="ric-vedi-titolo" style="font-size:19px;font-weight:800;">📖 Ricetta</div>
+        <button type="button" class="app-button secondary" id="ric-vedi-chiudi">Chiudi</button>
+      </div>
+      <div id="ric-vedi-corpo" style="color:#64748b;">Caricamento...</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const chiudi = () => overlay.remove();
+  overlay.querySelector("#ric-vedi-chiudi").addEventListener("click", chiudi);
+  overlay.addEventListener("click", e => { if (e.target === overlay) chiudi(); });
+
+  const [ingRes, fasiRes, ricRes] = await Promise.all([
+    supabase.from("ricetta_ingredienti").select("*, prodotti(nome)").eq("ricetta_id", id).order("ordine"),
+    supabase.from("ricette_preparazione_fasi").select("*").eq("ricetta_id", id).order("ordine"),
+    supabase.from("ricette").select("nome, descrizione, note_procedimento, disegno_url, schizzo_url, foto_url").eq("id", id).maybeSingle()
+  ]);
+  const corpo = overlay.querySelector("#ric-vedi-corpo");
+  const ric = ricRes.data;
+  if (!ric) { corpo.textContent = "Ricetta non disponibile."; return; }
+  overlay.querySelector("#ric-vedi-titolo").textContent = "📖 " + (ric.nome || "Ricetta");
+
+  const ingredienti = ingRes.data || [];
+  const fasi = fasiRes.data || [];
+  const nomeIng = i => escapeHtml(i.nome_prodotto || i.prodotti?.nome || i.nome_ingrediente || i.nome || "Ingrediente");
+  const qta = i => {
+    const n = Number(i.quantita ?? i.qta);
+    const q = Number.isFinite(n) ? String(Math.round(n * 1000) / 1000).replace(".", ",") : "";
+    return escapeHtml([q, i.unita_misura || i.unita || ""].filter(Boolean).join(" "));
+  };
+  const riga = i => `<li style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span>${nomeIng(i)}</span><b style="white-space:nowrap;">${qta(i)}</b></li>`;
+  const ingFase = fid => ingredienti.filter(i => i.fase_id === fid);
+  const senzaFase = ingredienti.filter(i => !i.fase_id || !fasi.some(f => f.id === i.fase_id));
+  const meta = f => [
+    f.temperatura ? `🌡 ${escapeHtml(f.temperatura)} °C` : "",
+    f.durata_min ? `⏱ ${f.durata_min >= 60 ? (Math.round(f.durata_min / 6) / 10).toString().replace(".", ",") + " h" : f.durata_min + " min"}` : "",
+    f.giorni_prima ? `📅 ${f.giorni_prima} ${f.giorni_prima === 1 ? "giorno" : "giorni"} prima` : ""
+  ].filter(Boolean).join(" · ");
+  const foto = ric.foto_url || ric.disegno_url;
+  const card = "border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:12px;";
+
+  corpo.style.color = "inherit";
+  corpo.innerHTML = `
+    ${(foto || ric.schizzo_url) ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+      ${foto ? `<img src="${escapeAttribute(foto)}" alt="" style="flex:1;min-width:180px;max-width:300px;border-radius:10px;">` : ""}
+      ${ric.schizzo_url ? `<img src="${escapeAttribute(ric.schizzo_url)}" alt="" style="flex:1;min-width:180px;max-width:300px;border-radius:10px;">` : ""}</div>` : ""}
+    ${(ric.descrizione || ric.note_procedimento) ? `<div style="${card}"><b>Note</b>
+      ${ric.descrizione ? `<div style="margin-top:6px;">${escapeHtml(ric.descrizione)}</div>` : ""}
+      ${ric.note_procedimento ? `<div style="margin-top:8px;">${escapeHtml(ric.note_procedimento)}</div>` : ""}</div>` : ""}
+    ${senzaFase.length ? `<div style="${card}"><b style="font-size:15px;">Ingredienti</b>
+      <ul style="margin:8px 0 0;padding:0;list-style:none;">${senzaFase.map(riga).join("")}</ul></div>` : ""}
+    ${fasi.length ? fasi.map(f => {
+      const ii = ingFase(f.id);
+      return `<div style="${card}">
+        <div style="font-weight:800;font-size:18px;">${escapeHtml(f.ordine ?? "")}. ${escapeHtml(f.nome_fase || "Fase")}</div>
+        ${meta(f) ? `<div style="color:#64748b;font-size:15px;margin-top:3px;">${meta(f)}</div>` : ""}
+        ${ii.length ? `<ul style="margin:10px 0 0;padding:10px 12px;list-style:none;background:#f8fafc;border-radius:10px;">${ii.map(riga).join("")}</ul>` : ""}
+        ${f.descrizione_operativa ? `<div style="margin-top:10px;font-size:17px;line-height:1.5;">${escapeHtml(f.descrizione_operativa)}</div>` : ""}
+      </div>`;
+    }).join("") : (senzaFase.length ? "" : `<div style="color:#64748b;">Nessuna fase né ingrediente disponibile.</div>`)}`;
+}
+
 async function eliminaRicetta(id, nome) {
   if (!id) return;
   const conferma = confirm(`Vuoi eliminare la ricetta "${nome || ""}"?\n\nLa ricetta verrà rimossa dal ricettario. Lo storico collegato (produzione, preventivi) resta intatto.`);
