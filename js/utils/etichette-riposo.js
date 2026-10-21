@@ -37,14 +37,32 @@ export function montaRiposi(vecchiaCard, { lotto }) {
     return { ...base, firme: firme || [] };
   }
 
+  // 📦 in ogni fase gli ingredienti che servono, con le grammature (non serve riaprire la ricetta)
+  function grammature(d) {
+    for (const el of document.querySelectorAll(".rf-ing-fase:not([data-fatto])")) {
+      el.dataset.fatto = "1";
+      const f = d.F.find((x) => x.ordine === Number(el.dataset.ordine));
+      const ii = f ? d.ing.filter((i) => i.fase_id === f.id) : [];
+      if (!ii.length) continue;
+      const q = (i) => {
+        const n = Number(i.quantita) * d.k;
+        const t = Number.isInteger(n) ? n.toLocaleString("it-IT") : n.toLocaleString("it-IT", { maximumFractionDigits: n < 10 ? 2 : 0 });
+        return `${t} ${i.unita_misura || ""}`.trim();
+      };
+      el.innerHTML = `<ul class="sf-ing">${ii.map((i) => `<li><span>${esc(i.nome_prodotto)}</span><b>${esc(q(i))}</b></li>`).join("")}</ul>`;
+    }
+  }
+
   let occupato = false;
   async function riempi() {
     const vuoti = [...document.querySelectorAll(".rf-stampa-fase:not([data-fatto])")];
-    if (!vuoti.length || occupato) return;
+    const senzaIng = document.querySelector(".rf-ing-fase:not([data-fatto])");
+    if ((!vuoti.length && !senzaIng) || occupato) return;
     occupato = true;
     try {
       const d = await leggi();
       if (!d) return;
+      grammature(d);
       const firmaDi = (f) => d.firme.find((x) => x.fase_id === f.id || x.fase_ordine === f.ordine)?.firmato_il || null;
       for (const el of vuoti) {
         el.dataset.fatto = "1";
