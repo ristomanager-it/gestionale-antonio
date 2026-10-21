@@ -22,6 +22,13 @@ export async function render(container) {
       .order("created_at", { ascending: false }).limit(1000);
 
     const lista = data || [];
+
+    // piatti nati da un preventivo senza ricetta: servono ingredienti e quantita' per il food cost
+    const { data: nf } = await supabase.from("ricette")
+      .select("id, nome, created_at")
+      .eq("azienda_id", azienda.id).eq("non_foodcostato", true).eq("da_verificare", false)
+      .order("created_at", { ascending: false }).limit(500);
+    const daFoodcostare = nf || [];
     const ids = lista.map(r => r.id);
     let perRicetta = {};
     if (ids.length) {
