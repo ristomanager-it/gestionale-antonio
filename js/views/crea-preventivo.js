@@ -130,6 +130,12 @@ async function caricaPreventivo(supabase, id) {
 }
 
 async function calcolaPersonale(supabase, azienda) {
+  // scritto a mano in questo preventivo: vale quello, finche' non si chiede di ricalcolare dalle regole
+  if (Array.isArray(P.personale_figure)) {
+    personale = { ok: true, manuale: true, figure: P.personale_figure.map(f => ({ ...f })), costo: 0 };
+    sommaPersonale();
+    return;
+  }
   try {
     const { data } = await supabase.rpc("personale_evento", {
       p_azienda: azienda.id, p_tipo: tipoEvento() || "Altro",
