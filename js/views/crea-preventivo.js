@@ -943,6 +943,7 @@ function aggancia(container, supabase, azienda, sede) {
     extra.push({
       descrizione: s.conta_su === "fisso" ? s.nome : `${s.nome} × ${q}`,
       prezzo: s.unita === "a persona" ? prezzoU * inv : prezzoU * q,
+      ppPrezzo: s.unita === "a persona" ? prezzoU : null,
       costo: (Number(s.costo_fornitore) || 0) * (s.unita === "a persona" ? inv : q),
     });
     ri();
