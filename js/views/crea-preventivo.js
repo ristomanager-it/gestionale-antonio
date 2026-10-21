@@ -430,10 +430,8 @@ function disegna(container, supabase, azienda, sede) {
           ${campo("di cui bambini", "n_bambini", "number")}
           <div>
             <label>Location</label>
-            <select class="in" data-campo="location_id">
-              <option value="">— scrivila a mano —</option>
-              ${locations.map(l => `<option value="${l.id}"${String(P.location_id) === String(l.id) ? " selected" : ""}>${esc(l.nome)}</option>`).join("")}
-            </select>
+            <input class="in" id="pv2-loc" list="pv2-loc-l" autocomplete="off" value="${esc(P.location || "")}" placeholder="Scrivi la location${locations.length ? " o scegline una" : ""}">
+            <datalist id="pv2-loc-l">${locations.map(l => `<option value="${esc(l.nome)}"></option>`).join("")}</datalist>
           </div>
           ${P.location_id ? "" : campo("Nome location", "location")}
           ${campo("Prezzo location", "location_prezzo", "number")}
