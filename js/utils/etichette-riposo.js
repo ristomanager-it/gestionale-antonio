@@ -162,16 +162,20 @@ export function montaRiposi(vecchiaCard, { lotto }) {
       coppia("Lotto", d.r.codice_lotto);
       coppia("Inizio", leggibile(p.ini));
       y += 6;
-      const top = y;
-      y += 14;
-      testo("PRONTO", "bold 30px " + F, 38, PAD + 18);
-      for (const r of righe(leggibile(p.fine), "bold 58px " + F)) testo(r, "bold 58px " + F, 64, PAD + 18);
-      testo("dopo " + durataTesto(p.min), "30px " + F, 38, PAD + 18);
-      y += 8;
-      if (scrivi) { ctx.lineWidth = 5; ctx.strokeRect(PAD + 2, top, W - 4, y - top); }
-      y += 16;
-      const poi = righe("Poi: " + (dopo?.nome_fase || "—"), "bold 32px " + F);
-      poi.forEach((r) => testo(r, "bold 32px " + F, 40));
+      if (p.fine) {
+        const top = y;
+        y += 14;
+        testo("PRONTO", "bold 30px " + F, 38, PAD + 18);
+        for (const r of righe(leggibile(p.fine), "bold 58px " + F)) testo(r, "bold 58px " + F, 64, PAD + 18);
+        testo("dopo " + durataTesto(p.min), "30px " + F, 38, PAD + 18);
+        y += 8;
+        if (scrivi) { ctx.lineWidth = 5; ctx.strokeRect(PAD + 2, top, W - 4, y - top); }
+        y += 16;
+      }
+      if (dopo) {
+        const poi = righe("Poi: " + dopo.nome_fase, "bold 32px " + F);
+        poi.forEach((r) => testo(r, "bold 32px " + F, 40));
+      }
       return y + PAD;
     };
     c.width = larghezza; c.height = 2000;
