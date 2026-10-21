@@ -433,7 +433,6 @@ function disegna(container, supabase, azienda, sede) {
             <input class="in" id="pv2-loc" list="pv2-loc-l" autocomplete="off" value="${esc(P.location || "")}" placeholder="Scrivi la location${locations.length ? " o scegline una" : ""}">
             <datalist id="pv2-loc-l">${locations.map(l => `<option value="${esc(l.nome)}"></option>`).join("")}</datalist>
           </div>
-          ${P.location_id ? "" : campo("Nome location", "location")}
           ${campo("Prezzo location", "location_prezzo", "number")}
           ${campo("Intolleranze", "intolleranze")}
           <div>
