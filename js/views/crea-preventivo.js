@@ -81,6 +81,10 @@ export async function render(container, params = {}) {
   try {
     sediAz = (await supabase.from("sedi").select("id, nome, logo_url").eq("azienda_id", azienda.id)).data || [];
   } catch (e) { sediAz = []; }
+  try {
+    const { data: cp } = await supabase.from("categorie_portata").select("id, nome, ordine").eq("azienda_id", azienda.id);
+    catNomi = new Map((cp || []).map(c => [String(c.id), { nome: c.nome, ordine: Number(c.ordine) || 0 }]));
+  } catch (e) { catNomi = new Map(); }
   sezioniNote = sezioniInfo.map(x => x.nome);
 
   if (id) await caricaPreventivo(supabase, id);
