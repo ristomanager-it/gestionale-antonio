@@ -152,7 +152,8 @@ export async function apriEtichettaVeloce(pre = {}) {
   };
   // nessun giorno scelto: niente scadenza da mostrare
   const mostra = () => {
-    scad.textContent = gg.value === "" ? "" : "Scade il " + scadenza().toLocaleDateString("it-IT");
+    scad.textContent = gg.value === "" ? "" : "Scade il " + scadenza().toLocaleDateString("it-IT")
+      + (origine?.scadenza && scadenza().toISOString().slice(0, 10) === origine.scadenza ? " (come il pezzo intero)" : "");
     ov.querySelectorAll("[data-gg]").forEach((b) => { const on = Number(b.dataset.gg) === Number(gg.value); b.style.background = on ? "#b91c1c" : "#fff"; b.style.color = on ? "#fff" : "#334155"; });
   };
   mostra();
