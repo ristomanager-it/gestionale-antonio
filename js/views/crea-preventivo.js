@@ -200,7 +200,13 @@ function schedaPersonale() {
 
 /* ── conti ───────────────────────────────────────────────────────────── */
 
+// regola pp (per persona): una bottiglia ogni 3 persone = 0,33. Il costo a persona e' costo dell'unita' x pp
 function costoDi(r) {
+  const c = costoUnita(r);
+  const k = Number(r.pp) > 0 ? Number(r.pp) : 1;
+  return k === 1 ? c : { ...c, unita: c.costo, costo: c.costo * k, pp: k };
+}
+function costoUnita(r) {
   // il costo scritto a mano nel preventivo vince su tutto
   if (r.costoManuale != null) return { costo: Number(r.costoManuale) || 0, stimato: false, manuale: true, fonte: "scritto da te" };
   if (r.ricetta_id) {
