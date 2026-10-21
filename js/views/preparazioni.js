@@ -3999,6 +3999,47 @@ function applicaFirmaAIdx(idx, match) {
   }
 }
 
+/* RIPOSI: le fasi di riposo (frigo, lievitazione, riposo in stoffa...) non si firmano a mano.
+   Appena si firma la fase prima, il riposo parte e si firma da solo con lo stesso operatore.
+   Nel registro resta l'ora in cui il riposo e' iniziato; la durata prevista sta nella ricetta e nel Planning. */
+function autoFirmaRiposi(idxFirmata, match) {
+  const p2 = (n) => String(n).padStart(2, "0");
+  let k = idxFirmata + 1, n = 0;
+  while (k < logHaccp.length && n < 4) {
+    const log = logHaccp[k];
+    if (!fasiCache[k]?.riposo || !log || (Array.isArray(log.firme) && log.firme.length)) break;
+    const ora = new Date();
+    log.firme = [{ operatore_id: match.id ?? null, operatore_nome: match.nome, firmato_il: ora.toISOString() }];
+    applicaFirmePrincipale(log);
+    const locale = ora.getFullYear() + "-" + p2(ora.getMonth() + 1) + "-" + p2(ora.getDate()) + "T" + p2(ora.getHours()) + ":" + p2(ora.getMinutes());
+    log.ora_inizio = locale;
+    log.ora_fine = locale;
+    log.durata_reale_min = null;
+    log.inizio_origine = "automatica";
+    try {
+      const _uuid = resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid) || null;
+      const _cli = window.supabaseClient || window.supabase;
+      if (_uuid && _cli && log.fase_id) {
+        _cli.from("produzione_log_haccp").update({
+          operatore_id: log.operatore_id || null,
+          operatore_nome: log.operatore_nome || null,
+          ora_inizio: new Date(locale).toISOString(),
+          ora_fine: new Date(locale).toISOString(),
+          durata_reale_min: null,
+          inizio_origine: "automatica",
+          esito: log.esito || "ok",
+          firmato_da: log.firmato_da || null,
+          firmato_il: log.firmato_il || ora.toISOString(),
+          firme: log.firme
+        }).eq("lotto_id", _uuid).eq("fase_id", log.fase_id)
+          .then(function (r) { if (r && r.error) console.warn("riposo non salvato subito:", r.error.message); })
+          .catch(function (e) { console.warn("riposo non salvato subito:", e); });
+      }
+    } catch (e) { console.warn("firma riposo saltata:", e); }
+    k++; n++;
+  }
+}
+
 function firmaFasiContinue() {
   const targets = idxFasiContinueDaFirmare();
   if (!targets.length) { alert("Nessuna fase di preparazione/cottura da firmare."); return; }
