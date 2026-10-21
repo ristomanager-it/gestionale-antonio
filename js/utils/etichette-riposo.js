@@ -91,18 +91,20 @@ export function montaRiposi(vecchiaCard, { lotto }) {
     } finally { occupato = false; }
   }
 
-  function calcola(el) {
+  function calcola(el, richiestaDurata = true) {
     const ini = new Date(el.querySelector('[data-k="inizio"]').value);
     const ore = parseFloat(String(el.querySelector('[data-k="ore"]').value).replace(",", "."));
-    if (!Number.isFinite(ore) || ore <= 0 || isNaN(ini)) return null;
+    if (isNaN(ini)) return null;
+    // fase che non e' un riposo: la durata e' facoltativa, l'etichetta esce anche senza
+    if (!Number.isFinite(ore) || ore <= 0) return richiestaDurata ? null : { ini, min: null, fine: null };
     const min = Math.round(ore * 60);
     return { ini, min, fine: new Date(ini.getTime() + min * 60000) };
   }
 
   async function stampa(el, d, f, dopo) {
-    const p = calcola(el);
-    if (!p) { alert("Scrivi quante ore dura."); return; }
-    if (el.querySelector('[data-k="salva"]')?.checked) { await sb().from("ricette_preparazione_fasi").update({ durata_min: p.min }).eq("id", f.id); f.durata_min = p.min; }
+    const p = calcola(el, Boolean(f.riposo && dopo));
+    if (!p) { alert(f.riposo && dopo ? "Scrivi quante ore dura." : "Controlla la data di inizio."); return; }
+    if (p.min && el.querySelector('[data-k="salva"]')?.checked) { await sb().from("ricette_preparazione_fasi").update({ durata_min: p.min }).eq("id", f.id); f.durata_min = p.min; }
     const btn = el.querySelector(".sf-btn");
     btn.disabled = true; btn.textContent = "Invio all'etichettatrice…";
     try {
