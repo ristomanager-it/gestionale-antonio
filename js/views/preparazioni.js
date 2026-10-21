@@ -423,13 +423,13 @@ export async function render(container) {
         `
       })}
 
-      <div id="prod-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:16px; overflow:auto;">
-        <div class="view" style="max-width:920px; margin:0 auto; background:var(--card-bg, #111); border-radius:14px; padding:16px;">
-          <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap;">
-            <h3 id="prod-modal-title" style="margin:0;">Ricetta</h3>
+      <div id="prod-modal-backdrop" style="display:none; position:fixed; inset:0; background:#f1f5f9; z-index:9999; overflow:auto; -webkit-overflow-scrolling:touch;">
+        <div class="view rf-scheda-ric" style="max-width:920px; margin:0 auto; min-height:100%; padding:0 14px 40px; font-size:17px;">
+          <div style="position:sticky; top:0; z-index:2; background:#f1f5f9; display:flex; justify-content:space-between; gap:10px; align-items:center; padding:calc(12px + env(safe-area-inset-top,0px)) 0 10px;">
+            <h3 id="prod-modal-title" style="margin:0; font-size:20px;">Ricetta</h3>
             <button id="prod-modal-close" class="app-button secondary">✕ Chiudi</button>
           </div>
-          <div id="prod-modal-body" style="margin-top:12px;"></div>
+          <div id="prod-modal-body" style="margin-top:4px;"></div>
         </div>
       </div>
 
