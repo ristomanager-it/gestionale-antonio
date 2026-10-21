@@ -2196,7 +2196,7 @@ async function apriModalRicetta() {
               <div style="font-weight:800; font-size:18px;">${escapeHtml(f.ordine ?? "")}. ${escapeHtml(f.nome_fase || "Fase")}</div>
               ${meta(f) ? `<div style="color:#64748b; font-size:15px; margin-top:3px;">${meta(f)}</div>` : ""}
               ${ii.length ? `<ul style="margin:10px 0 0; padding:10px 12px; list-style:none; background:#f8fafc; border-radius:10px;">${ii.map(riga).join("")}</ul>` : ""}
-              ${f.descrizione_operativa ? `<div style="margin-top:10px; line-height:1.45;">${escapeHtml(f.descrizione_operativa)}</div>` : ""}
+              ${f.descrizione_operativa ? `<div style="margin-top:10px; font-size:18px; line-height:1.5;">${escapeHtml(f.descrizione_operativa)}</div>` : ""}
             </div>`;
           }).join("") : `<div class="card"><div class="form-help">Nessuna fase disponibile</div></div>`}`;
       })()}
