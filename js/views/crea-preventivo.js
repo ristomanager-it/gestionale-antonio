@@ -116,6 +116,7 @@ async function caricaPreventivo(supabase, id) {
   righe = (r.data || []).map(x => ({
     nome: x.nome_portata, ricetta_id: x.ricetta_id, sezione: x.sezione_menu || "Menu",
     prezzo: Number(x.prezzo_unitario) || 0, costoSalvato: Number(x.food_cost_snapshot) || 0,
+    costoManuale: x.costo_manuale ? (Number(x.food_cost_snapshot) || 0) : null,
   }));
   // le stime tornano com'erano: numero E ragionamento
   (r.data || []).forEach(x => {
