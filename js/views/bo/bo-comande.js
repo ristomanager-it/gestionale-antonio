@@ -3292,7 +3292,8 @@ export async function render(container) {
   container.querySelector('#btn-chiudi-comanda').onclick = () => chiudiComanda();
   container.querySelector('#btn-nuova-sala').onclick = () => creaNuovaSala();
   container.querySelector('#btn-nuovo-tavolo').onclick = () => creaNuovoTavolo();
-  container.querySelector('#btn-banco').onclick = () => apriBanco();
+  // 💶 Cassa: vendita al banco diretta (Cassa libera, scheda Banco), senza aprire un tavolo
+  container.querySelector('#btn-cassa').onclick = () => { window.location.hash = '#/cassa-libera?modo=banco'; };
   container.querySelector('#search-prodotto').addEventListener('input', e => renderGrigliaProdotti(e.target.value));
 
   // ── AGGIORNAMENTO AUTOMATICO (realtime) ──────────────────────────
