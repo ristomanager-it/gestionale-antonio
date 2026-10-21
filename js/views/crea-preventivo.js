@@ -1223,6 +1223,7 @@ async function salva(container, supabase, azienda, sede) {
         prezzo_unitario: Number(r.prezzo) || 0,
         totale: (Number(r.prezzo) || 0) * (perBambini(r.sezione) ? c.bimbi : c.inv),
         food_cost_snapshot: co.costo || 0,
+        costo_manuale: co.manuale === true,
         ricetta_placeholder: Boolean(co.stimato || co.mancante),
         stima_dettaglio: stime[norm(r.nome)] || null,
       };
