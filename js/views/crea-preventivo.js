@@ -506,6 +506,7 @@ function disegna(container, supabase, azienda, sede) {
             <div class="top"><b>${esc(sez)}</b>
               ${sezioniInfo.find(x => norm(x.nome) === norm(sez))?.separata ? `<i class="tag">a parte</i>` : ""}
               ${perBambini(sez) ? `<i class="tag bimbi">${c.bimbi || 0} bambini</i>` : ""}
+              ${vedoICosti ? `<label class="ppsez" title="Regola della sezione: quota della porzione intera per persona. 0,7 = il 70% della porzione del ristorante; per il vino 1/3 = una bottiglia ogni 3 persone. Si applica ai piatti che aggiungi da qui in poi.">regola <input class="pz pp" type="text" inputmode="decimal" data-ppsez="${esc(sez)}" value="${ppSezione(sez) ? String(Math.round(ppSezione(sez) * 1000) / 1000).replace(".", ",") : ""}" placeholder="intera"></label>` : ""}
               <span>${righe.filter(r => (r.sezione || "Menu") === sez).length} ${eBevanda(sez) ? "bevande" : "portate"} ·
                 ${euro(righe.filter(r => (r.sezione || "Menu") === sez).reduce((s, r) => s + (Number(r.prezzo) || 0), 0))} a persona
                 ${catDiSezione(sez) ? "· propone solo questa categoria" : "· propone tutto il ricettario"}</span></div>
