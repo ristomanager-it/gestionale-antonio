@@ -775,6 +775,33 @@ function aggancia(container, supabase, azienda, sede) {
       ri();
     });
   });
+  container.querySelectorAll("[data-costo]").forEach(el => {
+    el.addEventListener("change", () => {
+      righe[Number(el.dataset.costo)].costoManuale = el.value === "" ? null : Math.max(Number(el.value) || 0, 0);
+      ri();
+    });
+  });
+  container.querySelectorAll("[data-pers]").forEach(el => {
+    el.addEventListener("change", () => {
+      const f = personale.figure[Number(el.dataset.pers)];
+      const k = el.dataset.persF;
+      f[k] = k === "mansione" ? el.value : Math.max(Number(el.value) || 0, 0);
+      memorizzaPersonale(); ri();
+    });
+  });
+  container.querySelectorAll("[data-del-pers]").forEach(el => {
+    el.addEventListener("click", () => { personale.figure.splice(Number(el.dataset.delPers), 1); memorizzaPersonale(); ri(); });
+  });
+  container.querySelector("#pv2-pers-add")?.addEventListener("click", () => {
+    if (!personale) personale = { ok: true, figure: [], costo: 0 };
+    personale.figure.push({ mansione: "Cameriere", addetti: 1, ore: 5, costo_orario: 12 });
+    memorizzaPersonale(); ri();
+  });
+  container.querySelector("#pv2-pers-reset")?.addEventListener("click", async () => {
+    P.personale_figure = null;
+    await calcolaPersonale(supabase, azienda);
+    ri();
+  });
   container.querySelectorAll("[data-prezzo]").forEach(el => {
     el.addEventListener("change", () => { righe[Number(el.dataset.prezzo)].prezzo = Number(el.value) || 0; ri(); });
   });
