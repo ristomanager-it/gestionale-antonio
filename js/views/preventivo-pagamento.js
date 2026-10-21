@@ -117,6 +117,7 @@ export async function render(container) {
       </div>
 
       <div class="pg-corpo">
+        ${esitoRitorno === "annullato" ? `<div class="pg-avviso attesa">Pagamento annullato: non vi è stato addebitato nulla. Potete riprovare quando volete.</div>` : ""}
         ${pag.testo ? `<p style="font-size:14.5px;line-height:1.6;color:#3D4C55;">${esc(pag.testo)}</p>` : ""}
 
         ${pag.in_verifica ? `
