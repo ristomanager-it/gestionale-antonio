@@ -39,7 +39,8 @@ export async function renderCassaLibera(container, azienda) {
   let categoriaAttiva = null;   // null = tutte le categorie
   let incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
   // Cassa unica: scheda Sala (tavoli, si incassa chi paga al banco) e scheda Banco (vendita al volo)
-  let modo = 'sala';
+  // si puo' aprire direttamente sulla scheda Banco: #/cassa-libera?modo=banco (pulsante Cassa di Comande)
+  let modo = (new URLSearchParams((window.location.hash.split('?')[1]) || '').get('modo') === 'banco') ? 'banco' : 'sala';
   let contoAperto = false;   // telefono: conto a comparsa dal basso
   const stretto = () => (window.matchMedia ? window.matchMedia('(max-width: 760px)').matches : window.innerWidth <= 760);
   let _ultimoStretto = stretto();
