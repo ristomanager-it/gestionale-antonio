@@ -210,7 +210,7 @@ export async function inviaEtichetteLotto({ etichetta, produttore, info, peso, c
   if (dis.troppoLungo) return { ok: false, motivo: "troppo_lungo", png: null, formato: fmt };
   if (!st) return { ok: false, motivo: "nessuna_stampante", png: dis.png };
   const { data: job, error } = await sbEt().from("coda_stampe").insert({
-    azienda_id: window.state.azienda.id, sede_id: st.sede_id || window.state?.sedeAttiva?.id || null,
+    azienda_id: window.state.azienda.id, sede_id: st.sede_id || null,   // la stampa segue la stampante, non la sede in cui sta lavorando chi stampa
     stampante_id: st.id, stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: fmt.larghezzaMm,
     tipo: "etichetta", reparto: "etichette",
     contenuto: { png: dis.png, copie, formato: fmt.descr, label: fmt.label, rosso: fmt.rosso, lotto: info.codice_lotto || null },
