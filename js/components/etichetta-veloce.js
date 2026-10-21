@@ -144,7 +144,12 @@ export async function apriEtichettaVeloce(pre = {}) {
   if (pre.cosa) ov.querySelector("#ev-cosa").value = pre.cosa;
   if (Number.isInteger(pre.cons)) setTimeout(() => ov.querySelector(`[data-c="${pre.cons}"]`)?.click(), 0);
   const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-  const scadenza = () => { const d = new Date(); d.setDate(d.getDate() + (Number(gg.value) || 0)); return d; };
+  const scadenza = () => {
+    const d = new Date(); d.setDate(d.getDate() + (Number(gg.value) || 0));
+    // il pezzo piccolo non puo' scadere dopo il pezzo intero da cui viene
+    if (origine?.scadenza) { const o = new Date(origine.scadenza + "T12:00:00"); if (o < d) return o; }
+    return d;
+  };
   // nessun giorno scelto: niente scadenza da mostrare
   const mostra = () => {
     scad.textContent = gg.value === "" ? "" : "Scade il " + scadenza().toLocaleDateString("it-IT");
