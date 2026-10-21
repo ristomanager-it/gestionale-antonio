@@ -1294,14 +1294,26 @@ async function salva(container, supabase, azienda, sede) {
 
   // I piatti stimati diventano ricette bozza da soli: hanno gia' ingredienti e
   // costo, quindi la scheda nasce utile invece che vuota come faceva la vecchia.
-  let create = 0;
+  // Un piatto scritto che non esiste ancora entra comunque in ricettario (anagrafica) e resta
+  // segnato "non foodcostato": cosi' la ricetta si completa dopo e il costo si aggiorna da solo.
+  let create = 0, daFoodcostare = 0;
   for (const r of daSalvare) {
     if (r.ricetta_id) continue;
     const st = stime[norm(r.nome)];
-    if (!st || !(st.ingredienti || []).length) continue;
-    const { data: nr } = await supabase.rpc("ricetta_da_stima", {
-      p_azienda: azienda.id, p_nome: r.nome, p_ingredienti: st.ingredienti, p_porzioni: 1,
-    });
+    let nr = null;
+    if (st && (st.ingredienti || []).length) {
+      const rs = await supabase.rpc("ricetta_da_stima", {
+        p_azienda: azienda.id, p_nome: r.nome, p_ingredienti: st.ingredienti, p_porzioni: 1,
+      });
+      nr = rs.data;
+    } else {
+      const cat = (catDiSezione(r.sezione || "Menu") || [])[0];
+      const rs = await supabase.rpc("ricetta_da_preventivo", {
+        p_azienda: azienda.id, p_nome: r.nome, p_categoria: cat ? Number(cat) : null,
+      });
+      nr = rs.data;
+      if (nr?.ok && nr.nuova) daFoodcostare++;
+    }
     if (nr?.ok) {
       create++;
       await supabase.from("preventivi_righe")
