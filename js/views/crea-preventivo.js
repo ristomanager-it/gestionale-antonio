@@ -473,7 +473,7 @@ function disegna(container, supabase, azienda, sede) {
                 ${euro(righe.filter(r => (r.sezione || "Menu") === sez).reduce((s, r) => s + (Number(r.prezzo) || 0), 0))} a persona
                 ${catDiSezione(sez) ? "· propone solo questa categoria" : "· propone tutto il ricettario"}</span></div>
             ${righe.map((r, i) => (r.sezione || "Menu") !== sez ? "" : rigaPortata(r, i)).join("")}
-            <div class="add" data-add-portata="${esc(sez)}">+ aggiungi portata</div>
+            <div class="add" data-add-portata="${esc(sez)}">+ aggiungi ${eBevanda(sez) ? "bevanda" : "portata"}</div>
           </div>`).join("") : `<div class="aiuto">Nessuna portata: crea la prima sezione qui sotto.</div>`}
         <div class="pv2-nuovasez">
           <select id="pv2-sez-scelta" class="in">
