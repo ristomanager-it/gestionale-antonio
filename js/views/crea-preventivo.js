@@ -469,7 +469,7 @@ function disegna(container, supabase, azienda, sede) {
             <div class="top"><b>${esc(sez)}</b>
               ${sezioniInfo.find(x => norm(x.nome) === norm(sez))?.separata ? `<i class="tag">a parte</i>` : ""}
               ${perBambini(sez) ? `<i class="tag bimbi">${c.bimbi || 0} bambini</i>` : ""}
-              <span>${righe.filter(r => (r.sezione || "Menu") === sez).length} portate ·
+              <span>${righe.filter(r => (r.sezione || "Menu") === sez).length} ${eBevanda(sez) ? "bevande" : "portate"} ·
                 ${euro(righe.filter(r => (r.sezione || "Menu") === sez).reduce((s, r) => s + (Number(r.prezzo) || 0), 0))} a persona
                 ${catDiSezione(sez) ? "· propone solo questa categoria" : "· propone tutto il ricettario"}</span></div>
             ${righe.map((r, i) => (r.sezione || "Menu") !== sez ? "" : rigaPortata(r, i)).join("")}
