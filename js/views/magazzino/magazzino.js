@@ -70,6 +70,13 @@ async function conservatiAlVolo(azienda) {
       ${righe || `<div style="padding:12px;color:#64748b;font-size:13.5px;">Niente in giacenza: quello che metti via con l'etichetta veloce compare qui.</div>`}
     </div>
     <div style="font-size:12px;color:#64748b;margin-top:6px;">🖨 ristampa · ✓ usato · 🍽 pasto del personale · ❄️ abbatti in negativo (nuova etichetta, 180 gg) · 🗑 buttato</div>`;
+  box.querySelectorAll("[data-ristampa]").forEach((b) => b.addEventListener("click", async () => {
+    b.disabled = true;
+    try {
+      const mod = await import("../../components/etichetta-veloce.js?v=" + (window.APP_V || 1));
+      await mod.ristampaEtichettaVeloce(b.dataset.ristampa);
+    } finally { b.disabled = false; }
+  }));
   box.querySelectorAll("[data-esito]").forEach((b) => b.addEventListener("click", async () => {
     if (b.dataset.esito === "buttato" && !confirm("Lo segno come buttato? Finisce negli sprechi.")) return;
     b.disabled = true;
