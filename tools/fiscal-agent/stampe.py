@@ -355,8 +355,33 @@ def elabora(riga):
             time.sleep(1)
 
 
+def _rete_locale():
+    """Primi tre numeri dell'indirizzo di questo ponte (es. 192.168.0), o None se non si legge."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip.rsplit(".", 1)[0]
+    except Exception:
+        return None
+
+
+def _mia(riga):
+    """Un ponte prende solo le stampe per stampanti che raggiunge: stessa rete locale, oppure
+    nell'elenco RISTOFLOW_STAMPANTI. Cosi' con due ponti (uno per rete) una comanda non finisce
+    al ponte che non vede la stampante e non si brucia i tentativi."""
+    ip = str(riga.get("stampante_ip") or "").strip()
+    if not ip or ip in agent.STAMPANTI:
+        return True
+    rete = _rete_locale()
+    if not rete:
+        return True
+    return ip.rsplit(".", 1)[0] == rete
+
+
 def ciclo_una_volta():
-    righe = agent.sb_get(query_in_attesa())
-    for riga in righe:
+    proprie = [r for r in agent.sb_get(query_in_attesa(50)) if _mia(r)]
+    for riga in proprie[:10]:
         elabora(riga)
-    return len(righe)
+    return 10 if len(proprie) > 10 else len(proprie)
