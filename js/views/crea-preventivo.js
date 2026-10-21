@@ -439,6 +439,13 @@ function disegna(container, supabase, azienda, sede) {
               <option value="buffet"${P.formula_servizio === "buffet" ? " selected" : ""}>Al buffet</option>
             </select>
           </div>
+          ${sediAz.length > 1 ? `
+          <div>
+            <label>Intestazione del documento (logo)</label>
+            <select class="in" data-campo="sede_uuid">
+              ${sediAz.map(x => `<option value="${esc(x.id)}"${String(P.sede_uuid || sede?.id || "") === String(x.id) ? " selected" : ""}>${esc(x.nome)}${x.logo_url ? "" : " · logo dell'azienda"}</option>`).join("")}
+            </select>
+          </div>` : ""}
           ${campo("Festeggiato", "nome_festeggiato")}
           ${campo("Data", "data_evento", "date")}
           ${campo("Ora", "ora_evento", "time")}
