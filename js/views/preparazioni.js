@@ -4055,7 +4055,7 @@ function firmaFasiContinue() {
   }
   if (!match) { alert("Inserisci prima il PIN operatore in alto ❌"); return; }
 
-  targets.forEach((idx) => applicaFirmaAIdx(idx, match));
+  targets.forEach((idx) => { applicaFirmaAIdx(idx, match); autoFirmaRiposi(idx, match); });
   renderFasiHaccp();
   aggiornaAbilitazioneStampe();
 }
