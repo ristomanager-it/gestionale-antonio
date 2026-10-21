@@ -1187,6 +1187,8 @@ async function salva(container, supabase, azienda, sede) {
     sconto_perc: Number(P.sconto_perc) || 0, sconto_euro: Number(P.sconto_euro) || 0,
     subtotale_menu: c.menu, subtotale_extra: c.serviziTot,
     costo_stimato: c.costoMenu, totale: c.totale, acconto: c.acconto,
+    personale_figure: Array.isArray(P.personale_figure) ? P.personale_figure : null,
+    costo_lavoro: c.costoPersonale,
     giorni_validita: Number(P.giorni_validita) || 15,
     // la scadenza si ricalcola dalla creazione: cambiando i giorni si sposta
     scadenza_il: new Date(
