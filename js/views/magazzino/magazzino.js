@@ -38,7 +38,76 @@ export async function render(container) {
 /* Conservati al volo: quello che e' stato messo via con l'etichetta veloce
    (mezzo pomodoro, una salsa avanzata...). Resta qui finche' non si segna usato o buttato;
    i primi della lista sono quelli che scadono prima. */
-async function conservatiAlVolo(azienda) {
+async function conservatiAlVolo(azienda, filtroIniz = "") {
+  const box = document.getElementById("rf-conservati");
+  const sb = window.supabaseClient || window.supabase;
+  if (!box || !sb) return;
+  const { data } = await sb.from("etichette_veloci").select("id, codice, cosa, conservazione, data_scadenza, operatore_nome, created_at, lotto_origine, scadenza_origine, quantita, unita")
+    .eq("azienda_id", azienda.id).is("esito", null).order("data_scadenza", { ascending: true }).limit(200);
+  const tutti = data || [];
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const it = (d) => new Date(d + "T00:00:00").toLocaleDateString("it-IT");
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const riga = (r) => {
+    const sc = r.data_scadenza ? new Date(r.data_scadenza + "T00:00:00") : null;
+    const gg = sc ? Math.round((sc - oggi) / 86400000) : null;
+    const col = gg === null ? "#64748b" : gg < 0 ? "#b91c1c" : gg <= 1 ? "#c2410c" : "#166534";
+    const quando = gg === null ? "" : gg < 0 ? "SCADUTO" : gg === 0 ? "scade oggi" : gg === 1 ? "scade domani" : "scade il " + sc.toLocaleDateString("it-IT");
+    return `<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid #eef2f7;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;">${esc(r.cosa)}${Number(r.quantita) > 0 ? " · " + esc(String(r.quantita).replace(".", ",")) + " " + esc(r.unita || "") : ""}</div>
+        <div style="font-size:12.5px;color:#64748b;">${esc(r.conservazione || "")} · ${esc(r.codice)}${r.operatore_nome ? " · " + esc(r.operatore_nome) : ""}</div>
+        ${r.lotto_origine ? `<div style="font-size:12.5px;color:#475569;">Lotto <b>${esc(r.lotto_origine)}</b>${r.scadenza_origine ? " · pezzo intero scade il <b>" + it(r.scadenza_origine) + "</b>" : ""}</div>` : ""}
+        <div style="font-size:12.5px;font-weight:800;color:${col};">${quando}</div>
+      </div>
+      <button type="button" data-ristampa="${r.id}" title="Ristampa l'etichetta" style="border:0;border-radius:10px;padding:8px 9px;background:#f1f5f9;font-weight:800;">🖨</button>
+      <button type="button" data-esito="usato" data-id="${r.id}" title="Usato" style="border:0;border-radius:10px;padding:8px 9px;background:#dcfce7;color:#166534;font-weight:800;">✓</button>
+      <button type="button" data-esito="pasto" data-id="${r.id}" title="Pasto del personale" style="border:0;border-radius:10px;padding:8px 9px;background:#e0f2fe;font-weight:800;">🍽</button>
+      <button type="button" data-esito="congelato" data-id="${r.id}" data-nome="${esc(r.cosa)}" title="Abbatti in negativo" style="border:0;border-radius:10px;padding:8px 9px;background:#ede9fe;font-weight:800;">❄️</button>
+      <button type="button" data-esito="buttato" data-id="${r.id}" title="Buttato" style="border:0;border-radius:10px;padding:8px 9px;background:#fee2e2;color:#b91c1c;font-weight:800;">🗑</button>
+    </div>`;
+  };
+  box.innerHTML = `
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px;">🏷 Conservati al volo <span id="rf-cv-n" style="font-weight:600;color:#64748b;font-size:13px;"></span></div>
+    <input id="rf-cv-cerca" type="search" autocomplete="off" placeholder="🔎 Cerca: nome, lotto, chi l'ha fatto…" value="${esc(filtroIniz)}" style="width:100%;box-sizing:border-box;font-size:16px;padding:11px 12px;border:1.5px solid #e2e8f0;border-radius:12px;margin-bottom:8px;background:#fff;">
+    <div id="rf-cv-lista" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;"></div>
+    <div style="font-size:12px;color:#64748b;margin-top:6px;">🖨 ristampa · ✓ usato · 🍽 pasto del personale · ❄️ abbatti in negativo (nuova etichetta, 180 gg) · 🗑 buttato</div>`;
+  const lista = box.querySelector("#rf-cv-lista"), cerca = box.querySelector("#rf-cv-cerca"), nEl = box.querySelector("#rf-cv-n");
+  const disegna = () => {
+    const parole = cerca.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const vis = tutti.filter((r) => { const t = [r.cosa, r.codice, r.operatore_nome, r.conservazione, r.lotto_origine].join(" ").toLowerCase(); return parole.every((w) => t.includes(w)); });
+    nEl.textContent = `(${vis.length}${vis.length !== tutti.length ? " di " + tutti.length : ""})`;
+    lista.innerHTML = vis.map(riga).join("") || `<div style="padding:12px;color:#64748b;font-size:13.5px;">${tutti.length ? "Nessun risultato." : "Niente in giacenza: quello che metti via con l'etichetta veloce compare qui."}</div>`;
+    lista.querySelectorAll("[data-ristampa]").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        const mod = await import("../../components/etichetta-veloce.js?v=" + (window.APP_V || 1));
+        await mod.ristampaEtichettaVeloce(b.dataset.ristampa);
+      } finally { b.disabled = false; }
+    }));
+    lista.querySelectorAll("[data-esito]").forEach((b) => b.addEventListener("click", async () => {
+      if (b.dataset.esito === "buttato" && !confirm("Lo segno come buttato? Finisce negli sprechi.")) return;
+      b.disabled = true;
+      if (b.dataset.esito === "congelato") {
+        // abbattuto in negativo: si chiude questo e si stampa l'etichetta nuova (-18 °C, 180 giorni)
+        await sb.from("etichette_veloci").update({ esito: "abbattuto", chiuso_at: new Date().toISOString(),
+          chiuso_da: window.state?.dipendente?.nome || null }).eq("id", b.dataset.id);
+        const m = await import("../../components/etichetta-veloce.js?v=" + (window.APP_V || 1));
+        m.apriEtichettaVeloce({ cosa: b.dataset.nome, cons: 2, dopo: () => conservatiAlVolo(azienda, cerca.value) });
+        conservatiAlVolo(azienda, cerca.value);
+        return;
+      }
+      const { error } = await sb.rpc("scadenza_esito", { p_tipo: "veloce", p_id: Number(b.dataset.id), p_esito: b.dataset.esito });
+      if (error) { alert("Non salvato: " + error.message); b.disabled = false; return; }
+      conservatiAlVolo(azienda, cerca.value);
+    }));
+  };
+  cerca.addEventListener("input", disegna);
+  disegna();
+}
+
+// versione precedente dell'elenco (non piu' usata)
+async function conservatiAlVoloVecchia(azienda) {
   const box = document.getElementById("rf-conservati");
   const sb = window.supabaseClient || window.supabase;
   if (!box || !sb) return;
