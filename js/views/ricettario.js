@@ -578,6 +578,13 @@ function renderRicetteList() {
     });
   });
 
+  box.querySelectorAll("[data-vedi-ricetta]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      apriVediRicetta(btn.dataset.vediRicetta);
+    });
+  });
+
   box.querySelectorAll("[data-edit-ricetta]").forEach(btn => {
     btn.addEventListener("click", e => {
       e.stopPropagation();
