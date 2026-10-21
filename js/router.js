@@ -1311,7 +1311,7 @@ async function loadPianoForAzienda(azienda) {
 async function loadSediForAzienda(aziendaId) {
   const { data, error } = await supabase
     .from("sedi")
-    .select("id, nome, indirizzo, latitudine, longitudine, raggio_geofence_m")
+    .select("id, nome, indirizzo, latitudine, longitudine, raggio_geofence_m, logo_url")
     .eq("azienda_id", aziendaId)
     .order("nome", { ascending: true });
 
