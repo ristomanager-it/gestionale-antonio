@@ -255,4 +255,40 @@ export async function apriEtichettaVeloce(pre = {}) {
   };
 }
 
+// 🖨 Ristampa: stessa etichetta di prima (stessa scadenza, stesso lotto d'origine, stessa firma), anche in altre copie
+export async function ristampaEtichettaVeloce(id, dopo) {
+  const sb = window.supabaseClient || window.supabase;
+  const az = window.state?.azienda?.id;
+  if (!sb || !az) return;
+  const { data: r } = await sb.from("etichette_veloci").select("*").eq("id", id).maybeSingle();
+  if (!r) return alert("Etichetta non trovata.");
+  const c = CONSERVAZIONI.find((x) => x.t === r.conservazione);
+  const risp = prompt(`Quante copie di "${r.cosa}"?`, String(r.copie || 1));
+  if (risp === null) return;
+  const copie = Math.max(1, Math.floor(Number(risp) || 1));
+  const formato = await scegliFormatoEtichetta();
+  if (!formato) return;
+  const { data: produttore } = await sb.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", az).limit(1).maybeSingle();
+  let origineTxt = null;
+  if (r.lotto_fornitore_id) {
+    const { data: lf } = await sb.from("lotti_fornitore").select("letto_da").eq("id", r.lotto_fornitore_id).maybeSingle();
+    origineTxt = lf?.letto_da?.origine || null;
+  }
+  const qv = Number(r.quantita) || 0, um = r.unita;
+  const peso = qv > 0 && (um === "g" || um === "kg") ? Math.round(um === "kg" ? qv * 1000 : qv) : null;
+  const nomeEt = r.cosa + (qv > 0 && !peso ? " · " + String(qv).replace(".", ",") + " " + um : "");
+  const all = Array.isArray(r.allergeni) && r.allergeni.length ? r.allergeni : null;
+  const esito = await inviaEtichetteLotto({
+    etichetta: { denominazione: nomeEt, ingredienti: null, origine: origineTxt, titolo_grande: 1.4, allergeni: all,
+                 conservazione: c ? c.testo : r.conservazione, confermata: true },
+    produttore: produttore || {}, info: { codice_lotto: r.lotto_origine || null, data_scadenza: r.data_scadenza, operatore: r.operatore_nome, destinazione: r.destinazione || null },
+    peso, copie, formato,
+  });
+  if (esito.motivo === "troppo_lungo") return alert("Il testo non entra nell'etichetta: allunga l'etichetta.");
+  if (!esito.ok) return alert("Errore invio etichetta: " + esito.motivo);
+  alert(`🏷 ${copie} ${copie === 1 ? "etichetta inviata" : "etichette inviate"} alla Brother.`);
+  try { dopo && dopo(); } catch (_) {}
+}
+
 window.apriEtichettaVeloce = apriEtichettaVeloce;
+window.ristampaEtichettaVeloce = ristampaEtichettaVeloce;
