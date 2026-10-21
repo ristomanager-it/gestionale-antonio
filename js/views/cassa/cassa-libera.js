@@ -57,15 +57,18 @@ export async function renderCassaLibera(container, azienda) {
 
   // --- Carico prodotti di vendita + categorie (con aliquota IVA) ---
   try {
-    const [pRes, cRes] = await Promise.all([
-      supabase.from('prodotti_vendita')
-        .select('id, nome, prezzo_base, iva, categoria_vendita_id')
-        .eq('azienda_id', aziendaId).eq('attivo', true).eq('disponibile', true)
-        .order('nome'),
-      supabase.from('categorie_vendita')
-        .select('id, nome, aliquota_iva')
-        .eq('azienda_id', aziendaId).order('nome'),
-    ]);
+    // Solo prodotti e categorie della sede in cui si e': prima uscivano tutte le sedi insieme, con le categorie doppie
+    let qProdotti = supabase.from('prodotti_vendita')
+      .select('id, nome, prezzo_base, iva, categoria_vendita_id')
+      .eq('azienda_id', aziendaId).eq('attivo', true).eq('disponibile', true);
+    let qCategorie = supabase.from('categorie_vendita')
+      .select('id, nome, aliquota_iva')
+      .eq('azienda_id', aziendaId);
+    if (sedeId) {
+      qProdotti = qProdotti.or('sede_id.eq.' + sedeId + ',sede_id.is.null');
+      qCategorie = qCategorie.eq('sede_id', sedeId);
+    }
+    const [pRes, cRes] = await Promise.all([qProdotti.order('nome'), qCategorie.order('nome')]);
     prodotti = pRes.data || [];
     categorie = cRes.data || [];
   } catch (e) {
