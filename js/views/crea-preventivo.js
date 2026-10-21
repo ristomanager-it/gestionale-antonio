@@ -272,6 +272,19 @@ function sezioniConsigliate() {
   return extra.filter(x => !gia.has(norm(x.nome)));
 }
 
+// regola della sezione: quota di porzione intera per persona (0,7 = il 70% della porzione del ristorante;
+// per il vino 0,33 = una bottiglia ogni 3). Si applica da sola alle righe nuove della sezione.
+function ppSezione(sez) {
+  const v = Number(sezioniInfo.find(x => norm(x.nome) === norm(sez))?.pp_default);
+  return v > 0 ? v : null;
+}
+function leggiPp(txt) {
+  const v = String(txt).trim().replace(",", ".");
+  let n = null;
+  if (v.includes("/")) { const [a, b] = v.split("/").map(Number); n = b ? a / b : null; }
+  else if (v !== "") n = Number(v);
+  return n > 0 ? n : null;
+}
 function perBambini(sez) {
   return Boolean(sezioniInfo.find(x => norm(x.nome) === norm(sez))?.per_bambini);
 }
