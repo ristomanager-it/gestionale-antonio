@@ -834,6 +834,21 @@ function aggancia(container, supabase, azienda, sede) {
       ri();
     });
   });
+  container.querySelectorAll("[data-ppsez]").forEach(el => {
+    el.addEventListener("change", async () => {
+      const sez = el.dataset.ppsez;
+      const n = leggiPp(el.value);
+      const info = sezioniInfo.find(x => norm(x.nome) === norm(sez));
+      if (info) info.pp_default = n;
+      righe.forEach(r => { if ((r.sezione || "Menu") === sez && r.pp == null && n != null) r.pp = n; });
+      if (info) {
+        const { error } = await supabase.from("sezioni_menu").update({ pp_default: n, pp_fonte: "manuale" })
+          .eq("azienda_id", azienda.id).eq("nome", info.nome);
+        if (error) msg(container, "Non sono riuscito a ricordare la regola della sezione: " + error.message, true);
+      }
+      ri();
+    });
+  });
   container.querySelectorAll("[data-pp]").forEach(el => {
     el.addEventListener("change", () => {
       const v = String(el.value).trim().replace(",", ".");
