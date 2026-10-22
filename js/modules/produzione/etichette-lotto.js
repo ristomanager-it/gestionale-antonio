@@ -129,9 +129,12 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   if (etichetta.origine) pezzi.push({ b: "Origine:", t: etichetta.origine });
   if (etichetta.peso_sgocciolato_g) pezzi.push({ b: "Sgocciolato:", t: etichetta.peso_sgocciolato_g + " g" });
   // conservazione e dopo apertura: due frasi, col punto in mezzo anche se nella scheda manca
-  const cons = [etichetta.conservazione, etichetta.dopo_apertura, etichetta.istruzioni_uso].map(t => String(t || "").trim()).filter(Boolean)
+  const cons = [etichetta.conservazione, etichetta.dopo_apertura].map(t => String(t || "").trim()).filter(Boolean)
     .map(t => /[.!?]$/.test(t) ? t : t + ".").join(" ");
   if (cons) pezzi.push({ b: "", t: cons });
+  // le note in etichetta (es. "tenerlo vicino a una fonte di calore") vanno in grassetto, su una riga a parte
+  const notaEt = String(etichetta.istruzioni_uso || "").trim();
+  if (notaEt) pezzi.push({ b: "", t: /[.!?]$/.test(notaEt) ? notaEt : notaEt + ".", grassetto: true });
 
   // titolo_grande: nome piu' grande (etichetta veloce); se non entra si torna alla misura normale
   let grande = Number(etichetta.titolo_grande) > 1 ? Number(etichetta.titolo_grande) : 1;
