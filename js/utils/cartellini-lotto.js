@@ -69,14 +69,18 @@ export function montaCartellini(box, { lotto }) {
     elSchede.innerHTML = `<div class="ct-nota">🔎 Tony legge ${files.length} ${files.length === 1 ? "cartellino" : "cartellini"}…</div>`;
     const { data: ing } = await sb().from("ricetta_ingredienti").select("prodotto_id, nome_prodotto").eq("ricetta_id", r.ricetta_id).not("prodotto_id", "is", null);
     const { data: { session } } = await sb().auth.getSession();
-    letti = await Promise.all(files.map(async (f) => {
+    // una foto = un cartellino; con "stesso prodotto" tutte le foto sono lette insieme (nome e scadenza possono stare su lati diversi)
+    const gruppo = box.querySelector("#ct-stesso")?.checked && files.length > 1;
+    const leggiGruppo = async (fs) => {
       try {
-        const { blob, b64 } = await riduci(f);
-        const percorso = `lotti-fornitore/${az}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
-        const up = sb().storage.from("media-aziende").upload(percorso, blob, { upsert: false, cacheControl: "31536000", contentType: "image/jpeg" })
-          .then(({ error }) => error ? "" : sb().storage.from("media-aziende").getPublicUrl(percorso).data?.publicUrl || "").catch(() => "");
+        const rid = await Promise.all(fs.map((f) => riduci(f)));
+        const ups = rid.map(({ blob }) => {
+          const percorso = `lotti-fornitore/${az}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+          return sb().storage.from("media-aziende").upload(percorso, blob, { upsert: false, cacheControl: "31536000", contentType: "image/jpeg" })
+            .then(({ error }) => error ? "" : sb().storage.from("media-aziende").getPublicUrl(percorso).data?.publicUrl || "").catch(() => "");
+        });
         const res = await fetch(URL_EF, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session?.access_token || "") },
-          body: JSON.stringify({ azienda_id: az, immagine_base64: b64, mime: "image/jpeg" }) });
+          body: JSON.stringify({ azienda_id: az, immagini: rid.map((x) => ({ base64: x.b64, mime: "image/jpeg" })) }) });
         const d = await res.json();
         // etichetta NOSTRA (ragu', besciamella... fatti da noi): il lotto e' un lotto interno, si lega quello
         let interno = null;
