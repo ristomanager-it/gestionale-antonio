@@ -2074,20 +2074,23 @@ function recalcResaUI() {
 }
 
 function getResaTeoricaKg() {
-  // Override manuale: se il campo contiene un numero digitato dall'utente, ha priorità
-  const el = document.getElementById("resa-teorica");
-  if (el && el.dataset.manuale === "1") {
-    const n = parseFloat((el.value || "").toString().replace(",", ".").replace(/[^0-9.]/g, ""));
-    if (Number.isFinite(n) && n > 0) return n;
-  }
+  // la resa teorica non si scrive piu': e' quella della ricetta, affinata con la media dei lotti (se ce ne sono almeno 3)
   if (!ricettaSelezionata) return null;
   if (ricettaSelezionata.resa_teorica == null) return null;
 
   const v = toNumber(ricettaSelezionata.resa_teorica);
   const u = (ricettaSelezionata.resa_unita || "kg").toString().toLowerCase().trim();
 
-  if (u === "g" || u === "gr" || u === "grammi") return v / 1000;
-  return v;
+  const kg = (u === "g" || u === "gr" || u === "grammi") ? v / 1000 : v;
+  const f = Number(ricettaSelezionata.fattore_resa) > 0 && Number(ricettaSelezionata.fattore_n) >= 3 ? Number(ricettaSelezionata.fattore_resa) : 1;
+  return kg * f;
+}
+
+// peso atteso di questo lotto = quello calcolato dalle dosi usate (Planning o "Quanto ne devo fare"): serve a misurare la resa vera
+function resaAttesaKg() {
+  const s = window.__rfScalaResa;
+  if (!s || !(s.kg > 0) || !ricettaSelezionata?.id) return null;
+  return s.ricetta == null || String(s.ricetta) === String(ricettaSelezionata.id) ? s.kg : null;
 }
 
 function getPesoRealeKg() {
