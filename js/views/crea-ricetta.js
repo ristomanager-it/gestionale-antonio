@@ -6217,6 +6217,7 @@ function renderEtichetta(box, et) {
       tmc_dicitura: document.getElementById("et-tmc").value,
       conservazione: document.getElementById("et-cons").value.trim() || null,
       dopo_apertura: document.getElementById("et-apert").value.trim() || null,
+      istruzioni_uso: document.getElementById("et-note").value.trim() || null,
       confermata: document.getElementById("et-conferma").checked,
     };
     if (!rec.denominazione || !rec.ingredienti) { esito("Servono denominazione e ingredienti", false); return; }
