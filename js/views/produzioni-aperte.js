@@ -43,7 +43,7 @@ export async function render(app) {
           </div>
           <div>
             <label style="font-size:12px;color:#64748b;">PIN operatore (opz.)</label>
-            <input id="pa-pin" class="input" type="password" inputmode="numeric" placeholder="PIN" style="width:100%;box-sizing:border-box;">
+            <input id="pa-pin" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="PIN" style="width:100%;box-sizing:border-box;-webkit-text-security:disc;">
           </div>
         </div>
         <div style="margin-top:10px;">
