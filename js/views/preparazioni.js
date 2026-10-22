@@ -6028,6 +6028,8 @@ function renderComeDeveVenire(ric) {
 let stampoOggi = null;
 
 function mostraEsitoScala(esito, data, testoExtra) {
+  // ricordo il peso atteso delle dosi calcolate: a fine lavorazione, confrontato col peso reale, da' la resa vera
+  if (Number(data?.resa_kg) > 0) window.__rfScalaResa = { ricetta: ricettaSelezionata?.id ?? null, kg: Number(data.resa_kg) };
   if (!esito) return;
   const righe = (data.ingredienti || []).map((r) =>
     '<tr><td style="padding:4px 0;font-size:13px;">' + escapeHtml(r.ingrediente) + '</td>'
