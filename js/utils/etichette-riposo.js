@@ -201,6 +201,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
       <div class="et-cosa">${esc(d.r.ricette?.nome || "")}</div>
       <div class="et-fase">${esc(f.nome_fase)}${f.temperatura ? ` · ${esc(f.temperatura)} °C` : ""}</div>
       <div class="et-riga"><span>Lotto</span><b>${esc(d.r.codice_lotto)}</b></div>
+      ${per ? `<div class="et-riga"><span>Per</span><b>${esc(per)}</b></div>` : ""}
       <div class="et-riga"><span>Inizio</span><b>${esc(leggibile(p.ini))}</b></div>
       ${p.fine ? `<div class="et-pronto"><span>PRONTO</span><b>${esc(leggibile(p.fine))}</b><small>dopo ${esc(durataTesto(p.min))}</small></div>` : ""}
       ${dopo ? `<div class="et-poi">Poi: <b>${esc(dopo.nome_fase)}</b></div>` : ""}</div>`;
