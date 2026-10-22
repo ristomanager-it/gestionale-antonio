@@ -262,9 +262,9 @@ export async function render(container) {
         body: `
           <div class="form-grid">
             <div class="form-group">
-              <label>Resa teorica batch base</label>
-              <input id="resa-teorica" class="input" type="number" min="0" step="0.001" placeholder="Es: 10,000" ${savedLotto ? "readonly" : ""} />
-              <div class="form-help">Precompilata dalla ricetta; puoi correggerla a mano. Serve per il moltiplicatore e lo scarico ingredienti.</div>
+              <label>Resa teorica (media dei lotti)</label>
+              <input id="resa-teorica" class="input" type="number" min="0" step="0.001" placeholder="—" readonly />
+              <div class="form-help">Non si scrive: parte dalla resa della ricetta e si affina con la media dei lotti già fatti. Serve per il moltiplicatore e lo scarico ingredienti.</div>
             </div>
 
             <div id="peso-casa"><div id="peso-blocco" class="form-group">
