@@ -90,9 +90,11 @@ export function montaCartellini(box, { lotto }) {
             .eq("azienda_id", az).ilike("codice_lotto", cod).neq("id", r.id).limit(1);
           if (li?.[0]) interno = { ...li[0], nome: li[0].ricette?.nome || "" };
         }
-        return { letto: d.letto || {}, candidati: d.candidati || [], interno, foto_url: await up, errore: res.ok ? "" : (d.errore || "non letto") };
-      } catch (err) { return { letto: {}, candidati: [], foto_url: "", errore: String(err?.message || err) }; }
-    }));
+        const urls = (await Promise.all(ups)).filter(Boolean);
+        return { letto: d.letto || {}, candidati: d.candidati || [], interno, foto_url: urls[0] || "", foto_urls: urls, errore: res.ok ? "" : (d.errore || "non letto") };
+      } catch (err) { return { letto: {}, candidati: [], foto_url: "", foto_urls: [], errore: String(err?.message || err) }; }
+    };
+    letti = gruppo ? [await leggiGruppo(files)] : await Promise.all(files.map((f) => leggiGruppo([f])));
     disegnaSchede(r, ing || []);
   });
 
