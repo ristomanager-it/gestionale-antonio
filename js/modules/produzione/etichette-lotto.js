@@ -119,7 +119,11 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
   // --- alto: nome e peso, poi ingredienti, allergeni, origine, conservazione
   const allerg = Array.isArray(etichetta.allergeni) ? etichetta.allergeni.filter(Boolean) : [];
   const pezzi = [];
-  if (etichetta.ingredienti) pezzi.push({ b: "Ingredienti:", t: etichetta.ingredienti });
+  // sull'etichetta mai pesi o formati di confezione (kg1, gr1000, 200 g...)
+  const senzaPesi = (t) => String(t || "").replace(/\s*\*\s*\d+/g, "").replace(/\s*@\s*\d+([.,]\d+)?/g, "")
+    .replace(/\s+(kg|gr|g|lt|l|ml|cl)\.?\s*\d+([.,]\d+)?(?![\w])/gi, "")
+    .replace(/\s+\d+([.,]\d+)?\s*(kg|gr|g|lt|l|ml|cl)(?![\w])\.?/gi, "").replace(/\s{2,}/g, " ").replace(/\s+,/g, ",").trim();
+  if (etichetta.ingredienti) pezzi.push({ b: "Ingredienti:", t: senzaPesi(etichetta.ingredienti) });
   // allergeni === null: non dichiarati (etichetta veloce senza scelta) -> la riga non si stampa
   if (etichetta.allergeni !== null) pezzi.push({ b: "Allergeni:", t: allerg.length ? allerg.join(", ") : "nessuno", rosso: allerg.length > 0 });
   if (etichetta.origine) pezzi.push({ b: "Origine:", t: etichetta.origine });
