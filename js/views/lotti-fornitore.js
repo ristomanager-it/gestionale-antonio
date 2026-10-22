@@ -238,5 +238,10 @@ function stile() {
   .lf-ft{font-size:12px;color:#0E5A7A;font-weight:700;}
   .lf-fin{margin-top:8px;border:0;background:#f1f5f9;border-radius:9px;padding:7px 12px;font-weight:700;cursor:pointer;font-size:13px;}
   .lf-vuoto{color:#64748b;text-align:center;padding:24px;}
+  .lf-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .lf-th{position:relative;}
+  .lf-th img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0;display:block;}
+  .lf-th button{position:absolute;top:-6px;right:-6px;border:0;background:#b91c1c;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;}
+  .lf-lbl{display:inline-block;text-align:center;cursor:pointer;box-sizing:border-box;}
   </style>`;
 }
