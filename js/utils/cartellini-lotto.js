@@ -112,7 +112,8 @@ export function montaCartellini(box, { lotto }) {
       const opz = [...ing.map((x) => ({ id: x.prodotto_id, nome: x.nome_prodotto, ric: true })), ...c.candidati.filter((x) => !ing.some((y) => y.prodotto_id === x.id))];
       const pre = opz.find((o) => c.candidati[0] && o.id === c.candidati[0].id) || (ing.length === 1 ? opz[0] : null);
       return `<div class="ct-scheda" data-i="${i}">
-        ${c.foto_url ? `<img class="ct-mini" src="${esc(c.foto_url)}" alt="">` : ""}
+        <div class="ct-thumbs">${(c.foto_urls?.length ? c.foto_urls : (c.foto_url ? [c.foto_url] : [])).map((u) => `<img class="ct-mini" src="${esc(u)}" alt="">`).join("")}</div>
+        <label class="ct-addfoto">➕ Aggiungi un'altra foto di questo prodotto<input type="file" accept="image/*" capture="environment" hidden data-aggiungi="${i}"></label>
         ${c.errore ? `<div class="ct-avviso">Lettura non riuscita: compila a mano.</div>` : `<div class="ct-r3">Letto: <b>${esc(L.prodotto || "—")}</b>${L.produttore ? " · " + esc(L.produttore) : ""}</div>`}
         ${L.dubbi ? `<div class="ct-r3" style="color:#b45309">⚠ ${esc(L.dubbi)}</div>` : ""}
         <label>Prodotto<select class="ct-in" data-k="prodotto">${opz.map((o) => `<option value="${o.id}" ${pre && o.id === pre.id ? "selected" : ""}>${o.ric ? "★ " : ""}${esc(o.nome)}</option>`).join("")}<option value="" ${pre ? "" : "selected"}>— scegli —</option></select></label>
