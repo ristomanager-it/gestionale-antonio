@@ -2804,7 +2804,7 @@ async function loadFasiHaccp(ricettaId, stadioDa, stadioA) {
 
   let q = supabase
     .from("ricette_preparazione_fasi")
-    .select("id, ordine, stadio, nome_fase, tipo_fase, descrizione_operativa, tecnologia, temperatura, durata_min, dispositivo_id, momento, giorni_prima, giorno_settimana")
+    .select("id, ordine, stadio, nome_fase, tipo_fase, descrizione_operativa, tecnologia, temperatura, durata_min, dispositivo_id, momento, giorni_prima, giorno_settimana, riposo")
     .eq("ricetta_id", ricettaId)
     .eq("azienda_id", aziendaId)
     .gte("stadio", da)
