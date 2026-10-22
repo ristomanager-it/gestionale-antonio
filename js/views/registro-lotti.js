@@ -377,6 +377,7 @@ async function apriEditorEtichetta({ info, etichetta, card }) {
     </select>
     <label style="${lab}">Conservazione</label><input data-f="conservazione" style="${inp}" value="${v(et.conservazione)}" placeholder="Es. Conservare a -18 °C">
     <label style="${lab}">Dopo l'apertura (facoltativo)</label><input data-f="dopo_apertura" style="${inp}" value="${v(et.dopo_apertura)}">
+    <label style="${lab}">Note in etichetta (facoltativo)</label><input data-f="istruzioni_uso" style="${inp}" value="${v(et.istruzioni_uso)}" placeholder="Es. Consiglio: prima di consumarlo tenerlo vicino a una fonte di calore">
     <label style="${lab}">Origine (facoltativo)</label><input data-f="origine" style="${inp}" value="${v(et.origine)}" placeholder="Es. Italia">
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin-top:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;">
       <input data-conferma type="checkbox" ${etichetta?.id && etichetta.confermata !== false ? "checked" : ""} style="margin-top:2px;width:18px;height:18px;">
