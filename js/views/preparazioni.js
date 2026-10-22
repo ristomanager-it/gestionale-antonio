@@ -5104,6 +5104,8 @@ function schedaEtichettaRapida(esistente) {
         </div>
         <label style="font-size:12px;font-weight:700;">Conservazione</label>
         <input id="et-cons" class="input" style="width:100%;" value="${escapeAttr(esistente?.conservazione || "Conservare in frigorifero tra 0 e +4 °C")}">
+        <label style="font-size:12px;font-weight:700;display:block;margin-top:8px;">Note in etichetta (facoltativo)</label>
+        <input id="et-note" class="input" style="width:100%;" value="${escapeAttr(esistente?.istruzioni_uso || "")}" placeholder="Es. Consiglio: prima di consumarlo tenerlo vicino a una fonte di calore">
         <div style="display:flex;gap:8px;margin-top:14px;">
           <button type="button" data-no class="app-button gray" style="flex:1;">Annulla</button>
           <button type="button" data-si class="app-button" style="flex:2;">Salva e stampa 🏷</button>
