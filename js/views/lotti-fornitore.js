@@ -141,6 +141,8 @@ export async function render(app) {
       <label class="lf-lab">Prodotto dell'anagrafica</label>
       <select id="lf-prod" class="lf-in">${opz}<option value="">— nessuno di questi —</option></select>
       <input id="lf-prod-cerca" class="lf-in" placeholder="Non c'è? Cerca un altro prodotto" style="margin-top:6px;">
+      <label class="lf-lab">Foto della confezione</label>
+      <div id="lf-fotoscheda"></div>
       <div class="lf-g2">
         <div><label class="lf-lab">Lotto</label><input id="lf-lotto" class="lf-in lf-big" value="${esc(letto.lotto || "")}"></div>
         <div><label class="lf-lab">Scadenza</label><input id="lf-scad" type="date" class="lf-in" value="${esc(letto.scadenza || "")}"></div>
