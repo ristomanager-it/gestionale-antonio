@@ -154,7 +154,7 @@ export function disegnaEtichetta({ etichetta, produttore, info, peso, formato })
     pezzi.forEach(p => {
       // etichetta in grassetto e testo sulla stessa riga, a capo parola per parola
       const parole = (p.b ? p.b + " " : "").split(/\s+/).filter(Boolean).map(w => ({ w, bold: true, rosso: false }))
-        .concat(String(p.t).split(/\s+/).filter(Boolean).map(w => ({ w, bold: !!p.rosso, rosso: !!p.rosso })));
+        .concat(String(p.t).split(/\s+/).filter(Boolean).map(w => ({ w, bold: !!p.rosso || !!p.grassetto, rosso: !!p.rosso })));
       let x = ET_PAD;
       parole.forEach(o => {
         ctx.font = (o.bold ? "bold " : "") + fB + "px " + F;
