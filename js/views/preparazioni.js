@@ -3714,6 +3714,9 @@ function soloLaFase(container) {
       <button type="button" data-tutto style="border:0;border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.18);color:#fff;font-weight:700;">Scheda completa</button>
     </div>`;
   padre.insertBefore(banner, card);
+  // 📷 Fotografa i cartellini: in alto, subito sotto la lavorazione da fare, per quando si comincia
+  const cartellini = document.getElementById("card-cartellini");
+  if (cartellini) padre.insertBefore(cartellini, card);
   mostraDaPrelevare(card).catch(() => {});
   aggiungiCalcoloDosi(banner).catch(() => {});
   avvisoGiacenzaAlternative().catch(() => {});
