@@ -4286,6 +4286,7 @@ async function aggiornaLottoAperto(manuale) {
     const pesoReale = getPesoRealeKg();
     const agg = {
       quantita_output: pesoReale || null,
+      ...(resaAttesaKg() ? { resa_attesa_kg: resaAttesaKg() } : {}),
       dettaglio_confezionamento: buildDettaglioConfezionamento(),
       ...(stampoOggi ? { stampo: stampoOggi } : {}),
       note: document.getElementById("prod-note-lotto")?.value || null,
