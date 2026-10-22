@@ -30,7 +30,7 @@ export async function render(app) {
   </div>`;
 
   const elScheda = app.querySelector("#lf-scheda");
-  app.querySelector("#lf-file").addEventListener("change", (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) leggiFoto(f); });
+  app.querySelector("#lf-file").addEventListener("change", (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) aggiungiFoto(f); });
   app.querySelector("#lf-mano").addEventListener("click", () => apriScheda({ letto: {}, candidati: [] }));
   app.querySelector("#lf-cerca").addEventListener("input", (e) => { cerca = e.target.value.toLowerCase(); disegna(); });
   app.querySelectorAll(".lf-tabs button").forEach((b) => b.addEventListener("click", async () => {
