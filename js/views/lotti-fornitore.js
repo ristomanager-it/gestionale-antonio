@@ -162,6 +162,19 @@ export async function render(app) {
       <div id="lf-esito" class="lf-err"></div>
     </div>`;
     const selProd = elScheda.querySelector("#lf-prod");
+    const boxFoto = elScheda.querySelector("#lf-fotoscheda");
+    function disegnaFotoScheda(caricando = false) {
+      boxFoto.innerHTML = `<div class="lf-thumbs">${fotoLotto.map((u, i) => `<div class="lf-th"><a href="${esc(u)}" target="_blank"><img src="${esc(u)}" alt=""></a><button type="button" data-rmf="${i}">✕</button></div>`).join("")}</div>
+        ${caricando ? `<div class="lf-leggo">Carico la foto…</div>` : (fotoLotto.length < 6 ? `<label class="lf-sec lf-lbl" style="margin-top:8px;">➕ Aggiungi foto<input id="lf-file3" type="file" accept="image/*" capture="environment" hidden></label>` : "")}`;
+      boxFoto.querySelector("#lf-file3")?.addEventListener("change", async (e) => {
+        const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+        disegnaFotoScheda(true);
+        try { const p = await preparaFoto(f); const u = await p.url; if (u) fotoLotto.push(u); } catch (err) { alert("Foto non riuscita: " + (err.message || err)); }
+        disegnaFotoScheda();
+      });
+      boxFoto.querySelectorAll("[data-rmf]").forEach((b) => b.addEventListener("click", () => { fotoLotto.splice(Number(b.dataset.rmf), 1); disegnaFotoScheda(); }));
+    }
+    disegnaFotoScheda();
     let timer;
     elScheda.querySelector("#lf-prod-cerca").addEventListener("input", (e) => {
       clearTimeout(timer);
