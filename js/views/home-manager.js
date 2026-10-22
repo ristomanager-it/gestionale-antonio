@@ -248,12 +248,15 @@ async function produzioniDelGiorno(supabase, aziendaId, giorno, sedeId) {
 }
 
 // Il planning di oggi: chi sta facendo cosa (in corso), cosa manca e quante sono fatte
-async function planningOggi(supabase, aziendaId, giorno) {
+async function planningOggi(supabase, aziendaId, giorno, sedeId) {
   const vuoto = { inCorso: [], daFare: [], fatte: 0 };
   if (!aziendaId) return vuoto;
-  const { data } = await supabase.from("produzioni_settimanali")
+  // solo il planning della sede in cui si e': prima uscivano anche le lavorazioni delle altre sedi
+  let q = supabase.from("produzioni_settimanali")
     .select("id, prodotto, lavorazione, stato, fascia, ora, iniziata_il, iniziata_da, dipendenti:dipendente_id(nome)")
     .eq("azienda_id", aziendaId).eq("data", giorno).limit(200);
+  if (sedeId) q = q.eq("sede_id", sedeId);
+  const { data } = await q;
   const ordF = { mattina: 1, pomeriggio: 2, sera: 3 };
   const righe = (data || []).map(r => ({
     id: r.id, stato: r.stato,
