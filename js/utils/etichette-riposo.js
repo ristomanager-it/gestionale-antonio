@@ -160,6 +160,9 @@ export function montaRiposi(vecchiaCard, { lotto }) {
         y += 42;
       };
       coppia("Lotto", d.r.codice_lotto);
+      // a chi va la lavorazione: l'evento (o piu' eventi insieme, es. "Battesimo di X + Matrimonio di Y") o la destinazione
+      const per = [d.r.evento_titolo, d.r.destinazione].map((t) => String(t || "").trim()).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i).join(" · ");
+      if (per) { testo("PER", "bold 24px " + F, 30); for (const r of righe(per, "bold 36px " + F)) testo(r, "bold 36px " + F, 42); y += 8; }
       coppia("Inizio", leggibile(p.ini));
       y += 6;
       if (p.fine) {
