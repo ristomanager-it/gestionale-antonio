@@ -5074,6 +5074,28 @@ const ALLERGENI_UE = ["glutine", "crostacei", "uova", "pesce", "arachidi", "soia
 
 /* Scheda etichetta di legge compilata al momento della stampa: denominazione, ingredienti,
    allergeni e conservazione, gia' proposti dalla ricetta. Salvata e confermata, vale per sempre. */
+// Nei testi di legge: nomi generici (uova, zucchero, farina di grano tenero...), mai marche o formati di confezione
+function nomeIngredienteGenerico(nome) {
+  const s = String(nome || "").trim().toLowerCase();
+  if (!s) return "";
+  const regole = [
+    [/^mix aromi/, "miele, vaniglia, scorza di arancia, scorza di limone"],
+    [/^(tuorl|uov|albume)/, "uova"],
+    [/^zucchero.*(canna|muscovado)/, "zucchero di canna"], [/^zucchero/, "zucchero"],
+    [/^burro/, "burro"],
+    [/hell[oò].*festa|mix festa/, "farina di grano tenero"],
+    [/^semola/, "semola di grano duro"], [/^farina/, "farina di grano tenero"],
+    [/^lievito madre/, "lievito madre"], [/^lievito.*birra/, "lievito di birra"], [/^lievito/, "lievito"],
+    [/^sale/, "sale"], [/^acqua/, "acqua"], [/^latte/, "latte"], [/^panna/, "panna"], [/^miele/, "miele"], [/^vaniglia/, "vaniglia"], [/^cacao/, "cacao amaro"],
+    [/(arancio|arancia).*candit/, "arancia candita"], [/^cedro.*candit/, "cedro candito"], [/uvetta|sultanin/, "uvetta"], [/pistacch/, "pistacchio"],
+    [/cioccolato bianco/, "cioccolato bianco"], [/^caff/, "caffè"], [/amaren/, "amarene"], [/moscato/, "Moscato di Pantelleria"], [/^albicocc/, "albicocche"],
+  ];
+  for (const [re, g] of regole) if (re.test(s)) return g;
+  return String(nome).replace(/\s*\*\s*\d+/g, "").replace(/\s*@\s*\d+([.,]\d+)?/g, "")
+    .replace(/\s+(kg|gr|g|lt|l|ml|cl)\.?\s*\d+([.,]\d+)?(?![\w])/gi, "")
+    .replace(/\s+\d+([.,]\d+)?\s*(kg|gr|g|lt|l|ml|cl)(?![\w])\.?/gi, "").replace(/\s{2,}/g, " ").trim();
+}
+
 function schedaEtichettaRapida(esistente) {
   return new Promise(async (risolvi) => {
     const supabase = window.supabaseClient || window.supabase;
