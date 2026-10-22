@@ -64,8 +64,14 @@ export function montaCartellini(box, { lotto }) {
   box.querySelector("input[type=file]").addEventListener("change", async (e) => {
     const files = [...e.target.files].slice(0, 8); e.target.value = "";
     if (!files.length) return;
-    const r = await rigaLotto();
-    if (!r) { alert("Prima apri la lavorazione (firma la prima fase o premi Registra), poi fotografa i cartellini."); return; }
+    let r = await rigaLotto();
+    if (!r && window.__rfAssicuraLotto) {
+      // all'inizio la lavorazione non e' ancora aperta: si apre da sola, come con la prima firma
+      elSchede.innerHTML = `<div class="ct-nota">Apro la lavorazione…</div>`;
+      await window.__rfAssicuraLotto();
+      r = await rigaLotto();
+    }
+    if (!r) { elSchede.innerHTML = ""; alert("Prima scegli la ricetta e apri la lavorazione (firma la prima fase o premi Registra), poi fotografa i cartellini."); return; }
     elSchede.innerHTML = `<div class="ct-nota">🔎 Tony legge ${files.length} ${files.length === 1 ? "cartellino" : "cartellini"}…</div>`;
     const { data: ing } = await sb().from("ricetta_ingredienti").select("prodotto_id, nome_prodotto").eq("ricetta_id", r.ricetta_id).not("prodotto_id", "is", null);
     const { data: { session } } = await sb().auth.getSession();
