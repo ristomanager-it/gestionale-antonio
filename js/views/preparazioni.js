@@ -294,7 +294,7 @@ export async function render(container) {
               <label>Moltiplicatore produzione</label>
               <input id="moltiplicatore" class="input" readonly />
               <div class="form-help">Moltiplica gli ingredienti per lo scarico magazzino.</div>
-              <div id="molt-avviso" style="display:none;margin-top:6px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600;">⚠️ Manca la resa della ricetta: il moltiplicatore resta 1×. Scrivi la <strong>resa teorica</strong> qui sopra per calcolarlo.</div>
+              <div id="molt-avviso" style="display:none;margin-top:6px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600;">⚠️ Per questa ricetta non c'è ancora una resa: il moltiplicatore resta 1× finché non si registrano lotti con le dosi.</div>
             </div>
           </div>
         `
