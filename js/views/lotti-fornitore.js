@@ -79,28 +79,61 @@ export async function render(app) {
     await carica();
   }
 
-  async function leggiFoto(file) {
-    elScheda.innerHTML = `<div class="lf-box"><div class="lf-leggo">🔎 Tony legge l'etichetta…</div></div>`;
+  // PIU' FOTO per lo stesso prodotto: nome e scadenza spesso stanno su lati diversi della confezione.
+  // Le foto restano come prova (tracciabilita') e in Preparazioni si potranno vedere quelle dei prodotti usati.
+  let foto = [];
+  async function preparaFoto(file) {
+    const img = await comprimiImmagine(file, { latoMax: 1600, forza: true });
+    const b64 = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = ko; r.readAsDataURL(img); });
+    const percorso = `lotti-fornitore/${az}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+    const url = sb().storage.from("media-aziende").upload(percorso, img, { upsert: false, cacheControl: "31536000", contentType: img.type || "image/jpeg" })
+      .then(({ error }) => error ? "" : sb().storage.from("media-aziende").getPublicUrl(percorso).data?.publicUrl || "").catch(() => "");
+    return { mime: img.type || "image/jpeg", b64, anteprima: URL.createObjectURL(img), url };
+  }
+
+  async function aggiungiFoto(file) {
+    elScheda.innerHTML = `<div class="lf-box"><div class="lf-leggo">📷 Preparo la foto…</div></div>`;
+    try { foto.push(await preparaFoto(file)); } catch (e) { alert("Foto non riuscita: " + (e.message || e)); }
+    disegnaRaccolta();
+  }
+
+  function disegnaRaccolta() {
+    if (!foto.length) { elScheda.innerHTML = ""; return; }
+    elScheda.innerHTML = `<div class="lf-box">
+      <div class="lf-letto"><b>${foto.length} ${foto.length === 1 ? "foto" : "foto"}</b> · se nome e scadenza stanno in punti diversi, aggiungi un'altra foto.</div>
+      <div class="lf-thumbs">${foto.map((f, i) => `<div class="lf-th"><img src="${f.anteprima}" alt=""><button type="button" data-rm="${i}">✕</button></div>`).join("")}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        ${foto.length < 4 ? `<label class="lf-sec lf-lbl">➕ Altra foto<input id="lf-file2" type="file" accept="image/*" capture="environment" hidden></label>` : ""}
+        <button id="lf-leggi" class="lf-pri" type="button">🔎 Leggi ${foto.length > 1 ? "le " + foto.length + " foto" : "la foto"}</button>
+      </div>
+      <button id="lf-ann-foto" class="lf-mano" type="button" style="margin-top:8px;">Annulla</button></div>`;
+    elScheda.querySelector("#lf-file2")?.addEventListener("change", (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) aggiungiFoto(f); });
+    elScheda.querySelector("#lf-leggi").addEventListener("click", leggiFoto);
+    elScheda.querySelector("#lf-ann-foto").addEventListener("click", () => { foto = []; elScheda.innerHTML = ""; });
+    elScheda.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => { foto.splice(Number(b.dataset.rm), 1); disegnaRaccolta(); }));
+  }
+
+  async function leggiFoto() {
+    const raccolte = foto.slice();
+    elScheda.innerHTML = `<div class="lf-box"><div class="lf-leggo">🔎 Tony legge ${raccolte.length > 1 ? "le " + raccolte.length + " foto" : "l'etichetta"}…</div></div>`;
     try {
-      const img = await comprimiImmagine(file, { latoMax: 1600, forza: true });
-      const b64 = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = ko; r.readAsDataURL(img); });
-      // la foto resta come prova (tracciabilita'), in parallelo alla lettura
-      const percorso = `lotti-fornitore/${az}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
-      const upload = sb().storage.from("media-aziende").upload(percorso, img, { upsert: false, cacheControl: "31536000", contentType: img.type || "image/jpeg" })
-        .then(({ error }) => error ? "" : sb().storage.from("media-aziende").getPublicUrl(percorso).data?.publicUrl || "").catch(() => "");
       const { data: { session } } = await sb().auth.getSession();
       const r = await fetch(URL_EF, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session?.access_token || "") },
-        body: JSON.stringify({ azienda_id: az, immagine_base64: b64, mime: img.type || "image/jpeg" }) });
+        body: JSON.stringify({ azienda_id: az, immagini: raccolte.map((f) => ({ base64: f.b64, mime: f.mime })) }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.errore || "lettura non riuscita");
-      d.foto_url = await upload;
+      d.foto_urls = (await Promise.all(raccolte.map((f) => f.url))).filter(Boolean);
+      foto = [];
       apriScheda(d);
     } catch (e) {
-      elScheda.innerHTML = `<div class="lf-box"><div class="lf-err">Non sono riuscito a leggere la foto (${esc(e.message || e)}). Riprova con più luce o inserisci a mano.</div></div>`;
+      elScheda.innerHTML = `<div class="lf-box"><div class="lf-err">Non sono riuscito a leggere (${esc(e.message || e)}). Riprova con più luce, aggiungi un'altra foto o inserisci a mano.</div>
+        <button id="lf-riprova" class="lf-mano" type="button" style="margin-top:8px;">↺ Riprova con queste foto</button></div>`;
+      elScheda.querySelector("#lf-riprova").addEventListener("click", disegnaRaccolta);
     }
   }
 
-  function apriScheda({ letto = {}, candidati = [], foto_url = "" }) {
+  function apriScheda({ letto = {}, candidati = [], foto_urls = [] }) {
+    const fotoLotto = foto_urls.slice();
     const opz = candidati.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join("");
     elScheda.innerHTML = `<div class="lf-box">
       ${letto.prodotto ? `<div class="lf-letto">Letto: <b>${esc(letto.prodotto)}</b>${letto.produttore ? " · " + esc(letto.produttore) : ""}</div>` : ""}
