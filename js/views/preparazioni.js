@@ -4024,7 +4024,7 @@ function autoFirmaRiposi(idxFirmata, match) {
   let k = idxFirmata + 1, n = 0;
   while (k < logHaccp.length && n < 4) {
     const log = logHaccp[k];
-    if (!fasiCache[k]?.riposo || !log || (Array.isArray(log.firme) && log.firme.length)) break;
+    if (!faseAutomatica(fasiCache[k]) || !log || (Array.isArray(log.firme) && log.firme.length)) break;
     const ora = new Date();
     log.firme = [{ operatore_id: match.id ?? null, operatore_nome: match.nome, firmato_il: ora.toISOString() }];
     applicaFirmePrincipale(log);
