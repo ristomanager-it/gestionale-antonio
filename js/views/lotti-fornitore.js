@@ -197,7 +197,7 @@ export async function render(app) {
         prodotto_id: Number(selProd.value), prodotto_letto: letto.prodotto || null, produttore: letto.produttore || null,
         lotto: v("#lf-lotto"), data_scadenza: v("#lf-scad") || null, tipo_data: v("#lf-tipo"),
         quantita: v("#lf-q") ? Number(v("#lf-q").replace(",", ".")) : null, unita: v("#lf-u") || null,
-        foto_url: foto_url || null, letto_da: Object.keys(letto).length ? letto : null,
+        foto_url: fotoLotto[0] || null, foto_urls: fotoLotto, letto_da: Object.keys(letto).length ? letto : null,
       });
       if (error) { esito.textContent = "Non salvato: " + error.message; ev.target.disabled = false; ev.target.textContent = "💾 Salva lotto"; return; }
       elScheda.innerHTML = `<div class="lf-box lf-ok">✓ Lotto salvato. Le prossime produzioni lo useranno in automatico.</div>`;
