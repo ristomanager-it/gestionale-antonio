@@ -634,6 +634,16 @@ async function preloadRicette() {
       });
     }
   } catch (e) { console.warn("Rese ricette non caricate (non bloccante):", e); }
+
+  // resa media dei lotti gia' fatti (peso reale / peso atteso): con almeno 3 lotti affina la resa teorica della ricetta
+  try {
+    const { data: medie } = await supabase.from("vw_resa_media_ricetta").select("ricetta_id, lotti, fattore_medio").gte("lotti", 3);
+    const mm = new Map((medie || []).map((m) => [String(m.ricetta_id), m]));
+    ricetteCache.forEach((r) => {
+      const m = mm.get(String(r.id));
+      if (m) { r.fattore_resa = Number(m.fattore_medio) || null; r.fattore_n = Number(m.lotti) || 0; }
+    });
+  } catch (e) { console.warn("Resa media dei lotti non caricata (non bloccante):", e); }
 }
 
 async function preloadDipendenti() {
