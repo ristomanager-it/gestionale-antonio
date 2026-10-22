@@ -21,7 +21,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
     const l = lotto?.();
     if (!l?.lotto_uuid) return null;
     if (!base || base.uuid !== l.lotto_uuid) {
-      const { data: r } = await sb().from("produzione_lotti").select("id, codice_lotto, ricetta_id, ricette(nome)").eq("lotto_uuid", l.lotto_uuid).maybeSingle();
+      const { data: r } = await sb().from("produzione_lotti").select("id, codice_lotto, ricetta_id, evento_titolo, destinazione, ricette(nome)").eq("lotto_uuid", l.lotto_uuid).maybeSingle();
       if (!r) return null;
       const [{ data: fasi }, { data: ing }, { data: ric }, { data: lp }] = await Promise.all([
         sb().from("ricette_preparazione_fasi").select("id, ordine, nome_fase, durata_min, temperatura, riposo").eq("ricetta_id", r.ricetta_id).order("ordine"),
