@@ -4378,6 +4378,7 @@ async function salvaProduzione(opzioni = {}) {
       data_produzione: dataProd,
       data_scadenza: scadenza,
       quantita_output: pesoReale || null,
+      resa_attesa_kg: resaAttesaKg(),
       unita_misura: "kg",
       scenario_conservazione_id: scenarioId,
       conservazione_libera: conservazioneLibera,
