@@ -43,7 +43,7 @@ export function montaCartellini(box, { lotto }) {
     const r = await rigaLotto();
     if (!r) { elLista.innerHTML = `<div class="ct-nota">I cartellini si legano quando la lavorazione è aperta (prima firma o "Registra").</div>`; return; }
     const { data } = await sb().from("produzione_lotto_ingredienti")
-      .select("id, quantita, unita_misura, lotto_materia_prima, scadenza_materia_prima, lotto_fornitore_id, lotto_interno_id, scelto_auto, lotti_fornitore(prodotto_letto, produttore, lotto, data_scadenza, quantita, unita, foto_url, letto_da), prodotti(nome)")
+      .select("id, quantita, unita_misura, lotto_materia_prima, scadenza_materia_prima, lotto_fornitore_id, lotto_interno_id, scelto_auto, lotti_fornitore(prodotto_letto, produttore, lotto, data_scadenza, quantita, unita, foto_url, foto_urls, letto_da), prodotti(nome)")
       .eq("lotto_id", r.id).or("lotto_fornitore_id.not.is.null,and(lotto_interno_id.not.is.null,scelto_auto.eq.false)");
     const righe = data || [];
     if (!righe.length) { elLista.innerHTML = ""; return; }
