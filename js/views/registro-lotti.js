@@ -401,7 +401,7 @@ async function apriEditorEtichetta({ info, etichetta, card }) {
       denominazione: f("denominazione"), ingredienti: f("ingredienti"),
       allergeni: [...ov.querySelectorAll("[data-allerg] input:checked")].map(c => c.value),
       peso_netto_g: Number(f("peso_netto_g")) || null, tmc_dicitura: f("tmc_dicitura"),
-      conservazione: f("conservazione") || null, dopo_apertura: f("dopo_apertura") || null, origine: f("origine") || null,
+      conservazione: f("conservazione") || null, dopo_apertura: f("dopo_apertura") || null, istruzioni_uso: f("istruzioni_uso") || null, origine: f("origine") || null,
       confermata: ov.querySelector("[data-conferma]").checked,
     };
     if (!rec.denominazione || !rec.ingredienti) { esito.textContent = "Servono denominazione e ingredienti"; return; }
