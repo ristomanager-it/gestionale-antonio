@@ -124,6 +124,22 @@ export function montaCartellini(box, { lotto }) {
         <div class="ct-az"><button type="button" class="ct-sec" data-scarta="${i}">Scarta</button><button type="button" class="ct-pri" data-salva="${i}">💾 Lega alla lavorazione</button></div>
       </div>`;
     }).join("") + (letti.length > 1 ? `<button type="button" class="ct-pri ct-tutti">💾 Lega tutti (${letti.length})</button>` : "");
+    elSchede.querySelectorAll("[data-aggiungi]").forEach((inp) => inp.addEventListener("change", async (e) => {
+      const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+      const i = Number(inp.dataset.aggiungi); const c = letti[i]; if (!c) return;
+      const lab = inp.closest("label"); lab.firstChild.textContent = "Carico la foto… ";
+      try {
+        const { blob } = await riduci(f);
+        const percorso = `lotti-fornitore/${az}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+        const { error } = await sb().storage.from("media-aziende").upload(percorso, blob, { upsert: false, cacheControl: "31536000", contentType: "image/jpeg" });
+        const u = error ? "" : sb().storage.from("media-aziende").getPublicUrl(percorso).data?.publicUrl || "";
+        if (u) { c.foto_urls = [...(c.foto_urls?.length ? c.foto_urls : (c.foto_url ? [c.foto_url] : [])), u]; c.foto_url = c.foto_urls[0]; }
+        else alert("Foto non caricata");
+      } catch (err) { alert("Foto non riuscita: " + (err.message || err)); }
+      lab.firstChild.textContent = "➕ Aggiungi un'altra foto di questo prodotto";
+      const th = elSchede.querySelector(`.ct-scheda[data-i="${i}"] .ct-thumbs`);
+      if (th) th.innerHTML = (c.foto_urls || []).map((u) => `<img class="ct-mini" src="${esc(u)}" alt="">`).join("");
+    }));
     elSchede.querySelectorAll("[data-scarta]").forEach((b) => b.addEventListener("click", () => { letti.splice(Number(b.dataset.scarta), 1); disegnaSchede(r, ing); }));
     elSchede.querySelectorAll("[data-salva]").forEach((b) => b.addEventListener("click", async () => {
       const i = Number(b.dataset.salva);
