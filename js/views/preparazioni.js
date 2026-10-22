@@ -3690,7 +3690,7 @@ function soloLaFase(container) {
     /porzion|confezion|sottovuot|stoccag|etichett|abbatt/i.test(String(fasiCache[i]?.nome_fase || "")) || !!fasiCache[i]?.semilavorato_nome || i === ultimaPrimaDelServizio);
   const stampa = document.getElementById("btn-print-etichettatrice");
   const cons = document.getElementById("prod-conservazione");   // la scadenza serve all'etichetta
-  const daTenere = (el) => chiudeIlLavoro && (el.id === "card-confezionamento" || (stampa && el.contains(stampa)) || (cons && el.contains(cons)));
+  const daTenere = (el) => el.id === "card-cartellini" || (chiudeIlLavoro && (el.id === "card-confezionamento" || (stampa && el.contains(stampa)) || (cons && el.contains(cons))));
   const nascosti = [];
   Array.from(padre.children).forEach((el) => { if (el !== card && !daTenere(el) && el.style.display !== "none") { el.style.display = "none"; nascosti.push(el); } });
   const lav = String(window.__rfLavorazionePlanning || "").split(" · ")[0];
