@@ -32,8 +32,10 @@ export async function render(app) {
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;">
           <div>
             <label style="font-size:12px;color:#64748b;">Ricetta / preparazione</label>
-            <input id="pa-ricetta" class="input" list="pa-ricette-list" placeholder="Cerca ricetta..." autocomplete="off" style="width:100%;box-sizing:border-box;">
-            <datalist id="pa-ricette-list"></datalist>
+            <div style="position:relative;">
+              <input id="pa-ricetta" class="input" placeholder="Cerca ricetta..." autocomplete="off" autocapitalize="off" style="width:100%;box-sizing:border-box;">
+              <div id="pa-suggest" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.18);max-height:260px;overflow:auto;"></div>
+            </div>
           </div>
           <div>
             <label style="font-size:12px;color:#64748b;">Quantità (kg, opz.)</label>
