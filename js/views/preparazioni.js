@@ -4010,6 +4010,15 @@ function applicaFirmaAIdx(idx, match) {
 /* RIPOSI: le fasi di riposo (frigo, lievitazione, riposo in stoffa...) non si firmano a mano.
    Appena si firma la fase prima, il riposo parte e si firma da solo con lo stesso operatore.
    Nel registro resta l'ora in cui il riposo e' iniziato; la durata prevista sta nella ricetta e nel Planning. */
+// Fasi che partono e si firmano da sole quando si firma quella prima: riposi, frigo, raffreddamento, abbattitore.
+// Es. finita la preparazione, il prodotto va in frigo o in abbattitore per X tempo: niente firma. Il tempo e' quello della ricetta.
+// Restano a mano le fasi con una misura da registrare (pH).
+function faseAutomatica(f) {
+  if (!f) return false;
+  if (/\bph\b/i.test(String(f.nome_fase || ""))) return false;
+  return !!f.riposo || ["attesa", "raffreddamento", "abbattimento"].includes(String(f.tipo_fase || "").toLowerCase());
+}
+
 function autoFirmaRiposi(idxFirmata, match) {
   const p2 = (n) => String(n).padStart(2, "0");
   let k = idxFirmata + 1, n = 0;
