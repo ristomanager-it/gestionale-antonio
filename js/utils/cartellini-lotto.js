@@ -28,6 +28,7 @@ export function montaCartellini(box, { lotto }) {
     <div class="ct-tit">📷 Cartellini della materia prima</div>
     <div class="ct-sub">Fotografa i cartellini della merce che usi (carne, formaggi…) o le etichette delle nostre preparazioni (ragù, besciamella…): lotto, scadenza, peso e provenienza restano legati a questa lavorazione.</div>
     <label class="ct-foto">📷 Fotografa i cartellini<input type="file" accept="image/*" multiple hidden></label>
+    <label class="ct-grp"><input type="checkbox" id="ct-stesso"> Le foto sono dello stesso prodotto (il nome da un lato, la scadenza dall'altro)</label>
     <div class="ct-schede"></div><div class="ct-lista"></div></div>`;
   const elSchede = box.querySelector(".ct-schede"), elLista = box.querySelector(".ct-lista");
 
