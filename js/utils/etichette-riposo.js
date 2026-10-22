@@ -196,6 +196,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
 
   // senza etichettatrice configurata: anteprima e stampa dal telefono
   async function anteprima(d, f, dopo, p) {
+    const per = [d.r.evento_titolo, d.r.destinazione].map((t) => String(t || "").trim()).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i).join(" · ");
     const etichetta = `<div class="et">
       <div class="et-cosa">${esc(d.r.ricette?.nome || "")}</div>
       <div class="et-fase">${esc(f.nome_fase)}${f.temperatura ? ` · ${esc(f.temperatura)} °C` : ""}</div>
