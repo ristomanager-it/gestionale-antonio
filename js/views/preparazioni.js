@@ -4307,6 +4307,9 @@ function assicuraLottoPerFirme() {
   return window.__rfCreaLottoPromise;
 }
 
+// i cartellini fotografati all'inizio aprono da soli la lavorazione
+window.__rfAssicuraLotto = assicuraLottoPerFirme;
+
 async function salvaProduzione(opzioni = {}) {
   const esito = document.getElementById("r-esito") || null;
   const setEsito = (msg, err) => { if (esito) { esito.textContent = msg; esito.style.color = err ? "#b91c1c" : "#15803d"; } };
