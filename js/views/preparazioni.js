@@ -5120,6 +5120,7 @@ function schedaEtichettaRapida(esistente) {
         ingredienti: ov.querySelector("#et-ing").value.trim(),
         allergeni: Array.from(ov.querySelectorAll("input[type=checkbox]:checked")).map((c) => c.value),
         conservazione: ov.querySelector("#et-cons").value.trim(),
+        istruzioni_uso: ov.querySelector("#et-note").value.trim() || null,
         tmc_dicitura: esistente?.tmc_dicitura || "Da consumarsi entro",
         nutrizionale_esente: true, confermata: true,
       };
