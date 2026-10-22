@@ -233,10 +233,13 @@ async function statoSquadra(supabase, aziendaId, sedeId, giorno) {
   return { inTurno, previsti: (previstiRows || []).length, senzaTimbratura };
 }
 
-async function produzioniDelGiorno(supabase, aziendaId, giorno) {
+async function produzioniDelGiorno(supabase, aziendaId, giorno, sedeId) {
   if (!aziendaId) return { totali: 0, aperte: 0 };
-  const { data } = await supabase.from("produzione_lotti")
+  // solo la sede in cui si e': prima contava anche i lotti delle altre sedi
+  let q = supabase.from("produzione_lotti")
     .select("stato").eq("azienda_id", aziendaId).eq("data_produzione", giorno);
+  if (sedeId) q = q.eq("sede_uuid", sedeId);
+  const { data } = await q;
   const righe = data || [];
   return {
     totali: righe.length,
