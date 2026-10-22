@@ -6143,6 +6143,8 @@ function renderEtichetta(box, et) {
     <input id="et-cons" class="input" value="${v(et.conservazione)}" placeholder="Es. Conservare in frigorifero tra 0 e +4 °C">
     <label style="${lab}">Dopo l'apertura (facoltativo)</label>
     <input id="et-apert" class="input" value="${v(et.dopo_apertura)}" placeholder="Es. Una volta aperto consumare entro 3 giorni">
+    <label style="${lab}">Note in etichetta (facoltativo)</label>
+    <input id="et-note" class="input" value="${v(et.istruzioni_uso)}" placeholder="Es. Consiglio: prima di consumarlo tenerlo vicino a una fonte di calore">
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;">
       <input id="et-conferma" type="checkbox" ${et.id && et.confermata !== false ? "checked" : ""} style="margin-top:2px;">
       <span><b>Ho verificato ingredienti e allergeni</b> (anche sulle etichette dei fornitori). Solo così l'etichetta si stampa.</span>
