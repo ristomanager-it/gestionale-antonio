@@ -99,6 +99,8 @@ export async function render(container) {
         </span>
       </div>
 
+      <div id="card-cartellini"></div>
+
       ${createCard({
         title: "Ricetta",
         body: `
