@@ -208,6 +208,11 @@ function stile() {
   .ct-sub{font-size:13px;color:#64748b;margin:3px 0 10px;}
   .ct-foto{display:block;text-align:center;background:#0E5A7A;color:#fff;border-radius:12px;padding:13px;font-weight:800;font-size:15px;cursor:pointer;}
   .ct-nota{font-size:13px;color:#64748b;margin-top:10px;}
+  .ct-grp{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#334155;margin-top:8px;cursor:pointer;}
+  .ct-grp input{margin-top:2px;}
+  .ct-thumbs{display:flex;gap:6px;flex-wrap:wrap;}
+  .ct-thumbs .ct-mini{width:auto;max-width:48%;max-height:140px;flex:1;}
+  .ct-addfoto{display:block;text-align:center;border:1.5px dashed #94a3b8;border-radius:10px;padding:9px;font-size:13px;font-weight:700;color:#0E5A7A;cursor:pointer;margin:2px 0 4px;}
   .ct-interno{border-color:#86efac!important;background:#f0fdf4!important;}
   .ct-scheda{border:1.5px solid #bfdbfe;background:#f8fbff;border-radius:12px;padding:10px;margin-top:10px;}
   .ct-scheda label{display:block;font-size:12px;font-weight:700;color:#64748b;margin-top:6px;}
