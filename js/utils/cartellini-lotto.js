@@ -181,7 +181,7 @@ export function montaCartellini(box, { lotto }) {
     const { data: lf, error } = await sb().from("lotti_fornitore").insert({
       azienda_id: az, sede_id: r.sede_uuid || window.state?.sedeAttiva?.id || null, prodotto_id: pid, prodotto_letto: c.letto?.prodotto || null,
       produttore: c.letto?.produttore || null, lotto: v("lotto"), data_scadenza: v("scadenza") || null, tipo_data: c.letto?.tipo_data || "scadenza",
-      quantita: num(v("peso")), unita: "kg", foto_url: c.foto_url || null, letto_da: letto, stato: "in_uso",
+      quantita: num(v("peso")), unita: "kg", foto_url: c.foto_urls?.[0] || c.foto_url || null, foto_urls: c.foto_urls?.length ? c.foto_urls : (c.foto_url ? [c.foto_url] : []), letto_da: letto, stato: "in_uso",
       ricevuto_il: new Date().toISOString(), creato_da: window.state?.user?.id || null,
     }).select("id, lotto, data_scadenza").single();
     if (error) { alert("Cartellino non salvato: " + error.message); return false; }
