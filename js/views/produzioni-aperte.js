@@ -71,8 +71,30 @@ export async function render(app) {
   `;
 
   await Promise.all([loadRicette(aziendaId), loadDipendenti(aziendaId)]);
-  const dl = document.getElementById("pa-ricette-list");
-  if (dl) dl.innerHTML = ricetteCache.map(r => `<option value="${escapeAttr(r.nome)}">`).join("");
+  // suggerimenti propri (l'elenco del telefono non mostrava le ricette): parole in qualunque ordine, senza accenti
+  const pn = (x) => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const inRic = document.getElementById("pa-ricetta"), boxS = document.getElementById("pa-suggest");
+  if (inRic && boxS) {
+    const mostra = () => {
+      const q = pn(inRic.value).trim();
+      if (q.length < 2) { boxS.style.display = "none"; return; }
+      const par = q.split(/\s+/).filter(Boolean);
+      const ris = ricetteCache.filter((r) => { const n = pn(r.nome); return par.every((w) => n.includes(w)); })
+        .map((r) => { const n = pn(r.nome); return { r, p: n.startsWith(q) ? 0 : n.split(/\s+/).some((w) => w.startsWith(par[0])) ? 1 : 2 }; })
+        .sort((a, b) => a.p - b.p || a.r.nome.localeCompare(b.r.nome, "it")).slice(0, 15).map((x) => x.r);
+      boxS.innerHTML = ris.length
+        ? ris.map((r) => `<div data-nome="${escapeAttr(r.nome)}" style="padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:15px;cursor:pointer;">${escapeHtml(r.nome)}</div>`).join("")
+        : `<div style="padding:12px 14px;color:#64748b;font-size:14px;">Nessuna ricetta trovata</div>`;
+      boxS.style.display = "block";
+    };
+    inRic.addEventListener("input", mostra);
+    inRic.addEventListener("focus", mostra);
+    boxS.addEventListener("pointerdown", (e) => {
+      const d = e.target.closest("[data-nome]"); if (!d) return;
+      e.preventDefault(); inRic.value = d.dataset.nome; boxS.style.display = "none"; inRic.blur();
+    });
+    inRic.addEventListener("blur", () => setTimeout(() => { boxS.style.display = "none"; }, 250));
+  }
 
   document.getElementById("pa-apri")?.addEventListener("click", apriProduzione);
   document.getElementById("pa-modal-close")?.addEventListener("click", chiudiModal);
