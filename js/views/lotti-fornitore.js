@@ -61,7 +61,7 @@ export async function render(app) {
       const quando = g == null ? "" : g < 0 ? "scaduto" : g === 0 ? "scade oggi" : g === 1 ? "scade domani" : "tra " + g + " giorni";
       return `<div class="lf-card">
         <div class="lf-r1"><b>${esc(l.prodotti?.nome || l.prodotto_letto || "Prodotto da collegare")}</b>
-          ${l.foto_url ? `<a href="${esc(l.foto_url)}" target="_blank" class="lf-ft">foto</a>` : ""}</div>
+          <span>${(l.foto_urls?.length ? l.foto_urls : (l.foto_url ? [l.foto_url] : [])).map((u, i, a) => `<a href="${esc(u)}" target="_blank" class="lf-ft">foto${a.length > 1 ? " " + (i + 1) : ""}</a>`).join(" ")}</span></div>
         <div class="lf-r2">Lotto <b>${esc(l.lotto)}</b> · ${l.tipo_data === "tmc" ? "pref. entro" : "scade"} <b style="color:${col}">${fd(l.data_scadenza)}</b>
           ${quando ? `<span style="color:${col}">(${quando})</span>` : ""}</div>
         <div class="lf-r3">${l.quantita ? esc(String(l.quantita).replace(".", ",")) + " " + esc(l.unita || "") + " · " : ""}arrivato il ${fd(l.ricevuto_il)}${l.produttore ? " · " + esc(l.produttore) : ""}
