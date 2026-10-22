@@ -5102,7 +5102,7 @@ function schedaEtichettaRapida(esistente) {
     const aziendaId = window.state?.azienda?.id;
     const { data: ing } = await supabase.from("ricetta_ingredienti").select("nome_prodotto, quantita, prodotti(nome)")
       .eq("ricetta_id", ricettaSelezionata?.id).order("quantita", { ascending: false });
-    const nomi = (ing || []).map((i) => String(i.prodotti?.nome || i.nome_prodotto || "").trim()).filter(Boolean);
+    const nomi = [...new Set((ing || []).flatMap((i) => nomeIngredienteGenerico(String(i.prodotti?.nome || i.nome_prodotto || "").trim()).split(", ")).filter(Boolean))];
     const ingredienti = esistente?.ingredienti || nomi.join(", ");
     const testo = (ingredienti + " " + (ricettaSelezionata?.nome || "")).toLowerCase();
     const indovina = { glutine: /farin|pane|pasta|semola|savoiard|grano|orzo/, uova: /uov|tuorl|album/, latte: /latte|burro|panna|mascarpone|formagg|parmigian|reggian|ricott|mozzarell|pecorin/,
