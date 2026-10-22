@@ -35,7 +35,7 @@ export async function render(container) {
     produzioniDelGiorno(supabase, azienda?.id, domaniISO, sede?.id),
     listaAvvisi(supabase, azienda?.id, sede?.id, oggiISO),
     listaComandamenti(supabase, azienda?.id),
-    planningOggi(supabase, azienda?.id, oggiISO),
+    planningOggi(supabase, azienda?.id, oggiISO, sede?.id),
   ]);
 
   // stesso pensiero per tutti, nello stesso giorno: se ne parla in servizio
