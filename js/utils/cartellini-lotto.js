@@ -55,7 +55,7 @@ export function montaCartellini(box, { lotto }) {
       ${righe.map((x) => { const f = x.lotti_fornitore || {}; const o = f.letto_da?.origine;
         if (!x.lotto_fornitore_id) return `<div class="ct-riga"><div class="ct-noimg">🏷</div><div><b>${esc(x.prodotti?.nome || "Nostra produzione")}</b>
           <div class="ct-r3">nostro lotto <b>${esc(x.lotto_materia_prima || "—")}</b> · scade ${fd(x.scadenza_materia_prima)}</div></div></div>`;
-        return `<div class="ct-riga">${f.foto_url ? `<a href="${esc(f.foto_url)}" target="_blank"><img src="${esc(f.foto_url)}" alt=""></a>` : `<div class="ct-noimg">📄</div>`}
+        return `<div class="ct-riga">${(f.foto_urls?.length ? f.foto_urls : (f.foto_url ? [f.foto_url] : [])).map((u) => `<a href="${esc(u)}" target="_blank"><img src="${esc(u)}" alt=""></a>`).join("") || `<div class="ct-noimg">📄</div>`}
           <div><b>${esc(x.prodotti?.nome || f.prodotto_letto || "Materia prima")}</b>
           <div class="ct-r3">lotto <b>${esc(f.lotto || x.lotto_materia_prima || "—")}</b> · scade ${fd(f.data_scadenza || x.scadenza_materia_prima)}${f.quantita ? ` · ${esc(f.quantita)} ${esc(f.unita || "kg")}` : ""}</div>
           <div class="ct-r3">${esc([f.produttore, o].filter(Boolean).join(" · "))}</div></div></div>`; }).join("")}`;
