@@ -42,7 +42,7 @@ export async function render(app) {
 
   async function carica() {
     const { data, error } = await sb().from("lotti_fornitore")
-      .select("id, prodotto_id, prodotto_letto, produttore, lotto, data_scadenza, tipo_data, quantita, unita, foto_url, ricevuto_il, stato, prodotti(nome)")
+      .select("id, prodotto_id, prodotto_letto, produttore, lotto, data_scadenza, tipo_data, quantita, unita, foto_url, foto_urls, ricevuto_il, stato, prodotti(nome)")
       .eq("azienda_id", az).eq("stato", scheda)
       .order(scheda === "in_uso" ? "data_scadenza" : "created_at", { ascending: scheda === "in_uso", nullsFirst: false })
       .limit(300);
