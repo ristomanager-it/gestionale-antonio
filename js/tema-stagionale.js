@@ -99,14 +99,15 @@
     }
 
     if (t.pipistrelli) {
-      // [direzione, posizione orizzontale, grandezza, ritardo]
-      [["su", "12%", 40, 0], ["giu", "68%", 46, 4], ["su", "42%", 34, 8], ["giu", "88%", 36, 9]].forEach(function (p) {
+      // un solo pipistrello: arriva, saluta e se ne va. Non torna fino alla prossima apertura dell'app.
+      // [animazione, posizione orizzontale, grandezza]
+      [["saluto", "62%", 44]].forEach(function (p) {
         var b = document.createElement("div");
         b.className = "rf-bat " + p[0];
         b.textContent = "🦇";
         b.style.left = p[1];
         b.style.fontSize = p[2] + "px";
-        b.style.animationDelay = "-" + p[3] + "s";
+        b.addEventListener("animationend", function () { b.remove(); });
         document.body.appendChild(b);
       });
     }
