@@ -7,7 +7,7 @@
   try {
     var TEMI = {
       halloween: { da: [10, 20], a: [11, 1], zucche: true, pipistrelli: true },
-      natale:    { da: [12, 1],  a: [1, 2],  luci: ["#e53935", "#f6c343", "#2e9d62"], neve: true },
+      natale:    { da: [11, 10], a: [1, 2],  luci: ["#e53935", "#f6c343", "#2e9d62"], neve: true },
     };
 
     var q = new URLSearchParams(location.search);
