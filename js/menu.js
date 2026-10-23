@@ -816,6 +816,15 @@ export function initMenu() {
         <span class="menu-arrow">›</span>
       `;
 
+      // tocco sul nome della sezione = home della sezione; tocco sulla freccia = elenco delle voci
+      if (section.home && can(section.home)) {
+        const nomeSez = title.children[0];
+        const frecciaSez = title.children[1];
+        nomeSez.style.cssText = "flex:1;font-weight:800;";
+        if (frecciaSez) frecciaSez.style.padding = "8px 4px 8px 28px";
+        nomeSez.onclick = (e) => { e.stopPropagation(); submenuAperto = null; go(section.home); };
+      }
+
       const itemsBox =
         document.createElement("div");
 
