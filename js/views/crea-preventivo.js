@@ -1362,6 +1362,7 @@ async function salva(container, supabase, azienda, sede) {
     personale_figure: Array.isArray(P.personale_figure) ? P.personale_figure : null,
     costo_lavoro: c.costoPersonale,
     giorni_validita: Number(P.giorni_validita) || 15,
+    mostra_portate: !!P.mostra_portate,
     // la scadenza si ricalcola dalla creazione: cambiando i giorni si sposta
     scadenza_il: new Date(
       (P.created_at ? new Date(P.created_at).getTime() : Date.now())
