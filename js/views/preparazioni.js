@@ -960,6 +960,10 @@ function setupAutocompleteRicette() {
   if (scalaModo) {
     scalaModo.addEventListener("change", async () => {
       const vincolo = scalaModo.value === "vincolo";
+      const inPezzi = scalaModo.value === "pezzi";
+      const vVal = document.getElementById("scala-valore"); if (vVal) vVal.style.display = inPezzi ? "none" : "";
+      const pBox = document.getElementById("scala-pezzature");
+      if (pBox) { pBox.style.display = inPezzi ? "block" : "none"; if (inPezzi) disegnaPezzatureScala(); }
       const ing = document.getElementById("scala-ingr");
       const um = document.getElementById("scala-um");
       const sel = document.getElementById("scala-ingr-sel");
