@@ -491,6 +491,7 @@ function renderStats() {
   metti("cnt-bozza", conta("bozza"));
   metti("cnt-incomp", conta("in_completamento"));
   metti("cnt-complete", conta("completa"));
+  disegnaFiltriTipo();
 
   const box = document.getElementById("ric-stats");
   if (!box) return;
