@@ -1013,7 +1013,7 @@ function setupAutocompleteRicette() {
       try {
         const cli = window.supabaseClient || window.supabase;
         const { data, error } = await cli.rpc("scala_ricetta", {
-          p_ricetta_id: ricettaSelezionata.id, p_modo: modo,
+          p_ricetta_id: ricettaSelezionata.id, p_modo: modoCalc,
           p_valore: valore, p_ingrediente: modo === "vincolo" ? ingr : null,
           p_um: modo === "vincolo" ? um : null
         });
