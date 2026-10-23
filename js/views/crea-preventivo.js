@@ -888,6 +888,19 @@ function aggancia(container, supabase, azienda, sede) {
     } });
   }));
   container.querySelector("#pv2-mostra-portate")?.addEventListener("change", e => { P.mostra_portate = e.target.checked; });
+  // un solo prezzo a persona per isola: sta sulla prima riga della sezione, le altre a zero
+  container.querySelectorAll("[data-isola-prezzo]").forEach(el => el.addEventListener("change", () => {
+    const sez = el.dataset.isolaPrezzo;
+    const v = Math.max(Number(String(el.value).replace(",", ".")) || 0, 0);
+    righe.filter(r => (r.sezione || "Menu") === sez).forEach((r, i) => { r.prezzo = i === 0 ? v : 0; });
+    ri();
+  }));
+  container.querySelectorAll("[data-isola-togli]").forEach(el => el.addEventListener("click", () => {
+    const sez = el.dataset.isolaTogli;
+    if (!confirm(`Togliere "${sez}" dal menu?`)) return;
+    righe = righe.filter(r => (r.sezione || "Menu") !== sez);
+    ri();
+  }));
 
   container.querySelectorAll("[data-campo]").forEach(el => {
     el.addEventListener("change", async () => {
