@@ -4152,7 +4152,7 @@ function chiediFasiSaltate(nomi) {
     ov.querySelector("#sx-annulla").addEventListener("click", () => chiudi(null));
     ov.querySelector("#sx-prima").addEventListener("click", () => { ov.querySelector("#sx-form").style.display = "block"; });
     ov.querySelector("#sx-ok").addEventListener("click", () => {
-      const chi = ov.querySelector("#sx-chi").value;
+      const chi = null;
       const foto = ov.querySelector("#sx-foto").files?.[0] || null;
       if (!chi) { alert("Scegli chi le ha fatte."); return; }
       if (!foto) { alert("Fotografa l'etichetta del lavoro già fatto."); return; }
