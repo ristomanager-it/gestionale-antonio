@@ -4133,7 +4133,7 @@ function chiediFasiSaltate(nomi) {
   return new Promise((resolve) => {
     const ov = document.createElement("div");
     ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:99999;display:flex;align-items:flex-end;justify-content:center;";
-    const opz = '<option value="">Chi le ha fatte?</option>' + dipendentiCache.map((d) => '<option value="' + escapeAttr(d.id) + '">' + escapeHtml(d.nome) + '</option>').join("");
+    const opz = "";
     ov.innerHTML = '<div style="background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px 16px 22px;max-height:92vh;overflow:auto;">'
       + '<div style="font-weight:800;font-size:17px;margin-bottom:6px;">Fasi prima non firmate</div>'
       + '<div style="font-size:15px;margin-bottom:10px;">' + nomi.map((n) => "• " + escapeHtml(n)).join("<br>") + '</div>'
