@@ -803,6 +803,7 @@ function hasPermission(area) {
       "produzione",
       "home-cucina",
       "home-sezione",
+      "cotture-cbt",
       "produzioni-aperte",
       "produzioni-storico",
       "briefing-servizio",
