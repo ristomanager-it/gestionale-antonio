@@ -3596,6 +3596,26 @@ async function firmaFaseHaccp(idx) {
       if (!ok) return;
     }
   } catch (_) {}
+  // Fasi prima non firmate (es. patate gia' cotte): una sola domanda, senza scegliere niente da elenchi
+  try {
+    if (primaFirma) {
+      const vis = fasiDelPlanning();
+      const saltate = [];
+      for (let k = 0; k < idx; k++) {
+        const lk = logHaccp[k];
+        if (!lk || (lk.firme && lk.firme.length) || lk.salto_chiesto) continue;
+        if (vis && !vis.has(k)) continue;
+        if (!TIPI_FASE_CONTINUA.includes(String(lk.fase_tipo || fasiCache[k]?.tipo_fase || "").toLowerCase())) continue;
+        saltate.push(k);
+      }
+      if (saltate.length) {
+        const r = await chiediFasiSaltate(saltate.map((k) => logHaccp[k].fase_nome || fasiCache[k]?.nome_fase || "fase"));
+        if (!r) return;
+        saltate.forEach((k) => { logHaccp[k].salto_chiesto = true; });
+        if (r.tipo === "prima") await segnaGiaSvolte(saltate, r);
+      }
+    }
+  } catch (e) { console.warn("fasi saltate:", e); }
   applicaFirmaAIdx(idx, match);
   if (primaFirma) autoFirmaRiposi(idx, match);
   renderFasiHaccp();
