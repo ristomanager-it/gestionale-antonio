@@ -534,6 +534,7 @@ function disegna(container, supabase, azienda, sede) {
       <div class="pv2-card">
         <h2>Il menu</h2>
         <div class="aiuto">Scrivi il piatto: se è in ricettario porta con sé il suo costo.</div>
+        ${norm(tipoEvento()) === "matrimonio" ? `<label class="pv2-mostra"><input type="checkbox" id="pv2-mostra-portate" ${P.mostra_portate ? "checked" : ""}> Mostra le portate al cliente nel documento (spenta: vede solo le descrizioni delle isole)</label>` : ""}
         ${schemaProposto() ? `
           <div class="pv2-schema">
             <div class="t"><b>Schema ${esc(tipoEvento() || "evento")} · ${P.formula_servizio === "buffet" ? "al buffet" : "servito"}</b>
