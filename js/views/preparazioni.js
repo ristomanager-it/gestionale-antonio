@@ -4629,7 +4629,8 @@ async function salvaLogHaccpConLotto(lottoUUID, aziendaId, resume) {
     note: log.note || null,
     firmato_da: log.firmato_da || null,
     firmato_il: log.firmato_il || (log.firmato ? new Date().toISOString() : null),
-    firme: log.firme || []
+    firme: log.firme || [],
+    gia_svolta: log.gia_svolta || false, svolta_da: log.svolta_da || null, svolta_foto_url: log.svolta_foto_url || null
   }));
 
   // Alla registrazione il database crea gia' da solo le righe delle fasi del lotto:
