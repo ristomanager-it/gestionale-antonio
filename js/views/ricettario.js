@@ -676,6 +676,31 @@ async function apriVediRicetta(id) {
     chiudi();
     window.location.hash = `#/creaRicetta?id=${id}`;
   });
+  // segno "Testata": solo admin e manager
+  const ruoloT = String((window.normalizeRuolo ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo) : (window.state?.viewAs || window.state?.ruolo)) || "").toLowerCase();
+  const btnTest = overlay.querySelector("#ric-vedi-test");
+  if (!["admin", "manager", "superadmin"].includes(ruoloT)) {
+    btnTest.remove();
+  } else {
+    const scrivi = () => {
+      const rc = ricetteCache.find(x => String(x.id) === String(id));
+      btnTest.textContent = rc?.testata ? "✅ Testata (togli)" : "☑️ Segna come testata";
+    };
+    scrivi();
+    btnTest.addEventListener("click", async () => {
+      const rc = ricetteCache.find(x => String(x.id) === String(id));
+      const nuova = !rc?.testata;
+      const { error } = await supabase.from("ricette").update({
+        verificata_il: nuova ? new Date().toISOString() : null,
+        verificata_da: nuova ? (window.state?.user?.id || null) : null,
+        da_verificare: !nuova
+      }).eq("id", id);
+      if (error) { alert("Non sono riuscito a salvare. Riprova."); return; }
+      if (rc) rc.testata = nuova;
+      scrivi();
+      renderRicetteList();
+    });
+  }
   overlay.querySelector("#ric-vedi-del").addEventListener("click", () => {
     const r = ricetteCache.find(x => String(x.id) === String(id));
     chiudi();
