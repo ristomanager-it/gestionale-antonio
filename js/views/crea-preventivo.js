@@ -1712,6 +1712,20 @@ function stile() {
   .pv2-isola .m.ok{background:#DCFCE7;color:#166534;}
   .pv2-isola .pv2-btn{margin-top:8px;}
   .pv2-mostra{display:flex;gap:8px;align-items:center;font-size:14px;margin:8px 0;}
+  .pv2-ic{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:12px 14px;margin-bottom:10px;}
+  .pv2-ic .t{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:15px;}
+  .pv2-ic .d{font-size:13px;color:#4B5563;margin-top:3px;line-height:1.4;}
+  .pv2-ic .pill{border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;background:#FEF3C7;color:#92400E;white-space:nowrap;}
+  .pv2-ic .pill.ok{background:#DCFCE7;color:#166534;}
+  .pv2-ic .sub{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid #EEF2F7;margin-top:6px;}
+  .pv2-ic .sub .no{color:#92400E;font-weight:700;}
+  .pv2-ic .r{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .pv2-ic .pr{display:flex;align-items:center;gap:6px;font-size:13px;margin-left:auto;}
+  .pv2-ic .pr .in{width:78px;text-align:right;}
+  .pv2-ic details{margin-top:8px;font-size:13px;}
+  .pv2-ic summary{cursor:pointer;font-weight:600;color:#0E5A7A;padding:4px 0;}
+  .pv2-ic .p{padding:5px 0;border-top:1px solid #F1F5F9;color:#374151;}
+  .pv2-ic .togli{margin-top:8px;font-size:12px;color:#9CA3AF;cursor:pointer;text-decoration:underline;}
   .pv2-btn{background:var(--navy);color:#fff;border:none;border-radius:11px;padding:12px 18px;font-size:15px;
     font-weight:700;cursor:pointer;font-family:inherit;}
   .pv2-btn.grande{padding:14px 26px;font-size:16px;}
