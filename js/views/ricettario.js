@@ -218,7 +218,7 @@ export async function render(app) {
         <label class="ric-chip"><input type="checkbox" id="f-incomp"><span>🟡 In corso <b id="cnt-incomp"></b></span></label>
         <label class="ric-chip"><input type="checkbox" id="f-complete"><span>🟢 Complete <b id="cnt-complete"></b></span></label>
         <label class="ric-chip"><input type="checkbox" id="f-market"><span>🫙 Market</span></label>
-        ${window.state?.isSuperadmin === true && !window.state?.viewAs ? '<label class="ric-chip"><input type="checkbox" id="f-testate"><span>✅ Testate</span></label>' : ""}
+        ${window.state?.user?.id === "0f962f1e-3f40-437c-85b7-16bc85ed8554" ? '<label class="ric-chip"><input type="checkbox" id="f-testate"><span>✅ Testate</span></label>' : ""}
         <label class="ric-chip"><input type="checkbox" id="f-tutte-sedi" ${mostraTutteLeSedi() ? "checked" : ""}><span>🏢 Tutte le sedi</span></label>
       </div>
 
