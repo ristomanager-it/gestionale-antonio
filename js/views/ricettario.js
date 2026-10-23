@@ -665,6 +665,7 @@ async function apriVediRicetta(id) {
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button type="button" class="app-button" id="ric-vedi-edit">✏️ Completa</button>
         <button type="button" class="app-button secondary" id="ric-vedi-del">🗑 Elimina</button>
+        <button type="button" class="app-button secondary" id="ric-vedi-test"></button>
       </div>
       <div id="ric-vedi-corpo" style="color:#64748b;">Caricamento...</div>
     </div>`;
