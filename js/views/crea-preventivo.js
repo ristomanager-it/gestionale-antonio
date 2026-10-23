@@ -1010,15 +1010,13 @@ function aggancia(container, supabase, azienda, sede) {
     if (!schema) return;
     const sugg = modelloAttivo()?.prezzo_bambino_suggerito;
     if (sugg && !Number(P.prezzo_bambino)) P.prezzo_bambino = Number(sugg);
-    // una riga vuota per ogni portata prevista: si riempiono scrivendo il piatto
-    schema.forEach(s => {
-      const quante = Math.max(Number(s.quante) || 1, 1);
-      for (let i = 0; i < quante; i++) {
-        righe.push({ nome: "", sezione: s.nome, prezzo: 0, ricetta_id: null, pp: ppSezione(s.nome) });
-      }
-    });
-    msg(container, "Schema pronto: scrivi i piatti, le righe che avanzano si tolgono con la ✕.");
+    // le isole del buffet arrivano con la descrizione e, se fisse, con le portate standard;
+    // per le altre una riga vuota per ogni portata prevista
+    schema.forEach(s => riempiSezione(s.nome, Math.max(Number(s.quante) || 1, 1)));
+    msg(container, "Schema pronto: scegli le portate delle isole e scrivi gli altri piatti.");
     ri();
+    // il preventivo si crea da solo: poi si lavora sulle isole senza dover salvare a mano
+    salva(container, supabase, azienda, sede);
   });
 
   container.querySelector("#pv2-add-sez")?.addEventListener("click", async () => {
