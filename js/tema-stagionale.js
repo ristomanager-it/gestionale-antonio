@@ -75,7 +75,7 @@
       css.push("@keyframes rf-ciao{0%,43%{opacity:0}47%,66%{opacity:1}72%,100%{opacity:0}}");
       // il pipistrello e' un disegno: le ali sbattono, e toccando il fumetto lo si risente
       css.push(".rf-bat svg{width:96px;height:auto;display:block;overflow:visible;}");
-      css.push(".rf-ala{animation:rf-ali .5s ease-in-out infinite alternate;}.rf-ala-s{transform-origin:70px 80px;}.rf-ala-d{transform-origin:130px 80px;animation-direction:alternate-reverse;}");
+      css.push(".rf-ala{animation:rf-ali .5s ease-in-out infinite alternate;}.rf-ala-s{transform-origin:92px 100px;}.rf-ala-d{transform-origin:148px 100px;animation-direction:alternate-reverse;}");
       css.push("@keyframes rf-ali{from{transform:rotate(-14deg)}to{transform:rotate(16deg)}}");
       css.push(".rf-ciao{pointer-events:auto;cursor:pointer;}");
       // arriva al centro, si ingrandisce come se si avvicinasse e ti guarda dritto; agita un poco le ali (inclinazioni) mentre saluta
