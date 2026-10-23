@@ -552,6 +552,12 @@ function getRicetteFiltrate() {
   // market restringe: vale insieme allo stato, non al posto suo
   if (filtroMarket) risultati = risultati.filter(r => r.market);
 
+  // tipo: basi o piatti finiti; per i piatti anche la categoria
+  if (filtroTipo) risultati = risultati.filter(r => tipoRicetta(r) === filtroTipo);
+  if (filtroTipo === "piatto" && filtroPortata) {
+    risultati = risultati.filter(r => filtroPortata === "__none" ? !r.portata : r.portata === filtroPortata);
+  }
+
   const qTestoLista = normalize(document.getElementById("ric-search")?.value || "");
   if (qTestoLista) risultati = risultati.filter(r => normalize(r.nome).includes(qTestoLista));
 
