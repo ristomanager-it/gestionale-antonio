@@ -4156,7 +4156,7 @@ function chiediFasiSaltate(nomi) {
       const foto = ov.querySelector("#sx-foto").files?.[0] || null;
       if (!chi) { alert("Scegli chi le ha fatte."); return; }
       if (!foto) { alert("Fotografa l'etichetta del lavoro già fatto."); return; }
-      chiudi({ tipo: "prima", chi, foto });
+      chiudi({ tipo: "prima", foto });
     });
   });
 }
