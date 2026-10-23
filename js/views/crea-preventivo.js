@@ -1671,7 +1671,14 @@ function stile() {
   .pv2-foto .carica small{font-size:11.5px;}
   .pv2-fotosez{margin-top:11px;font-size:12.5px;color:var(--muto);}
   .pv2-fotosez select{max-width:190px;display:inline-block;margin-left:6px;}
-  .pv2-azioni{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;}
+  .pv2-azioni{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;position:sticky;bottom:104px;z-index:30;background:rgba(255,255,255,.97);padding:10px;border-radius:14px;box-shadow:0 -6px 18px rgba(0,0,0,.10);}
+  .pv2-isola{padding:10px 14px;border-bottom:1px solid #EEF2F7;background:#FBFDFF;}
+  .pv2-isola .d{font-size:14px;color:#374151;line-height:1.45;}
+  .pv2-isola .m{display:inline-block;margin:8px 8px 0 0;font-size:13px;font-weight:700;border-radius:999px;padding:3px 10px;}
+  .pv2-isola .m.no{background:#FEF3C7;color:#92400E;}
+  .pv2-isola .m.ok{background:#DCFCE7;color:#166534;}
+  .pv2-isola .pv2-btn{margin-top:8px;}
+  .pv2-mostra{display:flex;gap:8px;align-items:center;font-size:14px;margin:8px 0;}
   .pv2-btn{background:var(--navy);color:#fff;border:none;border-radius:11px;padding:12px 18px;font-size:15px;
     font-weight:700;cursor:pointer;font-family:inherit;}
   .pv2-btn.grande{padding:14px 26px;font-size:16px;}
