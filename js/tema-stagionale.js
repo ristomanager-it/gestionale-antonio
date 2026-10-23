@@ -111,7 +111,22 @@
       [["saluto", "calc(50% - 22px)", 44]].forEach(function (p) {
         var b = document.createElement("div");
         b.className = "rf-bat " + p[0];
-        b.textContent = "🦇";
+        // pipistrello disegnato: orecchie grandi, occhioni arancioni, nasino rosa, ali che sbattono
+        b.innerHTML = '<svg viewBox="0 0 200 170" xmlns="http://www.w3.org/2000/svg">' +
+          '<g class="rf-ala rf-ala-s"><path d="M70 78 C44 44 12 52 2 92 C14 86 22 96 26 108 C36 100 44 106 50 120 C58 106 68 108 76 120 Z" fill="#2a2a33"/><path d="M70 82 C50 62 28 66 14 90 M62 96 C48 90 38 96 32 106 M66 104 C58 100 54 106 52 116" stroke="#1a1a20" stroke-width="2" fill="none"/></g>' +
+          '<g class="rf-ala rf-ala-d"><path d="M130 78 C156 44 188 52 198 92 C186 86 178 96 174 108 C164 100 156 106 150 120 C142 106 132 108 124 120 Z" fill="#2a2a33"/><path d="M130 82 C150 62 172 66 186 90 M138 96 C152 90 162 96 168 106 M134 104 C142 100 146 106 148 116" stroke="#1a1a20" stroke-width="2" fill="none"/></g>' +
+          '<ellipse cx="100" cy="118" rx="34" ry="38" fill="#34343f"/><ellipse cx="100" cy="126" rx="20" ry="24" fill="#4b4b59"/>' +
+          '<ellipse cx="88" cy="154" rx="9" ry="6" fill="#2a2a33"/><ellipse cx="112" cy="154" rx="9" ry="6" fill="#2a2a33"/>' +
+          '<path d="M70 46 L52 4 Q82 8 94 38 Z" fill="#2f2f3a"/><path d="M71 40 L60 14 Q78 18 87 36 Z" fill="#f4a3a3"/>' +
+          '<path d="M130 46 L148 4 Q118 8 106 38 Z" fill="#2f2f3a"/><path d="M129 40 L140 14 Q122 18 113 36 Z" fill="#f4a3a3"/>' +
+          '<circle cx="100" cy="70" r="36" fill="#2f2f3a"/>' +
+          '<circle cx="85" cy="66" r="13" fill="#fff"/><circle cx="115" cy="66" r="13" fill="#fff"/>' +
+          '<circle cx="86" cy="67" r="9" fill="#f59e0b"/><circle cx="114" cy="67" r="9" fill="#f59e0b"/>' +
+          '<circle cx="86" cy="67" r="5" fill="#111"/><circle cx="114" cy="67" r="5" fill="#111"/>' +
+          '<circle cx="89" cy="63" r="2.4" fill="#fff"/><circle cx="117" cy="63" r="2.4" fill="#fff"/>' +
+          '<ellipse cx="100" cy="82" rx="6.5" ry="4.8" fill="#f4a3a3"/>' +
+          '<path d="M90 90 Q100 99 110 90" stroke="#111" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M95 93 L97.5 99 L100 94 Z" fill="#fff"/>' +
+          '</svg>';
         // il fumetto compare quando il pipistrello si ferma a meta' schermo
         var ciao = document.createElement("span");
         ciao.className = "rf-ciao";
