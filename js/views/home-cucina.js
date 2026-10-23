@@ -62,6 +62,23 @@ export async function render(app) {
       <h2 style="margin:0 0 2px;">👨‍🍳 Cucina</h2>
       <div class="small-muted" style="margin-bottom:14px;">${esc(sede.nome || "")} · ${new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}</div>
 
+      ${(() => {
+        const n = (lotti || []).length;
+        if (!n) return "";
+        const dest = n === 1 ? "preparazioni?lotto=" + esc(lotti[0].lotto_uuid) : "produzioni-aperte";
+        return `<div onclick="window.location.hash='#/${dest}'" style="background:#dcfce7;border:1px solid #86efac;color:#14532d;border-radius:14px;padding:14px 16px;margin-bottom:12px;font-weight:800;font-size:16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+          <span>🟢 ${n} ${n === 1 ? "lavorazione in corso" : "lavorazioni in corso"}</span><span>›</span></div>`;
+      })()}
+
+      <div class="pr-griglia" style="margin-bottom:14px;">
+        ${pulsante("🏭", "Produzione", "produzione")}
+        ${pulsante("🧪", "Preparazioni", "preparazioni")}
+        ${pulsante("📖", "Ricette e menu", "ricettario")}
+        ${pulsante("📋", "Mansionario", "mansionario-cucina")}
+        ${pulsante("🖥️", "Schermo Produzioni", "kds-produzioni")}
+        ${responsabile ? pulsante("🔔", "Avvisi HACCP", "alert-haccp-config") : ""}
+      </div>
+
       <div class="pr-box">
         <div class="pr-tit">🟢 In corso adesso</div>
         ${(lotti || []).length ? (lotti || []).map((l) => `
