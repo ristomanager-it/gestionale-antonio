@@ -127,7 +127,7 @@
         } catch (e) { /* senza voce resta il fumetto */ }
       };
       // [animazione, posizione orizzontale, grandezza]
-      [["saluto", "calc(50% - 34px)", 68]].forEach(function (p) {
+      [["saluto", "calc(50% - 48px)", 96]].forEach(function (p) {
         var b = document.createElement("div");
         b.className = "rf-bat " + p[0];
         // pipistrello disegnato: testa grande, orecchie rosa, occhioni arancioni, guance, sorriso con i dentini, ali viola che sbattono
