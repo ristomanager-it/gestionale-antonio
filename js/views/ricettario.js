@@ -218,6 +218,7 @@ export async function render(app) {
         <label class="ric-chip"><input type="checkbox" id="f-incomp"><span>🟡 In corso <b id="cnt-incomp"></b></span></label>
         <label class="ric-chip"><input type="checkbox" id="f-complete"><span>🟢 Complete <b id="cnt-complete"></b></span></label>
         <label class="ric-chip"><input type="checkbox" id="f-market"><span>🫙 Market</span></label>
+        <label class="ric-chip"><input type="checkbox" id="f-testate"><span>✅ Testate</span></label>
         <label class="ric-chip"><input type="checkbox" id="f-tutte-sedi" ${mostraTutteLeSedi() ? "checked" : ""}><span>🏢 Tutte le sedi</span></label>
       </div>
 
