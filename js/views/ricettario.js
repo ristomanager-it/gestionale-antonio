@@ -522,9 +522,11 @@ function renderRicetteList() {
   box.innerHTML = ricette.slice(0, 50).map(r => {
     const badge = getBadgeStato(r.stato);
     const border = getBorderStato(r.stato);
-    const resaTxt = r.resa != null
-      ? `${r.resa} ${escapeHtml(r.um || "")}`
-      : "Resa non definita";
+    // la resa non conta nello stato: si vedra' dalla media delle lavorazioni
+    const resaTxt = r.resa != null ? ` · ${r.resa} ${escapeHtml(r.um || "")}` : "";
+    const mancaTxt = r.manca && r.manca.length
+      ? `<div style="font-size:12px;color:#b91c1c;margin-top:3px;">Manca: ${escapeHtml(r.manca.join(" · "))}</div>`
+      : "";
 
     // una riga semplice: nome, stato e una freccia. Toccando si apre la ricetta, con Completa ed Elimina dentro
     return `
