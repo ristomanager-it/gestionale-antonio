@@ -114,99 +114,62 @@ export async function render(app) {
 
   app.innerHTML = createPageLayout({
     title: "📖 Ricettario",
-    subtitle: "Centro operativo ricette",
+    subtitle: "",
     content: `
 
-      ${createCard({
-        title: "Navigazione",
-        body: `
-          <button class="app-button secondary"
-            onclick="window.location.hash='#/produzione'">
-            ← Centro Produzione
-          </button>
+      <style>
+        .ric-top{display:flex;gap:8px;align-items:center;margin:0 0 10px;}
+        .ric-top .input-wrap{flex:1;margin:0;}
+        .ric-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;}
+        .ric-chip{position:relative;cursor:pointer;}
+        .ric-chip input{position:absolute;opacity:0;pointer-events:none;}
+        .ric-chip span{display:inline-block;padding:8px 12px;border-radius:999px;background:#EEF2F7;color:#374151;font-size:13px;font-weight:600;}
+        .ric-chip input:checked + span{background:#0E5A7A;color:#fff;}
+        .ric-altro summary{cursor:pointer;color:#0E5A7A;font-weight:700;font-size:14px;padding:10px 0;}
+        .ric-altro .app-button{margin:0 6px 8px 0;}
+      </style>
 
-          <button class="app-button"
-            onclick="window.location.hash='#/crea-ricetta'">
-            ➕ Nuova ricetta
-          </button>
+      <div class="ric-top">
+        <div class="input-wrap">
+          <input id="ric-search"
+            class="input"
+            placeholder="Cerca una ricetta…"
+            autocomplete="off" />
+          <div id="ric-suggest" class="suggest-list"></div>
+        </div>
+        <button class="app-button"
+          onclick="window.location.hash='#/crea-ricetta'">
+          ➕ Nuova
+        </button>
+      </div>
 
-          <button class="app-button secondary"
-            onclick="window.location.hash='#/abbina-articoli'">
-            🔗 Abbina articoli cassa
-          </button>
+      <div class="ric-chips">
+        <label class="ric-chip"><input type="checkbox" id="f-bozza" checked><span>🔴 Da completare <b id="cnt-bozza"></b></span></label>
+        <label class="ric-chip"><input type="checkbox" id="f-incomp"><span>🟡 In corso <b id="cnt-incomp"></b></span></label>
+        <label class="ric-chip"><input type="checkbox" id="f-complete"><span>🟢 Complete <b id="cnt-complete"></b></span></label>
+        <label class="ric-chip"><input type="checkbox" id="f-market"><span>🫙 Market</span></label>
+        <label class="ric-chip"><input type="checkbox" id="f-tutte-sedi" ${mostraTutteLeSedi() ? "checked" : ""}><span>🏢 Tutte le sedi</span></label>
+      </div>
 
-          <button class="app-button secondary"
-            onclick="window.location.hash='#/menu-engineering'">
-            📊 Menu Engineering
-          </button>
-          <button class="app-button secondary"
-            onclick="mostraStoricoModifiche()">
-            📋 Storico modifiche
-          </button>
-        `
-      })}
+      <div id="ric-list"></div>
 
-      ${createCard({
-        title: "Stato Ricettario",
-        body: `
-          <div id="ric-stats" style="display:flex; gap:12px; flex-wrap:wrap;"></div>
-        `
-      })}
+      <div id="ric-viewer"></div>
 
-      ${createCard({
-        title: "Filtri",
-        body: `
-          <div style="display:flex; gap:16px; flex-wrap:wrap;">
-            <label>
-              <input type="checkbox" id="f-bozza" checked>
-              Solo bozze 🔴
-            </label>
-            <label>
-              <input type="checkbox" id="f-incomp">
-              In completamento 🟡
-            </label>
-            <label>
-              <input type="checkbox" id="f-complete">
-              Complete 🟢
-            </label>
-            <label>
-              <input type="checkbox" id="f-market">
-              Market / Conserve 🫙
-            </label>
-            <label>
-              <input type="checkbox" id="f-tutte-sedi" ${mostraTutteLeSedi() ? "checked" : ""}>
-              Tutte le sedi 🏢
-            </label>
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "Ricerca Ricetta",
-        body: `
-          <div class="input-wrap">
-            <input id="ric-search"
-              class="input"
-              placeholder="Cerca ricetta o crea prodotto..."
-              autocomplete="off" />
-            <div id="ric-suggest" class="suggest-list"></div>
-          </div>
-        `
-      })}
-
-      ${createCard({
-        title: "Ricette da lavorare",
-        body: `
-          <div id="ric-list"></div>
-        `
-      })}
-
-      ${createCard({
-        title: "Dettaglio Ricetta",
-        body: `
-          <div id="ric-viewer"></div>
-        `
-      })}
+      <details class="ric-altro">
+        <summary>Altro</summary>
+        <button class="app-button secondary"
+          onclick="window.location.hash='#/abbina-articoli'">
+          🔗 Abbina articoli cassa
+        </button>
+        <button class="app-button secondary"
+          onclick="window.location.hash='#/menu-engineering'">
+          📊 Menu Engineering
+        </button>
+        <button class="app-button secondary"
+          onclick="mostraStoricoModifiche()">
+          📋 Storico modifiche
+        </button>
+      </details>
 
     `
   });
