@@ -388,6 +388,13 @@ async function loadCategorie() {
 }
 
 function renderStats() {
+  // i conteggi stanno dentro i pallini dei filtri
+  const conta = (stato) => ricetteCache.filter(r => r.stato === stato).length;
+  const metti = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+  metti("cnt-bozza", conta("bozza"));
+  metti("cnt-incomp", conta("in_completamento"));
+  metti("cnt-complete", conta("completa"));
+
   const box = document.getElementById("ric-stats");
   if (!box) return;
 
