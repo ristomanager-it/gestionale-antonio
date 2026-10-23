@@ -70,7 +70,8 @@
       css.push(".rf-bat{position:fixed;line-height:1;pointer-events:none;z-index:50;will-change:transform;}");
       // sale dal basso, si ferma a meta' schermo e saluta (agita le ali), poi sale e sparisce: una volta sola
       css.push(".rf-bat.saluto{bottom:-70px;animation:rf-saluto 10s ease-in-out 1.5s 1 both;}");
-      css.push(".rf-ciao{position:absolute;left:100%;top:-4px;margin-left:2px;font-size:15px;font-weight:700;font-family:inherit;background:#fff;color:#7c2d12;border:1px solid #fdba74;border-radius:14px;padding:4px 10px;white-space:nowrap;opacity:0;animation:rf-ciao 10s ease-in-out 1.5s 1 both;}");
+      // il fumetto sta sopra il pipistrello, rimpicciolito per compensare l'ingrandimento
+      css.push(".rf-ciao{position:absolute;left:50%;bottom:100%;margin-bottom:2px;transform:translateX(-50%) scale(.55);transform-origin:bottom center;font-size:17px;font-weight:700;font-family:inherit;line-height:1.2;background:#fff;color:#7c2d12;border:1px solid #fdba74;border-radius:14px;padding:5px 12px;white-space:nowrap;opacity:0;animation:rf-ciao 10s ease-in-out 1.5s 1 both;}");
       css.push("@keyframes rf-ciao{0%,43%{opacity:0}47%,66%{opacity:1}72%,100%{opacity:0}}");
       // arriva al centro, si ingrandisce come se si avvicinasse e ti guarda dritto; agita un poco le ali (inclinazioni) mentre saluta
       css.push("@keyframes rf-saluto{0%{transform:translate(0,0) rotate(-8deg) scale(1)}38%{transform:translate(0,-48vh) rotate(0deg) scale(1.9)}46%{transform:translate(0,-48vh) rotate(-9deg) scale(1.9)}52%{transform:translate(0,-48vh) rotate(9deg) scale(1.9)}58%{transform:translate(0,-48vh) rotate(-9deg) scale(1.9)}64%{transform:translate(0,-48vh) rotate(9deg) scale(1.9)}70%{transform:translate(0,-48vh) rotate(0deg) scale(1.9)}100%{transform:translate(30px,-125vh) rotate(8deg) scale(1)}}");
