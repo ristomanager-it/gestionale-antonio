@@ -130,21 +130,24 @@
       [["saluto", "calc(50% - 34px)", 68]].forEach(function (p) {
         var b = document.createElement("div");
         b.className = "rf-bat " + p[0];
-        // pipistrello disegnato: orecchie grandi, occhioni arancioni, nasino rosa, ali che sbattono
-        b.innerHTML = '<svg viewBox="0 0 200 170" xmlns="http://www.w3.org/2000/svg">' +
-          '<g class="rf-ala rf-ala-s"><path d="M70 78 C44 44 12 52 2 92 C14 86 22 96 26 108 C36 100 44 106 50 120 C58 106 68 108 76 120 Z" fill="#2a2a33"/><path d="M70 82 C50 62 28 66 14 90 M62 96 C48 90 38 96 32 106 M66 104 C58 100 54 106 52 116" stroke="#1a1a20" stroke-width="2" fill="none"/></g>' +
-          '<g class="rf-ala rf-ala-d"><path d="M130 78 C156 44 188 52 198 92 C186 86 178 96 174 108 C164 100 156 106 150 120 C142 106 132 108 124 120 Z" fill="#2a2a33"/><path d="M130 82 C150 62 172 66 186 90 M138 96 C152 90 162 96 168 106 M134 104 C142 100 146 106 148 116" stroke="#1a1a20" stroke-width="2" fill="none"/></g>' +
-          '<ellipse cx="100" cy="118" rx="34" ry="38" fill="#34343f"/><ellipse cx="100" cy="126" rx="20" ry="24" fill="#4b4b59"/>' +
-          '<ellipse cx="88" cy="154" rx="9" ry="6" fill="#2a2a33"/><ellipse cx="112" cy="154" rx="9" ry="6" fill="#2a2a33"/>' +
-          '<path d="M70 46 L52 4 Q82 8 94 38 Z" fill="#2f2f3a"/><path d="M71 40 L60 14 Q78 18 87 36 Z" fill="#f4a3a3"/>' +
-          '<path d="M130 46 L148 4 Q118 8 106 38 Z" fill="#2f2f3a"/><path d="M129 40 L140 14 Q122 18 113 36 Z" fill="#f4a3a3"/>' +
-          '<circle cx="100" cy="70" r="36" fill="#2f2f3a"/>' +
-          '<circle cx="85" cy="66" r="13" fill="#fff"/><circle cx="115" cy="66" r="13" fill="#fff"/>' +
-          '<circle cx="86" cy="67" r="9" fill="#f59e0b"/><circle cx="114" cy="67" r="9" fill="#f59e0b"/>' +
-          '<circle cx="86" cy="67" r="5" fill="#111"/><circle cx="114" cy="67" r="5" fill="#111"/>' +
-          '<circle cx="89" cy="63" r="2.4" fill="#fff"/><circle cx="117" cy="63" r="2.4" fill="#fff"/>' +
-          '<ellipse cx="100" cy="82" rx="6.5" ry="4.8" fill="#f4a3a3"/>' +
-          '<path d="M90 90 Q100 99 110 90" stroke="#111" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M95 93 L97.5 99 L100 94 Z" fill="#fff"/>' +
+        // pipistrello disegnato: testa grande, orecchie rosa, occhioni arancioni, guance, sorriso con i dentini, ali viola che sbattono
+        b.innerHTML = '<svg viewBox="0 0 240 190" xmlns="http://www.w3.org/2000/svg">' +
+          '<g class="rf-ala rf-ala-s"><path d="M92 98 C64 58 22 60 4 84 C18 82 28 92 31 106 C41 98 53 102 57 116 C67 108 80 112 86 126 C92 120 96 114 98 108 Z" fill="#4a3a78"/><path d="M92 100 C70 78 40 78 20 92 M80 108 C66 100 52 104 44 112 M90 112 C80 108 72 112 68 120" stroke="#2c2150" stroke-width="2.4" fill="none" stroke-linecap="round"/></g>' +
+          '<g class="rf-ala rf-ala-d"><path d="M148 98 C176 58 218 60 236 84 C222 82 212 92 209 106 C199 98 187 102 183 116 C173 108 160 112 154 126 C148 120 144 114 142 108 Z" fill="#4a3a78"/><path d="M148 100 C170 78 200 78 220 92 M160 108 C174 100 188 104 196 112 M150 112 C160 108 168 112 172 120" stroke="#2c2150" stroke-width="2.4" fill="none" stroke-linecap="round"/></g>' +
+          '<ellipse cx="120" cy="150" rx="30" ry="32" fill="#2d2640"/><ellipse cx="120" cy="157" rx="19" ry="21" fill="#4d4270"/>' +
+          '<ellipse cx="106" cy="180" rx="10" ry="6" fill="#3d3358"/><ellipse cx="134" cy="180" rx="10" ry="6" fill="#3d3358"/>' +
+          '<path d="M82 66 L56 6 Q102 12 114 54 Z" fill="#2d2640"/><path d="M84 58 L67 21 Q93 26 104 50 Z" fill="#f7a8b8"/>' +
+          '<path d="M158 66 L184 6 Q138 12 126 54 Z" fill="#2d2640"/><path d="M156 58 L173 21 Q147 26 136 50 Z" fill="#f7a8b8"/>' +
+          '<circle cx="120" cy="94" r="54" fill="#2d2640"/><ellipse cx="120" cy="108" rx="36" ry="28" fill="#3d3358"/>' +
+          '<path d="M86 66 Q99 59 112 66" stroke="#171128" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M128 66 Q141 59 154 66" stroke="#171128" stroke-width="3.4" fill="none" stroke-linecap="round"/>' +
+          '<ellipse cx="99" cy="88" rx="17" ry="19" fill="#fff"/><ellipse cx="141" cy="88" rx="17" ry="19" fill="#fff"/>' +
+          '<circle cx="100" cy="90" r="12.5" fill="#fb923c"/><circle cx="140" cy="90" r="12.5" fill="#fb923c"/>' +
+          '<circle cx="100" cy="90" r="7" fill="#150f22"/><circle cx="140" cy="90" r="7" fill="#150f22"/>' +
+          '<circle cx="104" cy="84" r="3.6" fill="#fff"/><circle cx="144" cy="84" r="3.6" fill="#fff"/><circle cx="96" cy="95" r="1.8" fill="#fff"/><circle cx="136" cy="95" r="1.8" fill="#fff"/>' +
+          '<circle cx="80" cy="108" r="8" fill="#f9a8c0" opacity=".55"/><circle cx="160" cy="108" r="8" fill="#f9a8c0" opacity=".55"/>' +
+          '<ellipse cx="120" cy="106" rx="7.5" ry="5.4" fill="#f7a8b8"/>' +
+          '<path d="M104 116 Q120 132 136 116" stroke="#150f22" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+          '<path d="M110 121 L113.5 130 L117 123 Z" fill="#fff"/><path d="M123 123 L126.5 130 L130 121 Z" fill="#fff"/>' +
           '</svg>';
         // il fumetto compare quando il pipistrello si ferma a meta' schermo
         var ciao = document.createElement("span");
