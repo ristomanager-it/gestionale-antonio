@@ -1255,8 +1255,12 @@ async function saveProduzione(mode, id, fallbackDate){
     return
   }
 
+  if(inPezzi && !pezzature.length){
+    alert("Scrivi almeno una pezzatura: quanti pezzi e di quanti grammi")
+    return
+  }
   if(!quantita || quantita <= 0){
-    alert("Inserisci una quantità valida")
+    alert(inPezzi ? "Non riesco a calcolare le porzioni: nella ricetta manca la resa" : "Inserisci una quantità valida")
     return
   }
 
