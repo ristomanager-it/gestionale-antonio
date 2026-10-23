@@ -70,6 +70,8 @@
       css.push(".rf-bat{position:fixed;line-height:1;pointer-events:none;z-index:50;will-change:transform;}");
       // sale dal basso, si ferma a meta' schermo e saluta (agita le ali), poi sale e sparisce: una volta sola
       css.push(".rf-bat.saluto{bottom:-70px;animation:rf-saluto 10s ease-in-out 1.5s 1 both;}");
+      css.push(".rf-ciao{position:absolute;left:100%;top:-4px;margin-left:2px;font-size:15px;font-weight:700;font-family:inherit;background:#fff;color:#7c2d12;border:1px solid #fdba74;border-radius:14px;padding:4px 10px;white-space:nowrap;opacity:0;animation:rf-ciao 10s ease-in-out 1.5s 1 both;}");
+      css.push("@keyframes rf-ciao{0%,43%{opacity:0}47%,66%{opacity:1}72%,100%{opacity:0}}");
       css.push("@keyframes rf-saluto{0%{transform:translate(0,0) rotate(-8deg)}40%{transform:translate(-26px,-52vh) rotate(8deg)}48%{transform:translate(-26px,-55vh) rotate(-14deg) scale(1.15)}54%{transform:translate(-26px,-53vh) rotate(14deg) scale(1.15)}60%{transform:translate(-26px,-55vh) rotate(-14deg) scale(1.15)}66%{transform:translate(-26px,-53vh) rotate(14deg) scale(1.15)}100%{transform:translate(40px,-125vh) rotate(8deg)}}");
       css.push(".rf-bat.su{bottom:-70px;animation:rf-su 12s linear infinite;}");
       css.push(".rf-bat.giu{top:-70px;animation:rf-giu 13s linear infinite;}");
