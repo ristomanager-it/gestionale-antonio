@@ -1,14 +1,13 @@
 // js/tema-stagionale.js
-// Decorazioni di stagione: i colori dell'app restano quelli di sempre, cambiano solo
-// la ghirlanda di luci sotto la barra in alto e, a Halloween, qualche pipistrello.
-//  - Halloween: dal 20 ottobre al 1 novembre
-//  - Natale:    dal 1 dicembre al 2 gennaio
+// Decorazioni di stagione: i colori dell'app restano quelli di sempre.
+//  - Halloween (20 ott - 1 nov): zucche luminose sotto la barra in alto e grandi pipistrelli che attraversano lo schermo
+//  - Natale (1 dic - 2 gen): ghirlanda di luci e neve leggera
 // Prova fuori stagione (dal browser): app.ristoflow-ai.com/?tema=halloween  oppure  ?tema=natale  (30 minuti)  ·  ?tema=0 per spegnere.
 (function () {
   try {
     var TEMI = {
-      halloween: { da: [10, 20], a: [11, 1], colori: ["#f97316", "#7e22ce", "#84cc16"], pipistrelli: true },
-      natale:    { da: [12, 1],  a: [1, 2],  colori: ["#e53935", "#f6c343", "#2e9d62"], pipistrelli: false },
+      halloween: { da: [10, 20], a: [11, 1], zucche: true, pipistrelli: true },
+      natale:    { da: [12, 1],  a: [1, 2],  luci: ["#e53935", "#f6c343", "#2e9d62"], neve: true },
     };
 
     var q = new URLSearchParams(location.search);
@@ -32,36 +31,80 @@
     }
     if (!scelto) return;
 
-    var t = TEMI[scelto], c = t.colori;
+    var t = TEMI[scelto];
+    var menoMoto = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     document.documentElement.classList.add("tema-" + scelto);
 
-    var css = [
-      ".app-header::after{content:'';position:absolute;left:0;right:0;bottom:-15px;height:12px;pointer-events:none;z-index:2;" +
+    var css = [];
+
+    // ghirlanda di luci (Natale)
+    if (t.luci) {
+      var c = t.luci;
+      css.push(".app-header::after{content:'';position:absolute;left:0;right:0;bottom:-15px;height:12px;pointer-events:none;z-index:2;" +
         "background:radial-gradient(circle at 10px 6px," + c[0] + " 0 3.5px,transparent 4.5px) 0 0/44px 12px repeat-x," +
         "radial-gradient(circle at 21px 8px," + c[1] + " 0 3.5px,transparent 4.5px) 0 0/44px 12px repeat-x," +
         "radial-gradient(circle at 32px 6px," + c[2] + " 0 3.5px,transparent 4.5px) 0 0/44px 12px repeat-x;" +
-        "animation:rf-luci 1.6s ease-in-out infinite alternate;}",
-      "@keyframes rf-luci{from{opacity:1}to{opacity:.5}}",
-      ".rf-bat{position:fixed;top:64px;left:-40px;font-size:18px;line-height:1;pointer-events:none;z-index:50;animation:rf-vola 16s linear infinite;}",
-      "@keyframes rf-vola{0%{transform:translate(0,0)}25%{transform:translate(28vw,14px)}50%{transform:translate(56vw,-4px)}75%{transform:translate(84vw,16px)}100%{transform:translate(112vw,2px)}}",
-      "@media (prefers-reduced-motion:reduce){.app-header::after{animation:none}.rf-bat{display:none}}",
-    ].join("\n");
+        "animation:rf-luci 1.6s ease-in-out infinite alternate;}");
+      css.push("@keyframes rf-luci{from{opacity:1}to{opacity:.5}}");
+      if (menoMoto) css.push(".app-header::after{animation:none}");
+    }
+
+    // zucche luminose (Halloween)
+    if (t.zucche) {
+      css.push(".rf-zucche{position:absolute;left:0;right:0;bottom:-30px;display:flex;justify-content:space-around;align-items:flex-start;pointer-events:none;z-index:2;}");
+      css.push(".rf-zucca{font-size:24px;line-height:1;filter:drop-shadow(0 0 5px #ff8a00) drop-shadow(0 0 11px #ff6a00);animation:rf-zucca 1.9s ease-in-out infinite alternate;}");
+      css.push("@keyframes rf-zucca{from{filter:drop-shadow(0 0 3px #ff8a00) drop-shadow(0 0 6px #ff6a00);transform:scale(.97)}to{filter:drop-shadow(0 0 7px #ffb300) drop-shadow(0 0 16px #ff7a00);transform:scale(1.04)}}");
+      if (menoMoto) css.push(".rf-zucca{animation:none}");
+    }
+
+    // pipistrelli grandi che attraversano lo schermo dal basso all'alto e viceversa
+    if (t.pipistrelli) {
+      css.push(".rf-bat{position:fixed;line-height:1;pointer-events:none;z-index:50;will-change:transform;}");
+      css.push(".rf-bat.su{bottom:-70px;animation:rf-su 12s linear infinite;}");
+      css.push(".rf-bat.giu{top:-70px;animation:rf-giu 13s linear infinite;}");
+      css.push("@keyframes rf-su{0%{transform:translate(0,0) rotate(-8deg)}25%{transform:translate(34px,-30vh) rotate(8deg)}50%{transform:translate(-26px,-60vh) rotate(-8deg)}75%{transform:translate(30px,-90vh) rotate(8deg)}100%{transform:translate(0,-125vh) rotate(-8deg)}}");
+      css.push("@keyframes rf-giu{0%{transform:translate(0,0) rotate(8deg)}25%{transform:translate(-34px,30vh) rotate(-8deg)}50%{transform:translate(26px,60vh) rotate(8deg)}75%{transform:translate(-30px,90vh) rotate(-8deg)}100%{transform:translate(0,125vh) rotate(8deg)}}");
+      if (menoMoto) css.push(".rf-bat{display:none}");
+    }
+
     var st = document.createElement("style");
     st.id = "tema-stagionale";
-    st.textContent = css;
+    st.textContent = css.join("\n");
     document.head.appendChild(st);
 
+    if (t.zucche) {
+      var testata = document.querySelector(".app-header");
+      if (testata) {
+        var fila = document.createElement("div");
+        fila.className = "rf-zucche";
+        for (var z = 0; z < 7; z++) {
+          var s = document.createElement("span");
+          s.className = "rf-zucca";
+          s.textContent = "🎃";
+          s.style.animationDelay = "-" + (z * 0.37).toFixed(2) + "s";
+          s.style.marginTop = (z % 2 ? "4px" : "0");
+          s.style.fontSize = (z % 2 ? "22px" : "26px");
+          fila.appendChild(s);
+        }
+        testata.appendChild(fila);
+      }
+    }
+
     if (t.pipistrelli) {
-      [0, 8].forEach(function (ritardo) {
+      // [direzione, posizione orizzontale, grandezza, ritardo]
+      [["su", "12%", 40, 0], ["giu", "68%", 46, 4], ["su", "42%", 34, 8], ["giu", "88%", 36, 9]].forEach(function (p) {
         var b = document.createElement("div");
-        b.className = "rf-bat";
+        b.className = "rf-bat " + p[0];
         b.textContent = "🦇";
-        b.style.animationDelay = "-" + ritardo + "s";
+        b.style.left = p[1];
+        b.style.fontSize = p[2] + "px";
+        b.style.animationDelay = "-" + p[3] + "s";
         document.body.appendChild(b);
       });
     }
-    // neve leggera a Natale (niente se l'utente ha chiesto meno animazioni)
-    if (scelto === "natale" && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+
+    // neve leggera (Natale)
+    if (t.neve && !menoMoto) {
       var cv = document.createElement("canvas");
       cv.id = "neve-natale";
       cv.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50;";
