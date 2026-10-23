@@ -30,6 +30,11 @@ export async function apriIsole({ supabase, azienda, P, onChiudi }) {
   const isole = ri.data || [];
   const piatti = rp.data || [];
   let mostra = !!rv.data?.mostra_portate;
+  // da qui il preventivo mostra le isole al cliente (i preventivi gia' inviati non cambiano)
+  if (!P.isole_attive) {
+    await supabase.from("preventivi").update({ isole_attive: true }).eq("id", P.id);
+    P.isole_attive = true;
+  }
   const scelti = new Set((rs.data || []).map((s) => (s.piatto_id ? "p" + s.piatto_id : "i" + s.isola_id)));
   const dellIsola = (id) => piatti.filter((p) => p.isola_id === id).sort((a, b) => a.ordine - b.ordine);
   const nScelti = (isola) => dellIsola(isola.id).filter((p) => scelti.has("p" + p.id)).length;
