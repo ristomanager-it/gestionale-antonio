@@ -210,6 +210,8 @@ export async function apriEtichettaVeloce(pre = {}) {
     const codice = "V-" + String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
       + "-" + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0");
     const copie = Math.max(1, Number(ov.querySelector("#ev-copie").value) || 1);
+    // un numero fuori dal normale quasi sempre e' un tasto battuto due volte: si chiede prima di stampare
+    if (copie > 30 && !confirm(`Stai per stampare ${copie} etichette. Sono giuste?`)) return;
     const scadISO = iso(scadenza());
     const { data: produttore } = await sb.from("etichette_produttore").select("ragione_sociale, indirizzo, partita_iva").eq("azienda_id", az).limit(1).maybeSingle();
     // quantita': in g/kg va come peso; in pezzi, porzioni o litri si aggiunge al nome
