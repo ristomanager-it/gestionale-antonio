@@ -151,16 +151,24 @@
         ciao.className = "rf-ciao";
         ciao.textContent = "Ciao! 👋";
         b.appendChild(ciao);
-        // il nome si legge quando il pipistrello arriva: a quel punto l'app ha gia' caricato chi e' entrato
-        setTimeout(function () {
+        // il nome si cerca piu' volte mentre l'app finisce di caricare; se lo stato non ce l'ha, lo chiede all'accesso
+        var cerca = function (meta, prof) {
+          var n = String((prof && (prof.nome || prof.nome_completo)) || (meta && (meta.nome || meta.first_name || meta.nome_completo || meta.full_name)) || "").trim().split(/\s+/)[0];
+          if (n && !nomeSaluto) { nomeSaluto = n; ciao.textContent = "Ciao " + n + "! 👋"; }
+        };
+        var tentativi = 0;
+        var giro = setInterval(function () {
+          tentativi++;
           try {
             var s = window.state || {};
-            var meta = (s.user && s.user.user_metadata) || {};
-            var prof = s.userProfile || s.profilo || s.dipendente || {};
-            var nome = String(prof.nome || meta.nome || meta.first_name || "").trim().split(/\s+/)[0];
-            if (nome) { ciao.textContent = "Ciao " + nome + "! 👋"; nomeSaluto = nome; }
+            cerca((s.user && s.user.user_metadata) || {}, s.userProfile || s.profilo || s.dipendente || {});
+            if (!nomeSaluto && tentativi === 4) {
+              var sb = window.supabaseClient || window.supabase;
+              if (sb && sb.auth && sb.auth.getUser) sb.auth.getUser().then(function (r) { cerca(r && r.data && r.data.user && r.data.user.user_metadata, {}); });
+            }
           } catch (e) { /* resta "Ciao!" */ }
-        }, 4500);
+          if (nomeSaluto || tentativi >= 14) clearInterval(giro);
+        }, 600);
         // parla solo nell'app (dove sa il nome), mai sulle pagine pubbliche dei clienti
         setTimeout(function () { if (nomeSaluto) parla("Ciao " + nomeSaluto + "!"); }, 6300);
         ciao.addEventListener("click", function () { parla(nomeSaluto ? "Ciao " + nomeSaluto + "!" : "Ciao!"); });
