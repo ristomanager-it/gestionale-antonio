@@ -1282,6 +1282,10 @@ async function saveProduzione(mode, id, fallbackDate){
     fascia,
     ora
   }
+  payload.pezzature = inPezzi ? pezzature : null
+  if (inPezzi) {
+    payload.lavorazione = `${prodotto} · ${pezzature.map(p => `${p.pz} pz da ${String(p.g).replace(".", ",")} g`).join(" + ")}`
+  }
   if (inKg && window.__rfPlannerBase) {
     payload.lavorazione = `${prodotto} · ${window.__rfPlannerBase.nome} ${String(window.__rfPlannerBase.kg).replace(".", ",")} kg`
   }
