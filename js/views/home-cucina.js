@@ -79,14 +79,7 @@ export async function render(app) {
         <button class="pr-link" ${vai("planner-produzione")}>Apri il planning ›</button>
       </div>
 
-      <div class="pr-griglia">
-        ${pulsante("🏭", "Produzione", "produzione")}
-        ${pulsante("🧪", "Preparazioni", "preparazioni")}
-        ${pulsante("📖", "Ricette e menu", "ricettario")}
-        ${pulsante("📋", "Mansionario", "mansionario-cucina")}
-        ${pulsante("🖥️", "Schermo Produzioni", "kds-produzioni")}
-        ${responsabile ? pulsante("🔔", "Avvisi HACCP", "alert-haccp-config") : ""}
-      </div>
+      <!-- i pulsanti stanno in alto -->
     </section>
     <style>
       .pr-home .pr-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin-bottom:12px;}
