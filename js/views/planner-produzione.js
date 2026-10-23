@@ -458,6 +458,30 @@ window.__rfPlannerCalcola = async function(){
   window.__rfPlannerUnitaIniziale = null
   uEl.innerHTML = `<option value="porzioni">porzioni</option><option value="pezzi">pezzi (pezzature)</option>` + pesanti.map((r, i) => `<option value="i${i}">kg di ${escapeHtml(_nomeBreve(r.nome))}</option>`).join("")
   if ([...uEl.options].some(o => o.value === prima)) uEl.value = prima
+  // pezzi: piu' pezzature (N pz da X g) nello stesso lotto; il peso totale diventa le porzioni della ricetta
+  if (uEl.value === "pezzi") {
+    qEl.style.display = "none"
+    if (pezBox) { pezBox.style.display = "block"; if (pezBox.dataset.attivo !== "1") { pezBox.dataset.attivo = "1"; disegnaPezzature() } }
+    const righe = (window.__rfPezzature || []).map(r => ({ pz: Number(r.pz) || 0, g: Number(r.g) || 0 })).filter(r => r.pz > 0 && r.g > 0)
+    const totG = righe.reduce((a, r) => a + r.pz * r.g, 0)
+    const pp = await pesoPorzioneG(sel.value, dati)
+    const porzP = pp.g && totG > 0 ? Math.round(totG / pp.g * 100) / 100 : 0
+    window.__rfPlannerPorzioniCalc = porzP
+    window.__rfPlannerPezzature = righe
+    window.__rfPlannerBase = null
+    const kP = porzP / dati.porzioni
+    const listaP = dati.righe.filter(r => r.q > 0).map(r => {
+      const t = r.g != null ? _fmtQ(r.g * kP, r.u) : (Math.round(r.q * kP * 10) / 10).toLocaleString("it-IT") + " " + r.u
+      return `${escapeHtml(_nomeBreve(r.nome))} <b>${escapeHtml(t)}</b>`
+    })
+    box.innerHTML = totG > 0
+      ? `<b>${(totG / 1000).toLocaleString("it-IT", { maximumFractionDigits: 3 })} kg</b> in totale${porzP ? ` · = <b>${porzP.toLocaleString("it-IT")} porzioni</b>${pp.stima ? " (stima sul peso degli ingredienti: nella ricetta manca la resa)" : ""}<br>🧾 Ti servono: ${listaP.join(", ") || "—"}` : " · ⚠️ non riesco a calcolare le porzioni: nella ricetta manca la resa"}`
+      : ""
+    return
+  }
+  qEl.style.display = ""
+  if (pezBox) { pezBox.style.display = "none"; pezBox.dataset.attivo = "" }
+  window.__rfPlannerPezzature = null
   const q = Number(qEl.value) || 0
   let porz = q
   let base = null
