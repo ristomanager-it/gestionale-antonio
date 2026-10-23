@@ -576,7 +576,7 @@ function disegna(container, supabase, azienda, sede) {
               <span>${righe.filter(r => (r.sezione || "Menu") === sez).length} ${eBevanda(sez) ? "bevande" : "portate"} ·
                 ${euro(righe.filter(r => (r.sezione || "Menu") === sez).reduce((s, r) => s + (Number(r.prezzo) || 0), 0))} a persona
                 ${catDiSezione(sez) ? "· propone solo questa categoria" : "· propone tutto il ricettario"}</span></div>
-            ${descSezione(sez)}
+            <!-- portate della sezione -->
             ${righe.map((r, i) => (r.sezione || "Menu") !== sez ? "" : rigaPortata(r, i)).join("")}
             <div class="add" data-add-portata="${esc(sez)}">+ aggiungi ${eBevanda(sez) ? "bevanda" : "portata"}</div>
           </div>`).join("") : `<div class="aiuto">Nessuna portata: crea la prima sezione qui sotto.</div>`}
