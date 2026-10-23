@@ -370,6 +370,23 @@ async function loadRicette() {
       creato_da_tony: !!r.creato_da_tony
     };
   });
+
+  // cosa manca a ogni ricetta (i conteggi si fanno sul database)
+  try {
+    const { data: man } = await supabase.rpc("ricette_mancanze", { p_azienda: aziendaId });
+    const perId = new Map((man || []).map(m => [String(m.ricetta_id), m]));
+    ricetteCache.forEach(r => {
+      const m = perId.get(String(r.id));
+      if (!m) return;
+      const manca = [];
+      // le ricette generate dalla composizione menu non hanno ingredienti e fasi: per loro non conta
+      if (!r.generata && m.n_ing === 0) manca.push("ingredienti");
+      else if (!r.generata && m.n_fasi === 0) manca.push("fasi");
+      if (m.n_scollegati > 0) manca.push(`${m.n_scollegati} ${m.n_scollegati === 1 ? "ingrediente" : "ingredienti"} da collegare`);
+      if (!m.ha_uscita) manca.push("prodotto finale");
+      r.manca = manca;
+    });
+  } catch (e) { /* senza il dettaglio la lista funziona uguale */ }
 }
 
 async function loadCategorie() {
