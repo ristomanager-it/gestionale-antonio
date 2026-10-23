@@ -4141,7 +4141,7 @@ function chiediFasiSaltate(nomi) {
       + '<button type="button" id="sx-io" class="app-button" style="width:100%;margin-bottom:8px;">Le ho fatte io</button>'
       + '<button type="button" id="sx-prima" class="app-button secondary" style="width:100%;">↩︎ Erano già fatte prima</button>'
       + '<div id="sx-form" style="display:none;margin-top:12px;">'
-      + '<select id="sx-chi" class="input" style="margin-bottom:8px;">' + opz + '</select>'
+      + opz
       + '<div style="font-size:13px;color:#475569;margin-bottom:4px;">📷 Foto dell\'etichetta del lavoro già fatto</div>'
       + '<input id="sx-foto" type="file" accept="image/*" capture="environment" class="input" style="margin-bottom:10px;">'
       + '<button type="button" id="sx-ok" class="app-button" style="width:100%;">Conferma</button></div>'
