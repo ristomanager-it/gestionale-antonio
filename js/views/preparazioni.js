@@ -6057,6 +6057,37 @@ function renderComeDeveVenire(ric) {
 /* ========================================================= */
 let stampoOggi = null;
 
+// ➕ Aggiungi pezzatura: righe "N pz da X g" nello stesso lotto
+window.__rfPezzatureScala = [{ pz: "", g: "" }];
+async function pesoPorzioneRicetta(ricId) {
+  const cli = window.supabaseClient || window.supabase;
+  const [{ data: r }, { data: o }] = await Promise.all([
+    cli.from("ricette").select("porzioni").eq("id", ricId).maybeSingle(),
+    cli.from("ricette_output").select("peso_finale, unita_misura").eq("ricetta_id", ricId).maybeSingle()
+  ]);
+  const porz = Number(r?.porzioni) || 0, pf = Number(o?.peso_finale) || 0;
+  if (!porz || !pf) return null;
+  const u = String(o.unita_misura || "kg").toLowerCase();
+  const g = ["g", "gr", "grammi"].includes(u) ? pf : ["kg", "l", "lt"].includes(u) ? pf * 1000 : null;
+  return g ? g / porz : null;
+}
+function disegnaPezzatureScala() {
+  const box = document.getElementById("scala-pezzature"); if (!box) return;
+  const righe = window.__rfPezzatureScala;
+  box.innerHTML = righe.map((r, i) => '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'
+    + '<input class="input" type="number" inputmode="numeric" min="0" step="1" data-spz="' + i + '" value="' + escapeAttr(r.pz ?? "") + '" placeholder="pezzi" style="flex:1;min-width:0;">'
+    + '<span style="white-space:nowrap;font-size:13px;">pz da</span>'
+    + '<input class="input" type="number" inputmode="decimal" min="0" step="0.1" data-sgp="' + i + '" value="' + escapeAttr(r.g ?? "") + '" placeholder="grammi" style="flex:1;min-width:0;">'
+    + '<span style="font-size:13px;">g</span>'
+    + (righe.length > 1 ? '<button type="button" data-srm="' + i + '" style="border:0;background:#fee2e2;color:#b91c1c;border-radius:8px;padding:8px 11px;">✕</button>' : "")
+    + '</div>').join("")
+    + '<button type="button" id="btn-add-pezzatura" class="app-button secondary" style="width:100%;">➕ Aggiungi pezzatura</button>';
+  box.querySelectorAll("[data-spz]").forEach((el) => el.addEventListener("input", () => { righe[Number(el.dataset.spz)].pz = el.value; }));
+  box.querySelectorAll("[data-sgp]").forEach((el) => el.addEventListener("input", () => { righe[Number(el.dataset.sgp)].g = el.value; }));
+  box.querySelectorAll("[data-srm]").forEach((el) => el.addEventListener("click", () => { righe.splice(Number(el.dataset.srm), 1); disegnaPezzatureScala(); }));
+  box.querySelector("#btn-add-pezzatura").addEventListener("click", () => { righe.push({ pz: "", g: "" }); disegnaPezzatureScala(); });
+}
+
 function mostraEsitoScala(esito, data, testoExtra) {
   // ricordo il peso atteso delle dosi calcolate: a fine lavorazione, confrontato col peso reale, da' la resa vera
   if (Number(data?.resa_kg) > 0) window.__rfScalaResa = { ricetta: ricettaSelezionata?.id ?? null, kg: Number(data.resa_kg) };
