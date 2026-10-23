@@ -846,23 +846,30 @@ function avvisoCapienza(inv) {
 function aggancia(container, supabase, azienda, sede) {
   const ri = () => disegna(container, supabase, azienda, sede);
 
-  // isole del buffet (solo matrimoni): finestra a parte, le scelte si salvano da sole
-  container.querySelector("#pv2-isole")?.addEventListener("click", async () => {
+  // isole del buffet (matrimoni): "Scegli le portate" apre l'elenco dell'isola; le scelte diventano righe del menu
+  container.querySelectorAll("[data-scegli]").forEach(b => b.addEventListener("click", async () => {
+    const sez = b.dataset.scegli;
     const m = await import("./preventivo-isole.js?v=" + (window.APP_V || 1));
-    m.apriIsole({ supabase, azienda, P });
-  });
-  // le descrizioni generiche si vedono subito nel riquadro, senza aprire la finestra
-  const boxNote = container.querySelector("#pv2-isole-note");
-  if (boxNote) {
-    supabase.from("buffet_isole").select("nome, gruppo, descrizione, modo, ordine")
-      .eq("azienda_id", azienda.id).eq("tipo_evento", "Matrimonio").order("ordine")
-      .then(({ data }) => {
-        const vis = (data || []).filter(x => x.descrizione && x.modo !== "opzionale");
-        boxNote.innerHTML = vis.length
-          ? vis.map(x => `<div style="padding:3px 0;"><b>${esc(x.gruppo ? x.gruppo : x.nome)}</b> — ${esc(x.descrizione)}</div>`).join("")
-          : "Nessuna isola configurata.";
-      });
-  }
+    const gruppi = isoleDiSezione(sez).map(i => ({ nome: i.nome, minimo: i.minimo, piatti: isolePiatti.filter(p => p.isola_id === i.id).map(p => p.nome) }));
+    const scelti = righe.filter(r => (r.sezione || "Menu") === sez && r.nome).map(r => r.nome);
+    m.scegliPortate({ titolo: sez, gruppi, scelti, onOk: async (nomi) => {
+      const tutti = new Set(gruppi.flatMap(g => g.piatti));
+      const dellaSez = righe.filter(r => (r.sezione || "Menu") === sez);
+      const tenute = dellaSez.filter(r => r.nome && tutti.has(r.nome) && nomi.includes(r.nome));
+      const aMano = dellaSez.filter(r => r.nome && !tutti.has(r.nome));
+      const nuove = nomi.filter(n => !tenute.some(r => r.nome === n)).map(n => ({ nome: n, sezione: sez, prezzo: 0, ricetta_id: null, pp: ppSezione(sez) }));
+      const nuovaSez = [...tenute, ...nuove, ...aMano];
+      if (!nuovaSez.length) nuovaSez.push({ nome: "", sezione: sez, prezzo: 0, ricetta_id: null, pp: ppSezione(sez) });
+      // la sezione resta dove stava nel menu
+      const pos = righe.findIndex(r => (r.sezione || "Menu") === sez);
+      const senza = righe.filter(r => (r.sezione || "Menu") !== sez);
+      const dove = righe.slice(0, Math.max(pos, 0)).filter(r => (r.sezione || "Menu") !== sez).length;
+      senza.splice(dove, 0, ...nuovaSez);
+      righe = senza;
+      await salva(container, supabase, azienda, sede);
+    } });
+  }));
+  container.querySelector("#pv2-mostra-portate")?.addEventListener("change", e => { P.mostra_portate = e.target.checked; });
 
   container.querySelectorAll("[data-campo]").forEach(el => {
     el.addEventListener("change", async () => {
