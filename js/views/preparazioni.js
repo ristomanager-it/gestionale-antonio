@@ -988,7 +988,19 @@ function setupAutocompleteRicette() {
       const esito = document.getElementById("scala-esito");
       if (!ricettaSelezionata?.id) { if (esito) esito.textContent = "Scegli prima una ricetta."; return; }
       const modo = document.getElementById("scala-modo")?.value || "porzioni";
-      const valore = Number(document.getElementById("scala-valore")?.value || 0);
+      let valore = Number(document.getElementById("scala-valore")?.value || 0);
+      let modoCalc = modo, extraPezzi = "";
+      if (modo === "pezzi") {
+        // piu' pezzature nello stesso lotto (es. 40 pz da 100 g + 20 pz da 30 g): il peso totale diventa le porzioni della ricetta
+        const righe = (window.__rfPezzatureScala || []).map((r) => ({ pz: Number(r.pz) || 0, g: Number(r.g) || 0 })).filter((r) => r.pz > 0 && r.g > 0);
+        if (!righe.length) { if (esito) esito.textContent = "Scrivi almeno una pezzatura: quanti pezzi e di quanti grammi."; return; }
+        const totG = righe.reduce((a, r) => a + r.pz * r.g, 0);
+        const gPorz = await pesoPorzioneRicetta(ricettaSelezionata.id);
+        if (!gPorz) { if (esito) esito.innerHTML = '<div style="padding:9px;border-radius:8px;background:#fff7e6;border-left:3px solid #d99a2b;font-size:13px;">Nella ricetta manca la resa (peso finale) o le porzioni: senza non posso trasformare i pezzi in dosi.</div>'; return; }
+        valore = Math.round(totG / gPorz * 100) / 100;
+        modoCalc = "porzioni";
+        extraPezzi = "🥖 " + righe.map((r) => r.pz + " pz da " + String(r.g).replace(".", ",") + " g").join(" + ") + " = <b>" + (totG / 1000).toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " kg</b> → " + valore.toLocaleString("it-IT") + " porzioni";
+      }
       if (!valore || valore <= 0) { if (esito) esito.textContent = "Scrivi quanto ne devi fare."; return; }
       const ingr = (document.getElementById("scala-ingr")?.value || "").trim();
       const um = (document.getElementById("scala-um")?.value || "kg").trim();
