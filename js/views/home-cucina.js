@@ -1,5 +1,5 @@
 // js/views/home-cucina.js
-// Home della sezione CUCINA: cosa succede adesso e i pulsanti grandi che servono.
+// Home della sezione CUCINA: pulsanti grandi sempre in vista; lavorazioni in corso e planning si aprono a comando.
 // Niente costi, niente elenchi da cui scegliere: chi lavora vede le sue cose.
 
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -33,7 +33,7 @@ export async function render(app) {
   const [{ data: plan }, { data: lotti }] = await Promise.all([
     qPlan,
     supabase.from("produzione_lotti").select("lotto_uuid, codice_lotto, ricetta_id, created_at")
-      .eq("azienda_id", azienda.id).eq("stato", "aperta").eq("sede_uuid", sede.id).order("created_at", { ascending: false }).limit(8),
+      .eq("azienda_id", azienda.id).eq("stato", "aperta").eq("sede_uuid", sede.id).order("created_at", { ascending: false }).limit(20),
   ]);
 
   const rid = [...new Set((lotti || []).map((l) => l.ricetta_id).filter(Boolean))];
@@ -52,23 +52,31 @@ export async function render(app) {
   const daFare = righe.filter((r) => r.stato !== "in_corso" && r.stato !== "completato").sort((a, b) => a.f - b.f);
   const inCorso = righe.filter((r) => r.stato === "in_corso");
   const fatte = righe.filter((r) => r.stato === "completato").length;
+  const nLotti = (lotti || []).length;
+  const nPlan = inCorso.length + daFare.length;
 
   const vai = (rotta) => `onclick="window.location.hash='#/${rotta}'"`;
   const rigaPlan = (r, icona) => `<div class="pr-riga"><span>${icona}</span><div><b>${esc(r.titolo)}</b>${r.lav ? ` <span class="pr-lav">· ${esc(r.lav)}</span>` : ""}<div class="pr-sub">${esc([r.quando, r.chi].filter(Boolean).join(" · "))}</div></div></div>`;
   const pulsante = (icona, testo, rotta) => `<button class="pr-btn" ${vai(rotta)}><i>${icona}</i>${testo}</button>`;
+  // riga che apre/chiude il pannello subito sotto
+  const apri = `const p=this.nextElementSibling;const a=p.style.display==='none';p.style.display=a?'block':'none';this.querySelector('.chev').style.transform=a?'rotate(90deg)':'none'`;
 
   app.innerHTML = `
     <section class="view pr-home">
       <h2 style="margin:0 0 2px;">👨‍🍳 Cucina</h2>
       <div class="small-muted" style="margin-bottom:14px;">${esc(sede.nome || "")} · ${new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}</div>
 
-      ${(() => {
-        const n = (lotti || []).length;
-        if (!n) return "";
-        const dest = n === 1 ? "preparazioni?lotto=" + esc(lotti[0].lotto_uuid) : "produzioni-aperte";
-        return `<div onclick="window.location.hash='#/${dest}'" style="background:#dcfce7;border:1px solid #86efac;color:#14532d;border-radius:14px;padding:14px 16px;margin-bottom:12px;font-weight:800;font-size:16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
-          <span>🟢 ${n} ${n === 1 ? "lavorazione in corso" : "lavorazioni in corso"}</span><span>›</span></div>`;
-      })()}
+      ${nLotti ? `
+      <div class="pr-barra pr-verde" onclick="${apri}">
+        <span>🟢 ${nLotti} ${nLotti === 1 ? "lavorazione in corso" : "lavorazioni in corso"}</span><span class="chev">›</span>
+      </div>
+      <div class="pr-box pr-pannello" style="display:none;">
+        ${(lotti || []).map((l) => `
+          <div class="pr-riga pr-tap" onclick="window.location.hash='#/preparazioni?lotto=${esc(l.lotto_uuid)}'">
+            <span>🧪</span><div><b>${esc(nomeRic.get(l.ricetta_id) || "Lavorazione")}</b>
+            <div class="pr-sub">${esc(l.codice_lotto || "")}${l.created_at ? " · dalle " + ora(l.created_at) : ""}</div></div><span class="pr-vai">›</span>
+          </div>`).join("")}
+      </div>` : ""}
 
       <div class="pr-griglia" style="margin-bottom:14px;">
         ${pulsante("🏭", "Produzione", "produzione")}
@@ -79,29 +87,21 @@ export async function render(app) {
         ${responsabile ? pulsante("🔔", "Avvisi HACCP", "alert-haccp-config") : ""}
       </div>
 
-      <div class="pr-box">
-        <div class="pr-tit">🟢 In corso adesso</div>
-        ${(lotti || []).length ? (lotti || []).map((l) => `
-          <div class="pr-riga pr-tap" onclick="window.location.hash='#/preparazioni?lotto=${esc(l.lotto_uuid)}'">
-            <span>🧪</span><div><b>${esc(nomeRic.get(l.ricetta_id) || "Lavorazione")}</b>
-            <div class="pr-sub">${esc(l.codice_lotto || "")}${l.created_at ? " · dalle " + ora(l.created_at) : ""}</div></div><span class="pr-vai">›</span>
-          </div>`).join("") : `<div class="pr-vuoto">Nessuna lavorazione aperta.</div>`}
+      <div class="pr-barra" onclick="${apri}">
+        <span>📋 Planning di oggi · ${nPlan ? nPlan + " da fare" : "niente da fare"}${fatte ? " · " + fatte + " fatte" : ""}</span><span class="chev">›</span>
       </div>
-
-      <div class="pr-box">
-        <div class="pr-tit">📋 Planning di oggi ${fatte ? `<small>· ${fatte} fatte</small>` : ""}</div>
+      <div class="pr-box pr-pannello" style="display:none;">
         ${inCorso.map((r) => rigaPlan(r, "🟢")).join("")}
-        ${daFare.length ? daFare.slice(0, 8).map((r) => rigaPlan(r, "⏳")).join("") : (inCorso.length ? "" : `<div class="pr-vuoto">Niente da fare in planning${responsabile ? "" : " per te"}.</div>`)}
-        ${daFare.length > 8 ? `<div class="pr-vuoto">…e altre ${daFare.length - 8}</div>` : ""}
+        ${daFare.map((r) => rigaPlan(r, "⏳")).join("")}
+        ${nPlan ? "" : `<div class="pr-vuoto">Niente da fare in planning${responsabile ? "" : " per te"}.</div>`}
         <button class="pr-link" ${vai("planner-produzione")}>Apri il planning ›</button>
       </div>
-
-      <!-- i pulsanti stanno in alto -->
     </section>
     <style>
       .pr-home .pr-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin-bottom:12px;}
-      .pr-home .pr-tit{font-weight:800;font-size:15px;margin-bottom:8px;}
-      .pr-home .pr-tit small{font-weight:600;color:#64748b;}
+      .pr-home .pr-barra{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-bottom:10px;font-weight:700;font-size:15px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+      .pr-home .pr-barra.pr-verde{background:#dcfce7;border-color:#86efac;color:#14532d;font-weight:800;font-size:16px;}
+      .pr-home .pr-barra .chev{font-size:20px;transition:transform .15s;}
       .pr-home .pr-riga{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #f1f5f9;font-size:15px;}
       .pr-home .pr-riga:first-of-type{border-top:0;}
       .pr-home .pr-tap{cursor:pointer;align-items:center;}
