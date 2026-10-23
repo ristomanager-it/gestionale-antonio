@@ -74,7 +74,7 @@
       css.push(".rf-ciao{position:absolute;left:50%;bottom:100%;margin-bottom:2px;transform:translateX(-50%) scale(.55);transform-origin:bottom center;font-size:17px;font-weight:700;font-family:inherit;line-height:1.2;background:#fff;color:#7c2d12;border:1px solid #fdba74;border-radius:14px;padding:5px 12px;white-space:nowrap;opacity:0;animation:rf-ciao 10s ease-in-out 1.5s 1 both;}");
       css.push("@keyframes rf-ciao{0%,43%{opacity:0}47%,66%{opacity:1}72%,100%{opacity:0}}");
       // il pipistrello e' un disegno: le ali sbattono, e toccando il fumetto lo si risente
-      css.push(".rf-bat svg{width:68px;height:auto;display:block;overflow:visible;}");
+      css.push(".rf-bat svg{width:96px;height:auto;display:block;overflow:visible;}");
       css.push(".rf-ala{animation:rf-ali .5s ease-in-out infinite alternate;}.rf-ala-s{transform-origin:70px 80px;}.rf-ala-d{transform-origin:130px 80px;animation-direction:alternate-reverse;}");
       css.push("@keyframes rf-ali{from{transform:rotate(-14deg)}to{transform:rotate(16deg)}}");
       css.push(".rf-ciao{pointer-events:auto;cursor:pointer;}");
