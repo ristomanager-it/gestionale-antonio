@@ -4154,7 +4154,7 @@ function chiediFasiSaltate(nomi) {
     ov.querySelector("#sx-ok").addEventListener("click", () => {
       const chi = null;
       const foto = ov.querySelector("#sx-foto").files?.[0] || null;
-      if (!chi) { alert("Scegli chi le ha fatte."); return; }
+      /* basta la foto dell'etichetta: chi l'ha fatto lo dice l'etichetta */
       if (!foto) { alert("Fotografa l'etichetta del lavoro già fatto."); return; }
       chiudi({ tipo: "prima", foto });
     });
