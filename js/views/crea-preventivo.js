@@ -345,6 +345,38 @@ function conti() {
 
 /* ── schermo ─────────────────────────────────────────────────────────── */
 
+// isole del buffet che corrispondono a una sezione del menu (la sezione "Pesce" raccoglie i gruppi del pesce)
+function isoleDiSezione(sez) {
+  const n = norm(sez);
+  return isole.filter(i => norm(i.nome) === n || (i.gruppo && norm(i.gruppo) === n && i.modo !== "opzionale"));
+}
+
+// descrizione generica dell'isola, contatore del minimo e pulsante per scegliere le portate
+function descSezione(sez) {
+  const l = isoleDiSezione(sez);
+  if (!l.length) return "";
+  const desc = l.find(i => i.descrizione)?.descrizione || "";
+  const scegli = l.some(i => i.modo === "scegli");
+  const min = l.reduce((s, i) => s + (Number(i.minimo) || 0), 0);
+  const scelti = righe.filter(r => (r.sezione || "Menu") === sez && r.nome).length;
+  return `<div class="pv2-isola">
+    ${desc ? `<div class="d">${esc(desc)}</div>` : ""}
+    ${scegli ? `<div class="m ${min && scelti < min ? "no" : "ok"}">${min ? `Scelte ${scelti} di ${min}` : `Scelte ${scelti}`}</div>
+      <button class="pv2-btn" data-scegli="${esc(sez)}">☑ Scegli le portate</button>` : ""}
+  </div>`;
+}
+
+// righe di una sezione nuova: se e' un'isola fissa (salumi, formaggi...) entrano tutte le portate standard
+function riempiSezione(nome, quante) {
+  const fissa = isoleDiSezione(nome).find(i => i.modo === "fissa" || i.modo === "opzionale");
+  const piatti = fissa ? isolePiatti.filter(p => p.isola_id === fissa.id).map(p => p.nome) : [];
+  if (piatti.length) {
+    piatti.forEach(n => righe.push({ nome: n, sezione: nome, prezzo: 0, ricetta_id: null, pp: ppSezione(nome) }));
+    return;
+  }
+  for (let i = 0; i < quante; i++) righe.push({ nome: "", sezione: nome, prezzo: 0, ricetta_id: null, pp: ppSezione(nome) });
+}
+
 function disegna(container, supabase, azienda, sede) {
   const c = conti();
   const sezioni = [...new Set(righe.map(r => r.sezione || "Menu"))];
