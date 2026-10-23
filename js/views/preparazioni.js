@@ -4183,7 +4183,7 @@ async function segnaGiaSvolte(idxs, r) {
     log.esito = "ok"; log.gia_svolta = true; log.svolta_da = null; log.svolta_foto_url = url || null;
     // niente orari inventati: la fase non e' stata fatta adesso
     log.ora_inizio = ""; log.ora_fine = ""; log.durata_reale_min = null;
-    log.note = [log.note, "Già svolta in precedenza da " + nome + (url ? " — foto etichetta: " + url : " (foto non caricata)")].filter(Boolean).join(" · ");
+    log.note = [log.note, "Già svolta in precedenza" + (url ? " — foto etichetta: " + url : " (foto non caricata)")].filter(Boolean).join(" · ");
     if (_uuid && cli && log.fase_id) {
       cli.from("produzione_log_haccp").update({
         operatore_id: log.operatore_id || null, operatore_nome: log.operatore_nome || null,
