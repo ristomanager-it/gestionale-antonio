@@ -818,12 +818,16 @@ export function initMenu() {
       `;
 
       // tocco sul nome della sezione = home della sezione; tocco sulla freccia = elenco delle voci
-      if (section.home && can(section.home)) {
+      const homeSez = section.home || ({
+        sala: "home-sezione?s=sala", eventi: "home-sezione?s=eventi", gestione: "home-sezione?s=gestione",
+        menu_prodotti: "home-sezione?s=menu_prodotti", marketing: "home-sezione?s=marketing", personale: "home-sezione?s=personale",
+      })[section.key];
+      if (homeSez && can(homeSez)) {
         const nomeSez = title.children[0];
         const frecciaSez = title.children[1];
         nomeSez.style.cssText = "flex:1;font-weight:800;";
         if (frecciaSez) frecciaSez.style.padding = "8px 4px 8px 28px";
-        nomeSez.onclick = (e) => { e.stopPropagation(); submenuAperto = null; go(section.home); };
+        nomeSez.onclick = (e) => { e.stopPropagation(); submenuAperto = null; go(homeSez); };
       }
 
       const itemsBox =
