@@ -425,6 +425,7 @@ export function initMenu() {
     // ── CUCINA ──
     sections.push({
       key: "cucina",
+      home: "home-cucina",
       title: "CUCINA",
       items: [
         { label: "📖 Ricette e menu", route: "ricettario", children: [
