@@ -112,6 +112,20 @@
 
     if (t.pipistrelli) {
       // un solo pipistrello: arriva, saluta e se ne va. Non torna fino alla prossima apertura dell'app.
+      // voce italiana (se il telefono la lascia partire da sola; altrimenti basta toccare il fumetto)
+      var nomeSaluto = "";
+      var parla = function (testo) {
+        try {
+          if (!window.speechSynthesis || !testo) return;
+          var u = new SpeechSynthesisUtterance(testo);
+          u.lang = "it-IT"; u.pitch = 1.6; u.rate = 1.05;
+          var voci = speechSynthesis.getVoices() || [];
+          var it = voci.filter(function (v) { return /^it/i.test(v.lang); })[0];
+          if (it) u.voice = it;
+          speechSynthesis.cancel();
+          speechSynthesis.speak(u);
+        } catch (e) { /* senza voce resta il fumetto */ }
+      };
       // [animazione, posizione orizzontale, grandezza]
       [["saluto", "calc(50% - 34px)", 68]].forEach(function (p) {
         var b = document.createElement("div");
