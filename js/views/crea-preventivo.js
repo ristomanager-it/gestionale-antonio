@@ -351,18 +351,35 @@ function isoleDiSezione(sez) {
   return isole.filter(i => norm(i.nome) === n || (i.gruppo && norm(i.gruppo) === n && i.modo !== "opzionale"));
 }
 
-// descrizione generica dell'isola, contatore del minimo e pulsante per scegliere le portate
-function descSezione(sez) {
+// scheda compatta di un'isola del buffet: descrizione, contatore, portate nascoste e UN prezzo a persona
+function cardIsola(sez) {
   const l = isoleDiSezione(sez);
-  if (!l.length) return "";
   const desc = l.find(i => i.descrizione)?.descrizione || "";
+  const rs = righe.filter(r => (r.sezione || "Menu") === sez);
+  const scelti = rs.filter(r => r.nome);
   const scegli = l.some(i => i.modo === "scegli");
   const min = l.reduce((s, i) => s + (Number(i.minimo) || 0), 0);
-  const scelti = righe.filter(r => (r.sezione || "Menu") === sez && r.nome).length;
-  return `<div class="pv2-isola">
+  const prezzo = rs.reduce((s, r) => s + (Number(r.prezzo) || 0), 0);
+  const pill = scegli
+    ? `<span class="pill ${min && scelti.length < min ? "" : "ok"}">${min ? `${scelti.length} di ${min}` : `${scelti.length} scelte`}</span>`
+    : (scelti.length ? `<span class="pill ok">${scelti.length} ${scelti.length === 1 ? "portata" : "portate"}</span>` : "");
+  // isole con più gruppi (il pesce): un contatore per gruppo
+  const gruppi = l.length > 1 ? l.map(i => {
+    const nomi = new Set(isolePiatti.filter(p => p.isola_id === i.id).map(p => p.nome));
+    const n = scelti.filter(r => nomi.has(r.nome)).length;
+    const m = Number(i.minimo) || 0;
+    return `<div class="sub"><span>${esc(i.nome)}</span><span class="${m && n < m ? "no" : ""}">${m ? `${n} di ${m}` : n}</span></div>`;
+  }).join("") : "";
+  return `<div class="pv2-ic">
+    <div class="t"><span>${esc(sez)}</span>${pill}</div>
     ${desc ? `<div class="d">${esc(desc)}</div>` : ""}
-    ${scegli ? `<div class="m ${min && scelti < min ? "no" : "ok"}">${min ? `Scelte ${scelti} di ${min}` : `Scelte ${scelti}`}</div>
-      <button class="pv2-btn" data-scegli="${esc(sez)}">☑ Scegli le portate</button>` : ""}
+    ${gruppi}
+    <div class="r">
+      ${scegli ? `<button class="pv2-btn" data-scegli="${esc(sez)}">☑ Scegli le portate</button>` : ""}
+      <span class="pr"><input type="number" step="0.5" min="0" class="in" value="${prezzo || ""}" placeholder="0" data-isola-prezzo="${esc(sez)}"> € a persona</span>
+    </div>
+    ${scelti.length ? `<details><summary>Vedi le portate (${scelti.length})</summary>${scelti.map(r => `<div class="p">${esc(r.nome)}</div>`).join("")}</details>` : ""}
+    <div class="togli" data-isola-togli="${esc(sez)}">Togli questa isola</div>
   </div>`;
 }
 
