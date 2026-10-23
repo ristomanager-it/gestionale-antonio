@@ -459,6 +459,7 @@ export function initMenu() {
           { label: "📋 Log", route: "bo-dispositivi?tab=log" },
         ] },
         { label: "📋 Mansionario Cucina",  route: "mansionario-cucina" },
+        { label: "🌡️ Cotture CBT",        route: "cotture-cbt" },
       ]
     });
 
