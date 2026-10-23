@@ -3558,7 +3558,7 @@ function avviaFase(idx, origine) {
   } catch (e) { console.warn("in corso:", e); }
 }
 
-function firmaFaseHaccp(idx) {
+async function firmaFaseHaccp(idx) {
   const log = logHaccp[idx];
   const fase = fasiCache[idx];
   if (/\bph\b/i.test(String(log?.fase_nome || fase?.nome_fase || "")) && !(Number(log.valore_misurato) > 0)) {
