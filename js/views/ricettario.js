@@ -127,6 +127,10 @@ export async function render(app) {
         .ric-chip input:checked + span{background:#0E5A7A;color:#fff;}
         .ric-altro summary{cursor:pointer;color:#0E5A7A;font-weight:700;font-size:14px;padding:10px 0;}
         .ric-altro .app-button{margin:0 6px 8px 0;}
+        .ric-chip.on span{background:#0E5A7A !important;color:#fff !important;}
+        #ric-list [data-ricetta-id] > div{flex-direction:column !important;gap:10px !important;}
+        #ric-list [data-ricetta-id] > div > div:last-child{justify-content:flex-start !important;}
+        #ric-list [data-ricetta-id] .app-button{padding:8px 12px;font-size:13px;}
       </style>
 
       <div class="ric-top">
