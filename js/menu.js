@@ -837,6 +837,12 @@ export function initMenu() {
           row.style.justifyContent = "space-between";
           row.style.alignItems = "center";
           row.onclick = () => { submenuAperto = item; renderMenu(); };
+          if (item.home && can(item.route)) {
+            // tocco sul nome = home della sezione; tocco sulla freccia = elenco delle voci
+            row.onclick = () => { submenuAperto = null; go(item.route); };
+            const fr = row.querySelector(".menu-subarrow");
+            if (fr) { fr.style.padding = "8px 4px 8px 22px"; fr.onclick = (e) => { e.stopPropagation(); submenuAperto = item; renderMenu(); }; }
+          }
           itemsBox.appendChild(row);
           return;
         }
