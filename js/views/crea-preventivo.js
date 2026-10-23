@@ -488,6 +488,15 @@ function disegna(container, supabase, azienda, sede) {
         ${avvisoCapienza(c.inv)}
       </div>
 
+      ${norm(tipoEvento()) === "matrimonio" ? `
+      <div class="pv2-card" style="border:2px solid #0E5A7A;">
+        <h2>🍽 Isole del buffet</h2>
+        <div class="aiuto">Il preventivo resta generico: isole con la descrizione. Col cliente davanti puoi mostrare le portate e sceglierle.</div>
+        <div id="pv2-isole-note" class="aiuto" style="color:#1F2937;margin:8px 0 10px;">Un attimo…</div>
+        <button class="pv2-btn" id="pv2-isole">🍽 Apri le isole del buffet</button>
+        ${P.id ? "" : `<div class="aiuto" style="margin-top:8px;">Salva il preventivo per poter scegliere le portate.</div>`}
+      </div>` : ""}
+
       <div class="pv2-card">
         <h2>Il menu</h2>
         <div class="aiuto">Scrivi il piatto: se è in ricettario porta con sé il suo costo.</div>
