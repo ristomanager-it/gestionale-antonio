@@ -220,6 +220,9 @@ export async function render(app) {
         <label class="ric-chip"><input type="checkbox" id="f-tutte-sedi" ${mostraTutteLeSedi() ? "checked" : ""}><span>🏢 Tutte le sedi</span></label>
       </div>
 
+      <div id="ric-tipo" class="ric-chips"></div>
+      <div id="ric-porta" class="ric-chips ric-scorri" style="display:none;"></div>
+
       <div id="ric-list"></div>
 
       <div id="ric-viewer"></div>
