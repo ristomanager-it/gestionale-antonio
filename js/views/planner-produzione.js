@@ -1234,9 +1234,12 @@ async function saveProduzione(mode, id, fallbackDate){
   const data = document.getElementById("planner-data").value || fallbackDate || formatDateLocal(new Date())
   const prodotto = (document.getElementById("planner-prodotto").value || "").trim()
   const qScritta = Number(document.getElementById("planner-quantita").value || 0)
-  const inKg = (document.getElementById("planner-qunita")?.value || "porzioni") !== "porzioni"
-  // in kg dell'ingrediente principale: si salvano le porzioni che ne derivano
-  const quantita = inKg && window.__rfPlannerPorzioniCalc ? window.__rfPlannerPorzioniCalc : qScritta
+  const unitaSel = document.getElementById("planner-qunita")?.value || "porzioni"
+  const inPezzi = unitaSel === "pezzi"
+  const inKg = unitaSel !== "porzioni" && !inPezzi
+  // in kg dell'ingrediente principale o in pezzi (pezzature): si salvano le porzioni che ne derivano
+  const quantita = (inKg || inPezzi) && window.__rfPlannerPorzioniCalc ? window.__rfPlannerPorzioniCalc : qScritta
+  const pezzature = inPezzi ? (window.__rfPlannerPezzature || []) : []
   const ricetta_id = document.getElementById("planner-ricetta").value || null
   const dipendente_id = document.getElementById("planner-dipendente").value || null
   const tempo_stimato_minuti = parseInt(document.getElementById("planner-tempo").value || 0, 10) || null
