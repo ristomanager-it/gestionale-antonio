@@ -307,6 +307,10 @@ function bindFiltri() {
   // i pallini dei filtri si colorano quando sono accesi
   const sincChips = () => document.querySelectorAll(".ric-chip").forEach(l => l.classList.toggle("on", !!l.querySelector("input")?.checked));
   document.querySelector(".ric-chips")?.addEventListener("change", sincChips);
+  document.getElementById("f-testate")?.addEventListener("change", e => {
+    filtroTestate = e.target.checked;
+    renderRicetteList();
+  });
   sincChips();
 
   document.getElementById("f-bozza")?.addEventListener("change", e => {
