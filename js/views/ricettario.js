@@ -678,7 +678,7 @@ async function apriVediRicetta(id) {
   });
   // segno "Testata": riguarda il pacchetto da vendere, lo vede solo chi gestisce Ristoflow (superadmin)
   const btnTest = overlay.querySelector("#ric-vedi-test");
-  if (!(window.state?.isSuperadmin === true && !window.state?.viewAs)) {
+  if (window.state?.user?.id !== "0f962f1e-3f40-437c-85b7-16bc85ed8554") {
     btnTest.remove();
   } else {
     const scrivi = () => {
