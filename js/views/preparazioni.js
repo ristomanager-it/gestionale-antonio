@@ -137,6 +137,7 @@ export async function render(container) {
               <select id="scala-modo" class="input" style="flex:1;min-width:130px;">
                 <option value="porzioni">Porzioni da fare</option>
                 <option value="vincolo">Ho questa quantita di…</option>
+                <option value="pezzi">Pezzi (pezzature)</option>
               </select>
               <input id="scala-valore" class="input" type="number" step="0.01" placeholder="quanto" style="width:92px;" />
               <input id="scala-um" class="input" placeholder="kg" style="width:66px;display:none;" value="kg" />
