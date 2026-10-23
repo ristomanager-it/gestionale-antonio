@@ -157,6 +157,7 @@ const routes = {
   produzione: () => imp("./views/produzione.js"),
   "home-cucina": () => imp("./views/home-cucina.js"),
   "home-sezione": () => imp("./views/home-sezione.js"),
+  "cotture-cbt": () => imp("./views/cotture-cbt.js"),
   "produzioni-storico": () => imp("./views/produzioni-storico.js"),
   "briefing-servizio": () => imp("./views/briefing-servizio.js"),
   "produzioni-aperte": () => imp("./views/produzioni-aperte.js"),
