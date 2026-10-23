@@ -228,6 +228,31 @@ export async function render(container) {
               </div>`).join("")}
           </div>` : ""}
 
+        ${(() => {
+          // isole del buffet (matrimoni): descrizione generica; i piatti solo se l'operatore li ha mostrati
+          const blocchi = [];
+          (d.isole || []).forEach((is) => {
+            const chiave = is.gruppo || is.nome;
+            let b = blocchi.find((x) => x.chiave === chiave);
+            if (!b) { b = { chiave, titolo: is.gruppo || is.nome, desc: "", sotto: [] }; blocchi.push(b); }
+            if (is.descrizione && !b.desc) b.desc = is.descrizione;
+            b.sotto.push({ nome: is.gruppo ? is.nome : "", piatti: is.piatti || [] });
+          });
+          if (!blocchi.length) return "";
+          return `
+          <h2>Il buffet</h2>
+          <div class="pv-blocco">
+            ${blocchi.map((b) => `
+              <div class="pv-sez">
+                <div class="pv-tit">${esc(b.titolo)}</div>
+                ${b.desc ? `<div class="pv-p">${esc(b.desc)}</div>` : ""}
+                ${b.sotto.map((s) => `
+                  ${s.nome && s.piatti.length ? `<div class="pv-p" style="font-weight:700;margin-top:6px;">${esc(s.nome)}</div>` : ""}
+                  ${s.piatti.map((p) => `<div class="pv-p" style="padding-left:12px;color:#4B5563;">· ${esc(p)}</div>`).join("")}`).join("")}
+              </div>`).join("")}
+          </div>`;
+        })()}
+
         ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
           <h2>${esc(sez)}</h2>
           <div class="pv-blocco"><div class="pv-sez">
