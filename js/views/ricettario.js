@@ -632,7 +632,7 @@ function renderRicetteList() {
         gap:10px;
       ">
         <div style="min-width:0;">
-          <div style="font-size:15px;font-weight:600;color:#1F2937;">${escapeHtml(r.nome)}</div>
+          <div style="font-size:15px;font-weight:600;color:#1F2937;">${escapeHtml(r.nome)}${r.testata ? " ✅" : ""}</div>
           <div style="font-size:12px;color:#64748b;margin-top:2px;">
             ${badge}${resaTxt}${mostraTutteLeSedi() && r.sede_nome ? ` · 🏢 ${escapeHtml(r.sede_nome)}` : ""}
           </div>
