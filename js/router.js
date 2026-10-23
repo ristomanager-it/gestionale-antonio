@@ -801,6 +801,7 @@ function hasPermission(area) {
       "app-produzione",
       "produzione",
       "home-cucina",
+      "home-sezione",
       "produzioni-aperte",
       "produzioni-storico",
       "briefing-servizio",
