@@ -81,6 +81,14 @@ export async function render(container, params = {}) {
   sezioniInfo = sez.data || [];
   modelli = mod.data || [];
   try {
+    const [ri, rp] = await Promise.all([
+      supabase.from("buffet_isole").select("*").eq("azienda_id", azienda.id).eq("tipo_evento", "Matrimonio").order("ordine"),
+      supabase.from("buffet_isole_piatti").select("*").eq("azienda_id", azienda.id).order("ordine"),
+    ]);
+    isole = ri.data || [];
+    isolePiatti = rp.data || [];
+  } catch (e) { isole = []; isolePiatti = []; }
+  try {
     sediAz = (await supabase.from("sedi").select("id, nome, logo_url").eq("azienda_id", azienda.id)).data || [];
   } catch (e) { sediAz = []; }
   try {
