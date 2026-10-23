@@ -414,6 +414,37 @@ function _fmtQ(g, u){
   if (g >= 1000) return (Math.round(g / 100) / 10).toLocaleString("it-IT") + (liquido ? " l" : " kg")
   return Math.round(g) + (liquido ? " ml" : " g")
 }
+// peso di una porzione in grammi: resa del batch base della ricetta diviso le porzioni (se manca la resa, si stima dal peso degli ingredienti)
+const _pesoPorzCache = {}
+async function pesoPorzioneG(ricId, dati){
+  if (_pesoPorzCache[ricId]) return _pesoPorzCache[ricId]
+  const { data: o } = await window.supabaseClient.from("ricette_output").select("peso_finale, unita_misura").eq("ricetta_id", ricId).maybeSingle()
+  let baseG = null, stima = false
+  if (o && Number(o.peso_finale) > 0) {
+    const u = String(o.unita_misura || "kg").toLowerCase()
+    baseG = ["g", "gr", "grammi"].includes(u) ? Number(o.peso_finale) : Number(o.peso_finale) * 1000
+  }
+  if (!baseG) { baseG = dati.righe.reduce((a, r) => a + (r.g || 0), 0); stima = true }
+  return (_pesoPorzCache[ricId] = { g: baseG && dati.porzioni ? baseG / dati.porzioni : null, stima })
+}
+
+// ➕ Aggiungi pezzatura: piu' righe "N pz da X g" nello stesso lotto (es. 40 pz da 100 g + 20 pz da 30 g)
+function disegnaPezzature(){
+  const box = document.getElementById("planner-pezzature"); if (!box) return
+  const righe = window.__rfPezzature || []
+  box.innerHTML = righe.map((r, i) => `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+      <input type="number" inputmode="numeric" min="0" step="1" data-pz="${i}" value="${escapeAttr(r.pz ?? "")}" placeholder="pezzi" style="flex:1;min-width:0;">
+      <span style="white-space:nowrap;">pz da</span>
+      <input type="number" inputmode="decimal" min="0" step="0.1" data-gp="${i}" value="${escapeAttr(r.g ?? "")}" placeholder="grammi" style="flex:1;min-width:0;">
+      <span>g</span>
+      ${righe.length > 1 ? `<button type="button" data-rmp="${i}" style="border:0;background:#fee2e2;color:#b91c1c;border-radius:8px;padding:6px 10px;">✕</button>` : ""}
+    </div>`).join("") + `<button type="button" id="planner-add-pezz" class="secondary" style="margin-top:2px;">➕ Aggiungi pezzatura</button>`
+  box.querySelectorAll("[data-pz]").forEach(el => el.addEventListener("input", () => { righe[Number(el.dataset.pz)].pz = el.value; window.__rfPlannerCalcola() }))
+  box.querySelectorAll("[data-gp]").forEach(el => el.addEventListener("input", () => { righe[Number(el.dataset.gp)].g = el.value; window.__rfPlannerCalcola() }))
+  box.querySelectorAll("[data-rmp]").forEach(el => el.addEventListener("click", () => { righe.splice(Number(el.dataset.rmp), 1); disegnaPezzature(); window.__rfPlannerCalcola() }))
+  box.querySelector("#planner-add-pezz").addEventListener("click", () => { righe.push({ pz: "", g: "" }); disegnaPezzature() })
+}
+
 window.__rfPlannerCalcola = async function(){
   const sel = document.getElementById("planner-ricetta"), qEl = document.getElementById("planner-quantita")
   const uEl = document.getElementById("planner-qunita"), box = document.getElementById("planner-calc")
