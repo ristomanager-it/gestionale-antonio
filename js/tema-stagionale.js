@@ -111,6 +111,43 @@
       });
     }
 
+    // alberelli lungo il fondo e Babbo Natale con le renne che attraversano lo schermo (Natale)
+    if (scelto === "natale") {
+      var s2 = document.createElement("style");
+      s2.textContent = [
+        ".rf-alberi{position:fixed;left:0;right:0;bottom:calc(var(--bottom-nav-height,0px) + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-around;align-items:flex-end;pointer-events:none;z-index:50;}",
+        ".rf-albero{line-height:1;animation:rf-albero 2.4s ease-in-out infinite alternate;}",
+        "@keyframes rf-albero{from{filter:brightness(1)}to{filter:brightness(1.2) drop-shadow(0 0 4px #f6c343)}}",
+        ".rf-slitta{position:fixed;left:0;line-height:1;white-space:nowrap;pointer-events:none;z-index:51;will-change:transform;}",
+        ".rf-slitta.dx{top:18vh;font-size:34px;animation:rf-dx 24s linear infinite;}",
+        ".rf-slitta.sx{top:46vh;font-size:30px;animation:rf-sx 28s linear infinite;}",
+        "@keyframes rf-dx{0%{transform:translate(-170px,0)}50%{transform:translate(52vw,-26px)}100%{transform:translate(calc(100vw + 40px),0)}}",
+        "@keyframes rf-sx{0%{transform:translate(calc(100vw + 40px),0) scaleX(-1)}50%{transform:translate(42vw,22px) scaleX(-1)}100%{transform:translate(-170px,0) scaleX(-1)}}",
+        "@media (prefers-reduced-motion:reduce){.rf-albero{animation:none}.rf-slitta{display:none}}"
+      ].join("\n");
+      document.head.appendChild(s2);
+
+      var alb = document.createElement("div");
+      alb.className = "rf-alberi";
+      for (var a = 0; a < 8; a++) {
+        var al = document.createElement("span");
+        al.className = "rf-albero";
+        al.textContent = "🎄";
+        al.style.fontSize = (a % 2 ? "22px" : "28px");
+        al.style.animationDelay = "-" + (a * 0.45).toFixed(2) + "s";
+        alb.appendChild(al);
+      }
+      document.body.appendChild(alb);
+
+      [["dx", 0], ["sx", 11]].forEach(function (p) {
+        var sl = document.createElement("div");
+        sl.className = "rf-slitta " + p[0];
+        sl.textContent = "🎅🛷🦌🦌";
+        sl.style.animationDelay = "-" + p[1] + "s";
+        document.body.appendChild(sl);
+      });
+    }
+
     // neve leggera (Natale)
     if (t.neve && !menoMoto) {
       var cv = document.createElement("canvas");
