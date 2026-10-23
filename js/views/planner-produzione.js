@@ -450,7 +450,8 @@ window.__rfPlannerCalcola = async function(){
   const uEl = document.getElementById("planner-qunita"), box = document.getElementById("planner-calc")
   if (!sel || !qEl || !uEl || !box) return
   window.__rfPlannerPorzioniCalc = null
-  if (!sel.value) { uEl.innerHTML = `<option value="porzioni">porzioni</option>`; box.innerHTML = ""; return }
+  const pezBox = document.getElementById("planner-pezzature")
+  if (!sel.value) { uEl.innerHTML = `<option value="porzioni">porzioni</option>`; box.innerHTML = ""; qEl.style.display = ""; if (pezBox) { pezBox.style.display = "none"; pezBox.dataset.attivo = "" } return }
   const dati = await ingredientiRicetta(sel.value)
   const pesanti = dati.righe.filter(r => r.g != null && r.g > 0).sort((a, b) => b.g - a.g).slice(0, 3)
   const prima = uEl.value
