@@ -108,7 +108,7 @@
     if (t.pipistrelli) {
       // un solo pipistrello: arriva, saluta e se ne va. Non torna fino alla prossima apertura dell'app.
       // [animazione, posizione orizzontale, grandezza]
-      [["saluto", "calc(50% - 22px)", 44]].forEach(function (p) {
+      [["saluto", "calc(50% - 34px)", 68]].forEach(function (p) {
         var b = document.createElement("div");
         b.className = "rf-bat " + p[0];
         // pipistrello disegnato: orecchie grandi, occhioni arancioni, nasino rosa, ali che sbattono
