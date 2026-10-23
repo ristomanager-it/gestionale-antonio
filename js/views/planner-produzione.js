@@ -1021,7 +1021,8 @@ async function openEdit(id){
       dipendente_id: data.dipendente_id || "",
       tempo_stimato_minuti: data.tempo_stimato_minuti || "",
       stato: data.stato || "da_fare",
-      note: data.note || ""
+      note: data.note || "",
+      pezzature: data.pezzature || null
     },
     suggerimento
   })
