@@ -161,6 +161,9 @@
             if (nome) { ciao.textContent = "Ciao " + nome + "! 👋"; nomeSaluto = nome; }
           } catch (e) { /* resta "Ciao!" */ }
         }, 4500);
+        // parla solo nell'app (dove sa il nome), mai sulle pagine pubbliche dei clienti
+        setTimeout(function () { if (nomeSaluto) parla("Ciao " + nomeSaluto + "!"); }, 6300);
+        ciao.addEventListener("click", function () { parla(nomeSaluto ? "Ciao " + nomeSaluto + "!" : "Ciao!"); });
         b.style.left = p[1];
         b.style.fontSize = p[2] + "px";
         b.addEventListener("animationend", function () { b.remove(); });
