@@ -505,77 +505,38 @@ function renderRicetteList() {
   box.innerHTML = ricette.slice(0, 50).map(r => {
     const badge = getBadgeStato(r.stato);
     const border = getBorderStato(r.stato);
-    const origine = r.generata
-      ? `⚙️ ${escapeHtml(r.origine || "generata")}`
-      : "Manuale";
-
     const resaTxt = r.resa != null
       ? `${r.resa} ${escapeHtml(r.um || "")}`
       : "Resa non definita";
 
+    // una riga semplice: nome, stato e una freccia. Toccando si apre la ricetta, con Completa ed Elimina dentro
     return `
       <div data-ricetta-id="${escapeAttribute(r.id)}" style="
-        padding:12px;
+        padding:12px 14px;
         border:1px solid #e5e7eb;
         border-left:5px solid ${border};
         border-radius:12px;
-        margin-bottom:10px;
+        margin-bottom:8px;
         cursor:pointer;
         background:#fff;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:10px;
       ">
-        <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-          <div>
-            <strong>${escapeHtml(r.nome)}</strong>
-            <div style="font-size:12px;color:#64748b;margin-top:4px;">
-              ${badge} · ${origine} · ${resaTxt}${mostraTutteLeSedi() && r.sede_nome ? ` · 🏢 ${escapeHtml(r.sede_nome)}` : ""}
-            </div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
-              ${r.creato_da_nome ? `✍️ ${escapeHtml(r.creato_da_nome)}` : ""}
-              ${r.modificato_da_nome ? ` · ✏️ ${escapeHtml(r.modificato_da_nome)} ${r.modificato_il ? "il " + new Date(r.modificato_il).toLocaleDateString("it-IT") : ""}` : ""}
-            </div>
-          </div>
-          <div style="display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;">
-            <button class="app-button secondary" type="button" data-vedi-ricetta="${escapeAttribute(r.id)}">
-              👁 Vedi ricetta
-            </button>
-            <button class="app-button" type="button" data-edit-ricetta="${escapeAttribute(r.id)}">
-              ✏️ Completa
-            </button>
-            <button class="app-button secondary" type="button" data-del-ricetta="${escapeAttribute(r.id)}" data-del-nome="${escapeAttribute(r.nome)}" title="Elimina ricetta" style="padding:8px 10px;">
-              🗑
-            </button>
+        <div style="min-width:0;">
+          <div style="font-size:15px;font-weight:600;color:#1F2937;">${escapeHtml(r.nome)}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">
+            ${badge} · ${resaTxt}${mostraTutteLeSedi() && r.sede_nome ? ` · 🏢 ${escapeHtml(r.sede_nome)}` : ""}
           </div>
         </div>
+        <span style="color:#9CA3AF;font-size:22px;">›</span>
       </div>
     `;
   }).join("");
 
   box.querySelectorAll("[data-ricetta-id]").forEach(el => {
-    el.addEventListener("click", e => {
-      if (e.target?.dataset?.editRicetta) return;
-      mostraRicetta(el.dataset.ricettaId);
-    });
-  });
-
-  box.querySelectorAll("[data-vedi-ricetta]").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      apriVediRicetta(btn.dataset.vediRicetta);
-    });
-  });
-
-  box.querySelectorAll("[data-edit-ricetta]").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      window.location.hash = `#/creaRicetta?id=${btn.dataset.editRicetta}`;
-    });
-  });
-
-  box.querySelectorAll("[data-del-ricetta]").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      eliminaRicetta(btn.dataset.delRicetta, btn.dataset.delNome);
-    });
+    el.addEventListener("click", () => apriVediRicetta(el.dataset.ricettaId));
   });
 }
 
