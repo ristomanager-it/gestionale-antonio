@@ -83,6 +83,7 @@ export async function render(app) {
         ${pulsante("🏭", "Produzione", "produzione")}
         ${pulsante("🧪", "Preparazioni", "preparazioni")}
         ${pulsante("📖", "Ricette e menu", "ricettario")}
+        ${pulsante("🌡️", "Cotture CBT", "cotture-cbt")}
         ${pulsante("📋", "Mansionario", "mansionario-cucina")}
         ${pulsante("🖥️", "Schermo Produzioni", "kds-produzioni")}
         ${responsabile ? pulsante("🔔", "Avvisi HACCP", "alert-haccp-config") : ""}
