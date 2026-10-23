@@ -4189,7 +4189,7 @@ async function segnaGiaSvolte(idxs, r) {
         operatore_id: log.operatore_id || null, operatore_nome: log.operatore_nome || null,
         ora_inizio: null, ora_fine: null, durata_reale_min: null, esito: "ok", note: log.note,
         firmato_da: log.firmato_da || null, firmato_il: log.firmato_il || ora, firme: log.firme,
-        gia_svolta: true, svolta_da: nome, svolta_foto_url: url || null
+        gia_svolta: true, svolta_da: null, svolta_foto_url: url || null
       }).eq("lotto_id", _uuid).eq("fase_id", log.fase_id)
         .then(function (res) { if (res && res.error) console.warn("fase gia' svolta non salvata subito:", res.error.message); })
         .catch(function (e) { console.warn("fase gia' svolta non salvata subito:", e); });
