@@ -4172,8 +4172,7 @@ async function segnaGiaSvolte(idxs, r) {
       if (!up.error) url = cli.storage.from("media-aziende").getPublicUrl(path).data.publicUrl || "";
     }
   } catch (e) { console.warn("foto fase gia' svolta non caricata:", e); }
-  const chi = dipendentiCache.find((d) => String(d.id) === String(r.chi)) || null;
-  const nome = chi?.nome || "chi le ha fatte prima";
+  const chi = null, nome = null;
   const ora = new Date().toISOString();
   const _uuid = resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid) || null;
   for (const k of idxs) {
