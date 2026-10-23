@@ -9,6 +9,71 @@ let filtroComplete = false;
 // altri filtri invece di sostituirli. Sono le ricette che finiscono in vendita
 // dentro una confezione con una grafica sopra.
 let filtroMarket = false;
+// Tipo (basi o piatti finiti) e, per i piatti, la categoria di portata
+let filtroTipo = "";
+let filtroPortata = "";
+
+function tipoRicetta(r) {
+  return r.tipo === "base" ? "base" : (r.tipo === "market" ? "market" : "piatto");
+}
+
+// righe di pallini: Basi / Piatti finiti, e sotto le categorie dei piatti
+function disegnaFiltriTipo() {
+  const boxT = document.getElementById("ric-tipo");
+  const boxP = document.getElementById("ric-porta");
+  if (!boxT || !boxP) return;
+  if (!document.getElementById("ric-pill-style")) {
+    const st = document.createElement("style");
+    st.id = "ric-pill-style";
+    st.textContent = ".ric-pill{border:0;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:600;background:#EEF2F7;color:#374151;white-space:nowrap;} .ric-pill.on{background:#0E5A7A;color:#fff;} .ric-chips.ric-scorri{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;}";
+    document.head.appendChild(st);
+  }
+  const basi = ricetteCache.filter(r => tipoRicetta(r) === "base").length;
+  const piatti = ricetteCache.filter(r => tipoRicetta(r) === "piatto").length;
+  const pill = (attr, val, testo, on) => `<button type="button" class="ric-pill ${on ? "on" : ""}" ${attr}="${escapeAttribute(val)}">${testo}</button>`;
+  boxT.innerHTML = pill("data-tipo", "", "Tutti i tipi", !filtroTipo)
+    + pill("data-tipo", "base", `🍲 Basi ${basi}`, filtroTipo === "base")
+    + pill("data-tipo", "piatto", `🍽 Piatti finiti ${piatti}`, filtroTipo === "piatto");
+
+  if (filtroTipo === "piatto") {
+    const conta = new Map();
+    let senza = 0;
+    ricetteCache.filter(r => tipoRicetta(r) === "piatto").forEach(r => {
+      if (r.portata) {
+        const e = conta.get(r.portata) || { n: 0, o: r.portata_ordine ?? 999 };
+        e.n++;
+        conta.set(r.portata, e);
+      } else senza++;
+    });
+    const cat = [...conta.entries()].sort((a, b) => a[1].o - b[1].o || a[0].localeCompare(b[0], "it"));
+    boxP.style.display = "flex";
+    boxP.innerHTML = pill("data-porta", "", "Tutte", !filtroPortata)
+      + cat.map(([nome, e]) => pill("data-porta", nome, `${escapeHtml(nome)} ${e.n}`, filtroPortata === nome)).join("")
+      + (senza ? pill("data-porta", "__none", `Senza categoria ${senza}`, filtroPortata === "__none") : "");
+  } else {
+    boxP.style.display = "none";
+    boxP.innerHTML = "";
+  }
+
+  if (!boxT.dataset.legato) {
+    boxT.dataset.legato = "1";
+    boxT.addEventListener("click", e => {
+      const b = e.target.closest("[data-tipo]");
+      if (!b) return;
+      filtroTipo = b.dataset.tipo;
+      filtroPortata = "";
+      disegnaFiltriTipo();
+      renderRicetteList();
+    });
+    boxP.addEventListener("click", e => {
+      const b = e.target.closest("[data-porta]");
+      if (!b) return;
+      filtroPortata = b.dataset.porta;
+      disegnaFiltriTipo();
+      renderRicetteList();
+    });
+  }
+}
 // Il Centro cottura cucina per tutte le sedi: di default vede tutte le ricette dell'azienda
 let tutteLeSedi = null;
 let nomiSedi = {};
