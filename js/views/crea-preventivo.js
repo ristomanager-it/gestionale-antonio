@@ -808,6 +808,12 @@ function avvisoCapienza(inv) {
 function aggancia(container, supabase, azienda, sede) {
   const ri = () => disegna(container, supabase, azienda, sede);
 
+  // isole del buffet (solo matrimoni): finestra a parte, le scelte si salvano da sole
+  container.querySelector("#pv2-isole")?.addEventListener("click", async () => {
+    const m = await import("./preventivo-isole.js?v=" + (window.APP_V || 1));
+    m.apriIsole({ supabase, azienda, P });
+  });
+
   container.querySelectorAll("[data-campo]").forEach(el => {
     el.addEventListener("change", async () => {
       const k = el.dataset.campo;
