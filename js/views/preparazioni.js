@@ -5963,6 +5963,7 @@ async function resumeDaLotto(lottoUuid) {
       if (h.ora_fine) log.ora_fine = h.ora_fine
       if (h.valore_misurato != null) { log.valore_misurato = Number(h.valore_misurato); log.valore_um = h.valore_um || "pH"; }
       if (h.esito) log.esito = h.esito
+      if (h.gia_svolta) { log.gia_svolta = true; log.svolta_da = h.svolta_da; log.svolta_foto_url = h.svolta_foto_url; log.salto_chiesto = true }
     })
     renderFasiHaccp()
   }
