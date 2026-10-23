@@ -676,10 +676,9 @@ async function apriVediRicetta(id) {
     chiudi();
     window.location.hash = `#/creaRicetta?id=${id}`;
   });
-  // segno "Testata": solo admin e manager
-  const ruoloT = String((window.normalizeRuolo ? window.normalizeRuolo(window.state?.viewAs || window.state?.ruolo) : (window.state?.viewAs || window.state?.ruolo)) || "").toLowerCase();
+  // segno "Testata": riguarda il pacchetto da vendere, lo vede solo chi gestisce Ristoflow (superadmin)
   const btnTest = overlay.querySelector("#ric-vedi-test");
-  if (!["admin", "manager", "superadmin"].includes(ruoloT)) {
+  if (!(window.state?.isSuperadmin === true && !window.state?.viewAs)) {
     btnTest.remove();
   } else {
     const scrivi = () => {
