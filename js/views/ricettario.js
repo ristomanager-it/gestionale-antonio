@@ -562,6 +562,9 @@ function getRicetteFiltrate() {
   // market restringe: vale insieme allo stato, non al posto suo
   if (filtroMarket) risultati = risultati.filter(r => r.market);
 
+  // solo le ricette che ho provato io
+  if (filtroTestate) risultati = risultati.filter(r => r.testata);
+
   // tipo: basi o piatti finiti; per i piatti anche la categoria
   if (filtroTipo) risultati = risultati.filter(r => tipoRicetta(r) === filtroTipo);
   if (filtroTipo === "piatto" && filtroPortata) {
