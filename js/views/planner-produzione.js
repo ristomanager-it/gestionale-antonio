@@ -1030,6 +1030,9 @@ async function openEdit(id){
 }
 
 function renderFormHtml({ mode, id, date, record, suggerimento }){
+  // pezzature gia' salvate (modifica) oppure una riga vuota
+  window.__rfPezzature = Array.isArray(record?.pezzature) && record.pezzature.length ? record.pezzature.map(p => ({ pz: p.pz, g: p.g })) : [{ pz: "", g: "" }]
+  window.__rfPlannerUnitaIniziale = Array.isArray(record?.pezzature) && record.pezzature.length ? "pezzi" : null
   const titolo = mode === "edit" ? "Modifica Produzione" : "Nuova Produzione"
 
   return `
