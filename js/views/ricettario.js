@@ -554,11 +554,24 @@ async function apriVediRicetta(id) {
         <div id="ric-vedi-titolo" style="font-size:19px;font-weight:800;">📖 Ricetta</div>
         <button type="button" class="app-button secondary" id="ric-vedi-chiudi">Chiudi</button>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button type="button" class="app-button" id="ric-vedi-edit">✏️ Completa</button>
+        <button type="button" class="app-button secondary" id="ric-vedi-del">🗑 Elimina</button>
+      </div>
       <div id="ric-vedi-corpo" style="color:#64748b;">Caricamento...</div>
     </div>`;
   document.body.appendChild(overlay);
   const chiudi = () => overlay.remove();
   overlay.querySelector("#ric-vedi-chiudi").addEventListener("click", chiudi);
+  overlay.querySelector("#ric-vedi-edit").addEventListener("click", () => {
+    chiudi();
+    window.location.hash = `#/creaRicetta?id=${id}`;
+  });
+  overlay.querySelector("#ric-vedi-del").addEventListener("click", () => {
+    const r = ricetteCache.find(x => String(x.id) === String(id));
+    chiudi();
+    eliminaRicetta(id, r?.nome || "");
+  });
   overlay.addEventListener("click", e => { if (e.target === overlay) chiudi(); });
 
   const [ingRes, fasiRes, ricRes] = await Promise.all([
