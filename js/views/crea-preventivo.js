@@ -814,6 +814,18 @@ function aggancia(container, supabase, azienda, sede) {
     const m = await import("./preventivo-isole.js?v=" + (window.APP_V || 1));
     m.apriIsole({ supabase, azienda, P });
   });
+  // le descrizioni generiche si vedono subito nel riquadro, senza aprire la finestra
+  const boxNote = container.querySelector("#pv2-isole-note");
+  if (boxNote) {
+    supabase.from("buffet_isole").select("nome, gruppo, descrizione, modo, ordine")
+      .eq("azienda_id", azienda.id).eq("tipo_evento", "Matrimonio").order("ordine")
+      .then(({ data }) => {
+        const vis = (data || []).filter(x => x.descrizione && x.modo !== "opzionale");
+        boxNote.innerHTML = vis.length
+          ? vis.map(x => `<div style="padding:3px 0;"><b>${esc(x.gruppo ? x.gruppo : x.nome)}</b> — ${esc(x.descrizione)}</div>`).join("")
+          : "Nessuna isola configurata.";
+      });
+  }
 
   container.querySelectorAll("[data-campo]").forEach(el => {
     el.addEventListener("change", async () => {
