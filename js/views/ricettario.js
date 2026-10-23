@@ -383,7 +383,7 @@ async function loadRicette() {
       if (!r.generata && m.n_ing === 0) manca.push("ingredienti");
       else if (!r.generata && m.n_fasi === 0) manca.push("fasi");
       if (m.n_scollegati > 0) manca.push(`${m.n_scollegati} ${m.n_scollegati === 1 ? "ingrediente" : "ingredienti"} da collegare`);
-      if (!m.ha_uscita) manca.push("prodotto finale");
+      // il prodotto finale non si chiede: i semilavorati lo creano da soli e per i piatti non serve
       r.manca = manca;
     });
   } catch (e) { /* senza il dettaglio la lista funziona uguale */ }
