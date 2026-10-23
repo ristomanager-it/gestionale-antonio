@@ -4128,6 +4128,75 @@ function aggiornaAbilitazioneStampe() {
   if (pE) { if (abilita) pE.removeAttribute("disabled"); else pE.setAttribute("disabled", "disabled"); }
 }
 
+/* "Le hai fatte tu o erano gia' fatte prima?": scheda a tutto schermo (i prompt del browser su mobile spesso non compaiono) */
+function chiediFasiSaltate(nomi) {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:99999;display:flex;align-items:flex-end;justify-content:center;";
+    const opz = '<option value="">Chi le ha fatte?</option>' + dipendentiCache.map((d) => '<option value="' + escapeAttr(d.id) + '">' + escapeHtml(d.nome) + '</option>').join("");
+    ov.innerHTML = '<div style="background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px 16px 22px;max-height:92vh;overflow:auto;">'
+      + '<div style="font-weight:800;font-size:17px;margin-bottom:6px;">Fasi prima non firmate</div>'
+      + '<div style="font-size:15px;margin-bottom:10px;">' + nomi.map((n) => "• " + escapeHtml(n)).join("<br>") + '</div>'
+      + '<div style="font-size:15px;margin-bottom:12px;">Le hai fatte tu o erano già fatte prima?</div>'
+      + '<button type="button" id="sx-io" class="app-button" style="width:100%;margin-bottom:8px;">Le ho fatte io</button>'
+      + '<button type="button" id="sx-prima" class="app-button secondary" style="width:100%;">↩︎ Erano già fatte prima</button>'
+      + '<div id="sx-form" style="display:none;margin-top:12px;">'
+      + '<select id="sx-chi" class="input" style="margin-bottom:8px;">' + opz + '</select>'
+      + '<div style="font-size:13px;color:#475569;margin-bottom:4px;">📷 Foto dell\'etichetta del lavoro già fatto</div>'
+      + '<input id="sx-foto" type="file" accept="image/*" capture="environment" class="input" style="margin-bottom:10px;">'
+      + '<button type="button" id="sx-ok" class="app-button" style="width:100%;">Conferma</button></div>'
+      + '<button type="button" id="sx-annulla" style="width:100%;margin-top:10px;border:0;background:none;color:#64748b;font-size:14px;padding:8px;">Annulla</button></div>';
+    document.body.appendChild(ov);
+    const chiudi = (v) => { ov.remove(); resolve(v); };
+    ov.querySelector("#sx-io").addEventListener("click", () => chiudi({ tipo: "io" }));
+    ov.querySelector("#sx-annulla").addEventListener("click", () => chiudi(null));
+    ov.querySelector("#sx-prima").addEventListener("click", () => { ov.querySelector("#sx-form").style.display = "block"; });
+    ov.querySelector("#sx-ok").addEventListener("click", () => {
+      const chi = ov.querySelector("#sx-chi").value;
+      const foto = ov.querySelector("#sx-foto").files?.[0] || null;
+      if (!chi) { alert("Scegli chi le ha fatte."); return; }
+      if (!foto) { alert("Fotografa l'etichetta del lavoro già fatto."); return; }
+      chiudi({ tipo: "prima", chi, foto });
+    });
+  });
+}
+
+async function segnaGiaSvolte(idxs, r) {
+  const cli = window.supabaseClient || window.supabase;
+  const azId = window.state?.azienda?.id;
+  let url = "";
+  try {
+    if (r.foto && cli) {
+      const path = "fasi-gia-svolte/" + azId + "/" + Date.now() + "_" + Math.random().toString(36).slice(2, 6) + ".jpg";
+      const up = await cli.storage.from("media-aziende").upload(path, r.foto, { contentType: r.foto.type || "image/jpeg", upsert: false });
+      if (!up.error) url = cli.storage.from("media-aziende").getPublicUrl(path).data.publicUrl || "";
+    }
+  } catch (e) { console.warn("foto fase gia' svolta non caricata:", e); }
+  const chi = dipendentiCache.find((d) => String(d.id) === String(r.chi)) || null;
+  const nome = chi?.nome || "chi le ha fatte prima";
+  const ora = new Date().toISOString();
+  const _uuid = resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid) || null;
+  for (const k of idxs) {
+    const log = logHaccp[k];
+    log.firme = [{ operatore_id: chi?.id ?? null, operatore_nome: nome + " · già svolta prima", firmato_il: ora, gia_svolta: true }];
+    applicaFirmePrincipale(log);
+    log.esito = "ok"; log.gia_svolta = true; log.svolta_da = nome; log.svolta_foto_url = url || null;
+    // niente orari inventati: la fase non e' stata fatta adesso
+    log.ora_inizio = ""; log.ora_fine = ""; log.durata_reale_min = null;
+    log.note = [log.note, "Già svolta in precedenza da " + nome + (url ? " — foto etichetta: " + url : " (foto non caricata)")].filter(Boolean).join(" · ");
+    if (_uuid && cli && log.fase_id) {
+      cli.from("produzione_log_haccp").update({
+        operatore_id: log.operatore_id || null, operatore_nome: log.operatore_nome || null,
+        ora_inizio: null, ora_fine: null, durata_reale_min: null, esito: "ok", note: log.note,
+        firmato_da: log.firmato_da || null, firmato_il: log.firmato_il || ora, firme: log.firme,
+        gia_svolta: true, svolta_da: nome, svolta_foto_url: url || null
+      }).eq("lotto_id", _uuid).eq("fase_id", log.fase_id)
+        .then(function (res) { if (res && res.error) console.warn("fase gia' svolta non salvata subito:", res.error.message); })
+        .catch(function (e) { console.warn("fase gia' svolta non salvata subito:", e); });
+    }
+  }
+}
+
 function applicaFirmePrincipale(log) {
   const firme = Array.isArray(log.firme) ? log.firme : [];
   if (!firme.length) {
