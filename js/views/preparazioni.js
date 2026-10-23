@@ -1023,7 +1023,7 @@ function setupAutocompleteRicette() {
             + escapeHtml(data?.errore || "Non riesco a calcolare le dosi.") + '</div>';
           return;
         }
-        mostraEsitoScala(esito, data, "");
+        mostraEsitoScala(esito, data, extraPezzi);
         return;
         const righe = (data.ingredienti || []).map((r) =>
           '<tr><td style="padding:4px 0;font-size:13px;">' + escapeHtml(r.ingrediente) + '</td>'
