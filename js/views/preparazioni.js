@@ -4180,7 +4180,7 @@ async function segnaGiaSvolte(idxs, r) {
     const log = logHaccp[k];
     log.firme = [{ operatore_id: null, operatore_nome: "Già svolta prima (foto etichetta)", firmato_il: ora, gia_svolta: true }];
     applicaFirmePrincipale(log);
-    log.esito = "ok"; log.gia_svolta = true; log.svolta_da = nome; log.svolta_foto_url = url || null;
+    log.esito = "ok"; log.gia_svolta = true; log.svolta_da = null; log.svolta_foto_url = url || null;
     // niente orari inventati: la fase non e' stata fatta adesso
     log.ora_inizio = ""; log.ora_fine = ""; log.durata_reale_min = null;
     log.note = [log.note, "Già svolta in precedenza da " + nome + (url ? " — foto etichetta: " + url : " (foto non caricata)")].filter(Boolean).join(" · ");
