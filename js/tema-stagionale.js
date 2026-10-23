@@ -68,6 +68,9 @@
     // pipistrelli grandi che attraversano lo schermo dal basso all'alto e viceversa
     if (t.pipistrelli) {
       css.push(".rf-bat{position:fixed;line-height:1;pointer-events:none;z-index:50;will-change:transform;}");
+      // sale dal basso, si ferma a meta' schermo e saluta (agita le ali), poi sale e sparisce: una volta sola
+      css.push(".rf-bat.saluto{bottom:-70px;animation:rf-saluto 10s ease-in-out 1.5s 1 both;}");
+      css.push("@keyframes rf-saluto{0%{transform:translate(0,0) rotate(-8deg)}40%{transform:translate(-26px,-52vh) rotate(8deg)}48%{transform:translate(-26px,-55vh) rotate(-14deg) scale(1.15)}54%{transform:translate(-26px,-53vh) rotate(14deg) scale(1.15)}60%{transform:translate(-26px,-55vh) rotate(-14deg) scale(1.15)}66%{transform:translate(-26px,-53vh) rotate(14deg) scale(1.15)}100%{transform:translate(40px,-125vh) rotate(8deg)}}");
       css.push(".rf-bat.su{bottom:-70px;animation:rf-su 12s linear infinite;}");
       css.push(".rf-bat.giu{top:-70px;animation:rf-giu 13s linear infinite;}");
       css.push("@keyframes rf-su{0%{transform:translate(0,0) rotate(-8deg)}25%{transform:translate(34px,-30vh) rotate(8deg)}50%{transform:translate(-26px,-60vh) rotate(-8deg)}75%{transform:translate(30px,-90vh) rotate(8deg)}100%{transform:translate(0,-125vh) rotate(-8deg)}}");
