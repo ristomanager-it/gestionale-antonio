@@ -460,6 +460,7 @@ async function loadRicette() {
       // il prodotto finale non si chiede: i semilavorati lo creano da soli e per i piatti non serve
       r.manca = manca;
       r.tipo = m.tipo || "";
+      r.testata = !!m.testata;
       r.portata = m.portata || null;
       r.portata_ordine = m.portata_ordine ?? null;
     });
