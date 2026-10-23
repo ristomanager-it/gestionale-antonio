@@ -60,5 +60,35 @@
         document.body.appendChild(b);
       });
     }
+    // neve leggera a Natale (niente se l'utente ha chiesto meno animazioni)
+    if (scelto === "natale" && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+      var cv = document.createElement("canvas");
+      cv.id = "neve-natale";
+      cv.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50;";
+      document.body.appendChild(cv);
+      var cx = cv.getContext("2d");
+      var W = 0, H = 0, N = 28, fiocchi = [], tt = 0;
+      var misura = function () { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; };
+      misura();
+      window.addEventListener("resize", misura);
+      for (var i = 0; i < N; i++) fiocchi.push({ x: Math.random() * W, y: Math.random() * H, r: 1.2 + Math.random() * 2.2, v: 0.35 + Math.random() * 0.7, o: Math.random() * 6 });
+      var giro = function () {
+        if (!document.hidden) {
+          tt += 0.01;
+          cx.clearRect(0, 0, W, H);
+          cx.fillStyle = "rgba(255,255,255,0.85)";
+          cx.strokeStyle = "rgba(160,180,200,0.45)";
+          for (var k = 0; k < N; k++) {
+            var f = fiocchi[k];
+            f.y += f.v;
+            f.x += Math.sin(tt + f.o) * 0.35;
+            if (f.y > H + 5) { f.y = -5; f.x = Math.random() * W; }
+            cx.beginPath(); cx.arc(f.x, f.y, f.r, 0, 6.2832); cx.fill(); cx.stroke();
+          }
+        }
+        requestAnimationFrame(giro);
+      };
+      giro();
+    }
   } catch (e) { /* le decorazioni non devono mai rompere l'app */ }
 })();
