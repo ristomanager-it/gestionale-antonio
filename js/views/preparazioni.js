@@ -4178,7 +4178,7 @@ async function segnaGiaSvolte(idxs, r) {
   const _uuid = resumeLottoUUID || (savedLotto && savedLotto.lotto_uuid) || null;
   for (const k of idxs) {
     const log = logHaccp[k];
-    log.firme = [{ operatore_id: chi?.id ?? null, operatore_nome: nome + " · già svolta prima", firmato_il: ora, gia_svolta: true }];
+    log.firme = [{ operatore_id: null, operatore_nome: "Già svolta prima (foto etichetta)", firmato_il: ora, gia_svolta: true }];
     applicaFirmePrincipale(log);
     log.esito = "ok"; log.gia_svolta = true; log.svolta_da = nome; log.svolta_foto_url = url || null;
     // niente orari inventati: la fase non e' stata fatta adesso
