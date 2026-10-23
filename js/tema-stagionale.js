@@ -32,6 +32,14 @@
     if (!scelto) return;
 
     var t = TEMI[scelto];
+
+    // pagine pubbliche (senza barra in alto): una fascia fissa in cima dove appendere luci o zucche
+    if (!document.querySelector(".app-header")) {
+      var fa = document.createElement("div");
+      fa.className = "app-header rf-fascia";
+      fa.style.cssText = "position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;height:0;z-index:60;pointer-events:none;";
+      document.body.appendChild(fa);
+    }
     var menoMoto = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     document.documentElement.classList.add("tema-" + scelto);
 
