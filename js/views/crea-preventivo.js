@@ -999,7 +999,7 @@ function aggancia(container, supabase, azienda, sede) {
     b.addEventListener("click", () => {
       const nome = b.dataset.extra;
       const quante = Math.max(Number(b.dataset.quante) || 1, 1);
-      for (let i = 0; i < quante; i++) righe.push({ nome: "", sezione: nome, prezzo: 0, ricetta_id: null, pp: ppSezione(nome) });
+      riempiSezione(nome, quante);
       // resta in elenco per i preventivi successivi
       supabase.rpc("sezione_menu_usata", { p_azienda: azienda.id, p_nome: nome }).catch(() => {});
       ri();
