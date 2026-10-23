@@ -218,9 +218,15 @@ export async function render(container) {
           <div><span>Invitati</span><b>${invitati || "—"}</b></div>
         </div>
 
-        ${perSezione.size ? `
+        ${perSezione.size || (d.isole || []).length ? `
           <h2>Il menu</h2>
           <div class="pv-blocco">
+            ${(d.isole || []).map((is) => `
+              <div class="pv-sez">
+                <div class="pv-tit">${esc(is.sezione)}</div>
+                ${is.descrizione ? `<div class="pv-p">${esc(is.descrizione)}</div>` : ""}
+                ${(is.piatti || []).map((n) => `<div class="pv-p" style="padding-left:12px;color:#4B5563;">· ${esc(n)}</div>`).join("")}
+              </div>`).join("")}
             ${[...perSezione.entries()].map(([sez, piatti]) => `
               <div class="pv-sez">
                 <div class="pv-tit">${esc(sez)}</div>
