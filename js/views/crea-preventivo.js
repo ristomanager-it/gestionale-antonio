@@ -878,6 +878,9 @@ function aggancia(container, supabase, azienda, sede) {
       const nuove = nomi.filter(n => !tenute.some(r => r.nome === n)).map(n => ({ nome: n, sezione: sez, prezzo: 0, ricetta_id: null, pp: ppSezione(sez) }));
       const nuovaSez = [...tenute, ...nuove, ...aMano];
       if (!nuovaSez.length) nuovaSez.push({ nome: "", sezione: sez, prezzo: 0, ricetta_id: null, pp: ppSezione(sez) });
+      // il prezzo dell'isola non si perde cambiando le portate
+      const prezzoSez = dellaSez.reduce((s, r) => s + (Number(r.prezzo) || 0), 0);
+      nuovaSez.forEach((r, i) => { r.prezzo = i === 0 ? prezzoSez : 0; });
       // la sezione resta dove stava nel menu
       const pos = righe.findIndex(r => (r.sezione || "Menu") === sez);
       const senza = righe.filter(r => (r.sezione || "Menu") !== sez);
