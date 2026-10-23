@@ -115,6 +115,16 @@
         ciao.className = "rf-ciao";
         ciao.textContent = "Ciao! 👋";
         b.appendChild(ciao);
+        // il nome si legge quando il pipistrello arriva: a quel punto l'app ha gia' caricato chi e' entrato
+        setTimeout(function () {
+          try {
+            var s = window.state || {};
+            var meta = (s.user && s.user.user_metadata) || {};
+            var prof = s.userProfile || s.profilo || s.dipendente || {};
+            var nome = String(prof.nome || meta.nome || meta.first_name || "").trim().split(/\s+/)[0];
+            if (nome) ciao.textContent = "Ciao " + nome + "! 👋";
+          } catch (e) { /* resta "Ciao!" */ }
+        }, 4500);
         b.style.left = p[1];
         b.style.fontSize = p[2] + "px";
         b.addEventListener("animationend", function () { b.remove(); });
