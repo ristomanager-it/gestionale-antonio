@@ -632,7 +632,7 @@ function renderRicetteList() {
         gap:10px;
       ">
         <div style="min-width:0;">
-          <div style="font-size:15px;font-weight:600;color:#1F2937;">${escapeHtml(r.nome)}${r.testata && window.state?.isSuperadmin === true && !window.state?.viewAs ? " ✅" : ""}</div>
+          <div style="font-size:15px;font-weight:600;color:#1F2937;">${escapeHtml(r.nome)}${r.testata && window.state?.user?.id === "0f962f1e-3f40-437c-85b7-16bc85ed8554" ? " ✅" : ""}</div>
           <div style="font-size:12px;color:#64748b;margin-top:2px;">
             ${badge}${resaTxt}${mostraTutteLeSedi() && r.sede_nome ? ` · 🏢 ${escapeHtml(r.sede_nome)}` : ""}
           </div>
