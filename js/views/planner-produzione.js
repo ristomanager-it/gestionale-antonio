@@ -454,8 +454,9 @@ window.__rfPlannerCalcola = async function(){
   if (!sel.value) { uEl.innerHTML = `<option value="porzioni">porzioni</option>`; box.innerHTML = ""; qEl.style.display = ""; if (pezBox) { pezBox.style.display = "none"; pezBox.dataset.attivo = "" } return }
   const dati = await ingredientiRicetta(sel.value)
   const pesanti = dati.righe.filter(r => r.g != null && r.g > 0).sort((a, b) => b.g - a.g).slice(0, 3)
-  const prima = uEl.value
-  uEl.innerHTML = `<option value="porzioni">porzioni</option>` + pesanti.map((r, i) => `<option value="i${i}">kg di ${escapeHtml(_nomeBreve(r.nome))}</option>`).join("")
+  const prima = window.__rfPlannerUnitaIniziale || uEl.value
+  window.__rfPlannerUnitaIniziale = null
+  uEl.innerHTML = `<option value="porzioni">porzioni</option><option value="pezzi">pezzi (pezzature)</option>` + pesanti.map((r, i) => `<option value="i${i}">kg di ${escapeHtml(_nomeBreve(r.nome))}</option>`).join("")
   if ([...uEl.options].some(o => o.value === prima)) uEl.value = prima
   const q = Number(qEl.value) || 0
   let porz = q
