@@ -11,6 +11,7 @@ let filtroComplete = false;
 let filtroMarket = false;
 // Tipo (basi o piatti finiti) e, per i piatti, la categoria di portata
 let filtroTipo = "";
+let filtroTestate = false;
 let filtroPortata = "";
 
 function tipoRicetta(r) {
