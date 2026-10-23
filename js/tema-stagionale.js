@@ -142,7 +142,26 @@
       [["dx", 0], ["sx", 11]].forEach(function (p) {
         var sl = document.createElement("div");
         sl.className = "rf-slitta " + p[0];
-        sl.textContent = "🎅🛷🦌🦌";
+        // slitta disegnata: Babbo Natale seduto, sacco di regali e due renne davanti (guardano verso destra; la seconda e' specchiata dall'animazione)
+        var ren = function (x, naso) {
+          return '<g transform="translate(' + x + ',0)"><path d="M-2 50 L1 56" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/>' +
+            '<line x1="5" y1="58" x2="-1" y2="76" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/><line x1="10" y1="60" x2="8" y2="77" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/>' +
+            '<line x1="21" y1="60" x2="28" y2="74" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/><line x1="25" y1="58" x2="34" y2="70" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/>' +
+            '<ellipse cx="14" cy="54" rx="15" ry="8" fill="#8d5a34"/><path d="M25 50 L31 38" stroke="#8d5a34" stroke-width="6" stroke-linecap="round"/>' +
+            '<circle cx="34" cy="35" r="5.5" fill="#8d5a34"/><ellipse cx="39" cy="37" rx="3.6" ry="2.6" fill="#a86f45"/>' +
+            '<path d="M33 30 L30 19 M30 23 L26 21 M36 30 L40 19 M40 23 L44 21" stroke="#6d4526" stroke-width="2" fill="none" stroke-linecap="round"/>' +
+            '<circle cx="34" cy="34" r="1.1" fill="#222"/>' + (naso ? '<circle cx="42" cy="37" r="2.4" fill="#e53935"/>' : '') + '</g>';
+        };
+        sl.innerHTML = '<svg viewBox="0 0 230 90" xmlns="http://www.w3.org/2000/svg" style="width:' + (p[0] === "dx" ? 150 : 130) + 'px;height:auto;display:block;">' +
+          '<path d="M22 76 H108 Q122 76 119 62" fill="none" stroke="#c99a2e" stroke-width="3.5" stroke-linecap="round"/>' +
+          '<path d="M26 70 L30 46 H96 Q113 46 115 60 L109 72 H30 Z" fill="#c62828"/><path d="M30 53 H111" stroke="#c99a2e" stroke-width="2"/>' +
+          '<line x1="40" y1="72" x2="40" y2="76" stroke="#c99a2e" stroke-width="3"/><line x1="95" y1="72" x2="95" y2="76" stroke="#c99a2e" stroke-width="3"/>' +
+          '<circle cx="38" cy="38" r="12" fill="#8d6e63"/><path d="M32 29 Q38 25 44 29" stroke="#5d4037" stroke-width="2" fill="none"/>' +
+          '<rect x="54" y="30" width="28" height="20" rx="9" fill="#d32f2f"/><circle cx="68" cy="24" r="8" fill="#f5c9a6"/>' +
+          '<path d="M60 26 Q68 44 76 26 Z" fill="#fff"/><path d="M59 22 Q68 2 78 20 Z" fill="#d32f2f"/><rect x="58" y="19" width="21" height="4" rx="2" fill="#fff"/>' +
+          '<circle cx="79" cy="10" r="3" fill="#fff"/><circle cx="71" cy="23" r="1.2" fill="#333"/>' +
+          '<path d="M115 58 Q125 52 134 55" fill="none" stroke="#c99a2e" stroke-width="1.8"/><path d="M162 55 Q168 51 176 55" fill="none" stroke="#c99a2e" stroke-width="1.8"/>' +
+          ren(125, false) + ren(176, true) + '</svg>';
         sl.style.animationDelay = "-" + p[1] + "s";
         document.body.appendChild(sl);
       });
