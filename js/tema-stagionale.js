@@ -108,6 +108,11 @@
         var b = document.createElement("div");
         b.className = "rf-bat " + p[0];
         b.textContent = "🦇";
+        // il fumetto compare quando il pipistrello si ferma a meta' schermo
+        var ciao = document.createElement("span");
+        ciao.className = "rf-ciao";
+        ciao.textContent = "Ciao! 👋";
+        b.appendChild(ciao);
         b.style.left = p[1];
         b.style.fontSize = p[2] + "px";
         b.addEventListener("animationend", function () { b.remove(); });
