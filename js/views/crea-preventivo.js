@@ -530,6 +530,13 @@ function disegna(container, supabase, azienda, sede) {
         <div class="aiuto" style="margin-top:6px;">Le sezioni che scrivi restano in elenco per i preventivi successivi.</div>
       </div>
 
+      ${tipoEvento() === "Matrimonio" ? `
+      <div class="pv2-card">
+        <h2>Isole del buffet</h2>
+        <div class="aiuto">Il preventivo resta generico: isole con la descrizione. Col cliente davanti puoi mostrare le portate e sceglierle.</div>
+        <button class="pv2-btn" id="pv2-isole">🍽 Apri le isole del buffet</button>
+      </div>` : ""}
+
       <div class="pv2-card">
         <h2>Servizi ed extra</h2>
         <div class="aiuto">Dal listino, col prezzo che hai deciso tu.</div>
