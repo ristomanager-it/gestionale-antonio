@@ -566,7 +566,7 @@ function disegna(container, supabase, azienda, sede) {
               <button class="c" data-extra="${esc(x.nome)}" data-quante="${x.quante || 1}">+ ${esc(x.nome)}</button>`).join("")}
           </div>` : ""}
 
-        ${sezioni.length ? sezioni.map(sez => `
+        ${sezioni.length ? sezioni.map(sez => isoleDiSezione(sez).length ? cardIsola(sez) : `
           <div class="pv2-sez">
             ${datalistSezione(sez)}
             <div class="top"><b>${esc(sez)}</b>
