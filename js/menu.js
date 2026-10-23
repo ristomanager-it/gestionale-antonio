@@ -435,7 +435,7 @@ export function initMenu() {
           { label: "🧩 Menu Componibile", route: "menu-componibile" },
         ] },
         { label: "🏭 Produzione", route: "produzione", children: [
-          { label: "🏠 Home Produzione",     route: "produzione"         },
+          { label: "🏭 Produzione",          route: "produzione"         },
           { label: "🟢 Produzioni aperte",   route: "produzioni-aperte"  },
           { label: "🧪 Preparazioni",        route: "preparazioni"       },
           { label: "📋 Planning",            route: "planner-produzione" },
