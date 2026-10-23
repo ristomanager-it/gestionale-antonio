@@ -197,5 +197,16 @@
       };
       giro();
     }
+
+    // Tutto quello che si muove e puo' uscire dallo schermo (pipistrelli, slitte, neve) sta dentro una gabbia
+    // che ritaglia: cosi' un elemento fuori dallo schermo non sposta la barra in basso su iPhone.
+    var mobili = document.querySelectorAll(".rf-bat, .rf-slitta, #neve-natale");
+    if (mobili.length) {
+      var gabbia = document.createElement("div");
+      gabbia.id = "rf-gabbia";
+      gabbia.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;pointer-events:none;z-index:50;contain:layout paint;";
+      document.body.appendChild(gabbia);
+      Array.prototype.forEach.call(mobili, function (el) { el.style.position = "absolute"; gabbia.appendChild(el); });
+    }
   } catch (e) { /* le decorazioni non devono mai rompere l'app */ }
 })();
