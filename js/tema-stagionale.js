@@ -1,7 +1,7 @@
 // js/tema-stagionale.js
 // Decorazioni di stagione: i colori dell'app restano quelli di sempre.
 //  - Halloween (20 ott - 1 nov): zucche luminose sotto la barra in alto e grandi pipistrelli che attraversano lo schermo
-//  - Natale (1 dic - 2 gen): ghirlanda di luci e neve leggera
+//  - Natale (10 nov - 2 gen): ghirlanda di luci e neve leggera
 // Prova fuori stagione (dal browser): app.ristoflow-ai.com/?tema=halloween  oppure  ?tema=natale  (30 minuti)  ·  ?tema=0 per spegnere.
 (function () {
   try {
