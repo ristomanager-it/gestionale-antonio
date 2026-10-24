@@ -11,7 +11,7 @@ const euro = (n) => Number(n || 0).toLocaleString("it-IT", { style: "currency", 
 // pulsanti grandi per sezione: [icona, testo, rotta]
 const SEZIONI = {
   sala: { titolo: "🪑 Sala", pulsanti: [
-    ["🪑", "Comande", "bo-comande"], ["📅", "Prenotazioni", "prenotazioni"], ["🗺️", "Mappa Sala", "sala"],
+    ["🍽️", "Menu del giorno", "menu-giorno"], ["🪑", "Comande", "bo-comande"], ["📅", "Prenotazioni", "prenotazioni"], ["🗺️", "Mappa Sala", "sala"],
     ["🖨", "Menu da tavolo", "menu-tavolo"], ["📋", "Mansionario Sala", "mansionario-sala"] ] },
   eventi: { titolo: "🎪 Eventi", pulsanti: [
     ["📑", "Preventivi", "preventivi"], ["🏛️", "Location", "bo-location-ricevimenti"], ["🎪", "Servizi e personale", "servizi-eventi"] ] },
