@@ -1419,6 +1419,7 @@ async function salva(container, supabase, azienda, sede) {
     return { sez, quante: rs.length, prezzo: rs.reduce((s, r) => s + (Number(r.prezzo) || 0), 0) };
   });
   const testata = {
+    ordine_sezioni: sezPrima,
     azienda_id: azienda.id, sede_uuid: P.sede_uuid || sede?.id || null,
     stato: P.stato, titolo_evento: P.titolo_evento, tipo_servizio: P.tipo_servizio || null,
     cliente_nome: P.cliente_nome, cliente_cognome: P.cliente_cognome,
