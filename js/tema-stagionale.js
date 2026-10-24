@@ -144,8 +144,8 @@
         setTimeout(chiudiFum, 8500);
         fum.addEventListener("click", chiudiFum);
       }
-      // nessun personaggio: ne' nell'app ne' sulle pagine pubbliche (il pipistrello e' spento)
-      [].forEach(function (p) {
+      // il pipistrello c'e' solo nell'app (dove ti chiama per nome); sulle pagine dei clienti c'e' solo il fumetto
+      ((!invitoPub && document.querySelector(".app-header") && !document.querySelector(".rf-fascia")) ? [["saluto", "calc(50% - 48px)", 96]] : []).forEach(function (p) {
         var b = document.createElement("div");
         b.className = "rf-bat " + p[0];
         // pipistrello disegnato: testa grande, orecchie rosa, occhioni arancioni, guance, sorriso con i dentini, ali viola che sbattono
