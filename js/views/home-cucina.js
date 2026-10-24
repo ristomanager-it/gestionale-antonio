@@ -82,6 +82,7 @@ export async function render(app) {
         <button class="pr-btn" onclick="import('./js/components/etichetta-veloce.js?v='+(window.APP_V||1)).then(m=>m.apriEtichettaVeloce())"><i>🏷</i>Etichetta veloce</button>
         ${pulsante("🏭", "Produzione", "produzione")}
         ${pulsante("🧪", "Preparazioni", "preparazioni")}
+        ${pulsante("🍽️", "Menu del giorno", "menu-giorno")}
         ${pulsante("📖", "Ricette e menu", "ricettario")}
         ${pulsante("🌡️", "Cotture CBT", "cotture-cbt")}
         ${pulsante("📋", "Mansionario", "mansionario-cucina")}
