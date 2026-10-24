@@ -57,6 +57,9 @@ function initRFTrack(aziendaId, sedeId, formId) {
     return 'diretto';
   }
 
+  // la fonte della prima apertura resta per tutta la visita e finisce sulla prenotazione
+  try { if (!sessionStorage.getItem('rf_fonte')) sessionStorage.setItem('rf_fonte', detectSource()); } catch {}
+
   // Tenta geolocalizzazione IP (fire & forget, salva in sessione)
   if (!sessionStorage.getItem('rf_geo')) {
     fetch('https://ipapi.co/json/')
