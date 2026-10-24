@@ -198,7 +198,7 @@ export async function render(container) {
 
     const { data } = await supa()
       .from("contatti")
-      .select("id, nome, cognome, telefono")
+      .select("id, nome, cognome, telefono, email")
       .or(`nome.ilike.%${term}%,telefono.ilike.%${term}%`)
       .limit(5);
 
