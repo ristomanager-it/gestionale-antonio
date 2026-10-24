@@ -383,6 +383,15 @@ function cardIsola(sez) {
   </div>`;
 }
 
+// riga di riepilogo di un'isola nel pannello laterale (quante portate, o quante su quante minime)
+function riepilogoIsola(sez) {
+  const l = isoleDiSezione(sez);
+  const n = righe.filter(r => (r.sezione || "Menu") === sez && r.nome).length;
+  const min = l.reduce((s, i) => s + (Number(i.minimo) || 0), 0);
+  const ok = !min || n >= min;
+  return `<div class="is"><span>${esc(sez)}</span><span class="${ok ? "ok" : "no"}">${min ? `${n}/${min}` : n}</span></div>`;
+}
+
 // righe di una sezione nuova: se e' un'isola fissa (salumi, formaggi...) entrano tutte le portate standard
 function riempiSezione(nome, quante) {
   const fissa = isoleDiSezione(nome).find(i => i.modo === "fissa" || i.modo === "opzionale");
