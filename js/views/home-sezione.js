@@ -104,7 +104,7 @@ export async function render(app) {
 
   // solo i pulsanti che questo ruolo puo' aprire
   const puo = (rotta) => (window.hasPermission ? window.hasPermission(String(rotta).split("?")[0]) : true);
-  const pulsanti = conf.pulsanti.filter((p) => puo(p[2]));
+  const pulsanti = conf.pulsanti.filter((p) => (p[3] ? p[3].some((c) => puo(c[2])) : puo(p[2])));
 
   const apriPannello = `const p=this.nextElementSibling;const a=p.style.display==='none';p.style.display=a?'block':'none';this.querySelector('.chev').style.transform=a?'rotate(90deg)':'none'`;
   const giorno = (d) => new Date(String(d).slice(0, 10) + "T12:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
