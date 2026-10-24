@@ -323,7 +323,9 @@ export async function render(container) {
     if (error) { msg.innerHTML = `<span style="color:#dc2626;">Errore: ${error.message}</span>`; return; }
 
     await eseguiAutomazioni("prenotazione_creata", pren);
-    msg.innerHTML = `<span style="color:#059669;">✅ Prenotazione salvata!</span>`;
+    msg.innerHTML = email
+      ? `<span style="color:#059669;">✅ Prenotazione salvata, la conferma parte a ${email}</span>`
+      : `<span style="color:#b45309;">✅ Prenotazione salvata. Senza email la conferma al cliente non parte.</span>`;
     setTimeout(() => window.location.hash = "#/prenotazioni", 800);
   };
 
