@@ -143,6 +143,17 @@ async function caricaPreventivo(supabase, id) {
       costoManuale: x.costo_manuale ? (Number(x.food_cost_snapshot) || 0) / k : null,
     };
   });
+  // le sezioni senza piatti (le isole ancora da scegliere) non hanno righe nel database: si ricostruiscono dall'elenco salvato
+  if (Array.isArray(P?.ordine_sezioni) && P.ordine_sezioni.length) {
+    const rec = [];
+    P.ordine_sezioni.forEach(s => {
+      const rs = righe.filter(x => x.sezione === s.sez);
+      if (rs.length) rec.push(...rs);
+      else for (let i = 0; i < Math.max(Number(s.quante) || 1, 1); i++) rec.push({ nome: "", ricetta_id: null, sezione: s.sez, prezzo: i === 0 ? (Number(s.prezzo) || 0) : 0, pp: ppSezione(s.sez), costoSalvato: 0, costoManuale: null });
+    });
+    righe.filter(x => !P.ordine_sezioni.some(s => s.sez === x.sezione)).forEach(x => rec.push(x));
+    righe = rec;
+  }
   // le stime tornano com'erano: numero E ragionamento
   (r.data || []).forEach(x => {
     if (x.stima_dettaglio) stime[norm(x.nome_portata)] = x.stima_dettaglio;
