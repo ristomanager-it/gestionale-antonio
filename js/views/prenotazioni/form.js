@@ -259,6 +259,7 @@ export async function render(container) {
     msg.innerHTML = "";
     if (!telefonoRaw) { msg.innerHTML = `<span style="color:#dc2626;">Telefono obbligatorio</span>`; return; }
     if (!nome) { msg.innerHTML = `<span style="color:#dc2626;">Nome obbligatorio</span>`; return; }
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) { msg.innerHTML = `<span style="color:#dc2626;">L'email non sembra giusta</span>`; return; }
 
     // Costruisce note
     const noteParti = [];
