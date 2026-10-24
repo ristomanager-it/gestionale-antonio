@@ -88,6 +88,7 @@ export async function render(app) {
           <div class="ib-piatti"><div class="ib-t">Piatti</div>
             ${mio.map((p) => `<div class="ib-p"><input data-p="${p.id}" value="${esc(p.nome)}"><button data-del-p="${p.id}" aria-label="Togli il piatto">✕</button></div>`).join("") || `<div class="ib-mut">Nessun piatto.</div>`}
             <div class="ib-p ib-nuovo"><input data-nuovo-p="${i.id}" placeholder="Aggiungi un piatto…"><button data-add-p="${i.id}">＋</button></div>
+            <button class="ib-ric" data-ric="${i.id}">＋ Dal ricettario, per categoria</button>
           </div>
           <div class="ib-del" data-del-isola="${i.id}">Elimina questa isola</div>
         </div>`;
