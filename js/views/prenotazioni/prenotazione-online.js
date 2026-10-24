@@ -614,7 +614,8 @@ export async function render(container) {
       data, ora, coperti, stato: statoIniziale, canale: "online",
       note: notePrenotazione || null, richieste_speciali: notePrenotazione || null,
       token_pubblico: nuovoToken,
-      source, riferimento: JSON.stringify(riferimentoPayload), tag: finalTag
+      source: source !== "web" ? source : (sessionStorage.getItem("rf_fonte") || "web"),
+      riferimento: JSON.stringify(riferimentoPayload), tag: finalTag
     }]);
 
     btn.disabled = false; btn.textContent = config.pagamento?.attivo ? escapeHtml(config.pagamento?.label_btn || 'Paga e conferma') : '🦅 Prenota ora';
