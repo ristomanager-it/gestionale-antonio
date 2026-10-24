@@ -419,6 +419,7 @@ export function initMenu() {
         { label: "📑 Preventivi",        route: "preventivi"         },
         { label: "🏛️ Location",          route: "bo-location-ricevimenti" },
         { label: "🎪 Servizi e personale", route: "servizi-eventi"    },
+        { label: "🍽 Isole del buffet",    route: "isole-buffet"      },
       ]
     });
 
