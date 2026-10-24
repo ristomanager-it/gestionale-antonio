@@ -126,9 +126,26 @@
           speechSynthesis.speak(u);
         } catch (e) { /* senza voce resta il fumetto */ }
       };
-      // [animazione, posizione orizzontale, grandezza]
-      // nell'app il saluto lo fa Tony (js/saluto-tony.js); il pipistrello resta solo sulle pagine dei clienti
-      (document.querySelector(".app-header") && !document.querySelector(".rf-fascia") ? [] : [["saluto", "calc(50% - 48px)", 96]]).forEach(function (p) {
+      // pagine di prenotazione dei clienti: niente personaggio, solo un fumetto che invita a prenotare.
+      // Compare una volta dopo un attimo, resta qualche secondo e sparisce (o si chiude toccandolo).
+      var doveSei = (location.pathname + " " + location.hash).toLowerCase();
+      var invitoPub = /compleann/.test(doveSei) ? "🎂 Prenota la tua festa"
+        : (/tavolo|prenotazion|booking/.test(doveSei) ? "🍽️ Prenota il tuo tavolo" : "");
+      if (invitoPub) {
+        var fum = document.createElement("div");
+        fum.textContent = invitoPub;
+        fum.style.cssText = "position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translate(-50%,-14px);opacity:0;z-index:60;"
+          + "background:#fff;color:#7c2d12;border:1px solid #fdba74;border-radius:18px;padding:10px 18px;"
+          + "font:700 16px/1.3 system-ui,-apple-system,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.18);"
+          + "transition:opacity .5s ease,transform .5s ease;max-width:88vw;text-align:center;cursor:pointer;";
+        document.body.appendChild(fum);
+        var chiudiFum = function () { fum.style.opacity = "0"; fum.style.transform = "translate(-50%,-14px)"; setTimeout(function () { fum.remove(); }, 600); };
+        setTimeout(function () { fum.style.opacity = "1"; fum.style.transform = "translate(-50%,0)"; }, 1500);
+        setTimeout(chiudiFum, 8500);
+        fum.addEventListener("click", chiudiFum);
+      }
+      // nessun personaggio: ne' nell'app ne' sulle pagine pubbliche (il pipistrello e' spento)
+      [].forEach(function (p) {
         var b = document.createElement("div");
         b.className = "rf-bat " + p[0];
         // pipistrello disegnato: testa grande, orecchie rosa, occhioni arancioni, guance, sorriso con i dentini, ali viola che sbattono
