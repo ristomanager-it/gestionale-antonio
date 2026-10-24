@@ -208,6 +208,7 @@ function stile() {
   .ib-p button{border:1px solid #E2E6EA;background:#fff;border-radius:10px;width:40px;height:40px;cursor:pointer;flex-shrink:0;font-size:16px;}
   .ib-nuovo button{background:#023C59;color:#fff;border-color:#023C59;}
   .ib-del{margin-top:14px;font-size:12px;color:#9CA3AF;text-decoration:underline;cursor:pointer;}
+  .ib-ric{width:100%;margin-top:8px;border:1.5px dashed #9FB4C0;background:#F8FBFD;border-radius:12px;padding:11px;font-size:14px;font-weight:700;color:#023C59;cursor:pointer;}
   .ib-nuova{width:100%;border:1.5px dashed #9FB4C0;background:#F8FBFD;border-radius:14px;padding:14px;font-size:15px;font-weight:700;color:#023C59;cursor:pointer;}
   </style>`;
 }
