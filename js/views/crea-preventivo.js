@@ -414,6 +414,18 @@ function disegna(container, supabase, azienda, sede) {
   container.innerHTML = `
     <div class="pv2">
 
+      <aside class="pv2-lato noprint">
+        <div class="tit">Il conto</div>
+        <div class="riga"><span>Totale</span><b>${euro(c.totale)}</b></div>
+        <div class="riga s"><span>a persona</span><span>${euro(c.aPersona)}</span></div>
+        ${vedoICosti ? `
+        <div class="riga"><span>Costo stimato</span><b>${euro(c.costoTotale)}</b></div>
+        <div class="riga"><span>Margine</span><b class="${c.marginePerc >= 60 ? "ok" : c.marginePerc >= 40 ? "" : "no"}">${c.marginePerc.toFixed(1)}%</b></div>` : ""}
+        <div class="riga"><span>Acconto</span><b>${euro(c.acconto)}</b></div>
+        ${sezioni.some(s => isoleDiSezione(s).length) ? `<div class="tit">Isole</div>${sezioni.filter(s => isoleDiSezione(s).length).map(s => riepilogoIsola(s)).join("")}` : ""}
+        ${(sezioniConsigliate() || []).length ? `<div class="tit">Aggiungi</div><div class="chip">${sezioniConsigliate().map(x => `<button class="c" data-extra="${esc(x.nome)}" data-quante="${x.quante || 1}">+ ${esc(x.nome)}</button>`).join("")}</div>` : ""}
+      </aside>
+
       <div class="pv2-testata">
         <div class="t">
           <div class="et">${P.id ? "Preventivo " + P.id : "Nuovo preventivo"}</div>
