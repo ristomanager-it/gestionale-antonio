@@ -576,6 +576,7 @@ export async function render(container) {
 
     const riferimentoPayload = {
       ref, note_cliente: noteCliente, allergie, custom: customValues,
+      rf_sid: sessionStorage.getItem('rf_sid') || null,
       policy_accepted: !!config.policy?.enabled,
       form_name: form?.nome || null, form_version: version?.versione || null,
       consenso_gdpr: document.getElementById("consenso-gdpr")?.checked || false,
