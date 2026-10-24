@@ -1527,6 +1527,17 @@ async function salva(container, supabase, azienda, sede) {
   }
 
   await caricaPreventivo(supabase, id);
+  // rimetto al loro posto le sezioni rimaste senza piatti, con l'eventuale prezzo dell'isola
+  {
+    const rec = [];
+    sezPrima.forEach(s => {
+      const rs = righe.filter(r => (r.sezione || "Menu") === s.sez);
+      if (rs.length) rec.push(...rs);
+      else for (let i = 0; i < Math.max(s.quante, 1); i++) rec.push({ nome: "", sezione: s.sez, prezzo: i === 0 ? s.prezzo : 0, ricetta_id: null, pp: ppSezione(s.sez) });
+    });
+    righe.filter(r => !sezPrima.some(s => s.sez === (r.sezione || "Menu"))).forEach(r => rec.push(r));
+    righe = rec;
+  }
   if (create) {
     const { data: rr } = await supabase.from("ricette")
       .select("id, nome, costo_porzione, costo_materia_prima, porzioni, categoria_portata_id, attivo").eq("azienda_id", azienda.id).limit(3000);
