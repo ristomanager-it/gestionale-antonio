@@ -31,7 +31,10 @@ function initRFTrack(aziendaId, sedeId, formId) {
     if (qe === '0') localStorage.removeItem('rf_escludi');
   } catch {}
   const ESCLUSO = (() => { try { return localStorage.getItem('rf_escludi') === '1'; } catch { return false; } })();
-  const SESSION_ID = sessionStorage.getItem('rf_sid') || crypto.randomUUID();
+  // se arriva dal sito, la visita e' la stessa: il codice di sessione passa dal pulsante Prenota
+  let sidDalSito = null;
+  try { sidDalSito = new URLSearchParams(location.search).get('rf_sid'); } catch {}
+  const SESSION_ID = sidDalSito || sessionStorage.getItem('rf_sid') || crypto.randomUUID();
   sessionStorage.setItem('rf_sid', SESSION_ID);
 
   // Estrae UTM dall'URL corrente O dal referrer (caso Meta Ads)
