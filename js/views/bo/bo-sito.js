@@ -1387,6 +1387,11 @@ function apriVideo(u){
 }
 (function(){
   var SID=sessionStorage.getItem('rf_sid')||(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
+  /* aperture del titolare: ?escludi=1 esclude questo dispositivo, ?escludi=0 lo riattiva */
+  try{var QE=new URLSearchParams(location.search).get('escludi');if(QE==='1')localStorage.setItem('rf_escludi','1');if(QE==='0')localStorage.removeItem('rf_escludi');}catch(e){}
+  var ESCL=false;try{ESCL=localStorage.getItem('rf_escludi')==='1';}catch(e){}
+  /* da dove e' arrivata la visita (prima apertura): passa alla pagina di prenotazione */
+  var SRC='';try{SRC=sessionStorage.getItem('rf_src')||'';if(!SRC){var UQ=new URLSearchParams(location.search).get('utm_source');var RH='';if(!UQ&&document.referrer){try{RH=new URL(document.referrer).hostname.replace(/^www\./,'');}catch(e){}}SRC=UQ||RH||'diretto';sessionStorage.setItem('rf_src',SRC);}}catch(e){}
   sessionStorage.setItem('rf_sid',SID);
   var AZ_ID='${aziendaId||""}';
   var SEDE_ID='${sedeId||""}';
