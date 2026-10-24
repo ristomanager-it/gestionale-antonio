@@ -1747,6 +1747,18 @@ function stile() {
   .pv2-ic summary{cursor:pointer;font-weight:600;color:#0E5A7A;padding:4px 0;}
   .pv2-ic .p{padding:5px 0;border-top:1px solid #F1F5F9;color:#374151;}
   .pv2-ic .togli{margin-top:8px;font-size:12px;color:#9CA3AF;cursor:pointer;text-decoration:underline;}
+  .pv2-lato{display:none;}
+  @media (min-width:1360px){.pv2-lato{display:block;position:fixed;top:92px;right:max(12px,calc((100vw - 780px)/2 - 280px));width:262px;max-height:calc(100vh - 210px);overflow-y:auto;background:#fff;border:1px solid #E5E7EB;border-radius:16px;padding:12px 16px 14px;box-shadow:0 8px 24px rgba(0,0,0,.08);z-index:25;}}
+  .pv2-lato .tit{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6B7A83;font-weight:700;margin:12px 0 6px;}
+  .pv2-lato .tit:first-child{margin-top:0;}
+  .pv2-lato .riga{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;padding:4px 0;}
+  .pv2-lato .riga.s{font-size:12px;color:#6B7A83;padding-top:0;}
+  .pv2-lato .riga b{font-size:16px;}
+  .pv2-lato .ok{color:#166534;}
+  .pv2-lato .no{color:#B45309;font-weight:700;}
+  .pv2-lato .is{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
+  .pv2-lato .chip{display:flex;flex-wrap:wrap;gap:6px;}
+  .pv2-lato .c{border:1px solid #D1D5DB;background:#fff;border-radius:999px;padding:6px 10px;font-size:12.5px;cursor:pointer;}
   .pv2-btn{background:var(--navy);color:#fff;border:none;border-radius:11px;padding:12px 18px;font-size:15px;
     font-weight:700;cursor:pointer;font-family:inherit;}
   .pv2-btn.grande{padding:14px 26px;font-size:16px;}
