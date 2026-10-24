@@ -154,6 +154,18 @@
         var ciao = document.createElement("span");
         ciao.className = "rf-ciao";
         ciao.textContent = "Ciao! 👋";
+        // sulle pagine di prenotazione (dove non c'e' un nome da dire) il saluto diventa un invito a prenotare;
+        // nell'app, se si trova il nome, qui sotto viene sostituito da "Ciao {nome}!"
+        (function () {
+          var dove = (location.pathname + " " + location.hash).toLowerCase();
+          var invito = "";
+          if (/compleann/.test(dove)) invito = "Ciao! 🎂 Prenota la tua festa";
+          else if (/tavolo|prenotazion|booking/.test(dove)) invito = "Ciao! 🍽️ Prenota il tuo tavolo";
+          if (invito) {
+            ciao.textContent = invito;
+            ciao.style.whiteSpace = "normal"; ciao.style.width = "200px"; ciao.style.textAlign = "center";
+          }
+        })();
         b.appendChild(ciao);
         // il nome si cerca piu' volte mentre l'app finisce di caricare; se lo stato non ce l'ha, lo chiede all'accesso
         var cerca = function (meta, prof) {
