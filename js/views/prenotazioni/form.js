@@ -308,6 +308,7 @@ export async function render(container) {
         cliente_nome: nome,
         cognome,
         cliente_telefono: telefono,
+        cliente_email: email || null,
         data,
         ora,
         coperti,
