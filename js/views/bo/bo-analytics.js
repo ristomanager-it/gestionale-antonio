@@ -420,6 +420,57 @@ export async function render(container) {
           </div>`).join("")}
     </div>`;
 
+    // ── Percorsi: da dove arriva ogni visita, cosa guarda, dove finisce ──
+    const NOMI_SITO = { home: "Home", index: "Home", menu: "Menu", contatti: "Contatti", "chi-siamo": "Chi siamo" };
+    const etichetta = (r) => {
+      const p = String(r.pagina || ""), t = String(r.tipo || ""), el = String(r.elemento || ""), st = String(r.step || "");
+      if (t === "view" && p.startsWith("sito-")) { const k = p.slice(5); return NOMI_SITO[k] || (k.charAt(0).toUpperCase() + k.slice(1)); }
+      if (t === "view" && p === "prenotazione-online") return "Pagina prenotazione";
+      if (st === "success" || t === "submit" || el === "prenotazione_completata") return "✅ Prenotazione fatta";
+      if (st === "seleziona_data") return "Sceglie la data";
+      if (st === "seleziona_orario") return "Sceglie l'orario";
+      if (st === "policy_ok") return "Accetta le regole";
+      if (st === "submit_tentativo") return "Invia";
+      if (t === "abbandono") return "❌ Esce senza prenotare";
+      if (t === "error") return "⚠️ Errore";
+      if (t === "click") {
+        if (el === "cta_prenota") return "Tocca Prenota";
+        if (el === "click_telefono") return "📞 Telefona";
+        if (el === "click_mappa") return "🗺️ Mappa";
+      }
+      return null;
+    };
+    const perSessione = {};
+    rows.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(r => {
+      if (!r.session_id) return;
+      (perSessione[r.session_id] = perSessione[r.session_id] || []).push(r);
+    });
+    const percorsiCount = {};
+    let sessioniAzione = 0, sessioniTot = 0;
+    Object.values(perSessione).forEach(evs => {
+      const labels = [];
+      evs.forEach(r => { const l = etichetta(r); if (l && labels[labels.length - 1] !== l) labels.push(l); });
+      if (!labels.length) return;
+      sessioniTot++;
+      const r0 = evs[0];
+      const fonte = r0.utm_source || r0.referrer?.split("/")[2] || "diretto";
+      const chiave = [fonte, ...labels].join(" → ");
+      percorsiCount[chiave] = (percorsiCount[chiave] || 0) + 1;
+      if (labels.some(l => /Telefona|Tocca Prenota|Prenotazione fatta/.test(l))) sessioniAzione++;
+    });
+    const percorsiList = Object.entries(percorsiCount).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    const percorsiHtml = `
+    <div class="an-card">
+      <div class="an-card-title">🧭 Percorsi delle visite</div>
+      ${percorsiList.length === 0 ? `<div class="an-empty">Nessun dato</div>` : `
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">${fmt(sessioniTot)} visite · ${fmt(sessioniAzione)} sono finite in una telefonata, un clic su Prenota o una prenotazione.</div>
+        ${percorsiList.map(([k, n]) => `
+          <div class="an-utm-row">
+            <span style="font-size:12.5px;color:#374151;line-height:1.5;">${k}</span>
+            <span style="font-weight:700;color:#111827;flex-shrink:0;margin-left:8px;">${fmt(n)}</span>
+          </div>`).join("")}`}
+    </div>`;
+
     // ── Benchmark superadmin ──
     let benchHtml = "";
     if (isSuperadmin && !filtroAzienda) {
