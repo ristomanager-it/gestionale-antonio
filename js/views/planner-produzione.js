@@ -833,6 +833,7 @@ function renderGruppo(g){
           ${badgeInCorso(r)}
           <div style="font-weight:700;font-size:13.5px;">${escapeHtml(r.prodotto || "")} · ${formatNumber(r.quantita)} ${escapeHtml(r.unita)}</div>
           ${chipsEventi(r)}
+          <button type="button" data-apri="${r.id}" style="margin-top:6px;border:0;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:700;background:#0E5A7A;color:#fff;cursor:pointer;">▶ Apri</button>
         </div>`).join("")}
       <div class="planner-card-meta">
         Operatore: ${escapeHtml(getDipendenteLabel(r0.dipendente_id))}<br>
