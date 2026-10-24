@@ -63,6 +63,11 @@ export async function render(container) {
           </div>
 
           <div>
+            <label>Email (per la conferma al cliente)</label>
+            <input id="cliente_email" type="email" class="input" inputmode="email" autocomplete="off" placeholder="nome@esempio.it"/>
+          </div>
+
+          <div>
             <label>Data</label>
             <input type="date" id="data" class="input"/>
           </div>
