@@ -1756,6 +1756,7 @@ function stile() {
   .pv2-lato .riga.s{font-size:12px;color:#6B7A83;padding-top:0;}
   .pv2-lato .riga b{font-size:16px;}
   .pv2-lato .ok{color:#166534;}
+  .pv2-lato .mod{display:block;margin-top:14px;font-size:12.5px;color:#0E5A7A;text-decoration:underline;}
   .pv2-lato .no{color:#B45309;font-weight:700;}
   .pv2-lato .is{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
   .pv2-lato .chip{display:flex;flex-wrap:wrap;gap:6px;}
