@@ -1418,7 +1418,7 @@ function apriVideo(u){
     if(!a)return;
     var href=a.href||'';
     if(href.includes('prenotazione-online')||href.includes('booking')||a.classList.contains('nav-cta')||a.classList.contains('btn')||a.classList.contains('cta-p')){
-      try{if(/ristoflow-ai\.com/.test(href)&&!/utm_source=/.test(href)&&SRC){var UU=new URL(href);UU.searchParams.set('utm_source',SRC);a.href=UU.toString();}}catch(e){}
+      try{if(/ristoflow-ai\.com/.test(href)&&!/utm_source=/.test(href)&&SRC){var UU=new URL(href);UU.searchParams.set('utm_source',SRC);UU.searchParams.set('rf_sid',SID);a.href=UU.toString();}}catch(e){}
       window._rfTrack('click','cta_prenota',{valore:href.slice(0,80)});
     } else if(a.classList.contains('cta-c')||href.startsWith('tel:')){
       window._rfTrack('click','click_telefono',{valore:href});
