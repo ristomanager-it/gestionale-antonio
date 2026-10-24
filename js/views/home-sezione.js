@@ -138,4 +138,16 @@ export async function render(app) {
       .ps-home .ps-btn{background:#0E5A7A;color:#fff;border:0;border-radius:14px;padding:16px 10px;font-size:15px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:6px;}
       .ps-home .ps-btn i{font-style:normal;font-size:24px;}
     </style>`;
+
+  // i pulsanti con ›: un tocco apre l'elenco delle voci del gruppo, con "‹" per tornare indietro
+  const griglia = app.querySelector(".ps-griglia");
+  const principale = griglia.innerHTML;
+  const legaGruppi = () => griglia.querySelectorAll("[data-g]").forEach((b) => { b.onclick = () => mostraGruppo(pulsanti[Number(b.dataset.g)]); });
+  const mostraGruppo = (p) => {
+    const figli = (p[3] || []).filter((c) => puo(c[2]));
+    griglia.innerHTML = `<button class="ps-btn" data-indietro="1" style="grid-column:1/-1;flex-direction:row;background:#e2e8f0;color:#0f172a;justify-content:flex-start;padding:13px 14px;">‹ ${esc(p[1])}</button>`
+      + figli.map((c) => `<button class="ps-btn" onclick="window.location.hash='#/${c[2]}'"><i>${c[0]}</i>${esc(c[1])}</button>`).join("");
+    griglia.querySelector("[data-indietro]").onclick = () => { griglia.innerHTML = principale; legaGruppi(); };
+  };
+  legaGruppi();
 }
