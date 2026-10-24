@@ -40,10 +40,14 @@ export async function render(container){
         </div>
       </div>
 
-      <div style="position:sticky;top:var(--header-height, 72px);z-index:20;background:var(--bg, #f5f7fb);padding:6px 0 8px;margin-bottom:6px;box-shadow:0 6px 8px -8px rgba(0,0,0,.25);">
-        <input id="planner-cerca" type="search" autocomplete="off" placeholder="🔍 Cerca: piatto, lavorazione, persona, evento…"
-          style="width:100%;font-size:16px;padding:11px 14px;border:1.5px solid #cbd5e1;border-radius:12px;background:#fff;">
-        <div id="planner-cerca-esito" style="font-size:12.5px;color:#64748b;margin-top:4px;display:none;"></div>
+      <!-- la ricerca e' inchiodata sotto la barra dell'app: non scorre mai. Il blocco vuoto tiene il posto nella pagina -->
+      <div style="height:62px;"></div>
+      <div id="planner-cerca-barra" style="position:fixed;top:var(--header-height, 72px);left:0;right:0;z-index:900;background:var(--bg, #f5f7fb);padding:8px 14px;box-shadow:0 6px 10px -8px rgba(0,0,0,.35);">
+        <div style="max-width:1100px;margin:0 auto;">
+          <input id="planner-cerca" type="search" autocomplete="off" placeholder="🔍 Cerca: piatto, lavorazione, persona, evento…"
+            style="width:100%;box-sizing:border-box;font-size:16px;padding:11px 14px;border:1.5px solid #cbd5e1;border-radius:12px;background:#fff;">
+          <div id="planner-cerca-esito" style="font-size:12.5px;color:#64748b;margin-top:4px;display:none;"></div>
+        </div>
       </div>
 
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
