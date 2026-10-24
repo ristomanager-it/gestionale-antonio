@@ -168,6 +168,7 @@ const routes = {
   "scadenze": () => imp("./views/scadenze.js"),
   "scheda-evento": () => imp("./views/scheda-evento.js"),
   "modelli-buffet": () => imp("./views/modelli-buffet.js"),
+  "isole-buffet": () => imp("./views/isole-buffet.js"),
   "giorni-lavorazione": () => imp("./views/giorni-lavorazione.js"),
   "cc-sedi": () => imp("./views/cc-sedi.js"),
   "spesa-banchetti": () => imp("./views/spesa-banchetti.js"),
