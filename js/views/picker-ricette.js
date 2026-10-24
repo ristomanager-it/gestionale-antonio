@@ -65,7 +65,8 @@ export async function scegliRicette({ titolo = "Aggiungi dal ricettario", onOk }
     .pr label.r:first-child{border-top:0;} .pr label.r input{width:22px;height:22px;flex-shrink:0;margin-top:1px;}
     .pr label.r small{display:block;font-size:12px;color:#6B7280;margin-top:2px;}
     .pr .m{padding:12px 0;font-size:13px;color:#6B7280;}
-    .pr .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E5E7EB;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;justify-content:flex-end;}
+    .pr .bar{position:fixed;left:0;right:0;bottom:104px;background:#fff;border-top:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB;padding:10px 16px;display:flex;gap:10px;justify-content:flex-end;z-index:4;}
+    .pr .alto{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:3;background:#F6F8FA;padding:10px 0;}
   </style>
   <div class="pr"><h2>${esc(titolo)}</h2>
     <input type="search" id="pr-q" placeholder="Cerca per nome…" autocomplete="off">
