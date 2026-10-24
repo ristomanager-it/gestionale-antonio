@@ -24,6 +24,13 @@ async function injectTracking(aziendaId) {
 
 // ── Ristoflow Analytics tracking ──────────────────────────────
 function initRFTrack(aziendaId, sedeId, formId) {
+  // le aperture del titolare non si contano: con ?escludi=1 questo dispositivo viene escluso (?escludi=0 per riattivarlo)
+  try {
+    const qe = new URLSearchParams(location.search).get('escludi');
+    if (qe === '1') localStorage.setItem('rf_escludi', '1');
+    if (qe === '0') localStorage.removeItem('rf_escludi');
+  } catch {}
+  const ESCLUSO = (() => { try { return localStorage.getItem('rf_escludi') === '1'; } catch { return false; } })();
   const SESSION_ID = sessionStorage.getItem('rf_sid') || crypto.randomUUID();
   sessionStorage.setItem('rf_sid', SESSION_ID);
 
