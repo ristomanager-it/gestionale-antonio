@@ -88,7 +88,7 @@ export async function render(container) {
             <label>Stato</label>
             <select id="stato" class="input">
               <option value="in_attesa">In attesa</option>
-              <option value="confermata">Confermata</option>
+              <option value="confermata" selected>Confermata</option>
               <option value="arrivata">Arrivata</option>
               <option value="no_show">No show</option>
               <option value="rifiutata">Rifiutata</option>
