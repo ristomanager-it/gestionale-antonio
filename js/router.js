@@ -736,6 +736,7 @@ function hasPermission(area) {
     // Gli altri vedono i risultati: planning, le proprie lavorazioni, gli avvisi.
     "scheda-evento",
     "modelli-buffet",
+    "isole-buffet",
     "giorni-lavorazione",
     "cc-sedi",
     "spesa-banchetti",
