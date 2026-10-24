@@ -875,6 +875,7 @@ function renderCard(r){
         Tempo: ${r.tempo_stimato_minuti ? `${r.tempo_stimato_minuti} min` : "—"}<br>
         Stato: ${formatStato(r.stato)}
       </div>
+      ${servizio ? "" : `<button type="button" data-apri="${r.id}" style="margin-top:8px;width:100%;border:0;border-radius:10px;padding:11px;font-size:15px;font-weight:700;background:#0E5A7A;color:#fff;cursor:pointer;">${fatta ? "Vedi la produzione" : "▶ Apri la produzione"}</button>`}
     </div>
   `
 }
