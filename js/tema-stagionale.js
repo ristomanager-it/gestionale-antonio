@@ -187,7 +187,7 @@
         }, 600);
         // parla solo nell'app (dove sa il nome), mai sulle pagine pubbliche dei clienti
         setTimeout(function () { if (nomeSaluto) parla("Ciao " + nomeSaluto + "!"); }, 6300);
-        ciao.addEventListener("click", function () { parla(nomeSaluto ? "Ciao " + nomeSaluto + "!" : "Ciao!"); });
+        ciao.addEventListener("click", function () { parla(nomeSaluto ? "Ciao " + nomeSaluto + "!" : ciao.textContent.replace(/[^A-Za-z\u00c0-\u00ff0-9\s!?,.]/g, "")); });
         b.style.left = p[1];
         b.style.fontSize = p[2] + "px";
         b.addEventListener("animationend", function () { b.remove(); });
