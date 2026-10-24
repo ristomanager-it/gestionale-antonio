@@ -5861,8 +5861,14 @@ async function preloadFromPlanner(plannerId){
   window.__rfDosiPlanning = null
   if (data.ricetta_id && Number(data.quantita) > 0) {
     try {
+      // se la riga del planning e' in kg (es. "ripieno 2,3 kg") si scala sul peso della ricetta, non sulle porzioni
+      let modoPl = "porzioni", valorePl = Number(data.quantita);
+      if (String(data.unita || "").toLowerCase() === "kg") {
+        const { data: rp } = await (window.supabaseClient || window.supabase).from("ricette").select("peso_output_kg").eq("id", Number(data.ricetta_id)).maybeSingle();
+        if (Number(rp?.peso_output_kg) > 0) { modoPl = "fattore"; valorePl = Number(data.quantita) / Number(rp.peso_output_kg); }
+      }
       const { data: sc } = await (window.supabaseClient || window.supabase).rpc("scala_ricetta", {
-        p_ricetta_id: Number(data.ricetta_id), p_modo: "porzioni", p_valore: Number(data.quantita), p_ingrediente: null, p_um: null })
+        p_ricetta_id: Number(data.ricetta_id), p_modo: modoPl, p_valore: valorePl, p_ingrediente: null, p_um: null })
       if (sc && sc.ok === true) {
         window.__rfDosiPlanning = sc
         const v = document.getElementById("scala-valore"); if (v) v.value = Number(data.quantita)
