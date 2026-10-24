@@ -1769,6 +1769,6 @@ function stile() {
   .pv2-btn.grigio{background:#fff;border:1.5px solid var(--riga);color:var(--muto);}
   .pv2-esito{margin-top:10px;font-size:14px;}
   .pv2-esito.ok{color:var(--verde);} .pv2-esito.ko{color:var(--rosso);}
-  @media print{ .pv2-azioni,.pv2-avviso,.pv2-richieste,.pv2-stato{display:none !important;} }
+  @media print{ .pv2-azioni,.pv2-avviso,.pv2-richieste,.pv2-stato,.pv2-lato{display:none !important;} }
   </style>`;
 }
