@@ -149,6 +149,17 @@ export async function render(app) {
         const { error } = await sb().from("buffet_isole_piatti").insert({ azienda_id: az, isola_id: isolaId, nome, ordine: ord });
         if (error) throw error;
         await ridisegna();
+      } else if (b.dataset.ric) {
+        const isolaId = Number(b.dataset.ric);
+        const m = await import("./picker-ricette.js?v=" + (window.APP_V || 1));
+        m.scegliRicette({ onOk: async (lista) => {
+          const gia = new Set(piatti.filter((p) => p.isola_id === isolaId).map((p) => norm(p.nome)));
+          let ord = piatti.filter((p) => p.isola_id === isolaId).reduce((mx, p) => Math.max(mx, p.ordine || 0), 0);
+          const nuovi = lista.filter((r) => !gia.has(norm(r.nome))).map((r) => ({ azienda_id: az, isola_id: isolaId, nome: r.nome, ricetta_id: r.id, origine: "Ricettario", ordine: ++ord }));
+          if (nuovi.length) await sb().from("buffet_isole_piatti").insert(nuovi);
+          stato(nuovi.length ? `${nuovi.length} aggiunti ✓` : "Erano già nell'elenco");
+          await ridisegna();
+        } });
       } else if (b.dataset.delP) {
         await sb().from("buffet_isole_piatti").delete().eq("id", Number(b.dataset.delP));
         await ridisegna();
