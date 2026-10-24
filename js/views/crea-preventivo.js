@@ -893,7 +893,7 @@ function aggancia(container, supabase, azienda, sede) {
     const gruppi = isoleDiSezione(sez).map(i => ({ nome: i.nome, minimo: i.minimo, piatti: isolePiatti.filter(p => p.isola_id === i.id).map(p => p.nome) }));
     const scelti = righe.filter(r => (r.sezione || "Menu") === sez && r.nome).map(r => r.nome);
     m.scegliPortate({ titolo: sez, gruppi, scelti, onOk: async (nomi) => {
-      const tutti = new Set(gruppi.flatMap(g => g.piatti));
+      const tutti = new Set([...gruppi.flatMap(g => g.piatti), ...scelti]);
       const dellaSez = righe.filter(r => (r.sezione || "Menu") === sez);
       const tenute = dellaSez.filter(r => r.nome && tutti.has(r.nome) && nomi.includes(r.nome));
       const aMano = dellaSez.filter(r => r.nome && !tutti.has(r.nome));
