@@ -122,7 +122,7 @@ export async function render(app) {
         <div class="ps-barra ps-${r.tono}" onclick="window.location.hash='#/${r.dest}'"><span>${esc(r.testo)}</span><span class="chev">›</span></div>`).join("")}
 
       <div class="ps-griglia">
-        ${pulsanti.map((p) => `<button class="ps-btn" onclick="window.location.hash='#/${p[2]}'"><i>${p[0]}</i>${esc(p[1])}</button>`).join("")}
+        ${pulsanti.map((p, i) => `<button class="ps-btn" ${p[3] ? `data-g="${i}"` : `onclick="window.location.hash='#/${p[2]}'"`}><i>${p[0]}</i>${esc(p[1])}${p[3] ? " ›" : ""}</button>`).join("")}
       </div>
     </section>
     <style>
