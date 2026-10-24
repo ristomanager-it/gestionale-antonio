@@ -85,10 +85,27 @@ export async function render(container) {
       ${isSuperadmin ? `<select id="an-az-select" class="an-select"><option value="">Tutte le aziende</option></select>` : ""}
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:#64748b;margin:-6px 0 14px;">
+      <button class="an-btn" id="an-escludi"></button>
+      <span id="an-escludi-nota"></span>
+    </div>
+
     <div id="an-body">
       <div class="an-loading">⏳ Caricamento dati...</div>
     </div>
   </div>`;
+
+  // le tue aperture non entrano nelle statistiche: vale per l'app e per le pagine di prenotazione aperte da questo dispositivo
+  (function () {
+    const b = document.getElementById("an-escludi"), n = document.getElementById("an-escludi-nota");
+    const on = () => { try { return localStorage.getItem("rf_escludi") === "1"; } catch (e) { return false; } };
+    const mostra = () => {
+      b.textContent = on() ? "✅ Questo dispositivo è escluso" : "🚫 Escludi questo dispositivo";
+      n.textContent = on() ? "Le tue aperture da qui non vengono contate." : "Toccalo dal telefono e dal computer. Per il sito apri anche una volta ?escludi=1 (es. trattoriadellaquila.it/?escludi=1).";
+    };
+    b.onclick = () => { try { if (on()) localStorage.removeItem("rf_escludi"); else localStorage.setItem("rf_escludi", "1"); } catch (e) {} mostra(); };
+    mostra();
+  })();
 
   // ── Carica aziende (superadmin) ────────────────────────────
   if (isSuperadmin) {
