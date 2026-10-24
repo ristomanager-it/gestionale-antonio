@@ -79,6 +79,7 @@ function initRFTrack(aziendaId, sedeId, formId) {
   }
 
   window._rfTrack = async function(tipo, elemento, extra = {}) {
+    if (ESCLUSO) return;
     const geo = getGeo();
     await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/track', {
       method: 'POST',
