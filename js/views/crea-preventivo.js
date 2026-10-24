@@ -1402,6 +1402,11 @@ function aggancia(container, supabase, azienda, sede) {
 
 async function salva(container, supabase, azienda, sede) {
   const c = conti();
+  // le sezioni ancora senza piatti (le isole da scegliere) non si salvano: le ricordo per rimetterle dopo il salvataggio
+  const sezPrima = [...new Set(righe.map(r => r.sezione || "Menu"))].map(sez => {
+    const rs = righe.filter(r => (r.sezione || "Menu") === sez);
+    return { sez, quante: rs.length, prezzo: rs.reduce((s, r) => s + (Number(r.prezzo) || 0), 0) };
+  });
   const testata = {
     azienda_id: azienda.id, sede_uuid: P.sede_uuid || sede?.id || null,
     stato: P.stato, titolo_evento: P.titolo_evento, tipo_servizio: P.tipo_servizio || null,
