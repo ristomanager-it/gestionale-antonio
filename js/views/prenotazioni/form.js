@@ -217,6 +217,7 @@ export async function render(container) {
         document.getElementById("cliente_nome").value = c.nome || "";
         document.getElementById("cliente_cognome").value = c.cognome || "";
         document.getElementById("cliente_telefono").value = c.telefono || "";
+        document.getElementById("cliente_email").value = c.email || "";
         box.innerHTML = "";
         verificaSlot();
       };
