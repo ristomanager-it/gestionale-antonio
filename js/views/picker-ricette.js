@@ -86,7 +86,10 @@ export async function scegliRicette({ titolo = "Aggiungi dal ricettario", onOk }
     cat = b.dataset.c; chip(); cerca();
   });
   ov.querySelector("#pr-q").addEventListener("input", (e) => { q = e.target.value; clearTimeout(tempo); tempo = setTimeout(cerca, 250); });
-  ov.querySelector("#pr-no").onclick = () => ov.remove();
+  const tastoEsc = (e) => { if (e.key === "Escape") { document.removeEventListener("keydown", tastoEsc); ov.remove(); } };
+  document.addEventListener("keydown", tastoEsc);
+  ov.querySelector("#pr-no").onclick = () => { document.removeEventListener("keydown", tastoEsc); ov.remove(); };
+  ov.querySelector("#pr-no-t").onclick = () => { document.removeEventListener("keydown", tastoEsc); ov.remove(); };
   ov.querySelector("#pr-ok").onclick = () => {
     const lista = [...sel.entries()].map(([id, nome]) => ({ id, nome }));
     ov.remove();
