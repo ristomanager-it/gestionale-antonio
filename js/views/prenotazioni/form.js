@@ -245,6 +245,7 @@ export async function render(container) {
     const cognome = document.getElementById("cliente_cognome").value.trim();
     const prefisso = document.getElementById("prefisso").value;
     const telefonoRaw = document.getElementById("cliente_telefono").value.trim();
+    const email = (document.getElementById("cliente_email")?.value || "").trim().toLowerCase();
     const telefono = (prefisso + telefonoRaw).replace(/[^\d+]/g, "");
     const data = document.getElementById("data").value;
     const ora = document.getElementById("ora").value;
