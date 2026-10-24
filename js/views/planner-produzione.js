@@ -920,6 +920,10 @@ function applicaCerca(){
 
 function bindCalendarEvents(){
   applicaCerca()
+  // "Apri la produzione": va dritto alla lavorazione (anche per l'admin, che toccando la scheda programma)
+  document.querySelectorAll("[data-apri]").forEach(b => {
+    b.onclick = (e) => { e.stopPropagation(); window.plannerProduzioneGoPreparazione(b.dataset.apri) }
+  })
   // nella scheda unica ogni ricetta si apre per conto suo
   document.querySelectorAll(".planner-sub").forEach(sub => {
     sub.onclick = (e) => { e.stopPropagation(); window.plannerProduzioneOpenEdit(sub.dataset.id) }
