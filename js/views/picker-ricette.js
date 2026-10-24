@@ -54,7 +54,7 @@ export async function scegliRicette({ titolo = "Aggiungi dal ricettario", onOk }
   }
 
   ov.innerHTML = `<style>
-    .pr{max-width:680px;margin:0 auto;padding:14px 16px 110px;color:#1F2937;font-family:inherit;}
+    .pr{max-width:680px;margin:0 auto;padding:14px 16px 230px;color:#1F2937;font-family:inherit;}
     .pr h2{margin:6px 0 10px;font-size:20px;}
     .pr input[type=search]{width:100%;box-sizing:border-box;border:1px solid #D5DBE0;border-radius:12px;padding:12px 14px;font:inherit;font-size:16px;background:#fff;}
     .pr .ch{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;}
