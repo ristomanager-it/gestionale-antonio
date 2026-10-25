@@ -2007,7 +2007,7 @@ q('lp-invia').onclick=function(){
   var b=q('lp-invia');b.disabled=true;b.textContent='Invio...';msg('');
   fetch(SB+'/rest/v1/prenotazioni_tavoli',{method:'POST',headers:Object.assign({},H,{'Prefer':'return=minimal'}),
     body:JSON.stringify({azienda_id:AZ,sede_id:SEDE||null,cliente_nome:nome,cliente_telefono:tel,cliente_email:em||null,data:st.g,ora:st.o,coperti:st.p,
-      stato:'in_attesa',canale:'online',note:'Pranzo business 25 euro',token_pubblico:tok,source:(src||P.get('utm_source')||'landing_pranzo'),riferimento:rif})})
+      stato:'in_attesa',canale:'online',note:'Menu business 25 euro · '+st.t,token_pubblico:tok,source:(src||P.get('utm_source')||'landing_menu_business'),riferimento:rif})})
   .then(function(r){
     if(!r.ok)return r.text().then(function(t){throw new Error(t||'errore');});
     fetch(SB+'/functions/v1/prenotazione-notifica-tavolo',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({token_pubblico:tok})}).catch(function(){});
