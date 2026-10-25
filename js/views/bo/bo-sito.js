@@ -1333,7 +1333,7 @@ a{text-decoration:none;color:inherit}
 .reel-sub{font-size:10px;letter-spacing:2px;color:var(--accl);text-transform:uppercase}
 .mare-s{background:var(--scuro);padding:72px 20px}
 .mare-i{max-width:700px;margin:0 auto;color:#fff}
-.mare-q{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,4vw,34px);font-style:italic;line-height:1.4;margin-bottom:24px;border-left:2px solid var(--acc);padding-left:20px}
+.mare-q{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,4vw,34px);font-style:italic;line-height:1.4;margin-bottom:24px;border-left:2px solid var(--accl);padding-left:20px}
 .mare-b{font-size:14px;color:rgba(255,255,255,.65);line-height:1.9}
 .menu-s{background:var(--caldo);padding:72px 20px}
 .menu-i{max-width:700px;margin:0 auto}
