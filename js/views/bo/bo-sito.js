@@ -1363,7 +1363,7 @@ a{text-decoration:none;color:inherit}
 .map-v{font-size:13px;color:rgba(255,255,255,.88);line-height:1.5}
 .map-v a{color:var(--accl);text-decoration:underline}
 footer{background:#0e0a04;padding:36px 20px;text-align:center}
-.ft-logo{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--acc);margin-bottom:10px;font-style:italic}
+.ft-logo{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--accl);margin-bottom:10px;font-style:italic}
 .ft-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
 .ft-links a{font-size:11px;color:rgba(255,255,255,.35)}
 .ft-copy{font-size:10px;color:rgba(255,255,255,.2)}`;
