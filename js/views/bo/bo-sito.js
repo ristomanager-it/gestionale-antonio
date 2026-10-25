@@ -1952,7 +1952,7 @@ function plus(s,min){var p=s.split(':'),m=(+p[0])*60+(+p[1])+min;return String(M
 function msg(t,err){var m=q('lp-msg');m.textContent=t||'';m.className='lp-msg'+(err?' err':'');}
 function giorni(){
   var cfg=st.cfg,att=(cfg&&cfg.giorni_attivi)||['lunedi','martedi','mercoledi','giovedi','venerdi'],chi=(cfg&&cfg.giorni_chiusura)||[];
-  var out=[],d=new Date();if(d.getHours()>=13)d.setDate(d.getDate()+1);
+  var out=[],d=new Date();if(d.getHours()>=21)d.setDate(d.getDate()+1);
   for(var i=0;i<28&&out.length<5;i++){var w=d.getDay();
     if(w>=1&&w<=5&&att.indexOf(GN[w])>-1&&chi.indexOf(GN[w])<0)out.push(new Date(d.getTime()));
     d.setDate(d.getDate()+1);}
