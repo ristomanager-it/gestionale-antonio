@@ -57,12 +57,11 @@
       if (menoMoto) css.push(".app-header::after{animation:none}");
     }
 
-    // zucche luminose (Halloween)
+    // la zucca che spaventa (Halloween): una sola, in basso a destra; salta fuori all'apertura dell'app, rimbalza e sparisce
     if (t.zucche) {
-      css.push(".rf-zucche{position:absolute;left:0;right:0;bottom:-30px;display:flex;justify-content:space-around;align-items:flex-start;pointer-events:none;z-index:2;}");
-      css.push(".rf-zucca{font-size:24px;line-height:1;filter:drop-shadow(0 0 5px #ff8a00) drop-shadow(0 0 11px #ff6a00);animation:rf-zucca 1.9s ease-in-out infinite alternate;}");
-      css.push("@keyframes rf-zucca{from{filter:drop-shadow(0 0 3px #ff8a00) drop-shadow(0 0 6px #ff6a00);transform:scale(.97)}to{filter:drop-shadow(0 0 7px #ffb300) drop-shadow(0 0 16px #ff7a00);transform:scale(1.04)}}");
-      if (menoMoto) css.push(".rf-zucca{animation:none}");
+      css.push(".rf-zucca-paura{position:fixed;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);font-size:72px;line-height:1;pointer-events:none;z-index:60;will-change:transform;transform-origin:bottom right;filter:drop-shadow(0 0 10px #ff8a00) drop-shadow(0 0 24px #ff5a00);animation:rf-paura 5.2s ease-in-out 1.2s 1 both;}");
+      css.push("@keyframes rf-paura{0%{transform:translateY(160px) scale(.4) rotate(0);opacity:0}6%{opacity:1}14%{transform:translateY(-34px) scale(1.9) rotate(-10deg)}22%{transform:translateY(0) scale(1.5) rotate(8deg)}30%{transform:translateY(-46px) scale(1.95) rotate(-9deg)}38%{transform:translateY(0) scale(1.5) rotate(7deg)}46%{transform:translateY(-28px) scale(1.8) rotate(-6deg)}54%{transform:translateY(0) scale(1.55) rotate(4deg)}60%{transform:translateY(0) scale(1.6) rotate(-4deg)}66%{transform:translateY(0) scale(1.6) rotate(4deg)}72%{transform:translateY(0) scale(1.55) rotate(-3deg);opacity:1}100%{transform:translateY(170px) scale(.5) rotate(0);opacity:0}}");
+      if (menoMoto) css.push(".rf-zucca-paura{display:none}");
     }
 
     // pipistrelli grandi che attraversano lo schermo dal basso all'alto e viceversa
