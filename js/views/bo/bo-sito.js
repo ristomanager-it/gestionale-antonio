@@ -2032,9 +2032,9 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
     <div class="lp-vel"></div>
     <div class="lp-top"><div class="lp-logo">${esc(nome)}</div><div class="lp-loc">Orte · uscita A1</div></div>
     <div class="lp-hc">
-      <div class="lp-eye">Pranzo business · lun–ven</div>
-      <h1 class="lp-h1">Pausa pranzo<br>fatta bene.</h1>
-      <p class="lp-sub">Antipasto, primo, secondo, acqua e caffè. Senza sorprese.</p>
+      <div class="lp-eye">Menu business · lun–ven · pranzo e cena</div>
+      <h1 class="lp-h1">Mangiare bene,<br>senza pensarci.</h1>
+      <p class="lp-sub">Antipasto, primo, secondo, acqua e caffè. A pranzo e a cena.</p>
     </div>
   </div>
 
