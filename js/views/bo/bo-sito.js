@@ -2062,6 +2062,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
     <div class="lp-box">
       <div id="lp-form">
         <span class="lp-lbl">Giorno</span><div class="lp-gr" id="lp-giorni"></div>
+        <span class="lp-lbl">Pranzo o cena</span><div class="lp-gr" id="lp-turni"></div>
         <span class="lp-lbl">Orario</span><div class="lp-g3" id="lp-orari"></div>
         <span class="lp-lbl">Persone</span>
         <div class="lp-pers"><button type="button" id="lp-meno" aria-label="Una persona in meno">−</button><b id="lp-n">2</b><button type="button" id="lp-piu" aria-label="Una persona in più">+</button></div>
