@@ -1213,6 +1213,9 @@ export async function render(container) {
     const logo    = sede?.logo_url || az?.logo_url || "";
     const clrBtn  = conf.colore_brand      || sede?.colore_brand      || az?.colore_brand || "#794d01";
     const clrAcc  = conf.colore_secondario || sede?.colore_secondario || "#c4892a";
+    // sugli sfondi scuri (barra, mappa, piede) un accento scuro (es. marrone) non si legge: li' si usa un oro chiaro
+    const lum = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(String(h || "")); if (!m) return 0.5; const c = [0, 2, 4].map((i) => parseInt(m[1].substr(i, 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const clrAccChiaro = lum(clrAcc) < 0.3 ? "#E3B866" : clrAcc;
     const font    = conf.font_family || "Inter";
     const tel     = conf.telefono || sede?.telefono || profilo?.telefono || "";
     const em      = conf.email    || profilo?.email  || "";
