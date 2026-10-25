@@ -98,7 +98,7 @@ export async function render(container) {
   const { data: storico } = await hq;
   const usoRecente = new Map(); // ricetta_id -> giorni fa (minimo)
   (storico || []).forEach(m => {
-    const gg = Math.max(1, Math.round((new Date(oggi) - new Date(m.data)) / 86400000));
+    const gg = Math.max(1, Math.round((new Date(giorno) - new Date(m.data)) / 86400000));
     (Array.isArray(m.voci) ? m.voci : []).forEach(v => {
       const k = String(v.ricetta_id);
       if (!usoRecente.has(k) || usoRecente.get(k) > gg) usoRecente.set(k, gg);
