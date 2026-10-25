@@ -687,6 +687,11 @@ export async function render(container) {
         if (localStorage.getItem('rf_consenso') === 'si') {
           window.fbq?.('track', 'Schedule'); window.fbq?.('track', 'Lead');
           (window.dataLayer = window.dataLayer || []).push({ event: 'rf_prenotazione_completata' });
+          (window.dataLayer = window.dataLayer || []).push({ event: window.__rfCfg?.ga4Evento || 'prenotazione_completata' });
+          if (window.__rfCfg?.gtag && window.gtag) {
+            window.gtag('event', window.__rfCfg.ga4Evento);
+            if (window.__rfCfg.adsSend) window.gtag('event', 'conversion', { send_to: window.__rfCfg.adsSend });
+          }
         }
       } catch {}
       _bookingCompletata = true;
