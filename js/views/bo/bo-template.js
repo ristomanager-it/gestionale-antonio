@@ -297,7 +297,7 @@ export async function render(container) {
                   ${sediList.map(s => `<option value="${s.id}" data-citta="${s.citta || ''}">${s.nome}</option>`).join('')}
                 </select></div>
               <div><div class="sezione-label">Città (targeting)</div><input id="meta-citta" class="input" style="width:100%;box-sizing:border-box;" placeholder="es. Orte"></div>
-              <div><div class="sezione-label">Raggio km</div><input id="meta-raggio" class="input" type="number" value="30" min="5" max="80" style="width:100%;box-sizing:border-box;"></div>
+              <div><div class="sezione-label">Raggio km</div><input id="meta-raggio" class="input" type="number" value="25" min="5" max="80" style="width:100%;box-sizing:border-box;"></div>
               <div><div class="sezione-label">Budget €/giorno</div><input id="meta-budget" class="input" type="number" value="10" min="1" style="width:100%;box-sizing:border-box;"></div>
             </div>
             <button id="btn-meta-crea" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">🎂 Crea campagna (in pausa)</button>
