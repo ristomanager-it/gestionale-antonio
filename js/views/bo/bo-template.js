@@ -906,7 +906,7 @@ export async function render(container) {
     if (!box) return;
     try {
       const sb = window.supabaseClient || window.supabase;
-      const { data } = await sb.from('campagne').select('piattaforma,modello,nome,budget_giornaliero_cent,ids,created_at')
+      const { data } = await sb.from('campagne').select('piattaforma,modello,nome,budget_giornaliero_cent,ids,created_at,link,dettagli')
         .eq('azienda_id', aziendaId).order('created_at', { ascending: false }).limit(10);
       if (!(data || []).length) { box.innerHTML = '<span style="color:#94a3b8;">Nessuna campagna ancora: creane una qui sopra.</span>'; return; }
       box.innerHTML = data.map(c => {
