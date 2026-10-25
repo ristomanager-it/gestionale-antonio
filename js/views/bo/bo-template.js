@@ -284,7 +284,12 @@ export async function render(container) {
           </div>
 
           <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px;">
-            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px;">🎂 Campagna Compleanni</div>
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px;">📣 Crea una campagna</div>
+            <div style="margin-bottom:10px;"><div class="sezione-label">Cosa vuoi promuovere</div>
+              <select id="meta-modello" class="input" style="width:100%;box-sizing:border-box;">
+                <option value="menu_business">🍝 Menu business (pranzo e cena a prezzo fisso)</option>
+                <option value="compleanni">🎂 Compleanni (la torta in regalo)</option>
+              </select></div>
             <div style="font-size:13px;color:#64748b;margin-bottom:14px;">Pubblico: chi compie gli anni il mese prossimo, vicino al locale. Annuncio con foto dalla tua libreria e bottone che porta al form "la torta è il nostro regalo".</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;">
               <div><div class="sezione-label">Sede</div>
