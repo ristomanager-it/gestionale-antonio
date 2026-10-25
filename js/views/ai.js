@@ -1010,7 +1010,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   if (!tipoMessaggio) {
     const lastUser = [...(messages || [])].reverse().find(m => m.role === "user");
     const testoMsg = typeof lastUser?.content === "string" ? lastUser.content : "";
-    if (!audioBase64 && testoMsg && (isMetaIntent(testoMsg) || (tonyMetaMode && testoMsg.trim().length <= 60))) {
+    if (!audioBase64 && testoMsg && (isMetaIntent(testoMsg) || seguiCampagna(testoMsg))) {
       try {
         const rMeta = await callTonyMeta(messages);
         tonyMetaMode = true;
