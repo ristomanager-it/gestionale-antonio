@@ -1363,7 +1363,7 @@ function carica(){
   if(!GTM&&(GA4||ADS)&&!window.__gtagOk){window.__gtagOk=1;var gs=document.createElement('script');gs.async=true;gs.src='https://www.googletagmanager.com/gtag/js?id='+(GA4||ADS);document.head.appendChild(gs);gtag('js',new Date());if(GA4)gtag('config',GA4);if(ADS)gtag('config',ADS);}
   if(GTM&&!window.__gtmOk){window.__gtmOk=1;(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',GTM);}
 }
-var MAP={cta_prenota:'InitiateCheckout',click_telefono:'Contact',click_menu:'ViewContent',click_mappa:'FindLocation'};
+var MAP={cta_prenota:'InitiateCheckout',click_telefono:'Contact',wame:'Contact',click_menu:'ViewContent',click_mappa:'FindLocation'};
 window.rfDecisione=st;
 window.rfEvento=function(el){if(st()!=='si')return;try{if(window.fbq&&MAP[el])fbq('track',MAP[el]);dataLayer.push({event:'rf_'+el});if(!GTM&&(GA4||ADS)){gtag('event',el);if(el==='click_telefono')gtag('event','tel');}}catch(e){}};
 function banner(){
