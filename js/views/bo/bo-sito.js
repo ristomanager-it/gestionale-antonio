@@ -1387,7 +1387,7 @@ if(st()==='si')carica();else if(st()!=='no')document.addEventListener('DOMConten
         const { data: wa } = await sc.from("whatsapp_connessioni").select("numero_telefono").eq("azienda_id", aziendaId).eq("sede_id", sedeId).eq("attivo", true).limit(1);
         let n = String(wa?.[0]?.numero_telefono || "").replace(/[^0-9]/g, "");
         if (n.length === 10 && n.startsWith("3")) n = "39" + n;
-        if (n.length >= 11) waUrl = "https://wa.me/" + n + "?text=" + encodeURIComponent("Buongiorno, vorrei prenotare un tavolo. (rif. SITO)");
+        if (n.length >= 11) waUrl = "https://wa.me/" + n + "?text=" + encodeURIComponent("Buongiorno, vorrei prenotare un tavolo dal vostro sito.");
       }
     } catch (e) { /* senza numero il pulsante WhatsApp non compare */ }
 
