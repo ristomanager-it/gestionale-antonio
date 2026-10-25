@@ -2131,6 +2131,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
             "chi-siamo.html": pagine.chiSiamo,
             "menu.html":      pagine.menuPage,
             "contatti.html":  pagine.contatti,
+            "l/pranzo-business.html": pagine.landingPranzo,
           }
         })
       });
