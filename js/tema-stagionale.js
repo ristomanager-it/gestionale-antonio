@@ -177,7 +177,7 @@
         // sulle pagine di prenotazione (dove non c'e' un nome da dire) il saluto diventa un invito a prenotare;
         // nell'app, se si trova il nome, qui sotto viene sostituito da "Ciao {nome}!"
         (function () {
-          var dove = (location.pathname + " " + location.hash).toLowerCase();
+          var dove = "";   // il pipistrello c'e' solo nell'app: li' non si invita a prenotare, si saluta per nome
           var invito = "";
           if (/compleann/.test(dove)) invito = "Ciao! 🎂 Prenota la tua festa";
           else if (/tavolo|prenotazion|booking/.test(dove)) invito = "Ciao! 🍽️ Prenota il tuo tavolo";
