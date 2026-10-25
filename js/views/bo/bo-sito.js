@@ -1291,7 +1291,7 @@ a{text-decoration:none;color:inherit}
 .nav-logo span{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--accl);letter-spacing:.3px}
 .nav-links{display:flex;gap:18px}
 .nav-links a{font-size:12px;color:rgba(255,255,255,.75);letter-spacing:.4px}
-.nav-links a:hover{color:var(--acc)}
+.nav-links a:hover{color:var(--accl)}
 .nav-cta{background:var(--btn);color:#fff;font-size:12px;font-weight:800;padding:8px 18px;border-radius:6px}
 @media(max-width:600px){.nav-links{display:none}}
 .cta-bar{position:sticky;bottom:0;z-index:90;display:flex;background:var(--scuro);border-top:1px solid rgba(196,137,42,.25)}
