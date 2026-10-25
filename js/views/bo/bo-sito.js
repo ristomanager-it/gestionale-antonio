@@ -2043,6 +2043,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
     </div>
     <a class="lp-cta" href="#prenota" onclick="try{window._rfTrack('click','cta_prenota',{valore:'landing'})}catch(e){}">Prenota il tuo pranzo</a>
     <a class="lp-lnk" href="#oggi">Guarda il menu di oggi</a>
+    <a class="lp-lnk" href="#mappa" style="margin-top:6px">Come arrivare</a>
   </div>
 
   <div class="lp-incl"><span>Antipasto</span><span>Primo</span><span>Secondo</span><span>Acqua</span><span>Caffè</span></div>
