@@ -965,15 +965,24 @@ async function callTonyMeta(messages) {
   const token = session?.data?.session?.access_token || "";
   const msgs = (messages || []).filter(m => (m.role === "user" || m.role === "assistant") && typeof m.content === "string").slice(-12);
   // Tony specialista delle campagne (Meta + Google): propone con la scheda Conferma, la campagna nasce in pausa e si crea solo al tocco
+  // Se lo specialista non risponde NON si cade piu' sul vecchio motore (parlava di "promo 2x1" e confondeva): si dice cosa e' successo.
+  let causaSpec = "";
   try {
+    const ctrlSpec = new AbortController();
+    const tSpec = setTimeout(() => ctrlSpec.abort(), 110000);
     const rc = await fetch(`${supabaseUrl}/functions/v1/tony-campagne-chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
       body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, messages: msgs }),
+      signal: ctrlSpec.signal,
     });
-    const jc = await rc.json();
+    clearTimeout(tSpec);
+    let jc = null;
+    try { jc = await rc.json(); } catch (_) {}
     if (jc && jc.success !== false && jc.reply) return jc;
-  } catch (e) { console.warn("Tony campagne non raggiungibile, uso il motore marketing di prima:", e); }
+    causaSpec = "risposta " + rc.status + (jc ? " - " + String(jc.error || jc.message || jc.msg || "").slice(0, 140) : "");
+  } catch (e) { causaSpec = e && e.name === "AbortError" ? "ha impiegato troppo tempo" : "connessione: " + (e && e.message ? e.message : e); }
+  return { success: true, reply: "Non sono riuscito a far rispondere lo specialista delle campagne (" + causaSpec + "). Riprova tra un attimo: se succede ancora, mandami questa schermata.", fonte: "campagne", action: null };
   const res = await fetch(`${supabaseUrl}/functions/v1/meta-ads`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
