@@ -93,7 +93,7 @@ export async function render(container) {
 
   // Storico ultimi 7 giorni (stessa sede) per evitare portate ravvicinate
   const daFa = dataLoc(new Date(new Date(giorno + "T12:00:00").getTime() - 7 * 86400000));
-  let hq = s.from("menu_giorno").select("data, voci").eq("azienda_id", azienda.id).gte("data", daFa).lt("data", oggi);
+  let hq = s.from("menu_giorno").select("data, voci").eq("azienda_id", azienda.id).gte("data", daFa).lt("data", giorno);
   hq = sede?.id ? hq.eq("sede_id", sede.id) : hq.is("sede_id", null);
   const { data: storico } = await hq;
   const usoRecente = new Map(); // ricetta_id -> giorni fa (minimo)
