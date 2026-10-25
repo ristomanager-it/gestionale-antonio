@@ -1501,7 +1501,7 @@ function apriVideo(u){
     <a href="index.html">Home</a><a href="chi-siamo.html">Chi siamo</a>
     <a href="menu.html">Menu</a><a href="contatti.html">Contatti</a>
   </div>
-  <a class="nav-cta" href="${esc(formUrl)}">${esc(cta)}</a>
+  <!-- intestazione libera: Prenota sta nel grande pulsante sotto e nella barra in basso -->
 </nav>`;
 
     const ctaBar = `<div class="cta-bar">
