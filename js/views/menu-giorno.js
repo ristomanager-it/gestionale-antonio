@@ -389,7 +389,7 @@ export async function render(container) {
   function stampa() {
     const voci = raccogliVoci();
     if (!voci.length) { alert("Aggiungi almeno un piatto prima di stampare."); return; }
-    const dataV = container.querySelector("#mg-data").value || oggi;
+    const dataV = container.querySelector("#mg-data").value || giorno;
     const prezzoF = Number(container.querySelector("#mg-prezzo")?.value) || null;
     const titolo = (container.querySelector("#mg-titolo")?.value || "").trim() || "Menu del Giorno";
     const fontFam = container.querySelector("#mg-font")?.value || "Georgia, serif";
