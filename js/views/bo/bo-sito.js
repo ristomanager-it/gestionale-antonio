@@ -1294,11 +1294,12 @@ a{text-decoration:none;color:inherit}
 .nav-links a:hover{color:var(--accl)}
 .nav-cta{background:var(--btn);color:#fff;font-size:12px;font-weight:800;padding:8px 18px;border-radius:6px}
 @media(max-width:600px){.nav-links{display:none}}
-.cta-bar{position:sticky;bottom:0;z-index:90;display:flex;background:var(--scuro);border-top:1px solid rgba(196,137,42,.25)}
-.cta-bar a{flex:1;padding:14px 8px;text-align:center;font-size:13px;font-weight:700;letter-spacing:.4px}
+.cta-bar{position:sticky;bottom:0;z-index:90;display:flex;background:var(--caldo);border-top:1px solid #d8ccba;box-shadow:0 -4px 14px rgba(0,0,0,.10)}
+.cta-bar a{flex:1;padding:14px 4px;text-align:center;font-size:12.5px;font-weight:800;letter-spacing:.2px}
 .cta-p{background:var(--btn);color:#fff}
-.cta-c{background:#1e3a14;color:#7ed370}
-.cta-m{background:#1e1e1e;color:rgba(255,255,255,.8)}
+.cta-c{background:#2e7d32;color:#fff}
+.cta-i{background:#fff;color:var(--btn)}
+.cta-m{background:#fff;color:#4b3b25;border-left:1px solid #e6dccb}
 .section{padding:72px 20px;max-width:700px;margin:0 auto}
 .eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--acc);margin-bottom:10px;font-weight:600}
 .h2{font-family:'Cormorant Garamond',serif;font-size:clamp(26px,5vw,44px);font-weight:600;line-height:1.1;margin-bottom:16px}
