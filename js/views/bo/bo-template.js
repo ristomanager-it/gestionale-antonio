@@ -950,7 +950,7 @@ export async function render(container) {
       const j = await res.json();
       if (j.success) {
         esito.innerHTML = `<div style="color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">
-          ✅ Campagna creata <b>in pausa</b> · Filtro compleanno: ${j.filtro_compleanno} ·
+          ✅ Campagna creata <b>in pausa</b>${j.filtro_compleanno ? ' · Filtro compleanno: ' + j.filtro_compleanno : ''} ·
           <a href="${j.ads_manager}" target="_blank" style="color:#0E5A7A;font-weight:600;">Aprila in Gestione inserzioni</a> per controllarla e attivarla.</div>`;
       } else {
         esito.innerHTML = `<span style="color:#dc2626;">Errore: ${j.error?.message || j.error || 'creazione non riuscita'}${j.codice === 'NON_COLLEGATO' ? ' — usa prima il bottone Collega Meta qui sopra.' : ''}</span>`;
