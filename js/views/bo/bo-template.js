@@ -909,6 +909,25 @@ export async function render(container) {
       const { data } = await sb.from('campagne').select('piattaforma,modello,nome,budget_giornaliero_cent,ids,created_at,link,dettagli')
         .eq('azienda_id', aziendaId).order('created_at', { ascending: false }).limit(10);
       if (!(data || []).length) { box.innerHTML = '<span style="color:#94a3b8;">Nessuna campagna ancora: creane una qui sopra.</span>'; return; }
+      const escH = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      // cosa c'e' dentro la campagna: zona, testi, parole chiave, pagina di destinazione
+      const dettaglio = (c) => {
+        const x = c.dettagli || {};
+        const r = [];
+        r.push(`<b>Zona</b>: ${escH(x.citta)} · ${escH(x.raggio_km)} km${x.eta ? ' · ' + escH(x.eta) + ' anni' : ''}`);
+        if (c.piattaforma === 'google') {
+          if (x.orari) r.push(`<b>Orari</b>: ${escH(x.orari)}`);
+          if ((x.titoli || []).length) r.push(`<b>Titoli</b>: ${x.titoli.map(escH).join(' · ')}`);
+          if ((x.descrizioni || []).length) r.push(`<b>Descrizioni</b>: ${x.descrizioni.map(escH).join(' | ')}`);
+          if ((x.parole_chiave || []).length) r.push(`<b>Parole chiave</b>: ${x.parole_chiave.map(escH).join(' · ')}`);
+        } else {
+          if (x.headline) r.push(`<b>Titolo</b>: ${escH(x.headline)}`);
+          if (x.messaggio) r.push(`<b>Testo</b>: ${escH(x.messaggio)}`);
+          if (x.immagine) r.push(`<img src="${escH(x.immagine)}" alt="" style="max-width:170px;border-radius:8px;margin-top:4px;display:block;">`);
+        }
+        if (c.link) r.push(`<b>Porta a</b>: <a href="${escH(c.link)}" target="_blank" style="color:#0E5A7A;word-break:break-all;">${escH(c.link)}</a>`);
+        return r.join('<br>');
+      };
       box.innerHTML = data.map(c => {
         const ids = c.ids || {};
         const link = c.piattaforma === 'meta'
