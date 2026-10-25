@@ -1343,6 +1343,40 @@ export async function render(container) {
     };
     const jsonLd = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`;
 
+    // ── tracciamenti per le pubblicita' (Meta, Google): partono SOLO se il visitatore accetta il banner ──
+    let metaPixelId = "", gtmId = "";
+    try {
+      const { data: ident } = await sc.from("azienda_identita").select("meta_pixel_id, gtm_id").eq("azienda_id", aziendaId).maybeSingle();
+      metaPixelId = String(ident?.meta_pixel_id || "").replace(/[^0-9]/g, "");
+      gtmId = String(ident?.gtm_id || "").replace(/[^A-Za-z0-9-]/g, "");
+    } catch (e) { /* senza ID il sito non carica niente */ }
+    const consensoScript = (metaPixelId || gtmId) ? `<script>(function(){
+var META='${metaPixelId}',GTM='${gtmId}',K='rf_consenso';
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});
+function st(){try{return localStorage.getItem(K);}catch(e){return null;}}
+function carica(){
+  gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted',analytics_storage:'granted'});
+  if(META&&!window.fbq){!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',META);fbq('track','PageView');}
+  if(GTM&&!window.__gtmOk){window.__gtmOk=1;(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',GTM);}
+}
+var MAP={cta_prenota:'InitiateCheckout',click_telefono:'Contact',click_menu:'ViewContent',click_mappa:'FindLocation'};
+window.rfDecisione=st;
+window.rfEvento=function(el){if(st()!=='si')return;try{if(window.fbq&&MAP[el])fbq('track',MAP[el]);dataLayer.push({event:'rf_'+el});}catch(e){}};
+function banner(){
+  var b=document.createElement('div');
+  b.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:9998;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.28);font:14px/1.45 system-ui,sans-serif;max-width:520px;margin:0 auto;';
+  b.innerHTML='<div style="margin-bottom:10px;">Usiamo i cookie per misurare le visite e mostrarti i nostri annunci. Puoi accettare o rifiutare: il sito funziona comunque.</div>'
+    +'<div style="display:flex;gap:8px;"><button id="rf-ck-no" style="flex:1;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;border-radius:10px;padding:11px;font-weight:700;font-size:14px;">Solo necessari</button>'
+    +'<button id="rf-ck-si" style="flex:1;border:0;background:var(--btn);color:#fff;border-radius:10px;padding:11px;font-weight:800;font-size:14px;">Accetta</button></div>';
+  document.body.appendChild(b);
+  function fine(v){try{localStorage.setItem(K,v);}catch(e){}b.remove();if(v==='si')carica();}
+  b.querySelector('#rf-ck-si').onclick=function(){fine('si');};
+  b.querySelector('#rf-ck-no').onclick=function(){fine('no');};
+}
+if(st()==='si')carica();else if(st()!=='no')document.addEventListener('DOMContentLoaded',banner);
+})();</script>` : "";
+
     const fontUrl = font === "Inter" ? "Inter:wght@300;400;600;700"
       : font === "Playfair Display" ? "Playfair+Display:ital,wght@0,600;1,400"
       : font === "Montserrat" ? "Montserrat:wght@300;400;600;700"
