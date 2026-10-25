@@ -3863,8 +3863,20 @@ async function elencoIngredientiRicetta(ricettaId) {
   const { data } = await (window.supabaseClient || window.supabase).from("ricetta_ingredienti")
     .select("nome_prodotto, unita_misura, quantita").eq("ricetta_id", ricettaId).order("ordine");
   const um = (u) => { u = String(u || "").toLowerCase(); return ["gr", "g", "kg", "grammi"].includes(u) ? "kg" : ["ml", "lt", "l"].includes(u) ? "l" : (u || "kg"); };
-  return (_ingrScala[ricettaId] = (data || []).filter((x) => x.nome_prodotto && Number(x.quantita) > 0)
-    .map((x) => ({ nome: x.nome_prodotto, um: um(x.unita_misura) })));
+  // nell'elenco ogni voce dice quanta ne serve nella ricetta, e la piu' abbondante sta in cima:
+  // cosi' "6 kg di farina" non si confonde con la farina del rinfresco del lievito madre (540 g)
+  const grezzo = (x) => { const u = String(x.unita_misura || "").toLowerCase(), q = Number(x.quantita) || 0; return ["gr", "g", "grammi", "ml"].includes(u) ? q : ["kg", "lt", "l"].includes(u) ? q * 1000 : 0; };
+  const etichetta = (x) => {
+    const v = grezzo(x), u = String(x.unita_misura || "").toLowerCase(), liquido = ["ml", "lt", "l"].includes(u);
+    if (!v) return Number(x.quantita).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " " + (x.unita_misura || "");
+    return v >= 1000 ? (v / 1000).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + (liquido ? " l" : " kg") : Math.round(v) + (liquido ? " ml" : " g");
+  };
+  const visti = new Set();
+  const righe = (data || []).filter((x) => x.nome_prodotto && Number(x.quantita) > 0)
+    .filter((x) => { const k = x.nome_prodotto.trim().toLowerCase(); if (visti.has(k)) return false; visti.add(k); return true; })
+    .map((x) => ({ nome: x.nome_prodotto, um: um(x.unita_misura), peso: grezzo(x), label: x.nome_prodotto + " · in ricetta " + etichetta(x) }));
+  righe.sort((a, b) => b.peso - a.peso);
+  return (_ingrScala[ricettaId] = righe);
 }
 
 // Scelta veloce della conservazione quando il lotto non ha ancora la scadenza
