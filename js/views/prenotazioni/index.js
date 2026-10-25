@@ -2392,6 +2392,10 @@ if (onlineModal.classList.contains("open")) {
   }
 
   function getOriginLabel(p) {
+    return originInfo(p).label;
+  }
+
+  function getOriginLabelVecchio(p) {
     const channel = String(p.canale || p.source || "").trim();
     return channel || "Prenotazione";
   }
