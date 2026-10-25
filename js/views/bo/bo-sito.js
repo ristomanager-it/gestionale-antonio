@@ -1473,8 +1473,9 @@ function apriVideo(u){
 </nav>`;
 
     const ctaBar = `<div class="cta-bar">
-  <a class="cta-p" href="${esc(formUrl)}">🗓 ${esc(cta)}</a>
+  <a class="cta-p" href="${esc(formUrl)}">🗓 Prenota</a>
   ${tel ? `<a class="cta-c" href="tel:${esc(tel)}">📞 Chiama</a>` : ""}
+  ${mapsUrl && mapsUrl !== "#" ? `<a class="cta-i" href="${esc(mapsUrl)}">📍 Indicazioni</a>` : ""}
   <a class="cta-m" href="menu.html">📋 Menu</a>
 </div>`;
 
