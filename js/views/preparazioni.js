@@ -971,7 +971,7 @@ function setupAutocompleteRicette() {
       // l'ingrediente si sceglie dall'elenco della ricetta; se l'elenco non c'e' resta il campo libero
       const lista = vincolo && ricettaSelezionata?.id ? await elencoIngredientiRicetta(ricettaSelezionata.id) : [];
       if (sel && lista.length) {
-        sel.innerHTML = lista.map((x) => `<option value="${escapeAttr(x.nome)}" data-um="${escapeAttr(x.um)}">${escapeHtml(x.nome)}</option>`).join("");
+        sel.innerHTML = lista.map((x) => `<option value="${escapeAttr(x.nome)}" data-um="${escapeAttr(x.um)}">${escapeHtml(x.label || x.nome)}</option>`).join("");
         const applica = () => { if (ing) ing.value = sel.value; const u = sel.selectedOptions[0]?.dataset.um; if (um && u) um.value = u; };
         sel.onchange = applica; applica();
         sel.style.display = "block"; if (ing) ing.style.display = "none";
