@@ -130,8 +130,10 @@
       // pagine di prenotazione dei clienti: niente personaggio, solo un fumetto che invita a prenotare.
       // Compare una volta dopo un attimo, resta qualche secondo e sparisce (o si chiude toccandolo).
       var doveSei = (location.pathname + " " + location.hash).toLowerCase();
-      var invitoPub = /compleann/.test(doveSei) ? "🎂 Prenota la tua festa"
-        : (/tavolo|prenotazion|booking/.test(doveSei) ? "🍽️ Prenota il tuo tavolo" : "");
+      // dentro l'app (chi lavora) il fumetto "Prenota..." non serve: li' c'e' il pipistrello che saluta per nome
+      var nellApp = !!document.querySelector(".app-header");
+      var invitoPub = nellApp ? "" : (/compleann/.test(doveSei) ? "🎂 Prenota la tua festa"
+        : (/tavolo|prenotazion|booking/.test(doveSei) ? "🍽️ Prenota il tuo tavolo" : ""));
       if (invitoPub) {
         var fum = document.createElement("div");
         fum.textContent = invitoPub;
