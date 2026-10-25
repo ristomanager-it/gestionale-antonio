@@ -941,7 +941,7 @@ export async function render(container) {
         body: JSON.stringify({
           azienda_id: aziendaId,
           sede_id: metaSedeSel?.value || null,
-          tipo: 'compleanni',
+          tipo: metaModello?.value || 'compleanni',
           citta: cittaV,
           raggio_km: Number(container.querySelector('#meta-raggio')?.value) || 30,
           budget_cent: Math.round((Number(container.querySelector('#meta-budget')?.value) || 10) * 100),
