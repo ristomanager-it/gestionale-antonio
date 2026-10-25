@@ -212,10 +212,11 @@
             var vai = function () {
               if (fatto) return; fatto = true;
               parla(testo);
-              document.removeEventListener("pointerdown", vai, true); document.removeEventListener("keydown", vai, true);
+              ["click", "touchend", "keydown"].forEach(function (ev) { document.removeEventListener(ev, vai, true); });
             };
-            document.addEventListener("pointerdown", vai, true); document.addEventListener("keydown", vai, true);
-            setTimeout(function () { document.removeEventListener("pointerdown", vai, true); document.removeEventListener("keydown", vai, true); }, 6000);
+            // su iPhone la voce si sblocca solo con un tocco finito (rilascio del dito / clic), non con l'inizio del tocco
+            ["click", "touchend", "keydown"].forEach(function (ev) { document.addEventListener(ev, vai, true); });
+            setTimeout(function () { ["click", "touchend", "keydown"].forEach(function (ev) { document.removeEventListener(ev, vai, true); }); }, 7000);
           };
           var attiva = !navigator.userActivation || navigator.userActivation.hasBeenActive;
           if (attiva) {
