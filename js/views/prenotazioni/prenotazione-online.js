@@ -26,7 +26,7 @@ async function injectTracking(aziendaId) {
   try {
     const { data } = await window.supabaseClient
       .from('azienda_identita')
-      .select('meta_pixel_id, gtm_id')
+      .select('meta_pixel_id, gtm_id, ga4_id, ga4_evento_prenotazione, gads_id, gads_etichetta')
       .eq('azienda_id', aziendaId)
       .maybeSingle();
     if (!data || (!data.meta_pixel_id && !data.gtm_id)) return;
