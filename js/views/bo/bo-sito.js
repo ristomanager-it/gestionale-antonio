@@ -1568,6 +1568,8 @@ function apriVideo(u){
       window._rfTrack('click','click_telefono',{valore:href});
     } else if(href.includes('menu.html')||a.classList.contains('cta-m')){
       window._rfTrack('click','click_menu',{});
+    } else if(href.includes('wa.me')){
+      window._rfTrack('click','wame',{valore:'whatsapp'});
     } else if(href.includes('contatti.html')||href.includes('maps')){
       window._rfTrack('click','click_mappa',{});
     }
