@@ -991,7 +991,7 @@ export async function render(container) {
         </div>
 
         <!-- Info sviluppo -->
-        <div class="gads-card" style="background:#fef3c7;border-color:#fde68a;">
+        <div class="gads-card" style="background:#f0fdf4;border-color:#bbf7d0;">
           <div style="font-size:13px;color:#92400e;">
             <strong>✅ Google Ads collegato</strong><br>
             <div style="margin-top:6px;line-height:1.6;">
