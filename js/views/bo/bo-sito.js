@@ -2041,7 +2041,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
   <div class="lp-card">
     <div class="lp-row">
       <div><div class="lp-prezzo">25 €</div><div class="lp-pnota">a persona, tutto compreso</div></div>
-      <div class="lp-orari">Lun–ven<br>12:00–14:30</div>
+      <div class="lp-orari">Lun–ven<br>Pranzo 12:00–14:30<br>Cena 19:00–22:30</div>
     </div>
     <a class="lp-cta" href="#prenota" onclick="try{window._rfTrack('click','cta_prenota',{valore:'landing'})}catch(e){}">Prenota il tuo pranzo</a>
     <a class="lp-lnk" href="#oggi">Guarda il menu di oggi</a>
