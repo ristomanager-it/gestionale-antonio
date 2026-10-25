@@ -1438,6 +1438,23 @@ function apriVideo(u){
       window._rfTrack('click','click_mappa',{});
     }
   });
+  /* contenuti: la galleria viene vista? fin dove scorrono? quanto restano? */
+  try{
+    var galVista=false,soglie={25:0,50:0,75:0,100:0};
+    var gal=document.querySelector('.reel-item');
+    if(gal&&window.IntersectionObserver){
+      new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting&&!galVista){galVista=true;window._rfTrack('click','galleria_vista',{});}});},{threshold:.5}).observe(gal);
+    }
+    window.addEventListener('scroll',function(){
+      var h=document.documentElement,tot=h.scrollHeight-h.clientHeight;if(tot<=0)return;
+      var p=Math.round(100*h.scrollTop/tot);
+      [25,50,75,100].forEach(function(s){if(p>=s&&!soglie[s]){soglie[s]=1;window._rfTrack('click','scroll_'+s,{});}});
+    },{passive:true});
+    var t0=Date.now(),mandato=false;
+    var tempo=function(){if(mandato)return;var s=Math.round((Date.now()-t0)/1000);if(s<2)return;mandato=true;window._rfTrack('click','tempo_pagina',{valore:String(s)});};
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')tempo();});
+    window.addEventListener('pagehide',tempo);
+  }catch(e){}
 })();
 </script>
 </head>`;
