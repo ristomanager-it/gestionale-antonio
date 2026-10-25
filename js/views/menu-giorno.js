@@ -110,7 +110,7 @@ export async function render(container) {
   const { data: scadRic } = await s.from("ordini_fornitore_ricezioni_righe")
     .select("prodotto_id, data_scadenza, lotto, quantita_ricevuta")
     .eq("azienda_id", azienda.id).not("data_scadenza", "is", null)
-    .gte("data_scadenza", oggi).lte("data_scadenza", inX).order("data_scadenza");
+    .gte("data_scadenza", giorno).lte("data_scadenza", inX).order("data_scadenza");
   const scadenze = scadRic || [];
   const prodIds = [...new Set(scadenze.map(x => x.prodotto_id).filter(Boolean))];
   const nomeProd = new Map();
