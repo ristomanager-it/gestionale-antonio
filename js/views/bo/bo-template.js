@@ -259,7 +259,7 @@ export async function render(container) {
           <button class="rf-nav-btn" data-tab="tab-template">💬 Template</button>
           <button class="rf-nav-btn" data-tab="tab-tag">🏷️ Tag</button>
           <button class="rf-nav-btn" data-tab="tab-regole">⚡ Regole automatiche</button>
-          <button class="rf-nav-btn" data-tab="tab-metaads">📣 Meta Ads</button>
+          <button class="rf-nav-btn" data-tab="tab-metaads">📣 Campagne</button>
         </div>
 
         <!-- ═══ TAB MOMENTI ══════════════════════════════════════════════════ -->
