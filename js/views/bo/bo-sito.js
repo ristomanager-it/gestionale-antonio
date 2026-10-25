@@ -2057,8 +2057,8 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
   </div>
 
   <div class="lp-prenota" id="prenota">
-    <h2 class="lp-h2">Prenota il tuo pranzo</h2>
-    <p class="lp-p2">Scegli giorno e orario: la prenotazione arriva direttamente in sala.</p>
+    <h2 class="lp-h2">Prenota il tuo tavolo</h2>
+    <p class="lp-p2">Scegli giorno, pranzo o cena e orario: la prenotazione arriva direttamente in sala.</p>
     <div class="lp-box">
       <div id="lp-form">
         <span class="lp-lbl">Giorno</span><div class="lp-gr" id="lp-giorni"></div>
