@@ -996,7 +996,7 @@ export async function render(container) {
             <strong>✅ Google Ads collegato</strong><br>
             <div style="margin-top:6px;line-height:1.6;">
               Qui vedi i numeri e lo stato delle tue campagne, letti direttamente da Google. 
-              Nel frattempo puoi:<br>
+              Cosa puoi fare:<br>
               • Gestire campagne direttamente su <a href="https://ads.google.com" target="_blank" style="color:#0E5A7A;">Google Ads →</a><br>
               • Vedere le statistiche tramite Supermetrics (già connesso)<br>
               • La creazione campagne dall'app sarà disponibile appena approvato il token
