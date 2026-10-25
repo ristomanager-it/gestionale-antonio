@@ -339,6 +339,8 @@ export async function render(container) {
       </div>
       <div class="sw-card">
         <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🏠 Foto il locale</div>
+        <button type="button" id="sw-up-locale" style="background:#0f4c5c;color:#fff;border:0;border-radius:10px;padding:11px 14px;font-weight:700;font-size:14px;margin:4px 0 10px;cursor:pointer;">＋ Carica foto dal telefono</button>
+        <input type="file" id="sw-file-locale" accept="image/*" style="display:none">
         <div class="sw-media-grid" id="grid-locale"></div>
       </div>
     </div>
