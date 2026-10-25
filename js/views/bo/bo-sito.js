@@ -1563,7 +1563,9 @@ if(txt){el.textContent=(ok?'🟢 ':'🔴 ')+txt;el.style.display='inline-block';
         ${tel ? `<a class="btn-ghost" href="tel:${esc(tel)}" style="margin-top:6px;margin-left:0;">📞 Chiama</a>` : ""}
       </div>
     </div>
-    ${fatti.length ? `<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;">${fatti.map(f => `<span style="border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.88);padding:5px 11px;border-radius:999px;font-size:12.5px;">${esc(f)}</span>`).join("")}</div>` : ""}
+    ${fatti.length ? `<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;">${fatti.map(f => f.charAt(0) === "\u2605"
+      ? `<a href="#recensioni" style="border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.16);color:#fff;padding:5px 11px;border-radius:999px;font-size:12.5px;font-weight:700;">${esc(f)} ›</a>`
+      : `<span style="border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.88);padding:5px 11px;border-radius:999px;font-size:12.5px;">${esc(f)}</span>`).join("")}</div>` : ""}
   </div>
 </div>
 ${ctaBar}
