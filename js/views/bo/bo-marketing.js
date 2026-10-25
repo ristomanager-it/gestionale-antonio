@@ -992,7 +992,7 @@ export async function render(container) {
 
         <!-- Info sviluppo -->
         <div class="gads-card" style="background:#f0fdf4;border-color:#bbf7d0;">
-          <div style="font-size:13px;color:#92400e;">
+          <div style="font-size:13px;color:#166534;">
             <strong>✅ Google Ads collegato</strong><br>
             <div style="margin-top:6px;line-height:1.6;">
               Qui vedi i numeri e lo stato delle tue campagne, letti direttamente da Google. 
