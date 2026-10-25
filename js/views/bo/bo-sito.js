@@ -2018,7 +2018,9 @@ q('lp-invia').onclick=function(){
 fetch(SB+'/rest/v1/prenotazioni_slot_config?azienda_id=eq.'+AZ+'&select=*',{headers:H}).then(function(r){return r.json();})
   .then(function(a){st.cfg=(a&&a[0])||null;}).catch(function(){st.cfg=null;}).then(function(){renderGiorni();renderTurni();renderOrari();});
 fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.stringify({p_sede:SEDE})}).then(function(r){return r.json();}).then(function(m){
-  var v=(m&&m.voci)||[];if(!v.length)return;
+  var v=(m&&m.voci)||[];
+  /* se la cucina non ha ancora scritto il menu di oggi (o e' domenica) la sezione resta, con una riga vera, invece di sparire */
+  if(!v.length){q('lp-menu-voci').innerHTML='<div class="lp-pv">Il menu cambia ogni giorno. Intanto sai gia cosa e compreso: antipasto, primo, secondo, acqua e caffè.</div>';q('lp-menu').style.display='block';return;}
   var N={antipasti:'Antipasti',primi:'Primi',secondi:'Secondi',dessert:'Dessert'},h='';
   ['antipasti','primi','secondi','dessert'].forEach(function(k){var l=v.filter(function(x){return x.portata===k;});if(!l.length)return;
     h+='<div class="lp-pt">'+N[k]+'</div>'+l.map(function(x){return '<div class="lp-pv">'+esc(x.nome)+'</div>';}).join('');});
