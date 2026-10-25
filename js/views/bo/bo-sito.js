@@ -1419,6 +1419,7 @@ a{text-decoration:none;color:inherit}
 .nav-panel a{color:#fff;font-size:19px;padding:14px 4px;border-bottom:1px solid rgba(255,255,255,.12)}
 .nav-panel .np-p{background:var(--btn);border-radius:10px;text-align:center;font-weight:800;margin-top:14px;border:0}
 .nav-panel .np-c{background:#fff;color:var(--btn);border-radius:10px;text-align:center;font-weight:800;margin-top:8px;border:0}
+.nav-panel .np-w{background:#25D366;color:#073b1f;border-radius:10px;text-align:center;font-weight:800;margin-top:8px;border:0}
 @media(min-width:601px){.nav-panel{display:none!important}}
 .cta-bar{position:sticky;bottom:0;z-index:90;display:flex;background:var(--caldo);border-top:1px solid #d8ccba;box-shadow:0 -4px 14px rgba(0,0,0,.10)}
 .cta-bar a{flex:1;padding:14px 4px;text-align:center;font-size:12.5px;font-weight:800;letter-spacing:.2px}
