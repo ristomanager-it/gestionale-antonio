@@ -934,9 +934,10 @@ export async function render(container) {
     esito.innerHTML = '<span style="color:#64748b;">⏳ Creazione in corso (30-60 secondi)...</span>';
     btnMetaCrea.disabled = true;
     try {
+      const tk = (await (window.supabaseClient || window.supabase).auth.getSession())?.data?.session?.access_token || ANON_KEY;
       const res = await fetch(`${SUPABASE_URL}/functions/v1/tony-meta-campagne`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}`, 'apikey': ANON_KEY },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tk}`, 'apikey': ANON_KEY },
         body: JSON.stringify({
           azienda_id: aziendaId,
           sede_id: metaSedeSel?.value || null,
