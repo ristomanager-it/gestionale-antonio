@@ -1519,6 +1519,7 @@ function apriVideo(u){
   var PAGINA=location.pathname.split('/').pop().replace('.html','')||'home';
   window._rfTrack=function(tipo,elemento,extra){
     if(ESCL)return;
+    try{window.rfEvento&&window.rfEvento(elemento);}catch(e){}
     var p=new URLSearchParams(location.search);
     fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/track',{
       method:'POST',headers:{'Content-Type':'application/json'},
