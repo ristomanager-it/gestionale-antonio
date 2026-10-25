@@ -73,7 +73,7 @@ export async function render(container) {
         flex-shrink:0;
       ">
 
-        <div style="font-weight:800; margin-bottom:16px;">
+        <div class="bo-m-titolo" style="font-weight:800; margin-bottom:16px;">
           MARKETING
         </div>
 
