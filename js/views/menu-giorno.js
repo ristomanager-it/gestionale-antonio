@@ -477,6 +477,8 @@ export async function render(container) {
   btnPub.addEventListener("click", async () => {
     const voci = raccogliVoci();
     if (!voci.length) { alert("Aggiungi almeno un piatto prima di pubblicare."); return; }
+    // il menu digitale mostra quello di oggi: pubblicare quello di un altro giorno lo sostituirebbe davanti ai clienti
+    if (giorno !== oggi && !confirm("Questo è il menu del " + giorno.split("-").reverse().join("/") + ", non di oggi.\nPubblicandolo ora SOSTITUISCE quello di oggi nel menu digitale.\n\nVuoi pubblicarlo lo stesso? (Per la pagina del menu business basta salvarlo.)")) return;
     if (!confirm("Pubblicare il menu del giorno sul menu digitale? Sostituisce la voce 'Menu del Giorno' attuale.")) return;
     btnPub.disabled = true; const t = btnPub.textContent; btnPub.textContent = "Pubblico…";
     try {
