@@ -64,7 +64,7 @@ export async function render(container) {
     </style>
     <div id="bo-m-wrap" style="display:flex; gap:16px; width:100%; min-height:70vh;">
 
-      <aside style="
+      <aside class="bo-m-aside" style="
         width:220px;
         background:#111827;
         color:white;
