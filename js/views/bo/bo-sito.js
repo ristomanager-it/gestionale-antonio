@@ -1963,7 +1963,8 @@ function renderGiorni(){
     h+='<button type="button" class="lp-chip'+(st.g===v?' on':'')+'" data-d="'+v+'">'+esc(l.charAt(0).toUpperCase()+l.slice(1))+'</button>';});
   q('lp-giorni').innerHTML=h||'<div class="lp-nota">Nessun giorno disponibile: chiamaci.</div>';
 }
-function orari(){var b=(st.cfg&&st.cfg.orari)||['12:00','12:30','13:00','13:30','14:00'];return b.filter(function(s){return s>='12:00'&&s<='14:00';});}
+function orari(){var b=(st.cfg&&st.cfg.orari)||['12:00','12:30','13:00','13:30','14:00','19:00','19:30','20:00','20:30','21:00','21:30'];return b.filter(function(s){return st.t==='cena'?(s>='19:00'&&s<='21:30'):(s>='12:00'&&s<='14:00');});}
+function renderTurni(){q('lp-turni').innerHTML='<button type="button" class="lp-chip'+(st.t==='pranzo'?' on':'')+'" data-t="pranzo">Pranzo</button><button type="button" class="lp-chip'+(st.t==='cena'?' on':'')+'" data-t="cena">Cena</button>';}
 function renderOrari(){
   var box=q('lp-orari');if(!st.g){box.innerHTML='<div class="lp-nota">Scegli prima il giorno.</div>';return;}
   var min=(st.cfg&&st.cfg.slot_minuti)||30,max=Math.min((st.cfg&&st.cfg.max_coperti_slot)||30,MAXLP);
