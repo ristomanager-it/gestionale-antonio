@@ -663,6 +663,13 @@ export async function render(container) {
 
     if (!pagamentoRichiesto) {
       window._rfTrack?.('submit', 'prenotazione_completata', { step: 'success', completato: true, valore: `${coperti} coperti - ${data} ${ora}` });
+      // la prenotazione conclusa e' la conversione per Meta e Google (solo se il visitatore ha accettato i cookie)
+      try {
+        if (localStorage.getItem('rf_consenso') === 'si') {
+          window.fbq?.('track', 'Schedule'); window.fbq?.('track', 'Lead');
+          (window.dataLayer = window.dataLayer || []).push({ event: 'rf_prenotazione_completata' });
+        }
+      } catch {}
       _bookingCompletata = true;
       showMessage("✅ Prenotazione inviata! Reindirizzamento...", false);
       setTimeout(() => { window.location.href = `/prenotazione.html?token=${encodeURIComponent(nuovoToken)}`; }, 800);
