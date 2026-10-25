@@ -1344,11 +1344,13 @@ export async function render(container) {
     const jsonLd = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`;
 
     // ── tracciamenti per le pubblicita' (Meta, Google): partono SOLO se il visitatore accetta il banner ──
-    let metaPixelId = "", gtmId = "";
+    let metaPixelId = "", gtmId = "", ga4Id = "", adsId = "";
     try {
-      const { data: ident } = await sc.from("azienda_identita").select("meta_pixel_id, gtm_id").eq("azienda_id", aziendaId).maybeSingle();
+      const { data: ident } = await sc.from("azienda_identita").select("meta_pixel_id, gtm_id, ga4_id, gads_id").eq("azienda_id", aziendaId).maybeSingle();
       metaPixelId = String(ident?.meta_pixel_id || "").replace(/[^0-9]/g, "");
       gtmId = String(ident?.gtm_id || "").replace(/[^A-Za-z0-9-]/g, "");
+      ga4Id = String(ident?.ga4_id || "").replace(/[^A-Za-z0-9-]/g, "");
+      adsId = String(ident?.gads_id || "").replace(/[^A-Za-z0-9-]/g, "");
     } catch (e) { /* senza ID il sito non carica niente */ }
     const consensoScript = (metaPixelId || gtmId) ? `<script>(function(){
 var META='${metaPixelId}',GTM='${gtmId}',K='rf_consenso';
