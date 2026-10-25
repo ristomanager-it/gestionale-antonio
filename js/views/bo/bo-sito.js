@@ -1359,9 +1359,9 @@ a{text-decoration:none;color:inherit}
 .map-i{max-width:700px;margin:0 auto;color:#fff}
 .map-g{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
 @media(max-width:480px){.map-g{grid-template-columns:1fr}}
-.map-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);margin-bottom:3px}
-.map-v{font-size:13px;color:rgba(255,255,255,.8);line-height:1.5}
-.map-v a{color:var(--acc)}
+.map-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accl);margin-bottom:3px}
+.map-v{font-size:13px;color:rgba(255,255,255,.88);line-height:1.5}
+.map-v a{color:var(--accl);text-decoration:underline}
 footer{background:#0e0a04;padding:36px 20px;text-align:center}
 .ft-logo{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--acc);margin-bottom:10px;font-style:italic}
 .ft-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
