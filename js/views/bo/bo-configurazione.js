@@ -2653,6 +2653,22 @@ export async function render(container) {
             <div class="id-desc">Trovi il Container ID in GTM → Admin. Formato GTM-XXXXXXX</div>
             <input id="id-gtm" class="id-input" placeholder="Es. GTM-XXXXXXX" value="${val('gtm_id')}">
           </div>
+          <div style="margin-top:14px;">
+            <span class="id-label">📈 Google Analytics 4 — ID misurazione</span>
+            <div class="id-desc">Analytics → Amministrazione → Flussi di dati → il sito → "ID misurazione". Formato G-XXXXXXXXXX. Se usi Tag Manager lascia vuoto.</div>
+            <input id="id-ga4" class="id-input" placeholder="Es. G-ABC123XYZ9" value="${val('ga4_id')}">
+          </div>
+          <div style="margin-top:14px;">
+            <span class="id-label">✅ Nome dell'evento "prenotazione" in Analytics</span>
+            <div class="id-desc">Il nome con cui Analytics (e Google Ads) contano la prenotazione conclusa. Se vuoto: prenotazione_completata.</div>
+            <input id="id-ga4-evento" class="id-input" placeholder="Es. prenotazione_trattoria" value="${val('ga4_evento_prenotazione')}">
+          </div>
+          <div style="margin-top:14px;">
+            <span class="id-label">📣 Google Ads — ID conversione e etichetta</span>
+            <div class="id-desc">Google Ads → Obiettivi → Conversioni → la conversione → Configurazione del tag. ID formato AW-123456789, etichetta tipo AbCdEfGhIj. Lascia vuoto se la conversione arriva da Analytics.</div>
+            <input id="id-gads" class="id-input" placeholder="Es. AW-123456789" value="${val('gads_id')}">
+            <input id="id-gads-et" class="id-input" style="margin-top:8px;" placeholder="Etichetta della conversione" value="${val('gads_etichetta')}">
+          </div>
         </div>
 
         <div id="id-esito" style="font-size:13px;min-height:14px;margin-bottom:12px;"></div>
