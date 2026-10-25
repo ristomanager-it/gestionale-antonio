@@ -1941,7 +1941,7 @@ body{background:#fbf7f0;color:#3b2412}
 var SB='${SUPABASE_URL}',KEY='${ANON_KEY}',AZ='${aziendaId}',SEDE='${sedeId}',MAXLP=20;
 var H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
 var P=new URLSearchParams(location.search);
-var st={g:null,o:null,p:2,cfg:null,occ:[]};
+var st={g:null,t:null,o:null,p:2,cfg:null,occ:[]};
 var GN=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];
 function q(i){return document.getElementById(i);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
