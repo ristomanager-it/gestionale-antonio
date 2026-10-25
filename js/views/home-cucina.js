@@ -55,6 +55,32 @@ export async function render(app) {
   const nLotti = (lotti || []).length;
   const nPlan = inCorso.length + daFare.length;
 
+  // promemoria dell'incarico "menu del giorno di domani": va scritto la sera prima, entro l'ora indicata
+  let cardMenu = "";
+  try {
+    const me = window.state?.user?.id;
+    const { data: incs } = await supabase.from("incarichi").select("user_ids, giorni_servizio, ora_limite, sede_id")
+      .eq("azienda_id", azienda.id).eq("codice", "menu_giorno").eq("attivo", true);
+    const inc = (incs || []).find((x) => me && (x.user_ids || []).includes(me));
+    if (inc) {
+      const dom = new Date(); dom.setDate(dom.getDate() + 1);
+      const domIso = dataLocale(dom);
+      const w = dom.getDay() === 0 ? 7 : dom.getDay();
+      if ((inc.giorni_servizio || []).includes(w)) {
+        const { data: mg } = await supabase.from("menu_giorno").select("voci").eq("azienda_id", azienda.id).eq("sede_id", inc.sede_id).eq("data", domIso).limit(3);
+        const fatto = (mg || []).some((m) => Array.isArray(m.voci) && m.voci.length > 0);
+        const adesso = new Date();
+        const hm = String(adesso.getHours()).padStart(2, "0") + ":" + String(adesso.getMinutes()).padStart(2, "0");
+        const lim = String(inc.ora_limite || "22:00").slice(0, 5);
+        if (!fatto && adesso.getHours() >= 15) {
+          const tardi = hm >= lim;
+          const qui = inc.sede_id === sede.id;
+          cardMenu = `<div ${qui ? `onclick="window.location.hash='#/menu-giorno?data=${domIso}'"` : ""} style="${qui ? "cursor:pointer;" : ""}margin-bottom:12px;padding:12px 14px;border-radius:12px;font-size:15px;line-height:1.35;border:1px solid ${tardi ? "#fca5a5" : "#fdba74"};background:${tardi ? "#fef2f2" : "#fff7ed"};color:${tardi ? "#991b1b" : "#7c2d12"};">📝 <b>Menu di domani da scrivere</b><div style="font-size:13px;margin-top:2px;">${tardi ? "Era da fare entro le " : "Entro le "}${esc(lim)}${qui ? " · tocca per aprirlo" : " · passa alla sede del ristorante per scriverlo"}</div></div>`;
+        }
+      }
+    }
+  } catch (e) { /* senza promemoria la home funziona lo stesso */ }
+
   const vai = (rotta) => `onclick="window.location.hash='#/${rotta}'"`;
   const rigaPlan = (r, icona) => `<div class="pr-riga"><span>${icona}</span><div><b>${esc(r.titolo)}</b>${r.lav ? ` <span class="pr-lav">· ${esc(r.lav)}</span>` : ""}<div class="pr-sub">${esc([r.quando, r.chi].filter(Boolean).join(" · "))}</div></div></div>`;
   const pulsante = (icona, testo, rotta) => `<button class="pr-btn" ${vai(rotta)}><i>${icona}</i>${testo}</button>`;
