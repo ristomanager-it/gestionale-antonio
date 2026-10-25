@@ -1852,7 +1852,241 @@ ${nav}
 ${ctaBar}${footer}
 </body></html>`;
 
-    return { home, chiSiamo, menuPage, contatti };
+    // ── Landing "Pranzo business" (prova): pagina vera con prenotazione, nascosta e non indicizzata ──
+    // La foto si ridimensiona da sola (le foto originali pesano anche 3 MB: troppo per chi arriva da un annuncio).
+    async function fotoLeggera(url, chiave) {
+      try {
+        const nomeF = "sito/" + aziendaId + "/landing-" + chiave + ".jpg";
+        const pubF = sc.storage.from("media-aziende").getPublicUrl(nomeF).data.publicUrl;
+        const gia = await fetch(pubF, { method: "HEAD" }).catch(() => null);
+        if (gia && gia.ok) return pubF;
+        const img = await new Promise((res, rej) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => res(im); im.onerror = rej; im.src = url; });
+        const k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+        const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+        const cx = cv.getContext("2d"); cx.fillStyle = "#2a1a0d"; cx.fillRect(0, 0, w, h); cx.imageSmoothingQuality = "high"; cx.drawImage(img, 0, 0, w, h);
+        const blob = await new Promise((res) => cv.toBlob(res, "image/jpeg", 0.8));
+        if (!blob) throw new Error("foto non elaborata");
+        const upF = await sc.storage.from("media-aziende").upload(nomeF, blob, { contentType: "image/jpeg", upsert: true });
+        if (upF.error) throw upF.error;
+        return pubF;
+      } catch (e) { return url; }
+    }
+
+    let landingPranzo = null;
+    if (aziendaId === "b331365f-17db-4dda-aa2f-77a09427fe42" && sedeId === "4a936e52-a1e3-42fc-843c-e8d15dc86040") {
+      const lpFotoOrig = SUPABASE_URL + "/storage/v1/object/public/media-aziende/" + aziendaId + "/voce-ec6dd7df-ef82-498d-998a-aa1c0740f36a-1783681578432.png";
+      const lpFoto = await fotoLeggera(lpFotoOrig, "salsicce-broccoletti");
+      const lpCss = `
+body{background:#fbf7f0;color:#3b2412}
+.lp{max-width:430px;margin:0 auto;background:#fbf7f0;font-size:16px;line-height:1.5}
+.lp a{text-decoration:none}
+.lp-hero{position:relative;height:620px;background:#2a1a0d;color:#fff;overflow:hidden}
+.lp-hero img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover}
+.lp-vel{position:absolute;left:0;top:0;right:0;bottom:0;background:rgba(26,16,8,.54)}
+.lp-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px}
+.lp-logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:25px;font-weight:700;line-height:1.1}
+.lp-loc{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#f0d9a0;text-align:right}
+.lp-hc{position:absolute;left:0;right:0;bottom:0;padding:0 22px 86px}
+.lp-eye{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#f0d9a0;margin-bottom:12px}
+.lp-h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:58px;line-height:.98;font-weight:700;margin:0 0 14px;text-shadow:0 2px 16px rgba(0,0,0,.5)}
+.lp-sub{font-size:17px;line-height:1.45;color:#f6eddc;max-width:330px;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.lp-card{position:relative;margin:-56px 16px 0;padding:22px 20px 20px;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(42,26,13,.2)}
+.lp-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lp-prezzo{font-family:'Cormorant Garamond',Georgia,serif;font-size:60px;font-weight:700;line-height:1;color:var(--btn)}
+.lp-pnota{font-size:14px;color:#5a4632;margin-top:4px}
+.lp-orari{text-align:right;font-size:13px;color:#5a4632;line-height:1.4}
+.lp-cta{display:flex;align-items:center;justify-content:center;min-height:54px;margin-top:18px;background:var(--btn);color:#fff;font-size:17px;font-weight:700;border-radius:12px;border:0;width:100%;cursor:pointer}
+.lp-lnk{display:block;text-align:center;margin-top:12px;font-size:14px;font-weight:600;color:var(--btn)}
+.lp-incl{display:flex;flex-wrap:wrap;gap:8px 18px;padding:24px 22px 6px;font-size:15px;color:#5a4632}
+.lp-incl span:before{content:"\2713";color:var(--btn);font-weight:800;margin-right:6px}
+.lp-menu{display:none;margin-top:26px;padding:32px 22px 30px;background:#2a1a0d;color:#f3e9d6}
+.lp-meye{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#f0d9a0;margin-bottom:8px}
+.lp-mh{font-family:'Cormorant Garamond',Georgia,serif;font-size:36px;font-weight:700;line-height:1.1;color:#fff;margin:0 0 20px}
+.lp-pt{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#f0d9a0;padding:14px 0 8px;border-bottom:1px solid #5a4632}
+.lp-pv{padding:9px 0 2px}
+.lp-prenota{padding:34px 20px 10px}
+.lp-h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:36px;font-weight:700;line-height:1.1;margin:0 0 6px}
+.lp-p2{font-size:15px;color:#6b5a48;margin:0 0 22px}
+.lp-box{background:#fff;border-radius:16px;padding:20px 18px 22px;box-shadow:0 6px 22px rgba(42,26,13,.1)}
+.lp-lbl{display:block;font-size:14px;font-weight:700;margin:0 0 8px}
+.lp-gr{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.lp-g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:20px}
+.lp-chip,.lp-slot{min-height:46px;border-radius:10px;border:1px solid #d9cdbb;background:#fff;color:#3b2412;font-size:15px;font-weight:600;cursor:pointer;padding:0 14px;font-family:inherit}
+.lp-chip.on,.lp-slot.on{background:var(--btn);border-color:var(--btn);color:#fff}
+.lp-slot:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+.lp-nota{font-size:14px;color:#6b5a48;grid-column:1/-1}
+.lp-pers{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.lp-pers button{width:46px;height:46px;border-radius:10px;border:1px solid #d9cdbb;background:#fff;color:#3b2412;font-size:22px;font-weight:600;cursor:pointer}
+.lp-pers b{min-width:36px;text-align:center;font-size:22px}
+.lp-in{width:100%;min-height:48px;padding:0 14px;border:1px solid #d9cdbb;border-radius:10px;background:#fbf7f0;font-size:16px;color:#3b2412;margin-bottom:16px;font-family:inherit}
+.lp-priv{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#5a4632;margin-bottom:18px;line-height:1.45}
+.lp-priv input{width:22px;height:22px;flex-shrink:0;accent-color:var(--btn)}
+.lp-msg{margin-top:12px;font-size:14px;font-weight:600;text-align:center;min-height:20px}
+.lp-msg.err{color:#b42318}
+.lp-ok{display:none;text-align:center;padding:10px 4px}
+.lp-ok h3{font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;margin:6px 0 8px}
+.lp-sep{display:flex;align-items:center;gap:12px;margin:22px 0 16px;color:#6b5a48;font-size:13px}
+.lp-sep i{flex:1;height:1px;background:#d9cdbb}
+.lp-alt{display:flex;gap:10px}
+.lp-alt a{flex:1 1 0;display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:12px;font-size:15px;font-weight:700}
+.lp-wa{background:#25d366;color:#073b1f}
+.lp-ch{background:#fff;border:1px solid var(--btn);color:var(--btn)}
+.lp-ft{margin-top:30px;padding:26px 22px 34px;background:#2a1a0d;color:#f3e9d6;font-size:14px;line-height:1.6}
+.lp-ft b{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#fff;margin-bottom:6px}
+`;
+      const lpJs = `(function(){
+var SB='${SUPABASE_URL}',KEY='${ANON_KEY}',AZ='${aziendaId}',SEDE='${sedeId}',MAXLP=20;
+var H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
+var P=new URLSearchParams(location.search);
+var st={g:null,o:null,p:2,cfg:null,occ:[]};
+var GN=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];
+function q(i){return document.getElementById(i);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function T(el,x){try{window._rfTrack&&window._rfTrack('step',el,Object.assign({step:el},x||{}));}catch(e){}}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function hhmm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function plus(s,min){var p=s.split(':'),m=(+p[0])*60+(+p[1])+min;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+function msg(t,err){var m=q('lp-msg');m.textContent=t||'';m.className='lp-msg'+(err?' err':'');}
+function giorni(){
+  var cfg=st.cfg,att=(cfg&&cfg.giorni_attivi)||['lunedi','martedi','mercoledi','giovedi','venerdi'],chi=(cfg&&cfg.giorni_chiusura)||[];
+  var out=[],d=new Date();if(d.getHours()>=13)d.setDate(d.getDate()+1);
+  for(var i=0;i<28&&out.length<5;i++){var w=d.getDay();
+    if(w>=1&&w<=5&&att.indexOf(GN[w])>-1&&chi.indexOf(GN[w])<0)out.push(new Date(d.getTime()));
+    d.setDate(d.getDate()+1);}
+  return out;
+}
+function renderGiorni(){
+  var h='';giorni().forEach(function(d){var v=iso(d),l=d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
+    h+='<button type="button" class="lp-chip'+(st.g===v?' on':'')+'" data-d="'+v+'">'+esc(l.charAt(0).toUpperCase()+l.slice(1))+'</button>';});
+  q('lp-giorni').innerHTML=h||'<div class="lp-nota">Nessun giorno disponibile: chiamaci.</div>';
+}
+function orari(){var b=(st.cfg&&st.cfg.orari)||['12:00','12:30','13:00','13:30','14:00'];return b.filter(function(s){return s>='12:00'&&s<='14:00';});}
+function renderOrari(){
+  var box=q('lp-orari');if(!st.g){box.innerHTML='<div class="lp-nota">Scegli prima il giorno.</div>';return;}
+  var min=(st.cfg&&st.cfg.slot_minuti)||30,max=Math.min((st.cfg&&st.cfg.max_coperti_slot)||30,MAXLP);
+  var oggi=iso(new Date()),lim=plus(hhmm(new Date()),30),h='',ok=false;
+  orari().forEach(function(s){var f=plus(s,min);
+    var occ=st.occ.filter(function(p){var o=String(p.ora).slice(0,5);return o>=s&&o<f;}).reduce(function(t,p){return t+(Number(p.coperti)||0);},0);
+    var lib=(max-occ)>=st.p&&!(st.g===oggi&&s<lim);if(st.o===s&&lib)ok=true;
+    h+='<button type="button" class="lp-slot'+(st.o===s&&lib?' on':'')+'" data-o="'+s+'"'+(lib?'':' disabled')+'>'+s+'</button>';});
+  if(!ok)st.o=null;box.innerHTML=h;
+}
+function caricaOcc(){
+  if(!st.g)return Promise.resolve();
+  return fetch(SB+'/rest/v1/rpc/slot_occupati',{method:'POST',headers:H,body:JSON.stringify({p_azienda:AZ,p_data:st.g,p_sede:SEDE||null})})
+    .then(function(r){return r.json();}).then(function(a){st.occ=Array.isArray(a)?a:[];}).catch(function(){st.occ=[];});
+}
+q('lp-giorni').addEventListener('click',function(e){var b=e.target.closest('button[data-d]');if(!b)return;
+  st.g=b.getAttribute('data-d');st.o=null;T('seleziona_data');renderGiorni();caricaOcc().then(renderOrari);});
+q('lp-orari').addEventListener('click',function(e){var b=e.target.closest('button[data-o]');if(!b||b.disabled)return;
+  st.o=b.getAttribute('data-o');T('seleziona_orario');renderOrari();});
+q('lp-meno').onclick=function(){st.p=Math.max(1,st.p-1);q('lp-n').textContent=st.p;renderOrari();};
+q('lp-piu').onclick=function(){st.p=Math.min(12,st.p+1);q('lp-n').textContent=st.p;renderOrari();};
+function fatto(){
+  q('lp-form').style.display='none';q('lp-ok').style.display='block';
+  var d=new Date(st.g+'T12:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+  q('lp-ok-t').textContent=d+' alle '+st.o+' · '+st.p+(st.p===1?' persona':' persone');
+  try{window._rfTrack('submit','prenotazione_completata',{step:'success',completato:true,valore:st.p+' coperti - '+st.g+' '+st.o});}catch(e){}
+}
+q('lp-invia').onclick=function(){
+  T('submit_tentativo');
+  var nome=q('lp-nome').value.trim(),tel=q('lp-tel').value.replace(/[^0-9+]/g,''),em=q('lp-mail').value.trim(),man=[];
+  if(!nome)man.push('il nome');if(tel.replace('+','').length<8)man.push('il telefono');if(!st.g)man.push('il giorno');if(!st.o)man.push("l'orario");
+  if(man.length){msg('Per prenotare mancano: '+man.join(', ')+'.',true);try{window._rfTrack('error','validazione_fallita',{step:'submit_tentativo',valore:man.join(',')});}catch(e){}return;}
+  if(!q('lp-priv').checked){msg('Serve il consenso al trattamento dei dati per prenotare.',true);return;}
+  if(tel.charAt(0)!=='+'){tel=tel.indexOf('0039')===0?'+'+tel.slice(2):'+39'+tel;}
+  var tok=(window.crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,32);
+  var src='';try{src=sessionStorage.getItem('rf_src')||'';}catch(e){}
+  var rif=JSON.stringify({landing:'pranzo-business',utm_source:P.get('utm_source'),utm_medium:P.get('utm_medium'),utm_campaign:P.get('utm_campaign'),sid:(function(){try{return sessionStorage.getItem('rf_sid');}catch(e){return null;}})()});
+  var b=q('lp-invia');b.disabled=true;b.textContent='Invio...';msg('');
+  fetch(SB+'/rest/v1/prenotazioni_tavoli',{method:'POST',headers:Object.assign({},H,{'Prefer':'return=minimal'}),
+    body:JSON.stringify({azienda_id:AZ,sede_id:SEDE||null,cliente_nome:nome,cliente_telefono:tel,cliente_email:em||null,data:st.g,ora:st.o,coperti:st.p,
+      stato:'in_attesa',canale:'online',note:'Pranzo business 25 euro',token_pubblico:tok,source:(src||P.get('utm_source')||'landing_pranzo'),riferimento:rif})})
+  .then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error(t||'errore');});
+    fetch(SB+'/functions/v1/prenotazione-notifica-tavolo',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({token_pubblico:tok})}).catch(function(){});
+    fatto();})
+  .catch(function(e){b.disabled=false;b.textContent='Prenota il pranzo';msg('Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.',true);
+    try{window._rfTrack('error','submit_db_error',{step:'submit',valore:String(e.message).slice(0,80)});}catch(x){}});
+};
+fetch(SB+'/rest/v1/prenotazioni_slot_config?azienda_id=eq.'+AZ+'&select=*',{headers:H}).then(function(r){return r.json();})
+  .then(function(a){st.cfg=(a&&a[0])||null;}).catch(function(){st.cfg=null;}).then(function(){renderGiorni();renderOrari();});
+fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.stringify({p_sede:SEDE})}).then(function(r){return r.json();}).then(function(m){
+  var v=(m&&m.voci)||[];if(!v.length)return;
+  var N={antipasti:'Antipasti',primi:'Primi',secondi:'Secondi',dessert:'Dessert'},h='';
+  ['antipasti','primi','secondi','dessert'].forEach(function(k){var l=v.filter(function(x){return x.portata===k;});if(!l.length)return;
+    h+='<div class="lp-pt">'+N[k]+'</div>'+l.map(function(x){return '<div class="lp-pv">'+esc(x.nome)+'</div>';}).join('');});
+  if(!h)return;q('lp-menu-voci').innerHTML=h;q('lp-menu').style.display='block';
+}).catch(function(){});
+})();`;
+      landingPranzo = head("Pranzo business 25 €").replace("</head>", `<meta name="robots" content="noindex,nofollow">\n<style>${lpCss}</style>\n</head>`) + `
+<body>
+<main class="lp">
+  <div class="lp-hero">
+    <img src="${esc(lpFoto)}" alt="Salsicce e broccoletti" width="1400" height="1050">
+    <div class="lp-vel"></div>
+    <div class="lp-top"><div class="lp-logo">${esc(nome)}</div><div class="lp-loc">Orte · uscita A1</div></div>
+    <div class="lp-hc">
+      <div class="lp-eye">Pranzo business · lun–ven</div>
+      <h1 class="lp-h1">Pausa pranzo<br>fatta bene.</h1>
+      <p class="lp-sub">Antipasto, primo, secondo, acqua e caffè. Senza sorprese.</p>
+    </div>
+  </div>
+
+  <div class="lp-card">
+    <div class="lp-row">
+      <div><div class="lp-prezzo">25 €</div><div class="lp-pnota">a persona, tutto compreso</div></div>
+      <div class="lp-orari">Lun–ven<br>12:00–14:30</div>
+    </div>
+    <a class="lp-cta" href="#prenota" onclick="try{window._rfTrack('click','cta_prenota',{valore:'landing'})}catch(e){}">Prenota il tuo pranzo</a>
+    <a class="lp-lnk" href="#oggi">Guarda il menu di oggi</a>
+  </div>
+
+  <div class="lp-incl"><span>Antipasto</span><span>Primo</span><span>Secondo</span><span>Acqua</span><span>Caffè</span></div>
+
+  <div class="lp-menu" id="lp-menu"><div id="oggi"></div>
+    <div class="lp-meye">Il menu cambia ogni giorno</div>
+    <h2 class="lp-mh">Oggi in cucina</h2>
+    <div id="lp-menu-voci"></div>
+  </div>
+
+  <div class="lp-prenota" id="prenota">
+    <h2 class="lp-h2">Prenota il tuo pranzo</h2>
+    <p class="lp-p2">Scegli giorno e orario: la prenotazione arriva direttamente in sala.</p>
+    <div class="lp-box">
+      <div id="lp-form">
+        <span class="lp-lbl">Giorno</span><div class="lp-gr" id="lp-giorni"></div>
+        <span class="lp-lbl">Orario</span><div class="lp-g3" id="lp-orari"></div>
+        <span class="lp-lbl">Persone</span>
+        <div class="lp-pers"><button type="button" id="lp-meno" aria-label="Una persona in meno">−</button><b id="lp-n">2</b><button type="button" id="lp-piu" aria-label="Una persona in più">+</button></div>
+        <label class="lp-lbl" for="lp-nome">Nome</label><input class="lp-in" id="lp-nome" type="text" autocomplete="name">
+        <label class="lp-lbl" for="lp-tel">Telefono</label><input class="lp-in" id="lp-tel" type="tel" autocomplete="tel">
+        <label class="lp-lbl" for="lp-mail">Email (facoltativa, per la conferma)</label><input class="lp-in" id="lp-mail" type="email" autocomplete="email">
+        <label class="lp-priv" for="lp-priv"><input id="lp-priv" type="checkbox"><span>Acconsento al trattamento dei dati per gestire la prenotazione (GDPR).</span></label>
+        <button type="button" class="lp-cta" id="lp-invia" style="margin-top:0">Prenota il pranzo</button>
+        <div class="lp-msg" id="lp-msg" role="status"></div>
+      </div>
+      <div class="lp-ok" id="lp-ok">
+        <h3>Prenotazione ricevuta</h3>
+        <p id="lp-ok-t"></p>
+        <p style="font-size:14px;color:#6b5a48;margin-top:10px">Ti aspettiamo. Per cambiare o disdire chiamaci${tel ? " al " + esc(tel) : ""}.</p>
+      </div>
+    </div>
+    <div class="lp-sep"><i></i><span>oppure</span><i></i></div>
+    <div class="lp-alt">
+      ${waUrl ? `<a class="lp-wa" href="${esc(waUrl)}">WhatsApp</a>` : ""}
+      ${tel ? `<a class="lp-ch" href="tel:${esc(tel)}">Chiama</a>` : ""}
+    </div>
+  </div>
+
+  <div class="lp-ft"><b>${esc(nome)}</b>Orte · uscita A1${conf.orari_pranzo ? `<br>Pranzo: ${esc(conf.orari_pranzo)}` : ""}${conf.orari_cena ? `<br>Cena: ${esc(conf.orari_cena)}` : ""}</div>
+</main>
+<script>${lpJs}</script>
+</body></html>`;
+    }
+
+    return { home, chiSiamo, menuPage, contatti, landingPranzo };
   }
 
   // ── PUBBLICA ─────────────────────────────────────────────────
