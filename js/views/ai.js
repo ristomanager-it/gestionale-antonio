@@ -964,6 +964,16 @@ async function callTonyMeta(messages) {
   const session = await supaAuth?.auth?.getSession();
   const token = session?.data?.session?.access_token || "";
   const msgs = (messages || []).filter(m => (m.role === "user" || m.role === "assistant") && typeof m.content === "string").slice(-12);
+  // Tony specialista delle campagne (Meta + Google): propone con la scheda Conferma, la campagna nasce in pausa e si crea solo al tocco
+  try {
+    const rc = await fetch(`${supabaseUrl}/functions/v1/tony-campagne-chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
+      body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, messages: msgs }),
+    });
+    const jc = await rc.json();
+    if (jc && jc.success !== false && jc.reply) return jc;
+  } catch (e) { console.warn("Tony campagne non raggiungibile, uso il motore marketing di prima:", e); }
   const res = await fetch(`${supabaseUrl}/functions/v1/meta-ads`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
