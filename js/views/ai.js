@@ -1202,7 +1202,7 @@ async function sendVoiceMessage() {
     const voiceInput = data?.voice_input;
     // il vocale viene trascritto dal server: se si parla di campagne/pubblicita' (o e' la risposta breve a una domanda di Tony sulle campagne)
     // la richiesta passa allo specialista delle campagne, che prepara la scheda
-    if (voiceInput && data?.fonte !== "campagne" && (isMetaIntent(voiceInput) || (tonyMetaMode && voiceInput.trim().length <= 60))) {
+    if (voiceInput && data?.fonte !== "campagne" && (isMetaIntent(voiceInput) || seguiCampagna(voiceInput))) {
       try {
         data = await callTonyMeta([...conversation, { role: "user", content: voiceInput }]);
         tonyMetaMode = true;
