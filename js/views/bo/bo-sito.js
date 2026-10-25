@@ -1980,6 +1980,8 @@ function caricaOcc(){
   return fetch(SB+'/rest/v1/rpc/slot_occupati',{method:'POST',headers:H,body:JSON.stringify({p_azienda:AZ,p_data:st.g,p_sede:SEDE||null})})
     .then(function(r){return r.json();}).then(function(a){st.occ=Array.isArray(a)?a:[];}).catch(function(){st.occ=[];});
 }
+q('lp-turni').addEventListener('click',function(e){var b=e.target.closest('button[data-t]');if(!b)return;
+  st.t=b.getAttribute('data-t');st.o=null;T('seleziona_turno');renderTurni();renderOrari();});
 q('lp-giorni').addEventListener('click',function(e){var b=e.target.closest('button[data-d]');if(!b)return;
   st.g=b.getAttribute('data-d');st.o=null;T('seleziona_data');renderGiorni();caricaOcc().then(renderOrari);});
 q('lp-orari').addEventListener('click',function(e){var b=e.target.closest('button[data-o]');if(!b||b.disabled)return;
