@@ -1502,7 +1502,7 @@ ${nav}
 <div style="position:relative;min-height:82svh;display:flex;align-items:flex-end;overflow:hidden;">
   <div style="position:absolute;inset:0;background:var(--scuro);">
     ${conf.video_hero
-      ? `<video src="${esc(conf.video_hero)}" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;"></video>`
+      ? `<video src="${esc(conf.video_hero)}" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85;"></video>`
       : (copertina.length > 1
           ? copertina.map((u,i) => `<img src="${esc(u)}" class="cop" style="animation-delay:${i*5}s" alt="">`).join("")
           : (copertina[0] ? `<img src="${esc(copertina[0])}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;" alt="">` : ""))}
