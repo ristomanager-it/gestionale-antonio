@@ -1647,7 +1647,7 @@ ${menuOggi ? `
   <div style="margin-top:18px;"><a class="btn" href="${esc(formUrl)}">🗓 ${esc(cta)}</a></div>
 </section>` : ""}
 ${sezioniState.recensioni && recensioni.length ? `
-<div class="rev-bg">
+<div class="rev-bg" id="recensioni">
   <div style="max-width:700px;margin:0 auto;">
     <div class="eyebrow">Dicono di noi</div>
     <h2 class="h2" style="margin-bottom:24px;">L'opinione<br><em>dei nostri ospiti</em></h2>
