@@ -999,7 +999,7 @@ export async function render(container) {
               Cosa puoi fare:<br>
               • Mettere in pausa o accendere una campagna con il pulsante accanto al nome<br>
               • Crearne una nuova: <b>Marketing › Messaggi › Campagne</b> (tocca "+ Nuova campagna")<br>
-              • La creazione campagne dall'app sarà disponibile appena approvato il token
+              • Aprire Google Ads per i dettagli: <a href="https://ads.google.com" target="_blank" style="color:#0E5A7A;">Google Ads →</a>
             </div>
           </div>
         </div>
