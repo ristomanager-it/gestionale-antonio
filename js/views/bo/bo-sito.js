@@ -1365,7 +1365,7 @@ function carica(){
 }
 var MAP={cta_prenota:'InitiateCheckout',click_telefono:'Contact',click_menu:'ViewContent',click_mappa:'FindLocation'};
 window.rfDecisione=st;
-window.rfEvento=function(el){if(st()!=='si')return;try{if(window.fbq&&MAP[el])fbq('track',MAP[el]);dataLayer.push({event:'rf_'+el});if(!GTM&&(GA4||ADS))gtag('event',el);}catch(e){}};
+window.rfEvento=function(el){if(st()!=='si')return;try{if(window.fbq&&MAP[el])fbq('track',MAP[el]);dataLayer.push({event:'rf_'+el});if(!GTM&&(GA4||ADS)){gtag('event',el);if(el==='click_telefono')gtag('event','tel');}}catch(e){}};
 function banner(){
   var b=document.createElement('div');
   b.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:9998;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.28);font:14px/1.45 system-ui,sans-serif;max-width:520px;margin:0 auto;';
