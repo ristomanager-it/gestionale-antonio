@@ -712,6 +712,44 @@ export async function render(container) {
     renderMedia("grid-reel-terra", perSezione,                     "reelTerra", false);
     renderMedia("grid-reel-mare",  perSezione,                     "reelMare",  false);
     renderMedia("grid-locale",     pronte(["sezione","quadrata"]), "locale",    true);
+    // Carica una foto del locale direttamente dal telefono: si ridimensiona, si salva e diventa la prima
+    (function () {
+      const b = document.getElementById("sw-up-locale"), f = document.getElementById("sw-file-locale");
+      if (!b || !f) return;
+      b.onclick = function () { f.click(); };
+      f.onchange = async function () {
+        const file = f.files && f.files[0];
+        if (!file) return;
+        b.disabled = true; b.textContent = "Carico…";
+        try {
+          const url = URL.createObjectURL(file);
+          const img = await new Promise(function (res, rej) { const im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = url; });
+          const k = Math.min(1, 1800 / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+          const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          const cx = cv.getContext("2d"); cx.imageSmoothingQuality = "high"; cx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          const blob = await new Promise(function (res) { cv.toBlob(res, "image/jpeg", 0.84); });
+          if (!blob) throw new Error("foto non elaborata");
+          const nome = "sito/" + aziendaId + "/" + Date.now() + "-locale.jpg";
+          const up = await sc.storage.from("media-aziende").upload(nome, blob, { contentType: "image/jpeg", upsert: false });
+          if (up.error) throw up.error;
+          const pub = sc.storage.from("media-aziende").getPublicUrl(nome);
+          const ins = await sc.from("sito_media").insert({
+            azienda_id: aziendaId, sede_id: (sedeSelezionata && sedeSelezionata.id) || null, formato: "sezione",
+            url: pub.data.publicUrl, path: nome, larghezza: w, altezza: h, peso_kb: Math.round(blob.size / 1024), titolo: file.name || "Locale"
+          });
+          if (ins.error) throw ins.error;
+          fotoSel.locale = [pub.data.publicUrl].concat((fotoSel.locale || []).filter(function (u) { return u !== pub.data.publicUrl; }));
+          await caricaSitoMedia();
+          renderMedia("grid-locale", pronte(["sezione", "quadrata"]), "locale", true);
+          alert("Foto caricata: e' la prima del locale. Ora ripubblica il sito.");
+        } catch (e) {
+          alert("Non sono riuscito a caricarla: " + (e.message || e));
+        }
+        b.disabled = false; b.textContent = "＋ Carica foto dal telefono"; f.value = "";
+      };
+    })();
     pieghevoli();
   }
 
