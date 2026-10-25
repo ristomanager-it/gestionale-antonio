@@ -38,6 +38,25 @@ async function injectTracking(aziendaId) {
       s.textContent = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pid}');fbq('track','PageView');`;
       document.head.appendChild(s);
     }
+    // Analytics e Google Ads diretti (senza Tag Manager): stesso consenso, stessi nomi dei sito
+    window.__rfCfg = {
+      ga4Evento: String(data.ga4_evento_prenotazione || 'prenotazione_completata').trim(),
+      adsSend: (data.gads_id && data.gads_etichetta) ? data.gads_id.trim() + '/' + data.gads_etichetta.trim() : null,
+      gtag: false
+    };
+    if (!data.gtm_id && (data.ga4_id || data.gads_id)) {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+      window.gtag('consent', 'default', { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted' });
+      const gs = document.createElement('script');
+      gs.async = true;
+      gs.src = 'https://www.googletagmanager.com/gtag/js?id=' + String(data.ga4_id || data.gads_id).trim();
+      document.head.appendChild(gs);
+      window.gtag('js', new Date());
+      if (data.ga4_id) window.gtag('config', data.ga4_id.trim());
+      if (data.gads_id) window.gtag('config', data.gads_id.trim());
+      window.__rfCfg.gtag = true;
+    }
     if (data.gtm_id) {
       window.dataLayer = window.dataLayer || [];
       window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
