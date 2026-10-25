@@ -29,7 +29,9 @@ async function injectTracking(aziendaId) {
       .select('meta_pixel_id, gtm_id')
       .eq('azienda_id', aziendaId)
       .maybeSingle();
-    if (!data) return;
+    if (!data || (!data.meta_pixel_id && !data.gtm_id)) return;
+    // Meta e Google si caricano solo se il visitatore ha accettato
+    if (!(await rfChiediConsenso())) return;
     if (data.meta_pixel_id) {
       const pid = data.meta_pixel_id.trim();
       const s = document.createElement('script');
