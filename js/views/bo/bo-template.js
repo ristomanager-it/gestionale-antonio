@@ -1031,6 +1031,9 @@ export async function render(container) {
       container.querySelector(`#${btn.dataset.tab}`).classList.add('attiva');
     });
   });
+  // si puo' aprire direttamente una scheda: #/bo-template?tab=metaads
+  const tabRichiesta = new URLSearchParams((window.location.hash.split('?')[1] || '')).get('tab');
+  if (tabRichiesta) container.querySelector('.rf-nav-btn[data-tab="tab-' + tabRichiesta + '"]')?.click();
 
   // ─── MOMENTI → apri l'editor unificato col momento preimpostato ───────────
   container.querySelectorAll('.momento-btn').forEach(btn => {
