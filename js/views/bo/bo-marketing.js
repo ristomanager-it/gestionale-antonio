@@ -48,7 +48,21 @@ export async function render(container) {
   }
 
   container.innerHTML = `
-    <div style="display:flex; gap:16px; width:100%; min-height:70vh;">
+    <style>
+      .bo-m-item{transition:background .15s}
+      .bo-m-item.bo-m-sel{background:rgba(255,255,255,.16);font-weight:700}
+      /* telefono: il menu diventa una barra di pulsanti che scorre di lato, la pagina usa tutta la larghezza */
+      @media (max-width:768px){
+        #bo-m-wrap{flex-direction:column !important;gap:10px !important;min-height:0 !important}
+        .bo-m-aside{width:100% !important;box-sizing:border-box;display:flex !important;gap:8px;overflow-x:auto;padding:10px !important;border-radius:14px !important;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+        .bo-m-aside::-webkit-scrollbar{display:none}
+        .bo-m-titolo{display:none !important}
+        .bo-m-item{flex:0 0 auto;white-space:nowrap;margin:0 !important;padding:9px 14px !important;border-radius:999px !important;background:rgba(255,255,255,.08);font-size:14px}
+        .bo-m-item.bo-m-sel{background:#4285F4;color:#fff}
+        #bo-m-content{width:100%;min-width:0}
+      }
+    </style>
+    <div id="bo-m-wrap" style="display:flex; gap:16px; width:100%; min-height:70vh;">
 
       <aside style="
         width:220px;
