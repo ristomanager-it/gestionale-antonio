@@ -1380,6 +1380,17 @@ function banner(){
 if(st()==='si')carica();else if(st()!=='no')document.addEventListener('DOMContentLoaded',banner);
 })();</script>` : "";
 
+    // ── WhatsApp della sede (il numero del chatbot): chi scrive entra nel tuo WhatsApp con il suo numero ──
+    let waUrl = "";
+    try {
+      if (sedeId) {
+        const { data: wa } = await sc.from("whatsapp_connessioni").select("numero_telefono").eq("azienda_id", aziendaId).eq("sede_id", sedeId).eq("attivo", true).limit(1);
+        let n = String(wa?.[0]?.numero_telefono || "").replace(/[^0-9]/g, "");
+        if (n.length === 10 && n.startsWith("3")) n = "39" + n;
+        if (n.length >= 11) waUrl = "https://wa.me/" + n + "?text=" + encodeURIComponent("Buongiorno, vorrei prenotare un tavolo. ");
+      }
+    } catch (e) { /* senza numero il pulsante WhatsApp non compare */ }
+
     const fontUrl = font === "Inter" ? "Inter:wght@300;400;600;700"
       : font === "Playfair Display" ? "Playfair+Display:ital,wght@0,600;1,400"
       : font === "Montserrat" ? "Montserrat:wght@300;400;600;700"
