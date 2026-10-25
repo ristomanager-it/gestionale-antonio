@@ -750,11 +750,14 @@ export async function render(container) {
     const data   = document.getElementById("data").value;
     const ora    = document.getElementById("ora").value;
     const email  = document.getElementById("email")?.value.trim() || "";
-    if (!nome)   return { ok:false, message:"Inserisci il tuo nome" };
-    if (!telRaw) return { ok:false, message:"Inserisci il tuo telefono" };
-    if (!email || !email.includes("@")) return { ok:false, message:"Inserisci un'email valida" };
-    if (!data)   return { ok:false, message:"Seleziona la data" };
-    if (!ora)    return { ok:false, message:"Seleziona un orario" };
+    // si dice tutto quello che manca in una volta sola, non solo il primo campo
+    const mancano = [];
+    if (!nome)   mancano.push({ id: "nome", t: "il nome" });
+    if (!telRaw) mancano.push({ id: "telefono", t: "il telefono" });
+    if (!email || !email.includes("@")) mancano.push({ id: "email", t: "un'email valida" });
+    if (!data)   mancano.push({ id: "data", t: "il giorno" });
+    if (!ora)    mancano.push({ id: "ora", t: "l'orario" });
+    if (mancano.length) return { ok:false, message:"Per prenotare mancano: " + mancano.map(m => m.t).join(", ") + ".", campo: mancano[0].id };
     if (!document.getElementById("consenso-gdpr")?.checked) return { ok:false, message:"Devi accettare il trattamento dei dati personali per procedere." };
     if (!isDayBookable(data)) return { ok:false, message:"Il giorno selezionato non è prenotabile" };
     for (const field of customFields) {
