@@ -2351,7 +2351,37 @@ if (onlineModal.classList.contains("open")) {
     return normalizeStatus(stato) === "in_attesa";
   }
 
+  // Da dove arriva la prenotazione: icona della FONTE (landing, Google, Instagram...) + icona del CANALE (modulo, WhatsApp, telefono...)
+  function originInfo(p) {
+    const can = String(p.canale || "").toLowerCase();
+    const src = String(p.source || "").toLowerCase();
+    let rif = {};
+    try { rif = typeof p.riferimento === "string" ? JSON.parse(p.riferimento || "{}") : (p.riferimento || {}); } catch (e) { rif = {}; }
+    if (!rif || typeof rif !== "object") rif = {};
+    let canIco = "📱", canTxt = can ? can.charAt(0).toUpperCase() + can.slice(1) : "";
+    if (can.includes("whatsapp")) { canIco = "💬"; canTxt = "WhatsApp"; }
+    else if (can.includes("telefon") || can.includes("call")) { canIco = "📞"; canTxt = "Telefono"; }
+    else if (can.includes("walk")) { canIco = "🚶"; canTxt = "Di persona"; }
+    else if (can.includes("manual")) { canIco = "✍️"; canTxt = "Inserita a mano"; }
+    else if (can.includes("online") || can.includes("web") || can.includes("widget") || can.includes("booking")) { canIco = "🌐"; canTxt = "Modulo online"; }
+    let fonteIco = "", fonteTxt = "";
+    if (src.startsWith("landing") || rif.landing || rif.flusso) {
+      fonteIco = "🎯";
+      fonteTxt = "Landing " + String(rif.landing || rif.flusso || src.replace(/^landing_?/, "")).replace(/[-_]/g, " ");
+    }
+    else if (src.includes("google")) { fonteIco = "🔎"; fonteTxt = "Google"; }
+    else if (src.includes("chatgpt") || src.includes("openai")) { fonteIco = "🤖"; fonteTxt = "ChatGPT"; }
+    else if (src.includes("instagram") || src === "ig") { fonteIco = "📸"; fonteTxt = "Instagram"; }
+    else if (src.includes("facebook") || src === "fb" || src.includes("meta")) { fonteIco = "📣"; fonteTxt = "Facebook / Meta"; }
+    else if (src === "sito") { fonteIco = "🏠"; fonteTxt = "Sito"; }
+    return { icon: fonteIco + canIco, label: [fonteTxt, canTxt].filter(Boolean).join(" · ") || "Prenotazione" };
+  }
+
   function getOriginIcon(p) {
+    return originInfo(p).icon;
+  }
+
+  function getOriginIconVecchio(p) {
     const channel = String(p.canale || p.source || "").toLowerCase();
 
     if (channel.includes("online") || channel.includes("web") || channel.includes("widget") || channel.includes("booking")) return "🌐";
