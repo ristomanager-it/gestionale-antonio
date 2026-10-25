@@ -2009,7 +2009,7 @@ q('lp-invia').onclick=function(){
     if(!r.ok)return r.text().then(function(t){throw new Error(t||'errore');});
     fetch(SB+'/functions/v1/prenotazione-notifica-tavolo',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({token_pubblico:tok})}).catch(function(){});
     fatto();})
-  .catch(function(e){b.disabled=false;b.textContent='Prenota il pranzo';msg('Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.',true);
+  .catch(function(e){b.disabled=false;b.textContent='Prenota il tavolo';msg('Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.',true);
     try{window._rfTrack('error','submit_db_error',{step:'submit',valore:String(e.message).slice(0,80)});}catch(x){}});
 };
 fetch(SB+'/rest/v1/prenotazioni_slot_config?azienda_id=eq.'+AZ+'&select=*',{headers:H}).then(function(r){return r.json();})
