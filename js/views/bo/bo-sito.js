@@ -1319,7 +1319,7 @@ a{text-decoration:none;color:inherit}
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(26,18,9,.92);backdrop-filter:blur(12px)}
 .nav-logo{display:flex;align-items:center;gap:8px}
 .nav-logo img{width:32px;height:32px;border-radius:50%;object-fit:cover}
-.nav-logo span{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--accl);letter-spacing:.3px}
+.nav-logo span{font-family:'Cormorant Garamond',serif;font-size:clamp(21px,5.6vw,30px);font-weight:700;color:var(--accl);letter-spacing:.3px;line-height:1.1}
 .nav-links{display:flex;gap:18px}
 .nav-links a{font-size:12px;color:rgba(255,255,255,.75);letter-spacing:.4px}
 .nav-links a:hover{color:var(--accl)}
