@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#2a1a0d">
+<title>Prenota il tuo tavolo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--b:#7a3b1d;--b2:#2a1a0d;--c:#f6efe3;--t:#2a1a0d;--m:#6b5a49;--l:#e6d9c3}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--c);color:var(--t);font-family:Inter,system-ui,sans-serif;font-size:16px;line-height:1.65}
+#app{max-width:560px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 40px rgba(0,0,0,.08)}
+.carica{padding:60px 24px;text-align:center;color:var(--m)}
+.top{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--l);padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.top img{height:34px;width:auto;border-radius:6px}.top b{font-size:14px}
+.hero{position:relative;min-height:420px;display:flex;align-items:flex-end;color:#fff;background:var(--b2) center/cover no-repeat}
+.hero:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,10,4,.15) 0%,rgba(20,10,4,.82) 100%)}
+.hero-in{position:relative;padding:28px 22px 30px;width:100%}
+.kick{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:5px 14px;margin-bottom:14px}
+h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:42px;line-height:1.05;margin:0 0 10px;font-weight:700}
+.sub{font-size:16px;opacity:.92;margin:0 0 20px}
+.btn{display:inline-block;border:0;border-radius:999px;background:var(--b);color:#fff;font:600 16px Inter,sans-serif;padding:14px 30px;cursor:pointer;text-decoration:none}
+.btn:disabled{opacity:.55}
+.sez{padding:34px 22px 6px}
+.sez h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;line-height:1.1;margin:0 0 12px}
+.lead{font-family:'Cormorant Garamond',Georgia,serif;font-size:25px;line-height:1.3;font-style:italic;color:var(--b);margin:0}
+.sez p{margin:0 0 14px;color:#3b2d20;white-space:pre-line}
+.gal{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:22px 22px 0}
+.gal img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;background:var(--l)}
+.gal img:first-child{grid-column:1/-1;aspect-ratio:16/10}
+.perche{margin:10px 22px 0;padding:20px;background:var(--c);border-left:4px solid var(--b);border-radius:6px}
+.perche p{margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1.35;color:var(--b2)}
+.rating{display:flex;align-items:center;gap:14px;margin:0 0 16px}
+.rating .v{font-family:'Cormorant Garamond',Georgia,serif;font-size:54px;line-height:1;font-weight:700;color:var(--b)}
+.st{color:#c9892b;letter-spacing:2px}.rating small{display:block;color:var(--m);font-size:13px}
+.rec{border:1px solid var(--l);border-radius:14px;padding:14px 16px;margin-bottom:10px;background:#fffdf9}
+.rec p{margin:6px 0 4px;font-size:15px}.rec b{font-size:13px;color:var(--m)}
+.form{margin:26px 16px 0;padding:22px 18px;border-radius:18px;background:var(--b2);color:#f3e9d6}
+.form h2{color:#fff}.form .val{font-size:14px;opacity:.85;margin:-4px 0 14px}
+.form label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.75;margin:16px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:9px 15px;font:500 14px Inter,sans-serif;cursor:pointer}
+.chip.on{background:#fff;color:var(--b2);font-weight:700}.chip:disabled{opacity:.3;text-decoration:line-through}
+.step{display:flex;align-items:center;gap:16px}.step button{width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-size:22px;cursor:pointer}.step span{font-size:22px;min-width:28px;text-align:center;font-weight:700}
+.form input[type=text],.form input[type=tel],.form input[type=email]{width:100%;padding:13px 14px;border-radius:12px;border:0;font:16px Inter,sans-serif;margin-bottom:10px;background:#fff;color:var(--t)}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;opacity:.9;margin:6px 0 14px}.chk input{margin-top:3px;width:18px;height:18px}
+.form .btn{width:100%;background:#fff;color:var(--b2)}
+.msg{font-size:14px;margin:0 0 12px;min-height:0}.msg.err{color:#ffb4a2}.nota{font-size:13px;opacity:.7}
+.ok{display:none;text-align:center;padding:10px 0}.ok .tick{font-size:44px}.ok h2{margin-bottom:6px}
+details.reg{margin:22px 16px 0;border:1px solid var(--l);border-radius:12px}
+details.reg summary{padding:14px 16px;font-weight:600;cursor:pointer}
+details.reg div{padding:0 16px 16px;font-size:13.5px;color:#4a3b2c;white-space:pre-line}
+.ft{margin-top:26px;padding:26px 22px calc(34px + env(safe-area-inset-bottom,0px));background:#1d1209;color:#d9ccb6;font-size:14px}
+.ft b{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#fff;margin-bottom:6px}
+.ft a{color:#f3e9d6}.ft small{display:block;margin-top:14px;opacity:.55}
+.cb{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:50;max-width:540px;margin:0 auto;background:#1d1209;color:#f3e9d6;border-radius:14px;padding:14px 16px;font-size:13px;display:none;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.cb div{display:flex;gap:8px;margin-top:10px}.cb button{flex:1;padding:10px;border-radius:999px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font:600 13px Inter,sans-serif}.cb button.y{background:#fff;color:#1d1209}
+</style>
+</head>
+<body>
+<div id="app"><div class="carica">Un attimo…</div></div>
+<div class="cb" id="cb">Usiamo cookie di misurazione, solo se acconsenti, per capire se questa pagina funziona.<div><button id="cb-no">Rifiuta</button><button id="cb-si" class="y">Accetto</button></div></div>
+<script>
+(function(){
+var SB='https://cuhcscpvhypoaplcmtjk.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+var H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
+var P=new URLSearchParams(location.search),SLUG=P.get('p')||'';
+var GN=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];
+var D=null,st={g:null,t:null,o:null,p:2,cfg:null,occ:[]};
+function q(i){return document.getElementById(i);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function hhmm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function plus(s,min){var p=s.split(':'),m=(+p[0])*60+(+p[1])+min;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+function stelle(n){n=Math.round(Number(n)||0);return '★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n);}
+/* ---- misurazione: parte solo dopo il consenso ---- */
+var TR={},consenso=null;
+try{consenso=localStorage.getItem('rf_cons');}catch(e){}
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:400});
+function ev(nome,meta,par){
+  try{gtag('event',nome,Object.assign({promo:SLUG},par||{}));}catch(e){}
+  try{if(window.fbq&&meta)fbq('track',meta,par||{});}catch(e){}
+}
+function accetta(si){
+  try{localStorage.setItem('rf_cons',si?'si':'no');}catch(e){}
+  q('cb').style.display='none';
+  if(si){gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted',analytics_storage:'granted'});try{window.fbq&&fbq('consent','grant');}catch(e){}}
+}
+function montaTag(){
+  if(TR.ga4){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(TR.ga4);document.head.appendChild(s);gtag('js',new Date());gtag('config',TR.ga4,{send_page_view:true});}
+  if(TR.meta_pixel){
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('consent','revoke');fbq('init',TR.meta_pixel);fbq('track','PageView');
+    if(consenso==='si')fbq('consent','grant');
+  }
+  if(consenso==='si'){gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted',analytics_storage:'granted'});}
+  else if(consenso==null&&(TR.ga4||TR.meta_pixel)){q('cb').style.display='block';}
+}
+q('cb-si').onclick=function(){accetta(true);};q('cb-no').onclick=function(){accetta(false);};
+/* ---- pagina ---- */
+function render(){
+  var L=D.landing,S=D.sede||{},R=D.recensioni||{items:[]};
+  document.title=L.titolo+(S.nome?' · '+S.nome:'');
+  if(S.colore_brand&&/^#[0-9a-f]{6}$/i.test(S.colore_brand))document.documentElement.style.setProperty('--b',S.colore_brand);
+  var h='';
+  h+='<div class="top">'+(S.logo_url?'<img src="'+esc(S.logo_url)+'" alt="" onerror="this.style.display=\'none\'">':'')+'<b>'+esc(S.nome||'')+'</b></div>';
+  h+='<div class="hero"'+(L.hero_url?' style="background-image:url(\''+esc(L.hero_url)+'\')"':'')+'><div class="hero-in">'
+    +(L.validita_testo?'<span class="kick">'+esc(L.validita_testo)+'</span>':'')
+    +'<h1>'+esc(L.titolo)+'</h1>'+(L.sottotitolo?'<p class="sub">'+esc(L.sottotitolo)+'</p>':'')
+    +'<a class="btn" href="#form" id="cta1">Prenota il tuo tavolo</a></div></div>';
+  if(L.attenzione)h+='<div class="sez"><p class="lead">'+esc(L.attenzione)+'</p></div>';
+  if(L.interesse)h+='<div class="sez"><p>'+esc(L.interesse)+'</p></div>';
+  h+='<div id="gal"></div>';
+  if(L.desiderio)h+='<div class="sez"><h2>Perché da noi</h2><p>'+esc(L.desiderio)+'</p></div>';
+  if(R.items&&R.items.length){
+    h+='<div class="sez"><h2>Lo dicono i nostri ospiti</h2><div class="rating"><div class="v">'+esc(String(R.media).replace('.',','))+'</div><div><div class="st">'+stelle(R.media)+'</div><small>su '+esc(R.totale)+' recensioni verificate</small></div></div>';
+    R.items.forEach(function(r){h+='<div class="rec"><span class="st">'+stelle(r.voto)+'</span><p>“'+esc(r.testo)+'”</p><b>'+esc(r.autore||'Un ospite')+'</b></div>';});
+    h+='</div>';
+  }
+  h+=L.azione?'<div class="sez" id="prenota"><p class="lead" style="font-size:22px">'+esc(L.azione)+'</p></div>':'<div id="prenota"></div>';
+  h+='<div class="form" id="form"><h2>Prenota il tuo tavolo</h2>'+(L.validita_testo?'<div class="val">'+esc(L.titolo)+' · '+esc(L.validita_testo)+'</div>':'')
+    +'<div id="blk-turni" style="display:none"><label>Pranzo o cena</label><div class="chips" id="turni"></div></div>'
+    +'<label>Giorno</label><div class="chips" id="giorni"></div>'
+    +'<label>Orario</label><div class="chips" id="orari"><span class="nota">Scegli prima il giorno.</span></div>'
+    +'<label>Quante persone</label><div class="step"><button type="button" id="meno">−</button><span id="n">2</span><button type="button" id="piu">+</button></div>'
+    +'<label>I tuoi dati</label><input type="text" id="nome" placeholder="Nome e cognome" autocomplete="name"><input type="tel" id="tel" placeholder="Telefono" autocomplete="tel"><input type="email" id="mail" placeholder="Email (facoltativa)" autocomplete="email">'
+    +'<label class="chk"><input type="checkbox" id="priv"><span>Acconsento al trattamento dei miei dati per gestire la prenotazione.</span></label>'
+    +'<div class="msg" id="msg"></div><button class="btn" id="invia" type="button">Prenota il tavolo</button>'
+    +'<div class="ok" id="ok"><div class="tick">✓</div><h2>Tavolo prenotato!</h2><p id="ok-t"></p><p class="nota">Ti avvisiamo noi per la conferma.</p></div></div>';
+  if(L.regolamento)h+='<details class="reg"><summary>📜 Regolamento e condizioni</summary><div>'+esc(L.regolamento)+'</div></details>';
+  h+='<div class="ft"><b>'+esc(S.nome||'')+'</b>'+esc([S.indirizzo,S.citta].filter(Boolean).join(', '))
+    +(S.telefono?'<br>📞 <a href="tel:'+esc(String(S.telefono).replace(/[^0-9+]/g,''))+'">'+esc(S.telefono)+'</a>':'')
+    +(S.lat&&S.lng?'<br>🧭 <a href="https://www.google.com/maps/dir/?api=1&destination='+esc(S.lat)+','+esc(S.lng)+'" target="_blank" rel="noopener">Come arrivare</a>':'')
+    +'<small>Powered by Ristoflow.AI</small></div>';
+  q('app').innerHTML=h;
+  q('cta1').addEventListener('click',function(){ev('cta_prenota','InitiateCheckout');});
+  fetch(SB+'/functions/v1/landing-media?a='+L.azienda_id+(L.sede_id?'&s='+L.sede_id:'')+'&limit=6').then(function(r){return r.json();}).then(function(j){
+    var im=(j.images||[]).map(function(x){return x.url;}).filter(function(u){return u&&u!==L.hero_url;}).slice(0,5);
+    if(im.length)q('gal').innerHTML='<div class="gal">'+im.map(function(u){return '<img src="'+esc(u)+'" alt="" loading="lazy" decoding="async">';}).join('')+'</div>';
+  }).catch(function(){});
+  iniziaForm();
+}
+/* ---- form prenotazione ---- */
+function msg(t,err){var m=q('msg');m.textContent=t||'';m.className='msg'+(err?' err':'');}
+function giorniValidi(){
+  var L=D.landing,cfg=st.cfg,att=(cfg&&cfg.giorni_attivi)||GN.slice(1),chi=(cfg&&cfg.giorni_chiusura)||[];
+  var gv=(L.giorni_validi&&L.giorni_validi.length)?L.giorni_validi:null;
+  var out=[],d=new Date();if(d.getHours()>=21)d.setDate(d.getDate()+1);
+  var ini=L.data_inizio||null,fine=L.data_fine||null;
+  for(var i=0;i<60&&out.length<6;i++){var w=d.getDay(),v=iso(d);
+    if((!gv||gv.indexOf(w)>-1)&&att.indexOf(GN[w])>-1&&chi.indexOf(GN[w])<0&&(!ini||v>=ini)&&(!fine||v<=fine))out.push(new Date(d.getTime()));
+    d.setDate(d.getDate()+1);}
+  return out;
+}
+function orariTurno(){var b=(st.cfg&&st.cfg.orari)||['12:00','12:30','13:00','13:30','14:00','19:00','19:30','20:00','20:30','21:00','21:30'];
+  return b.filter(function(s){return st.t==='cena'?(s>='19:00'&&s<='21:30'):(s>='12:00'&&s<='14:00');});}
+function rGiorni(){var h='';giorniValidi().forEach(function(d){var v=iso(d),l=d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
+  h+='<button type="button" class="chip'+(st.g===v?' on':'')+'" data-d="'+v+'">'+esc(l.charAt(0).toUpperCase()+l.slice(1))+'</button>';});
+  q('giorni').innerHTML=h||'<span class="nota">Nessun giorno disponibile: chiamaci.</span>';}
+function rTurni(){q('turni').innerHTML='<button type="button" class="chip'+(st.t==='pranzo'?' on':'')+'" data-t="pranzo">Pranzo</button><button type="button" class="chip'+(st.t==='cena'?' on':'')+'" data-t="cena">Cena</button>';}
+function rOrari(){
+  var box=q('orari');if(!st.g||!st.t){box.innerHTML='<span class="nota">Scegli prima il giorno'+(D.landing.turno?'':' e pranzo o cena')+'.</span>';return;}
+  var min=(st.cfg&&st.cfg.slot_minuti)||30,max=Math.min((st.cfg&&st.cfg.max_coperti_slot)||30,20);
+  var oggi=iso(new Date()),lim=plus(hhmm(new Date()),30),h='',ok=false;
+  orariTurno().forEach(function(s){var f=plus(s,min);
+    var occ=st.occ.filter(function(p){var o=String(p.ora).slice(0,5);return o>=s&&o<f;}).reduce(function(t,p){return t+(Number(p.coperti)||0);},0);
+    var lib=(max-occ)>=st.p&&!(st.g===oggi&&s<lim);if(st.o===s&&lib)ok=true;
+    h+='<button type="button" class="chip'+(st.o===s&&lib?' on':'')+'" data-o="'+s+'"'+(lib?'':' disabled')+'>'+s+'</button>';});
+  if(!ok)st.o=null;box.innerHTML=h||'<span class="nota">Nessun orario disponibile.</span>';
+}
+function caricaOcc(){
+  if(!st.g)return Promise.resolve();
+  return fetch(SB+'/rest/v1/rpc/slot_occupati',{method:'POST',headers:H,body:JSON.stringify({p_azienda:D.landing.azienda_id,p_data:st.g,p_sede:D.landing.sede_id||null})})
+    .then(function(r){return r.json();}).then(function(a){st.occ=Array.isArray(a)?a:[];}).catch(function(){st.occ=[];});
+}
+function iniziaForm(){
+  var L=D.landing;st.t=L.turno||null;
+  if(!L.turno){q('blk-turni').style.display='block';rTurni();}
+  q('turni').addEventListener('click',function(e){var b=e.target.closest('button[data-t]');if(!b)return;st.t=b.getAttribute('data-t');st.o=null;rTurni();rOrari();});
+  q('giorni').addEventListener('click',function(e){var b=e.target.closest('button[data-d]');if(!b)return;st.g=b.getAttribute('data-d');st.o=null;ev('seleziona_data');rGiorni();caricaOcc().then(rOrari);});
+  q('orari').addEventListener('click',function(e){var b=e.target.closest('button[data-o]');if(!b||b.disabled)return;st.o=b.getAttribute('data-o');rOrari();});
+  q('meno').onclick=function(){st.p=Math.max(1,st.p-1);q('n').textContent=st.p;rOrari();};
+  q('piu').onclick=function(){st.p=Math.min(12,st.p+1);q('n').textContent=st.p;rOrari();};
+  q('invia').onclick=invia;
+  fetch(SB+'/rest/v1/prenotazioni_slot_config?azienda_id=eq.'+L.azienda_id+'&select=*',{headers:H}).then(function(r){return r.json();})
+    .then(function(a){st.cfg=(a&&a[0])||null;}).catch(function(){st.cfg=null;}).then(function(){rGiorni();rOrari();});
+}
+function fatto(){
+  q('invia').style.display='none';
+  Array.prototype.forEach.call(document.querySelectorAll('#form > :not(h2):not(.ok):not(.val)'),function(e){e.style.display='none';});
+  q('ok').style.display='block';
+  var d=new Date(st.g+'T12:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+  q('ok-t').textContent=d+' alle '+st.o+' · '+st.p+(st.p===1?' persona':' persone');
+  ev((D.tracking&&D.tracking.evento_prenotazione)||'prenotazione_completata','Schedule',{coperti:st.p});
+}
+function invia(){
+  var nome=q('nome').value.trim(),tel=q('tel').value.replace(/[^0-9+]/g,''),em=q('mail').value.trim(),man=[];
+  if(!nome)man.push('il nome');if(tel.replace('+','').length<8)man.push('il telefono');if(!st.g)man.push('il giorno');if(!st.t)man.push('pranzo o cena');if(!st.o)man.push("l'orario");
+  if(man.length){msg('Per prenotare mancano: '+man.join(', ')+'.',true);return;}
+  if(!q('priv').checked){msg('Serve il consenso al trattamento dei dati per prenotare.',true);return;}
+  if(tel.charAt(0)!=='+'){tel=tel.indexOf('0039')===0?'+'+tel.slice(2):'+39'+tel;}
+  var L=D.landing;
+  var tok=(window.crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,32);
+  var rif=JSON.stringify({landing:'promo-piatto',slug:SLUG,piatto:L.piatto,turno:st.t,utm_source:P.get('utm_source'),utm_medium:P.get('utm_medium'),utm_campaign:P.get('utm_campaign')});
+  var b=q('invia');b.disabled=true;b.textContent='Invio…';msg('');
+  fetch(SB+'/rest/v1/prenotazioni_tavoli',{method:'POST',headers:Object.assign({},H,{'Prefer':'return=minimal'}),
+    body:JSON.stringify({azienda_id:L.azienda_id,sede_id:L.sede_id||null,cliente_nome:nome,cliente_telefono:tel,cliente_email:em||null,data:st.g,ora:st.o,coperti:st.p,
+      stato:'in_attesa',canale:'online',note:L.piatto+(L.validita_testo?' · '+L.validita_testo:'')+' · '+st.t,token_pubblico:tok,source:(P.get('utm_source')||'landing_promo'),riferimento:rif})})
+  .then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error(t||'errore');});
+    fetch(SB+'/functions/v1/prenotazione-notifica-tavolo',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({token_pubblico:tok})}).catch(function(){});
+    fatto();})
+  .catch(function(){b.disabled=false;b.textContent='Prenota il tavolo';msg('Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.',true);});
+}
+/* ---- avvio ---- */
+if(!SLUG){q('app').innerHTML='<div class="carica">Pagina non trovata.</div>';return;}
+fetch(SB+'/rest/v1/rpc/landing_promo_pubblica',{method:'POST',headers:H,body:JSON.stringify({p_slug:SLUG})}).then(function(r){return r.json();}).then(function(j){
+  if(!j||!j.landing){q('app').innerHTML='<div class="carica">Questa promozione non è più disponibile.</div>';return;}
+  D=j;TR=j.tracking||{};render();montaTag();
+}).catch(function(){q('app').innerHTML='<div class="carica">Non riusciamo a caricare la pagina. Riprova tra un attimo.</div>';});
+})();
+</script>
+</body>
+</html>
