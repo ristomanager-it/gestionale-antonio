@@ -599,7 +599,7 @@ function addMessage(text, type, opts = {}) {
         card.appendChild(esito);
         if (j.success && j.link) {
           const vai = document.createElement("button");
-          vai.textContent = j.link.includes("preparazioni") ? "▶ Apri la lavorazione" : "📋 Apri il planning";
+          vai.textContent = j.link.includes("bo-template") ? "📣 Apri le campagne" : j.link.includes("preparazioni") ? "▶ Apri la lavorazione" : "📋 Apri il planning";
           vai.style.cssText = "margin-top:8px;background:#0E5A7A;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;";
           vai.onclick = () => { location.hash = j.link; };
           card.appendChild(vai);
