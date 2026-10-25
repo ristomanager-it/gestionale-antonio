@@ -580,6 +580,16 @@ export async function render(container) {
     if (!validation.ok) {
       showMessage(validation.message, true);
       window._rfTrack?.('error', 'validazione_fallita', { step: 'submit_tentativo', valore: validation.message });
+      // il messaggio compare in basso: si porta sullo schermo e si evidenzia il primo campo mancante
+      try {
+        document.getElementById("msg")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const campo = validation.campo && document.getElementById(validation.campo);
+        if (campo && campo.type !== "hidden" && campo.offsetParent) {
+          campo.style.outline = "2px solid #dc2626";
+          campo.focus({ preventScroll: true });
+          setTimeout(() => { campo.style.outline = ""; }, 4000);
+        }
+      } catch {}
       return;
     }
     if (config.policy?.enabled) {
