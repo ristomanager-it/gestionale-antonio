@@ -1577,8 +1577,13 @@ function apriVideo(u){
     <a href="index.html">Home</a><a href="chi-siamo.html">Chi siamo</a>
     <a href="menu.html">Menu</a><a href="contatti.html">Contatti</a>
   </div>
-  <!-- intestazione libera: Prenota sta nel grande pulsante sotto e nella barra in basso -->
-</nav>`;
+  <button class="nav-burger" type="button" aria-label="Menu" aria-expanded="false" onclick="var p=document.getElementById('nav-panel');var o=p.classList.toggle('open');this.setAttribute('aria-expanded',o);this.textContent=o?'✕':'☰';">☰</button>
+</nav>
+<div id="nav-panel" class="nav-panel">
+  <a href="index.html">Home</a><a href="chi-siamo.html">Chi siamo</a><a href="menu.html">Menu</a><a href="contatti.html">Contatti</a>
+  <a class="np-p" href="${esc(formUrl)}">🗓 ${esc(cta)}</a>
+  ${tel ? `<a class="np-c" href="tel:${esc(tel)}">📞 Chiama</a>` : ""}
+</div>`;
 
     const ctaBar = `<div class="cta-bar">
   <a class="cta-p" href="${esc(formUrl)}">🗓 Prenota</a>
