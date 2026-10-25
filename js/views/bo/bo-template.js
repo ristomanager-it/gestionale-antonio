@@ -938,7 +938,9 @@ export async function render(container) {
           <span style="font-size:18px;">${c.piattaforma === 'meta' ? '📘' : '🔎'}</span>
           <div style="flex:1;min-width:0;"><div style="font-weight:600;color:#0f172a;">${c.nome || c.modello}</div>
             <div style="font-size:12px;color:#94a3b8;">Creata in pausa il ${d} · ${(c.budget_giornaliero_cent || 0) / 100} €/giorno</div></div>
-          <a href="${link}" target="_blank" style="color:#0E5A7A;font-weight:600;white-space:nowrap;">Apri e attiva ›</a></div>`;
+          <a href="${link}" target="_blank" style="color:#0E5A7A;font-weight:600;white-space:nowrap;">Apri e attiva ›</a></div>
+          <div style="padding:0 0 10px 28px;"><button type="button" onclick="const p=this.nextElementSibling;const a=p.style.display==='none';p.style.display=a?'block':'none';this.textContent=a?'Nascondi ▾':'Dettagli ›'" style="background:none;border:0;color:#0E5A7A;font-weight:600;cursor:pointer;padding:0;font-size:12.5px;">Dettagli ›</button>
+            <div style="display:none;margin-top:6px;font-size:12.5px;color:#334155;line-height:1.6;">${dettaglio(c)}</div></div></div>`;
       }).join('');
     } catch (e) { box.innerHTML = '<span style="color:#94a3b8;">Elenco non disponibile.</span>'; }
   }
