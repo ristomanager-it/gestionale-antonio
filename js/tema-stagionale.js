@@ -114,6 +114,7 @@
       // un solo pipistrello: arriva, saluta e se ne va. Non torna fino alla prossima apertura dell'app.
       // voce italiana (se il telefono la lascia partire da sola; altrimenti basta toccare il fumetto)
       var nomeSaluto = "";
+      try { if (window.speechSynthesis) speechSynthesis.getVoices(); } catch (e) {}  // le voci si caricano con calma: le sveglio subito
       var parla = function (testo) {
         try {
           if (!window.speechSynthesis || !testo) return;
