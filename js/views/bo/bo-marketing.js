@@ -993,7 +993,7 @@ export async function render(container) {
         <!-- Info sviluppo -->
         <div class="gads-card" style="background:#fef3c7;border-color:#fde68a;">
           <div style="font-size:13px;color:#92400e;">
-            <strong>⚠️ Integrazione Google Ads in sviluppo</strong><br>
+            <strong>✅ Google Ads collegato</strong><br>
             <div style="margin-top:6px;line-height:1.6;">
               Le API Google Ads richiedono un <strong>Developer Token</strong> approvato da Google (processo di approvazione 1-2 settimane). 
               Nel frattempo puoi:<br>
