@@ -29,7 +29,7 @@ async function injectTracking(aziendaId) {
       .select('meta_pixel_id, gtm_id, ga4_id, ga4_evento_prenotazione, gads_id, gads_etichetta')
       .eq('azienda_id', aziendaId)
       .maybeSingle();
-    if (!data || (!data.meta_pixel_id && !data.gtm_id)) return;
+    if (!data || (!data.meta_pixel_id && !data.gtm_id && !data.ga4_id && !data.gads_id)) return;
     // Meta e Google si caricano solo se il visitatore ha accettato
     if (!(await rfChiediConsenso())) return;
     if (data.meta_pixel_id) {
