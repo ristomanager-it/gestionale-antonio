@@ -1997,7 +1997,7 @@ function fatto(){
 q('lp-invia').onclick=function(){
   T('submit_tentativo');
   var nome=q('lp-nome').value.trim(),tel=q('lp-tel').value.replace(/[^0-9+]/g,''),em=q('lp-mail').value.trim(),man=[];
-  if(!nome)man.push('il nome');if(tel.replace('+','').length<8)man.push('il telefono');if(!st.g)man.push('il giorno');if(!st.o)man.push("l'orario");
+  if(!nome)man.push('il nome');if(tel.replace('+','').length<8)man.push('il telefono');if(!st.g)man.push('il giorno');if(!st.t)man.push('pranzo o cena');if(!st.o)man.push("l'orario");
   if(man.length){msg('Per prenotare mancano: '+man.join(', ')+'.',true);try{window._rfTrack('error','validazione_fallita',{step:'submit_tentativo',valore:man.join(',')});}catch(e){}return;}
   if(!q('lp-priv').checked){msg('Serve il consenso al trattamento dei dati per prenotare.',true);return;}
   if(tel.charAt(0)!=='+'){tel=tel.indexOf('0039')===0?'+'+tel.slice(2):'+39'+tel;}
