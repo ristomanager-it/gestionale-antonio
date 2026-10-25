@@ -1507,9 +1507,20 @@ ${nav}
           ? copertina.map((u,i) => `<img src="${esc(u)}" class="cop" style="animation-delay:${i*5}s" alt="">`).join("")
           : (copertina[0] ? `<img src="${esc(copertina[0])}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85;" alt="">` : ""))}
   </div>
-  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.7) 0%,rgba(0,0,0,.2) 60%,transparent 100%);"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.6) 0%,rgba(0,0,0,.1) 55%,transparent 100%);"></div>
   <div style="position:relative;z-index:2;width:100%;max-width:1100px;margin:0 auto;padding:0 20px 34px;text-align:left;">
-    <div class="eyebrow">Orte · uscita A1</div>
+    <div id="rf-aperto" style="display:none;background:rgba(255,255,255,.95);color:#1f2937;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;margin-bottom:10px;"></div>
+    <script>(function(){var S=${JSON.stringify(fasce)};var el=document.getElementById('rf-aperto');if(!S.length||!el)return;
+var n=new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Rome'}));var g=n.getDay(),m=n.getHours()*60+n.getMinutes();
+function mm(h){var p=h.split(':');return (+p[0])*60+(+p[1]);}
+function aperta(s,d){return s.chiusi.indexOf(d)<0;}
+var txt='',ok=false;
+for(var i=0;i<S.length;i++){var s=S[i];if(aperta(s,g)&&m>=mm(s.da)&&m<mm(s.a)){txt='Aperto ora · fino alle '+s.a;ok=true;break;}}
+if(!ok){var best=null;
+for(var k=0;k<3&&!best;k++){var d=(g+k)%7;for(var j=0;j<S.length;j++){var t=S[j];if(!aperta(t,d))continue;var inizio=mm(t.da);if(k===0&&inizio<=m)continue;if(!best||inizio<best.i){best={k:k,i:inizio,da:t.da};}}}
+if(best)txt='Chiuso · riapre '+(best.k===0?'alle ':(best.k===1?'domani alle ':'dopodomani alle '))+best.da;}
+if(txt){el.textContent=(ok?'🟢 ':'🔴 ')+txt;el.style.display='inline-block';}})();</script>
+    <div class="eyebrow" style="color:var(--accl)">Orte · uscita A1</div>
     <h1 class="h2" style="color:#fff;font-size:clamp(31px,8vw,58px);line-height:1.06;margin:8px 0 10px;text-shadow:0 2px 12px rgba(0,0,0,.5);">${esc(conf.hero_titolo || nome)}</h1>
     ${conf.hero_sub ? `<p style="font-size:16px;color:rgba(255,255,255,.9);margin-bottom:20px;max-width:34ch;text-shadow:0 1px 6px rgba(0,0,0,.5);">${esc(conf.hero_sub)}</p>` : ""}
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
