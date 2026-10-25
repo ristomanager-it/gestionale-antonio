@@ -31,7 +31,13 @@ export async function render(container) {
   }
   container.innerHTML = '<section class="view" style="padding:16px;"><p style="color:#64748b;">Caricamento menu del giorno…</p></section>';
 
-  const oggi = new Date().toISOString().slice(0, 10);
+  // giorno locale (toISOString dava ancora "ieri" dopo mezzanotte) e giorno su cui si lavora:
+  // oggi, oppure ?data=AAAA-MM-GG (es. il menu di domani, da scrivere la sera prima)
+  const dataLoc = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const oggi = dataLoc(new Date());
+  const domaniIso = dataLoc(new Date(Date.now() + 86400000));
+  const giornoReq = new URLSearchParams((window.location.hash.split("?")[1] || "")).get("data") || "";
+  const giorno = /^\d{4}-\d{2}-\d{2}$/.test(giornoReq) ? giornoReq : oggi;
   const s = supa();
 
   // Ricette divise per portata (categoria_food) — filtrate per sede
