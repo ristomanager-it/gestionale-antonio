@@ -290,7 +290,7 @@ export async function render(container) {
                 <option value="menu_business">🍝 Menu business (pranzo e cena a prezzo fisso)</option>
                 <option value="compleanni">🎂 Compleanni (la torta in regalo)</option>
               </select></div>
-            <div style="font-size:13px;color:#64748b;margin-bottom:14px;">Pubblico: chi compie gli anni il mese prossimo, vicino al locale. Annuncio con foto dalla tua libreria e bottone che porta al form "la torta è il nostro regalo".</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:14px;">Tony prepara pubblico, foto e testi in base al modello e porta le persone alla pagina di prenotazione giusta. Scegli su quale piattaforma crearla: nasce sempre <b>in pausa</b>, la accendi tu.</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;">
               <div><div class="sezione-label">Sede</div>
                 <select id="meta-sede" class="input" style="width:100%;box-sizing:border-box;">
