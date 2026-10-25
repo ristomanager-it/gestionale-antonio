@@ -930,7 +930,7 @@ export async function render(container) {
     const esito = container.querySelector('#meta-esito');
     const cittaV = (metaCitta?.value || '').trim();
     if (!cittaV) { esito.innerHTML = '<span style="color:#dc2626;">Indica la città per il targeting.</span>'; return; }
-    if (!confirm('Tony creerà la campagna Compleanni su Meta IN PAUSA (nessuna spesa finché non la attivi). Procedo?')) return;
+    if (!confirm('Tony creerà la campagna "' + (metaModello?.selectedOptions[0]?.textContent || 'Compleanni') + '" su Meta IN PAUSA (nessuna spesa finché non la attivi). Procedo?')) return;
     esito.innerHTML = '<span style="color:#64748b;">⏳ Creazione in corso (30-60 secondi)...</span>';
     btnMetaCrea.disabled = true;
     try {
