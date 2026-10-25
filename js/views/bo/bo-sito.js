@@ -1378,12 +1378,22 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 // Video a schermo pieno al tocco: sul telefono un video incastrato in una
 // colonna non si guarda, cosi' si apre grande e con l'audio.
 function apriVideo(u){
+  /* si apre a schermo pieno: video con l'audio, foto grande. Si segna quanti guardano (e quanto) */
+  var img=/\\.(jpe?g|png|webp|gif|avif)(\\?|$)/i.test(String(u));
+  try{window._rfTrack&&window._rfTrack('click',img?'foto_apri':'video_apri',{valore:String(u).slice(-60)});}catch(e){}
   var o=document.createElement('div');
   o.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:12px';
-  o.innerHTML='<video src="'+u+'" controls autoplay playsinline style="max-width:100%;max-height:92vh;border-radius:12px"></video>'
+  o.innerHTML=(img
+      ? '<img src="'+u+'" alt="" style="max-width:100%;max-height:92vh;border-radius:12px">'
+      : '<video src="'+u+'" controls autoplay playsinline style="max-width:100%;max-height:92vh;border-radius:12px"></video>')
     +'<div style="position:absolute;top:14px;right:18px;color:#fff;font-size:30px;line-height:1">&times;</div>';
   o.onclick=function(){o.remove()};
   document.body.appendChild(o);
+  if(!img){
+    var v=o.querySelector('video'),meta=0;
+    v.addEventListener('timeupdate',function(){if(!meta&&v.duration&&v.currentTime/v.duration>=.5){meta=1;try{window._rfTrack('click','video_meta',{});}catch(e){}}});
+    v.addEventListener('ended',function(){try{window._rfTrack('click','video_fine',{});}catch(e){}});
+  }
 }
 (function(){
   var SID=sessionStorage.getItem('rf_sid')||(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
