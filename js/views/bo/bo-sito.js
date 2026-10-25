@@ -1330,7 +1330,7 @@ a{text-decoration:none;color:inherit}
 .reel-item video,.reel-item img{width:100%;height:100%;object-fit:cover}
 .reel-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(26,18,9,.75) 0%,transparent 50%);display:flex;flex-direction:column;justify-content:flex-end;padding:18px}
 .reel-lbl{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:#fff;margin-bottom:3px}
-.reel-sub{font-size:10px;letter-spacing:2px;color:var(--acc);text-transform:uppercase}
+.reel-sub{font-size:10px;letter-spacing:2px;color:var(--accl);text-transform:uppercase}
 .mare-s{background:var(--scuro);padding:72px 20px}
 .mare-i{max-width:700px;margin:0 auto;color:#fff}
 .mare-q{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,4vw,34px);font-style:italic;line-height:1.4;margin-bottom:24px;border-left:2px solid var(--acc);padding-left:20px}
