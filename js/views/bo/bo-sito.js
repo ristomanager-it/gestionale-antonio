@@ -1329,8 +1329,8 @@ a{text-decoration:none;color:inherit}
 .cta-bar a{flex:1;padding:14px 4px;text-align:center;font-size:12.5px;font-weight:800;letter-spacing:.2px}
 .cta-p{background:var(--btn);color:#fff}
 .cta-c{background:#2e7d32;color:#fff}
-.cta-i{background:#fff;color:var(--btn)}
-.cta-m{background:#fff;color:#4b3b25;border-left:1px solid #e6dccb}
+.cta-i{background:#1f5f8b;color:#fff}
+.cta-m{background:#efe6d6;color:#4b3b25}
 .section{padding:72px 20px;max-width:700px;margin:0 auto}
 .eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--acc);margin-bottom:10px;font-weight:600}
 .h2{font-family:'Cormorant Garamond',serif;font-size:clamp(26px,5vw,44px);font-weight:600;line-height:1.1;margin-bottom:16px}
