@@ -106,7 +106,7 @@ export async function render(container) {
   });
 
   // Scadenze materie prime (ricezione barcode) entro 7 giorni
-  const inX = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const inX = dataLoc(new Date(new Date(giorno + "T12:00:00").getTime() + 7 * 86400000));
   const { data: scadRic } = await s.from("ordini_fornitore_ricezioni_righe")
     .select("prodotto_id, data_scadenza, lotto, quantita_ricevuta")
     .eq("azienda_id", azienda.id).not("data_scadenza", "is", null)
