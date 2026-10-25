@@ -1015,7 +1015,7 @@ export async function render(container) {
 
         <!-- Campagne -->
         <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px;">📋 Campagne attive</div>
-        <div class="gads-card" style="text-align:center;color:#94a3b8;padding:32px;">
+        <div id="google-campagne-lista" class="gads-card" style="text-align:center;color:#94a3b8;padding:32px;">
           Campagne disponibili dopo approvazione Developer Token Google
         </div>
 
