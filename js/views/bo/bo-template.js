@@ -934,7 +934,7 @@ export async function render(container) {
           ? `https://www.facebook.com/adsmanager/manage/campaigns/edit?act=${ids.account}&selected_campaign_ids=${ids.campagna}`
           : `https://ads.google.com/aw/campaigns?campaignId=${ids.campagna}&__e=${ids.customer}`;
         const d = new Date(c.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+        return `<div style="border-bottom:1px solid #f1f5f9;"><div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
           <span style="font-size:18px;">${c.piattaforma === 'meta' ? '📘' : '🔎'}</span>
           <div style="flex:1;min-width:0;"><div style="font-weight:600;color:#0f172a;">${c.nome || c.modello}</div>
             <div style="font-size:12px;color:#94a3b8;">Creata in pausa il ${d} · ${(c.budget_giornaliero_cent || 0) / 100} €/giorno</div></div>
