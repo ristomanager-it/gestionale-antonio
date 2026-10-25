@@ -1604,6 +1604,7 @@ function apriVideo(u){
   <a href="index.html">Home</a><a href="chi-siamo.html">Chi siamo</a><a href="menu.html">Menu</a><a href="contatti.html">Contatti</a>
   <a class="np-p" href="${esc(formUrl)}">🗓 ${esc(cta)}</a>
   ${tel ? `<a class="np-c" href="tel:${esc(tel)}">📞 Chiama</a>` : ""}
+  ${waUrl ? `<a class="np-w" href="${esc(waUrl)}">💬 WhatsApp</a>` : ""}
 </div>`;
 
     const ctaBar = `<div class="cta-bar">
