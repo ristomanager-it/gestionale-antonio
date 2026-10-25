@@ -1323,8 +1323,8 @@ a{text-decoration:none;color:inherit}
 .reel-testo p{font-size:14.5px;line-height:1.6;color:var(--grigio)}
 .reel-tocca{position:absolute;right:10px;bottom:10px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;padding:5px 10px;border-radius:999px;pointer-events:none}
 .cop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;animation:cop 30s infinite}
-@keyframes cop{0%{opacity:0}3%{opacity:.55}16%{opacity:.55}20%{opacity:0}100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.cop{animation:none;opacity:0}.cop:first-of-type{opacity:.55}}
+@keyframes cop{0%{opacity:0}3%{opacity:.85}16%{opacity:.85}20%{opacity:0}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.cop{animation:none;opacity:0}.cop:first-of-type{opacity:.85}}
 .reel-item{position:relative;aspect-ratio:3/4;max-height:38svh;overflow:hidden;background:var(--scuro);border-radius:12px;cursor:pointer}
 .reel-item video{width:100%;height:100%;object-fit:cover}
 .reel-item video,.reel-item img{width:100%;height:100%;object-fit:cover}
