@@ -953,6 +953,13 @@ ${hotelSection}
 let tonyMetaMode = false;
 const META_KEYWORDS = ["campagn", "facebook", "instagram", " meta", "meta ", "sponsorizz", "inserzion", "pubblicit", "pubblica", " ads", "adset", "lookalike", "pixel", "promo", "landing", "2x1", "google ads", "adwords"];
 
+// durante una conversazione sulle campagne anche le risposte lunghe a voce (date, giorni, budget, turni...) restano allo specialista
+function seguiCampagna(testo) {
+  if (!tonyMetaMode) return false;
+  const t = (testo || "").trim();
+  return t.length <= 60 || (t.length <= 500 && /euro|budget|giorn|settiman|chilomet|\bkm\b|parti|inizi|domani|dopodomani|luned|marted|mercoled|gioved|venerd|sabato|domenica|cena|pranzo|foto|testo|titolo|annunci|\bmeta\b|google|conferm|accend|spegn|pausa|raggio|target|piatto|motivazion/i.test(t));
+}
+
 function isMetaIntent(text) {
   const t = " " + (text || "").toLowerCase() + " ";
   return META_KEYWORDS.some(k => t.includes(k));
