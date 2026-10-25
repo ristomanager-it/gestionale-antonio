@@ -300,7 +300,10 @@ export async function render(container) {
               <div><div class="sezione-label">Raggio km</div><input id="meta-raggio" class="input" type="number" value="25" min="5" max="80" style="width:100%;box-sizing:border-box;"></div>
               <div><div class="sezione-label">Budget €/giorno</div><input id="meta-budget" class="input" type="number" value="5" min="1" style="width:100%;box-sizing:border-box;"></div>
             </div>
-            <button id="btn-meta-crea" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">🎂 Crea campagna (in pausa)</button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button id="btn-meta-crea" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">📘 Crea su Meta (in pausa)</button>
+              <button id="btn-google-crea" style="background:#fff;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">🔎 Crea su Google (in pausa)</button>
+            </div>
             <div id="meta-esito" style="margin-top:12px;font-size:13px;"></div>
           </div>
 
