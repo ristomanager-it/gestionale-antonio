@@ -1934,6 +1934,8 @@ body{background:#fbf7f0;color:#3b2412}
 .lp-ch{background:#fff;border:1px solid var(--btn);color:var(--btn)}
 .lp-ft{margin-top:30px;padding:26px 22px 34px;background:#2a1a0d;color:#f3e9d6;font-size:14px;line-height:1.6}
 .lp-ft b{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#fff;margin-bottom:6px}
+.lp-mappa{padding:34px 20px 0}
+.lp-frame{display:block;width:100%;height:250px;border:0;border-radius:14px;margin-bottom:14px;background:#e8dcc8}
 `;
       const lpJs = `(function(){
 var SB='${SUPABASE_URL}',KEY='${ANON_KEY}',AZ='${aziendaId}',SEDE='${sedeId}',MAXLP=20;
