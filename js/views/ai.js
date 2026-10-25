@@ -1180,10 +1180,19 @@ async function sendVoiceMessage() {
   const loading = addMessage("Tony sta ascoltando...", "ai");
 
   try {
-    const data = await callTony(conversation, audioBase64);
+    let data = await callTony(conversation, audioBase64);
     if (loading) loading.parentElement?.remove();
 
     const voiceInput = data?.voice_input;
+    // il vocale viene trascritto dal server: se si parla di campagne/pubblicita' (o e' la risposta breve a una domanda di Tony sulle campagne)
+    // la richiesta passa allo specialista delle campagne, che prepara la scheda
+    if (voiceInput && data?.fonte !== "campagne" && (isMetaIntent(voiceInput) || (tonyMetaMode && voiceInput.trim().length <= 60))) {
+      try {
+        data = await callTonyMeta([...conversation, { role: "user", content: voiceInput }]);
+        tonyMetaMode = true;
+        data.voice_input = voiceInput;
+      } catch (e) { console.warn("Routing campagne da vocale fallito, resta la risposta di Tony:", e); }
+    }
     if (voiceInput) {
       if (barText) barText.textContent = `"${voiceInput}"`;
       addMessage(voiceInput, "user", { isVoice: true });
