@@ -1558,9 +1558,9 @@ if(txt){el.textContent=(ok?'🟢 ':'🔴 ')+txt;el.style.display='inline-block';
     ${conf.hero_sub ? `<p style="font-size:16px;color:rgba(255,255,255,.9);margin-bottom:20px;max-width:34ch;text-shadow:0 1px 6px rgba(0,0,0,.5);">${esc(conf.hero_sub)}</p>` : ""}
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:min(100%,430px);">
       <div id="rf-aperto" style="display:none;background:rgba(255,255,255,.96);color:#1f2937;font-size:14px;font-weight:700;padding:7px 14px;border-radius:999px;text-align:center;"></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
-        <a class="btn" href="${esc(formUrl)}" style="font-size:15px;padding:14px 26px;margin-top:6px;">🗓 ${esc(cta)}</a>
-        ${tel ? `<a class="btn-ghost" href="tel:${esc(tel)}" style="margin-top:6px;margin-left:0;">📞 Chiama</a>` : ""}
+      <div style="display:flex;gap:10px;width:100%;">
+        <a class="btn" href="${esc(formUrl)}" style="flex:1 1 0;text-align:center;font-size:14.5px;padding:15px 8px;margin:6px 0 0;">🗓 ${esc(cta)}</a>
+        ${tel ? `<a class="btn" href="tel:${esc(tel)}" style="flex:1 1 0;text-align:center;font-size:14.5px;padding:15px 8px;margin:6px 0 0;background:#fff;color:var(--btn);">📞 Chiama</a>` : ""}
       </div>
     </div>
     ${fatti.length ? `<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;">${fatti.map(f => f.charAt(0) === "\u2605"
