@@ -2023,7 +2023,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
 }).catch(function(){});
 })();`;
       // WhatsApp dalla landing: il codice (rif. PB25) fa partire il percorso del pranzo business e segna da dove arriva la prenotazione
-      const lpWa = waUrl ? waUrl.split("?text=")[0] + "?text=" + encodeURIComponent("Buongiorno, vorrei prenotare il pranzo business. (rif. PB25)") : "";
+      const lpWa = waUrl ? waUrl.split("?text=")[0] + "?text=" + encodeURIComponent("Buongiorno, vorrei prenotare il menu business. (rif. MB25)") : "";
       landingPranzo = head("Menu business 25 €").replace("</head>", `<meta name="robots" content="noindex,nofollow">\n<style>${lpCss}</style>\n</head>`) + `
 <body>
 <main class="lp">
