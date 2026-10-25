@@ -998,7 +998,7 @@ export async function render(container) {
               Qui vedi i numeri e lo stato delle tue campagne, letti direttamente da Google. 
               Cosa puoi fare:<br>
               • Mettere in pausa o accendere una campagna con il pulsante accanto al nome<br>
-              • Vedere le statistiche tramite Supermetrics (già connesso)<br>
+              • Crearne una nuova: <b>Marketing › Messaggi › Campagne</b> (tocca "+ Nuova campagna")<br>
               • La creazione campagne dall'app sarà disponibile appena approvato il token
             </div>
           </div>
