@@ -890,6 +890,41 @@ export async function render(container) {
     syncCitta();
     metaSedeSel.addEventListener('change', () => { const o = metaSedeSel.selectedOptions[0]; metaCitta.value = (o && o.dataset.citta) || metaCitta.value; });
   }
+  // modello scelto: cambiano i valori di partenza; Google c'e' solo per i modelli che sa fare
+  const metaModello = container.querySelector('#meta-modello');
+  const aggiornaModello = () => {
+    const mb = (metaModello?.value || 'menu_business') === 'menu_business';
+    const r = container.querySelector('#meta-raggio'); if (r) r.value = mb ? 25 : 30;
+    const b = container.querySelector('#meta-budget'); if (b) b.value = mb ? 5 : 10;
+    const g = container.querySelector('#btn-google-crea'); if (g) g.style.display = mb ? '' : 'none';
+  };
+  if (metaModello) { metaModello.addEventListener('change', aggiornaModello); aggiornaModello(); }
+
+  // elenco delle campagne create dall'app (la riga dice come sono nate: la accensione la vedi nella piattaforma)
+  async function caricaCampagne() {
+    const box = container.querySelector('#campagne-lista');
+    if (!box) return;
+    try {
+      const sb = window.supabaseClient || window.supabase;
+      const { data } = await sb.from('campagne').select('piattaforma,modello,nome,budget_giornaliero_cent,ids,created_at')
+        .eq('azienda_id', aziendaId).order('created_at', { ascending: false }).limit(10);
+      if (!(data || []).length) { box.innerHTML = '<span style="color:#94a3b8;">Nessuna campagna ancora: creane una qui sopra.</span>'; return; }
+      box.innerHTML = data.map(c => {
+        const ids = c.ids || {};
+        const link = c.piattaforma === 'meta'
+          ? `https://www.facebook.com/adsmanager/manage/campaigns/edit?act=${ids.account}&selected_campaign_ids=${ids.campagna}`
+          : `https://ads.google.com/aw/campaigns?campaignId=${ids.campagna}&__e=${ids.customer}`;
+        const d = new Date(c.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+          <span style="font-size:18px;">${c.piattaforma === 'meta' ? '📘' : '🔎'}</span>
+          <div style="flex:1;min-width:0;"><div style="font-weight:600;color:#0f172a;">${c.nome || c.modello}</div>
+            <div style="font-size:12px;color:#94a3b8;">Creata in pausa il ${d} · ${(c.budget_giornaliero_cent || 0) / 100} €/giorno</div></div>
+          <a href="${link}" target="_blank" style="color:#0E5A7A;font-weight:600;white-space:nowrap;">Apri e attiva ›</a></div>`;
+      }).join('');
+    } catch (e) { box.innerHTML = '<span style="color:#94a3b8;">Elenco non disponibile.</span>'; }
+  }
+  caricaCampagne();
+
   const btnMetaCrea = container.querySelector('#btn-meta-crea');
   if (btnMetaCrea) btnMetaCrea.addEventListener('click', async () => {
     const esito = container.querySelector('#meta-esito');
