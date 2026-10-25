@@ -92,7 +92,7 @@ export async function render(container) {
   const escluse = new Set(Array.isArray(mgEsistente?.portate_escluse) ? mgEsistente.portate_escluse : []);
 
   // Storico ultimi 7 giorni (stessa sede) per evitare portate ravvicinate
-  const daFa = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const daFa = dataLoc(new Date(new Date(giorno + "T12:00:00").getTime() - 7 * 86400000));
   let hq = s.from("menu_giorno").select("data, voci").eq("azienda_id", azienda.id).gte("data", daFa).lt("data", oggi);
   hq = sede?.id ? hq.eq("sede_id", sede.id) : hq.is("sede_id", null);
   const { data: storico } = await hq;
