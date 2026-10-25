@@ -104,6 +104,7 @@ export async function render(app) {
           </div>`).join("")}
       </div>` : ""}
 
+      ${cardMenu}
       <div class="pr-griglia" style="margin-bottom:14px;">
         <button class="pr-btn" onclick="import('./js/components/etichetta-veloce.js?v='+(window.APP_V||1)).then(m=>m.apriEtichettaVeloce())"><i>🏷</i>Etichetta veloce</button>
         ${pulsante("🏭", "Produzione", "produzione")}
