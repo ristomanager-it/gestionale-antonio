@@ -1069,7 +1069,8 @@ export async function render(container) {
 
     // Listeners
     content.querySelector('#btn-nuova-campagna-google')?.addEventListener('click', () => {
-      content.querySelector('#modal-nuova-google').style.display = 'flex';
+      // la creazione vera (Menu business su Google e Meta) sta in Marketing › Messaggi › Campagne
+      window.location.hash = '#/bo-template?tab=metaads';
     });
     content.querySelector('#btn-chiudi-modal-google')?.addEventListener('click', () => {
       content.querySelector('#modal-nuova-google').style.display = 'none';
