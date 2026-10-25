@@ -1272,6 +1272,37 @@ export async function render(container) {
       }
     }
 
+    // ── orari ricavati dal testo libero ("Lunedì-sabato 12:00-14:30 (domenica chiuso a pranzo)"): servono per "Aperto ora" e per Google ──
+    const GIORNI_IT = ["domenica", "lunedi", "martedi", "mercoledi", "giovedi", "venerdi", "sabato"];   // getDay(): 0 = domenica
+    const fasciaDa = (testo) => {
+      const t = String(testo || "");
+      const m = /(\d{1,2})[:.](\d{2})\s*[-–]\s*(\d{1,2})[:.](\d{2})/.exec(t);
+      if (!m) return null;
+      const x = t.toLowerCase().replace(/ì/g, "i").replace(/ù/g, "u");
+      const chiusi = [];
+      GIORNI_IT.forEach((g, i) => {
+        if (new RegExp(g + "\\s*(?:sera|mattina|a pranzo|a cena)?\\s*chius").test(x) || new RegExp("chius\\w*\\s+(?:il\\s+|di\\s+)?" + g).test(x)) chiusi.push(i);
+      });
+      const p2 = (n) => String(n).padStart(2, "0");
+      return { da: p2(m[1]) + ":" + m[2], a: p2(m[3]) + ":" + m[4], chiusi };
+    };
+    const fasce = [fasciaDa(conf.orari_pranzo), fasciaDa(conf.orari_cena)].filter(Boolean);
+
+    // ── dati strutturati per Google e per gli assistenti (ChatGPT...): nome, indirizzo, telefono, orari, menu ──
+    const dom = String(conf.dominio || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const giorniSchema = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const indParti = String(conf.indirizzo || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const ld = {
+      "@context": "https://schema.org", "@type": "Restaurant", name: nome,
+      ...(dom ? { url: "https://" + dom, hasMenu: "https://" + dom + "/menu.html" } : {}),
+      ...(conf.telefono ? { telephone: conf.telefono } : {}),
+      ...(conf.foto_cover ? { image: conf.foto_cover } : {}),
+      ...(indParti.length ? { address: { "@type": "PostalAddress", streetAddress: indParti[0], ...(indParti[1] ? { addressLocality: indParti[1] } : {}), addressCountry: "IT" } } : {}),
+      ...(fasce.length ? { openingHoursSpecification: fasce.map((f) => ({ "@type": "OpeningHoursSpecification", dayOfWeek: giorniSchema.filter((_, i) => !f.chiusi.includes(i)), opens: f.da, closes: f.a })) } : {}),
+      acceptsReservations: true,
+    };
+    const jsonLd = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`;
+
     const fontUrl = font === "Inter" ? "Inter:wght@300;400;600;700"
       : font === "Playfair Display" ? "Playfair+Display:ital,wght@0,600;1,400"
       : font === "Montserrat" ? "Montserrat:wght@300;400;600;700"
