@@ -2003,7 +2003,7 @@ q('lp-invia').onclick=function(){
   if(tel.charAt(0)!=='+'){tel=tel.indexOf('0039')===0?'+'+tel.slice(2):'+39'+tel;}
   var tok=(window.crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,32);
   var src='';try{src=sessionStorage.getItem('rf_src')||'';}catch(e){}
-  var rif=JSON.stringify({landing:'pranzo-business',utm_source:P.get('utm_source'),utm_medium:P.get('utm_medium'),utm_campaign:P.get('utm_campaign'),sid:(function(){try{return sessionStorage.getItem('rf_sid');}catch(e){return null;}})()});
+  var rif=JSON.stringify({landing:'menu-business',turno:st.t,utm_source:P.get('utm_source'),utm_medium:P.get('utm_medium'),utm_campaign:P.get('utm_campaign'),sid:(function(){try{return sessionStorage.getItem('rf_sid');}catch(e){return null;}})()});
   var b=q('lp-invia');b.disabled=true;b.textContent='Invio...';msg('');
   fetch(SB+'/rest/v1/prenotazioni_tavoli',{method:'POST',headers:Object.assign({},H,{'Prefer':'return=minimal'}),
     body:JSON.stringify({azienda_id:AZ,sede_id:SEDE||null,cliente_nome:nome,cliente_telefono:tel,cliente_email:em||null,data:st.g,ora:st.o,coperti:st.p,
