@@ -53,7 +53,7 @@ export async function render(container) {
   PORTATE.forEach(p => { perPortata[p.key] = ricette.filter(r => r.categoria_food === p.key); });
 
   // Menu del giorno di oggi (se esiste)
-  let q = s.from("menu_giorno").select("*").eq("azienda_id", azienda.id).eq("data", oggi);
+  let q = s.from("menu_giorno").select("*").eq("azienda_id", azienda.id).eq("data", giorno);
   q = sede?.id ? q.eq("sede_id", sede.id) : q.is("sede_id", null);
   const { data: mgData } = await q.maybeSingle();
   let mgEsistente = mgData || null;
