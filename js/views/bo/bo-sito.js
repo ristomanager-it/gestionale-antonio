@@ -2016,7 +2016,7 @@ q('lp-invia').onclick=function(){
     try{window._rfTrack('error','submit_db_error',{step:'submit',valore:String(e.message).slice(0,80)});}catch(x){}});
 };
 fetch(SB+'/rest/v1/prenotazioni_slot_config?azienda_id=eq.'+AZ+'&select=*',{headers:H}).then(function(r){return r.json();})
-  .then(function(a){st.cfg=(a&&a[0])||null;}).catch(function(){st.cfg=null;}).then(function(){renderGiorni();renderOrari();});
+  .then(function(a){st.cfg=(a&&a[0])||null;}).catch(function(){st.cfg=null;}).then(function(){renderGiorni();renderTurni();renderOrari();});
 fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.stringify({p_sede:SEDE})}).then(function(r){return r.json();}).then(function(m){
   var v=(m&&m.voci)||[];if(!v.length)return;
   var N={antipasti:'Antipasti',primi:'Primi',secondi:'Secondi',dessert:'Dessert'},h='';
