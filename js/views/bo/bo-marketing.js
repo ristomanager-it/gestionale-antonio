@@ -1143,6 +1143,58 @@ DESC 2: ...`;
       esito.textContent = '✅ Campagna salvata come bozza — attivazione disponibile dopo approvazione Developer Token';
       esito.style.color = '#15803d';
     });
+
+    // numeri e campagne letti da Google (ultimi 30 giorni), con pausa / attiva
+    (async () => {
+      const box = content.querySelector('#google-campagne-lista');
+      const stats = content.querySelector('#google-stats');
+      if (!box) return;
+      const escH = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      const eur = (v) => (Number(v) || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+      const num = (v) => (Number(v) || 0).toLocaleString('it-IT');
+      const card = (et, v) => `<div class="gads-card" style="text-align:center;"><div style="font-size:11px;color:#64748b;margin-bottom:4px;">${et}</div><div style="font-size:20px;font-weight:700;color:#4285F4;">${v}</div></div>`;
+      const chiama = async (corpo) => {
+        const tk = (await supa().auth.getSession())?.data?.session?.access_token || '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/google-ads-campagne`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tk || ANON_KEY}`, 'apikey': ANON_KEY },
+          body: JSON.stringify({ azienda_id: window.state?.azienda?.id, ...corpo }),
+        });
+        return await r.json();
+      };
+      const tipi = { SEARCH: 'Ricerca', DISPLAY: 'Display', PERFORMANCE_MAX: 'Performance Max', SMART: 'Smart' };
+      const carica = async () => {
+        box.style.cssText = 'text-align:center;color:#94a3b8;padding:32px;';
+        box.textContent = 'Caricamento campagne da Google…';
+        try {
+          const j = await chiama({ azione: 'elenco' });
+          if (!j.success) { box.textContent = 'Non riesco a leggere Google: ' + (j.error || 'errore'); return; }
+          if (stats) stats.innerHTML = card('Impressioni', num(j.totali.impressioni)) + card('Click', num(j.totali.clic)) + card('Spesa', eur(j.totali.spesa_eur)) + card('CPC medio', eur(j.totali.cpc_eur));
+          box.style.cssText = '';
+          box.className = '';
+          box.innerHTML = (j.campagne || []).map((c) => {
+            const on = c.stato === 'ENABLED';
+            return `<div class="gads-card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:180px;"><div style="font-weight:700;color:#0f172a;">${escH(c.nome)}</div>
+                <div style="font-size:12px;color:#64748b;">${tipi[c.tipo] || escH(c.tipo)} · budget ${eur(c.budget_eur)}/giorno · 30 giorni: ${eur(c.spesa_eur)} · ${num(c.clic)} click · ${Math.round((c.conversioni || 0) * 10) / 10} conv.</div></div>
+              <span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:${on ? '#dcfce7' : '#f1f5f9'};color:${on ? '#166534' : '#64748b'};">${on ? '● Attiva' : 'In pausa'}</span>
+              <button class="gads-btn btn-stato-google" data-id="${escH(c.id)}" data-nome="${escH(c.nome)}" data-nuovo="${on ? 'PAUSED' : 'ENABLED'}" style="background:${on ? '#fef2f2' : '#e0f2fe'};color:${on ? '#b91c1c' : '#075985'};">${on ? '⏸ Metti in pausa' : '▶ Attiva'}</button>
+            </div>`;
+          }).join('') || '<div class="gads-card" style="text-align:center;color:#94a3b8;">Nessuna campagna nell\'account.</div>';
+        } catch (e) { box.textContent = 'Non riesco a leggere Google: ' + e.message; }
+      };
+      box.addEventListener('click', async (ev) => {
+        const b = ev.target.closest('.btn-stato-google');
+        if (!b) return;
+        const accendi = b.dataset.nuovo === 'ENABLED';
+        if (!confirm((accendi ? 'ACCENDERE' : 'Mettere in PAUSA') + ' la campagna "' + b.dataset.nome + '"?' + (accendi ? '\n\nInizierà a spendere col suo budget giornaliero.' : ''))) return;
+        b.disabled = true; b.textContent = '…';
+        const j = await chiama({ azione: 'stato', campaign_id: b.dataset.id, stato: b.dataset.nuovo });
+        if (!j.success) { alert('Google non ha accettato la modifica: ' + (j.error || 'errore')); }
+        carica();
+      });
+      carica();
+    })();
   }
 
   /* ================= CONNESSIONI META ================= */
