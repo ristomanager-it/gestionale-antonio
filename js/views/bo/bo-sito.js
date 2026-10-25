@@ -1553,7 +1553,7 @@ if(!ok){var best=null;
 for(var k=0;k<3&&!best;k++){var d=(g+k)%7;for(var j=0;j<S.length;j++){var t=S[j];if(!aperta(t,d))continue;var inizio=mm(t.da);if(k===0&&inizio<=m)continue;if(!best||inizio<best.i){best={k:k,i:inizio,da:t.da};}}}
 if(best)txt='Chiuso · riapre '+(best.k===0?'alle ':(best.k===1?'domani alle ':'dopodomani alle '))+best.da;}
 if(txt){el.textContent=(ok?'🟢 ':'🔴 ')+txt;el.style.display='inline-block';}});</script>
-    <div class="eyebrow" style="color:var(--accl)">Orte · uscita A1</div>
+    <div class="eyebrow" style="color:#fff;font-size:15px;font-weight:700;letter-spacing:2.5px;text-shadow:0 2px 8px rgba(0,0,0,.65);margin-bottom:6px;">Orte · uscita A1</div>
     <h1 class="h2" style="color:#fff;font-size:clamp(31px,8vw,58px);line-height:1.06;margin:8px 0 10px;text-shadow:0 2px 12px rgba(0,0,0,.5);">${esc(conf.hero_titolo || nome)}</h1>
     ${conf.hero_sub ? `<p style="font-size:16px;color:rgba(255,255,255,.9);margin-bottom:20px;max-width:34ch;text-shadow:0 1px 6px rgba(0,0,0,.5);">${esc(conf.hero_sub)}</p>` : ""}
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
