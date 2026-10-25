@@ -2083,6 +2083,13 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
     </div>
   </div>
 
+  <div class="lp-mappa" id="mappa">
+    <h2 class="lp-h2">Come arrivare</h2>
+    <p class="lp-p2">${ind ? esc(ind) + " · " : ""}Uscita A1 Orte</p>
+    <iframe class="lp-frame" loading="lazy" title="Mappa" src="https://maps.google.com/maps?q=${lat},${lng}&z=14&output=embed"></iframe>
+    <a class="lp-cta" href="${esc(mapsUrl)}" style="margin-top:0">Apri le indicazioni</a>
+  </div>
+
   <div class="lp-ft"><b>${esc(nome)}</b>Orte · uscita A1${conf.orari_pranzo ? `<br>Pranzo: ${esc(conf.orari_pranzo)}` : ""}${conf.orari_cena ? `<br>Cena: ${esc(conf.orari_cena)}` : ""}</div>
 </main>
 <script>${lpJs}</script>
