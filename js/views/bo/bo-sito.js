@@ -1377,7 +1377,7 @@ a{text-decoration:none;color:inherit}
 .mi-d{font-size:11px;color:var(--grigio);margin-top:2px;line-height:1.4}
 .mi-p{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--acc);font-weight:600;white-space:nowrap}
 .loc-img{width:100%;height:280px;object-fit:cover;display:block}
-.rev-bg{background:var(--caldo);padding:72px 20px}
+.rev-bg{background:var(--caldo);padding:72px 20px;scroll-margin-top:64px}
 .rev-c{background:#fff;border-radius:12px;padding:20px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 .rev-strip{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px;margin:0 -20px;padding-left:20px;padding-right:20px}
 .rev-strip::-webkit-scrollbar{display:none}
