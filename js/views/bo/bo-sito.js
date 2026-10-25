@@ -2077,7 +2077,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
     </div>
     <div class="lp-sep"><i></i><span>oppure</span><i></i></div>
     <div class="lp-alt">
-      ${waUrl ? `<a class="lp-wa" href="${esc(waUrl)}">WhatsApp</a>` : ""}
+      ${lpWa ? `<a class="lp-wa" href="${esc(lpWa)}">WhatsApp</a>` : ""}
       ${tel ? `<a class="lp-ch" href="tel:${esc(tel)}">Chiama</a>` : ""}
     </div>
   </div>
