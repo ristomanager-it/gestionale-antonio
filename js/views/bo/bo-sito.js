@@ -1542,7 +1542,7 @@ ${nav}
   </div>
   <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.6) 0%,rgba(0,0,0,.1) 55%,transparent 100%);"></div>
   <div style="position:relative;z-index:2;width:100%;max-width:1100px;margin:0 auto;padding:0 20px 34px;text-align:left;">
-    <div id="rf-aperto" style="display:none;background:rgba(255,255,255,.95);color:#1f2937;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;margin-bottom:10px;"></div>
+    <!-- l'indicatore Aperto/Chiuso sta sopra i pulsanti Prenota e Chiama -->
     <script>document.addEventListener('DOMContentLoaded',function(){var S=${JSON.stringify(fasce)};var el=document.getElementById('rf-aperto');if(!S.length||!el)return;
 var n=new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Rome'}));var g=n.getDay(),m=n.getHours()*60+n.getMinutes();
 function mm(h){var p=h.split(':');return (+p[0])*60+(+p[1]);}
