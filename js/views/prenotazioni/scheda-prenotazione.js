@@ -842,6 +842,26 @@ const payload = {
   }
 
   function getOriginLabel(p) {
+    const can = String(p.canale || "").toLowerCase();
+    const src = String(p.source || "").toLowerCase();
+    let rif = {};
+    try { rif = typeof p.riferimento === "string" ? JSON.parse(p.riferimento || "{}") : (p.riferimento || {}); } catch (e) { rif = {}; }
+    if (!rif || typeof rif !== "object") rif = {};
+    let canTxt = can ? can.charAt(0).toUpperCase() + can.slice(1) : "";
+    if (can.includes("whatsapp")) canTxt = "💬 WhatsApp";
+    else if (can.includes("telefon") || can.includes("call")) canTxt = "📞 Telefono";
+    else if (can.includes("walk")) canTxt = "🚶 Di persona";
+    else if (can.includes("manual")) canTxt = "✍️ Inserita a mano";
+    else if (can.includes("online") || can.includes("web") || can.includes("widget") || can.includes("booking")) canTxt = "🌐 Modulo online";
+    let fonteTxt = "";
+    if (src.startsWith("landing") || rif.landing || rif.flusso) fonteTxt = "🎯 Landing " + String(rif.landing || rif.flusso || src.replace(/^landing_?/, "")).replace(/[-_]/g, " ");
+    else if (src.includes("google")) fonteTxt = "🔎 Google";
+    else if (src.includes("chatgpt") || src.includes("openai")) fonteTxt = "🤖 ChatGPT";
+    else if (src.includes("instagram") || src === "ig") fonteTxt = "📸 Instagram";
+    else if (src.includes("facebook") || src === "fb" || src.includes("meta")) fonteTxt = "📣 Facebook / Meta";
+    else if (src === "sito") fonteTxt = "🏠 Sito";
+    const nuovo = [fonteTxt, canTxt].filter(Boolean).join(" · ");
+    if (nuovo) return nuovo;
     const channel = String(p.canale || p.origine || p.source || "").trim();
     return channel || "Prenotazione";
   }
