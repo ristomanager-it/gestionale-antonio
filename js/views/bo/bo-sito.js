@@ -1281,7 +1281,7 @@ export async function render(container) {
 
     const css = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--btn:${clrBtn};--acc:${clrAcc};--scuro:#1A1209;--caldo:#F5EFE4;--grigio:#6B5E4E}
+:root{--btn:${clrBtn};--acc:${clrAcc};--accl:${clrAccChiaro};--scuro:#1A1209;--caldo:#F5EFE4;--grigio:#6B5E4E}
 html{scroll-behavior:smooth}
 body{font-family:'${font}',system-ui,sans-serif;background:#fff;color:var(--scuro);overflow-x:hidden}
 a{text-decoration:none;color:inherit}
