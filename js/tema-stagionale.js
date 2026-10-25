@@ -91,22 +91,12 @@
     st.textContent = css.join("\n");
     document.head.appendChild(st);
 
-    if (t.zucche) {
-      var testata = document.querySelector(".app-header");
-      if (testata) {
-        var fila = document.createElement("div");
-        fila.className = "rf-zucche";
-        for (var z = 0; z < 7; z++) {
-          var s = document.createElement("span");
-          s.className = "rf-zucca";
-          s.textContent = "🎃";
-          s.style.animationDelay = "-" + (z * 0.37).toFixed(2) + "s";
-          s.style.marginTop = (z % 2 ? "4px" : "0");
-          s.style.fontSize = (z % 2 ? "22px" : "26px");
-          fila.appendChild(s);
-        }
-        testata.appendChild(fila);
-      }
+    if (t.zucche && document.querySelector(".app-header")) {
+      var paura = document.createElement("div");
+      paura.className = "rf-zucca-paura";
+      paura.textContent = "🎃";
+      paura.addEventListener("animationend", function () { paura.remove(); });
+      document.body.appendChild(paura);
     }
 
     if (t.pipistrelli) {
