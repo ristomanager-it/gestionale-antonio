@@ -360,7 +360,7 @@ export async function render(container) {
 
   async function salva() {
     const voci = raccogliVoci();
-    const data = container.querySelector("#mg-data").value || oggi;
+    const data = container.querySelector("#mg-data").value || giorno;
     const mp = container.querySelector("#mg-mp").checked;
     const prezziVis = !!container.querySelector("#mg-prezzi-vis")?.checked;
     const prezzoFissoVis = !!container.querySelector("#mg-prezzo-vis")?.checked;
