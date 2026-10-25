@@ -1014,7 +1014,7 @@ export async function render(container) {
         </div>
 
         <!-- Campagne -->
-        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px;">📋 Campagne attive</div>
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px;">📋 Le tue campagne (ultimi 30 giorni)</div>
         <div id="google-campagne-lista" class="gads-card" style="text-align:center;color:#94a3b8;padding:32px;">
           Caricamento campagne da Google…
         </div>
