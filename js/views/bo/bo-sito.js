@@ -1479,6 +1479,7 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="description" content="${esc(conf.chisiamo_1?.slice(0,150)||'')}">
 ${jsonLd}
+${consensoScript}
 <meta property="og:title" content="${esc(nome)}">
 <meta property="og:image" content="${esc(conf.foto_cover||'')}">
 <title>${esc(title)} — ${esc(nome)}</title>
