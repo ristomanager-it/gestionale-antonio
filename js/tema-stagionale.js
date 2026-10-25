@@ -313,7 +313,7 @@
 
     // Tutto quello che si muove e puo' uscire dallo schermo (pipistrelli, slitte, neve) sta dentro una gabbia
     // che ritaglia: cosi' un elemento fuori dallo schermo non sposta la barra in basso su iPhone.
-    var mobili = document.querySelectorAll(".rf-bat, .rf-slitta, #neve-natale");
+    var mobili = document.querySelectorAll(".rf-bat, .rf-slitta, #neve-natale, .rf-zucca-paura");
     if (mobili.length) {
       var gabbia = document.createElement("div");
       gabbia.id = "rf-gabbia";
