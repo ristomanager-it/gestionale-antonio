@@ -1024,6 +1024,12 @@ function setupAutocompleteRicette() {
           return;
         }
         mostraEsitoScala(esito, data, extraPezzi);
+        // se la ricetta si moltiplica o si divide troppo, quasi sempre e' stato scelto l'ingrediente sbagliato
+        if (modo === "vincolo" && esito && Number(data.fattore) && (Number(data.fattore) >= 3 || Number(data.fattore) <= 0.34)) {
+          esito.insertAdjacentHTML("afterbegin", '<div style="padding:9px;border-radius:8px;background:#fff7e6;border-left:3px solid #d99a2b;font-size:13px;margin-bottom:8px;">⚠️ Con questa scelta la ricetta viene moltiplicata per <b>'
+            + String(data.fattore).replace(".", ",") + '</b>' + (data.porzioni_risultanti ? ' (' + data.porzioni_risultanti + ' porzioni)' : '')
+            + '. Controlla di aver scelto la voce giusta: accanto a ogni ingrediente c\'è quanto ne serve nella ricetta.</div>');
+        }
         return;
         const righe = (data.ingredienti || []).map((r) =>
           '<tr><td style="padding:4px 0;font-size:13px;">' + escapeHtml(r.ingrediente) + '</td>'
