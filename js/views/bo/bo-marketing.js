@@ -926,12 +926,17 @@ export async function render(container) {
     const supa = () => window.supabaseClient || window.supabase;
     content.innerHTML = '<div style="color:#94a3b8;padding:40px;text-align:center;">Caricamento...</div>';
 
-    // Carica connessioni Google Ads
-    const { data: connessioni } = await supa()
-      .from('google_ads_connessioni')
-      .select('*')
-      .eq('azienda_id', window.state?.azienda?.id)
-      .eq('attivo', true);
+    // Carica connessioni Google Ads (se l'app non ha ancora caricato l'azienda riprova un paio di volte, prima di dire "nessun account")
+    let connessioni = [];
+    for (let tentativo = 0; tentativo < 6; tentativo++) {
+      const aid = window.state?.azienda?.id;
+      if (aid) {
+        const r = await supa().from('google_ads_connessioni').select('*').eq('azienda_id', aid).eq('attivo', true);
+        connessioni = r.data || [];
+        if (connessioni.length) break;
+      }
+      await new Promise((ok) => setTimeout(ok, 500));
+    }
 
     if (!connessioni?.length) {
       content.innerHTML = `
