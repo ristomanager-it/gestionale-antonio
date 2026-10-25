@@ -959,6 +959,47 @@ export async function render(container) {
       esito.innerHTML = `<span style="color:#dc2626;">Errore di rete: ${err.message}</span>`;
     }
     btnMetaCrea.disabled = false;
+    caricaCampagne();
+  });
+
+  // stessa campagna su Google (Rete di ricerca): nasce in pausa col budget scelto
+  const btnGoogleCrea = container.querySelector('#btn-google-crea');
+  if (btnGoogleCrea) btnGoogleCrea.addEventListener('click', async () => {
+    const esito = container.querySelector('#meta-esito');
+    const modello = metaModello?.value || 'menu_business';
+    if (modello !== 'menu_business') { esito.innerHTML = '<span style="color:#dc2626;">Su Google per ora c\'è solo il modello Menu business.</span>'; return; }
+    const cittaV = (metaCitta?.value || '').trim();
+    if (!cittaV) { esito.innerHTML = '<span style="color:#dc2626;">Indica la città per il targeting.</span>'; return; }
+    if (!confirm('Tony creerà la campagna Menu business su Google (Rete di ricerca) IN PAUSA (nessuna spesa finché non la attivi). Procedo?')) return;
+    esito.innerHTML = '<span style="color:#64748b;">⏳ Creazione su Google in corso (circa 20 secondi)...</span>';
+    btnGoogleCrea.disabled = true;
+    try {
+      const tk = (await (window.supabaseClient || window.supabase).auth.getSession())?.data?.session?.access_token || ANON_KEY;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/tony-google-campagne`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tk}`, 'apikey': ANON_KEY },
+        body: JSON.stringify({
+          azienda_id: aziendaId,
+          sede_id: metaSedeSel?.value || null,
+          modello,
+          citta: cittaV,
+          raggio_km: Number(container.querySelector('#meta-raggio')?.value) || 25,
+          budget_cent: Math.round((Number(container.querySelector('#meta-budget')?.value) || 8) * 100),
+        }),
+      });
+      const j = await res.json();
+      if (j.success) {
+        esito.innerHTML = `<div style="color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">
+          ✅ Campagna Google creata <b>in pausa</b> · ${j.budget_giornaliero_eur} €/giorno ·
+          <a href="${j.ads_manager}" target="_blank" style="color:#0E5A7A;font-weight:600;">Aprila in Google Ads</a> per controllarla e attivarla.</div>`;
+      } else {
+        esito.innerHTML = `<span style="color:#dc2626;">Errore: ${j.error?.message || j.error || 'creazione non riuscita'}${j.codice === 'NON_COLLEGATO' ? ' — collega prima Google Ads in Configurazione → Integrazioni.' : ''}</span>`;
+      }
+    } catch (err) {
+      esito.innerHTML = `<span style="color:#dc2626;">Errore di rete: ${err.message}</span>`;
+    }
+    btnGoogleCrea.disabled = false;
+    caricaCampagne();
   });
 
   container.querySelectorAll('.rf-nav-btn').forEach(btn => {
