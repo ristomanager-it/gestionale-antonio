@@ -1519,6 +1519,10 @@ DESC 2: ...`;
 
     const content = container.querySelector("#bo-m-content")
 
+    // voce attiva evidenziata (e, da telefono, portata in vista nella barra)
+    container.querySelectorAll(".bo-m-item").forEach(x => x.classList.toggle("bo-m-sel", x.getAttribute("data-sec") === currentSection))
+    try { container.querySelector(".bo-m-sel")?.scrollIntoView({ inline: "center", block: "nearest" }) } catch (e) {}
+
     content.innerHTML = "<div style='padding:20px;'>Loading...</div>"
 
     try {
