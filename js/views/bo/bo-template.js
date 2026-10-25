@@ -306,6 +306,10 @@ export async function render(container) {
             </div>
             <div id="meta-esito" style="margin-top:12px;font-size:13px;"></div>
           </div>
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:16px;">
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px;">Le tue campagne</div>
+            <div id="campagne-lista" style="font-size:13px;color:#475569;">Caricamento…</div>
+          </div>
 
           <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;">
             <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px;">📋 Campagne create da Ristoflow</div>
