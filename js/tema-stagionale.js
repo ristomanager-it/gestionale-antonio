@@ -203,7 +203,26 @@
           if (nomeSaluto || tentativi >= 14) clearInterval(giro);
         }, 600);
         // parla solo nell'app (dove sa il nome), mai sulle pagine pubbliche dei clienti
-        setTimeout(function () { if (nomeSaluto) parla("Ciao " + nomeSaluto + "!"); }, 6300);
+        setTimeout(function () {
+          if (!nomeSaluto) return;
+          var testo = "Ciao " + nomeSaluto + "!";
+          // alcuni telefoni lasciano parlare da soli, altri no: se la voce e' bloccata, parla al primo tocco mentre il pipistrello e' ancora li'
+          var alPrimoTocco = function () {
+            var fatto = false;
+            var vai = function () {
+              if (fatto) return; fatto = true;
+              parla(testo);
+              document.removeEventListener("pointerdown", vai, true); document.removeEventListener("keydown", vai, true);
+            };
+            document.addEventListener("pointerdown", vai, true); document.addEventListener("keydown", vai, true);
+            setTimeout(function () { document.removeEventListener("pointerdown", vai, true); document.removeEventListener("keydown", vai, true); }, 6000);
+          };
+          var attiva = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+          if (attiva) {
+            parla(testo);
+            setTimeout(function () { try { if (window.speechSynthesis && !speechSynthesis.speaking && !speechSynthesis.pending) alPrimoTocco(); } catch (e) {} }, 700);
+          } else { alPrimoTocco(); }
+        }, 6300);
         ciao.addEventListener("click", function () { parla(nomeSaluto ? "Ciao " + nomeSaluto + "!" : ciao.textContent.replace(/[^A-Za-z\u00c0-\u00ff0-9\s!?,.]/g, "")); });
         b.style.left = p[1];
         b.style.fontSize = p[2] + "px";
