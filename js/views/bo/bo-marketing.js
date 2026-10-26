@@ -1299,7 +1299,7 @@ DESC 2: ...`;
     // l'anteprima si apre con un secondo tocco sul pulsante verde (il telefono blocca le aperture automatiche)
     btn.disabled = true; btn.textContent = 'Un attimo…';
     try {
-      const tk = (await supa().auth.getSession())?.data?.session?.access_token || ANON_KEY;
+      const tk = (await (window.supabaseClient || window.supabase).auth.getSession())?.data?.session?.access_token || ANON_KEY;
       const res = await fetch(`${SUPABASE_URL}/functions/v1/tony-anteprima-esistente`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tk}`, 'apikey': ANON_KEY },
