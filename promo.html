@@ -622,7 +622,7 @@ async function init() {
   window.__rfCons = false;
   // Meta e Google partono solo se il visitatore accetta i cookie (l'anteprima di Tony non carica niente)
   if (!promo.bozza && (pixelId || azienda?.gtm_id || azienda?.ga4_id || azienda?.gads_id)) {
-    rfChiediConsenso().then(function (ok) {
+    rfChiediConsenso(azienda && azienda.privacy_url).then(function (ok) {
       window.__rfCons = ok;
       if (!ok) return;
       if (pixelId) injectPixel(pixelId);
