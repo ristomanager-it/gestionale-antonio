@@ -9,7 +9,7 @@ let msgCache = [];
 export async function render(app) {
   const azienda = window.state?.azienda;
   app.innerHTML = `
-    <div style="max-width:1000px;margin:0 auto;padding:16px;">
+    <div style="width:100%;box-sizing:border-box;max-width:1000px;margin:0 auto;padding:16px;overflow-wrap:anywhere;">
       <h1 style="margin:0 0 4px;font-size:22px;">📨 Registro messaggi</h1>
       <div style="color:#64748b;font-size:13px;margin-bottom:16px;">${escapeHtml(azienda?.nome || "")} — messaggi inviati e ricevuti</div>
 
