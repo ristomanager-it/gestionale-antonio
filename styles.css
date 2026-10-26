@@ -2148,6 +2148,20 @@ min-width:0;
     overflow-x: clip;
   }
 
+  /* Alcune viste mettono un blocco "margin:0 auto" direttamente nell'app (Registro messaggi, Registro lotti,
+     Persone, Recensioni, Organizzazione...). In una colonna flex un blocco con margini automatici NON si adatta
+     al telefono: prende la larghezza del testo piu' lungo (fino a 1000px) e il resto esce a destra.
+     Qui lo si obbliga a stare nello schermo e ad andare a capo. */
+  #app > [style*="margin:0 auto"],
+  #app > [style*="margin: 0 auto"],
+  #app > [style*="margin:0px auto"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   /* Le tabelle larghe scorrono da sole, dentro il loro riquadro. */
   table {
     display: block;
