@@ -332,7 +332,7 @@ export async function render(container) {
       const p2 = prenPer[g] || 0;
       const hV = Math.round((v / maxVal) * 100);
       const hP = Math.round(((p2*5) / maxVal) * 100);
-      const label = g.slice(5).replace("-", "/");
+      const label = etichetta(g);
       return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;">
         <div class="an-bar-tooltip" style="display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#111827;color:white;font-size:10px;padding:3px 6px;border-radius:4px;white-space:nowrap;z-index:10;">${label}: ${v} visite, ${p2} pren.</div>
         <div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:1px;">
