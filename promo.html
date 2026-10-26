@@ -787,13 +787,7 @@ async function init() {
       }
 
       window._rfTrack && window._rfTrack('submit', 'promo_scaricata', { completato: true, valore: promo.nome, step: 'success', coupon: couponCode });
-      // il coupon scaricato e' una conversione per Google (solo se il visitatore ha accettato i cookie)
-      try {
-        if (window.__rfCons && window.gtag && window.__rfG) {
-          window.gtag('event', 'coupon_scaricato', { promo: promo.nome });
-          if (window.__rfG.ads) window.gtag('event', 'conversion', { send_to: window.__rfG.ads });
-        }
-      } catch (e) {}
+      // (la conversione Google del coupon parte subito dopo l'emissione, piu' sopra)
 
     } catch(e) { console.error('Submit error:', e); }
 
