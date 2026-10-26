@@ -399,6 +399,26 @@ async function caricaGalleriaLanding(promo) {
   } catch (e) { /* la galleria e' un plus: nessun errore visibile */ }
 }
 
+// Recensioni VERE (verificate e visibili) al posto di quelle scritte a mano. Nessuna recensione = nessuna sezione.
+async function caricaRecensioniReali(promo) {
+  const box = document.getElementById('rec-reali');
+  if (!box || !promo.azienda_id) return;
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/recensioni_pubbliche', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_azienda: promo.azienda_id, p_sede: promo.sede_id || null })
+    });
+    const j = await r.json();
+    if (!j || !j.items || !j.items.length) return;
+    const st = n => '★★★★★'.slice(0, Math.round(n)) + '☆☆☆☆☆'.slice(0, 5 - Math.round(n));
+    const ini = a => (a || 'Ospite').split(/\s+/).map(p => p.charAt(0)).join('').slice(0, 2).toUpperCase();
+    box.innerHTML = '<div class="testimonianze"><div class="testi-rating"><span class="voto">' + esc(String(j.media).replace('.', ',')) + '</span><span><span class="testi-stelle" style="font-size:16px;">' + st(j.media) + '</span><div style="font-size:11px;color:#64748b;">su ' + esc(j.totale) + ' recensioni verificate</div></span></div>'
+      + j.items.map(x => '<div class="testi-card"><div class="testi-top"><div class="testi-avatar">' + esc(ini(x.autore)) + '</div><div><div class="testi-nome">' + esc(x.autore || 'Un ospite') + '</div><div class="testi-stelle">' + st(x.voto) + '</div></div></div><div class="testi-testo">“' + esc(x.testo) + '”</div></div>').join('')
+      + '</div>';
+  } catch (e) { /* senza recensioni la sezione resta vuota */ }
+}
+
 function renderThankyouDefault(promo) {
   return `
     <div style="text-align:center;padding:40px 24px 20px;">
