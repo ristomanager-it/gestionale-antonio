@@ -1296,7 +1296,7 @@ DESC 2: ...`;
   // anteprima di una campagna (anche creata fuori da Ristoflow): si apre in una nuova scheda
   async function apriAnteprima(btn, corpo) {
     const vecchio = btn.textContent;
-    const w = window.open('', '_blank'); // si apre subito, cosi' il telefono non lo blocca; poi si riempie
+    // l'anteprima si apre con un secondo tocco sul pulsante verde (il telefono blocca le aperture automatiche)
     btn.disabled = true; btn.textContent = 'Un attimo…';
     try {
       const tk = (await supa().auth.getSession())?.data?.session?.access_token || ANON_KEY;
