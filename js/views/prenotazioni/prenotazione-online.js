@@ -1,5 +1,5 @@
 // ── Consenso ai cookie di misura e pubblicita': scelta del visitatore, ricordata. Dal sito arriva con ?rf_c=1/0 ──
-function rfChiediConsenso() {
+function rfChiediConsenso(privacyUrl) {
   return new Promise((resolve) => {
     try {
       const q = new URLSearchParams(location.search).get('rf_c');
