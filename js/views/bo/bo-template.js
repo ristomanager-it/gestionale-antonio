@@ -946,7 +946,7 @@ export async function render(container) {
       box.querySelectorAll('.btn-anteprima-camp').forEach(b => {
         b.onclick = async () => {
           const vecchio = b.textContent;
-          const w = window.open('', '_blank'); // si apre subito (cosi' il telefono non lo blocca) e poi si riempie
+          // l'anteprima si apre con un secondo tocco sul pulsante verde (il telefono blocca le aperture automatiche)
           b.disabled = true; b.textContent = 'Un attimo…';
           try {
             const tk = (await sb.auth.getSession())?.data?.session?.access_token || ANON_KEY;
