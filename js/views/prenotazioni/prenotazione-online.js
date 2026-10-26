@@ -15,6 +15,8 @@ function rfChiediConsenso(privacyUrl) {
       + '<div style="display:flex;gap:8px;"><button id="rf-ck-no" style="flex:1;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;border-radius:10px;padding:11px;font-weight:700;font-size:14px;">Rifiuta</button>'
       + '<button id="rf-ck-si" style="flex:1;border:0;background:#023C59;color:#fff;border-radius:10px;padding:11px;font-weight:800;font-size:14px;">Accetta</button></div>';
     document.body.appendChild(b);
+    // piccolo rimando alla privacy, solo se l'azienda ha la sua pagina
+    if (/^https?:\/\//i.test(String(privacyUrl || ''))) { try { const pa = document.createElement('a'); pa.href = privacyUrl; pa.target = '_blank'; pa.rel = 'noopener'; pa.textContent = 'Privacy'; pa.style.cssText = 'color:#6b7280;text-decoration:underline;margin-left:6px;'; b.firstChild.appendChild(pa); } catch (e) {} }
     const fine = (v) => { try { localStorage.setItem('rf_consenso', v ? 'si' : 'no'); } catch {} b.remove(); resolve(v); };
     b.querySelector('#rf-ck-si').onclick = () => fine(true);
     b.querySelector('#rf-ck-no').onclick = () => fine(false);
