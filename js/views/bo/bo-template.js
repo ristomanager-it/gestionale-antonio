@@ -956,10 +956,17 @@ export async function render(container) {
               body: JSON.stringify({ azienda_id: aziendaId, campagna_id: b.dataset.id }),
             });
             const j = await res.json();
-            if (j.url && w) { w.location.href = j.url; }
-            else if (j.url) { window.location.href = j.url; }
-            else { if (w) w.close(); alert(j.error || 'Anteprima non disponibile'); }
-          } catch (e) { if (w) w.close(); alert('Non riesco a preparare l\'anteprima: riprova.'); }
+            if (j.url) {
+              // dopo l'attesa il telefono blocca l'apertura automatica: il pulsante diventa un collegamento da toccare
+              const a = document.createElement('a');
+              a.href = j.url; a.target = '_blank'; a.rel = 'noopener';
+              a.textContent = '👁 Apri l\'anteprima ›';
+              a.style.cssText = 'background:#047857;color:#fff;border-radius:8px;padding:6px 11px;font-weight:700;font-size:12.5px;text-decoration:none;display:inline-block;margin-right:12px;';
+              b.replaceWith(a);
+              return;
+            }
+            alert(j.error || 'Anteprima non disponibile');
+          } catch (e) { alert('Non riesco a preparare l\'anteprima: riprova.'); }
           b.disabled = false; b.textContent = vecchio;
         };
       });
