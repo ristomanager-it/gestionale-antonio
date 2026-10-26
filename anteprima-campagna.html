@@ -55,7 +55,7 @@ function render(j){
   h+='<h1>'+(promo?'🎟 Promo con coupon':'🍝 Campagna')+' · '+esc(d.esistente?(d.nome_campagna||d.piatto):d.piatto)+'</h1><div class="sub">'+esc((j.sede&&j.sede.nome)||d.sede||'')+' · '+esc(d.citta||'')+'</div>';
   // riepilogo
   h+='<div class="c"><h2>Riepilogo</h2>';
-  pf.forEach(function(p){h+='<div class="r"><b>'+(p==='meta'?'Meta':'Google Display')+'</b><span>'+eur(d.budget&&d.budget[p])+' al giorno <span class="pill">IN PAUSA</span></span></div>';});
+  pf.forEach(function(p){h+='<div class="r"><b>'+(p==='meta'?'Meta':'Google Display')+'</b><span>'+eur(d.budget&&d.budget[p])+' al giorno <span class="pill">'+(d.esistente&&/ACTIVE|ENABLED/.test(String(d.stato))?'ATTIVA':'IN PAUSA')+'</span></span></div>';});
   h+='<div class="r"><b>Zona</b><span>'+esc(d.raggio_km)+' km da '+esc(d.citta||'')+'</span></div>';
   var per=d.inizio&&d.fine?'dal '+dm(d.inizio)+' al '+dm(d.fine):d.inizio?'da '+dm(d.inizio):d.fine?'fino al '+dm(d.fine):'senza data di fine';
   h+='<div class="r"><b>Periodo</b><span>'+esc(per)+'</span></div>';
