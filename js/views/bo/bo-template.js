@@ -939,7 +939,7 @@ export async function render(container) {
           <div style="flex:1;min-width:0;"><div style="font-weight:600;color:#0f172a;">${c.nome || c.modello}</div>
             <div style="font-size:12px;color:#94a3b8;">Creata in pausa il ${d} · ${(c.budget_giornaliero_cent || 0) / 100} €/giorno</div></div>
           <a href="${link}" target="_blank" style="color:#0E5A7A;font-weight:600;white-space:nowrap;">Apri e attiva ›</a></div>
-          <div style="padding:0 0 10px 28px;"><button type="button" onclick="const p=this.nextElementSibling;const a=p.style.display==='none';p.style.display=a?'block':'none';this.textContent=a?'Nascondi ▾':'Dettagli ›'" style="background:none;border:0;color:#0E5A7A;font-weight:600;cursor:pointer;padding:0;font-size:12.5px;">Dettagli ›</button>
+          <div style="padding:0 0 10px 28px;"><button type="button" class="btn-anteprima-camp" data-id="${c.id}" style="background:#7a3b1d;color:#fff;border:0;border-radius:8px;padding:6px 11px;font-weight:700;font-size:12.5px;cursor:pointer;margin-right:12px;">👁 Anteprima</button><button type="button" onclick="const p=this.nextElementSibling;const a=p.style.display==='none';p.style.display=a?'block':'none';this.textContent=a?'Nascondi ▾':'Dettagli ›'" style="background:none;border:0;color:#0E5A7A;font-weight:600;cursor:pointer;padding:0;font-size:12.5px;">Dettagli ›</button>
             <div style="display:none;margin-top:6px;font-size:12.5px;color:#334155;line-height:1.6;">${dettaglio(c)}</div></div></div>`;
       }).join('');
     } catch (e) { box.innerHTML = '<span style="color:#94a3b8;">Elenco non disponibile.</span>'; }
