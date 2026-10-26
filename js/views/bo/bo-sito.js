@@ -1344,7 +1344,7 @@ export async function render(container) {
     const jsonLd = `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>`;
 
     // ── tracciamenti per le pubblicita' (Meta, Google): partono SOLO se il visitatore accetta il banner ──
-    let metaPixelId = "", gtmId = "", ga4Id = "", adsId = "";
+    let metaPixelId = "", gtmId = "", ga4Id = "", adsId = "", privacyUrl = "";
     try {
       const { data: ident } = await sc.from("azienda_identita").select("meta_pixel_id, gtm_id, ga4_id, gads_id").eq("azienda_id", aziendaId).maybeSingle();
       metaPixelId = String(ident?.meta_pixel_id || "").replace(/[^0-9]/g, "");
