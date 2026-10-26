@@ -204,8 +204,8 @@ export async function render(container) {
 
   // ── Query dati ─────────────────────────────────────────────
   async function fetchDati() {
-    const from = dateFrom(giorni);
-    let q = supa().from("page_analytics").select("*").gte("created_at", from + "T00:00:00");
+    const iv = intervallo();
+    let q = supa().from("page_analytics").select("*").gte("created_at", iv.inizio).lt("created_at", iv.fine);
     if (filtroAzienda) q = q.eq("azienda_id", filtroAzienda);
     else if (!isSuperadmin) q = q.eq("azienda_id", aziendaId);
     const { data } = await q.order("created_at", { ascending: true });
