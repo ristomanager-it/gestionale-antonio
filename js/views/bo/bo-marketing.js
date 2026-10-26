@@ -1257,6 +1257,38 @@ DESC 2: ...`;
         if (!j.success) { alert('Google non ha accettato la modifica: ' + (j.error || 'errore')); }
         carica();
       });
+      // filtri del periodo
+      content.querySelectorAll('.gp-btn').forEach((b) => {
+        b.addEventListener('click', () => {
+          const p = b.dataset.p;
+          content.querySelectorAll('.gp-btn').forEach((x) => { x.style.background = '#f1f5f9'; x.style.color = '#374151'; });
+          b.style.background = '#0E5A7A'; b.style.color = 'white';
+          const pn = content.querySelector('#google-pers');
+          if (p === 'pers') {
+            const oggi = romaOggi(), da = content.querySelector('#gp-da'), a = content.querySelector('#gp-a');
+            if (!da.value) da.value = piuG(oggi, -6);
+            if (!a.value) a.value = oggi;
+            da.max = oggi; a.max = oggi;
+            pn.style.display = 'block';
+            return;
+          }
+          pn.style.display = 'none';
+          modoP = p;
+          carica();
+        });
+      });
+      content.querySelector('#gp-applica')?.addEventListener('click', () => {
+        const da = content.querySelector('#gp-da').value, a = content.querySelector('#gp-a').value, err = content.querySelector('#gp-err'), oggi = romaOggi();
+        let m = '';
+        if (!da || !a) m = 'Scegli le due date.';
+        else if (da > a) m = 'La data "Dal" è dopo la data "Al".';
+        else if (a > oggi) m = 'La data "Al" non può essere nel futuro.';
+        else if (piuG(da, 366) < a) m = 'Il periodo massimo è un anno.';
+        err.textContent = m; err.style.display = m ? 'block' : 'none';
+        if (m) return;
+        persP = { da, a }; modoP = 'pers';
+        carica();
+      });
       carica();
     })();
   }
