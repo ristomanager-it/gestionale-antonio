@@ -78,7 +78,7 @@ export async function renderPromo(container, aziendaId) {
   container.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
 
   const [{ data: promoData }, { data: tagList }] = await Promise.all([
-    supa().from('promo').select('*').eq('azienda_id', aziendaId).order('created_at', { ascending: false }),
+    supa().from('promo').select('*').eq('azienda_id', aziendaId).eq('bozza', false).order('created_at', { ascending: false }),
     supa().from('tags').select('id,nome').eq('azienda_id', aziendaId).order('nome'),
   ]);
   const lista = promoData || [];
