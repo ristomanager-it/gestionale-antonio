@@ -201,6 +201,49 @@ function firePixel(event, pixelId) {
   if (!pixelId || typeof fbq==='undefined') return;
   fbq('trackSingle', pixelId, event);
 }
+// ── Consenso cookie: Meta e Google si caricano SOLO se il visitatore accetta ──
+function rfChiediConsenso() {
+  return new Promise(function (resolve) {
+    try {
+      var q = new URLSearchParams(location.search).get('cookie');
+      if (q === '1') localStorage.setItem('rf_consenso', 'si');
+      if (q === '0') localStorage.setItem('rf_consenso', 'no');
+      var s = localStorage.getItem('rf_consenso');
+      if (s === 'si') return resolve(true);
+      if (s === 'no') return resolve(false);
+    } catch (e) {}
+    var b = document.createElement('div');
+    b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.28);font-size:14px;line-height:1.45;font-family:inherit;max-width:520px;margin:0 auto;';
+    b.innerHTML = '<div style="margin-bottom:10px;">Usiamo i cookie per misurare le visite e mostrarti i nostri annunci. Puoi accettare o rifiutare: il coupon funziona comunque.</div>'
+      + '<div style="display:flex;gap:8px;"><button id="rf-ck-no" style="flex:1;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;border-radius:10px;padding:11px;font-weight:700;font-size:14px;font-family:inherit;">Solo necessari</button>'
+      + '<button id="rf-ck-si" style="flex:1;border:0;background:#023C59;color:#fff;border-radius:10px;padding:11px;font-weight:800;font-size:14px;font-family:inherit;">Accetta</button></div>';
+    document.body.appendChild(b);
+    function fine(v) { try { localStorage.setItem('rf_consenso', v ? 'si' : 'no'); } catch (e) {} b.remove(); resolve(v); }
+    b.querySelector('#rf-ck-si').onclick = function () { fine(true); };
+    b.querySelector('#rf-ck-no').onclick = function () { fine(false); };
+  });
+}
+// Google (tag Analytics e Google Ads, oppure Tag Manager): parte solo dopo il consenso
+function caricaGoogle(az) {
+  if (!az) return;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+  window.gtag('consent', 'default', { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted' });
+  if (az.gtm_id) {
+    (function (w, d, s, l, i) { w[l] = w[l] || []; w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' }); var f = d.getElementsByTagName(s)[0], j = d.createElement(s); j.async = true; j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i; f.parentNode.insertBefore(j, f); })(window, document, 'script', 'dataLayer', String(az.gtm_id).trim());
+    return;
+  }
+  var id = az.ga4_id || az.gads_id;
+  if (!id) return;
+  var gs = document.createElement('script');
+  gs.async = true;
+  gs.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(String(id).trim());
+  document.head.appendChild(gs);
+  window.gtag('js', new Date());
+  if (az.ga4_id) window.gtag('config', String(az.ga4_id).trim());
+  if (az.gads_id) window.gtag('config', String(az.gads_id).trim());
+  window.__rfG = { ads: (az.gads_id && az.gads_etichetta_coupon) ? String(az.gads_id).trim() + '/' + String(az.gads_etichetta_coupon).trim() : null };
+}
 function injectPixel(pixelId) {
   if (!pixelId) return;
   const s = document.createElement('script');
