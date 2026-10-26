@@ -297,7 +297,7 @@ function renderBlock(b, promo, azienda) {
   }
   if (b.tipo==='galleria') {
     const foto = Array.isArray(b.foto) ? b.foto.filter(Boolean) : [];
-    if (!foto.length) return '';
+    if (!foto.length) return '<div id="landing-galleria"></div>'; // vuota = si riempie da sola con le foto della libreria
     return `<div class="galleria-block">${foto.map(f => `<img src="${esc(f)}" alt="" loading="lazy" onerror="this.remove()">`).join('')}</div>`;
   }
   if (b.tipo==='punti_forza') {
