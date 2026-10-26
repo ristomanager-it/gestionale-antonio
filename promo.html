@@ -202,7 +202,7 @@ function firePixel(event, pixelId) {
   fbq('trackSingle', pixelId, event);
 }
 // ── Consenso cookie: Meta e Google si caricano SOLO se il visitatore accetta ──
-function rfChiediConsenso() {
+function rfChiediConsenso(privacyUrl) {
   return new Promise(function (resolve) {
     try {
       var q = new URLSearchParams(location.search).get('cookie');
