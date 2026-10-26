@@ -309,18 +309,21 @@ export async function render(container) {
 
     // ── Grafico prenotazioni reali per giorno ──
     const prenPer = {};
+    // un solo giorno (Oggi, Ieri o un giorno scelto) = grafico PER ORA; altrimenti per giorno. Sempre in ora di Roma.
+    const iv = intervallo();
+    const unGiorno = iv.da === iv.a;
+    const chiave = (ts) => ts ? (unGiorno ? oraRoma(ts) : giornoRoma(ts)) : null;
+    const etichetta = (k) => unGiorno ? k + ":00" : dataBreve(k);
     prenotazioni.forEach(p => {
-      const g = p.created_at?.split("T")[0];
+      const g = chiave(p.created_at);
       if (g) prenPer[g] = (prenPer[g] || 0) + 1;
     });
     const tuttiGiorni = [];
-    for (let i = giorni - 1; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      tuttiGiorni.push(d.toISOString().split("T")[0]);
-    }
+    if (unGiorno) { for (let h = 0; h < 24; h++) tuttiGiorni.push(String(h).padStart(2, "0")); }
+    else { for (let g = iv.da; g <= iv.a; g = piuGiorni(g, 1)) tuttiGiorni.push(g); }
     const visitePer = {};
     rows.filter(r => r.tipo === "view").forEach(r => {
-      const g = r.created_at?.split("T")[0];
+      const g = chiave(r.created_at);
       if (g) visitePer[g] = (visitePer[g] || 0) + 1;
     });
     const maxVal = Math.max(...tuttiGiorni.map(g => Math.max(visitePer[g]||0, (prenPer[g]||0)*5)), 1);
