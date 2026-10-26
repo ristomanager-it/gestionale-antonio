@@ -654,6 +654,7 @@ async function init() {
     const consenso = document.getElementById('f-consenso')?.checked ?? false;
     const errEl    = document.getElementById('form-error');
 
+    if (promo.bozza) { errEl.textContent = "Questa è un'anteprima: il coupon si potrà scaricare dopo la conferma."; errEl.style.display = ''; return; }
     window._rfTrack && window._rfTrack('click', 'btn_scarica_promo', { step: 'submit_tentativo', valore: promo.nome });
 
     errEl.style.display='none';
