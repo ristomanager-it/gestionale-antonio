@@ -351,8 +351,8 @@ export async function render(container) {
       </div>
       <div class="an-chart-wrap">${barsHtml}</div>
       <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#94a3b8;">
-        <span>${tuttiGiorni[0]?.slice(5).replace("-","/")}</span>
-        <span>${tuttiGiorni[tuttiGiorni.length-1]?.slice(5).replace("-","/")}</span>
+        <span>${tuttiGiorni[0] ? etichetta(tuttiGiorni[0]) : ""}</span>
+        <span>${tuttiGiorni.length ? etichetta(tuttiGiorni[tuttiGiorni.length-1]) : ""}</span>
       </div>
     </div>`;
 
