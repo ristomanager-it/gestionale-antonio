@@ -1229,6 +1229,8 @@ DESC 2: ...`;
           const j = await chiama({ azione: 'elenco', da: ivP.da, a: ivP.a });
           if (!j.success) { box.textContent = 'Non riesco a leggere Google: ' + (j.error || 'errore'); return; }
           if (stats) stats.innerHTML = card('Impressioni', num(j.totali.impressioni)) + card('Click', num(j.totali.clic)) + card('Spesa', eur(j.totali.spesa_eur)) + card('CPC medio', eur(j.totali.cpc_eur));
+          const lblP = content.querySelector('#google-periodo');
+          if (lblP) lblP.textContent = ivP.da === ivP.a ? (ivP.et === 'oggi' ? 'Oggi · ' : ivP.et === 'ieri' ? 'Ieri · ' : '') + dmY(ivP.da) : 'Dal ' + dmY(ivP.da) + ' al ' + dmY(ivP.a);
           box.style.cssText = '';
           box.className = '';
           box.innerHTML = (j.campagne || []).map((c) => {
