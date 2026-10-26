@@ -990,6 +990,7 @@ function mostrarThankyou(promo) {
     // Box coupon personale sempre visibile anche con blocchi custom
     if (couponCode) {
       html += `<div class="box-offerta" style="margin:16px;">
+        ${fotoCoupon(promo)}
         <div class="codice">${esc(couponCode)}</div>
         <div style="font-size:11px;opacity:.75;margin-top:6px;">🎟 Il tuo coupon personale — nominale e monouso</div>
       </div>
