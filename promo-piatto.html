@@ -221,7 +221,9 @@ function invia(){
 if(!SLUG){q('app').innerHTML='<div class="carica">Pagina non trovata.</div>';return;}
 fetch(SB+'/rest/v1/rpc/landing_promo_pubblica',{method:'POST',headers:H,body:JSON.stringify({p_slug:SLUG})}).then(function(r){return r.json();}).then(function(j){
   if(!j||!j.landing){q('app').innerHTML='<div class="carica">Questa promozione non è più disponibile.</div>';return;}
-  D=j;TR=j.tracking||{};render();if(!j.landing.bozza)montaTag();
+  D=j;TR=j.tracking||{};render();
+  try{if(/^https?:\/\//i.test(String(TR.privacy_url||''))&&q('cb-priv')){var pa=document.createElement('a');pa.href=TR.privacy_url;pa.target='_blank';pa.rel='noopener';pa.textContent='Privacy';pa.style.cssText='color:#6b7280;text-decoration:underline;margin-left:6px';q('cb-priv').appendChild(pa);}}catch(e){}
+  if(!j.landing.bozza)montaTag();
 }).catch(function(){q('app').innerHTML='<div class="carica">Non riusciamo a caricare la pagina. Riprova tra un attimo.</div>';});
 })();
 </script>
