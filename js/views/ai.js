@@ -616,7 +616,16 @@ function addMessage(text, type, opts = {}) {
         alert("Non riesco a contattare Tony: riprova.");
       }
     };
-    card.append(t, ok, no);
+    if (azX.anteprima) {
+      // anteprima di cio' che Tony ha preparato (post Meta, Google, landing), PRIMA di confermare
+      const an = document.createElement("button");
+      an.textContent = "👁 Anteprima";
+      an.style.cssText = "display:block;width:100%;margin:10px 0 8px;background:#7a3b1d;color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:800;";
+      an.onclick = () => { window.open(azX.anteprima, "_blank"); };
+      card.append(t, an, ok, no);
+    } else {
+      card.append(t, ok, no);
+    }
     pulsantiConferma.push(ok);
     bubble.appendChild(card);
   }
