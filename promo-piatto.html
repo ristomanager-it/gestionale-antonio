@@ -136,7 +136,7 @@ function render(){
     +(S.telefono?'<br>📞 <a href="tel:'+esc(String(S.telefono).replace(/[^0-9+]/g,''))+'">'+esc(S.telefono)+'</a>':'')
     +(S.lat&&S.lng?'<br>🧭 <a href="https://www.google.com/maps/dir/?api=1&destination='+esc(S.lat)+','+esc(S.lng)+'" target="_blank" rel="noopener">Come arrivare</a>':'')
     +'<small>Powered by Ristoflow.AI</small></div>';
-  q('app').innerHTML=(L.bozza?'<div style="position:sticky;top:0;z-index:60;background:#b45309;color:#fff;padding:11px 14px;font-weight:800;font-size:13px;text-align:center;">👁 ANTEPRIMA · non ancora pubblicata · la prenotazione non è attiva</div>':'')+h;
+  q('app').innerHTML=(L.bozza?'<div style="position:sticky;top:0;z-index:60;background:#b45309;color:#fff;padding:11px 14px;font-weight:800;font-size:13px;text-align:center;">👁 ANTEPRIMA · non ancora pubblicata · la prenotazione non è attiva<br><a href="/" onclick="var h=history.length>1;if(h){history.back();setTimeout(function(){location.href=\'/\'},500);}return !h;" style="color:#fff;text-decoration:underline;">← Torna all\'app</a></div>':'')+h;
   q('cta1').addEventListener('click',function(){ev('cta_prenota','InitiateCheckout');});
   fetch(SB+'/functions/v1/landing-media?a='+L.azienda_id+(L.sede_id?'&s='+L.sede_id:'')+'&limit=6').then(function(r){return r.json();}).then(function(j){
     var im=(j.images||[]).map(function(x){return x.url;}).filter(function(u){return u&&u!==L.hero_url;}).slice(0,5);
