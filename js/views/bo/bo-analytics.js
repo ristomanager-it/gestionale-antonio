@@ -227,6 +227,13 @@ export async function render(container) {
   // ── Render dashboard ───────────────────────────────────────
   async function carica() {
     document.getElementById("an-body").innerHTML = `<div class="an-loading">⏳ Caricamento...</div>`;
+    { // a quale periodo si riferiscono i numeri
+      const iv = intervallo();
+      const nome = modo === "oggi" ? "Oggi" : modo === "ieri" ? "Ieri" : null;
+      document.getElementById("an-periodo").textContent = iv.da === iv.a
+        ? (nome ? nome + " · " : "") + dataLunga(iv.da)
+        : "Dal " + dataLunga(iv.da) + " al " + dataLunga(iv.a);
+    }
     const [tracking, prenotazioni] = await Promise.all([fetchDati(), fetchPrenotazioni()]);
     dati = tracking;
     renderDashboard(dati, prenotazioni);
