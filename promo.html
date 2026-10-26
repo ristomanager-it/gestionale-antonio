@@ -762,6 +762,13 @@ async function init() {
         return;
       }
       couponCode = esitoLead.codice;
+      // il coupon emesso e' la conversione per Google (solo se il visitatore ha accettato i cookie): subito, senza aspettare WhatsApp ed email
+      try {
+        if (window.__rfCons && window.gtag && window.__rfG) {
+          window.gtag('event', 'coupon_scaricato', { promo: promo.nome });
+          if (window.__rfG.ads) window.gtag('event', 'conversion', { send_to: window.__rfG.ads });
+        }
+      } catch (e) {}
 
       // 2. Fire pixel
       const evento = promo.meta_pixel_evento_scaricamento || 'Lead';
