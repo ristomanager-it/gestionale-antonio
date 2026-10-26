@@ -111,6 +111,16 @@ export async function render(container) {
       ${isSuperadmin ? `<select id="an-az-select" class="an-select"><option value="">Tutte le aziende</option></select>` : ""}
     </div>
 
+    <div id="an-pers" style="display:none;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px;margin:-6px 0 12px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <label style="font-size:12px;color:#64748b;font-weight:600;flex:1;min-width:130px;">Dal<input type="date" id="an-da" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;"></label>
+        <label style="font-size:12px;color:#64748b;font-weight:600;flex:1;min-width:130px;">Al<input type="date" id="an-a" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;"></label>
+        <button class="an-btn active" id="an-applica">Applica</button>
+      </div>
+      <div id="an-pers-err" style="display:none;color:#b91c1c;font-size:12.5px;margin-top:8px;"></div>
+    </div>
+    <div id="an-periodo" style="font-size:12.5px;color:#64748b;margin:-6px 0 10px;"></div>
+
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:#64748b;margin:-6px 0 14px;">
       <button class="an-btn" id="an-escludi"></button>
       <span id="an-escludi-nota"></span>
