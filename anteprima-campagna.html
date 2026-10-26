@@ -99,6 +99,12 @@ function render(j){
   h+='<div class="c"><h2>🌐 La landing</h2><div class="nota" style="margin:0 0 6px">Foto, copy AIDA, recensioni vere'+(promo?', coupon e giorni validi':'')+', regolamento e '+(promo?'modulo per scaricare il coupon':'prenotazione')+'. In anteprima il '+(promo?'coupon non si può scaricare':'tavolo non si può prenotare')+'.</div>'
     +(j.landing_url?'<a class="btn" href="'+esc(j.landing_url)+'" target="_blank" rel="noopener">Apri la landing (anteprima)</a>':'')+'</div>';
   q('app').innerHTML=h;
+  var tb=document.querySelectorAll('.tb');
+  for(var i=0;i<tb.length;i++){tb[i].onclick=function(){
+    var u=j.meta_anteprime.urls[this.getAttribute('data-k')].url;
+    document.getElementById('meta-if').src=u;document.getElementById('meta-full').href=u;
+    for(var n=0;n<tb.length;n++)tb[n].className='tb';this.className='tb on';
+  };}
 }
 if(!id){q('app').innerHTML='<div style="padding:60px 20px;text-align:center">Anteprima non trovata.</div>';return;}
 fetch(SB+'/rest/v1/rpc/anteprima_campagna',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify({p_id:id})})
