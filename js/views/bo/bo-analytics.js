@@ -313,7 +313,7 @@ export async function render(container) {
     const iv = intervallo();
     const unGiorno = iv.da === iv.a;
     const chiave = (ts) => ts ? (unGiorno ? oraRoma(ts) : giornoRoma(ts)) : null;
-    const etichetta = (k) => unGiorno ? k + ":00" : dataBreve(k);
+    const etichettaBarra = (k) => unGiorno ? k + ":00" : dataBreve(k);
     prenotazioni.forEach(p => {
       const g = chiave(p.created_at);
       if (g) prenPer[g] = (prenPer[g] || 0) + 1;
