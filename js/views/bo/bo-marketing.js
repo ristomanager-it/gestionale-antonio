@@ -1306,10 +1306,18 @@ DESC 2: ...`;
         body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, ...corpo }),
       });
       const j = await res.json();
-      if (j.url && w) { w.location.href = j.url; }
-      else if (j.url) { window.location.href = j.url; }
-      else { if (w) w.close(); alert(j.error || 'Anteprima non disponibile'); }
-    } catch (e) { if (w) w.close(); alert('Non riesco a preparare l\'anteprima: riprova.'); }
+      if (j.url) {
+        // dopo l'attesa il telefono blocca l'apertura automatica: il pulsante diventa un collegamento da toccare
+        const a = document.createElement('a');
+        a.href = j.url; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = '👁 Apri l\'anteprima ›';
+        a.className = btn.className;
+        a.style.cssText = 'background:#047857;color:#fff;text-decoration:none;display:inline-block;';
+        btn.replaceWith(a);
+        return;
+      }
+      alert(j.error || 'Anteprima non disponibile');
+    } catch (e) { alert('Non riesco a preparare l\'anteprima: riprova.'); }
     btn.disabled = false; btn.textContent = vecchio;
   }
 
