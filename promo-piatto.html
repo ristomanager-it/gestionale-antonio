@@ -220,7 +220,7 @@ function invia(){
 if(!SLUG){q('app').innerHTML='<div class="carica">Pagina non trovata.</div>';return;}
 fetch(SB+'/rest/v1/rpc/landing_promo_pubblica',{method:'POST',headers:H,body:JSON.stringify({p_slug:SLUG})}).then(function(r){return r.json();}).then(function(j){
   if(!j||!j.landing){q('app').innerHTML='<div class="carica">Questa promozione non è più disponibile.</div>';return;}
-  D=j;TR=j.tracking||{};render();montaTag();
+  D=j;TR=j.tracking||{};render();if(!j.landing.bozza)montaTag();
 }).catch(function(){q('app').innerHTML='<div class="carica">Non riusciamo a caricare la pagina. Riprova tra un attimo.</div>';});
 })();
 </script>
