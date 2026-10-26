@@ -157,14 +157,50 @@ export async function render(container) {
   }
 
   // ── Toolbar giorni ─────────────────────────────────────────
-  container.querySelectorAll("[data-giorni]").forEach(btn => {
+  const tutteLeScelte = () => container.querySelectorAll(".an-toolbar [data-giorni], .an-toolbar [data-p]");
+  const evidenzia = (btn) => { tutteLeScelte().forEach(b => b.classList.remove("active")); if (btn) btn.classList.add("active"); };
+  container.querySelectorAll(".an-toolbar [data-giorni]").forEach(btn => {
     btn.onclick = () => {
-      container.querySelectorAll("[data-giorni]").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
+      evidenzia(btn);
+      document.getElementById("an-pers").style.display = "none";
       giorni = Number(btn.dataset.giorni);
+      modo = "giorni";
       carica();
     };
   });
+  container.querySelectorAll(".an-toolbar [data-p]").forEach(btn => {
+    btn.onclick = () => {
+      const p = btn.dataset.p;
+      evidenzia(btn);
+      if (p === "pers") {
+        const oggi = giornoRoma(Date.now());
+        const da = document.getElementById("an-da"), a = document.getElementById("an-a");
+        if (!da.value) da.value = piuGiorni(oggi, -6);
+        if (!a.value) a.value = oggi;
+        a.max = oggi; da.max = oggi;
+        document.getElementById("an-pers").style.display = "block";
+        return;
+      }
+      document.getElementById("an-pers").style.display = "none";
+      modo = p;
+      carica();
+    };
+  });
+  document.getElementById("an-applica").onclick = () => {
+    const da = document.getElementById("an-da").value, a = document.getElementById("an-a").value;
+    const err = document.getElementById("an-pers-err");
+    const oggi = giornoRoma(Date.now());
+    let msg = "";
+    if (!da || !a) msg = "Scegli le due date.";
+    else if (da > a) msg = "La data \"Dal\" è dopo la data \"Al\".";
+    else if (a > oggi) msg = "La data \"Al\" non può essere nel futuro.";
+    else if (piuGiorni(da, 366) < a) msg = "Il periodo massimo è un anno.";
+    err.textContent = msg; err.style.display = msg ? "block" : "none";
+    if (msg) return;
+    periodoPers = { da, a };
+    modo = "pers";
+    carica();
+  };
 
   // ── Query dati ─────────────────────────────────────────────
   async function fetchDati() {
