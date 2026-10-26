@@ -578,7 +578,7 @@ async function init() {
 
   // Track view con azienda_id reale
   window._rfAzId = promo.azienda_id || null;
-  window._rfTrack && window._rfTrack('view', 'promo_landing', { completato: false, valore: promo.nome });
+  !promo.bozza && window._rfTrack && window._rfTrack('view', 'promo_landing', { completato: false, valore: promo.nome });
 
   // GTM
   if (azienda?.gtm_id) {
