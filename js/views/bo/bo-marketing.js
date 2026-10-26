@@ -1237,7 +1237,7 @@ DESC 2: ...`;
             const on = c.stato === 'ENABLED';
             return `<div class="gads-card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <div style="flex:1;min-width:180px;"><div style="font-weight:700;color:#0f172a;">${escH(c.nome)}</div>
-                <div style="font-size:12px;color:#64748b;">${tipi[c.tipo] || escH(c.tipo)} · budget ${eur(c.budget_eur)}/giorno · 30 giorni: ${eur(c.spesa_eur)} · ${num(c.clic)} click · ${Math.round((c.conversioni || 0) * 10) / 10} conv.</div></div>
+                <div style="font-size:12px;color:#64748b;">${tipi[c.tipo] || escH(c.tipo)} · budget ${eur(c.budget_eur)}/giorno · ${ivP.et}: ${eur(c.spesa_eur)} · ${num(c.clic)} click · ${Math.round((c.conversioni || 0) * 10) / 10} conv.</div></div>
               <span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:${on ? '#dcfce7' : '#f1f5f9'};color:${on ? '#166534' : '#64748b'};">${on ? '● Attiva' : 'In pausa'}</span>
               <button class="gads-btn btn-anteprima-google" data-id="${escH(c.id)}" style="background:#7a3b1d;color:#fff;">👁 Anteprima</button>
               <button class="gads-btn btn-stato-google" data-id="${escH(c.id)}" data-nome="${escH(c.nome)}" data-nuovo="${on ? 'PAUSED' : 'ENABLED'}" style="background:${on ? '#fef2f2' : '#e0f2fe'};color:${on ? '#b91c1c' : '#075985'};">${on ? '⏸ Metti in pausa' : '▶ Attiva'}</button>
