@@ -216,6 +216,13 @@ function renderValore(promo) {
   return promo.tipo==='omaggio' ? '🎁' : (promo.valore||'');
 }
 
+// la foto del piatto in cima al coupon (i video no)
+function fotoCoupon(promo) {
+  const u = promo.immagine_url;
+  if (!u || isVideoSrc(u)) return '';
+  return `<img src="${esc(u)}" alt="${esc(promo.nome || '')}" style="width:100%;height:150px;object-fit:cover;border-radius:12px;margin:0 0 14px;display:block;" onerror="this.remove()">`;
+}
+
 function isVideoSrc(url){ return /\.(mp4|mov|webm|quicktime)(\?|$)/i.test(url||''); }
 function mediaTag(src, nome){
   if (!src) return `<div class="promo-img-placeholder">🍽</div>`;
