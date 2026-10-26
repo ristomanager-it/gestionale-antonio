@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Anteprima campagna</title>
+<style>
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#eef2f6;color:#0f172a;font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.55}
+#app{max-width:620px;margin:0 auto;padding:0 0 40px;overflow-wrap:anywhere}
+.ban{position:sticky;top:0;z-index:20;background:#b45309;color:#fff;padding:12px 16px;font-weight:800;font-size:13px;text-align:center;padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.c{background:#fff;border-radius:16px;margin:14px 12px 0;padding:16px 16px 18px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+h1{font-size:22px;line-height:1.2;margin:16px 14px 0}
+h2{font-size:16px;margin:0 0 10px}
+.sub{color:#64748b;font-size:13px;margin:4px 14px 0}
+.r{display:flex;gap:10px;padding:6px 0;border-top:1px solid #f1f5f9}.r:first-of-type{border-top:0}
+.r b{min-width:96px;color:#475569;font-weight:600}
+.pill{display:inline-block;background:#fef3c7;color:#92400e;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:800}
+.btn{display:block;text-align:center;background:#0E5A7A;color:#fff;text-decoration:none;font-weight:800;border-radius:12px;padding:14px;margin-top:10px}
+iframe{width:100%;height:640px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}
+.post{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}.post img{width:100%;display:block;max-height:340px;object-fit:cover}
+.post .t{padding:12px 14px;white-space:pre-wrap}.post .k{background:#f1f5f9;padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.post .k span{background:#1877f2;color:#fff;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:700;white-space:nowrap}
+.testo{white-space:pre-wrap;background:#f8fafc;border-radius:10px;padding:12px;font-size:14px;margin-top:10px}
+.gd{display:grid;gap:12px}.gd .ad{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff}
+.gd .ad .im{position:relative;background:#e2e8f0}.gd .ad .im img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+.gd .ad .bd{padding:10px 12px}.gd .ad .bd b{display:block;font-size:15px}.gd .ad .bd small{color:#64748b}
+.gd .ad .bd span{display:block;margin-top:8px;background:#0E5A7A;color:#fff;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:700;width:max-content}
+.nota{font-size:12.5px;color:#64748b;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="app"><div style="padding:60px 20px;text-align:center;color:#64748b">Un attimo…</div></div>
+<script>
+(function(){
+var SB='https://cuhcscpvhypoaplcmtjk.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
+var id=new URLSearchParams(location.search).get('b')||'';
+function q(i){return document.getElementById(i);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function eur(c){return (Math.round(Number(c||0))/100).toLocaleString('it-IT')+' €';}
+function dm(s){return String(s||'').split('-').reverse().slice(0,2).join('/');}
+var GG=['lunedì','martedì','mercoledì','giovedì','venerdì','sabato','domenica'];
+function render(j){
+  var d=j.dati||{},c=d.contenuti||{},L=d.landing||{},cp=d.coupon||null,promo=d.modalita==='promo';
+  var pf=(d.piattaforme||[]),h='';
+  h+='<div class="ban">👁 ANTEPRIMA · finora non è stato pubblicato né speso niente. Guarda qui, poi torna in chat e premi Conferma o Annulla.</div>';
+  h+='<h1>'+(promo?'🎟 Promo con coupon':'🍝 Campagna')+' · '+esc(d.piatto)+'</h1><div class="sub">'+esc((j.sede&&j.sede.nome)||d.sede||'')+' · '+esc(d.citta||'')+'</div>';
+  // riepilogo
+  h+='<div class="c"><h2>Riepilogo</h2>';
+  pf.forEach(function(p){h+='<div class="r"><b>'+(p==='meta'?'Meta':'Google Display')+'</b><span>'+eur(d.budget&&d.budget[p])+' al giorno <span class="pill">IN PAUSA</span></span></div>';});
+  h+='<div class="r"><b>Zona</b><span>'+esc(d.raggio_km)+' km da '+esc(d.citta||'')+'</span></div>';
+  var per=d.inizio&&d.fine?'dal '+dm(d.inizio)+' al '+dm(d.fine):d.inizio?'da '+dm(d.inizio):d.fine?'fino al '+dm(d.fine):'senza data di fine';
+  h+='<div class="r"><b>Periodo</b><span>'+esc(per)+'</span></div>';
+  if(cp){
+    var et=cp.tipo==='2x1'?'2×1':cp.tipo==='sconto_perc'?'sconto '+cp.valore+'%':cp.tipo==='sconto_euro'?'sconto '+cp.valore+' €':'omaggio';
+    h+='<div class="r"><b>Coupon</b><span>'+esc(et)+(cp.cosa?' · '+esc(cp.cosa):'')+'</span></div>';
+    var gg=(cp.giorni||[]).map(function(n){return GG[n-1];}).filter(Boolean).join(', ');
+    h+='<div class="r"><b>Si usa</b><span>'+esc((gg?'ogni '+gg:'tutti i giorni')+((cp.turni&&cp.turni.length)?' a '+cp.turni.join(' e '):'')+(cp.min_persone?' · minimo '+cp.min_persone+' persone':''))+'</span></div>';
+  } else if(L.validita_testo){h+='<div class="r"><b>Vale</b><span>'+esc(L.validita_testo)+'</span></div>';}
+  h+='</div>';
+  // post Meta
+  if(pf.indexOf('meta')>-1){
+    h+='<div class="c"><h2>📘 Il post su Facebook e Instagram</h2>';
+    if(j.meta_anteprima_url){
+      h+='<iframe src="'+esc(j.meta_anteprima_url)+'" loading="lazy"></iframe><a class="btn" style="background:#1877f2" href="'+esc(j.meta_anteprima_url)+'" target="_blank" rel="noopener">Apri l\'anteprima a schermo intero</a><div class="nota">È l\'anteprima ufficiale di Meta: così lo vede chi scorre il feed da telefono.</div>';
+    } else {
+      h+='<div class="post">'+(d.foto?'<img src="'+esc(d.foto)+'" alt="">':'')+'<div class="t">'+esc(c.testo_meta||'')+'</div><div class="k"><div>'+esc(c.titolo_meta||'')+'</div><span>'+(promo?'Ottieni offerta':'Prenota ora')+'</span></div></div><div class="nota">L\'anteprima ufficiale di Meta non è disponibile adesso: questa è una simulazione.</div>';
+    }
+    h+='<div class="testo"><b>Testo completo ('+String((c.testo_meta||'').length)+' caratteri)</b>\n\n'+esc(c.testo_meta||'')+'</div></div>';
+  }
+  // Google Display
+  if(pf.indexOf('google')>-1){
+    var t0=(c.titoli&&c.titoli[0])||'',bn=(j.sede&&j.sede.nome)||d.sede||'';
+    h+='<div class="c"><h2>🔎 Google Display</h2><div class="gd">'
+      +'<div class="ad"><div class="im" style="aspect-ratio:1.91/1">'+(d.foto?'<img src="'+esc(d.foto)+'" alt="">':'')+'</div><div class="bd"><b>'+esc(c.titolo_lungo||t0)+'</b><small>'+esc((c.descrizioni&&c.descrizioni[0])||'')+'</small><small style="display:block;margin-top:4px">'+esc(bn)+'</small><span>'+(promo?'Ottieni offerta':'Prenota')+'</span></div></div>'
+      +'<div class="ad" style="max-width:300px"><div class="im" style="aspect-ratio:1/1">'+(d.foto?'<img src="'+esc(d.foto)+'" alt="">':'')+'</div><div class="bd"><b>'+esc(t0)+'</b><small>'+esc(bn)+'</small></div></div></div>'
+      +'<div class="nota">Le immagini vengono ritagliate in orizzontale (1,91:1) e quadrata (1:1) dalla foto del piatto: Google le mostra così, con piccole differenze secondo il sito.</div>'
+      +'<div class="testo"><b>Testi</b>\n\nTitoli: '+esc((c.titoli||[]).join(' · '))+'\nTitolo lungo: '+esc(c.titolo_lungo||'')+'\nDescrizioni: '+esc((c.descrizioni||[]).join(' · '))+'</div></div>';
+  }
+  // landing
+  h+='<div class="c"><h2>🌐 La landing</h2><div class="nota" style="margin:0 0 6px">Foto, copy AIDA, recensioni vere'+(promo?', coupon e giorni validi':'')+', regolamento e '+(promo?'modulo per scaricare il coupon':'prenotazione')+'. In anteprima il '+(promo?'coupon non si può scaricare':'tavolo non si può prenotare')+'.</div>'
+    +(j.landing_url?'<a class="btn" href="'+esc(j.landing_url)+'" target="_blank" rel="noopener">Apri la landing (anteprima)</a>':'')+'</div>';
+  q('app').innerHTML=h;
+}
+if(!id){q('app').innerHTML='<div style="padding:60px 20px;text-align:center">Anteprima non trovata.</div>';return;}
+fetch(SB+'/rest/v1/rpc/anteprima_campagna',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify({p_id:id})})
+ .then(function(r){return r.json();}).then(function(j){
+   if(!j||!j.dati){q('app').innerHTML='<div style="padding:60px 20px;text-align:center">Questa anteprima non c\'è più: è stata confermata, annullata o è scaduta (dura 12 ore).<br><br>Chiedi di nuovo a Tony.</div>';return;}
+   render(j);
+ }).catch(function(){q('app').innerHTML='<div style="padding:60px 20px;text-align:center">Non riesco a caricare l\'anteprima. Riprova tra un attimo.</div>';});
+})();
+</script>
+</body>
+</html>
