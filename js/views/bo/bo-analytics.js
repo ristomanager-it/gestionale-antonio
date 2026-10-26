@@ -20,10 +20,31 @@ export async function render(container) {
   const pct = (n, d) => d ? Math.round((n / d) * 100) : 0;
   const colore = "#0E5A7A";
 
-  function dateFrom(g) {
-    const d = new Date();
-    d.setDate(d.getDate() - g);
-    return d.toISOString().split("T")[0];
+  // ── Date in ORA DI ROMA (i giorni cambiano a mezzanotte di Roma, non di Greenwich) ──
+  const TZ = "Europe/Rome";
+  const giornoRoma = (ts) => new Date(ts).toLocaleDateString("sv-SE", { timeZone: TZ });
+  const oraRoma = (ts) => new Date(ts).toLocaleString("sv-SE", { timeZone: TZ, hour: "2-digit", hourCycle: "h23" }).slice(-2);
+  const piuGiorni = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const dataBreve = (iso) => iso.split("-").reverse().slice(0, 2).join("/");
+  const dataLunga = (iso) => iso.split("-").reverse().join("/");
+  // l'istante (UTC) in cui comincia quel giorno a Roma
+  function inizioGiornoUTC(iso) {
+    const guess = new Date(iso + "T00:00:00Z");
+    const p = {};
+    new Intl.DateTimeFormat("en-US", { timeZone: TZ, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      .formatToParts(guess).forEach((x) => { p[x.type] = x.value; });
+    const off = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - guess.getTime();
+    return new Date(guess.getTime() - off).toISOString();
+  }
+  // il periodo scelto: da/a sono giorni (inclusi); inizio/fine sono gli istanti per la ricerca (fine esclusa)
+  function intervallo() {
+    const oggi = giornoRoma(Date.now());
+    let da, a;
+    if (modo === "oggi") { da = a = oggi; }
+    else if (modo === "ieri") { da = a = piuGiorni(oggi, -1); }
+    else if (modo === "pers" && periodoPers) { da = periodoPers.da; a = periodoPers.a; }
+    else { da = piuGiorni(oggi, -(giorni - 1)); a = oggi; }
+    return { da, a, inizio: inizioGiornoUTC(da), fine: inizioGiornoUTC(piuGiorni(a, 1)) };
   }
 
   // ── Layout iniziale ────────────────────────────────────────
