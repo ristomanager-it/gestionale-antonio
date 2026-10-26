@@ -1030,6 +1030,25 @@ export async function render(container) {
 
         <!-- Statistiche via Supermetrics -->
         <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:12px;margin-top:20px;">📊 Performance (ultimi 30 giorni)</div>
+        <div id="google-filtri" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;color:#64748b;">Periodo:</div>
+          <button class="gads-btn gp-btn" data-p="oggi" style="background:#f1f5f9;color:#374151;padding:5px 10px;font-size:12px;">Oggi</button>
+          <button class="gads-btn gp-btn" data-p="ieri" style="background:#f1f5f9;color:#374151;padding:5px 10px;font-size:12px;">Ieri</button>
+          <button class="gads-btn gp-btn" data-p="7g" style="background:#f1f5f9;color:#374151;padding:5px 10px;font-size:12px;">7 giorni</button>
+          <button class="gads-btn gp-btn" data-p="30g" style="background:#0E5A7A;color:white;padding:5px 10px;font-size:12px;">30 giorni</button>
+          <button class="gads-btn gp-btn" data-p="mese" style="background:#f1f5f9;color:#374151;padding:5px 10px;font-size:12px;">Questo mese</button>
+          <button class="gads-btn gp-btn" data-p="mesep" style="background:#f1f5f9;color:#374151;padding:5px 10px;font-size:12px;">Mese scorso</button>
+          <button class="gads-btn gp-btn" data-p="pers" style="background:#f1f5f9;color:#374151;padding:5px 10px;font-size:12px;">📅 Personalizzato</button>
+        </div>
+        <div id="google-pers" style="display:none;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px;margin-bottom:10px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+            <label style="font-size:12px;color:#64748b;font-weight:600;flex:1;min-width:130px;">Dal<input type="date" id="gp-da" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;"></label>
+            <label style="font-size:12px;color:#64748b;font-weight:600;flex:1;min-width:130px;">Al<input type="date" id="gp-a" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;"></label>
+            <button class="gads-btn" id="gp-applica" style="background:#0E5A7A;color:white;">Applica</button>
+          </div>
+          <div id="gp-err" style="display:none;color:#b91c1c;font-size:12.5px;margin-top:8px;"></div>
+        </div>
+        <div id="google-periodo" style="font-size:12.5px;color:#64748b;margin:-2px 0 10px;"></div>
         <div id="google-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px;">
           <div class="gads-card" style="text-align:center;"><div style="font-size:11px;color:#64748b;margin-bottom:4px;">Impressioni</div><div style="font-size:20px;font-weight:700;color:#4285F4;">—</div></div>
           <div class="gads-card" style="text-align:center;"><div style="font-size:11px;color:#64748b;margin-bottom:4px;">Click</div><div style="font-size:20px;font-weight:700;color:#4285F4;">—</div></div>
