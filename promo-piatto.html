@@ -198,6 +198,7 @@ function fatto(){
   ev((D.tracking&&D.tracking.evento_prenotazione)||'prenotazione_completata','Schedule',{coperti:st.p});
 }
 function invia(){
+  if(D.landing.bozza){msg("Questa è un'anteprima: la prenotazione sarà attiva dopo la conferma.",true);return;}
   var nome=q('nome').value.trim(),tel=q('tel').value.replace(/[^0-9+]/g,''),em=q('mail').value.trim(),man=[];
   if(!nome)man.push('il nome');if(tel.replace('+','').length<8)man.push('il telefono');if(!st.g)man.push('il giorno');if(!st.t)man.push('pranzo o cena');if(!st.o)man.push("l'orario");
   if(man.length){msg('Per prenotare mancano: '+man.join(', ')+'.',true);return;}
