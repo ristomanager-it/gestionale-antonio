@@ -69,7 +69,17 @@ function render(j){
   // post Meta
   if(pf.indexOf('meta')>-1){
     h+='<div class="c"><h2>📘 Il post su Facebook e Instagram</h2>';
-    if(j.meta_anteprima_url){
+    var MA=j.meta_anteprime;
+    if(MA&&MA.urls&&Object.keys(MA.urls).length){
+      var ORD=['feed','instagram','storia','reel','fb_storia'],ks=ORD.filter(function(k){return MA.urls[k];});
+      h+='<div class="tabs">'+ks.map(function(k,i){return '<button class="tb'+(i?'':' on')+'" data-k="'+k+'">'+esc(MA.urls[k].nome)+'</button>';}).join('')+'</div>';
+      h+='<iframe id="meta-if" class="alto" src="'+esc(MA.urls[ks[0]].url)+'" loading="lazy"></iframe>';
+      h+='<a id="meta-full" class="btn" style="background:#1877f2" href="'+esc(MA.urls[ks[0]].url)+'" target="_blank" rel="noopener">Apri a schermo intero</a>';
+      h+='<div class="nota">È l\'anteprima ufficiale di Meta: tocca una scheda per vedere il post in quella posizione.</div>';
+      if(MA.multiformato&&MA.varianti&&MA.varianti.length){
+        h+='<div class="nota" style="margin-top:12px"><b>Le 4 foto preparate dal piatto</b>, una per ogni posizione:</div><div class="fmt">'+MA.varianti.map(function(v){return '<figure><img src="'+esc(v.url)+'" alt=""><figcaption>'+esc(v.formato)+'</figcaption></figure>';}).join('')+'</div>';
+      } else { h+='<div class="nota">Foto unica: nelle Storie e nei Reel potrebbe risultare tagliata.</div>'; }
+    } else if(j.meta_anteprima_url){
       h+='<iframe src="'+esc(j.meta_anteprima_url)+'" loading="lazy"></iframe><a class="btn" style="background:#1877f2" href="'+esc(j.meta_anteprima_url)+'" target="_blank" rel="noopener">Apri l\'anteprima a schermo intero</a><div class="nota">È l\'anteprima ufficiale di Meta: così lo vede chi scorre il feed da telefono.</div>';
     } else {
       h+='<div class="post">'+(d.foto?'<img src="'+esc(d.foto)+'" alt="">':'')+'<div class="t">'+esc(c.testo_meta||'')+'</div><div class="k"><div>'+esc(c.titolo_meta||'')+'</div><span>'+(promo?'Ottieni offerta':'Prenota ora')+'</span></div></div><div class="nota">L\'anteprima ufficiale di Meta non è disponibile adesso: questa è una simulazione.</div>';
