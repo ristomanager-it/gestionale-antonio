@@ -1206,6 +1206,21 @@ DESC 2: ...`;
         return await r.json();
       };
       const tipi = { SEARCH: 'Ricerca', DISPLAY: 'Display', PERFORMANCE_MAX: 'Performance Max', SMART: 'Smart' };
+      // periodo: Oggi, Ieri, 7 e 30 giorni, questo mese, mese scorso, personalizzato (giorni di Roma)
+      let modoP = '30g', persP = null;
+      const romaOggi = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+      const piuG = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+      const dmY = (iso) => iso.split('-').reverse().join('/');
+      const intervalloP = () => {
+        const oggi = romaOggi();
+        if (modoP === 'oggi') return { da: oggi, a: oggi, et: 'oggi' };
+        if (modoP === 'ieri') { const i = piuG(oggi, -1); return { da: i, a: i, et: 'ieri' }; }
+        if (modoP === '7g') return { da: piuG(oggi, -6), a: oggi, et: '7 giorni' };
+        if (modoP === 'mese') return { da: oggi.slice(0, 8) + '01', a: oggi, et: 'questo mese' };
+        if (modoP === 'mesep') { const p1 = piuG(oggi.slice(0, 8) + '01', -1); return { da: p1.slice(0, 8) + '01', a: p1, et: 'mese scorso' }; }
+        if (modoP === 'pers' && persP) return { da: persP.da, a: persP.a, et: dmY(persP.da) + '–' + dmY(persP.a) };
+        return { da: piuG(oggi, -29), a: oggi, et: '30 giorni' };
+      };
       const carica = async () => {
         box.style.cssText = 'text-align:center;color:#94a3b8;padding:32px;';
         box.textContent = 'Caricamento campagne da Google…';
