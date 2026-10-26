@@ -242,6 +242,7 @@ function renderBlock(b, promo, azienda) {
   }
   if (b.tipo==='box_offerta') {
     return `<div class="box-offerta">
+      ${fotoCoupon(promo)}
       <div class="valore">${esc(renderValore(promo))}</div>
       <div class="label">${esc(promo.nome)}</div>
       ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
