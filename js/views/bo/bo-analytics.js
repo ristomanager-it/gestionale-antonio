@@ -213,10 +213,10 @@ export async function render(container) {
   }
 
   async function fetchPrenotazioni() {
-    const from = dateFrom(giorni);
+    const iv = intervallo();
     let q = supa().from("prenotazioni_tavoli")
       .select("id, data, ora, coperti, stato, canale, created_at, sede_id, azienda_id")
-      .gte("created_at", from + "T00:00:00")
+      .gte("created_at", iv.inizio).lt("created_at", iv.fine)
       .not("stato", "eq", "annullata");
     if (filtroAzienda) q = q.eq("azienda_id", filtroAzienda);
     else if (!isSuperadmin) q = q.eq("azienda_id", aziendaId);
