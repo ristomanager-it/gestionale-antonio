@@ -1225,7 +1225,8 @@ DESC 2: ...`;
         box.style.cssText = 'text-align:center;color:#94a3b8;padding:32px;';
         box.textContent = 'Caricamento campagne da Google…';
         try {
-          const j = await chiama({ azione: 'elenco' });
+          const ivP = intervalloP();
+          const j = await chiama({ azione: 'elenco', da: ivP.da, a: ivP.a });
           if (!j.success) { box.textContent = 'Non riesco a leggere Google: ' + (j.error || 'errore'); return; }
           if (stats) stats.innerHTML = card('Impressioni', num(j.totali.impressioni)) + card('Click', num(j.totali.clic)) + card('Spesa', eur(j.totali.spesa_eur)) + card('CPC medio', eur(j.totali.cpc_eur));
           box.style.cssText = '';
