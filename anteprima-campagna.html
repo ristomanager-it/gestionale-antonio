@@ -101,7 +101,7 @@ function render(j){
       +'<div class="testo"><b>Testi</b>\n\nTitoli: '+esc((c.titoli||[]).join(' · '))+'\nTitolo lungo: '+esc(c.titolo_lungo||'')+'\nDescrizioni: '+esc((c.descrizioni||[]).join(' · '))+'</div></div>';
   }
   // landing
-  h+='<div class="c"><h2>🌐 La landing</h2><div class="nota" style="margin:0 0 6px">Foto, copy AIDA, recensioni vere'+(promo?', coupon e giorni validi':'')+', regolamento e '+(promo?'modulo per scaricare il coupon':'prenotazione')+'. In anteprima il '+(promo?'coupon non si può scaricare':'tavolo non si può prenotare')+'.</div>'
+  h+='<div class="c"><h2>🌐 La landing</h2><div class="nota" style="margin:0 0 6px">'+(d.esistente?'È la pagina a cui porta la campagna: è quella vera, già online.':'Foto, copy AIDA, recensioni vere'+(promo?', coupon e giorni validi':'')+', regolamento e '+(promo?'modulo per scaricare il coupon':'prenotazione')+'. In anteprima il '+(promo?'coupon non si può scaricare':'tavolo non si può prenotare')+'.')+'</div>'
     +(j.landing_url?'<a class="btn" href="'+esc(j.landing_url)+'" target="_blank" rel="noopener">Apri la landing (anteprima)</a>':'')+'</div>';
   q('app').innerHTML=h;
   var tb=document.querySelectorAll('.tb');
