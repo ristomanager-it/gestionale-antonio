@@ -1621,7 +1621,7 @@ function apriVideo(u){
     const footer = `<footer>
   <div class="ft-logo">${esc(nome)}</div>
   <div class="ft-links"><a href="index.html">Home</a><a href="chi-siamo.html">Chi siamo</a><a href="menu.html">Menu</a><a href="contatti.html">Contatti</a><a href="${esc(formUrl)}">${esc(cta)}</a></div>
-  <div class="ft-copy">© ${new Date().getFullYear()} ${esc(nome)}${conf.piva ? ` — P.IVA ${esc(conf.piva)}` : ""}</div>
+  <div class="ft-copy">© ${new Date().getFullYear()} ${esc(nome)}${conf.piva ? ` — P.IVA ${esc(conf.piva)}` : ""}${privacyUrl ? ` · <a href="${esc(privacyUrl)}" style="color:inherit;text-decoration:underline">Privacy e cookie</a>` : ""}</div>
 </footer>`;
 
     const menuItemsHTML = menuCats.map((c, i) => `
