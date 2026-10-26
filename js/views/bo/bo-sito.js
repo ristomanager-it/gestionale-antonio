@@ -1351,6 +1351,7 @@ export async function render(container) {
       gtmId = String(ident?.gtm_id || "").replace(/[^A-Za-z0-9-]/g, "");
       ga4Id = String(ident?.ga4_id || "").replace(/[^A-Za-z0-9-]/g, "");
       adsId = String(ident?.gads_id || "").replace(/[^A-Za-z0-9-]/g, "");
+      privacyUrl = /^https?:\/\//i.test(String(ident?.privacy_url || "").trim()) ? String(ident.privacy_url).trim() : "";
     } catch (e) { /* senza ID il sito non carica niente */ }
     const consensoScript = (metaPixelId || gtmId || ga4Id || adsId) ? `<script>(function(){
 var META='${metaPixelId}',GTM='${gtmId}',GA4='${ga4Id}',ADS='${adsId}',K='rf_consenso';
