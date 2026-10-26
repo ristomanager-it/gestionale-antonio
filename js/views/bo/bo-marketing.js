@@ -1204,6 +1204,8 @@ DESC 2: ...`;
         } catch (e) { box.textContent = 'Non riesco a leggere Google: ' + e.message; }
       };
       box.addEventListener('click', async (ev) => {
+        const an = ev.target.closest('.btn-anteprima-google');
+        if (an) { apriAnteprima(an, { piattaforma: 'google', external_id: an.dataset.id }); return; }
         const b = ev.target.closest('.btn-stato-google');
         if (!b) return;
         const accendi = b.dataset.nuovo === 'ENABLED';
