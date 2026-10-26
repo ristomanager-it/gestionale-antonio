@@ -8,7 +8,9 @@ export async function render(container) {
   }
 
   // ── State ──────────────────────────────────────────────────
-  let giorni = 30;
+  let giorni = 7;            // 7 = come il pulsante evidenziato all'apertura (prima caricava 30 giorni)
+  let modo = "giorni";       // "oggi" | "ieri" | "giorni" | "pers"
+  let periodoPers = null;    // { da, a } con il filtro Personalizzato
   let filtroAzienda = isSuperadmin ? null : aziendaId;
   let aziende = [];
   let dati = [];
