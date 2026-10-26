@@ -680,6 +680,11 @@ async function init() {
   wrap.innerHTML = html;
   // bozza creata da Tony per l'anteprima: si vede com'e', ma il coupon non si scarica
   if (promo.bozza) wrap.insertAdjacentHTML('afterbegin', '<div style="position:sticky;top:0;z-index:60;background:#b45309;color:#fff;padding:11px 14px;font-weight:800;font-size:13px;text-align:center;">👁 ANTEPRIMA · non ancora pubblicata · il coupon non si può scaricare<br><a href="/" onclick="var h=history.length>1;if(h){history.back();setTimeout(function(){location.href=\'/\'},500);}return !h;" style="color:#fff;text-decoration:underline;">← Torna all\'app</a></div>');
+  // il testo accanto alla casella dice chiaramente lo scambio: coupon in cambio del permesso di ricontattare
+  var fcons = document.getElementById('f-consenso');
+  if (fcons && fcons.nextElementSibling) {
+    fcons.nextElementSibling.textContent = 'Per ricevere il coupon acconsento a ricevere offerte e novità di ' + (nomeDaComunicare || 'questo locale') + ' su WhatsApp, email e annunci su Facebook e Instagram. Posso revocare quando voglio. *';
+  }
   // il link "Privacy Policy" del modulo porta alla pagina privacy dell'azienda (prima era un link vuoto)
   if (azienda && /^https?:\/\//i.test(String(azienda.privacy_url || ''))) {
     wrap.querySelectorAll('a[href="#"]').forEach(function (a) {
