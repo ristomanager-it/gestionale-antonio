@@ -139,9 +139,13 @@ function rational(w,d){const g=new THREE.Group(),bh=78;B(g,w,bh-8,d,M.steel,0,(b
  const p=hinge(g,cx+dw/2,y,d/2-2.2,'R');B(p,dw,oh*0.86,1.2,M.steel,-dw/2,0,-0.4);B(p,dw*0.86,oh*0.72,1,M.glass,-dw/2+1,0,0.6);B(p,4,24,5,M.black,-dw+5,0,2.6);return g;}
 function blastTall(w,d){const g=new THREE.Group();[-1,1].forEach(a=>[-1,1].forEach(b=>C(g,2.5,8,M.steel,a*(w/2-6),4,b*(d/2-6))));B(g,w-2,52,d-2,M.darkPanel,0,34,0);B(g,16,8,1,M.white,w*0.12,50,d/2);B(g,6,2.5,1,new THREE.MeshBasicMaterial({color:0xE53935}),w*0.12,50,d/2+0.6);B(g,w*0.62,24,1,M.black,0,24,d/2);
  B(g,w,128,d-3,M.steel,0,124,-1.5);inside(g,w-10,112,0,124,d/2-2.6,8);const p=hinge(g,-w/2+1,124,d/2-1,'L');B(p,w-2,126,2,M.steel,(w-2)/2,0,0);B(p,6,24,2,M.steelD,w-12,0,1.6);return g;}
-function coldline(w,d){const g=new THREE.Group(),h=195;[-1,1].forEach(a=>[-1,1].forEach(b=>C(g,2.5,8,M.steel,a*(w/2-6),4,b*(d/2-6))));B(g,w,h-8,d-3,M.steel,0,(h-8)/2+8,-1.5);
- for(let i=0;i<8;i++)B(g,w-10,1.5,1,M.black,0,12+i*4,d/2);const dh=h-48,yc=46+dh/2;inside(g,w-10,dh-10,0,yc,d/2-2.6,6);B(g,22,40,1,M.darkPanel,w/2-16,h-40,d/2);B(g,14,22,1,M.disp,w/2-16,h-40,d/2+0.6);
- const p=hinge(g,w/2-1,yc,d/2-1,'R');B(p,w-26,dh,2,M.steel,-(w-26)/2,0,0);C(p,1.4,dh*0.5,M.steel,-(w-26)+5,0,3);return g;}
+function coldline(w,d){const g=new THREE.Group(),h=176,bh=26;[-1,1].forEach(a=>[-1,1].forEach(b=>C(g,2.5,6,M.steel,a*(w/2-6),3,b*(d/2-6))));
+ B(g,w,bh-6,d-3,M.steel,0,6+(bh-6)/2,-1.5);for(let i=0;i<6;i++)B(g,w-8,1.4,1.2,M.steelD,0,9+i*3,d/2-0.6);
+ B(g,w,h-bh,d-3,M.steel,0,bh+(h-bh)/2,-1.5);const dh=h-bh-4,yc=bh+2+dh/2;
+ B(g,w-12,dh-12,0.4,M.black,0,yc,d/2-3);for(let i=0;i<3;i++){const f=T(g,10,1,M.steelD,-w*0.1,yc+dh*0.28-i*dh*0.27,d/2-2.5);f.rotation.x=0;}for(let i=0;i<9;i++)B(g,w-16,1,0.6,M.steelD,0,yc-dh/2+14+i*(dh-28)/8,d/2-2.4);
+ const p=hinge(g,w/2-1,yc,d/2-1,'R');B(p,w-2,dh,2.5,M.steel,-(w-2)/2,0,0);
+ C(p,1.8,dh*0.82,M.steel,-(w-2)+7,0,5);B(p,3,3,5,M.steel,-(w-2)+7,dh*0.41,2.5);B(p,3,3,5,M.steel,-(w-2)+7,-dh*0.41,2.5);
+ B(p,15,32,0.8,M.darkPanel,-11,dh*0.28,1.6);B(p,10,17,0.8,M.disp,-11,dh*0.29,2);return g;}
 function sfAnim(w,d){const g=new THREE.Group(),base=new THREE.Group();g.add(base);B(base,70,75,d*0.8,M.cream,0,37,0);B(base,62,26,d*0.9,M.cream,0,96,0);B(base,6,28,6,M.steelD,20,120,d*0.4);
  const pR=new THREE.Group(),pL=new THREE.Group();g.add(pR);g.add(pL);
  [[pR,1],[pL,-1]].forEach(([p,s])=>{B(p,90,3,d*0.75,M.green,s*45,0,0);B(p,90,5,2,M.steel,s*45,1,d*0.38);B(p,90,5,2,M.steel,s*45,1,-d*0.38);B(p,3,86,3,M.steel,s*88,-43,0);});
