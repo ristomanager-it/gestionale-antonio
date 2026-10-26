@@ -2099,7 +2099,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
     <a class="lp-cta" href="${esc(mapsUrl)}" style="margin-top:0">Apri le indicazioni</a>
   </div>
 
-  <div class="lp-ft"><b>${esc(nome)}</b>Orte · uscita A1${conf.orari_pranzo ? `<br>Pranzo: ${esc(conf.orari_pranzo)}` : ""}${conf.orari_cena ? `<br>Cena: ${esc(conf.orari_cena)}` : ""}</div>
+  <div class="lp-ft"><b>${esc(nome)}</b>Orte · uscita A1${conf.orari_pranzo ? `<br>Pranzo: ${esc(conf.orari_pranzo)}` : ""}${conf.orari_cena ? `<br>Cena: ${esc(conf.orari_cena)}` : ""}${privacyUrl ? `<br><a href="${esc(privacyUrl)}" style="color:inherit;text-decoration:underline">Privacy e cookie</a>` : ""}</div>
 </main>
 <script>${lpJs}</script>
 </body></html>`;
