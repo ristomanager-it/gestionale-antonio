@@ -344,7 +344,7 @@ export async function render(container) {
 
     const chartHtml = `
     <div class="an-card">
-      <div class="an-card-title">📈 Visite vs Prenotazioni per giorno</div>
+      <div class="an-card-title">📈 Visite vs Prenotazioni per ${unGiorno ? "ora" : "giorno"}</div>
       <div style="display:flex;gap:12px;margin-bottom:10px;font-size:11px;">
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:${colore}cc;border-radius:2px;display:inline-block;"></span>Visite</span>
         <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;background:#16a34a;border-radius:2px;display:inline-block;"></span>Prenotazioni</span>
