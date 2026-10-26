@@ -461,6 +461,7 @@ export function initMenu() {
         ] },
         { label: "📋 Mansionario Cucina",  route: "mansionario-cucina" },
         { label: "🌡️ Cotture CBT",        route: "cotture-cbt" },
+        { label: "🗺️ Layout",             route: "layout-cucina" },
       ]
     });
 
