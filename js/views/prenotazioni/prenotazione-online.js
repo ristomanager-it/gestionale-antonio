@@ -12,7 +12,7 @@ function rfChiediConsenso() {
     const b = document.createElement('div');
     b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.28);font:14px/1.45 system-ui,sans-serif;max-width:520px;margin:0 auto;';
     b.innerHTML = '<div style="margin-bottom:10px;">Usiamo i cookie.</div>'
-      + '<div style="display:flex;gap:8px;"><button id="rf-ck-no" style="flex:1;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;border-radius:10px;padding:11px;font-weight:700;font-size:14px;">Solo necessari</button>'
+      + '<div style="display:flex;gap:8px;"><button id="rf-ck-no" style="flex:1;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;border-radius:10px;padding:11px;font-weight:700;font-size:14px;">Rifiuta</button>'
       + '<button id="rf-ck-si" style="flex:1;border:0;background:#023C59;color:#fff;border-radius:10px;padding:11px;font-weight:800;font-size:14px;">Accetta</button></div>';
     document.body.appendChild(b);
     const fine = (v) => { try { localStorage.setItem('rf_consenso', v ? 'si' : 'no'); } catch {} b.remove(); resolve(v); };
