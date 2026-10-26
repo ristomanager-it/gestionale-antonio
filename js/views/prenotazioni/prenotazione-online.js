@@ -33,7 +33,7 @@ async function injectTracking(aziendaId) {
       .maybeSingle();
     if (!data || (!data.meta_pixel_id && !data.gtm_id && !data.ga4_id && !data.gads_id)) return;
     // Meta e Google si caricano solo se il visitatore ha accettato
-    if (!(await rfChiediConsenso())) return;
+    if (!(await rfChiediConsenso(data.privacy_url))) return;
     if (data.meta_pixel_id) {
       const pid = data.meta_pixel_id.trim();
       const s = document.createElement('script');
