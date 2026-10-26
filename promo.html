@@ -683,7 +683,7 @@ async function init() {
   // il testo accanto alla casella dice chiaramente lo scambio: coupon in cambio del permesso di ricontattare
   var fcons = document.getElementById('f-consenso');
   if (fcons && fcons.nextElementSibling) {
-    fcons.nextElementSibling.textContent = 'Per ricevere il coupon acconsento a ricevere offerte e novità di ' + (nomeDaComunicare || 'questo locale') + ' su WhatsApp, email e annunci su Facebook e Instagram. Posso revocare quando voglio. *';
+    fcons.nextElementSibling.textContent = 'Per ricevere il coupon acconsento a ricevere offerte e novità di ' + ((nomeDaComunicare && nomeDaComunicare !== 'Il tuo locale') ? nomeDaComunicare : 'questo locale') + ' su WhatsApp, email e annunci su Facebook e Instagram. Posso revocare quando voglio. *';
   }
   // il link "Privacy Policy" del modulo porta alla pagina privacy dell'azienda (prima era un link vuoto)
   if (azienda && /^https?:\/\//i.test(String(azienda.privacy_url || ''))) {
