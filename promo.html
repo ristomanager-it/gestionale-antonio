@@ -435,6 +435,7 @@ function renderThankyouDefault(promo) {
       <div style="font-size:14px;color:#64748b;line-height:1.6;">La tua promo è confermata.<br>Ti abbiamo inviato il codice via WhatsApp.</div>
     </div>
     <div class="box-offerta" style="margin:0 16px 16px;">
+      ${fotoCoupon(promo)}
       <div class="valore">${esc(renderValore(promo))}</div>
       <div class="label">${esc(promo.nome)}</div>
       ${couponCode
