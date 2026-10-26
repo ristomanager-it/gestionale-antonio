@@ -102,9 +102,12 @@ export async function render(container) {
     </div>
 
     <div class="an-toolbar">
+      <button class="an-btn" data-p="oggi">Oggi</button>
+      <button class="an-btn" data-p="ieri">Ieri</button>
       <button class="an-btn active" data-giorni="7">7 giorni</button>
       <button class="an-btn" data-giorni="30">30 giorni</button>
       <button class="an-btn" data-giorni="90">90 giorni</button>
+      <button class="an-btn" data-p="pers">📅 Personalizzato</button>
       ${isSuperadmin ? `<select id="an-az-select" class="an-select"><option value="">Tutte le aziende</option></select>` : ""}
     </div>
 
