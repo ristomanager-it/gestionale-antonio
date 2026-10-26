@@ -240,11 +240,22 @@ function renderBlock(b, promo, azienda) {
       ${promo.codice ? `<div class="codice">${esc(promo.codice)}</div>` : ''}
     </div>`;
   }
-  if (b.tipo==='valutazioni') {
-    return `<div class="valutazioni">
-      <div class="stelle">★★★★★</div>
-      <div class="stelle-label">Valutazione media clienti</div>
-    </div>`;
+  if (b.tipo==='valutazioni' || b.tipo==='recensioni') {
+    // recensioni VERE del locale (caricaRecensioniReali): se non ce ne sono, la sezione non compare
+    return '<div id="rec-reali"></div>';
+  }
+  if (b.tipo==='validita') {
+    // quando e come si usa il coupon: giorni, turno, minimo persone, scadenza
+    const GG = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato','domenica'];
+    const righe = [];
+    const gd = (promo.giorni_disponibili||[]).filter(g => g>=1 && g<=7);
+    if (gd.length) righe.push(['📅', gd.length===1 ? 'Si usa ogni ' + GG[gd[0]-1] : 'Si usa il ' + gd.map(g => GG[g-1]).join(', ')]);
+    if (promo.turni && promo.turni.length) righe.push(['🕐', 'A ' + promo.turni.map(t => t==='pranzo' ? 'pranzo' : 'cena').join(' e ')]);
+    if (promo.min_persone && promo.min_persone > 1) righe.push(['👥', 'Minimo ' + promo.min_persone + ' persone al tavolo']);
+    if (promo.data_scadenza) righe.push(['⏰', 'Valido fino al ' + new Date(promo.data_scadenza + 'T12:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'})]);
+    else if (promo.validita_giorni) righe.push(['⏰', 'Valido ' + promo.validita_giorni + ' giorni dal download']);
+    if (!righe.length) return '';
+    return `<div style="margin:14px 16px;border:2px dashed var(--primario);border-radius:var(--radius);padding:16px 18px;"><div style="font-weight:800;font-size:15px;margin-bottom:8px;color:var(--testo);">Quando puoi usare il coupon</div>${righe.map(r => `<div style="display:flex;gap:10px;font-size:14px;line-height:1.7;color:var(--testo);"><span>${r[0]}</span><span>${esc(r[1])}</span></div>`).join('')}</div>`;
   }
   if (b.tipo==='form') {
     return `<div class="form-block" id="form-container">
