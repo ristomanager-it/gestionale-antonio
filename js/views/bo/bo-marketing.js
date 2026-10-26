@@ -710,6 +710,10 @@ export async function render(container) {
         } catch(e) { esito.textContent='❌ '+e.message; esito.style.color='#dc2626'; }
       });
 
+      content.querySelectorAll('.btn-anteprima-meta').forEach(btn => {
+        btn.addEventListener('click', () => apriAnteprima(btn, { piattaforma: 'meta', external_id: btn.dataset.id }));
+      });
+
       // Toggle status campagna
       content.querySelectorAll('.btn-toggle-status').forEach(btn => {
         btn.addEventListener('click', async () => {
