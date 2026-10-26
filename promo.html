@@ -617,7 +617,16 @@ async function init() {
 
   // Inject Pixel
   const pixelId = azienda?.meta_pixel_id || promo.meta_pixel_id;
-  if (pixelId && !promo.bozza) injectPixel(pixelId);
+  window.__rfCons = false;
+  // Meta e Google partono solo se il visitatore accetta i cookie (l'anteprima di Tony non carica niente)
+  if (!promo.bozza && (pixelId || azienda?.gtm_id || azienda?.ga4_id || azienda?.gads_id)) {
+    rfChiediConsenso().then(function (ok) {
+      window.__rfCons = ok;
+      if (!ok) return;
+      if (pixelId) injectPixel(pixelId);
+      caricaGoogle(azienda);
+    });
+  }
 
   // Track view con azienda_id reale
   window._rfAzId = promo.azienda_id || null;
