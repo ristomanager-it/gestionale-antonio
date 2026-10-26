@@ -52,7 +52,7 @@ function render(j){
   var d=j.dati||{},c=d.contenuti||{},L=d.landing||{},cp=d.coupon||null,promo=d.modalita==='promo';
   var pf=(d.piattaforme||[]),h='';
   h+='<div class="ban">'+(d.esistente?'👁 ANTEPRIMA di una campagna già creata · adesso è '+(/ACTIVE|ENABLED/.test(String(d.stato))?'ATTIVA':'IN PAUSA')+'. Guardarla non cambia niente.':'👁 ANTEPRIMA · finora non è stato pubblicato né speso niente. Guarda qui, poi torna in chat e premi Conferma o Annulla.')+'</div>';
-  h+='<h1>'+(promo?'🎟 Promo con coupon':'🍝 Campagna')+' · '+esc(d.piatto)+'</h1><div class="sub">'+esc((j.sede&&j.sede.nome)||d.sede||'')+' · '+esc(d.citta||'')+'</div>';
+  h+='<h1>'+(promo?'🎟 Promo con coupon':'🍝 Campagna')+' · '+esc(d.esistente?(d.nome_campagna||d.piatto):d.piatto)+'</h1><div class="sub">'+esc((j.sede&&j.sede.nome)||d.sede||'')+' · '+esc(d.citta||'')+'</div>';
   // riepilogo
   h+='<div class="c"><h2>Riepilogo</h2>';
   pf.forEach(function(p){h+='<div class="r"><b>'+(p==='meta'?'Meta':'Google Display')+'</b><span>'+eur(d.budget&&d.budget[p])+' al giorno <span class="pill">IN PAUSA</span></span></div>';});
