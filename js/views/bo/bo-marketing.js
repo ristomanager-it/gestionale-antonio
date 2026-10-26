@@ -1216,6 +1216,26 @@ DESC 2: ...`;
     })();
   }
 
+  // anteprima di una campagna (anche creata fuori da Ristoflow): si apre in una nuova scheda
+  async function apriAnteprima(btn, corpo) {
+    const vecchio = btn.textContent;
+    const w = window.open('', '_blank'); // si apre subito, cosi' il telefono non lo blocca; poi si riempie
+    btn.disabled = true; btn.textContent = 'Un attimo…';
+    try {
+      const tk = (await supa().auth.getSession())?.data?.session?.access_token || ANON_KEY;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/tony-anteprima-esistente`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tk}`, 'apikey': ANON_KEY },
+        body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, ...corpo }),
+      });
+      const j = await res.json();
+      if (j.url && w) { w.location.href = j.url; }
+      else if (j.url) { window.location.href = j.url; }
+      else { if (w) w.close(); alert(j.error || 'Anteprima non disponibile'); }
+    } catch (e) { if (w) w.close(); alert('Non riesco a preparare l\'anteprima: riprova.'); }
+    btn.disabled = false; btn.textContent = vecchio;
+  }
+
   /* ================= CONNESSIONI META ================= */
 
   async function chiamaMetaAds(body) {
