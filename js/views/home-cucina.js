@@ -115,6 +115,7 @@ export async function render(app) {
         ${pulsante("📋", "Mansionario", "mansionario-cucina")}
         ${pulsante("🖥️", "Schermo Produzioni", "kds-produzioni")}
         ${responsabile ? pulsante("🔔", "Avvisi HACCP", "alert-haccp-config") : ""}
+        ${responsabile ? pulsante("🗺️", "Layout", "layout-cucina") : ""}
       </div>
 
       <div class="pr-barra" onclick="${apri}">
