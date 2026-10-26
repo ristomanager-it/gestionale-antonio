@@ -562,6 +562,14 @@ function addMessage(text, type, opts = {}) {
       vai.onclick = () => { location.hash = azX.link; };
       card.appendChild(vai);
     }
+    if (azX.anteprima) {
+      // anteprima di una campagna gia' creata: solo un pulsante, niente da confermare
+      const an = document.createElement("button");
+      an.textContent = "👁 Anteprima";
+      an.style.cssText = "display:block;width:100%;margin-top:8px;background:#7a3b1d;color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:800;";
+      an.onclick = () => { window.open(azX.anteprima, "_blank"); };
+      card.appendChild(an);
+    }
     bubble.appendChild(card);
   }
 
