@@ -721,11 +721,14 @@ export async function render(container) {
           btn.textContent = 'Aggiornamento...';
           btn.disabled = true;
           try {
-            const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy-ts`, {
+            // Attiva = campagna + gruppi + inserzioni (prima si accendeva solo la campagna e non partiva niente)
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-campagne`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
-              body: JSON.stringify({ endpoint: btn.dataset.id, method: 'POST', params: { status: newStatus } })
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenUtente()}`, 'apikey': ANON_KEY },
+              body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, azione: 'stato', campaign_id: btn.dataset.id, stato: newStatus })
             });
+            const esitoStato = await res.json().catch(() => ({}));
+            if (!esitoStato.success) alert('Meta: ' + (esitoStato.error || 'modifica non riuscita'));
             await renderContent();
           } catch(e) { btn.disabled = false; btn.textContent = 'Errore'; }
         });
