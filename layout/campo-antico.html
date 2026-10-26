@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modello 3D cucina, sala di lavoro e lavaggio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E4E7E9; --panel:#F6F7F8; --ink:#1E2326; --ink2:#5A6168; --line:#C9CED2; --steel:#8E979E; --accent:#2F6F8F;
+  color-scheme: light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#1A1E21; --panel:#23282C; --ink:#E8EBED; --ink2:#A3ABB2; --line:#353C42; --steel:#7C868E; --accent:#6FB3D6; color-scheme:dark; } }
+:root[data-theme="dark"]{ --bg:#1A1E21; --panel:#23282C; --ink:#E8EBED; --ink2:#A3ABB2; --line:#353C42; --steel:#7C868E; --accent:#6FB3D6; color-scheme:dark; }
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden;display:flex;flex-direction:column}
+header{padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+h1{font-size:1.05rem;font-weight:600;margin:0;letter-spacing:.01em}
+header p{margin:0;font-size:.8rem;color:var(--ink2)}
+#stage{flex:1;position:relative;min-height:0}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.bar{background:var(--panel);border-top:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.row::-webkit-scrollbar{display:none}
+button{font:inherit;font-size:.85rem;font-weight:500;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:7px 13px;white-space:nowrap;cursor:pointer}
+button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.78rem;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+#hint{position:absolute;left:12px;bottom:10px;font-size:.75rem;color:var(--ink2);pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cucina, sala di lavoro e lavaggio</h1>
+  <p>Il colore a terra indica il reparto · cappe a 200 cm</p>
+</header>
+<div id="stage"><div id="hint">Tocca forni, frigo, abbattitori e sfogliatrice per aprirli · trascina per girare</div></div>
+<div class="bar">
+  <div class="row" id="views">
+    <button data-view="all" aria-pressed="true">Insieme</button>
+    <button data-view="cucina">Cucina</button>
+    <button data-view="sala">Sala di lavoro</button>
+    <button data-view="lavaggio">Lavaggio</button>
+  </div>
+  <div class="row">
+    <button id="tHoods" aria-pressed="true">Cappe</button>
+    <button id="tLabels" aria-pressed="true">Nomi</button>
+    <button id="tWalls" aria-pressed="false">Muri alti</button>
+    <button id="tSf" aria-pressed="false">Apri sfogliatrice</button>
+  </div>
+  <div class="legend">
+    <span><i style="background:#E07A5F"></i>Cottura</span>
+    <span><i style="background:#D88BA8"></i>Pasticceria e pane</span>
+    <span><i style="background:#D9686A"></i>Carni</span>
+    <span><i style="background:#6FA8DC"></i>Pesce, freddo, acqua</span>
+    <span><i style="background:#5FB49C"></i>Banchi</span>
+    <span><i style="background:#8D86C9"></i>Macchine</span>
+    <span><i style="background:#B9BFC4"></i>Cappe</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+const ZONE={cott:0xE07A5F,past:0xD88BA8,carne:0xD9686A,blu:0x6FA8DC,banco:0x5FB49C,mac:0x8D86C9,grigio:0xB4B2A9,pane:0xE0B060};
+const K=575;
+const M={
+ steel:new THREE.MeshPhongMaterial({color:0xA7AFB6,specular:0x555555,shininess:60}),
+ steelD:new THREE.MeshPhongMaterial({color:0x78828A,specular:0x333333,shininess:40}),
+ black:new THREE.MeshPhongMaterial({color:0x24282C,shininess:20}),
+ glass:new THREE.MeshPhongMaterial({color:0x2E4552,transparent:true,opacity:0.65,shininess:90}),
+ water:new THREE.MeshPhongMaterial({color:0x8FC3E6,transparent:true,opacity:0.55,shininess:90}),
+ oil:new THREE.MeshPhongMaterial({color:0xB08A2E,shininess:80}),
+ wood:new THREE.MeshLambertMaterial({color:0xC99B68}),
+ white:new THREE.MeshPhongMaterial({color:0xF1F1EE,shininess:40}),
+ cream:new THREE.MeshPhongMaterial({color:0xE6E1D1,shininess:30}),
+ red:new THREE.MeshPhongMaterial({color:0xB8433A,shininess:50}),
+ green:new THREE.MeshLambertMaterial({color:0x9DC36F}),
+ gn:new THREE.MeshLambertMaterial({color:0xEDEDEA}),
+ lamp:new THREE.MeshBasicMaterial({color:0xFFB347}),
+ panel:new THREE.MeshLambertMaterial({color:0xF4F5F5}),
+ panelGray:new THREE.MeshLambertMaterial({color:0xDDE1E4}),
+ gray:new THREE.MeshPhongMaterial({color:0xB8BEC2,shininess:25}),
+ darkPanel:new THREE.MeshPhongMaterial({color:0x4E555B,shininess:30}),
+ disp:new THREE.MeshBasicMaterial({color:0x46C2E8}),
+};
+function B(g,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x||0,y||0,z||0);g.add(o);return o;}
+function C(g,r,h,m,x,y,z,seg){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg||20),m);o.position.set(x||0,y||0,z||0);g.add(o);return o;}
+function T(g,r,t,m,x,y,z){const o=new THREE.Mesh(new THREE.TorusGeometry(r,t,8,24),m);o.rotation.x=Math.PI/2;o.position.set(x,y,z);g.add(o);return o;}
+// tutte le attrezzature sono costruite col fronte verso +z (w = larghezza frontale, d = profondità)
+const ANIM=[],INTER=[];let SF=null;
+function hinge(g,x,y,z,side){const p=new THREE.Group();p.position.set(x,y,z);p.userData.openAng=side==='R'?1.75:-1.75;p.userData.target=0;g.add(p);(g.userData.doors=g.userData.doors||[]).push(p);ANIM.push(p);return p;}
+function inside(g,w,h,x,y,z,n){B(g,w,h,0.4,M.black,x,y,z);for(let i=0;i<n;i++)B(g,w-8,1.2,0.5,M.steelD,x,y-h/2+10+i*(h-20)/Math.max(1,n-1),z+0.3);}
+function top(g,w,d,h){const t=B(g,w,4,d,M.steel,0,h-2,0);t.add(new THREE.LineSegments(new THREE.EdgesGeometry(t.geometry),new THREE.LineBasicMaterial({color:0x3a4045})));}
+function legs(g,w,d,h){[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>B(g,4,h-4,4,M.steel,a*(w/2-4),(h-4)/2,b*(d/2-4)));}
+function table(w,d,o){const g=new THREE.Group(),h=(o&&o.h)||90;top(g,w,d,h);legs(g,w,d,h);B(g,w-8,2,d-8,M.steel,0,20,0);if(o&&o.wood)B(g,w-6,4,d-6,M.wood,0,h+2,0);return g;}
+function counter(w,d,o){const g=new THREE.Group(),h=(o&&o.h)||90;B(g,w,h-14,d-3,M.steelD,0,(h-14)/2+10,-1.5);B(g,w-6,10,d-8,M.black,0,5,-3);top(g,w,d,h);
+ const n=Math.max(1,Math.round(w/60));for(let i=0;i<n;i++){const x=-w/2+w/n*(i+.5);B(g,w/n-3,h-24,1,M.steel,x,(h-24)/2+12,d/2-1.5);if(o&&o.drawers){for(let k=0;k<2;k++){B(g,w/n-3,1,1.5,M.steelD,x,22+k*30,d/2-0.5);B(g,w/n*0.5,2,2,M.steelD,x,40+k*30,d/2+1);}}else B(g,2,30,2,M.steelD,x+w/n/2-8,h/2,d/2+1);}
+ return g;}
+function faucet(g,x,y,z,len){C(g,1.6,30,M.steel,x,y+15,z);B(g,2.4,2.4,len||18,M.steel,x,y+30,z+(len||18)/2);}
+function sink(w,d,o){const g=counter(w,d,o),bw=Math.min(w-14,52);B(g,bw,1.5,d-22,M.black,0,90.5,2);faucet(g,0,90,-d/2+8);
+ if(o&&o.pre){C(g,1,75,M.steel,w/2-12,128,-d/2+8);T(g,6,1,M.steel,w/2-12,150,-d/2+8);C(g,2,10,M.steelD,w/2-12,108,-d/2+14);}return g;}
+function handsink(w,d){const g=new THREE.Group();B(g,w,18,d*0.6,M.steel,0,82,-d*0.2);B(g,w-10,1,d*0.45,M.black,0,91.5,-d*0.2);faucet(g,0,91,-d/2+4,12);B(g,8,6,8,M.steelD,0,40,-d*0.2+8);return g;}
+function burners(w,d){const g=counter(w,d);B(g,w-4,2,d-6,M.black,0,91,-1);const cols=Math.max(1,Math.round(w/40));
+ for(let i=0;i<cols;i++)for(let j=0;j<2;j++){const x=-w/2+w/cols*(i+.5),z=-d/4+j*d/2-2;B(g,w/cols-6,2,2,M.black,x,93,z);B(g,2,2,d/2-6,M.black,x,93,z);T(g,7,1.2,M.steelD,x,93,z);
+  C(g,2,3,M.black,x,76,d/2+2).rotation.x=Math.PI/2;}return g;}
+function pastacooker(w,d){const g=counter(w,d),tw=w/2-6,wire=new THREE.MeshBasicMaterial({color:0x9AA3AA,wireframe:true});
+ B(g,tw,1,d-18,M.water,-w/4,90.4,-1);B(g,tw,1,(d-18)*0.45,M.steelD,-w/4,91,(d-18)*0.25);
+ B(g,tw,1,d-18,M.water,w/4,90.4,-1);const bs=(d-26)/3;for(let i=0;i<3;i++){const z=-d/2+14+bs*(i+.5);B(g,tw*0.8,8,bs-3,wire,w/4,94,z);const hd=B(g,2.5,2.5,14,M.black,w/4+tw*0.3,100,z+3);hd.rotation.x=-0.6;}
+ for(let i=0;i<3;i++){const k=C(g,3,4,M.black,-w/3+i*w/3,78,d/2+2);k.rotation.x=Math.PI/2;}C(g,1,45,M.steelD,w/2-6,112,-d/2+5);B(g,8,2,2,M.steelD,w/2-9,134,-d/2+5);return g;}
+function fryer(w,d){const g=counter(w,d);[-1,1].forEach(s=>{B(g,w/2-8,1,d-22,M.oil,s*w/4,91,-2);const b=B(g,w/2-12,10,d/2-8,new THREE.MeshBasicMaterial({color:0x9AA3AA,wireframe:true}),s*w/4,97,-2);B(g,3,3,16,M.black,s*w/4,100,d/2-6);});return g;}
+function grill(w,d){const g=counter(w,d,{drawers:true});B(g,w-4,8,d-4,M.steelD,0,94,0);const n=Math.floor((w-10)/4);for(let i=0;i<n;i++){const o=C(g,0.8,d-12,M.black,-w/2+7+i*4,99,0,8);o.rotation.x=Math.PI/2;}return g;}
+function neutral(w,d){return counter(w,d,{drawers:true});}
+function griddle(w,d){const g=counter(w,d);B(g,w-6,4,d-14,M.black,0,93,2);B(g,w,10,2,M.steel,0,96,-d/2+1);return g;}
+function induction(w,d){const g=counter(w,d);B(g,w-6,1.5,d-8,M.black,0,91,0);C(g,12,0.4,M.steelD,0,92,0);return g;}
+function roner(w,d){const g=counter(w,d);B(g,w-12,22,d-22,M.water,0,102,2);C(g,3,36,M.black,w/2-14,115,-d/2+14);B(g,7,8,7,M.black,w/2-14,136,-d/2+14);return g;}
+function bimby(g,x,y,z){B(g,26,12,30,M.white,x,y+6,z);B(g,22,16,6,M.white,x,y+20,z-12);C(g,8,24,M.steel,x,y+24,z+2);C(g,9,2,M.black,x,y+37,z+2);return g;}
+function bimbyCounter(w,d){const g=counter(w,d);bimby(g,0,90,0);return g;}
+function spiral(w,d){const g=new THREE.Group(),r=Math.min(w,d)*0.42;C(g,r*0.85,48,M.cream,0,24,d*0.05,8);C(g,r,32,M.steel,0,64,d*0.05,28);C(g,r-1.5,1,M.black,0,80.6,d*0.05,28);B(g,22,78,18,M.cream,0,72,-d/2+10);
+ const h=B(g,24,20,d*0.72,M.cream,0,118,-d*0.08);C(g,1.6,34,M.black,0,96,d*0.1);T(g,r*0.75,0.7,M.steel,0,112,d*0.08);B(g,10,10,4,M.black,9,100,-d/2+19);return g;}
+function planetaria(w,d){const g=new THREE.Group();B(g,w*0.85,30,d*0.85,M.white,0,15,0);B(g,24,95,20,M.white,0,77,-d/2+12);B(g,34,34,d*0.66,M.white,0,138,-d*0.04);B(g,16,11,1,M.panelGray,0,146,d*0.29+0.6);C(g,2,3,M.black,-4,146,d*0.29+2).rotation.x=Math.PI/2;
+ C(g,15,30,M.black,0,62,d*0.13,24);B(g,44,3,6,M.steel,0,74,d*0.13);C(g,1.8,22,M.steelD,0,110,d*0.13);B(g,36,28,1,M.glass,0,108,d*0.13+16);return g;}
+function miniPlan(g,x,y,z){B(g,18,5,30,M.white,x,y+2.5,z);B(g,13,28,12,M.white,x,y+16,z-10);B(g,14,14,28,M.white,x,y+34,z-1);B(g,14.4,2.2,28.4,M.steel,x,y+30,z-1);C(g,9,15,M.steel,x,y+13,z+4);B(g,22,2,3,M.white,x,y+22,z+4);return g;}
+function grayPlan(g,x,y,z){const m=M.gray;B(g,28,6,30,m,x,y+3,z);B(g,6,8,26,m,x-11,y+9,z);B(g,6,8,26,m,x+11,y+9,z);B(g,16,34,14,m,x,y+25,z-9);B(g,24,24,28,m,x,y+50,z-1);B(g,24.4,2,28.4,M.steel,x,y+38,z-1);C(g,1.8,10,M.steel,x,y+32,z+4);T(g,13,0.6,M.steel,x,y+34,z+4);return g;}
+function cabinet(w,d,o){const g=new THREE.Group(),h=(o&&o.h)||200;B(g,w,h-10,d,o&&o.white?M.panel:M.steel,0,(h-10)/2+10,0);B(g,w-6,10,d-6,M.black,0,5,0);
+ const n=(o&&o.doors)||1;for(let i=0;i<n;i++){const x=-w/2+w/n*(i+.5);if(i>0)B(g,0.8,h-20,1,M.steelD,-w/2+w/n*i,h/2+5,d/2);C(g,1.2,h*0.45,M.steelD,x+(n>1?(i%2?-w/n/2+6:w/n/2-6):w/2-8),h*0.55,d/2+3);}
+ if(o&&o.display)B(g,14,22,1,M.black,w/2-14,h-35,d/2+0.6),B(g,10,14,1,M.disp,w/2-14,h-35,d/2+1.2);
+ if(o&&o.grille)B(g,w-8,18,1,M.black,0,22,d/2+0.6);return g;}
+function rational(w,d){const g=new THREE.Group(),bh=78;B(g,w,bh-8,d,M.steel,0,(bh-8)/2+8,0);B(g,w-6,8,d-6,M.black,0,4,0);B(g,1,bh-20,1,M.steelD,0,bh/2,d/2+0.5);B(g,w+2,3,d+2,M.steel,0,bh-1.5,0);
+ const oh=100,y=bh+4+oh/2;[-1,1].forEach(s=>C(g,2.5,4,M.black,s*(w/2-8),bh+2,0));B(g,w*0.96,oh,d-6,M.steel,0,y,-3);const pw=w*0.27,px=-w*0.48+pw/2;
+ B(g,pw,oh-8,1,M.panelGray,px,y,d/2-2.4);B(g,pw*0.8,6,1,M.red,px,y+oh/2-12,d/2-1.8);for(let i=0;i<4;i++)B(g,pw*0.55,6,1,M.black,px,y+12-i*9,d/2-1.8);const kn=C(g,4,3,M.black,px,y-30,d/2-1);kn.rotation.x=Math.PI/2;
+ const dw=w*0.64,cx=w*0.15;inside(g,dw-8,oh*0.78,cx,y,d/2-5.6,7);
+ const p=hinge(g,cx+dw/2,y,d/2-2.2,'R');B(p,dw,oh*0.86,1.2,M.steel,-dw/2,0,-0.4);B(p,dw*0.86,oh*0.72,1,M.glass,-dw/2+1,0,0.6);B(p,4,24,5,M.black,-dw+5,0,2.6);return g;}
+function blastTall(w,d){const g=new THREE.Group();[-1,1].forEach(a=>[-1,1].forEach(b=>C(g,2.5,8,M.steel,a*(w/2-6),4,b*(d/2-6))));B(g,w-2,52,d-2,M.darkPanel,0,34,0);B(g,16,8,1,M.white,w*0.12,50,d/2);B(g,6,2.5,1,new THREE.MeshBasicMaterial({color:0xE53935}),w*0.12,50,d/2+0.6);B(g,w*0.62,24,1,M.black,0,24,d/2);
+ B(g,w,128,d-3,M.steel,0,124,-1.5);inside(g,w-10,112,0,124,d/2-2.6,8);const p=hinge(g,-w/2+1,124,d/2-1,'L');B(p,w-2,126,2,M.steel,(w-2)/2,0,0);B(p,6,24,2,M.steelD,w-12,0,1.6);return g;}
+function coldline(w,d){const g=new THREE.Group(),h=195;[-1,1].forEach(a=>[-1,1].forEach(b=>C(g,2.5,8,M.steel,a*(w/2-6),4,b*(d/2-6))));B(g,w,h-8,d-3,M.steel,0,(h-8)/2+8,-1.5);
+ for(let i=0;i<8;i++)B(g,w-10,1.5,1,M.black,0,12+i*4,d/2);const dh=h-48,yc=46+dh/2;inside(g,w-10,dh-10,0,yc,d/2-2.6,6);B(g,22,40,1,M.darkPanel,w/2-16,h-40,d/2);B(g,14,22,1,M.disp,w/2-16,h-40,d/2+0.6);
+ const p=hinge(g,w/2-1,yc,d/2-1,'R');B(p,w-26,dh,2,M.steel,-(w-26)/2,0,0);C(p,1.4,dh*0.5,M.steel,-(w-26)+5,0,3);return g;}
+function sfAnim(w,d){const g=new THREE.Group(),base=new THREE.Group();g.add(base);B(base,70,75,d*0.8,M.cream,0,37,0);B(base,62,26,d*0.9,M.cream,0,96,0);B(base,6,28,6,M.steelD,20,120,d*0.4);
+ const pR=new THREE.Group(),pL=new THREE.Group();g.add(pR);g.add(pL);
+ [[pR,1],[pL,-1]].forEach(([p,s])=>{B(p,90,3,d*0.75,M.green,s*45,0,0);B(p,90,5,2,M.steel,s*45,1,d*0.38);B(p,90,5,2,M.steel,s*45,1,-d*0.38);B(p,3,86,3,M.steel,s*88,-43,0);});
+ SF={g,base,pR,pL,t:0,target:0};g.userData.sf=SF;return g;}
+function deckOven(w,d){const g=new THREE.Group();legs(g,w,d,40);for(let k=0;k<2;k++){const y=40+27+k*58;B(g,w,55,d,M.steelD,0,y,0);B(g,w*0.62,24,1,M.glass,0,y,d/2+0.6);B(g,w*0.72,3,4,M.steel,0,y+16,d/2+3);}B(g,w,12,d,M.steel,0,40+116+6,0);return g;}
+function smallOven(w,d){const g=new THREE.Group();legs(g,w,d,85);B(g,w,55,d,M.steelD,0,85+27,0);B(g,w*0.65,38,1,M.glass,-w*0.1,112,d/2+0.6);B(g,w*0.18,40,1,M.black,w*0.36,112,d/2+0.6);return g;}
+const GRANITE=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.fillStyle='#8a8a88';x.fillRect(0,0,128,128);for(let i=0;i<1400;i++){const v=Math.random();x.fillStyle=v<.45?'#2b2b2b':v<.8?'#e9e9e6':'#5d5d5b';x.fillRect(Math.random()*128,Math.random()*128,1+Math.random()*2,1+Math.random()*2);}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(3,1);return new THREE.MeshLambertMaterial({map:t});})();
+function saladette(w,d){const g=new THREE.Group(),h=90;B(g,w,h-14,d-3,M.steelD,0,(h-14)/2+10,-1.5);B(g,w-6,10,d-8,M.black,0,5,-3);
+ const cw=Math.min(45,w*0.25);B(g,cw,h-24,1,M.steel,-w/2+cw/2,(h-24)/2+12,d/2-1.2);B(g,cw*0.75,9,1,M.black,-w/2+cw/2,h-24,d/2-0.6);B(g,9,3,1,M.disp,-w/2+cw/2,h-24,d/2);for(let i=0;i<9;i++)B(g,cw*0.6,1,1,M.black,-w/2+cw/2,18+i*5,d/2-0.5);
+ const rest=w-cw,drw=Math.min(40,rest*0.25),dw=(rest-drw)/2;for(let i=0;i<2;i++){B(g,dw-3,h-26,1,M.steel,-w/2+cw+dw*(i+.5),(h-26)/2+12,d/2-0.5);B(g,2,20,2,M.steelD,-w/2+cw+dw*(i+1)-8,h/2,d/2+1);}
+ for(let k=0;k<5;k++){const y=14+k*((h-26)/5)+(h-26)/10;B(g,drw-4,(h-26)/5-2,1,M.steel,w/2-drw/2,y,d/2-0.5);B(g,drw-14,1.5,2,M.steelD,w/2-drw/2,y+4,d/2+0.8);}
+ B(g,w,4,d,GRANITE,0,h-2,0);B(g,w,8,3,GRANITE,0,h+4,-d/2+1.5);
+ const rd=d*0.36;B(g,w*0.82,22,rd,M.steel,w*0.06,h+11,-d/2+rd/2+3);const n=Math.max(1,Math.floor(w*0.78/32));for(let i=0;i<n;i++)B(g,28,1,rd*0.8,M.gn,w*0.06-w*0.39+16+i*32,h+22.5,-d/2+rd/2+3);B(g,10,5,1,M.black,-w*0.3,h+8,-d/2+rd+3.6);return g;}
+function combiBig(w,d){const g=new THREE.Group(),sh=80;legs(g,w*0.92,d,sh);B(g,w*0.88,2,d-8,M.steel,0,20,0);B(g,w*0.92,3,d,M.steel,0,sh-1.5,0);
+ const bh=95,y=sh+bh/2;B(g,w,bh,d,M.steel,0,y,0);const pw=w*0.16;B(g,pw,bh-6,1.2,M.black,-w/2+pw/2,y,d/2+0.6);
+ for(let i=0;i<4;i++){const k=C(g,2.6,3,M.steelD,-w/2+pw/2,y+24-i*14,d/2+2);k.rotation.x=Math.PI/2;}B(g,pw*0.5,4,1,new THREE.MeshBasicMaterial({color:0x3fae5a}),-w/2+pw/2,y-38,d/2+1.4);
+ const dw=w*0.56,dx=w/2-dw/2-2;inside(g,dw-6,bh-14,dx,y,d/2+0.2,6);
+ const p=hinge(g,dx+dw/2,y,d/2+1,'R');B(p,dw,bh-8,1,M.steel,-dw/2,0,0);B(p,dw*0.84,bh*0.72,1,M.glass,-dw/2+2,0,0.6);B(p,3,22,4,M.black,-dw+6,0,2.4);
+ B(g,w*0.28,20,d*0.4,M.steel,-w*0.26,sh+bh+10,-d*0.2);C(g,5,40,M.steelD,-w*0.4,sh+bh+30,-d*0.3);return g;}
+function convOven(w,d){const g=new THREE.Group(),bh=75;B(g,w,bh-10,d,M.steel,0,(bh-10)/2+10,0);B(g,w-6,10,d-6,M.black,0,5,0);B(g,w*0.62,bh-24,1,M.steelD,-w*0.15,bh/2+4,d/2+0.6);
+ const oh=58,y=bh+6+oh/2;[-1,1].forEach(s=>C(g,2,6,M.steel,s*(w/2-6),bh+3,d/2-8));B(g,w,oh,d-6,M.steel,0,y,-3);const pw=w*0.2;B(g,pw,oh-4,1,M.black,-w/2+pw/2+2,y,d/2-2.4);
+ for(let i=0;i<3;i++){const k=C(g,2.8,3,M.black,-w/2+pw/2+2,y+16-i*13,d/2-1);k.rotation.x=Math.PI/2;}
+ const dw=w-pw-8,cx=pw/2+2;inside(g,dw-6,oh-12,cx,y,d/2-5.6,4);
+ const p=hinge(g,cx+dw/2,y,d/2-2.2,'R');B(p,dw,oh-8,1,M.glass,-dw/2,0,0);B(p,3.5,20,4,M.black,-dw+5,0,2.2);return g;}
+function blastMicro(w,d,o){const g=new THREE.Group(),h=88;B(g,w,h,d,M.steel,0,h/2,0);B(g,w,3,d+2,M.steel,0,h+1.5,1);B(g,w-4,h*0.58,1,M.steel,0,h*0.63,d/2+0.6);
+ B(g,w*0.62,10,1,M.black,0,h*0.27,d/2+0.6);B(g,9,3,1,M.disp,-w*0.05,h*0.28,d/2+1.2);for(let i=0;i<6;i++)B(g,w*0.8,1.2,1,M.black,0,4+i*3,d/2+0.6);
+ if(!(o&&o.noMW)){const mw=Math.min(52,w*0.6),mh=34,md=Math.min(45,d*0.7),my=h+3+mh/2,fz=-d/2+md+4+0.6;B(g,mw,mh,md,M.steel,0,my,-d/2+md/2+4);B(g,mw*0.6,mh*0.55,1,M.glass,-mw*0.08,my-3,fz);B(g,mw-4,6,1,M.black,0,my+mh/2-5,fz);B(g,2.5,16,3,M.steelD,mw*0.32,my-3,fz+1.5);}return g;}
+function freezerZ(w,d){const g=new THREE.Group(),h=205;B(g,w,h-10,d-3,M.steel,0,(h-10)/2+10,-1.5);B(g,w-8,10,d-8,M.black,0,5,0);B(g,w,26,d+1,M.steel,0,h-13,0.5);
+ B(g,w*0.3,18,1,M.black,0,h-13,d/2+1.2);B(g,w*0.15,4,1,M.disp,0,h-11,d/2+1.8);const dh=h-38,yc=10+dh/2;inside(g,w-8,dh-10,0,yc,d/2-2.6,5);
+ const p=hinge(g,-w/2+1,yc,d/2-1,'L');B(p,w-2,dh,2,M.steel,(w-2)/2,0,0);B(p,1.5,40,3,M.steelD,w-7,dh*0.05,1.8);return g;}
+function pass(w,d){const g=table(w,d);[-1,1].forEach(s=>C(g,2,50,M.steel,s*(w/2-4),116,0));B(g,w,3,d*0.8,M.steel,0,141,0);const n=Math.floor(w/45);for(let i=0;i<n;i++)B(g,30,2,8,M.lamp,-w/2+30+i*45,139,0);return g;}
+function vacuum(w,d){const g=table(w,d);B(g,w*0.8,26,d*0.75,M.steelD,0,103,0);B(g,w*0.65,8,d*0.6,M.glass,0,120,0);B(g,w*0.3,6,1,M.black,0,96,d*0.38);return g;}
+function sfOpen(w,d){const g=new THREE.Group();B(g,70,75,d*0.8,M.cream,0,37,0);B(g,62,26,d,M.cream,0,96,0);const bw=(w-70)/2;[-1,1].forEach(s=>{B(g,bw,3,d*0.75,M.green,s*(35+bw/2),90,0);B(g,bw,5,2,M.steel,s*(35+bw/2),91,d*0.38);B(g,bw,5,2,M.steel,s*(35+bw/2),91,-d*0.38);B(g,3,88,3,M.steel,s*(w/2-3),44,0);});B(g,6,28,6,M.steelD,20,120,d*0.4);return g;}
+function sfClosed(w,d){const g=new THREE.Group();B(g,w*0.7,75,d*0.8,M.cream,0,37,0);B(g,w*0.62,26,d*0.9,M.cream,0,96,0);[-1,1].forEach(s=>{const p=B(g,3,95,d*0.75,M.green,s*(w*0.31+4),155,0);p.rotation.z=s*0.12;});return g;}
+function mincer(g,x,y,z){B(g,22,22,30,M.steel,x,y+11,z);C(g,5,26,M.steel,x,y+30,z-4).rotation.x=Math.PI/2;C(g,6,14,M.steel,x,y+40,z-12);C(g,12,2,M.steel,x,y+48,z-12);return g;}
+function slicer(g,x,y,z){const al=M.steel;B(g,50,10,40,al,x,y+5,z);B(g,14,32,26,al,x+14,y+26,z-6);
+ const bl=C(g,15,1.5,M.steelD,x+4,y+28,z-4,32);bl.rotation.z=Math.PI/2;bl.rotation.y=0.35;const gd=C(g,16,2,al,x+5,y+29,z-6,32);gd.rotation.z=Math.PI/2;gd.rotation.y=0.35;
+ const tr=B(g,26,2,30,al,x-10,y+22,z+4);tr.rotation.z=0.5;B(g,24,2,6,al,x-10,y+14,z+16);B(g,4,18,4,al,x-18,y+34,z+2);B(g,14,3,4,al,x-13,y+43,z+2);
+ const k=C(g,4,5,M.black,x+14,y+8,z+21);k.rotation.x=Math.PI/2;B(g,6,4,1,M.red,x-6,y+6,z+20.6);return g;}
+function microwave(g,x,y,z){B(g,52,34,42,M.steel,x,y+17,z);B(g,32,20,1,M.glass,x-4,y+15,z+21.2);B(g,48,6,1,M.black,x,y+29,z+21.2);B(g,2.5,16,3,M.steelD,x+16,y+15,z+22);return g;}
+function capote(w,d){const g=new THREE.Group();B(g,w,85,d,M.steelD,0,42,0);B(g,w,62,d,M.steel,0,85+31,0);B(g,w*0.6,3,4,M.black,0,135,d/2+2);return g;}
+function underDW(w,d){const g=counter(w,d);B(g,w*0.5,2,2,M.black,0,78,d/2+1);B(g,10,4,1,M.disp,w/2-12,82,d/2+0.6);return g;}
+function coldroom(w,d){const g=new THREE.Group();B(g,w,230,d,M.panel,0,115,0);B(g,Math.min(90,w*0.6),200,2,M.white,0,100,d/2+1);B(g,3,30,4,M.black,Math.min(90,w*0.6)/2-8,100,d/2+3);B(g,14,8,1,M.disp,Math.min(90,w*0.6)/2+14,160,d/2+0.6);return g;}
+function rack(w,d){const g=new THREE.Group();[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>C(g,1.2,150,M.steel,a*(w/2-2),75,b*(d/2-2)));for(let i=0;i<5;i++)B(g,w,1,d,M.steelD,0,15+i*32,0);return g;}
+function shelf(w,d){const g=new THREE.Group();B(g,w,3,d,M.steel,0,116,0);return g;}
+function wallPanel(w,d){const g=new THREE.Group();B(g,w*0.6,80,12,M.panel,0,150,-d/2+6);return g;}
+const BUILD={table,counter,sink,handsink,burners,pastacooker,fryer,grill,neutral,griddle,induction,roner,bimbyCounter,spiral,planetaria,cabinet,rational,deckOven,smallOven,saladette,pass,vacuum,sfOpen,sfClosed,capote,underDW,coldroom,rack,shelf,wallPanel,combiBig,convOven,blastMicro,freezerZ,blastTall,coldline,sfAnim};
+const ROT={S:0,N:Math.PI,E:Math.PI/2,W:-Math.PI/2};
+// [nome, tipo, x1,y1,x2,y2, fronte, zona, opzioni, extra]
+const items=[
+ ['Lavello pesce','sink',0,0,132,70,'S','blu'],['Banco pesce','table',0,70,70,202,'E','blu'],
+ ['','counter',0,465,70,535,'N','past'],['Impastatrice spirale','spiral',70,475,150,535,'N','past'],['Lavello','sink',150,465,210,535,'N','past'],
+ ['Abbattitore sottobanco','blastMicro',210,465,310,535,'N','past',{noMW:true}],['Piastra','griddle',310,465,370,535,'N','past'],['Planetaria','planetaria',370,475,430,535,'N','past'],
+ ['Isola pane','table',180,300,420,370,'S','past',{wood:true},g=>miniPlan(g,-100,94,0)],
+ ['Banco carni','table',278,0,480,70,'S','carne'],['Lavello carni','sink',480,0,540,70,'S','carne'],['','table',540,0,643,70,'S','carne'],['Lavamani','handsink',650,0,700,60,'S','blu'],
+ ['Banco extra carne','table',303,150,563,220,'S','banco',null,g=>{bimby(g,45,90,0);grayPlan(g,95,90,0);}],
+ ['Banco carni','table',643,70,713,257,'W','carne',null,g=>mincer(g,-40,90,0)],
+ ['Forno 120','combiBig',593,257,713,377,'W','past'],['Abbattitore 10 teglie','blastTall',633,377,713,457,'W','mac'],['Coldline','coldline',628,457,713,535,'W','mac'],
+ ['Roner','roner',100,K,160,K+80,'S','cott'],['Roner','roner',160,K,220,K+80,'S','cott'],['Bimby','bimbyCounter',220,K,300,K+80,'S','cott'],
+ ['Piastra','induction',300,K,360,K+80,'S','cott'],['Piastra','induction',360,K,420,K+80,'S','cott'],['','counter',420,K,433,K+80,'S','cott'],
+ ['Sottovuoto','vacuum',140,K+173,200,K+233,'N','mac'],['Banco','table',200,K+173,290,K+233,'N','banco'],['Banco 40','table',370,K+173,530,K+213,'N','banco'],
+ ['Cuocipasta','pastacooker',370,K+213,450,K+293,'W','cott'],['Fuochi','burners',370,K+293,450,K+413,'W','cott'],
+ ['Friggitrice','fryer',450,K+213,530,K+293,'E','cott'],['','neutral',450,K+293,530,K+333,'E','cott'],['Grill','grill',450,K+333,530,K+413,'E','cott'],
+ ['Mensola','shelf',370,K+413,530,K+443,'S','grigio'],
+ ['Forno piccolo','convOven',220,K+233,290,K+313,'E','cott'],['Saladette','saladette',220,K+313,290,K+513,'E','blu'],['Prep','table',150,K+313,220,K+513,'W','banco'],
+ ['Pass','pass',200,K+513,630,K+563,'S','grigio'],
+ ['Rational','rational',620,K+140,700,K+230,'W','mac'],['Antipasti, affettatrice e microonde','table',630,K+230,700,K+560,'W','banco',null,g=>{slicer(g,95,90,0);microwave(g,-100,90,-6);}],
+ ['Lavello','sink',0,K+60,60,K+310,'E','blu'],['Dispensa','cabinet',0,K+310,70,K+450,'E','grigio',{doors:2}],
+ ['Congelatore colazione','freezerZ',0,K+633,70,K+713,'N','blu'],['Congelatore colazione','freezerZ',70,K+633,140,K+713,'N','blu'],
+ ['Quadro elettrico','wallPanel',180,K+653,280,K+713,'N','grigio'],
+ ['Armadio','cabinet',280,K+653,480,K+713,'N','grigio',{doors:2}],['Banco','table',480,K+653,600,K+713,'N','banco'],['Pane','rack',600,K+673,700,K+713,'N','pane'],
+ ['Cella verdure','coldroom',975,593,1140,818,'W','blu'],
+ ['Lavello','sink',705,828,765,1108,'E','banco'],['Lavabicchieri','underDW',705,678,765,738,'E','blu'],
+ ['Prelavaggio','sink',880,1048,1060,1108,'N','blu',{pre:true}],['Lavastoviglie','capote',1070,1038,1140,1108,'N','grigio'],['Tavoli','table',1080,878,1140,1038,'W','grigio'],
+];
+const sfIt=['Sfogliatrice','sfAnim',0,355,100,455,'E','mac'];
+const walls=[
+ [0,0,132,0],[278,0,713,0],[0,0,0,230],[0,330,0,535],[713,0,713,535],
+ [0,535,433,535],[560,535,713,535],[0,575,433,575],[560,575,700,575],
+ [0,575,0,1108],[0,1208,0,1288],[0,1288,1180,1288],
+ [700,575,700,588],[700,678,700,1135],[700,1225,700,1288],
+ [700,588,770,588],[860,588,970,588],[970,588,970,658],[970,748,970,818],[970,818,1140,818],[1140,818,1140,1108],
+ [700,1108,790,1108],[880,1108,1140,1108]
+];
+const hoods=[
+ ['Cappa isola',355,K+198,545,K+428],['Cappa produzione',95,K-5,430,K+110],['Cappa Rational',605,K+125,705,K+245],
+ ['Cappa forno piccolo',210,K+223,300,K+323],['Cappa forno',578,245,713,392],['Cappa piastra',300,450,380,535],
+];
+const views={all:{t:[590,0,700],p:[590,1500,2050]},cucina:{t:[350,60,930],p:[350,900,1600]},sala:{t:[356,60,270],p:[356,800,980]},lavaggio:{t:[920,60,880],p:[920,650,1380]}};
+
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+stage.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(42,1,10,20000);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.maxPolarAngle=Math.PI*0.48;controls.minDistance=120;controls.maxDistance=5000;
+scene.add(new THREE.HemisphereLight(0xffffff,0x6a6f74,0.62));
+const sun=new THREE.DirectionalLight(0xffffff,0.6);sun.position.set(-800,1800,600);scene.add(sun);
+const fill=new THREE.DirectionalLight(0xffffff,0.25);fill.position.set(900,600,-400);scene.add(fill);
+function floor(x1,y1,x2,y2,c){const m=new THREE.Mesh(new THREE.BoxGeometry(x2-x1,2,y2-y1),new THREE.MeshLambertMaterial({color:c||0x5F676E}));m.position.set((x1+x2)/2,-1,(y1+y2)/2);scene.add(m);}
+floor(0,0,713,535);floor(0,535,713,575,0x6F777D);floor(0,575,700,1288);floor(700,588,1140,1108);floor(700,1108,1180,1288,0xB8A77E);floor(720,440,960,588,0x5F676E);
+
+const labelGroup=new THREE.Group();scene.add(labelGroup);
+function makeLabel(text,x,y,z){
+ const c=document.createElement('canvas'),ctx=c.getContext('2d'),fs=40;ctx.font='600 '+fs+'px Barlow, sans-serif';const w=Math.ceil(ctx.measureText(text).width)+26;c.width=w;c.height=fs+20;
+ ctx.font='600 '+fs+'px Barlow, sans-serif';ctx.fillStyle='rgba(30,35,38,0.8)';const r=13;ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(w-r,0);ctx.quadraticCurveTo(w,0,w,r);ctx.lineTo(w,c.height-r);ctx.quadraticCurveTo(w,c.height,w-r,c.height);ctx.lineTo(r,c.height);ctx.quadraticCurveTo(0,c.height,0,c.height-r);ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.fill();
+ ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.fillText(text,13,c.height/2+2);
+ const tex=new THREE.CanvasTexture(c);tex.minFilter=THREE.LinearFilter;const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));
+ const s=0.38;sp.scale.set(w*s,c.height*s,1);sp.position.set(x,y,z);sp.renderOrder=10;labelGroup.add(sp);return sp;}
+function place(it,parent){
+ const [name,type,x1,y1,x2,y2,f,zone,opt,extra]=it;const W=x2-x1,D=y2-y1;const ns=(f==='N'||f==='S');const w=ns?W:D,d=ns?D:W;
+ const g=BUILD[type](w,d,opt||{});if(extra)extra(g);if(g.userData.doors||g.userData.sf)INTER.push(g);g.rotation.y=ROT[f];g.position.set((x1+x2)/2,0,(y1+y2)/2);(parent||scene).add(g);
+ const tile=new THREE.Mesh(new THREE.BoxGeometry(W,0.6,D),new THREE.MeshLambertMaterial({color:ZONE[zone],transparent:true,opacity:0.55}));tile.position.set((x1+x2)/2,0.4,(y1+y2)/2);(parent||scene).add(tile);
+ const bb=new THREE.Box3().setFromObject(g);if(name)return makeLabel(name,(x1+x2)/2,bb.max.y+22,(y1+y2)/2);}
+items.forEach(it=>place(it));
+place(sfIt);
+const wallGroup=new THREE.Group();scene.add(wallGroup);
+const wallMat=new THREE.MeshLambertMaterial({color:0xF2F3F4,transparent:true,opacity:0.9});
+function buildWalls(h){while(wallGroup.children.length)wallGroup.remove(wallGroup.children[0]);walls.forEach(([x1,y1,x2,y2])=>{const len=Math.hypot(x2-x1,y2-y1),g=new THREE.BoxGeometry(len+12,h,12),m=new THREE.Mesh(g,wallMat);m.position.set((x1+x2)/2,h/2,(y1+y2)/2);m.rotation.y=-Math.atan2(y2-y1,x2-x1);m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g),new THREE.LineBasicMaterial({color:0x6d757b,transparent:true,opacity:0.5})));wallGroup.add(m);});}
+buildWalls(110);
+const hoodGroup=new THREE.Group();scene.add(hoodGroup);
+const hoodMat=new THREE.MeshPhongMaterial({color:0xC2C8CD,specular:0xffffff,shininess:70,transparent:true,opacity:0.86});
+hoods.forEach(([n,x1,y1,x2,y2])=>{const w=x2-x1,d=y2-y1,sh=new THREE.Group();
+ const lower=new THREE.Mesh(new THREE.BoxGeometry(w,30,d),hoodMat);lower.position.y=215;sh.add(lower);lower.add(new THREE.LineSegments(new THREE.EdgesGeometry(lower.geometry),new THREE.LineBasicMaterial({color:0x4a5258})));
+ const up=new THREE.Mesh(new THREE.BoxGeometry(w*0.75,20,d*0.75),hoodMat);up.position.y=240;sh.add(up);
+ const filt=new THREE.Mesh(new THREE.BoxGeometry(w-10,1,d-10),new THREE.MeshPhongMaterial({color:0x5c656c}));filt.position.y=199.5;sh.add(filt);
+ const duct=new THREE.Mesh(new THREE.BoxGeometry(Math.min(35,w*0.3),60,Math.min(35,d*0.3)),hoodMat);duct.position.y=280;sh.add(duct);
+ sh.position.set((x1+x2)/2,0,(y1+y2)/2);hoodGroup.add(sh);const l=makeLabel(n,(x1+x2)/2,325,(y1+y2)/2);l.userData.hood=true;});
+const doorMat=new THREE.MeshBasicMaterial({color:0xD85A30});
+[[496,555,'Varco 5'],[700,633,'Porta lavaggio'],[700,1180,'Porta 4 sala'],[835,1108,'Porta corridoio'],[815,588,'Disimpegno'],[0,280,'Esterno'],[0,1158,'Porta 2']].forEach(([x,y,n])=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(9,9,3,20),doorMat);m.position.set(x,2,y);scene.add(m);makeLabel(n,x,60,y);});
+makeLabel('Corridoio verso la sala',940,40,1198);
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);resize();
+let anim=null;
+function goTo(v,instant){const tgt=new THREE.Vector3(...views[v].t),pos=new THREE.Vector3(...views[v].p);
+ if(instant||window.matchMedia('(prefers-reduced-motion: reduce)').matches){controls.target.copy(tgt);camera.position.copy(pos);controls.update();return;}
+ const t0=controls.target.clone(),p0=camera.position.clone(),start=performance.now();anim=(now)=>{const k=Math.min(1,(now-start)/700),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;controls.target.lerpVectors(t0,tgt,e);camera.position.lerpVectors(p0,pos,e);if(k>=1)anim=null;};}
+const hash=(location.hash||'').replace('#','');goTo(views[hash]?hash:'all',true);
+document.querySelectorAll('#views button').forEach(b=>{if(views[hash]&&b.dataset.view===hash){document.querySelectorAll('#views button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');}
+ b.addEventListener('click',()=>{document.querySelectorAll('#views button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');goTo(b.dataset.view);});});
+function toggle(id,fn){const b=document.getElementById(id);b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));fn(on);});}
+toggle('tHoods',on=>{hoodGroup.visible=on;labelGroup.children.forEach(l=>{if(l.userData.hood)l.visible=on;});});
+toggle('tLabels',on=>{labelGroup.visible=on;});
+toggle('tWalls',on=>{buildWalls(on?300:110);});
+toggle('tSf',on=>{if(SF)SF.target=on?1:0;});
+function apri(root){if(root.userData.sf){SF.target=SF.target>0.5?0:1;const b=document.getElementById('tSf');b.setAttribute('aria-pressed',String(SF.target===1));return;}
+ const o=!root.userData.aperto;root.userData.aperto=o;root.userData.doors.forEach(p=>p.userData.target=o?p.userData.openAng:0);}
+window.apriTutto=()=>INTER.forEach(apri);
+const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();let down=null;
+renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,t:performance.now()};});
+renderer.domElement.addEventListener('pointerup',e=>{if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;const quick=performance.now()-down.t<450;down=null;if(dx*dx+dy*dy>64||!quick)return;
+ const r=renderer.domElement.getBoundingClientRect();ptr.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ptr,camera);
+ const hit=ray.intersectObjects(INTER,true)[0];if(!hit)return;let o=hit.object;while(o&&!INTER.includes(o))o=o.parent;if(o)apri(o);});
+function stepAnim(){ANIM.forEach(p=>{p.rotation.y+=(p.userData.target-p.rotation.y)*0.14;});
+ if(SF){SF.t+=(SF.target-SF.t)*0.1;const t=SF.t,a=1.45*(1-t);SF.base.position.x=75*t;SF.pR.position.set(75*t+35,92,0);SF.pL.position.set(75*t-35,92,0);SF.pR.rotation.z=a;SF.pL.rotation.z=-a;}}
+function loop(now){requestAnimationFrame(loop);if(anim)anim(now);stepAnim();controls.update();renderer.render(scene,camera);}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
