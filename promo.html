@@ -625,7 +625,7 @@ async function init() {
 
   wrap.innerHTML = html;
   // bozza creata da Tony per l'anteprima: si vede com'e', ma il coupon non si scarica
-  if (promo.bozza) wrap.insertAdjacentHTML('afterbegin', '<div style="position:sticky;top:0;z-index:60;background:#b45309;color:#fff;padding:11px 14px;font-weight:800;font-size:13px;text-align:center;">👁 ANTEPRIMA · non ancora pubblicata · il coupon non si può scaricare</div>');
+  if (promo.bozza) wrap.insertAdjacentHTML('afterbegin', '<div style="position:sticky;top:0;z-index:60;background:#b45309;color:#fff;padding:11px 14px;font-weight:800;font-size:13px;text-align:center;">👁 ANTEPRIMA · non ancora pubblicata · il coupon non si può scaricare<br><a href="/" onclick="var h=history.length>1;if(h){history.back();setTimeout(function(){location.href=\'/\'},500);}return !h;" style="color:#fff;text-decoration:underline;">← Torna all\'app</a></div>');
 
   // Se URL è ?ty=1 O il cliente ha già scaricato da questo dispositivo → thank-you diretta col suo coupon
   let giaScaricato = null;
