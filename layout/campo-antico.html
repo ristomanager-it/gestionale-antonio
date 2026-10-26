@@ -146,9 +146,9 @@ function coldline(w,d){const g=new THREE.Group(),h=176,bh=26;[-1,1].forEach(a=>[
  const p=hinge(g,w/2-1,yc,d/2-1,'R');B(p,w-2,dh,2.5,M.steel,-(w-2)/2,0,0);
  C(p,1.8,dh*0.82,M.steel,-(w-2)+7,0,5);B(p,3,3,5,M.steel,-(w-2)+7,dh*0.41,2.5);B(p,3,3,5,M.steel,-(w-2)+7,-dh*0.41,2.5);
  B(p,15,32,0.8,M.darkPanel,-11,dh*0.28,1.6);B(p,10,17,0.8,M.disp,-11,dh*0.29,2);return g;}
-function sfAnim(w,d){const g=new THREE.Group(),base=new THREE.Group();g.add(base);B(base,70,75,d*0.8,M.cream,0,37,0);B(base,62,26,d*0.9,M.cream,0,96,0);B(base,6,28,6,M.steelD,20,120,d*0.4);
+function sfAnim(w,d){const g=new THREE.Group(),base=new THREE.Group();g.add(base);B(base,58,85,d*0.85,M.cream,0,42.5,0);B(base,50,55,d*0.9,M.cream,0,112.5,0);const rl=C(base,4,d*0.8,M.steel,0,102,0);rl.rotation.x=Math.PI/2;B(base,6,22,6,M.steelD,18,128,d*0.42);
  const pR=new THREE.Group(),pL=new THREE.Group();g.add(pR);g.add(pL);
- [[pR,1],[pL,-1]].forEach(([p,s])=>{B(p,90,3,d*0.75,M.green,s*45,0,0);B(p,90,5,2,M.steel,s*45,1,d*0.38);B(p,90,5,2,M.steel,s*45,1,-d*0.38);B(p,3,86,3,M.steel,s*88,-43,0);});
+ [[pR,1],[pL,-1]].forEach(([p,s])=>{B(p,70,3,d*0.8,M.green,s*35,0,0);B(p,70,5,2,M.steel,s*35,1,d*0.4);B(p,70,5,2,M.steel,s*35,1,-d*0.4);B(p,3,97,3,M.steel,s*68,-48.5,0);});
  SF={g,base,pR,pL,t:0,target:0};g.userData.sf=SF;return g;}
 function deckOven(w,d){const g=new THREE.Group();legs(g,w,d,40);for(let k=0;k<2;k++){const y=40+27+k*58;B(g,w,55,d,M.steelD,0,y,0);B(g,w*0.62,24,1,M.glass,0,y,d/2+0.6);B(g,w*0.72,3,4,M.steel,0,y+16,d/2+3);}B(g,w,12,d,M.steel,0,40+116+6,0);return g;}
 function smallOven(w,d){const g=new THREE.Group();legs(g,w,d,85);B(g,w,55,d,M.steelD,0,85+27,0);B(g,w*0.65,38,1,M.glass,-w*0.1,112,d/2+0.6);B(g,w*0.18,40,1,M.black,w*0.36,112,d/2+0.6);return g;}
