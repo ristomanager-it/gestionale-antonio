@@ -942,6 +942,27 @@ export async function render(container) {
           <div style="padding:0 0 10px 28px;"><button type="button" class="btn-anteprima-camp" data-id="${c.id}" style="background:#7a3b1d;color:#fff;border:0;border-radius:8px;padding:6px 11px;font-weight:700;font-size:12.5px;cursor:pointer;margin-right:12px;">👁 Anteprima</button><button type="button" onclick="const p=this.nextElementSibling;const a=p.style.display==='none';p.style.display=a?'block':'none';this.textContent=a?'Nascondi ▾':'Dettagli ›'" style="background:none;border:0;color:#0E5A7A;font-weight:600;cursor:pointer;padding:0;font-size:12.5px;">Dettagli ›</button>
             <div style="display:none;margin-top:6px;font-size:12.5px;color:#334155;line-height:1.6;">${dettaglio(c)}</div></div></div>`;
       }).join('');
+      // anteprima di una campagna gia' creata: post Meta nelle varie posizioni, testi Google, landing
+      box.querySelectorAll('.btn-anteprima-camp').forEach(b => {
+        b.onclick = async () => {
+          const vecchio = b.textContent;
+          const w = window.open('', '_blank'); // si apre subito (cosi' il telefono non lo blocca) e poi si riempie
+          b.disabled = true; b.textContent = 'Un attimo…';
+          try {
+            const tk = (await sb.auth.getSession())?.data?.session?.access_token || ANON_KEY;
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/tony-anteprima-esistente`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tk}`, 'apikey': ANON_KEY },
+              body: JSON.stringify({ azienda_id: aziendaId, campagna_id: b.dataset.id }),
+            });
+            const j = await res.json();
+            if (j.url && w) { w.location.href = j.url; }
+            else if (j.url) { window.location.href = j.url; }
+            else { if (w) w.close(); alert(j.error || 'Anteprima non disponibile'); }
+          } catch (e) { if (w) w.close(); alert('Non riesco a preparare l\'anteprima: riprova.'); }
+          b.disabled = false; b.textContent = vecchio;
+        };
+      });
     } catch (e) { box.innerHTML = '<span style="color:#94a3b8;">Elenco non disponibile.</span>'; }
   }
   caricaCampagne();
