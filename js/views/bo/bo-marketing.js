@@ -382,7 +382,7 @@ export async function render(container) {
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy-ts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenUtente()}` },
         body: JSON.stringify({ endpoint: `${accountId}/campaigns`, params: {
           fields: `id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,insights.date_preset(${datePreset}){impressions,clicks,spend,reach,cpm,cpc}`,
           limit: 50
