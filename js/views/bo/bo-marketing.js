@@ -1293,6 +1293,12 @@ DESC 2: ...`;
     })();
   }
 
+  // il token di chi e' collegato: le funzioni di Meta lo verificano (prima si usava la chiave pubblica dell'app)
+  async function tokenUtente() {
+    try { const s = (await (window.supabaseClient || window.supabase).auth.getSession())?.data?.session; if (s?.access_token) return s.access_token; } catch (e) {}
+    return ANON_KEY;
+  }
+
   // anteprima di una campagna (anche creata fuori da Ristoflow): si apre in una nuova scheda
   async function apriAnteprima(btn, corpo) {
     const vecchio = btn.textContent;
