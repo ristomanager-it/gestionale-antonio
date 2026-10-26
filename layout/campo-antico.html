@@ -302,7 +302,7 @@ renderer.domElement.addEventListener('pointerup',e=>{if(!down)return;const dx=e.
  const r=renderer.domElement.getBoundingClientRect();ptr.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ptr,camera);
  const hit=ray.intersectObjects(INTER,true)[0];if(!hit)return;let o=hit.object;while(o&&!INTER.includes(o))o=o.parent;if(o)apri(o);});
 function stepAnim(){ANIM.forEach(p=>{p.rotation.y+=(p.userData.target-p.rotation.y)*0.14;});
- if(SF){SF.t+=(SF.target-SF.t)*0.1;const t=SF.t,a=1.45*(1-t);SF.base.position.x=75*t;SF.pR.position.set(75*t+35,92,0);SF.pL.position.set(75*t-35,92,0);SF.pR.rotation.z=a;SF.pL.rotation.z=-a;}}
+ if(SF){SF.t+=(SF.target-SF.t)*0.1;const t=SF.t,a=1.48*(1-t);SF.base.position.x=60*t;SF.pR.position.set(60*t+30,100,0);SF.pL.position.set(60*t-30,100,0);SF.pR.rotation.z=a;SF.pL.rotation.z=-a;}}
 function loop(now){requestAnimationFrame(loop);if(anim)anim(now);stepAnim();controls.update();renderer.render(scene,camera);}
 requestAnimationFrame(loop);
 })();
