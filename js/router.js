@@ -2023,6 +2023,7 @@ const ROUTE_FEATURES = {
 
   // Personale
   "bo-presenze":     "hr_timbrature",
+  "turni-aperti":    "hr_timbrature",
   "dipendenti":      "dipendenti",
   "crea-dipendente": "dipendenti",
   "bo-agenzie":      "dipendenti",
