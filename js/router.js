@@ -107,6 +107,7 @@ const routes = {
   // =========================
   "bo-marketing": () => imp("./views/bo/bo-marketing.js"),
   "bo-presenze": () => imp("./views/bo/bo-presenze.js"),
+  "turni-aperti": () => imp("./views/turni-aperti.js"),   // l'email "Sistemale ora" porta qui
   "bo-analytics": () => imp("./views/bo/bo-analytics.js"),
   "bo-onboarding": () => imp("./views/bo/bo-onboarding.js"),
   "bo-promo": () => imp("./views/bo/bo-promo.js"),
