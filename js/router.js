@@ -487,7 +487,20 @@ async function renderView(routeName) {
                 sede_salvata: localStorage.getItem("active_sede_id"), ultimo_reset: window.__rfUltimoReset || null }
       }).then(() => {}, () => {});
     } catch (_) {}
-    if (!recuperata) { setTimeout(() => resolve(), 0); return; }
+    if (!recuperata) {
+      // se l'utente ha aziende, deve poter SCEGLIERE: niente pagina morta "Nessuna azienda attiva"
+      if ((window.state?.aziende || []).length && routeName !== "sceltaAzienda") window.location.hash = "#/sceltaAzienda";
+      else setTimeout(() => resolve(), 0);
+      return;
+    }
+  }
+
+  // anche al secondo giro (o se il recupero e' gia' stato tentato da poco): mai una schermata morta senza azienda
+  if (window.state?.user && !window.state?.azienda?.id && (window.state?.aziende || []).length
+      && !PUBLIC_ROUTES.has(routeName) && !PLATFORM_ROUTES.has(routeName) && !PREHOME_ROUTES.has(routeName)
+      && !ROOT_ROUTES.has(routeName) && routeName !== "login") {
+    window.location.hash = "#/sceltaAzienda";
+    return;
   }
 
   const module =
