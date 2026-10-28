@@ -2185,6 +2185,8 @@ function renderUpgradeWall(app, feature, route) {
     await renderView("home-admin");
   } else if (ruoloOra === "manager") {
     await renderView("home-manager");
+  } else if (ruoloOra === "magazziniere") {
+    await renderView("magazzino-attrezzature");
   } else {
     await renderView("home-operatore");
   }
