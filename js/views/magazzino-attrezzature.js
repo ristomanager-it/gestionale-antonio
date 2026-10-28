@@ -105,7 +105,7 @@ export async function render(container) {
 /* ───────────────── ELENCO ───────────────── */
 async function renderLista(container, aziendaId) {
   const scrive = puoScrivere();
-  const stato = { q: "", cat: "", righe: [], articoli: [] };
+  const stato = { q: "", cat: "", righe: [], articoli: [], selezione: false, sel: new Set() };
   container.innerHTML = `<div class="at-wrap">${CSS}
     <div class="at-head"><h2>📦 Attrezzature</h2>${scrive ? `<button class="at-btn" id="at-nuova">➕ Nuova scatola</button>` : ""}</div>
     <input class="at-in" id="at-cerca" type="search" placeholder="🔍 Cerca: bicchiere, SC-0012, scaffale…" autocomplete="off">
