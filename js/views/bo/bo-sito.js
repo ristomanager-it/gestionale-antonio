@@ -1993,7 +1993,7 @@ ${false && recensioni.length ? `
     <div style="text-align:center;margin-top:20px;"><a class="btn" href="${esc(formUrl)}">🗓 ${esc(cta)}</a></div>
   </div>
 </div>` : ""}
-${sezioniState.mappa ? `
+${false ? `
 <div class="map-s" id="contatti">
   <div class="map-i">
     <div class="eyebrow" style="color:var(--acc)">Come raggiungerci</div>
