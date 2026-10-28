@@ -1904,8 +1904,9 @@ if(txt){el.textContent=(ok?'🟢 ':'🔴 ')+txt;el.style.display='inline-block';
       : `<span style="border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.88);padding:5px 11px;border-radius:999px;font-size:12.5px;">${esc(f)}</span>`).join("")}</div>` : ""}
   </div>
 </div>
-${ctaBar}
-${sezioniState.highlights && conf.hl1?.titolo ? `
+${ctaBarHome}
+${corpoHome}
+${false && conf.hl1?.titolo ? `
 <section class="section">
   <div class="hl-grid">
     <div class="hl-card"><div class="hl-icon">📍</div><div class="hl-t">${esc(conf.hl1.titolo)}</div><div class="hl-d">${esc(conf.hl1.testo)}</div></div>
