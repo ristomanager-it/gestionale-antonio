@@ -183,7 +183,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
       + '<div class="riga"><span>Quando</span><b>Giovedì 31 dicembre 2026<br>dalle ' + esc(String(p.ora || "").slice(0,5)) + '</b></div>'
       + '<div class="riga"><span>Dove</span><b>' + esc(L.nome) + '<br>' + esc(L.indirizzo) + '</b></div>'
       + '<div class="riga"><span>La serata</span><b>' + esc(L.formula) + '<br>bevande incluse</b></div>'
-      + '<div class="riga"><span>Tariffa</span><b>' + (p.promo ? 'Promo · ' + L.prezzoPromo + ' € a persona' : 'Flessibile · ' + L.prezzo + ' € a persona') + '</b></div>'
+      + '<div class="riga"><span>Tariffa</span><b>' + (p.promo ? 'Promo · ' + L.prezzoPromo + ' € a persona' : L.prezzo + ' € a persona') + '</b></div>'
       + '<div class="riga"><span>Persone</span><b>' + esc(persone(adulti, bimbi)) + '</b></div>'
       + '<div class="riga"><span>Totale serata</span><b>' + euro(tot) + '</b></div>'
       + '<div class="riga"><span>Acconto pagato</span><b>' + euro(pagato) + '</b></div>'
