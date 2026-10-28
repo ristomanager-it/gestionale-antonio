@@ -1729,6 +1729,7 @@ function apriVideo(u){
     if(f.getAttribute('data-u')!==url){f.setAttribute('data-u',url);f.src=url;}
     lk.href=url;
     o.style.display='block';document.body.style.overflow='hidden';
+    try{if(f&&f.contentWindow)f.contentWindow.postMessage({rf:'pannello-aperto'},'*');}catch(e){}
     try{window._rfTrack&&window._rfTrack('click','prenota_inline',{});}catch(e){}
   }
   /* si registra dopo il tracciamento: il link ha gia' provenienza e consenso */
