@@ -93,6 +93,11 @@ const CSS = `
 .at-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
 .at-row .at-btn{flex:1 1 140px;}
 .at-hist{font-size:13px;border-top:1px solid #e2e8f0;padding:8px 2px;display:flex;justify-content:space-between;gap:10px;}
+.at-tipi{display:flex;gap:8px;margin:0 0 12px;}
+.at-tipo{flex:1;border:2px solid #cbd5e1;background:#fff;border-radius:14px;padding:10px 6px;cursor:pointer;text-align:center;color:#0f172a;}
+.at-tipo b{display:block;font-size:14px;}
+.at-tipo span{display:block;font-size:11px;color:#64748b;margin-top:2px;line-height:1.25;}
+.at-tipo.on{border-color:#0E5A7A;background:#ecfeff;}
 .at-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9500;display:flex;align-items:flex-end;justify-content:center;}
 .at-ov > div{background:#fff;width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 16px 26px;}
 </style>`;
