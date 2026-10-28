@@ -1697,6 +1697,48 @@ function apriVideo(u){
     window.addEventListener('pagehide',tempo);
   }catch(e){}
 })();
+/* Prenota senza lasciare la pagina: il modulo di prenotazione si apre qui sopra (stesso link, con provenienza e consenso) */
+(function(){
+  var FORM=${JSON.stringify(formUrl)};
+  if(FORM.indexOf('http')!==0)return;
+  var o=null,f=null,lk=null;
+  /* stesso link di prenotazione, anche se il tracciamento ha aggiunto la provenienza */
+  function eForm(h){
+    var a=FORM.split('#'),b=String(h||'').split('#');
+    if(a.length>1)return b.length>1&&b[1]===a[1]&&b[0].replace(/[?].*$/,'')===a[0].replace(/[?].*$/,'');
+    return String(h||'').indexOf(FORM)===0;
+  }
+  function chiudi(){if(o)o.style.display='none';document.body.style.overflow='';}
+  function costruisci(){
+    o=document.createElement('div');o.id='rf-pren';
+    o.style.cssText='position:fixed;left:0;right:0;top:0;bottom:0;z-index:10000;background:rgba(0,0,0,.55);display:none;';
+    o.innerHTML='<div style="position:absolute;left:0;right:0;bottom:0;top:5vh;background:#fff;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 30px rgba(0,0,0,.35);">'
+      +'<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e5e7eb;">'
+      +'<b style="font-size:16px;flex:1;">Prenota un tavolo</b>'
+      +'<a id="rfp-t" target="_blank" rel="noopener" style="font-size:12px;color:#6b7280;text-decoration:underline;">pagina intera</a>'
+      +'<button type="button" id="rfp-x" aria-label="Chiudi" style="border:0;background:#f1f5f9;border-radius:999px;width:36px;height:36px;font-size:22px;line-height:1;cursor:pointer;">&times;</button></div>'
+      +'<iframe id="rfp-f" title="Prenota un tavolo" style="flex:1;width:100%;border:0;background:#fff;"></iframe></div>';
+    document.body.appendChild(o);
+    f=o.querySelector('#rfp-f');lk=o.querySelector('#rfp-t');
+    o.querySelector('#rfp-x').onclick=chiudi;
+    o.addEventListener('click',function(e){if(e.target===o)chiudi();});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')chiudi();});
+  }
+  function apri(url){
+    if(!o)costruisci();
+    if(f.getAttribute('data-u')!==url){f.setAttribute('data-u',url);f.src=url;}
+    lk.href=url;
+    o.style.display='block';document.body.style.overflow='hidden';
+    try{window._rfTrack&&window._rfTrack('click','prenota_inline',{});}catch(e){}
+  }
+  /* si registra dopo il tracciamento: il link ha gia' provenienza e consenso */
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('a');
+    if(!a||!eForm(a.href))return;
+    e.preventDefault();
+    apri(a.href);
+  });
+})();
 </script>
 </head>`;
 
