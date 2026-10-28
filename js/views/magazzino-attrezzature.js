@@ -636,6 +636,7 @@ async function mostraFoglio(id) {
     g.valore += (Number(r.pezzi) || 0) * (Number(r.costo) || 0); if (!Number(r.costo)) g.senzaCosto = true;
   });
   const gruppi = [...mappa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "it") || a.misura.localeCompare(b.misura, "it", { numeric: true }));
+  const conValori = vedeValori();   // chi non vede gli importi stampa la bolla senza valori
   const copia = (titolo) => `<div class="pag">
     <div class="testa"><div><div class="az">${esc(azienda)}</div><div class="ti">Bolla d'uscita attrezzature</div></div><div class="nu"><b>N. ${esc(f.numero)}</b><span class="cp">${esc(titolo)}</span></div></div>
     <table class="dati"><tr><td>Data e ora</td><td>${esc(quando)}</td></tr><tr><td>Destinazione</td><td><b>${esc(dest)}</b></td></tr>
