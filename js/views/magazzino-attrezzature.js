@@ -172,7 +172,54 @@ async function renderLista(container, aziendaId) {
             <div class="at-qty"><b>${Number(r.quantita) || 0}</b><span>pezzi</span></div></div>`;
         }).join("")}</div>`;
     }).join("");
-    container.querySelectorAll(".at-card").forEach((el) => (el.onclick = () => { location.hash = "#/scatola-attrezzature?c=" + encodeURIComponent(el.dataset.c); }));
+    container.querySelectorAll(".at-card").forEach((el) => (el.onclick = () => {
+      if (stato.selezione) {
+        const r = stato.righe.find((x) => x.codice === el.dataset.c);
+        if (!r || r.stato !== "in_magazzino") { toast("Solo le scatole in magazzino possono uscire"); return; }
+        if (stato.sel.has(r.id)) stato.sel.delete(r.id); else stato.sel.add(r.id);
+        const ck = el.querySelector(".at-ck"); if (ck) ck.checked = stato.sel.has(r.id);
+        barra(); return;
+      }
+      location.hash = "#/scatola-attrezzature?c=" + encodeURIComponent(el.dataset.c);
+    }));
+    riquadroFuori(filtrate);
+  };
+
+  // chi e' fuori, raggruppato per destinazione, con il rientro di tutte le scatole in un tocco
+  const riquadroFuori = (filtrate) => {
+    const fz = container.querySelector("#at-fuori");
+    if (!fz) return;
+    if (stato.cat !== "__fuori") { fz.innerHTML = ""; return; }
+    const gr = new Map();
+    filtrate.forEach((r) => { const k = (r.destinazione || "Senza destinazione") + "|" + (r.destinazione_data || ""); if (!gr.has(k)) gr.set(k, { nome: r.destinazione || "Senza destinazione", data: r.destinazione_data, tipo: r.destinazione_tipo, ids: [] }); gr.get(k).ids.push(r.id); });
+    const ord = [...gr.values()].sort((x, y) => String(x.data || "9999").localeCompare(String(y.data || "9999")));
+    fz.innerHTML = ord.map((g, i) => `<div style="display:flex;align-items:center;gap:10px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:10px 12px;margin:8px 0;"><div style="flex:1;min-width:0;font-size:14px;font-weight:800;">${g.tipo === "evento" ? "🎪" : "📍"} ${esc(g.nome)}${g.data ? " · " + dataIt(g.data) : ""}<div style="font-size:12.5px;font-weight:600;color:#9a3412;">${g.ids.length} ${g.ids.length === 1 ? "scatola" : "scatole"} fuori</div></div>${scrive ? `<button class="at-btn ok" data-rientro="${i}" style="padding:9px 12px;font-size:13px;">📥 Rientrano</button>` : ""}</div>`).join("");
+    fz.querySelectorAll("[data-rientro]").forEach((b) => (b.onclick = async () => {
+      const g = ord[+b.dataset.rientro];
+      if (!confirm("Rientrano tutte le " + g.ids.length + " scatole da “" + g.nome + "”?")) return;
+      const { error } = await sb().rpc("attr_rientro", { p_scatole: g.ids });
+      if (error) { alert("Non riesco a salvare: " + error.message); return; }
+      toast("Rientrate: ora da lavare"); await carica();
+    }));
+  };
+
+  // barra in basso quando si scelgono piu' scatole: "Esce" chiede la destinazione una volta sola
+  const barra = () => {
+    let b = container.querySelector("#at-bar");
+    if (!stato.selezione) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement("div"); b.id = "at-bar"; b.style.cssText = "position:fixed;left:0;right:0;bottom:70px;z-index:8000;padding:10px 14px;background:#fff;border-top:1.5px solid #cbd5e1;box-shadow:0 -6px 20px rgba(15,23,42,.12);display:flex;gap:10px;align-items:center;"; container.appendChild(b); }
+    const scelte = stato.righe.filter((r) => stato.sel.has(r.id));
+    const pezzi = scelte.reduce((s, r) => s + (Number(r.quantita) || 0), 0);
+    b.innerHTML = `<div style="flex:1;font-weight:800;font-size:14px;">${scelte.length ? scelte.length + (scelte.length === 1 ? " scatola" : " scatole") + " · " + pezzi.toLocaleString("it-IT") + " pezzi" : "Tocca le scatole che escono"}</div><button class="at-btn" id="at-esce" ${scelte.length ? "" : "disabled"}>📤 Esce</button>`;
+    b.querySelector("#at-esce").onclick = async () => {
+      const usate = [...new Set(stato.righe.map((r) => r.destinazione_tipo !== "evento" && r.destinazione).filter(Boolean))];
+      const d = await chiediDestinazione(aziendaId, usate);
+      if (!d) return;
+      const { data, error } = await sb().rpc("attr_uscita", { p_scatole: scelte.map((r) => r.id), p_tipo: d.tipo, p_destinazione: d.destinazione, p_evento: d.evento || null, p_data: d.data || null });
+      if (error) { alert("Non riesco a salvare: " + error.message); return; }
+      toast((data && data.uscite) + (data && data.uscite === 1 ? " scatola esce" : " scatole escono") + " per: " + d.destinazione);
+      stato.selezione = false; stato.sel.clear(); container.querySelector("#at-sel").textContent = "☑ Seleziona"; barra(); await carica();
+    };
   };
 
   container.querySelector("#at-cerca").oninput = (e) => { stato.q = e.target.value; disegna(); };
