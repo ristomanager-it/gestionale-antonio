@@ -265,7 +265,7 @@ async function planningOggi(supabase, aziendaId, giorno, sedeId) {
     chi: r.iniziata_da || r.dipendenti?.nome || "",
     dalle: r.iniziata_il ? new Date(r.iniziata_il).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "",
     quando: (r.ora_lavorazione || r.ora) ? String(r.ora_lavorazione || r.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[r.fascia] || ""),
-    f: (ordF[r.fascia] || 9) * 10000 + Number(String(r.ora || "99:99").replace(":", "").slice(0, 4)),
+    f: (ordF[r.fascia] || 9) * 10000 + Number(String(r.ora_lavorazione || r.ora || "99:99").replace(":", "").slice(0, 4)),
   }));
   return {
     inCorso: righe.filter(r => r.stato === "in_corso"),
