@@ -44,8 +44,16 @@ export async function render(container){
       <div style="height:62px;"></div>
       <div id="planner-cerca-barra" style="position:fixed;top:var(--header-height, 72px);left:0;right:0;z-index:900;background:var(--bg, #f5f7fb);padding:8px 14px;box-shadow:0 6px 10px -8px rgba(0,0,0,.35);">
         <div style="max-width:1100px;margin:0 auto;">
-          <input id="planner-cerca" type="search" autocomplete="off" placeholder="🔍 Cerca: piatto, lavorazione, persona, evento…"
-            style="width:100%;box-sizing:border-box;font-size:16px;padding:11px 14px;border:1.5px solid #cbd5e1;border-radius:12px;background:#fff;">
+          <div style="display:flex;gap:8px;align-items:stretch;">
+            <input id="planner-cerca" type="search" autocomplete="off" placeholder="🔍 Cerca: piatto, lavorazione, persona, evento…"
+              style="flex:1;min-width:0;box-sizing:border-box;font-size:16px;padding:11px 14px;border:1.5px solid #cbd5e1;border-radius:12px;background:#fff;">
+            <!-- filtro data: sempre in vista (sta nella barra fissa); si tocca e si sceglie una data qualunque -->
+            <label id="planner-data-label" style="position:relative;display:flex;align-items:center;gap:6px;flex:0 0 auto;border:1.5px solid #0E5A7A;border-radius:12px;background:#fff;padding:0 12px;font-weight:800;font-size:14px;color:#0E5A7A;white-space:nowrap;cursor:pointer;">
+              <span>📅</span><span id="planner-data-testo">Data</span>
+              <input id="planner-data-filtro" type="date" aria-label="Vai a una data" onchange="window.plannerProduzioneVaiA(this.value)"
+                style="position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;">
+            </label>
+          </div>
           <div id="planner-cerca-esito" style="font-size:12.5px;color:#64748b;margin-top:4px;display:none;"></div>
         </div>
       </div>
