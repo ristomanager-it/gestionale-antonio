@@ -818,7 +818,15 @@ function badgeInCorso(r){
   return `<div style="display:block;font-weight:800;font-size:12.5px;color:#fff;background:#2563eb;border-radius:6px;padding:3px 8px;margin-bottom:4px;">▶ IN CORSO${h ? " dalle " + h : ""}${r.iniziata_da ? " · " + escapeHtml(r.iniziata_da) : ""}</div>`
 }
 
+// sulla scheda: prima "inizia alle", poi l'orario del servizio o la fascia
 function badgeOrario(r){
+  return badgeInizio(r) + badgeOrarioBase(r)
+}
+function badgeInizio(r){
+  if (!r.ora_lavorazione) return ""
+  return `<div style="display:inline-block;font-weight:800;font-size:12.5px;color:#0b4a63;background:#dbeafe;border-radius:6px;padding:2px 8px;margin:0 6px 4px 0;">▶ Inizia alle ${escapeHtml(String(r.ora_lavorazione).slice(0, 5))}</div>`
+}
+function badgeOrarioBase(r){
   const servizio = String(r.prodotto || "").startsWith("🍽")
   if (r.ora) {
     return `<div style="display:inline-block;font-weight:800;font-size:12.5px;color:#7c2d12;background:#ffedd5;border-radius:6px;padding:2px 8px;margin-bottom:4px;">🕐 ${escapeHtml(String(r.ora).slice(0, 5))}${r.portata ? " · " + escapeHtml(r.portata) : ""}</div>`
