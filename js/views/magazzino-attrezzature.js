@@ -707,7 +707,7 @@ async function renderScheda(container, aziendaId, codice) {
         <span class="at-badge" style="margin:8px 0 0;color:${st[1]};background:${st[2]};font-size:13px;padding:4px 12px;">${st[0]}${sc.stato === "fuori" && sc.destinazione ? " · " + esc(sc.destinazione) + (sc.destinazione_data ? " · " + dataIt(sc.destinazione_data) : "") : ""}</span></div>
       <div style="text-align:right;flex:0 0 auto;"><div style="font-size:44px;font-weight:900;line-height:1;">${Number(sc.quantita) || 0}</div><div class="at-sub">pezzi</div></div>
     </div>
-    ${a.costo_sostituzione ? `<div class="at-sub" style="margin-top:8px;">Costo di sostituzione: ${Number(a.costo_sostituzione).toLocaleString("it-IT", { style: "currency", currency: "EUR" })} a pezzo</div>` : ""}
+    ${a.costo_sostituzione ? `<div class="at-sub" style="margin-top:8px;">Costo di sostituzione: ${Number(a.costo_sostituzione).toLocaleString("it-IT", { style: "currency", currency: "EUR" })} a pezzo · valore della scatola ${euro2((Number(sc.quantita) || 0) * Number(a.costo_sostituzione))}</div>` : ""}
     ${scrive ? `<div class="at-row">
         ${sc.stato === "in_magazzino" ? `<button class="at-btn" data-az="uscita">📤 Esce</button>` : ""}
         ${sc.stato === "fuori" ? `<button class="at-btn" data-az="rientro">📥 Rientra</button>` : ""}
