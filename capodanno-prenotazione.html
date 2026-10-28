@@ -165,7 +165,8 @@ textarea:focus{outline:none;border-color:var(--oro)}
   }
 
   function prezzoAdulto(){ return p.promo ? L.prezzoPromo : L.prezzo; }
-  function totale(){ return adulti * prezzoAdulto() + bimbi * 40; }
+  function ePranzo(){ return String(p.tag || "").indexOf("pranzo") >= 0; }
+  function totale(){ return p.importo_totale != null ? Number(p.importo_totale) : adulti * prezzoAdulto() + bimbi * 40; }
   function persone(a, b){ return a + (a === 1 ? " adulto" : " adulti") + (b ? " + " + b + (b === 1 ? " bambino" : " bambini") : ""); }
 
   function disegna(){
@@ -180,10 +181,13 @@ textarea:focus{outline:none;border-color:var(--oro)}
       + statoBox()
       + '<div class="card"><h3>Riepilogo</h3>'
       + '<div class="riga"><span>A nome di</span><b>' + esc(p.cliente_nome) + '</b></div>'
-      + '<div class="riga"><span>Quando</span><b>Giovedì 31 dicembre 2026<br>dalle ' + esc(String(p.ora || "").slice(0,5)) + '</b></div>'
+      + '<div class="riga"><span>Quando</span><b>' + (ePranzo() ? 'Venerdì 1 gennaio 2027' : 'Giovedì 31 dicembre 2026') + '<br>dalle ' + esc(String(p.ora || "").slice(0,5)) + '</b></div>'
       + '<div class="riga"><span>Dove</span><b>' + esc(L.nome) + '<br>' + esc(L.indirizzo) + '</b></div>'
-      + '<div class="riga"><span>La serata</span><b>' + esc(L.formula) + '<br>bevande incluse</b></div>'
-      + '<div class="riga"><span>Tariffa</span><b>' + (p.promo ? 'Promo · ' + L.prezzoPromo + ' € a persona' : L.prezzo + ' € a persona') + '</b></div>'
+      + (ePranzo() ? '<div class="riga"><span>Cosa</span><b>Pranzo del primo dell’anno, menu fisso</b></div>'
+        : '<div class="riga"><span>La serata</span><b>' + esc(L.formula) + '<br>bevande incluse</b></div>'
+        + '<div class="riga"><span>Tariffa cenone</span><b>' + (p.promo ? 'Promo · ' + L.prezzoPromo + ' € a persona' : L.prezzo + ' € a persona') + '</b></div>')
+      + (Number(p.camere) > 0 ? '<div class="riga"><span>Soggiorno</span><b>' + p.camere + (Number(p.camere) === 1 ? ' camera doppia' : ' camere doppie') + ' · ' + p.notti + (Number(p.notti) === 1 ? ' notte' : ' notti') + '<br>dal 31 dicembre al ' + (Number(p.notti) + 0) + ' gennaio, colazione inclusa</b></div>' : '')
+      + (!ePranzo() && Number(p.pranzo_primo) > 0 ? '<div class="riga"><span>Pranzo del 1°</span><b>' + p.pranzo_primo + ' persone, ore 13:00</b></div>' : '')
       + '<div class="riga"><span>Persone</span><b>' + esc(persone(adulti, bimbi)) + '</b></div>'
       + '<div class="riga"><span>Totale serata</span><b>' + euro(tot) + '</b></div>'
       + '<div class="riga"><span>Acconto pagato</span><b>' + euro(pagato) + '</b></div>'
@@ -206,7 +210,8 @@ textarea:focus{outline:none;border-color:var(--oro)}
         + '<div id="chips"></div>'
         + '<textarea id="note" rows="4" placeholder="Es. una persona celiaca, due bambini, un seggiolone, festeggiamo un compleanno…">' + esc(p.note || "") + '</textarea>'
         + '<button class="btn" id="salva-note">Invia le segnalazioni</button><div class="msg" id="msg-note"></div></div>')
-      + '<div class="card menu"><h3 style="text-align:center">Il menu della serata</h3>' + menu + '</div>'
+      + (ePranzo() ? '' : '<div class="card menu"><h3 style="text-align:center">Il menu della serata</h3>' + menu + '</div>')
+      + (Number(p.camere) > 0 ? '<div class="card"><h3>Il vostro weekend</h3><p>Le idee su cosa vedere giorno per giorno, con le mappe, sono qui: <a style="color:var(--oro)" href="capodanno-weekend.html?l=' + (L === LOCALI.campo ? 'campo' : 'aquila') + '">guida del weekend lungo</a>.</p></div>' : '')
       + '<div class="card"><h3>Da sapere</h3>'
       + '<p><b>Si comincia alle 20:00.</b> Bevande incluse nel prezzo, bambini dai 4 ai 12 anni 40 €.</p>'
       + (chiusa ? '' : p.promo
@@ -225,7 +230,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
   }
 
   function contoAllaRovescia(){
-    var fine = new Date("2026-12-31T" + String(p.ora || "20:00").slice(0,5) + ":00+01:00").getTime();
+    var fine = new Date((ePranzo() ? "2027-01-01T" : "2026-12-31T") + String(p.ora || "20:00").slice(0,5) + ":00+01:00").getTime();
     var box = $("conta");
     function tick(){
       var d = Math.max(fine - Date.now(), 0);
@@ -242,7 +247,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
       var cambiato = nuoviA !== adulti || nuoviB !== bimbi;
       $("salva-osp").disabled = !cambiato;
       $("anteprima").textContent = cambiato
-        ? "Diventate " + persone(nuoviA, nuoviB) + " · totale serata " + euro(nuoviA * prezzoAdulto() + nuoviB * 40)
+        ? "Diventate " + persone(nuoviA, nuoviB) + (ePranzo() ? "" : " · cenone " + euro(nuoviA * prezzoAdulto() + nuoviB * 40))
         : "";
     }
     $("meno").onclick = function(){ if (nuoviA > adulti) { nuoviA--; aggiorna(); } };
@@ -307,9 +312,9 @@ textarea:focus{outline:none;border-color:var(--oro)}
     var ora = String(p.ora || "20:00").slice(0,5).replace(":", "");
     var ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Ristoflow//Capodanno//IT","BEGIN:VEVENT",
       "UID:" + token + "@ristoflow-ai.com",
-      "DTSTART;TZID=Europe/Rome:20261231T" + ora + "00",
+      "DTSTART;TZID=Europe/Rome:" + (ePranzo() ? "20270101T" : "20261231T") + ora + "00",
       "DURATION:PT4H",
-      "SUMMARY:Cenone di San Silvestro · " + L.nome,
+      "SUMMARY:" + (ePranzo() ? "Pranzo del 1° gennaio · " : "Cenone di San Silvestro · ") + L.nome,
       "LOCATION:" + L.nome + ", " + L.indirizzo.replace(/,/g, "\\,"),
       "DESCRIPTION:" + persone(adulti, bimbi) + ". La vostra prenotazione: " + PAGINA + "?t=" + token,
       "END:VEVENT","END:VCALENDAR"].join("\r\n");
