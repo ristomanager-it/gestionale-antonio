@@ -160,7 +160,7 @@ async function renderLista(container, aziendaId) {
     container.querySelector("#at-lista").innerHTML = ordinati.map((g) => {
       const pezzi = g.scatole.reduce((s, r) => s + (Number(r.quantita) || 0), 0);
       const fuoriPz = g.scatole.filter((r) => r.stato === "fuori").reduce((s, r) => s + (Number(r.quantita) || 0), 0);
-      return `<div class="at-grp"><div class="at-grp-h">${esc(g.a.nome)}${g.a.misura ? " · " + esc(g.a.misura) : ""} — ${pezzi.toLocaleString("it-IT")} pezzi in ${g.scatole.length} ${g.scatole.length === 1 ? "scatola" : "scatole"}</div>
+      return `<div class="at-grp"><div class="at-grp-h">${esc(g.a.nome)}${g.a.misura ? " · " + esc(g.a.misura) : ""} — ${pezzi.toLocaleString("it-IT")} pezzi in ${g.scatole.length} ${g.scatole.length === 1 ? "scatola" : "scatole"}${fuoriPz ? ` · ${(pezzi - fuoriPz).toLocaleString("it-IT")} in magazzino, ${fuoriPz.toLocaleString("it-IT")} fuori` : ""}</div>
         ${g.scatole.map((r) => {
           const st = STATI[r.stato] || STATI.in_magazzino;
           const a = r.attr_articoli;
