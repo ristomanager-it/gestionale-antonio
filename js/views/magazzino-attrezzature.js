@@ -624,9 +624,10 @@ async function renderScheda(container, aziendaId, codice) {
   const uscitaScatola = async () => {
     const d = await chiediDestinazione(aziendaId, []);
     if (!d) return;
-    const { error: e } = await sb().rpc("attr_uscita", { p_scatole: [sc.id], p_tipo: d.tipo, p_destinazione: d.destinazione, p_evento: d.evento || null, p_data: d.data || null });
+    const { data: dd, error: e } = await sb().rpc("attr_uscita", { p_scatole: [sc.id], p_tipo: d.tipo, p_destinazione: d.destinazione, p_evento: d.evento || null, p_data: d.data || null, p_ritira: d.ritira || null });
     if (e) { alert("Non riesco a salvare: " + e.message); return; }
     toast("Esce per: " + d.destinazione); ricarica();
+    if (dd && dd.foglio_id) mostraFoglio(dd.foglio_id);
   };
   const muovi = async (tipo, quantita, nota) => {
     const { error: e } = await sb().rpc("attr_movimento", { p_scatola: sc.id, p_tipo: tipo, p_quantita: quantita ?? null, p_nota: nota ?? null });
