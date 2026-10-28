@@ -405,11 +405,7 @@ footer a{color:var(--oro)}
     }
     rfEvento("Lead", { value: acconto / 100, currency: "EUR", content_name: CFG.slug }, true);
 
-    // avviso al locale e conferma al cliente (stesso sistema della prenotazione online)
-    fetch(CFG.url + "/functions/v1/prenotazione-notifica-tavolo", {
-      method: "POST", headers: { "Content-Type": "application/json", "apikey": CFG.anon },
-      body: JSON.stringify({ token_pubblico: token })
-    }).catch(function(){});
+    // gli avvisi al locale e la conferma al cliente partono dal database quando arriva il pagamento
 
     try {
       var pub = await supa.rpc("prenotazione_pubblica", { p_token: token });
