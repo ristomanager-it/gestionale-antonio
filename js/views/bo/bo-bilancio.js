@@ -326,7 +326,7 @@ export async function render(container) {
           ${attr ? `<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;text-align:center;">
             <div style="font-size:22px;font-weight:800;color:#155e75;">${fmt(attr.tot)}</div>
             <div style="font-size:12px;color:#64748b;margin-top:4px;">🧰 Valore attrezzature (oggi)</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">di cui fuori ${fmt(attr.fuori)}${attr.senza ? ` · ${attr.senza} ${attr.senza === 1 ? "scatola senza costo" : "scatole senza costo"}` : ""}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">di cui fuori ${fmt(attr.fuori)}${attr.fisse ? ` · 🏭 fisse ${fmt(attr.fisse)} (a parte)` : ""}${attr.senza ? ` · ${attr.senza} ${attr.senza === 1 ? "scatola senza costo" : "scatole senza costo"}` : ""}</div>
           </div>` : ""}
         </div>
 
