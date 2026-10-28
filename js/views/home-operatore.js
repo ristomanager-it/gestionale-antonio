@@ -309,7 +309,7 @@ async function lavorazioniOggi(supabase, aziendaId, dipId, oggiISO) {
     .map(l => {
       const fatta = l.stato === "completato";
       const q = l.quantita != null ? (Number(l.quantita).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " " + (l.unita || "")) : null;
-      const quando = l.ora ? String(l.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[l.fascia] || null);
+      const quando = (l.ora_lavorazione || l.ora) ? String(l.ora_lavorazione || l.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[l.fascia] || null);
       return {
         id: l.id, fatta, inCorso: l.stato === "in_corso",
         // si apre la lavorazione (fasi, firme) se ha la ricetta e non e' una fase "libera" fuori programma
