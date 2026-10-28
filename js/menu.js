@@ -406,6 +406,15 @@ export function initMenu() {
       ]
     });
 
+    // ── MAGAZZINIERE ── (tocco sul nome = home della sezione)
+    sections.push({
+      key: "magazziniere",
+      title: "📦 MAGAZZINIERE",
+      items: [
+        { label: "🧰 Attrezzature",     route: "magazzino-attrezzature" },
+      ]
+    });
+
     // ── SALA ──
     sections.push({
       key: "sala",
