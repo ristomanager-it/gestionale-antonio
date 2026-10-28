@@ -190,6 +190,20 @@ async function renderLista(container, aziendaId) {
     riquadroFuori(filtrate);
   };
 
+  // valore delle attrezzature (costo di sostituzione x pezzi), sempre calcolato sui dati correnti
+  const riquadroValore = () => {
+    const box = container.querySelector("#at-valore");
+    if (!box) return;
+    const per = { in_magazzino: 0, fuori: 0, da_lavare: 0 }; const senza = new Set();
+    stato.righe.forEach((r) => { per[r.stato] = (per[r.stato] || 0) + valRiga(r); if (!Number(r.attr_articoli.costo_sostituzione)) senza.add(r.attr_articoli.id); });
+    const tot = per.in_magazzino + per.fuori + per.da_lavare;
+    if (!stato.righe.length || (!tot && !senza.size)) { box.innerHTML = ""; return; }
+    box.innerHTML = `<div style="background:#ecfeff;border:1.5px solid #a5f3fc;border-radius:12px;padding:10px 12px;margin:8px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-size:13px;font-weight:800;color:#155e75;">💶 Valore attrezzature</span><span style="font-size:20px;font-weight:900;">${euro(tot)}</span></div>
+      <div style="font-size:12.5px;color:#475569;margin-top:2px;">in magazzino ${euro(per.in_magazzino)} · fuori ${euro(per.fuori)}${per.da_lavare ? " · da lavare " + euro(per.da_lavare) : ""}</div>
+      ${senza.size ? `<div style="font-size:12px;color:#b45309;margin-top:4px;">⚠ ${senza.size} ${senza.size === 1 ? "articolo senza costo" : "articoli senza costo"}: il valore è parziale (✏️ Modifica per inserirlo)</div>` : ""}</div>`;
+  };
+
   // chi e' fuori, raggruppato per destinazione, con il rientro di tutte le scatole in un tocco
   const riquadroFuori = (filtrate) => {
     const fz = container.querySelector("#at-fuori");
