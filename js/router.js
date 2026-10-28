@@ -770,6 +770,7 @@ function hasPermission(area) {
   // =====================================
   if (ruolo === "magazziniere") {
     return [
+      "home-operatore", "home-sezione",
       "magazzino-attrezzature", "scatola-attrezzature",
       "timbrature", "planning-lavoro", "profilo", "completa-profilo",
       "hr-richieste", "hr-documenti-me", "registro-messaggi", "ai",
