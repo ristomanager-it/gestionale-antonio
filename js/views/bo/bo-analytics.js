@@ -357,11 +357,19 @@ export async function render(container) {
     </div>`;
 
     // ── Funnel conversione (tracking + prenotazioni reali) ──
-    const fView     = visite;
-    const fData     = rows.filter(r => r.tipo === "click" && r.elemento === "seleziona_data").length;
-    const fSlot     = rows.filter(r => r.tipo === "click" && r.elemento === "slot_orario").length;
-    const fSubmit   = rows.filter(r => r.tipo === "click" && r.elemento === "btn_invia").length;
-    const fComplete = prenOnline; // usa prenotazioni reali dal DB
+    // Conta le SESSIONI, non i singoli clic, e non puo' avere buchi: chi invia ha scelto anche orario e data
+    // (la data e' gia' preimpostata, quindi spesso non c'e' un clic sulla data). Gli orari salvati in passato
+    // avevano come nome "data ora": si riconoscono dal formato.
+    const eSlot = (r) => r.tipo === "click" && (r.elemento === "slot_orario" || /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(String(r.elemento || "")));
+    const sessDi = (f) => new Set(rows.filter(f).map((r) => r.session_id || r.id));
+    const sSubmit = sessDi((r) => (r.tipo === "click" && r.elemento === "btn_invia") || r.tipo === "submit");
+    const sSlot = new Set([...sessDi(eSlot), ...sSubmit]);
+    const sData = new Set([...sessDi((r) => r.tipo === "click" && r.elemento === "seleziona_data"), ...sSlot]);
+    const fData     = sData.size;
+    const fSlot     = sSlot.size;
+    const fSubmit   = sSubmit.size;
+    const fView     = Math.max(visite, fData);
+    const fComplete = Math.min(prenOnline, fSubmit); // prenotazioni reali dal DB, solo tra chi ha usato questo modulo (le altre arrivano da landing, WhatsApp...)
 
     const fSteps = [
       { label: "👁️ Apertura form",    val: fView,     pct: 100 },
