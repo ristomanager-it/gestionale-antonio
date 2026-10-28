@@ -768,7 +768,7 @@ function modificaArticolo(a, dopo) {
     <label class="at-lbl">Categoria</label><select class="at-in" id="m-cat">${CATEGORIE.map((c) => `<option value="${c[0]}"${c[0] === a.categoria ? " selected" : ""}>${c[1]}</option>`).join("")}</select>
     <label class="at-lbl">Misura</label><input class="at-in" id="m-mis" value="${esc(a.misura || "")}">
     <label class="at-lbl">Materiale</label><input class="at-in" id="m-mat" value="${esc(a.materiale || "")}">
-    <label class="at-lbl">Costo di sostituzione (€ a pezzo)</label><input class="at-in" id="m-costo" type="number" inputmode="decimal" step="0.01" value="${a.costo_sostituzione ?? ""}">
+    ${vedeValori() ? `<label class="at-lbl">Costo di sostituzione (€ a pezzo)</label><input class="at-in" id="m-costo" type="number" inputmode="decimal" step="0.01" value="${a.costo_sostituzione ?? ""}">` : ""}
     <div id="m-err" style="color:#b91c1c;font-weight:700;margin-top:8px;"></div>
     <div class="at-row"><button class="at-btn sec" id="m-no">Annulla</button><button class="at-btn" id="m-ok">Salva</button></div></div>`;
   document.body.appendChild(ov);
