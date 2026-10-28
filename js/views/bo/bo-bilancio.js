@@ -319,6 +319,11 @@ export async function render(container) {
             <div style="font-size:22px;font-weight:800;color:#0E5A7A;">${totRicavi>0?Math.round((utile/totRicavi)*100):0}%</div>
             <div style="font-size:12px;color:#64748b;margin-top:4px;">Margine netto</div>
           </div>
+          ${attr ? `<div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#155e75;">${fmt(attr.tot)}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">🧰 Valore attrezzature (oggi)</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">di cui fuori ${fmt(attr.fuori)}${attr.senza ? ` · ${attr.senza} ${attr.senza === 1 ? "scatola senza costo" : "scatole senza costo"}` : ""}</div>
+          </div>` : ""}
         </div>
 
       </div>
