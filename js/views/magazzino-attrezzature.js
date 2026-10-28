@@ -195,7 +195,7 @@ async function renderLista(container, aziendaId) {
             ${a.foto_url ? `<img class="at-th" src="${esc(a.foto_url)}" alt="" loading="lazy">` : `<div class="at-th">${esc(nomeCat(a.categoria).split(" ")[0])}</div>`}
             <div style="min-width:0;"><div class="at-nm">${esc(a.nome)}</div>
               <div class="at-sub">${esc(r.codice)}${r.ubicazione ? " · 📍 " + esc(r.ubicazione) : ""}${r.stato !== "in_magazzino" ? `<span class="at-badge" style="color:${st[1]};background:${st[2]};">${r.stato === "fuori" && r.destinazione ? "Fuori · " + esc(r.destinazione) : st[0]}</span>` : ""}</div></div>
-            <div class="at-qty"><b>${Number(r.quantita) || 0}</b><span>pezzi</span></div></div>`;
+            <div class="at-qty">${isFissa(r) ? `<b>🏭</b><span>${esc(r.matricola || "fissa")}</span>` : `<b>${Number(r.quantita) || 0}</b><span>pezzi</span>`}</div></div>`;
         }).join("")}</div>`;
     }).join("");
     container.querySelectorAll(".at-card").forEach((el) => (el.onclick = () => {
