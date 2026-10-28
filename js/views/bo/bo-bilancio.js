@@ -156,11 +156,15 @@ export async function render(container) {
     try {
       const { data: sc } = await supa().from("attr_scatole").select("quantita,stato,attr_articoli(costo_sostituzione,tracciamento)").eq("azienda_id", aziendaId).eq("attiva", true).limit(5000);
       if ((sc || []).length) {
-        attr = { tot: 0, fuori: 0, senza: 0 };
+        attr = { tot: 0, fuori: 0, fisse: 0, senza: 0 };
         sc.forEach((r) => {
           const costo = Number(r.attr_articoli?.costo_sostituzione) || 0, v = (Number(r.quantita) || 0) * costo;
-          attr.tot += v; if (r.stato === "fuori") attr.fuori += v; if (!costo) attr.senza += 1;
+          if (r.attr_articoli?.tracciamento === "fisso") attr.fisse += v; else { attr.tot += v; if (r.stato === "fuori") attr.fuori += v; }
+          if (!costo) attr.senza += 1;
         });
+        // pezzi usciti sfusi (non stanno in nessuna scatola)
+        const { data: sf } = await supa().from("attr_sfusi").select("pezzi,rientrati,stato,attr_articoli(costo_sostituzione)").eq("azienda_id", aziendaId).in("stato", ["fuori", "da_lavare"]).limit(5000);
+        (sf || []).forEach((s) => { const c = Number(s.attr_articoli?.costo_sostituzione) || 0; const v = (s.stato === "fuori" ? s.pezzi : s.rientrati) * c; attr.tot += v; if (s.stato === "fuori") attr.fuori += v; });
       }
     } catch (e) { attr = null; }
 
