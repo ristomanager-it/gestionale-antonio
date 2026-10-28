@@ -591,7 +591,7 @@ async function mostraFoglio(id) {
     <div class="firme"><div class="fi"><div class="fl">Consegna (magazzino)</div><div class="fn">${esc(f.consegna_nome || "")}</div><div class="ft">Firma</div></div>
       <div class="fi"><div class="fl">Ritira (responsabile)</div><div class="fn">${esc(f.ritira_nome || "")}</div><div class="ft">Firma</div></div></div>
     <div class="pie">Il materiale elencato è stato consegnato a chi ritira, che firma per ricevuta. Una copia resta al magazzino, una a chi ritira.</div></div>`;
-  apriAnteprimaStampa({ titolo: "Foglio di uscita " + f.numero, css: CSS_FOGLIO, corpo: copia("COPIA MAGAZZINO") + copia("COPIA DI CHI RITIRA"), pagina: "A4" });
+  apriAnteprimaStampa({ titolo: "Bolla d'uscita " + f.numero, css: CSS_FOGLIO, corpo: copia("COPIA MAGAZZINO") + copia("COPIA DI CHI RITIRA"), pagina: "A4" });
 }
 
 // i fogli gia' fatti, per ristamparli
