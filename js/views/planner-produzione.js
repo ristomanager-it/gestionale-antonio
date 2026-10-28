@@ -1285,6 +1285,7 @@ async function saveProduzione(mode, id, fallbackDate){
   const stoccaggio = document.getElementById("planner-stoccaggio")?.value || null
   const fascia = document.getElementById("planner-fascia")?.value || null
   const ora = document.getElementById("planner-ora")?.value || null
+  const ora_lavorazione = document.getElementById("planner-ora-lav")?.value || null
 
   if(!prodotto){
     alert("Inserisci il nome della lavorazione/prodotto")
