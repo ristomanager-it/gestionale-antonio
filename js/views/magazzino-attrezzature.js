@@ -33,6 +33,15 @@ function puoScrivere() {
   return RUOLI_SCRIVE.includes(raw) || RUOLI_SCRIVE.includes(norm);
 }
 
+// importi in euro: solo admin, manager e superadmin. Il magazziniere vede scatole e pezzi, non i soldi.
+function vedeValori() {
+  const s = window.state || {};
+  if (s.isSuperadmin === true && !s.viewAs) return true;
+  const raw = String(s.viewAs || s.ruoloRaw || s.ruolo || "").toLowerCase();
+  const norm = String(window.normalizeRuolo ? window.normalizeRuolo(raw) : raw);
+  return ["admin", "superadmin"].includes(raw) || ["admin", "superadmin"].includes(norm) || raw.startsWith("manager") || norm.startsWith("manager");
+}
+
 function urlScheda(codice) {
   const base = (location.origin && location.origin.startsWith("http")) ? location.origin : "https://app.ristoflow-ai.com";
   return base + "/#/scatola-attrezzature?c=" + encodeURIComponent(codice);
