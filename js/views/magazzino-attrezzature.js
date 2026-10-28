@@ -504,6 +504,47 @@ export async function mostraEtichette(elenco, opzioni = {}) {
   if (opzioni.nuova) sheet.querySelector("#e-altra").onclick = () => { chiudi(); opzioni.nuova(); };
 }
 
+/* ───────────────── DESTINAZIONE DELL'USCITA ───────────────── */
+const dataIt = (iso) => { const [y, m, d] = String(iso || "").slice(0, 10).split("-"); return y ? `${d}/${m}` : ""; };
+
+// "Dove va?": un evento in programma, una location, oppure un posto scritto a mano. Restituisce null se si annulla.
+async function chiediDestinazione(aziendaId, usate) {
+  let eventi = [];
+  try { const { data } = await sb().rpc("attr_eventi_prossimi", { p_azienda: aziendaId }); if (Array.isArray(data)) eventi = data; } catch (e) { /* senza eventi si sceglie una location */ }
+  const luoghi = [...new Set([...(window.state?.sedi || []).map((s) => s.nome), ...(usate || [])])].filter(Boolean);
+  return new Promise((res) => {
+    const ov = document.createElement("div"); ov.className = "at-ov";
+    ov.innerHTML = `<div style="max-height:88vh;overflow:auto;"><h3 style="margin:0 0 4px;">Dove va?</h3>
+      <p style="margin:0 0 10px;font-size:13px;color:#64748b;">Segna la destinazione: così sai dov'è finita ogni scatola.</p>
+      <div class="at-row" style="margin-top:0;"><button type="button" class="at-btn" id="d-ev">🎪 Evento</button><button type="button" class="at-btn sec" id="d-lo">📍 Location</button></div>
+      <div id="d-lista" style="margin-top:10px;"></div>
+      <div id="d-altro" style="margin-top:6px;display:none;"><label class="at-lbl" for="d-txt">Altra destinazione</label><input class="at-in" id="d-txt" placeholder="es. Villa Rossi" autocomplete="off"><button type="button" class="at-btn" id="d-ok" style="width:100%;margin-top:8px;">Conferma</button></div>
+      <div class="at-row"><button type="button" class="at-btn sec" id="d-no">Annulla</button></div></div>`;
+    document.body.appendChild(ov);
+    const lista = ov.querySelector("#d-lista");
+    const chiudi = (v) => { ov.remove(); res(v); };
+    const voce = (titolo, sotto, onclick) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "at-btn sec";
+      b.style.cssText = "display:block;width:100%;text-align:left;margin-bottom:8px;";
+      b.innerHTML = `<div>${esc(titolo)}</div>${sotto ? `<div style="font-size:12.5px;font-weight:600;color:#64748b;">${esc(sotto)}</div>` : ""}`;
+      b.onclick = onclick; lista.appendChild(b);
+    };
+    const tabEventi = () => {
+      ov.querySelector("#d-ev").className = "at-btn"; ov.querySelector("#d-lo").className = "at-btn sec"; ov.querySelector("#d-altro").style.display = "none"; lista.innerHTML = "";
+      if (!eventi.length) lista.innerHTML = `<p style="font-size:13.5px;color:#64748b;">Nessun evento confermato nei prossimi giorni: scegli una location.</p>`;
+      eventi.forEach((e) => voce(`${dataIt(e.data)} · ${e.titolo}`, [e.invitati ? e.invitati + " invitati" : "", e.location || ""].filter(Boolean).join(" · "), () => chiudi({ tipo: "evento", destinazione: e.titolo, evento: e.id, data: e.data })));
+    };
+    const tabLuoghi = () => {
+      ov.querySelector("#d-ev").className = "at-btn sec"; ov.querySelector("#d-lo").className = "at-btn"; ov.querySelector("#d-altro").style.display = "block"; lista.innerHTML = "";
+      luoghi.forEach((n) => voce(n, "", () => chiudi({ tipo: "location", destinazione: n })));
+    };
+    ov.querySelector("#d-ev").onclick = tabEventi; ov.querySelector("#d-lo").onclick = tabLuoghi;
+    ov.querySelector("#d-ok").onclick = () => { const t = ov.querySelector("#d-txt").value.trim(); if (t) chiudi({ tipo: "altro", destinazione: t }); };
+    ov.querySelector("#d-no").onclick = () => chiudi(null);
+    (eventi.length ? tabEventi : tabLuoghi)();
+  });
+}
+
 /* ───────────────── SCHEDA SCATOLA ───────────────── */
 function chiediNumero({ titolo, valore = 1, min = 0, testoOk = "Conferma", nota = "" }) {
   return new Promise((res) => {
