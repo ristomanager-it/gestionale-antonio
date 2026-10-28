@@ -104,6 +104,15 @@ export async function render(app) {
     if (ass) righe.push({ testo: `📆 ${ass} ${ass === 1 ? "richiesta" : "richieste"} di ferie/permessi da approvare`, dest: "hr-admin", tono: "giallo" });
   }
 
+  if (chiave === "magazziniere") {
+    const [fuori, daLavare] = await Promise.all([
+      conta(supabase.from("attr_scatole").select("id", { count: "exact", head: true }).eq("azienda_id", aid).eq("attiva", true).eq("stato", "fuori")),
+      conta(supabase.from("attr_scatole").select("id", { count: "exact", head: true }).eq("azienda_id", aid).eq("attiva", true).eq("stato", "da_lavare")),
+    ]);
+    if (fuori) righe.push({ testo: `📤 ${fuori} ${fuori === 1 ? "scatola fuori" : "scatole fuori"}`, dest: "magazzino-attrezzature", tono: "giallo" });
+    if (daLavare) righe.push({ testo: `🧼 ${daLavare} ${daLavare === 1 ? "scatola da lavare" : "scatole da lavare"}`, dest: "magazzino-attrezzature", tono: "grigio" });
+  }
+
   // solo i pulsanti che questo ruolo puo' aprire
   const puo = (rotta) => (window.hasPermission ? window.hasPermission(String(rotta).split("?")[0]) : true);
   const pulsanti = conf.pulsanti.filter((p) => (p[3] ? p[3].some((c) => puo(c[2])) : puo(p[2])));
