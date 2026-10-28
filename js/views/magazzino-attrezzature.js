@@ -569,7 +569,8 @@ table{border-collapse:collapse;width:100%;}
 .cod{font-size:10px;color:#555;margin-top:2px;font-weight:400;}
 .rit{margin-top:14px;font-size:13px;}
 .firme{display:flex;gap:14mm;margin-top:18mm;} .fi{flex:1;} .fl{font-size:12px;font-weight:700;} .fn{font-size:13px;min-height:16px;margin-top:2px;} .ft{margin-top:14mm;border-top:1px solid #000;font-size:11px;color:#444;padding-top:2px;}
-.pie{margin-top:12mm;font-size:10.5px;color:#444;}`;
+.pie{margin-top:12mm;font-size:10.5px;color:#444;}
+@media print{.rf-st-contenuto{display:block!important;}}`;
 
 // il foglio: una copia per il magazzino e una per chi ritira, ciascuna da firmare
 async function mostraFoglio(id) {
