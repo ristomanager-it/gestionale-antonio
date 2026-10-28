@@ -216,7 +216,7 @@ async function renderLista(container, aziendaId) {
       const usate = [...new Set(stato.righe.map((r) => r.destinazione_tipo !== "evento" && r.destinazione).filter(Boolean))];
       const d = await chiediDestinazione(aziendaId, usate);
       if (!d) return;
-      const { data, error } = await sb().rpc("attr_uscita", { p_scatole: scelte.map((r) => r.id), p_tipo: d.tipo, p_destinazione: d.destinazione, p_evento: d.evento || null, p_data: d.data || null });
+      const { data, error } = await sb().rpc("attr_uscita", { p_scatole: scelte.map((r) => r.id), p_tipo: d.tipo, p_destinazione: d.destinazione, p_evento: d.evento || null, p_data: d.data || null, p_ritira: d.ritira || null });
       if (error) { alert("Non riesco a salvare: " + error.message); return; }
       toast((data && data.uscite) + (data && data.uscite === 1 ? " scatola esce" : " scatole escono") + " per: " + d.destinazione);
       stato.selezione = false; stato.sel.clear(); container.querySelector("#at-sel").textContent = "☑ Seleziona"; barra(); await carica();
