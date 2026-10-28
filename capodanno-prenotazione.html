@@ -65,6 +65,11 @@ textarea:focus{outline:none;border-color:var(--oro)}
 .nascosto{display:none}
 .piede{text-align:center;color:var(--muto);font-size:14px;margin-top:30px}
 .piede a{color:var(--oro)}
+.mappa{border-radius:12px;overflow:hidden;aspect-ratio:4/3;margin-top:12px}
+.mappa iframe{width:100%;height:100%;border:0}
+.due{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;text-align:center}
+.due small{color:var(--muto)}
+.btn.rosso{background:transparent;color:#ffb4a8;border:1.5px solid #a8483c}
 </style>
 </head>
 <body>
@@ -97,7 +102,8 @@ textarea:focus{outline:none;border-color:var(--oro)}
   var token = (qs.get("t") || qs.get("token") || "").trim();
   var esito = qs.get("esito");
   var supa = window.supabase.createClient(URL_SB, ANON);
-  var p = null, L = null, giaPagati = 0, nuoviOspiti = 0, tentativi = 0, timer = null;
+  var p = null, L = null, adulti = 0, bimbi = 0, nuoviA = 0, nuoviB = 0, tentativi = 0, timer = null;
+  var SCADENZA_RIMBORSO = new Date("2026-12-27T23:59:59+01:00").getTime();
 
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); };
   var euro = function(n){ return n.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €"; };
@@ -113,8 +119,9 @@ textarea:focus{outline:none;border-color:var(--oro)}
     var campo = String(p.tag || "").indexOf("campoantico") >= 0 || p.sede_id === "c40919bb-78c2-458f-865e-0c9fd02aa0b5";
     L = campo ? LOCALI.campo : LOCALI.aquila;
     if (campo) document.documentElement.classList.add("campo");
-    giaPagati = p.acconto_coperti != null ? Number(p.acconto_coperti) : (p.stato_pagamento === "pagato" ? Number(p.coperti) : 0);
-    nuoviOspiti = Number(p.coperti) || 1;
+    bimbi = Number(p.bambini) || 0;
+    adulti = Math.max((Number(p.coperti) || 1) - bimbi, 0);
+    nuoviA = adulti; nuoviB = bimbi;
     disegna();
     // appena tornati da Stripe la conferma puo' arrivare con qualche secondo di ritardo
     if (esito === "ok" && p.stato_pagamento !== "pagato" && tentativi < 8) {
@@ -128,21 +135,20 @@ textarea:focus{outline:none;border-color:var(--oro)}
       return '<div class="esito ko"><h2>Prenotazione annullata</h2><p>Se è un errore chiamaci al <a href="tel:' + L.telRaw + '" style="color:var(--oro)">' + L.tel + '</a>.</p></div>';
     if (sp === "pagato")
       return '<div class="esito ok"><h2>✓ Tavolo confermato</h2><p>Abbiamo ricevuto l’acconto. Vi aspettiamo il 31 dicembre: qui sotto trovate tutto, e da qui potete aggiungere persone o mandarci segnalazioni.</p></div>';
-    if (sp === "integrazione_dovuta") {
-      var manca = Math.max(Number(p.coperti) - giaPagati, 0) * L.prezzo * PERC / 100;
-      return '<div class="esito att"><h2>Manca un piccolo acconto</h2><p>Avete aggiunto ' + (Number(p.coperti) - giaPagati) + ' persone. Per tenere anche i loro posti serve l’acconto di <b>' + euro(manca) + '</b>.</p>'
-        + '<button class="btn" id="paga-integ">Paga ' + euro(manca) + '</button><div class="msg" id="msg-paga"></div></div>';
-    }
     if (esito === "ok" && tentativi < 8)
       return '<div class="esito att"><h2>Stiamo ricevendo la conferma…</h2><p>Il pagamento è andato a buon fine, la banca ci sta mandando la conferma. Bastano pochi secondi.</p></div>';
-    var acc = Number(p.coperti) * L.prezzo * PERC / 100;
+    var acc = totale() * PERC / 100;
     return '<div class="esito att"><h2>Acconto non ancora pagato</h2><p>Il tavolo è confermato solo dopo l’acconto di <b>' + euro(acc) + '</b>.</p>'
       + '<button class="btn" id="paga-acc">Paga l’acconto</button><div class="msg" id="msg-paga"></div></div>';
   }
 
+  function totale(){ return adulti * L.prezzo + bimbi * L.prezzo / 2; }
+  function persone(a, b){ return a + (a === 1 ? " adulto" : " adulti") + (b ? " + " + b + (b === 1 ? " bambino" : " bambini") : ""); }
+
   function disegna(){
-    var tot = Number(p.coperti) * L.prezzo;
-    var pagato = giaPagati * L.prezzo * PERC / 100;
+    var tot = totale();
+    var pagato = p.acconto_importo != null ? Number(p.acconto_importo) : (p.stato_pagamento === "pagato" ? tot * PERC / 100 : 0);
+    var rimborsabile = Date.now() <= SCADENZA_RIMBORSO;
     var menu = MENU.map(function(m){ return "<h4>" + esc(m[0]) + "</h4>" + m[1].map(function(x){ return "<p>" + esc(x) + "</p>"; }).join(""); }).join("");
     var chiusa = p.stato === "annullata" || p.stato === "rifiutata";
     root.innerHTML =
@@ -153,8 +159,8 @@ textarea:focus{outline:none;border-color:var(--oro)}
       + '<div class="riga"><span>A nome di</span><b>' + esc(p.cliente_nome) + '</b></div>'
       + '<div class="riga"><span>Quando</span><b>Giovedì 31 dicembre 2026<br>dalle ' + esc(String(p.ora || "").slice(0,5)) + '</b></div>'
       + '<div class="riga"><span>Dove</span><b>' + esc(L.nome) + '<br>' + esc(L.indirizzo) + '</b></div>'
-      + '<div class="riga"><span>La serata</span><b>' + esc(L.formula) + '</b></div>'
-      + '<div class="riga"><span>Persone</span><b>' + esc(p.coperti) + '</b></div>'
+      + '<div class="riga"><span>La serata</span><b>' + esc(L.formula) + '<br>bevande incluse</b></div>'
+      + '<div class="riga"><span>Persone</span><b>' + esc(persone(adulti, bimbi)) + '</b></div>'
       + '<div class="riga"><span>Totale serata</span><b>' + euro(tot) + '</b></div>'
       + '<div class="riga"><span>Acconto pagato</span><b>' + euro(pagato) + '</b></div>'
       + '<div class="riga"><span>Saldo la sera</span><b>' + euro(Math.max(tot - pagato, 0)) + '</b></div>'
@@ -163,10 +169,12 @@ textarea:focus{outline:none;border-color:var(--oro)}
       + '<div class="card"><h3>Mancano</h3><div class="conta" id="conta"></div></div>'
       + '<div class="azioni"><button class="btn vuoto" id="cal">Aggiungi al calendario</button>'
       + '<a class="btn vuoto" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(L.nome + " " + L.indirizzo) + '">Come arrivare</a></div>'
+      + '<div class="mappa"><iframe title="Mappa" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=' + encodeURIComponent(L.nome + " " + L.indirizzo) + '&output=embed"></iframe></div>'
       + (chiusa ? '' :
         '<div class="card" style="margin-top:16px"><h3>Aggiungi persone</h3>'
-        + '<p>Si aggiunge qualcuno? Finché ci sono posti, potete farlo da qui fino al 30 dicembre. Per ogni persona in più si paga il 30% di acconto.</p>'
-        + '<div class="ospiti"><button type="button" id="meno" aria-label="Una persona in meno">−</button><output id="n-osp">' + nuoviOspiti + '</output><button type="button" id="piu" aria-label="Una persona in più">+</button></div>'
+        + '<p>Si aggiunge qualcuno? Finché ci sono posti, potete farlo da qui fino al 30 dicembre, senza pagare altro acconto: le persone in più si saldano la sera.</p>'
+        + '<div class="due"><div><small>Adulti</small><div class="ospiti"><button type="button" id="meno" aria-label="Un adulto in meno">−</button><output id="n-osp">' + nuoviA + '</output><button type="button" id="piu" aria-label="Un adulto in più">+</button></div></div>'
+        + '<div><small>Bambini (metà prezzo)</small><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="n-bim">' + nuoviB + '</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div></div>'
         + '<div class="anteprima" id="anteprima"></div>'
         + '<button class="btn" id="salva-osp" disabled>Aggiorna le persone</button><div class="msg" id="msg-osp"></div></div>'
         + '<div class="card"><h3>Allergie e segnalazioni</h3>'
@@ -176,20 +184,22 @@ textarea:focus{outline:none;border-color:var(--oro)}
         + '<button class="btn" id="salva-note">Invia le segnalazioni</button><div class="msg" id="msg-note"></div></div>')
       + '<div class="card menu"><h3 style="text-align:center">Il menu della serata</h3>' + menu + '</div>'
       + '<div class="card"><h3>Da sapere</h3>'
-      + '<p><b>Disdetta:</b> <span class="tbd">[REGOLE DI DISDETTA E RIMBORSO ACCONTO — DA DEFINIRE]</span></p>'
-      + '<p><b>Bevande:</b> <span class="tbd">[DA DEFINIRE]</span></p>'
+      + '<p><b>Si comincia alle 20:00.</b> Bevande incluse nel prezzo, bambini a metà prezzo.</p>'
+      + (chiusa ? '' : rimborsabile
+          ? '<p><b>Disdetta:</b> entro il 27 dicembre vi rimborsiamo l’acconto. Dal 28 dicembre non è più rimborsabile.</p><button class="btn rosso" id="disdici">Disdici e ricevi il rimborso</button><div class="msg" id="msg-dis"></div>'
+          : '<p><b>Disdetta:</b> dal 28 dicembre l’acconto non è più rimborsabile. Se non potete venire chiamateci.</p>')
       + '<p style="margin:0">Per qualsiasi cosa chiamateci al <a href="tel:' + L.telRaw + '" style="color:var(--oro)">' + L.tel + '</a>.</p></div>'
       + '<div class="piede">' + esc(L.nome) + ' · ' + esc(L.indirizzo) + '<br><a href="tel:' + L.telRaw + '">' + L.tel + '</a></div>';
 
     contoAllaRovescia();
     $("cal").onclick = calendario;
-    if ($("paga-acc")) $("paga-acc").onclick = function(){ paga(Number(p.coperti), "Acconto 30%"); };
-    if ($("paga-integ")) $("paga-integ").onclick = function(){ paga(Number(p.coperti) - giaPagati, "Integrazione acconto 30%"); };
+    if ($("paga-acc")) $("paga-acc").onclick = function(){ paga("Acconto 30%"); };
+    if ($("disdici")) $("disdici").onclick = disdici;
     if (!chiusa) collegaModifiche();
   }
 
   function contoAllaRovescia(){
-    var fine = new Date("2026-12-31T" + String(p.ora || "20:30").slice(0,5) + ":00+01:00").getTime();
+    var fine = new Date("2026-12-31T" + String(p.ora || "20:00").slice(0,5) + ":00+01:00").getTime();
     var box = $("conta");
     function tick(){
       var d = Math.max(fine - Date.now(), 0);
@@ -200,24 +210,26 @@ textarea:focus{outline:none;border-color:var(--oro)}
   }
 
   function collegaModifiche(){
-    var originali = Number(p.coperti);
     function aggiorna(){
-      $("n-osp").textContent = nuoviOspiti;
-      var extra = nuoviOspiti - originali;
-      $("salva-osp").disabled = extra <= 0;
-      $("anteprima").textContent = extra > 0
-        ? "+" + extra + (extra === 1 ? " persona" : " persone") + " · acconto da pagare " + euro(extra * L.prezzo * PERC / 100)
+      $("n-osp").textContent = nuoviA;
+      $("n-bim").textContent = nuoviB;
+      var cambiato = nuoviA !== adulti || nuoviB !== bimbi;
+      $("salva-osp").disabled = !cambiato;
+      $("anteprima").textContent = cambiato
+        ? "Diventate " + persone(nuoviA, nuoviB) + " · totale serata " + euro(nuoviA * L.prezzo + nuoviB * L.prezzo / 2)
         : "";
     }
-    $("meno").onclick = function(){ if (nuoviOspiti > originali) { nuoviOspiti--; aggiorna(); } };
-    $("piu").onclick = function(){ if (nuoviOspiti < originali + 20) { nuoviOspiti++; aggiorna(); } };
+    $("meno").onclick = function(){ if (nuoviA > adulti) { nuoviA--; aggiorna(); } };
+    $("piu").onclick = function(){ if (nuoviA + nuoviB < adulti + bimbi + 20) { nuoviA++; aggiorna(); } };
+    $("bmeno").onclick = function(){ if (nuoviB > bimbi) { nuoviB--; aggiorna(); } };
+    $("bpiu").onclick = function(){ if (nuoviA + nuoviB < adulti + bimbi + 20) { nuoviB++; aggiorna(); } };
     aggiorna();
 
     $("salva-osp").onclick = async function(){
       var b = this, m = $("msg-osp"); b.disabled = true; m.className = "msg"; m.textContent = "Un attimo…";
-      var r = await supa.rpc("prenotazione_modifica", { p_token: token, p_data: null, p_ora: null, p_coperti: nuoviOspiti, p_note: null });
+      var r = await supa.rpc("capodanno_aggiorna_ospiti", { p_token: token, p_adulti: nuoviA, p_bambini: nuoviB });
       if (!r.data || !r.data.ok) { b.disabled = false; m.className = "msg ko"; m.textContent = (r.data && r.data.errore) || "Non è stato possibile aggiornare. Chiamaci."; return; }
-      m.className = "msg ok"; m.textContent = "Fatto. Ora manca solo l’acconto per le persone in più.";
+      m.className = "msg ok"; m.textContent = "Fatto, vi aspettiamo in " + (nuoviA + nuoviB) + ".";
       setTimeout(carica, 600);
     };
 
@@ -235,20 +247,27 @@ textarea:focus{outline:none;border-color:var(--oro)}
     };
   }
 
-  async function paga(persone, etichetta){
-    var b = $("paga-acc") || $("paga-integ"), m = $("msg-paga");
-    if (persone <= 0) return;
+  async function disdici(){
+    if (!confirm("Volete davvero disdire? L’acconto vi verrà rimborsato sulla carta usata per pagare.")) return;
+    var b = $("disdici"), m = $("msg-dis"); b.disabled = true; m.className = "msg"; m.textContent = "Un attimo…";
+    var r = await supa.rpc("prenotazione_cancella", { p_token: token });
+    if (!r.data || !r.data.ok) { b.disabled = false; m.className = "msg ko"; m.textContent = (r.data && r.data.errore) || "Disdetta non riuscita. Chiamaci."; return; }
+    carica();
+  }
+
+  async function paga(etichetta){
+    var b = $("paga-acc"), m = $("msg-paga");
     b.disabled = true; m.className = "msg"; m.textContent = "Ti portiamo al pagamento sicuro…";
     try {
       var res = await fetch(URL_SB + "/functions/v1/stripe-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON },
         body: JSON.stringify({ action: "create_session", azienda_id: p.azienda_id, tipo: "tavolo", riferimento_id: p.id,
-          importo_centesimi: Math.round(persone * L.prezzo * PERC),
-          descrizione: etichetta + " · " + L.nome + " · 31/12/2026 · " + persone + (persone === 1 ? " persona" : " persone"),
+          importo_centesimi: Math.round(totale() * PERC),
+          descrizione: etichetta + " · " + L.nome + " · 31/12/2026 · " + persone(adulti, bimbi),
           success_url: PAGINA + "?t=" + token + "&esito=ok",
           cancel_url: PAGINA + "?t=" + token + "&esito=annullato",
-          metadata: { coperti: String(p.coperti), persone_pagate: String(persone) } })
+          metadata: { adulti: String(adulti), bambini: String(bimbi) } })
       });
       var out = await res.json();
       if (!res.ok || !out.checkout_url) throw new Error(out.error || "checkout");
@@ -259,14 +278,14 @@ textarea:focus{outline:none;border-color:var(--oro)}
   }
 
   function calendario(){
-    var ora = String(p.ora || "20:30").slice(0,5).replace(":", "");
+    var ora = String(p.ora || "20:00").slice(0,5).replace(":", "");
     var ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Ristoflow//Capodanno//IT","BEGIN:VEVENT",
       "UID:" + token + "@ristoflow-ai.com",
       "DTSTART;TZID=Europe/Rome:20261231T" + ora + "00",
       "DURATION:PT4H",
       "SUMMARY:Cenone di San Silvestro · " + L.nome,
       "LOCATION:" + L.nome + ", " + L.indirizzo.replace(/,/g, "\\,"),
-      "DESCRIPTION:" + p.coperti + " persone. La vostra prenotazione: " + PAGINA + "?t=" + token,
+      "DESCRIPTION:" + persone(adulti, bimbi) + ". La vostra prenotazione: " + PAGINA + "?t=" + token,
       "END:VEVENT","END:VCALENDAR"].join("\r\n");
     var a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
