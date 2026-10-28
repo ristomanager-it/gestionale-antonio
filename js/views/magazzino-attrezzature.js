@@ -894,7 +894,7 @@ async function renderScheda(container, aziendaId, codice) {
     </div>
     ${a.costo_sostituzione && vedeValori() ? `<div class="at-sub" style="margin-top:8px;">Costo di sostituzione: ${Number(a.costo_sostituzione).toLocaleString("it-IT", { style: "currency", currency: "EUR" })} a pezzo · valore della scatola ${euro2((Number(sc.quantita) || 0) * Number(a.costo_sostituzione))}</div>` : ""}
     ${scrive ? `<div class="at-row">
-        ${sc.stato === "in_magazzino" ? `<button class="at-btn" data-az="uscita">📤 Esce</button>` : ""}
+        ${sc.stato === "in_magazzino" && a.tracciamento !== "fisso" ? `<button class="at-btn" data-az="uscita">📤 Esce</button>` : ""}
         ${sc.stato === "fuori" ? `<button class="at-btn" data-az="rientro">📥 Rientra</button>` : ""}
         ${sc.stato === "da_lavare" ? `<button class="at-btn ok" data-az="lavaggio">🧼 Lavata e riposta</button>` : ""}
         <button class="at-btn sec" data-az="conta">🔢 Conta i pezzi</button></div>
