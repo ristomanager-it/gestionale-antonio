@@ -252,6 +252,33 @@
           }
         };
       });
+
+      // ── cambio AZIENDA (sotto le sedi): la scelta si salva dove l'app la legge e si riapre da li' ──
+      if (aziendeMie.length > 1) {
+        const aziendaAttiva = window.state?.azienda?.id;
+        dropdown.insertAdjacentHTML("beforeend",
+          '<div style="padding:10px 14px 4px;font-size:11px;font-weight:800;letter-spacing:.06em;color:#6b7280;border-top:1px solid #e5e7eb;margin-top:4px;">AZIENDA</div>' +
+          aziendeMie.map((az) => {
+            const attiva = aziendaAttiva && String(az.id) === String(aziendaAttiva);
+            return '<button type="button" class="sede-dropdown-item az-item" data-azienda-id="' + escapeHtmlHeader(az.id) + '" data-stato="' + escapeHtmlHeader(az.stato || "") + '" role="option">' +
+              '<span class="sede-dropdown-item-name">🏢 ' + escapeHtmlHeader(az.nome || "Azienda") + '</span>' +
+              (attiva ? '<span class="sede-dropdown-item-check">&#10003;</span>' : "") + '</button>';
+          }).join(""));
+        dropdown.querySelectorAll(".az-item").forEach((btn) => {
+          btn.onclick = () => {
+            const id = btn.getAttribute("data-azienda-id");
+            closeSedeDropdown();
+            if (!id || String(id) === String(window.state?.azienda?.id)) return;
+            try {
+              localStorage.setItem("active_azienda_id", String(id));
+              localStorage.removeItem("active_sede_id");
+              window.__rfAziendeCache = null;
+            } catch (_) {}
+            window.location.hash = btn.getAttribute("data-stato") === "piattaforma" ? "#/homePiattaforma" : "#/home";
+            window.location.reload();
+          };
+        });
+      }
     }
 
     window.uiActions = window.uiActions || {};
