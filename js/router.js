@@ -136,6 +136,8 @@ const routes = {
   "bo-location-ricevimenti": () => imp("./views/bo/bo-location-ricevimenti.js"),
   timbrature: () => imp("./views/timbrature.js"),
   "planning-lavoro": () => imp("./views/planning-lavoro.js"),
+  "magazzino-attrezzature": () => imp("./views/magazzino-attrezzature.js"),
+  "scatola-attrezzature": () => imp("./views/magazzino-attrezzature.js"),
 
   completaProfilo: () => imp("./views/completa-profilo.js"),
   profilo: () => imp("./views/completa-profilo.js"),
