@@ -306,7 +306,7 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
 
     <details style="margin-top:12px;"><summary style="font-weight:800;color:#334155;cursor:pointer;">Altri dettagli</summary>
       <label class="at-lbl" for="n-mat">Materiale</label><input class="at-in" id="n-mat" placeholder="vetro, acciaio, legno…" autocomplete="off">
-      <label class="at-lbl" for="n-costo">Costo di sostituzione (€ a pezzo)</label><input class="at-in" id="n-costo" type="number" inputmode="decimal" step="0.01" placeholder="facoltativo">
+      ${vedeValori() ? `<label class="at-lbl" for="n-costo">Costo di sostituzione (€ a pezzo)</label><input class="at-in" id="n-costo" type="number" inputmode="decimal" step="0.01" placeholder="facoltativo">` : ""}
       ${sedi.length > 1 ? `<label class="at-lbl" for="n-sede">Sede</label><select class="at-in" id="n-sede">${sedi.map((s) => `<option value="${esc(s.id)}"${s.id === sedeAttiva ? " selected" : ""}>${esc(s.nome)}</option>`).join("")}</select>` : ""}
       <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:14px;"><input type="checkbox" id="n-singolo" style="margin-top:3px;"><span><b>Ogni pezzo ha il suo codice</b> (tavoli grandi, attrezzature di valore): creo una scatola da 1 pezzo per ognuno, ciascuna con la sua etichetta.</span></label>
     </details>
