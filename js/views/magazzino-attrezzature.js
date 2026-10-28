@@ -621,7 +621,8 @@ async function renderScheda(container, aziendaId, codice) {
   container.querySelector("#s-indietro").onclick = () => { location.hash = "#/magazzino-attrezzature"; };
   container.querySelectorAll("[data-az]").forEach((b) => (b.onclick = async () => {
     const az = b.dataset.az;
-    if (az === "uscita" || az === "rientro" || az === "lavaggio") { if (await muovi(az)) { toast(az === "uscita" ? "Segnata come uscita" : az === "rientro" ? "Rientrata: da lavare" : "Lavata e riposta"); ricarica(); } }
+    if (az === "uscita") { uscitaScatola(); }
+    else if (az === "rientro" || az === "lavaggio") { if (await muovi(az)) { toast(az === "uscita" ? "Segnata come uscita" : az === "rientro" ? "Rientrata: da lavare" : "Lavata e riposta"); ricarica(); } }
     else if (az === "conta") { const n = await chiediNumero({ titolo: "Quanti pezzi ci sono adesso?", valore: sc.quantita, nota: "Conta quelli che hai davanti: aggiorno la scatola." }); if (n !== null && await muovi("conta", n)) { toast("Aggiornata: " + n + " pezzi"); ricarica(); } }
     else if (az === "rotto" || az === "perso") { const n = await chiediNumero({ titolo: az === "rotto" ? "Quanti pezzi sono rotti?" : "Quanti pezzi mancano?", valore: 1, min: 1, testoOk: "Segna" }); if (n && await muovi(az, n)) { toast("Segnato"); ricarica(); } }
     else if (az === "spostamento") { const u = await chiediTesto({ titolo: "Dove la metti?", valore: sc.ubicazione || "", placeholder: "es. Scaffale B1" }); if (u !== null && await muovi("spostamento", null, u)) { toast("Spostata"); ricarica(); } }
