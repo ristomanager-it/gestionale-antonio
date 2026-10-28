@@ -366,7 +366,7 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
   const sheet = document.createElement("div");
   sheet.className = "at-sheet";
   sheet.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3>➕ Nuova scatola</h3><button class="at-btn sec" id="n-chiudi" style="padding:8px 14px;">✕</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3>➕ Nuova attrezzatura</h3><button class="at-btn sec" id="n-chiudi" style="padding:8px 14px;">✕</button></div>
     <label class="at-foto" for="n-file">📷 Scatta o scegli la foto</label>
     <input type="file" id="n-file" accept="image/*" capture="environment" hidden>
     <img class="at-prev" id="n-prev" alt="" style="display:none;">
