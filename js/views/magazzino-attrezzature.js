@@ -246,6 +246,17 @@ async function renderLista(container, aziendaId) {
   container.querySelector("#at-fogli").onclick = () => elencoFogli(aziendaId);
   if (scrive) container.querySelector("#at-sel").onclick = () => { stato.selezione = !stato.selezione; stato.sel.clear(); container.querySelector("#at-sel").textContent = stato.selezione ? "✕ Annulla" : "☑ Seleziona"; disegna(); barra(); };
   if (scrive) container.querySelector("#at-nuova").onclick = () => apriNuova(aziendaId, stato.articoli, stato.righe, carica);
+  // tempo reale: se un altro telefono cambia una scatola, qui si aggiorna da solo
+  try {
+    if (canaleTempoReale) sb().removeChannel(canaleTempoReale);
+    let attesa = null;
+    canaleTempoReale = sb().channel("attr-scatole-" + aziendaId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "attr_scatole", filter: "azienda_id=eq." + aziendaId }, () => {
+        if (!container.querySelector("#at-lista")) { if (canaleTempoReale) sb().removeChannel(canaleTempoReale); canaleTempoReale = null; return; }
+        if (stato.selezione) return;   // non cambio la lista mentre si scelgono le scatole
+        clearTimeout(attesa); attesa = setTimeout(carica, 500);
+      }).subscribe();
+  } catch (e) { /* senza tempo reale la lista si aggiorna comunque a ogni apertura */ }
   await carica();
 }
 
