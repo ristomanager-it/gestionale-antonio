@@ -632,6 +632,66 @@ const euro = (n) => Number(n || 0).toLocaleString("it-IT", { style: "currency", 
 const euro2 = (n) => Number(n || 0).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
 const valRiga = (r) => (vedeValori() ? (Number(r.quantita) || 0) * (Number(r.attr_articoli?.costo_sostituzione) || 0) : 0);
 let canaleTempoReale = null;
+const isFissa = (r) => r.attr_articoli?.tracciamento === "fisso";
+
+// "Cosa esce?": quanti pezzi di ogni articolo. Restituisce [{ articolo_id, pezzi }] oppure null se si annulla.
+function chiediQuantita(voci) {
+  return new Promise((res) => {
+    const sheet = document.createElement("div"); sheet.className = "at-sheet";
+    sheet.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><h3>📤 Cosa esce?</h3><button type="button" class="at-btn sec" id="q-x" style="padding:8px 14px;">✕</button></div>
+      <p style="margin:0 0 8px;font-size:13px;color:#64748b;">Scrivi quanti pezzi servono. Se ne servono più di una scatola, l'app prende le scatole intere e ne apre una sola per il resto.</p>
+      <input class="at-in" id="q-cerca" type="search" placeholder="🔍 Cerca" autocomplete="off">
+      <div id="q-lista"></div>
+      <div style="position:sticky;bottom:0;background:#fff;border-top:1.5px solid #cbd5e1;padding:10px 0;margin-top:10px;display:flex;gap:10px;align-items:center;"><div id="q-tot" style="flex:1;font-weight:800;font-size:14px;"></div><button type="button" class="at-btn" id="q-ok">Avanti ›</button></div>`;
+    document.body.appendChild(sheet); document.body.style.overflow = "hidden";
+    const qty = new Map();
+    const chiudi = (v) => { sheet.remove(); document.body.style.overflow = ""; res(v); };
+    const ord = [...voci].sort((x, y) => x.a.nome.localeCompare(y.a.nome, "it"));
+    const totale = () => {
+      let n = 0, p = 0; qty.forEach((v) => { if (v > 0) { n += 1; p += v; } });
+      sheet.querySelector("#q-tot").textContent = n ? `${n} ${n === 1 ? "articolo" : "articoli"} · ${p.toLocaleString("it-IT")} pezzi` : "Scrivi quanti pezzi";
+    };
+    const imposta = (id, v) => { const voce = ord.find((x) => x.a.id === id); const n = Math.max(0, Math.min(voce ? voce.pezzi : 0, parseInt(v, 10) || 0)); qty.set(id, n); return n; };
+    const disegna = () => {
+      const q = sheet.querySelector("#q-cerca").value.trim().toLowerCase();
+      const lista = ord.filter((v) => !q || (v.a.nome + " " + (v.a.misura || "")).toLowerCase().includes(q));
+      sheet.querySelector("#q-lista").innerHTML = lista.map((v) => `<div style="border-top:1px solid #e2e8f0;padding:10px 0;display:flex;gap:10px;align-items:center;"><div style="flex:1;min-width:0;"><div style="font-weight:800;">${esc(v.a.nome)}${v.a.misura ? " · " + esc(v.a.misura) : ""}</div><div style="font-size:12.5px;color:#64748b;">in magazzino ${v.pezzi} pezzi (${v.scatole} ${v.scatole === 1 ? "scatola" : "scatole"})</div></div>
+        <div class="at-step"><button type="button" data-meno="${esc(v.a.id)}">−</button><input class="at-in" data-q="${esc(v.a.id)}" type="number" inputmode="numeric" min="0" max="${v.pezzi}" value="${qty.get(v.a.id) || 0}"><button type="button" data-piu="${esc(v.a.id)}">+</button></div></div>`).join("") || `<p style="color:#64748b;">Niente con questa ricerca.</p>`;
+      sheet.querySelectorAll("[data-meno]").forEach((b) => (b.onclick = () => { const i = b.dataset.meno; const n = imposta(i, (qty.get(i) || 0) - 1); b.parentNode.querySelector("input").value = n; totale(); }));
+      sheet.querySelectorAll("[data-piu]").forEach((b) => (b.onclick = () => { const i = b.dataset.piu; const n = imposta(i, (qty.get(i) || 0) + 1); b.parentNode.querySelector("input").value = n; totale(); }));
+      sheet.querySelectorAll("[data-q]").forEach((inp) => (inp.onchange = () => { inp.value = imposta(inp.dataset.q, inp.value); totale(); }));
+      totale();
+    };
+    sheet.querySelector("#q-cerca").oninput = disegna;
+    sheet.querySelector("#q-x").onclick = () => chiudi(null);
+    sheet.querySelector("#q-ok").onclick = () => {
+      const righe = [...qty].filter(([, n]) => n > 0).map(([id, n]) => ({ articolo_id: id, pezzi: n }));
+      if (!righe.length) { toast("Scrivi almeno un pezzo"); return; }
+      chiudi(righe);
+    };
+    disegna();
+  });
+}
+
+// "Cosa rientra?": per ogni articolo quanti pezzi sono tornati (di base tutti). Restituisce [{ articolo_id, rientrati }] o null.
+function chiediRientro(nome, voci) {
+  return new Promise((res) => {
+    const ov = document.createElement("div"); ov.className = "at-ov";
+    ov.innerHTML = `<div style="max-height:90vh;overflow:auto;"><h3 style="margin:0 0 4px;">📥 Cosa rientra?</h3>
+      <p style="margin:0 0 6px;font-size:13px;color:#64748b;">Da “${esc(nome)}”. Scrivi quanti pezzi sono tornati: la differenza viene segnata come mancante.</p>
+      ${voci.map((v, i) => `<div style="border-top:1px solid #e2e8f0;padding:10px 0;"><div style="font-weight:800;">${esc(v.a.nome)}${v.a.misura ? " · " + esc(v.a.misura) : ""}</div><div style="font-size:12.5px;color:#64748b;">usciti ${v.usciti} pezzi</div>
+        <div class="at-step" style="margin-top:6px;"><button type="button" data-meno="${i}">−</button><input class="at-in" data-q="${i}" type="number" inputmode="numeric" min="0" max="${v.usciti}" value="${v.usciti}"><button type="button" data-piu="${i}">+</button></div></div>`).join("")}
+      <div class="at-row"><button type="button" class="at-btn sec" id="r-no">Annulla</button><button type="button" class="at-btn ok" id="r-ok">Conferma rientro</button></div></div>`;
+    document.body.appendChild(ov);
+    const inp = (i) => ov.querySelector(`[data-q="${i}"]`);
+    const fissa = (i, n) => { const max = voci[i].usciti; const v = Math.max(0, Math.min(max, parseInt(n, 10) || 0)); inp(i).value = v; return v; };
+    ov.querySelectorAll("[data-meno]").forEach((b) => (b.onclick = () => fissa(+b.dataset.meno, (parseInt(inp(+b.dataset.meno).value, 10) || 0) - 1)));
+    ov.querySelectorAll("[data-piu]").forEach((b) => (b.onclick = () => fissa(+b.dataset.piu, (parseInt(inp(+b.dataset.piu).value, 10) || 0) + 1)));
+    ov.querySelectorAll("[data-q]").forEach((x) => (x.onchange = () => fissa(+x.dataset.q, x.value)));
+    ov.querySelector("#r-no").onclick = () => { ov.remove(); res(null); };
+    ov.querySelector("#r-ok").onclick = () => { const righe = voci.map((v, i) => ({ articolo_id: v.a.id, rientrati: fissa(i, inp(i).value) })); ov.remove(); res(righe); };
+  });
+}
 
 /* ───────────────── DESTINAZIONE DELL'USCITA ───────────────── */
 const dataIt = (iso) => { const [y, m, d] = String(iso || "").slice(0, 10).split("-"); return y ? `${d}/${m}` : ""; };
