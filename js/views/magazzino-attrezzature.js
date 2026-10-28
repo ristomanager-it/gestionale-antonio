@@ -581,7 +581,7 @@ async function mostraFoglio(id) {
   const dest = (f.destinazione_tipo === "evento" ? "Evento: " : f.destinazione_tipo === "location" ? "Location: " : "Destinazione: ") + f.destinazione + (dataEv ? " · " + dataEv : "");
   const righe = Array.isArray(f.righe) ? f.righe : [];
   const copia = (titolo) => `<div class="pag">
-    <div class="testa"><div><div class="az">${esc(azienda)}</div><div class="ti">Foglio di uscita attrezzature</div></div><div class="nu"><b>N. ${esc(f.numero)}</b><span class="cp">${esc(titolo)}</span></div></div>
+    <div class="testa"><div><div class="az">${esc(azienda)}</div><div class="ti">Bolla d'uscita attrezzature</div></div><div class="nu"><b>N. ${esc(f.numero)}</b><span class="cp">${esc(titolo)}</span></div></div>
     <table class="dati"><tr><td>Data e ora</td><td>${esc(quando)}</td></tr><tr><td>Destinazione</td><td><b>${esc(dest)}</b></td></tr>
       <tr><td>Consegna</td><td>${esc(f.consegna_nome || "")}</td></tr><tr><td>Ritira</td><td>${esc(f.ritira_nome || "")}</td></tr>${f.note ? `<tr><td>Note</td><td>${esc(f.note)}</td></tr>` : ""}</table>
     <table class="el"><thead><tr><th>N.</th><th>Codice</th><th>Articolo</th><th>Misura</th><th class="n">Pezzi</th><th class="v">Verificato</th></tr></thead><tbody>
