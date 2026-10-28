@@ -382,7 +382,7 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
           p_azienda: aziendaId, p_nome: nome, p_categoria: $("n-cat").value, p_misura: $("n-misura").value.trim() || null,
           p_materiale: $("n-mat").value.trim() || null, p_foto_url: fotoUrl || null, p_pezzi: singolo ? 1 : pezzi,
           p_ubicazione: $("n-ubi").value.trim() || null, p_sede: ($("n-sede") ? $("n-sede").value : sedeAttiva) || null,
-          p_tracciamento: singolo ? "singolo" : "quantita", p_costo: parseFloat($("n-costo").value) || null,
+          p_tracciamento: singolo ? "singolo" : "quantita", p_costo: parseFloat($("n-costo")?.value) || null,
         });
         if (error) throw error;
         create.push({ scatola: data.scatola, articolo: data.articolo });
