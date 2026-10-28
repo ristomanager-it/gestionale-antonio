@@ -592,7 +592,7 @@ async function mostraFoglio(id) {
     <div class="testa"><div><div class="az">${esc(azienda)}</div><div class="ti">Bolla d'uscita attrezzature</div></div><div class="nu"><b>N. ${esc(f.numero)}</b><span class="cp">${esc(titolo)}</span></div></div>
     <table class="dati"><tr><td>Data e ora</td><td>${esc(quando)}</td></tr><tr><td>Destinazione</td><td><b>${esc(dest)}</b></td></tr>
       <tr><td>Consegna</td><td>${esc(f.consegna_nome || "")}</td></tr><tr><td>Ritira</td><td>${esc(f.ritira_nome || "")}</td></tr>${f.note ? `<tr><td>Note</td><td>${esc(f.note)}</td></tr>` : ""}</table>
-    <table class="el"><thead><tr><th>N.</th><th>Codice</th><th>Articolo</th><th>Misura</th><th class="n">Pezzi</th><th class="v">Verificato</th></tr></thead><tbody>
+    <table class="el"><thead><tr><th>N.</th><th>Articolo</th><th>Misura</th><th class="n">Scatole</th><th class="n">Pezzi</th><th class="v">Verificato</th></tr></thead><tbody>
       ${righe.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.codice)}</td><td>${esc(r.nome)}</td><td>${esc(r.misura || "")}</td><td class="n">${Number(r.pezzi) || 0}</td><td class="v"><span class="q"></span></td></tr>`).join("")}
       </tbody><tfoot><tr><td colspan="4">Totale: ${f.totale_scatole} ${f.totale_scatole === 1 ? "scatola" : "scatole"}</td><td class="n">${f.totale_pezzi}</td><td></td></tr></tfoot></table>
     <div class="rit">Data prevista di rientro: ______ / ______ / __________</div>
