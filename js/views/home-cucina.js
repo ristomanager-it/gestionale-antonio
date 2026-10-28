@@ -46,7 +46,7 @@ export async function render(app) {
     lav: String(r.lavorazione || "").split(" · ")[0].replace(/\s*\([^)]*\)\s*$/, ""),
     stato: r.stato,
     chi: r.iniziata_da || r.dipendenti?.nome || "",
-    quando: r.ora ? String(r.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[r.fascia] || ""),
+    quando: (r.ora_lavorazione || r.ora) ? String(r.ora_lavorazione || r.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[r.fascia] || ""),
     f: (ordF[r.fascia] || 9) * 10000 + Number(String(r.ora || "99:99").replace(":", "").slice(0, 4)),
   }));
   const daFare = righe.filter((r) => r.stato !== "in_corso" && r.stato !== "completato").sort((a, b) => a.f - b.f);
