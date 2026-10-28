@@ -131,6 +131,11 @@ textarea:focus{outline:none;border-color:var(--oro)}
 
   function statoBox(){
     var sp = p.stato_pagamento || "";
+    if ((p.stato === "annullata" || p.stato === "rifiutata") && p.voucher_codice)
+      return '<div class="esito ok"><h2>Prenotazione annullata</h2><p>Al posto dell’acconto vi abbiamo preparato un buono'
+        + (p.acconto_importo ? ' da <b>' + euro(Number(p.acconto_importo)) + '</b>' : '') + ', valido 12 mesi per un pranzo o una cena da noi.</p>'
+        + '<p>Codice: <b style="letter-spacing:.08em">' + esc(p.voucher_codice) + '</b></p>'
+        + '<a class="btn" target="_blank" rel="noopener" href="https://app.ristoflow-ai.com/riscatta.html?c=' + encodeURIComponent(p.voucher_codice) + '">Apri il buono</a></div>';
     if (p.stato === "annullata" || p.stato === "rifiutata")
       return '<div class="esito ko"><h2>Prenotazione annullata</h2><p>Se è un errore chiamaci al <a href="tel:' + L.telRaw + '" style="color:var(--oro)">' + L.tel + '</a>.</p></div>';
     if (sp === "pagato")
@@ -185,9 +190,11 @@ textarea:focus{outline:none;border-color:var(--oro)}
       + '<div class="card menu"><h3 style="text-align:center">Il menu della serata</h3>' + menu + '</div>'
       + '<div class="card"><h3>Da sapere</h3>'
       + '<p><b>Si comincia alle 20:00.</b> Bevande incluse nel prezzo, bambini a metà prezzo.</p>'
-      + (chiusa ? '' : rimborsabile
-          ? '<p><b>Disdetta:</b> entro il 27 dicembre vi rimborsiamo l’acconto. Dal 28 dicembre non è più rimborsabile.</p><button class="btn rosso" id="disdici">Disdici e ricevi il rimborso</button><div class="msg" id="msg-dis"></div>'
-          : '<p><b>Disdetta:</b> dal 28 dicembre l’acconto non è più rimborsabile. Se non potete venire chiamateci.</p>')
+      + (chiusa ? '' : p.promo
+          ? '<p><b>Disdetta:</b> avete prenotato con la tariffa promozionale, quindi l’acconto non è rimborsabile. Per qualsiasi necessità chiamateci.</p>'
+          : rimborsabile
+          ? '<p><b>Disdetta:</b> se disdite entro il 27 dicembre ricevete subito un buono del valore dell’acconto, valido 12 mesi per un pranzo o una cena da noi. Dal 28 dicembre l’acconto non è più recuperabile.</p><button class="btn rosso" id="disdici">Disdici e ricevi il buono</button><div class="msg" id="msg-dis"></div>'
+          : '<p><b>Disdetta:</b> dal 28 dicembre l’acconto non è più recuperabile. Se non potete venire chiamateci.</p>')
       + '<p style="margin:0">Per qualsiasi cosa chiamateci al <a href="tel:' + L.telRaw + '" style="color:var(--oro)">' + L.tel + '</a>.</p></div>'
       + '<div class="piede">' + esc(L.nome) + ' · ' + esc(L.indirizzo) + '<br><a href="tel:' + L.telRaw + '">' + L.tel + '</a></div>';
 
@@ -248,7 +255,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
   }
 
   async function disdici(){
-    if (!confirm("Volete davvero disdire? L’acconto vi verrà rimborsato sulla carta usata per pagare.")) return;
+    if (!confirm("Volete davvero disdire? Al posto dell’acconto riceverete un buono dello stesso valore, valido 12 mesi.")) return;
     var b = $("disdici"), m = $("msg-dis"); b.disabled = true; m.className = "msg"; m.textContent = "Un attimo…";
     var r = await supa.rpc("prenotazione_cancella", { p_token: token });
     if (!r.data || !r.data.ok) { b.disabled = false; m.className = "msg ko"; m.textContent = (r.data && r.data.errore) || "Disdetta non riuscita. Chiamaci."; return; }
