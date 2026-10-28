@@ -120,6 +120,7 @@ async function renderLista(container, aziendaId) {
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:0 0 10px;"><a href="/docs/guida-magazzino-attrezzature.pdf" target="_blank" rel="noopener" style="font-size:14px;font-weight:800;color:#0E5A7A;text-decoration:none;">📘 Come funziona (PDF)</a><button type="button" id="at-fogli" style="border:0;background:none;padding:0;font-size:14px;font-weight:800;color:#0E5A7A;cursor:pointer;">📄 Bolle d'uscita</button></div>
     <input class="at-in" id="at-cerca" type="search" placeholder="🔍 Cerca: bicchiere, SC-0012, scaffale…" autocomplete="off">
     <div class="at-chips" id="at-chips"></div>
+    <div id="at-lavare"></div>
     <div id="at-valore"></div>
     <div class="at-riep" id="at-riep"></div>
     <div id="at-fuori"></div>
