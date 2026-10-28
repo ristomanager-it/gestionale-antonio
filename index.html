@@ -296,7 +296,7 @@
       if (trigger) {
         trigger.addEventListener("click", () => {
           const dropdown = document.getElementById("sede-dropdown");
-          if (!window.state?.sedi || window.state.sedi.length <= 1) return;
+          if (!(window.state?.sedi?.length > 1) && !((window.state?.aziende || []).length > 1)) return;
           renderSedeSelector();
           if (dropdown && !dropdown.classList.contains("open")) {
             openSedeDropdown();
