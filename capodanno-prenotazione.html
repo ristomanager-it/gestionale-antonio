@@ -147,7 +147,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
       + '<button class="btn" id="paga-acc">Paga l’acconto</button><div class="msg" id="msg-paga"></div></div>';
   }
 
-  function totale(){ return adulti * L.prezzo + bimbi * L.prezzo / 2; }
+  function totale(){ return adulti * L.prezzo + bimbi * 40; }
   function persone(a, b){ return a + (a === 1 ? " adulto" : " adulti") + (b ? " + " + b + (b === 1 ? " bambino" : " bambini") : ""); }
 
   function disegna(){
@@ -179,7 +179,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
         '<div class="card" style="margin-top:16px"><h3>Aggiungi persone</h3>'
         + '<p>Si aggiunge qualcuno? Finché ci sono posti, potete farlo da qui fino al 30 dicembre, senza pagare altro acconto: le persone in più si saldano la sera.</p>'
         + '<div class="due"><div><small>Adulti</small><div class="ospiti"><button type="button" id="meno" aria-label="Un adulto in meno">−</button><output id="n-osp">' + nuoviA + '</output><button type="button" id="piu" aria-label="Un adulto in più">+</button></div></div>'
-        + '<div><small>Bambini (metà prezzo)</small><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="n-bim">' + nuoviB + '</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div></div>'
+        + '<div><small>Bambini (4-12 anni, 40 €)</small><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="n-bim">' + nuoviB + '</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div></div>'
         + '<div class="anteprima" id="anteprima"></div>'
         + '<button class="btn" id="salva-osp" disabled>Aggiorna le persone</button><div class="msg" id="msg-osp"></div></div>'
         + '<div class="card"><h3>Allergie e segnalazioni</h3>'
@@ -189,7 +189,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
         + '<button class="btn" id="salva-note">Invia le segnalazioni</button><div class="msg" id="msg-note"></div></div>')
       + '<div class="card menu"><h3 style="text-align:center">Il menu della serata</h3>' + menu + '</div>'
       + '<div class="card"><h3>Da sapere</h3>'
-      + '<p><b>Si comincia alle 20:00.</b> Bevande incluse nel prezzo, bambini a metà prezzo.</p>'
+      + '<p><b>Si comincia alle 20:00.</b> Bevande incluse nel prezzo, bambini dai 4 ai 12 anni 40 €.</p>'
       + (chiusa ? '' : p.promo
           ? '<p><b>Disdetta:</b> avete prenotato con la tariffa promozionale, quindi l’acconto non è rimborsabile. Per qualsiasi necessità chiamateci.</p>'
           : rimborsabile
@@ -223,7 +223,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
       var cambiato = nuoviA !== adulti || nuoviB !== bimbi;
       $("salva-osp").disabled = !cambiato;
       $("anteprima").textContent = cambiato
-        ? "Diventate " + persone(nuoviA, nuoviB) + " · totale serata " + euro(nuoviA * L.prezzo + nuoviB * L.prezzo / 2)
+        ? "Diventate " + persone(nuoviA, nuoviB) + " · totale serata " + euro(nuoviA * L.prezzo + nuoviB * 40)
         : "";
     }
     $("meno").onclick = function(){ if (nuoviA > adulti) { nuoviA--; aggiorna(); } };
