@@ -216,7 +216,9 @@
       const sedi = window.state?.sedi || [];
       const sedeAttiva = window.state?.sedeAttiva || null;
 
-      if (sedi.length <= 1) {
+      // chi ha piu' aziende (es. il super admin) trova qui anche il cambio azienda
+      const aziendeMie = (window.state?.aziende || []).map((a) => a && a.aziende).filter(Boolean);
+      if (sedi.length <= 1 && aziendeMie.length <= 1) {
         if (caret) caret.hidden = true;
         if (trigger) trigger.style.cursor = "default";
         dropdown.innerHTML = "";
