@@ -1998,6 +1998,12 @@ const ruolo = window.normalizeRuolo
     return;
   }
 
+  // il magazziniere parte dal suo magazzino
+  if (ruolo === "magazziniere") {
+    await renderView("magazzino-attrezzature");
+    return;
+  }
+
   await renderView("home-operatore");
   return;
 }
