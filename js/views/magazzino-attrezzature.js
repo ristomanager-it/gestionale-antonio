@@ -311,6 +311,27 @@ async function renderLista(container, aziendaId) {
 
   container.querySelector("#at-cerca").oninput = (e) => { stato.q = e.target.value; disegna(); };
   container.querySelector("#at-fogli").onclick = () => elencoFogli(aziendaId);
+  // "Esce": si scrive quanti pezzi servono di ogni articolo; l'app prende le scatole intere e apre una scatola solo se serve
+  if (scrive) container.querySelector("#at-qta").onclick = async () => {
+    const disp = new Map();
+    stato.righe.forEach((r) => {
+      if (isFissa(r) || r.stato !== "in_magazzino" || !(Number(r.quantita) > 0)) return;
+      const a = r.attr_articoli;
+      if (!disp.has(a.id)) disp.set(a.id, { a, pezzi: 0, scatole: 0 });
+      const d = disp.get(a.id); d.pezzi += Number(r.quantita) || 0; d.scatole += 1;
+    });
+    if (!disp.size) { toast("In magazzino non c'è niente da far uscire"); return; }
+    const scelte = await chiediQuantita([...disp.values()]);
+    if (!scelte || !scelte.length) return;
+    const usate = [...new Set(stato.righe.map((r) => r.destinazione_tipo !== "evento" && r.destinazione).filter(Boolean))];
+    const d = await chiediDestinazione(aziendaId, usate);
+    if (!d) return;
+    const { data, error } = await sb().rpc("attr_uscita_mista", { p_scatole: [], p_righe: scelte, p_tipo: d.tipo, p_destinazione: d.destinazione, p_evento: d.evento || null, p_data: d.data || null, p_ritira: d.ritira || null });
+    if (error) { alert("Non riesco a salvare: " + error.message); return; }
+    toast((data && data.parziali ? "Esce per: " + d.destinazione + " (aperta " + data.parziali + (data.parziali === 1 ? " scatola)" : " scatole)") : "Esce per: " + d.destinazione));
+    await carica();
+    if (data && data.foglio_id) mostraFoglio(data.foglio_id);
+  };
   if (scrive) container.querySelector("#at-sel").onclick = () => { stato.selezione = !stato.selezione; stato.sel.clear(); container.querySelector("#at-sel").textContent = stato.selezione ? "✕ Annulla" : "☑ Seleziona"; disegna(); barra(); };
   if (scrive) container.querySelector("#at-nuova").onclick = () => apriNuova(aziendaId, stato.articoli, stato.righe, carica);
   // tempo reale: se un altro telefono cambia una scatola, qui si aggiorna da solo
