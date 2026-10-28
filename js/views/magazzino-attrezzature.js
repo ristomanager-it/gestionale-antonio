@@ -897,8 +897,8 @@ async function renderScheda(container, aziendaId, codice) {
         ${sc.stato === "in_magazzino" && a.tracciamento !== "fisso" ? `<button class="at-btn" data-az="uscita">📤 Esce</button>` : ""}
         ${sc.stato === "fuori" ? `<button class="at-btn" data-az="rientro">📥 Rientra</button>` : ""}
         ${sc.stato === "da_lavare" ? `<button class="at-btn ok" data-az="lavaggio">🧼 Lavata e riposta</button>` : ""}
-        <button class="at-btn sec" data-az="conta">🔢 Conta i pezzi</button></div>
-      <div class="at-row"><button class="at-btn sec" data-az="rotto">💥 Rotti</button><button class="at-btn sec" data-az="perso">❓ Mancanti</button><button class="at-btn sec" data-az="spostamento">📍 Sposta</button></div>` : ""}
+        ${a.tracciamento === "fisso" ? `<button class="at-btn sec" data-az="matricola">🔖 Matricola</button>` : `<button class="at-btn sec" data-az="conta">🔢 Conta i pezzi</button>`}</div>
+      <div class="at-row">${a.tracciamento === "fisso" ? "" : `<button class="at-btn sec" data-az="rotto">💥 Rotti</button><button class="at-btn sec" data-az="perso">❓ Mancanti</button>`}<button class="at-btn sec" data-az="spostamento">📍 Sposta</button></div>` : ""}
     <div class="at-row"><button class="at-btn sec" data-az="etichetta">🏷 Etichetta</button>${scrive ? `<button class="at-btn sec" data-az="modifica">✏️ Modifica</button>` : ""}</div>
     <h3 style="margin:22px 0 6px;font-size:16px;">Storico</h3>
     ${(mov || []).map((m) => `<div class="at-hist"><span><b>${esc(TIPI_MOV[m.tipo] || m.tipo)}</b>${m.quantita_prima !== m.quantita_dopo ? ` ${m.quantita_prima} → ${m.quantita_dopo}` : ""}${m.destinazione ? ` · ${esc(m.destinazione)}` : ""}${m.nota ? ` · ${esc(m.nota)}` : ""}</span><span style="color:#64748b;white-space:nowrap;">${quando(m.created_at)}</span></div>`).join("") || `<p style="color:#64748b;font-size:13px;">Ancora nessun movimento.</p>`}
