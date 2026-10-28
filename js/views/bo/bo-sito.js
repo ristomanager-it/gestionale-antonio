@@ -1305,6 +1305,21 @@ export async function render(container) {
         .order("created_at", { ascending: false }).limit(6);
       recensioni = rec || [];
     }
+    // numero e media VERI (tutte le recensioni accese, non solo le 6 mostrate) + le foto delle recensioni caricate dal titolare
+    let recStat = { n: 0, media: 0 };
+    let recFoto = [];
+    try {
+      if (sedeId) {
+        const { data: tutte } = await sc.from("recensioni").select("voto").eq("sede_id", sedeId).eq("visibile", true).not("voto", "is", null);
+        const v = (tutte || []).map(function (r) { return Number(r.voto) || 0; }).filter(function (x) { return x > 0; });
+        if (v.length) recStat = { n: v.length, media: v.reduce(function (a, b) { return a + b; }, 0) / v.length };
+      }
+      let qf = sc.from("sito_media").select("url,titolo").eq("azienda_id", aziendaId).eq("formato", "recensione")
+        .order("ordine", { ascending: true }).order("created_at", { ascending: false }).limit(12);
+      if (sedeId) qf = qf.or("sede_id.is.null,sede_id.eq." + sedeId);
+      const { data: ff } = await qf;
+      recFoto = (ff || []).filter(function (x) { return x.url; });
+    } catch (e) { /* senza questi dati il sito si genera lo stesso */ }
 
     // Menu del giorno: si prende quello di oggi, solo se il titolare
     // l'ha pubblicato. Se non c'e', la sezione non viene proprio stampata.
