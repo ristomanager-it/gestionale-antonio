@@ -766,6 +766,17 @@ function hasPermission(area) {
   }
 
   // =====================================
+  // MAGAZZINIERE: vede solo il magazzino attrezzature e le sue cose personali
+  // =====================================
+  if (ruolo === "magazziniere") {
+    return [
+      "magazzino-attrezzature", "scatola-attrezzature",
+      "timbrature", "planning-lavoro", "profilo", "completa-profilo",
+      "hr-richieste", "hr-documenti-me", "registro-messaggi", "ai",
+    ].includes(String(area).split("?")[0]);
+  }
+
+  // =====================================
   // ADMIN / MANAGER
   // =====================================
 
