@@ -135,6 +135,7 @@ function initRFTrack(aziendaId, sedeId, formId) {
     const geo = getGeo();
     await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/track', {
       method: 'POST',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         azienda_id: aziendaId || null,
