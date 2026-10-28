@@ -603,7 +603,7 @@ async function elencoFogli(aziendaId) {
   const { data, error } = await sb().from("attr_fogli_uscita").select("id,numero,creato_il,destinazione,destinazione_data,ritira_nome,totale_scatole,totale_pezzi").eq("azienda_id", aziendaId).order("creato_il", { ascending: false }).limit(40);
   const box = ov.querySelector("#f-lista");
   if (error) { box.innerHTML = `<p style="color:#b91c1c;">${esc(error.message)}</p>`; return; }
-  if (!(data || []).length) { box.innerHTML = `<p style="color:#64748b;">Nessun foglio ancora: si crea da solo quando una scatola esce.</p>`; return; }
+  if (!(data || []).length) { box.innerHTML = `<p style="color:#64748b;">Nessuna bolla ancora: si crea da sola quando una scatola esce.</p>`; return; }
   box.innerHTML = data.map((f) => `<button type="button" class="at-btn sec" data-f="${esc(f.id)}" style="display:block;width:100%;text-align:left;margin-bottom:8px;"><div>${esc(f.numero)} · ${esc(f.destinazione)}</div><div style="font-size:12.5px;font-weight:600;color:#64748b;">${new Date(f.creato_il).toLocaleString("it-IT", { timeZone: "Europe/Rome", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${f.totale_scatole} ${f.totale_scatole === 1 ? "scatola" : "scatole"} · ${f.totale_pezzi} pezzi${f.ritira_nome ? " · ritira " + esc(f.ritira_nome) : ""}</div></button>`).join("");
   box.querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => mostraFoglio(b.dataset.f)));
 }
