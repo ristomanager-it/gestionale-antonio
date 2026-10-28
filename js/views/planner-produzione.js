@@ -596,6 +596,7 @@ async function loadDipendenti(){
 }
 
 async function renderCurrentView(){
+  aggiornaDataFiltro()
   if(!repartoAttivoId){
     document.getElementById("calendar").innerHTML = `
       <div class="planner-empty">
