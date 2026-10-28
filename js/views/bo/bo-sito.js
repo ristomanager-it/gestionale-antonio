@@ -1718,6 +1718,151 @@ function apriVideo(u){
 
     const menuScript = `<script>function filtraMenu(id,btn){document.querySelectorAll('.menu-cat').forEach(el=>el.style.display='none');document.querySelectorAll('.mcat-btn').forEach(b=>b.classList.remove('active'));var el=document.querySelector('.menu-cat[data-cat="'+id+'"]');if(el)el.style.display='';if(btn)btn.classList.add('active')}</script>${sedeId ? menuLive(sedeId) : ""}`;
 
+    // ── HOME: le sezioni seguono l'ordine scelto nell'app e non hanno un "Prenota" ciascuna ──
+    // I pulsanti sono tre: uno nel primo schermo, la barra fissa e la chiusura in fondo. Il resto e' contenuto da leggere.
+    const ctaBarHome = ctaBar.replace('href="menu.html">📋 Menu', 'href="#menu">📋 Menu');
+    const stelleTxt = (n) => "★".repeat(Math.max(1, Math.min(5, Math.round(Number(n) || 5))));
+    const blocchiHome = {};
+
+    if (sezioniState.intro && (conf.hero_sub || conf.hl1?.testo)) {
+      blocchiHome.intro = `
+<section class="intro">
+  ${conf.hero_sub ? `<p class="intro-t">${esc(conf.hero_sub)}</p>` : ""}
+  ${conf.hl1?.testo ? `<p class="intro-o">🕐 ${esc(conf.hl1.testo)}</p>` : ""}
+</section>`;
+    }
+    if (sezioniState.highlights && conf.hl1?.titolo) {
+      blocchiHome.highlights = `
+<section class="section">
+  <div class="hl-grid">
+    <div class="hl-card"><div class="hl-icon">📍</div><div class="hl-t">${esc(conf.hl1.titolo)}</div><div class="hl-d">${esc(conf.hl1.testo)}</div></div>
+    ${conf.hl2?.titolo ? `<div class="hl-card"><div class="hl-icon">🍽️</div><div class="hl-t">${esc(conf.hl2.titolo)}</div><div class="hl-d">${esc(conf.hl2.testo)}</div></div>` : ""}
+    ${conf.hl3?.titolo ? `<div class="hl-card"><div class="hl-icon">🐟</div><div class="hl-t">${esc(conf.hl3.titolo)}</div><div class="hl-d">${esc(conf.hl3.testo)}</div></div>` : ""}
+  </div>
+</section>`;
+    }
+    if (sezioniState.cucina && conf.chisiamo_1) {
+      blocchiHome.cucina = `
+<section class="section" id="cucina">
+  <div class="eyebrow">La nostra cucina</div>
+  <h2 class="h2">Terra e mare,<br><em>scelti ogni giorno</em></h2>
+  <div class="body"><p>${esc(conf.chisiamo_1)}</p>${conf.chisiamo_2 ? `<p>${esc(conf.chisiamo_2)}</p>` : ""}</div>
+  <a href="chi-siamo.html" style="display:inline-block;margin-top:14px;color:var(--acc);font-weight:700;">Scopri chi siamo →</a>
+</section>`;
+    }
+    if (sezioniState.reel && (conf.foto_reel_terra || conf.foto_reel_mare)) {
+      blocchiHome.reel = `
+<div class="reel-grid" style="max-width:${conf.foto_reel_terra && conf.foto_reel_mare ? '100%' : '600px'};margin:0 auto;">
+  ${conf.foto_reel_terra ? `<div class="reel-blocco">
+    ${mediaSezione(conf.foto_reel_terra, "Tocca")}
+    <div class="reel-testo"><div class="occhiello">${esc(conf.sez1_occhiello || "Tradizione · Territorio")}</div><h3>${esc(conf.sez1_titolo || "I primi di terra")}</h3>${conf.chisiamo_2 ? `<p>${esc(conf.chisiamo_2)}</p>` : ""}</div>
+  </div>` : ""}
+  ${conf.foto_reel_mare ? `<div class="reel-blocco">
+    ${mediaSezione(conf.foto_reel_mare, "Tocca")}
+    <div class="reel-testo"><div class="occhiello">${esc(conf.sez2_occhiello || "Scelto ogni mattina")}</div><h3>${esc(conf.sez2_titolo || "Il nostro mare")}</h3>${conf.mare_testo ? `<p>${esc(conf.mare_testo)}</p>` : ""}</div>
+  </div>` : ""}
+</div>`;
+    }
+    if (sezioniState.mare && conf.mare_quote) {
+      blocchiHome.mare = `
+<div class="mare-s" id="mare">
+  <div class="mare-i">
+    <div class="eyebrow" style="color:var(--acc)">Il mare</div>
+    <blockquote class="mare-q">${esc(conf.mare_quote)}</blockquote>
+    ${conf.mare_testo ? `<div class="mare-b"><p>${esc(conf.mare_testo)}</p></div>` : ""}
+  </div>
+</div>`;
+    }
+    if (sezioniState.locale && conf.foto_locale?.[0]) {
+      blocchiHome.locale = `
+<div id="locale">
+  <img class="loc-img" src="${esc(conf.foto_locale[0])}" alt="Il locale" loading="lazy">
+  <section class="section">
+    <div class="eyebrow">Il locale</div>
+    <h2 class="h2">Un'atmosfera<br><em>unica</em></h2>
+    <div class="body"><p>All'interno dell'Hotel Aquila, a pochi metri dall'uscita A1 di Orte. Parcheggio gratuito, ambiente tranquillo.</p></div>
+  </section>
+</div>`;
+    }
+    if (menuOggi) {
+      blocchiHome.menugiorno = `
+<section class="section" id="menugiorno">
+  <div class="eyebrow">Oggi in cucina</div>
+  <h2 class="h2" style="margin-bottom:6px;">${esc(menuOggi.titolo || "Menu del giorno")}</h2>
+  ${menuOggi.prezzo_visibile && Number(menuOggi.prezzo_fisso) > 0
+    ? `<div style="font-size:19px;color:var(--btn);font-weight:600;margin-bottom:16px;">${Number(menuOggi.prezzo_fisso).toFixed(0)} € a persona</div>`
+    : `<div style="margin-bottom:16px;"></div>`}
+  ${["antipasti","primi","secondi","contorni","dolci"].map(p => {
+      const v = menuOggi.voci.filter(x => (x.portata || "").toLowerCase() === p);
+      if (!v.length) return "";
+      return `<div style="margin-bottom:14px;">
+        <div class="eyebrow" style="margin-bottom:6px;">${p}</div>
+        ${v.map(x => `<div style="padding:5px 0;border-bottom:1px solid #eee;font-size:15px;">${esc(x.nome)}</div>`).join("")}
+      </div>`;
+    }).join("")}
+  ${menuOggi.note ? `<p style="font-size:14px;color:var(--grigio);margin-top:10px;">${esc(menuOggi.note)}</p>` : ""}
+</section>`;
+    }
+    // riprova sociale: prima le foto delle recensioni caricate dal titolare, poi le recensioni scelte in automatico
+    if (sezioniState.recensioni && (recFoto.length || recensioni.length)) {
+      const testi = recensioni.slice(0, Math.max(0, 6 - recFoto.length));
+      const riepilogo = recStat.n >= 3
+        ? `<div class="rev-sum"><span class="rev-sum-s">${stelleTxt(recStat.media)}</span> <b>${recStat.media.toFixed(1).replace(".", ",")}</b> su 5 · ${recStat.n} recensioni</div>`
+        : "";
+      blocchiHome.recensioni = `
+<div class="rev-bg" id="recensioni">
+  <div style="max-width:700px;margin:0 auto;">
+    <div class="eyebrow">Dicono di noi</div>
+    <h2 class="h2" style="margin-bottom:10px;">L'opinione<br><em>dei nostri ospiti</em></h2>
+    ${riepilogo}
+    <div class="rev-strip">${recFoto.map(f => `<div class="rev-foto" onclick="apriVideo('${esc(f.url)}')"><img src="${esc(f.url)}" alt="Recensione di un ospite" loading="lazy"></div>`).join("")}${testi.map(r => `<div class="rev-c"><div class="stars">${stelleTxt(r.voto)}</div><div class="rev-t">"${esc(r.testo)}"</div>${r.autore ? `<div style="font-size:12px;color:var(--grigio)"><strong>${esc(r.autore)}</strong></div>` : ""}</div>`).join("")}</div>
+    ${(recFoto.length + testi.length) > 1 ? `<div class="rev-scorri">Scorri per leggerne altre &rarr;</div>` : ""}
+  </div>
+</div>`;
+    }
+    // il menu subito sotto le recensioni: una riga, si tocca e si apre
+    if (sezioniState.menu && menuCats.length) {
+      blocchiHome.menu = `
+<section class="menu-acc-w">
+  <details class="menu-acc" id="menu">
+    <summary><span class="ma-t">📋 Il menu</span><span class="ma-s">Tocca per aprire</span><span class="ma-c">⌄</span></summary>
+    <div class="ma-b">
+      <div data-menu-live>
+        <div class="mcat">${menuCats.map((c,i) => `<button class="mcat-btn${i===0?' active':''}" onclick="filtraMenu('${c.id}',this)">${esc(c.nome)}</button>`).join("")}</div>
+        <div>${menuItemsHTML}</div>
+      </div>
+      <p class="ma-l"><a href="menu.html">Vedi il menu completo →</a></p>
+    </div>
+  </details>
+</section>`;
+    }
+    if (sezioniState.mappa) {
+      blocchiHome.mappa = `
+<div class="map-s" id="contatti">
+  <div class="map-i">
+    <div class="eyebrow" style="color:var(--acc)">Come raggiungerci</div>
+    <h2 class="h2" style="color:#fff;">A pochi minuti<br><em>dall'autostrada</em></h2>
+    <iframe style="width:100%;height:200px;border-radius:12px;border:none;margin:20px 0;opacity:.8" src="https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed" allowfullscreen loading="lazy"></iframe>
+    <div class="map-g">
+      ${ind ? `<div><div class="map-lbl">Indirizzo</div><div class="map-v">${esc(ind)}</div></div>` : ""}
+      <div><div class="map-lbl">Orari</div><div class="map-v">${conf.orari_pranzo ? `Pranzo: ${esc(conf.orari_pranzo)}<br>` : ""}${conf.orari_cena ? `Cena: ${esc(conf.orari_cena)}` : ""}</div></div>
+      ${tel ? `<div><div class="map-lbl">Telefono</div><div class="map-v"><a href="tel:${esc(tel)}">${esc(tel)}</a></div></div>` : ""}
+      ${em ? `<div><div class="map-lbl">Email</div><div class="map-v"><a href="mailto:${esc(em)}">${esc(em)}</a></div></div>` : ""}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap;">
+      <a class="btn" href="${esc(formUrl)}" style="flex:1;min-width:150px;text-align:center;margin-top:0;">🗓 ${esc(cta)}</a>
+      ${tel ? `<a href="tel:${esc(tel)}" style="flex:1;min-width:150px;display:inline-block;border:1.5px solid rgba(255,255,255,.3);color:#fff;font-weight:600;font-size:14px;padding:13px 20px;border-radius:8px;text-align:center;">📞 Chiama ora</a>` : ""}
+      ${waUrl ? `<a href="${esc(waUrl)}" style="flex:1;min-width:150px;display:inline-block;background:#25D366;color:#073b1f;font-weight:800;font-size:14px;padding:13px 20px;border-radius:8px;text-align:center;">💬 WhatsApp</a>` : ""}
+    </div>
+  </div>
+</div>`;
+    }
+    const ordineHome = (Array.isArray(conf.sezioni_ordine) && conf.sezioni_ordine.length ? conf.sezioni_ordine.slice() : SEZIONI.map(function (s) { return s.id; })).filter(function (k) { return k !== "hero"; });
+    Object.keys(blocchiHome).forEach(function (k) { if (ordineHome.indexOf(k) === -1) ordineHome.push(k); });
+    const corpoHome = ordineHome.map(function (k) { return blocchiHome[k] || ""; }).join("\n");
+    // il "Menu" della barra fissa apre la tendina del menu invece di cambiare pagina
+    const menuApri = `<script>(function(){var d=document.getElementById('menu');if(!d)return;document.querySelectorAll('a[href="#menu"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();d.open=true;setTimeout(function(){d.scrollIntoView({behavior:'smooth',block:'start'});},60);});});if(location.hash==='#menu')d.open=true;})();</script>`;
+
     // ── HOME ──────────────────────────────────────────────────
     const home = `${head(nome)}
 <body>
