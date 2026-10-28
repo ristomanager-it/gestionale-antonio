@@ -149,9 +149,11 @@ async function renderLista(container, aziendaId) {
     filtrate.forEach((r) => { const k = r.attr_articoli.id; if (!gruppi.has(k)) gruppi.set(k, { a: r.attr_articoli, scatole: [] }); gruppi.get(k).scatole.push(r); });
     const ordinati = [...gruppi.values()].sort((x, y) => x.a.nome.localeCompare(y.a.nome, "it"));
     const tot = filtrate.reduce((s, r) => s + (Number(r.quantita) || 0), 0);
+    const valFiltrate = filtrate.reduce((s, r) => s + valRiga(r), 0);
     container.querySelector("#at-riep").textContent = filtrate.length
-      ? `${ordinati.length} articoli · ${filtrate.length} scatole · ${tot.toLocaleString("it-IT")} pezzi`
+      ? `${ordinati.length} articoli · ${filtrate.length} scatole · ${tot.toLocaleString("it-IT")} pezzi${valFiltrate ? " · " + euro(valFiltrate) : ""}`
       : "";
+    riquadroValore();
 
     if (!ordinati.length) {
       container.querySelector("#at-lista").innerHTML = stato.righe.length
