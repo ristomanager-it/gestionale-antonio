@@ -1933,7 +1933,7 @@ ${false && (conf.foto_reel_terra || conf.foto_reel_mare) ? `
     <div class="reel-testo"><div class="occhiello">${esc(conf.sez2_occhiello || "Scelto ogni mattina")}</div><h3>${esc(conf.sez2_titolo || "Il nostro mare")}</h3>${conf.mare_testo ? `<p>${esc(conf.mare_testo)}</p>` : ""}</div>
   </div>` : ""}
 </div>` : ""}
-${sezioniState.mare && conf.mare_quote ? `
+${false && conf.mare_quote ? `
 <div class="mare-s" id="mare">
   <div class="mare-i">
     <div class="eyebrow" style="color:var(--acc)">Il mare</div>
