@@ -1942,7 +1942,7 @@ ${false && conf.mare_quote ? `
     <a class="btn" href="${esc(formUrl)}" style="margin-top:28px;">🗓 ${esc(cta)}</a>
   </div>
 </div>` : ""}
-${sezioniState.menu && menuCats.length ? `
+${false && menuCats.length ? `
 <div class="menu-s" id="menu">
   <div class="menu-i">
     <div class="eyebrow">Il menu</div>
