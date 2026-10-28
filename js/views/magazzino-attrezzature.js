@@ -485,7 +485,7 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
       for (let i = 0; i < n; i++) {
         const { data, error } = await sb().rpc("attr_crea_scatola", {
           p_azienda: aziendaId, p_nome: nome, p_categoria: $("n-cat").value, p_misura: $("n-misura").value.trim() || null,
-          p_materiale: $("n-mat").value.trim() || null, p_foto_url: fotoUrl || null, p_pezzi: singolo ? 1 : pezzi,
+          p_materiale: $("n-mat").value.trim() || null, p_foto_url: fotoUrl || null, p_pezzi: tipo === "quantita" ? pezzi : 1,
           p_ubicazione: $("n-ubi").value.trim() || null, p_sede: ($("n-sede") ? $("n-sede").value : sedeAttiva) || null,
           p_tracciamento: singolo ? "singolo" : "quantita", p_costo: parseFloat($("n-costo")?.value) || null,
         });
