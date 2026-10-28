@@ -536,6 +536,12 @@ export async function mostraEtichette(elenco, opzioni = {}) {
   if (opzioni.nuova) sheet.querySelector("#e-altra").onclick = () => { chiudi(); opzioni.nuova(); };
 }
 
+/* ───────────────── VALORE ───────────────── */
+const euro = (n) => Number(n || 0).toLocaleString("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const euro2 = (n) => Number(n || 0).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+const valRiga = (r) => (Number(r.quantita) || 0) * (Number(r.attr_articoli?.costo_sostituzione) || 0);
+let canaleTempoReale = null;
+
 /* ───────────────── DESTINAZIONE DELL'USCITA ───────────────── */
 const dataIt = (iso) => { const [y, m, d] = String(iso || "").slice(0, 10).split("-"); return y ? `${d}/${m}` : ""; };
 
