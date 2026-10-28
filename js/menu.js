@@ -401,7 +401,7 @@ export function initMenu() {
         { label: "🏠 Home",             route: "home"           },
         { label: "👨‍🍳 Display Cucina", route: "display-cucina" },
         { label: "📦 Magazzino",        route: "magazzino"      },
-        { label: "🧰 Attrezzature",     route: "magazzino-attrezzature" },
+        // le Attrezzature stanno nella sezione MAGAZZINIERE, subito sotto
         { label: "🕒 Timbratura",       route: "timbrature"     },
       ]
     });
