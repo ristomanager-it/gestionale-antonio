@@ -154,7 +154,7 @@ export async function render(container) {
     // valore delle attrezzature (costo di sostituzione x pezzi): e' la situazione di oggi, non un dato del periodo
     let attr = null;
     try {
-      const { data: sc } = await supa().from("attr_scatole").select("quantita,stato,attr_articoli(costo_sostituzione)").eq("azienda_id", aziendaId).eq("attiva", true).limit(5000);
+      const { data: sc } = await supa().from("attr_scatole").select("quantita,stato,attr_articoli(costo_sostituzione,tracciamento)").eq("azienda_id", aziendaId).eq("attiva", true).limit(5000);
       if ((sc || []).length) {
         attr = { tot: 0, fuori: 0, senza: 0 };
         sc.forEach((r) => {
