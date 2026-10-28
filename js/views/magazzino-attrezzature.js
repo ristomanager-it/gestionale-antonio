@@ -776,10 +776,13 @@ function modificaArticolo(a, dopo) {
   ov.querySelector("#m-ok").onclick = async () => {
     const nome = ov.querySelector("#m-nome").value.trim();
     if (!nome) { ov.querySelector("#m-err").textContent = "Il nome è obbligatorio."; return; }
-    const { error } = await sb().from("attr_articoli").update({
+    const campi = {
       nome, categoria: ov.querySelector("#m-cat").value, misura: ov.querySelector("#m-mis").value.trim() || null,
-      materiale: ov.querySelector("#m-mat").value.trim() || null, costo_sostituzione: parseFloat(ov.querySelector("#m-costo").value) || null,
-    }).eq("id", a.id);
+      materiale: ov.querySelector("#m-mat").value.trim() || null,
+    };
+    // il costo lo cambia solo chi lo vede: il magazziniere non deve cancellarlo senza saperlo
+    if (ov.querySelector("#m-costo")) campi.costo_sostituzione = parseFloat(ov.querySelector("#m-costo").value) || null;
+    const { error } = await sb().from("attr_articoli").update(campi).eq("id", a.id);
     if (error) { ov.querySelector("#m-err").textContent = /duplicate|unique/i.test(error.message) ? "Esiste già un articolo con questo nome e questa misura." : error.message; return; }
     ov.remove(); toast("Salvato"); dopo();
   };
