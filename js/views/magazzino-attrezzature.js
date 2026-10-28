@@ -393,7 +393,7 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
     <div id="n-bloc-conf"><label class="at-lbl" for="n-conf">Quante confezioni uguali</label><div class="at-step"><button type="button" id="n-cmeno">−</button><input class="at-in" id="n-conf" type="number" inputmode="numeric" min="1" max="30" value="1"><button type="button" id="n-cpiu">+</button></div></div></div>
     <div id="n-bloc-fissa" style="display:none;"><label class="at-lbl" for="n-matr">Matricola / numero di serie</label><input class="at-in" id="n-matr" placeholder="facoltativo" autocomplete="off"><label class="at-lbl" for="n-acq">Data di acquisto</label><input class="at-in" id="n-acq" type="date"></div>
 
-    <label class="at-lbl" for="n-ubi">Dove la metti</label>
+    <label class="at-lbl" for="n-ubi" id="n-ubi-lbl">Dove la metti</label>
     <input class="at-in" id="n-ubi" list="n-ubil" placeholder="es. Scaffale A2" autocomplete="off">
     <datalist id="n-ubil">${ubicazioni.map((u) => `<option value="${esc(u)}">`).join("")}</datalist>
 
