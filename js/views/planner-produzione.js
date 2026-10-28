@@ -1464,6 +1464,15 @@ function endOfWeek(date){
   return end
 }
 
+// il filtro data in alto mostra il giorno di riferimento e, toccandolo, apre il calendario
+function aggiornaDataFiltro(){
+  const inp = document.getElementById("planner-data-filtro")
+  const txt = document.getElementById("planner-data-testo")
+  if(!inp || !txt) return
+  inp.value = formatDateLocal(currentDate)
+  txt.textContent = currentDate.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" })
+}
+
 function formatDateLocal(date){
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
