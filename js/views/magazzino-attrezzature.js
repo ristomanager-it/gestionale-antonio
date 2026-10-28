@@ -220,6 +220,7 @@ async function renderLista(container, aziendaId) {
       if (error) { alert("Non riesco a salvare: " + error.message); return; }
       toast((data && data.uscite) + (data && data.uscite === 1 ? " scatola esce" : " scatole escono") + " per: " + d.destinazione);
       stato.selezione = false; stato.sel.clear(); container.querySelector("#at-sel").textContent = "☑ Seleziona"; barra(); await carica();
+      if (data && data.foglio_id) mostraFoglio(data.foglio_id);
     };
   };
 
