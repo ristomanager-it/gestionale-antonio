@@ -115,7 +115,7 @@ async function renderLista(container, aziendaId) {
 
   const carica = async () => {
     const { data, error } = await sb().from("attr_scatole")
-      .select("id,codice,quantita,ubicazione,stato,sede_id,attr_articoli(id,nome,categoria,misura,materiale,foto_url)")
+      .select("id,codice,quantita,ubicazione,stato,sede_id,destinazione_tipo,destinazione,destinazione_data,evento_id,attr_articoli(id,nome,categoria,misura,materiale,foto_url)")
       .eq("azienda_id", aziendaId).eq("attiva", true).order("created_at", { ascending: false }).limit(1500);
     if (error) {
       container.querySelector("#at-lista").innerHTML = `<p style="padding:24px;text-align:center;color:#b91c1c;">Non riesco a caricare il magazzino: ${esc(error.message)}</p>`;
