@@ -597,7 +597,7 @@ async function mostraFoglio(id) {
 // i fogli gia' fatti, per ristamparli
 async function elencoFogli(aziendaId) {
   const ov = document.createElement("div"); ov.className = "at-sheet";
-  ov.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3>📄 Fogli di uscita</h3><button type="button" class="at-btn sec" id="f-chiudi" style="padding:8px 14px;">✕</button></div><div id="f-lista"><p style="color:#64748b;">Carico…</p></div>`;
+  ov.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3>📄 Bolle d'uscita</h3><button type="button" class="at-btn sec" id="f-chiudi" style="padding:8px 14px;">✕</button></div><div id="f-lista"><p style="color:#64748b;">Carico…</p></div>`;
   document.body.appendChild(ov); document.body.style.overflow = "hidden";
   ov.querySelector("#f-chiudi").onclick = () => { ov.remove(); document.body.style.overflow = ""; };
   const { data, error } = await sb().from("attr_fogli_uscita").select("id,numero,creato_il,destinazione,destinazione_data,ritira_nome,totale_scatole,totale_pezzi").eq("azienda_id", aziendaId).order("creato_il", { ascending: false }).limit(40);
