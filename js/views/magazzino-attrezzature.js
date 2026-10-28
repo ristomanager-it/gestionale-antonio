@@ -642,7 +642,7 @@ async function mostraFoglio(id) {
     <table class="dati"><tr><td>Data e ora</td><td>${esc(quando)}</td></tr><tr><td>Destinazione</td><td><b>${esc(dest)}</b></td></tr>
       <tr><td>Consegna</td><td>${esc(f.consegna_nome || "")}</td></tr><tr><td>Ritira</td><td>${esc(f.ritira_nome || "")}</td></tr>${f.note ? `<tr><td>Note</td><td>${esc(f.note)}</td></tr>` : ""}</table>
     <table class="el"><thead><tr><th>N.</th><th>Articolo</th><th>Misura</th><th class="n">Scatole</th><th class="n">Pezzi</th><th class="n">Valore</th><th class="v">Verificato</th></tr></thead><tbody>
-      ${gruppi.map((g, i) => `<tr><td>${i + 1}</td><td><b>${esc(g.nome)}</b><div class="cod">${esc(g.codici.join(", "))}</div></td><td>${esc(g.misura)}</td><td class="n">${g.scatole}</td><td class="n">${g.pezzi}</td><td class="n">${g.valore ? euro2(g.valore) : "—"}</td><td class="v"><span class="q"></span></td></tr>`).join("")}
+      ${gruppi.map((g, i) => `<tr><td>${i + 1}</td><td><b>${esc(g.nome)}</b><div class="cod">${esc(g.codici.join(", "))}</div></td><td>${esc(g.misura)}</td><td class="n">${g.scatole}</td><td class="n">${g.pezzi}</td>${conValori ? `<td class="n">${g.valore ? euro2(g.valore) : "—"}</td>` : ""}<td class="v"><span class="q"></span></td></tr>`).join("")}
       </tbody><tfoot><tr><td colspan="3">Totale</td><td class="n">${f.totale_scatole}</td><td class="n">${f.totale_pezzi}</td><td class="n"><b>${f.totale_valore ? euro2(f.totale_valore) : "—"}</b></td><td></td></tr></tfoot></table>
     <div class="rit" style="margin-top:6px;font-size:10.5px;color:#555;">Valore calcolato al costo di sostituzione di ogni pezzo.</div>
     <div class="rit">Data prevista di rientro: ______ / ______ / __________</div>
