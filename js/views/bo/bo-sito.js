@@ -758,6 +758,66 @@ export async function render(container) {
         b.disabled = false; b.textContent = "＋ Carica foto dal telefono"; f.value = "";
       };
     })();
+
+    // Foto delle recensioni: si caricano dal telefono man mano che arrivano e compaiono in home sotto "Dicono di noi"
+    (function () {
+      const b = document.getElementById("sw-up-rec"), f = document.getElementById("sw-file-rec"), g = document.getElementById("sw-rec-grid");
+      if (!b || !f || !g) return;
+      async function elenco() {
+        const { data } = await sc.from("sito_media").select("id,url,path").eq("azienda_id", aziendaId).eq("formato", "recensione")
+          .order("ordine", { ascending: true }).order("created_at", { ascending: false });
+        g.innerHTML = (data || []).map(function (x) {
+          return '<div style="position:relative;"><img src="' + x.url + '" alt="" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;">' +
+            '<button type="button" data-del="' + x.id + '" data-path="' + (x.path || "") + '" style="position:absolute;top:4px;right:4px;background:#b91c1c;color:#fff;border:0;border-radius:6px;font-size:12px;padding:3px 7px;">🗑</button></div>';
+        }).join("") || '<div style="grid-column:1/-1;color:#94a3b8;font-size:13px;">Ancora nessuna foto: il sito sceglie in automatico le recensioni migliori.</div>';
+        g.querySelectorAll("[data-del]").forEach(function (d) {
+          d.onclick = async function () {
+            if (!confirm("Togliere questa foto dal sito?")) return;
+            await sc.from("sito_media").delete().eq("id", d.dataset.del);
+            if (d.dataset.path) await sc.storage.from("media-aziende").remove([d.dataset.path]);
+            await elenco();
+            alert("Tolta. Ripubblica il sito per aggiornarlo.");
+          };
+        });
+      }
+      b.onclick = function () { f.click(); };
+      f.onchange = async function () {
+        const files = Array.from(f.files || []);
+        if (!files.length) return;
+        b.disabled = true;
+        let n = 0;
+        for (const file of files) {
+          try {
+            b.textContent = "Carico " + (n + 1) + " di " + files.length + "…";
+            const url = URL.createObjectURL(file);
+            const img = await new Promise(function (res, rej) { const im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = url; });
+            const k = Math.min(1, 1800 / Math.max(img.naturalWidth, img.naturalHeight));
+            const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+            const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+            const cx = cv.getContext("2d"); cx.imageSmoothingQuality = "high"; cx.drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            const blob = await new Promise(function (res) { cv.toBlob(res, "image/jpeg", 0.86); });
+            if (!blob) throw new Error("foto non elaborata");
+            const nome = "sito/" + aziendaId + "/" + Date.now() + "-" + n + "-recensione.jpg";
+            const up = await sc.storage.from("media-aziende").upload(nome, blob, { contentType: "image/jpeg", upsert: false });
+            if (up.error) throw up.error;
+            const pub = sc.storage.from("media-aziende").getPublicUrl(nome);
+            const ins = await sc.from("sito_media").insert({
+              azienda_id: aziendaId, sede_id: (sedeSelezionata && sedeSelezionata.id) || null, formato: "recensione",
+              url: pub.data.publicUrl, path: nome, larghezza: w, altezza: h, peso_kb: Math.round(blob.size / 1024), titolo: file.name || "Recensione"
+            });
+            if (ins.error) throw ins.error;
+            n++;
+          } catch (e) {
+            alert("Una foto non e' stata caricata: " + (e.message || e));
+          }
+        }
+        b.disabled = false; b.textContent = "＋ Carica foto recensioni"; f.value = "";
+        await elenco();
+        if (n) alert(n + (n === 1 ? " foto caricata" : " foto caricate") + ". Ripubblica il sito per vederle.");
+      };
+      elenco();
+    })();
     pieghevoli();
   }
 
