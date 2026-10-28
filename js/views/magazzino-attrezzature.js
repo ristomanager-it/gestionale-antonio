@@ -592,9 +592,14 @@ export async function disegnaEtichetta(scatola, articolo) {
   ctx.textAlign = "left";
   ctx.font = "800 40px Arial"; ctx.fillText(scatola.codice, FX, 338);
   const pezzi = String(Number(scatola.quantita) || 0);
-  ctx.font = "900 104px Arial"; const wP = ctx.measureText(pezzi).width;
-  ctx.fillText(pezzi, FX, 440);
-  ctx.font = "800 40px Arial"; ctx.fillText("pz", FX + wP + 12, 440);
+  if (articolo.tracciamento === "fisso") {
+    ctx.font = "900 62px Arial"; ctx.fillText("FISSA", FX, 412);
+    if (scatola.matricola) { ctx.font = "700 30px Arial"; ctx.fillText(String(scatola.matricola).slice(0, 14), FX, 448); }
+  } else {
+    ctx.font = "900 104px Arial"; const wP = ctx.measureText(pezzi).width;
+    ctx.fillText(pezzi, FX, 440);
+    ctx.font = "800 40px Arial"; ctx.fillText("pz", FX + wP + 12, 440);
+  }
 
   // nome e misura a destra
   const TX = 304, TW = ET_W - TX - 14;
