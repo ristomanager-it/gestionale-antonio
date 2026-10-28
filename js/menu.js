@@ -383,6 +383,12 @@ export function initMenu() {
           { label: "💳 Piani Abbonamento", route: "gestionePiani"   },
           { label: "⚡ Consumi AI",        route: "consumiAI"      },
           { label: "🧠 Super Tony",        route: "super-tony"     },
+          // Agenzia viaggi: il super admin la apre da qualunque azienda (si porta su Ristoflow da solo).
+          // Dentro Ristoflow c'e' gia' la sua sezione, qui non si ripete.
+          ...(window.state?.azienda?.id !== AZIENDA_RISTOFLOW ? [
+            { label: "🚐 Agenzia viaggi",    route: "agenzia-viaggi" },
+            { label: "✈️ Voli in offerta",    route: "voli-offerta"   },
+          ] : []),
         ]
       });
     }
