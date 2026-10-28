@@ -742,8 +742,15 @@ function filterAziende(e) {
 function selectAzienda(id) {
   const azienda = aziendeCache.find(a => a.azienda_id === id);
   if (!azienda) return;
-  window.state.azienda = { id: azienda.azienda_id, nome: azienda.aziende?.nome };
-  localStorage.setItem("azienda_attiva", JSON.stringify(window.state.azienda));
+  // La scelta dell'azienda vive in "active_azienda_id": la vecchia chiave "azienda_attiva" non la legge piu' nessuno,
+  // quindi prima la scelta veniva ignorata e la pagina si riapriva uguale (il "non mi apre").
+  try {
+    localStorage.setItem("active_azienda_id", String(id));
+    localStorage.removeItem("active_sede_id");
+    window.__rfAziendeCache = null;
+  } catch (_) {}
+  // l'azienda di piattaforma (Ristoflow) resta nella dashboard; le altre si aprono nel gestionale
+  window.location.hash = azienda.aziende?.stato === "piattaforma" ? "#/homePiattaforma" : "#/home";
   window.location.reload();
 }
 
