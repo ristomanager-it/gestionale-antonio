@@ -518,6 +518,7 @@ async function chiediDestinazione(aziendaId, usate) {
     const ov = document.createElement("div"); ov.className = "at-ov";
     ov.innerHTML = `<div style="max-height:88vh;overflow:auto;"><h3 style="margin:0 0 4px;">Dove va?</h3>
       <p style="margin:0 0 10px;font-size:13px;color:#64748b;">Segna la destinazione: così sai dov'è finita ogni scatola.</p>
+      <label class="at-lbl" for="d-rit" style="margin-top:0;">Chi ritira (nome e cognome)</label><input class="at-in" id="d-rit" list="d-ritl" placeholder="il responsabile che firma il foglio" autocomplete="off" style="margin-bottom:10px;"><datalist id="d-ritl">${ritiranti.map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
       <div class="at-row" style="margin-top:0;"><button type="button" class="at-btn" id="d-ev">🎪 Evento</button><button type="button" class="at-btn sec" id="d-lo">📍 Location</button></div>
       <div id="d-lista" style="margin-top:10px;"></div>
       <div id="d-altro" style="margin-top:6px;display:none;"><label class="at-lbl" for="d-txt">Altra destinazione</label><input class="at-in" id="d-txt" placeholder="es. Villa Rossi" autocomplete="off"><button type="button" class="at-btn" id="d-ok" style="width:100%;margin-top:8px;">Conferma</button></div>
