@@ -804,7 +804,11 @@ function chipsEventi(r){
 // 15/10/2026: prima conta l'ORA scritta; senza ora la fascia vale come un orario indicativo
 // (mattina 09:00, pomeriggio 15:00, sera 19:00); senza nessuno dei due in fondo.
 const ORA_FASCIA = { mattina: "09:00", pomeriggio: "15:00", sera: "19:00" }
-function oraEffettiva(r){ return r.ora ? String(r.ora).slice(0, 5) : (ORA_FASCIA[r.fascia] || "99:99") }
+// 27/10/2026: conta prima l'ora di LAVORAZIONE (a che ora iniziare); poi quella del servizio; poi la fascia
+function oraEffettiva(r){
+  if (r.ora_lavorazione) return String(r.ora_lavorazione).slice(0, 5)
+  return r.ora ? String(r.ora).slice(0, 5) : (ORA_FASCIA[r.fascia] || "99:99")
+}
 function ordineOrario(a, b){
   return oraEffettiva(a).localeCompare(oraEffettiva(b))
 }
