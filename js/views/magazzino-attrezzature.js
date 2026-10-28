@@ -513,6 +513,7 @@ async function chiediDestinazione(aziendaId, usate) {
   let eventi = [];
   try { const { data } = await sb().rpc("attr_eventi_prossimi", { p_azienda: aziendaId }); if (Array.isArray(data)) eventi = data; } catch (e) { /* senza eventi si sceglie una location */ }
   const luoghi = [...new Set([...(window.state?.sedi || []).map((s) => s.nome), ...(usate || [])])].filter(Boolean);
+  let ritiranti = []; try { ritiranti = JSON.parse(localStorage.getItem("attr_ritiranti") || "[]"); } catch (e) { ritiranti = []; }
   return new Promise((res) => {
     const ov = document.createElement("div"); ov.className = "at-ov";
     ov.innerHTML = `<div style="max-height:88vh;overflow:auto;"><h3 style="margin:0 0 4px;">Dove va?</h3>
