@@ -621,8 +621,9 @@ async function mostraFoglio(id) {
   const mappa = new Map();
   righe.forEach((r) => {
     const k = (r.nome || "") + "|" + (r.misura || "");
-    if (!mappa.has(k)) mappa.set(k, { nome: r.nome || "", misura: r.misura || "", scatole: 0, pezzi: 0, codici: [] });
+    if (!mappa.has(k)) mappa.set(k, { nome: r.nome || "", misura: r.misura || "", scatole: 0, pezzi: 0, codici: [], valore: 0, senzaCosto: false });
     const g = mappa.get(k); g.scatole += 1; g.pezzi += Number(r.pezzi) || 0; g.codici.push(r.codice);
+    g.valore += (Number(r.pezzi) || 0) * (Number(r.costo) || 0); if (!Number(r.costo)) g.senzaCosto = true;
   });
   const gruppi = [...mappa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "it") || a.misura.localeCompare(b.misura, "it", { numeric: true }));
   const copia = (titolo) => `<div class="pag">
