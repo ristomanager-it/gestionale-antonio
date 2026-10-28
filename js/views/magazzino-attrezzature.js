@@ -149,8 +149,9 @@ async function renderLista(container, aziendaId) {
   };
 
   const disegna = () => {
-    const nFuori = stato.righe.filter((r) => r.stato === "fuori").length;
-    const cats = [["", "Tutto"], ...(nFuori ? [["__fuori", "📤 Fuori (" + nFuori + ")"]] : []), ...CATEGORIE.filter((c) => stato.righe.some((r) => r.attr_articoli.categoria === c[0]))];
+    const nFuori = stato.righe.filter((r) => r.stato === "fuori" && !isFissa(r)).length + stato.sfusi.filter((s) => s.stato === "fuori").length;
+    const nFisse = stato.righe.filter(isFissa).length;
+    const cats = [["", "Tutto"], ...(nFuori ? [["__fuori", "📤 Fuori (" + nFuori + ")"]] : []), ...(nFisse ? [["__fisse", "🏭 Fisse (" + nFisse + ")"]] : []), ...CATEGORIE.filter((c) => stato.righe.some((r) => !isFissa(r) && r.attr_articoli.categoria === c[0]))];
     container.querySelector("#at-chips").innerHTML = cats.map((c) => `<button type="button" class="at-chip${stato.cat === c[0] ? " on" : ""}" data-cat="${esc(c[0])}">${esc(c[1])}</button>`).join("");
     container.querySelectorAll(".at-chip").forEach((b) => (b.onclick = () => { stato.cat = b.dataset.cat; disegna(); }));
 
