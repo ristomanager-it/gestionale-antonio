@@ -253,7 +253,7 @@ async function planningOggi(supabase, aziendaId, giorno, sedeId) {
   if (!aziendaId) return vuoto;
   // solo il planning della sede in cui si e': prima uscivano anche le lavorazioni delle altre sedi
   let q = supabase.from("produzioni_settimanali")
-    .select("id, prodotto, lavorazione, stato, fascia, ora, iniziata_il, iniziata_da, dipendenti:dipendente_id(nome)")
+    .select("id, prodotto, lavorazione, stato, fascia, ora, ora_lavorazione, iniziata_il, iniziata_da, dipendenti:dipendente_id(nome)")
     .eq("azienda_id", aziendaId).eq("data", giorno).limit(200);
   if (sedeId) q = q.eq("sede_id", sedeId);
   const { data } = await q;
