@@ -31,6 +31,7 @@ export async function render(container) {
   let repoSito = null;   // repo dedicato del sito, letto dal database
   const SEZIONI = [
     { id:"hero",       label:"🦸 Hero",              def:true  },
+    { id:"intro",      label:"📝 Breve descrizione",  def:false },
     { id:"highlights", label:"✨ Highlights",         def:true  },
     { id:"cucina",     label:"🍽️ La nostra cucina",  def:true  },
     { id:"reel",       label:"🎬 Video reel",         def:true  },
