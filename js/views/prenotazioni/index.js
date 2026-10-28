@@ -749,6 +749,7 @@ export async function render(container) {
         </select>
 <button id="pren-richieste-trigger" class="pren-tool-btn">📂 Fila-Fast</button>
         <button type="button" class="pren-tool-btn" id="btn-stampa-talloncini" title="Stampa i talloncini del giorno (4 per foglio A4)">🖨 Talloncini</button>
+        <button type="button" class="pren-tool-btn" id="btn-conferma-auto" style="display:none;" title="Conferma subito le prenotazioni online e assegna il tavolo">🤖 Auto</button>
         <button type="button" class="pren-tool-btn" id="btn-refresh" title="Aggiorna">↻</button>
       </div>
 
