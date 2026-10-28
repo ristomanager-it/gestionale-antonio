@@ -1914,7 +1914,7 @@ ${false && conf.hl1?.titolo ? `
     <div class="hl-card"><div class="hl-icon">🐟</div><div class="hl-t">${esc(conf.hl3.titolo)}</div><div class="hl-d">${esc(conf.hl3.testo)}</div></div>
   </div>
 </section>` : ""}
-${sezioniState.cucina && conf.chisiamo_1 ? `
+${false && conf.chisiamo_1 ? `
 <section class="section" id="cucina">
   <div class="eyebrow">La nostra cucina</div>
   <h2 class="h2">Terra e mare,<br><em>scelti ogni giorno</em></h2>
