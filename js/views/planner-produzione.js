@@ -1167,6 +1167,11 @@ function renderFormHtml({ mode, id, date, record, suggerimento }){
         </div>
 
         <div class="planner-field">
+          <label>Ora lavorazione (a che ora iniziare)</label>
+          <input id="planner-ora-lav" type="time" value="${escapeAttr(record.ora_lavorazione ? String(record.ora_lavorazione).slice(0, 5) : "")}">
+        </div>
+
+        <div class="planner-field">
           <label>Ora (servizio)</label>
           <input id="planner-ora" type="time" value="${escapeAttr(record.ora ? String(record.ora).slice(0, 5) : "")}">
         </div>
