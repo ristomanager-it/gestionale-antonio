@@ -308,7 +308,7 @@ footer a{color:var(--oro)}
   try { supa = window.supabase.createClient(CFG.url, CFG.anon); } catch (e) {}
   var ospiti = 2, bimbi = 0, liberi = null, inviando = false;
   var PROMO = { prezzo: 80, posti: 50, fino: new Date("2026-11-15T23:59:59+01:00").getTime() }, promoAttiva = false;
-  var AMO_PIENO = $("amo").innerHTML;
+  var AMO_PIENO = document.getElementById("amo").innerHTML;
   function tariffa(){ return promoAttiva ? "promo" : "flessibile"; }
   function prezzoAdulto(){ return tariffa() === "promo" ? PROMO.prezzo : CFG.prezzo; }
   var qs = new URLSearchParams(location.search);
