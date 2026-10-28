@@ -561,17 +561,27 @@ export async function render(container) {
 
   // ── Track abbandono ────────────────────────────────────────
   let _bookingCompletata = false;
-  window.addEventListener('beforeunload', () => {
-    if (_bookingCompletata) return;
+  let _abbandonoInviato = false;
+  const inviaAbbandono = () => {
+    if (_bookingCompletata || _abbandonoInviato) return;
     const nome = document.getElementById("nome")?.value?.trim();
     const data = document.getElementById("data")?.value;
     const ora  = document.getElementById("ora")?.value;
     if (!nome && !data) return;
+    _abbandonoInviato = true;
     window._rfTrack?.('abbandono', 'form_abbandonato', {
       step: ora ? 'dopo_slot' : data ? 'dopo_data' : nome ? 'dati_personali' : 'inizio',
       completato: false,
       valore: [nome ? 'nome' : '', data || '', ora || ''].filter(Boolean).join(' | ')
     });
+  };
+  // beforeunload da solo non basta: su iPhone spesso non parte, e chiudendo il pannello del sito la pagina non si scarica
+  window.addEventListener('beforeunload', inviaAbbandono);
+  window.addEventListener('pagehide', inviaAbbandono);
+  window.addEventListener('message', (e) => {
+    if (!e.data || typeof e.data !== 'object') return;
+    if (e.data.rf === 'pannello-chiuso') inviaAbbandono();
+    if (e.data.rf === 'pannello-aperto') _abbandonoInviato = false;   // riaperto: puo' ancora completare
   });
 
   // Policy modal
