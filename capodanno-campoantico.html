@@ -35,6 +35,7 @@ p{margin:0 0 14px;text-wrap:pretty}
 .hero video,.hero .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .hero::after{content:"";position:absolute;inset:0;background:rgba(8,7,5,.62)}
 .hero .wrap{position:relative;z-index:1;padding-top:90px;padding-bottom:56px}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(11,10,8,.94);border-bottom:1px solid var(--riga);text-align:center;padding:14px 16px;font-family:var(--f-disp);color:var(--oro);font-size:clamp(20px,5vw,26px);font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.2}
 .hero .kicker{font-size:14px;letter-spacing:.28em;text-transform:uppercase;color:var(--oro);font-weight:600}
 .hero .acc{font-family:var(--f-acc);font-style:normal;color:var(--oro);font-size:clamp(30px,7vw,46px);line-height:1.1;margin:16px 0 6px}
 .hero h1{font-family:var(--f-disp);font-size:clamp(32px,7.5vw,54px);line-height:1.1;color:var(--avorio)}
@@ -126,16 +127,18 @@ footer a{color:var(--oro)}
 </head>
 <body>
 
+<div class="topbar">Campo Antico</div>
+
 <header class="hero">
   <video class="poster" autoplay muted loop playsinline preload="metadata" poster="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/1785567498659-pasta-10.jpg" aria-hidden="true">
     <source src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/160DeERgcT70ScdYOJgbaIrQbcTnnt-8j.mp4" type="video/mp4">
   </video>
   <div class="wrap">
-    <div class="kicker">Campo Antico · Orte</div>
+    <div class="kicker">Giovedì 31 dicembre · Orte</div>
     <div class="acc">Notte di San Silvestro</div>
     <h1>Festeggiate fino a tardi. Senza piazza, senza freddo, senza sorprese.</h1>
     <p class="sub">Cenone di pesce, brindisi di mezzanotte e veglione: tutto nello stesso posto. Giovedì 31 dicembre.</p>
-    <div class="chip">110 € a persona · bevande incluse · bambini metà prezzo</div><br>
+    <div class="chip">110 € a persona · bevande incluse · bambini 4-12 anni 40 €</div><br>
     <a class="btn" href="#prenota">Blocca il tavolo</a>
     <div class="posti-hero" id="posti-hero"></div>
   </div>
@@ -150,7 +153,7 @@ footer a{color:var(--oro)}
 <p class="svolta">Da noi la notte non si spezza in tre: si cena, si brinda e si fa festa nello stesso posto.</p>
 <p>Pesce fresco lavorato nella nostra cucina, un solo turno e il tavolo vostro per tutta la notte.</p>
 <p>A mezzanotte cotechino e lenticchie di Castelluccio, il nostro panettone e lo spumante. Poi il veglione, al chiuso e al caldo, fino a tardi.</p>
-<p class="chiusa">Bevande incluse, bambini a metà prezzo. Freddo, pioggia e botti restano fuori.</p>
+<p class="chiusa">Bevande incluse, bambini dai 4 ai 12 anni a 40 €. Freddo, pioggia e botti restano fuori.</p>
   </div>
 </section>
 
@@ -190,7 +193,7 @@ footer a{color:var(--oro)}
   <div class="wrap">
     <p class="etichetta">Prenotazione</p>
     <h2>Blocca il tuo tavolo</h2>
-    <p>Per tenere il tavolo chiediamo un acconto del 30%: <b>33 € a persona</b>, la metà per i bambini, pagato online in modo sicuro. Il resto si salda la sera del cenone.</p>
+    <p>Per tenere il tavolo chiediamo un acconto del 30%: <b>33 € a persona</b>, 12 € per i bambini, pagato online in modo sicuro. Il resto si salda la sera del cenone.</p>
     <div class="posti" id="posti"></div>
     <form class="modulo" id="modulo" novalidate>
       <div class="due">
@@ -203,7 +206,7 @@ footer a{color:var(--oro)}
           </div>
         </div>
         <div>
-          <label for="bimbi-val">Bambini <span style="font-weight:400">(metà prezzo)</span></label>
+          <label for="bimbi-val">Bambini <span style="font-weight:400">(4-12 anni, 40 €)</span></label>
           <div class="ospiti">
             <button type="button" id="bmeno" aria-label="Un bambino in meno">−</button>
             <output id="bimbi-val" aria-live="polite">0</output>
@@ -258,7 +261,7 @@ footer a{color:var(--oro)}
     <details><summary>Posso aggiungere persone dopo aver prenotato?</summary><p>Sì, dalla pagina della tua prenotazione fino al 30 dicembre, finché ci sono posti. Non si paga altro acconto: le persone in più si saldano la sera.</p></details>
     <details><summary>E se non possiamo più venire?</summary><p>Se disdite entro il 27 dicembre, con un tocco dalla pagina della prenotazione, ricevete subito un buono del valore dell’acconto, valido 12 mesi per un pranzo o una cena da noi. Dal 28 dicembre l’acconto non è più recuperabile.</p></details>
     <details><summary>Ci sono allergie o intolleranze?</summary><p>Scrivetele nel modulo o nella pagina della prenotazione: la cucina le riceve insieme al vostro tavolo.</p></details>
-    <details><summary>Bambini?</summary><p>I bambini fino a <span class="tbd">[ETÀ]</span> anni pagano metà prezzo. Segnalateli nel modulo: pensiamo noi al seggiolone.</p></details>
+    <details><summary>Bambini?</summary><p>I bambini dai 4 ai 12 anni pagano 40 €. Per i più piccoli, sotto i 4 anni, chiedeteci. Segnalateli nel modulo: pensiamo noi al seggiolone.</p></details>
     <details><summary>Dove siete?</summary><p>Campo Antico, Via Amerina km 5,500, Orte (VT). Telefono <a href="tel:0761402380" style="color:var(--oro)">0761 402380</a>.</p></details>
   </div>
 </section>
@@ -286,7 +289,7 @@ footer a{color:var(--oro)}
   var $ = function(id){ return document.getElementById(id); };
   var euro = function(n){ return n.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €"; };
 
-  function totale(){ return CFG.prezzo * ospiti + CFG.prezzo / 2 * bimbi; }
+  function totale(){ return CFG.prezzo * ospiti + 40 * bimbi; }
   function aggiorna(){
     $("ospiti-val").textContent = ospiti;
     $("bimbi-val").textContent = bimbi;
