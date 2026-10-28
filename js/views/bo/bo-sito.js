@@ -1915,7 +1915,7 @@ if(txt){el.textContent=(ok?'🟢 ':'🔴 ')+txt;el.style.display='inline-block';
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:min(100%,430px);">
       <div id="rf-aperto" style="display:none;background:rgba(255,255,255,.96);color:#1f2937;font-size:14px;font-weight:700;padding:7px 14px;border-radius:999px;text-align:center;"></div>
       <div style="display:flex;gap:10px;width:100%;">
-        <a class="btn" href="${esc(formUrl)}" style="flex:1 1 0;text-align:center;font-size:14.5px;padding:15px 8px;margin:6px 0 0;">🗓 ${esc(cta)}</a>
+        <!-- Prenota: sta nella barra sotto la foto -->
         ${false && tel ? `<a class="btn" href="tel:${esc(tel)}" style="flex:1 1 0;text-align:center;font-size:14.5px;padding:15px 8px;margin:6px 0 0;background:#fff;color:var(--btn);">📞 Chiama</a>` : ""}
       </div>
       ${false && waUrl ? `<a href="${esc(waUrl)}" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:#25D366;color:#073b1f;font-weight:800;font-size:14.5px;padding:13px 8px;border-radius:8px;">💬 Scrivici su WhatsApp</a>` : ""}
