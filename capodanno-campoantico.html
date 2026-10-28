@@ -31,15 +31,19 @@ p{margin:0 0 14px;text-wrap:pretty}
 .tbd{background:#5c4a12;color:#ffe9a8;padding:1px 6px;border-radius:4px;font-weight:600}
 
 /* HERO */
-.hero{position:relative;min-height:92vh;display:flex;align-items:flex-end;overflow:hidden}
+.hero{position:relative;min-height:78vh;display:flex;align-items:flex-end;overflow:hidden}
 .hero video,.hero .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.hero::after{content:"";position:absolute;inset:0;background:rgba(8,7,5,.62)}
-.hero .wrap{position:relative;z-index:1;padding-top:90px;padding-bottom:56px}
-.topbar{position:sticky;top:0;z-index:20;background:rgba(11,10,8,.94);border-bottom:1px solid var(--riga);text-align:center;padding:14px 16px;font-family:var(--f-disp);color:var(--oro);font-size:clamp(20px,5vw,26px);font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.2}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(8,7,5,.88) 0%,rgba(8,7,5,.15) 45%,rgba(8,7,5,0) 70%)}
+.hero .wrap{position:relative;z-index:1;padding-top:90px;padding-bottom:40px}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(11,10,8,.95);border-bottom:1px solid var(--riga);display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px}
+.topbar img{width:48px;height:48px;object-fit:contain;border-radius:8px;background:#fff;padding:3px;flex:0 0 48px}
+.topbar .tn{font-family:var(--f-disp);color:var(--oro);font-size:clamp(17px,4.6vw,22px);font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.15}
+.topbar .td{font-size:13px;color:var(--avorio);letter-spacing:.06em;margin-top:3px}
+.intro{padding:40px 0 8px}
 .hero .kicker{font-size:14px;letter-spacing:.28em;text-transform:uppercase;color:var(--oro);font-weight:600}
 .hero .acc{font-family:var(--f-acc);font-style:normal;color:var(--oro);font-size:clamp(30px,7vw,46px);line-height:1.1;margin:16px 0 6px}
-.hero h1{font-family:var(--f-disp);font-size:clamp(32px,7.5vw,54px);line-height:1.1;color:var(--avorio)}
-.hero .sub{font-size:clamp(17px,4vw,20px);color:#e9dfc8;margin:18px 0 26px;max-width:600px}
+.intro h1{font-family:var(--f-disp);font-size:clamp(32px,7.5vw,54px);line-height:1.1;color:var(--avorio)}
+.intro .sub{font-size:clamp(17px,4vw,20px);color:#e9dfc8;margin:18px 0 26px;max-width:600px}
 .chip{display:inline-block;border:1.5px solid var(--oro);color:var(--oro);padding:8px 16px;border-radius:999px;font-weight:600;font-size:15px;margin:0 0 22px}
 .posti-hero{margin-top:16px;font-size:15px;color:var(--oro2);min-height:22px}
 .promo-hero{display:none;margin:0 0 18px;padding:12px 16px;border:1.5px solid var(--oro);border-radius:12px;background:rgba(11,10,8,.6);font-size:16px;line-height:1.45}
@@ -141,15 +145,20 @@ footer a{color:var(--oro)}
 </head>
 <body>
 
-<div class="topbar">Campo Antico</div>
+<div class="topbar"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/logo-1792575195997.png" alt="Logo Campo Antico"><div><div class="tn">Campo Antico</div><div class="td">Giovedì 31 dicembre 2026 · ore 20:00</div></div></div>
 
 <header class="hero">
   <video class="poster" autoplay muted loop playsinline preload="metadata" poster="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/1785567498659-pasta-10.jpg" aria-hidden="true">
     <source src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/160DeERgcT70ScdYOJgbaIrQbcTnnt-8j.mp4" type="video/mp4">
   </video>
   <div class="wrap">
-    <div class="kicker">Giovedì 31 dicembre · Orte</div>
     <div class="acc">Notte di San Silvestro</div>
+    <a class="btn" href="#prenota">Blocca il tavolo</a>
+  </div>
+</header>
+
+<section class="intro">
+  <div class="wrap">
     <h1>Festeggiate fino a tardi. Senza piazza, senza freddo, senza sorprese.</h1>
     <p class="sub">Cenone di pesce, brindisi di mezzanotte e veglione: tutto nello stesso posto. Giovedì 31 dicembre.</p>
     <div class="promo-hero" id="promo-hero"></div>
@@ -157,7 +166,7 @@ footer a{color:var(--oro)}
     <a class="btn" href="#prenota">Blocca il tavolo</a>
     <div class="posti-hero" id="posti-hero"></div>
   </div>
-</header>
+</section>
 
 <section class="blocco" data-traccia="Capodanno_Letto_AIDA">
   <div class="wrap aida">
