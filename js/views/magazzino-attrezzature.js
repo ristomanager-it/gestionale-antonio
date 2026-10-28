@@ -138,6 +138,13 @@ async function renderLista(container, aziendaId) {
     const mappa = new Map();
     stato.righe.forEach((r) => mappa.set(r.attr_articoli.id, r.attr_articoli));
     stato.articoli = [...mappa.values()];
+    // pezzi usciti senza la scatola intera (sfusi): fuori, oppure rientrati e da lavare
+    try {
+      const rs = await sb().from("attr_sfusi")
+        .select("id,articolo_id,scatola_id,pezzi,rientrati,persi,stato,destinazione,destinazione_tipo,destinazione_data,attr_articoli(id,nome,misura,categoria,costo_sostituzione)")
+        .eq("azienda_id", aziendaId).in("stato", ["fuori", "da_lavare"]).limit(1500);
+      stato.sfusi = ((rs && rs.data) || []).filter((s) => s.attr_articoli);
+    } catch (e) { stato.sfusi = []; }
     disegna();
   };
 
