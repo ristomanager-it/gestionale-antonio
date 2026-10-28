@@ -151,6 +151,19 @@ export async function render(container) {
     container.innerHTML = '<div style="color:#94a3b8;padding:40px;text-align:center;">Caricamento...</div>';
     const { costi, ricavi, totCosti, totRicavi, utile, nDaConf, dataDa, dataA } = await caricaDati();
 
+    // valore delle attrezzature (costo di sostituzione x pezzi): e' la situazione di oggi, non un dato del periodo
+    let attr = null;
+    try {
+      const { data: sc } = await supa().from("attr_scatole").select("quantita,stato,attr_articoli(costo_sostituzione)").eq("azienda_id", aziendaId).eq("attiva", true).limit(5000);
+      if ((sc || []).length) {
+        attr = { tot: 0, fuori: 0, senza: 0 };
+        sc.forEach((r) => {
+          const costo = Number(r.attr_articoli?.costo_sostituzione) || 0, v = (Number(r.quantita) || 0) * costo;
+          attr.tot += v; if (r.stato === "fuori") attr.fuori += v; if (!costo) attr.senza += 1;
+        });
+      }
+    } catch (e) { attr = null; }
+
     const periodoLabel = periodoSelezionato === 'anno'
       ? `Anno ${annoSelezionato}`
       : periodoSelezionato === 'mese'
