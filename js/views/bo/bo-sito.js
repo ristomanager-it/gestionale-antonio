@@ -1708,7 +1708,7 @@ function apriVideo(u){
     if(a.length>1)return b.length>1&&b[1]===a[1]&&b[0].replace(/[?].*$/,'')===a[0].replace(/[?].*$/,'');
     return String(h||'').indexOf(FORM)===0;
   }
-  function chiudi(){if(o)o.style.display='none';document.body.style.overflow='';}
+  function chiudi(){if(o)o.style.display='none';document.body.style.overflow='';try{if(f&&f.contentWindow)f.contentWindow.postMessage({rf:'pannello-chiuso'},'*');}catch(e){}}
   function costruisci(){
     o=document.createElement('div');o.id='rf-pren';
     o.style.cssText='position:fixed;left:0;right:0;top:0;bottom:0;z-index:10000;background:rgba(0,0,0,.55);display:none;';
