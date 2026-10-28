@@ -580,6 +580,14 @@ async function mostraFoglio(id) {
   const dataEv = f.destinazione_data ? new Date(f.destinazione_data + "T12:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" }) : "";
   const dest = (f.destinazione_tipo === "evento" ? "Evento: " : f.destinazione_tipo === "location" ? "Location: " : "Destinazione: ") + f.destinazione + (dataEv ? " · " + dataEv : "");
   const righe = Array.isArray(f.righe) ? f.righe : [];
+  // la bolla elenca gli ARTICOLI (non le scatole una per una): quante scatole e quanti pezzi per ciascuno
+  const mappa = new Map();
+  righe.forEach((r) => {
+    const k = (r.nome || "") + "|" + (r.misura || "");
+    if (!mappa.has(k)) mappa.set(k, { nome: r.nome || "", misura: r.misura || "", scatole: 0, pezzi: 0, codici: [] });
+    const g = mappa.get(k); g.scatole += 1; g.pezzi += Number(r.pezzi) || 0; g.codici.push(r.codice);
+  });
+  const gruppi = [...mappa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "it") || a.misura.localeCompare(b.misura, "it", { numeric: true }));
   const copia = (titolo) => `<div class="pag">
     <div class="testa"><div><div class="az">${esc(azienda)}</div><div class="ti">Bolla d'uscita attrezzature</div></div><div class="nu"><b>N. ${esc(f.numero)}</b><span class="cp">${esc(titolo)}</span></div></div>
     <table class="dati"><tr><td>Data e ora</td><td>${esc(quando)}</td></tr><tr><td>Destinazione</td><td><b>${esc(dest)}</b></td></tr>
