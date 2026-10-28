@@ -225,6 +225,7 @@ async function renderLista(container, aziendaId) {
   };
 
   container.querySelector("#at-cerca").oninput = (e) => { stato.q = e.target.value; disegna(); };
+  container.querySelector("#at-fogli").onclick = () => elencoFogli(aziendaId);
   if (scrive) container.querySelector("#at-sel").onclick = () => { stato.selezione = !stato.selezione; stato.sel.clear(); container.querySelector("#at-sel").textContent = stato.selezione ? "✕ Annulla" : "☑ Seleziona"; disegna(); barra(); };
   if (scrive) container.querySelector("#at-nuova").onclick = () => apriNuova(aziendaId, stato.articoli, stato.righe, carica);
   await carica();
