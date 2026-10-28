@@ -586,7 +586,7 @@ async function renderScheda(container, aziendaId, codice) {
   const a = sc.attr_articoli;
   const st = STATI[sc.stato] || STATI.in_magazzino;
   const sede = (window.state?.sedi || []).find((s) => s.id === sc.sede_id);
-  const { data: mov } = await sb().from("attr_movimenti").select("tipo,quantita_prima,quantita_dopo,nota,created_at").eq("scatola_id", sc.id).order("created_at", { ascending: false }).limit(20);
+  const { data: mov } = await sb().from("attr_movimenti").select("tipo,quantita_prima,quantita_dopo,nota,destinazione,created_at").eq("scatola_id", sc.id).order("created_at", { ascending: false }).limit(20);
 
   const quando = (iso) => new Date(iso).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   container.innerHTML = `<div class="at-wrap">${CSS}
