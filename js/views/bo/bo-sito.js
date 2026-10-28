@@ -1955,7 +1955,7 @@ ${false && menuCats.length ? `
     <a class="btn" href="${esc(formUrl)}" style="margin-top:32px;">🗓 ${esc(cta)}</a>
   </div>
 </div>` : ""}
-${sezioniState.locale && conf.foto_locale?.[0] ? `
+${false && conf.foto_locale?.[0] ? `
 <div id="locale">
   <img class="loc-img" src="${esc(conf.foto_locale[0])}" alt="Il locale" loading="lazy">
   <section class="section">
