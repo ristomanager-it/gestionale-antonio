@@ -531,9 +531,8 @@ export async function render(container) {
     document.querySelectorAll(".pren-slot").forEach(el => {
       el.classList.toggle("selected", el.dataset.ora === ora);
     });
-    // Track click slot orario
-    const data = document.getElementById("data").value;
-    window._rfTrack?.('click', 'slot_orario', { valore: ora, step: 'seleziona_orario', elemento: data + ' ' + ora });
+    // Track click slot orario (il nome resta 'slot_orario': il funnel lo cerca con questo nome)
+    window._rfTrack?.('click', 'slot_orario', { valore: ora, step: 'seleziona_orario' });
   };
 
   // Coperti stepper
