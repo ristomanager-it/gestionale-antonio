@@ -554,6 +554,60 @@ async function chiediDestinazione(aziendaId, usate) {
   });
 }
 
+/* ───────────────── FOGLIO DI USCITA (due copie da firmare) ───────────────── */
+const CSS_FOGLIO = `
+.pag{width:210mm;min-height:297mm;box-sizing:border-box;padding:14mm 14mm 12mm;font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;page-break-after:always;break-after:page;}
+.pag:last-child{page-break-after:auto;break-after:auto;}
+.testa{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px;}
+.az{font-size:12px;color:#444;} .ti{font-size:22px;font-weight:800;margin-top:2px;}
+.nu{text-align:right;font-size:15px;} .nu b{display:block;font-size:18px;} .cp{display:inline-block;margin-top:4px;border:1.5px solid #000;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.04em;}
+table{border-collapse:collapse;width:100%;}
+.dati td{padding:4px 6px;font-size:13px;border-bottom:1px solid #ccc;} .dati td:first-child{width:30mm;color:#444;}
+.el{margin-top:12px;} .el th,.el td{border:1px solid #000;padding:5px 6px;font-size:12.5px;text-align:left;} .el th{background:#eee;}
+.el .n{text-align:right;width:18mm;} .el .v{text-align:center;width:22mm;} .el tfoot td{font-weight:800;background:#f5f5f5;}
+.q{display:inline-block;width:14px;height:14px;border:1.5px solid #000;vertical-align:middle;}
+.rit{margin-top:14px;font-size:13px;}
+.firme{display:flex;gap:14mm;margin-top:18mm;} .fi{flex:1;} .fl{font-size:12px;font-weight:700;} .fn{font-size:13px;min-height:16px;margin-top:2px;} .ft{margin-top:14mm;border-top:1px solid #000;font-size:11px;color:#444;padding-top:2px;}
+.pie{margin-top:12mm;font-size:10.5px;color:#444;}`;
+
+// il foglio: una copia per il magazzino e una per chi ritira, ciascuna da firmare
+async function mostraFoglio(id) {
+  const { data: f, error } = await sb().from("attr_fogli_uscita").select("*").eq("id", id).maybeSingle();
+  if (error || !f) { alert("Non trovo il foglio di uscita" + (error ? ": " + error.message : "")); return; }
+  const { apriAnteprimaStampa } = await import("../utils/anteprima-stampa.js?v=" + (window.APP_V || ""));
+  const azienda = window.state?.azienda?.nome || "";
+  const quando = new Date(f.creato_il).toLocaleString("it-IT", { timeZone: "Europe/Rome", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const dataEv = f.destinazione_data ? new Date(f.destinazione_data + "T12:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" }) : "";
+  const dest = (f.destinazione_tipo === "evento" ? "Evento: " : f.destinazione_tipo === "location" ? "Location: " : "Destinazione: ") + f.destinazione + (dataEv ? " · " + dataEv : "");
+  const righe = Array.isArray(f.righe) ? f.righe : [];
+  const copia = (titolo) => `<div class="pag">
+    <div class="testa"><div><div class="az">${esc(azienda)}</div><div class="ti">Foglio di uscita attrezzature</div></div><div class="nu"><b>N. ${esc(f.numero)}</b><span class="cp">${esc(titolo)}</span></div></div>
+    <table class="dati"><tr><td>Data e ora</td><td>${esc(quando)}</td></tr><tr><td>Destinazione</td><td><b>${esc(dest)}</b></td></tr>
+      <tr><td>Consegna</td><td>${esc(f.consegna_nome || "")}</td></tr><tr><td>Ritira</td><td>${esc(f.ritira_nome || "")}</td></tr>${f.note ? `<tr><td>Note</td><td>${esc(f.note)}</td></tr>` : ""}</table>
+    <table class="el"><thead><tr><th>N.</th><th>Codice</th><th>Articolo</th><th>Misura</th><th class="n">Pezzi</th><th class="v">Verificato</th></tr></thead><tbody>
+      ${righe.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.codice)}</td><td>${esc(r.nome)}</td><td>${esc(r.misura || "")}</td><td class="n">${Number(r.pezzi) || 0}</td><td class="v"><span class="q"></span></td></tr>`).join("")}
+      </tbody><tfoot><tr><td colspan="4">Totale: ${f.totale_scatole} ${f.totale_scatole === 1 ? "scatola" : "scatole"}</td><td class="n">${f.totale_pezzi}</td><td></td></tr></tfoot></table>
+    <div class="rit">Data prevista di rientro: ______ / ______ / __________</div>
+    <div class="firme"><div class="fi"><div class="fl">Consegna (magazzino)</div><div class="fn">${esc(f.consegna_nome || "")}</div><div class="ft">Firma</div></div>
+      <div class="fi"><div class="fl">Ritira (responsabile)</div><div class="fn">${esc(f.ritira_nome || "")}</div><div class="ft">Firma</div></div></div>
+    <div class="pie">Il materiale elencato è stato consegnato a chi ritira, che firma per ricevuta. Una copia resta al magazzino, una a chi ritira.</div></div>`;
+  apriAnteprimaStampa({ titolo: "Foglio di uscita " + f.numero, css: CSS_FOGLIO, corpo: copia("COPIA MAGAZZINO") + copia("COPIA DI CHI RITIRA"), pagina: "A4" });
+}
+
+// i fogli gia' fatti, per ristamparli
+async function elencoFogli(aziendaId) {
+  const ov = document.createElement("div"); ov.className = "at-sheet";
+  ov.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3>📄 Fogli di uscita</h3><button type="button" class="at-btn sec" id="f-chiudi" style="padding:8px 14px;">✕</button></div><div id="f-lista"><p style="color:#64748b;">Carico…</p></div>`;
+  document.body.appendChild(ov); document.body.style.overflow = "hidden";
+  ov.querySelector("#f-chiudi").onclick = () => { ov.remove(); document.body.style.overflow = ""; };
+  const { data, error } = await sb().from("attr_fogli_uscita").select("id,numero,creato_il,destinazione,destinazione_data,ritira_nome,totale_scatole,totale_pezzi").eq("azienda_id", aziendaId).order("creato_il", { ascending: false }).limit(40);
+  const box = ov.querySelector("#f-lista");
+  if (error) { box.innerHTML = `<p style="color:#b91c1c;">${esc(error.message)}</p>`; return; }
+  if (!(data || []).length) { box.innerHTML = `<p style="color:#64748b;">Nessun foglio ancora: si crea da solo quando una scatola esce.</p>`; return; }
+  box.innerHTML = data.map((f) => `<button type="button" class="at-btn sec" data-f="${esc(f.id)}" style="display:block;width:100%;text-align:left;margin-bottom:8px;"><div>${esc(f.numero)} · ${esc(f.destinazione)}</div><div style="font-size:12.5px;font-weight:600;color:#64748b;">${new Date(f.creato_il).toLocaleString("it-IT", { timeZone: "Europe/Rome", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${f.totale_scatole} ${f.totale_scatole === 1 ? "scatola" : "scatole"} · ${f.totale_pezzi} pezzi${f.ritira_nome ? " · ritira " + esc(f.ritira_nome) : ""}</div></button>`).join("");
+  box.querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => mostraFoglio(b.dataset.f)));
+}
+
 /* ───────────────── SCHEDA SCATOLA ───────────────── */
 function chiediNumero({ titolo, valore = 1, min = 0, testoOk = "Conferma", nota = "" }) {
   return new Promise((res) => {
