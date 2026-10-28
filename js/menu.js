@@ -401,6 +401,7 @@ export function initMenu() {
         { label: "🏠 Home",             route: "home"           },
         { label: "👨‍🍳 Display Cucina", route: "display-cucina" },
         { label: "📦 Magazzino",        route: "magazzino"      },
+        { label: "🧰 Attrezzature",     route: "magazzino-attrezzature" },
         { label: "🕒 Timbratura",       route: "timbrature"     },
       ]
     });
