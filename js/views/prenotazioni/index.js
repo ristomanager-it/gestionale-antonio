@@ -849,6 +849,41 @@ notificationAudio.volume = 0.6;
     await loadOnlineRequests();
   };
 
+  // 🤖 Conferma automatica: le prenotazioni online (sito e WhatsApp) vengono confermate subito e ricevono il tavolo
+  // giusto, finche' c'e' posto nei tavoli prenotabili online. Se non c'e' un tavolo adatto restano in attesa e le confermate voi.
+  (async () => {
+    const btn = document.getElementById("btn-conferma-auto");
+    if (!btn || !aziendaId) return;
+    const ruoloOk = ["admin", "superadmin", "manager", "manager_sala"].includes(String(window.state?.viewAs || window.state?.ruolo || ""));
+    if (!ruoloOk) return;
+    let attiva = false;
+    const colora = () => {
+      btn.style.display = "";
+      btn.textContent = attiva ? "🤖 Auto: ATTIVA" : "🤖 Auto: SPENTA";
+      btn.style.background = attiva ? "#dcfce7" : "#f1f5f9";
+      btn.style.color = attiva ? "#166534" : "#475569";
+      btn.style.borderColor = attiva ? "#86efac" : "#cbd5e1";
+    };
+    try {
+      const { data } = await window.supabaseClient.from("prenotazioni_slot_config").select("conferma_automatica").eq("azienda_id", aziendaId).maybeSingle();
+      attiva = data?.conferma_automatica === true;
+      colora();
+    } catch (_) { return; }
+    btn.onclick = async () => {
+      const nuovo = !attiva;
+      const msg = nuovo
+        ? "Attivare la conferma automatica?\n\nLe prenotazioni online e WhatsApp saranno confermate subito, con il tavolo già assegnato. Se non c'è un tavolo libero adatto, restano in attesa e le confermate voi."
+        : "Spegnere la conferma automatica?\n\nLe nuove prenotazioni online resteranno in attesa e le confermerete voi a mano.";
+      if (!window.confirm(msg)) return;
+      btn.disabled = true;
+      const { error } = await window.supabaseClient.rpc("imposta_conferma_automatica", { p_azienda: aziendaId, p_attivo: nuovo });
+      btn.disabled = false;
+      if (error) { alert("Non sono riuscito a cambiare l'impostazione: " + (error.message || "errore")); return; }
+      attiva = nuovo;
+      colora();
+    };
+  })();
+
   document.getElementById("footer-new").onclick = () => {
     window.location.hash = "#/prenotazioni-form";
   };
