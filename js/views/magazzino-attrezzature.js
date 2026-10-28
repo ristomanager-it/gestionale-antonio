@@ -173,7 +173,7 @@ async function renderLista(container, aziendaId) {
     container.querySelector("#at-riep").textContent = filtrate.length
       ? `${ordinati.length} articoli · ${filtrate.length} scatole · ${tot.toLocaleString("it-IT")} pezzi${valFiltrate ? " · " + euro(valFiltrate) : ""}`
       : "";
-    riquadroValore();
+    riquadroValore(); riquadroLavare(); riquadroFuori(filtrate);
 
     if (!ordinati.length) {
       container.querySelector("#at-lista").innerHTML = stato.righe.length
