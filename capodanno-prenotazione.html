@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>La vostra prenotazione · San Silvestro 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:ital,wght@1,500&family=Josefin+Sans:wght@400;600&family=Bodoni+Moda:wght@600;800&family=Great+Vibes&family=Montserrat:wght@400;500;600&display=swap">
+<style>
+:root{--nero:#0b0a08;--nero2:#15130f;--oro:#d4af5a;--oro2:#e8cd8a;--avorio:#f3ead7;--muto:#b9ae98;--riga:rgba(212,175,90,.28);
+  --f-disp:'Cinzel',Georgia,serif;--f-acc:'Cormorant Garamond',Georgia,serif;--f-body:'Josefin Sans','Helvetica Neue',Arial,sans-serif;--acc-style:italic;
+  color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root.campo{--f-disp:'Bodoni Moda',Georgia,serif;--f-acc:'Great Vibes','Brush Script MT',cursive;--f-body:'Montserrat','Helvetica Neue',Arial,sans-serif;--acc-style:normal}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--nero);color:var(--avorio);font-family:var(--f-body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:600px;margin:0 auto;padding:28px 20px 60px}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0 0 12px;text-wrap:pretty}
+.testa{text-align:center;padding:18px 0 26px}
+.kicker{font-size:13px;letter-spacing:.26em;text-transform:uppercase;color:var(--oro);font-weight:600}
+.acc{font-family:var(--f-acc);font-style:var(--acc-style);color:var(--oro);font-size:34px;line-height:1.15;margin-top:14px}
+.testa h1{font-family:var(--f-disp);font-size:30px;line-height:1.15;margin-top:4px}
+.esito{border-radius:16px;padding:18px 20px;margin-bottom:16px;border:1px solid var(--riga);background:var(--nero2)}
+.esito h2{font-family:var(--f-disp);font-size:22px;margin-bottom:6px}
+.esito.ok{border-color:var(--oro)}
+.esito.ok h2{color:var(--oro)}
+.esito.att{border-color:#c9952f}
+.esito.ko{border-color:#a8483c}
+.esito.ko h2{color:#ffb4a8}
+.card{background:var(--nero2);border:1px solid var(--riga);border-radius:16px;padding:20px;margin-bottom:16px}
+.card h3{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--oro);margin-bottom:12px}
+.riga{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid rgba(212,175,90,.12)}
+.riga:first-of-type{border-top:none}
+.riga span:first-child{color:var(--muto)}
+.riga b{text-align:right}
+.conta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;text-align:center}
+.conta div{background:#1b1813;border-radius:10px;padding:10px 4px}
+.conta b{display:block;font-family:var(--f-disp);font-size:28px;color:var(--oro);line-height:1.1}
+.conta small{font-size:12px;color:var(--muto);letter-spacing:.08em;text-transform:uppercase}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;padding:12px 20px;margin-top:10px;
+  border-radius:999px;border:none;background:var(--oro);color:var(--nero);font-family:var(--f-body);font-weight:700;font-size:16px;
+  letter-spacing:.05em;text-transform:uppercase;text-decoration:none;cursor:pointer}
+.btn:hover{background:var(--oro2)}
+.btn.vuoto{background:transparent;color:var(--oro);border:1.5px solid var(--oro)}
+.btn[disabled]{opacity:.55;cursor:wait}
+.azioni{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.azioni .btn{margin-top:0;font-size:14px}
+.ospiti{display:flex;align-items:center;justify-content:center;gap:16px;margin:6px 0 10px}
+.ospiti button{width:52px;height:52px;border-radius:50%;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-size:26px;cursor:pointer}
+.ospiti output{font-family:var(--f-disp);font-size:36px;min-width:60px;text-align:center}
+.anteprima{font-size:15px;color:var(--oro2);text-align:center;min-height:22px}
+.chip{display:inline-flex;align-items:center;min-height:40px;padding:6px 14px;margin:0 8px 8px 0;border-radius:999px;border:1.5px solid var(--riga);
+  background:transparent;color:var(--avorio);font-family:var(--f-body);font-size:15px;cursor:pointer}
+.chip:hover{border-color:var(--oro);color:var(--oro)}
+textarea{width:100%;background:#1b1813;color:var(--avorio);border:1.5px solid #3a3326;border-radius:10px;padding:12px;font-size:16px;font-family:inherit;margin-top:6px}
+textarea:focus{outline:none;border-color:var(--oro)}
+.msg{min-height:22px;font-size:15px;margin-top:8px}
+.msg.ok{color:#bfe3a8}
+.msg.ko{color:#ffb4a8}
+.menu p{margin:0 0 3px;text-align:center}
+.menu h4{font-family:var(--f-disp);color:var(--oro);font-size:14px;letter-spacing:.18em;text-transform:uppercase;text-align:center;margin:16px 0 4px}
+.menu h4:first-child{margin-top:0}
+.tbd{background:#5c4a12;color:#ffe9a8;padding:1px 6px;border-radius:4px;font-weight:600}
+.nascosto{display:none}
+.piede{text-align:center;color:var(--muto);font-size:14px;margin-top:30px}
+.piede a{color:var(--oro)}
+</style>
+</head>
+<body>
+<div class="wrap" id="root">
+  <div class="testa"><div class="kicker">Notte di San Silvestro</div><p style="margin-top:18px;color:var(--muto)">Carico la vostra prenotazione…</p></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var PAGINA = "https://app.ristoflow-ai.com/capodanno-prenotazione.html";
+  var LOCALI = {
+    aquila: { nome: "Trattoria dell’Aquila", prezzo: 95, capienza: 100, indirizzo: "Via Lazio 4/b, Orte (VT)", tel: "0761 402673", telRaw: "0761402673",
+      formula: "Cenone con musica dal vivo e brindisi di mezzanotte" },
+    campo: { nome: "Campo Antico", prezzo: 110, capienza: 150, indirizzo: "Via Amerina km 5,500, Orte (VT)", tel: "0761 402380", telRaw: "0761402380",
+      formula: "Cenone, brindisi di mezzanotte e veglione" }
+  };
+  var MENU = [
+    ["Benvenuto al tavolo", ["Polpettine di rombo fritte al limone","Crostino di pane alle noci con baccalà mantecato e scorza d’arancia","Mini bun con tartare di tonno, maionese al lime ed erba cipollina"]],
+    ["Antipasti", ["Ricciola marinata agli agrumi, finocchio croccante e olio del giardino di Campo Antico","Polpo arrostito su crema di patate di Avezzano, olio al prezzemolo"]],
+    ["Primi", ["Mezzi paccheri con crema di zucca mantovana e mazzancolle, olio crudo e scorza di limone","Crespella di cernia gratinata, su salsa verde di vongole veraci"]],
+    ["Secondo", ["Turbante di rombo con la sua salsa, scarola ripassata con olive di Gaeta, capperi e pinoli"]],
+    ["Mezzanotte", ["Cotechino con lenticchie di Castelluccio di Norcia","Panettone di Campo Antico","Spumante"]]
+  ];
+  var PERC = 30;
+  var root = document.getElementById("root");
+  var qs = new URLSearchParams(location.search);
+  var token = (qs.get("t") || qs.get("token") || "").trim();
+  var esito = qs.get("esito");
+  var supa = window.supabase.createClient(URL_SB, ANON);
+  var p = null, L = null, giaPagati = 0, nuoviOspiti = 0, tentativi = 0, timer = null;
+
+  var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); };
+  var euro = function(n){ return n.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €"; };
+  var $ = function(id){ return document.getElementById(id); };
+
+  if (!token) return errore("Link non valido", "Apri il collegamento che ti è arrivato dopo la prenotazione.");
+  carica();
+
+  async function carica(){
+    var r = await supa.rpc("prenotazione_pubblica", { p_token: token });
+    if (!r.data || !r.data.ok) return errore("Prenotazione non trovata", "Il link potrebbe essere incompleto. Chiamaci e la ritroviamo subito.");
+    p = r.data.prenotazione;
+    var campo = String(p.tag || "").indexOf("campoantico") >= 0 || p.sede_id === "c40919bb-78c2-458f-865e-0c9fd02aa0b5";
+    L = campo ? LOCALI.campo : LOCALI.aquila;
+    if (campo) document.documentElement.classList.add("campo");
+    giaPagati = p.acconto_coperti != null ? Number(p.acconto_coperti) : (p.stato_pagamento === "pagato" ? Number(p.coperti) : 0);
+    nuoviOspiti = Number(p.coperti) || 1;
+    disegna();
+    // appena tornati da Stripe la conferma puo' arrivare con qualche secondo di ritardo
+    if (esito === "ok" && p.stato_pagamento !== "pagato" && tentativi < 8) {
+      tentativi++; clearTimeout(timer); timer = setTimeout(carica, 3000);
+    }
+  }
+
+  function statoBox(){
+    var sp = p.stato_pagamento || "";
+    if (p.stato === "annullata" || p.stato === "rifiutata")
+      return '<div class="esito ko"><h2>Prenotazione annullata</h2><p>Se è un errore chiamaci al <a href="tel:' + L.telRaw + '" style="color:var(--oro)">' + L.tel + '</a>.</p></div>';
+    if (sp === "pagato")
+      return '<div class="esito ok"><h2>✓ Tavolo confermato</h2><p>Abbiamo ricevuto l’acconto. Vi aspettiamo il 31 dicembre: qui sotto trovate tutto, e da qui potete aggiungere persone o mandarci segnalazioni.</p></div>';
+    if (sp === "integrazione_dovuta") {
+      var manca = Math.max(Number(p.coperti) - giaPagati, 0) * L.prezzo * PERC / 100;
+      return '<div class="esito att"><h2>Manca un piccolo acconto</h2><p>Avete aggiunto ' + (Number(p.coperti) - giaPagati) + ' persone. Per tenere anche i loro posti serve l’acconto di <b>' + euro(manca) + '</b>.</p>'
+        + '<button class="btn" id="paga-integ">Paga ' + euro(manca) + '</button><div class="msg" id="msg-paga"></div></div>';
+    }
+    if (esito === "ok" && tentativi < 8)
+      return '<div class="esito att"><h2>Stiamo ricevendo la conferma…</h2><p>Il pagamento è andato a buon fine, la banca ci sta mandando la conferma. Bastano pochi secondi.</p></div>';
+    var acc = Number(p.coperti) * L.prezzo * PERC / 100;
+    return '<div class="esito att"><h2>Acconto non ancora pagato</h2><p>Il tavolo è confermato solo dopo l’acconto di <b>' + euro(acc) + '</b>.</p>'
+      + '<button class="btn" id="paga-acc">Paga l’acconto</button><div class="msg" id="msg-paga"></div></div>';
+  }
+
+  function disegna(){
+    var tot = Number(p.coperti) * L.prezzo;
+    var pagato = giaPagati * L.prezzo * PERC / 100;
+    var menu = MENU.map(function(m){ return "<h4>" + esc(m[0]) + "</h4>" + m[1].map(function(x){ return "<p>" + esc(x) + "</p>"; }).join(""); }).join("");
+    var chiusa = p.stato === "annullata" || p.stato === "rifiutata";
+    root.innerHTML =
+      '<div class="testa"><div class="kicker">' + esc(L.nome) + ' · Orte</div>'
+      + '<div class="acc">Notte di San Silvestro</div><h1>La vostra prenotazione</h1></div>'
+      + statoBox()
+      + '<div class="card"><h3>Riepilogo</h3>'
+      + '<div class="riga"><span>A nome di</span><b>' + esc(p.cliente_nome) + '</b></div>'
+      + '<div class="riga"><span>Quando</span><b>Giovedì 31 dicembre 2026<br>dalle ' + esc(String(p.ora || "").slice(0,5)) + '</b></div>'
+      + '<div class="riga"><span>Dove</span><b>' + esc(L.nome) + '<br>' + esc(L.indirizzo) + '</b></div>'
+      + '<div class="riga"><span>La serata</span><b>' + esc(L.formula) + '</b></div>'
+      + '<div class="riga"><span>Persone</span><b>' + esc(p.coperti) + '</b></div>'
+      + '<div class="riga"><span>Totale serata</span><b>' + euro(tot) + '</b></div>'
+      + '<div class="riga"><span>Acconto pagato</span><b>' + euro(pagato) + '</b></div>'
+      + '<div class="riga"><span>Saldo la sera</span><b>' + euro(Math.max(tot - pagato, 0)) + '</b></div>'
+      + (p.note ? '<div class="riga"><span>Segnalazioni</span><b>' + esc(p.note) + '</b></div>' : '')
+      + '</div>'
+      + '<div class="card"><h3>Mancano</h3><div class="conta" id="conta"></div></div>'
+      + '<div class="azioni"><button class="btn vuoto" id="cal">Aggiungi al calendario</button>'
+      + '<a class="btn vuoto" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(L.nome + " " + L.indirizzo) + '">Come arrivare</a></div>'
+      + (chiusa ? '' :
+        '<div class="card" style="margin-top:16px"><h3>Aggiungi persone</h3>'
+        + '<p>Si aggiunge qualcuno? Finché ci sono posti, potete farlo da qui fino al 30 dicembre. Per ogni persona in più si paga il 30% di acconto.</p>'
+        + '<div class="ospiti"><button type="button" id="meno" aria-label="Una persona in meno">−</button><output id="n-osp">' + nuoviOspiti + '</output><button type="button" id="piu" aria-label="Una persona in più">+</button></div>'
+        + '<div class="anteprima" id="anteprima"></div>'
+        + '<button class="btn" id="salva-osp" disabled>Aggiorna le persone</button><div class="msg" id="msg-osp"></div></div>'
+        + '<div class="card"><h3>Allergie e segnalazioni</h3>'
+        + '<p>Tutto quello che ci scrivete arriva in sala e in cucina insieme al vostro tavolo.</p>'
+        + '<div id="chips"></div>'
+        + '<textarea id="note" rows="4" placeholder="Es. una persona celiaca, due bambini, un seggiolone, festeggiamo un compleanno…">' + esc(p.note || "") + '</textarea>'
+        + '<button class="btn" id="salva-note">Invia le segnalazioni</button><div class="msg" id="msg-note"></div></div>')
+      + '<div class="card menu"><h3 style="text-align:center">Il menu della serata</h3>' + menu + '</div>'
+      + '<div class="card"><h3>Da sapere</h3>'
+      + '<p><b>Disdetta:</b> <span class="tbd">[REGOLE DI DISDETTA E RIMBORSO ACCONTO — DA DEFINIRE]</span></p>'
+      + '<p><b>Bevande:</b> <span class="tbd">[DA DEFINIRE]</span></p>'
+      + '<p style="margin:0">Per qualsiasi cosa chiamateci al <a href="tel:' + L.telRaw + '" style="color:var(--oro)">' + L.tel + '</a>.</p></div>'
+      + '<div class="piede">' + esc(L.nome) + ' · ' + esc(L.indirizzo) + '<br><a href="tel:' + L.telRaw + '">' + L.tel + '</a></div>';
+
+    contoAllaRovescia();
+    $("cal").onclick = calendario;
+    if ($("paga-acc")) $("paga-acc").onclick = function(){ paga(Number(p.coperti), "Acconto 30%"); };
+    if ($("paga-integ")) $("paga-integ").onclick = function(){ paga(Number(p.coperti) - giaPagati, "Integrazione acconto 30%"); };
+    if (!chiusa) collegaModifiche();
+  }
+
+  function contoAllaRovescia(){
+    var fine = new Date("2026-12-31T" + String(p.ora || "20:30").slice(0,5) + ":00+01:00").getTime();
+    var box = $("conta");
+    function tick(){
+      var d = Math.max(fine - Date.now(), 0);
+      var g = Math.floor(d / 864e5), h = Math.floor(d % 864e5 / 36e5), m = Math.floor(d % 36e5 / 6e4), s = Math.floor(d % 6e4 / 1e3);
+      box.innerHTML = [[g,"giorni"],[h,"ore"],[m,"minuti"],[s,"secondi"]].map(function(x){ return "<div><b>" + x[0] + "</b><small>" + x[1] + "</small></div>"; }).join("");
+    }
+    tick(); setInterval(tick, 1000);
+  }
+
+  function collegaModifiche(){
+    var originali = Number(p.coperti);
+    function aggiorna(){
+      $("n-osp").textContent = nuoviOspiti;
+      var extra = nuoviOspiti - originali;
+      $("salva-osp").disabled = extra <= 0;
+      $("anteprima").textContent = extra > 0
+        ? "+" + extra + (extra === 1 ? " persona" : " persone") + " · acconto da pagare " + euro(extra * L.prezzo * PERC / 100)
+        : "";
+    }
+    $("meno").onclick = function(){ if (nuoviOspiti > originali) { nuoviOspiti--; aggiorna(); } };
+    $("piu").onclick = function(){ if (nuoviOspiti < originali + 20) { nuoviOspiti++; aggiorna(); } };
+    aggiorna();
+
+    $("salva-osp").onclick = async function(){
+      var b = this, m = $("msg-osp"); b.disabled = true; m.className = "msg"; m.textContent = "Un attimo…";
+      var r = await supa.rpc("prenotazione_modifica", { p_token: token, p_data: null, p_ora: null, p_coperti: nuoviOspiti, p_note: null });
+      if (!r.data || !r.data.ok) { b.disabled = false; m.className = "msg ko"; m.textContent = (r.data && r.data.errore) || "Non è stato possibile aggiornare. Chiamaci."; return; }
+      m.className = "msg ok"; m.textContent = "Fatto. Ora manca solo l’acconto per le persone in più.";
+      setTimeout(carica, 600);
+    };
+
+    var CHIPS = ["Allergia o intolleranza","Celiachia","Bambini","Seggiolone","Compleanno","Anniversario","Accesso con sedia a rotelle"];
+    $("chips").innerHTML = CHIPS.map(function(c){ return '<button type="button" class="chip">' + esc(c) + '</button>'; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll(".chip"), function(c){
+      c.onclick = function(){ var t = $("note"); t.value = (t.value.trim() ? t.value.trim() + "\n" : "") + c.textContent + ": "; t.focus(); };
+    });
+    $("salva-note").onclick = async function(){
+      var b = this, m = $("msg-note"); b.disabled = true; m.className = "msg"; m.textContent = "Invio…";
+      var r = await supa.rpc("prenotazione_modifica", { p_token: token, p_data: null, p_ora: null, p_coperti: null, p_note: $("note").value.trim() });
+      b.disabled = false;
+      if (!r.data || !r.data.ok) { m.className = "msg ko"; m.textContent = (r.data && r.data.errore) || "Invio non riuscito. Chiamaci."; return; }
+      m.className = "msg ok"; m.textContent = "Ricevuto, grazie. La sala e la cucina lo trovano sul vostro tavolo.";
+    };
+  }
+
+  async function paga(persone, etichetta){
+    var b = $("paga-acc") || $("paga-integ"), m = $("msg-paga");
+    if (persone <= 0) return;
+    b.disabled = true; m.className = "msg"; m.textContent = "Ti portiamo al pagamento sicuro…";
+    try {
+      var res = await fetch(URL_SB + "/functions/v1/stripe-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON },
+        body: JSON.stringify({ action: "create_session", azienda_id: p.azienda_id, tipo: "tavolo", riferimento_id: p.id,
+          importo_centesimi: Math.round(persone * L.prezzo * PERC),
+          descrizione: etichetta + " · " + L.nome + " · 31/12/2026 · " + persone + (persone === 1 ? " persona" : " persone"),
+          success_url: PAGINA + "?t=" + token + "&esito=ok",
+          cancel_url: PAGINA + "?t=" + token + "&esito=annullato",
+          metadata: { coperti: String(p.coperti), persone_pagate: String(persone) } })
+      });
+      var out = await res.json();
+      if (!res.ok || !out.checkout_url) throw new Error(out.error || "checkout");
+      location.href = out.checkout_url;
+    } catch (e) {
+      b.disabled = false; m.className = "msg ko"; m.textContent = "Il pagamento non è partito. Riprova tra poco o chiamaci.";
+    }
+  }
+
+  function calendario(){
+    var ora = String(p.ora || "20:30").slice(0,5).replace(":", "");
+    var ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Ristoflow//Capodanno//IT","BEGIN:VEVENT",
+      "UID:" + token + "@ristoflow-ai.com",
+      "DTSTART;TZID=Europe/Rome:20261231T" + ora + "00",
+      "DURATION:PT4H",
+      "SUMMARY:Cenone di San Silvestro · " + L.nome,
+      "LOCATION:" + L.nome + ", " + L.indirizzo.replace(/,/g, "\\,"),
+      "DESCRIPTION:" + p.coperti + " persone. La vostra prenotazione: " + PAGINA + "?t=" + token,
+      "END:VEVENT","END:VCALENDAR"].join("\r\n");
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+    a.download = "capodanno-2026.ics";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  function errore(titolo, testo){
+    root.innerHTML = '<div class="testa"><div class="kicker">Notte di San Silvestro</div></div><div class="esito ko"><h2>' + esc(titolo) + '</h2><p>' + esc(testo) + '</p></div>';
+  }
+})();
+</script>
+</body>
+</html>
