@@ -476,9 +476,8 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
     const nome = $("n-nome").value.trim();
     const pezzi = Math.max(0, parseInt($("n-pezzi").value, 10) || 0);
     if (!nome) { $("n-err").textContent = "Scrivi cos'è: il nome è obbligatorio."; return; }
-    if (pezzi < 1) { $("n-err").textContent = "Quanti pezzi ci sono nella scatola?"; return; }
-    const singolo = $("n-singolo").checked;
-    const n = singolo ? Math.min(pezzi, 50) : 1;
+    if (tipo !== "fisso" && pezzi < 1) { $("n-err").textContent = "Quanti pezzi ci sono?"; return; }
+    const n = tipo === "singolo" ? Math.min(pezzi, 50) : tipo === "quantita" ? Math.min(Math.max(parseInt($("n-conf").value, 10) || 1, 1), 30) : 1;
     const btn = $("n-salva");
     btn.disabled = true; btn.textContent = "Salvo…"; $("n-err").textContent = "";
     const create = [];
