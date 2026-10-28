@@ -216,32 +216,77 @@ async function renderLista(container, aziendaId) {
     const box = container.querySelector("#at-valore");
     if (!box) return;
     if (!vedeValori()) { box.innerHTML = ""; return; }
-    const per = { in_magazzino: 0, fuori: 0, da_lavare: 0 }; const senza = new Set();
-    stato.righe.forEach((r) => { per[r.stato] = (per[r.stato] || 0) + valRiga(r); if (!Number(r.attr_articoli.costo_sostituzione)) senza.add(r.attr_articoli.id); });
+    const per = { in_magazzino: 0, fuori: 0, da_lavare: 0 }; let fisse = 0; const senza = new Set();
+    stato.righe.forEach((r) => {
+      if (isFissa(r)) fisse += valRiga(r); else per[r.stato] = (per[r.stato] || 0) + valRiga(r);
+      if (!Number(r.attr_articoli.costo_sostituzione)) senza.add(r.attr_articoli.id);
+    });
+    // i pezzi usciti sfusi non stanno in nessuna scatola: contano come fuori (o da lavare, se sono rientrati)
+    stato.sfusi.forEach((s) => { const c = Number(s.attr_articoli.costo_sostituzione) || 0; if (s.stato === "fuori") per.fuori += s.pezzi * c; else per.da_lavare += s.rientrati * c; });
     const tot = per.in_magazzino + per.fuori + per.da_lavare;
-    if (!stato.righe.length || (!tot && !senza.size)) { box.innerHTML = ""; return; }
+    if (!stato.righe.length || (!tot && !fisse && !senza.size)) { box.innerHTML = ""; return; }
     box.innerHTML = `<div style="background:#ecfeff;border:1.5px solid #a5f3fc;border-radius:12px;padding:10px 12px;margin:8px 0;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-size:13px;font-weight:800;color:#155e75;">💶 Valore attrezzature</span><span style="font-size:20px;font-weight:900;">${euro(tot)}</span></div>
-      <div style="font-size:12.5px;color:#475569;margin-top:2px;">in magazzino ${euro(per.in_magazzino)} · fuori ${euro(per.fuori)}${per.da_lavare ? " · da lavare " + euro(per.da_lavare) : ""}</div>
+      <div style="font-size:12.5px;color:#475569;margin-top:2px;">in magazzino ${euro(per.in_magazzino)} · fuori ${euro(per.fuori)}${per.da_lavare ? " · da lavare " + euro(per.da_lavare) : ""}${fisse ? " · 🏭 fisse " + euro(fisse) + " (a parte)" : ""}</div>
       ${senza.size ? `<div style="font-size:12px;color:#b45309;margin-top:4px;">⚠ ${senza.size} ${senza.size === 1 ? "articolo senza costo" : "articoli senza costo"}: il valore è parziale (✏️ Modifica per inserirlo)</div>` : ""}</div>`;
   };
 
-  // chi e' fuori, raggruppato per destinazione, con il rientro di tutte le scatole in un tocco
-  const riquadroFuori = (filtrate) => {
+  // pezzi sfusi rientrati: vanno lavati e rimessi nella scatola da cui erano usciti
+  const riquadroLavare = () => {
+    const box = container.querySelector("#at-lavare");
+    if (!box) return;
+    const lav = stato.sfusi.filter((s) => s.stato === "da_lavare" && s.rientrati > 0);
+    if (!lav.length) { box.innerHTML = ""; return; }
+    const gr = new Map();
+    lav.forEach((s) => { if (!gr.has(s.articolo_id)) gr.set(s.articolo_id, { a: s.attr_articoli, pezzi: 0, ids: [] }); const g = gr.get(s.articolo_id); g.pezzi += s.rientrati; g.ids.push(s.id); });
+    const ord = [...gr.values()].sort((x, y) => x.a.nome.localeCompare(y.a.nome, "it"));
+    box.innerHTML = ord.map((g, i) => `<div style="display:flex;align-items:center;gap:10px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 12px;margin:8px 0;"><div style="flex:1;min-width:0;font-size:14px;font-weight:800;">🧼 ${esc(g.a.nome)}${g.a.misura ? " · " + esc(g.a.misura) : ""}<div style="font-size:12.5px;font-weight:600;color:#1d4ed8;">${g.pezzi} pezzi sfusi da lavare</div></div>${scrive ? `<button class="at-btn ok" data-lavati="${i}" style="padding:9px 12px;font-size:13px;">Lavati e riposti</button>` : ""}</div>`).join("");
+    box.querySelectorAll("[data-lavati]").forEach((b) => (b.onclick = async () => {
+      const g = ord[+b.dataset.lavati];
+      const { error } = await sb().rpc("attr_riponi_sfusi", { p_sfusi: g.ids });
+      if (error) { alert("Non riesco a salvare: " + error.message); return; }
+      toast(g.pezzi + " pezzi rimessi nelle scatole"); await carica();
+    }));
+  };
+
+  // rientro di una destinazione: si scrive quanti pezzi di ogni articolo sono tornati, la differenza e' mancante
+  const rientroGruppo = async (g) => {
+    if (g.nome === "Senza destinazione") {   // vecchie uscite senza destinazione: rientrano tutte le scatole
+      if (!confirm("Rientrano tutte le " + g.ids.length + " scatole?")) return;
+      const { error } = await sb().rpc("attr_rientro", { p_scatole: g.ids });
+      if (error) { alert("Non riesco a salvare: " + error.message); return; }
+      toast("Rientrate: ora da lavare"); await carica(); return;
+    }
+    const mappa = new Map();
+    g.righe.forEach((r) => { const k = r.attr_articoli.id; if (!mappa.has(k)) mappa.set(k, { a: r.attr_articoli, usciti: 0 }); mappa.get(k).usciti += Number(r.quantita) || 0; });
+    g.sf.forEach((s) => { if (!mappa.has(s.articolo_id)) mappa.set(s.articolo_id, { a: s.attr_articoli, usciti: 0 }); mappa.get(s.articolo_id).usciti += s.pezzi; });
+    const voci = [...mappa.values()];
+    const righe = await chiediRientro(g.nome, voci);
+    if (!righe) return;
+    const { data, error } = await sb().rpc("attr_rientro_quantita", { p_azienda: aziendaId, p_destinazione: g.nome, p_data: g.data || null, p_righe: righe });
+    if (error) { alert("Non riesco a salvare: " + error.message); return; }
+    const manca = data && data.mancanti ? data.mancanti : 0;
+    const perdita = vedeValori() ? voci.reduce((s, v) => { const r = righe.find((x) => x.articolo_id === v.a.id); return s + (v.usciti - (r ? r.rientrati : v.usciti)) * (Number(v.a.costo_sostituzione) || 0); }, 0) : 0;
+    toast(manca ? `Rientrato. Mancano ${manca} pezzi${perdita ? " (" + euro(perdita) + ")" : ""}` : "Rientrato: ora da lavare");
+    await carica();
+  };
+
+  // chi e' fuori, raggruppato per destinazione: scatole intere e pezzi sfusi
+  const riquadroFuori = () => {
     const fz = container.querySelector("#at-fuori");
     if (!fz) return;
     if (stato.cat !== "__fuori") { fz.innerHTML = ""; return; }
     const gr = new Map();
-    filtrate.forEach((r) => { const k = (r.destinazione || "Senza destinazione") + "|" + (r.destinazione_data || ""); if (!gr.has(k)) gr.set(k, { nome: r.destinazione || "Senza destinazione", data: r.destinazione_data, tipo: r.destinazione_tipo, ids: [], valore: 0 }); gr.get(k).ids.push(r.id); gr.get(k).valore += valRiga(r); });
+    const gruppo = (nome, data, tipo) => {
+      const k = (nome || "Senza destinazione") + "|" + (data || "");
+      if (!gr.has(k)) gr.set(k, { nome: nome || "Senza destinazione", data, tipo, ids: [], sfusi: 0, valore: 0, righe: [], sf: [] });
+      return gr.get(k);
+    };
+    stato.righe.filter((r) => r.stato === "fuori" && !isFissa(r)).forEach((r) => { const g = gruppo(r.destinazione, r.destinazione_data, r.destinazione_tipo); g.ids.push(r.id); g.righe.push(r); g.valore += valRiga(r); });
+    stato.sfusi.filter((s) => s.stato === "fuori").forEach((s) => { const g = gruppo(s.destinazione, s.destinazione_data, s.destinazione_tipo); g.sfusi += s.pezzi; g.sf.push(s); if (vedeValori()) g.valore += s.pezzi * (Number(s.attr_articoli.costo_sostituzione) || 0); });
     const ord = [...gr.values()].sort((x, y) => String(x.data || "9999").localeCompare(String(y.data || "9999")));
-    fz.innerHTML = ord.map((g, i) => `<div style="display:flex;align-items:center;gap:10px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:10px 12px;margin:8px 0;"><div style="flex:1;min-width:0;font-size:14px;font-weight:800;">${g.tipo === "evento" ? "🎪" : "📍"} ${esc(g.nome)}${g.data ? " · " + dataIt(g.data) : ""}<div style="font-size:12.5px;font-weight:600;color:#9a3412;">${g.ids.length} ${g.ids.length === 1 ? "scatola" : "scatole"} fuori${g.valore ? " · " + euro(g.valore) : ""}</div></div>${scrive ? `<button class="at-btn ok" data-rientro="${i}" style="padding:9px 12px;font-size:13px;">📥 Rientrano</button>` : ""}</div>`).join("");
-    fz.querySelectorAll("[data-rientro]").forEach((b) => (b.onclick = async () => {
-      const g = ord[+b.dataset.rientro];
-      if (!confirm("Rientrano tutte le " + g.ids.length + " scatole da “" + g.nome + "”?")) return;
-      const { error } = await sb().rpc("attr_rientro", { p_scatole: g.ids });
-      if (error) { alert("Non riesco a salvare: " + error.message); return; }
-      toast("Rientrate: ora da lavare"); await carica();
-    }));
+    fz.innerHTML = ord.map((g, i) => `<div style="display:flex;align-items:center;gap:10px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:10px 12px;margin:8px 0;"><div style="flex:1;min-width:0;font-size:14px;font-weight:800;">${g.tipo === "evento" ? "🎪" : "📍"} ${esc(g.nome)}${g.data ? " · " + dataIt(g.data) : ""}<div style="font-size:12.5px;font-weight:600;color:#9a3412;">${g.ids.length ? `${g.ids.length} ${g.ids.length === 1 ? "scatola" : "scatole"}` : ""}${g.ids.length && g.sfusi ? " + " : ""}${g.sfusi ? `${g.sfusi} pezzi sfusi` : ""} fuori${g.valore ? " · " + euro(g.valore) : ""}</div></div>${scrive ? `<button class="at-btn ok" data-rientro="${i}" style="padding:9px 12px;font-size:13px;">📥 Rientrano</button>` : ""}</div>`).join("");
+    fz.querySelectorAll("[data-rientro]").forEach((b) => (b.onclick = () => rientroGruppo(ord[+b.dataset.rientro])));
   };
 
   // barra in basso quando si scelgono piu' scatole: "Esce" chiede la destinazione una volta sola
