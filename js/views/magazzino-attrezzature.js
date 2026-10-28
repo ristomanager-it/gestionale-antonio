@@ -548,7 +548,7 @@ export async function mostraEtichette(elenco, opzioni = {}) {
 /* ───────────────── VALORE ───────────────── */
 const euro = (n) => Number(n || 0).toLocaleString("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 const euro2 = (n) => Number(n || 0).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
-const valRiga = (r) => (Number(r.quantita) || 0) * (Number(r.attr_articoli?.costo_sostituzione) || 0);
+const valRiga = (r) => (vedeValori() ? (Number(r.quantita) || 0) * (Number(r.attr_articoli?.costo_sostituzione) || 0) : 0);
 let canaleTempoReale = null;
 
 /* ───────────────── DESTINAZIONE DELL'USCITA ───────────────── */
