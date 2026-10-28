@@ -305,7 +305,7 @@ async function lavorazioniOggi(supabase, aziendaId, dipId, oggiISO) {
     .limit(40);
   const ordF = { mattina: 1, pomeriggio: 2, sera: 3 };
   return (data || [])
-    .sort((a, b) => (ordF[a.fascia] || 9) - (ordF[b.fascia] || 9) || String(a.ora || "99").localeCompare(String(b.ora || "99")))
+    .sort((a, b) => (ordF[a.fascia] || 9) - (ordF[b.fascia] || 9) || String(a.ora_lavorazione || a.ora || "99").localeCompare(String(b.ora_lavorazione || b.ora || "99")))
     .map(l => {
       const fatta = l.stato === "completato";
       const q = l.quantita != null ? (Number(l.quantita).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " " + (l.unita || "")) : null;
