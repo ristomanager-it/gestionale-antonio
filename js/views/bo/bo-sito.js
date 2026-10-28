@@ -1983,7 +1983,7 @@ ${false ? `
   ${menuOggi.note ? `<p style="font-size:14px;color:var(--grigio);margin-top:10px;">${esc(menuOggi.note)}</p>` : ""}
   <div style="margin-top:18px;"><a class="btn" href="${esc(formUrl)}">🗓 ${esc(cta)}</a></div>
 </section>` : ""}
-${sezioniState.recensioni && recensioni.length ? `
+${false && recensioni.length ? `
 <div class="rev-bg" id="recensioni">
   <div style="max-width:700px;margin:0 auto;">
     <div class="eyebrow">Dicono di noi</div>
