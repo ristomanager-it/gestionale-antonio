@@ -718,7 +718,7 @@ let aziendeCache = [];
 async function loadAziende() {
   const { data } = await supabase
     .from("utenti_aziende")
-    .select("azienda_id, aziende(nome)")
+    .select("azienda_id, aziende(nome, stato)")
     .eq("user_id", window.state.user.id);
   aziendeCache = data || [];
   renderLista(aziendeCache);
