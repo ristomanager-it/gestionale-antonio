@@ -1317,7 +1317,8 @@ async function saveProduzione(mode, id, fallbackDate){
     n_supporti: supporti.length,
     stoccaggio,
     fascia,
-    ora
+    ora,
+    ora_lavorazione
   }
   payload.pezzature = inPezzi ? pezzature : null
   if (inPezzi) {
