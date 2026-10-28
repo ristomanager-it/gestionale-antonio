@@ -1965,7 +1965,7 @@ ${false && conf.foto_locale?.[0] ? `
     <a class="btn" href="${esc(formUrl)}">🗓 ${esc(cta)}</a>
   </section>
 </div>` : ""}
-${menuOggi ? `
+${false ? `
 <section class="section" id="menugiorno">
   <div class="eyebrow">Oggi in cucina</div>
   <h2 class="h2" style="margin-bottom:6px;">${esc(menuOggi.titolo || "Menu del giorno")}</h2>
