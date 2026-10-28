@@ -2283,6 +2283,8 @@ q('lp-meno').onclick=function(){st.p=Math.max(1,st.p-1);q('lp-n').textContent=st
 q('lp-piu').onclick=function(){st.p=Math.min(12,st.p+1);q('lp-n').textContent=st.p;renderOrari();};
 function fatto(){
   q('lp-form').style.display='none';q('lp-ok').style.display='block';
+  /* gia prenotato: l'alternativa oppure WhatsApp non serve piu (il bot ne aprirebbe una seconda) */
+  var alt=document.querySelectorAll('.lp-sep,.lp-alt');for(var i=0;i<alt.length;i++){alt[i].style.display='none';}
   var d=new Date(st.g+'T12:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
   q('lp-ok-t').textContent=d+' alle '+st.o+' · '+st.p+(st.p===1?' persona':' persone');
   try{window._rfTrack('submit','prenotazione_completata',{step:'success',completato:true,valore:st.p+' coperti - '+st.g+' '+st.o});}catch(e){}
