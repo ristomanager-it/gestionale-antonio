@@ -25,7 +25,7 @@ export async function render(app) {
 
   const oggi = dataLocale(new Date());
   let qPlan = supabase.from("produzioni_settimanali")
-    .select("id, prodotto, lavorazione, stato, fascia, ora, iniziata_da, dipendente_id, dipendenti:dipendente_id(nome)")
+    .select("id, prodotto, lavorazione, stato, fascia, ora, ora_lavorazione, iniziata_da, dipendente_id, dipendenti:dipendente_id(nome)")
     .eq("azienda_id", azienda.id).eq("data", oggi).eq("sede_id", sede.id).limit(200);
   // chi non e' responsabile vede solo le sue lavorazioni
   if (!responsabile && dipId) qPlan = qPlan.eq("dipendente_id", dipId);
