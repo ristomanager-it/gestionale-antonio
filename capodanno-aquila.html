@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cenone di San Silvestro alla Trattoria dell’Aquila</title>
+<meta name="description" content="Cenone di pesce, musica dal vivo e il tavolo tutto per voi, fino al brindisi. Giovedì 31 dicembre.">
+<meta property="og:title" content="Cenone di San Silvestro alla Trattoria dell’Aquila">
+<meta property="og:description" content="Cenone di pesce, musica dal vivo e il tavolo tutto per voi, fino al brindisi. Giovedì 31 dicembre.">
+<meta property="og:image" content="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/15MAcKgo41xV05mv9q03HgNZUDrQ7i4CH.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Josefin+Sans:wght@400;600&display=swap">
+<style>
+:root{--nero:#0b0a08;--nero2:#15130f;--oro:#d4af5a;--oro2:#e8cd8a;--avorio:#f3ead7;--muto:#b9ae98;--riga:rgba(212,175,90,.28);
+  --f-disp:'Cinzel', Georgia, serif;--f-acc:'Cormorant Garamond', Georgia, serif;--f-body:'Josefin Sans', 'Helvetica Neue', Arial, sans-serif;color-scheme:dark;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--nero);color:var(--avorio);font-family:var(--f-body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+img,video{max-width:100%;display:block}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+h1,h2,h3,h4{margin:0;font-weight:700;text-wrap:balance}
+h2{font-family:var(--f-disp);color:var(--oro);font-size:clamp(28px,6vw,40px);line-height:1.15;margin-bottom:22px}
+p{margin:0 0 14px;text-wrap:pretty}
+.etichetta{font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--oro);margin-bottom:10px;font-weight:600}
+.blocco{padding:72px 0;border-top:1px solid var(--riga)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:54px;padding:14px 30px;background:var(--oro);color:var(--nero);
+  font-family:var(--f-body);font-weight:700;font-size:17px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;border:none;border-radius:999px;cursor:pointer}
+.btn:hover{background:var(--oro2)}
+.btn[disabled]{opacity:.6;cursor:wait}
+.tbd{background:#5c4a12;color:#ffe9a8;padding:1px 6px;border-radius:4px;font-weight:600}
+
+/* HERO */
+.hero{position:relative;min-height:92vh;display:flex;align-items:flex-end;overflow:hidden}
+.hero video,.hero .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero::after{content:"";position:absolute;inset:0;background:rgba(8,7,5,.62)}
+.hero .wrap{position:relative;z-index:1;padding-top:90px;padding-bottom:56px}
+.hero .kicker{font-size:14px;letter-spacing:.28em;text-transform:uppercase;color:var(--oro);font-weight:600}
+.hero .acc{font-family:var(--f-acc);font-style:italic;color:var(--oro);font-size:clamp(30px,7vw,46px);line-height:1.1;margin:16px 0 6px}
+.hero h1{font-family:var(--f-disp);font-size:clamp(32px,7.5vw,54px);line-height:1.1;color:var(--avorio)}
+.hero .sub{font-size:clamp(17px,4vw,20px);color:#e9dfc8;margin:18px 0 26px;max-width:600px}
+.chip{display:inline-block;border:1.5px solid var(--oro);color:var(--oro);padding:8px 16px;border-radius:999px;font-weight:600;font-size:15px;margin:0 0 22px}
+.posti-hero{margin-top:16px;font-size:15px;color:var(--oro2);min-height:22px}
+
+/* DOLORI */
+.dolori{display:grid;gap:14px}
+.dolore{background:var(--nero2);border:1px solid var(--riga);border-radius:14px;padding:20px 22px}
+.dolore h3{font-family:var(--f-disp);color:var(--avorio);font-size:20px;margin-bottom:6px}
+.dolore p{color:#d8cdb6;margin:0}
+.svolta{font-family:var(--f-acc);font-style:italic;font-size:clamp(24px,5.4vw,32px);line-height:1.35;color:var(--oro);margin-top:36px}
+
+/* PUNTI */
+.punti{display:grid;gap:22px}
+.punto{display:flex;gap:16px}
+.stella{color:var(--oro);font-size:20px;line-height:1.4;flex:0 0 22px}
+.punto h3{font-size:19px;color:var(--avorio);margin-bottom:4px}
+.punto p{color:#d8cdb6;margin:0}
+
+/* MENU */
+.menu{border:1px solid var(--oro);padding:34px 26px;text-align:center;border-radius:4px;outline:1px solid var(--riga);outline-offset:6px}
+.portata{margin-bottom:22px}
+.portata:last-child{margin-bottom:0}
+.portata h4{font-family:var(--f-disp);color:var(--oro);font-size:15px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px}
+.portata p{margin:0 0 3px;color:var(--avorio)}
+
+/* GALLERIA */
+.galleria{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.galleria img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px}
+.video2{margin-top:14px;border-radius:8px;overflow:hidden;border:1px solid var(--riga)}
+.video2 video{width:100%}
+
+/* RECENSIONI */
+.recensioni{display:grid;gap:14px}
+.rec{margin:0;background:var(--nero2);border:1px solid var(--riga);border-radius:14px;padding:20px 22px}
+.rec .voto{color:var(--oro);letter-spacing:3px}
+.rec blockquote{margin:8px 0 10px;font-size:17px}
+.rec figcaption{color:var(--muto);font-size:14px}
+
+/* PRENOTA */
+.posti{background:var(--nero2);border:1px solid var(--oro);border-radius:14px;padding:16px 20px;margin-bottom:22px;display:none}
+.posti b{font-family:var(--f-disp);color:var(--oro);font-size:30px}
+.modulo{display:grid;gap:14px}
+.modulo label{display:block;font-size:14px;font-weight:600;letter-spacing:.04em;margin-bottom:6px;color:var(--oro2)}
+.modulo input,.modulo textarea{width:100%;background:#1b1813;color:var(--avorio);border:1.5px solid #3a3326;border-radius:10px;padding:14px;font-size:17px;font-family:inherit}
+.modulo input:focus,.modulo textarea:focus{outline:none;border-color:var(--oro)}
+.due{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.ospiti{display:flex;align-items:center;gap:14px}
+.ospiti button{width:52px;height:52px;border-radius:50%;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-size:26px;cursor:pointer}
+.ospiti output{font-family:var(--f-disp);font-size:34px;color:var(--avorio);min-width:56px;text-align:center}
+.spunta{display:flex;gap:12px;align-items:flex-start;font-size:15px;color:#d8cdb6}
+.spunta input{width:22px;height:22px;flex:0 0 22px;margin-top:2px;accent-color:var(--oro)}
+.conto{background:var(--nero2);border:1px solid var(--riga);border-radius:14px;padding:16px 20px}
+.conto div{display:flex;justify-content:space-between;gap:12px;padding:5px 0}
+.conto .ora{border-top:1px solid var(--riga);margin-top:6px;padding-top:10px;font-weight:700;color:var(--oro);font-size:19px}
+.msg{min-height:22px;font-size:16px}
+.msg.ko{color:#ffb4a8}
+.msg.ok{color:#bfe3a8}
+.nota{font-size:14px;color:var(--muto);margin-top:4px}
+.dopo{display:grid;gap:10px;margin-top:26px}
+.dopo p{margin:0}
+
+/* FAQ */
+details{border-bottom:1px solid var(--riga);padding:16px 0}
+summary{cursor:pointer;font-weight:600;font-size:18px;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::after{content:"+";color:var(--oro);font-size:24px;line-height:1}
+details[open] summary::after{content:"–"}
+details p{margin:10px 0 0;color:#d8cdb6}
+
+footer{padding:48px 0 120px;border-top:1px solid var(--riga);text-align:center;color:var(--muto);font-size:15px}
+footer a{color:var(--oro)}
+.barra{position:fixed;left:0;right:0;bottom:0;z-index:10;background:rgba(11,10,8,.96);border-top:1px solid var(--riga);
+  padding:12px 18px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;justify-content:space-between;gap:12px}
+.barra .p{font-size:15px;line-height:1.3}
+.barra .p b{font-family:var(--f-disp);color:var(--oro);font-size:20px}
+.barra .btn{min-height:48px;padding:10px 22px;font-size:15px}
+@media (min-width:700px){.dolori{grid-template-columns:repeat(2,minmax(0,1fr))}.galleria{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <video class="poster" autoplay muted loop playsinline preload="metadata" poster="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/15MAcKgo41xV05mv9q03HgNZUDrQ7i4CH.jpg" aria-hidden="true">
+    <source src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1ydnSCFzxL6vRZ8gupQUV4qCh-H3EIASa.mp4" type="video/mp4">
+  </video>
+  <div class="wrap">
+    <div class="kicker">Trattoria dell’Aquila · Orte</div>
+    <div class="acc">Notte di San Silvestro</div>
+    <h1>Quest’anno brindate a mezzanotte dove vi sentite a casa.</h1>
+    <p class="sub">Cenone di pesce, musica dal vivo e il tavolo tutto per voi, fino al brindisi. Giovedì 31 dicembre.</p>
+    <div class="chip">95 € a persona · Cenone con musica dal vivo e brindisi di mezzanotte</div><br>
+    <a class="btn" href="#prenota">Blocca il tavolo</a>
+    <div class="posti-hero" id="posti-hero"></div>
+  </div>
+</header>
+
+<section class="blocco">
+  <div class="wrap">
+    <p class="etichetta">Diciamocelo</p>
+    <h2>Il Capodanno, lo conosciamo tutti.</h2>
+    <div class="dolori">
+<div class="dolore"><h3>La piazza</h3><p>Ore in piedi al freddo, spinte da tutte le parti, gente che ha bevuto troppo e ti barcolla addosso. E a mezzanotte e cinque c’è sempre qualcuno che ti vomita vicino alle scarpe.</p></div>
+<div class="dolore"><h3>I botti</h3><p>Basta una scintilla e il piumino nuovo ha un buco. I bambini con le mani sulle orecchie, i cani che tremano a casa.</p></div>
+<div class="dolore"><h3>E se piove?</h3><p>Hai organizzato tutto da settimane, e alle undici di sera viene giù il diluvio. Fine della festa.</p></div>
+<div class="dolore"><h3>Il ristorante sbagliato</h3><p>Menu carissimo, piatti che arrivano tutti insieme, il cameriere che ti toglie il piatto mentre stai ancora mangiando perché alle dieci e mezza c’è il secondo turno.</p></div>
+    </div>
+    <p class="svolta">Noi abbiamo pensato a una notte diversa: tranquilla, calda, buona. Per chi la mezzanotte vuole passarla con le persone a cui tiene, senza correre e senza pensieri.</p>
+  </div>
+</section>
+
+<section class="blocco">
+  <div class="wrap">
+    <p class="etichetta">La vostra serata</p>
+    <h2>Cosa vi aspetta il 31 dicembre</h2>
+    <div class="punti">
+<div class="punto"><span class="stella" aria-hidden="true">✦</span><div><h3>Il pesce lo lavoriamo noi</h3><p>Lo scegliamo, lo puliamo e lo cuciniamo nella nostra cucina, nei giorni prima della festa. Niente scorciatoie.</p></div></div>
+<div class="punto"><span class="stella" aria-hidden="true">✦</span><div><h3>Musica dal vivo durante la cena</h3><p>Accompagna la serata dall’antipasto al brindisi.</p></div></div>
+<div class="punto"><span class="stella" aria-hidden="true">✦</span><div><h3>Un solo turno, il tavolo è vostro</h3><p>Nessuno vi mette fretta e nessuno vi chiede il tavolo: le portate arrivano con i tempi giusti.</p></div></div>
+<div class="punto"><span class="stella" aria-hidden="true">✦</span><div><h3>Al caldo, al coperto, comodi</h3><p>A un minuto dall’uscita dell’autostrada, con ampio parcheggio. Arrivate, cenate, tornate a casa sereni.</p></div></div>
+<div class="punto"><span class="stella" aria-hidden="true">✦</span><div><h3>Il brindisi come si deve</h3><p>A mezzanotte cotechino e lenticchie di Castelluccio, il nostro panettone e lo spumante.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="blocco">
+  <div class="wrap">
+    <p class="etichetta">Il menu</p>
+    <h2>Cenone di pesce</h2>
+    <div class="menu">
+<div class="portata"><h4>Benvenuto al tavolo</h4><p>Polpettine di rombo fritte al limone</p><p>Crostino di pane alle noci con baccalà mantecato e scorza d’arancia</p><p>Mini bun con tartare di tonno, maionese al lime ed erba cipollina</p></div>
+<div class="portata"><h4>Antipasti</h4><p>Ricciola marinata agli agrumi, finocchio croccante e olio del giardino di Campo Antico</p><p>Polpo arrostito su crema di patate di Avezzano, olio al prezzemolo</p></div>
+<div class="portata"><h4>Primi</h4><p>Mezzi paccheri con crema di zucca mantovana e mazzancolle, olio crudo e scorza di limone</p><p>Crespella di cernia gratinata, su salsa verde di vongole veraci</p></div>
+<div class="portata"><h4>Secondo</h4><p>Turbante di rombo con la sua salsa, scarola ripassata con olive di Gaeta, capperi e pinoli</p></div>
+<div class="portata"><h4>Mezzanotte</h4><p>Cotechino con lenticchie di Castelluccio di Norcia</p><p>Panettone di Campo Antico</p><p>Spumante</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="blocco">
+  <div class="wrap">
+    <p class="etichetta">Dalla nostra cucina</p>
+    <h2>Il pesce, prima di arrivare al vostro tavolo</h2>
+    <div class="galleria">
+<img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/15MAcKgo41xV05mv9q03HgNZUDrQ7i4CH.jpg" alt="" loading="lazy">
+<img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/1785565913520-nduja-75.jpg" alt="" loading="lazy">
+<img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/1785567498659-pasta-10.jpg" alt="" loading="lazy">
+<img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/1782498051557-qz8i1ys3tfa.jpeg" alt="" loading="lazy">
+<img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/1785567502482-pasta-12.jpg" alt="" loading="lazy">
+<img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/1785565911334-nduja-74.jpg" alt="" loading="lazy">
+    </div>
+    <div class="video2"><video controls playsinline preload="none" poster="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/15MAcKgo41xV05mv9q03HgNZUDrQ7i4CH.jpg"><source src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1fstojPCEn1XBllgvVKSjxl-rmlVS8tij.mp4" type="video/mp4"></video></div>
+  </div>
+</section>
+
+<section class="blocco"><div class="wrap"><p class="etichetta">Dicono di noi</p><h2>Recensioni verificate</h2><div class="recensioni"><figure class="rec"><div class="voto" aria-label="5 stelle su 5">★★★★★</div><blockquote>“Abbiamo mangiato bene, servizio impeccabile, prezzo corretto. Bravi.”</blockquote><figcaption>Renato D. · Google</figcaption></figure><figure class="rec"><div class="voto" aria-label="5 stelle su 5">★★★★★</div><blockquote>“Sempre delizioso, ottimo rapporto qualità-prezzo. Ottimo servizio. Ampio parcheggio.”</blockquote><figcaption>Anna P. · Google</figcaption></figure><figure class="rec"><div class="voto" aria-label="5 stelle su 5">★★★★★</div><blockquote>“Piatti di carne e di pesce, gustosi e abbondanti, a prezzi onesti. Posizione molto comoda, a un minuto dall’uscita dell’autostrada.”</blockquote><figcaption>Manuela M. · Tripadvisor</figcaption></figure></div></div></section>
+
+<section class="blocco" id="prenota">
+  <div class="wrap">
+    <p class="etichetta">Prenotazione</p>
+    <h2>Blocca il tuo tavolo</h2>
+    <p>Per tenere il tavolo chiediamo un acconto del 30%: <b>28,50 € a persona</b>, pagato online in modo sicuro. Il resto si salda la sera del cenone.</p>
+    <div class="posti" id="posti"></div>
+    <form class="modulo" id="modulo" novalidate>
+      <div>
+        <label for="ospiti-val">Quanti siete?</label>
+        <div class="ospiti">
+          <button type="button" id="meno" aria-label="Una persona in meno">−</button>
+          <output id="ospiti-val" aria-live="polite">2</output>
+          <button type="button" id="piu" aria-label="Una persona in più">+</button>
+        </div>
+      </div>
+      <div class="due">
+        <div><label for="nome">Nome</label><input id="nome" autocomplete="given-name" required></div>
+        <div><label for="cognome">Cognome</label><input id="cognome" autocomplete="family-name" required></div>
+      </div>
+      <div><label for="telefono">Telefono</label><input id="telefono" type="tel" autocomplete="tel" inputmode="tel" required></div>
+      <div><label for="email">Email</label><input id="email" type="email" autocomplete="email" required></div>
+      <div>
+        <label for="note">Allergie e segnalazioni</label>
+        <textarea id="note" rows="3" placeholder="Allergie o intolleranze, bambini, seggiolone, un compleanno da festeggiare…"></textarea>
+      </div>
+      <div class="conto" aria-live="polite">
+        <div><span>Cenone · <span id="c-ospiti">2</span> persone</span><span id="c-tot"></span></div>
+        <div><span>Saldo la sera del 31</span><span id="c-saldo"></span></div>
+        <div class="ora"><span>Acconto da pagare ora</span><span id="c-acc"></span></div>
+      </div>
+      <label class="spunta"><input type="checkbox" id="privacy"> <span>Ho letto l’informativa privacy e acconsento al trattamento dei dati per gestire la prenotazione.</span></label>
+      <label class="spunta"><input type="checkbox" id="marketing"> <span>Voglio ricevere le vostre prossime serate e offerte (facoltativo).</span></label>
+      <button class="btn" type="submit" id="invia">Paga l’acconto e conferma</button>
+      <div class="msg" id="msg" role="status"></div>
+      <p class="nota">Pagamento con carta tramite Stripe. Riceverai subito la conferma.</p>
+    </form>
+    <div class="dopo">
+      <p class="etichetta" style="margin-top:20px">E dopo?</p>
+      <p>Appena pagato atterri sulla pagina della tua prenotazione, che ti resta anche via messaggio. Da lì puoi aggiungere ospiti e mandarci allergie o segnalazioni fino al giorno prima.</p>
+    </div>
+  </div>
+</section>
+
+<section class="blocco">
+  <div class="wrap">
+    <p class="etichetta">Domande</p>
+    <h2>Prima di prenotare</h2>
+    <details><summary>Cosa comprende il prezzo?</summary><p>Il menu completo che vedi sopra, con lo spumante del brindisi di mezzanotte. Bevande durante la cena: <span class="tbd">[DA DEFINIRE]</span></p></details>
+    <details><summary>A che ora si inizia?</summary><p>Vi aspettiamo dalle <span class="tbd">[20:30 — DA CONFERMARE]</span>.</p></details>
+    <details><summary>Posso aggiungere persone dopo aver prenotato?</summary><p>Sì, dalla pagina della tua prenotazione, finché ci sono posti. Per ogni persona in più si paga il 30% di acconto.</p></details>
+    <details><summary>E se non possiamo più venire?</summary><p><span class="tbd">[REGOLE DI DISDETTA E RIMBORSO ACCONTO — DA DEFINIRE]</span></p></details>
+    <details><summary>Ci sono allergie o intolleranze?</summary><p>Scrivetele nel modulo o nella pagina della prenotazione: la cucina le riceve insieme al vostro tavolo.</p></details>
+    <details><summary>Bambini?</summary><p><span class="tbd">[PREZZO O MENU BAMBINI — DA DEFINIRE]</span></p></details>
+    <details><summary>Dove siete?</summary><p>Trattoria dell’Aquila, Via Lazio 4/b, Orte (VT). Telefono <a href="tel:0761402673" style="color:var(--oro)">0761 402673</a>.</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Trattoria dell’Aquila · Via Lazio 4/b, Orte (VT)</p>
+    <p><a href="tel:0761402673">0761 402673</a></p>
+  </div>
+</footer>
+
+<div class="barra">
+  <div class="p"><b>95 €</b> a persona<br>acconto 28,50 €</div>
+  <a class="btn" href="#prenota">Blocca il tavolo</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var CFG = {"sede_id": "4a936e52-a1e3-42fc-843c-e8d15dc86040", "azienda_id": "b331365f-17db-4dda-aa2f-77a09427fe42", "prezzo": 95, "perc": 30, "data": "2026-12-31", "ora": "20:30", "slug": "capodanno-2026-aquila", "capienza": 100, "locale": "Trattoria dell\u2019Aquila", "formula": "Cenone con musica dal vivo e brindisi di mezzanotte", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0", "url": "https://cuhcscpvhypoaplcmtjk.supabase.co"};
+  var supa = null;
+  try { supa = window.supabase.createClient(CFG.url, CFG.anon); } catch (e) {}
+  var ospiti = 2, liberi = null, inviando = false;
+  var qs = new URLSearchParams(location.search);
+  var $ = function(id){ return document.getElementById(id); };
+  var euro = function(n){ return n.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €"; };
+
+  function aggiorna(){
+    $("ospiti-val").textContent = ospiti;
+    $("c-ospiti").textContent = ospiti;
+    var tot = CFG.prezzo * ospiti, acc = Math.round(tot * CFG.perc) / 100;
+    $("c-tot").textContent = euro(tot);
+    $("c-acc").textContent = euro(acc);
+    $("c-saldo").textContent = euro(tot - acc);
+  }
+  $("meno").onclick = function(){ if (ospiti > 1) { ospiti--; aggiorna(); } };
+  $("piu").onclick = function(){ if (ospiti < 20 && (liberi === null || ospiti < liberi)) { ospiti++; aggiorna(); } };
+  aggiorna();
+
+  // posti liberi in tempo reale: se la funzione non c'e' ancora, il riquadro resta nascosto
+  if (supa) supa.rpc("evento_posti_liberi", { p_sede: CFG.sede_id, p_data: CFG.data, p_capienza: CFG.capienza })
+    .then(function(r){
+      if (r.error || r.data === null || r.data === undefined) return;
+      liberi = Number(r.data);
+      var box = $("posti");
+      box.style.display = "block";
+      if (liberi <= 0) {
+        box.innerHTML = "<b>Tutto esaurito.</b><br>Chiamaci per la lista d’attesa.";
+        $("invia").disabled = true;
+      } else {
+        box.innerHTML = "Restano <b>" + liberi + "</b> posti su " + CFG.capienza + ".";
+        if (liberi <= 30) $("posti-hero").textContent = "Restano solo " + liberi + " posti.";
+        if (ospiti > liberi) { ospiti = liberi; aggiorna(); }
+      }
+    }).catch(function(){});
+
+  function errore(t){ var m = $("msg"); m.className = "msg ko"; m.textContent = t; }
+
+  $("modulo").addEventListener("submit", async function(ev){
+    ev.preventDefault();
+    if (inviando) return;
+    var nome = $("nome").value.trim(), cognome = $("cognome").value.trim();
+    var tel = $("telefono").value.replace(/[^\d+]/g, ""), email = $("email").value.trim();
+    var note = $("note").value.trim();
+    if (!nome || !cognome) return errore("Scrivi nome e cognome.");
+    if (tel.replace(/\D/g, "").length < 8) return errore("Controlla il numero di telefono.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return errore("Controlla l’email: ti mandiamo lì la conferma.");
+    if (!$("privacy").checked) return errore("Per prenotare serve il consenso alla privacy.");
+    if (!supa) return errore("Connessione non riuscita. Ricarica la pagina o chiamaci.");
+
+    inviando = true;
+    var btn = $("invia"); btn.disabled = true; btn.textContent = "Un attimo…";
+    $("msg").className = "msg"; $("msg").textContent = "";
+
+    var token = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : (Date.now().toString(16) + Math.random().toString(16).slice(2)));
+    var acconto = Math.round(CFG.prezzo * ospiti * CFG.perc);
+    var riga = {
+      azienda_id: CFG.azienda_id, sede_id: CFG.sede_id,
+      cliente_nome: (nome + " " + cognome).trim(), cliente_telefono: tel, cliente_email: email,
+      data: CFG.data, ora: CFG.ora, coperti: ospiti, stato: "in_attesa_pagamento", canale: "online",
+      note: note || null, richieste_speciali: note || null, token_pubblico: token,
+      tag: CFG.slug, source: qs.get("utm_source") || "landing",
+      riferimento: JSON.stringify({ landing: CFG.slug, prezzo_persona: CFG.prezzo, acconto_perc: CFG.perc,
+        consenso_gdpr: true, consenso_marketing: $("marketing").checked,
+        utm_source: qs.get("utm_source"), utm_medium: qs.get("utm_medium"), utm_campaign: qs.get("utm_campaign") })
+    };
+    var ins = await supa.from("prenotazioni_tavoli").insert([riga]);
+    if (ins.error) { inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma"; return errore("Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci."); }
+
+    // avviso al locale e conferma al cliente (stesso sistema della prenotazione online)
+    fetch(CFG.url + "/functions/v1/prenotazione-notifica-tavolo", {
+      method: "POST", headers: { "Content-Type": "application/json", "apikey": CFG.anon },
+      body: JSON.stringify({ token_pubblico: token })
+    }).catch(function(){});
+
+    try {
+      var pub = await supa.rpc("prenotazione_pubblica", { p_token: token });
+      var id = pub.data && pub.data.ok ? pub.data.prenotazione.id : null;
+      var res = await fetch(CFG.url + "/functions/v1/stripe-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": CFG.anon, "Authorization": "Bearer " + CFG.anon },
+        body: JSON.stringify({ action: "create_session", azienda_id: CFG.azienda_id, tipo: "tavolo", riferimento_id: id,
+          importo_centesimi: acconto,
+          descrizione: "Acconto 30% · " + CFG.locale + " · 31/12/2026 · " + ospiti + (ospiti === 1 ? " persona" : " persone"),
+          cliente_email: email, cliente_nome: (nome + " " + cognome).trim(),
+          success_url: "https://app.ristoflow-ai.com/capodanno-prenotazione.html?t=" + token + "&esito=ok",
+          cancel_url: "https://app.ristoflow-ai.com/capodanno-prenotazione.html?t=" + token + "&esito=annullato",
+          metadata: { landing: CFG.slug, coperti: String(ospiti) } })
+      });
+      var out = await res.json();
+      if (!res.ok || !out.checkout_url) throw new Error(out.error || "checkout");
+      $("msg").className = "msg ok"; $("msg").textContent = "Ti portiamo al pagamento sicuro…";
+      location.href = out.checkout_url;
+    } catch (e) {
+      try { await supa.rpc("prenotazione_pagamento_fallito", { p_token: token }); } catch (x) {}
+      inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma";
+      errore("Il pagamento non è partito. La richiesta l’abbiamo ricevuta: puoi riprovare dalla pagina della prenotazione.");
+      setTimeout(function(){ location.href = "https://app.ristoflow-ai.com/capodanno-prenotazione.html?t=" + token; }, 2500);
+    }
+  });
+})();
+</script>
+</body>
+</html>
