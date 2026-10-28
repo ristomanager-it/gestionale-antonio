@@ -2182,7 +2182,7 @@ function renderUpgradeWall(app, feature, route) {
   } else if (ruoloOra === "manager") {
     await renderView("home-manager");
   } else if (ruoloOra === "magazziniere") {
-    await renderView("magazzino-attrezzature");
+    await renderView("home-operatore");   // la home dipendente, come gli altri
   } else {
     await renderView("home-operatore");
   }
