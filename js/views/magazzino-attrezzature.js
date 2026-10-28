@@ -111,6 +111,7 @@ async function renderLista(container, aziendaId) {
     <input class="at-in" id="at-cerca" type="search" placeholder="🔍 Cerca: bicchiere, SC-0012, scaffale…" autocomplete="off">
     <div class="at-chips" id="at-chips"></div>
     <div class="at-riep" id="at-riep"></div>
+    <div id="at-fuori"></div>
     <div id="at-lista"><p style="padding:24px;text-align:center;color:#64748b;">Carico…</p></div></div>`;
 
   const carica = async () => {
