@@ -42,6 +42,20 @@ p{margin:0 0 14px;text-wrap:pretty}
 .hero .sub{font-size:clamp(17px,4vw,20px);color:#e9dfc8;margin:18px 0 26px;max-width:600px}
 .chip{display:inline-block;border:1.5px solid var(--oro);color:var(--oro);padding:8px 16px;border-radius:999px;font-weight:600;font-size:15px;margin:0 0 22px}
 .posti-hero{margin-top:16px;font-size:15px;color:var(--oro2);min-height:22px}
+.promo-hero{display:none;margin:0 0 18px;padding:12px 16px;border:1.5px solid var(--oro);border-radius:12px;background:rgba(11,10,8,.6);font-size:16px;line-height:1.45}
+.promo-hero b{color:var(--oro);font-family:var(--f-disp);font-size:20px}
+.tariffe{display:grid;gap:10px}
+.tariffa{display:flex;gap:12px;align-items:flex-start;background:#1b1813;border:1.5px solid #3a3326;border-radius:12px;padding:14px;cursor:pointer}
+.tariffa input{width:22px;height:22px;flex:0 0 22px;margin-top:3px;accent-color:var(--oro)}
+.tariffa b{display:block;color:var(--avorio);font-size:17px}
+.tariffa small{display:block;color:var(--muto);font-size:14px;line-height:1.45;margin-top:2px}
+.tariffa:has(input:checked){border-color:var(--oro)}
+.cookie{position:fixed;left:12px;right:12px;bottom:84px;z-index:30;background:#1b1813;border:1px solid var(--oro);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:15px}
+.cookie[hidden]{display:none}
+.cookie span{flex:1}
+.cookie button{min-height:44px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-family:inherit;font-size:14px;cursor:pointer}
+.cookie #ck-si{background:var(--oro);color:#0b0a08}
+
 
 /* DOLORI */
 .dolori{display:grid;gap:14px}
@@ -138,13 +152,14 @@ footer a{color:var(--oro)}
     <div class="acc">Notte di San Silvestro</div>
     <h1>Quest’anno brindate a mezzanotte dove vi sentite a casa.</h1>
     <p class="sub">Cenone di pesce, musica dal vivo e il tavolo tutto per voi, fino al brindisi. Giovedì 31 dicembre.</p>
+    <div class="promo-hero" id="promo-hero"></div>
     <div class="chip">95 € a persona · bevande incluse · bambini 4-12 anni 40 €</div><br>
     <a class="btn" href="#prenota">Blocca il tavolo</a>
     <div class="posti-hero" id="posti-hero"></div>
   </div>
 </header>
 
-<section class="blocco">
+<section class="blocco" data-traccia="Capodanno_Letto_AIDA">
   <div class="wrap aida">
 <p class="a1">Il solito Capodanno lo conosciamo tutti.</p>
 <p>Ore in piedi in piazza al freddo, tra gente che ha bevuto troppo e qualcuno che a mezzanotte e cinque ti vomita vicino alle scarpe.</p>
@@ -157,7 +172,7 @@ footer a{color:var(--oro)}
   </div>
 </section>
 
-<section class="blocco">
+<section class="blocco" data-traccia="Capodanno_Visto_Menu">
   <div class="wrap">
     <p class="etichetta">Il menu</p>
     <h2>Cenone di pesce</h2>
@@ -189,13 +204,17 @@ footer a{color:var(--oro)}
 
 <section class="blocco"><div class="wrap"><p class="etichetta">Dicono di noi</p><h2>Recensioni verificate</h2><div class="recensioni"><figure class="rec"><div class="voto" aria-label="5 stelle su 5">★★★★★</div><blockquote>“Abbiamo mangiato bene, servizio impeccabile, prezzo corretto. Bravi.”</blockquote><figcaption>Renato D. · Google</figcaption></figure><figure class="rec"><div class="voto" aria-label="5 stelle su 5">★★★★★</div><blockquote>“Sempre delizioso, ottimo rapporto qualità-prezzo. Ottimo servizio. Ampio parcheggio.”</blockquote><figcaption>Anna P. · Google</figcaption></figure><figure class="rec"><div class="voto" aria-label="5 stelle su 5">★★★★★</div><blockquote>“Piatti di carne e di pesce, gustosi e abbondanti, a prezzi onesti. Posizione molto comoda, a un minuto dall’uscita dell’autostrada.”</blockquote><figcaption>Manuela M. · Tripadvisor</figcaption></figure></div></div></section>
 
-<section class="blocco" id="prenota">
+<section class="blocco" id="prenota" data-traccia="Capodanno_Visto_Modulo">
   <div class="wrap">
     <p class="etichetta">Prenotazione</p>
     <h2>Blocca il tuo tavolo</h2>
-    <p>Per tenere il tavolo chiediamo un acconto del 30%: <b>28,50 € a persona</b>, 12 € per i bambini, pagato online in modo sicuro. Il resto si salda la sera del cenone.</p>
+    <p>Per tenere il tavolo chiediamo un acconto del 30% del totale, pagato online in modo sicuro. Il resto si salda la sera del cenone.</p>
     <div class="posti" id="posti"></div>
     <form class="modulo" id="modulo" novalidate>
+      <div class="tariffe" id="tariffe" hidden>
+        <label class="tariffa"><input type="radio" name="tariffa" value="promo" checked><span><b>Promo · 80 € a persona</b><small>Solo fino al 15 novembre e per i primi 50 posti. L’acconto non è rimborsabile.</small></span></label>
+        <label class="tariffa"><input type="radio" name="tariffa" value="flessibile"><span><b>Flessibile · 95 € a persona</b><small>Se disdite entro il 27 dicembre ricevete un buono del valore dell’acconto.</small></span></label>
+      </div>
       <div class="due">
         <div>
           <label for="ospiti-val">Adulti</label>
@@ -259,7 +278,8 @@ footer a{color:var(--oro)}
     <details><summary>Cosa comprende il prezzo?</summary><p>Il menu completo che vedi sopra, le bevande e lo spumante del brindisi di mezzanotte.</p></details>
     <details><summary>A che ora si inizia?</summary><p>La cena comincia alle 20:00.</p></details>
     <details><summary>Posso aggiungere persone dopo aver prenotato?</summary><p>Sì, dalla pagina della tua prenotazione fino al 30 dicembre, finché ci sono posti. Non si paga altro acconto: le persone in più si saldano la sera.</p></details>
-    <details><summary>E se non possiamo più venire?</summary><p>Se disdite entro il 27 dicembre, con un tocco dalla pagina della prenotazione, ricevete subito un buono del valore dell’acconto, valido 12 mesi per un pranzo o una cena da noi. Dal 28 dicembre l’acconto non è più recuperabile.</p></details>
+    <details><summary>C’è una promo?</summary><p>Sì: chi prenota entro il 15 novembre paga 80 € invece di 95 €, per i primi 50 posti. Con la promo l’acconto non è rimborsabile.</p></details>
+    <details><summary>E se non possiamo più venire?</summary><p>Con la tariffa flessibile, se disdite entro il 27 dicembre, con un tocco dalla pagina della prenotazione, ricevete subito un buono del valore dell’acconto, valido 12 mesi per un pranzo o una cena da noi. Dal 28 dicembre l’acconto non è più recuperabile.</p></details>
     <details><summary>Ci sono allergie o intolleranze?</summary><p>Scrivetele nel modulo o nella pagina della prenotazione: la cucina le riceve insieme al vostro tavolo.</p></details>
     <details><summary>Bambini?</summary><p>I bambini dai 4 ai 12 anni pagano 40 €. Per i più piccoli, sotto i 4 anni, chiedeteci. Segnalateli nel modulo: pensiamo noi al seggiolone.</p></details>
     <details><summary>Dove siete?</summary><p>Trattoria dell’Aquila, Via Lazio 4/b, Orte (VT). Telefono <a href="tel:0761402673" style="color:var(--oro)">0761 402673</a>.</p></details>
@@ -274,7 +294,7 @@ footer a{color:var(--oro)}
 </footer>
 
 <div class="barra">
-  <div class="p"><b>95 €</b> a persona<br>bevande incluse</div>
+  <div class="p" id="barra-p"><b>95 €</b> a persona<br>bevande incluse</div>
   <a class="btn" href="#prenota">Blocca il tavolo</a>
 </div>
 
@@ -285,11 +305,14 @@ footer a{color:var(--oro)}
   var supa = null;
   try { supa = window.supabase.createClient(CFG.url, CFG.anon); } catch (e) {}
   var ospiti = 2, bimbi = 0, liberi = null, inviando = false;
+  var PROMO = { prezzo: 80, posti: 50, fino: new Date("2026-11-15T23:59:59+01:00").getTime() }, promoAttiva = false;
+  function tariffa(){ var r = document.querySelector("input[name=tariffa]:checked"); return promoAttiva && r && r.value === "promo" ? "promo" : "flessibile"; }
+  function prezzoAdulto(){ return tariffa() === "promo" ? PROMO.prezzo : CFG.prezzo; }
   var qs = new URLSearchParams(location.search);
   var $ = function(id){ return document.getElementById(id); };
   var euro = function(n){ return n.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €"; };
 
-  function totale(){ return CFG.prezzo * ospiti + 40 * bimbi; }
+  function totale(){ return prezzoAdulto() * ospiti + 40 * bimbi; }
   function aggiorna(){
     $("ospiti-val").textContent = ospiti;
     $("bimbi-val").textContent = bimbi;
@@ -304,6 +327,21 @@ footer a{color:var(--oro)}
   $("bmeno").onclick = function(){ if (bimbi > 0) { bimbi--; aggiorna(); } };
   $("bpiu").onclick = function(){ if (ospiti + bimbi < 20 && (liberi === null || ospiti + bimbi < liberi)) { bimbi++; aggiorna(); } };
   aggiorna();
+  Array.prototype.forEach.call(document.querySelectorAll("input[name=tariffa]"), function(r){ r.onchange = function(){ aggiorna(); rfEvento("Capodanno_Tariffa", { locale: CFG.locale, tariffa: r.value }); }; });
+
+  // promo: fino al 15 novembre e finche' restano posti in promo
+  if (supa && Date.now() <= PROMO.fino) supa.rpc("evento_promo_liberi", { p_slug: CFG.slug, p_posti: PROMO.posti })
+    .then(function(r){
+      var restano = r.error ? 0 : Number(r.data);
+      if (restano <= 0) return;
+      promoAttiva = true;
+      $("tariffe").hidden = false;
+      var giorni = Math.max(Math.ceil((PROMO.fino - Date.now()) / 864e5), 0);
+      var box = $("promo-hero"); box.style.display = "block";
+      box.innerHTML = "<b>80 € invece di 95 €</b><br>Prenota entro il 15 novembre" + (giorni <= 10 ? " (mancano " + giorni + (giorni === 1 ? " giorno" : " giorni") + ")" : "") + " · restano " + restano + " posti in promo.";
+      $("barra-p").innerHTML = "<b>da 80 €</b> a persona<br>fino al 15 novembre";
+      aggiorna();
+    }).catch(function(){});
 
   // posti liberi in tempo reale: se la funzione non c'e' ancora, il riquadro resta nascosto
   if (supa) supa.rpc("evento_posti_liberi", { p_sede: CFG.sede_id, p_data: CFG.data, p_capienza: CFG.capienza })
@@ -343,18 +381,25 @@ footer a{color:var(--oro)}
     var token = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : (Date.now().toString(16) + Math.random().toString(16).slice(2)));
     var acconto = Math.round(totale() * CFG.perc);
     var persone = ospiti + bimbi;
+    var promo = tariffa() === "promo";
+    rfEvento("InitiateCheckout", { value: acconto / 100, currency: "EUR", content_name: CFG.slug, num_items: persone }, true);
     var riga = {
       azienda_id: CFG.azienda_id, sede_id: CFG.sede_id,
       cliente_nome: (nome + " " + cognome).trim(), cliente_telefono: tel, cliente_email: email,
-      data: CFG.data, ora: CFG.ora, coperti: persone, bambini: bimbi, stato: "in_attesa_pagamento", canale: "online",
+      data: CFG.data, ora: CFG.ora, coperti: persone, bambini: bimbi, promo: promo, stato: "in_attesa_pagamento", canale: "online",
       note: note || null, richieste_speciali: note || null, token_pubblico: token,
       tag: CFG.slug, source: qs.get("utm_source") || "landing",
-      riferimento: JSON.stringify({ landing: CFG.slug, prezzo_persona: CFG.prezzo, acconto_perc: CFG.perc, adulti: ospiti, bambini: bimbi,
+      riferimento: JSON.stringify({ landing: CFG.slug, tariffa: promo ? "promo" : "flessibile", prezzo_persona: prezzoAdulto(), acconto_perc: CFG.perc, adulti: ospiti, bambini: bimbi,
         consenso_gdpr: true, consenso_marketing: $("marketing").checked,
         utm_source: qs.get("utm_source"), utm_medium: qs.get("utm_medium"), utm_campaign: qs.get("utm_campaign") })
     };
     var ins = await supa.from("prenotazioni_tavoli").insert([riga]);
-    if (ins.error) { inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma"; return errore("Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci."); }
+    if (ins.error) {
+      inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma";
+      if (String(ins.error.message || "").indexOf("promo") >= 0) { promoAttiva = false; $("tariffe").hidden = true; aggiorna(); return errore("I posti in promo sono appena finiti: la prenotazione è ora alla tariffa flessibile. Controlla il totale e conferma."); }
+      return errore("Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.");
+    }
+    rfEvento("Lead", { value: acconto / 100, currency: "EUR", content_name: CFG.slug }, true);
 
     // avviso al locale e conferma al cliente (stesso sistema della prenotazione online)
     fetch(CFG.url + "/functions/v1/prenotazione-notifica-tavolo", {
@@ -370,7 +415,7 @@ footer a{color:var(--oro)}
         headers: { "Content-Type": "application/json", "apikey": CFG.anon, "Authorization": "Bearer " + CFG.anon },
         body: JSON.stringify({ action: "create_session", azienda_id: CFG.azienda_id, tipo: "tavolo", riferimento_id: id,
           importo_centesimi: acconto,
-          descrizione: "Acconto 30% · " + CFG.locale + " · 31/12/2026 · " + ospiti + (ospiti === 1 ? " adulto" : " adulti") + (bimbi ? " + " + bimbi + (bimbi === 1 ? " bambino" : " bambini") : ""),
+          descrizione: "Acconto 30%" + (promo ? " · Promo" : "") + " · " + CFG.locale + " · 31/12/2026 · " + ospiti + (ospiti === 1 ? " adulto" : " adulti") + (bimbi ? " + " + bimbi + (bimbi === 1 ? " bambino" : " bambini") : ""),
           cliente_email: email, cliente_nome: (nome + " " + cognome).trim(),
           success_url: "https://app.ristoflow-ai.com/capodanno-prenotazione.html?t=" + token + "&esito=ok",
           cancel_url: "https://app.ristoflow-ai.com/capodanno-prenotazione.html?t=" + token + "&esito=annullato",
@@ -387,6 +432,48 @@ footer a{color:var(--oro)}
       setTimeout(function(){ location.href = "https://app.ristoflow-ai.com/capodanno-prenotazione.html?t=" + token; }, 2500);
     }
   });
+
+  // remarketing: chi arriva fino a dove, per ricolpirlo con il messaggio giusto
+  document.addEventListener("rf-pronto", function(){ rfEvento("ViewContent", { content_name: CFG.slug, content_category: "capodanno" }, true); });
+  if ("IntersectionObserver" in window) {
+    var visti = {};
+    var oss = new IntersectionObserver(function(voci){
+      voci.forEach(function(v){
+        var n = v.target.getAttribute("data-traccia");
+        if (v.isIntersecting && !visti[n]) { visti[n] = true; rfEvento(n, { locale: CFG.locale }); }
+      });
+    }, { threshold: 0.4 });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-traccia]"), function(el){ oss.observe(el); });
+  }
+  var iniziato = false;
+  $("nome").addEventListener("focus", function(){ if (!iniziato) { iniziato = true; rfEvento("Capodanno_Inizio_Modulo", { locale: CFG.locale }); } });
+})();
+</script>
+<div class="cookie" id="cookie" hidden><span>Usiamo i cookie</span><button type="button" id="ck-no">Rifiuta</button><button type="button" id="ck-si">Accetta</button></div>
+<script>
+(function(){
+  var PIXEL = "1474015191346752", GA4 = "G-TZQVKD4KEV";
+  window.rfEvento = function(nome, dati, standard){
+    try {
+      if (localStorage.getItem("rf_consenso") !== "si") return;
+      if (window.fbq) { if (standard) fbq("track", nome, dati || {}); else fbq("trackCustom", nome, dati || {}); }
+      if (window.gtag) gtag("event", nome, dati || {});
+    } catch (e) {}
+  };
+  function carica(){
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
+    fbq("init", PIXEL); fbq("track", "PageView");
+    var g = document.createElement("script"); g.async = true; g.src = "https://www.googletagmanager.com/gtag/js?id=" + GA4; document.head.appendChild(g);
+    window.dataLayer = window.dataLayer || []; window.gtag = function(){ dataLayer.push(arguments); };
+    gtag("js", new Date()); gtag("config", GA4);
+    document.dispatchEvent(new Event("rf-pronto"));
+  }
+  var c = null; try { c = localStorage.getItem("rf_consenso"); } catch (e) {}
+  if (c === "si") { carica(); return; }
+  if (c === "no") return;
+  var box = document.getElementById("cookie"); box.hidden = false;
+  document.getElementById("ck-si").onclick = function(){ try { localStorage.setItem("rf_consenso", "si"); } catch (e) {} box.hidden = true; carica(); };
+  document.getElementById("ck-no").onclick = function(){ try { localStorage.setItem("rf_consenso", "no"); } catch (e) {} box.hidden = true; };
 })();
 </script>
 </body>
