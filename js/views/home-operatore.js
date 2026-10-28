@@ -328,7 +328,7 @@ async function lavorazioniProssime(supabase, aziendaId, dipId, daISO, giorni) {
   const a = new Date(daISO + "T12:00:00"); a.setDate(a.getDate() + giorni - 1);
   const aISO = a.getFullYear() + "-" + String(a.getMonth() + 1).padStart(2, "0") + "-" + String(a.getDate()).padStart(2, "0");
   const { data } = await supabase.from("produzioni_settimanali")
-    .select("id, data, prodotto, lavorazione, quantita, unita, stato, fascia, ora, dipendente_id, supporti")
+    .select("id, data, prodotto, lavorazione, quantita, unita, stato, fascia, ora, ora_lavorazione, dipendente_id, supporti")
     .eq("azienda_id", aziendaId).gte("data", daISO).lte("data", aISO)
     .or(`dipendente_id.eq.${dipId},supporti.cs.{${dipId}}`)
     .order("data").limit(150);
