@@ -341,7 +341,19 @@ function ensureWindowBindings(){
 
   window.plannerProduzioneToday = async function(){
     currentDate = new Date()
+    window.__rfPlannerSuOggi = false   // "Oggi" riporta la vista sul giorno di oggi
     await renderCurrentView()
+  }
+
+  // dal filtro data: si va a QUALUNQUE giorno (la vista Day/Week/Month si sposta li')
+  window.plannerProduzioneVaiA = async function(v){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v || ""))
+    if(!m) return
+    currentDate = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0)
+    window.__rfPlannerSuOggi = true   // resta sul giorno scelto: non tornare su oggi da solo
+    await renderCurrentView()
+    const col = document.querySelector(`.planner-day-col[data-date="${v}"]`)
+    if(col) setTimeout(() => { col.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" }); window.scrollBy(0, -80) }, 60)
   }
 
   window.plannerProduzioneOpenCreate = async function(dateStr){
