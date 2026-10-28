@@ -388,7 +388,7 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
         <input class="at-in" id="n-misura" placeholder="es. 35 cl, Ø 27 cm" autocomplete="off"></div>
     </div>
 
-    <label class="at-lbl">Quanti pezzi ci sono nella scatola</label>
+    <div id="n-bloc-pezzi"><label class="at-lbl" id="n-pezzi-lbl">Pezzi in ogni confezione</label>
     <div class="at-step"><button type="button" id="n-meno">−</button><input class="at-in" id="n-pezzi" type="number" inputmode="numeric" min="0" value="12"><button type="button" id="n-piu">+</button></div>
 
     <label class="at-lbl" for="n-ubi">Dove la metti</label>
