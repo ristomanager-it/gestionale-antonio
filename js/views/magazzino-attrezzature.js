@@ -525,7 +525,11 @@ async function chiediDestinazione(aziendaId, usate) {
       <div class="at-row"><button type="button" class="at-btn sec" id="d-no">Annulla</button></div></div>`;
     document.body.appendChild(ov);
     const lista = ov.querySelector("#d-lista");
-    const chiudi = (v) => { ov.remove(); res(v); };
+    const chiudi = (v) => {
+      const rit = (ov.querySelector("#d-rit")?.value || "").trim();
+      if (v && rit) { try { localStorage.setItem("attr_ritiranti", JSON.stringify([rit, ...ritiranti.filter((x) => x !== rit)].slice(0, 12))); } catch (e) { /* non e' grave */ } }
+      ov.remove(); res(v ? { ...v, ritira: rit } : v);
+    };
     const voce = (titolo, sotto, onclick) => {
       const b = document.createElement("button"); b.type = "button"; b.className = "at-btn sec";
       b.style.cssText = "display:block;width:100%;text-align:left;margin-bottom:8px;";
