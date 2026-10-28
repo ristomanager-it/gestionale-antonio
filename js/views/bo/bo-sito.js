@@ -344,6 +344,13 @@ export async function render(container) {
         <input type="file" id="sw-file-locale" accept="image/*" style="display:none">
         <div class="sw-media-grid" id="grid-locale"></div>
       </div>
+      <div class="sw-card">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">⭐ Foto delle recensioni</div>
+        <div style="font-size:12.5px;color:#64748b;margin-bottom:8px;line-height:1.45;">Quando arriva una recensione (Google, Facebook, TripAdvisor) fai lo screenshot e caricalo qui: compare nella home sotto "Dicono di noi". Se non ne carichi, il sito sceglie da solo le recensioni migliori.</div>
+        <button type="button" id="sw-up-rec" style="background:#0f4c5c;color:#fff;border:0;border-radius:10px;padding:11px 14px;font-weight:700;font-size:14px;margin:4px 0 10px;cursor:pointer;">＋ Carica foto recensioni</button>
+        <input type="file" id="sw-file-rec" accept="image/*" multiple style="display:none">
+        <div id="sw-rec-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;"></div>
+      </div>
     </div>
 
     <!-- TAB SEZIONI -->
