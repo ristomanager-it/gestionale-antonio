@@ -790,6 +790,7 @@ async function renderForm(dip) {
               <option value="operatore">Operatore</option>
               <option value="manager_cucina">Manager cucina</option>
               <option value="manager_sala">Manager sala</option>
+              <option value="magazziniere">Magazziniere</option>
             </optgroup>
             <optgroup label="Hotel">
               <option value="receptionist">Receptionist</option>
