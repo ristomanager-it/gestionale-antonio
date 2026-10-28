@@ -1563,6 +1563,27 @@ a{text-decoration:none;color:inherit}
 .rev-strip::-webkit-scrollbar{display:none}
 .rev-strip .rev-c{flex:0 0 80%;max-width:340px;scroll-snap-align:start;margin-bottom:0}
 @media(min-width:760px){.rev-strip .rev-c{flex-basis:45%}}
+.intro{max-width:700px;margin:0 auto;padding:30px 22px 6px;text-align:center}
+.intro-t{font-size:17px;line-height:1.65;color:var(--scuro)}
+.intro-o{font-size:13.5px;color:var(--grigio);margin-top:12px}
+#recensioni.rev-bg{padding:40px 20px 34px}
+.rev-sum{font-size:15px;color:var(--scuro);margin:0 0 18px}
+.rev-sum-s{color:#e0a82e;letter-spacing:2px}
+.rev-foto{flex:0 0 72%;max-width:300px;scroll-snap-align:start;background:#fff;border-radius:12px;padding:6px;box-shadow:0 2px 10px rgba(0,0,0,.08);cursor:zoom-in}
+.rev-foto img{width:100%;height:auto;max-height:430px;object-fit:contain;border-radius:8px;display:block}
+.menu-acc-w{max-width:700px;margin:0 auto;padding:20px 16px}
+.menu-acc{background:var(--caldo);border-radius:14px;scroll-margin-top:64px}
+.menu-acc summary{list-style:none;display:flex;align-items:center;gap:10px;padding:18px;cursor:pointer}
+.menu-acc summary::-webkit-details-marker{display:none}
+.ma-t{font-size:19px;font-weight:800;flex:1}
+.ma-s{font-size:12px;color:var(--grigio);font-weight:600}
+.ma-c{font-size:22px;line-height:1;transition:transform .2s}
+.menu-acc[open] .ma-c{transform:rotate(180deg)}
+.ma-b{padding:2px 18px 22px}
+.ma-l{margin-top:16px;font-size:13px}
+.ma-l a{color:var(--acc);font-weight:600}
+.hl-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin-top:24px}
+.hl-grid .hl-card{flex:1 1 200px;max-width:300px}
 .rev-scorri{font-size:12px;color:var(--grigio);margin-top:6px}
 .rev-t{font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;line-height:1.6;margin-bottom:10px}
 .stars{color:var(--acc);letter-spacing:2px;font-size:13px;margin-bottom:6px}
