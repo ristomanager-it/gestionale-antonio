@@ -30,6 +30,8 @@ const SEZIONI = {
     ["💬", "Messaggi", "bo-template", [["💬", "Template WhatsApp", "bo-template"], ["📱", "WhatsApp Inbox", "bo-whatsapp"], ["🤖", "Chatbot", "bo-chatbot"], ["📨", "Registro messaggi", "registro-messaggi"]]],
     ["📸", "Social e Sito", "bo-calendario", [["📸", "Bacheca Social", "bo-marketing?tab=bacheca-social"], ["📅", "Calendario editoriale", "bo-calendario"], ["📱", "Storie", "bo-storie"], ["🌐", "Sito Web", "bo-sito"], ["🖼️", "Media Library", "bo-media"]]],
     ["⚡", "Crediti Tony", "bo-crediti"] ] },
+  magazziniere: { titolo: "📦 Magazziniere", pulsanti: [
+    ["🧰", "Magazzino attrezzature", "magazzino-attrezzature"] ] },
   personale: { titolo: "👥 Personale", pulsanti: [
     ["👨‍💼", "Squadra", "dipendenti"], ["🕒", "Ore e paghe", "bo-presenze"], ["📁", "Documenti", "hr-fascicolo"],
     ["🎯", "Crescita", "persone"], ["👥", "Candidature", "bo-candidature"], ["📘", "Manuale", "manuale"] ] },
