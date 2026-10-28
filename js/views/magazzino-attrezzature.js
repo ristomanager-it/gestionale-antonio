@@ -213,8 +213,7 @@ async function renderLista(container, aziendaId) {
       }
       location.hash = "#/scatola-attrezzature?c=" + encodeURIComponent(el.dataset.c);
     }));
-    riquadroFuori(filtrate);
-  };
+  };  // i riquadri (valore, da lavare, fuori) si disegnano prima, vicino al riepilogo
 
   // valore delle attrezzature (costo di sostituzione x pezzi), sempre calcolato sui dati correnti
   const riquadroValore = () => {
