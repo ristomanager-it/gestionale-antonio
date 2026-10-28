@@ -1745,7 +1745,7 @@ if(best)txt='Chiuso · riapre '+(best.k===0?'alle ':(best.k===1?'domani alle ':'
 if(txt){el.textContent=(ok?'🟢 ':'🔴 ')+txt;el.style.display='inline-block';}});</script>
     <div class="eyebrow" style="color:#fff;font-size:15px;font-weight:700;letter-spacing:2.5px;text-shadow:0 2px 8px rgba(0,0,0,.65);margin-bottom:6px;">Orte · uscita A1</div>
     <h1 class="h2" style="color:#fff;font-size:clamp(31px,8vw,58px);line-height:1.06;margin:8px 0 10px;text-shadow:0 2px 12px rgba(0,0,0,.5);">${esc(conf.hero_titolo || nome)}</h1>
-    ${conf.hero_sub ? `<p style="font-size:16px;color:rgba(255,255,255,.9);margin-bottom:20px;max-width:34ch;text-shadow:0 1px 6px rgba(0,0,0,.5);">${esc(conf.hero_sub)}</p>` : ""}
+    ${conf.hero_sub && !sezioniState.intro ? `<p style="font-size:16px;color:rgba(255,255,255,.9);margin-bottom:20px;max-width:34ch;text-shadow:0 1px 6px rgba(0,0,0,.5);">${esc(conf.hero_sub)}</p>` : ""}
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:min(100%,430px);">
       <div id="rf-aperto" style="display:none;background:rgba(255,255,255,.96);color:#1f2937;font-size:14px;font-weight:700;padding:7px 14px;border-radius:999px;text-align:center;"></div>
       <div style="display:flex;gap:10px;width:100%;">
