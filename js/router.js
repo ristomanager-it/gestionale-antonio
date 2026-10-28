@@ -1255,6 +1255,16 @@ async function ensureAziendaContext(routeName) {
   const preferBozza = routeName === "completaAzienda";
   let activeAzienda = pickActiveAzienda(aziendePulite, preferBozza);
 
+  // Agenzia viaggi e Voli in offerta: moduli in prova che vivono nell'azienda Ristoflow.
+  // Il super admin ci arriva da QUALUNQUE azienda (o senza sceglierne una): l'app lo porta da sola su Ristoflow.
+  if ((routeName === "agenzia-viaggi" || routeName === "voli-offerta") && aziendePulite.some((a) => a.ruolo === "superadmin")) {
+    const rf = aziendePulite.find((a) => String(a.aziende?.id) === "a43d41b5-f4ac-494f-8144-6574347a754f");
+    if (rf?.aziende && String(activeAzienda?.id) !== String(rf.aziende.id)) {
+      activeAzienda = rf.aziende;
+      try { localStorage.removeItem("active_sede_id"); } catch (_) {}
+    }
+  }
+
   // Fallback robusto: se non l'abbiamo trovata ma c'è una sede salvata, deduci
   // l'azienda dalla sede leggendola dal DB (window.state.sedi può non essere
   // ancora caricato quando si entra in una rotta BO come Acquisti).
