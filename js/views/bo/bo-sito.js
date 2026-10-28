@@ -1922,7 +1922,7 @@ ${false && conf.chisiamo_1 ? `
   <a class="btn" href="chi-siamo.html">Scopri chi siamo →</a>
   <a class="btn" href="${esc(formUrl)}" style="margin-left:10px;">🗓 ${esc(cta)}</a>
 </section>` : ""}
-${sezioniState.reel && (conf.foto_reel_terra || conf.foto_reel_mare) ? `
+${false && (conf.foto_reel_terra || conf.foto_reel_mare) ? `
 <div class="reel-grid" style="max-width:${conf.foto_reel_terra && conf.foto_reel_mare ? '100%' : '600px'};margin:0 auto;">
   ${conf.foto_reel_terra ? `<div class="reel-blocco">
     ${mediaSezione(conf.foto_reel_terra, "Tocca")}
