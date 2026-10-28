@@ -108,6 +108,7 @@ async function renderLista(container, aziendaId) {
   const stato = { q: "", cat: "", righe: [], articoli: [], selezione: false, sel: new Set() };
   container.innerHTML = `<div class="at-wrap">${CSS}
     <div class="at-head"><h2>📦 Attrezzature</h2>${scrive ? `<div style="display:flex;gap:8px;"><button class="at-btn sec" id="at-sel">☑ Seleziona</button><button class="at-btn" id="at-nuova">➕ Nuova scatola</button></div>` : ""}</div>
+    <a href="/docs/guida-magazzino-attrezzature.pdf" target="_blank" rel="noopener" style="display:inline-block;margin:0 0 10px;font-size:14px;font-weight:800;color:#0E5A7A;text-decoration:none;">📘 Come funziona (PDF)</a>
     <input class="at-in" id="at-cerca" type="search" placeholder="🔍 Cerca: bicchiere, SC-0012, scaffale…" autocomplete="off">
     <div class="at-chips" id="at-chips"></div>
     <div class="at-riep" id="at-riep"></div>
