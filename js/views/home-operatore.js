@@ -337,7 +337,7 @@ async function lavorazioniProssime(supabase, aziendaId, dipId, daISO, giorni) {
     .sort((x, y) => String(x.data).localeCompare(String(y.data)) || (ordF[x.fascia] || 9) - (ordF[y.fascia] || 9) || String(x.ora_lavorazione || x.ora || "99").localeCompare(String(y.ora_lavorazione || y.ora || "99")))
     .map(l => {
       const q = l.quantita != null ? (Number(l.quantita).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " " + (l.unita || "")) : null;
-      const quando = l.ora ? String(l.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[l.fascia] || null);
+      const quando = (l.ora_lavorazione || l.ora) ? String(l.ora_lavorazione || l.ora).slice(0, 5) : ({ mattina: "mattina", pomeriggio: "pomeriggio", sera: "sera" }[l.fascia] || null);
       return {
         id: l.id, data: l.data,
         titolo: String(l.prodotto || "Lavorazione").replace(/^🍽 Al servizio · /, "🍽 "),
