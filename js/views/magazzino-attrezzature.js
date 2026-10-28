@@ -566,6 +566,7 @@ table{border-collapse:collapse;width:100%;}
 .el{margin-top:12px;} .el th,.el td{border:1px solid #000;padding:5px 6px;font-size:12.5px;text-align:left;} .el th{background:#eee;}
 .el .n{text-align:right;width:18mm;} .el .v{text-align:center;width:22mm;} .el tfoot td{font-weight:800;background:#f5f5f5;}
 .q{display:inline-block;width:14px;height:14px;border:1.5px solid #000;vertical-align:middle;}
+.cod{font-size:10px;color:#555;margin-top:2px;font-weight:400;}
 .rit{margin-top:14px;font-size:13px;}
 .firme{display:flex;gap:14mm;margin-top:18mm;} .fi{flex:1;} .fl{font-size:12px;font-weight:700;} .fn{font-size:13px;min-height:16px;margin-top:2px;} .ft{margin-top:14mm;border-top:1px solid #000;font-size:11px;color:#444;padding-top:2px;}
 .pie{margin-top:12mm;font-size:10.5px;color:#444;}`;
