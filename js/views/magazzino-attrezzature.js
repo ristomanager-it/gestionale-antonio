@@ -203,6 +203,7 @@ async function renderLista(container, aziendaId) {
   const riquadroValore = () => {
     const box = container.querySelector("#at-valore");
     if (!box) return;
+    if (!vedeValori()) { box.innerHTML = ""; return; }
     const per = { in_magazzino: 0, fuori: 0, da_lavare: 0 }; const senza = new Set();
     stato.righe.forEach((r) => { per[r.stato] = (per[r.stato] || 0) + valRiga(r); if (!Number(r.attr_articoli.costo_sostituzione)) senza.add(r.attr_articoli.id); });
     const tot = per.in_magazzino + per.fuori + per.da_lavare;
