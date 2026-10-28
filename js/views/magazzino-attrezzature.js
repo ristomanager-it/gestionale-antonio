@@ -201,7 +201,7 @@ async function renderLista(container, aziendaId) {
     container.querySelectorAll(".at-card").forEach((el) => (el.onclick = () => {
       if (stato.selezione) {
         const r = stato.righe.find((x) => x.codice === el.dataset.c);
-        if (!r || r.stato !== "in_magazzino") { toast("Solo le scatole in magazzino possono uscire"); return; }
+        if (!r || r.stato !== "in_magazzino" || isFissa(r)) { toast(r && isFissa(r) ? "Le attrezzature fisse non escono" : "Solo le scatole in magazzino possono uscire"); return; }
         if (stato.sel.has(r.id)) stato.sel.delete(r.id); else stato.sel.add(r.id);
         const ck = el.querySelector(".at-ck"); if (ck) ck.checked = stato.sel.has(r.id);
         barra(); return;
