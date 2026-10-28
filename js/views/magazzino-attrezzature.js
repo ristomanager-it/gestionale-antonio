@@ -138,7 +138,7 @@ async function renderLista(container, aziendaId) {
     const q = stato.q.trim().toLowerCase();
     const filtrate = stato.righe.filter((r) => {
       const a = r.attr_articoli;
-      if (stato.cat && a.categoria !== stato.cat) return false;
+      if (stato.cat === "__fuori") { if (r.stato !== "fuori") return false; } else if (stato.cat && a.categoria !== stato.cat) return false;
       if (!q) return true;
       return [a.nome, a.misura, a.materiale, r.codice, r.ubicazione, nomeCat(a.categoria)].join(" ").toLowerCase().includes(q);
     });
