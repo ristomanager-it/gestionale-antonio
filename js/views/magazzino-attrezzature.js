@@ -367,6 +367,11 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
   sheet.className = "at-sheet";
   sheet.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3>➕ Nuova attrezzatura</h3><button class="at-btn sec" id="n-chiudi" style="padding:8px 14px;">✕</button></div>
+    <div class="at-tipi" id="n-tipi">
+      <button type="button" class="at-tipo on" data-t="quantita"><b>🍽 A pezzi</b><span>piatti, bicchieri, posate</span></button>
+      <button type="button" class="at-tipo" data-t="singolo"><b>📦 Mobile</b><span>un codice per pezzo: piastre, tavoli</span></button>
+      <button type="button" class="at-tipo" data-t="fisso"><b>🏭 Fissa</b><span>macchinari e arredi fissi</span></button>
+    </div>
     <label class="at-foto" for="n-file">📷 Scatta o scegli la foto</label>
     <input type="file" id="n-file" accept="image/*" capture="environment" hidden>
     <img class="at-prev" id="n-prev" alt="" style="display:none;">
