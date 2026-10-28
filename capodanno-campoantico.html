@@ -40,7 +40,11 @@ p{margin:0 0 14px;text-wrap:pretty}
 .topbar .tn{font-family:var(--f-disp);color:var(--oro);font-size:clamp(17px,4.6vw,22px);font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.15}
 .topbar .td{font-size:13px;color:var(--avorio);letter-spacing:.06em;margin-top:3px}
 .intro{padding:40px 0 8px}
-.hero .amo{font-family:var(--f-disp);font-size:clamp(30px,7.5vw,50px);line-height:1.12;color:var(--avorio);max-width:640px;margin:0;text-shadow:0 2px 18px rgba(0,0,0,.6)}
+.hero .amo{max-width:640px;text-shadow:0 2px 18px rgba(0,0,0,.7)}
+.amo-prezzo{display:block;font-family:var(--f-disp);font-size:clamp(56px,15vw,92px);font-weight:700;line-height:1;color:var(--oro)}
+.amo-barrato{display:block;font-size:20px;color:#e9dfc8;margin-top:4px}
+.amo-frase{display:block;font-size:clamp(18px,4.6vw,23px);line-height:1.35;color:var(--avorio);margin-top:10px}
+.aida h1{font-family:var(--f-disp);font-size:clamp(26px,6vw,36px);line-height:1.2;color:var(--oro);margin-bottom:22px}
 .hero .kicker{font-size:14px;letter-spacing:.28em;text-transform:uppercase;color:var(--oro);font-weight:600}
 .hero .acc{font-family:var(--f-acc);font-style:normal;color:var(--oro);font-size:clamp(30px,7vw,46px);line-height:1.1;margin:16px 0 6px}
 .intro h1{font-family:var(--f-disp);font-size:clamp(32px,7.5vw,54px);line-height:1.1;color:var(--avorio)}
@@ -153,23 +157,13 @@ footer a{color:var(--oro)}
     <source src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/160DeERgcT70ScdYOJgbaIrQbcTnnt-8j.mp4" type="video/mp4">
   </video>
   <div class="wrap">
-    <p class="amo">Il solito Capodanno? No, grazie.</p>
+    <div class="amo" id="amo"><span class="amo-prezzo">110 €</span><span class="amo-frase">Cenone e veglione di San Silvestro, bevande incluse.</span></div>
   </div>
 </header>
 
-<section class="intro">
-  <div class="wrap">
-    <h1>Festeggiate fino a tardi. Senza piazza, senza freddo, senza sorprese.</h1>
-    <p class="sub">Cenone di pesce, brindisi di mezzanotte e veglione: tutto nello stesso posto. Giovedì 31 dicembre.</p>
-    <div class="promo-hero" id="promo-hero"></div>
-    <div class="chip">110 € a persona · bevande incluse · bambini 4-12 anni 40 €</div><br>
-    <a class="btn" href="#prenota">Blocca il tavolo</a>
-    <div class="posti-hero" id="posti-hero"></div>
-  </div>
-</section>
-
 <section class="blocco" data-traccia="Capodanno_Letto_AIDA">
   <div class="wrap aida">
+<h1>Il solito Capodanno? No, grazie.</h1>
 <p>Ore in piedi in piazza, spintoni, bicchieri di plastica e qualcuno che a mezzanotte e cinque ti vomita addosso.</p>
 <p>Una scintilla vagante e il piumino nuovo ha un buco. E se piove, la festa all’aperto è finita.</p>
 <p>Oppure la cena di corsa col secondo turno, e poi in macchina nella notte a cercare una festa, magari con la fila all’ingresso.</p>
@@ -177,6 +171,9 @@ footer a{color:var(--oro)}
 <p>Pesce fresco lavorato nella nostra cucina, un solo turno e il tavolo vostro per tutta la notte.</p>
 <p>A mezzanotte cotechino e lenticchie di Castelluccio, il nostro panettone e lo spumante. Poi il veglione, al chiuso e al caldo, fino a tardi.</p>
 <p class="chiusa">Bevande incluse, bambini dai 4 ai 12 anni a 40 €. Freddo, pioggia e botti restano fuori.</p>
+    <br>
+    <a class="btn" href="#prenota">Blocca il tavolo</a>
+    <div class="posti-hero" id="posti-hero"></div>
   </div>
 </section>
 
@@ -311,6 +308,7 @@ footer a{color:var(--oro)}
   try { supa = window.supabase.createClient(CFG.url, CFG.anon); } catch (e) {}
   var ospiti = 2, bimbi = 0, liberi = null, inviando = false;
   var PROMO = { prezzo: 100, posti: 50, fino: new Date("2026-11-15T23:59:59+01:00").getTime() }, promoAttiva = false;
+  var AMO_PIENO = $("amo").innerHTML;
   function tariffa(){ return promoAttiva ? "promo" : "flessibile"; }
   function prezzoAdulto(){ return tariffa() === "promo" ? PROMO.prezzo : CFG.prezzo; }
   var qs = new URLSearchParams(location.search);
@@ -341,8 +339,8 @@ footer a{color:var(--oro)}
       promoAttiva = true;
       $("nota-promo").hidden = false;
       var giorni = Math.max(Math.ceil((PROMO.fino - Date.now()) / 864e5), 0);
-      var box = $("promo-hero"); box.style.display = "block";
-      box.innerHTML = "<b>100 € invece di 110 €</b><br>Prenota entro il 15 novembre" + (giorni <= 10 ? " (mancano " + giorni + (giorni === 1 ? " giorno" : " giorni") + ")" : "") + " · restano " + restano + " posti in promo.";
+      $("amo").innerHTML = '<span class="amo-prezzo">100 €</span><span class="amo-barrato">invece di <s>110 €</s></span><span class="amo-frase">Cenone e veglione di San Silvestro, se prenoti entro il 15 novembre' + (giorni <= 10 ? ' · mancano ' + giorni + (giorni === 1 ? ' giorno' : ' giorni') : '') + '.</span>';
+      $("posti-hero").textContent = "Restano " + restano + " posti al prezzo promo.";
       $("barra-p").innerHTML = "<b>da 100 €</b> a persona<br>fino al 15 novembre";
       aggiorna();
     }).catch(function(){});
@@ -400,7 +398,7 @@ footer a{color:var(--oro)}
     var ins = await supa.from("prenotazioni_tavoli").insert([riga]);
     if (ins.error) {
       inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma";
-      if (String(ins.error.message || "").indexOf("promo") >= 0) { promoAttiva = false; $("nota-promo").hidden = true; $("promo-hero").style.display = "none"; aggiorna(); return errore("I posti in promo sono appena finiti: il prezzo è tornato a 110 € a persona. Controlla il totale e conferma."); }
+      if (String(ins.error.message || "").indexOf("promo") >= 0) { promoAttiva = false; $("nota-promo").hidden = true; $("amo").innerHTML = AMO_PIENO; aggiorna(); return errore("I posti in promo sono appena finiti: il prezzo è tornato a 110 € a persona. Controlla il totale e conferma."); }
       return errore("Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.");
     }
     rfEvento("Lead", { value: acconto / 100, currency: "EUR", content_name: CFG.slug }, true);
