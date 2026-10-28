@@ -114,7 +114,7 @@ export async function render(container) {
 /* ───────────────── ELENCO ───────────────── */
 async function renderLista(container, aziendaId) {
   const scrive = puoScrivere();
-  const stato = { q: "", cat: "", righe: [], articoli: [], selezione: false, sel: new Set() };
+  const stato = { q: "", cat: "", righe: [], articoli: [], sfusi: [], selezione: false, sel: new Set() };
   container.innerHTML = `<div class="at-wrap">${CSS}
     <div class="at-head"><h2>📦 Attrezzature</h2>${scrive ? `<div style="display:flex;gap:8px;"><button class="at-btn sec" id="at-sel">☑ Seleziona</button><button class="at-btn" id="at-nuova">➕ Nuova scatola</button></div>` : ""}</div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:0 0 10px;"><a href="/docs/guida-magazzino-attrezzature.pdf" target="_blank" rel="noopener" style="font-size:14px;font-weight:800;color:#0E5A7A;text-decoration:none;">📘 Come funziona (PDF)</a><button type="button" id="at-fogli" style="border:0;background:none;padding:0;font-size:14px;font-weight:800;color:#0E5A7A;cursor:pointer;">📄 Bolle d'uscita</button></div>
