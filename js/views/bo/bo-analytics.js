@@ -437,7 +437,7 @@ export async function render(container) {
 
     // ── Slot orari più cliccati ──
     const slotCount = {};
-    rows.filter(r => r.tipo === "click" && r.elemento === "slot_orario").forEach(r => {
+    rows.filter(eSlot).forEach(r => {
       const ora = r.valore || "?";
       slotCount[ora] = (slotCount[ora] || 0) + 1;
     });
