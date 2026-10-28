@@ -414,6 +414,19 @@ function apriNuova(aziendaId, articoli, righe, dopo) {
 
   $("n-meno").onclick = () => { $("n-pezzi").value = Math.max(0, (parseInt($("n-pezzi").value, 10) || 0) - 1); };
   $("n-piu").onclick = () => { $("n-pezzi").value = (parseInt($("n-pezzi").value, 10) || 0) + 1; };
+  $("n-cmeno").onclick = () => { $("n-conf").value = Math.max(1, (parseInt($("n-conf").value, 10) || 1) - 1); };
+  $("n-cpiu").onclick = () => { $("n-conf").value = Math.min(30, (parseInt($("n-conf").value, 10) || 1) + 1); };
+  // a pezzi (piatti, bicchieri), mobile (un codice per pezzo) o fissa (macchinari): cambia cosa serve scrivere
+  let tipo = "quantita";
+  const applicaTipo = () => {
+    sheet.querySelectorAll(".at-tipo").forEach((b) => b.classList.toggle("on", b.dataset.t === tipo));
+    $("n-bloc-pezzi").style.display = tipo === "fisso" ? "none" : "";
+    $("n-bloc-conf").style.display = tipo === "quantita" ? "" : "none";
+    $("n-bloc-fissa").style.display = tipo === "fisso" ? "" : "none";
+    $("n-pezzi-lbl").textContent = tipo === "singolo" ? "Quanti pezzi (ognuno avrà il suo codice)" : "Pezzi in ogni confezione";
+    $("n-ubi-lbl").textContent = tipo === "fisso" ? "Dove si trova (locale)" : "Dove la metti";
+  };
+  sheet.querySelectorAll(".at-tipo").forEach((b) => (b.onclick = () => { tipo = b.dataset.t; applicaTipo(); }));
 
   // il nome e' gia' nel catalogo: riprende categoria, misura, materiale e foto
   $("n-nome").onchange = () => {
