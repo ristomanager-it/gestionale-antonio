@@ -573,7 +573,7 @@ table{border-collapse:collapse;width:100%;}
 // il foglio: una copia per il magazzino e una per chi ritira, ciascuna da firmare
 async function mostraFoglio(id) {
   const { data: f, error } = await sb().from("attr_fogli_uscita").select("*").eq("id", id).maybeSingle();
-  if (error || !f) { alert("Non trovo il foglio di uscita" + (error ? ": " + error.message : "")); return; }
+  if (error || !f) { alert("Non trovo la bolla d'uscita" + (error ? ": " + error.message : "")); return; }
   const { apriAnteprimaStampa } = await import("../utils/anteprima-stampa.js?v=" + (window.APP_V || ""));
   const azienda = window.state?.azienda?.nome || "";
   const quando = new Date(f.creato_il).toLocaleString("it-IT", { timeZone: "Europe/Rome", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
