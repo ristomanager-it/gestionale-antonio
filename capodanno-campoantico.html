@@ -211,10 +211,7 @@ footer a{color:var(--oro)}
     <p>Per tenere il tavolo chiediamo un acconto del 30% del totale, pagato online in modo sicuro. Il resto si salda la sera del cenone.</p>
     <div class="posti" id="posti"></div>
     <form class="modulo" id="modulo" novalidate>
-      <div class="tariffe" id="tariffe" hidden>
-        <label class="tariffa"><input type="radio" name="tariffa" value="promo" checked><span><b>Promo · 100 € a persona</b><small>Solo fino al 15 novembre e per i primi 50 posti. L’acconto non è rimborsabile.</small></span></label>
-        <label class="tariffa"><input type="radio" name="tariffa" value="flessibile"><span><b>Flessibile · 110 € a persona</b><small>Se disdite entro il 27 dicembre ricevete un buono del valore dell’acconto.</small></span></label>
-      </div>
+      <p class="nota" id="nota-promo" hidden style="margin:0;color:var(--oro2)">Prezzo promo 100 € a persona fino al 15 novembre: con la promo l’acconto non è rimborsabile.</p>
       <div class="due">
         <div>
           <label for="ospiti-val">Adulti</label>
@@ -278,8 +275,8 @@ footer a{color:var(--oro)}
     <details><summary>Cosa comprende il prezzo?</summary><p>Il menu completo che vedi sopra, le bevande e lo spumante del brindisi di mezzanotte.</p></details>
     <details><summary>A che ora si inizia?</summary><p>La cena comincia alle 20:00.</p></details>
     <details><summary>Posso aggiungere persone dopo aver prenotato?</summary><p>Sì, dalla pagina della tua prenotazione fino al 30 dicembre, finché ci sono posti. Non si paga altro acconto: le persone in più si saldano la sera.</p></details>
-    <details><summary>C’è una promo?</summary><p>Sì: chi prenota entro il 15 novembre paga 100 € invece di 110 €, per i primi 50 posti. Con la promo l’acconto non è rimborsabile.</p></details>
-    <details><summary>E se non possiamo più venire?</summary><p>Con la tariffa flessibile, se disdite entro il 27 dicembre, con un tocco dalla pagina della prenotazione, ricevete subito un buono del valore dell’acconto, valido 12 mesi per un pranzo o una cena da noi. Dal 28 dicembre l’acconto non è più recuperabile.</p></details>
+    <details><summary>C’è una promo?</summary><p>Sì: fino al 15 novembre, per i primi 50 posti, il cenone costa 100 € invece di 110 €. Con la promo l’acconto non è rimborsabile.</p></details>
+    <details><summary>E se non possiamo più venire?</summary><p>Se avete prenotato a prezzo pieno e disdite entro il 27 dicembre, con un tocco dalla pagina della prenotazione, ricevete subito un buono del valore dell’acconto, valido 12 mesi per un pranzo o una cena da noi. Dal 28 dicembre l’acconto non è più recuperabile.</p></details>
     <details><summary>Ci sono allergie o intolleranze?</summary><p>Scrivetele nel modulo o nella pagina della prenotazione: la cucina le riceve insieme al vostro tavolo.</p></details>
     <details><summary>Bambini?</summary><p>I bambini dai 4 ai 12 anni pagano 40 €. Per i più piccoli, sotto i 4 anni, chiedeteci. Segnalateli nel modulo: pensiamo noi al seggiolone.</p></details>
     <details><summary>Dove siete?</summary><p>Campo Antico, Via Amerina km 5,500, Orte (VT). Telefono <a href="tel:0761402380" style="color:var(--oro)">0761 402380</a>.</p></details>
@@ -306,7 +303,7 @@ footer a{color:var(--oro)}
   try { supa = window.supabase.createClient(CFG.url, CFG.anon); } catch (e) {}
   var ospiti = 2, bimbi = 0, liberi = null, inviando = false;
   var PROMO = { prezzo: 100, posti: 50, fino: new Date("2026-11-15T23:59:59+01:00").getTime() }, promoAttiva = false;
-  function tariffa(){ var r = document.querySelector("input[name=tariffa]:checked"); return promoAttiva && r && r.value === "promo" ? "promo" : "flessibile"; }
+  function tariffa(){ return promoAttiva ? "promo" : "flessibile"; }
   function prezzoAdulto(){ return tariffa() === "promo" ? PROMO.prezzo : CFG.prezzo; }
   var qs = new URLSearchParams(location.search);
   var $ = function(id){ return document.getElementById(id); };
@@ -327,7 +324,6 @@ footer a{color:var(--oro)}
   $("bmeno").onclick = function(){ if (bimbi > 0) { bimbi--; aggiorna(); } };
   $("bpiu").onclick = function(){ if (ospiti + bimbi < 20 && (liberi === null || ospiti + bimbi < liberi)) { bimbi++; aggiorna(); } };
   aggiorna();
-  Array.prototype.forEach.call(document.querySelectorAll("input[name=tariffa]"), function(r){ r.onchange = function(){ aggiorna(); rfEvento("Capodanno_Tariffa", { locale: CFG.locale, tariffa: r.value }); }; });
 
   // promo: fino al 15 novembre e finche' restano posti in promo
   if (supa && Date.now() <= PROMO.fino) supa.rpc("evento_promo_liberi", { p_slug: CFG.slug, p_posti: PROMO.posti })
@@ -335,7 +331,7 @@ footer a{color:var(--oro)}
       var restano = r.error ? 0 : Number(r.data);
       if (restano <= 0) return;
       promoAttiva = true;
-      $("tariffe").hidden = false;
+      $("nota-promo").hidden = false;
       var giorni = Math.max(Math.ceil((PROMO.fino - Date.now()) / 864e5), 0);
       var box = $("promo-hero"); box.style.display = "block";
       box.innerHTML = "<b>100 € invece di 110 €</b><br>Prenota entro il 15 novembre" + (giorni <= 10 ? " (mancano " + giorni + (giorni === 1 ? " giorno" : " giorni") + ")" : "") + " · restano " + restano + " posti in promo.";
@@ -396,7 +392,7 @@ footer a{color:var(--oro)}
     var ins = await supa.from("prenotazioni_tavoli").insert([riga]);
     if (ins.error) {
       inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma";
-      if (String(ins.error.message || "").indexOf("promo") >= 0) { promoAttiva = false; $("tariffe").hidden = true; aggiorna(); return errore("I posti in promo sono appena finiti: la prenotazione è ora alla tariffa flessibile. Controlla il totale e conferma."); }
+      if (String(ins.error.message || "").indexOf("promo") >= 0) { promoAttiva = false; $("nota-promo").hidden = true; $("promo-hero").style.display = "none"; aggiorna(); return errore("I posti in promo sono appena finiti: il prezzo è tornato a 110 € a persona. Controlla il totale e conferma."); }
       return errore("Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.");
     }
     rfEvento("Lead", { value: acconto / 100, currency: "EUR", content_name: CFG.slug }, true);
