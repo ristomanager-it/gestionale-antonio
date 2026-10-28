@@ -838,7 +838,7 @@ export function initMenu() {
 
       // tocco sul nome della sezione = home della sezione; tocco sulla freccia = elenco delle voci
       const homeSez = section.home || ({
-        sala: "home-sezione?s=sala", eventi: "home-sezione?s=eventi", gestione: "home-sezione?s=gestione",
+        magazziniere: "home-sezione?s=magazziniere", sala: "home-sezione?s=sala", eventi: "home-sezione?s=eventi", gestione: "home-sezione?s=gestione",
         menu_prodotti: "home-sezione?s=menu_prodotti", marketing: "home-sezione?s=marketing", personale: "home-sezione?s=personale",
       })[section.key];
       if (homeSez && can(homeSez)) {
