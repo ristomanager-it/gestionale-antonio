@@ -1752,7 +1752,7 @@ if(txt){el.textContent=(ok?'🟢 ':'🔴 ')+txt;el.style.display='inline-block';
         <a class="btn" href="${esc(formUrl)}" style="flex:1 1 0;text-align:center;font-size:14.5px;padding:15px 8px;margin:6px 0 0;">🗓 ${esc(cta)}</a>
         ${false && tel ? `<a class="btn" href="tel:${esc(tel)}" style="flex:1 1 0;text-align:center;font-size:14.5px;padding:15px 8px;margin:6px 0 0;background:#fff;color:var(--btn);">📞 Chiama</a>` : ""}
       </div>
-      ${waUrl ? `<a href="${esc(waUrl)}" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:#25D366;color:#073b1f;font-weight:800;font-size:14.5px;padding:13px 8px;border-radius:8px;">💬 Scrivici su WhatsApp</a>` : ""}
+      ${false && waUrl ? `<a href="${esc(waUrl)}" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:#25D366;color:#073b1f;font-weight:800;font-size:14.5px;padding:13px 8px;border-radius:8px;">💬 Scrivici su WhatsApp</a>` : ""}
     </div>
     ${false && fatti.length ? `<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;">${fatti.map(f => f.charAt(0) === "\u2605"
       ? `<a href="#recensioni" style="border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.16);color:#fff;padding:5px 11px;border-radius:999px;font-size:12.5px;font-weight:700;">${esc(f)} ›</a>`
