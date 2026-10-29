@@ -238,7 +238,7 @@ function invia(){
   var b=q('invia');b.disabled=true;b.textContent='Invio…';msg('');
   fetch(SB+'/rest/v1/prenotazioni_tavoli',{method:'POST',headers:Object.assign({},H,{'Prefer':'return=minimal'}),
     body:JSON.stringify({azienda_id:L.azienda_id,sede_id:L.sede_id||null,cliente_nome:nome,cliente_telefono:tel,cliente_email:em||null,data:st.g,ora:st.o,coperti:st.p,
-      stato:'in_attesa',canale:'online',note:L.piatto+(L.validita_testo?' · '+L.validita_testo:'')+' · '+st.t,token_pubblico:tok,source:(P.get('utm_source')||'landing_promo'),riferimento:rif})})
+      stato:'in_attesa',canale:'online',note:(L.piatto||L.titolo)+(L.validita_testo?' · '+L.validita_testo:'')+' · '+st.t,token_pubblico:tok,source:(P.get('utm_source')||'landing_promo'),riferimento:rif})})
   .then(function(r){
     if(!r.ok)return r.text().then(function(t){throw new Error(t||'errore');});
     fetch(SB+'/functions/v1/prenotazione-notifica-tavolo',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({token_pubblico:tok})}).catch(function(){});
