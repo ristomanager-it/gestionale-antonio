@@ -494,6 +494,7 @@ export async function render(container) {
 
     bindFormEvents();
     caricaMenuCollegato();
+    caricaMessaggiInviati();
   }
 
   async function stampaTalloncino() {
