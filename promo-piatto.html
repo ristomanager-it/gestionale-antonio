@@ -121,12 +121,23 @@ function render(){
   if(S.colore_brand&&/^#[0-9a-f]{6}$/i.test(S.colore_brand))document.documentElement.style.setProperty('--b',S.colore_brand);
   var h='';
   h+='<div class="top">'+(S.logo_url?'<img src="'+esc(S.logo_url)+'" alt="" onerror="this.style.display=\'none\'">':'')+'<b>'+esc(S.nome||'')+'</b></div>';
-  h+='<div class="hero"'+(L.hero_url?' style="background-image:url(\''+esc(L.hero_url)+'\')"':'')+'><div class="hero-in">'
-    +(L.validita_testo?'<span class="kick">'+esc(L.validita_testo)+'</span>':'')
+  var MU=L.media_url||L.hero_url,VID=L.media_tipo==='video'&&L.media_url,KICK=L.etichetta||L.validita_testo,CT=Array.isArray(L.contenuto)&&L.contenuto.length;
+  h+='<div class="hero"'+(MU&&!VID?' style="background-image:url(\''+esc(MU)+'\')"':(VID&&L.media_poster?' style="background-image:url(\''+esc(L.media_poster)+'\')"':''))+'>'
+    +(VID?'<video src="'+esc(L.media_url)+'"'+(L.media_poster?' poster="'+esc(L.media_poster)+'"':'')+' autoplay muted loop playsinline preload="metadata"></video>':'')
+    +'<div class="hero-in">'
+    +(KICK?'<span class="kick">'+esc(KICK)+'</span>':'')
     +'<h1>'+esc(L.titolo)+'</h1>'+(L.sottotitolo?'<p class="sub">'+esc(L.sottotitolo)+'</p>':'')
-    +'<a class="btn" href="#form" id="cta1">Prenota il tuo tavolo</a></div></div>';
+    +'<div class="btns"><a class="btn" href="#form" id="cta1">Prenota il tuo tavolo</a>'+(CT?'<a class="btn2" href="#contenuto">'+esc(L.cta2_testo||'Guarda il menu')+'</a>':'')+'</div></div></div>';
+  if(L.prezzo!=null||(L.comprende&&L.comprende.length)||L.orari_testo){
+    h+='<div class="off">'+(L.prezzo!=null?'<div class="pz">'+esc(String(Number(L.prezzo)).replace('.',','))+' €</div>'+(L.prezzo_nota?'<div class="pn">'+esc(L.prezzo_nota)+'</div>':''):'')
+      +(L.comprende&&L.comprende.length?'<div class="inc">'+L.comprende.map(function(x){return '<span>'+esc(x)+'</span>';}).join('')+'</div>':'')
+      +(L.orari_testo?'<div class="or">🕒 '+esc(L.orari_testo)+'</div>':'')+'</div>';
+  }
   if(L.attenzione)h+='<div class="sez"><p class="lead">'+esc(L.attenzione)+'</p></div>';
   if(L.interesse)h+='<div class="sez"><p>'+esc(L.interesse)+'</p></div>';
+  if(CT){h+='<div class="sez" id="contenuto"><h2>'+esc(L.contenuto_titolo||'Il menu')+'</h2>';
+    L.contenuto.forEach(function(g){var v=(g&&Array.isArray(g.voci))?g.voci:[];if(!v.length)return;h+='<div class="menu-g">'+(g.titolo?'<h3>'+esc(g.titolo)+'</h3>':'')+'<ul>'+v.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';});
+    h+='</div>';}
   h+='<div id="gal"></div>';
   if(L.desiderio)h+='<div class="sez"><h2>Perché da noi</h2><p>'+esc(L.desiderio)+'</p></div>';
   if(R.items&&R.items.length){
