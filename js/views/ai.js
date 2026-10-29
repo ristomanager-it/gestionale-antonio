@@ -1115,7 +1115,11 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   try {
     // le domande normali (scritte o a voce) vanno al Tony nuovo, che legge planning, ricette,
     // prenotazioni, eventi e lotti; i messaggi speciali (benvenuto, ecc.) restano al vecchio
-    const funzioneTony = tipoMessaggio ? "tony-router" : "tony";
+    // i discorsi sui messaggi ai clienti vanno al ramo messaggi (solo responsabili); i messaggi di seguito ("si", "attivalo") restano li'
+    const ultimoUtente = String([...(body.messages || [])].reverse().find((m) => m && m.role === "user")?.content || "");
+    const parlaDiMessaggi = !tipoMessaggio && !body.immagini && ["admin", "manager", "superadmin"].includes(window.state?.ruolo || "") &&
+      (RE_MESSAGGI_CLIENTI.test(ultimoUtente) || (window.__tonyRamoMessaggi === true && ultimoUtente.length <= 80));
+    const funzioneTony = tipoMessaggio ? "tony-router" : parlaDiMessaggi ? "tony-messaggi" : "tony";
     const res = await fetch(`${supabaseUrl}/functions/v1/${funzioneTony}`, {
       method: "POST",
       headers: {
