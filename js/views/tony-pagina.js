@@ -6,6 +6,7 @@ const esc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const TIPI = {
   apri_produzione: "▶ Produzione aperta", planning: "📋 Aggiunta al planning", modifica_planning: "📋 Planning modificato",
   nuova_ricetta: "📖 Ricetta creata", modifica_ricetta: "📖 Ricetta modificata", lotto_fornitore: "📦 Merce registrata",
+  modello_whatsapp: "💬 Messaggio mandato a Meta", attiva_modello_whatsapp: "✅ Messaggio attivato",
   firma_fasi: "✍️ Fasi firmate", registra_lotto: "⚖️ Resa / confezioni", prenotazione: "🍽️ Prenotazione", modifica_prenotazione: "🍽️ Prenotazione modificata",
 };
 
