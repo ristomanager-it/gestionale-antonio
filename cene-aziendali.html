@@ -157,6 +157,19 @@
   var $ = function(id){ return document.getElementById(id); };
   var supa = null; try { supa = window.supabase.createClient(URL_, ANON); } catch (e) {}
   var qs = new URLSearchParams(location.search), inviando = false;
+  var MENU = ((window.CENE || {}).menu || []).filter(function(m){ return m && m.nome && m.piatti && m.piatti.length; });
+  var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); };
+  if (MENU.length) {
+    $("sez-menu").hidden = false; $("blocco-menu-scelta").hidden = false;
+    $("menu-lista").innerHTML = MENU.map(function(m, i){
+      return '<div class="sede"><h3>' + esc(m.nome) + '</h3>' + (m.prezzo ? '<p><b>' + esc(m.prezzo) + ' € a persona</b>' + (m.nota ? ' · ' + esc(m.nota) : '') + '</p>' : '')
+        + m.piatti.map(function(p){ return "<p>" + esc(p) + "</p>"; }).join("") + '<button type="button" class="btn" style="margin-top:14px" data-scegli="' + i + '">Scegli questo menù</button></div>';
+    }).join("");
+    MENU.forEach(function(m){ var o = document.createElement("option"); o.value = m.nome; o.textContent = m.nome + (m.prezzo ? " · " + m.prezzo + " € a persona" : ""); $("menu").appendChild(o); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-scegli]"), function(b){
+      b.onclick = function(){ $("menu").value = MENU[Number(b.getAttribute("data-scegli"))].nome; rfEvento("Aziende_Menu_Scelto", { menu: $("menu").value }); $("richiesta").scrollIntoView({ behavior: "smooth" }); };
+    });
+  }
   var oggi = new Date(); $("data").min = oggi.getFullYear() + "-" + String(oggi.getMonth() + 1).padStart(2, "0") + "-" + String(oggi.getDate()).padStart(2, "0");
   function errore(t){ var m = $("msg"); m.className = "msg ko"; m.textContent = t; }
 
