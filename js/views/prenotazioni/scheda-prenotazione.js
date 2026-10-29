@@ -478,6 +478,11 @@ export async function render(container) {
       </div>
 
       <div class="pren-det-card">
+        <div class="pren-det-section-title">💬 Messaggi inviati</div>
+        <div id="pren-msg-inviati" style="font-size:13px;color:#64748b;">Carico…</div>
+      </div>
+
+      <div class="pren-det-card">
         <div class="pren-det-section-title">Azioni</div>
 
         <div class="pren-det-actions">
