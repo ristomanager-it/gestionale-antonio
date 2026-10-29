@@ -156,7 +156,9 @@ function render(){
     +(D.policy&&D.policy.testo?'<label class="chk"><input type="checkbox" id="pol"><span>'+esc(D.policy.consenso)+' <a href="#condizioni" onclick="document.getElementById(\'condizioni\').open=true">Leggi</a></span></label>':'')
     +'<div class="msg" id="msg"></div><button class="btn" id="invia" type="button">Prenota il tavolo</button>'
     +'<div class="ok" id="ok"><div class="tick">✓</div><h2>Tavolo prenotato!</h2><p id="ok-t"></p><p class="nota">Ti avvisiamo noi per la conferma.</p></div></div>';
-  if(L.regolamento)h+='<details class="reg"><summary>📜 Regolamento e condizioni</summary><div>'+esc(L.regolamento)+'</div></details>';
+  var wa=S.whatsapp?String(S.whatsapp).replace(/[^0-9]/g,''):'',tl=S.telefono?String(S.telefono).replace(/[^0-9+]/g,''):'';
+  if(wa||tl)h+='<p class="nota" style="text-align:center;margin:18px 0 0">oppure</p><div class="alt">'+(wa?'<a href="https://wa.me/'+esc(wa.length<=10?'39'+wa:wa)+'" target="_blank" rel="noopener">💬 WhatsApp</a>':'')+(tl?'<a href="tel:'+esc(tl)+'">📞 Chiama</a>':'')+'</div>';
+  if(D.policy&&D.policy.testo)h+='<details class="reg" id="condizioni"><summary>📋 Condizioni di prenotazione</summary><div>'+esc(D.policy.testo)+'</div></details>';
   h+='<div class="ft"><b>'+esc(S.nome||'')+'</b>'+esc([S.indirizzo,S.citta].filter(Boolean).join(', '))
     +(S.telefono?'<br>📞 <a href="tel:'+esc(String(S.telefono).replace(/[^0-9+]/g,''))+'">'+esc(S.telefono)+'</a>':'')
     +(S.lat&&S.lng?'<br>🧭 <a href="https://www.google.com/maps/dir/?api=1&destination='+esc(S.lat)+','+esc(S.lng)+'" target="_blank" rel="noopener">Come arrivare</a>':'')
