@@ -603,6 +603,33 @@ export async function render(container) {
   }
 
   // Menu componibile collegato alla prenotazione (menu_componibile.prenotazione_id)
+  // messaggi mandati al cliente per questa prenotazione (conferme automatiche) e conversazione con il bot sul suo numero
+  async function caricaMessaggiInviati() {
+    const box = container.querySelector("#pren-msg-inviati");
+    if (!box) return;
+    const p = pageState.prenotazione || {};
+    const ult = String(p.telefono || p.cliente_telefono || p.phone || "").replace(/\D/g, "").slice(-9);
+    const quando = (iso) => new Date(iso).toLocaleString("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const sb = window.supabaseClient;
+    let inv = { data: [] }, ric = { data: [] };
+    try {
+      [inv, ric] = await Promise.all([
+        sb.from("whatsapp_messaggi_log").select("id,testo,stato,errore_msg,contesto,created_at").eq("prenotazione_id", prenotazioneId).order("created_at", { ascending: true }).limit(20),
+        ult.length === 9 ? sb.from("whatsapp_messaggi").select("id,testo,risposta_testo,created_at").eq("azienda_id", aziendaId).like("from_numero", "%" + ult).order("created_at", { ascending: false }).limit(12) : Promise.resolve({ data: [] }),
+      ]);
+    } catch (e) { /* senza messaggi resta il testo di cortesia */ }
+    const righe = [];
+    (inv.data || []).forEach((m) => righe.push({ q: m.created_at, dir: "out", testo: m.testo || "", nota: (m.stato === "errore" ? "⚠ non consegnato" + (m.errore_msg ? ": " + m.errore_msg : "") : "✓ inviato") + (m.contesto === "conferma_prenotazione" ? " · conferma automatica" : "") }));
+    (ric.data || []).forEach((m) => {
+      righe.push({ q: m.created_at, dir: "in", testo: m.testo || "", nota: "ricevuto dal bot" });
+      if (m.risposta_testo) righe.push({ q: m.created_at, dir: "out", testo: m.risposta_testo, nota: "risposta del bot" });
+    });
+    righe.sort((a, b) => new Date(a.q) - new Date(b.q));
+    box.innerHTML = righe.length
+      ? righe.map((r) => `<div style="margin:8px 0;display:flex;flex-direction:column;align-items:${r.dir === "out" ? "flex-end" : "flex-start"};"><div style="max-width:92%;padding:9px 12px;border-radius:12px;font-size:13.5px;color:#0f172a;white-space:pre-wrap;word-break:break-word;background:${r.dir === "out" ? "#e8f5e9" : "#f1f5f9"};border:1px solid ${r.dir === "out" ? "#c8e6c9" : "#e2e8f0"};">${escapeHtml(r.testo)}</div><div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(quando(r.q))} · ${escapeHtml(r.nota)}</div></div>`).join("")
+      : `<div style="font-size:13px;color:#64748b;">Nessun messaggio WhatsApp registrato per questa prenotazione.</div>`;
+  }
+
   async function caricaMenuCollegato() {
     const box = container.querySelector("#pren-menu-box");
     const p = pageState.prenotazione;
