@@ -140,7 +140,12 @@ function render(){
   }
   if(L.attenzione)h+='<div class="sez"><p class="lead">'+esc(L.attenzione)+'</p></div>';
   if(L.interesse)h+='<div class="sez"><p>'+esc(L.interesse)+'</p></div>';
-  if(CT){h+='<div class="sez" id="contenuto"><h2>'+esc(L.contenuto_titolo||'Il menu')+'</h2>';
+  if(MG){var ORD=['antipasti','primi','secondi','contorni','dolci'],GR={};MG.voci.forEach(function(v){var k=String(v.portata||'altro').toLowerCase();(GR[k]=GR[k]||[]).push(v.nome);});
+    var ks=Object.keys(GR).sort(function(a,b){var x=ORD.indexOf(a),y=ORD.indexOf(b);return (x<0?99:x)-(y<0?99:y);});
+    h+='<div class="sez" id="contenuto"><h2>'+(MG.quando==='oggi'?'Oggi in cucina':MG.quando==='domani'?'Domani in cucina':'In cucina il '+esc(MG.quando))+'</h2>';
+    ks.forEach(function(k){h+='<div class="menu-g"><h3>'+esc(k.charAt(0).toUpperCase()+k.slice(1))+'</h3><ul>'+GR[k].map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';});
+    h+='<p class="mnota">🔄 Il menu cambia ogni giorno: questa pagina si aggiorna da sola con i piatti del giorno.</p></div>';}
+  else if(CT){h+='<div class="sez" id="contenuto"><h2>'+esc(L.contenuto_titolo||'Il menu')+'</h2>';
     L.contenuto.forEach(function(g){var v=(g&&Array.isArray(g.voci))?g.voci:[];if(!v.length)return;h+='<div class="menu-g">'+(g.titolo?'<h3>'+esc(g.titolo)+'</h3>':'')+'<ul>'+v.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';});
     h+='</div>';}
   h+='<div id="gal"></div>';
