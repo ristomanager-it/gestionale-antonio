@@ -192,7 +192,7 @@
     try {
       r = await supa.rpc("cena_aziendale_richiesta", { p_azienda_nome: azienda, p_referente: referente, p_email: email, p_telefono: tel, p_persone: persone,
         p_data: $("data").value || null, p_sede: $("sede").value, p_note: $("note").value.trim() || null, p_privacy: true, p_marketing: $("marketing").checked,
-        p_utm: { utm_source: qs.get("utm_source"), utm_medium: qs.get("utm_medium"), utm_campaign: qs.get("utm_campaign") }, p_trappola: $("sito_web").value });
+        p_utm: { utm_source: qs.get("utm_source"), utm_medium: qs.get("utm_medium"), utm_campaign: qs.get("utm_campaign") }, p_trappola: $("sito_web").value, p_menu: MENU.length ? $("menu").value : null });
     } catch (e) { r = null; }
     if (!r || r.error || !r.data || r.data.ok !== true) {
       inviando = false; btn.disabled = false; btn.textContent = "Invia la richiesta";
