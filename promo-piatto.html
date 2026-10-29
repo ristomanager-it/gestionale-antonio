@@ -153,6 +153,7 @@ function render(){
     +'<label>Quante persone</label><div class="step"><button type="button" id="meno">−</button><span id="n">2</span><button type="button" id="piu">+</button></div>'
     +'<label>I tuoi dati</label><input type="text" id="nome" placeholder="Nome e cognome" autocomplete="name"><input type="tel" id="tel" placeholder="Telefono" autocomplete="tel"><input type="email" id="mail" placeholder="Email (facoltativa)" autocomplete="email">'
     +'<label class="chk"><input type="checkbox" id="priv"><span>Acconsento al trattamento dei miei dati per gestire la prenotazione.</span></label>'
+    +(D.policy&&D.policy.testo?'<label class="chk"><input type="checkbox" id="pol"><span>'+esc(D.policy.consenso)+' <a href="#condizioni" onclick="document.getElementById(\'condizioni\').open=true">Leggi</a></span></label>':'')
     +'<div class="msg" id="msg"></div><button class="btn" id="invia" type="button">Prenota il tavolo</button>'
     +'<div class="ok" id="ok"><div class="tick">✓</div><h2>Tavolo prenotato!</h2><p id="ok-t"></p><p class="nota">Ti avvisiamo noi per la conferma.</p></div></div>';
   if(L.regolamento)h+='<details class="reg"><summary>📜 Regolamento e condizioni</summary><div>'+esc(L.regolamento)+'</div></details>';
