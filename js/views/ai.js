@@ -152,6 +152,7 @@ export async function render(app) {
     <button class="chat-chip" data-prompt="Analizza le prenotazioni e il traffico degli ultimi 7 giorni. Da dove arrivano i clienti? Cosa posso migliorare?">📈 Trend settimana</button>
     <button class="chat-chip" data-prompt="Analizza il tasso di conversione e gli abbandoni del form prenotazione. Dammi suggerimenti concreti per migliorarlo">🎯 Conversioni</button>
     <button class="chat-chip" data-prompt="Quali piatti devo produrre oggi?">🍳 Produzione</button>
+    <button class="chat-chip" data-prompt="Fammi vedere i messaggi automatici che arrivano ai clienti su WhatsApp e se Meta li ha approvati">💬 Messaggi ai clienti</button>
     <button class="chat-chip" data-prompt="Dammi suggerimenti marketing per oggi basandoti sui dati reali">📢 Marketing</button>
     <button class="chat-chip" data-voice="ricetta">🎤 Nuova ricetta</button>
   `;
