@@ -188,6 +188,11 @@
         window.location.replace("capodanno-prenotazione.html?t=" + encodeURIComponent(token));
         return;
       }
+      // il Pranzo di Natale ha la sua pagina, con lo stesso criterio
+      if (tipo === "tavolo" && /^natale/i.test(String(data.tag || ""))) {
+        window.location.replace("natale-prenotazione.html?t=" + encodeURIComponent(token));
+        return;
+      }
       azienda = data.aziende || {};
       // Sovrascrive con dati sede se disponibili
       var sede = data.sedi || {};
