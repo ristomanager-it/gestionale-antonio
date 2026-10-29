@@ -230,6 +230,7 @@ function invia(){
   if(!nome)man.push('il nome');if(tel.replace('+','').length<8)man.push('il telefono');if(!st.g)man.push('il giorno');if(!st.t)man.push('pranzo o cena');if(!st.o)man.push("l'orario");
   if(man.length){msg('Per prenotare mancano: '+man.join(', ')+'.',true);return;}
   if(!q('priv').checked){msg('Serve il consenso al trattamento dei dati per prenotare.',true);return;}
+  if(q('pol')&&!q('pol').checked){msg('Per prenotare serve accettare le condizioni di prenotazione.',true);return;}
   if(tel.charAt(0)!=='+'){tel=tel.indexOf('0039')===0?'+'+tel.slice(2):'+39'+tel;}
   var L=D.landing;
   var tok=(window.crypto&&crypto.randomUUID)?crypto.randomUUID().replace(/-/g,''):(Date.now().toString(16)+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,32);
