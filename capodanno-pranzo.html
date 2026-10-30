@@ -72,6 +72,18 @@ p{margin:0 0 14px;text-wrap:pretty}
 .chiuso{border:1.5px solid var(--oro);border-radius:14px;padding:18px 20px;background:var(--nero2)}
 footer{padding:40px 0 60px;border-top:1px solid var(--riga);text-align:center;color:var(--muto);font-size:15px}
 footer a{color:var(--oro)}
+.apri{background:var(--nero2);border:1px solid var(--riga);border-radius:14px;margin-top:14px}
+.apri summary{cursor:pointer;list-style:none;padding:16px 20px;font-weight:700;color:var(--oro);letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center;min-height:54px}
+.apri summary::-webkit-details-marker{display:none}
+.apri summary::after{content:"▾";transition:transform .2s}
+.apri[open] summary::after{transform:rotate(180deg)}
+.apri .dentro{padding:0 20px 18px}
+.portata{text-align:center;margin-top:14px}
+.portata h4{font-family:var(--f-disp);color:var(--oro);font-size:15px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px}
+.portata p{margin:0 0 4px;color:#e6dcc6}
+.prova{position:sticky;top:0;z-index:40;background:#b3261e;color:#fff;text-align:center;font-weight:700;font-size:14px;letter-spacing:.08em;padding:6px 10px}
+.tbd{background:#fff3b0;color:#3a2e00;padding:0 4px;border-radius:3px}
+.contatti{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .cookie{position:fixed;left:12px;right:12px;bottom:16px;z-index:30;background:#1b1813;border:1px solid var(--oro);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:15px}
 .cookie[hidden]{display:none}
 .cookie span{flex:1}
@@ -91,7 +103,7 @@ footer a{color:var(--oro)}
   <div class="wrap aida">
     <h1>Il primo dell’anno non si cucina.</h1>
     <p>Dopo la notte di San Silvestro nessuno ha voglia di mettersi ai fornelli né di lavare i piatti.</p>
-    <p>Venite a pranzo da noi alle 13:00: menu fisso, con calma, senza pensieri.</p>
+    <p>Venite a pranzo alla Trattoria dell’Aquila alle 13:00: i piatti della nostra tradizione, acqua, vino e bevande inclusi.</p>
     <p class="svolta">L’anno nuovo comincia a tavola.</p>
   </div>
 </section>
@@ -100,7 +112,14 @@ footer a{color:var(--oro)}
   <div class="wrap">
     <p class="etichetta">Il menu</p>
     <h2>Pranzo del 1° gennaio</h2>
-    <div class="card" id="menu"><p style="margin:0">Il menu arriva a breve.</p></div>
+    <details class="apri"><summary>Vedi il menu del pranzo</summary><div class="dentro">
+<div class="portata"><h4>Antipasto della Trattoria</h4><p>Affettati del territorio, formaggi, bruschettine, fritti e rustici</p></div>
+<div class="portata"><h4>Primi</h4><p>Risotto alla norcina</p><p>Paccheri all’amatriciana</p></div>
+<div class="portata"><h4>Secondo</h4><p>Coniglio porchettato con patate al forno e cicorietta di campo</p></div>
+<div class="portata"><h4>Dolce</h4><p>Panettone ai frutti di bosco con crema chantilly</p></div>
+<p class="nota" style="text-align:center;margin-top:8px">Acqua, vino e bevande inclusi · 50 € a persona</p>
+<div class="portata" style="margin-top:22px"><h4>Menu bambini · 25 €</h4><p>Antipasto</p><p>Lasagna</p><p>Cotoletta di pollo con patatine</p><p class="nota">È il menu di base: se il bambino preferisce altro, lo cambiamo al tavolo.</p></div>
+    </div></details>
   </div>
 </section>
 
@@ -112,7 +131,7 @@ footer a{color:var(--oro)}
     <form class="modulo" id="modulo" novalidate hidden>
       <div class="due">
         <div><label for="adulti-val">Adulti</label><div class="ospiti"><button type="button" id="ameno" aria-label="Un adulto in meno">−</button><output id="adulti-val">2</output><button type="button" id="apiu" aria-label="Un adulto in più">+</button></div></div>
-        <div><label for="bimbi-val">Bambini</label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
+        <div><label for="bimbi-val">Bambini <span style="font-weight:400">(4-12 anni, menu bambini 25 €)</span></label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
       </div>
       <div class="due">
         <div><label for="nome">Nome</label><input type="text" id="nome" autocomplete="given-name"></div>
@@ -163,7 +182,7 @@ footer a{color:var(--oro)}
         "Il 31 cade di giovedì: restate fino a domenica e scoprite la Tuscia e l’Umbria. Vi diciamo noi cosa vedere."] }
   };
   var qs = new URLSearchParams(location.search);
-  var S = SEDI[qs.get("l") === "campo" ? "campo" : "aquila"];
+  var S = SEDI.aquila;  // il pranzo del 1° si fa solo alla Trattoria dell'Aquila
   if (S.chiave === "campo") document.documentElement.classList.add("campo");
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); };
@@ -193,7 +212,6 @@ footer a{color:var(--oro)}
   if (supa) supa.rpc("capodanno_config_pubblica").then(function(r){
     cfg = r.data ? r.data[S.chiave] : null;
     if (!cfg) return;
-    if (cfg.pranzo_menu) $("menu").innerHTML = cfg.pranzo_menu.split("\n").filter(Boolean).map(function(l){ return "<p>" + esc(l) + "</p>"; }).join("");
     if (cfg.pranzo_attivo && cfg.pranzo_prezzo && (cfg.pranzo_liberi == null || cfg.pranzo_liberi > 0)) {
       $("amo").innerHTML = '<span class="amo-prezzo">' + Math.round(Number(cfg.pranzo_prezzo)) + ' €</span><span class="amo-frase">Il pranzo del 1° gennaio, menu fisso.</span>';
       $("chiuso").hidden = true; $("modulo").hidden = false; aggiorna();
@@ -242,6 +260,7 @@ footer a{color:var(--oro)}
       setTimeout(function(){ location.href = PAG; }, 2500);
     }
   });
+
 
   document.addEventListener("rf-pronto", function(){ rfEvento("ViewContent", { content_name: SLUG, content_category: "capodanno" }, true); });
   if ("IntersectionObserver" in window) {
