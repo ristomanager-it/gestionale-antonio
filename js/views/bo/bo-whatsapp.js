@@ -276,7 +276,7 @@ export async function render(container) {
     const header = document.getElementById("wa-chat-header");
     header.innerHTML = `
       <div style="width:40px;height:40px;border-radius:50%;background:#0E5A7A;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;">
-        ${conv.nome.charAt(0).toUpperCase()}
+        ${esc(conv.nome.charAt(0).toUpperCase())}
       </div>
       <div style="flex:1;">
         <div style="font-weight:700;font-size:15px;color:#111827;">${conv.nome}</div>
