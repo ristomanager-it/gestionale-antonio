@@ -628,6 +628,13 @@ export async function render(container) {
     box.innerHTML = righe.length
       ? righe.map((r) => `<div style="margin:8px 0;display:flex;flex-direction:column;align-items:${r.dir === "out" ? "flex-end" : "flex-start"};"><div style="max-width:92%;padding:9px 12px;border-radius:12px;font-size:13.5px;color:#0f172a;white-space:pre-wrap;word-break:break-word;background:${r.dir === "out" ? "#e8f5e9" : "#f1f5f9"};border:1px solid ${r.dir === "out" ? "#c8e6c9" : "#e2e8f0"};">${escapeHtml(r.testo)}</div><div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(quando(r.q))} · ${escapeHtml(r.nota)}</div></div>`).join("")
       : `<div style="font-size:13px;color:#64748b;">Nessun messaggio WhatsApp registrato per questa prenotazione.</div>`;
+    // tutta la conversazione con questo cliente, nell'Inbox (solo ai responsabili)
+    const ruoloWa = String(window.state?.ruolo || "").toLowerCase();
+    if (ult.length === 9 && ["admin", "manager", "superadmin"].includes(ruoloWa)) {
+      box.insertAdjacentHTML("beforeend", `<button type="button" id="pren-apri-wa" class="btn btn-secondary" style="margin-top:10px;width:100%;">💬 Apri tutta la conversazione</button>`);
+      const bw = box.querySelector("#pren-apri-wa");
+      if (bw) bw.onclick = () => { window.location.hash = "#/bo-whatsapp?n=" + encodeURIComponent(String(p.telefono || p.cliente_telefono || "").replace(/\D/g, "")) + "&nome=" + encodeURIComponent(String(p.cliente_nome || "").trim()); };
+    }
   }
 
   async function caricaMenuCollegato() {
