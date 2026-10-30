@@ -339,8 +339,8 @@ export async function render(container) {
             background:white;
             border:1px solid #e5e7eb;
             font-size:14px;
-            color:#111827;
-          ">${msg.testo || "[media]"}</div>
+            color:#111827;white-space:pre-wrap;word-break:break-word;
+          ">${esc(msg.testo) || "[media]"}</div>
           <div style="font-size:11px;color:#9ca3af;padding:0 4px;">${ora}</div>
         </div>
 
