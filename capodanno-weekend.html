@@ -110,7 +110,7 @@ body{padding-bottom:80px}
 <section class="blocco">
   <div class="wrap">
     <p class="etichetta">Le camere</p>
-    <h2>Camera doppia con colazione</h2>
+    <h2>Camera matrimoniale con colazione</h2>
     <div class="prezzi" id="prezzi"></div>
     <p class="nota" style="margin-top:12px">Prezzo per camera matrimoniale standard, colazione inclusa. Il cenone si paga a parte, a persona.</p>
     <p style="margin-top:14px"><span id="nota-altre">Per camere triple, quadruple o altre sistemazioni chiamateci o scriveteci.</span><span id="nota-triple" hidden>Si può aggiungere un adulto in camera (tripla) o due (quadrupla): 30 € a notte per ogni adulto in più, così in tre o in quattro si spende meno a testa. Le scegliete nel modulo. Per altre sistemazioni chiamateci o scriveteci.</span><span id="nota-superior"> All’Hotel Aquila ci sono anche camere superior e suite: chiedeteci la disponibilità.</span> I bambini fino a 4 anni non pagano e dormono in camera con i genitori.</p>
@@ -138,9 +138,9 @@ body{padding-bottom:80px}
         </div>
         <label>Quante notti?</label>
         <div class="notti">
-          <label><input type="radio" name="notti" value="1" checked><span>1 notte<small>31 → 1</small></span></label>
-          <label><input type="radio" name="notti" value="2"><span>2 notti<small>31 → 2 · −10%</small></span></label>
-          <label><input type="radio" name="notti" value="3"><span>3 notti<small>31 → 3 · −15%</small></span></label>
+          <label><input type="radio" name="notti" value="1" checked><span>1 notte<small>dal 31 al 1°</small></span></label>
+          <label><input type="radio" name="notti" value="2"><span>2 notti<small>dal 31 al 2</small></span></label>
+          <label><input type="radio" name="notti" value="3"><span>3 notti<small>dal 31 al 3</small></span></label>
         </div>
       </div>
       <div class="due">
@@ -321,7 +321,7 @@ body{padding-bottom:80px}
   function disegnaPrezzi(){
     $("prezzi").innerHTML = [1,2,3].map(function(n){
       var sc = n === 2 ? cfg.sconto_2_notti : n === 3 ? cfg.sconto_3_notti : 0;
-      return '<div class="prezzo"><span>' + n + (n === 1 ? " notte" : " notti") + '<small>dal 31 dicembre' + (sc ? " · sconto " + Number(sc) + "%" : "") + '</small></span><b>' + euro(camera(n)) + '</b></div>';
+      return '<div class="prezzo"><span>' + n + (n === 1 ? " notte" : " notti") + '<small>dal 31 dicembre al ' + n + ' gennaio · ' + euro(camera(n) / 2) + ' a persona</small></span><b>' + euro(camera(n)) + '</b></div>';
     }).join("");
     var daPersona = prezzoCena() + camera(1) / 2;
     $("amo").innerHTML = '<span class="amo-prezzo">da ' + Math.round(daPersona) + ' €</span><span class="amo-frase">a persona, cenone e camera con colazione' + (promoAttiva ? ", prenotando entro il 15 novembre" : "") + '.</span>';
