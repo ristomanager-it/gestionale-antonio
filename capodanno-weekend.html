@@ -471,7 +471,7 @@ footer a{color:var(--oro)}
       notti: notti(), camere: camere, camere_sede: dorme, transfer: !!((viaAquila || festaCampo()) && $("navetta").checked), pranzo_primo: t.pranzo ? persone : 0, importo_totale: t.totale,
       stato: "in_attesa_pagamento", canale: "online", note: ((camere > 1 || extraTotali() ? "[Camere: " + riepilogoStanze() + "] " : "") + (bimbi ? "[Età bambini: " + eta.join(", ") + "] " : "") + note).trim() || null, richieste_speciali: note || null,
       token_pubblico: token, tag: cen.slug, source: qs.get("utm_source") || "weekend",
-      riferimento: JSON.stringify({ landing: S.slug + "-weekend", adulti: adulti, bambini: bimbi, eta_bambini: eta, notti: notti(), camere: camere, totale: t.totale,
+      riferimento: JSON.stringify({ landing: S.slug + "-weekend", adulti: adulti, bambini: bimbi, eta_bambini: eta, stanze: stanze, notti: notti(), camere: camere, totale: t.totale,
         consenso_gdpr: true, consenso_marketing: $("marketing").checked, utm_source: qs.get("utm_source"), utm_campaign: qs.get("utm_campaign") })
     }]);
     if (ins.error) {
