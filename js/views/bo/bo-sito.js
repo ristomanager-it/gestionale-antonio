@@ -2178,7 +2178,7 @@ body{background:#fbf7f0;color:#3b2412}
 .lp{max-width:430px;margin:0 auto;background:#fbf7f0;font-size:16px;line-height:1.5}
 .lp a{text-decoration:none}
 .lp-hero{position:relative;height:620px;background:#2a1a0d;color:#fff;overflow:hidden}
-.lp-hero img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover}
+.lp-hero img,.lp-hero video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover}
 .lp-vel{position:absolute;left:0;top:0;right:0;bottom:0;background:rgba(26,16,8,.54)}
 .lp-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px}
 .lp-logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:25px;font-weight:700;line-height:1.1}
