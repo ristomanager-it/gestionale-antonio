@@ -1813,15 +1813,8 @@ if (onlineModal.classList.contains("open")) {
           window.location.hash = "#/bo-whatsapp?n=" + encodeURIComponent(String(phone).replace(/\D/g, "")) + "&nome=" + encodeURIComponent(nome);
           return;
         }
-        const data = pren?.data ? formatDateHuman(pren.data) : "";
-        const ora = pren?.ora ? String(pren.ora).slice(0, 5) : "";
-        const coperti = pren?.coperti || 0;
-
-        const text = encodeURIComponent(
-          `Ciao ${nome}, ti confermiamo la prenotazione per ${coperti} persone${data ? ` il ${data}` : ""}${ora ? ` alle ${ora}` : ""}.`
-        );
-
-        window.open(`https://wa.me/${sanitizePhone(phone)}?text=${text}`, "_blank");
+        // si apre solo la chat con il cliente: il messaggio lo scrive e lo invia chi vuole, niente parte da solo
+        window.open(`https://wa.me/${String(phone).replace(/\D/g, "")}`, "_blank");
       };
     });
 
