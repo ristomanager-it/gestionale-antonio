@@ -202,7 +202,7 @@ footer a{color:var(--oro)}
   </div>
 </section>
 
-<section class="blocco">
+<section class="blocco" hidden>
   <div class="wrap">
     <p class="etichetta">Le camere</p>
     <h2>Camera doppia con colazione</h2>
@@ -295,6 +295,9 @@ footer a{color:var(--oro)}
   function notti(){ var r = document.querySelector("input[name=notti]:checked"); return r ? Number(r.value) : 1; }
   // persone in piu' oltre le due della matrimoniale: 0, 1 (tripla) o 2 (quadrupla)
   var NOMI = ["matrimoniale", "tripla", "quadrupla"];
+  // prezzo a notte per tipologia: matrimoniale base, +40 € per ogni adulto in piu' (tripla 170, quadrupla 210)
+  function prezzoNotteTipo(k){ return Number(cfg ? cfg.prezzo_notte : 130) + 40 * k; }
+  function euro0(n){ return (Math.round(n) === n ? n : n.toFixed(2).replace(".", ",")) + " €"; }
   function tipiAmmessi(){ return S.chiave === "campo" && !viaAquila; }
   function extraTotali(){ return tipiAmmessi() ? stanze.reduce(function(a, x){ return a + x; }, 0) : 0; }
   function tripla(){ return extraTotali(); }
@@ -307,10 +310,10 @@ footer a{color:var(--oro)}
     var box = $("stanze");
     box.innerHTML = stanze.map(function(x, i){
       var tipi = tipiAmmessi()
-        ? '<div class="tipi">' + [["Matrimoniale", "2 persone"], ["Tripla", "+30 € a notte"], ["Quadrupla", "+60 € a notte"]].map(function(t, k){
+        ? '<div class="tipi">' + [["Matrimoniale", 0], ["Tripla", 1], ["Quadrupla", 2]].map(function(t, k){ t = [t[0], euro0(prezzoNotteTipo(k)) + " a notte"];
             return '<button type="button" data-i="' + i + '" data-t="' + k + '" aria-pressed="' + (x === k) + '">' + t[0] + '<small>' + t[1] + '</small></button>'; }).join("") + '</div>'
         : '';
-      return '<div class="stanza"><b>Camera ' + (i + 1) + (tipiAmmessi() ? '' : ' · matrimoniale') + '</b>'
+      return '<div class="stanza"><b>Camera ' + (i + 1) + (tipiAmmessi() ? '' : ' · matrimoniale · ' + euro0(prezzoNotteTipo(0)) + ' a notte') + '</b>'
         + (i > 0 ? '<button type="button" class="togli" data-togli="' + i + '">Togli</button>' : '<span></span>') + tipi + '</div>';
     }).join("");
     Array.prototype.forEach.call(box.querySelectorAll("[data-t]"), function(b){ b.onclick = function(){ stanze[+b.dataset.i] = +b.dataset.t; disegnaStanze(); aggiorna(); }; });
@@ -341,7 +344,7 @@ footer a{color:var(--oro)}
   function conti(){
     var c = adulti * prezzoCena() + grandi() * 40;
     camere = stanze.length;
-    var k = camere * camera(notti()) + 30 * extraTotali() * notti();
+    var k = camere * camera(notti()) + 40 * extraTotali() * notti();
     var p = pranzoAttivo() && $("pranzo").checked ? adulti * Number(cfg.pranzo_prezzo) + grandi() * Number(cfg.pranzo_prezzo_bambini || cfg.pranzo_prezzo) : 0;
     var tr = (viaAquila || festaCampo()) && $("navetta").checked ? paganti() * 5 : 0;
     return { cenone: c, camere: k, pranzo: p, transfer: tr, totale: c + k + p + tr };
@@ -358,7 +361,9 @@ footer a{color:var(--oro)}
     $("adulti-val").textContent = adulti; $("bimbi-val").textContent = bimbi;
     var t = conti(), acc = Math.round(t.totale * 30) / 100;
     var dove = viaAquila ? " all’Hotel Aquila" : "";
-    $("conto").innerHTML = "<div><span>Cenone" + (festaCampo() ? " a Campo Antico" : "") + " · " + paganti() + " persone" + (piccoli() ? " + " + piccoli() + " sotto i 4 anni (gratis)" : "") + "</span><span>" + euro(t.cenone) + "</span></div>"
+    $("conto").innerHTML = "<div><span>Cenone" + (festaCampo() ? " a Campo Antico" : "") + " · " + adulti + (adulti === 1 ? " adulto" : " adulti") + " × " + euro0(prezzoCena()) + "</span><span>" + euro(adulti * prezzoCena()) + "</span></div>"
+      + (grandi() ? "<div><span>Cenone · " + grandi() + (grandi() === 1 ? " bambino" : " bambini") + " 4-12 anni × 40 €</span><span>" + euro(grandi() * 40) + "</span></div>" : "")
+      + (piccoli() ? "<div><span>" + piccoli() + (piccoli() === 1 ? " bambino" : " bambini") + " sotto i 4 anni</span><span>gratis</span></div>" : "")
       + "<div><span>" + riepilogoStanze() + dove + " · " + notti() + (notti() === 1 ? " notte" : " notti") + "</span><span>" + euro(t.camere) + "</span></div>"
       + (t.transfer ? "<div><span>Transfer andata e ritorno · " + paganti() + " persone</span><span>" + euro(t.transfer) + "</span></div>" : "")
       + (t.pranzo ? "<div><span>Pranzo del 1° gennaio</span><span>" + euro(t.pranzo) + "</span></div>" : "")
