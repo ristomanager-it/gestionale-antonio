@@ -971,7 +971,7 @@ export function initMenu() {
     const cacheBtn = document.createElement("div");
     cacheBtn.className = "menu-logout";
     cacheBtn.style.cssText = "background:#f3f4f6;color:#374151;margin-bottom:4px;font-size:12px;";
-    cacheBtn.innerText = "🔄 Aggiorna app";
+    cacheBtn.innerText = "🔄 Aggiorna app · versione " + String(window.APP_V || "").split("-").pop();
     cacheBtn.onclick = async () => {
       try {
         if ("caches" in window) {
