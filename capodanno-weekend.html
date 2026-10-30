@@ -84,7 +84,11 @@ footer a{color:var(--oro)}
 .prova{position:sticky;top:0;z-index:40;background:#b3261e;color:#fff;text-align:center;font-weight:700;font-size:14px;letter-spacing:.08em;padding:6px 10px}
 .tbd{background:#fff3b0;color:#3a2e00;padding:0 4px;border-radius:3px}
 .contatti{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.cookie{position:fixed;left:12px;right:12px;bottom:16px;z-index:30;background:#1b1813;border:1px solid var(--oro);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:15px}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.barra{position:fixed;left:0;right:0;bottom:0;z-index:10;background:rgba(11,10,8,.96);border-top:1px solid var(--riga);padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px}
+.barra .btn{flex:1;min-height:48px;padding:10px 12px;font-size:14px}
+body{padding-bottom:80px}
+.cookie{position:fixed;left:12px;right:12px;bottom:84px;z-index:30;background:#1b1813;border:1px solid var(--oro);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:15px}
 .cookie[hidden]{display:none}
 .cookie span{flex:1}
 .cookie button{min-height:44px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-family:inherit;font-size:14px;cursor:pointer}
@@ -96,7 +100,7 @@ footer a{color:var(--oro)}
 
 <header class="hero">
   <video id="video" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>
-  <div class="wrap"><div id="amo"></div></div>
+  <div class="wrap"><div id="amo"></div><div class="cta"><a class="btn" href="#prenota">Prenota il soggiorno</a><a class="btn vuoto" id="cta-cenone" href="#">Prenota solo il cenone</a></div></div>
 </header>
 
 <section class="blocco" data-traccia="Weekend_Letto_Copy">
@@ -109,7 +113,7 @@ footer a{color:var(--oro)}
     <h2>Camera doppia con colazione</h2>
     <div class="prezzi" id="prezzi"></div>
     <p class="nota" style="margin-top:12px">Prezzo per camera matrimoniale standard, colazione inclusa. Il cenone si paga a parte, a persona.</p>
-    <p style="margin-top:14px"><span id="nota-altre">Per camere triple, quadruple o altre sistemazioni chiamateci o scriveteci.</span><span id="nota-triple" hidden>Ci sono anche camere triple e quadruple: 40 € a notte per ogni persona in più, così in tre o in quattro si spende meno a testa. Le scegliete nel modulo. Per altre sistemazioni chiamateci o scriveteci.</span><span id="nota-superior"> All’Hotel Aquila ci sono anche camere superior e suite: chiedeteci la disponibilità.</span> I bambini fino a 4 anni non pagano e dormono in camera con i genitori.</p>
+    <p style="margin-top:14px"><span id="nota-altre">Per camere triple, quadruple o altre sistemazioni chiamateci o scriveteci.</span><span id="nota-triple" hidden>Si può aggiungere un adulto in camera (tripla) o due (quadrupla): 30 € a notte per ogni adulto in più, così in tre o in quattro si spende meno a testa. Le scegliete nel modulo. Per altre sistemazioni chiamateci o scriveteci.</span><span id="nota-superior"> All’Hotel Aquila ci sono anche camere superior e suite: chiedeteci la disponibilità.</span> I bambini fino a 4 anni non pagano e dormono in camera con i genitori.</p>
     <div class="contatti"><a class="btn vuoto" id="btn-chiama" href="#">Chiama</a><a class="btn vuoto" id="btn-wa" href="#">Scrivici</a></div>
     <div class="card" id="nota-veglione" hidden style="margin-top:22px"><h3>Volete fare festa fino a tardi?</h3><p>A Campo Antico, a pochi minuti da qui, c’è il cenone con il veglione. Potete dormire all’Hotel Aquila e festeggiare là: vi accompagniamo noi e vi riportiamo in hotel dopo la festa.</p><p style="margin:0">Il cenone a Campo Antico costa 110 € a persona (100 € in promo fino al 15 novembre). Transfer andata e ritorno: 5 € a persona.</p></div>
   </div>
@@ -192,8 +196,8 @@ footer a{color:var(--oro)}
         <label>Tipo di camera</label>
         <div class="notti">
           <label><input type="radio" name="tipo" value="doppia" checked><span>Matrimoniale<small>2 persone</small></span></label>
-          <label><input type="radio" name="tipo" value="tripla"><span>Tripla<small>+40 € a notte</small></span></label>
-          <label><input type="radio" name="tipo" value="quadrupla"><span>Quadrupla<small>+80 € a notte</small></span></label>
+          <label><input type="radio" name="tipo" value="tripla"><span>Tripla<small>+30 € a notte</small></span></label>
+          <label><input type="radio" name="tipo" value="quadrupla"><span>Quadrupla<small>+60 € a notte</small></span></label>
         </div>
       </div>
       <div class="chiuso" id="riga-transfer" hidden><b>Le camere di Campo Antico sono esaurite.</b> Potete dormire all’Hotel Aquila: vi portiamo noi a Campo Antico per il cenone e vi riaccompagniamo dopo la festa. Transfer andata e ritorno: 5 € a persona.</div>
@@ -217,6 +221,8 @@ footer a{color:var(--oro)}
 </section>
 
 <footer><div class="wrap"><p id="piede"></p></div></footer>
+
+<div class="barra"><a class="btn" href="#prenota">Prenota soggiorno</a><a class="btn vuoto" id="barra-cenone" href="#">Prenota cenone</a></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
@@ -272,6 +278,7 @@ footer a{color:var(--oro)}
     Array.prototype.forEach.call(document.querySelectorAll("input[name=festa]"), function(r){ r.onchange = function(){ aggiorna(); }; });
   }
   $("link-cenone").href = S.landing + "#prenota";
+  $("cta-cenone").href = S.landing + "#prenota"; $("barra-cenone").href = S.landing + "#prenota";
   $("piede").innerHTML = esc(S.nome) + " · " + esc(S.indirizzo) + '<br><a href="tel:' + S.telRaw + '">' + S.tel + "</a>";
 
   function festaCampo(){ var r = document.querySelector("input[name=festa]:checked"); return S.chiave === "aquila" && !!r && r.value === "campo"; }
@@ -284,7 +291,7 @@ footer a{color:var(--oro)}
   function pranzoAttivo(){ return cfg && cfg.pranzo_attivo && cfg.pranzo_prezzo; }
   function conti(){
     var c = adulti * prezzoCena() + bimbi * 40;
-    var k = camere * (camera(notti()) + 40 * tripla() * notti());
+    var k = camere * (camera(notti()) + 30 * tripla() * notti());
     var p = pranzoAttivo() && $("pranzo").checked ? adulti * Number(cfg.pranzo_prezzo) + bimbi * Number(cfg.pranzo_prezzo_bambini || cfg.pranzo_prezzo) : 0;
     var tr = (viaAquila || festaCampo()) ? (adulti + bimbi) * 5 : 0;
     return { cenone: c, camere: k, pranzo: p, transfer: tr, totale: c + k + p + tr };
