@@ -184,7 +184,7 @@
       prenotazione = data;
       // 29/10/2026: chi ha prenotato il Capodanno (etichetta "capodanno-...") vede la SUA pagina a tema, non quella generica.
       // Il pulsante dei messaggi di conferma apre sempre questa pagina: da qui si viene portati in quella giusta.
-      if (tipo === "tavolo" && /^capodanno/i.test(String(data.tag || ""))) {
+      if (tipo === "tavolo" && /(^|-)capodanno/i.test(String(data.tag || ""))) {
         window.location.replace("capodanno-prenotazione.html?t=" + encodeURIComponent(token));
         return;
       }
