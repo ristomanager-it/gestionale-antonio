@@ -87,6 +87,16 @@ footer a{color:var(--oro)}
 .contatti{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .stanza{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid var(--riga)}
 .stanza b{color:var(--avorio)}
+.stanza .occ{grid-column:1 / -1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stanza .occ small{display:block;color:var(--oro2);font-weight:600;font-size:14px;margin-bottom:4px}
+.stanza .occ .ospiti button{width:42px;height:42px;font-size:20px}
+.stanza .occ .ospiti output{font-size:24px;min-width:30px}
+.stanza .eta{grid-column:1 / -1;display:grid;gap:6px}
+.stanza .eta label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;font-size:14px;color:var(--avorio);font-weight:600}
+.stanza .eta select{min-height:44px;min-width:120px;background:#1b1813;color:var(--avorio);border:1.5px solid #3a3326;border-radius:10px;padding:6px 10px;font-family:inherit;font-size:16px}
+.stanza .eta select.manca{border-color:#c0574a}
+.stanza .tipo-auto{grid-column:1 / -1;font-weight:700;color:var(--oro)}
+.stanza .tipo-auto.ko{color:#ffb4a8}
 .stanza .tipi{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .stanza .tipi button{min-height:46px;border-radius:10px;border:1.5px solid #3a3326;background:transparent;color:var(--avorio);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;line-height:1.2;padding:6px 4px}
 .stanza .tipi button small{display:block;font-weight:400;color:var(--muto);font-size:12px}
@@ -169,12 +179,7 @@ footer a{color:var(--oro)}
           <label><input type="radio" name="notti" value="3"><span>3 notti<small>dal 31 al 3</small></span></label>
         </div>
       </div>
-      <div class="due">
-        <div><label for="adulti-val">Adulti</label><div class="ospiti"><button type="button" id="ameno" aria-label="Un adulto in meno">−</button><output id="adulti-val">2</output><button type="button" id="apiu" aria-label="Un adulto in più">+</button></div></div>
-        <div><label for="bimbi-val">Bambini</label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
-      </div>
-      <div id="eta-bimbi"></div>
-      <p class="nota" style="margin:-4px 0 0">Dai 4 ai 12 anni: cenone 40 €, pranzo 25 €. Sotto i 4 anni non pagano e dormono con i genitori.</p>
+      <p class="nota" style="margin:0">Per ogni camera indicate quanti adulti e quanti bambini ci dormono. Bambini dai 4 ai 12 anni: cenone 40 €, pranzo 25 €. Sotto i 4 anni non pagano e dormono con i genitori.</p>
       <div style="border:1.5px solid var(--riga);border-radius:12px;padding:14px 16px">
         <label style="font-size:17px">Le camere</label>
         <div id="stanze"></div>
@@ -271,7 +276,7 @@ footer a{color:var(--oro)}
   var PROMO_FINO = new Date("2026-11-15T23:59:59+01:00").getTime();
   var cfg = null, promoAttiva = false, adulti = 2, bimbi = 0, camere = 1, inviando = false;
   var eta = [];  // eta' di ogni bambino: null finche' non la indicano
-  var stanze = [0];  // per ogni camera: adulti in piu' oltre i 2 della matrimoniale (0, 1 = tripla, 2 = quadrupla)
+  var stanze = [{ a: 2, b: [] }];  // per ogni camera: adulti (a) ed eta' dei bambini (b)
 
   document.title = "Weekend lungo di Capodanno · " + S.nome;
   $("logo").src = S.logo; $("logo").alt = "Logo " + S.nome; $("nome-sede").textContent = S.nome;
@@ -299,28 +304,55 @@ footer a{color:var(--oro)}
   function prezzoNotteTipo(k){ return Number(cfg ? cfg.prezzo_notte : 130) + 40 * k; }
   function euro0(n){ return (Math.round(n) === n ? n : n.toFixed(2).replace(".", ",")) + " €"; }
   function tipiAmmessi(){ return S.chiave === "campo" && !viaAquila; }
-  function extraTotali(){ return tipiAmmessi() ? stanze.reduce(function(a, x){ return a + x; }, 0) : 0; }
+  // in camera dormono gli adulti e i bambini dai 4 anni; sotto i 4 anni dormono con i genitori
+  function lettoStanza(x){ return x.a + x.b.filter(function(e){ return e != null && e >= 4; }).length; }
+  function maxLetto(){ return tipiAmmessi() ? 4 : 2; }
+  function tipoStanza(x){ return tipiAmmessi() ? Math.min(2, Math.max(0, lettoStanza(x) - 2)) : 0; }
+  function extraTotali(){ return stanze.reduce(function(t, x){ return t + tipoStanza(x); }, 0); }
   function tripla(){ return extraTotali(); }
   function tipoCamera(){ return riepilogoStanze(); }
+  function sincronizza(){
+    adulti = stanze.reduce(function(t, x){ return t + x.a; }, 0);
+    eta = [].concat.apply([], stanze.map(function(x){ return x.b; }));
+    bimbi = eta.length; camere = stanze.length;
+  }
   function riepilogoStanze(){
-    var c = [0, 0, 0]; stanze.forEach(function(x){ c[tipiAmmessi() ? x : 0]++; });
+    var c = [0, 0, 0]; stanze.forEach(function(x){ c[tipoStanza(x)]++; });
     return c.map(function(n, i){ return n ? n + " " + (n === 1 ? NOMI[i] : NOMI[i].replace(/e$/, "i").replace(/a$/, "e")) : ""; }).filter(Boolean).join(" + ");
   }
   function disegnaStanze(){
-    var box = $("stanze");
+    var box = $("stanze"), TIPI = ["Matrimoniale", "Tripla", "Quadrupla"];
     box.innerHTML = stanze.map(function(x, i){
-      var tipi = tipiAmmessi()
-        ? '<div class="tipi">' + [["Matrimoniale", 0], ["Tripla", 1], ["Quadrupla", 2]].map(function(t, k){ t = [t[0], euro0(prezzoNotteTipo(k)) + " a notte"];
-            return '<button type="button" data-i="' + i + '" data-t="' + k + '" aria-pressed="' + (x === k) + '">' + t[0] + '<small>' + t[1] + '</small></button>'; }).join("") + '</div>'
-        : '';
-      return '<div class="stanza"><b>Camera ' + (i + 1) + (tipiAmmessi() ? '' : ' · matrimoniale · ' + euro0(prezzoNotteTipo(0)) + ' a notte') + '</b>'
-        + (i > 0 ? '<button type="button" class="togli" data-togli="' + i + '">Togli</button>' : '<span></span>') + tipi + '</div>';
+      var etaHtml = x.b.map(function(e, j){
+        var opz = '<option value="">Età</option>';
+        for (var k = 0; k <= 12; k++) opz += '<option value="' + k + '"' + (e === k ? ' selected' : '') + '>' + (k === 0 ? "meno di 1 anno" : k + (k === 1 ? " anno" : " anni")) + '</option>';
+        return '<label>Età del bambino ' + (j + 1) + '<select data-i="' + i + '" data-j="' + j + '"' + (e == null ? ' class="manca"' : '') + '>' + opz + '</select></label>';
+      }).join("");
+      var troppi = lettoStanza(x) > maxLetto();
+      var tipo = troppi
+        ? '<div class="tipo-auto ko">Troppe persone: in questa camera dormono al massimo ' + maxLetto() + ' persone (più un bimbo sotto i 4 anni). Aggiungete un’altra camera.</div>'
+        : '<div class="tipo-auto">' + TIPI[tipoStanza(x)] + ' · ' + euro0(prezzoNotteTipo(tipoStanza(x))) + ' a notte</div>';
+      return '<div class="stanza"><b>Camera ' + (i + 1) + '</b>'
+        + (i > 0 ? '<button type="button" class="togli" data-togli="' + i + '">Togli</button>' : '<span></span>')
+        + '<div class="occ"><div><small>Adulti</small><div class="ospiti"><button type="button" data-act="a-" data-i="' + i + '" aria-label="Un adulto in meno">−</button><output>' + x.a + '</output><button type="button" data-act="a+" data-i="' + i + '" aria-label="Un adulto in più">+</button></div></div>'
+        + '<div><small>Bambini</small><div class="ospiti"><button type="button" data-act="b-" data-i="' + i + '" aria-label="Un bambino in meno">−</button><output>' + x.b.length + '</output><button type="button" data-act="b+" data-i="' + i + '" aria-label="Un bambino in più">+</button></div></div></div>'
+        + (etaHtml ? '<div class="eta">' + etaHtml + '</div>' : '') + tipo + '</div>';
     }).join("");
-    Array.prototype.forEach.call(box.querySelectorAll("[data-t]"), function(b){ b.onclick = function(){ stanze[+b.dataset.i] = +b.dataset.t; disegnaStanze(); aggiorna(); }; });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-act]"), function(btn){
+      btn.onclick = function(){
+        var x = stanze[+btn.dataset.i], act = btn.dataset.act;
+        if (act === "a-" && x.a > 1) x.a--;
+        if (act === "a+" && x.a < 6) x.a++;
+        if (act === "b-" && x.b.length) x.b.pop();
+        if (act === "b+" && x.b.length < 4) x.b.push(null);
+        disegnaStanze(); aggiorna();
+      };
+    });
+    Array.prototype.forEach.call(box.querySelectorAll("select[data-j]"), function(sel){
+      sel.onchange = function(){ stanze[+sel.dataset.i].b[+sel.dataset.j] = sel.value === "" ? null : +sel.value; disegnaStanze(); aggiorna(); };
+    });
     Array.prototype.forEach.call(box.querySelectorAll("[data-togli]"), function(b){ b.onclick = function(){ stanze.splice(+b.dataset.togli, 1); disegnaStanze(); aggiorna(); }; });
   }
-  // chi dorme: 2 in matrimoniale, 3 in tripla, 4 in quadrupla (i bimbi sotto i 4 anni non contano)
-  function postiLetto(){ return stanze.reduce(function(a, x){ return a + 2 + (tipiAmmessi() ? x : 0); }, 0); }
   // i bimbi sotto i 4 anni non pagano e dormono con i genitori; dai 4 ai 12 pagano la quota bambini
   function grandi(){ return eta.filter(function(e){ return e != null && e >= 4; }).length; }
   function piccoli(){ return eta.filter(function(e){ return e != null && e < 4; }).length; }
@@ -338,10 +370,11 @@ footer a{color:var(--oro)}
       sel.onchange = function(){ eta[+sel.dataset.b] = sel.value === "" ? null : +sel.value; sel.classList.toggle("manca", sel.value === ""); aggiorna(); };
     });
   }
-  function camereNecessarie(){ return postiLetto() >= paganti() ? camere : camere + 1; }
+  function camereNecessarie(){ return stanze.some(function(x){ return lettoStanza(x) > maxLetto(); }) ? camere + 1 : camere; }
   function camera(n){ if (!cfg) return 0; var base = Number(cfg.prezzo_notte) * n; var sc = n === 2 ? Number(cfg.sconto_2_notti) : n === 3 ? Number(cfg.sconto_3_notti) : 0; return Math.round(base * (100 - sc)) / 100; }
   function pranzoAttivo(){ return cfg && cfg.pranzo_attivo && cfg.pranzo_prezzo; }
   function conti(){
+    sincronizza();
     var c = adulti * prezzoCena() + grandi() * 40;
     camere = stanze.length;
     var k = camere * camera(notti()) + 40 * extraTotali() * notti();
@@ -350,15 +383,14 @@ footer a{color:var(--oro)}
     return { cenone: c, camere: k, pranzo: p, transfer: tr, totale: c + k + p + tr };
   }
   function aggiorna(){
+    sincronizza();
     $("riga-navetta").hidden = !(viaAquila || festaCampo());
     var avv = $("avviso-camere"), serve = camereNecessarie();
     if (camere < serve) {
       avv.hidden = false;
-      avv.textContent = "Siete in " + paganti() + (piccoli() ? " più " + piccoli() + " sotto i 4 anni" : "") + ", ma le camere scelte hanno " + postiLetto() + " posti letto (in matrimoniale dormono 2 persone, più un bimbo sotto i 4 anni con i genitori). "
-        + (tipiAmmessi() ? "Scegliete una tripla o una quadrupla, oppure aggiungete una camera." : "Aggiungete una camera.");
+      avv.textContent = "In una camera ci sono troppe persone: aggiungete un’altra camera e spostate lì qualcuno.";
     } else { avv.hidden = true; avv.textContent = ""; }
     $("invia").disabled = camere < serve || etaMancanti() > 0;
-    $("adulti-val").textContent = adulti; $("bimbi-val").textContent = bimbi;
     var t = conti(), acc = Math.round(t.totale * 30) / 100;
     var dove = viaAquila ? " all’Hotel Aquila" : "";
     $("conto").innerHTML = "<div><span>Cenone" + (festaCampo() ? " a Campo Antico" : "") + " · " + adulti + (adulti === 1 ? " adulto" : " adulti") + " × " + euro0(prezzoCena()) + "</span><span>" + euro(adulti * prezzoCena()) + "</span></div>"
@@ -372,11 +404,9 @@ footer a{color:var(--oro)}
       + "<div class=\"ora\"><span>Acconto da pagare ora</span><span>" + euro(acc) + "</span></div>";
   }
   function step(id, fn){ $(id).onclick = function(){ fn(); aggiorna(); }; }
-  step("ameno", function(){ if (adulti > 1) adulti--; }); step("apiu", function(){ if (adulti + bimbi < 20) adulti++; });
-  step("bmeno", function(){ if (bimbi > 0) { bimbi--; disegnaEta(); } }); step("bpiu", function(){ if (adulti + bimbi < 20) { bimbi++; disegnaEta(); } });
   $("aggiungi-stanza").onclick = function(){
     if (stanze.length >= 10 || (cfg && cfg.camere_libere != null && stanze.length >= cfg.camere_libere)) return;
-    stanze.push(0); disegnaStanze(); aggiorna();
+    stanze.push({ a: 2, b: [] }); disegnaStanze(); aggiorna();
   };
   Array.prototype.forEach.call(document.querySelectorAll("input[name=notti]"), function(r){ r.onchange = aggiorna; });
   $("pranzo").onchange = aggiorna;
