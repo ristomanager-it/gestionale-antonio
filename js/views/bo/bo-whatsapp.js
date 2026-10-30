@@ -279,7 +279,7 @@ export async function render(container) {
         ${esc(conv.nome.charAt(0).toUpperCase())}
       </div>
       <div style="flex:1;">
-        <div style="font-weight:700;font-size:15px;color:#111827;">${conv.nome}</div>
+        <div style="font-weight:700;font-size:15px;color:#111827;">${esc(conv.nome)}</div>
         <div style="font-size:12px;color:#6b7280;">+${conv.numero}</div>
       </div>
       <div style="display:flex;gap:8px;">
