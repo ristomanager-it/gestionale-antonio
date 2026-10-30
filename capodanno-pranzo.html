@@ -197,6 +197,8 @@ footer a{color:var(--oro)}
   $("link-cenone").href = S.landing + "#prenota";
   $("link-weekend").href = "capodanno-weekend.html?l=" + S.chiave;
   $("piede").innerHTML = esc(S.nome) + " · " + esc(S.indirizzo) + '<br><a href="tel:' + S.telRaw + '">' + S.tel + "</a>";
+  // arriva dalla pagina della prenotazione del cenone: nome gia' compilato
+  if (qs.get("n")) { var parti = qs.get("n").trim().split(/\s+/); $("nome").value = parti.shift() || ""; $("cognome").value = parti.join(" "); }
 
   function prezzoB(){ return Number(cfg.pranzo_prezzo_bambini || cfg.pranzo_prezzo); }
   function totale(){ return adulti * Number(cfg.pranzo_prezzo) + bimbi * prezzoB(); }
