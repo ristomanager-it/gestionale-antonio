@@ -390,6 +390,23 @@ footer a{color:var(--oro)}
   }
 })();
 </script>
+<script>
+(function(){
+  // contatore visite nostro: solo pagina e provenienza, nessun dato personale
+  try {
+    var A = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+    var q = new URLSearchParams(location.search), vid = null;
+    try { if (localStorage.getItem("rf_consenso") === "si") { vid = localStorage.getItem("rf_vid"); if (!vid) { vid = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("rf_vid", vid); } } } catch (e) {}
+    var ref = document.referrer || "";
+    var fonte = q.get("utm_source") || (ref ? (function(){ try { return new URL(ref).hostname; } catch (e) { return "altro"; } })() : "diretto");
+    fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/landing_visite", { method: "POST", keepalive: true,
+      headers: { "Content-Type": "application/json", "apikey": A, "Authorization": "Bearer " + A, "Prefer": "return=minimal" },
+      body: JSON.stringify({ pagina: (location.pathname.split("/").pop() || "index").replace(".html", ""), variante: q.get("l"),
+        sorgente: fonte, campagna: q.get("utm_campaign"), contenuto: q.get("utm_content"),
+        referrer: ref ? ref.slice(0, 250) : null, mobile: /Mobi|Android/i.test(navigator.userAgent), visitatore: vid }) }).catch(function(){});
+  } catch (e) {}
+})();
+</script>
 <div class="cookie" id="cookie" hidden><span>Usiamo i cookie</span><button type="button" id="ck-no">Rifiuta</button><button type="button" id="ck-si">Accetta</button></div>
 <script>
 (function(){
