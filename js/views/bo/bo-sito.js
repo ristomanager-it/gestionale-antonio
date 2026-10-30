@@ -2331,7 +2331,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
 <body>
 <main class="lp">
   <div class="lp-hero">
-    <img src="${esc(lpFoto)}" alt="Salsicce e broccoletti" width="1400" height="1050">
+    <video class="lp-vid" autoplay muted loop playsinline preload="auto" poster="${esc(lpPoster)}" aria-label="La carbonara della Trattoria dell’Aquila"><source src="${esc(lpVideo)}" type="video/mp4"></video><script>(function(){var v=document.querySelector(".lp-vid");if(!v)return;var c=navigator.connection||{};if((window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)||c.saveData){v.removeAttribute("autoplay");v.preload="none";try{v.pause()}catch(e){}}})();</script>
     <div class="lp-vel"></div>
     <div class="lp-top"><div class="lp-logo">${esc(nome)}</div><div class="lp-loc">Orte · uscita A1</div></div>
     <div class="lp-hc">
