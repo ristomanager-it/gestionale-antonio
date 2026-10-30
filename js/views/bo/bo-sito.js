@@ -2169,8 +2169,10 @@ ${ctaBar}${footer}
 
     let landingPranzo = null;
     if (aziendaId === "b331365f-17db-4dda-aa2f-77a09427fe42" && sedeId === "4a936e52-a1e3-42fc-843c-e8d15dc86040") {
-      const lpFotoOrig = SUPABASE_URL + "/storage/v1/object/public/media-aziende/" + aziendaId + "/voce-ec6dd7df-ef82-498d-998a-aa1c0740f36a-1783681578432.png";
-      const lpFoto = await fotoLeggera(lpFotoOrig, "salsicce-broccoletti");
+      // In alto c'e' il video della carbonara (2,8 MB, 720x720, senza audio) con la copertina del piatto finito: file in sito/<azienda>/
+      const lpBase = SUPABASE_URL + "/storage/v1/object/public/media-aziende/sito/" + aziendaId + "/";
+      const lpVideo = lpBase + "landing-carbonara.mp4";
+      const lpPoster = lpBase + "landing-carbonara-poster.jpg";
       const lpCss = `
 body{background:#fbf7f0;color:#3b2412}
 .lp{max-width:430px;margin:0 auto;background:#fbf7f0;font-size:16px;line-height:1.5}
