@@ -95,6 +95,8 @@ p{margin:0 0 14px;text-wrap:pretty}
 .portata p{margin:0 0 3px;color:var(--avorio)}
 
 /* GALLERIA */
+.video-mercato{margin:4px 0 24px;border-radius:12px;overflow:hidden;aspect-ratio:1/1;max-width:520px;border:1px solid var(--riga)}
+.video-mercato video{width:100%;height:100%;object-fit:cover;display:block}
 .galleria{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .galleria img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px}
 .video2{margin-top:14px;border-radius:8px;overflow:hidden;border:1px solid var(--riga)}
@@ -155,7 +157,7 @@ footer a{color:var(--oro)}
 
 <header class="hero">
   <video class="poster" autoplay muted loop playsinline preload="metadata" poster="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/15MAcKgo41xV05mv9q03HgNZUDrQ7i4CH.jpg" aria-hidden="true">
-    <source src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1ydnSCFzxL6vRZ8gupQUV4qCh-H3EIASa.mp4" type="video/mp4">
+    <source src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1fstojPCEn1XBllgvVKSjxl-rmlVS8tij.mp4" type="video/mp4">
   </video>
   <div class="wrap">
     <div class="amo" id="amo"><span class="amo-prezzo">95 €</span><span class="amo-frase">Il Cenone di San Silvestro, bevande incluse.</span></div>
@@ -170,6 +172,7 @@ footer a{color:var(--oro)}
 <p>Oppure il ristorante col secondo turno: piatti che arrivano tutti insieme e il cameriere che ti toglie il piatto per liberare il tavolo.</p>
 <p class="svolta">Quest’anno fatelo diverso.</p>
 <p class="noi">Noi della Trattoria dell’Aquila lavoriamo tutti i giorni pesce fresco, acquistato di notte al mercato generale del pesce e scelto pezzo per pezzo. Il 31 dicembre lo portiamo in tavola per voi: al caldo, seduti, con le persone a cui tenete.</p>
+<div class="video-mercato"><video autoplay muted loop playsinline preload="metadata" aria-label="I nostri acquisti di pesce al mercato generale"><source src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1ydnSCFzxL6vRZ8gupQUV4qCh-H3EIASa.mp4" type="video/mp4"></video></div>
 <p>Pesce fresco lavorato nella nostra cucina, musica dal vivo, un solo turno e il tavolo vostro fino al brindisi.</p>
 <p>A mezzanotte cotechino e lenticchie di Castelluccio, il nostro panettone e lo spumante.</p>
 <p class="chiusa">Bevande incluse, bambini dai 4 ai 12 anni a 40 €, a un minuto dall’uscita dell’autostrada con ampio parcheggio.</p>
