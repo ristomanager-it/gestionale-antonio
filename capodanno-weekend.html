@@ -298,6 +298,7 @@ footer a{color:var(--oro)}
       + (dove || festaCampo() ? "<div><span>Transfer andata e ritorno · " + (adulti + bimbi) + " persone</span><span>" + euro(t.transfer) + "</span></div>" : "")
       + (t.pranzo ? "<div><span>Pranzo del 1° gennaio</span><span>" + euro(t.pranzo) + "</span></div>" : "")
       + "<div><span>Totale</span><span>" + euro(t.totale) + "</span></div>"
+      + "<div style=\"color:var(--muto);font-size:15px\"><span>Pari a, a persona</span><span>" + euro(t.totale / Math.max(adulti + bimbi, 1)) + "</span></div>"
       + "<div class=\"ora\"><span>Acconto da pagare ora</span><span>" + euro(acc) + "</span></div>";
   }
   function step(id, fn){ $(id).onclick = function(){ fn(); aggiorna(); }; }
