@@ -466,7 +466,7 @@ footer a{color:var(--oro)}
     fbq("init", PIXEL); fbq("track", "PageView");
     var g = document.createElement("script"); g.async = true; g.src = "https://www.googletagmanager.com/gtag/js?id=" + GA4; document.head.appendChild(g);
     window.dataLayer = window.dataLayer || []; window.gtag = function(){ dataLayer.push(arguments); };
-    gtag("js", new Date()); gtag("config", GA4);
+    gtag("js", new Date()); gtag("config", GA4); gtag("config", "AW-16882695231");
     document.dispatchEvent(new Event("rf-pronto"));
   }
   var c = null; try { c = localStorage.getItem("rf_consenso"); } catch (e) {}
