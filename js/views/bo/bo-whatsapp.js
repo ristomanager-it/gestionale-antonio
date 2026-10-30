@@ -354,8 +354,8 @@ export async function render(container) {
               color:#1b5e20;
               font-size:14px;
               align-self:flex-end;
-              border:1px solid #c8e6c9;
-            ">${msg.risposta_testo}</div>
+              border:1px solid #c8e6c9;white-space:pre-wrap;word-break:break-word;
+            ">${esc(msg.risposta_testo)}</div>
             <div style="font-size:11px;color:#9ca3af;padding:0 4px;">🤖 ${ora} · Risposta automatica</div>
           </div>
         ` : ""}
