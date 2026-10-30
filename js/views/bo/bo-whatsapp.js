@@ -322,9 +322,9 @@ export async function render(container) {
               background:#0E5A7A;
               color:white;
               font-size:14px;
-              align-self:flex-end;
-            ">${msg.testo || "[media]"}</div>
-            <div style="font-size:11px;color:#9ca3af;padding:0 4px;">✓ ${ora} · Operatore</div>
+              align-self:flex-end;white-space:pre-wrap;word-break:break-word;
+            ">${esc(msg.testo) || "[media]"}</div>
+            <div style="font-size:11px;color:#9ca3af;padding:0 4px;">${msg._errore ? "⚠ non consegnato" : "✓"} ${ora} · ${msg._auto ? "Messaggio automatico" : "Operatore"}</div>
           </div>
         `;
       }
