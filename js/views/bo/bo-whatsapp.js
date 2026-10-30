@@ -22,6 +22,7 @@ export async function render(container) {
           #wa-chat { position:fixed !important; top:0; left:0; right:0; bottom:0; z-index:9500; border-radius:0 !important; display:none !important; }
           #wa-chat.mobile-open { display:flex !important; }
           #wa-back-btn { display:flex !important; }
+          #wa-chat-input { padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px)) !important; }
         }
       </style>
       <div id="wa-layout">
