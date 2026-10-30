@@ -109,7 +109,7 @@ footer a{color:var(--oro)}
     <h2>Camera doppia con colazione</h2>
     <div class="prezzi" id="prezzi"></div>
     <p class="nota" style="margin-top:12px">Prezzo per camera matrimoniale standard, colazione inclusa. Il cenone si paga a parte, a persona.</p>
-    <p style="margin-top:14px">Per camere triple, quadruple o altre sistemazioni chiamateci o scriveteci.<span id="nota-superior"> All’Hotel Aquila ci sono anche camere superior e suite: chiedeteci la disponibilità.</span></p>
+    <p style="margin-top:14px"><span id="nota-altre">Per camere triple, quadruple o altre sistemazioni chiamateci o scriveteci.</span><span id="nota-triple" hidden>Ci sono anche camere triple e quadruple, con un supplemento di 30 € a notte per camera: le scegliete nel modulo. Per altre sistemazioni chiamateci o scriveteci.</span><span id="nota-superior"> All’Hotel Aquila ci sono anche camere superior e suite: chiedeteci la disponibilità.</span></p>
     <div class="contatti"><a class="btn vuoto" id="btn-chiama" href="#">Chiama</a><a class="btn vuoto" id="btn-wa" href="#">Scrivici</a></div>
     <div class="card" id="nota-veglione" hidden style="margin-top:22px"><h3>Volete fare festa fino a tardi?</h3><p>A Campo Antico, a pochi minuti da qui, c’è il cenone con il veglione. Potete dormire all’Hotel Aquila e festeggiare là: vi accompagniamo noi e vi riportiamo in hotel dopo la festa.</p><p style="margin:0">Il cenone a Campo Antico costa 110 € a persona (100 € in promo fino al 15 novembre). Transfer andata e ritorno: 5 € a persona.</p></div>
   </div>
@@ -188,6 +188,13 @@ footer a{color:var(--oro)}
         <div><label for="adulti-val">Adulti</label><div class="ospiti"><button type="button" id="ameno" aria-label="Un adulto in meno">−</button><output id="adulti-val">2</output><button type="button" id="apiu" aria-label="Un adulto in più">+</button></div></div>
       </div>
       <div><label for="bimbi-val">Bambini <span style="font-weight:400">(4-12 anni · cenone 40 €, pranzo 25 €)</span></label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
+      <div id="riga-tipo" hidden>
+        <label>Tipo di camera</label>
+        <div class="notti" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+          <label><input type="radio" name="tipo" value="doppia" checked><span>Matrimoniale<small>2 persone</small></span></label>
+          <label><input type="radio" name="tipo" value="tripla"><span>Tripla o quadrupla<small>+30 € a notte a camera</small></span></label>
+        </div>
+      </div>
       <div class="chiuso" id="riga-transfer" hidden><b>Le camere di Campo Antico sono esaurite.</b> Potete dormire all’Hotel Aquila: vi portiamo noi a Campo Antico per il cenone e vi riaccompagniamo dopo la festa. Transfer andata e ritorno: 5 € a persona.</div>
       <label class="spunta" id="riga-pranzo" hidden><input type="checkbox" id="pranzo"> <span id="pranzo-label">Aggiungo il pranzo del 1° gennaio</span></label>
       <div class="due">
@@ -196,7 +203,8 @@ footer a{color:var(--oro)}
       </div>
       <div><label for="telefono">Telefono</label><input type="tel" id="telefono" autocomplete="tel"></div>
       <div><label for="email">Email</label><input type="email" id="email" autocomplete="email"></div>
-      <div><label for="note">Allergie e segnalazioni</label><textarea id="note" rows="3" placeholder="Allergie, letto aggiunto, orario di arrivo…"></textarea></div>
+      <div><label for="note">Note</label><textarea id="note" rows="3" placeholder="Siete un gruppo? Scrivete i nomi degli amici che prenotano con voi. Allergie, orario di arrivo…"></textarea>
+        <p class="nota" style="margin:6px 0 0">In gruppo ognuno può prenotare e pagare il proprio acconto: scrivete qui i nomi degli altri e vi mettiamo allo stesso tavolo.</p></div>
       <div class="conto" aria-live="polite" id="conto"></div>
       <label class="spunta"><input type="checkbox" id="privacy"> <span>Ho letto l’informativa privacy e acconsento al trattamento dei dati per gestire la prenotazione.</span></label>
       <label class="spunta"><input type="checkbox" id="marketing"> <span>Voglio ricevere le vostre prossime serate e offerte (facoltativo).</span></label>
@@ -254,7 +262,10 @@ footer a{color:var(--oro)}
   $("copy").innerHTML = "<h1>" + esc(S.copy[0]) + "</h1><p>" + esc(S.copy[1]) + "</p><p>" + esc(S.copy[2]) + "</p><p class=\"svolta\">" + esc(S.copy[3]) + "</p><p>" + esc(S.copy[4]) + "</p>";
   $("btn-chiama").href = "tel:" + S.telRaw;
   $("btn-wa").href = "mailto:info@campoantico.com?subject=" + encodeURIComponent("Camere per il weekend di Capodanno · " + S.nome) + "&body=" + encodeURIComponent("Buongiorno, vorrei informazioni sulle camere per il weekend di Capodanno.\n\nPersone:\nNotti:\nTipo di camera:\n");
-  if (S.chiave === "campo") $("nota-superior").hidden = true;
+  if (S.chiave === "campo") {
+    $("nota-superior").hidden = true; $("riga-tipo").hidden = false; $("nota-altre").hidden = true; $("nota-triple").hidden = false;
+    Array.prototype.forEach.call(document.querySelectorAll("input[name=tipo]"), function(r){ r.onchange = function(){ aggiorna(); }; });
+  }
   else {
     $("nota-veglione").hidden = false; $("riga-festa").hidden = false;
     Array.prototype.forEach.call(document.querySelectorAll("input[name=festa]"), function(r){ r.onchange = function(){ aggiorna(); }; });
@@ -265,11 +276,12 @@ footer a{color:var(--oro)}
   function festaCampo(){ var r = document.querySelector("input[name=festa]:checked"); return S.chiave === "aquila" && !!r && r.value === "campo"; }
   function prezzoCena(){ var s = festaCampo() ? SEDI.campo : S; return promoAttiva ? s.promo : s.prezzo; }
   function notti(){ var r = document.querySelector("input[name=notti]:checked"); return r ? Number(r.value) : 1; }
+  function tripla(){ var r = document.querySelector("input[name=tipo]:checked"); return S.chiave === "campo" && !viaAquila && !!r && r.value === "tripla"; }
   function camera(n){ if (!cfg) return 0; var base = Number(cfg.prezzo_notte) * n; var sc = n === 2 ? Number(cfg.sconto_2_notti) : n === 3 ? Number(cfg.sconto_3_notti) : 0; return Math.round(base * (100 - sc)) / 100; }
   function pranzoAttivo(){ return cfg && cfg.pranzo_attivo && cfg.pranzo_prezzo; }
   function conti(){
     var c = adulti * prezzoCena() + bimbi * 40;
-    var k = camere * camera(notti());
+    var k = camere * (camera(notti()) + (tripla() ? 30 * notti() : 0));
     var p = pranzoAttivo() && $("pranzo").checked ? adulti * Number(cfg.pranzo_prezzo) + bimbi * Number(cfg.pranzo_prezzo_bambini || cfg.pranzo_prezzo) : 0;
     var tr = (viaAquila || festaCampo()) ? (adulti + bimbi) * 5 : 0;
     return { cenone: c, camere: k, pranzo: p, transfer: tr, totale: c + k + p + tr };
@@ -279,7 +291,7 @@ footer a{color:var(--oro)}
     var t = conti(), acc = Math.round(t.totale * 30) / 100;
     var dove = viaAquila ? " all’Hotel Aquila" : "";
     $("conto").innerHTML = "<div><span>Cenone" + (festaCampo() ? " a Campo Antico" : "") + " · " + (adulti + bimbi) + " persone</span><span>" + euro(t.cenone) + "</span></div>"
-      + "<div><span>" + camere + (camere === 1 ? " camera" : " camere") + dove + " · " + notti() + (notti() === 1 ? " notte" : " notti") + "</span><span>" + euro(t.camere) + "</span></div>"
+      + "<div><span>" + camere + (camere === 1 ? " camera" : " camere") + (tripla() ? " tripla/quadrupla" : "") + dove + " · " + notti() + (notti() === 1 ? " notte" : " notti") + "</span><span>" + euro(t.camere) + "</span></div>"
       + (dove || festaCampo() ? "<div><span>Transfer andata e ritorno · " + (adulti + bimbi) + " persone</span><span>" + euro(t.transfer) + "</span></div>" : "")
       + (t.pranzo ? "<div><span>Pranzo del 1° gennaio</span><span>" + euro(t.pranzo) + "</span></div>" : "")
       + "<div><span>Totale</span><span>" + euro(t.totale) + "</span></div>"
@@ -313,7 +325,7 @@ footer a{color:var(--oro)}
     if (S.chiave === "campo" && cfg.camere_quota != null && cfg.camere_libere <= 0 && tutti.aquila && tutti.aquila.camere_libere > 0) {
       viaAquila = true;
       cfg.camere_quota = tutti.aquila.camere_quota; cfg.camere_libere = tutti.aquila.camere_libere;
-      $("riga-transfer").hidden = false; $("nota-superior").hidden = false;
+      $("riga-transfer").hidden = false; $("nota-superior").hidden = false; $("riga-tipo").hidden = true;
     }
     promoAttiva = Number(r[1].data || 0) > 0;
     if (!cfg) return;
@@ -348,7 +360,7 @@ footer a{color:var(--oro)}
       cliente_nome: (nome + " " + cognome).trim(), cliente_telefono: tel, cliente_email: email,
       data: "2026-12-31", ora: "20:00", coperti: persone, bambini: bimbi, promo: promoAttiva,
       notti: notti(), camere: camere, camere_sede: dorme, transfer: !!(viaAquila || festaCampo()), pranzo_primo: t.pranzo ? persone : 0, importo_totale: t.totale,
-      stato: "in_attesa_pagamento", canale: "online", note: note || null, richieste_speciali: note || null,
+      stato: "in_attesa_pagamento", canale: "online", note: ((tripla() ? "[Camera tripla/quadrupla] " : "") + note).trim() || null, richieste_speciali: note || null,
       token_pubblico: token, tag: cen.slug, source: qs.get("utm_source") || "weekend",
       riferimento: JSON.stringify({ landing: S.slug + "-weekend", adulti: adulti, bambini: bimbi, notti: notti(), camere: camere, totale: t.totale,
         consenso_gdpr: true, consenso_marketing: $("marketing").checked, utm_source: qs.get("utm_source"), utm_campaign: qs.get("utm_campaign") })
@@ -369,7 +381,7 @@ footer a{color:var(--oro)}
         headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON },
         body: JSON.stringify({ action: "create_session", azienda_id: "b331365f-17db-4dda-aa2f-77a09427fe42", tipo: "tavolo", riferimento_id: id,
           importo_centesimi: acconto, cliente_email: email, cliente_nome: (nome + " " + cognome).trim(),
-          descrizione: "Acconto 30% · Weekend di Capodanno · " + S.nome + " · " + notti() + (notti() === 1 ? " notte" : " notti"),
+          descrizione: "Acconto 30% · Weekend di Capodanno · " + S.nome + " · " + notti() + (notti() === 1 ? " notte" : " notti") + (tripla() ? " · tripla/quadrupla" : ""),
           success_url: PAG + "&esito=ok", cancel_url: PAG + "&esito=annullato", metadata: { landing: S.slug + "-weekend" } }) });
       var out = await res.json();
       if (!res.ok || !out.checkout_url) throw new Error("checkout");
