@@ -170,10 +170,14 @@ footer a{color:var(--oro)}
         </div>
       </div>
       <div class="due">
-        <div><label for="camere-val">Camere</label><div class="ospiti"><button type="button" id="cmeno" aria-label="Una camera in meno">−</button><output id="camere-val">1</output><button type="button" id="cpiu" aria-label="Una camera in più">+</button></div></div>
         <div><label for="adulti-val">Adulti</label><div class="ospiti"><button type="button" id="ameno" aria-label="Un adulto in meno">−</button><output id="adulti-val">2</output><button type="button" id="apiu" aria-label="Un adulto in più">+</button></div></div>
+        <div><label for="bimbi-val">Bambini 4-12 anni</label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
       </div>
-      <div><label for="bimbi-val">Bambini <span style="font-weight:400">(4-12 anni · cenone 40 €, pranzo 25 €)</span></label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
+      <p class="nota" style="margin:-4px 0 0">Bambini 4-12 anni: cenone 40 €, pranzo 25 €. Sotto i 4 anni non pagano e dormono con i genitori.</p>
+      <div style="border:1.5px solid var(--riga);border-radius:12px;padding:14px 16px">
+        <label for="camere-val" style="font-size:17px">Quante camere?</label>
+        <div class="ospiti"><button type="button" id="cmeno" aria-label="Una camera in meno">−</button><output id="camere-val">1</output><button type="button" id="cpiu" aria-label="Aggiungi una camera">+</button><span class="nota" style="margin:0">premete + per aggiungere una camera</span></div>
+      </div>
       <div id="riga-tipo" hidden>
         <label>Tipo di camera</label>
         <div class="notti">
