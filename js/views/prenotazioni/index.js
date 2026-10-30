@@ -1785,8 +1785,22 @@ if (onlineModal.classList.contains("open")) {
       };
     });
 
+    // l'icona WhatsApp apre la conversazione con quel cliente nell'Inbox dell'app (tutto lo storico, conferme comprese).
+    // Senza WhatsApp collegato, o per chi non vede l'Inbox, resta come prima: WhatsApp sul telefono con la conferma gia' scritta.
+    let _waInbox = null;
+    const haInboxWhatsapp = async () => {
+      if (_waInbox !== null) return _waInbox;
+      const ruolo = String(window.state?.ruolo || "").toLowerCase();
+      if (!aziendaId || !["admin", "manager", "superadmin"].includes(ruolo)) return (_waInbox = false);
+      try {
+        const { data } = await window.supabaseClient.from("whatsapp_connessioni").select("id").eq("azienda_id", aziendaId).eq("modalita", "meta").eq("attivo", true).limit(1);
+        _waInbox = !!(data && data.length);
+      } catch (e) { _waInbox = false; }
+      return _waInbox;
+    };
+
     lista.querySelectorAll(".whatsapp").forEach((el) => {
-      el.onclick = (event) => {
+      el.onclick = async (event) => {
         event.stopPropagation();
 
         const phone = el.dataset.phone || "";
