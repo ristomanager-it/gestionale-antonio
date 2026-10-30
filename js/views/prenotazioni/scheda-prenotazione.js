@@ -671,6 +671,33 @@ export async function render(container) {
       };
       return;
     }
+    // prenotazione nata da un evento (nelle note: "da preventivo N"): il menu e' quello del preventivo, si stampa dal Menu da tavolo
+    const mEv = String(p.note || "").match(/da preventivo (\d+)/i);
+    if (mEv) {
+      const [{ data: pv }, { data: rg }] = await Promise.all([
+        sb.from("preventivi").select("id, titolo_evento, nome_festeggiato").eq("id", mEv[1]).maybeSingle(),
+        sb.from("preventivi_righe").select("sezione_menu, nome_portata").eq("preventivo_id", mEv[1]).is("semilavorato_di", null).order("id", { ascending: true }),
+      ]);
+      const gruppi = new Map();
+      (rg || []).forEach((r) => {
+        const n = String(r.nome_portata || "").trim();
+        if (!n || /proposte da scegliere|\?$/i.test(n) || /semilavorat|menu bambini/i.test(r.sezione_menu || "")) return;
+        const s = r.sezione_menu || "Menu";
+        if (!gruppi.has(s)) gruppi.set(s, []);
+        gruppi.get(s).push(n);
+      });
+      if (pv && gruppi.size) {
+        box.innerHTML = '<div style="border:1px solid #7dd3fc;background:#f0f9ff;border-radius:12px;padding:12px;color:#0f172a;">'
+          + '<div style="font-weight:700;font-size:15px;">Menu dell\'evento · ' + escapeHtml(pv.nome_festeggiato || pv.titolo_evento || "") + '</div>'
+          + '<div style="font-size:12px;color:#475569;margin:2px 0 8px;">Dal preventivo n. ' + escapeHtml(String(pv.id)) + '</div>'
+          + [...gruppi.entries()].map(([s, piatti]) => '<div style="margin-top:8px;"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#c2410c;">' + escapeHtml(s) + '</div>'
+              + piatti.map((n) => '<div style="font-size:13px;line-height:1.5;">' + escapeHtml(n) + '</div>').join("") + '</div>').join("")
+          + '</div>'
+          + '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">' + btn("pren-menu-ev-stampa", "🖨 Stampa menu da tavolo", true) + '</div>';
+        container.querySelector("#pren-menu-ev-stampa").onclick = () => { window.location.hash = "#/menu-tavolo?pren=" + p.id; };
+        return;
+      }
+    }
     box.innerHTML = '<div style="border:1px dashed #cbd5e1;border-radius:12px;padding:12px;font-size:13px;color:#64748b;">Nessun menu collegato.</div>'
       + '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
       + btn("pren-menu-crea", "➕ Crea menu", true) + btn("pren-menu-collega", "📁 Collega menu esistente", false)
