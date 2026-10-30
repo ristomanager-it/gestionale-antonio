@@ -507,6 +507,18 @@ export async function render(container) {
   // ── POLLING MESSAGGI NUOVI (ogni 15 secondi) ─────────────────────────────
   await caricaConversazioni();
 
+  // dalla riga di una prenotazione: "#/bo-whatsapp?n=<numero>" apre direttamente la conversazione con quel cliente
+  const nParam = String(window.routeParams?.n || "").replace(/\D/g, "").replace(/^00/, "");
+  if (nParam.length >= 8) {
+    const n9 = nParam.slice(-9);
+    let convAperta = conversazioni.find((c) => String(c.numero).replace(/\D/g, "").slice(-9) === n9);
+    if (!convAperta) {
+      const num = nParam.length === 10 && nParam[0] === "3" ? "39" + nParam : nParam;
+      convAperta = { numero: num, nome: window.routeParams?.nome || ("+" + num), ultimoMessaggio: "", ultimaData: new Date().toISOString(), nonLetti: 0, intent: "prenotazione", messaggi: [] };
+    }
+    await apriConversazione(convAperta);
+  }
+
   const pollInterval = setInterval(async () => {
     await caricaConversazioni();
     if (conversazioneAttiva) {
