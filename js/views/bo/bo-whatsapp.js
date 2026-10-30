@@ -289,9 +289,21 @@ export async function render(container) {
       </div>
     `;
 
+    // le conferme automatiche e gli altri messaggi mandati dal sistema fanno parte della conversazione
+    let extra = [];
+    try {
+      const n9 = String(conv.numero).replace(/\D/g, "").slice(-9);
+      if (n9.length === 9) {
+        const { data: inv } = await supa().from("whatsapp_messaggi_log").select("id,testo,contesto,created_at,stato")
+          .eq("azienda_id", aziendaId).like("numero_dest", "%" + n9)
+          .or("contesto.is.null,contesto.not.in.(bot_prenotazioni,risposta_manuale)").order("created_at", { ascending: true }).limit(50);
+        extra = (inv || []).map((m) => ({ id: "log_" + m.id, created_at: m.created_at, testo: m.testo, from_numero: aziendaId, intent: "risposta_manuale", _auto: true, _errore: m.stato === "errore" }));
+      }
+    } catch (e) { /* senza lo storico del sistema resta la conversazione */ }
+
     // Messaggi
     const msgBox = document.getElementById("wa-chat-messages");
-    const msgOrdinati = [...conv.messaggi].sort(
+    const msgOrdinati = [...conv.messaggi, ...extra].sort(
       (a, b) => new Date(a.created_at) - new Date(b.created_at)
     );
 
