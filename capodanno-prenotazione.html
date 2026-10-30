@@ -212,6 +212,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
         + '<button class="btn" id="salva-note">Invia le segnalazioni</button><div class="msg" id="msg-note"></div></div>')
       + (ePranzo() ? '' : '<div class="card menu"><h3 style="text-align:center">Il menu della serata</h3>' + menu + '</div>')
       + (Number(p.camere) > 0 ? '<div class="card"><h3>Il vostro weekend</h3><p>Le idee su cosa vedere giorno per giorno, con le mappe, sono qui: <a style="color:var(--oro)" href="capodanno-weekend.html?l=' + (L === LOCALI.campo ? 'campo' : 'aquila') + '">guida del weekend lungo</a>.</p></div>' : '')
+      + (!ePranzo() && !(Number(p.pranzo_primo) > 0) && !chiusa ? '<div class="card"><h3>Pranzo del 1° gennaio</h3><p>Restate a pranzo da noi il primo dell’anno? Pranzo della tradizione alla Trattoria dell’Aquila alle 13:00, acqua, vino e bevande inclusi: 50 € a persona, bambini 25 €.</p><a class="btn" href="capodanno-pranzo.html?n=' + encodeURIComponent(p.cliente_nome || '') + '#prenota">Prenota il pranzo</a></div>' : '')
       + '<div class="card"><h3>Da sapere</h3>'
       + '<p><b>Si comincia alle 20:00.</b> Bevande incluse nel prezzo, bambini dai 4 ai 12 anni 40 €.</p>'
       + (chiusa ? '' : p.promo
