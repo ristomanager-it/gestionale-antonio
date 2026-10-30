@@ -186,7 +186,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
       + (ePranzo() ? '<div class="riga"><span>Cosa</span><b>Pranzo del primo dell’anno, menu fisso</b></div>'
         : '<div class="riga"><span>La serata</span><b>' + esc(L.formula) + '<br>bevande incluse</b></div>'
         + '<div class="riga"><span>Tariffa cenone</span><b>' + (p.promo ? 'Promo · ' + L.prezzoPromo + ' € a persona' : L.prezzo + ' € a persona') + '</b></div>')
-      + (Number(p.camere) > 0 ? '<div class="riga"><span>Soggiorno</span><b>' + p.camere + (Number(p.camere) === 1 ? ' camera doppia' : ' camere doppie') + ' · ' + p.notti + (Number(p.notti) === 1 ? ' notte' : ' notti') + '<br>dal 31 dicembre al ' + (Number(p.notti) + 0) + ' gennaio, colazione inclusa</b></div>' : '')
+      + (Number(p.camere) > 0 ? '<div class="riga"><span>Soggiorno</span><b>' + p.camere + (Number(p.camere) === 1 ? ' camera doppia' : ' camere doppie') + ' · ' + p.notti + (Number(p.notti) === 1 ? ' notte' : ' notti') + '<br>' + ((p.camere_sede || (String(p.tag).indexOf('campoantico') >= 0 ? 'campo' : 'aquila')) === 'campo' ? 'a Campo Antico' : 'all’Hotel Aquila') + ', dal 31 dicembre al ' + Number(p.notti) + ' gennaio, colazione inclusa</b></div>' + (p.transfer ? '<div class="riga"><span>Transfer</span><b>Hotel Aquila ⇄ Campo Antico, andata e ritorno</b></div>' : '') : '')
       + (!ePranzo() && Number(p.pranzo_primo) > 0 ? '<div class="riga"><span>Pranzo del 1°</span><b>' + p.pranzo_primo + ' persone, ore 13:00</b></div>' : '')
       + '<div class="riga"><span>Persone</span><b>' + esc(persone(adulti, bimbi)) + '</b></div>'
       + '<div class="riga"><span>Totale serata</span><b>' + euro(tot) + '</b></div>'
