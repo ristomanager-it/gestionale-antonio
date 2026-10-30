@@ -217,7 +217,7 @@ export async function render(container) {
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:16px;">${intentLabel}</span>
-              <span style="font-weight:600;font-size:14px;color:#111827;">${c.nome}</span>
+              <span style="font-weight:600;font-size:14px;color:#111827;">${esc(c.nome)}</span>
               ${isBot ? `<span style="background:#e8f4f8;color:#0E5A7A;border-radius:100px;font-size:10px;font-weight:700;padding:2px 7px;">🤖 Bot</span>` : ""}
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
