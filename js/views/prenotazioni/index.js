@@ -1809,6 +1809,10 @@ if (onlineModal.classList.contains("open")) {
 
         const pren = state.prenotazioni.find((p) => String(p.id) === String(id));
         const nome = buildClientName(pren || {});
+        if (await haInboxWhatsapp()) {
+          window.location.hash = "#/bo-whatsapp?n=" + encodeURIComponent(String(phone).replace(/\D/g, "")) + "&nome=" + encodeURIComponent(nome);
+          return;
+        }
         const data = pren?.data ? formatDateHuman(pren.data) : "";
         const ora = pren?.ora ? String(pren.ora).slice(0, 5) : "";
         const coperti = pren?.coperti || 0;
