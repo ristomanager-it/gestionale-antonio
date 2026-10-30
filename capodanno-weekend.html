@@ -110,7 +110,7 @@ footer a{color:var(--oro)}
     <div class="prezzi" id="prezzi"></div>
     <p class="nota" style="margin-top:12px">Prezzo per camera matrimoniale standard, colazione inclusa. Il cenone si paga a parte, a persona.</p>
     <p style="margin-top:14px">Per camere triple, quadruple o altre sistemazioni chiamateci o scriveteci.<span id="nota-superior"> All’Hotel Aquila ci sono anche camere superior e suite: chiedeteci la disponibilità.</span></p>
-    <div class="contatti"><a class="btn vuoto" id="btn-chiama" href="#">Chiama</a><a class="btn vuoto" id="btn-wa" href="#" target="_blank" rel="noopener">WhatsApp</a></div>
+    <div class="contatti"><a class="btn vuoto" id="btn-chiama" href="#">Chiama</a><a class="btn vuoto" id="btn-wa" href="#">Scrivici</a></div>
     <div class="card" id="nota-veglione" hidden style="margin-top:22px"><h3>Volete fare festa fino a tardi?</h3><p>A Campo Antico, a pochi minuti da qui, c’è il cenone con il veglione. Potete dormire all’Hotel Aquila e festeggiare là: vi accompagniamo noi e vi riportiamo in hotel dopo la festa.</p><p style="margin:0">Il cenone a Campo Antico costa 110 € a persona (100 € in promo fino al 15 novembre). Transfer andata e ritorno: 5 € a persona.</p></div>
   </div>
 </section>
@@ -253,7 +253,7 @@ footer a{color:var(--oro)}
   $("video").poster = S.poster; $("video").innerHTML = '<source src="' + S.video + '" type="video/mp4">';
   $("copy").innerHTML = "<h1>" + esc(S.copy[0]) + "</h1><p>" + esc(S.copy[1]) + "</p><p>" + esc(S.copy[2]) + "</p><p class=\"svolta\">" + esc(S.copy[3]) + "</p><p>" + esc(S.copy[4]) + "</p>";
   $("btn-chiama").href = "tel:" + S.telRaw;
-  $("btn-wa").href = "https://wa.me/39" + S.telRaw + "?text=" + encodeURIComponent("Ciao, vorrei informazioni sulle camere per il weekend di Capodanno.");
+  $("btn-wa").href = "mailto:info@campoantico.com?subject=" + encodeURIComponent("Camere per il weekend di Capodanno · " + S.nome) + "&body=" + encodeURIComponent("Buongiorno, vorrei informazioni sulle camere per il weekend di Capodanno.\n\nPersone:\nNotti:\nTipo di camera:\n");
   if (S.chiave === "campo") $("nota-superior").hidden = true;
   else {
     $("nota-veglione").hidden = false; $("riga-festa").hidden = false;
