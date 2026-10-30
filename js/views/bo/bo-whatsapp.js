@@ -109,6 +109,8 @@ export async function render(container) {
     `
   });
 
+  // i testi dei clienti si mostrano come testo, mai come codice della pagina
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   let conversazioni = [];
   let conversazioneAttiva = null;
   let filtroAttivo = "tutti";
