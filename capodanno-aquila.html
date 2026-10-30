@@ -458,15 +458,22 @@ footer a{color:var(--oro)}
   // contatore visite nostro: solo pagina e provenienza, nessun dato personale
   try {
     var A = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
-    var q = new URLSearchParams(location.search), vid = null;
-    try { if (localStorage.getItem("rf_consenso") === "si") { vid = localStorage.getItem("rf_vid"); if (!vid) { vid = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("rf_vid", vid); } } } catch (e) {}
+    // scrive nel contatore di Ristoflow (page_analytics), lo stesso del sito e delle altre landing
+    var q = new URLSearchParams(location.search), ses = null;
+    try { ses = sessionStorage.getItem("rf_ses"); if (!ses) { ses = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem("rf_ses", ses); } } catch (e) {}
+    var nome = (location.pathname.split("/").pop() || "index").replace(".html", "");
+    if (nome === "capodanno-weekend") nome += q.get("l") === "campo" ? "-campo" : "-aquila";
+    var campo = nome.indexOf("campo") >= 0;
     var ref = document.referrer || "";
-    var fonte = q.get("utm_source") || (ref ? (function(){ try { return new URL(ref).hostname; } catch (e) { return "altro"; } })() : "diretto");
-    fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/landing_visite", { method: "POST", keepalive: true,
+    fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/page_analytics", { method: "POST", keepalive: true,
       headers: { "Content-Type": "application/json", "apikey": A, "Authorization": "Bearer " + A, "Prefer": "return=minimal" },
-      body: JSON.stringify({ pagina: (location.pathname.split("/").pop() || "index").replace(".html", ""), variante: q.get("l"),
-        sorgente: fonte, campagna: q.get("utm_campaign"), contenuto: q.get("utm_content"),
-        referrer: ref ? ref.slice(0, 250) : null, mobile: /Mobi|Android/i.test(navigator.userAgent), visitatore: vid }) }).catch(function(){});
+      body: JSON.stringify({ azienda_id: "b331365f-17db-4dda-aa2f-77a09427fe42",
+        sede_id: campo ? "c40919bb-78c2-458f-865e-0c9fd02aa0b5" : "4a936e52-a1e3-42fc-843c-e8d15dc86040",
+        pagina: nome, pagina_id: "b331365f-17db-4dda-aa2f-77a09427fe42", tipo: "view", elemento: "sito_pagina",
+        referrer: ref ? ref.slice(0, 250) : null,
+        utm_source: q.get("utm_source") || (ref ? (function(){ try { return new URL(ref).hostname; } catch (e) { return null; } })() : "diretto"),
+        utm_medium: q.get("utm_medium"), utm_campaign: q.get("utm_campaign"),
+        device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop", session_id: ses }) }).catch(function(){});
   } catch (e) {}
 })();
 </script>
