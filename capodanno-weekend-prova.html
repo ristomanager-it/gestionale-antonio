@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PROVA · Weekend lungo di Capodanno</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Cenone di San Silvestro, camera con colazione e il primo dell'anno da noi. Dal 31 dicembre al 3 gennaio.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:ital,wght@1,500&family=Josefin+Sans:wght@400;600&family=Bodoni+Moda:wght@600;800&family=Great+Vibes&family=Montserrat:wght@400;500;600&display=swap">
+<style>
+:root{--nero:#0b0a08;--nero2:#15130f;--oro:#d4af5a;--oro2:#e8cd8a;--avorio:#f3ead7;--muto:#b9ae98;--riga:rgba(212,175,90,.28);
+  --f-disp:'Cinzel',Georgia,serif;--f-acc:'Cormorant Garamond',Georgia,serif;--f-body:'Josefin Sans','Helvetica Neue',Arial,sans-serif;--acc-style:italic;
+  color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root.campo{--f-disp:'Bodoni Moda',Georgia,serif;--f-acc:'Great Vibes','Brush Script MT',cursive;--f-body:'Montserrat','Helvetica Neue',Arial,sans-serif;--acc-style:normal}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--nero);color:var(--avorio);font-family:var(--f-body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+img,video{max-width:100%;display:block}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h2{font-family:var(--f-disp);color:var(--oro);font-size:clamp(26px,6vw,36px);line-height:1.2;margin-bottom:18px}
+p{margin:0 0 14px;text-wrap:pretty}
+.blocco{padding:56px 0;border-top:1px solid var(--riga)}
+.etichetta{font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--oro);margin-bottom:10px;font-weight:600}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(11,10,8,.95);border-bottom:1px solid var(--riga);display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px}
+.topbar img{width:48px;height:48px;object-fit:contain;border-radius:8px;background:#fff;padding:3px;flex:0 0 48px}
+.topbar .tn{font-family:var(--f-disp);color:var(--oro);font-size:clamp(17px,4.6vw,22px);font-weight:700;letter-spacing:.1em;text-transform:uppercase;line-height:1.15}
+.topbar .td{font-size:13px;color:var(--avorio);letter-spacing:.06em;margin-top:3px}
+.hero{position:relative;min-height:70vh;display:flex;align-items:flex-end;overflow:hidden}
+.hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(8,7,5,.9) 0%,rgba(8,7,5,.15) 50%,rgba(8,7,5,0) 75%)}
+.hero .wrap{position:relative;z-index:1;padding-bottom:36px;text-shadow:0 2px 18px rgba(0,0,0,.7)}
+.amo-prezzo{display:block;font-family:var(--f-disp);font-size:clamp(48px,13vw,80px);font-weight:700;line-height:1;color:var(--oro)}
+.amo-frase{display:block;font-size:clamp(18px,4.6vw,23px);line-height:1.35;margin-top:10px}
+.aida h1{font-family:var(--f-disp);font-size:clamp(26px,6vw,36px);line-height:1.2;color:var(--oro);margin-bottom:20px}
+.aida p{font-size:19px;line-height:1.55;color:#e6dcc6}
+.aida .svolta{font-family:var(--f-acc);font-style:var(--acc-style);font-size:clamp(30px,7vw,42px);line-height:1.15;color:var(--oro);margin:28px 0 12px}
+.prezzi{display:grid;gap:10px}
+.prezzo{display:flex;justify-content:space-between;align-items:baseline;gap:12px;background:var(--nero2);border:1px solid var(--riga);border-radius:12px;padding:14px 18px}
+.prezzo b{font-family:var(--f-disp);color:var(--oro);font-size:24px}
+.prezzo small{color:var(--muto);display:block;font-size:14px}
+.nota{font-size:14px;color:var(--muto)}
+.card{background:var(--nero2);border:1px solid var(--riga);border-radius:14px;padding:20px;margin-bottom:12px}
+.card h3{font-family:var(--f-disp);color:var(--avorio);font-size:20px;margin-bottom:6px}
+.card p{color:#d8cdb6;margin:0 0 10px}
+.card a{color:var(--oro);font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:54px;padding:14px 30px;background:var(--oro);color:var(--nero);font-family:var(--f-body);font-weight:700;font-size:17px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;border:none;border-radius:999px;cursor:pointer}
+.btn.vuoto{background:transparent;color:var(--oro);border:1.5px solid var(--oro)}
+.btn[disabled]{opacity:.55;cursor:wait}
+.modulo{display:grid;gap:14px}
+.modulo label{display:block;font-size:14px;font-weight:600;letter-spacing:.04em;margin-bottom:6px;color:var(--oro2)}
+.modulo input[type=text],.modulo input[type=tel],.modulo input[type=email],.modulo textarea{width:100%;background:#1b1813;color:var(--avorio);border:1.5px solid #3a3326;border-radius:10px;padding:14px;font-size:17px;font-family:inherit}
+.due{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.notti{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.notti label{margin:0;cursor:pointer}
+.notti input{position:absolute;opacity:0}
+.notti span{display:block;text-align:center;border:1.5px solid #3a3326;border-radius:12px;padding:12px 6px;color:var(--avorio);font-weight:600;font-size:15px;line-height:1.3}
+.notti span small{display:block;color:var(--muto);font-weight:400;font-size:13px}
+.notti input:checked + span{border-color:var(--oro);background:#1b1813}
+.notti input:focus-visible + span{outline:2px solid var(--oro)}
+.ospiti{display:flex;align-items:center;gap:12px}
+.ospiti button{width:48px;height:48px;border-radius:50%;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-size:24px;cursor:pointer}
+.ospiti output{font-family:var(--f-disp);font-size:30px;min-width:44px;text-align:center}
+.spunta{display:flex;gap:12px;align-items:flex-start;font-size:15px;color:#d8cdb6}
+.spunta input{width:22px;height:22px;flex:0 0 22px;margin-top:2px;accent-color:var(--oro)}
+.conto{background:var(--nero2);border:1px solid var(--riga);border-radius:14px;padding:16px 20px}
+.conto div{display:flex;justify-content:space-between;gap:12px;padding:5px 0}
+.conto .ora{border-top:1px solid var(--riga);margin-top:6px;padding-top:10px;font-weight:700;color:var(--oro);font-size:19px}
+.msg{min-height:22px}
+.msg.ko{color:#ffb4a8}
+.msg.ok{color:#bfe3a8}
+.chiuso{border:1.5px solid var(--oro);border-radius:14px;padding:18px 20px;background:var(--nero2)}
+footer{padding:40px 0 60px;border-top:1px solid var(--riga);text-align:center;color:var(--muto);font-size:15px}
+footer a{color:var(--oro)}
+.apri{background:var(--nero2);border:1px solid var(--riga);border-radius:14px;margin-top:14px}
+.apri summary{cursor:pointer;list-style:none;padding:16px 20px;font-weight:700;color:var(--oro);letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center;min-height:54px}
+.apri summary::-webkit-details-marker{display:none}
+.apri summary::after{content:"▾";transition:transform .2s}
+.apri[open] summary::after{transform:rotate(180deg)}
+.apri .dentro{padding:0 20px 18px}
+.portata{text-align:center;margin-top:14px}
+.portata h4{font-family:var(--f-disp);color:var(--oro);font-size:15px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px}
+.portata p{margin:0 0 4px;color:#e6dcc6}
+.prova{position:sticky;top:0;z-index:40;background:#b3261e;color:#fff;text-align:center;font-weight:700;font-size:14px;letter-spacing:.08em;padding:6px 10px}
+.tbd{background:#fff3b0;color:#3a2e00;padding:0 4px;border-radius:3px}
+.contatti{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.cookie{position:fixed;left:12px;right:12px;bottom:16px;z-index:30;background:#1b1813;border:1px solid var(--oro);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:15px}
+.cookie[hidden]{display:none}
+.cookie span{flex:1}
+.cookie button{min-height:44px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-family:inherit;font-size:14px;cursor:pointer}
+.cookie #ck-si{background:var(--oro);color:#0b0a08}
+</style>
+</head>
+<body>
+<div class="prova">PAGINA DI PROVA · non visibile ai clienti</div>
+<div class="topbar"><img id="logo" src="" alt=""><div><div class="tn" id="nome-sede"></div><div class="td">Weekend lungo · 31 dicembre – 3 gennaio</div></div></div>
+
+<header class="hero">
+  <video id="video" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>
+  <div class="wrap"><div id="amo"></div></div>
+</header>
+
+<section class="blocco" data-traccia="Weekend_Letto_Copy">
+  <div class="wrap aida" id="copy"></div>
+</section>
+
+<section class="blocco">
+  <div class="wrap">
+    <p class="etichetta">Le camere</p>
+    <h2>Camera doppia con colazione</h2>
+    <div class="prezzi" id="prezzi"></div>
+    <p class="nota" style="margin-top:12px">Prezzo per camera matrimoniale standard, colazione inclusa. Il cenone si paga a parte, a persona.</p>
+    <p style="margin-top:14px">Per camere triple, quadruple o altre sistemazioni chiamateci o scriveteci.<span id="nota-superior"> All’Hotel Aquila ci sono anche camere superior e suite: chiedeteci la disponibilità.</span></p>
+    <div class="contatti"><a class="btn vuoto" id="btn-chiama" href="#">Chiama</a><a class="btn vuoto" id="btn-wa" href="#" target="_blank" rel="noopener">WhatsApp</a></div>
+  </div>
+</section>
+
+<section class="blocco">
+  <div class="wrap">
+    <p class="etichetta">Il 31 dicembre</p>
+    <h2>Il cenone di pesce</h2>
+    <details class="apri"><summary>Vedi il menu del cenone</summary><div class="dentro">
+<div class="portata"><h4>Benvenuto al tavolo</h4><p>Polpettine di rombo fritte al limone</p><p>Crostino di pane alle noci con baccalà mantecato e scorza d’arancia</p><p>Mini bun con tartare di tonno, maionese al lime ed erba cipollina</p></div>
+<div class="portata"><h4>Antipasti</h4><p>Ricciola marinata agli agrumi, finocchio croccante e olio del giardino di Campo Antico</p><p>Polpo arrostito su crema di patate di Avezzano, olio al prezzemolo</p></div>
+<div class="portata"><h4>Primi</h4><p>Mezzi paccheri con crema di zucca mantovana e mazzancolle, olio crudo e scorza di limone</p><p>Crespella di cernia gratinata, su salsa verde di vongole veraci</p></div>
+<div class="portata"><h4>Secondo</h4><p>Turbante di rombo con la sua salsa, scarola ripassata con olive di Gaeta, capperi e pinoli</p></div>
+<div class="portata"><h4>Mezzanotte</h4><p>Cotechino con lenticchie di Castelluccio di Norcia</p><p>Panettone di Campo Antico</p><p>Spumante</p></div>
+    </div></details>
+  </div>
+</section>
+
+<section class="blocco">
+  <div class="wrap">
+    <p class="etichetta">Il primo dell’anno</p>
+    <h2>Pranzo del 1° gennaio</h2>
+    <p id="pranzo-testo">Il primo dell’anno restate a tavola con noi: pranzo della tradizione alla Trattoria dell’Aquila, acqua, vino e bevande inclusi. 50 € a persona, menu bambini 25 €.</p>
+    <details class="apri"><summary>Vedi il menu del pranzo</summary><div class="dentro">
+<div class="portata"><h4>Antipasto della Trattoria</h4><p>Affettati del territorio, formaggi, bruschettine, fritti e rustici</p></div>
+<div class="portata"><h4>Primi</h4><p>Risotto alla norcina</p><p>Paccheri all’amatriciana</p></div>
+<div class="portata"><h4>Secondo</h4><p>Coniglio porchettato con patate al forno e cicorietta di campo</p></div>
+<div class="portata"><h4>Dolce</h4><p>Panettone ai frutti di bosco con crema chantilly</p></div>
+<p class="nota" style="text-align:center;margin-top:8px">Acqua, vino e bevande inclusi · 50 € a persona</p>
+<div class="portata" style="margin-top:22px"><h4>Menu bambini · 25 €</h4><p>Antipasto</p><p>Lasagna</p><p>Cotoletta di pollo con patatine</p><p class="nota">È il menu di base: se il bambino preferisce altro, lo cambiamo al tavolo.</p></div>
+    </div></details>
+  </div>
+</section>
+
+<section class="blocco" data-traccia="Weekend_Visto_Guida">
+  <div class="wrap">
+    <p class="etichetta">Cosa vedere</p>
+    <h2>Il weekend lungo, giorno per giorno</h2>
+    <p>Qualche idea per le giornate dopo il cenone. Prima di partire controllate gli orari dei giorni di festa.</p>
+    <div class="card"><h3>1° gennaio · Orte Sotterranea</h3><p>Cunicoli, cisterne e colombaie scavati nella rupe di Orte in oltre duemila anni. Si parte dalla fontana sotto Piazza della Libertà, a pochi minuti da noi.</p><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Orte+Sotterranea+Orte">Apri la mappa</a></div>
+    <div class="card"><h3>1° gennaio · Le terme di Viterbo</h3><p>Acqua calda all’aperto anche d’inverno: il modo migliore per riprendersi dalla notte di San Silvestro.</p><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Terme+Viterbo">Apri la mappa</a></div>
+    <div class="card"><h3>2 gennaio · Parco dei Mostri di Bomarzo</h3><p>Il bosco del Cinquecento con le sculture giganti nella roccia: l’Orco, l’elefante, la casa pendente. A una ventina di minuti.</p><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Parco+dei+Mostri+Bomarzo">Apri la mappa</a></div>
+    <div class="card"><h3>2 gennaio · Viterbo, quartiere di San Pellegrino</h3><p>Il borgo medievale più intatto d’Italia: vicoli di peperino, profferli e piazzette. Si abbina bene a Bomarzo nella stessa giornata.</p><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Quartiere+San+Pellegrino+Viterbo">Apri la mappa</a></div>
+    <div class="card"><h3>3 gennaio · Cascate delle Marmore</h3><p>Una delle cascate più alte d’Europa, creata dai Romani. L’acqua scorre a orari stabiliti: guardate il calendario delle aperture prima di andare.</p><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Cascata+delle+Marmore">Apri la mappa</a></div>
+    <div class="card"><h3>3 gennaio · Spoleto</h3><p>La Rocca, il Ponte delle Torri e il Duomo: si unisce alle Marmore, sulla stessa strada verso l’Umbria.</p><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Spoleto">Apri la mappa</a></div>
+  </div>
+</section>
+
+<section class="blocco" id="prenota" data-traccia="Weekend_Visto_Modulo">
+  <div class="wrap">
+    <p class="etichetta">Prenotazione</p>
+    <h2>Cenone e camera</h2>
+    <div id="chiuso" class="chiuso" hidden>
+      <p style="margin:0 0 12px"><b>Le camere si aprono a breve.</b> Intanto potete bloccare il cenone: la camera la aggiungete appena apriamo.</p>
+      <a class="btn" id="link-cenone" href="#">Prenota il cenone</a>
+    </div>
+    <form class="modulo" id="modulo" novalidate hidden>
+      <div>
+        <label>Quante notti?</label>
+        <div class="notti">
+          <label><input type="radio" name="notti" value="1" checked><span>1 notte<small>31 → 1</small></span></label>
+          <label><input type="radio" name="notti" value="2"><span>2 notti<small>31 → 2 · −10%</small></span></label>
+          <label><input type="radio" name="notti" value="3"><span>3 notti<small>31 → 3 · −15%</small></span></label>
+        </div>
+      </div>
+      <div class="due">
+        <div><label for="camere-val">Camere</label><div class="ospiti"><button type="button" id="cmeno" aria-label="Una camera in meno">−</button><output id="camere-val">1</output><button type="button" id="cpiu" aria-label="Una camera in più">+</button></div></div>
+        <div><label for="adulti-val">Adulti</label><div class="ospiti"><button type="button" id="ameno" aria-label="Un adulto in meno">−</button><output id="adulti-val">2</output><button type="button" id="apiu" aria-label="Un adulto in più">+</button></div></div>
+      </div>
+      <div><label for="bimbi-val">Bambini <span style="font-weight:400">(4-12 anni · cenone 40 €, pranzo 25 €)</span></label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
+      <label class="spunta" id="riga-transfer" hidden><input type="checkbox" id="transfer"> <span>Ceno a Campo Antico e dormo all’Hotel Aquila, con transfer andata e ritorno <span class="tbd">[COSTO TRANSFER DA DEFINIRE]</span></span></label>
+      <label class="spunta" id="riga-pranzo" hidden><input type="checkbox" id="pranzo"> <span id="pranzo-label">Aggiungo il pranzo del 1° gennaio</span></label>
+      <div class="due">
+        <div><label for="nome">Nome</label><input type="text" id="nome" autocomplete="given-name"></div>
+        <div><label for="cognome">Cognome</label><input type="text" id="cognome" autocomplete="family-name"></div>
+      </div>
+      <div><label for="telefono">Telefono</label><input type="tel" id="telefono" autocomplete="tel"></div>
+      <div><label for="email">Email</label><input type="email" id="email" autocomplete="email"></div>
+      <div><label for="note">Allergie e segnalazioni</label><textarea id="note" rows="3" placeholder="Allergie, letto aggiunto, orario di arrivo…"></textarea></div>
+      <div class="conto" aria-live="polite" id="conto"></div>
+      <label class="spunta"><input type="checkbox" id="privacy"> <span>Ho letto l’informativa privacy e acconsento al trattamento dei dati per gestire la prenotazione.</span></label>
+      <label class="spunta"><input type="checkbox" id="marketing"> <span>Voglio ricevere le vostre prossime serate e offerte (facoltativo).</span></label>
+      <button class="btn" type="submit" id="invia">Paga l’acconto e conferma</button>
+      <div class="msg" id="msg" role="status"></div>
+      <p class="nota">Acconto del 30% sul totale con carta tramite Stripe. Il resto si salda in struttura.</p>
+    </form>
+  </div>
+</section>
+
+<footer><div class="wrap"><p id="piede"></p></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var MB = "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/";
+  var SEDI = {
+    aquila: { chiave: "aquila", nome: "Trattoria dell’Aquila", sede_id: "4a936e52-a1e3-42fc-843c-e8d15dc86040", slug: "capodanno-2026-aquila",
+      prezzo: 95, promo: 80, indirizzo: "Via Lazio 4/b, Orte (VT)", tel: "0761 402673", telRaw: "0761402673",
+      logo: "https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/loghi-aziende/undefined/1781733575688.jpg?t=1781733575943",
+      video: MB + "drive/1ydnSCFzxL6vRZ8gupQUV4qCh-H3EIASa.mp4", poster: MB + "drive/15MAcKgo41xV05mv9q03HgNZUDrQ7i4CH.jpg",
+      landing: "capodanno-aquila.html",
+      copy: ["Capodanno senza rimettersi in macchina.",
+        "Il cenone di pesce con musica dal vivo, il brindisi di mezzanotte, e poi la camera a pochi passi: la Trattoria è dentro l’Hotel Aquila.",
+        "Il primo dell’anno vi svegliate con calma, fate colazione e, se volete, restate a pranzo da noi.",
+        "Quest’anno fatevi un regalo.",
+        "Il 31 cade di giovedì: restate fino a domenica e scoprite la Tuscia e l’Umbria. Vi diciamo noi cosa vedere."] },
+    campo: { chiave: "campo", nome: "Campo Antico", sede_id: "c40919bb-78c2-458f-865e-0c9fd02aa0b5", slug: "capodanno-2026-campoantico",
+      prezzo: 110, promo: 100, indirizzo: "Via Amerina km 5,500, Orte (VT)", tel: "0761 402380", telRaw: "0761402380",
+      logo: MB + "logo-1792575195997.png",
+      video: MB + "drive/160DeERgcT70ScdYOJgbaIrQbcTnnt-8j.mp4", poster: MB + "1785567498659-pasta-10.jpg",
+      landing: "capodanno-campoantico.html",
+      copy: ["Fate festa fino a tardi. Il letto è qui.",
+        "Cenone di pesce, brindisi di mezzanotte e veglione. Quando la festa finisce, la camera è a due passi: niente macchina, niente strada di notte.",
+        "Il primo dell’anno vi svegliate con calma, fate colazione e, se volete, restate a pranzo da noi.",
+        "Quest’anno fatevi un regalo.",
+        "Il 31 cade di giovedì: restate fino a domenica e scoprite la Tuscia e l’Umbria. Vi diciamo noi cosa vedere."] }
+  };
+  var CFG_PROVA = {
+    aquila: { camere_quota: 10, camere_libere: 10, prezzo_notte: 130, sconto_2_notti: 7, sconto_3_notti: 10, pranzo_attivo: true, pranzo_prezzo: 50, pranzo_prezzo_bambini: 25, pranzo_liberi: null },
+    campo:  { camere_quota: 7,  camere_libere: 7,  prezzo_notte: 130, sconto_2_notti: 7, sconto_3_notti: 10, pranzo_attivo: true, pranzo_prezzo: 50, pranzo_prezzo_bambini: 25, pranzo_liberi: null }
+  };
+  var qs = new URLSearchParams(location.search);
+  var S = SEDI[qs.get("l") === "campo" ? "campo" : "aquila"];
+  if (S.chiave === "campo") document.documentElement.classList.add("campo");
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); };
+  var euro = function(n){ return n.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €"; };
+  var supa = null; try { supa = window.supabase.createClient(URL_SB, ANON); } catch (e) {}
+  var PROMO_FINO = new Date("2026-11-15T23:59:59+01:00").getTime();
+  var cfg = null, promoAttiva = false, adulti = 2, bimbi = 0, camere = 1, inviando = false;
+
+  document.title = "Weekend lungo di Capodanno · " + S.nome;
+  $("logo").src = S.logo; $("logo").alt = "Logo " + S.nome; $("nome-sede").textContent = S.nome;
+  $("video").poster = S.poster; $("video").innerHTML = '<source src="' + S.video + '" type="video/mp4">';
+  $("copy").innerHTML = "<h1>" + esc(S.copy[0]) + "</h1><p>" + esc(S.copy[1]) + "</p><p>" + esc(S.copy[2]) + "</p><p class=\"svolta\">" + esc(S.copy[3]) + "</p><p>" + esc(S.copy[4]) + "</p>";
+  $("btn-chiama").href = "tel:" + S.telRaw;
+  $("btn-wa").href = "https://wa.me/39" + S.telRaw + "?text=" + encodeURIComponent("Ciao, vorrei informazioni sulle camere per il weekend di Capodanno.");
+  if (S.chiave === "campo") { $("nota-superior").hidden = true; $("riga-transfer").hidden = false; $("transfer").onchange = function(){ aggiorna(); }; }
+  $("link-cenone").href = S.landing + "#prenota";
+  $("piede").innerHTML = esc(S.nome) + " · " + esc(S.indirizzo) + '<br><a href="tel:' + S.telRaw + '">' + S.tel + "</a>";
+
+  function prezzoCena(){ return promoAttiva ? S.promo : S.prezzo; }
+  function notti(){ var r = document.querySelector("input[name=notti]:checked"); return r ? Number(r.value) : 1; }
+  function camera(n){ if (!cfg) return 0; var base = Number(cfg.prezzo_notte) * n; var sc = n === 2 ? Number(cfg.sconto_2_notti) : n === 3 ? Number(cfg.sconto_3_notti) : 0; return Math.round(base * (100 - sc)) / 100; }
+  function pranzoAttivo(){ return cfg && cfg.pranzo_attivo && cfg.pranzo_prezzo; }
+  function conti(){
+    var c = adulti * prezzoCena() + bimbi * 40;
+    var k = camere * camera(notti());
+    var p = pranzoAttivo() && $("pranzo").checked ? adulti * Number(cfg.pranzo_prezzo) + bimbi * Number(cfg.pranzo_prezzo_bambini || cfg.pranzo_prezzo) : 0;
+    return { cenone: c, camere: k, pranzo: p, totale: c + k + p };
+  }
+  function aggiorna(){
+    $("adulti-val").textContent = adulti; $("bimbi-val").textContent = bimbi; $("camere-val").textContent = camere;
+    var t = conti(), acc = Math.round(t.totale * 30) / 100;
+    var dove = S.chiave === "campo" && $("transfer").checked ? " all’Hotel Aquila" : "";
+    $("conto").innerHTML = "<div><span>Cenone · " + (adulti + bimbi) + " persone</span><span>" + euro(t.cenone) + "</span></div>"
+      + "<div><span>" + camere + (camere === 1 ? " camera" : " camere") + dove + " · " + notti() + (notti() === 1 ? " notte" : " notti") + "</span><span>" + euro(t.camere) + "</span></div>"
+      + (dove ? "<div><span>Transfer andata e ritorno</span><span class=\"tbd\">da definire</span></div>" : "")
+      + (t.pranzo ? "<div><span>Pranzo del 1° gennaio</span><span>" + euro(t.pranzo) + "</span></div>" : "")
+      + "<div><span>Totale</span><span>" + euro(t.totale) + "</span></div>"
+      + "<div class=\"ora\"><span>Acconto da pagare ora</span><span>" + euro(acc) + "</span></div>";
+  }
+  function step(id, fn){ $(id).onclick = function(){ fn(); aggiorna(); }; }
+  step("ameno", function(){ if (adulti > 1) adulti--; }); step("apiu", function(){ if (adulti + bimbi < 20) adulti++; });
+  step("bmeno", function(){ if (bimbi > 0) bimbi--; }); step("bpiu", function(){ if (adulti + bimbi < 20) bimbi++; });
+  step("cmeno", function(){ if (camere > 1) camere--; });
+  step("cpiu", function(){ if (camere < 10 && (cfg.camere_libere == null || camere < cfg.camere_libere)) camere++; });
+  Array.prototype.forEach.call(document.querySelectorAll("input[name=notti]"), function(r){ r.onchange = aggiorna; });
+  $("pranzo").onchange = aggiorna;
+
+  function disegnaPrezzi(){
+    $("prezzi").innerHTML = [1,2,3].map(function(n){
+      var sc = n === 2 ? cfg.sconto_2_notti : n === 3 ? cfg.sconto_3_notti : 0;
+      return '<div class="prezzo"><span>' + n + (n === 1 ? " notte" : " notti") + '<small>dal 31 dicembre' + (sc ? " · sconto " + Number(sc) + "%" : "") + '</small></span><b>' + euro(camera(n)) + '</b></div>';
+    }).join("");
+    var daPersona = prezzoCena() + camera(1) / 2;
+    $("amo").innerHTML = '<span class="amo-prezzo">da ' + Math.round(daPersona) + ' €</span><span class="amo-frase">a persona, cenone e camera con colazione' + (promoAttiva ? ", prenotando entro il 15 novembre" : "") + '.</span>';
+  }
+
+  if (supa) Promise.all([
+    supa.rpc("capodanno_config_pubblica"),
+    Date.now() <= PROMO_FINO ? supa.rpc("evento_promo_liberi", { p_slug: S.slug, p_posti: 50 }) : Promise.resolve({ data: 0 })
+  ]).then(function(r){
+    cfg = CFG_PROVA[S.chiave];
+    promoAttiva = Number(r[1].data || 0) > 0;
+    if (!cfg) return;
+    disegnaPrezzi();
+    if (pranzoAttivo()) {
+      $("riga-pranzo").hidden = false;
+      $("pranzo-label").textContent = "Aggiungo il pranzo del 1° gennaio alla Trattoria dell’Aquila (" + euro(Number(cfg.pranzo_prezzo)) + ", bambini " + euro(Number(cfg.pranzo_prezzo_bambini)) + ")";
+    }
+    if (cfg.camere_quota == null || cfg.camere_libere <= 0) {
+      $("chiuso").hidden = false;
+      if (cfg.camere_quota != null) $("chiuso").querySelector("p").innerHTML = "<b>Le camere sono esaurite.</b> Potete ancora prenotare il cenone.";
+    } else { $("modulo").hidden = false; aggiorna(); }
+  });
+
+  function errore(t){ $("msg").className = "msg ko"; $("msg").textContent = t; }
+  $("modulo").addEventListener("submit", async function(ev){
+    ev.preventDefault();
+    if (inviando) return;
+    var nome = $("nome").value.trim(), cognome = $("cognome").value.trim(), tel = $("telefono").value.replace(/[^\d+]/g, ""), email = $("email").value.trim(), note = $("note").value.trim();
+    if (!nome || !cognome) return errore("Scrivi nome e cognome.");
+    if (tel.replace(/\D/g, "").length < 8) return errore("Controlla il numero di telefono.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return errore("Controlla l’email.");
+    if (!$("privacy").checked) return errore("Per prenotare serve il consenso alla privacy.");
+    return errore("Questa è una pagina di prova: la prenotazione e il pagamento non partono.");
+    inviando = true; var btn = $("invia"); btn.disabled = true; btn.textContent = "Un attimo…";
+    var t = conti(), acconto = Math.round(t.totale * 30), persone = adulti + bimbi;
+    var token = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : (Date.now().toString(16) + Math.random().toString(16).slice(2)));
+    if (window.rfEvento) rfEvento("InitiateCheckout", { value: acconto / 100, currency: "EUR", content_name: S.slug + "-weekend" }, true);
+    var ins = await supa.from("prenotazioni_tavoli").insert([{
+      azienda_id: "b331365f-17db-4dda-aa2f-77a09427fe42", sede_id: S.sede_id,
+      cliente_nome: (nome + " " + cognome).trim(), cliente_telefono: tel, cliente_email: email,
+      data: "2026-12-31", ora: "20:00", coperti: persone, bambini: bimbi, promo: promoAttiva,
+      notti: notti(), camere: camere, pranzo_primo: t.pranzo ? persone : 0, importo_totale: t.totale,
+      stato: "in_attesa_pagamento", canale: "online", note: note || null, richieste_speciali: note || null,
+      token_pubblico: token, tag: S.slug, source: qs.get("utm_source") || "weekend",
+      riferimento: JSON.stringify({ landing: S.slug + "-weekend", adulti: adulti, bambini: bimbi, notti: notti(), camere: camere, totale: t.totale,
+        consenso_gdpr: true, consenso_marketing: $("marketing").checked, utm_source: qs.get("utm_source"), utm_campaign: qs.get("utm_campaign") })
+    }]);
+    if (ins.error) {
+      inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma";
+      var m = String(ins.error.message || "");
+      if (m.indexOf("camere") >= 0) return errore("Le camere disponibili sono appena finite. Chiamaci e vediamo insieme.");
+      if (m.indexOf("promo") >= 0) { promoAttiva = false; disegnaPrezzi(); aggiorna(); return errore("I posti al prezzo promo sono finiti: abbiamo aggiornato il totale. Controlla e conferma."); }
+      return errore("Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.");
+    }
+    if (window.rfEvento) rfEvento("Lead", { value: acconto / 100, currency: "EUR", content_name: S.slug + "-weekend" }, true);
+    var PAG = "https://app.ristoflow-ai.com/capodanno-prenotazione.html?t=" + token;
+    try {
+      var pub = await supa.rpc("prenotazione_pubblica", { p_token: token });
+      var id = pub.data && pub.data.ok ? pub.data.prenotazione.id : null;
+      var res = await fetch(URL_SB + "/functions/v1/stripe-checkout", { method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON },
+        body: JSON.stringify({ action: "create_session", azienda_id: "b331365f-17db-4dda-aa2f-77a09427fe42", tipo: "tavolo", riferimento_id: id,
+          importo_centesimi: acconto, cliente_email: email, cliente_nome: (nome + " " + cognome).trim(),
+          descrizione: "Acconto 30% · Weekend di Capodanno · " + S.nome + " · " + notti() + (notti() === 1 ? " notte" : " notti"),
+          success_url: PAG + "&esito=ok", cancel_url: PAG + "&esito=annullato", metadata: { landing: S.slug + "-weekend" } }) });
+      var out = await res.json();
+      if (!res.ok || !out.checkout_url) throw new Error("checkout");
+      location.href = out.checkout_url;
+    } catch (e) {
+      try { await supa.rpc("prenotazione_pagamento_fallito", { p_token: token }); } catch (x) {}
+      errore("Il pagamento non è partito: puoi riprovare dalla pagina della prenotazione.");
+      setTimeout(function(){ location.href = PAG; }, 2500);
+    }
+  });
+
+
+  if ("IntersectionObserver" in window) {
+    var visti = {};
+    var oss = new IntersectionObserver(function(v){ v.forEach(function(x){ var n = x.target.getAttribute("data-traccia"); if (x.isIntersecting && !visti[n] && window.rfEvento) { visti[n] = true; rfEvento(n, { locale: S.nome }); } }); }, { threshold: 0.4 });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-traccia]"), function(el){ oss.observe(el); });
+  }
+})();
+</script>
+<div class="cookie" id="cookie" hidden><span>Usiamo i cookie</span><button type="button" id="ck-no">Rifiuta</button><button type="button" id="ck-si">Accetta</button></div>
+<script>
+(function(){
+  var PIXEL = "1474015191346752", GA4 = "G-TZQVKD4KEV";
+  window.rfEvento = function(nome, dati, standard){
+    try {
+      if (localStorage.getItem("rf_consenso") !== "si") return;
+      if (window.fbq) { if (standard) fbq("track", nome, dati || {}); else fbq("trackCustom", nome, dati || {}); }
+      if (window.gtag) gtag("event", nome, dati || {});
+    } catch (e) {}
+  };
+  function carica(){
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
+    fbq("init", PIXEL); fbq("track", "PageView");
+    var g = document.createElement("script"); g.async = true; g.src = "https://www.googletagmanager.com/gtag/js?id=" + GA4; document.head.appendChild(g);
+    window.dataLayer = window.dataLayer || []; window.gtag = function(){ dataLayer.push(arguments); };
+    gtag("js", new Date()); gtag("config", GA4);
+    document.dispatchEvent(new Event("rf-pronto"));
+  }
+  var c = null; try { c = localStorage.getItem("rf_consenso"); } catch (e) {}
+  if (c === "si") { carica(); return; }
+  if (c === "no") return;
+  var box = document.getElementById("cookie"); box.hidden = false;
+  document.getElementById("ck-si").onclick = function(){ try { localStorage.setItem("rf_consenso", "si"); } catch (e) {} box.hidden = true; carica(); };
+  document.getElementById("ck-no").onclick = function(){ try { localStorage.setItem("rf_consenso", "no"); } catch (e) {} box.hidden = true; };
+})();
+</script>
+</body>
+</html>
