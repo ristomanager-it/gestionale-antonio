@@ -84,11 +84,7 @@ footer a{color:var(--oro)}
 .prova{position:sticky;top:0;z-index:40;background:#b3261e;color:#fff;text-align:center;font-weight:700;font-size:14px;letter-spacing:.08em;padding:6px 10px}
 .tbd{background:#fff3b0;color:#3a2e00;padding:0 4px;border-radius:3px}
 .contatti{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
-.barra{position:fixed;left:0;right:0;bottom:0;z-index:10;background:rgba(11,10,8,.96);border-top:1px solid var(--riga);padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px}
-.barra .btn{flex:1;min-height:48px;padding:10px 12px;font-size:14px}
-body{padding-bottom:80px}
-.cookie{position:fixed;left:12px;right:12px;bottom:84px;z-index:30;background:#1b1813;border:1px solid var(--oro);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:15px}
+.cookie{position:fixed;left:12px;right:12px;bottom:16px;z-index:30;background:#1b1813;border:1px solid var(--oro);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:15px}
 .cookie[hidden]{display:none}
 .cookie span{flex:1}
 .cookie button{min-height:44px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-family:inherit;font-size:14px;cursor:pointer}
@@ -100,7 +96,7 @@ body{padding-bottom:80px}
 
 <header class="hero">
   <video id="video" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>
-  <div class="wrap"><div id="amo"></div><div class="cta"><a class="btn" href="#prenota">Prenota il soggiorno</a><a class="btn vuoto" id="cta-cenone" href="#">Prenota solo il cenone</a></div></div>
+  <div class="wrap"><div id="amo"></div></div>
 </header>
 
 <section class="blocco" data-traccia="Weekend_Letto_Copy">
@@ -110,69 +106,12 @@ body{padding-bottom:80px}
 <section class="blocco">
   <div class="wrap">
     <p class="etichetta">Le camere</p>
-    <h2>Camera matrimoniale con colazione</h2>
+    <h2>Camera doppia con colazione</h2>
     <div class="prezzi" id="prezzi"></div>
     <p class="nota" style="margin-top:12px">Prezzo per camera matrimoniale standard, colazione inclusa. Il cenone si paga a parte, a persona.</p>
     <p style="margin-top:14px"><span id="nota-altre">Per camere triple, quadruple o altre sistemazioni chiamateci o scriveteci.</span><span id="nota-triple" hidden>Si può aggiungere un adulto in camera (tripla) o due (quadrupla): 30 € a notte per ogni adulto in più, così in tre o in quattro si spende meno a testa. Le scegliete nel modulo. Per altre sistemazioni chiamateci o scriveteci.</span><span id="nota-superior"> All’Hotel Aquila ci sono anche camere superior e suite: chiedeteci la disponibilità.</span> I bambini fino a 4 anni non pagano e dormono in camera con i genitori.</p>
     <div class="contatti"><a class="btn vuoto" id="btn-chiama" href="#">Chiama</a><a class="btn vuoto" id="btn-wa" href="#">Scrivici</a></div>
     <div class="card" id="nota-veglione" hidden style="margin-top:22px"><h3>Volete fare festa fino a tardi?</h3><p>A Campo Antico, a pochi minuti da qui, c’è il cenone con il veglione. Potete dormire all’Hotel Aquila e festeggiare là: vi accompagniamo noi e vi riportiamo in hotel dopo la festa.</p><p style="margin:0">Il cenone a Campo Antico costa 110 € a persona (100 € in promo fino al 15 novembre). Transfer andata e ritorno: 5 € a persona.</p></div>
-  </div>
-</section>
-
-<section class="blocco" id="prenota" data-traccia="Weekend_Visto_Modulo">
-  <div class="wrap">
-    <p class="etichetta">Prenotazione</p>
-    <h2>Cenone e camera</h2>
-    <div id="chiuso" class="chiuso" hidden>
-      <p style="margin:0 0 12px"><b>Le camere si aprono a breve.</b> Intanto potete bloccare il cenone: la camera la aggiungete appena apriamo.</p>
-      <a class="btn" id="link-cenone" href="#">Prenota il cenone</a>
-    </div>
-    <form class="modulo" id="modulo" novalidate hidden>
-      <div>
-        <div id="riga-festa" hidden style="margin-bottom:14px">
-          <label>Dove festeggiate il 31?</label>
-          <div class="notti" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-            <label><input type="radio" name="festa" value="aquila" checked><span>Trattoria dell’Aquila<small>cenone e musica dal vivo</small></span></label>
-            <label><input type="radio" name="festa" value="campo"><span>Campo Antico<small>cenone e veglione · transfer 5 €</small></span></label>
-          </div>
-        </div>
-        <label>Quante notti?</label>
-        <div class="notti">
-          <label><input type="radio" name="notti" value="1" checked><span>1 notte<small>dal 31 al 1°</small></span></label>
-          <label><input type="radio" name="notti" value="2"><span>2 notti<small>dal 31 al 2</small></span></label>
-          <label><input type="radio" name="notti" value="3"><span>3 notti<small>dal 31 al 3</small></span></label>
-        </div>
-      </div>
-      <div class="due">
-        <div><label for="camere-val">Camere</label><div class="ospiti"><button type="button" id="cmeno" aria-label="Una camera in meno">−</button><output id="camere-val">1</output><button type="button" id="cpiu" aria-label="Una camera in più">+</button></div></div>
-        <div><label for="adulti-val">Adulti</label><div class="ospiti"><button type="button" id="ameno" aria-label="Un adulto in meno">−</button><output id="adulti-val">2</output><button type="button" id="apiu" aria-label="Un adulto in più">+</button></div></div>
-      </div>
-      <div><label for="bimbi-val">Bambini <span style="font-weight:400">(4-12 anni · cenone 40 €, pranzo 25 €)</span></label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
-      <div id="riga-tipo" hidden>
-        <label>Tipo di camera</label>
-        <div class="notti">
-          <label><input type="radio" name="tipo" value="doppia" checked><span>Matrimoniale<small>2 persone</small></span></label>
-          <label><input type="radio" name="tipo" value="tripla"><span>Tripla<small>+30 € a notte</small></span></label>
-          <label><input type="radio" name="tipo" value="quadrupla"><span>Quadrupla<small>+60 € a notte</small></span></label>
-        </div>
-      </div>
-      <div class="chiuso" id="riga-transfer" hidden><b>Le camere di Campo Antico sono esaurite.</b> Potete dormire all’Hotel Aquila: vi portiamo noi a Campo Antico per il cenone e vi riaccompagniamo dopo la festa. Transfer andata e ritorno: 5 € a persona.</div>
-      <label class="spunta" id="riga-pranzo" hidden><input type="checkbox" id="pranzo"> <span id="pranzo-label">Aggiungo il pranzo del 1° gennaio</span></label>
-      <div class="due">
-        <div><label for="nome">Nome</label><input type="text" id="nome" autocomplete="given-name"></div>
-        <div><label for="cognome">Cognome</label><input type="text" id="cognome" autocomplete="family-name"></div>
-      </div>
-      <div><label for="telefono">Telefono</label><input type="tel" id="telefono" autocomplete="tel"></div>
-      <div><label for="email">Email</label><input type="email" id="email" autocomplete="email"></div>
-      <div><label for="note">Note</label><textarea id="note" rows="3" placeholder="Siete un gruppo? Scrivete i nomi degli amici che prenotano con voi. Bambini sotto i 4 anni, allergie, orario di arrivo…"></textarea>
-        <p class="nota" style="margin:6px 0 0">In gruppo ognuno può prenotare e pagare il proprio acconto: scrivete qui i nomi degli altri e vi mettiamo allo stesso tavolo.</p></div>
-      <div class="conto" aria-live="polite" id="conto"></div>
-      <label class="spunta"><input type="checkbox" id="privacy"> <span>Ho letto l’informativa privacy e acconsento al trattamento dei dati per gestire la prenotazione.</span></label>
-      <label class="spunta"><input type="checkbox" id="marketing"> <span>Voglio ricevere le vostre prossime serate e offerte (facoltativo).</span></label>
-      <button class="btn" type="submit" id="invia">Paga l’acconto e conferma</button>
-      <div class="msg" id="msg" role="status"></div>
-      <p class="nota">Acconto del 30% sul totale con carta tramite Stripe. Il resto si salda in struttura.</p>
-    </form>
   </div>
 </section>
 
@@ -220,11 +159,64 @@ body{padding-bottom:80px}
   </div>
 </section>
 
-
+<section class="blocco" id="prenota" data-traccia="Weekend_Visto_Modulo">
+  <div class="wrap">
+    <p class="etichetta">Prenotazione</p>
+    <h2>Cenone e camera</h2>
+    <div id="chiuso" class="chiuso" hidden>
+      <p style="margin:0 0 12px"><b>Le camere si aprono a breve.</b> Intanto potete bloccare il cenone: la camera la aggiungete appena apriamo.</p>
+      <a class="btn" id="link-cenone" href="#">Prenota il cenone</a>
+    </div>
+    <form class="modulo" id="modulo" novalidate hidden>
+      <div>
+        <div id="riga-festa" hidden style="margin-bottom:14px">
+          <label>Dove festeggiate il 31?</label>
+          <div class="notti" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+            <label><input type="radio" name="festa" value="aquila" checked><span>Trattoria dell’Aquila<small>cenone e musica dal vivo</small></span></label>
+            <label><input type="radio" name="festa" value="campo"><span>Campo Antico<small>cenone e veglione · transfer 5 €</small></span></label>
+          </div>
+        </div>
+        <label>Quante notti?</label>
+        <div class="notti">
+          <label><input type="radio" name="notti" value="1" checked><span>1 notte<small>31 → 1</small></span></label>
+          <label><input type="radio" name="notti" value="2"><span>2 notti<small>31 → 2 · −10%</small></span></label>
+          <label><input type="radio" name="notti" value="3"><span>3 notti<small>31 → 3 · −15%</small></span></label>
+        </div>
+      </div>
+      <div class="due">
+        <div><label for="camere-val">Camere</label><div class="ospiti"><button type="button" id="cmeno" aria-label="Una camera in meno">−</button><output id="camere-val">1</output><button type="button" id="cpiu" aria-label="Una camera in più">+</button></div></div>
+        <div><label for="adulti-val">Adulti</label><div class="ospiti"><button type="button" id="ameno" aria-label="Un adulto in meno">−</button><output id="adulti-val">2</output><button type="button" id="apiu" aria-label="Un adulto in più">+</button></div></div>
+      </div>
+      <div><label for="bimbi-val">Bambini <span style="font-weight:400">(4-12 anni · cenone 40 €, pranzo 25 €)</span></label><div class="ospiti"><button type="button" id="bmeno" aria-label="Un bambino in meno">−</button><output id="bimbi-val">0</output><button type="button" id="bpiu" aria-label="Un bambino in più">+</button></div></div>
+      <div id="riga-tipo" hidden>
+        <label>Tipo di camera</label>
+        <div class="notti">
+          <label><input type="radio" name="tipo" value="doppia" checked><span>Matrimoniale<small>2 persone</small></span></label>
+          <label><input type="radio" name="tipo" value="tripla"><span>Tripla<small>+30 € a notte</small></span></label>
+          <label><input type="radio" name="tipo" value="quadrupla"><span>Quadrupla<small>+60 € a notte</small></span></label>
+        </div>
+      </div>
+      <div class="chiuso" id="riga-transfer" hidden><b>Le camere di Campo Antico sono esaurite.</b> Potete dormire all’Hotel Aquila: vi portiamo noi a Campo Antico per il cenone e vi riaccompagniamo dopo la festa. Transfer andata e ritorno: 5 € a persona.</div>
+      <label class="spunta" id="riga-pranzo" hidden><input type="checkbox" id="pranzo"> <span id="pranzo-label">Aggiungo il pranzo del 1° gennaio</span></label>
+      <div class="due">
+        <div><label for="nome">Nome</label><input type="text" id="nome" autocomplete="given-name"></div>
+        <div><label for="cognome">Cognome</label><input type="text" id="cognome" autocomplete="family-name"></div>
+      </div>
+      <div><label for="telefono">Telefono</label><input type="tel" id="telefono" autocomplete="tel"></div>
+      <div><label for="email">Email</label><input type="email" id="email" autocomplete="email"></div>
+      <div><label for="note">Note</label><textarea id="note" rows="3" placeholder="Siete un gruppo? Scrivete i nomi degli amici che prenotano con voi. Bambini sotto i 4 anni, allergie, orario di arrivo…"></textarea>
+        <p class="nota" style="margin:6px 0 0">In gruppo ognuno può prenotare e pagare il proprio acconto: scrivete qui i nomi degli altri e vi mettiamo allo stesso tavolo.</p></div>
+      <div class="conto" aria-live="polite" id="conto"></div>
+      <label class="spunta"><input type="checkbox" id="privacy"> <span>Ho letto l’informativa privacy e acconsento al trattamento dei dati per gestire la prenotazione.</span></label>
+      <label class="spunta"><input type="checkbox" id="marketing"> <span>Voglio ricevere le vostre prossime serate e offerte (facoltativo).</span></label>
+      <button class="btn" type="submit" id="invia">Paga l’acconto e conferma</button>
+      <div class="msg" id="msg" role="status"></div>
+      <p class="nota">Acconto del 30% sul totale con carta tramite Stripe. Il resto si salda in struttura.</p>
+    </form>
+  </div>
+</section>
 
 <footer><div class="wrap"><p id="piede"></p></div></footer>
-
-<div class="barra"><a class="btn" href="#prenota">Prenota soggiorno</a><a class="btn vuoto" id="barra-cenone" href="#">Prenota cenone</a></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
@@ -280,7 +272,6 @@ body{padding-bottom:80px}
     Array.prototype.forEach.call(document.querySelectorAll("input[name=festa]"), function(r){ r.onchange = function(){ aggiorna(); }; });
   }
   $("link-cenone").href = S.landing + "#prenota";
-  $("cta-cenone").href = S.landing + "#prenota"; $("barra-cenone").href = S.landing + "#prenota";
   $("piede").innerHTML = esc(S.nome) + " · " + esc(S.indirizzo) + '<br><a href="tel:' + S.telRaw + '">' + S.tel + "</a>";
 
   function festaCampo(){ var r = document.querySelector("input[name=festa]:checked"); return S.chiave === "aquila" && !!r && r.value === "campo"; }
@@ -321,7 +312,7 @@ body{padding-bottom:80px}
   function disegnaPrezzi(){
     $("prezzi").innerHTML = [1,2,3].map(function(n){
       var sc = n === 2 ? cfg.sconto_2_notti : n === 3 ? cfg.sconto_3_notti : 0;
-      return '<div class="prezzo"><span>' + n + (n === 1 ? " notte" : " notti") + '<small>dal 31 dicembre al ' + n + ' gennaio · ' + euro(camera(n) / 2) + ' a persona</small></span><b>' + euro(camera(n)) + '</b></div>';
+      return '<div class="prezzo"><span>' + n + (n === 1 ? " notte" : " notti") + '<small>dal 31 dicembre' + (sc ? " · sconto " + Number(sc) + "%" : "") + '</small></span><b>' + euro(camera(n)) + '</b></div>';
     }).join("");
     var daPersona = prezzoCena() + camera(1) / 2;
     $("amo").innerHTML = '<span class="amo-prezzo">da ' + Math.round(daPersona) + ' €</span><span class="amo-frase">a persona, cenone e camera con colazione' + (promoAttiva ? ", prenotando entro il 15 novembre" : "") + '.</span>';
