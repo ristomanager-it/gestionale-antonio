@@ -19,7 +19,7 @@ export async function render(container) {
         @media (max-width: 767px) {
           #wa-layout { display:block; height:calc(100vh - 120px); }
           #wa-sidebar { width:100% !important; min-width:unset !important; height:100%; }
-          #wa-chat { position:fixed !important; top:0; left:0; right:0; bottom:0; z-index:200; border-radius:0 !important; display:none !important; }
+          #wa-chat { position:fixed !important; top:0; left:0; right:0; bottom:0; z-index:9500; border-radius:0 !important; display:none !important; }
           #wa-chat.mobile-open { display:flex !important; }
           #wa-back-btn { display:flex !important; }
         }
