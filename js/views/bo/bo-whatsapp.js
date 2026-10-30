@@ -307,7 +307,7 @@ export async function render(container) {
       (a, b) => new Date(a.created_at) - new Date(b.created_at)
     );
 
-    msgBox.innerHTML = msgOrdinati.map(msg => {
+    msgBox.innerHTML = !msgOrdinati.length ? '<div style="padding:24px;text-align:center;color:#9ca3af;font-size:14px;line-height:1.5;">Nessun messaggio con questo cliente, per ora.<br>Puoi scrivergli solo se ti ha scritto nelle ultime 24 ore: è una regola di WhatsApp.</div>' : msgOrdinati.map(msg => {
       const ora = new Date(msg.created_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
       const isOperatore = msg.intent === "risposta_manuale" || msg.from_numero === aziendaId;
 
