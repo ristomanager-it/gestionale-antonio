@@ -205,7 +205,7 @@ export async function render(container) {
       const isBot = c.messaggi?.some(m => m.intent === "risposta_automatica");
 
       return `
-        <div class="wa-conv-item" data-numero="${c.numero}"
+        <div class="wa-conv-item" data-numero="${esc(c.numero)}"
           style="
             padding:12px 16px;
             border-bottom:1px solid #f3f4f6;
