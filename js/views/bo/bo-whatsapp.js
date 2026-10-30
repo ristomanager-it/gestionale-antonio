@@ -280,7 +280,7 @@ export async function render(container) {
       </div>
       <div style="flex:1;">
         <div style="font-weight:700;font-size:15px;color:#111827;">${esc(conv.nome)}</div>
-        <div style="font-size:12px;color:#6b7280;">+${conv.numero}</div>
+        <div style="font-size:12px;color:#6b7280;">+${esc(conv.numero)}</div>
       </div>
       <div style="display:flex;gap:8px;">
         <span style="padding:4px 10px;border-radius:20px;font-size:12px;background:${conv.intent === 'prenotazione' ? '#d1fae5' : conv.intent === 'reclamo' ? '#fee2e2' : '#f3f4f6'};color:${conv.intent === 'prenotazione' ? '#065f46' : conv.intent === 'reclamo' ? '#991b1b' : '#374151'};">
