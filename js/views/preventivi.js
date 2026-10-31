@@ -71,6 +71,8 @@ async function loadPreventivi() {
       cliente_nome,
       cliente_cognome,
       cliente_telefono,
+      cliente2_nome,
+      cliente2_cognome,
       scadenza_il,
       confermato_il,
       costo_stimato,
