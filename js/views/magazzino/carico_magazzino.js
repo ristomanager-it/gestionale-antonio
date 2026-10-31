@@ -103,6 +103,22 @@ export function renderCaricoModal() {
               </div>
             </div>
 
+            <div class="rf-product-card" style="margin-top:10px;">
+              <div class="rf-product-section-title">Lotto e scadenza <span style="font-size:11px;color:#6b7280;">(dall'etichetta, se ci sono)</span></div>
+              <div class="rf-field">
+                <label>Lotto</label>
+                <input id="carico-lotto" class="input" autocomplete="off" />
+              </div>
+              <div class="rf-field" style="margin-top:8px;">
+                <label>Scadenza</label>
+                <input id="carico-scad" type="date" class="input" />
+              </div>
+              <div class="rf-field" style="margin-top:8px;">
+                <label>Tipo di data</label>
+                <select id="carico-tipodata" class="input"><option value="scadenza">Da consumarsi entro</option><option value="tmc">Preferibilmente entro</option></select>
+              </div>
+            </div>
+
             <div class="rf-field" style="margin-top:10px;">
               <label>Data movimento</label>
               <input id="carico-data" type="date" class="input" />
