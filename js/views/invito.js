@@ -14,6 +14,14 @@ export async function render(container) {
   try { const { data } = await supabase.rpc("spazio_invito", { p_token: token }); d = data; }
   catch (e) { console.error(e); }
 
+  // link personale (&g=): sappiamo gia' chi e', il nome non si riscrive
+  const guest = (new URLSearchParams((location.hash.split("?")[1] || ""))).get("g") || "";
+  let io = null;
+  if (guest) {
+    try { const r = await supabase.rpc("spazio_invitato_io", { p_token: token, p_guest: guest }); io = r.data?.ok ? r.data : null; }
+    catch (e) { console.error(e); }
+  }
+
   if (!d?.ok) {
     container.innerHTML = guscio(`<div class="iv-err">${esc(d?.errore || "Non riesco a caricare l'invito.")}</div>`);
     return;
