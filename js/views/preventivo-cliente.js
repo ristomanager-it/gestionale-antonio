@@ -137,6 +137,21 @@ export async function render(container) {
         .pv-pie{padding:8px 20px;font-size:9px;}
 
         .pv-blocco,.pv-sez,.pv-conto,.pv-pag,.pv-iban{page-break-inside:avoid;}
+
+        /* solo il menu: ha tutta la pagina, quindi caratteri grandi e arieggiati */
+        .pv-solo .pv-testa{padding:26px 20px 18px;}
+        .pv-solo .pv-testa img{height:54px;}
+        .pv-solo .pv-oc{font-size:11px;letter-spacing:.2em;}
+        .pv-solo .pv-testa h1{font-size:30px;margin:8px 0 4px;}
+        .pv-solo .pv-quando{font-size:14px;}
+        .pv-solo .pv-corpo{padding:24px 34px 18px;}
+        .pv-solo h2{font-size:20px;margin:22px 0 10px;}
+        .pv-solo .pv-blocco{border:none;background:transparent;}
+        .pv-solo .pv-sez{padding:12px 0;text-align:center;border-top:1px solid #E4E0D8;}
+        .pv-solo .pv-sez:first-child{border-top:none;}
+        .pv-solo .pv-tit{font-size:11.5px;letter-spacing:.2em;margin-bottom:7px;}
+        .pv-solo .pv-p{font-size:16.5px;line-height:1.45;padding:3px 0;}
+        .pv-solo .pv-pie{font-size:11px;padding:14px 20px;}
       }
       .pv-iban{background:#fff;border:1px solid var(--riga);border-radius:12px;padding:16px 18px;}
       .pv-iban .testo{font-size:14px;color:#3D4C55;line-height:1.6;margin-bottom:14px;}
