@@ -167,7 +167,7 @@
 <div style="flex: 1 1 340px; background: #EEF0EA; color: #1F2A22; border-radius: 20px; padding: 30px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 90px;">
 <div style="display:flex;justify-content:space-between;gap:12px;font-size:16px;"><span id="b-riga"></span><span id="b-date" style="color:#3B4A40;text-align:right;"></span></div>
 <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-top:1px solid #C9D1C3;padding-top:14px;"><span style="font-size:18px;font-weight:700;">Total</span><span id="b-totale" style="font-family:'DM Serif Display','Noto Serif JP',Georgia,serif;font-size:40px;"></span></div>
-<div style="display:flex;justify-content:space-between;gap:12px;font-size:15px;"><span>30% deposit, payable after we confirm</span><b id="b-acconto"></b></div>
+<div style="display:flex;justify-content:space-between;gap:12px;font-size:15px;"><span>30% deposit, payable now</span><b id="b-acconto"></b></div>
 <button type="submit" form="prenota" id="b-invia" style="font:inherit;font-size:17px;font-weight:700;background:#7A2335;color:#FFFFFF;border:none;border-radius:999px;padding:18px 28px;cursor:pointer;min-height:52px;">Reserve your place</button>
 <div id="b-msg" role="status" style="font-size:15px;line-height:1.55;"></div>
 <p style="margin:0;font-size:14px;line-height:1.6;color:#3B4A40;">Departure guaranteed from 6 guests: if the minimum isn’t reached, your deposit is refunded in full.</p>
@@ -254,7 +254,7 @@
 <script>
 (function () {
   var L = "en", LOC = "en-US";
-  var TX = {"req": "Please add your name and email.", "ok": "<b>Request received.</b> We will write to you within 24 hours to confirm your place and explain how to pay the deposit.", "send": "Reserve your place", "sending": "Sending…"};
+  var TX = {"req": "Please add your name and email.", "ok": "<b>Place held.</b> Taking you to the deposit payment…", "send": "Reserve your place", "sending": "Sending…"};
   var EDS = [["italian-experience-harvest-2027", "2027-09-02", "2027-09-11"], ["italian-experience-castagne-2027", "2027-10-06", "2027-10-15"], ["italian-experience-olio-2027", "2027-11-10", "2027-11-19"]];
   var P = { base: 4900, sud: 2600, nord: 2900 };
   var ospiti = 2;
@@ -297,7 +297,7 @@
       var d = (r && r.data) || {};
       if (r.error || !d.ok) { msg.style.color = "#B3261E"; msg.textContent = (r.error && r.error.message) || d.errore || "Errore."; return; }
       msg.style.color = "#1F2A22"; msg.innerHTML = TX.ok;
-      document.getElementById("prenota").reset(); calcola();
+      setTimeout(function () { location.href = "https://app.ristoflow-ai.com/viaggi/p/?t=" + encodeURIComponent(d.link); }, 900);
     });
   });
 })();
