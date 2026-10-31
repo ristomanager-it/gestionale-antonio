@@ -97,6 +97,7 @@ function disegna(container, supabase) {
           <input id="in-nome" placeholder="Nome e cognome">
           <input id="in-quanti" type="number" min="1" value="1" placeholder="quanti">
           <input id="in-tel" placeholder="Telefono">
+          <input id="in-email" type="email" placeholder="Email">
           <input id="in-gruppo" placeholder="Gruppo (famiglia, amici…)">
         </div>
         <button class="sp-btn" id="in-add">Aggiungi</button>
