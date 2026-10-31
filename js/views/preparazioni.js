@@ -4569,7 +4569,7 @@ function buildDettaglioConfezionamento() {
   try {
     return (confezioniRows || [])
       .filter(c => (Number(c.pezzi_per_confezione) || 1) > 0 && Number(c.numero_confezioni) > 0
-                   && (c.porzione_id || c.confezione_label))
+                   && (c.porzione_id || c.confezione_label || Number(c.peso_kg) > 0))
       .map(c => {
         const porz = porzioniCache.find(p => String(p.id) === String(c.porzione_id))
                   || porzioniCache.find(p => p.label === c.confezione_label);
