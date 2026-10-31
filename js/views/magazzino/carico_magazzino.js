@@ -173,8 +173,9 @@ export async function apriCaricoModal({ aziendaId }) {
   async function loadFornitori() {
     const { data } = await window.supabaseClient
       .from("fornitori")
-      .select("ragione_sociale")
-      .eq("azienda_id", aziendaId);
+      .select("id, ragione_sociale")
+      .eq("azienda_id", aziendaId)
+      .order("ragione_sociale", { ascending: true });
 
     fornitoriCache = data || [];
   }
