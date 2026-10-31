@@ -1023,8 +1023,8 @@ export async function apriCaricoModal({ aziendaId }) {
         <div class="rf-product-section-title">Nuovo prodotto</div>
 
         <div style="display:flex;gap:8px;margin-bottom:6px;">
-          <button type="button" id="new-foto-scatta" class="app-button" style="flex:1;">📷 Scatta la foto</button>
-          <button type="button" id="new-foto-galleria" class="app-button gray" style="flex:1;">🖼 Galleria</button>
+          <button type="button" id="new-foto-scatta" class="app-button" style="flex:1 1 0;min-width:0;width:auto;">📷 Scatta la foto</button>
+          <button type="button" id="new-foto-galleria" class="app-button gray" style="flex:1 1 0;min-width:0;width:auto;">🖼 Galleria</button>
         </div>
         <div style="font-size:12px;color:#64748b;margin-bottom:6px;">Tony guarda la foto e compila la scheda.</div>
         <input id="new-foto-camera" type="file" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
