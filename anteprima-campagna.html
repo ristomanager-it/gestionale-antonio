@@ -48,6 +48,7 @@ iframe.alto{height:700px}
 (function(){
 var SB='https://cuhcscpvhypoaplcmtjk.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
 var id=new URLSearchParams(location.search).get('b')||'';
+try{if(window.self!==window.top)document.documentElement.className+=' emb';}catch(e){document.documentElement.className+=' emb';}
 function q(i){return document.getElementById(i);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function eur(c){return (Math.round(Number(c||0))/100).toLocaleString('it-IT')+' €';}
