@@ -209,7 +209,7 @@ export async function render(container) {
         ${d.confermato
           ? `<div class="pv-timer ok">✅ Evento confermato — grazie!</div>`
           : d.accettato
-            ? `<div class="pv-timer ok">Proposta accettata: la data è vostra appena versate l'acconto</div>`
+            ? `<div class="pv-timer ok">${modo === "contanti" ? "Proposta accettata: la data è vostra appena ci consegnate l'acconto in contanti" : "Proposta accettata: la data è vostra appena versate l'acconto"}</div>`
             : `<div class="pv-timer">${esc(scadenzaTesto(d.scadenza))}</div>`}
         <button class="pv-stampa" id="pv-print">🖨️ Stampa o salva in PDF</button>
         <button class="pv-stampa" id="pv-print-menu" style="margin-top:8px;">📄 Stampa solo il menu</button>
