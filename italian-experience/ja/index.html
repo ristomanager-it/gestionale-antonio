@@ -254,7 +254,7 @@
 <script>
 (function () {
   var L = "ja", LOC = "ja-JP";
-  var TX = {"req": "お名前とメールアドレスをご入力ください。", "ok": "<b>お席を確保しました。</b>予約金のお支払いページへ移動します…", "send": "席を予約する", "sending": "送信中…"};
+  var TX = {"req": "お名前とメールアドレスをご入力ください。", "ok": "<b>お席を確保しました。</b>予約金のお支払いページへ移動します…", "send": "席を予約する", "sending": "送信中…", "paid": "<b>予約金のお支払いありがとうございます。</b>お席が確定しました。旅の詳細はまもなくご連絡します。", "annullato": "お支払いが完了しませんでした。お席はしばらく確保されています。下から再度お試しください。", "riprova": "予約金を支払う"};
   var EDS = [["italian-experience-harvest-2027", "2027-09-02", "2027-09-11"], ["italian-experience-castagne-2027", "2027-10-06", "2027-10-15"], ["italian-experience-olio-2027", "2027-11-10", "2027-11-19"]];
   var P = { base: 4900, sud: 2600, nord: 2900 };
   var ospiti = 2;
@@ -278,7 +278,38 @@
   Array.prototype.forEach.call(document.querySelectorAll('input[name="formula"]'), function (r) { r.onchange = calcola; });
   calcola();
   var sb = null;
-  try { sb = window.supabase.createClient("https://cuhcscpvhypoaplcmtjk.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0"); } catch (e) {}
+  var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  try { sb = window.supabase.createClient("https://cuhcscpvhypoaplcmtjk.supabase.co", KEY); } catch (e) {}
+  var SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var RIT = location.origin + location.pathname;
+  function paga(token, btn, msg) {
+    btn.disabled = true; btn.textContent = TX.sending;
+    sb.rpc("viaggio_mio_piano", { p_token: token }).then(function (r) {
+      var rate = (r && r.data && r.data.rate) || [];
+      var acc = rate.filter(function (x) { return x.tipo === "acconto" && x.stato !== "pagata"; })[0];
+      return fetch(SB + "/functions/v1/viaggi-paga", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": KEY, "Authorization": "Bearer " + KEY },
+        body: JSON.stringify({ token: token, rata_id: acc ? acc.id : null, ritorno: RIT })
+      });
+    }).then(function (res) { return res.json(); }).then(function (d) {
+      if (d && d.ok && d.url) { location.href = d.url; return; }
+      btn.disabled = false; btn.textContent = TX.send;
+      msg.style.color = "#B3261E"; msg.textContent = (d && d.errore) || "Errore.";
+    }).catch(function () { btn.disabled = false; btn.textContent = TX.send; msg.style.color = "#B3261E"; msg.textContent = "Errore."; });
+  }
+  (function ritorno() {
+    var q = new URLSearchParams(location.search), esito = q.get("pagamento"), tok = q.get("t");
+    if (!esito) return;
+    var msg = document.getElementById("b-msg"), btn = document.getElementById("b-invia");
+    setTimeout(function () { document.getElementById("book").scrollIntoView(); }, 50);
+    if (esito === "ok") { msg.style.color = "#1F2A22"; msg.innerHTML = TX.paid; btn.style.display = "none"; return; }
+    msg.style.color = "#B3261E"; msg.textContent = TX.annullato;
+    if (tok) {
+      btn.textContent = TX.riprova;
+      btn.onclick = function (e) { e.preventDefault(); paga(tok, btn, msg); };
+    }
+  })();
   var val = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
   document.getElementById("prenota").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -297,7 +328,7 @@
       var d = (r && r.data) || {};
       if (r.error || !d.ok) { msg.style.color = "#B3261E"; msg.textContent = (r.error && r.error.message) || d.errore || "Errore."; return; }
       msg.style.color = "#1F2A22"; msg.innerHTML = TX.ok;
-      setTimeout(function () { location.href = "https://app.ristoflow-ai.com/viaggi/p/?t=" + encodeURIComponent(d.link); }, 900);
+      paga(d.link, btn, msg);
     });
   });
 })();
