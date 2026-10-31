@@ -682,7 +682,7 @@ export async function apriCaricoModal({ aziendaId }) {
     try {
       sedeId = getSedeAttivaId();
     } catch (error) {
-      alert(error.message);
+      alert("Scegli prima la sede (in alto, accanto al nome della società): senza sede il carico non si può registrare.");
       return;
     }
 
