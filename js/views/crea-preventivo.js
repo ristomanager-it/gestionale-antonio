@@ -530,6 +530,12 @@ function disegna(container, supabase, azienda, sede) {
           ${campo("Telefono", "cliente_telefono")}
           ${campo("Email", "cliente_email", "email")}
           <div>
+            <label>Lingua del cliente</label>
+            <select class="in" data-campo="lingua">
+              ${[["it","Italiano"],["en","English"],["de","Deutsch"],["nl","Nederlands"]].map(([k, l]) => `<option value="${k}"${(P.lingua || "it") === k ? " selected" : ""}>${l}</option>`).join("")}
+            </select>
+          </div>
+          <div>
             <label>Evento</label>
             <select class="in" data-campo="tipo_servizio">
               <option value="">— scegli —</option>
