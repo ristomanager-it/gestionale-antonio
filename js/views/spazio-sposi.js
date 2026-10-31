@@ -86,7 +86,7 @@ function disegna(container, supabase) {
           <div class="r">
             <div class="t"><b>${esc(i.nome)}</b>
               <span>${i.quanti} ${i.quanti === 1 ? "persona" : "persone"}${i.gruppo ? " · " + esc(i.gruppo) : ""}${
-                (i.allergie || []).length ? " · " + i.allergie.map(esc).join(", ") : ""}</span></div>
+                (i.allergie || []).length ? " · " + i.allergie.map(esc).join(", ") : ""}</span>${invRiga(i)}</div>
             <span class="pill ${i.stato === "confermato" ? "si" : i.stato === "assente" ? "no" : "forse"}">${
               i.stato === "confermato" ? "c'è" : i.stato === "assente" ? "non può" : i.stato === "forse" ? "in forse" : "in attesa"}</span>
           </div>`).join("") : `<div class="vuoto">Nessun invitato ancora. Aggiungeteli qui sotto.</div>`}
