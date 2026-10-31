@@ -529,7 +529,7 @@ function aggancia(container, supabase) {
     if (!v("in-nome")) return;
     await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "invitato", p_dati: {
       nome: v("in-nome"), quanti: Number(v("in-quanti")) || 1,
-      telefono: v("in-tel"), gruppo: v("in-gruppo") } });
+      telefono: v("in-tel"), email: v("in-email"), gruppo: v("in-gruppo") } });
     ricarica();
   });
 
