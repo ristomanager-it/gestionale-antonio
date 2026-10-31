@@ -216,6 +216,52 @@ export async function render(container) {
     ? " La data sarà vostra quando ci consegnate l'acconto in contanti."
     : " La data sarà vostra quando versate l'acconto.";
 
+  const menuHtml = `${perSezione.size || (d.isole || []).length ? `
+          <h2>Il menu</h2>
+          <div class="pv-blocco">
+            ${(d.isole || []).map((is) => `
+              <div class="pv-sez">
+                <div class="pv-tit">${esc(is.sezione)}</div>
+                ${is.descrizione ? `<div class="pv-p">${esc(is.descrizione)}</div>` : ""}
+                ${(is.piatti || []).map((n) => `<div class="pv-p" style="padding-left:12px;color:#4B5563;">· ${esc(n)}</div>`).join("")}
+              </div>`).join("")}
+            ${[...perSezione.entries()].map(([sez, piatti]) => `
+              <div class="pv-sez">
+                <div class="pv-tit">${esc(sez)}</div>
+                ${piatti.map(n => `<div class="pv-p">${esc(n)}</div>`).join("")}
+              </div>`).join("")}
+          </div>` : ""}
+${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
+          <h2>${esc(sez)}</h2>
+          <div class="pv-blocco"><div class="pv-sez">
+            ${piatti.map(n => `<div class="pv-p">${esc(n)}</div>`).join("")}
+          </div></div>`).join("") : ""}`;
+
+  if (soloMenu) {
+    container.innerHTML = guscio(`
+    <div class="pv-foglio pv-solo">
+      <div class="pv-testa">
+        ${d.logo ? `<img src="${esc(d.logo)}" alt="">` : ""}
+        <div class="pv-oc">${esc(d.tema?.occhiello || "Il menu")}</div>
+        <h1>${esc(d.cliente || "")}</h1>
+        <div class="pv-quando">${esc(dataLunga(d.data_evento))}${d.location ? " · " + esc(d.location) : ""}</div>
+        <button class="pv-stampa" id="pv-print">🖨️ Stampa o salva in PDF</button>
+      </div>
+      <div class="pv-corpo">
+        ${menuHtml.trim() ? menuHtml : `<p class="pv-intro">Il menu non è ancora stato scelto.</p>`}
+        <p class="pv-solo-link"><a href="#/preventivo?t=${encodeURIComponent(token)}" id="pv-torna">← Torna alla proposta completa</a></p>
+      </div>
+      <div class="pv-pie"><b>${esc(d.locale || "")}</b></div>
+    </div>`, d.tema);
+    document.getElementById("pv-print")?.addEventListener("click", () => window.print());
+    document.getElementById("pv-torna")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.hash = "#/preventivo?t=" + encodeURIComponent(token);
+      render(container);
+    });
+    return;
+  }
+
   container.innerHTML = guscio(`
     <div class="pv-foglio">
       <div class="pv-testa">
