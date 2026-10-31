@@ -804,6 +804,8 @@ export async function apriCaricoModal({ aziendaId }) {
     }
 
     if (!q || q <= 0) {
+      if (qtaEl.scrollIntoView) qtaEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      qtaEl.focus();
       alert("Inserisci una quantità valida");
       return;
     }
