@@ -331,7 +331,7 @@
     e.preventDefault();
     var es = document.getElementById("ag-esito"), bt = document.getElementById("ag-invia");
     var g = function (id) { return document.getElementById(id).value.trim(); };
-    if (!g("ag-agenzia") || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(g("ag-email"))) { es.style.color = "#B3261E"; es.textContent = AGX.err; return; }
+    if (!g("ag-agenzia") || !/^[^@ ]+@[^@ ]+[.][^@ ]+$/.test(g("ag-email"))) { es.style.color = "#B3261E"; es.textContent = AGX.err; return; }
     bt.disabled = true; var t0 = bt.textContent; bt.textContent = "…";
     fetch(SB + "/functions/v1/ie-agenzie", { method: "POST", headers: { "Content-Type": "application/json", "apikey": KEY, "Authorization": "Bearer " + KEY },
       body: JSON.stringify({ agenzia: g("ag-agenzia"), nome: g("ag-nome"), email: g("ag-email"), telefono: g("ag-tel"), paese: g("ag-paese"), messaggio: g("ag-msg"), lingua: L, sito: g("ag-sito") }) })
