@@ -1162,11 +1162,11 @@ export async function apriCaricoModal({ aziendaId }) {
 async function loadDettaglioProdotto(aziendaId, prodottoId) {
   let sedeId = null;
 
+  // senza sede attiva la scheda si apre lo stesso: foto, fornitore e anagrafe sono dell'azienda. Mancano solo i movimenti.
   try {
     sedeId = getSedeAttivaId();
   } catch (error) {
-    console.error(error);
-    return null;
+    sedeId = null;
   }
 
   const { data: prodotto, error: prodottoError } = await window.supabaseClient
