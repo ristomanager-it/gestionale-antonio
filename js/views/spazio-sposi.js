@@ -35,6 +35,9 @@ export async function render(container) {
 
   if (!D?.ok) { container.innerHTML = guscio(`<div class="sp-err">${esc(D?.errore || "Non riesco a caricare lo spazio.")}</div>`); return; }
   disegna(container, supabase);
+  // lingua del cliente: la pagina e' scritta in italiano, il modulo la traduce e mette la scelta in testata
+  import("../i18n-eventi.js?v=1").then(m => m.attivaLingua(container, { testata: ".sp-testa", predefinita: D.lingua }))
+    .catch(e => console.error(e));
 }
 
 function disegna(container, supabase) {
