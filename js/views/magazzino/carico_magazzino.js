@@ -652,17 +652,49 @@ export async function apriCaricoModal({ aziendaId }) {
     prodottoSelezionato = prodotto;
     prodottoBox.innerHTML = renderSchedaCaricoProdotto(prodotto, fornitoriCache, { nuovo });
     bindSchedaProdotto(prodotto);
-    const umSel = prodottoBox.querySelector("#carico-um-sel");
-    if (umSel) {
-      umSel.onchange = async () => {
-        const { error } = await sb.from("prodotti").update({ unita_base: umSel.value }).eq("id", prodotto.id).eq("azienda_id", aziendaId);
-        const e = prodottoBox.querySelector("#carico-anag-esito");
-        if (error) { if (e) { e.textContent = "Non riesco a salvare l'unità: " + (error.message || "errore"); e.style.color = "#b91c1c"; } return; }
-        prodotto.unita_base = umSel.value;
-        umValueEl.innerText = umSel.value;
-        if (e) { e.textContent = "✅ Unità di misura salvata"; e.style.color = "#15803d"; }
+    const msgA = (testo, ok) => { const e = prodottoBox.querySelector("#carico-anag-esito"); if (e) { e.textContent = testo; e.style.color = ok ? "#15803d" : "#b91c1c"; } };
+    // nome del prodotto nuovo: Tony lo propone, qui si puo' correggere
+    const nomeEl = prodottoBox.querySelector("#carico-nome");
+    if (nomeEl) {
+      nomeEl.onchange = async () => {
+        const nuovoNome = nomeEl.value.trim();
+        if (!nuovoNome) { nomeEl.value = prodotto.descrizione || ""; return; }
+        const { error } = await sb.from("prodotti").update({ descrizione: nuovoNome, nome: nuovoNome }).eq("id", prodotto.id).eq("azienda_id", aziendaId);
+        if (error) { msgA("Non riesco a salvare il nome: " + (error.message || "errore"), false); return; }
+        prodotto.descrizione = nuovoNome;
+        const titolo = prodottoBox.querySelector(".rf-product-title");
+        if (titolo) titolo.textContent = nuovoNome;
+        msgA("✅ Nome salvato", true);
       };
     }
+    // si conta in pezzi, kg o litri: l'app lo legge da tre campi, vanno aggiornati insieme
+    const umSel = prodottoBox.querySelector("#carico-um-sel");
+    const contBox = prodottoBox.querySelector("#carico-cont-box");
+    if (umSel) {
+      umSel.onchange = async () => {
+        const v = umSel.value;
+        const { error } = await sb.from("prodotti").update({ unita_base: v, unita_misura: v, um: v }).eq("id", prodotto.id).eq("azienda_id", aziendaId);
+        if (error) { msgA("Non riesco a salvare l'unità: " + (error.message || "errore"), false); return; }
+        prodotto.unita_base = v;
+        umValueEl.innerText = v;
+        if (contBox) contBox.style.display = v === "pz" ? "" : "none";
+        aggiornaEtichettaQuantita(prodotto);
+        msgA("✅ Unità di misura salvata", true);
+      };
+    }
+    // quanto contiene un pezzo (serve per i costi)
+    const contEl = prodottoBox.querySelector("#carico-cont");
+    const contUm = prodottoBox.querySelector("#carico-cont-um");
+    const salvaCont = async () => {
+      const n = Number(String(contEl.value || "").replace(",", "."));
+      const agg = n > 0 ? { contenuto_confezione: n, um_confezione: contUm.value } : { contenuto_confezione: null, um_confezione: null };
+      const { error } = await sb.from("prodotti").update(agg).eq("id", prodotto.id).eq("azienda_id", aziendaId);
+      if (error) { msgA("Non riesco a salvare il contenuto: " + (error.message || "errore"), false); return; }
+      Object.assign(prodotto, agg);
+      msgA(n > 0 ? "✅ Contenuto del pezzo salvato" : "✅ Contenuto tolto", true);
+    };
+    if (contEl) contEl.onchange = salvaCont;
+    if (contUm) contUm.onchange = () => { if (Number(contEl.value) > 0) salvaCont(); };
     umValueEl.innerText = prodotto.unita_base || "—";
     umCard.style.display = "block";
     scortaEl.value = prodotto.scorta_minima || "";
