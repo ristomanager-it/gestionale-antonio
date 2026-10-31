@@ -5493,7 +5493,7 @@ async function stampaEtichetteSuEtichettatrice() {
       const pezzi = Math.max(0, Math.floor(toNumber(r.pezzi_per_confezione) || 1));
       const numConf = Math.max(0, Math.floor(toNumber(r.numero_confezioni) || 0));
       if (pezzi <= 0 || numConf <= 0) return null;
-      const label = String(r.confezione_label || porz?.label || "").trim();
+      const label = String(r.confezione_label || porz?.label || (toNumber(r.peso_kg) > 0 ? "Confezione " + String(toNumber(r.peso_kg)).replace(".", ",") + " kg" : "")).trim();
       const pesoPorzKg = toNumber(r.peso_kg) > 0
                        ? toNumber(r.peso_kg)
                        : toKg(porz?.peso_porzione, porz?.unita_misura);
