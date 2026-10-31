@@ -1292,7 +1292,7 @@ DESC 2: ...`;
           if (lblP) lblP.textContent = ivP.da === ivP.a ? (ivP.et === 'oggi' ? 'Oggi · ' : ivP.et === 'ieri' ? 'Ieri · ' : '') + dmY(ivP.da) : 'Dal ' + dmY(ivP.da) + ' al ' + dmY(ivP.a);
           box.style.cssText = '';
           box.className = '';
-          box.innerHTML = (j.campagne || []).map((c) => {
+          box.innerHTML = (j.campagne || []).slice().sort((x, y) => Number(y.id) - Number(x.id)).map((c) => {
             const on = c.stato === 'ENABLED';
             return `<div class="gads-card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <div style="flex:1;min-width:180px;"><div style="font-weight:700;color:#0f172a;">${escH(c.nome)}</div>
