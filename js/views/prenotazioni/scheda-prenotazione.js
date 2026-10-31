@@ -647,6 +647,26 @@ export async function render(container) {
       .eq("prenotazione_id", p.id).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (error) { box.innerHTML = '<span style="color:#b91c1c;">Errore caricamento menu</span>'; return; }
     const btn = (id, label, primary) => '<button id="' + id + '" type="button" style="border:0;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;' + (primary ? 'background:#0E5A7A;color:#fff;' : 'background:#e2e8f0;color:#0f172a;') + '">' + label + '</button>';
+    if (m && m.preventivo_id) {
+      // menu nato da un preventivo: la prenotazione lo porta con se' e il database lo riallinea da solo a ogni modifica del preventivo
+      const vv = Array.isArray(m.voci) ? m.voci : [];
+      const gr = new Map();
+      vv.forEach((x) => { const k = x.portata || "menu"; if (!gr.has(k)) gr.set(k, []); gr.get(k).push(x.nome || ""); });
+      box.innerHTML = '<div style="border:1px solid #7dd3fc;background:#f0f9ff;border-radius:12px;padding:12px;color:#0f172a;">'
+        + '<div style="font-weight:700;font-size:15px;">Menu dell\'evento · ' + escapeHtml(m.titolo || "") + '</div>'
+        + '<div style="font-size:12px;color:#475569;margin:2px 0 8px;">Dal preventivo n. ' + escapeHtml(String(m.preventivo_id)) + ' · si aggiorna da solo quando cambia il preventivo</div>'
+        + (gr.size
+          ? [...gr.entries()].map(([s, piatti]) => '<div style="margin-top:8px;"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0369a1;">' + escapeHtml(s) + '</div>'
+              + piatti.map((n) => '<div style="font-size:13px;line-height:1.5;">' + escapeHtml(n) + '</div>').join("") + '</div>').join("")
+          : '<div style="font-size:13px;color:#64748b;">Il preventivo non ha ancora piatti.</div>')
+        + '</div>'
+        + '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
+        + btn("pren-menu-ev-stampa", "🖨 Stampa menu da tavolo", true) + btn("pren-menu-ev-apri", "📑 Apri il preventivo", false)
+        + '</div>';
+      container.querySelector("#pren-menu-ev-stampa").onclick = () => { window.location.hash = "#/menu-tavolo?pren=" + p.id; };
+      container.querySelector("#pren-menu-ev-apri").onclick = () => { window.location.hash = "#/creaPreventivo?id=" + m.preventivo_id; };
+      return;
+    }
     if (m) {
       const voci = Array.isArray(m.voci) ? m.voci : [];
       const dataIt = m.data ? String(m.data).split("-").reverse().join("/") : "";
