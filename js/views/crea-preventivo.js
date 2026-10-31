@@ -1365,6 +1365,29 @@ function aggancia(container, supabase, azienda, sede) {
     msg(container, "Si apre la pagina del cliente: da lì usa Stampa o salva in PDF.");
   });
 
+  // solo il menu, senza prezzi, servizi, conto e pagamento: si apre la pagina del cliente in modalita' "menu"
+  container.querySelector("#pv2-menu-pdf")?.addEventListener("click", () => {
+    if (!P.token_pubblico) { msg(container, "Salva prima il preventivo.", true); return; }
+    const w = window.open(linkCliente() + "&solo=menu", "_blank");
+    if (!w) { msg(container, "Il browser ha bloccato la finestra: apri il link cliente e stampa da lì.", true); return; }
+    msg(container, "Si apre solo il menu: da lì usa Stampa o salva in PDF.");
+  });
+
+  // acconto consegnato in contanti (o in sede): si segna incassato e l'evento si conferma, come con il pagamento online
+  container.querySelector("#pv2-incassato")?.addEventListener("click", async () => {
+    if (!P.id) { msg(container, "Salva prima il preventivo.", true); return; }
+    const cc = conti();
+    if (!confirm("Segno l'acconto di " + euro(cc.acconto) + " come incassato e confermo l'evento?")) return;
+    const ora = new Date().toISOString();
+    const { error } = await supabase.from("preventivi")
+      .update({ acconto_versato: cc.acconto, acconto_versato_il: ora, accettato_il: P.accettato_il || ora, confermato_il: ora, stato: "confermato" })
+      .eq("id", P.id);
+    if (error) return msg(container, "Errore: " + error.message, true);
+    P.acconto_versato = cc.acconto; P.acconto_versato_il = ora; P.accettato_il = P.accettato_il || ora; P.confermato_il = ora; P.stato = "confermato";
+    msg(container, "Acconto segnato come incassato: l'evento è confermato.");
+    ri();
+  });
+
   container.querySelector("#pv2-link")?.addEventListener("click", async () => {
     const url = linkCliente();
     try { await navigator.clipboard.writeText(url); msg(container, "Link copiato: " + url); }
