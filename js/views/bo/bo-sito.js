@@ -2347,6 +2347,9 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
       <div class="lp-orari">Lun–ven<br>Pranzo 12:00–14:30<br>Cena 19:00–22:30</div>
     </div>
     <a class="lp-cta" href="#prenota" onclick="try{window._rfTrack('click','cta_prenota',{valore:'landing'})}catch(e){}">Prenota il tuo tavolo</a>
+    ${lpWa || tel ? `<div class="lp-alt" style="margin:12px 0 4px">${lpWa ? `<a class="lp-wa" href="${esc(lpWa)}">Scrivici su WhatsApp</a>` : ""}${tel ? `<a class="lp-ch" href="tel:${esc(tel)}">Chiama</a>` : ""}</div>` : ""}
+    <style>[style*="9998"]{left:0!important;right:0!important;bottom:0!important;max-width:none!important;border-radius:0!important;border-left:0!important;border-right:0!important;padding:7px 12px calc(7px + env(safe-area-inset-bottom,0px))!important;display:flex!important;align-items:center!important;gap:8px!important;font-size:13px!important;line-height:1.25!important}[style*="9998"]>div:first-child{margin:0!important;flex:1 1 auto!important}[style*="9998"]>div:last-child{flex:0 0 auto!important}[style*="9998"] button{flex:0 0 auto!important;padding:8px 12px!important;font-size:13px!important}</style>
+    <script>(function(){var n=0,t=setInterval(function(){n++;var g=document.querySelector('#lp-giorni button[data-d]');if(g){clearInterval(t);var o=window._rfTrack;window._rfTrack=function(){};try{g.click();var d=new Date(),tardi=(d.getHours()*60+d.getMinutes())>=13*60,oggi=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),tb=document.querySelector('#lp-turni button[data-t="'+((g.getAttribute('data-d')===oggi&&tardi)?'cena':'pranzo')+'"]');if(tb)tb.click();}catch(e){}window._rfTrack=o;}else if(n>40)clearInterval(t);},250);})();</script>
     <a class="lp-lnk" href="#oggi">Guarda il menu di oggi</a>
     <a class="lp-lnk" href="#mappa" style="margin-top:6px">Come arrivare</a>
   </div>
