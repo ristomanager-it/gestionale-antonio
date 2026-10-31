@@ -737,6 +737,11 @@ export async function apriCaricoModal({ aziendaId }) {
 
         <div class="rf-product-section-title">Nuovo prodotto</div>
 
+        <label for="new-foto-file" style="display:flex;align-items:center;justify-content:center;gap:8px;border:2px dashed #94a3b8;border-radius:14px;padding:16px 10px;font-weight:800;color:#0E5A7A;cursor:pointer;margin-bottom:6px;text-align:center;">📷 Scatta o scegli la foto: Tony compila la scheda</label>
+        <input id="new-foto-file" type="file" accept="image/*" style="display:none;">
+        <img id="new-foto-prev" alt="" style="display:none;max-width:100%;max-height:200px;border-radius:12px;margin:6px 0;">
+        <div id="new-tony" style="display:none;font-size:13px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:8px 10px;margin-bottom:8px;"></div>
+
         <div class="rf-field">
           <label>Codice interno</label>
           <input id="new-codice" class="input">
