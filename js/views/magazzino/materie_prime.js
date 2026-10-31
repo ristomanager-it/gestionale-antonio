@@ -183,12 +183,8 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
   async function openScheda(prodottoId) {
     scheda.innerHTML = `<div class="rf-empty-state">Caricamento scheda...</div>`;
 
-    const sedeId = window.state?.sedeAttiva?.id;
-
-    if (!sedeId) {
-      scheda.innerHTML = `<div class="rf-empty-state">Sede attiva non trovata</div>`;
-      return;
-    }
+    // senza sede la scheda si apre lo stesso (anagrafe, fornitore, foto); non si vede solo la giacenza
+    const sedeId = window.state?.sedeAttiva?.id || null;
 
     const { data: prodotto, error: prodottoError } = await window.supabaseClient
       .from("prodotti")
