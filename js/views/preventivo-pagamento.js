@@ -64,6 +64,16 @@ export async function render(container) {
     pag = data;
   } catch (e) { console.error(e); }
 
+  if (pag && (pag.nessun_acconto || pag.contanti)) {
+    container.innerHTML = guscio(`<div class="pg-errore">
+      ${pag.contanti
+        ? "Per questa proposta l'acconto si consegna in contanti, di persona: non serve pagare online."
+        : "Per questa proposta non è richiesto nessun acconto."}
+      <a class="pg-torna" href="#/preventivo?t=${encodeURIComponent(token)}">← Torna alla proposta</a>
+    </div>`);
+    return;
+  }
+
   if (!pag || pag.ok === false) {
     container.innerHTML = guscio(`<div class="pg-errore">
       Per questa proposta non è ancora stato impostato il pagamento.<br>
