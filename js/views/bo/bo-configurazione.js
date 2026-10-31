@@ -2648,6 +2648,11 @@ export async function render(container) {
             <div class="id-desc">Trovi l'ID nel pannello Meta Business → Gestione eventi. Es. 1234567890123456</div>
             <input id="id-meta-pixel" class="id-input" placeholder="Es. 1234567890123456" value="${val('meta_pixel_id')}">
           </div>
+          <div style="margin-bottom:14px;">
+            <span class="id-label">🤖 OpenAI Pixel ID (ChatGPT Ads)</span>
+            <div class="id-desc">Lo trovi in OpenAI Ads Manager → Conversioni. Parte solo se il visitatore accetta i cookie.</div>
+            <input id="id-openai-pixel" class="id-input" placeholder="Es. QPyFkFi1FxZmWzcJdbUQxf" value="${val('openai_pixel_id')}">
+          </div>
           <div>
             <span class="id-label">🏷️ Google Tag Manager ID</span>
             <div class="id-desc">Trovi il Container ID in GTM → Admin. Formato GTM-XXXXXXX</div>
