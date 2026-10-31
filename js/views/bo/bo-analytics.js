@@ -643,7 +643,7 @@ export async function render(container) {
     box.innerHTML = `
       <div style="font-weight:700;color:#0E5A7A;margin-bottom:10px;">💶 Spesa pubblicità e richieste</div>
       <table style="width:100%;border-collapse:collapse;font-size:14px;table-layout:auto;">
-        <thead><tr><th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:600;font-size:12px;">Canale</th><th ${th}>Spesa</th><th ${th}>Clic</th><th ${th}>Richieste</th><th ${th}>Costo per richiesta</th></tr></thead>
+        <thead><tr><th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:600;font-size:12px;">Canale</th><th ${th}>Spesa</th><th ${th}>Clic</th><th ${th}>Richieste</th><th ${th}>€ a richiesta</th></tr></thead>
         <tbody>
           ${riga("Google Ads", g, rG)}
           ${riga("Meta (Facebook e Instagram)", m, rM)}
