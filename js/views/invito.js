@@ -154,6 +154,9 @@ export async function render(container) {
     </div>`, t);
 
   aggancia();
+  // l'invitato vede la pagina nella sua lingua (telefono), altrimenti in quella degli sposi
+  import("../i18n-eventi.js?v=1").then(m => m.attivaLingua(container, { testata: ".iv-testa", predefinita: d.lingua, ospite: true }))
+    .catch(e => console.error(e));
 
   /* ── interazione ─────────────────────────────────────────── */
   function aggancia() {
