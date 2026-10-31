@@ -11,6 +11,8 @@ export function renderCaricoModal() {
 
         <div class="rf-overlay-body">
 
+          <div id="carico-sede-avviso" style="display:none;"><div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:10px;line-height:1.4;">⚠ Nessuna sede attiva: scegli la sede in alto, accanto al nome della società. Serve per registrare il carico e vedere la giacenza. Foto e fornitore preferito si possono segnare lo stesso.</div></div>
+
           <div style="display:flex;gap:8px;margin-bottom:14px;">
             <button id="tab-mp" style="
               flex:1;padding:10px;border:none;border-radius:10px;
