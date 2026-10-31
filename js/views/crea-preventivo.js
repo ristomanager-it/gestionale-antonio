@@ -114,7 +114,7 @@ function nuovo(azienda, sede) {
     nome_festeggiato: "", intolleranze: "", note: "",
     data_evento: "", ora_evento: "", n_invitati: 50, n_bambini: 0,
     location: "", location_id: null, location_prezzo: 0,
-    sconto_perc: 0, sconto_euro: 0, acconto: 0, giorni_validita: 15,
+    sconto_perc: 0, sconto_euro: 0, acconto: 0, acconto_modo: "standard", giorni_validita: 15,
     formula_servizio: "servito",
   };
   righe = []; extra = []; richieste = []; pagamenti = []; lotti = 0; stime = {}; foto = [];
