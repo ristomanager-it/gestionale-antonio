@@ -98,7 +98,7 @@ export async function render(container) {
         /* via tutto cio' che serve solo a schermo (h2 compresi) */
         .pv-mod,.pv-carica,.pv-cta,.pv-stampa,.pv-timer,.pv-serv,.pv-foto,
         .pv-iban .copia,.pv-iban .carta,.pv-iban .nota,.pv-iban .copiato,
-        .pv-avviso,#pv-mod-esito,#pv-esito{display:none !important;}
+        .pv-avviso,.pv-solo-link,#pv-mod-esito,#pv-esito{display:none !important;}
         .pv h2:has(+ .pv-mod),
         .pv h2:has(+ .pv-carica),
         .pv h2:has(+ .pv-foto),
