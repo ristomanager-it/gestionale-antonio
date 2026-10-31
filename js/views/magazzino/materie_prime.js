@@ -209,14 +209,16 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
 
     let movimenti = [];
 
-    const movimentiResult = await window.supabaseClient
-      .from("magazzino_movimenti")
-      .select("tipo_movimento, quantita, created_at, causale")
-      .eq("azienda_id", azienda.id)
-      .eq("sede_id", sedeId)
-      .eq("prodotto_id", prodottoId)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const movimentiResult = sedeId
+      ? await window.supabaseClient
+        .from("magazzino_movimenti")
+        .select("tipo_movimento, quantita, created_at, causale")
+        .eq("azienda_id", azienda.id)
+        .eq("sede_id", sedeId)
+        .eq("prodotto_id", prodottoId)
+        .order("created_at", { ascending: false })
+        .limit(50)
+      : { data: [], error: null };
 
     if (movimentiResult.error) {
       console.error(movimentiResult.error);
