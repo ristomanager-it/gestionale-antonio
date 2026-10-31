@@ -522,6 +522,7 @@ export async function render(container) {
                     </div>
                   </div>
                   <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+                    <button class="mk-btn btn-gruppi-meta" data-id="${c.id}" style="background:#0f172a;color:#fff;">📊 Gruppi (Roma, Territorio…)</button>
                     <button class="mk-btn btn-anteprima-meta" data-id="${c.id}" style="background:#7a3b1d;color:#fff;">👁 Anteprima</button>
                     <button class="mk-btn btn-toggle-status" data-id="${c.id}" data-status="${c.status}"
                       style="background:${c.status==='ACTIVE'?'#fef3c7':'#dcfce7'};color:${c.status==='ACTIVE'?'#92400e':'#15803d'};">
