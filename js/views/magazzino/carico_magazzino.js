@@ -982,8 +982,12 @@ function renderSchedaCaricoProdotto(prodotto, fornitori = []) {
       </div>
 
       <div style="display:flex;gap:12px;align-items:center;margin:8px 0 12px;">
-        <label for="carico-foto-file" id="carico-foto-box" title="Foto del prodotto" style="flex:0 0 96px;width:96px;height:96px;border:2px dashed #94a3b8;border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:700;color:#0E5A7A;cursor:pointer;overflow:hidden;line-height:1.3;">${prodotto.foto_url ? `<img src="${escapeHtml(prodotto.foto_url)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : "📷<br>Aggiungi<br>la foto"}</label>
-        <input id="carico-foto-file" type="file" accept="image/*" style="display:none;">
+        <div style="flex:0 0 96px;">
+          <div id="carico-foto-box" role="button" title="Scatta la foto del prodotto" style="width:96px;height:96px;border:2px dashed #94a3b8;border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:700;color:#0E5A7A;cursor:pointer;overflow:hidden;line-height:1.3;">${prodotto.foto_url ? `<img src="${escapeHtml(prodotto.foto_url)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : "📷<br>Scatta<br>la foto"}</div>
+          <button type="button" id="carico-foto-galleria" class="app-button tiny gray" style="margin-top:6px;width:100%;">🖼 Galleria</button>
+        </div>
+        <input id="carico-foto-camera" type="file" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
+        <input id="carico-foto-file" type="file" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
         <div style="flex:1;min-width:0;">
           <label style="font-size:12px;font-weight:700;color:#475569;">Fornitore preferito</label>
           <select id="carico-forn-pref" class="input" style="width:100%;margin-top:4px;">
