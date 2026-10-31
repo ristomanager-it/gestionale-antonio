@@ -744,8 +744,13 @@ export async function apriCaricoModal({ aziendaId }) {
 
         <div class="rf-product-section-title">Nuovo prodotto</div>
 
-        <label for="new-foto-file" style="display:flex;align-items:center;justify-content:center;gap:8px;border:2px dashed #94a3b8;border-radius:14px;padding:16px 10px;font-weight:800;color:#0E5A7A;cursor:pointer;margin-bottom:6px;text-align:center;">📷 Scatta o scegli la foto: Tony compila la scheda</label>
-        <input id="new-foto-file" type="file" accept="image/*" style="display:none;">
+        <div style="display:flex;gap:8px;margin-bottom:6px;">
+          <button type="button" id="new-foto-scatta" class="app-button" style="flex:1;">📷 Scatta la foto</button>
+          <button type="button" id="new-foto-galleria" class="app-button gray" style="flex:1;">🖼 Galleria</button>
+        </div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:6px;">Tony guarda la foto e compila la scheda.</div>
+        <input id="new-foto-camera" type="file" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
+        <input id="new-foto-file" type="file" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
         <img id="new-foto-prev" alt="" style="display:none;max-width:100%;max-height:200px;border-radius:12px;margin:6px 0;">
         <div id="new-tony" style="display:none;font-size:13px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:8px 10px;margin-bottom:8px;"></div>
 
