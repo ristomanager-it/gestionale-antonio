@@ -1319,7 +1319,7 @@ function renderSchedaCaricoProdotto(prodotto, fornitori = [], opzioni = {}) {
 
       <div class="rf-product-heading">
         <div class="rf-product-code">${escapeHtml(prodotto.codice_interno || "—")}</div>
-        <div class="rf-product-title">${escapeHtml(prodotto.descrizione || "")}</div>
+        ${opzioni.nuovo ? "" : `<div class="rf-product-title">${escapeHtml(prodotto.descrizione || "")}</div>`}
       </div>
 
       <div style="display:flex;gap:12px;align-items:center;margin:8px 0 12px;">
