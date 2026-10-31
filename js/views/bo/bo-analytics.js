@@ -645,7 +645,7 @@ export async function render(container) {
       <table style="width:100%;border-collapse:collapse;font-size:14px;table-layout:auto;">
         <thead><tr><th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:600;font-size:12px;">Canale</th><th ${th}>Spesa</th><th ${th}>Clic</th><th ${th}>Richieste</th><th ${th}>€ a richiesta</th></tr></thead>
         <tbody>
-          ${riga("Google Ads", g, rG)}
+          ${riga("Google", g, rG)}
           ${riga("Meta", m, rM)}
           <tr><td style="padding:8px 10px;border-top:2px solid #e2e8f0;"><b>Totale</b></td><td ${td}><b>${euro(tot)}</b></td><td ${td}></td><td ${td}><b>${fmt(richieste.length)}</b></td><td ${td}><b>${richieste.length ? euro(tot / richieste.length) : "—"}</b></td></tr>
         </tbody>
