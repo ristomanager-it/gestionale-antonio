@@ -399,6 +399,10 @@ export async function apriCaricoModal({ aziendaId }) {
         scortaEl.value = prodotto.scorta_minima || "";
 
         form.style.display = "block";
+
+        // l'elenco si chiude e la scheda sale in vista: prima restava sotto l'elenco, fuori schermo
+        risultati.innerHTML = "";
+        if (prodottoBox.scrollIntoView) prodottoBox.scrollIntoView({ behavior: "smooth", block: "start" });
       };
     });
   };
