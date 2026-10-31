@@ -457,7 +457,7 @@ function disegna(container, supabase, azienda, sede) {
           <div class="k oro"><span>Costo stimato</span><b>${euro(c.costoTotale)}</b><small>cibo ${euro(c.costoMenu)} · personale ${euro(c.costoPersonale)}</small></div>
           <div class="k ${c.marginePerc >= 60 ? "verde" : c.marginePerc >= 40 ? "" : "rosso"}">
             <span>Margine</span><b>${c.marginePerc.toFixed(1)}%</b><small>${euro(c.margine)}</small></div>` : ""}
-        <div class="k"><span>Acconto</span><b>${euro(c.acconto)}</b><small>saldo ${euro(c.totale - c.acconto)}</small></div>
+        <div class="k"><span>Acconto</span><b>${P.acconto_modo === "nessuno" ? "nessuno" : euro(c.acconto)}</b><small>${P.acconto_modo === "nessuno" ? "tutto a saldo" : (P.acconto_modo === "contanti" ? "in contanti · " : "") + "saldo " + euro(c.totale - c.acconto)}</small></div>
       </div>
 
       ${c.bimbi > 0 && !righe.some(r => perBambini(r.sezione)) ? `
