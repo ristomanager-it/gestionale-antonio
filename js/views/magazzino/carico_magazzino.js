@@ -824,8 +824,36 @@ export async function apriCaricoModal({ aziendaId }) {
       });
     }
 
-    esitoEl.innerText = "Carico registrato ✔";
-    setTimeout(() => close(), 500);
+    // lotto e scadenza (letti dall'etichetta o scritti a mano) restano agganciati al prodotto, con le foto
+    const lottoTxt = (document.getElementById("carico-lotto")?.value || "").trim();
+    const scadTxt = document.getElementById("carico-scad")?.value || "";
+    let notaLotto = "";
+    if (lottoTxt) {
+      const urlsLotto = (lettoTony && lettoTony.foto_urls) || [];
+      const umLotto = (prodottoSelezionato && prodottoSelezionato.unita_base) || "";
+      const { error: lotErr } = await window.supabaseClient.from("lotti_fornitore").insert({
+        azienda_id: aziendaId,
+        sede_id: sedeId,
+        prodotto_id: Number(finalProdottoId),
+        prodotto_letto: (lettoTony && lettoTony.prodotto) || null,
+        produttore: (lettoTony && lettoTony.produttore) || null,
+        lotto: lottoTxt,
+        data_scadenza: scadTxt || null,
+        tipo_data: document.getElementById("carico-tipodata")?.value || "scadenza",
+        quantita: q,
+        unita: umLotto === "lt" ? "l" : (umLotto || null),
+        foto_url: urlsLotto[0] || null,
+        foto_urls: urlsLotto,
+        letto_da: lettoTony ? { ...lettoTony, fonte: "carico giacenza" } : null,
+        stato: "in_uso",
+      });
+      if (lotErr) { console.error(lotErr); notaLotto = " · il lotto non è stato salvato: " + (lotErr.message || "errore"); }
+    } else if (scadTxt) {
+      notaLotto = " · la scadenza non è stata salvata: manca il lotto";
+    }
+
+    esitoEl.innerText = "Carico registrato ✔" + notaLotto;
+    setTimeout(() => close(), notaLotto ? 2500 : 500);
   };
 
   async function insertMovimentoCompat(payload) {
