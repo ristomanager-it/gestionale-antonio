@@ -359,7 +359,8 @@ export async function apriCaricoModal({ aziendaId }) {
         prodottoSelezionato = prodotto;
 
         prodottoBox.style.display = "block";
-        prodottoBox.innerHTML = renderSchedaCaricoProdotto(prodotto);
+        prodottoBox.innerHTML = renderSchedaCaricoProdotto(prodotto, fornitoriCache);
+        bindSchedaProdotto(prodotto);
 
         umValueEl.innerText = prodotto.unita_base || "—";
         umCard.style.display = "block";
