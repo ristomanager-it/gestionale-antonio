@@ -53,13 +53,12 @@ export function renderCaricoModal() {
 
           <div id="carico-form" class="rf-section-spacer" style="display:none;">
 
-            <div class="rf-product-card" id="carico-um-card" style="display:none;">
-              <div class="rf-product-section-title">Unità di misura</div>
-              <div class="rf-product-grid">
-                <div class="rf-product-field">
-                  <span class="rf-product-label">UM</span>
-                  <div id="carico-um-value" class="rf-product-value">—</div>
-                </div>
+            <div class="rf-product-card" style="margin-top:10px;">
+              <div class="rf-product-section-title">Quantità</div>
+
+              <div class="rf-field">
+                <label id="carico-qta-label">Quantità</label>
+                <input id="carico-quantita" type="number" step="0.001" class="input" inputmode="decimal" />
               </div>
             </div>
 
@@ -67,7 +66,7 @@ export function renderCaricoModal() {
               <div class="rf-product-section-title">Prezzo di acquisto</div>
 
               <div class="rf-field">
-                <label>Prezzo confezione (€) <span style="font-size:11px;color:#6b7280;">lascia 0 per non aggiornare</span></label>
+                <label>Costo di un pezzo (€) <span style="font-size:11px;color:#6b7280;">se lo sai · lascia 0 per non aggiornare</span></label>
                 <input id="carico-prezzo" type="number" step="0.001" min="0" class="input" inputmode="decimal" value="0" />
               </div>
 
@@ -80,11 +79,28 @@ export function renderCaricoModal() {
             </div>
 
             <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Quantità</div>
-
+              <div class="rf-product-section-title">Lotto e scadenza <span style="font-size:11px;color:#6b7280;">(dall'etichetta, se ci sono)</span></div>
               <div class="rf-field">
-                <label>Quantità</label>
-                <input id="carico-quantita" type="number" step="0.001" class="input" inputmode="decimal" />
+                <label>Lotto</label>
+                <input id="carico-lotto" class="input" autocomplete="off" />
+              </div>
+              <div class="rf-field" style="margin-top:8px;">
+                <label>Scadenza</label>
+                <input id="carico-scad" type="date" class="input" />
+              </div>
+              <div class="rf-field" style="margin-top:8px;">
+                <label>Tipo di data</label>
+                <select id="carico-tipodata" class="input"><option value="scadenza">Da consumarsi entro</option><option value="tmc">Preferibilmente entro</option></select>
+              </div>
+            </div>
+
+            <div class="rf-product-card" id="carico-um-card" style="display:none;">
+              <div class="rf-product-section-title">Unità di misura</div>
+              <div class="rf-product-grid">
+                <div class="rf-product-field">
+                  <span class="rf-product-label">UM</span>
+                  <div id="carico-um-value" class="rf-product-value">—</div>
+                </div>
               </div>
             </div>
 
@@ -102,22 +118,6 @@ export function renderCaricoModal() {
               <div class="rf-field">
                 <label>Categoria</label>
                 <input id="carico-categoria" class="input" placeholder="es. inventario, rettifica..." />
-              </div>
-            </div>
-
-            <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Lotto e scadenza <span style="font-size:11px;color:#6b7280;">(dall'etichetta, se ci sono)</span></div>
-              <div class="rf-field">
-                <label>Lotto</label>
-                <input id="carico-lotto" class="input" autocomplete="off" />
-              </div>
-              <div class="rf-field" style="margin-top:8px;">
-                <label>Scadenza</label>
-                <input id="carico-scad" type="date" class="input" />
-              </div>
-              <div class="rf-field" style="margin-top:8px;">
-                <label>Tipo di data</label>
-                <select id="carico-tipodata" class="input"><option value="scadenza">Da consumarsi entro</option><option value="tmc">Preferibilmente entro</option></select>
               </div>
             </div>
 
