@@ -769,6 +769,8 @@ function guscio(dentro, tema) {
   .barra{height:8px;background:#EDE7E2;border-radius:100px;overflow:hidden;}
   .barra i{display:block;height:100%;background:linear-gradient(90deg,${c1},${c2});}
   .sp-mod{background:#fff;border:1.5px solid var(--rosa);border-radius:13px;padding:14px;margin-top:11px;}
+  .sp-inv{display:block;font-size:12px;color:#2E7D4F;font-weight:700;margin-top:3px;}
+  .sp-wa{display:inline-block;margin-top:5px;background:#1F7A4D;color:#fff;border:0;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;}
   .sp-mod .tit{font-size:12px;font-weight:800;color:var(--vino);text-transform:uppercase;
     letter-spacing:.08em;margin-bottom:10px;}
   .sp-mod .g{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
