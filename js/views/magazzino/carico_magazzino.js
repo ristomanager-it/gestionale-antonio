@@ -1183,13 +1183,15 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
 
   const prodottoNormalizzato = normalizeProdotto(prodotto);
 
-  const { data: movimenti, error: movimentiError } = await window.supabaseClient
-    .from("magazzino_movimenti")
-    .select("tipo_movimento, quantita, created_at, causale")
-    .eq("azienda_id", aziendaId)
-    .eq("sede_id", sedeId)
-    .eq("prodotto_id", prodottoId)
-    .order("created_at", { ascending: false });
+  const { data: movimenti, error: movimentiError } = sedeId
+    ? await window.supabaseClient
+      .from("magazzino_movimenti")
+      .select("tipo_movimento, quantita, created_at, causale")
+      .eq("azienda_id", aziendaId)
+      .eq("sede_id", sedeId)
+      .eq("prodotto_id", prodottoId)
+      .order("created_at", { ascending: false })
+    : { data: [], error: null };
 
   if (movimentiError) {
     console.error(movimentiError);
