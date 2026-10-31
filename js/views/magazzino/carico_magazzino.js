@@ -611,9 +611,12 @@ export async function apriCaricoModal({ aziendaId }) {
     const res = await insertProdottoCompat({
       azienda_id: aziendaId,
       descrizione: nome,
-      unita_base: um,
+      unita_base: "pz",
+      unita_misura: "pz",
+      um: "pz",
       tipo_prodotto: _tipoCarico,
       categoria_interna: nome,
+      ...(pesoN > 0 && umConf ? { contenuto_confezione: pesoN, um_confezione: umConf } : {}),
       categoria_bilancio_id: 7,
       ...(urls[0] ? { foto_url: urls[0] } : {}),
       ...(l.codice_barre ? { barcode: l.codice_barre } : {}),
