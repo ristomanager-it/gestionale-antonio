@@ -668,6 +668,7 @@ export async function apriCaricoModal({ aziendaId }) {
     $q(sel).onchange = (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) aggiungiFotoRapida(f); };
   });
   resetFotoRapida();
+  { const av = $q("#carico-sede-avviso"); if (av) av.style.display = window.state?.sedeAttiva?.id ? "none" : "block"; }
 
   btnConferma.onclick = async () => {
     const q = Number(qtaEl.value || 0);
