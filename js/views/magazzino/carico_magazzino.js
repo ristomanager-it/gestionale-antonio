@@ -418,7 +418,13 @@ export async function apriCaricoModal({ aziendaId }) {
     return window.supabaseClient.storage.from("media-aziende").getPublicUrl(path).data.publicUrl;
   }
 
+  function aggiornaEtichettaQuantita(prodotto) {
+    const ql = backdrop.querySelector("#carico-qta-label");
+    if (ql) ql.textContent = "Quantità (" + ((prodotto && prodotto.unita_base) || "—") + ")";
+  }
+
   function bindSchedaProdotto(prodotto) {
+    aggiornaEtichettaQuantita(prodotto);
     const sb = window.supabaseClient;
     const esitoA = prodottoBox.querySelector("#carico-anag-esito");
     const msg = (testo, ok) => { if (esitoA) { esitoA.textContent = testo; esitoA.style.color = ok ? "#15803d" : "#b91c1c"; } };
