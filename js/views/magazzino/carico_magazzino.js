@@ -460,6 +460,7 @@ export async function apriCaricoModal({ aziendaId }) {
         scorta_minima: scortaNew,
         fornitore_preferito_id: fornitoreId,
         tipo_prodotto: _tipoCarico,
+        ...(fotoNuovoUrl ? { foto_url: fotoNuovoUrl } : {}),
         ...(categoriaInterna ? { categoria_interna: categoriaInterna } : {}),
         ...(categoriaGestione ? { categoria_interna: categoriaGestione } : {}),
         categoria_bilancio_id: categoriaBilancioId ? Number(categoriaBilancioId) : 7
