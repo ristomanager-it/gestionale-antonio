@@ -68,6 +68,8 @@ export async function render(container) {
       .pv-timer.ok{background:#F1F8ED;border-color:#CFE4C2;color:#2F6B24;}
       .pv-stampa{display:block;margin:14px auto 0;background:#fff;border:1.5px solid var(--riga);color:var(--navy);
         border-radius:10px;padding:9px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+      .pv-solo-link{text-align:center;margin-top:22px;font-size:13.5px;}
+      .pv-solo-link a{color:var(--navy);font-weight:700;}
       .pv-mod{background:#fff;border:1px solid var(--riga);border-radius:12px;padding:16px 18px;}
       .pv-mod .r{padding:12px 0;border-top:1px solid #F1EEE8;}
       .pv-mod .r:first-child{border-top:none;padding-top:0;}
