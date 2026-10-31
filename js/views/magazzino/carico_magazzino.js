@@ -1361,43 +1361,22 @@ function renderSchedaCaricoProdotto(prodotto, fornitori = [], opzioni = {}) {
         </div>
       </div>` : ""}
 
-      <div class="rf-product-grid">
+      <div style="font-size:13px;color:#475569;margin:2px 0 4px;">Giacenza attuale: <b>${formatNumber(prodotto.giacenza_attuale)}</b> ${escapeHtml(prodotto.unita_base || "")}${prodotto.scorta_minima ? ` · scorta minima ${formatNumber(prodotto.scorta_minima)}` : ""}</div>
 
-        <div class="rf-product-field">
-          <span class="rf-product-label">UM</span>
-          <div class="rf-product-value">${escapeHtml(prodotto.unita_base || "—")}</div>
+      <details style="margin-top:6px;">
+        <summary style="font-size:13px;color:#0E5A7A;cursor:pointer;">Ultimi movimenti</summary>
+        <div class="rf-mov-list">
+          ${(prodotto.ultimi_movimenti || []).length
+            ? prodotto.ultimi_movimenti.map((m) => `
+              <div class="rf-mov-item">
+                <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
+                <div class="rf-mov-meta">${formatDateTime(m.created_at)}</div>
+              </div>
+            `).join("")
+            : `<div class="rf-empty-state">Nessun movimento recente</div>`
+          }
         </div>
-
-        <div class="rf-product-field">
-          <span class="rf-product-label">Fornitore</span>
-          <div class="rf-product-value">${escapeHtml(prodotto.fornitore || "—")}</div>
-        </div>
-
-        <div class="rf-product-field">
-          <span class="rf-product-label">Giacenza</span>
-          <div class="rf-product-value">${formatNumber(prodotto.giacenza_attuale)}</div>
-        </div>
-
-        <div class="rf-product-field">
-          <span class="rf-product-label">Scorta minima</span>
-          <div class="rf-product-value">${formatNumber(prodotto.scorta_minima)}</div>
-        </div>
-
-      </div>
-
-      <div class="rf-product-section-title">Ultimi movimenti</div>
-
-      <div class="rf-mov-list">
-        ${(prodotto.ultimi_movimenti || []).length
-          ? prodotto.ultimi_movimenti.map((m) => `
-            <div class="rf-mov-item">
-              <div class="rf-mov-main">${escapeHtml(m.tipo_movimento || "—")} · ${formatNumber(m.quantita)}</div>
-              <div class="rf-mov-meta">${formatDateTime(m.created_at)}</div>
-            </div>
-          `).join("")
-          : `<div class="rf-empty-state">Nessun movimento recente</div>`
-        }
-      </div>
+      </details>
 
     </div>
   `;
