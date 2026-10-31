@@ -533,6 +533,39 @@ function aggancia(container, supabase) {
     ricarica();
   });
 
+  // INVITI PERSONALI: WhatsApp dal telefono degli sposi, uno alla volta; email a tutti da Ristoflow
+  const msgInvito = () => (document.getElementById("inv-msg")?.value || "").trim() || MSG_DEF;
+  const salvaMsg = () => supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "messaggio_invito", p_dati: { testo: msgInvito() } });
+  container.querySelector("#inv-msg")?.addEventListener("change", salvaMsg);
+  const mandaWa = async (i) => {
+    const link = linkInvito() + "&g=" + i.token;
+    const txt = msgInvito().split("{nome}").join(String(i.nome || "").trim().split(/\s+/)[0]).split("{link}").join(link);
+    window.open("https://wa.me/" + numeroWa(i.telefono) + "?text=" + encodeURIComponent(txt), "_blank");
+    await salvaMsg();
+    await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "invito_inviato", p_dati: { id: i.id, canale: "whatsapp" } });
+    ricarica();
+  };
+  container.querySelector("#inv-wa")?.addEventListener("click", () => {
+    const q = (D.invitati || []).filter(i => i.telefono && !i.invito_inviato_il);
+    if (q.length) mandaWa(q[0]);
+  });
+  container.querySelectorAll("[data-wa]").forEach(b => b.addEventListener("click", () => {
+    const i = (D.invitati || []).find(x => x.id === b.dataset.wa);
+    if (i) mandaWa(i);
+  }));
+  container.querySelector("#inv-mail")?.addEventListener("click", async () => {
+    const es = document.getElementById("inv-esito");
+    es.textContent = "Invio in corso…";
+    await salvaMsg();
+    try {
+      const r = await supabase.functions.invoke("spazio-invia-inviti", { body: { token } });
+      const d = r.data || {};
+      es.textContent = d.ok ? (d.inviate ? "Email inviate: " + d.inviate : (d.messaggio || "Nessuna email da inviare"))
+        : "Non sono riuscito a inviare: " + (d.errore || (d.errori || []).join(", "));
+      if (d.inviate) setTimeout(ricarica, 1200);
+    } catch (e) { es.textContent = "Non sono riuscito a inviare. Riprova tra poco."; }
+  });
+
   container.querySelector("#in-add")?.addEventListener("click", async () => {
     if (!v("in-nome")) return;
     await supabase.rpc("spazio_scrivi", { p_token: token, p_cosa: "invitato", p_dati: {
