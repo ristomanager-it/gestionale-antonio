@@ -532,7 +532,7 @@ function disegna(container, supabase, azienda, sede) {
           <div>
             <label>Lingua del cliente</label>
             <select class="in" data-campo="lingua">
-              ${[["it","Italiano"],["en","English"],["de","Deutsch"],["nl","Nederlands"]].map(([k, l]) => `<option value="${k}"${(P.lingua || "it") === k ? " selected" : ""}>${l}</option>`).join("")}
+              ${[["it","Italiano"],["en","English"],["de","Deutsch"],["nl","Nederlands"],["es","Español"],["ru","Русский"]].map(([k, l]) => `<option value="${k}"${(P.lingua || "it") === k ? " selected" : ""}>${l}</option>`).join("")}
             </select>
           </div>
           <div>
