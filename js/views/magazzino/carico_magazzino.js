@@ -968,13 +968,30 @@ function normalizeProdotto(prodotto) {
 }
 
 
-function renderSchedaCaricoProdotto(prodotto) {
+function renderSchedaCaricoProdotto(prodotto, fornitori = []) {
+  const optForn = (fornitori || []).map((f) =>
+    `<option value="${escapeHtml(String(f.id))}" ${String(f.id) === String(prodotto.fornitore_preferito_id || "") ? "selected" : ""}>${escapeHtml(f.ragione_sociale || "")}</option>`
+  ).join("");
+
   return `
     <div class="rf-product-card">
 
       <div class="rf-product-heading">
         <div class="rf-product-code">${escapeHtml(prodotto.codice_interno || "—")}</div>
         <div class="rf-product-title">${escapeHtml(prodotto.descrizione || "")}</div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:center;margin:8px 0 12px;">
+        <label for="carico-foto-file" id="carico-foto-box" title="Foto del prodotto" style="flex:0 0 96px;width:96px;height:96px;border:2px dashed #94a3b8;border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:700;color:#0E5A7A;cursor:pointer;overflow:hidden;line-height:1.3;">${prodotto.foto_url ? `<img src="${escapeHtml(prodotto.foto_url)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : "📷<br>Aggiungi<br>la foto"}</label>
+        <input id="carico-foto-file" type="file" accept="image/*" style="display:none;">
+        <div style="flex:1;min-width:0;">
+          <label style="font-size:12px;font-weight:700;color:#475569;">Fornitore preferito</label>
+          <select id="carico-forn-pref" class="input" style="width:100%;margin-top:4px;">
+            <option value="">— nessuno —</option>
+            ${optForn}
+          </select>
+          <div id="carico-anag-esito" style="font-size:12px;margin-top:4px;min-height:16px;"></div>
+        </div>
       </div>
 
       <div class="rf-product-grid">
