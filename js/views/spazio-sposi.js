@@ -664,6 +664,27 @@ function aggancia(container, supabase) {
 
 /* ── utilità ─────────────────────────────────────────────────── */
 const MESI = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+const MSG_DEF = "Ciao {nome}! Abbiamo una bella notizia e ci teniamo che tu ci sia. Trovi tutto qui, dicci se vieni: {link}";
+function numeroWa(t) {
+  const n = String(t || "").replace(/[^0-9+]/g, "");
+  if (n.startsWith("+")) return n.slice(1);
+  if (n.startsWith("00")) return n.slice(2);
+  if (n.startsWith("3") && n.length <= 10) return "39" + n;
+  return n;
+}
+function waEtichetta() {
+  const tutti = (D.invitati || []).filter(i => i.telefono);
+  const q = tutti.filter(i => !i.invito_inviato_il);
+  if (!tutti.length) return "💬 WhatsApp: aggiungete i numeri degli invitati";
+  if (!q.length) return "💬 WhatsApp: inviati tutti ✓";
+  const n = tutti.length - q.length;
+  return n ? "💬 Prossimo: " + esc(q[0].nome) + " (" + (n + 1) + " di " + tutti.length + ")" : "💬 Manda a tutti su WhatsApp";
+}
+function invRiga(i) {
+  if (i.invito_inviato_il) return `<span class="sp-inv">✓ invito ${i.invito_canale === "email" ? "via email" : "su WhatsApp"}</span>`;
+  return i.telefono ? `<button class="sp-wa" data-wa="${i.id}">💬 WhatsApp</button>` : "";
+}
+
 function dataLunga(iso) {
   if (!iso) return "";
   const d = new Date(String(iso).slice(0, 10) + "T12:00:00");
