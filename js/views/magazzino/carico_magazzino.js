@@ -405,6 +405,13 @@ export async function apriCaricoModal({ aziendaId }) {
         }
       };
     }
+    // toccando il riquadro si apre la fotocamera; "Galleria" apre le foto del telefono. Stessa procedura per tutte e due.
+    const cameraEl = prodottoBox.querySelector("#carico-foto-camera");
+    if (fileEl && cameraEl) {
+      cameraEl.onchange = (ev) => fileEl.onchange(ev);
+      prodottoBox.querySelector("#carico-foto-box").onclick = () => cameraEl.click();
+      prodottoBox.querySelector("#carico-foto-galleria").onclick = () => fileEl.click();
+    }
     const sel = prodottoBox.querySelector("#carico-forn-pref");
     if (sel) {
       sel.onchange = async () => {
