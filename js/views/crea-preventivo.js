@@ -712,8 +712,13 @@ function disegna(container, supabase, azienda, sede) {
             ${c.costoServizi ? `<div class="r costo"><span>Costo servizi e fornitori</span><b>− ${euro(c.costoServizi)}</b></div>` : ""}
             <div class="r marg"><span>Margine stimato</span><span>${euro(c.margine)} · ${c.marginePerc.toFixed(1)}%</span></div>` : ""}
           <div class="r"><span>Acconto</span>
+            <span><select class="mini largo" data-campo="acconto_modo" style="max-width:190px;">
+              ${[["standard", "Carta o bonifico"], ["contanti", "In contanti"], ["nessuno", "Nessun acconto"]].map(([v, t]) => `<option value="${v}"${(P.acconto_modo || "standard") === v ? " selected" : ""}>${t}</option>`).join("")}
+            </select></span></div>
+          ${(P.acconto_modo || "standard") === "nessuno" ? "" : `
+          <div class="r"><span>Importo dell'acconto</span>
             <span><input class="mini largo" type="number" step="0.01" data-campo="acconto" value="${P.acconto || 0}"> €</span></div>
-          <div class="r"><span>Saldo</span><b>${euro(c.totale - c.acconto)}</b></div>
+          <div class="r"><span>Saldo</span><b>${euro(c.totale - c.acconto)}</b></div>`}
         </div>
       </div>
 
