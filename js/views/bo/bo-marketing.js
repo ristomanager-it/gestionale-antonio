@@ -1374,6 +1374,7 @@ DESC 2: ...`;
         a.textContent = '👁 Apri l\'anteprima ›';
         a.className = btn.className;
         a.style.cssText = 'background:#047857;color:#fff;text-decoration:none;display:inline-block;';
+        a.addEventListener('click', ev => { ev.preventDefault(); apriSovrapposta(j.url); });
         btn.replaceWith(a);
         return;
       }
