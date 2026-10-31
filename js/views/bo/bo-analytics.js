@@ -237,6 +237,7 @@ export async function render(container) {
     const [tracking, prenotazioni] = await Promise.all([fetchDati(), fetchPrenotazioni()]);
     dati = tracking;
     renderDashboard(dati, prenotazioni);
+    spesaPubblicita(dati);
   }
 
   function renderDashboard(rows, prenotazioni = []) {
