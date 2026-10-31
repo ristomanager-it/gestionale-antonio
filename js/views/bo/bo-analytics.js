@@ -612,6 +612,47 @@ export async function render(container) {
       </div>`;
   }
 
+  // ── Spesa pubblicita': Google Ads e Meta dello stesso periodo, con le richieste arrivate dalle pagine ──
+  async function spesaPubblicita(rows) {
+    const az = filtroAzienda || aziendaId;
+    const body = document.getElementById("an-body");
+    if (!az || !body) return;
+    const iv = intervallo();
+    document.getElementById("an-spesa")?.remove();
+    const box = document.createElement("div");
+    box.id = "an-spesa";
+    box.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px;overflow-x:auto;";
+    box.innerHTML = '<div style="font-weight:700;color:#0E5A7A;margin-bottom:6px;">💶 Spesa pubblicità e richieste</div><div style="color:#64748b;font-size:13px;">⏳ Leggo Google e Meta…</div>';
+    body.prepend(box);
+    const chiama = (fn) => supa().functions.invoke(fn, { body: { azienda_id: az, azione: "elenco", da: iv.da, a: iv.a } })
+      .then(r => r.data || { success: false }).catch(() => ({ success: false }));
+    const [g, m] = await Promise.all([chiama("google-ads-campagne"), chiama("meta-ads-campagne")]);
+    if (!document.body.contains(box)) return;
+    const euro = n => Number(n || 0).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+    const richieste = rows.filter(r => r.tipo === "submit" && r.completato && (!r.azienda_id || r.azienda_id === az));
+    const daFonte = re => richieste.filter(r => re.test(String(r.utm_source || "") + " " + String(r.referrer || ""))).length;
+    const rG = daFonte(/google|gclid|adwords/i), rM = daFonte(/facebook|instagram|meta|\bfb\b|\big\b/i);
+    const td = 'style="padding:8px 10px;border-top:1px solid #f1f5f9;text-align:right;white-space:nowrap;"';
+    const riga = (nome, d, nr) => {
+      if (!d || !d.success) return `<tr><td style="padding:8px 10px;border-top:1px solid #f1f5f9;">${nome}</td><td colspan="4" ${td}><span style="color:#94a3b8">${d && d.codice === "NON_COLLEGATO" ? "non collegato" : "non disponibile"}</span></td></tr>`;
+      const s = d.totali.spesa_eur, c = d.totali.clic;
+      return `<tr><td style="padding:8px 10px;border-top:1px solid #f1f5f9;"><b>${nome}</b></td><td ${td}>${euro(s)}</td><td ${td}>${fmt(c)}</td><td ${td}>${fmt(nr)}</td><td ${td}>${nr ? euro(s / nr) : "—"}</td></tr>`;
+    };
+    const tot = (g && g.success ? g.totali.spesa_eur : 0) + (m && m.success ? m.totali.spesa_eur : 0);
+    const th = 'style="padding:6px 10px;text-align:right;color:#64748b;font-weight:600;font-size:12px;"';
+    box.innerHTML = `
+      <div style="font-weight:700;color:#0E5A7A;margin-bottom:10px;">💶 Spesa pubblicità e richieste</div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:420px;">
+        <thead><tr><th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:600;font-size:12px;">Canale</th><th ${th}>Spesa</th><th ${th}>Clic</th><th ${th}>Richieste</th><th ${th}>Costo per richiesta</th></tr></thead>
+        <tbody>
+          ${riga("Google Ads", g, rG)}
+          ${riga("Meta (Facebook e Instagram)", m, rM)}
+          <tr><td style="padding:8px 10px;border-top:2px solid #e2e8f0;"><b>Totale</b></td><td ${td}><b>${euro(tot)}</b></td><td ${td}></td><td ${td}><b>${fmt(richieste.length)}</b></td><td ${td}><b>${richieste.length ? euro(tot / richieste.length) : "—"}</b></td></tr>
+        </tbody>
+      </table>
+      <div style="font-size:12px;color:#94a3b8;margin-top:8px;">Richieste = tocchi su WhatsApp e moduli inviati dalle pagine tracciate. Nel totale ci sono anche quelle arrivate senza pubblicità.</div>`;
+  }
+
   // ── Avvio ──────────────────────────────────────────────────
   await carica();
 }
