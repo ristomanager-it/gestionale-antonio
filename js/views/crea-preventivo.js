@@ -1459,7 +1459,7 @@ async function salva(container, supabase, azienda, sede) {
     azienda_id: azienda.id, sede_uuid: P.sede_uuid || sede?.id || null,
     stato: P.stato, titolo_evento: P.titolo_evento, tipo_servizio: P.tipo_servizio || null,
     cliente_nome: P.cliente_nome, cliente_cognome: P.cliente_cognome,
-    cliente_email: P.cliente_email, cliente_telefono: P.cliente_telefono,
+    cliente_email: P.cliente_email, cliente_telefono: P.cliente_telefono, lingua: P.lingua || "it",
     nome_festeggiato: P.nome_festeggiato, intolleranze: P.intolleranze, note: P.note,
     data_evento: P.data_evento || null, ora_evento: P.ora_evento || null,
     n_invitati: c.inv, n_bambini: c.bimbi, formula_servizio: P.formula_servizio || "servito",
