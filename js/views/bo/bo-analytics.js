@@ -621,7 +621,7 @@ export async function render(container) {
     document.getElementById("an-spesa")?.remove();
     const box = document.createElement("div");
     box.id = "an-spesa";
-    box.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px;overflow-x:auto;";
+    box.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 10px;margin-bottom:12px;overflow-x:auto;max-width:100%;box-sizing:border-box;min-width:0;";
     box.innerHTML = '<div style="font-weight:700;color:#0E5A7A;margin-bottom:6px;">💶 Spesa pubblicità e richieste</div><div style="color:#64748b;font-size:13px;">⏳ Leggo Google e Meta…</div>';
     body.prepend(box);
     const chiama = (fn) => supa().functions.invoke(fn, { body: { azienda_id: az, azione: "elenco", da: iv.da, a: iv.a } })
