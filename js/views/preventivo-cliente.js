@@ -193,6 +193,11 @@ export async function render(container) {
   const totale = Number(d.totale) || 0;
   const acconto = Number(d.acconto) || 0;
   const nostre = (d.foto || []).filter(f => f.sezione !== "ispirazione");
+  // l'acconto e' a scelta: carta o bonifico (standard), in contanti, oppure nessuno
+  const modo = d.acconto_modo || "standard";
+  const fraseData = modo === "nessuno" ? "" : modo === "contanti"
+    ? " La data sarà vostra quando ci consegnate l'acconto in contanti."
+    : " La data sarà vostra quando versate l'acconto.";
 
   container.innerHTML = guscio(`
     <div class="pv-foglio">
