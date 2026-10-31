@@ -4578,7 +4578,7 @@ function buildDettaglioConfezionamento() {
           : toKg(porz?.peso_porzione, porz?.unita_misura);
         return {
           porzione_id: porz ? String(porz.id) : null,
-          label: c.confezione_label || porz?.label || "",
+          label: c.confezione_label || porz?.label || (Number(c.peso_kg) > 0 ? "Confezione " + String(Number(c.peso_kg)).replace(".", ",") + " kg" : ""),
           pezzi_per_confezione: Number(c.pezzi_per_confezione) || 1,
           numero_confezioni: Number(c.numero_confezioni),
           peso_porzione_kg: pesoKg,
