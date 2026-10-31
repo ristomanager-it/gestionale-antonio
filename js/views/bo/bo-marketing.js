@@ -1355,6 +1355,19 @@ DESC 2: ...`;
   }
 
   // anteprima di una campagna (anche creata fuori da Ristoflow): si apre in una nuova scheda
+  // l'anteprima si apre sopra la pagina: chiudendola si torna alle campagne (prima si usciva dall'app)
+  function apriSovrapposta(url) {
+    const u = String(url).replace(/"/g, '&quot;');
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:#0f172a;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);';
+    ov.innerHTML = '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px;">'
+      + '<button type="button" class="ov-chiudi" style="border:none;border-radius:8px;padding:10px 14px;background:#fff;color:#0f172a;font-weight:700;font-size:14px;cursor:pointer;">← Torna alle campagne</button>'
+      + '<a href="' + u + '" target="_blank" rel="noopener" style="color:#cbd5e1;font-size:13px;">Apri a parte ›</a></div>'
+      + '<iframe src="' + u + '" style="flex:1;border:0;width:100%;background:#fff;"></iframe>';
+    ov.querySelector('.ov-chiudi').onclick = () => ov.remove();
+    document.body.appendChild(ov);
+  }
+
   async function apriAnteprima(btn, corpo) {
     const vecchio = btn.textContent;
     // l'anteprima si apre con un secondo tocco sul pulsante verde (il telefono blocca le aperture automatiche)
