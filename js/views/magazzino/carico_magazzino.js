@@ -322,6 +322,7 @@ export async function apriCaricoModal({ aziendaId }) {
         ${data.map((p) => `
           <div class="rf-search-item">
             <div class="rf-search-row">
+              ${p.foto_url ? `<img src="${escapeHtml(p.foto_url)}" alt="" loading="lazy" style="width:44px;height:44px;border-radius:8px;object-fit:cover;margin-right:10px;flex:0 0 auto;">` : ""}
               <div class="rf-search-main">
                 <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
                 <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
