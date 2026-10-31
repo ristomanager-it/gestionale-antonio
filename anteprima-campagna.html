@@ -84,7 +84,7 @@ function render(j){
       h+='<div class="nota">È l\'anteprima ufficiale di Meta: tocca una scheda per vedere il post in quella posizione.</div>';
       if(MA.multiformato&&MA.varianti&&MA.varianti.length){
         h+='<div class="nota" style="margin-top:12px"><b>Le 4 foto preparate dal piatto</b>, una per ogni posizione:</div><div class="fmt">'+MA.varianti.map(function(v){return '<figure><img src="'+esc(v.url)+'" alt=""><figcaption>'+esc(v.formato)+'</figcaption></figure>';}).join('')+'</div>';
-      } else { h+='<div class="nota">Foto unica: nelle Storie e nei Reel potrebbe risultare tagliata.</div>'; }
+      } else if(!d.esistente){ h+='<div class="nota">Foto unica: nelle Storie e nei Reel potrebbe risultare tagliata.</div>'; }
     } else if(j.meta_anteprima_url){
       h+='<iframe src="'+esc(j.meta_anteprima_url)+'" loading="lazy"></iframe><a class="btn" style="background:#1877f2" href="'+esc(j.meta_anteprima_url)+'" target="_blank" rel="noopener">Apri l\'anteprima a schermo intero</a><div class="nota">È l\'anteprima ufficiale di Meta: così lo vede chi scorre il feed da telefono.</div>';
     } else {
