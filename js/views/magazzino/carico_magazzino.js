@@ -372,6 +372,51 @@ export async function apriCaricoModal({ aziendaId }) {
     });
   };
 
+  // ── SCHEDA ANAGRAFE DEL PRODOTTO: foto e fornitore preferito ──
+  let fotoNuovoUrl = "";
+
+  async function caricaFotoProdotto(f) {
+    const ridotta = await comprimiImmagine(f, { latoMax: 1200, qualita: 0.8, forza: true });
+    const path = `${aziendaId}/prodotti/${(crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(16).slice(2))}.jpg`;
+    const up = await window.supabaseClient.storage.from("media-aziende").upload(path, ridotta, { contentType: ridotta.type || "image/jpeg", cacheControl: "31536000" });
+    if (up.error) throw up.error;
+    return window.supabaseClient.storage.from("media-aziende").getPublicUrl(path).data.publicUrl;
+  }
+
+  function bindSchedaProdotto(prodotto) {
+    const sb = window.supabaseClient;
+    const esitoA = prodottoBox.querySelector("#carico-anag-esito");
+    const msg = (testo, ok) => { if (esitoA) { esitoA.textContent = testo; esitoA.style.color = ok ? "#15803d" : "#b91c1c"; } };
+    const fileEl = prodottoBox.querySelector("#carico-foto-file");
+    if (fileEl) {
+      fileEl.onchange = async (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        msg("⏳ Carico la foto…", true);
+        try {
+          const url = await caricaFotoProdotto(f);
+          const { error } = await sb.from("prodotti").update({ foto_url: url }).eq("id", prodotto.id).eq("azienda_id", aziendaId);
+          if (error) throw error;
+          prodotto.foto_url = url;
+          prodottoBox.querySelector("#carico-foto-box").innerHTML = `<img src="${escapeHtml(url)}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
+          msg("✅ Foto salvata nell'anagrafe", true);
+        } catch (e) {
+          msg("Non riesco a salvare la foto: " + ((e && e.message) || "errore"), false);
+        }
+      };
+    }
+    const sel = prodottoBox.querySelector("#carico-forn-pref");
+    if (sel) {
+      sel.onchange = async () => {
+        const id = sel.value ? Number(sel.value) : null;
+        const { error } = await sb.from("prodotti").update({ fornitore_preferito_id: id }).eq("id", prodotto.id).eq("azienda_id", aziendaId);
+        if (error) { msg("Non riesco a salvare il fornitore: " + (error.message || "errore"), false); return; }
+        prodotto.fornitore_preferito_id = id;
+        msg(id ? "✅ Fornitore preferito salvato" : "✅ Fornitore preferito tolto", true);
+      };
+    }
+  }
+
   btnConferma.onclick = async () => {
     const q = Number(qtaEl.value || 0);
     const scorta = Number(scortaEl.value || 0);
