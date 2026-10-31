@@ -2776,6 +2776,7 @@ export async function render(container) {
         obiettivo_breve: box.querySelector('#id-obj-breve').value.trim() || null,
         obiettivo_lungo: box.querySelector('#id-obj-lungo').value.trim() || null,
         meta_pixel_id: box.querySelector('#id-meta-pixel').value.trim() || null,
+        openai_pixel_id: (box.querySelector('#id-openai-pixel')?.value.trim()) || null,
         gtm_id: box.querySelector('#id-gtm').value.trim() || null,
         ga4_id: box.querySelector('#id-ga4').value.trim() || null,
         ga4_evento_prenotazione: box.querySelector('#id-ga4-evento').value.trim() || null,
