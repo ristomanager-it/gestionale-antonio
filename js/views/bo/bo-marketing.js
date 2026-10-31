@@ -60,6 +60,10 @@ export async function render(container) {
         .bo-m-item{flex:0 0 auto;white-space:nowrap;margin:0 !important;padding:9px 14px !important;border-radius:999px !important;background:rgba(255,255,255,.08);font-size:14px}
         .bo-m-item.bo-m-sel{background:#4285F4;color:#fff}
         #bo-m-content{width:100%;min-width:0}
+        /* pulsanti delle campagne: vanno a capo e riempiono la riga invece di uscire dallo schermo */
+        #bo-m-content .mk-card div[style*="flex-shrink:0"]{flex-shrink:1 !important;width:100%}
+        #bo-m-content .mk-card div[style*="flex-shrink:0"] .mk-btn{flex:1 1 calc(50% - 6px);padding:10px 8px}
+        #bo-m-content .gads-card .gads-btn{flex:1 1 auto;padding:10px 8px}
       }
     </style>
     <div id="bo-m-wrap" style="display:flex; gap:16px; width:100%; min-height:70vh;">
