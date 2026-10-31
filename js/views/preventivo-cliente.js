@@ -8,6 +8,7 @@ export async function render(container) {
   const supabase = window.supabase || window.supabaseClient;
   const qs = new URLSearchParams((window.location.hash || "").split("?")[1] || "");
   const token = (qs.get("t") || "").trim();
+  const soloMenu = (qs.get("solo") || "") === "menu";   // stampa solo il menu: niente prezzi, servizi, conto e pagamento
 
   const guscio = (dentro, tema) => `
     <style>
