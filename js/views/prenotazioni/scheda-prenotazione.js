@@ -643,7 +643,7 @@ export async function render(container) {
     if (!box || !p) return;
     const sb = window.supabaseClient || window.supabase;
     const { data: m, error } = await sb.from("menu_componibile")
-      .select("id, titolo, nome_gruppo, data, prezzo_fisso, voci, testo_incluso")
+      .select("id, titolo, nome_gruppo, data, prezzo_fisso, voci, testo_incluso, preventivo_id")
       .eq("prenotazione_id", p.id).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (error) { box.innerHTML = '<span style="color:#b91c1c;">Errore caricamento menu</span>'; return; }
     const btn = (id, label, primary) => '<button id="' + id + '" type="button" style="border:0;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;' + (primary ? 'background:#0E5A7A;color:#fff;' : 'background:#e2e8f0;color:#0f172a;') + '">' + label + '</button>';
