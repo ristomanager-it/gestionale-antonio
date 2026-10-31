@@ -378,6 +378,10 @@ export async function render(container) {
   });
 
   document.getElementById("pv-print")?.addEventListener("click", () => window.print());
+  document.getElementById("pv-print-menu")?.addEventListener("click", () => {
+    window.location.hash = "#/preventivo?t=" + encodeURIComponent(token) + "&solo=menu";
+    render(container);
+  });
 
   document.getElementById("pv-carta")?.addEventListener("click", async (e) => {
     const b = e.currentTarget;
