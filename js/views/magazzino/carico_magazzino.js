@@ -1178,7 +1178,7 @@ async function loadDettaglioProdotto(aziendaId, prodottoId) {
 
   const { data: prodotto, error: prodottoError } = await window.supabaseClient
     .from("prodotti")
-    .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, tipo_prodotto, attivo, foto_url, barcode")
+    .select("id, codice_interno, nome, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, tipo_prodotto, attivo, foto_url, barcode, contenuto_confezione, um_confezione")
     .eq("azienda_id", aziendaId)
     .eq("id", prodottoId)
     .maybeSingle();
