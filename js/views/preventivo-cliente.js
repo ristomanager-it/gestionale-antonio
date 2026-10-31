@@ -334,10 +334,17 @@ export async function render(container) {
         ${d.confermato ? "" : `
         <div class="pv-cta">
           ${d.accettato
-            ? `<a href="#/pagamento?t=${encodeURIComponent(token)}">Verso l'acconto e blocco la data</a>
-               <p>Avete accettato la proposta: la data è vostra appena versate l'acconto.</p>`
+            ? (modo === "contanti"
+              ? `<p style="font-weight:700;color:var(--navy);font-size:15px;">Proposta accettata</p>
+                 <p>Per bloccare la data basta l'acconto${acconto ? " di " + euro(acconto) : ""} in contanti, da consegnarci di persona. Appena lo riceviamo l'evento è confermato.</p>`
+              : `<a href="#/pagamento?t=${encodeURIComponent(token)}">Verso l'acconto e blocco la data</a>
+                 <p>Avete accettato la proposta: la data è vostra appena versate l'acconto.</p>`)
             : `<a href="#" id="pv-conferma">Accetto la proposta</a>
-               <p>Dopo averla accettata vi portiamo a versare l'acconto: la data è vostra quando l'acconto è arrivato.
+               <p>${modo === "nessuno"
+                  ? "Accettandola l'evento è confermato: non è richiesto nessun acconto."
+                  : modo === "contanti"
+                    ? "Dopo averla accettata, la data è vostra quando ci consegnate l'acconto in contanti."
+                    : "Dopo averla accettata vi portiamo a versare l'acconto: la data è vostra quando l'acconto è arrivato."}
                   Oppure rispondete al messaggio: modifichiamo insieme quello che serve.</p>`}
         </div>`}
 
