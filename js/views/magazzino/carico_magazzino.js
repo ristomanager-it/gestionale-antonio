@@ -26,8 +26,8 @@ export function renderCaricoModal() {
 
           <div id="carico-foto-rapida" style="margin-bottom:14px;">
             <div style="display:flex;gap:8px;">
-              <button type="button" id="carico-scatta" class="app-button" style="flex:1;padding:14px 10px;font-size:15px;font-weight:800;">📷 Scatta la foto del prodotto</button>
-              <button type="button" id="carico-galleria" class="app-button gray" style="flex:0 0 auto;" title="Dalla galleria">🖼</button>
+              <button type="button" id="carico-scatta" class="app-button" style="flex:1 1 0;min-width:0;width:auto;padding:14px 10px;font-size:15px;font-weight:800;">📷 Scatta la foto del prodotto</button>
+              <button type="button" id="carico-galleria" class="app-button gray" style="flex:0 0 64px;width:64px;padding:14px 0;font-size:20px;" title="Dalla galleria">🖼</button>
             </div>
             <div style="font-size:12px;color:#64748b;margin-top:4px;">Anche più foto: davanti per il nome, dietro per codice a barre e scadenza. Tony legge e mette il prodotto in anagrafe.</div>
             <div id="carico-foto-strip"></div>
