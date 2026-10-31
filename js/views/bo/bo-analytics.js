@@ -50,7 +50,7 @@ export async function render(container) {
   // ── Layout iniziale ────────────────────────────────────────
   container.innerHTML = `
   <style>
-    .an-wrap { max-width:900px; margin:0 auto; padding:16px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+    .an-wrap { max-width:900px; margin:0 auto; padding:16px; box-sizing:border-box; overflow-x:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
     .an-title { font-size:20px; font-weight:800; color:#111827; margin:0 0 4px; }
     .an-sub   { font-size:13px; color:#64748b; margin:0 0 16px; }
     .an-toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
