@@ -715,6 +715,57 @@ export async function render(container) {
         btn.addEventListener('click', () => apriAnteprima(btn, { piattaforma: 'meta', external_id: btn.dataset.id }));
       });
 
+      // Gruppi della campagna (es. Roma e Territorio) con i loro numeri, aperti dentro la scheda
+      content.querySelectorAll('.btn-gruppi-meta').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const card = btn.closest('.mk-card');
+          let box = card.querySelector('.mk-gruppi');
+          if (box) { box.remove(); return; }
+          box = document.createElement('div'); box.className = 'mk-gruppi';
+          box.style.cssText = 'margin-top:12px;border-top:1px solid #e5e7eb;padding-top:4px;';
+          box.innerHTML = '<div style="font-size:13px;color:#64748b;padding:8px 0;">Carico i gruppi…</div>';
+          card.appendChild(box);
+          const etichetta = { ACTIVE: '✅ Attivo', PAUSED: '⏸ In pausa', CAMPAIGN_PAUSED: '⏸ Campagna in pausa', IN_PROCESS: '⏳ In elaborazione', WITH_ISSUES: '⚠️ Con problemi', PENDING_REVIEW: '⏳ In revisione', DISAPPROVED: '⛔ Non approvato' };
+          try {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/meta-ads-proxy-ts`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenUtente()}` },
+              body: JSON.stringify({ endpoint: `${btn.dataset.id}/adsets`, params: {
+                fields: `id,name,effective_status,daily_budget,targeting{geo_locations},insights.date_preset(${periodoStats}){impressions,reach,clicks,spend,cpc,actions},ads.limit(10){name,effective_status}`,
+                limit: 25 } })
+            });
+            const j = await res.json();
+            const gruppi = j?.data || [];
+            if (!gruppi.length) { box.innerHTML = '<div style="font-size:13px;color:#64748b;padding:8px 0;">Nessun gruppo trovato.</div>'; return; }
+            const zona = t => {
+              const g = t?.geo_locations || {};
+              const citta = (g.cities || []).map(x => x.name + (x.radius ? ' ' + x.radius + ' km' : ''));
+              const punti = (g.custom_locations || []).map(x => 'raggio ' + x.radius + ' km');
+              return [...citta, ...punti].join(', ') || (g.countries || []).join(', ') || '—';
+            };
+            const cella = (v, l) => `<div style="background:#f8fafc;border-radius:8px;padding:6px;text-align:center;"><div style="font-size:14px;font-weight:700;">${v}</div><div style="font-size:10px;color:#64748b;">${l}</div></div>`;
+            box.innerHTML = gruppi.map(g => {
+              const i = g.insights?.data?.[0] || {};
+              const visite = (i.actions || []).find(a => a.action_type === 'landing_page_view');
+              const annunci = (g.ads?.data || []).map(a => `<span style="display:inline-block;background:#f1f5f9;border-radius:8px;padding:2px 8px;margin:4px 4px 0 0;font-size:11px;">${a.name}${a.effective_status !== 'ACTIVE' ? ' · ' + (etichetta[a.effective_status] || a.effective_status) : ''}</span>`).join('');
+              return `<div style="padding:10px 0;border-bottom:1px solid #f1f5f9;">
+                <div style="font-weight:700;font-size:14px;">${g.name} <span style="font-weight:600;font-size:11px;color:${g.effective_status === 'ACTIVE' ? '#15803d' : '#92400e'};">${etichetta[g.effective_status] || g.effective_status}</span></div>
+                <div style="font-size:12px;color:#64748b;margin:2px 0 8px;">📍 ${zona(g.targeting)}${g.daily_budget ? ' · €' + (parseInt(g.daily_budget) / 100).toFixed(2) + ' al giorno' : ''}</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;">
+                  ${cella(i.impressions ? parseInt(i.impressions).toLocaleString('it-IT') : '—', 'Impressioni')}
+                  ${cella(i.reach ? parseInt(i.reach).toLocaleString('it-IT') : '—', 'Persone')}
+                  ${cella(i.clicks || '—', 'Click')}
+                  ${cella(visite ? visite.value : '—', 'Visite pagina')}
+                  ${cella(i.spend ? '€' + parseFloat(i.spend).toFixed(2) : '—', 'Spesa')}
+                  ${cella(i.cpc ? '€' + parseFloat(i.cpc).toFixed(2) : '—', 'Costo a click')}
+                </div>
+                <div>${annunci}</div>
+              </div>`;
+            }).join('');
+          } catch (e) { box.innerHTML = '<div style="font-size:13px;color:#b91c1c;padding:8px 0;">Non riesco a leggere i gruppi: riprova.</div>'; }
+        });
+      });
+
       // Toggle status campagna
       content.querySelectorAll('.btn-toggle-status').forEach(btn => {
         btn.addEventListener('click', async () => {
