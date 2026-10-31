@@ -639,7 +639,7 @@ export async function render(container) {
       return `<tr><td style="padding:8px 10px;border-top:1px solid #f1f5f9;"><b>${nome}</b></td><td ${td}>${euro(s)}</td><td ${td}>${fmt(c)}</td><td ${td}>${fmt(nr)}</td><td ${td}>${nr ? euro(s / nr) : "—"}</td></tr>`;
     };
     const tot = (g && g.success ? g.totali.spesa_eur : 0) + (m && m.success ? m.totali.spesa_eur : 0);
-    const th = 'style="padding:6px 10px;text-align:right;color:#64748b;font-weight:600;font-size:12px;"';
+    const th = 'style="padding:6px 4px;text-align:right;color:#64748b;font-weight:600;font-size:11px;"';
     box.innerHTML = `
       <div style="font-weight:700;color:#0E5A7A;margin-bottom:10px;">💶 Spesa pubblicità e richieste</div>
       <table style="width:100%;border-collapse:collapse;font-size:14px;table-layout:auto;">
