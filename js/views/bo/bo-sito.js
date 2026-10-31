@@ -2377,6 +2377,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
         <label class="lp-lbl" for="lp-tel">Telefono</label><input class="lp-in" id="lp-tel" type="tel" autocomplete="tel">
         <label class="lp-lbl" for="lp-mail">Email (facoltativa, per la conferma)</label><input class="lp-in" id="lp-mail" type="email" autocomplete="email">
         <label class="lp-priv" for="lp-priv"><input id="lp-priv" type="checkbox"><span>Acconsento al trattamento dei dati per gestire la prenotazione (GDPR).</span></label>
+        <label class="lp-priv" for="lp-mkt"><input id="lp-mkt" type="checkbox"><span>Voglio ricevere dalla Trattoria il menu del giorno e le offerte (facoltativo, puoi annullare quando vuoi).</span></label>
         <button type="button" class="lp-cta" id="lp-invia" style="margin-top:0">Prenota il tavolo</button>
         <div class="lp-msg" id="lp-msg" role="status"></div>
       </div>
