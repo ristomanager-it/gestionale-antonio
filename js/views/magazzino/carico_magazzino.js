@@ -131,6 +131,9 @@ export async function apriCaricoModal({ aziendaId }) {
   const risultati = backdrop.querySelector("#carico-risultati");
   const prodottoBox = backdrop.querySelector("#carico-prodotto");
   const form = backdrop.querySelector("#carico-form");
+  const btnClose = backdrop.querySelector("#btn-close-carico");
+  const btnAnnulla = backdrop.querySelector("#btn-annulla-carico");
+  const btnConferma = backdrop.querySelector("#btn-conferma-carico");
 
   const qtaEl = backdrop.querySelector("#carico-quantita");
   const scortaEl = backdrop.querySelector("#carico-scorta");
