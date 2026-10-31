@@ -1299,6 +1299,27 @@ function renderSchedaCaricoProdotto(prodotto, fornitori = [], opzioni = {}) {
           <div id="carico-anag-esito" style="font-size:12px;margin-top:4px;min-height:16px;"></div>
         </div>
       </div>
+      ${opzioni.nuovo ? `<div style="margin:0 0 12px;">
+        <label style="font-size:12px;font-weight:700;color:#475569;">Nome del prodotto <span style="font-weight:400;">(letto da Tony: correggilo se serve)</span></label>
+        <input id="carico-nome" class="input" style="width:100%;margin-top:4px;" value="${escapeHtml(prodotto.descrizione || "")}" autocomplete="off">
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-end;">
+          <div style="flex:1 1 0;min-width:0;">
+            <label style="font-size:12px;font-weight:700;color:#475569;">Si conta in</label>
+            <select id="carico-um-sel" class="input" style="width:100%;margin-top:4px;">
+              ${[["pz", "pezzi"], ["kg", "kg"], ["lt", "litri"]].map(([u, nomeU]) => `<option value="${u}" ${String(prodotto.unita_base || "pz") === u ? "selected" : ""}>${nomeU}</option>`).join("")}
+            </select>
+          </div>
+          <div id="carico-cont-box" style="flex:1.4 1 0;min-width:0;${String(prodotto.unita_base || "pz") === "pz" ? "" : "display:none;"}">
+            <label style="font-size:12px;font-weight:700;color:#475569;">Ogni pezzo contiene</label>
+            <div style="display:flex;gap:6px;margin-top:4px;">
+              <input id="carico-cont" type="number" step="0.001" min="0" inputmode="decimal" class="input" style="flex:1 1 0;min-width:0;" value="${prodotto.contenuto_confezione ? escapeHtml(String(prodotto.contenuto_confezione)) : ""}">
+              <select id="carico-cont-um" class="input" style="flex:0 0 74px;">
+                ${["g", "kg", "ml", "lt"].map((u) => `<option value="${u}" ${String(prodotto.um_confezione || "g") === u ? "selected" : ""}>${u}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>` : ""}
 
       <div class="rf-product-grid">
 
