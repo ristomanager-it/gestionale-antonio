@@ -110,7 +110,7 @@ function nuovo(azienda, sede) {
   P = {
     id: null, azienda_id: azienda.id, sede_uuid: sede?.id || null,
     stato: "trattativa", titolo_evento: "", tipo_servizio: "",
-    cliente_nome: "", cliente_cognome: "", cliente_email: "", cliente_telefono: "",
+    cliente_nome: "", cliente_cognome: "", cliente_email: "", cliente_telefono: "", lingua: "it",
     nome_festeggiato: "", intolleranze: "", note: "",
     data_evento: "", ora_evento: "", n_invitati: 50, n_bambini: 0,
     location: "", location_id: null, location_prezzo: 0,
