@@ -158,6 +158,9 @@ export function initMenu() {
 
   // Azienda Ristoflow: i moduli ancora in prova si accendono solo qui.
   const AZIENDA_RISTOFLOW = "a43d41b5-f4ac-494f-8144-6574347a754f";
+  // Italian Experience: azienda che vende i pacchetti viaggio di Campo Antico, usa lo stesso modulo.
+  const AZIENDA_ITALIAN_EXP = "e2238dff-9975-4da5-a1bb-4c22eec1b902";
+  const AZIENDE_VIAGGI = [AZIENDA_RISTOFLOW, AZIENDA_ITALIAN_EXP];
 
   function isAziendaRole() {
     const r = getRuoloAttivo();
@@ -385,7 +388,7 @@ export function initMenu() {
           { label: "🧠 Super Tony",        route: "super-tony"     },
           // Agenzia viaggi: il super admin la apre da qualunque azienda (si porta su Ristoflow da solo).
           // Dentro Ristoflow c'e' gia' la sua sezione, qui non si ripete.
-          ...(window.state?.azienda?.id !== AZIENDA_RISTOFLOW ? [
+          ...(!AZIENDE_VIAGGI.includes(window.state?.azienda?.id) ? [
             { label: "🚐 Agenzia viaggi",    route: "agenzia-viaggi" },
             { label: "✈️ Voli in offerta",    route: "voli-offerta"   },
           ] : []),
@@ -604,7 +607,7 @@ export function initMenu() {
       // ── AGENZIA VIAGGI ──
       // Modulo in prova: si vede solo dentro l'azienda Ristoflow, non dai clienti.
       // Il filtro per ruolo (solo admin) resta in hasPermission.
-      if (window.state?.azienda?.id === AZIENDA_RISTOFLOW) {
+      if (AZIENDE_VIAGGI.includes(window.state?.azienda?.id)) {
       sections.push({
         key: "viaggi",
         title: "🚐 AGENZIA VIAGGI",
@@ -614,7 +617,9 @@ export function initMenu() {
             { label: "👥 Iscritti", route: "agenzia-viaggi?tab=iscritti" },
             { label: "💶 Incassi",  route: "agenzia-viaggi?tab=incassi"  },
           ] },
-          { label: "✈️ Voli in offerta", route: "voli-offerta" },
+          ...(window.state?.azienda?.id === AZIENDA_RISTOFLOW ? [
+            { label: "✈️ Voli in offerta", route: "voli-offerta" },
+          ] : []),
         ]
       });
       }

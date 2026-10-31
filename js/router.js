@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=69";
+import { initMenu } from "./menu.js?v=70";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +7,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261027-31";
+const APP_V = "20261031-1";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -668,8 +668,11 @@ function hasPermission(area) {
   ]);
 
   if (RISTOFLOW_ONLY_ROUTES.has(area)) {
-    const suRistoflow =
-      window.state?.azienda?.id === "a43d41b5-f4ac-494f-8144-6574347a754f";
+    // Ristoflow e Italian Experience (pacchetti viaggio di Campo Antico) usano il modulo viaggi.
+    const suRistoflow = [
+      "a43d41b5-f4ac-494f-8144-6574347a754f",
+      "e2238dff-9975-4da5-a1bb-4c22eec1b902",
+    ].includes(window.state?.azienda?.id);
     return suRistoflow && (isSuperadmin() || ruolo === "admin");
   }
 
@@ -1271,7 +1274,8 @@ async function ensureAziendaContext(routeName) {
 
   // Agenzia viaggi e Voli in offerta: moduli in prova che vivono nell'azienda Ristoflow.
   // Il super admin ci arriva da QUALUNQUE azienda (o senza sceglierne una): l'app lo porta da sola su Ristoflow.
-  if ((routeName === "agenzia-viaggi" || routeName === "voli-offerta") && aziendePulite.some((a) => a.ruolo === "superadmin")) {
+  if ((routeName === "agenzia-viaggi" || routeName === "voli-offerta") && aziendePulite.some((a) => a.ruolo === "superadmin")
+      && !(routeName === "agenzia-viaggi" && String(activeAzienda?.id) === "e2238dff-9975-4da5-a1bb-4c22eec1b902")) {
     const rf = aziendePulite.find((a) => String(a.aziende?.id) === "a43d41b5-f4ac-494f-8144-6574347a754f");
     if (rf?.aziende && String(activeAzienda?.id) !== String(rf.aziende.id)) {
       activeAzienda = rf.aziende;
