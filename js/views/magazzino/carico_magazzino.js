@@ -284,7 +284,7 @@ export async function apriCaricoModal({ aziendaId }) {
 
     const { data, error } = await window.supabaseClient
       .from("prodotti")
-      .select("id, codice_interno, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, tipo_prodotto")
+      .select("id, codice_interno, descrizione, unita_base, unita_misura, um, scorta_minima, quantita_riordino, fornitore_preferito_id, tipo_prodotto, foto_url")
       .eq("azienda_id", aziendaId)
       .eq("tipo_prodotto", _tipoCarico)
       .or(`descrizione.ilike.%${safeTerm}%,codice_interno.ilike.%${safeTerm}%`)
