@@ -632,7 +632,7 @@ export async function render(container) {
     const richieste = rows.filter(r => r.tipo === "submit" && r.completato && (!r.azienda_id || r.azienda_id === az));
     const daFonte = re => richieste.filter(r => re.test(String(r.utm_source || "") + " " + String(r.referrer || ""))).length;
     const rG = daFonte(/google|gclid|adwords/i), rM = daFonte(/facebook|instagram|meta|\bfb\b|\big\b/i);
-    const td = 'style="padding:8px 10px;border-top:1px solid #f1f5f9;text-align:right;white-space:nowrap;"';
+    const td = 'style="padding:8px 4px;border-top:1px solid #f1f5f9;text-align:right;white-space:nowrap;font-size:13px;"';
     const riga = (nome, d, nr) => {
       if (!d || !d.success) return `<tr><td style="padding:8px 10px;border-top:1px solid #f1f5f9;">${nome}</td><td colspan="4" ${td}><span style="color:#94a3b8">${d && d.codice === "NON_COLLEGATO" ? "non collegato" : "non disponibile"}</span></td></tr>`;
       const s = d.totali.spesa_eur, c = d.totali.clic;
