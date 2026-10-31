@@ -102,6 +102,14 @@ function disegna(container, supabase) {
         </div>
         <button class="sp-btn" id="in-add">Aggiungi</button>
       </div>
+      <div class="sp-mod">
+        <div class="tit">Mandate gli inviti</div>
+        <div class="sott">Scrivete il vostro messaggio. {nome} diventa il nome di ogni invitato, {link} il suo link personale.</div>
+        <textarea id="inv-msg" rows="5">${esc(D.messaggio_invito || MSG_DEF)}</textarea>
+        <button class="sp-btn" id="inv-wa">${waEtichetta()}</button>
+        <button class="sp-btn ch" id="inv-mail">✉️ Email a tutti</button>
+        <div class="sott" id="inv-esito" style="margin:8px 0 0"></div>
+      </div>
       <button class="sp-btn ch" id="sp-link-invito">🔗 Copia il link dell'invito</button>`;
 
     if (sez === "tavoli") {
