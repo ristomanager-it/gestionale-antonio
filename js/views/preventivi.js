@@ -102,20 +102,22 @@ async function loadPreventivi() {
 /* ============================================================ */
 
 function filterPreventivi(searchTerm) {
-  // Filtra i preventivi in base al termine di ricerca
+  // si cerca su tutto quello che si legge nella riga: il nome scritto sul preventivo (non solo il cliente collegato
+  // in anagrafica), il secondo intestatario, evento, telefono, stato e data. Senza accenti, e piu' parole insieme:
+  // "paola lanchi" trova Paola Lanchi anche se nome e cognome stanno in campi diversi.
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const termini = norm(searchTerm).split(/\s+/).filter(Boolean);
+
   filteredPreventivi = preventiviCache.filter((p) => {
-    const clienteNome = p.cliente_id
-      ? `${p.cliente_id.nome || ''} ${p.cliente_id.cognome || ''}`.toLowerCase()
-      : '';
-    const titoloEvento = p.titolo_evento ? p.titolo_evento.toLowerCase() : '';
-    const dataEvento = p.data_evento ? new Date(p.data_evento).toLocaleDateString().toLowerCase() : '';
-    
-    // Verifica se uno dei campi contiene il termine di ricerca
-    return (
-      clienteNome.includes(searchTerm) ||
-      titoloEvento.includes(searchTerm) ||
-      dataEvento.includes(searchTerm)
-    );
+    const iso = p.data_evento ? String(p.data_evento).slice(0, 10) : "";
+    const dataIt = iso ? iso.split("-").reverse().join("/") : "";
+    const dataLoc = iso ? new Date(iso + "T12:00:00").toLocaleDateString() : "";
+    const testo = norm([
+      p.cliente_nome, p.cliente_cognome, p.cliente2_nome, p.cliente2_cognome,
+      p.cliente_id ? p.cliente_id.nome : "", p.cliente_id ? p.cliente_id.cognome : "",
+      p.titolo_evento, p.cliente_telefono, p.stato, iso, dataIt, dataLoc,
+    ].join(" "));
+    return termini.every((x) => testo.includes(x));
   });
 
   renderPreventiviList();
