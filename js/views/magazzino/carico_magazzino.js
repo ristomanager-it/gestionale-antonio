@@ -22,6 +22,19 @@ export function renderCaricoModal() {
             ">🍳 Preparazione</button>
           </div>
 
+          <div id="carico-foto-rapida" style="margin-bottom:14px;">
+            <div style="display:flex;gap:8px;">
+              <button type="button" id="carico-scatta" class="app-button" style="flex:1;padding:14px 10px;font-size:15px;font-weight:800;">📷 Scatta la foto del prodotto</button>
+              <button type="button" id="carico-galleria" class="app-button gray" style="flex:0 0 auto;" title="Dalla galleria">🖼</button>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">Anche più foto: davanti per il nome, dietro per codice a barre e scadenza. Tony legge e mette il prodotto in anagrafe.</div>
+            <div id="carico-foto-strip"></div>
+            <div id="carico-tony" style="display:none;margin-top:8px;font-size:13px;border:1px solid #bbf7d0;border-radius:10px;padding:8px 10px;"></div>
+            <div id="carico-tony-scelta"></div>
+            <input id="carico-rapida-camera" type="file" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
+            <input id="carico-rapida-file" type="file" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
+          </div>
+
           <div class="rf-field">
             <label>Prodotto</label>
             <input
