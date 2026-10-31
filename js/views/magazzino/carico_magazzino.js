@@ -787,6 +787,42 @@ export async function apriCaricoModal({ aziendaId }) {
       </div>
     `;
 
+    // foto del prodotto nuovo: si carica e Tony propone nome, marca, formato e unita' di misura
+    fotoNuovoUrl = "";
+    const fileNuovo = document.getElementById("new-foto-file");
+    fileNuovo.onchange = async (ev) => {
+      const f = ev.target.files && ev.target.files[0];
+      if (!f) return;
+      const tonyEl = document.getElementById("new-tony");
+      tonyEl.style.display = "block";
+      tonyEl.textContent = "⏳ Carico la foto…";
+      try {
+        const ridotta = await comprimiImmagine(f, { latoMax: 1200, qualita: 0.8, forza: true });
+        document.getElementById("new-foto-prev").src = URL.createObjectURL(ridotta);
+        document.getElementById("new-foto-prev").style.display = "block";
+        fotoNuovoUrl = await caricaFotoProdotto(f);
+      } catch (e) {
+        tonyEl.textContent = "Non riesco a caricare la foto: " + ((e && e.message) || "errore") + ". Puoi salvare lo stesso, senza foto.";
+        return;
+      }
+      tonyEl.textContent = "✨ Tony sta guardando la foto…";
+      try {
+        const { data, error } = await window.supabaseClient.functions.invoke("prodotto-riconosci-foto", { body: { azienda_id: aziendaId, foto_url: fotoNuovoUrl } });
+        const p = data && data.proposta;
+        if (error || !data || !data.success || !p) throw new Error((data && data.error) || (error && error.message) || "nessuna proposta");
+        const desc = document.getElementById("new-descrizione");
+        const proposto = [p.nome, p.marca, p.formato].filter(Boolean).join(" ");
+        if (proposto && (!desc.value.trim() || desc.value.trim() === String(term || "").trim())) desc.value = proposto;
+        const umEl = document.getElementById("new-um");
+        if (p.um && !umEl.value.trim()) umEl.value = p.um;
+        const interno = document.getElementById("new-categoria-interna");
+        if (interno && p.nome && !interno.value.trim()) interno.value = p.nome;
+        tonyEl.textContent = "✨ Proposta di Tony: controlla e correggi quello che serve. Il fornitore preferito lo scegli tu.";
+      } catch (e) {
+        tonyEl.textContent = "Non riesco a riconoscerlo: scrivi tu cos'è, poi salva.";
+      }
+    };
+
     const input = document.getElementById("new-fornitore");
     const box = document.getElementById("fornitore-suggerimenti");
 
