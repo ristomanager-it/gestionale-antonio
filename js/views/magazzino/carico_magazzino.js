@@ -1,3 +1,5 @@
+import { comprimiImmagine } from "../../utils/immagini.js";
+
 export function renderCaricoModal() {
   return `
     <div id="rf-carico-backdrop" class="rf-overlay-backdrop" style="display:none;">
