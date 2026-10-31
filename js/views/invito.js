@@ -58,8 +58,8 @@ export async function render(container) {
               <button class="iv-sc" data-stato="forse">In forse</button>
               <button class="iv-sc" data-stato="assente">Non posso</button>
             </div>
-            <div class="iv-campo"><label>Come ti chiami</label><input id="iv-nome" placeholder="Nome e cognome"></div>
-            <div class="iv-campo"><label>Quanti siete</label><input id="iv-quanti" type="number" min="1" value="1"></div>
+            <div class="iv-campo"><label>${io ? "Rispondi per" : "Come ti chiami"}</label><input id="iv-nome" placeholder="Nome e cognome"${io ? ` value="${esc(io.nome)}" readonly` : ""}></div>
+            <div class="iv-campo"><label>Quanti siete</label><input id="iv-quanti" type="number" min="1" value="${io ? (io.quanti || 1) : 1}"></div>
             <div class="iv-campo"><label>Il tuo numero</label><input id="iv-tel" placeholder="+39 …"></div>
 
             ${(d.domande || []).length ? `<div class="iv-dom">
