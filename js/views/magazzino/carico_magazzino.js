@@ -603,8 +603,10 @@ export async function apriCaricoModal({ aziendaId }) {
     const l = lettoTony || {};
     const nome = String(l.prodotto || "").trim();
     if (!nome) return;
-    const u = String(l.unita || "").toLowerCase();
-    const um = ["kg", "g"].includes(u) ? "kg" : ["l", "lt", "ml"].includes(u) ? "lt" : "pz";
+    // il prodotto si conta a PEZZI (confezioni); quanto contiene un pezzo, se Tony l'ha letto, serve all'app per i costi
+    const uPeso = String(l.unita || "").toLowerCase();
+    const umConf = { g: "g", gr: "g", kg: "kg", ml: "ml", l: "lt", lt: "lt" }[uPeso] || "";
+    const pesoN = Number(l.peso);
     const urls = l.foto_urls || [];
     const res = await insertProdottoCompat({
       azienda_id: aziendaId,
