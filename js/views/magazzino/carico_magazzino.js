@@ -835,6 +835,11 @@ export async function apriCaricoModal({ aziendaId }) {
       }
     };
 
+    const camNuovo = document.getElementById("new-foto-camera");
+    camNuovo.onchange = (ev) => fileNuovo.onchange(ev);
+    document.getElementById("new-foto-scatta").onclick = () => camNuovo.click();
+    document.getElementById("new-foto-galleria").onclick = () => fileNuovo.click();
+
     const input = document.getElementById("new-fornitore");
     const box = document.getElementById("fornitore-suggerimenti");
 
