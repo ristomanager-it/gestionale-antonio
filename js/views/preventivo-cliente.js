@@ -464,7 +464,7 @@ export async function render(container) {
 
     if (Number.isFinite(nuovoInv) && Number.isFinite(attualiInv) && nuovoInv !== attualiInv) {
       if (!confirm("Avete scritto " + nuovoInv + " invitati invece di " + attualiInv +
-                   ".\n\nAccetto la proposta con " + nuovoInv + " invitati? La data sarà vostra quando versate l'acconto.")) return;
+                   ".\n\nAccetto la proposta con " + nuovoInv + " invitati?" + fraseData)) return;
       const { data: modificato } = await supabase.rpc("preventivo_richiesta", {
         p_token: token, p_tipo: "invitati", p_valore: String(nuovoInv), p_nota: null,
       });
