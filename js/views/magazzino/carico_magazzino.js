@@ -453,6 +453,220 @@ export async function apriCaricoModal({ aziendaId }) {
     }
   }
 
+  // ── FOTO SUBITO: Tony legge il prodotto dalle foto (anche piu' lati), lo trova o lo crea in anagrafe e apre la scheda ──
+  const URL_LEGGI = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-etichetta-lotto";
+  let fotoRaccolte = [];
+  let lettoTony = null;
+  const $q = (s) => backdrop.querySelector(s);
+  const normNome = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+
+  function mostraFotoRapida(si) {
+    const b = $q("#carico-foto-rapida");
+    if (b) b.style.display = si ? "block" : "none";
+  }
+
+  function resetFotoRapida() {
+    fotoRaccolte = [];
+    lettoTony = null;
+    ["#carico-foto-strip", "#carico-tony-scelta"].forEach((s) => { const e = $q(s); if (e) e.innerHTML = ""; });
+    const t = $q("#carico-tony");
+    if (t) { t.style.display = "none"; t.textContent = ""; }
+    ["#carico-lotto", "#carico-scad"].forEach((s) => { const e = $q(s); if (e) e.value = ""; });
+    const td = $q("#carico-tipodata");
+    if (td) td.value = "scadenza";
+    mostraFotoRapida(_tipoCarico === "materia_prima");
+  }
+
+  function messaggioTony(testo, tipo) {
+    const t = $q("#carico-tony");
+    if (!t) return;
+    const errore = tipo === "errore";
+    t.style.display = "block";
+    t.textContent = testo;
+    t.style.color = errore ? "#b91c1c" : "#166534";
+    t.style.background = errore ? "#fef2f2" : "#f0fdf4";
+    t.style.borderColor = errore ? "#fecaca" : "#bbf7d0";
+  }
+
+  async function preparaFotoRapida(file) {
+    const img = await comprimiImmagine(file, { latoMax: 1600, qualita: 0.82, forza: true });
+    const b64 = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = ko; r.readAsDataURL(img); });
+    const percorso = `${aziendaId}/prodotti/${(crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(16).slice(2))}.jpg`;
+    const url = window.supabaseClient.storage.from("media-aziende").upload(percorso, img, { contentType: img.type || "image/jpeg", cacheControl: "31536000" })
+      .then(({ error }) => (error ? "" : window.supabaseClient.storage.from("media-aziende").getPublicUrl(percorso).data.publicUrl))
+      .catch(() => "");
+    return { mime: img.type || "image/jpeg", b64, anteprima: URL.createObjectURL(img), url };
+  }
+
+  async function aggiungiFotoRapida(file) {
+    messaggioTony("⏳ Preparo la foto…");
+    try {
+      fotoRaccolte.push(await preparaFotoRapida(file));
+      const t = $q("#carico-tony");
+      if (t) t.style.display = "none";
+    } catch (e) {
+      messaggioTony("Foto non riuscita: " + ((e && e.message) || "errore"), "errore");
+    }
+    disegnaRaccolta();
+  }
+
+  function disegnaRaccolta() {
+    const s = $q("#carico-foto-strip");
+    if (!s) return;
+    if (!fotoRaccolte.length) { s.innerHTML = ""; return; }
+    s.innerHTML = `<div style="margin-top:10px;border:1px solid #cbd5e1;border-radius:12px;padding:10px;background:#f8fafc;">
+      <div style="font-size:13px;font-weight:700;">${fotoRaccolte.length} foto</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${fotoRaccolte.map((f, i) => `<div style="position:relative;"><img src="${f.anteprima}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px;"><button type="button" data-rmf="${i}" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:#0f172a;color:#fff;font-size:12px;">✕</button></div>`).join("")}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        ${fotoRaccolte.length < 4 ? `<button type="button" id="carico-altra" class="app-button gray">➕ Altra foto (retro, codice a barre, scadenza)</button>` : ""}
+        <button type="button" id="carico-leggi" class="app-button">✨ Leggi con Tony</button>
+      </div></div>`;
+    const altra = s.querySelector("#carico-altra");
+    if (altra) altra.onclick = () => $q("#carico-rapida-camera").click();
+    s.querySelector("#carico-leggi").onclick = () => leggiConTony();
+    s.querySelectorAll("[data-rmf]").forEach((b) => { b.onclick = () => { fotoRaccolte.splice(Number(b.dataset.rmf), 1); disegnaRaccolta(); }; });
+  }
+
+  async function leggiConTony() {
+    const raccolte = fotoRaccolte.slice();
+    if (!raccolte.length) return;
+    $q("#carico-foto-strip").innerHTML = "";
+    $q("#carico-tony-scelta").innerHTML = "";
+    messaggioTony(`✨ Tony legge ${raccolte.length > 1 ? "le " + raccolte.length + " foto" : "la foto"}…`);
+    let d;
+    try {
+      const { data: { session } } = await window.supabaseClient.auth.getSession();
+      const r = await fetch(URL_LEGGI, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + ((session && session.access_token) || "") },
+        body: JSON.stringify({ azienda_id: aziendaId, immagini: raccolte.map((f) => ({ base64: f.b64, mime: f.mime })) }),
+      });
+      d = await r.json();
+      if (!r.ok) throw new Error(d.errore || "lettura non riuscita");
+    } catch (e) {
+      messaggioTony("Non sono riuscito a leggere (" + ((e && e.message) || "errore") + "). Riprova con più luce, aggiungi un'altra foto o cerca il prodotto qui sotto.", "errore");
+      disegnaRaccolta(); // le foto restano: si puo' riprovare
+      return;
+    }
+    const urls = (await Promise.all(raccolte.map((f) => f.url))).filter(Boolean);
+    fotoRaccolte = [];
+    await esitoLettura(d, urls);
+  }
+
+  async function esitoLettura(d, urls) {
+    const l = d.letto || {};
+    lettoTony = { ...l, foto_urls: urls };
+    // lotto e scadenza letti vanno gia' nel modulo del carico
+    if ($q("#carico-lotto")) $q("#carico-lotto").value = l.lotto || "";
+    if ($q("#carico-scad")) $q("#carico-scad").value = l.scadenza || "";
+    if ($q("#carico-tipodata")) $q("#carico-tipodata").value = l.tipo_data === "tmc" ? "tmc" : "scadenza";
+    const nome = String(l.prodotto || "").trim();
+    const riassunto = `✨ Tony ha letto: ${nome || "nome non leggibile"}${l.lotto ? " · lotto " + l.lotto : ""}${l.scadenza ? " · scade " + String(l.scadenza).split("-").reverse().join("/") : ""}${l.codice_barre ? " · codice " + l.codice_barre : ""}.${l.dubbi ? " ⚠ " + l.dubbi + "." : ""}`;
+
+    // 1) codice a barre: il modo piu' sicuro per riconoscere un prodotto gia' in anagrafe
+    if (d.per_barcode && d.per_barcode.id) {
+      messaggioTony(riassunto + " È già in anagrafe (riconosciuto dal codice a barre).");
+      return mostraProdottoLetto(d.per_barcode.id, { urls });
+    }
+    if (!nome) {
+      messaggioTony(riassunto + " Cerca il prodotto qui sotto o scrivilo.", "errore");
+      return;
+    }
+    // 2) stesso nome gia' in anagrafe
+    const cands = Array.isArray(d.candidati) ? d.candidati : [];
+    const esatto = cands.find((c) => normNome(c.nome) === normNome(nome));
+    if (esatto) {
+      messaggioTony(riassunto + " È già in anagrafe.");
+      return mostraProdottoLetto(esatto.id, { urls });
+    }
+    // 3) non c'e': lo creo
+    if (!cands.length) {
+      messaggioTony(riassunto + " Non è in anagrafe: lo creo.");
+      return creaProdottoLetto();
+    }
+    // 4) ce ne sono di simili: scegli tu, oppure e' nuovo
+    messaggioTony(riassunto + " È uno di questi?");
+    const sc = $q("#carico-tony-scelta");
+    sc.innerHTML = `<div style="margin-top:8px;">${cands.slice(0, 5).map((c) => `<button type="button" class="app-button gray" data-cand="${escapeHtml(String(c.id))}" style="display:block;width:100%;text-align:left;margin-top:6px;">${escapeHtml(c.nome)}</button>`).join("")}
+      <button type="button" id="carico-crea-letto" class="app-button" style="width:100%;margin-top:10px;">➕ No, è nuovo: crea «${escapeHtml(nome)}»</button></div>`;
+    sc.querySelectorAll("[data-cand]").forEach((b) => { b.onclick = () => mostraProdottoLetto(b.dataset.cand, { urls }); });
+    sc.querySelector("#carico-crea-letto").onclick = () => creaProdottoLetto();
+  }
+
+  async function creaProdottoLetto() {
+    const l = lettoTony || {};
+    const nome = String(l.prodotto || "").trim();
+    if (!nome) return;
+    const u = String(l.unita || "").toLowerCase();
+    const um = ["kg", "g"].includes(u) ? "kg" : ["l", "lt", "ml"].includes(u) ? "lt" : "pz";
+    const urls = l.foto_urls || [];
+    const res = await insertProdottoCompat({
+      azienda_id: aziendaId,
+      descrizione: nome,
+      unita_base: um,
+      tipo_prodotto: _tipoCarico,
+      categoria_interna: nome,
+      categoria_bilancio_id: 7,
+      ...(urls[0] ? { foto_url: urls[0] } : {}),
+      ...(l.codice_barre ? { barcode: l.codice_barre } : {}),
+    });
+    if (res.error || !res.data || !res.data.id) {
+      messaggioTony("Non sono riuscito a creare il prodotto: " + ((res.error && res.error.message) || "errore") + ". Cercalo o crealo a mano qui sotto.", "errore");
+      return;
+    }
+    messaggioTony(`✨ Ho creato «${nome}» in anagrafe. Controlla l'unità di misura e segna il fornitore.`);
+    $q("#carico-tony-scelta").innerHTML = "";
+    return mostraProdottoLetto(String(res.data.id), { urls, nuovo: true });
+  }
+
+  async function mostraProdottoLetto(id, { urls = [], nuovo = false } = {}) {
+    nuovoProdottoMode = false;
+    prodottoId = String(id);
+    const prodotto = await loadDettaglioProdotto(aziendaId, prodottoId);
+    prodottoBox.style.display = "block";
+    if (!prodotto) { prodottoBox.innerHTML = `<div class="rf-empty-state">Prodotto non trovato</div>`; return; }
+    risultati.innerHTML = "";
+    $q("#carico-tony-scelta").innerHTML = "";
+    // foto e codice a barre entrano nell'anagrafe se mancano
+    const sb = window.supabaseClient;
+    const l = lettoTony || {};
+    if (!prodotto.foto_url && urls[0]) {
+      const { error } = await sb.from("prodotti").update({ foto_url: urls[0] }).eq("id", prodotto.id).eq("azienda_id", aziendaId);
+      if (!error) prodotto.foto_url = urls[0];
+    }
+    if (l.codice_barre && !prodotto.barcode) {
+      const { error } = await sb.from("prodotti").update({ barcode: l.codice_barre }).eq("id", prodotto.id).eq("azienda_id", aziendaId);
+      if (!error) prodotto.barcode = l.codice_barre;
+    }
+    prodottoSelezionato = prodotto;
+    prodottoBox.innerHTML = renderSchedaCaricoProdotto(prodotto, fornitoriCache, { nuovo });
+    bindSchedaProdotto(prodotto);
+    const umSel = prodottoBox.querySelector("#carico-um-sel");
+    if (umSel) {
+      umSel.onchange = async () => {
+        const { error } = await sb.from("prodotti").update({ unita_base: umSel.value }).eq("id", prodotto.id).eq("azienda_id", aziendaId);
+        const e = prodottoBox.querySelector("#carico-anag-esito");
+        if (error) { if (e) { e.textContent = "Non riesco a salvare l'unità: " + (error.message || "errore"); e.style.color = "#b91c1c"; } return; }
+        prodotto.unita_base = umSel.value;
+        umValueEl.innerText = umSel.value;
+        if (e) { e.textContent = "✅ Unità di misura salvata"; e.style.color = "#15803d"; }
+      };
+    }
+    umValueEl.innerText = prodotto.unita_base || "—";
+    umCard.style.display = "block";
+    scortaEl.value = prodotto.scorta_minima || "";
+    form.style.display = "block";
+    if (prodottoBox.scrollIntoView) prodottoBox.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // collegamenti dei pulsanti foto e azzeramento a ogni apertura
+  $q("#carico-scatta").onclick = () => $q("#carico-rapida-camera").click();
+  $q("#carico-galleria").onclick = () => $q("#carico-rapida-file").click();
+  ["#carico-rapida-camera", "#carico-rapida-file"].forEach((sel) => {
+    $q(sel).onchange = (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) aggiungiFotoRapida(f); };
+  });
+  resetFotoRapida();
+
   btnConferma.onclick = async () => {
     const q = Number(qtaEl.value || 0);
     const scorta = Number(scortaEl.value || 0);
