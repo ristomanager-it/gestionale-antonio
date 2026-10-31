@@ -1264,6 +1264,7 @@ function renderSchedaCaricoProdotto(prodotto, fornitori = [], opzioni = {}) {
   ).join("");
 
   return `
+    ${window.state?.sedeAttiva?.id ? "" : `<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:10px;line-height:1.4;">⚠ Nessuna sede attiva: scegli la sede in alto, accanto al nome della società. Serve per registrare il carico e vedere la giacenza. Foto e fornitore preferito si possono segnare lo stesso.</div>`}
     <div class="rf-product-card">
 
       <div class="rf-product-heading">
