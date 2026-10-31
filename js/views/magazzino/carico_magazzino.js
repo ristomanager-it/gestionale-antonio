@@ -1014,7 +1014,7 @@ function normalizeProdotto(prodotto) {
 }
 
 
-function renderSchedaCaricoProdotto(prodotto, fornitori = []) {
+function renderSchedaCaricoProdotto(prodotto, fornitori = [], opzioni = {}) {
   const optForn = (fornitori || []).map((f) =>
     `<option value="${escapeHtml(String(f.id))}" ${String(f.id) === String(prodotto.fornitore_preferito_id || "") ? "selected" : ""}>${escapeHtml(f.ragione_sociale || "")}</option>`
   ).join("");
