@@ -252,7 +252,7 @@ export async function apriCaricoModal({ aziendaId }) {
     prodottoSelezionato = null;
   }
 
-  tabMP.onclick = () => setTab("materia_prima");
+  tabMP.onclick = () => { setTab("materia_prima"); mostraFotoRapida(true); };
   tabPrep.onclick = () => setTab("preparazione");
 
   search.value = "";
