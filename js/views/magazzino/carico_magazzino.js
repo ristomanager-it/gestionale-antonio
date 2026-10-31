@@ -1335,10 +1335,7 @@ function renderSchedaCaricoProdotto(prodotto, fornitori = [], opzioni = {}) {
             <option value="">— nessuno —</option>
             ${optForn}
           </select>
-          ${opzioni.nuovo ? `<label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-top:8px;">Unità di misura</label>
-          <select id="carico-um-sel" class="input" style="width:100%;margin-top:4px;">
-            ${["kg", "lt", "pz"].map((u) => `<option value="${u}" ${String(prodotto.unita_base || "") === u ? "selected" : ""}>${u}</option>`).join("")}
-          </select>` : ""}
+          <!-- unità di misura e contenuto del pezzo: nel blocco "Nome del prodotto" qui sotto -->
           <div id="carico-anag-esito" style="font-size:12px;margin-top:4px;min-height:16px;"></div>
         </div>
       </div>
