@@ -730,6 +730,8 @@ function disegna(container, supabase, azienda, sede) {
           <button class="pv2-btn wa" id="pv2-invia">📤 Manda al cliente</button>
           <button class="pv2-btn sec" id="pv2-wa">💬 WhatsApp a mano</button>
           <button class="pv2-btn sec" id="pv2-stampa">🖨️ Stampa</button>
+          <button class="pv2-btn sec" id="pv2-menu-pdf">📄 Solo il menu (PDF)</button>
+          ${P.stato !== "confermato" && P.stato !== "perso" && (P.acconto_modo || "standard") !== "nessuno" && c.acconto > 0 ? `<button class="pv2-btn arancio" id="pv2-incassato">💶 Acconto incassato</button>` : ""}
           <button class="pv2-btn sec" id="pv2-proroga">📅 ${scaduto() ? "Riapri" : "Proroga"}</button>
           ${P.stato === "confermato" ? `<button class="pv2-btn arancio" id="pv2-spazio">🎪 Spazio degli sposi</button>` : ""}
           <button class="pv2-btn sec" id="pv2-duplica">⧉ Duplica</button>
