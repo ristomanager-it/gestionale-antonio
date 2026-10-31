@@ -54,39 +54,29 @@ export function renderCaricoModal() {
           <div id="carico-form" class="rf-section-spacer" style="display:none;">
 
             <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Quantità</div>
+              <div class="rf-product-section-title">Quanto carichi</div>
 
               <div class="rf-field">
                 <label id="carico-qta-label">Quantità</label>
-                <input id="carico-quantita" type="number" step="0.001" class="input" inputmode="decimal" />
+                <input id="carico-quantita" type="number" step="0.001" class="input" inputmode="decimal" style="font-size:20px;font-weight:700;" />
               </div>
-            </div>
 
-            <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Prezzo di acquisto</div>
-
-              <div class="rf-field">
+              <div class="rf-field" style="margin-top:10px;">
                 <label>Costo di un pezzo (€) <span style="font-size:11px;color:#6b7280;">se lo sai · lascia 0 per non aggiornare</span></label>
                 <input id="carico-prezzo" type="number" step="0.001" min="0" class="input" inputmode="decimal" value="0" />
               </div>
 
-              <div class="rf-field" style="margin-top:8px;">
-                <label>Qtà per confezione <span style="font-size:11px;color:#6b7280;">es. CT da 6 → scrivi 6</span></label>
-                <input id="carico-qta-confezione" type="number" step="0.001" min="0.001" class="input" value="1" />
-              </div>
-
               <div id="carico-costo-preview" style="font-size:12px;color:#0E5A7A;margin-top:6px;min-height:16px;"></div>
-            </div>
 
-            <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Lotto e scadenza <span style="font-size:11px;color:#6b7280;">(dall'etichetta, se ci sono)</span></div>
-              <div class="rf-field">
-                <label>Lotto</label>
-                <input id="carico-lotto" class="input" autocomplete="off" />
-              </div>
-              <div class="rf-field" style="margin-top:8px;">
-                <label>Scadenza</label>
-                <input id="carico-scad" type="date" class="input" />
+              <div style="display:flex;gap:10px;margin-top:6px;">
+                <div class="rf-field" style="flex:1 1 0;min-width:0;">
+                  <label>Scadenza</label>
+                  <input id="carico-scad" type="date" class="input" style="width:100%;max-width:100%;box-sizing:border-box;" />
+                </div>
+                <div class="rf-field" style="flex:1 1 0;min-width:0;">
+                  <label>Lotto</label>
+                  <input id="carico-lotto" class="input" autocomplete="off" style="width:100%;max-width:100%;box-sizing:border-box;" />
+                </div>
               </div>
               <div class="rf-field" style="margin-top:8px;">
                 <label>Tipo di data</label>
@@ -94,45 +84,8 @@ export function renderCaricoModal() {
               </div>
             </div>
 
-            <div class="rf-product-card" id="carico-um-card" style="display:none;">
-              <div class="rf-product-section-title">Unità di misura</div>
-              <div class="rf-product-grid">
-                <div class="rf-product-field">
-                  <span class="rf-product-label">UM</span>
-                  <div id="carico-um-value" class="rf-product-value">—</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Scorta minima / Riordino</div>
-              <div class="rf-field">
-                <label>Quantità minima</label>
-                <input id="carico-scorta" type="number" class="input" />
-              </div>
-            </div>
-
-            <div class="rf-product-card" style="margin-top:10px;">
-              <div class="rf-product-section-title">Categoria interna</div>
-
-              <div class="rf-field">
-                <label>Categoria</label>
-                <input id="carico-categoria" class="input" placeholder="es. inventario, rettifica..." />
-              </div>
-            </div>
-
-            <div class="rf-field" style="margin-top:10px;">
-              <label>Data movimento</label>
-              <input id="carico-data" type="date" class="input" />
-            </div>
-
-            <div class="rf-field" style="margin-top:10px;">
-              <label>Note</label>
-              <input id="carico-note" class="input" />
-            </div>
-
             <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="btn-conferma-carico" class="app-button tiny">
+              <button id="btn-conferma-carico" class="app-button">
                 Registra Carico
               </button>
 
@@ -142,6 +95,53 @@ export function renderCaricoModal() {
             </div>
 
             <div id="carico-esito" style="margin-top:10px; font-size:13px;"></div>
+
+            <details style="margin-top:16px;">
+              <summary style="font-weight:700;cursor:pointer;padding:8px 0;color:#0E5A7A;">Altri dati (confezione, scorta minima, categoria, data, note)</summary>
+
+              <div class="rf-product-card" style="margin-top:8px;">
+                <div class="rf-field">
+                  <label>Qtà per confezione <span style="font-size:11px;color:#6b7280;">es. CT da 6 → scrivi 6</span></label>
+                  <input id="carico-qta-confezione" type="number" step="0.001" min="0.001" class="input" value="1" />
+                </div>
+              </div>
+
+              <div class="rf-product-card" id="carico-um-card" style="display:none;margin-top:10px;">
+                <div class="rf-product-section-title">Unità di misura</div>
+                <div class="rf-product-grid">
+                  <div class="rf-product-field">
+                    <span class="rf-product-label">UM</span>
+                    <div id="carico-um-value" class="rf-product-value">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rf-product-card" style="margin-top:10px;">
+                <div class="rf-product-section-title">Scorta minima / Riordino</div>
+                <div class="rf-field">
+                  <label>Quantità minima</label>
+                  <input id="carico-scorta" type="number" class="input" />
+                </div>
+              </div>
+
+              <div class="rf-product-card" style="margin-top:10px;">
+                <div class="rf-product-section-title">Categoria interna</div>
+                <div class="rf-field">
+                  <label>Categoria</label>
+                  <input id="carico-categoria" class="input" placeholder="es. inventario, rettifica..." />
+                </div>
+              </div>
+
+              <div class="rf-field" style="margin-top:10px;">
+                <label>Data movimento</label>
+                <input id="carico-data" type="date" class="input" style="width:100%;max-width:100%;box-sizing:border-box;" />
+              </div>
+
+              <div class="rf-field" style="margin-top:10px;">
+                <label>Note</label>
+                <input id="carico-note" class="input" />
+              </div>
+            </details>
           </div>
         </div>
       </div>
