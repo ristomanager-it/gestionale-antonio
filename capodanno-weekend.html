@@ -267,6 +267,16 @@ footer a{color:var(--oro)}
   };
   var viaAquila = false;
   var qs = new URLSearchParams(location.search);
+  // utm della campagna salvati per tutta la visita (stessa scheda): passando dalla pagina Capodanno al pacchetto
+  // soggiorno il link non porta i parametri, e senza questo la prenotazione restava senza campagna
+  var UTM = (function(){
+    var k = ["utm_source", "utm_medium", "utm_campaign"], o = {}, s = {};
+    try { s = JSON.parse(sessionStorage.getItem("rf_utm") || "{}") || {}; } catch (e) {}
+    var nuovi = k.some(function(x){ return qs.get(x); });
+    k.forEach(function(x){ o[x] = nuovi ? qs.get(x) : (s[x] || null); });
+    if (nuovi) { try { sessionStorage.setItem("rf_utm", JSON.stringify(o)); } catch (e) {} }
+    return o;
+  })();
   var S = SEDI[qs.get("l") === "campo" ? "campo" : "aquila"];
   if (S.chiave === "campo") document.documentElement.classList.add("campo");
   var $ = function(id){ return document.getElementById(id); };
