@@ -87,6 +87,7 @@ export async function render(container) {
         <div class="bo-m-item" data-sec="pubblici">👥 Pubblici</div>
         <div class="bo-m-item" data-sec="connessioni">🔗 Connessioni</div>
         <div class="bo-m-item" data-sec="campagne-google">🎯 Campagne Google</div>
+        <div class="bo-m-item" data-sec="campagne-chatgpt">🤖 Campagne ChatGPT</div>
         <div class="bo-m-item" data-sec="promozioni">🎯 Promozioni</div>
         <div class="bo-m-item" data-sec="fidelity">💳 Fidelity</div>
         <div class="bo-m-item" data-sec="tags">🏷️ Tags</div>
