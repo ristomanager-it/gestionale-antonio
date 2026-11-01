@@ -2271,7 +2271,7 @@ function renderOrari(){
     var occ=st.occ.filter(function(p){var o=String(p.ora).slice(0,5);return o>=s&&o<f;}).reduce(function(t,p){return t+(Number(p.coperti)||0);},0);
     var lib=(max-occ)>=st.p&&!(st.g===oggi&&s<lim);if(st.o===s&&lib)ok=true;
     h+='<button type="button" class="lp-slot'+(st.o===s&&lib?' on':'')+'" data-o="'+s+'"'+(lib?'':' disabled')+'>'+s+'</button>';});
-  if(!ok)st.o=null;box.innerHTML=h;
+  if(!ok)st.o=null;box.innerHTML=h;if(!/<button(?![^>]*disabled)/.test(h)){var alt=st.t==='cena'?'pranzo':'cena',art=alt==='cena'?'la cena':'il pranzo';window.lpAlt=function(b){var x=document.querySelector('#lp-turni button[data-t="'+b.getAttribute('data-alt')+'"]');if(x)x.click();};box.innerHTML="<div class='lp-nota'>Per questo giorno non ci sono orari liberi a "+st.t+". Prova con un altro giorno oppure guarda "+art+":</div><button type='button' class='lp-chip' data-alt='"+alt+"' onclick='lpAlt(this)'>Vedi "+art+"</button>";T('nessun_orario',{valore:st.g+' '+st.t});}
 }
 function caricaOcc(){
   if(!st.g)return Promise.resolve();
