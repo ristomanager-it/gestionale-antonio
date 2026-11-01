@@ -1229,7 +1229,29 @@ async function sendVoiceMessage() {
   const loading = addMessage("Tony sta ascoltando...", "ai");
 
   try {
-    let data = await callTony(conversation, audioBase64);
+    // il vocale si trascrive con una funzione che riconosce il formato (iPhone o Chrome); poi la frase va a Tony come testo
+    let testoVoce = null;
+    try {
+      const supaAuth = window.supabaseClient || window.supabase;
+      const sessVoce = await supaAuth?.auth?.getSession();
+      const tkVoce = sessVoce?.data?.session?.access_token || "";
+      const rv = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-trascrivi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tkVoce}`, "apikey": tkVoce },
+        body: JSON.stringify({ audio_base64: audioBase64 }),
+      });
+      const jv = await rv.json().catch(() => ({}));
+      if (jv && jv.success) testoVoce = String(jv.text || "").trim();
+    } catch (eVoce) { console.warn("Trascrizione vocale non riuscita, uso il vecchio percorso:", eVoce); }
+    if (testoVoce === "") {
+      if (loading) loading.parentElement?.remove();
+      if (bar) bar.style.display = "none";
+      addMessage("Non ho sentito niente 🙈 Riprova a parlare più vicino al telefono, oppure scrivimi la richiesta.", "ai");
+      setStatus("Assistente operativo");
+      return;
+    }
+    let data = testoVoce ? await callTony([...conversation, { role: "user", content: testoVoce }]) : await callTony(conversation, audioBase64);
+    if (testoVoce && data) data.voice_input = testoVoce;
     if (loading) loading.parentElement?.remove();
 
     const voiceInput = data?.voice_input;
