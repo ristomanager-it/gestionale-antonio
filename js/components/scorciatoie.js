@@ -52,15 +52,19 @@ export async function montaScorciatoie() {
   };
 
   // sotto l intestazione, non dietro: si misura quanto e alta e si scende
-  const dove = document.querySelector('.view') || document.body;
+  // dentro la home, che sta gia sotto la barra in alto: messe sopra a tutto
+  // si aggiungevano un secondo margine e sotto restava uno spazio vuoto
+  const dove = document.querySelector('.ad-home') || document.querySelector('.view') || document.body;
   dove.insertBefore(box, dove.firstChild);
 
+  // margine solo se la barra le copre davvero
   const header = document.querySelector('header, .app-header, #app-header, .topbar');
   if (header) {
     const h = header.getBoundingClientRect();
     const fissa = getComputedStyle(header).position;
-    if ((fissa === 'fixed' || fissa === 'sticky') && h.height > 0) {
-      box.style.marginTop = Math.round(h.height + 12) + 'px';
+    const sotto = Math.round(h.bottom - box.getBoundingClientRect().top);
+    if ((fissa === 'fixed' || fissa === 'sticky') && h.height > 0 && sotto > 0) {
+      box.style.marginTop = (sotto + 12) + 'px';
     }
   }
 
