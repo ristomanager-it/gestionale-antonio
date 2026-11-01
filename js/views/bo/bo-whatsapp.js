@@ -275,7 +275,9 @@ export async function render(container) {
 
     // Header chat
     const header = document.getElementById("wa-chat-header");
+    // il pulsante "indietro" sta dentro l'intestazione: va rimesso ogni volta che l'intestazione si ridisegna
     header.innerHTML = `
+      <button id="wa-back-btn" type="button" aria-label="Torna alle conversazioni" style="display:none;align-items:center;justify-content:center;background:none;border:none;font-size:24px;cursor:pointer;padding:0;min-width:44px;min-height:44px;color:#0E5A7A;">←</button>
       <div style="width:40px;height:40px;border-radius:50%;background:#0E5A7A;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;">
         ${esc(conv.nome.charAt(0).toUpperCase())}
       </div>
