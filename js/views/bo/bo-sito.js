@@ -2281,7 +2281,7 @@ function caricaOcc(){
 q('lp-turni').addEventListener('click',function(e){var b=e.target.closest('button[data-t]');if(!b)return;
   st.t=b.getAttribute('data-t');st.o=null;T('seleziona_turno',{valore:st.t});renderTurni();renderOrari();});
 q('lp-giorni').addEventListener('click',function(e){var b=e.target.closest('button[data-d]');if(!b)return;
-  st.g=b.getAttribute('data-d');st.o=null;T('seleziona_data');renderGiorni();caricaOcc().then(renderOrari);});
+  st.g=b.getAttribute('data-d');st.o=null;T('seleziona_data',{valore:st.g});renderGiorni();caricaOcc().then(renderOrari);});
 q('lp-orari').addEventListener('click',function(e){var b=e.target.closest('button[data-o]');if(!b||b.disabled)return;
   st.o=b.getAttribute('data-o');T('seleziona_orario');renderOrari();});
 q('lp-meno').onclick=function(){st.p=Math.max(1,st.p-1);q('lp-n').textContent=st.p;renderOrari();};
