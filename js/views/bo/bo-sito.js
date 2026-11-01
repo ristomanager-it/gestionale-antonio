@@ -1459,7 +1459,7 @@ function banner(){
     +'<div style="display:flex;gap:8px;align-items:center;"><button id="rf-ck-si" style="flex:1;border:0;background:var(--btn);color:#fff;border-radius:10px;padding:12px;font-weight:800;font-size:15px;">Accetta</button>'
     +'<button id="rf-ck-no" aria-label="Chiudi e continua senza accettare" title="Chiudi e continua senza accettare" style="flex:0 0 auto;width:46px;height:46px;border:1px solid #9ca3af;background:#fff;color:#111827;border-radius:10px;font-size:20px;line-height:1;font-weight:700;padding:0;">\u2715</button></div>';
   document.body.appendChild(b);
-  function fine(v){try{localStorage.setItem(K,v);}catch(e){}b.remove();if(v==='si')carica();}
+  function fine(v){try{localStorage.setItem(K,v);}catch(e){}try{window._rfTrack&&window._rfTrack('click',v==='si'?'cookie_accetta':'cookie_chiudi',{valore:'banner'});}catch(e){}b.remove();if(v==='si')carica();}
   b.querySelector('#rf-ck-si').onclick=function(){fine('si');};
   b.querySelector('#rf-ck-no').onclick=function(){fine('no');};
 }
