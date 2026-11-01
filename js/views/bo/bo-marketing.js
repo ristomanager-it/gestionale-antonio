@@ -1492,6 +1492,80 @@ DESC 2: ...`;
 
   let tonyStorico = [];
 
+  // ── Campagne ChatGPT Ads (OpenAI): i dati arrivano dal server, la chiave API non passa mai dal browser ──
+  async function renderCampagneChatgpt(content) {
+    const supa = () => window.supabaseClient || window.supabase;
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    content.innerHTML = '<div style="color:#94a3b8;padding:40px;text-align:center;">Caricamento...</div>';
+    let aid = null;
+    for (let i = 0; i < 6 && !aid; i++) { aid = window.state?.azienda?.id; if (!aid) await new Promise((ok) => setTimeout(ok, 500)); }
+    const { data: stato } = aid ? await supa().rpc('chatgpt_ads_stato', { p_azienda: aid }) : { data: [] };
+    if (!stato?.length) {
+      content.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">🤖</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px;">ChatGPT Ads non è ancora collegato</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:20px;">Vai in Configurazione → Integrazioni → ChatGPT Ads e incolla la chiave API del tuo account OpenAI.</div>
+          <button onclick="window.location.hash='#/bo-configurazione'" style="background:#10a37f;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:600;">Vai in Configurazione</button>
+        </div>`;
+      return;
+    }
+    let giorni = 30;
+    const moneta = (v, val) => v == null ? '—' : new Intl.NumberFormat('it-IT', { style: 'currency', currency: val || 'EUR' }).format(v);
+    const intero = (v) => v == null ? '—' : new Intl.NumberFormat('it-IT').format(v);
+    const perc = (v) => v == null ? '—' : (v * 100).toFixed(1).replace('.', ',') + '%';
+    const cella = (et, val) => `<div style="background:#f8fafc;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:16px;font-weight:700;color:#0f172a;">${val}</div><div style="font-size:11px;color:#64748b;margin-top:2px;">${et}</div></div>`;
+    content.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:#0f172a;">🤖 Campagne ChatGPT</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">${esc(stato[0].nome || 'Account ChatGPT Ads')}</div>
+        </div>
+        <div id="cg-periodo" style="display:flex;gap:6px;">
+          ${[7, 30, 90].map(g => `<button data-g="${g}" style="border:1px solid #d1d5db;background:${g === giorni ? '#10a37f' : 'white'};color:${g === giorni ? 'white' : '#374151'};border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">${g} giorni</button>`).join('')}
+        </div>
+      </div>
+      <div id="cg-dati" style="color:#64748b;font-size:13px;">Carico i dati da OpenAI...</div>`;
+    async function carica() {
+      const dest = content.querySelector('#cg-dati');
+      dest.textContent = 'Carico i dati da OpenAI...';
+      content.querySelectorAll('#cg-periodo button').forEach(b => { const on = Number(b.dataset.g) === giorni; b.style.background = on ? '#10a37f' : 'white'; b.style.color = on ? 'white' : '#374151'; });
+      try {
+        const sess = await supa().auth.getSession();
+        const tk = sess?.data?.session?.access_token || '';
+        const res = await fetch(SUPABASE_URL + '/functions/v1/chatgpt-ads-dati', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk },
+          body: JSON.stringify({ azienda_id: aid, giorni })
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.success) { dest.innerHTML = `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;color:#b91c1c;font-size:13px;">❌ ${esc(j.error || 'Non riesco a leggere i dati da OpenAI')}</div>`; return; }
+        const val = j.valuta || 'EUR';
+        const t = j.totale || {};
+        let h = `<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:10px;">TOTALE · dal ${esc(j.periodo?.dal)} al ${esc(j.periodo?.al)}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">
+            ${cella('Spesa', moneta(t.spesa, val))}${cella('Impression', intero(t.impression))}${cella('Clic', intero(t.clic))}${cella('Prenotazioni', j.conversioni_disponibili ? intero(t.prenotazioni) : '—')}
+          </div></div>`;
+        if (!j.campagne?.length) h += `<div style="background:white;border-radius:14px;padding:24px;text-align:center;color:#64748b;font-size:13px;">Nessuna campagna ChatGPT in questo periodo.</div>`;
+        for (const c of (j.campagne || [])) {
+          const attiva = ['active', 'serving', 'enabled'].includes(String(c.stato || ''));
+          h += `<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+              <div style="font-weight:700;font-size:14px;color:#0f172a;">${esc(c.nome)}</div>
+              ${c.stato ? `<span style="font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;background:${attiva ? '#dcfce7' : '#f1f5f9'};color:${attiva ? '#166534' : '#475569'};">${esc(c.stato)}</span>` : ''}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;">
+              ${cella('Spesa', moneta(c.spesa, val))}${cella('Impression', intero(c.impression))}${cella('Clic', intero(c.clic))}${cella('CTR', perc(c.ctr))}${cella('Costo a clic', moneta(c.cpc, val))}${cella('Prenotazioni', c.prenotazioni == null ? '—' : intero(c.prenotazioni))}${c.costo_prenotazione != null ? cella('Costo a prenotazione', moneta(c.costo_prenotazione, val)) : ''}
+            </div></div>`;
+        }
+        h += `<div style="font-size:11px;color:#94a3b8;margin-top:6px;">Dati letti da OpenAI: possono arrivare con qualche ora di ritardo. Le prenotazioni contano solo chi ha accettato i cookie sul sito.</div>`;
+        dest.innerHTML = h;
+      } catch (e) { dest.innerHTML = `<div style="color:#b91c1c;font-size:13px;">❌ ${esc(e.message)}</div>`; }
+    }
+    content.querySelectorAll('#cg-periodo button').forEach(b => b.addEventListener('click', () => { giorni = Number(b.dataset.g); carica(); }));
+    carica();
+  }
+
   async function renderTonyAI(content) {
     await caricaConnessioni();
 
