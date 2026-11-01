@@ -2265,7 +2265,7 @@ function orari(){var b=(st.cfg&&st.cfg.orari)||['12:00','12:30','13:00','13:30',
 function renderTurni(){q('lp-turni').innerHTML='<button type="button" class="lp-chip'+(st.t==='pranzo'?' on':'')+'" data-t="pranzo">Pranzo</button><button type="button" class="lp-chip'+(st.t==='cena'?' on':'')+'" data-t="cena">Cena</button>';}
 function renderOrari(){
   var box=q('lp-orari');if(!st.g||!st.t){box.innerHTML='<div class="lp-nota">Scegli prima giorno e pranzo o cena.</div>';return;}
-  var min=(st.cfg&&st.cfg.slot_minuti)||30,max=Math.min((st.cfg&&st.cfg.max_coperti_slot)||30,MAXLP);
+  var min=(st.cfg&&st.cfg.slot_minuti)||30,max=(st.cfg&&st.cfg.max_coperti_slot)||30;
   var oggi=iso(new Date()),lim=plus(hhmm(new Date()),30),h='',ok=false;
   orari().forEach(function(s){var f=plus(s,min);
     var occ=st.occ.filter(function(p){var o=String(p.ora).slice(0,5);return o>=s&&o<f;}).reduce(function(t,p){return t+(Number(p.coperti)||0);},0);
