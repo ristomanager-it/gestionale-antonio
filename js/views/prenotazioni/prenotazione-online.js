@@ -794,7 +794,27 @@ export async function render(container) {
     return { ok:true };
   }
 
+  // turni aperti quel giorno della settimana (pranzo/cena), dalle impostazioni dell'app
+  function turnoAperto(dateString, slot) {
+    const t = slotCfg?.turni_per_giorno;
+    if (!t) return true;
+    const w = new Date(dateString + "T00:00:00").getDay();
+    const aperti = t[String(w)];
+    if (!Array.isArray(aperti)) return true;
+    return aperti.includes(slot < "16:00" ? "pranzo" : "cena");
+  }
+
+  // oggi: gli orari entro 30 minuti da adesso o gia' passati non si prenotano
+  function slotPassato(dateString, slot) {
+    const n = new Date();
+    const oggi = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0");
+    if (dateString !== oggi) return false;
+    const lim = new Date(n.getTime() + 30 * 60000);
+    return slot < String(lim.getHours()).padStart(2, "0") + ":" + String(lim.getMinutes()).padStart(2, "0");
+  }
+
   function isDayBookable(dateString) {
+    if ((slotCfg?.chiusure_date || []).includes(dateString)) return false;
     const giorni = config.availability?.giorni;
     if (!Array.isArray(giorni) || !giorni.length) return true;
     const d = new Date(dateString + "T00:00:00");
