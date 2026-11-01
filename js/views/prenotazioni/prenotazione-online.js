@@ -487,7 +487,7 @@ export async function render(container) {
 
   // Slot config
   const { data: slotCfg } = await window.supabaseClient
-    .from("prenotazioni_slot_config").select("*").eq("azienda_id", aziendaId).maybeSingle();
+    .rpc("prenotazioni_config_pubblica", { p_azienda: aziendaId, p_sede: sedeId || null }).then((r) => ({ data: Array.isArray(r.data) ? (r.data[0] || null) : (r.data || null) }));
   const slotMinuti = slotCfg?.slot_minuti || 30;
   const maxCoperti = slotCfg?.max_coperti_slot || 30;
   const orariBase  = slotCfg?.orari || ["12:00","12:30","13:00","13:30","19:00","19:30","20:00","20:30","21:00","21:30"];
