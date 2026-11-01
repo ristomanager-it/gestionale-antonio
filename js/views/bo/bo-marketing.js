@@ -82,6 +82,8 @@ export async function render(container) {
         </div>
 
         <div class="bo-m-item" data-sec="campagne-meta">📣 Campagne Meta</div>
+        <div class="bo-m-item" data-sec="campagne-google">🎯 Campagne Google</div>
+        <div class="bo-m-item" data-sec="campagne-chatgpt">💬 Campagne ChatGPT</div>
         <div class="bo-m-item" data-sec="bacheca-social">📸 Bacheca Social</div>
         <div class="bo-m-item" data-sec="tony-ai">🤖 Tony AI</div>
         <div class="bo-m-item" data-sec="pubblici">👥 Pubblici</div>
