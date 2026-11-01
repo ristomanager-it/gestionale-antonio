@@ -520,7 +520,7 @@ export async function render(container) {
     container2.innerHTML = orariDisponibili.length ? orariDisponibili.map(slot => {
       const fine = oraFine(slot);
       const occupati = (prenSlot || []).filter(p => p.ora >= slot && p.ora < fine).reduce((s,p) => s + (Number(p.coperti)||0), 0);
-      const disponibile = (maxCoperti - occupati) >= coperti;
+      const disponibile = (maxCoperti - occupati) >= coperti && !slotPassato(data, slot);
       const isSelected  = slot === oraSelezionata;
       return `<div class="pren-slot${!disponibile?" disabled":""}${isSelected?" selected":""}" data-ora="${escapeAttribute(slot)}" onclick="selezionaSlot('${escapeAttribute(slot)}',${disponibile})">${slot}</div>`;
     }).join("") : `<div style="font-size:13px;color:#94a3b8;grid-column:1/-1;text-align:center;padding:12px;">Nessun orario disponibile per questa data</div>`;
