@@ -482,7 +482,7 @@ footer a{color:var(--oro)}
       stato: "in_attesa_pagamento", canale: "online", note: ((camere > 1 || extraTotali() ? "[Camere: " + riepilogoStanze() + "] " : "") + (bimbi ? "[Età bambini: " + eta.join(", ") + "] " : "") + note).trim() || null, richieste_speciali: note || null,
       token_pubblico: token, tag: cen.slug, source: UTM.utm_source || "weekend",
       riferimento: JSON.stringify({ landing: S.slug + "-weekend", adulti: adulti, bambini: bimbi, eta_bambini: eta, stanze: stanze, notti: notti(), camere: camere, totale: t.totale,
-        consenso_gdpr: true, consenso_marketing: $("marketing").checked, sid: (function(){ try { return sessionStorage.getItem("rf_ses"); } catch (e) { return null; } })(), utm_source: qs.get("utm_source"), utm_campaign: qs.get("utm_campaign") })
+        consenso_gdpr: true, consenso_marketing: $("marketing").checked, sid: (function(){ try { return sessionStorage.getItem("rf_ses"); } catch (e) { return null; } })(), utm_source: UTM.utm_source, utm_campaign: UTM.utm_campaign })
     }]);
     if (ins.error) {
       inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma";
