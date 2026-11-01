@@ -29,6 +29,8 @@
       disdetta: N.disdetta ? esc(N.disdetta) : TBD
     };
     Array.prototype.forEach.call(document.querySelectorAll("[data-v]"), function(el){ var k = el.getAttribute("data-v"); if (mappa[k] !== undefined) el.innerHTML = mappa[k]; });
+    // senza una regola di disdetta scritta la domanda non compare (niente "da definire" davanti ai clienti)
+    if (!N.disdetta) { var dd = document.querySelector('[data-v="disdetta"]'); if (dd && dd.parentNode) dd.parentNode.style.display = "none"; }
     $("amo-prezzo").innerHTML = N.prezzo ? euroI(N.prezzo) : "Natale";
     $("amo-frase").textContent = N.prezzo ? "Il Pranzo di Natale, venerdì 25 dicembre." : "Il Pranzo di Natale, venerdì 25 dicembre. Menu e prezzo a breve.";
     var m = $("menu-box");
