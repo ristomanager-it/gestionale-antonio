@@ -513,6 +513,7 @@ export async function render(container) {
     // Filtra orari per disponibilità config
     const orariDisponibili = orariBase.filter(slot => {
       if (!isDayBookable(data)) return false;
+      if (!turnoAperto(data, slot)) return false;
       return isTimeBookable(slot);
     });
 
