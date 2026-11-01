@@ -2315,7 +2315,7 @@ q('lp-invia').onclick=function(){
   .catch(function(e){b.disabled=false;b.textContent='Prenota il tavolo';msg('Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.',true);
     try{window._rfTrack('error','submit_db_error',{step:'submit',valore:String(e.message).slice(0,80)});}catch(x){}});
 };
-fetch(SB+'/rest/v1/prenotazioni_slot_config?azienda_id=eq.'+AZ+'&select=*',{headers:H}).then(function(r){return r.json();})
+fetch(SB+'/rest/v1/rpc/prenotazioni_config_pubblica',{method:'POST',headers:H,body:JSON.stringify({p_azienda:AZ,p_sede:SEDE||null})}).then(function(r){return r.json();})
   .then(function(a){st.cfg=(a&&a[0])||null;}).catch(function(){st.cfg=null;}).then(function(){renderGiorni();renderTurni();renderOrari();});
 fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.stringify({p_sede:SEDE})}).then(function(r){return r.json();}).then(function(m){
   var v=(m&&m.voci)||[];
