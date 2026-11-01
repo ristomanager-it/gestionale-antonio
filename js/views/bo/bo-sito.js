@@ -1457,7 +1457,7 @@ function banner(){
   b.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:9998;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.28);font:14px/1.45 system-ui,sans-serif;max-width:520px;margin:0 auto;';
   b.innerHTML='<div style="margin-bottom:10px;">Rimani aggiornato sulle nostre offerte: usiamo i cookie per mostrarti il menu di oggi e le promozioni. Con la \u2715 continui senza accettare.${privacyUrl ? ` <a href="${esc(privacyUrl)}" target="_blank" rel="noopener" style="color:#6b7280;text-decoration:underline">Privacy</a>` : ""}</div>'
     +'<div style="display:flex;gap:8px;align-items:center;"><button id="rf-ck-si" style="flex:1;border:0;background:var(--btn);color:#fff;border-radius:10px;padding:12px;font-weight:800;font-size:15px;">Accetta</button>'
-    +'<button id="rf-ck-si" style="flex:1;border:0;background:var(--btn);color:#fff;border-radius:10px;padding:11px;font-weight:800;font-size:14px;">Accetta</button></div>';
+    +'<button id="rf-ck-no" aria-label="Chiudi e continua senza accettare" title="Chiudi e continua senza accettare" style="flex:0 0 auto;width:46px;height:46px;border:1px solid #9ca3af;background:#fff;color:#111827;border-radius:10px;font-size:20px;line-height:1;font-weight:700;padding:0;">\u2715</button></div>';
   document.body.appendChild(b);
   function fine(v){try{localStorage.setItem(K,v);}catch(e){}b.remove();if(v==='si')carica();}
   b.querySelector('#rf-ck-si').onclick=function(){fine('si');};
