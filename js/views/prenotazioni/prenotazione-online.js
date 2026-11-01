@@ -554,6 +554,17 @@ export async function render(container) {
     aggiornaSlot();
   };
 
+  // il modulo si apre sul primo giorno con orari prenotabili (non sempre su oggi)
+  (function scegliGiornoIniziale() {
+    const base = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+      const iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+      if (!isDayBookable(iso)) continue;
+      if (orariBase.some((s) => isTimeBookable(s) && turnoAperto(iso, s) && !slotPassato(iso, s))) { document.getElementById("data").value = iso; return; }
+    }
+  })();
+
   document.getElementById("data").addEventListener("change", () => {
     oraSelezionata = ""; document.getElementById("ora").value = ""; aggiornaSlot();
     window._rfTrack?.('click', 'seleziona_data', { step: 'seleziona_data', valore: document.getElementById("data").value });
