@@ -113,8 +113,10 @@ export async function montaMessaggiHome(contenitore) {
   if (header && !sc) {
     const h = header.getBoundingClientRect();
     const pos = getComputedStyle(header).position;
-    if ((pos === 'fixed' || pos === 'sticky') && h.height > 0) {
-      box.style.marginTop = Math.round(h.height + 12) + 'px';
+    // margine solo se la barra copre davvero il riquadro: se il contenuto e gia sotto, niente spazio doppio
+    const sotto = Math.round(h.bottom - box.getBoundingClientRect().top);
+    if ((pos === 'fixed' || pos === 'sticky') && h.height > 0 && sotto > 0) {
+      box.style.marginTop = (sotto + 12) + 'px';
     }
   }
   if (sc) sc.after(box);
