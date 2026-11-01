@@ -1733,6 +1733,7 @@ DESC 2: ...`;
       if (currentSection === "campagne-meta") { await renderCampagneMeta(content); return; }
       if (currentSection === "bacheca-social") { await renderBachecaSocial(content); return; }
       if (currentSection === "campagne-google") { await renderCampagneGoogle(content); return; }
+      if (currentSection === "campagne-chatgpt") { await renderCampagneChatgpt(content); return; }
       if (currentSection === "tony-ai") { await renderTonyAI(content); return; }
       if (currentSection === "pubblici") { await renderPubblici(content); return; }
       if (currentSection === "connessioni") { await renderConnessioni(content); return; }
