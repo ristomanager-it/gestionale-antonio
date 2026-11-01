@@ -1063,6 +1063,55 @@ export async function render(container) {
 
     renderListaGoogleAds();
 
+    // ── ChatGPT Ads (OpenAI): la chiave API resta sul server ──
+    async function renderListaChatgpt() {
+      const el = box.querySelector('#lista-chatgpt-ads');
+      if (!el) return;
+      const { data: righe } = await supa().rpc('chatgpt_ads_stato', { p_azienda: aziendaId });
+      if (!righe?.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessun account ChatGPT Ads collegato.</div>';
+        return;
+      }
+      el.innerHTML = righe.map(g => `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:24px;">🤖</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${esc(g.nome || g.ad_account_id || 'Account ChatGPT Ads')}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">✅ Collegato · chiave ····${esc(g.chiave_finale || '')}${g.valuta ? ' · ' + esc(g.valuta) : ''}${g.stato_account ? ' · stato: ' + esc(g.stato_account) : ''}</div>
+          </div>
+          <button data-del-chatgpt="1" style="background:#fee2e2;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+        </div>`).join('');
+      el.querySelectorAll('[data-del-chatgpt]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('Scollegare ChatGPT Ads? La chiave verrà cancellata dal server.')) return;
+        await supa().rpc('chatgpt_ads_scollega', { p_azienda: aziendaId });
+        renderListaChatgpt();
+      }));
+    }
+    renderListaChatgpt();
+    box.querySelector('#btn-collega-chatgpt')?.addEventListener('click', () => { box.querySelector('#form-chatgpt-ads').style.display = ''; });
+    box.querySelector('#btn-annulla-chatgpt')?.addEventListener('click', () => { box.querySelector('#chatgpt-api-key').value = ''; box.querySelector('#form-chatgpt-ads').style.display = 'none'; });
+    box.querySelector('#btn-salva-chatgpt')?.addEventListener('click', async () => {
+      const esito = box.querySelector('#chatgpt-esito');
+      const campo = box.querySelector('#chatgpt-api-key');
+      const chiave = (campo.value || '').trim();
+      if (!chiave) { esito.textContent = '❌ Incolla la chiave'; esito.style.color = '#dc2626'; return; }
+      esito.textContent = 'Controllo con OpenAI...'; esito.style.color = '#64748b';
+      try {
+        const sess = await supa().auth.getSession();
+        const tk = sess?.data?.session?.access_token || '';
+        const res = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/chatgpt-ads-collega', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk },
+          body: JSON.stringify({ azienda_id: aziendaId, api_key: chiave })
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.success) { esito.textContent = '❌ ' + (j.error || 'collegamento non riuscito'); esito.style.color = '#dc2626'; return; }
+        campo.value = '';
+        esito.textContent = '✅ Collegato: ' + (j.nome || 'account ChatGPT Ads'); esito.style.color = '#15803d';
+        renderListaChatgpt();
+        setTimeout(() => { box.querySelector('#form-chatgpt-ads').style.display = 'none'; }, 1500);
+      } catch (e) { esito.textContent = '❌ ' + e.message; esito.style.color = '#dc2626'; }
+    });
+
     box.querySelector('#btn-collega-google')?.addEventListener('click', () => {
       box.querySelector('#form-google-ads').style.display = '';
     });
