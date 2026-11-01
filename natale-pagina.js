@@ -1,7 +1,13 @@
 (function(){
   var CFG = window.NATALE_PAG;
 
-  var N = window.NATALE || {};
+  var N0 = window.NATALE || {};
+  var N = {};
+  for (var kk in N0) N[kk] = N0[kk];
+  ["prezzo", "prezzo_bimbi", "comprende", "disdetta", "ora"].forEach(function (k) {
+    var v = N0[k];
+    if (v && typeof v === "object" && !Array.isArray(v)) N[k] = (v[CFG.chiave] !== undefined) ? v[CFG.chiave] : null;
+  });
   var $ = function(id){ return document.getElementById(id); };
   var euro = function(n){ return n.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €"; };
   var euroI = function(n){ return (Math.round(n) === n ? String(n) : n.toLocaleString("it-IT")) + " €"; };
