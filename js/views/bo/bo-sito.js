@@ -2283,7 +2283,7 @@ q('lp-turni').addEventListener('click',function(e){var b=e.target.closest('butto
 q('lp-giorni').addEventListener('click',function(e){var b=e.target.closest('button[data-d]');if(!b)return;
   st.g=b.getAttribute('data-d');st.o=null;T('seleziona_data',{valore:st.g});renderGiorni();caricaOcc().then(renderOrari);});
 q('lp-orari').addEventListener('click',function(e){var b=e.target.closest('button[data-o]');if(!b||b.disabled)return;
-  st.o=b.getAttribute('data-o');T('seleziona_orario');renderOrari();});
+  st.o=b.getAttribute('data-o');T('seleziona_orario',{valore:st.g+' '+st.t+' '+st.o});renderOrari();});
 q('lp-meno').onclick=function(){st.p=Math.max(1,st.p-1);q('lp-n').textContent=st.p;renderOrari();};
 q('lp-piu').onclick=function(){st.p=Math.min(12,st.p+1);q('lp-n').textContent=st.p;renderOrari();};
 function fatto(){
