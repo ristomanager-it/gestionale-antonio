@@ -909,6 +909,30 @@ export async function render(container) {
             <button id="btn-annulla-gads" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;">Annulla</button>
           </div>
         </div>
+      </div> <div id="blocco-chatgpt-ads" style="margin-bottom:36px;margin-top:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">🤖 ChatGPT Ads</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Collega l'account pubblicitario di OpenAI per vedere spesa, clic e prenotazioni delle campagne ChatGPT dall'app</div>
+          </div>
+          <button id="btn-collega-chatgpt" style="background:#10a37f;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">🔗 Collega ChatGPT Ads</button>
+        </div>
+        <div id="lista-chatgpt-ads" style="margin-bottom:16px;"></div>
+        <div id="form-chatgpt-ads" style="display:none;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-top:12px;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:12px;">Collega ChatGPT Ads</div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">Chiave API di OpenAI Ads *</label>
+            <input id="chatgpt-api-key" type="password" autocomplete="off" spellcheck="false" class="input" placeholder="Incolla qui la chiave" style="width:100%;box-sizing:border-box;">
+          </div>
+          <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;font-size:12px;color:#065f46;margin-bottom:12px;">
+            Dove si trova: in Ads Manager di OpenAI vai in <b>Impostazioni</b> e crea una chiave API. Appena la incolli qui viene controllata e salvata solo sul server: nell'app non si vedrà più, e puoi sempre scollegarla da qui.
+          </div>
+          <div id="chatgpt-esito" style="font-size:13px;min-height:14px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-salva-chatgpt" style="background:#10a37f;color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;">🔐 Controlla e collega</button>
+            <button id="btn-annulla-chatgpt" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;">Annulla</button>
+          </div>
+        </div>
       </div> <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;opacity:0.6;">
         ${[
           { icon:'📦', titolo:'Delivery (Glovo/JustEat)', desc:'Presto disponibile' },
