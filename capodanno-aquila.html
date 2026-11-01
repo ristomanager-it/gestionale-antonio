@@ -410,7 +410,7 @@ footer a{color:var(--oro)}
       tag: CFG.slug, source: UTM.utm_source || "landing",
       riferimento: JSON.stringify({ landing: CFG.slug, tariffa: promo ? "promo" : "flessibile", prezzo_persona: prezzoAdulto(), acconto_perc: CFG.perc, adulti: ospiti, bambini: bimbi,
         consenso_gdpr: true, consenso_marketing: $("marketing").checked,
-        sid: (function(){ try { return sessionStorage.getItem("rf_ses"); } catch (e) { return null; } })(), utm_source: qs.get("utm_source"), utm_medium: qs.get("utm_medium"), utm_campaign: qs.get("utm_campaign") })
+        sid: (function(){ try { return sessionStorage.getItem("rf_ses"); } catch (e) { return null; } })(), utm_source: UTM.utm_source, utm_medium: UTM.utm_medium, utm_campaign: UTM.utm_campaign })
     };
     var ins = await supa.from("prenotazioni_tavoli").insert([riga]);
     if (ins.error) {
