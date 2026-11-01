@@ -2252,7 +2252,7 @@ function giorni(){
   var cfg=st.cfg,att=(cfg&&cfg.giorni_attivi)||['lunedi','martedi','mercoledi','giovedi','venerdi'],chi=(cfg&&cfg.giorni_chiusura)||[];
   var out=[],d=new Date();if(d.getHours()>=21)d.setDate(d.getDate()+1);
   for(var i=0;i<28&&out.length<5;i++){var w=d.getDay();
-    if(w>=1&&w<=5&&att.indexOf(GN[w])>-1&&chi.indexOf(GN[w])<0)out.push(new Date(d.getTime()));
+    if(w>=1&&w<=5&&att.indexOf(GN[w])>-1&&chi.indexOf(GN[w])<0&&!(cfg&&cfg.chiusure_date&&cfg.chiusure_date.indexOf(iso(d))>-1))out.push(new Date(d.getTime()));
     d.setDate(d.getDate()+1);}
   return out;
 }
