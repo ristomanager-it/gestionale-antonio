@@ -407,7 +407,7 @@ footer a{color:var(--oro)}
       cliente_nome: (nome + " " + cognome).trim(), cliente_telefono: tel, cliente_email: email,
       data: CFG.data, ora: CFG.ora, coperti: persone, bambini: bimbi, promo: promo, stato: "in_attesa_pagamento", canale: "online",
       note: note || null, richieste_speciali: note || null, token_pubblico: token,
-      tag: CFG.slug, source: qs.get("utm_source") || "landing",
+      tag: CFG.slug, source: UTM.utm_source || "landing",
       riferimento: JSON.stringify({ landing: CFG.slug, tariffa: promo ? "promo" : "flessibile", prezzo_persona: prezzoAdulto(), acconto_perc: CFG.perc, adulti: ospiti, bambini: bimbi,
         consenso_gdpr: true, consenso_marketing: $("marketing").checked,
         sid: (function(){ try { return sessionStorage.getItem("rf_ses"); } catch (e) { return null; } })(), utm_source: qs.get("utm_source"), utm_medium: qs.get("utm_medium"), utm_campaign: qs.get("utm_campaign") })
