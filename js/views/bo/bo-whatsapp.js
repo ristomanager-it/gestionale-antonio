@@ -291,6 +291,13 @@ export async function render(container) {
         </span>
       </div>
     `;
+    const tornaIndietro = document.getElementById("wa-back-btn");
+    if (tornaIndietro) {
+      tornaIndietro.onclick = () => {
+        chatEl?.classList.remove("mobile-open");
+        conversazioneAttiva = null;
+      };
+    }
 
     // le conferme automatiche e gli altri messaggi mandati dal sistema fanno parte della conversazione
     let extra = [];
