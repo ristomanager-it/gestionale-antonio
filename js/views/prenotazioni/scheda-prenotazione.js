@@ -495,6 +495,55 @@ export async function render(container) {
     bindFormEvents();
     caricaMenuCollegato();
     caricaMessaggiInviati();
+    caricaPagamenti();
+  }
+
+  // 💶 Pagamenti della prenotazione: totale, gia' pagato (carta, bonifico, contanti...), resto da incassare.
+  // Da qui si registra il bonifico arrivato o l'incasso della sera: la cassa ha il resoconto pronto.
+  async function caricaPagamenti() {
+    const box = document.getElementById("pren-pag-box");
+    if (!box) return;
+    const p = pageState.prenotazione || {};
+    const supa = window.supabaseClient || window.supabase;
+    const eur = (n) => (Number(n) || 0).toFixed(2).replace(".", ",") + " €";
+    let righe = [];
+    try {
+      const r = await supa.from("prenotazioni_pagamenti").select("importo, metodo, data_pagamento, nota").eq("prenotazione_id", p.id).order("data_pagamento", { ascending: true });
+      righe = r.data || [];
+    } catch (_) {}
+    const pagato = righe.reduce((t, x) => t + (Number(x.importo) || 0), 0);
+    const tot = Number(p.importo_totale) || 0;
+    const nomi = { carta: "💳 Carta", bonifico: "🏦 Bonifico", contanti: "💵 Contanti", pos: "💳 POS", buono: "🎁 Buono", altro: "Altro" };
+    const proposto = p.stato_pagamento === "bonifico_in_attesa" && tot ? (Math.round(tot * 30) / 100).toFixed(2) : "";
+    box.innerHTML = `
+      <div class="pren-det-inline">
+        <span class="pren-det-pill">Totale ${tot ? eur(tot) : "—"}</span>
+        <span class="pren-det-pill" style="background:#dcfce7;color:#166534;">Pagato ${eur(pagato)}</span>
+        ${tot ? `<span class="pren-det-pill" style="background:#fef3c7;color:#92400e;">Da incassare ${eur(Math.max(tot - pagato, 0))}</span>` : ""}
+        ${p.stato_pagamento === "bonifico_in_attesa" ? `<span class="pren-det-pill" style="background:#ffedd5;color:#9a3412;">⏳ Bonifico in attesa</span>` : ""}
+      </div>
+      ${righe.length
+        ? `<div style="margin-top:10px;font-size:13px;color:#334155;">${righe.map((x) => `<div style="padding:5px 0;border-bottom:1px solid #f1f5f9;">${nomi[x.metodo] || escapeHtml(x.metodo)} · <b>${eur(x.importo)}</b> · ${String(x.data_pagamento || "").split("-").reverse().join("/")}${x.nota ? " · " + escapeHtml(x.nota) : ""}</div>`).join("")}</div>`
+        : `<div style="margin-top:10px;font-size:13px;color:#94a3b8;">Nessun pagamento registrato.</div>`}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;">
+        <input id="pag-importo" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Importo €" value="${proposto}" style="flex:1;min-width:110px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;">
+        <select id="pag-metodo" style="padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;">
+          <option value="bonifico">Bonifico</option><option value="contanti">Contanti</option><option value="pos">POS</option><option value="carta">Carta</option><option value="buono">Buono</option>
+        </select>
+        <button type="button" id="pag-registra" class="pren-det-btn primary" style="min-height:44px;">Registra pagamento</button>
+      </div>
+      <div id="pag-msg" style="font-size:13px;margin-top:6px;"></div>`;
+    document.getElementById("pag-registra").onclick = async () => {
+      const msg = document.getElementById("pag-msg");
+      const imp = Number(String(document.getElementById("pag-importo").value || "").replace(",", "."));
+      const met = document.getElementById("pag-metodo").value;
+      if (!(imp > 0)) { msg.style.color = "#b91c1c"; msg.textContent = "Scrivi l'importo ricevuto."; return; }
+      const r = await supa.rpc("prenotazione_registra_pagamento", { p_id: p.id, p_importo: imp, p_metodo: met });
+      if (r.error || !(r.data && r.data.ok)) { msg.style.color = "#b91c1c"; msg.textContent = "Non registrato: " + ((r.error && r.error.message) || (r.data && r.data.errore) || "riprova"); return; }
+      const ag = await supa.from("prenotazioni_tavoli").select("*").eq("id", p.id).maybeSingle();
+      if (ag.data) pageState.prenotazione = ag.data;
+      caricaPagamenti();
+    };
   }
 
   async function stampaTalloncino() {
