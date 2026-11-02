@@ -40,7 +40,13 @@ export async function renderCassaLibera(container, azienda) {
   let incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
   // Cassa unica: scheda Sala (tavoli, si incassa chi paga al banco) e scheda Banco (vendita al volo)
   // si puo' aprire direttamente sulla scheda Banco: #/cassa-libera?modo=banco (pulsante Cassa di Comande)
-  let modo = (new URLSearchParams((window.location.hash.split('?')[1]) || '').get('modo') === 'banco') ? 'banco' : 'sala';
+  // Scheda Prenotazioni: conti aperti da prenotazioni, preventivi e camere con gli acconti scalati.
+  // Si apre anche da link: #/cassa-libera?modo=pren&origine=tavolo&rif=ID (pulsante nella scheda prenotazione)
+  const _qs = new URLSearchParams((window.location.hash.split('?')[1]) || '');
+  let modo = _qs.get('modo') === 'banco' ? 'banco' : (_qs.get('modo') === 'pren' ? 'pren' : 'sala');
+  let pren = { data: oggiRoma(), lista: [], caricato: false, msg: '', errore: '' };
+  let accontoScontrino = 'intero';   // da cassa_impostazioni: 'intero' | 'solo_saldo'
+  function oggiRoma() { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Rome' }).format(new Date()); }
   let contoAperto = false;   // telefono: conto a comparsa dal basso
   const stretto = () => (window.matchMedia ? window.matchMedia('(max-width: 760px)').matches : window.innerWidth <= 760);
   let _ultimoStretto = stretto();
