@@ -711,7 +711,8 @@ export async function renderCassaLibera(container, azienda) {
         contoAperto = false;
         tavoloAttivo = null;
         $('#cl-modal').style.display = 'none';
-        if (eraTavolo) { modo = 'sala'; caricaSala().then(render); } else render();
+        if (eraPratica) { modo = 'pren'; pren.caricato = false; render(); }
+        else if (eraTavolo) { modo = 'sala'; caricaSala().then(render); } else render();
         aggiornaSchermoCliente();
       }, ms);
     }
