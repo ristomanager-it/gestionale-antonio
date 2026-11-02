@@ -163,7 +163,7 @@ export async function renderCassaLibera(container, azienda) {
         <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
 
           <!-- Griglia prodotti -->
-          <div style="flex:1;min-width:300px;${tavoloAttivo ? 'display:none;' : ''}">
+          <div style="flex:1;min-width:300px;${tavoloAttivo && !tavoloAttivo.pratica ? 'display:none;' : ''}">
             <input id="cl-cerca" placeholder="Cerca prodotto…"
               style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid #d1d5db;border-radius:12px;font-size:15px;margin-bottom:10px;">
             <div id="cl-categorie" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;">
