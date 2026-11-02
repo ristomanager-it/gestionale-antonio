@@ -788,7 +788,8 @@ export async function renderCassaLibera(container, azienda) {
           esito.textContent = '✅ Incassato. Scontrino: ' + (doc.numero_documento || 'n/d') + (doc.simulato ? ' (simulato)' : '')
             + (metodo === 'contanti' && resto > 0 ? ' · Resto € ' + (Math.round(resto * 100) / 100).toFixed(2) : '');
         }
-        dopoChiusura(3500);
+        if (avvisoPratica) esito.textContent = avvisoPratica + esito.textContent;
+        dopoChiusura(avvisoPratica ? 6000 : 3500);
       } finally {
         incasso.busy = false;
       }
