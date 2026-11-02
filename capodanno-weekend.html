@@ -427,7 +427,9 @@ footer a{color:var(--oro)}
     var avv = $("avviso-camere"), serve = camereNecessarie();
     if (camere < serve) {
       avv.hidden = false;
-      avv.textContent = "In una camera ci sono troppe persone: aggiungete un’altra camera e spostate lì qualcuno.";
+      avv.textContent = esauriteAq().length
+        ? "Non ci sono più camere libere di questo tipo (" + esauriteAq().join(", ") + "). Dividetevi in camere più piccole oppure chiamateci."
+        : "In una camera ci sono troppe persone: aggiungete un’altra camera e spostate lì qualcuno.";
     } else { avv.hidden = true; avv.textContent = ""; }
     $("invia").disabled = camere < serve || etaMancanti() > 0;
     var t = conti(), acc = Math.round(t.totale * 30) / 100;
