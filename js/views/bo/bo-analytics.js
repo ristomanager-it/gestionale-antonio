@@ -14,6 +14,32 @@ export async function render(container) {
   let filtroAzienda = isSuperadmin ? null : aziendaId;
   let aziende = [];
   let dati = [];
+  // Filtro evento: un link (utm) o un tag di prenotazione appartiene a un evento come in risultati_campagne (SQL)
+  let filtroEvento = "";
+  let mappaEv = { utm: {}, tag: {} };
+  const normC = (v) => { const s = String(v || "").trim().toLowerCase().replace(/_/g, "-").replace(/-+/g, "-"); return s || null; };
+  const annoStagione = () => { const d = new Date(); d.setMonth(d.getMonth() - 2); return String(d.getFullYear()); };
+  function eventoProposto(p, soloNoti) {
+    if (!p) return null;
+    const anno = (p.match(/(20[0-9]{2})/) || [])[1] || annoStagione();
+    if (/capodanno/.test(p)) return "Capodanno " + anno;
+    if (/natale|vigilia/.test(p)) return "Natale " + anno;
+    if (/pasqua/.test(p)) return "Pasqua";
+    if (/wedding|matrimon|hochzeit/.test(p)) return "Wedding";
+    if (/experience/.test(p)) return "Italian Experience";
+    if (/menu-business|menu-oggi|menu-giorno/.test(p)) return "Menu business";
+    if (soloNoti) return null;
+    return p.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  const eventoUtm = (u) => { const k = normC(u); return k ? (mappaEv.utm[k] || eventoProposto(k, false)) : null; };
+  const eventoPren = (p) => (p.tag && (mappaEv.tag[p.tag] || eventoProposto(p.tag, true))) || eventoUtm(p.campagna);
+  async function caricaMappaEventi() {
+    const az = filtroAzienda || aziendaId;
+    mappaEv = { utm: {}, tag: {} };
+    if (!az) return;
+    const { data } = await supa().from("marketing_eventi_mappa").select("tipo, chiave, evento").eq("azienda_id", az);
+    (data || []).forEach((r) => { if (mappaEv[r.tipo]) mappaEv[r.tipo][r.chiave] = r.evento; });
+  }
 
   // ── Helpers ────────────────────────────────────────────────
   const fmt = n => Number(n || 0).toLocaleString("it-IT");
