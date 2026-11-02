@@ -273,9 +273,25 @@ export async function render(container) {
         ? (nome ? nome + " · " : "") + dataLunga(iv.da)
         : "Dal " + dataLunga(iv.da) + " al " + dataLunga(iv.a);
     }
-    const [tracking, prenotazioni] = await Promise.all([fetchDati(), fetchPrenotazioni()]);
-    dati = tracking;
-    renderDashboard(dati, prenotazioni);
+    const [tracking, prenotazioni] = await Promise.all([fetchDati(), fetchPrenotazioni(), caricaMappaEventi()]);
+    // elenco eventi del periodo nel filtro (resta scelto quello attuale)
+    {
+      const sel = document.getElementById("an-evento");
+      const nomi = new Set();
+      tracking.forEach((r) => { const e = eventoUtm(r.utm_campaign); if (e) nomi.add(e); });
+      prenotazioni.forEach((p) => { const e = eventoPren(p); if (e) nomi.add(e); });
+      if (filtroEvento) nomi.add(filtroEvento);
+      sel.innerHTML = '<option value="">Tutti gli eventi</option>' + [...nomi].sort().map((n) => '<option value="' + n.replace(/"/g, "&quot;") + '"' + (n === filtroEvento ? " selected" : "") + ">" + n.replace(/</g, "&lt;") + "</option>").join("");
+    }
+    let righeT = tracking, righeP = prenotazioni;
+    if (filtroEvento) {
+      // tutta la visita di chi e' arrivato da un link dell'evento, anche le pagine dopo la prima
+      const sess = new Set(tracking.filter((r) => eventoUtm(r.utm_campaign) === filtroEvento).map((r) => r.session_id).filter(Boolean));
+      righeT = tracking.filter((r) => (r.session_id && sess.has(r.session_id)) || eventoUtm(r.utm_campaign) === filtroEvento);
+      righeP = prenotazioni.filter((p) => eventoPren(p) === filtroEvento);
+    }
+    dati = righeT;
+    renderDashboard(dati, righeP);
     spesaPubblicita(dati);
   }
 
