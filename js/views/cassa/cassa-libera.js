@@ -92,7 +92,12 @@ export async function renderCassaLibera(container, azienda) {
   };
 
   await caricaSala();
-  render();
+  try {
+    const ci = await supabase.from('cassa_impostazioni').select('acconto_scontrino').eq('azienda_id', aziendaId).maybeSingle();
+    if (ci.data && ci.data.acconto_scontrino) accontoScontrino = ci.data.acconto_scontrino;
+  } catch (_) {}
+  if (_qs.get('origine') && _qs.get('rif')) await apriPratica(_qs.get('origine'), _qs.get('rif'));
+  else render();
 
   function totali() {
     let lordo = 0, ivaTot = 0;
