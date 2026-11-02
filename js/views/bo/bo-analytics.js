@@ -203,13 +203,24 @@ export async function render(container) {
   };
 
   // ── Query dati ─────────────────────────────────────────────
+  // il server restituisce al massimo 1000 righe per richiesta: si leggono a pagine, altrimenti
+  // con tante visite (es. 7 giorni con le campagne del Capodanno) restavano fuori quelle piu' recenti
   async function fetchDati() {
     const iv = intervallo();
-    let q = supa().from("page_analytics").select("*").gte("created_at", iv.inizio).lt("created_at", iv.fine);
-    if (filtroAzienda) q = q.eq("azienda_id", filtroAzienda);
-    else if (!isSuperadmin) q = q.eq("azienda_id", aziendaId);
-    const { data } = await q.order("created_at", { ascending: true });
-    return data || [];
+    const base = () => {
+      let q = supa().from("page_analytics").select("*").gte("created_at", iv.inizio).lt("created_at", iv.fine);
+      if (filtroAzienda) q = q.eq("azienda_id", filtroAzienda);
+      else if (!isSuperadmin) q = q.eq("azienda_id", aziendaId);
+      return q.order("created_at", { ascending: true });
+    };
+    const tutti = [];
+    for (let da = 0; da < 60000; da += 1000) {
+      const { data, error } = await base().range(da, da + 999);
+      if (error || !data) break;
+      tutti.push(...data);
+      if (data.length < 1000) break;
+    }
+    return tutti;
   }
 
   async function fetchPrenotazioni() {
