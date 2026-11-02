@@ -784,7 +784,7 @@ export async function renderCassaLibera(container, azienda) {
         if (!doc.ok) {
           esito.textContent = '⚠️ Incasso registrato ma documento NON stampato: ' + (doc.errore || 'errore sconosciuto') + ' — verifica la stampante.';
         } else {
-          const resto = Number($('#cl-ricevuti').value) - t.totale;
+          const resto = Number($('#cl-ricevuti').value) - dovuto;
           esito.textContent = '✅ Incassato. Scontrino: ' + (doc.numero_documento || 'n/d') + (doc.simulato ? ' (simulato)' : '')
             + (metodo === 'contanti' && resto > 0 ? ' · Resto € ' + (Math.round(resto * 100) / 100).toFixed(2) : '');
         }
