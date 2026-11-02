@@ -702,7 +702,7 @@ export async function render(container) {
     const tot = (g && g.success ? g.totali.spesa_eur : 0) + (m && m.success ? m.totali.spesa_eur : 0) + (c && c.success ? c.totali.spesa_eur : 0);
     const th = 'style="padding:6px 4px;text-align:right;color:#64748b;font-weight:600;font-size:11px;"';
     box.innerHTML = `
-      <div style="font-weight:700;color:#0E5A7A;margin-bottom:10px;">💶 Spesa pubblicità e richieste</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;"><span style="font-weight:700;color:#0E5A7A;">💶 Spesa pubblicità e richieste</span><a href="#/bo-risultati-campagne" style="margin-left:auto;background:#0E5A7A;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:7px 12px;border-radius:10px;">📈 Risultati campagne →</a></div>
       <table style="width:100%;border-collapse:collapse;font-size:14px;table-layout:auto;">
         <thead><tr><th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:600;font-size:12px;">Canale</th><th ${th}>Spesa</th><th ${th}>Clic</th><th ${th}>Richieste</th><th ${th}>€ a richiesta</th></tr></thead>
         <tbody>
