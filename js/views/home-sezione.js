@@ -98,6 +98,25 @@ export async function render(app) {
   if (chiave === "marketing") {
     const wa = await conta(supabase.from("whatsapp_messaggi").select("id", { count: "exact", head: true }).eq("azienda_id", aid).eq("letto", false));
     if (wa) righe.push({ testo: `💬 ${wa} ${wa === 1 ? "messaggio WhatsApp da leggere" : "messaggi WhatsApp da leggere"}`, dest: "bo-whatsapp", tono: "giallo" });
+    // pubblicita' degli ultimi 30 giorni: % sul previsto e campagne da cambiare (stesse soglie di Risultati campagne)
+    if (admin) {
+      try {
+        const { data: rc } = await supabase.rpc("risultati_campagne", { p_azienda: aid, p_da: dataLocale(new Date(Date.now() - 29 * 86400000)), p_a: oggi });
+        const t = rc && rc.totale;
+        if (t && Number(t.spesa) > 0) {
+          const p = Number(t.previsto) > 0 ? Number(t.spesa) / Number(t.previsto) * 100 : null;
+          let cambia = 0;
+          (rc.eventi || []).forEach((e) => (e.righe || []).forEach((x) => {
+            const s = Number(x.spesa) || 0, pv = Number(x.previsto) || 0;
+            if (s > 0 && ((pv <= 0 && s >= 10) || (pv > 0 && s / pv * 100 > 15))) cambia++;
+          }));
+          righe.push({
+            testo: "📈 Pubblicità 30 giorni: " + euro(t.spesa) + (p != null ? " · " + p.toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "% sul previsto" : " · nessun previsto") + (cambia ? " · " + cambia + (cambia === 1 ? " campagna da cambiare" : " campagne da cambiare") : ""),
+            dest: "bo-risultati-campagne", tono: p == null || p > 15 ? "rosso" : p > 8 ? "giallo" : "verde",
+          });
+        }
+      } catch (_) { /* senza dati di pubblicita' la riga non compare */ }
+    }
   }
 
   if (chiave === "personale" && responsabile) {
