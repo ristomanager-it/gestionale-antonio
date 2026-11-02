@@ -562,7 +562,10 @@ export async function render(container) {
       percorsiCount[chiave] = (percorsiCount[chiave] || 0) + 1;
       if (labels.some(l => /Telefona|Tocca Prenota|Prenotazione fatta/.test(l))) sessioniAzione++;
     });
-    const percorsiList = Object.entries(percorsiCount).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    // i percorsi che sono finiti in una prenotazione si vedono sempre, in cima; poi i piu' frequenti
+    const finiti = (k) => k.includes("Prenotazione fatta");
+    const tuttiPercorsi = Object.entries(percorsiCount).sort((a, b) => (finiti(b[0]) - finiti(a[0])) || (b[1] - a[1]));
+    const percorsiList = tuttiPercorsi.filter((p) => finiti(p[0])).concat(tuttiPercorsi.filter((p) => !finiti(p[0])).slice(0, 12));
     const percorsiHtml = `
     <div class="an-card">
       <div class="an-card-title">🧭 Percorsi delle visite</div>
