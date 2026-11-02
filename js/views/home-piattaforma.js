@@ -412,6 +412,7 @@ export async function render(container) {
           <button id="ag-tab-provvigioni" onclick="switchTabAgenti('provvigioni')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">💰 Provvigioni</button>
           <button id="ag-tab-piano" onclick="switchTabAgenti('piano')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📋 Piano economico</button>
           <button id="ag-tab-guida" onclick="switchTabAgenti('guida')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📖 Guida Vendita</button>
+          <button id="ag-tab-compensi" onclick="switchTabAgenti('compensi')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📜 Compensi</button>
         </div>
 
         <div id="agenti-content"></div>
@@ -1685,10 +1686,12 @@ function agNormalizzaPiano(piano) {
   return String(piano || '').toLowerCase().trim();
 }
 
+// calcoli dai compensi decisi (componente rete-compensi, tabella rete_compensi): window.__RC
 function agValoreAnnuoLead(l) {
   const piano = agNormalizzaPiano(l?.piano);
   const valoreContratto = Number(l?.valore_contratto || l?.fatturato_annuo || l?.valore_annuo || 0);
-  return valoreContratto > 0 ? valoreContratto : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
+  if (valoreContratto > 0) return valoreContratto;
+  return window.__RC ? window.__RC.valoreAnnuoPiano(piano) : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
 }
 
 function agMrrLead(l) {
@@ -1697,6 +1700,7 @@ function agMrrLead(l) {
 
 function agBonusFatturato(fatturatoAnnuoVenduto) {
   const valore = Number(fatturatoAnnuoVenduto || 0);
+  if (window.__RC) return window.__RC.premioAnno(valore);
   const soglia = AG_BONUS_FATTURATO_SOGLIE.find(s => valore >= s.soglia);
   return soglia ? soglia.bonus : 0;
 }
@@ -1707,6 +1711,7 @@ function agBaseProvvigione(l, agente) {
 
   const piano = agNormalizzaPiano(l?.piano);
   const valoreAnnuo = agValoreAnnuoLead(l);
+  if (window.__RC) return window.__RC.provvigione(valoreAnnuo, agente?.tipo);
 
   if (agente?.tipo === 'segnalatore') {
     const perc = Number(agente?.perc_segnalatore || 10);
@@ -1725,6 +1730,7 @@ function agGuadagnoAContratto(l, agente) {
 
 function agRicorrenteAnnualeLead(l, agente) {
   if (!l || agente?.tipo === 'segnalatore') return 0;
+  if (window.__RC) return window.__RC.ricorrente(agValoreAnnuoLead(l), agente?.tipo);
   return agValoreAnnuoLead(l) * AG_RICORRENTE_PERCENT / 100;
 }
 
@@ -1756,6 +1762,7 @@ window.toggleAgenti = function() {
 };
 
 async function caricaAgenti() {
+  try { const RC = await import("../components/rete-compensi.js?v=" + (window.APP_V || "1")); await RC.caricaRegole(); window.__RC = RC; } catch (e) { console.warn('rete-compensi non caricato', e); }
   const [{ data: ag }, { data: al }] = await Promise.all([
     supabase.from('agenti').select('*').order('created_at', { ascending: false }),
     supabase.from('agenti_lead').select('*').order('created_at', { ascending: false }),
@@ -1773,7 +1780,7 @@ async function caricaAgenti() {
 
 window.switchTabAgenti = function(tab) {
   _agTabAttiva = tab;
-  ['rete','performance','provvigioni','piano','guida'].forEach(t => {
+  ['rete','performance','provvigioni','piano','guida','compensi'].forEach(t => {
     const btn = document.getElementById(`ag-tab-${t}`);
     if (!btn) return;
     btn.style.background = t === tab ? 'white' : 'transparent';
@@ -1791,6 +1798,7 @@ function renderTabAgenti(tab) {
   if (tab === 'provvigioni')  el.innerHTML = '', renderProvvigioniAgenti(el);
   if (tab === 'piano')        el.innerHTML = '', renderPianoEconomico(el);
   if (tab === 'guida')        el.innerHTML = '', renderGuidaVendita(el);
+  if (tab === 'compensi' && window.__RC) window.__RC.montaCompensi(el, { admin: true });   // Piattaforma e' solo superadmin; la modifica la blocca comunque la RLS
 }
 
 function renderReteAgenti(el) {
