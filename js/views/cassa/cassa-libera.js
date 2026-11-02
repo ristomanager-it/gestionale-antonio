@@ -935,6 +935,159 @@ export async function renderCassaLibera(container, azienda) {
     container.querySelectorAll('.cl-tavolo').forEach(b => b.onclick = () => apriTavoloInCassa(b.dataset.tavolo));
   }
 
+  // ── Scheda Prenotazioni: pratiche del giorno con acconti (tavoli, preventivi, camere) ──
+  async function caricaPratiche() {
+    try {
+      const r = await supabase.rpc('cassa_pratiche', { p_azienda: aziendaId, p_data: pren.data, p_sede: sedeId });
+      pren.lista = Array.isArray(r.data) ? r.data : [];
+      pren.errore = r.error ? r.error.message : '';
+    } catch (e) { pren.lista = []; pren.errore = String(e && e.message || e); }
+    pren.caricato = true;
+  }
+
+  function gruppiPratiche() {
+    const gruppi = [], idx = {};
+    pren.lista.forEach(p => {
+      const k = p.origine + '|' + (p.gruppo || p.nome || p.riferimento_id);
+      if (!(k in idx)) { idx[k] = gruppi.length; gruppi.push({ nome: p.gruppo || p.nome || '', origine: p.origine, righe: [] }); }
+      gruppi[idx[k]].righe.push(p);
+    });
+    return gruppi;
+  }
+
+  function renderPratiche() {
+    if (!pren.caricato) {
+      container.innerHTML = '<div class="view" style="max-width:1100px;margin:0 auto;">' + barraSchede() + '<p style="color:#64748b;">Carico le prenotazioni…</p></div>';
+      collegaEventi();
+      caricaPratiche().then(render);
+      return;
+    }
+    const eur = (n) => '€ ' + (Number(n) || 0).toFixed(2);
+    const tipoNome = { tavolo: '', preventivo: 'Evento', camera: 'Camera' };
+    let tot = 0, pag = 0, res = 0, pers = 0;
+    pren.lista.forEach(p => { tot += Number(p.totale) || 0; pag += Number(p.pagato) || 0; res += Number(p.resto) || 0; pers += Number(p.coperti) || 0; });
+    const box = (v, l) => '<div style="background:#fff;border-radius:12px;padding:10px 12px;box-shadow:0 1px 2px rgba(0,0,0,.06);"><b style="font-size:18px;">' + v + '</b><div style="font-size:12px;color:#64748b;">' + l + '</div></div>';
+    const stato = (p) => {
+      if (Number(p.resto) <= 0 && p.conto_chiuso != null) return '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:#dcfce7;color:#166534;">saldato</span>';
+      if (p.stato_pagamento === 'bonifico_in_attesa') return '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:#fef3c7;color:#92400e;">bonifico in attesa</span>';
+      if (Number(p.pagato) > 0) return '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:#e0f2fe;color:#0E5A7A;">acconto ' + eur(p.pagato) + '</span>';
+      return '';
+    };
+    const gruppi = gruppiPratiche();
+    const html = gruppi.map(g => {
+      const righe = g.righe.map(p => {
+        const chiuso = Number(p.resto) <= 0 && p.conto_chiuso != null;
+        const lab = chiuso ? '✓' : (p.comanda_aperta ? 'Riprendi' : 'Apri conto');
+        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed #e2e8f0;">'
+          + '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;">' + esc(p.nome || '') + (tipoNome[p.origine] ? ' <span style="font-size:11px;color:#64748b;">' + tipoNome[p.origine] + '</span>' : '') + '</div>'
+          + '<div style="font-size:12px;color:#64748b;">' + (p.coperti ? p.coperti + ' pers · ' : '') + 'totale ' + eur(p.totale) + ' · resto <b style="color:#0f172a;">' + eur(p.resto) + '</b> ' + stato(p) + '</div></div>'
+          + '<button class="pr-apri" data-o="' + esc(p.origine) + '" data-r="' + esc(p.riferimento_id) + '" ' + (chiuso ? 'disabled ' : '')
+          + 'style="border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:13px;cursor:pointer;' + (chiuso ? 'background:#dcfce7;color:#166534;' : 'background:#0E5A7A;color:#fff;') + '">' + lab + '</button></div>';
+      }).join('');
+      const persG = g.righe.reduce((s, p) => s + (Number(p.coperti) || 0), 0);
+      const resG = g.righe.reduce((s, p) => s + (Number(p.resto) || 0), 0);
+      return '<div style="background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.06);">'
+        + '<div style="display:flex;align-items:baseline;gap:8px;"><b style="font-size:15px;">' + esc(g.nome) + '</b>'
+        + '<span style="font-size:12px;color:#64748b;">' + (g.righe.length > 1 ? g.righe.length + ' prenotazioni · ' : '') + persG + ' pers</span>'
+        + '<span style="margin-left:auto;font-size:13px;">resta <b>' + eur(resG) + '</b></span></div>' + righe + '</div>';
+    }).join('');
+    container.innerHTML = '<div class="view" style="max-width:1100px;margin:0 auto;">' + barraSchede()
+      + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">'
+      + '<input id="pr-data" type="date" value="' + esc(pren.data) + '" style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:15px;">'
+      + '<button id="pr-agg" style="border:1px solid #e2e8f0;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;">↻ Aggiorna</button>'
+      + '<button id="pr-stampa" style="margin-left:auto;border:none;background:#0E5A7A;color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;">🖨 Stampa resoconto</button></div>'
+      + (pren.msg ? '<div style="font-size:13px;margin-bottom:8px;color:#b91c1c;">' + esc(pren.msg) + '</div>' : '')
+      + (pren.errore ? '<div style="font-size:13px;margin-bottom:8px;color:#b91c1c;">❌ ' + esc(pren.errore) + '</div>' : '')
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px;">'
+      + box(pers, 'persone') + box(eur(tot), 'totale') + box(eur(pag), 'già pagato') + box(eur(res), 'da incassare') + '</div>'
+      + (gruppi.length ? html : '<div style="background:#fff;border-radius:14px;padding:24px;color:#64748b;">Nessuna prenotazione con acconto o prezzo concordato per questa data.</div>')
+      + '</div>';
+    collegaEventi();
+    const d = container.querySelector('#pr-data');
+    if (d) d.onchange = () => { pren.data = d.value || oggiRoma(); pren.caricato = false; pren.msg = ''; render(); };
+    const ag = container.querySelector('#pr-agg');
+    if (ag) ag.onclick = () => { pren.caricato = false; pren.msg = ''; render(); };
+    const st = container.querySelector('#pr-stampa');
+    if (st) st.onclick = stampaResoconto;
+    container.querySelectorAll('.pr-apri').forEach(b => b.onclick = () => { if (!b.disabled) { b.textContent = '⏳'; apriPratica(b.dataset.o, b.dataset.r); } });
+  }
+
+  // Apre (o riprende) il conto della pratica: riga del prezzo concordato + acconti da scalare
+  async function apriPratica(origine, rif) {
+    modo = 'pren';
+    const r = await supabase.rpc('conto_apri_da_pratica', { p_origine: origine, p_rif: String(rif), p_sede: sedeId });
+    if (r.error || !(r.data && r.data.ok)) {
+      pren.msg = 'Conto non aperto: ' + ((r.error && r.error.message) || (r.data && r.data.errore) || 'errore');
+      pren.caricato = false; render(); return;
+    }
+    const cid = r.data.comanda_id;
+    const [cRes, rRes, sRes] = await Promise.all([
+      supabase.from('comande').select('id, tavolo_id, coperti, cliente_nome, created_at, totale, stato').eq('id', cid).maybeSingle(),
+      supabase.from('comanda_righe').select('prodotto_vendita_id, nome_snapshot, prezzo_snapshot, quantita, stato').eq('comanda_id', cid),
+      supabase.rpc('incasso_situazione', { p_origine: origine, p_rif: String(rif) }),
+    ]);
+    if (cRes.error || !cRes.data) { pren.msg = 'Conto non letto: ' + ((cRes.error && cRes.error.message) || 'errore'); pren.caricato = false; render(); return; }
+    const s = (sRes.data && sRes.data.ok) ? sRes.data : {};
+    const pmap = new Map(prodotti.map(p => [String(p.id), p]));
+    carrello = (rRes.data || []).filter(x => x.stato !== 'annullato').map(x => {
+      const p = pmap.get(String(x.prodotto_vendita_id));
+      const q = Number(x.quantita) || 1;
+      return { prodotto_id: x.prodotto_vendita_id, nome: x.nome_snapshot, prezzo: Number(x.prezzo_snapshot) || 0, qta: q, qtaComanda: q, aliquota_iva: p ? ivaDi(p) : 10 };
+    });
+    coupon = null; fidelityCliente = null; pren.msg = '';
+    const nome = s.nome || cRes.data.cliente_nome || '';
+    tavoloAttivo = { comanda: cRes.data, tavolo: { nome: nome },
+      pratica: { origine: origine, rif: String(rif), nome: nome, pagato: Number(s.pagato) || 0, movimenti: s.movimenti || [] } };
+    render();
+    aggiornaSchermoCliente();
+  }
+
+  // Gli extra battuti in cassa finiscono nelle righe del conto (statistiche e scarico magazzino)
+  async function salvaExtraPratica() {
+    const extra = carrello
+      .map(r => ({ prodotto_vendita_id: r.prodotto_id || null, nome: r.nome, prezzo: r.prezzo, quantita: r.qta - (r.qtaComanda || 0) }))
+      .filter(r => r.quantita > 0);
+    if (!extra.length) return { ok: true };
+    const { data, error } = await supabase.rpc('conto_aggiungi_righe', { p_comanda: tavoloAttivo.comanda.id, p_righe: extra });
+    return (error || !(data && data.ok)) ? { ok: false, errore: (error && error.message) || (data && data.errore) || 'errore' } : { ok: true };
+  }
+
+  // Resoconto della serata: una riga per tavolo/gruppo, totali e incassato per metodo
+  async function stampaResoconto() {
+    await caricaPratiche();
+    const eur = (n) => (Number(n) || 0).toFixed(2).replace('.', ',');
+    const perMetodo = {};
+    pren.lista.forEach(p => (p.movimenti || []).forEach(m => {
+      const k = (m.tipo === 'saldo' ? 'saldo ' : 'acconto ') + (m.metodo || '');
+      perMetodo[k] = (perMetodo[k] || 0) + (m.tipo === 'rimborso' ? -1 : 1) * (Number(m.importo) || 0);
+    }));
+    let tot = 0, pag = 0, res = 0, pers = 0;
+    const righe = gruppiPratiche().map(g => {
+      const t = g.righe.reduce((s, p) => s + (Number(p.totale) || 0), 0);
+      const pg = g.righe.reduce((s, p) => s + (Number(p.pagato) || 0), 0);
+      const rs = g.righe.reduce((s, p) => s + (Number(p.resto) || 0), 0);
+      const ps = g.righe.reduce((s, p) => s + (Number(p.coperti) || 0), 0);
+      const come = [...new Set(g.righe.flatMap(p => (p.movimenti || []).map(m => (m.tipo === 'saldo' ? 'saldo ' : '') + m.metodo)))].join(', ')
+        || (g.righe.some(p => p.stato_pagamento === 'bonifico_in_attesa') ? 'bonifico in attesa' : '');
+      tot += t; pag += pg; res += rs; pers += ps;
+      return '<tr><td>' + esc(g.nome) + (g.righe.length > 1 ? ' <small>(' + g.righe.length + ')</small>' : '') + '</td><td class="n">' + ps + '</td><td class="n">' + eur(t) + '</td><td class="n">' + eur(pg) + '</td><td>' + esc(come) + '</td><td class="n"><b>' + eur(rs) + '</b></td></tr>';
+    }).join('');
+    const dataIt = pren.data.split('-').reverse().join('/');
+    const html = '<!doctype html><html><head><meta charset="utf-8"><title>Resoconto ' + dataIt + '</title><style>'
+      + 'body{font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;margin:16px;color:#000}h1{font-size:17px;margin:0 0 4px}'
+      + 'table{border-collapse:collapse;width:100%;margin-top:10px}th,td{border-bottom:1px solid #999;padding:5px 4px;text-align:left}td.n,th.n{text-align:right}'
+      + 'tfoot td{font-weight:700;border-top:2px solid #000}</style></head><body>'
+      + '<h1>Resoconto ' + dataIt + '</h1><div>' + esc(window.state?.sedeAttiva?.nome || window.state?.azienda?.nome || '') + ' · stampato alle ' + new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) + '</div>'
+      + '<table><thead><tr><th>Tavolo / gruppo</th><th class="n">Pers</th><th class="n">Totale</th><th class="n">Pagato</th><th>Come</th><th class="n">Da incassare</th></tr></thead><tbody>' + righe + '</tbody>'
+      + '<tfoot><tr><td>Totale</td><td class="n">' + pers + '</td><td class="n">' + eur(tot) + '</td><td class="n">' + eur(pag) + '</td><td></td><td class="n">' + eur(res) + '</td></tr></tfoot></table>'
+      + (Object.keys(perMetodo).length ? '<h1 style="margin-top:16px;">Incassato per metodo</h1><table><tbody>' + Object.keys(perMetodo).sort().map(k => '<tr><td>' + esc(k) + '</td><td class="n">' + eur(perMetodo[k]) + '</td></tr>').join('') + '</tbody></table>' : '')
+      + '</body></html>';
+    const w = window.open('', '_blank');
+    if (!w) { pren.msg = 'Il telefono ha bloccato la finestra di stampa: consenti i popup per questo sito.'; render(); return; }
+    w.document.write(html); w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 300);
+  }
+
   async function apriTavoloInCassa(tavoloId) {
     const msg = container.querySelector('#cl-sala-msg');
     const c = sala.aperte.find(x => String(x.tavolo_id) === String(tavoloId));
