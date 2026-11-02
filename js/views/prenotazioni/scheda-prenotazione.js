@@ -530,7 +530,7 @@ export async function render(container) {
         ${p.stato_pagamento === "bonifico_in_attesa" ? `<span class="pren-det-pill" style="background:#ffedd5;color:#9a3412;">⏳ Bonifico in attesa</span>` : ""}
       </div>
       ${righe.length
-        ? `<div style="margin-top:10px;font-size:13px;color:#334155;">${righe.map((x) => `<div style="padding:5px 0;border-bottom:1px solid #f1f5f9;">${nomi[x.metodo] || escapeHtml(x.metodo)} · <b>${eur(x.importo)}</b> · ${String(x.data_pagamento || "").split("-").reverse().join("/")}${x.nota ? " · " + escapeHtml(x.nota) : ""}</div>`).join("")}</div>`
+        ? `<div style="margin-top:10px;font-size:13px;color:#334155;">${righe.map((x) => `<div style="padding:5px 0;border-bottom:1px solid #f1f5f9;">${x.tipo === "saldo" ? "Saldo · " : ""}${nomi[x.metodo] || escapeHtml(x.metodo)} · <b>${eur(x.importo)}</b> · ${String(x.data_pagamento || "").split("-").reverse().join("/")}${x.nota ? " · " + escapeHtml(x.nota) : ""}</div>`).join("")}</div>`
         : `<div style="margin-top:10px;font-size:13px;color:#94a3b8;">Nessun pagamento registrato.</div>`}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;">
         <input id="pag-importo" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Importo €" value="${proposto}" style="flex:1;min-width:110px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;">
