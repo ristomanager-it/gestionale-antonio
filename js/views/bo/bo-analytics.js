@@ -109,6 +109,7 @@ export async function render(container) {
       <button class="an-btn" data-giorni="90">90 giorni</button>
       <button class="an-btn" data-p="pers">📅 Personalizzato</button>
       ${isSuperadmin ? `<select id="an-az-select" class="an-select"><option value="">Tutte le aziende</option></select>` : ""}
+      <select id="an-evento" class="an-select" title="Mostra solo visite e prenotazioni dei link di un evento"><option value="">Tutti gli eventi</option></select>
     </div>
 
     <div id="an-pers" style="display:none;background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px;margin:-6px 0 12px;">
