@@ -538,6 +538,7 @@ export async function render(container) {
           <option value="bonifico">Bonifico</option><option value="contanti">Contanti</option><option value="pos">POS</option><option value="carta">Carta</option><option value="buono">Buono</option>
         </select>
         <button type="button" id="pag-registra" class="pren-det-btn primary" style="min-height:44px;">Registra pagamento</button>
+        <button type="button" id="pag-cassa" class="pren-det-btn" style="min-height:44px;">🧾 Apri il conto in cassa</button>
       </div>
       <div id="pag-msg" style="font-size:13px;margin-top:6px;"></div>`;
     document.getElementById("pag-registra").onclick = async () => {
