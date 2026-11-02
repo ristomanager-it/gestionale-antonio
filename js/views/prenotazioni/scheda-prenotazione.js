@@ -515,7 +515,7 @@ export async function render(container) {
     const eur = (n) => (Number(n) || 0).toFixed(2).replace(".", ",") + " €";
     let righe = [];
     try {
-      const r = await supa.from("prenotazioni_pagamenti").select("importo, metodo, data_pagamento, nota").eq("prenotazione_id", p.id).order("data_pagamento", { ascending: true });
+      const r = await supa.from("prenotazioni_pagamenti").select("importo, metodo, data_pagamento, nota, tipo").eq("prenotazione_id", p.id).order("data_pagamento", { ascending: true });
       righe = r.data || [];
     } catch (_) {}
     const pagato = righe.reduce((t, x) => t + (Number(x.importo) || 0), 0);
