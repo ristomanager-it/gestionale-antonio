@@ -614,5 +614,23 @@ footer a{color:var(--oro)}
 })();
 </script>
 <script defer src="/js/video-lingue.js?v=1"></script>
+<script>
+/* contatore completo: scroll, tempo, clic, modulo e prenotazione (page_analytics) */
+(function(){try{
+var A="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0",U="https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/page_analytics";
+var q=new URLSearchParams(location.search),ses=null;try{ses=sessionStorage.getItem("rf_ses");}catch(e){}
+var nome=(location.pathname.split("/").pop()||"index").replace(".html","");if(nome==="capodanno-weekend")nome+=q.get("l")==="campo"?"-campo":"-aquila";
+var campo=nome.indexOf("campo")>=0,ref=document.referrer||"";
+var src=q.get("utm_source")||(ref?(function(){try{return new URL(ref).hostname;}catch(e){return null;}})():"diretto");
+function inv(tipo,el,val,ok){try{fetch(U,{method:"POST",keepalive:true,headers:{"Content-Type":"application/json","apikey":A,"Authorization":"Bearer "+A,"Prefer":"return=minimal"},body:JSON.stringify({azienda_id:"b331365f-17db-4dda-aa2f-77a09427fe42",sede_id:campo?"c40919bb-78c2-458f-865e-0c9fd02aa0b5":"4a936e52-a1e3-42fc-843c-e8d15dc86040",pagina:nome,pagina_id:"b331365f-17db-4dda-aa2f-77a09427fe42",tipo:tipo,elemento:el,valore:val||null,completato:!!ok,referrer:ref?ref.slice(0,250):null,utm_source:src,utm_medium:q.get("utm_medium"),utm_campaign:q.get("utm_campaign"),device:/Mobi|Android/i.test(navigator.userAgent)?"mobile":"desktop",session_id:ses})}).catch(function(){});}catch(e){}}
+var sg={25:0,50:0,75:0,100:0};
+addEventListener("scroll",function(){var h=document.documentElement,t=h.scrollHeight-h.clientHeight;if(t<=0)return;var p=Math.round(100*h.scrollTop/t);[25,50,75,100].forEach(function(s){if(p>=s&&!sg[s]){sg[s]=1;inv("click","scroll_"+s);}});},{passive:true});
+var t0=Date.now(),fatto=false;function tempo(){if(fatto)return;var s=Math.round((Date.now()-t0)/1000);if(s<2)return;fatto=true;inv("click","tempo_pagina",String(s));}
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")tempo();});addEventListener("pagehide",tempo);
+document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a,button");if(!a)return;var h=a.getAttribute("href")||"",tx=(a.textContent||"").toLowerCase();
+if(h.indexOf("tel:")===0)inv("click","click_telefono",h);else if(h.indexOf("wa.me")>=0)inv("click","wame","whatsapp");else if(/maps/.test(h))inv("click","click_mappa");else if(/prenot/.test(h)||/prenot/.test(tx))inv("click","cta_prenota",(h||tx).slice(0,80));},true);
+var mod=document.getElementById("modulo");if(mod){var f1=function(){mod.removeEventListener("focusin",f1);inv("step","modulo_iniziato");};mod.addEventListener("focusin",f1);}
+var orig=window.rfEvento;window.rfEvento=function(n,d){try{if(n==="InitiateCheckout")inv("step","submit_tentativo");else if(n==="Lead")inv("submit","prenotazione_completata",d&&d.value?d.value+" euro acconto":null,true);}catch(e){}if(orig)return orig.apply(this,arguments);};
+}catch(e){}})();</script>
 </body>
 </html>
