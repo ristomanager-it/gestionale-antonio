@@ -180,8 +180,9 @@ export async function render(container) {
       opt.value = a.id; opt.textContent = a.nome;
       sel.appendChild(opt);
     });
-    sel.onchange = () => { filtroAzienda = sel.value || null; carica(); };
+    sel.onchange = () => { filtroAzienda = sel.value || null; filtroEvento = ""; carica(); };
   }
+  document.getElementById("an-evento").onchange = (e) => { filtroEvento = e.target.value || ""; carica(); };
 
   // ── Toolbar giorni ─────────────────────────────────────────
   const tutteLeScelte = () => container.querySelectorAll(".an-toolbar [data-giorni], .an-toolbar [data-p]");
