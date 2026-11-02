@@ -63,7 +63,7 @@ h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:42px;line-height:1.0
 .off .inc span{font-size:13px;background:var(--c);border-radius:999px;padding:6px 12px;color:var(--t)}
 .off .or{margin-top:12px;font-size:14px;font-weight:600;color:var(--t)}
 .menu-g{margin:0 0 18px}.menu-g h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--b);margin:0 0 8px}
-.menu-g ul{list-style:none;margin:0;padding:0}.menu-g li{padding:9px 0;border-bottom:1px dashed var(--l);font-size:15.5px}
+.menu-g ul{list-style:none;margin:0;padding:0}.menu-g li.cf{display:flex;align-items:center;gap:12px}.menu-g li.cf img{width:76px;height:76px;object-fit:cover;border-radius:12px;flex:none;background:var(--l)}.menu-g li{padding:9px 0;border-bottom:1px dashed var(--l);font-size:15.5px}
 .alt{display:flex;gap:10px;margin:14px 16px 0}.alt a{flex:1;text-align:center;border:1px solid var(--l);border-radius:999px;padding:12px;font-weight:600;color:var(--t);text-decoration:none;background:#fff}
 .form .chk a{color:#fff}
 details.reg{margin:22px 16px 0;border:1px solid var(--l);border-radius:12px}
@@ -140,10 +140,10 @@ function render(){
   }
   if(L.attenzione)h+='<div class="sez"><p class="lead">'+esc(L.attenzione)+'</p></div>';
   if(L.interesse)h+='<div class="sez"><p>'+esc(L.interesse)+'</p></div>';
-  if(MG){var ORD=['antipasti','primi','secondi','contorni','dolci'],GR={};MG.voci.forEach(function(v){var k=String(v.portata||'altro').toLowerCase();(GR[k]=GR[k]||[]).push(v.nome);});
+  if(MG){var ORD=['antipasti','primi','secondi','contorni','dolci'],GR={};MG.voci.forEach(function(v){var k=String(v.portata||'altro').toLowerCase();(GR[k]=GR[k]||[]).push(v);});
     var ks=Object.keys(GR).sort(function(a,b){var x=ORD.indexOf(a),y=ORD.indexOf(b);return (x<0?99:x)-(y<0?99:y);});
     h+='<div class="sez" id="contenuto"><h2>'+(MG.quando==='oggi'?'Oggi in cucina':MG.quando==='domani'?'Domani in cucina':'In cucina il '+esc(MG.quando))+'</h2>';
-    ks.forEach(function(k){h+='<div class="menu-g"><h3>'+esc(k.charAt(0).toUpperCase()+k.slice(1))+'</h3><ul>'+GR[k].map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';});
+    ks.forEach(function(k){h+='<div class="menu-g"><h3>'+esc(k.charAt(0).toUpperCase()+k.slice(1))+'</h3><ul>'+GR[k].map(function(x){return x.foto?'<li class="cf"><img src="'+esc(x.foto)+'" alt="'+esc(x.nome)+'" loading="lazy" onerror="this.remove()"><span>'+esc(x.nome)+'</span></li>':'<li>'+esc(x.nome)+'</li>';}).join('')+'</ul></div>';});
     h+='<p class="mnota">🔄 Il menu cambia ogni giorno: questa pagina si aggiorna da sola con i piatti del giorno.</p></div>';}
   else if(CT){h+='<div class="sez" id="contenuto"><h2>'+esc(L.contenuto_titolo||'Il menu')+'</h2>';
     L.contenuto.forEach(function(g){var v=(g&&Array.isArray(g.voci))?g.voci:[];if(!v.length)return;h+='<div class="menu-g">'+(g.titolo?'<h3>'+esc(g.titolo)+'</h3>':'')+'<ul>'+v.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';});

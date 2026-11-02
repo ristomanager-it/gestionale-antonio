@@ -42,7 +42,7 @@ export async function render(container) {
 
   // Ricette divise per portata (categoria_food) — filtrate per sede
   let ricQ = s.from("ricette")
-    .select("id, nome, categoria_food, prezzo_ristorante, prezzo_vendita, food_cost_percentuale")
+    .select("id, nome, categoria_food, prezzo_ristorante, prezzo_vendita, food_cost_percentuale, foto_url, disegno_url")
     .eq("azienda_id", azienda.id).eq("attivo", true)
     .in("categoria_food", ["antipasti", "primi", "secondi", "dessert"]);
   if (sede?.id) ricQ = ricQ.eq("sede_id", sede.id);
@@ -62,7 +62,7 @@ export async function render(container) {
   PORTATE.forEach(p => { sel[p.key] = new Array(p.slots).fill(""); liberiEsistenti[p.key] = []; });
   if (mgEsistente && Array.isArray(mgEsistente.voci)) {
     mgEsistente.voci.forEach(v => {
-      if (!v.ricetta_id) { if (liberiEsistenti[v.portata]) liberiEsistenti[v.portata].push(v); return; }
+      if (!v.ricetta_id || v.libero) { if (liberiEsistenti[v.portata]) liberiEsistenti[v.portata].push(v); return; }
       const arr = sel[v.portata];
       if (arr) { const idx = arr.indexOf(""); if (idx >= 0) arr[idx] = String(v.ricetta_id); }
     });
@@ -88,6 +88,14 @@ export async function render(container) {
       const { data: azLogo } = await s.from("aziende").select("logo_url").eq("id", azienda.id).maybeSingle();
       if (azLogo && azLogo.logo_url) logoUrl = azLogo.logo_url;
     } catch (e) {}
+  }
+  // foto del piatto: quella vera (foto_url) vince, altrimenti l'immagine creata da Tony
+  const fotoDi = new Map();
+  ricette.forEach(r => { const f = r.foto_url || r.disegno_url; if (f) fotoDi.set(String(r.id), f); });
+  const ridVoci = (mgEsistente && Array.isArray(mgEsistente.voci) ? mgEsistente.voci : []).map(v => v.ricetta_id).filter(id => id && !mappaRicetta.has(String(id)));
+  if (ridVoci.length) {
+    const { data: rf } = await s.from("ricette").select("id, foto_url, disegno_url").in("id", ridVoci);
+    (rf || []).forEach(r => { const f = r.foto_url || r.disegno_url; if (f) fotoDi.set(String(r.id), f); });
   }
   const escluse = new Set(Array.isArray(mgEsistente?.portate_escluse) ? mgEsistente.portate_escluse : []);
 
@@ -149,10 +157,20 @@ export async function render(container) {
     return rec != null ? ('⚠️ servito ' + rec + 'gg fa') : '';
   }
   function infoColor(r) { return (r && usoRecente.get(String(r.id)) != null) ? '#b45309' : '#64748b'; }
-  function liberoRow(key, nome, prezzo) {
-    return '<div class="mg-lib-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
-      + '<input class="mg-lib-nome" data-portata="' + key + '" value="' + esc(nome || '') + '" placeholder="Piatto non catalogato (scrivilo)" style="flex:1;min-width:160px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
+  function fotoBox(rid) {
+    const f = rid ? fotoDi.get(String(rid)) : "";
+    const bt = "background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:14px;line-height:1;";
+    return '<span class="mg-fb" style="display:flex;gap:4px;align-items:center;">'
+      + '<img class="mg-thumb" src="' + esc(f || "") + '" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;background:#e2e8f0;' + (f ? '' : 'display:none;') + '">'
+      + '<button type="button" class="mg-cam" title="Carica foto del piatto" style="' + bt + '">📷</button>'
+      + '<button type="button" class="mg-ai" title="Crea immagine" style="' + bt + '">✨</button>'
+      + '</span>';
+  }
+  function liberoRow(key, nome, prezzo, rid) {
+    return '<div class="mg-lib-row" data-rid="' + esc(rid || "") + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">'
+      + '<input class="mg-lib-nome" list="mg-dl-' + key + '" autocomplete="off" data-portata="' + key + '" value="' + esc(nome || '') + '" placeholder="Scrivi il piatto: bastano 2 lettere" style="flex:1;min-width:160px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
       + '<input class="mg-lib-prezzo" type="number" step="0.5" value="' + (prezzo != null && prezzo !== '' ? prezzo : '') + '" placeholder="€" style="width:78px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;">'
+      + fotoBox(rid)
       + '<button class="mg-lib-del" title="Rimuovi" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:7px 10px;cursor:pointer;">✕</button>'
       + '</div>';
   }
@@ -169,6 +187,7 @@ export async function render(container) {
     return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
       + '<select class="mg-sel" data-portata="' + key + '" data-slot="' + idx + '" style="flex:1;min-width:180px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;">' + optionsFor(key, selId) + '</select>'
       + '<input class="mg-prezzo-slot" data-portata="' + key + '" data-slot="' + idx + '" type="number" step="0.5" min="0" value="' + prezzoIniziale(key, r) + '" placeholder="€ carta" title="Prezzo alla carta (per cassa e comande)" style="width:84px;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;text-align:right;">'
+      + fotoBox(selId)
       + '<span class="mg-info" data-portata="' + key + '" data-slot="' + idx + '" style="font-size:11px;color:' + infoColor(r) + ';min-width:120px;">' + infoText(r) + '</span>'
       + '</div>';
   }
@@ -209,8 +228,10 @@ export async function render(container) {
       + '<button class="mg-rm-portata" data-portata="' + p.key + '" title="Rimuovi questa portata dal menu" style="background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;">✕</button>'
       + '</div></div>';
     for (let i = 0; i < p.slots; i++) html += slotRow(p.key, i);
-    html += '<div class="mg-liberi" data-portata="' + p.key + '">' + (liberiEsistenti[p.key] || []).map(v => liberoRow(p.key, v.nome, v.prezzo)).join("") + '</div>';
-    html += '<button class="mg-add-libero" data-portata="' + p.key + '" style="font-size:12px;background:#eef2ff;border:1px dashed #c7d2fe;color:#4338ca;border-radius:8px;padding:6px 10px;cursor:pointer;margin-top:2px;">＋ Piatto libero (non catalogato)</button>';
+    html += '<div class="mg-liberi" data-portata="' + p.key + '">' + (liberiEsistenti[p.key] || []).map(v => liberoRow(p.key, v.nome, v.prezzo, v.ricetta_id)).join("") + '</div>';
+    html += '<button class="mg-add-libero" data-portata="' + p.key + '" style="font-size:12px;background:#eef2ff;border:1px dashed #c7d2fe;color:#4338ca;border-radius:8px;padding:6px 10px;cursor:pointer;margin-top:2px;">＋ Altro piatto</button>';
+    // piatti già scritti in passato (anche quelli liberi, ora in anagrafica): si ritrovano scrivendo due lettere
+    html += '<datalist id="mg-dl-' + p.key + '">' + (perPortata[p.key] || []).map(r => '<option value="' + esc(r.nome) + '"></option>').join("") + '</datalist>';
     if (disp === 0) html += '<p style="font-size:12px;color:#b45309;margin:8px 0 0;">Nessuna ricetta con categoria "' + p.key + '" nel ricettario: usa "Piatto libero" oppure catalogala.</p>';
     html += '</div>';
   });
@@ -273,6 +294,8 @@ export async function render(container) {
     if (infoEl) { infoEl.textContent = infoText(r); infoEl.style.color = infoColor(r); }
     const prEl = container.querySelector('.mg-prezzo-slot[data-portata="' + key + '"][data-slot="' + idx + '"]');
     if (prEl) prEl.value = prezzoIniziale(key, r);
+    const th = selEl.parentElement && selEl.parentElement.querySelector(".mg-thumb");
+    if (th) { const f = selEl.value ? fotoDi.get(String(selEl.value)) : ""; th.src = f || ""; th.style.display = f ? "" : "none"; }
   }
   container.querySelectorAll(".mg-sel").forEach(selEl => selEl.addEventListener("change", () => aggiornaInfo(selEl)));
 
@@ -376,14 +399,127 @@ export async function render(container) {
     const uid = sess?.user?.id || null;
     const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzi_singoli_visibili: prezziVis, prezzo_visibile: prezzoFissoVis, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
-      const { error } = await s2.from("menu_giorno").update(payload).eq("id", mgEsistente.id);
+      const { data: agg, error } = await s2.from("menu_giorno").update(payload).eq("id", mgEsistente.id).select("*").single();
       if (error) throw error;
+      if (agg) mgEsistente = agg;
     } else {
       const { data: ins, error } = await s2.from("menu_giorno").insert(payload).select("*").single();
       if (error) throw error;
       mgEsistente = ins;
     }
+    generaFoto(mgEsistente && mgEsistente.id);
     return mgEsistente;
+  }
+
+  // ---------- FOTO DEL PIATTO: 📷 carica, ✨ crea ----------
+  const FOTO_URL = PUBBLICA_URL.replace("menu-giorno-pubblica", "menu-giorno-foto");
+  const normN = (t) => String(t || "").toLowerCase().replace(/\s+/g, " ").trim();
+  async function chiamaFoto(corpo) {
+    const { data: ss } = await supa().auth.getSession();
+    const tok = ss && ss.session ? ss.session.access_token : "";
+    const r = await fetch(FOTO_URL, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify(Object.assign({ azienda_id: azienda.id }, corpo)) });
+    return await r.json().catch(() => ({}));
+  }
+  // la ricetta del piatto su questa riga; per un piatto libero appena scritto prima si salva (così entra in anagrafica)
+  async function ridDellaRiga(row) {
+    const sel = row.querySelector(".mg-sel");
+    if (sel) return sel.value || "";
+    if (row.dataset.rid) return row.dataset.rid;
+    const nome = normN(row.querySelector(".mg-lib-nome")?.value);
+    if (!nome) return "";
+    await salva();
+    const key = row.querySelector(".mg-lib-nome")?.getAttribute("data-portata");
+    const v = (mgEsistente?.voci || []).find(x => x.libero && x.portata === key && normN(x.nome) === nome);
+    if (v && v.ricetta_id) row.dataset.rid = v.ricetta_id;
+    return row.dataset.rid || "";
+  }
+  function mostraFoto(row, rid, url) {
+    fotoDi.set(String(rid), url);
+    const th = row.querySelector(".mg-thumb");
+    if (th) { th.src = url; th.style.display = ""; }
+  }
+  function ridimensiona(file) {
+    return new Promise((ok, ko) => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => b ? ok(b) : ko(new Error("foto non leggibile")), "image/jpeg", 0.85);
+      };
+      img.onerror = () => ko(new Error("foto non leggibile"));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+  container.addEventListener("click", async (ev) => {
+    const cam = ev.target.closest(".mg-cam"), ai = ev.target.closest(".mg-ai");
+    if (!cam && !ai) return;
+    const row = (cam || ai).closest(".mg-lib-row") || (cam || ai).closest("div");
+    const btn = cam || ai;
+    let rid = "";
+    try { rid = await ridDellaRiga(row); } catch (e) { alert("Errore: " + (e.message || e)); return; }
+    if (!rid) { alert("Prima scegli o scrivi il piatto."); return; }
+    const nomePiatto = row.querySelector(".mg-sel") ? (row.querySelector(".mg-sel").selectedOptions[0]?.textContent || "") : (row.querySelector(".mg-lib-nome")?.value || "");
+    const portata = (row.querySelector(".mg-sel") || row.querySelector(".mg-lib-nome"))?.getAttribute("data-portata") || null;
+    if (cam) {
+      const inp = document.createElement("input");
+      inp.type = "file"; inp.accept = "image/*";
+      inp.onchange = async () => {
+        const f = inp.files && inp.files[0];
+        if (!f) return;
+        btn.textContent = "⏳"; btn.disabled = true;
+        try {
+          const blob = await ridimensiona(f);
+          const path = azienda.id + "/piatti/" + Date.now() + ".jpg";
+          const up = await supa().storage.from("media-aziende").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+          if (up.error) throw up.error;
+          const url = supa().storage.from("media-aziende").getPublicUrl(path).data.publicUrl;
+          // resta anche in galleria, col nome del piatto: la prossima volta la ritrova Tony
+          await supa().from("media_library").insert({ azienda_id: azienda.id, sede_id: sede?.id || null, nome: nomePiatto.replace(/\s+⚠️.*$/, "").trim(), url: url, path: path, tipo: "immagine", tag: "Piatti", origine: "menu-giorno" });
+          const j = await chiamaFoto({ azione: "imposta_foto", ricetta_id: Number(rid), url: url });
+          if (!j.success) throw new Error(j.error || "foto non salvata");
+          mostraFoto(row, rid, url);
+        } catch (e) { alert("Foto non caricata: " + (e.message || e)); }
+        btn.textContent = "📷"; btn.disabled = false;
+      };
+      inp.click();
+      return;
+    }
+    const nota = prompt("Cosa deve vedersi nell'immagine? (facoltativo, es. «due gamberi», «il prosciutto è dentro»)", "");
+    if (nota === null) return;
+    btn.textContent = "⏳"; btn.disabled = true;
+    try {
+      const j = await chiamaFoto({ ricetta_id: Number(rid), portata: portata, forza: true, nota: nota.trim() });
+      const fatta = (j.fatte || [])[0];
+      if (!j.success || !fatta || !fatta.url) throw new Error(j.error || ((j.errori || [])[0] || {}).error || "immagine non creata");
+      mostraFoto(row, rid, fatta.url);
+    } catch (e) { alert("Immagine non creata: " + (e.message || e)); }
+    btn.textContent = "✨"; btn.disabled = false;
+  });
+
+  // Piatti senza foto: Tony prepara l'immagine (serve alla landing Menu business). Non blocca il salvataggio.
+  let fotoInCorso = false;
+  async function generaFoto(mgId) {
+    if (!mgId || fotoInCorso) return;
+    fotoInCorso = true;
+    const stato = container.querySelector("#mg-stato");
+    try {
+      const { data: ss } = await supa().auth.getSession();
+      const tok = ss && ss.session ? ss.session.access_token : "";
+      for (let giro = 0; giro < 6; giro++) {
+        const r = await fetch(FOTO_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+          body: JSON.stringify({ azienda_id: azienda.id, menu_giorno_id: mgId, max: 2 }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!j.success) break;
+        if (stato && (j.fatte || []).length) stato.textContent = "📷 immagini piatti: " + (j.restanti ? "ne mancano " + j.restanti : "pronte");
+        if (!j.restanti || !(j.fatte || []).length) break;
+      }
+    } catch (e) { /* le immagini si riprovano al prossimo salvataggio */ }
+    fotoInCorso = false;
   }
 
   function stampa() {
