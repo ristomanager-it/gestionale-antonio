@@ -316,7 +316,23 @@ footer a{color:var(--oro)}
   function tipiAmmessi(){ return S.chiave === "campo" && !viaAquila; }
   // in camera dormono gli adulti e i bambini dai 4 anni; sotto i 4 anni dormono con i genitori
   function lettoStanza(x){ return x.a + x.b.filter(function(e){ return e != null && e >= 4; }).length; }
-  function maxLetto(){ return tipiAmmessi() ? 4 : 2; }
+  // Hotel Aquila: la tipologia viene dal numero di persone (singola, matrimoniale, tripla, quadrupla, quintupla)
+  var TIPI_AQ = [];
+  function isAquila(){ return S.chiave === "aquila" || viaAquila; }
+  function tipoAq(x){
+    var p = Math.max(1, Math.min(5, lettoStanza(x)));
+    var t = TIPI_AQ.filter(function(y){ return y.posti === p; })[0];
+    if (p === 1 && (!t || Number(t.liberi) <= 0)) t = TIPI_AQ.filter(function(y){ return y.posti === 2; })[0];
+    return t || { posti: p, nome: p === 2 ? "Matrimoniale" : "Camera da " + p, prezzo: cfg ? Number(cfg.prezzo_notte) : 130, liberi: 99 };
+  }
+  // tipologie chieste oltre quelle libere (es. 2 triple quando ne resta una): elenco dei nomi
+  function esauriteAq(){
+    if (!isAquila() || !TIPI_AQ.length) return [];
+    var c = {}; stanze.forEach(function(x){ var t = tipoAq(x); c[t.posti] = (c[t.posti] || 0) + 1; });
+    return TIPI_AQ.filter(function(t){ return (c[t.posti] || 0) > Number(t.liberi); }).map(function(t){ return t.nome; });
+  }
+  function scontoNotti(){ var n = notti(); return !cfg ? 0 : n === 2 ? Number(cfg.sconto_2_notti) : n >= 3 ? Number(cfg.sconto_3_notti) : 0; }
+  function maxLetto(){ return isAquila() ? 5 : tipiAmmessi() ? 4 : 2; }
   function tipoStanza(x){ return tipiAmmessi() ? Math.min(2, Math.max(0, lettoStanza(x) - 2)) : 0; }
   function extraTotali(){ return stanze.reduce(function(t, x){ return t + tipoStanza(x); }, 0); }
   function tripla(){ return extraTotali(); }
