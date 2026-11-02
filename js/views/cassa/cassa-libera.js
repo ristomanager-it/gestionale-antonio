@@ -393,6 +393,7 @@ export async function renderCassaLibera(container, azienda) {
       if (incasso.busy) return;
       if (tavoloAttivo) { tavoloAttivo = null; carrello = []; coupon = null; fidelityCliente = null; }
       modo = b.dataset.modo;
+      if (modo === 'pren') pren.caricato = false;
       if (modo === 'sala') caricaSala().then(render); else render();
     });
     const tg = container.querySelector('#cl-conto-toggle');
