@@ -352,7 +352,8 @@ footer a{color:var(--oro)}
       btn.onclick = function(){
         var x = stanze[+btn.dataset.i], act = btn.dataset.act;
         if (act === "a-" && x.a > 1) x.a--;
-        if (act === "a+" && x.a < 6) x.a++;
+        // la camera piena non si riempie oltre: il + si ferma e sotto compare l'invito ad aggiungere una camera
+        if (act === "a+" && x.a < 6 && lettoStanza(x) < maxLetto()) x.a++;
         if (act === "b-" && x.b.length) x.b.pop();
         if (act === "b+" && x.b.length < 4) x.b.push(null);
         disegnaStanze(); aggiorna();
