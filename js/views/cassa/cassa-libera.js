@@ -154,7 +154,7 @@ export async function renderCassaLibera(container, azienda) {
         + '<button id="cl-torna-sala" style="border:none;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:700;color:#0E5A7A;">← ' + (tavoloAttivo.pratica ? 'Prenotazioni' : 'Sala') + '</button>'
         + '<b style="color:#0E5A7A;">' + (tavoloAttivo.pratica ? esc(tavoloAttivo.pratica.nome || '') : 'Tavolo ' + esc(tavoloAttivo.tavolo?.nome || '')) + '</b>'
         + '<span style="font-size:13px;color:#334155;">' + (tavoloAttivo.comanda.coperti ? tavoloAttivo.comanda.coperti + ' coperti · ' : '') + esc(tavoloAttivo.comanda.cliente_nome || '') + '</span>'
-        + '<span style="margin-left:auto;font-size:12px;color:#64748b;">Per modificare il conto usa Comande</span></div>'
+        + '<span style="margin-left:auto;font-size:12px;color:#64748b;">' + (tavoloAttivo.pratica ? 'Aggiungi gli extra dal listino' : 'Per modificare il conto usa Comande') + '</span></div>'
       : '';
     container.innerHTML = `
       <div class="view" style="max-width:1100px;margin:0 auto;">
