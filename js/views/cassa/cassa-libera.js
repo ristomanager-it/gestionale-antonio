@@ -707,6 +707,7 @@ export async function renderCassaLibera(container, azienda) {
       setTimeout(() => {
         carrello = []; coupon = null; fidelityCliente = null;
         const eraTavolo = !!tavoloAttivo;
+        const eraPratica = !!(tavoloAttivo && tavoloAttivo.pratica);
         contoAperto = false;
         tavoloAttivo = null;
         $('#cl-modal').style.display = 'none';
