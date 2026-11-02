@@ -347,6 +347,7 @@ const ROOT_ROUTES = new Set(["home", "homePiattaforma", "home-consulente", "home
 
 const BO_ROUTES = new Set([
   "bo-analytics",
+  "bo-risultati-campagne",
 
   // MARKETING
   "bo-tag",
