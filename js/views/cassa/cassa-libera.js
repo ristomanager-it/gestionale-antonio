@@ -120,6 +120,23 @@ export async function renderCassaLibera(container, azienda) {
     return { lordo: round2(lordo), sconto, totale, iva, imponibile: round2(totale - iva) };
   }
 
+  // Acconti gia' versati sulla pratica del conto aperto (prenotazione, preventivo, camera)
+  function accontoPratica() { return tavoloAttivo && tavoloAttivo.pratica ? round2(Number(tavoloAttivo.pratica.pagato) || 0) : 0; }
+  function daPagare() { return round2(Math.max(totali().totale - accontoPratica(), 0)); }
+  // Pagamenti per lo scontrino: con acconto e impostazione 'intero' lo scontrino copre tutto il conto,
+  // l'acconto figura come gia' pagato (elettronico, bonifico o contanti come e' stato incassato)
+  function pagamentiDocumento(metodo, totale) {
+    const acc = Math.min(accontoPratica(), totale);
+    if (!acc) return [{ metodo: metodo, importo: totale }];
+    const mov = (tavoloAttivo.pratica.movimenti || []).filter(m => m.tipo !== 'rimborso');
+    const m0 = String((mov[0] && mov[0].metodo) || 'carta');
+    const metAcc = accontoScontrino === 'solo_saldo' ? 'acconto' : (m0 === 'contanti' ? 'contanti' : m0 === 'bonifico' ? 'bonifico' : 'carta');
+    const out = [{ metodo: metAcc, importo: round2(acc) }];
+    const resto = round2(totale - acc);
+    if (resto > 0) out.push({ metodo: metodo, importo: resto });
+    return out;
+  }
+
   function barraSchede() {
     const tab = (id, label) => '<button class="cl-tab" data-modo="' + id + '" style="padding:10px 18px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;'
       + (modo === id ? 'background:#0E5A7A;color:#fff;' : 'background:#f1f5f9;color:#334155;') + '">' + label + '</button>';
