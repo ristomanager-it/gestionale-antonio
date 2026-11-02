@@ -528,6 +528,7 @@ export function initMenu() {
         title: "MARKETING & CRM",
         items: [
           { label: "📉 Analytics",          route: "bo-analytics"      },
+          { label: "📈 Risultati campagne", route: "bo-risultati-campagne" },
           { label: "👥 Clienti", route: "bo-tag", children: [
             { label: "🏷️ Tag & LTV",         route: "bo-tag"            },
             { label: "🎫 Fidelity & Network", route: "bo-fidelity"       },
