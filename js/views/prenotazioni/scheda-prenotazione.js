@@ -541,6 +541,7 @@ export async function render(container) {
         <button type="button" id="pag-cassa" class="pren-det-btn" style="min-height:44px;">🧾 Apri il conto in cassa</button>
       </div>
       <div id="pag-msg" style="font-size:13px;margin-top:6px;"></div>`;
+    document.getElementById("pag-cassa").onclick = () => { location.hash = "#/cassa-libera?modo=pren&origine=tavolo&rif=" + p.id; };
     document.getElementById("pag-registra").onclick = async () => {
       const msg = document.getElementById("pag-msg");
       const imp = Number(String(document.getElementById("pag-importo").value || "").replace(",", "."));
