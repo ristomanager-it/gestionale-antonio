@@ -382,6 +382,8 @@ export async function render(container) {
           <span class="pren-det-pill">${Number(p.coperti) || 0} coperti</span>
           <span class="pren-det-pill">${escapeHtml(servizio)}</span>
           ${p.canale || p.origine || p.source ? `<span class="pren-det-pill">${escapeHtml(getOriginLabel(p))}</span>` : ""}
+          ${p.gruppo_tavolo ? `<span class="pren-det-pill">👥 ${escapeHtml(p.gruppo_tavolo)}</span>` : ""}
+          ${Number(p.camere) > 0 ? `<span class="pren-det-pill">🛏 ${Number(p.camere)} ${Number(p.camere) === 1 ? "camera" : "camere"}</span>` : ""}
         </div>
       </div>
 
