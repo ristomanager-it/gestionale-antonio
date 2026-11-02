@@ -544,7 +544,7 @@ export async function renderCassaLibera(container, azienda) {
     if (paga) paga.onclick = () => {
       if (!carrello.length) return;
       incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
-      $('#cl-modal-tot').textContent = '€ ' + totali().totale.toFixed(2);
+      $('#cl-modal-tot').textContent = '€ ' + daPagare().toFixed(2) + (accontoPratica() > 0 ? ' (conto € ' + totali().totale.toFixed(2) + ', acconti € ' + accontoPratica().toFixed(2) + ')' : '');
       $('#cl-esito').textContent = '';
       ['#cl-piva', '#cl-rs', '#cl-ind', '#cl-sdi', '#cl-pec', '#cl-ricevuti', '#cl-intestatario', '#cl-mot-intest'].forEach(id => { const el = $(id); if (el) el.value = ''; });
       $('#cl-piva-esito').textContent = '';
