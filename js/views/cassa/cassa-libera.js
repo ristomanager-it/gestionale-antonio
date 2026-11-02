@@ -399,7 +399,11 @@ export async function renderCassaLibera(container, azienda) {
     const tg = container.querySelector('#cl-conto-toggle');
     if (tg) tg.onclick = () => { contoAperto = !contoAperto; const c = container.querySelector('#cl-conto'); if (c) c.classList.toggle('aperto', contoAperto || !!tavoloAttivo); tg.lastElementChild.textContent = (contoAperto || tavoloAttivo) ? '▼' : '▲'; };
     const torna = container.querySelector('#cl-torna-sala');
-    if (torna) torna.onclick = () => { tavoloAttivo = null; carrello = []; coupon = null; fidelityCliente = null; modo = 'sala'; caricaSala().then(render); };
+    if (torna) torna.onclick = () => {
+      const daPren = !!(tavoloAttivo && tavoloAttivo.pratica);
+      tavoloAttivo = null; carrello = []; coupon = null; fidelityCliente = null;
+      if (daPren) { modo = 'pren'; pren.caricato = false; render(); } else { modo = 'sala'; caricaSala().then(render); }
+    };
     // Aggiungi prodotto
     container.querySelectorAll('.cl-prod').forEach(b => b.onclick = () => {
       const p = prodotti.find(x => String(x.id) === b.dataset.id);
