@@ -202,6 +202,13 @@ export async function renderCassaLibera(container, azienda) {
             <div style="display:flex;justify-content:space-between;font-weight:800;font-size:22px;color:#0f172a;margin-top:8px;">
               <span>Totale</span><span>€ ${t.totale.toFixed(2)}</span>
             </div>
+            ${accontoPratica() > 0 ? `
+            <div style="display:flex;justify-content:space-between;font-size:14px;color:#15803d;margin-top:4px;">
+              <span>Acconti già versati</span><span>− € ${accontoPratica().toFixed(2)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-weight:800;font-size:20px;color:#0E5A7A;margin-top:4px;">
+              <span>Da pagare</span><span>€ ${daPagare().toFixed(2)}</span>
+            </div>` : ''}
             ${fidelityCliente ? `
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#7c5c10;background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;margin-top:8px;">
               <span>⭐ ${esc(fidelityCliente.nome)} · ${fidelityCliente.punti} punti</span>
