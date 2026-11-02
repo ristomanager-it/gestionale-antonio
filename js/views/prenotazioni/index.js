@@ -837,7 +837,7 @@ notificationAudio.volume = 0.6;
   onlineRequests: [],
   lastOnlineCount: 0,
   currentPrenId: null,
-  daysCenterDate: formatDateInput(today),
+  daysCenterDate: filtroData.value || formatDateInput(today),
   renderedDays: [],
   dayStats: {},
   isAutoScrolling: false
