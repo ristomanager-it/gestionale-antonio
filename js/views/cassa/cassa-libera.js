@@ -147,6 +147,7 @@ export async function renderCassaLibera(container, azienda) {
 
   function render() {
     if (modo === 'sala' && !tavoloAttivo) { renderSala(); return; }
+    if (modo === 'pren' && !tavoloAttivo) { renderPratiche(); return; }
     const t = totali();
     const bannerTavolo = tavoloAttivo
       ? '<div style="display:flex;align-items:center;gap:10px;background:#e0f2fe;border:1px solid #bae6fd;border-radius:12px;padding:10px 12px;margin-bottom:12px;">'
