@@ -712,7 +712,7 @@ export async function render(container) {
           <tr><td style="padding:8px 10px;border-top:2px solid #e2e8f0;"><b>Totale</b></td><td ${td}><b>${euro(tot)}</b></td><td ${td}></td><td ${td}><b>${fmt(richieste.length)}</b></td><td ${td}><b>${richieste.length ? euro(tot / richieste.length) : "—"}</b></td></tr>
         </tbody>
       </table>
-      <div style="font-size:12px;color:#94a3b8;margin-top:8px;">Richieste = tocchi su WhatsApp e moduli inviati dalle pagine tracciate. Nel totale ci sono anche quelle arrivate senza pubblicità.</div>`;
+      <div style="font-size:12px;color:#94a3b8;margin-top:8px;">Richieste = tocchi su WhatsApp e moduli inviati dalle pagine tracciate. Nel totale ci sono anche quelle arrivate senza pubblicità.${filtroEvento ? " La spesa qui è di tutte le campagne: quella dell'evento è in 📈 Risultati campagne." : ""}</div>`;
   }
 
   // ── Avvio ──────────────────────────────────────────────────
