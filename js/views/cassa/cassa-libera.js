@@ -733,9 +733,12 @@ export async function renderCassaLibera(container, azienda) {
 
       incasso.busy = true;
       try {
-        if (metodo === 'carta') {
+        const dovuto = daPagare();
+        const pratica = tavoloAttivo && tavoloAttivo.pratica ? tavoloAttivo.pratica : null;
+        let avvisoPratica = '';
+        if (metodo === 'carta' && dovuto > 0) {
           esito.textContent = '⏳ Pagamento con carta…';
-          const pay = await avviaPagamentoCarta(t.totale, { descrizione: 'Cassa libera' });
+          const pay = await avviaPagamentoCarta(dovuto, { descrizione: pratica ? 'Saldo ' + (pratica.nome || '') : 'Cassa libera' });
           if (!pay.ok) { esito.textContent = '❌ ' + (pay.errore || 'Pagamento non riuscito'); return; }
         }
         if (coupon) {
