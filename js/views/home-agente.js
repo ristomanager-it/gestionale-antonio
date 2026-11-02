@@ -35,10 +35,12 @@ function agNormalizzaPiano(piano) {
   return String(piano || '').toLowerCase().trim();
 }
 
+// calcoli dai compensi decisi (componente rete-compensi, tabella rete_compensi): window.__RC
 function agValoreAnnuoLead(l) {
   const piano = agNormalizzaPiano(l?.piano);
   const valoreContratto = Number(l?.valore_contratto || l?.fatturato_annuo || l?.valore_annuo || 0);
-  return valoreContratto > 0 ? valoreContratto : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
+  if (valoreContratto > 0) return valoreContratto;
+  return window.__RC ? window.__RC.valoreAnnuoPiano(piano) : (AG_PIANI_VALORE_ANNUO[piano] || AG_PIANI_VALORE_ANNUO.business);
 }
 
 function agMrrLead(l) {
@@ -47,6 +49,7 @@ function agMrrLead(l) {
 
 function agBonusFatturato(fatturatoAnnuoVenduto) {
   const valore = Number(fatturatoAnnuoVenduto || 0);
+  if (window.__RC) return window.__RC.premioAnno(valore);
   const soglia = AG_BONUS_FATTURATO_SOGLIE.find(s => valore >= s.soglia);
   return soglia ? soglia.bonus : 0;
 }
@@ -57,6 +60,7 @@ function agBaseProvvigione(l, agente) {
 
   const piano = agNormalizzaPiano(l?.piano);
   const valoreAnnuo = agValoreAnnuoLead(l);
+  if (window.__RC) return window.__RC.provvigione(valoreAnnuo, agente?.tipo);
 
   if (agente?.tipo === 'segnalatore') {
     const perc = Number(agente?.perc_segnalatore || 10);
@@ -75,11 +79,13 @@ function agGuadagnoAContratto(l, agente) {
 
 function agRicorrenteAnnualeLead(l, agente) {
   if (!l || agente?.tipo === 'segnalatore') return 0;
+  if (window.__RC) return window.__RC.ricorrente(agValoreAnnuoLead(l), agente?.tipo);
   return agValoreAnnuoLead(l) * AG_RICORRENTE_PERCENT / 100;
 }
 
 function agPianoRowsGuadagni(agente) {
-  return Object.entries(AG_PIANI_VALORE_ANNUO).map(([piano, valore]) => {
+  const voci = window.__RC ? window.__RC.pacchetti().map(k => [k.slug, k.annuale]) : Object.entries(AG_PIANI_VALORE_ANNUO);
+  return voci.map(([piano, valore]) => {
     const lead = { piano, valore_annuo: valore };
     return {
       piano,
@@ -92,6 +98,7 @@ function agPianoRowsGuadagni(agente) {
 }
 
 export async function render(container) {
+  try { const RC = await import("../components/rete-compensi.js?v=" + (window.APP_V || "1")); await RC.caricaRegole(); window.__RC = RC; } catch (e) { console.warn('rete-compensi non caricato', e); }
   const supa = window.supabaseClient || window.supabase;
   const userId = window.state?.user?.id;
   const userEmail = window.state?.user?.email;
@@ -210,6 +217,7 @@ export async function render(container) {
       <button class="ag-tab" id="agt-provv" onclick="agSwitchTab('provv')">💼 Portafoglio</button>
       <button class="ag-tab" id="agt-mansionario" onclick="agSwitchTab('mansionario')">📖 Mansionario</button>
       <button class="ag-tab" id="agt-materiali" onclick="agSwitchTab('materiali')">📦 Materiali</button>
+      <button class="ag-tab" id="agt-compensi" onclick="agSwitchTab('compensi')">📜 Compensi</button>
     </div>
 
     <div id="ag-content"></div>
@@ -245,7 +253,7 @@ export async function render(container) {
   window._agEditAppId = null;
 
   window.agSwitchTab = function(tab) {
-    ['agenda','lead','provv','mansionario','materiali'].forEach(t => {
+    ['agenda','lead','provv','mansionario','materiali','compensi'].forEach(t => {
       document.getElementById(`agt-${t==='mansionario'?'mansionario':t==='materiali'?'materiali':t}`)?.classList.toggle('active', t===tab);
     });
     const cont = document.getElementById('ag-content');
@@ -254,6 +262,7 @@ export async function render(container) {
     if (tab === 'provv') renderAgProvvigioni(cont);
     if (tab === 'mansionario') renderAgMansionario(cont);
     if (tab === 'materiali') renderAgMateriali(cont);
+    if (tab === 'compensi' && window.__RC) window.__RC.montaCompensi(cont, { admin: false });
   };
 
   function renderAgAgenda(el) {
