@@ -758,6 +758,14 @@ export async function renderCassaLibera(container, azienda) {
             })
           : await registraVendita(metodo, t);
         if (!reg.ok) { esito.textContent = 'Incasso NON registrato: ' + reg.errore + ' - segna il conto a mano e avvisa.'; return; }
+        if (pratica) {
+          const ex = await salvaExtraPratica();
+          if (!ex.ok) avvisoPratica += '⚠️ Extra non salvati nelle righe del conto (' + ex.errore + '). ';
+          if (dovuto > 0) {
+            const rs = await supabase.rpc('incasso_registra', { p_origine: pratica.origine, p_rif: String(pratica.rif), p_importo: dovuto, p_metodo: metodo, p_tipo: 'saldo', p_comanda: tavoloAttivo.comanda.id });
+            if (rs.error || !(rs.data && rs.data.ok)) avvisoPratica += '⚠️ Saldo non registrato nella pratica (' + (rs.error?.message || rs.data?.errore || 'errore') + '): registralo dalla scheda. ';
+          }
+        }
         const puntiDati = await accreditaFidelity(t);
         if (puntiDati) esito.textContent = '⭐ +' + puntiDati + ' punti a ' + fidelityCliente.nome;
         aggiornaSchermoCliente(true, metodo);
