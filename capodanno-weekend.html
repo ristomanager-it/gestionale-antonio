@@ -341,7 +341,8 @@ footer a{color:var(--oro)}
       var troppi = lettoStanza(x) > maxLetto();
       var tipo = troppi
         ? '<div class="tipo-auto ko">Troppe persone: in questa camera dormono al massimo ' + maxLetto() + ' persone (più un bimbo sotto i 4 anni). Aggiungete un’altra camera.</div>'
-        : '<div class="tipo-auto">' + TIPI[tipoStanza(x)] + ' · ' + euro0(prezzoNotteTipo(tipoStanza(x))) + ' a notte</div>';
+        : '<div class="tipo-auto">' + TIPI[tipoStanza(x)] + ' · ' + euro0(prezzoNotteTipo(tipoStanza(x))) + ' a notte</div>'
+          + (lettoStanza(x) >= maxLetto() ? '<div style="grid-column:1 / -1;font-size:14px;color:var(--muto)">Camera piena (' + maxLetto() + ' persone' + (tipiAmmessi() ? '' : ', all’Hotel Aquila le camere sono matrimoniali') + '). Per altre persone toccate <b style="color:var(--oro)">+ Aggiungi una camera</b> qui sotto.</div>' : '');
       return '<div class="stanza"><b>Camera ' + (i + 1) + '</b>'
         + (i > 0 ? '<button type="button" class="togli" data-togli="' + i + '">Togli</button>' : '<span></span>')
         + '<div class="occ"><div><small>Adulti</small><div class="ospiti"><button type="button" data-act="a-" data-i="' + i + '" aria-label="Un adulto in meno">−</button><output>' + x.a + '</output><button type="button" data-act="a+" data-i="' + i + '" aria-label="Un adulto in più">+</button></div></div>'
