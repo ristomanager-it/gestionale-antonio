@@ -254,7 +254,7 @@ export async function render(container) {
   async function fetchPrenotazioni() {
     const iv = intervallo();
     let q = supa().from("prenotazioni_tavoli")
-      .select("id, data, ora, coperti, stato, canale, created_at, sede_id, azienda_id")
+      .select("id, data, ora, coperti, stato, canale, created_at, sede_id, azienda_id, campagna, tag")
       .gte("created_at", iv.inizio).lt("created_at", iv.fine)
       .not("stato", "eq", "annullata");
     if (filtroAzienda) q = q.eq("azienda_id", filtroAzienda);
