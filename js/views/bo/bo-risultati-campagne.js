@@ -2,6 +2,7 @@
 // Totale di tutte le campagne, classifica con azione consigliata, dettaglio per evento, campagne da collegare.
 // Dati: rpc risultati_campagne (solo admin), v_ads_spesa; spesa aggiornata da ads-spesa-sync e meta-ads-spesa.
 // % pubblicita' = spesa / incasso previsto. Verde fino all'8%, giallo fino al 15%, rosso sopra.
+// v2: niente tabelle larghe, righe a scheda che vanno a capo (sul telefono la pagina usciva dallo schermo).
 export async function render(container) {
   const supa = () => window.supabaseClient || window.supabase;
   const aziendaId = window.state?.azienda?.id;
@@ -17,7 +18,7 @@ export async function render(container) {
   const n0 = (n) => Number(n || 0).toLocaleString('it-IT', { maximumFractionDigits: 0 });
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const perc = (spesa, previsto) => (Number(previsto) > 0 && Number(spesa) > 0 ? Number(spesa) / Number(previsto) * 100 : null);
-  const fmtP = (p) => (p == null ? '—' : p.toLocaleString('it-IT', { maximumFractionDigits: p < 10 ? 1 : 0 }) + '%');
+  const fmtP = (p) => (p == null ? '—' : p.toLocaleString('it-IT', { maximumFractionDigits: p < 100 ? 1 : 0 }) + '%');
   const colP = (p) => (p == null ? '#64748b' : p <= VERDE ? '#15803d' : p <= GIALLO ? '#b45309' : '#b91c1c');
   const sfP = (p) => (p == null ? '#f1f5f9' : p <= VERDE ? '#dcfce7' : p <= GIALLO ? '#fef3c7' : '#fee2e2');
   const pill = (txt, fg, bg) => '<span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;color:' + fg + ';background:' + bg + ';white-space:nowrap;">' + txt + '</span>';
@@ -35,14 +36,23 @@ export async function render(container) {
   const periodo = () => pers || { da: piuGiorni(oggi(), -(giorni - 1)), a: oggi() };
 
   const css = '<style>'
-    + '.rc{max-width:1000px;margin:0 auto;padding:12px;}'
+    + '.rc{max-width:1000px;width:100%;margin:0 auto;padding:12px;box-sizing:border-box;overflow-x:hidden;}'
+    + '.rc *{box-sizing:border-box;}'
     + '.rc h2{font-size:16px;color:#0E5A7A;margin:22px 0 8px;}'
     + '.rc-btn{border:1.5px solid #e2e8f0;background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;}'
     + '.rc-btn.on{background:#0E5A7A;color:#fff;border-color:#0E5A7A;}'
     + '.rc-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0;}'
     + '.rc-kpi>div{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;}'
     + '.rc-kpi b{display:block;font-size:20px;}.rc-kpi small{color:#64748b;font-size:12px;}'
-    + '.rc-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px;margin:10px 0;}'
+    + '.rc-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px;margin:10px 0;max-width:100%;min-width:0;}'
+    + '.rc-r{padding:10px 0;border-top:1px solid #f1f5f9;}.rc-r:first-child{border-top:0;}'
+    + '.rc-r-top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;}'
+    + '.rc-r-nome{font-weight:700;font-size:14px;overflow-wrap:anywhere;min-width:0;}'
+    + '.rc-r-sub{color:#64748b;font-size:12px;margin-top:2px;overflow-wrap:anywhere;}'
+    + '.rc-r-num{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:13px;color:#475569;}'
+    + '.rc-r-num b{color:#0f172a;}'
+    + '.rc-r.pass .rc-r-nome{font-style:italic;color:#64748b;font-weight:600;}'
+    + '.rc-tot{background:#f8fafc;border-radius:10px;padding:10px;margin-top:6px;}'
     + '.rc-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin:8px 0;}'
     + '.rc-mini>div{background:#f8fafc;border-radius:10px;padding:8px;}.rc-mini b{display:block;font-size:15px;}.rc-mini small{color:#64748b;font-size:11px;}'
     + '.rc-scroll{overflow-x:auto;max-width:100%;}'
@@ -51,7 +61,7 @@ export async function render(container) {
     + '.rc th{color:#64748b;font-size:11px;font-weight:600;}.rc .n{text-align:right;}'
     + '.rc tfoot td{font-weight:800;border-top:2px solid #e2e8f0;}'
     + '.rc tr.pass td{color:#64748b;font-style:italic;}'
-    + '.rc select{border:1px solid #e2e8f0;border-radius:8px;padding:4px 6px;font-size:12px;background:#fff;max-width:170px;}'
+    + '.rc select{border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff;max-width:100%;margin-top:6px;}'
     + '.rc-nota{color:#64748b;font-size:12.5px;margin:4px 0 8px;}'
     + '</style>';
 
@@ -158,18 +168,21 @@ export async function render(container) {
     h += '<h2>Tutte le campagne</h2><div class="rc-nota"><b>Rafforza</b> fino all\'8% · <b>Tieni d\'occhio</b> fino al 15% · <b>Cambia o spegni</b> sopra il 15% o con più di 10 € spesi e nessun previsto · <b>Troppo presto</b> sotto i 10 € senza prenotazioni.</div>';
     if (!cl.length) h += '<div class="rc-card" style="color:#64748b;">Nessuna spesa pubblicitaria nel periodo. Se le campagne sono attive tocca "Aggiorna spesa".</div>';
     else {
-      h += '<div class="rc-card"><div class="rc-scroll"><table><thead><tr><th>Campagna</th><th>Evento</th><th>Dove</th><th class="n">Spesa</th><th class="n">Pren.</th><th class="n">Previsto</th><th class="n">%</th><th>Azione</th></tr></thead><tbody>'
+      h += '<div class="rc-card">'
         + cl.map((x) => {
           const nome = x.link === 'annunci senza link tracciato'
             ? ((x.ads || []).map((a) => a.nome).filter(Boolean).slice(0, 2).join(', ') || 'annunci senza link')
             : x.link;
           const p = perc(x.spesa, x.previsto);
-          return '<tr><td title="' + esc((x.ads || []).map((a) => a.nome).join(' · ')) + '">' + esc(nome) + '</td><td>' + esc(x.evento) + '</td><td>' + dove(x) + '</td>'
-            + '<td class="n">' + n2(x.spesa) + '</td><td class="n">' + n0(x.prenotazioni) + '</td><td class="n">' + n0(x.previsto) + '</td>'
-            + '<td class="n" style="color:' + colP(p) + ';font-weight:700;">' + fmtP(p) + '</td><td>' + azione(x.spesa, x.previsto) + '</td></tr>';
+          return '<div class="rc-r"><div class="rc-r-top"><span class="rc-r-nome">' + esc(nome) + '</span>' + azione(x.spesa, x.previsto) + '</div>'
+            + '<div class="rc-r-sub">' + esc(x.evento) + ' · ' + dove(x) + '</div>'
+            + '<div class="rc-r-num"><span>Spesa <b>' + eur(x.spesa) + '</b></span><span>Pren. <b>' + n0(x.prenotazioni) + '</b></span>'
+            + '<span>Previsto <b>' + eur(x.previsto) + '</b></span><span style="color:' + colP(p) + ';font-weight:800;">' + fmtP(p) + '</span></div></div>';
         }).join('')
-        + '</tbody><tfoot><tr><td>Totale tutte le campagne</td><td></td><td></td><td class="n">' + n2(t.spesa) + '</td><td class="n">' + n0(t.prenotazioni) + '</td><td class="n">' + n0(t.previsto) + '</td>'
-        + '<td class="n" style="color:' + colP(pTot) + ';">' + fmtP(pTot) + '</td><td>' + azione(t.spesa, t.previsto) + '</td></tr></tfoot></table></div></div>';
+        + '<div class="rc-tot"><div class="rc-r-top"><span class="rc-r-nome">Totale tutte le campagne</span>' + azione(t.spesa, t.previsto) + '</div>'
+        + '<div class="rc-r-num"><span>Spesa <b>' + eur(t.spesa) + '</b></span><span>Pren. <b>' + n0(t.prenotazioni) + '</b></span>'
+        + '<span>Previsto <b>' + eur(t.previsto) + '</b></span><span style="color:' + colP(pTot) + ';font-weight:800;">' + fmtP(pTot) + '</span></div></div>'
+        + '</div>';
     }
 
     // eventi
@@ -189,26 +202,30 @@ export async function render(container) {
         + (resa != null && e.previsto > 0 ? '<div><b>' + eur(resa) + '</b><small>previsti per 1 € speso</small></div>' : '')
         + '<div><b>' + eur(e.previsto) + '</b><small>previsto' + (Number(e.incassato) > 0 ? ' · di cui ' + eur(e.incassato) + ' già incassati' : '') + '</small></div>'
         + '</div>'
-        + '<div class="rc-scroll"><table><thead><tr><th>Link</th><th class="n">Meta</th><th class="n">Google</th><th class="n">ChatGPT</th><th class="n">Visite</th><th class="n">Pren.</th><th class="n">Previsto</th><th class="n">% pubblicità</th><th></th></tr></thead><tbody>'
         + (e.righe || []).map((x) => {
           const px = perc(x.spesa, x.previsto);
           const speciale = SPECIALI.indexOf(x.link) >= 0;
-          return '<tr' + (x.link === 'passaparola o link senza provenienza' || x.link === 'whatsapp senza link tracciato' ? ' class="pass"' : '') + '><td>' + esc(x.link) + '</td>'
-            + '<td class="n">' + (x.meta > 0 ? n2(x.meta) : '—') + '</td><td class="n">' + (x.google > 0 ? n2(x.google) : '—') + '</td><td class="n">' + (x.chatgpt > 0 ? n2(x.chatgpt) : '—') + '</td>'
-            + '<td class="n">' + (x.visite > 0 ? n0(x.visite) : '—') + '</td><td class="n">' + n0(x.prenotazioni) + '</td><td class="n">' + n0(x.previsto) + '</td>'
-            + '<td class="n" style="color:' + colP(px) + ';font-weight:700;">' + (Number(x.spesa) > 0 ? fmtP(px) : '—') + '</td>'
-            + '<td>' + (speciale ? '' : sceltaEvento('class="rc-sposta" data-utm="' + esc(x.link) + '"', e.evento)) + '</td></tr>';
+          const pass = x.link === 'passaparola o link senza provenienza' || x.link === 'whatsapp senza link tracciato';
+          const spese = [x.meta > 0 ? 'Meta <b>' + n2(x.meta) + '</b>' : '', x.google > 0 ? 'Google <b>' + n2(x.google) + '</b>' : '', x.chatgpt > 0 ? 'ChatGPT <b>' + n2(x.chatgpt) + '</b>' : '']
+            .filter(Boolean).map((s) => '<span>' + s + '</span>').join('');
+          return '<div class="rc-r' + (pass ? ' pass' : '') + '"><div class="rc-r-top"><span class="rc-r-nome">' + esc(x.link) + '</span>'
+            + (Number(x.spesa) > 0 ? '<span style="color:' + colP(px) + ';font-weight:800;font-size:13px;white-space:nowrap;">' + fmtP(px) + '</span>' : '') + '</div>'
+            + '<div class="rc-r-num">' + spese
+            + (x.visite > 0 ? '<span>Visite <b>' + n0(x.visite) + '</b></span>' : '')
+            + '<span>Pren. <b>' + n0(x.prenotazioni) + '</b></span><span>Previsto <b>' + eur(x.previsto) + '</b></span></div>'
+            + (speciale ? '' : sceltaEvento('class="rc-sposta" data-utm="' + esc(x.link) + '"', e.evento)) + '</div>';
         }).join('')
-        + '</tbody></table></div></div>';
+        + '</div>';
     });
 
     // da collegare
     if (daCollegare.length) {
       h += '<h2>Da collegare</h2><div class="rc-nota">Campagne con spesa ma senza utm nel link. Scegli l\'evento una volta: da lì in poi la spesa va sotto quell\'evento.</div>'
-        + '<div class="rc-card"><div class="rc-scroll"><table><thead><tr><th>Campagna</th><th>Piattaforma</th><th class="n">Spesa</th><th>Evento</th></tr></thead><tbody>'
-        + daCollegare.map((x) => '<tr><td>' + esc(x.nome || x.campaign_id) + '</td><td>' + esc(x.piattaforma) + '</td><td class="n">' + n2(x.spesa) + '</td><td>'
-          + sceltaEvento('class="rc-collega" data-p="' + esc(x.piattaforma) + '" data-c="' + esc(x.campaign_id) + '"', null) + '</td></tr>').join('')
-        + '</tbody></table></div></div>';
+        + '<div class="rc-card">'
+        + daCollegare.map((x) => '<div class="rc-r"><div class="rc-r-top"><span class="rc-r-nome">' + esc(x.nome || x.campaign_id) + '</span><b style="white-space:nowrap;">' + eur(x.spesa) + '</b></div>'
+          + '<div class="rc-r-sub">' + esc(x.piattaforma) + '</div>'
+          + sceltaEvento('class="rc-collega" data-p="' + esc(x.piattaforma) + '" data-c="' + esc(x.campaign_id) + '"', null) + '</div>').join('')
+        + '</div>';
     }
 
     scheletro(h);
