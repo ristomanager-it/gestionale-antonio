@@ -699,7 +699,7 @@ export async function render(container) {
       const s = d.totali.spesa_eur, c = d.totali.clic;
       return `<tr><td style="padding:8px 10px;border-top:1px solid #f1f5f9;"><b>${nome}</b></td><td ${td}>${euro(s)}</td><td ${td}>${fmt(c)}</td><td ${td}>${fmt(nr)}</td><td ${td}>${nr ? euro(s / nr) : "—"}</td></tr>`;
     };
-    const tot = (g && g.success ? g.totali.spesa_eur : 0) + (m && m.success ? m.totali.spesa_eur : 0);
+    const tot = (g && g.success ? g.totali.spesa_eur : 0) + (m && m.success ? m.totali.spesa_eur : 0) + (c && c.success ? c.totali.spesa_eur : 0);
     const th = 'style="padding:6px 4px;text-align:right;color:#64748b;font-weight:600;font-size:11px;"';
     box.innerHTML = `
       <div style="font-weight:700;color:#0E5A7A;margin-bottom:10px;">💶 Spesa pubblicità e richieste</div>
