@@ -455,7 +455,15 @@ footer a{color:var(--oro)}
       $("chiuso").hidden = false;
       if (cfg.camere_quota != null) $("chiuso").querySelector("p").innerHTML = "<b>Le camere sono esaurite.</b> Potete ancora prenotare il cenone.";
     } else { $("modulo").hidden = false; disegnaStanze(); aggiorna(); }
-  });
+  }).catch(function(){ nonCaricato(); });
+  // rete lenta o script bloccato: invece di una sezione vuota si mostra comunque come prenotare
+  function nonCaricato(){
+    if (!$("modulo").hidden) return;
+    $("chiuso").hidden = false;
+    $("chiuso").querySelector("p").innerHTML = "<b>Non riusciamo a caricare le disponibilità.</b> Controlla la connessione e <a href=\"#prenota\" onclick=\"location.reload();return false\" style=\"color:var(--oro)\">ricarica la pagina</a>, oppure chiamaci: ti prenotiamo noi.";
+  }
+  if (!supa) nonCaricato();
+  setTimeout(function(){ if ($("modulo").hidden && $("chiuso").hidden) nonCaricato(); }, 8000);
 
   function errore(t){ $("msg").className = "msg ko"; $("msg").textContent = t; }
   $("modulo").addEventListener("submit", async function(ev){
