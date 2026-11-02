@@ -161,6 +161,7 @@ export async function render(app) {
       .ps-home .ps-grigio{background:#f1f5f9;}
       .ps-home .ps-verde{background:#dcfce7;border-color:#86efac;color:#14532d;font-weight:800;}
       .ps-home .ps-giallo{background:#fef9c3;border-color:#fde047;color:#713f12;font-weight:800;}
+      .ps-home .ps-rosso{background:#fee2e2;border-color:#fca5a5;color:#7f1d1d;font-weight:800;}
       .ps-home .ps-barra .chev{font-size:20px;transition:transform .15s;}
       .ps-home .ps-pannello{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:6px 14px;margin:-2px 0 12px;}
       .ps-home .ps-riga{padding:10px 0;border-top:1px solid #f1f5f9;font-size:14.5px;cursor:pointer;}
