@@ -686,7 +686,8 @@ export async function render(container) {
     body.prepend(box);
     const chiama = (fn) => supa().functions.invoke(fn, { body: { azienda_id: az, azione: "elenco", da: iv.da, a: iv.a } })
       .then(r => r.data || { success: false }).catch(() => ({ success: false }));
-    const [g, m] = await Promise.all([chiama("google-ads-campagne"), chiama("meta-ads-campagne")]);
+    const [g, m, c] = await Promise.all([chiama("google-ads-campagne"), chiama("meta-ads-campagne"),
+      chiama("chatgpt-ads-dati").then((d) => (d && d.success ? { success: true, totali: { spesa_eur: Number(d.totale?.spesa || 0), clic: Number(d.totale?.clic || 0) } } : d))]);
     if (!document.body.contains(box)) return;
     const euro = n => Number(n || 0).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
     const richieste = rows.filter(r => r.tipo === "submit" && r.completato && (!r.azienda_id || r.azienda_id === az));
