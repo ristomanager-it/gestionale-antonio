@@ -18,6 +18,7 @@ const PACCHETTI = [
   { slug: 'ristorante', nome: 'Ristorante', mensile: 349, annuale: 3560 },
   { slug: 'catering', nome: 'Catering ed eventi', mensile: 449, annuale: 4580 },
   { slug: 'hotel-ristorante', nome: 'Hotel con ristorante', mensile: 429, annuale: 4376 },
+  { slug: 'solo-hotel', nome: 'Hotel (solo camere)', mensile: 229, annuale: 2336 },
   { slug: 'bar', nome: 'Bar', mensile: 149, annuale: 1520 },
   { slug: 'tasting', nome: 'Tasting e pro loco', mensile: 99, annuale: 1010 },
   { slug: 'fondatore', nome: 'Fondatore (posti limitati)', mensile: null, annuale: 2000, soloAnnuale: true },
