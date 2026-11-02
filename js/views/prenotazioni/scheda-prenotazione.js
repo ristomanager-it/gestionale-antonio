@@ -385,6 +385,11 @@ export async function render(container) {
         </div>
       </div>
 
+      <div class="pren-det-card">
+        <div class="pren-det-section-title">💶 Pagamenti</div>
+        <div id="pren-pag-box" style="font-size:13px;color:#94a3b8;">Carico…</div>
+      </div>
+
       <div class="pren-det-card" id="pren-menu-card">
         <div class="pren-det-section-title">🧩 Menu del gruppo</div>
         <div id="pren-menu-box" style="font-size:13px;color:#94a3b8;">Caricamento menu…</div>
