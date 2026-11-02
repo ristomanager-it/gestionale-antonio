@@ -569,7 +569,7 @@ export async function renderCassaLibera(container, azienda) {
     }
     function aggiornaResto() {
       const r = Number($('#cl-ricevuti').value);
-      const tot = totali().totale;
+      const tot = daPagare();
       const box = $('#cl-resto');
       if (!r || r < tot) { box.style.display = 'none'; return; }
       box.style.display = 'flex';
