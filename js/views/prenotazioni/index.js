@@ -1505,6 +1505,15 @@ if (onlineModal.classList.contains("open")) {
               ${escapeHtml(nome)}
             </div>
             ${tag}
+            ${(() => {
+              // acconto gia' incassato e resto da saldare, oppure bonifico ancora da ricevere
+              const acc = Number(p.acconto_importo) || 0, tot = Number(p.importo_totale) || 0;
+              const eur = (n) => n.toFixed(2).replace(".", ",") + " €";
+              if (p.stato_pagamento === "bonifico_in_attesa") return `<div style="font-size:12px;font-weight:600;color:#b45309;margin-top:3px;">⏳ Bonifico in attesa${tot ? " · totale " + eur(tot) : ""}</div>`;
+              if (acc > 0) return `<div style="font-size:12px;font-weight:600;color:#15803d;margin-top:3px;">💶 Pagato ${eur(acc)}${tot ? " · resto " + eur(Math.max(tot - acc, 0)) : ""}</div>`;
+              return "";
+            })()}
+            ${p.gruppo_tavolo ? `<div style="font-size:12px;color:#475569;margin-top:2px;">👥 ${escapeHtml(p.gruppo_tavolo)}</div>` : ""}
           </div>
 
           <div class="pren-right">
