@@ -708,6 +708,7 @@ export async function render(container) {
         <tbody>
           ${riga("Google", g, rG)}
           ${riga("Meta", m, rM)}
+          ${riga("ChatGPT", c, rC)}
           <tr><td style="padding:8px 10px;border-top:2px solid #e2e8f0;"><b>Totale</b></td><td ${td}><b>${euro(tot)}</b></td><td ${td}></td><td ${td}><b>${fmt(richieste.length)}</b></td><td ${td}><b>${richieste.length ? euro(tot / richieste.length) : "—"}</b></td></tr>
         </tbody>
       </table>
