@@ -407,7 +407,7 @@ footer a{color:var(--oro)}
       sel.onchange = function(){ eta[+sel.dataset.b] = sel.value === "" ? null : +sel.value; sel.classList.toggle("manca", sel.value === ""); aggiorna(); };
     });
   }
-  function camereNecessarie(){ return stanze.some(function(x){ return lettoStanza(x) > maxLetto(); }) ? camere + 1 : camere; }
+  function camereNecessarie(){ return stanze.some(function(x){ return lettoStanza(x) > maxLetto(); }) || esauriteAq().length ? camere + 1 : camere; }
   function camera(n){ if (!cfg) return 0; var base = Number(cfg.prezzo_notte) * n; var sc = n === 2 ? Number(cfg.sconto_2_notti) : n === 3 ? Number(cfg.sconto_3_notti) : 0; return Math.round(base * (100 - sc)) / 100; }
   function pranzoAttivo(){ return cfg && cfg.pranzo_attivo && cfg.pranzo_prezzo; }
   function conti(){
