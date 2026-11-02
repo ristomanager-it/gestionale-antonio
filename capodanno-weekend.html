@@ -462,8 +462,10 @@ footer a{color:var(--oro)}
 
   if (supa) Promise.all([
     supa.rpc("capodanno_config_pubblica"),
-    Date.now() <= PROMO_FINO ? supa.rpc("evento_promo_liberi", { p_slug: S.slug, p_posti: 50 }) : Promise.resolve({ data: 0 })
+    Date.now() <= PROMO_FINO ? supa.rpc("evento_promo_liberi", { p_slug: S.slug, p_posti: 50 }) : Promise.resolve({ data: 0 }),
+    supa.rpc("capodanno_aquila_tipi_liberi")
   ]).then(function(r){
+    TIPI_AQ = Array.isArray(r[2] && r[2].data) ? r[2].data.map(function(t){ return { posti: Number(t.posti), nome: t.nome, prezzo: Number(t.prezzo), liberi: Number(t.liberi) }; }) : [];
     var tutti = r[0].data || {};
     cfg = tutti[S.chiave] ? Object.assign({}, tutti[S.chiave]) : null;
     if (!cfg) return;
