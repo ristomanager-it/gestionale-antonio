@@ -70,6 +70,7 @@ export async function render(container){
     <div class="page">
 
       <div class="page-header">
+        <button type="button" onclick="history.length > 1 ? history.back() : (location.hash = '#/prenotazioni')" style="border:none;background:none;font-size:16px;font-weight:600;color:#0E5A7A;padding:8px 0;cursor:pointer;min-height:44px;">← Indietro</button>
         <h1>👤 Cliente</h1>
       </div>
 
