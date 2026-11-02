@@ -958,6 +958,7 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
 
   async function load() {
     lista.innerHTML = `<div class="pren-loading">Caricamento...</div>`;
+    try { sessionStorage.setItem("prenotazioni_giorno", filtroData.value || ""); } catch (_) {}
     renderKpiRow();
 
     await loadDayStats();
