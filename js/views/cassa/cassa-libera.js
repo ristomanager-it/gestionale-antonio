@@ -141,7 +141,7 @@ export async function renderCassaLibera(container, azienda) {
     const tab = (id, label) => '<button class="cl-tab" data-modo="' + id + '" style="padding:10px 18px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;'
       + (modo === id ? 'background:#0E5A7A;color:#fff;' : 'background:#f1f5f9;color:#334155;') + '">' + label + '</button>';
     return '<div style="display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:8px 10px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.06);">'
-      + tab('sala', '🪑 Sala') + tab('banco', '🛒 Banco')
+      + tab('sala', '🪑 Sala') + tab('pren', '📅 Prenotazioni') + tab('banco', '🛒 Banco')
       + '<span style="margin-left:auto;font-size:12px;color:#64748b;">' + (modo === 'sala' ? 'Chi viene a pagare al banco' : 'Asporto, bar, caffè al banco') + '</span></div>';
   }
 
