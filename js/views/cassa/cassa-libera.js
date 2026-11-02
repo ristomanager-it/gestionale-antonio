@@ -777,7 +777,7 @@ export async function renderCassaLibera(container, azienda) {
           righe: righeDocumento(),
           totale: t.totale,
           sconto: t.sconto,
-          pagamenti: [{ metodo: metodo, importo: t.totale }],
+          pagamenti: pagamentiDocumento(metodo, t.totale),
           cliente: cliente || (intest ? { ragione_sociale: intest } : null),
           azienda: aziendaId, sede: sedeId,
         }, datiTavolo()));
