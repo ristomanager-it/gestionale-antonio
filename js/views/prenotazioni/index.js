@@ -826,7 +826,10 @@ notificationAudio.volume = 0.6;
   const kpiRow = document.getElementById("pren-kpi-row");
 
   const today = new Date();
-  filtroData.value = formatDateInput(today);
+  // si torna sul giorno che si stava guardando (es. dopo aver aperto la scheda di un cliente), non su oggi
+  let giornoSalvato = null;
+  try { giornoSalvato = sessionStorage.getItem("prenotazioni_giorno"); } catch (_) {}
+  filtroData.value = /^\d{4}-\d{2}-\d{2}$/.test(giornoSalvato || "") ? giornoSalvato : formatDateInput(today);
 
   const state = {
   prenotazioni: [],
