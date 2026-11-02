@@ -343,6 +343,11 @@ footer a{color:var(--oro)}
     bimbi = eta.length; camere = stanze.length;
   }
   function riepilogoStanze(){
+    if (isAquila()) {
+      var g = {}, ord = [];
+      stanze.forEach(function(x){ var nn = tipoAq(x).nome.toLowerCase(); if (!g[nn]) { g[nn] = 0; ord.push(nn); } g[nn]++; });
+      return ord.map(function(nn){ return g[nn] + " " + (g[nn] === 1 ? nn : nn.replace(/e$/, "i").replace(/a$/, "e")); }).join(" + ");
+    }
     var c = [0, 0, 0]; stanze.forEach(function(x){ c[tipoStanza(x)]++; });
     return c.map(function(n, i){ return n ? n + " " + (n === 1 ? NOMI[i] : NOMI[i].replace(/e$/, "i").replace(/a$/, "e")) : ""; }).filter(Boolean).join(" + ");
   }
