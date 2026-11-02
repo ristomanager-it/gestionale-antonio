@@ -517,6 +517,8 @@ export async function render(container) {
       const p = String(r.pagina || ""), t = String(r.tipo || ""), el = String(r.elemento || ""), st = String(r.step || "");
       if (t === "view" && p.startsWith("sito-")) { const k = p.slice(5); return NOMI_SITO[k] || (k.charAt(0).toUpperCase() + k.slice(1)); }
       if (t === "view" && p === "prenotazione-online") return "Pagina prenotazione";
+      // pagine degli eventi (Capodanno...): prima non comparivano nei percorsi
+      if (t === "view" && p.startsWith("capodanno-")) return ({ "capodanno-aquila": "🎆 Cenone Trattoria", "capodanno-campoantico": "🎆 Cenone Campo Antico", "capodanno-weekend-aquila": "🎆 Pacchetto Hotel Aquila", "capodanno-weekend-campo": "🎆 Pacchetto Campo Antico", "capodanno-pranzo": "🎆 Pranzo 1° gennaio", "capodanno-prenotazione": "🎆 Pagina della prenotazione" })[p] || "🎆 " + p;
       if (st === "success" || t === "submit" || el === "prenotazione_completata") return "✅ Prenotazione fatta";
       if (st === "seleziona_data") return "Sceglie la data";
       if (st === "seleziona_orario") return "Sceglie l'orario";
