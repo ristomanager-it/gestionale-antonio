@@ -374,7 +374,7 @@ export async function render(container) {
             <div style="background:#f1f5f9;border-radius:30px;display:flex;padding:3px;gap:2px;" id="billing-toggle">
               <button data-mode="mensile" class="toggle-btn active" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:#0E5A7A;color:#fff;">Mensile</button>
               <button data-mode="3rate" class="toggle-btn" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:#64748b;">3 Rate −10%</button>
-              <button data-mode="annuale" class="toggle-btn" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:#64748b;">Annuale −20%</button>
+              <button data-mode="annuale" class="toggle-btn" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:transparent;color:#64748b;">Annuale −15%</button>
             </div>
             <button onclick="togglePrezzi()" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:#64748b;">✕ Chiudi</button>
           </div>
@@ -1145,23 +1145,42 @@ async function caricaMotori() {
 }
 
 // ── PIANI & PREZZI ────────────────────────────────────────────────────────────
+// Listino per tipologia (novembre 2026). Prezzi letti da piani_abbonamento (slug) a ogni apertura:
+// quelli qui sotto valgono solo se il database non risponde. Annuale −15% come su Stripe e sul sito.
 const PIANI_PREZZI = [
-  { id:'starter',  nome:'Starter',         icona:'🌱', colore:'#0E5A7A', desc:'Per chi inizia', mensile:69,  annuale:790,  features:['Cassa & ordini','Menu digitale','Prenotazioni base','WhatsApp notifiche','Fidelity','1 sede · 3 utenti'] },
-  { id:'business', nome:'Business',        icona:'🚀', colore:'#7C3AED', desc:'Per chi cresce',  mensile:119, annuale:1490, popolare:true, features:['Tutto Starter +','Promo & marketing','Food cost & ricettario','Gestione dipendenti','Acquisti & magazzino','Report KPI','3 sedi · 10 utenti'] },
-  { id:'pro',      nome:'Pro',             icona:'⚡', colore:'#059669', desc:'Per chi scala',   mensile:169, annuale:2490, features:['Tutto Business +','Chatbot WhatsApp','RistoflowBook Social','API access','Multi-sede illimitata','Utenti illimitati'] },
-  { id:'hotel',    nome:'Hotel',           icona:'🏨', colore:'#1B4F72', desc:'Modulo hotel',    mensile:99,  annuale:1490, features:['Prenotazioni hotel','Calendario Gantt','Check-in online','Operations & task','Colazione','Marketing hotel'] },
-  { id:'full',     nome:'Full',            icona:'👑', colore:'#B45309', desc:'Ristorante + Hotel', mensile:199, annuale:3490, features:['Tutto Pro +','Tutto Hotel +','Chatbot WhatsApp','Priorità supporto','5 sedi · utenti illimitati'] },
-  { id:'fondatore',nome:'Fondatore 2026',  icona:'🏅', colore:'#DC2626', desc:'Accesso lifetime a tutto', mensile:null, annuale:1500, lifetime:true, features:['TUTTO incluso','Aggiornamenti futuri gratuiti','Badge Fondatore','5 sedi · utenti illimitati','Prezzo bloccato per sempre'] },
+  { id:'bar',              nome:'Bar',                  icona:'☕', colore:'#0E5A7A', desc:'Banco, aperitivo, fidelity', mensile:149, annuale:1520, features:['Cassa e chiusura di cassa','Sito e menu con QR','Tessera fedeltà e promo','Campagne Meta con Tony','Recensioni con QR','Timbrature e costo personale'] },
+  { id:'ristorante',       nome:'Ristorante',           icona:'🍽️', colore:'#7C3AED', desc:'Trattoria, ristorante, pizzeria', mensile:349, annuale:3560, popolare:true, features:['Cassa, comande e sala','Prenotazioni online e WhatsApp','Ricettario e food cost a porzione','Fatture elettroniche e magazzino','Menu engineering','Personale e buste paga','Campagne Meta e Google con resa in euro'] },
+  { id:'catering',         nome:'Catering ed eventi',   icona:'🥂', colore:'#059669', desc:'Laboratorio, banchetti, ricevimenti', mensile:449, annuale:4580, features:['Tutto Ristorante +','Preventivi con margine per portata','Laboratorio: planning, lotti, HACCP','Etichette con allergeni e QR','Spazio sposi e briefing di servizio'] },
+  { id:'hotel-ristorante', nome:'Hotel con ristorante', icona:'🏨', colore:'#1B4F72', desc:'Camere e cucina insieme', mensile:429, annuale:4376, features:['Tutto Ristorante +','Camere, tariffe e booking','Check-in e colazioni','Pacchetti con pagamento online'] },
+  { id:'tasting',          nome:'Tasting e pro loco',   icona:'🎫', colore:'#B45309', desc:'Sagre, degustazioni, eventi', mensile:99,  annuale:1010, features:['Biglietti e check-in','Cassa agli stand e ai tavoli','Promo per l\'evento','Mansionario'] },
+  { id:'fondatore',        nome:'Fondatore 2026',       icona:'🏅', colore:'#DC2626', desc:'Posti limitati', mensile:null, annuale:2000, soloAnnuale:true, features:['Tutte le funzioni: ristorante, laboratorio, eventi, hotel','1 sede · utenti illimitati','Prezzo bloccato finché l\'abbonamento resta attivo','Si prende solo con il pagamento'] },
 ];
 
 let _billingMode = 'mensile';
+let _prezziDaDb = false;
 
-window.togglePrezzi = function() {
+// prezzi veri dal database (stesso listino di Stripe e del sito)
+async function aggiornaPrezziDaDb() {
+  if (_prezziDaDb) return;
+  try {
+    const sc = window.supabaseClient || window.supabase || supabase;
+    const { data } = await sc.from('piani_abbonamento').select('slug, prezzo_mensile, prezzo_annuale, attivo').in('slug', PIANI_PREZZI.map(p => p.id));
+    (data || []).forEach(r => {
+      const p = PIANI_PREZZI.find(x => x.id === r.slug);
+      if (!p) return;
+      if (!p.soloAnnuale && r.prezzo_mensile) p.mensile = Number(r.prezzo_mensile);
+      if (r.prezzo_annuale) p.annuale = Number(r.prezzo_annuale);
+    });
+    _prezziDaDb = true;
+  } catch (e) { console.warn('prezzi dal database non disponibili, uso il listino scritto nel codice', e); }
+}
+
+window.togglePrezzi = async function() {
   const sec = document.getElementById('prezzi-section');
   if (!sec) return;
   const isHidden = sec.style.display === 'none';
   sec.style.display = isHidden ? 'block' : 'none';
-  if (isHidden) renderPrezziGrid();
+  if (isHidden) { await aggiornaPrezziDaDb(); renderPrezziGrid(); }
 };
 
 function renderPrezziGrid() {
@@ -1210,22 +1229,21 @@ function renderPrezziGrid() {
   });
 }
 
+const euro = n => '€ ' + Math.round(n).toLocaleString('it-IT');
+
 function calcolaPrezzo(p, mode) {
-  if (p.lifetime) return { prezzo: `€ ${p.annuale.toLocaleString('it-IT')}`, label: 'una tantum · accesso lifetime', sub: 'Prezzo bloccato per sempre' };
+  if (p.soloAnnuale) return { prezzo: euro(p.annuale) + '/anno', label: 'solo annuale · prezzo bloccato', sub: '≈ ' + euro(p.annuale / 12) + '/mese' };
   if (!p.mensile) return { prezzo: '—', label: '', sub: '' };
 
   if (mode === 'mensile') {
-    return { prezzo: `€ ${p.mensile}/mese`, label: 'fatturato mensilmente', sub: `€ ${(p.mensile*12).toLocaleString('it-IT')}/anno` };
+    return { prezzo: euro(p.mensile) + '/mese', label: 'listino mensile', sub: euro(p.mensile * 12) + '/anno' };
   }
   if (mode === 'annuale') {
-    const sconto = Math.round(p.annuale * 0.8);
-    const alMese = Math.round(sconto / 12);
-    return { prezzo: `€ ${sconto.toLocaleString('it-IT')}/anno`, label: 'unica rata · sconto 20%', sub: `≈ € ${alMese}/mese · risparmi € ${(p.mensile*12-sconto).toLocaleString('it-IT')}` };
+    return { prezzo: euro(p.annuale) + '/anno', label: 'unica rata · sconto 15%', sub: '≈ ' + euro(p.annuale / 12) + '/mese · risparmi ' + euro(p.mensile * 12 - p.annuale) };
   }
   if (mode === '3rate') {
-    const totale = Math.round(p.annuale * 0.9);
-    const rata = Math.round(totale / 3);
-    return { prezzo: `€ ${rata}/mese`, label: '3 rate · sconto 10%', sub: `€ ${totale.toLocaleString('it-IT')} totale · 1ª+2ª+3ª mese` };
+    const totale = Math.round(p.mensile * 12 * 0.9);
+    return { prezzo: euro(totale / 3) + ' × 3', label: '3 rate · sconto 10%', sub: euro(totale) + ' totale' };
   }
   return { prezzo: '', label: '', sub: '' };
 }
@@ -1242,15 +1260,15 @@ function renderConfrontoTabella() {
             <th style="padding:8px 12px;text-align:left;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Piano</th>
             <th style="padding:8px 12px;text-align:center;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;">Mensile</th>
             <th style="padding:8px 12px;text-align:center;color:#7C3AED;font-weight:700;border-bottom:1px solid #e5e7eb;">3 Rate −10%</th>
-            <th style="padding:8px 12px;text-align:center;color:#059669;font-weight:700;border-bottom:1px solid #e5e7eb;">Annuale −20%</th>
+            <th style="padding:8px 12px;text-align:center;color:#059669;font-weight:700;border-bottom:1px solid #e5e7eb;">Annuale −15%</th>
             <th style="padding:8px 12px;text-align:center;color:#94a3b8;font-weight:700;border-bottom:1px solid #e5e7eb;">Risparmio max</th>
           </tr>
         </thead>
         <tbody>
           ${piani.map(p => {
             const listino = p.mensile * 12;
-            const rate3   = Math.round(p.annuale * 0.9);
-            const annuale = Math.round(p.annuale * 0.8);
+            const rate3   = Math.round(listino * 0.9);
+            const annuale = Math.round(p.annuale);
             const risparmio = listino - annuale;
             return `
             <tr style="border-bottom:1px solid #f1f5f9;">
@@ -1270,7 +1288,7 @@ window.copiaPrezzoWhatsapp = function(pianoId) {
   const p = PIANI_PREZZI.find(x => x.id === pianoId);
   if (!p) return;
   const { prezzo, label } = calcolaPrezzo(p, _billingMode);
-  const modeLabel = _billingMode === 'mensile' ? 'mensile' : _billingMode === '3rate' ? '3 rate (−10%)' : 'annuale (−20%)';
+  const modeLabel = p.soloAnnuale ? 'annuale, prezzo bloccato' : _billingMode === 'mensile' ? 'mensile' : _billingMode === '3rate' ? '3 rate (−10%)' : 'annuale (−15%)';
   const msg = `Ciao! 👋\n\nTi propongo il piano *${p.nome}* di Ristoflow.AI:\n\n${p.icona} *${p.nome}* — ${p.desc}\n💰 *${prezzo}* (${modeLabel})\n\nInclude:\n${p.features.map(f=>`✅ ${f}`).join('\n')}\n\nVuoi che ti facciamo una demo? 🚀\nhttps://ristoflow-ai.com`;
   navigator.clipboard.writeText(msg).then(() => {
     alert('✅ Messaggio copiato! Incollalo su WhatsApp.');
