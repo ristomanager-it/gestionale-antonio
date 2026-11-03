@@ -2202,7 +2202,7 @@ body{background:#fbf7f0;color:#3b2412}
 .lp-meye{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#f0d9a0;margin-bottom:8px}
 .lp-mh{font-family:'Cormorant Garamond',Georgia,serif;font-size:36px;font-weight:700;line-height:1.1;color:#fff;margin:0 0 20px}
 .lp-pt{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#f0d9a0;padding:14px 0 8px;border-bottom:1px solid #5a4632}
-.lp-pv{padding:9px 0 2px}
+.lp-pv{padding:9px 0 2px}.lp-pf{display:flex;align-items:center;gap:14px;padding:8px 0}.lp-pf img{width:72px;height:72px;object-fit:cover;border-radius:12px;flex:none}
 .lp-prenota{padding:34px 20px 10px}
 .lp-h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:36px;font-weight:700;line-height:1.1;margin:0 0 6px}
 .lp-p2{font-size:15px;color:#6b5a48;margin:0 0 22px}
@@ -2323,7 +2323,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
   if(!v.length){q('lp-menu-voci').innerHTML='<div class="lp-pv">Il menu cambia ogni giorno. Intanto sai gia cosa e compreso: antipasto, primo, secondo, acqua e caffè.</div>';q('lp-menu').style.display='block';return;}
   var N={antipasti:'Antipasti',primi:'Primi',secondi:'Secondi',dessert:'Dessert'},h='';
   ['antipasti','primi','secondi','dessert'].forEach(function(k){var l=v.filter(function(x){return x.portata===k;});if(!l.length)return;
-    h+='<div class="lp-pt">'+N[k]+'</div>'+l.map(function(x){return '<div class="lp-pv">'+esc(x.nome)+'</div>';}).join('');});
+    h+='<div class="lp-pt">'+N[k]+'</div>'+l.map(function(x){return x.foto?'<div class="lp-pv lp-pf"><img src="'+esc(x.foto)+'" alt="'+esc(x.nome)+'" loading="lazy" onerror="this.remove()"><span>'+esc(x.nome)+'</span></div>':'<div class="lp-pv">'+esc(x.nome)+'</div>';}).join('');});
   if(!h)return;q('lp-menu-voci').innerHTML=h;q('lp-menu').style.display='block';
 }).catch(function(){});
 })();`;
