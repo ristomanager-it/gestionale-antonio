@@ -447,6 +447,7 @@ export async function renderOrdini(container, azienda) {
 
   }
 
+  let cercaOrdini = "";
   await loadData();
   await initOrdineDraft();
   daOrdinare(7);
@@ -477,8 +478,10 @@ export async function renderOrdini(container, azienda) {
         </div>
       </div>
       <div style="font-size:12.5px;color:#64748b;margin-bottom:10px;">Banchetti confermati, preparazioni in planning di tutte le sedi e prodotti sotto scorta. Togli la spunta o cambia la quantità prima di inviare.</div>
+      ${righe.length ? `<input type="search" data-cerca placeholder="🔍 Cerca prodotto (es. spinaci)" value="${esc(cercaOrdini)}" autocomplete="off" style="width:100%;box-sizing:border-box;font-size:16px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;margin-bottom:10px;">
+      <div data-cerca-vuoto style="display:none;color:#64748b;font-size:13px;margin-bottom:10px;">Nessun prodotto da ordinare con questo nome.</div>` : ""}
       ${!righe.length ? `<div style="color:#64748b;font-size:13px;margin-bottom:14px;">Niente da ordinare nei prossimi ${giorni} giorni.</div>` : ordine.map((g) => `
-        <div class="card" style="margin-bottom:10px;">
+        <div class="card do-g" style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
             <strong>${esc(g.nome)}</strong>
             <span style="font-size:12px;color:#64748b;">${g.righe.length} prodotti</span>
@@ -504,6 +507,22 @@ export async function renderOrdini(container, azienda) {
         </div>`).join("")}`;
 
     box.querySelectorAll("[data-giorni]").forEach((b) => b.addEventListener("click", () => daOrdinare(Number(b.dataset.giorni))));
+    // ricerca: filtra le righe per nome, nasconde i fornitori senza risultati; il testo resta anche cambiando 7/14 giorni
+    const cerca = box.querySelector("[data-cerca]");
+    const filtra = () => {
+      const t = cercaOrdini.trim().toLowerCase();
+      let vis = 0;
+      box.querySelectorAll(".do-g").forEach((card) => {
+        let n = 0;
+        card.querySelectorAll(".do-r").forEach((el) => {
+          const ok = !t || String(righe[Number(el.dataset.k)].nome || "").toLowerCase().includes(t);
+          el.style.display = ok ? "flex" : "none"; if (ok) n++;
+        });
+        card.style.display = n ? "" : "none"; vis += n;
+      });
+      const v = box.querySelector("[data-cerca-vuoto]"); if (v) v.style.display = t && !vis ? "block" : "none";
+    };
+    if (cerca) { cerca.addEventListener("input", () => { cercaOrdini = cerca.value; filtra(); }); filtra(); }
     box.querySelectorAll(".do-r").forEach((el) => {
       const r = righe[Number(el.dataset.k)];
       el.querySelector("[data-ok]").addEventListener("change", (e) => { r.ok = e.target.checked; el.style.opacity = r.ok ? 1 : 0.45; });
