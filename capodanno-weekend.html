@@ -416,7 +416,7 @@ footer a{color:var(--oro)}
     sincronizza();
     var c = adulti * prezzoCena() + grandi() * 40;
     camere = stanze.length;
-    var k = isAquila()
+    var k = S.chiave === "aquila"
       ? stanze.reduce(function(t, x){ return t + Math.round(Number(tipoAq(x).prezzo) * notti() * (100 - scontoNotti())) / 100; }, 0)
       : camere * camera(notti()) + 40 * extraTotali() * notti();
     var p = pranzoAttivo() && $("pranzo").checked ? adulti * Number(cfg.pranzo_prezzo) + grandi() * Number(cfg.pranzo_prezzo_bambini || cfg.pranzo_prezzo) : 0;
