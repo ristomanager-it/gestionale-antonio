@@ -158,10 +158,17 @@ textarea:focus{outline:none;border-color:var(--oro)}
   function boxBonifico(){
     var d = datiBon || {};
     if (!d.iban) return '<div class="esito att"><h2>Bonifico in attesa</h2><p>Per i dati del bonifico chiamaci al <a href="tel:' + L.telRaw + '" style="color:var(--oro)">' + L.tel + '</a>.</p></div>';
-    var riga = function(et, val, copia){
-      return '<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(127,127,127,.25)"><div style="min-width:0"><div style="font-size:12px;opacity:.75">' + et + '</div><div style="font-weight:600;word-break:break-all">' + esc(String(val || "")) + '</div></div>'
-        + (copia ? '<button type="button" class="btn" style="padding:6px 14px;font-size:13px;min-height:36px;flex:none" data-copia="' + esc(String(val || "")) + '" onclick="copiaTesto(this)">Copia</button>' : '') + '</div>';
+    // ogni dato su una riga: etichetta piccola, valore leggibile (IBAN a gruppi di 4) e "Copia" piccolo accanto
+    var riga = function(et, val, copia, mostra){
+      var v = String(val || "");
+      return '<div style="padding:12px 0;border-bottom:1px solid rgba(127,127,127,.25)">'
+        + '<div style="font-size:12px;letter-spacing:.04em;opacity:.7;margin-bottom:4px">' + et + '</div>'
+        + '<div style="display:flex;gap:12px;align-items:center;justify-content:space-between">'
+        + '<div style="flex:1 1 auto;min-width:0;font-weight:600;font-size:16px;line-height:1.4;overflow-wrap:anywhere">' + esc(mostra || v) + '</div>'
+        + (copia ? '<button type="button" data-copia="' + esc(v) + '" onclick="copiaTesto(this)" style="flex:0 0 auto;width:auto;padding:7px 14px;border-radius:999px;border:1px solid var(--oro);background:transparent;color:var(--oro);font:inherit;font-size:13px;cursor:pointer;min-height:36px">Copia</button>' : '')
+        + '</div></div>';
     };
+    var ibanBello = String(d.iban || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
     return '<div class="esito att"><h2>Tavolo bloccato: manca il bonifico</h2>'
       + '<p>Teniamo il posto per voi fino al <b>' + esc(d.scadenza_it || "") + '</b>. Fate il bonifico dell’acconto con questi dati:</p>'
       + riga("Intestatario", d.intestatario, false) + riga("IBAN", d.iban, true) + riga("Causale", d.causale, true) + riga("Importo", euro(Number(d.importo) || 0), false)
