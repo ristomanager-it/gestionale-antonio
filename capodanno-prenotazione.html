@@ -115,12 +115,20 @@ textarea:focus{outline:none;border-color:var(--oro)}
   var $ = function(id){ return document.getElementById(id); };
 
   if (!token) return errore("Link non valido", "Apri il collegamento che ti è arrivato dopo la prenotazione.");
+  var chiedeBonifico = new URLSearchParams(location.search).get("bonifico") === "1", datiBon = null;
   carica();
 
   async function carica(){
     var r = await supa.rpc("prenotazione_pubblica", { p_token: token });
     if (!r.data || !r.data.ok) return errore("Prenotazione non trovata", "Il link potrebbe essere incompleto. Chiamaci e la ritroviamo subito.");
     p = r.data.prenotazione;
+    // arriva dal modulo con "paga con bonifico": la prenotazione resta bloccata in attesa del bonifico
+    if (chiedeBonifico && p.stato_pagamento !== "pagato" && p.stato_pagamento !== "bonifico_in_attesa") {
+      chiedeBonifico = false;
+      try { await supa.rpc("prenotazione_scegli_bonifico", { p_token: token }); } catch (e) {}
+      return carica();
+    }
+    if (p.stato_pagamento === "bonifico_in_attesa" && !datiBon) { try { datiBon = (await supa.rpc("prenotazione_dati_bonifico", { p_token: token })).data; } catch (e) {} }
     var campo = String(p.tag || "").indexOf("campoantico") >= 0 || p.sede_id === "c40919bb-78c2-458f-865e-0c9fd02aa0b5";
     L = campo ? LOCALI.campo : LOCALI.aquila;
     if (campo) document.documentElement.classList.add("campo");
