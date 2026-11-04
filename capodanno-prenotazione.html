@@ -163,6 +163,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
         + '<a class="btn" target="_blank" rel="noopener" href="https://app.ristoflow-ai.com/riscatta.html?c=' + encodeURIComponent(p.voucher_codice) + '">Apri il buono</a></div>';
     if (p.stato === "annullata" || p.stato === "rifiutata")
       return '<div class="esito ko"><h2>Prenotazione annullata</h2><p>Se è un errore chiamaci al <a href="tel:' + L.telRaw + '" style="color:var(--oro)">' + L.tel + '</a>.</p></div>';
+    if (sp === "bonifico_in_attesa") return boxBonifico();
     if (sp !== "pagato" && Number(p.acconto_importo) > 0 && !(esito === "ok" && tentativi < 8))
       return '<div class="esito att"><h2>Manca l’acconto per le persone aggiunte</h2><p>Avete aggiunto persone alla prenotazione: per confermare anche i loro posti serve l’acconto di <b>' + euro(dovuto() / 100) + '</b>.</p>'
         + '<button class="btn" id="paga-acc">Paga ' + euro(dovuto() / 100) + '</button><div class="msg" id="msg-paga"></div></div>';
