@@ -426,6 +426,8 @@ footer a{color:var(--oro)}
     try {
       var pub = await supa.rpc("prenotazione_pubblica", { p_token: token });
       var id = pub.data && pub.data.ok ? pub.data.prenotazione.id : null;
+      // bonifico: niente Stripe, si va alla pagina della prenotazione con IBAN e causale (posti bloccati per qualche giorno)
+      if (window.__bonifico) { location.href = "capodanno-prenotazione.html?t=" + token + "&bonifico=1"; return; }
       var res = await fetch(CFG.url + "/functions/v1/stripe-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json", "apikey": CFG.anon, "Authorization": "Bearer " + CFG.anon },
