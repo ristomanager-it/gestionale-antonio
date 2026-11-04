@@ -314,7 +314,8 @@ footer a{color:var(--oro)}
   // prezzo a notte per tipologia: matrimoniale base, +40 € per ogni adulto in piu' (tripla 170, quadrupla 210)
   function prezzoNotteTipo(k){ return Number(cfg ? cfg.prezzo_notte : 130) + 40 * k; }
   function euro0(n){ return (Math.round(n) === n ? n : n.toFixed(2).replace(".", ",")) + " €"; }
-  function tipiAmmessi(){ return S.chiave === "campo" && !viaAquila; }
+  // il pacchetto di Campo Antico mantiene i suoi prezzi anche quando si dorme all'Aquila
+  function tipiAmmessi(){ return S.chiave === "campo"; }
   // in camera dormono gli adulti e i bambini dai 4 anni; sotto i 4 anni dormono con i genitori
   function lettoStanza(x){ return x.a + x.b.filter(function(e){ return e != null && e >= 4; }).length; }
   // Hotel Aquila: la tipologia viene dal numero di persone (singola, matrimoniale, tripla, quadrupla, quintupla)
