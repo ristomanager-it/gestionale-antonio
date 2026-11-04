@@ -1895,6 +1895,7 @@ function initChat(ruolo) {
   // Chip
   document.querySelectorAll(".chat-chip").forEach(chip => {
     chip.onclick = () => {
+      if (chip.dataset.campagne) { analizzaCampagne(); return; }
       if (chip.dataset.voice === "ricetta") {
         addMessage("🎤 Parla ora: descrivi la ricetta (nome, ingredienti, dosi, conservazione...)", "ai");
         startRecording();
