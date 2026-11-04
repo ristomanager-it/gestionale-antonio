@@ -1410,6 +1410,15 @@ async function sendVoiceMessage(audioGiaRegistrato) {
       setStatus("Assistente operativo");
       return;
     }
+    if (testoVoce && puoCampagne() && isAnalisiCampagne(testoVoce)) {
+      if (loading) loading.parentElement?.remove();
+      if (barText) barText.textContent = `"${testoVoce}"`;
+      addMessage(testoVoce, "user", { isVoice: true });
+      conversation.push({ role: "user", content: testoVoce });
+      salvaTonyMsg("user", testoVoce);
+      await analizzaCampagne();
+      return;
+    }
     let data = testoVoce ? await callTony([...conversation, { role: "user", content: testoVoce }]) : await callTony(conversation, audioBase64);
     if (testoVoce && data) data.voice_input = testoVoce;
     if (loading) loading.parentElement?.remove();
