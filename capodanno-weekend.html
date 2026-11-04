@@ -367,7 +367,7 @@ footer a{color:var(--oro)}
         : isAquila()
           ? (esauriteAq().indexOf(tipoAq(x).nome) >= 0
               ? '<div class="tipo-auto ko">' + tipoAq(x).nome + ' esaurita: dividetevi in camere più piccole oppure chiamateci.</div>'
-              : '<div class="tipo-auto">' + tipoAq(x).nome + ' · ' + euro0(Number(tipoAq(x).prezzo)) + ' a notte</div>')
+              : '<div class="tipo-auto">' + tipoAq(x).nome + (viaAquila ? ' all’Hotel Aquila' : ' · ' + euro0(Number(tipoAq(x).prezzo)) + ' a notte') + '</div>')
           : '<div class="tipo-auto">' + TIPI[tipoStanza(x)] + ' · ' + euro0(prezzoNotteTipo(tipoStanza(x))) + ' a notte</div>';
       if (!troppi && lettoStanza(x) >= maxLetto()) tipo += '<div style="grid-column:1 / -1;font-size:14px;color:var(--muto)">Camera piena (' + maxLetto() + ' persone). Per altre persone toccate <b style="color:var(--oro)">+ Aggiungi una camera</b> qui sotto.</div>';
       return '<div class="stanza"><b>Camera ' + (i + 1) + '</b>'
