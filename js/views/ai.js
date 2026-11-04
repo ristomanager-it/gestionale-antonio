@@ -982,6 +982,88 @@ ${hotelSection}
 
 // ── API Tony ───────────────────────────────────────────
 
+// ── Tony analizza e sistema le campagne (solo admin e addetto marketing) ──────────
+// Da solo esclude le ricerche sbagliate e aggiunge parole chiave simili a quelle che funzionano;
+// budget, tetto per clic e pause arrivano come proposte con Approva / No.
+function puoCampagne() {
+  const r = String(window.state?.ruoloRaw || window.state?.ruolo || "").toLowerCase();
+  return ["admin", "superadmin", "addetto_marketing"].includes(r) || window.state?.ruolo === "admin";
+}
+function isAnalisiCampagne(t) {
+  return /(analizz|sistem|ottimizz|controll|com[e']? vanno|come va)/i.test(t || "") && /campagn/i.test(t || "");
+}
+const TIPO_CAMP = { escludi: "🚫 Ricerca esclusa", parola: "➕ Parola chiave aggiunta", budget: "💶 Budget al giorno", cpc: "🎯 Tetto per clic", pausa: "⏸ Metti in pausa" };
+async function chiamaTonyCampagne(body) {
+  const supa = window.supabaseClient || window.supabase;
+  const { data: { session } } = await supa.auth.getSession();
+  const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-campagne", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session?.access_token || "") },
+    body: JSON.stringify(Object.assign({ azienda_id: window.state?.azienda?.id }, body)),
+  });
+  return await r.json().catch(() => ({ success: false, error: "risposta non valida" }));
+}
+async function analizzaCampagne() {
+  if (!puoCampagne()) { addMessage("L'analisi delle campagne la può fare solo l'amministratore o chi segue il marketing.", "ai"); return; }
+  setStatus("⏳ Tony analizza le campagne...");
+  const loading = addMessage("Sto leggendo le campagne degli ultimi 7 giorni: numeri, ricerche vere delle persone e cosa fanno sulla pagina. Ci vuole circa un minuto.", "ai");
+  let j;
+  try { j = await chiamaTonyCampagne({ azione: "analizza" }); } catch (e) { j = { success: false, error: e?.message }; }
+  if (loading) loading.parentElement?.remove();
+  setStatus("Assistente operativo");
+  if (!j?.success) { addMessage("Non sono riuscito ad analizzare le campagne: " + (j?.error || "errore") + ".", "ai"); scrollBottom(); return; }
+  if (j.vuoto) { addMessage("Non ci sono campagne accese da analizzare.", "ai"); scrollBottom(); return; }
+  mostraAnalisiCampagne(j);
+  const testo = "Analisi campagne " + (j.periodo?.da || "") + " - " + (j.periodo?.a || "") + ": " + (j.riepilogo || "");
+  conversation.push({ role: "assistant", content: testo });
+  salvaTonyMsg("assistant", testo);
+  scrollBottom();
+}
+function mostraAnalisiCampagne(j) {
+  const bolla = addMessage("**Campagne dal " + (j.periodo?.da || "") + " al " + (j.periodo?.a || "") + "**\n" + (j.riepilogo || ""), "ai");
+  if (!bolla) return;
+  const perCamp = {};
+  (j.voci || []).forEach((v) => { (perCamp[v.campagna] = perCamp[v.campagna] || []).push(v); });
+  Object.keys(perCamp).forEach((nome) => {
+    const voci = perCamp[nome];
+    const box = document.createElement("div");
+    box.style.cssText = "margin-top:10px;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;background:#fff;";
+    const nota = voci.find((v) => v.tipo === "nota");
+    let html = '<div style="font-weight:800;font-size:14px;margin-bottom:4px;">' + escapeHtml(nome) + "</div>";
+    if (nota) html += '<div style="font-size:13px;color:#475569;margin-bottom:6px;">' + escapeHtml(nota.motivo) + "</div>";
+    voci.filter((v) => v.tipo === "escludi" || v.tipo === "parola").forEach((v) => {
+      const st = v.stato === "applicato" ? "✅ fatto" : v.stato === "errore" ? "⚠️ non riuscito" : "🔍 prova";
+      html += '<div style="font-size:13px;margin:3px 0;">' + TIPO_CAMP[v.tipo] + ": <b>" + escapeHtml(v.valore) + '</b> <span style="color:#64748b;">· ' + escapeHtml(v.motivo) + " · " + st + "</span></div>";
+    });
+    box.innerHTML = html;
+    voci.filter((v) => ["budget", "cpc", "pausa"].includes(v.tipo)).forEach((v) => {
+      const riga = document.createElement("div");
+      riga.style.cssText = "margin-top:8px;padding:8px;border-radius:10px;background:#fef9c3;font-size:13px;";
+      const val = v.tipo === "pausa" ? "" : (" <b>" + escapeHtml(v.valore) + " €</b>");
+      riga.innerHTML = "<div>" + TIPO_CAMP[v.tipo] + val + ' <span style="color:#64748b;">· ' + escapeHtml(v.motivo) + "</span></div>";
+      if (v.id && v.stato === "proposto") {
+        const bt = document.createElement("div");
+        bt.style.cssText = "display:flex;gap:8px;margin-top:6px;";
+        const si = document.createElement("button"); si.textContent = "✅ Approva";
+        si.style.cssText = "flex:1;border:0;border-radius:9px;padding:8px;background:#16a34a;color:#fff;font-weight:700;cursor:pointer;";
+        const no = document.createElement("button"); no.textContent = "No";
+        no.style.cssText = "flex:1;border:0;border-radius:9px;padding:8px;background:#e2e8f0;font-weight:700;cursor:pointer;";
+        const decidi = async (approva) => {
+          si.disabled = no.disabled = true; si.textContent = "…";
+          const r = await chiamaTonyCampagne({ azione: "decidi", id: v.id, approva });
+          bt.innerHTML = '<span style="font-weight:700;">' + (r?.success ? (approva ? "✅ Fatto su Google" : "Lasciato com'era") : ("⚠️ " + escapeHtml(r?.errore || r?.error || "non riuscito"))) + "</span>";
+        };
+        si.onclick = () => decidi(true); no.onclick = () => decidi(false);
+        bt.appendChild(si); bt.appendChild(no); riga.appendChild(bt);
+      } else if (v.stato === "simulato") {
+        riga.innerHTML += '<div style="color:#64748b;margin-top:4px;">Solo simulazione</div>';
+      }
+      box.appendChild(riga);
+    });
+    bolla.appendChild(box);
+  });
+}
+
 // ── Routing Meta Ads: messaggi su campagne/pubblicita vanno al motore marketing ──
 let tonyMetaMode = false;
 const META_KEYWORDS = ["campagn", "facebook", "instagram", " meta", "meta ", "sponsorizz", "inserzion", "pubblicit", "pubblica", " ads", "adset", "lookalike", "pixel", "promo", "landing", "2x1", "google ads", "adwords"];
