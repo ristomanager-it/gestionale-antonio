@@ -256,7 +256,8 @@ footer a{color:var(--oro)}
       </div>
       <label class="spunta"><input type="checkbox" id="privacy"> <span>Ho letto l’informativa privacy e acconsento al trattamento dei dati per gestire la prenotazione.</span></label>
       <label class="spunta"><input type="checkbox" id="marketing"> <span>Voglio ricevere le vostre prossime serate e offerte (facoltativo).</span></label>
-      <button class="btn" type="submit" id="invia">Paga l’acconto e conferma</button>
+      <button class="btn" type="submit" id="invia" onclick="window.__bonifico=false">Paga l’acconto e conferma</button>
+      <button class="btn" type="button" id="invia-bonifico" style="margin-top:10px;background:transparent;color:inherit;border:1.5px solid currentColor;" onclick="window.__bonifico=true;var f=document.getElementById('modulo');if(f.requestSubmit)f.requestSubmit();else f.dispatchEvent(new Event('submit',{cancelable:true}));">oppure prenota e paga l’acconto con bonifico</button>
       <div class="msg" id="msg" role="status"></div>
       <p class="nota">Pagamento con carta tramite Stripe. Riceverai subito la conferma.</p>
     </form>
