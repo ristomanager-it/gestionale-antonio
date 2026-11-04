@@ -1203,6 +1203,11 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   // arrivare a un minuto abbondante. 90s da' margine senza tenere la
   // connessione aperta per una ricerca vera, che ormai non aspetta piu' qui.
   const timeoutId = setTimeout(() => controller.abort(), 90000);
+  // Se il telefono va in background (altra app, chiamata) la connessione cade,
+  // ma Tony finisce il lavoro e salva la risposta in tony_risposte con questo id.
+  const richiestaId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+  if (richiestaId) body.richiesta_id = richiestaId;
+  window.__tonyInCorso = { id: richiestaId, controller: controller };
 
   try {
     // le domande normali (scritte o a voce) vanno al Tony nuovo, che legge planning, ricette,
@@ -1226,11 +1231,61 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const esitoTony = await res.json();
     window.__tonyRamoMessaggi = !!esitoTony && esitoTony.fonte === "messaggi";
+    window.__tonyInCorso = null;
     return esitoTony;
   } catch (err) {
     clearTimeout(timeoutId);
+    window.__tonyInCorso = null;
+    if (richiestaId && funzioneTony === "tony") {
+      setStatus("⏳ Riprendo la risposta di Tony...");
+      const recuperata = await recuperaRispostaTony(richiestaId);
+      if (recuperata) return recuperata;
+    }
     throw err;
   }
+}
+
+// Cerca la risposta salvata da Tony per una richiesta interrotta (fino a 2 minuti).
+async function recuperaRispostaTony(id) {
+  const supa = window.supabaseClient || window.supabase;
+  for (let i = 0; i < 40; i++) {
+    try {
+      const { data } = await supa.from("tony_risposte").select("risposta").eq("id", id).maybeSingle();
+      if (data && data.risposta) return data.risposta;
+    } catch (_) { /* rete ancora giu': riprovo */ }
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  return null;
+}
+
+// Al ritorno sull'app: se c'era una richiesta in volo la si recupera dal salvataggio,
+// se una registrazione era stata interrotta la si manda adesso.
+if (!window.__tonyRipresaAttiva) {
+  window.__tonyRipresaAttiva = true;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      if (isRecording) salvaRegistrazioneInterrotta();
+      return;
+    }
+    const inCorso = window.__tonyInCorso;
+    if (inCorso && inCorso.controller) { try { inCorso.controller.abort(); } catch (_) {} }
+    if (window.__tonyAudioSospeso && document.getElementById("chat-messages")) {
+      const audio = window.__tonyAudioSospeso;
+      window.__tonyAudioSospeso = null;
+      sendVoiceMessage(audio);
+    }
+  });
+}
+
+// Registrazione interrotta (app in background, chiamata in arrivo): si tiene quello
+// che e' stato detto fino a quel momento, invece di perderlo.
+function salvaRegistrazioneInterrotta() {
+  if (!isRecording) return;
+  stopRecording().then((b64) => {
+    if (!b64) return;
+    if (document.visibilityState === "visible" && document.getElementById("chat-messages")) sendVoiceMessage(b64);
+    else window.__tonyAudioSospeso = b64;
+  });
 }
 
 // ── Registrazione audio ────────────────────────────────
@@ -1271,6 +1326,7 @@ async function startRecording() {
     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.start(100);
     isRecording = true;
+    stream.getAudioTracks().forEach((t) => { t.onended = () => salvaRegistrazioneInterrotta(); });
 
     const mic = document.getElementById("chat-mic");
     if (mic) { mic.classList.add("recording"); mic.textContent = "⏹"; }
@@ -1289,7 +1345,20 @@ async function startRecording() {
 
 function stopRecording() {
   return new Promise((resolve) => {
-    if (!mediaRecorder || mediaRecorder.state === "inactive") { resolve(null); return; }
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      isRecording = false;
+      const mic0 = document.getElementById("chat-mic");
+      if (mic0) { mic0.classList.remove("recording"); mic0.textContent = "🎤"; }
+      if (!audioChunks.length) { resolve(null); return; }
+      const blob0 = new Blob(audioChunks, { type: (mediaRecorder && mediaRecorder._mimeType) || "audio/webm" });
+      audioChunks = [];
+      try { mediaRecorder && mediaRecorder.stream && mediaRecorder.stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      const rd0 = new FileReader();
+      rd0.onload = () => resolve(rd0.result);
+      rd0.onerror = () => resolve(null);
+      rd0.readAsDataURL(blob0);
+      return;
+    }
     mediaRecorder.onstop = async () => {
       const actualMime = mediaRecorder._mimeType || mediaRecorder.mimeType || "audio/webm";
       const blob = new Blob(audioChunks, { type: actualMime });
@@ -1308,8 +1377,8 @@ function stopRecording() {
   });
 }
 
-async function sendVoiceMessage() {
-  const audioBase64 = await stopRecording();
+async function sendVoiceMessage(audioGiaRegistrato) {
+  const audioBase64 = (typeof audioGiaRegistrato === "string" && audioGiaRegistrato) ? audioGiaRegistrato : await stopRecording();
   if (!audioBase64) { setStatus("Assistente operativo"); return; }
 
   const bar = document.getElementById("voice-transcript-bar");
