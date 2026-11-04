@@ -1837,6 +1837,12 @@ function initChat(ruolo) {
       return;
     }
 
+    if (puoCampagne() && isAnalisiCampagne(prompt)) {
+      await analizzaCampagne();
+      if (send) send.disabled = false;
+      return;
+    }
+
     setStatus("⏳ Tony sta scrivendo...");
     const loading = addMessage("Tony sta scrivendo...", "ai");
 
