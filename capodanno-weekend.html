@@ -420,7 +420,7 @@ footer a{color:var(--oro)}
       ? stanze.reduce(function(t, x){ return t + Math.round(Number(tipoAq(x).prezzo) * notti() * (100 - scontoNotti())) / 100; }, 0)
       : camere * camera(notti()) + 40 * extraTotali() * notti();
     var p = pranzoAttivo() && $("pranzo").checked ? adulti * Number(cfg.pranzo_prezzo) + grandi() * Number(cfg.pranzo_prezzo_bambini || cfg.pranzo_prezzo) : 0;
-    var tr = (viaAquila || festaCampo()) && $("navetta").checked ? paganti() * 5 : 0;
+    var tr = festaCampo() && $("navetta").checked ? paganti() * 5 : 0;
     return { cenone: c, camere: k, pranzo: p, transfer: tr, totale: c + k + p + tr };
   }
   function aggiorna(){
