@@ -993,7 +993,7 @@ function puoCampagne() {
   return ["admin", "superadmin", "addetto_marketing"].includes(r) || window.state?.ruolo === "admin";
 }
 function isAnalisiCampagne(t) {
-  return /(analizz|sistem|ottimizz|controll|com[e']? vanno|come va)/i.test(t || "") && /campagn/i.test(t || "");
+  return /(analizz|sistem|ottimizz|controll|guard|risultat|andament|com[e']? vanno|come va)/i.test(t || "") && /campagn/i.test(t || "");
 }
 const TIPO_CAMP = { escludi: "🚫 Ricerca esclusa", parola: "➕ Parola chiave aggiunta", budget: "💶 Budget al giorno", cpc: "🎯 Tetto per clic", pausa: "⏸ Metti in pausa" };
 async function chiamaTonyCampagne(body) {
