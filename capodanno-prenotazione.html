@@ -171,7 +171,7 @@ textarea:focus{outline:none;border-color:var(--oro)}
     var ibanBello = String(d.iban || "").replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
     return '<div class="esito att"><h2>Tavolo bloccato: manca il bonifico</h2>'
       + '<p>Teniamo il posto per voi fino al <b>' + esc(d.scadenza_it || "") + '</b>. Fate il bonifico dell’acconto con questi dati:</p>'
-      + riga("Intestatario", d.intestatario, false) + riga("IBAN", d.iban, true) + riga("Causale", d.causale, true) + riga("Importo", euro(Number(d.importo) || 0), false)
+      + riga("Intestatario", d.intestatario, false) + riga("IBAN", String(d.iban || "").replace(/\s+/g, ""), true, ibanBello) + riga("Causale", d.causale, true) + riga("Importo", euro(Number(d.importo) || 0), false)
       + '<p style="margin-top:16px"><b>Avete già fatto il bonifico?</b> Caricate qui la contabile (foto o PDF): appena la controlliamo il tavolo è confermato.</p>'
       + '<input type="file" accept="image/*,application/pdf" onchange="caricaContabile(this)" style="max-width:100%">'
       + '<div class="msg" id="msg-contabile">' + (d.contabile ? "Contabile ricevuta: la stiamo controllando." : "") + '</div></div>';
