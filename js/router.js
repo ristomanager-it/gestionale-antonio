@@ -408,6 +408,8 @@ const ADDETTO_MARKETING_ROUTES = new Set([
   "prenotazioni",
   // Essenziali
   "home", "profilo", "completaProfilo", "scegli-sede",
+  // Tony: per l'addetto marketing serve all'analisi delle campagne
+  "ai",
 ]);
 /* =========================================================
    STORAGE KEYS
