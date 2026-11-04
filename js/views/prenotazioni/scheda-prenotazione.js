@@ -540,7 +540,45 @@ export async function render(container) {
         <button type="button" id="pag-registra" class="pren-det-btn primary" style="min-height:44px;">Registra pagamento</button>
         <button type="button" id="pag-cassa" class="pren-det-btn" style="min-height:44px;">🧾 Apri il conto in cassa</button>
       </div>
-      <div id="pag-msg" style="font-size:13px;margin-top:6px;"></div>`;
+      <div id="pag-msg" style="font-size:13px;margin-top:6px;"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:6px;">📣 Da dove è arrivata <span style="color:#94a3b8">(serve per sapere quanto incassa ogni campagna)</span></div>
+        <select id="pren-provenienza" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;"></select>
+        <div id="prov-msg" style="font-size:12px;margin-top:4px;color:#15803d;"></div>
+      </div>`;
+    // provenienza: se la pagina non l'ha registrata (link girato, app di Facebook...), la si assegna a mano
+    (function(){
+      let rif = {};
+      try { rif = JSON.parse(p.riferimento || "{}") || {}; } catch (_) { rif = {}; }
+      const voci = [
+        ["", "— non tracciata —"],
+        ["meta|capodanno-campo-roma", "Meta · Capodanno Campo Antico · Roma"],
+        ["meta|capodanno-campo-territorio", "Meta · Capodanno Campo Antico · Territorio"],
+        ["meta|capodanno-aquila-roma", "Meta · Capodanno Trattoria · Roma"],
+        ["meta|capodanno-aquila-territorio", "Meta · Capodanno Trattoria · Territorio"],
+        ["google|capodanno-ricerca-roma", "Google · Capodanno Ricerca Roma"],
+        ["meta|organico", "Facebook / Instagram (senza pubblicità)"],
+        ["google|organico", "Google (ricerca normale)"],
+        ["passaparola|", "Passaparola / amici di altri clienti"],
+        ["whatsapp|", "WhatsApp"],
+        ["email|", "Email / newsletter"],
+        ["telefono|", "Telefono"],
+        ["diretto|", "Cliente abituale / diretto"],
+      ];
+      const att = (rif.utm_source || "") + "|" + (rif.utm_campaign || (rif.utm_medium === "organico" ? "organico" : ""));
+      if (!voci.some((v) => v[0] === att) && rif.utm_source) voci.splice(1, 0, [att, (rif.utm_source + (rif.utm_campaign ? " · " + rif.utm_campaign : ""))]);
+      const sel = document.getElementById("pren-provenienza");
+      sel.innerHTML = voci.map((v) => `<option value="${escapeHtml(v[0])}"${v[0] === (rif.utm_source ? att : "") ? " selected" : ""}>${escapeHtml(v[1])}</option>`).join("");
+      sel.onchange = async () => {
+        const [src, camp] = sel.value.split("|");
+        const nuovo = { ...rif, utm_source: src || null, utm_campaign: camp && camp !== "organico" ? camp : null, utm_medium: camp === "organico" ? "organico" : (src === "meta" || src === "google") && camp ? "cpc" : null, attribuzione: "manuale" };
+        const r = await supa.from("prenotazioni_tavoli").update({ riferimento: JSON.stringify(nuovo), source: src || null }).eq("id", p.id);
+        const m = document.getElementById("prov-msg");
+        if (r.error) { m.style.color = "#b91c1c"; m.textContent = "Non salvato: " + r.error.message; return; }
+        rif = nuovo; pageState.prenotazione = { ...p, riferimento: JSON.stringify(nuovo), source: src || null };
+        m.style.color = "#15803d"; m.textContent = "Salvato ✓";
+      };
+    })();
     document.getElementById("pag-cassa").onclick = () => { location.hash = "#/cassa-libera?modo=pren&origine=tavolo&rif=" + p.id; };
     document.getElementById("pag-registra").onclick = async () => {
       const msg = document.getElementById("pag-msg");
