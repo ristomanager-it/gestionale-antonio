@@ -1514,6 +1514,7 @@ if (onlineModal.classList.contains("open")) {
               return "";
             })()}
             ${p.gruppo_tavolo ? `<div style="font-size:12px;color:#475569;margin-top:2px;">👥 ${escapeHtml(p.gruppo_tavolo)}</div>` : ""}
+            ${p.lingua && p.lingua !== "it" ? `<div style="font-size:12px;font-weight:600;color:#1e3a8a;margin-top:2px;">${({ en: "🇬🇧 Inglese", de: "🇩🇪 Tedesco", fr: "🇫🇷 Francese", nl: "🇳🇱 Olandese", es: "🇪🇸 Spagnolo" })[p.lingua] || "🌍 " + escapeHtml(p.lingua)} · rispondere in lingua</div>` : ""}
           </div>
 
           <div class="pren-right">
