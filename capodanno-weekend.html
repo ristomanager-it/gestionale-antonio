@@ -538,6 +538,8 @@ footer a{color:var(--oro)}
     try {
       var pub = await supa.rpc("prenotazione_pubblica", { p_token: token });
       var id = pub.data && pub.data.ok ? pub.data.prenotazione.id : null;
+      // bonifico: niente Stripe, si va alla pagina della prenotazione con IBAN e causale (posti bloccati per qualche giorno)
+      if (window.__bonifico) { location.href = PAG + "&bonifico=1"; return; }
       var res = await fetch(URL_SB + "/functions/v1/stripe-checkout", { method: "POST",
         headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON },
         body: JSON.stringify({ action: "create_session", azienda_id: "b331365f-17db-4dda-aa2f-77a09427fe42", tipo: "tavolo", riferimento_id: id,
