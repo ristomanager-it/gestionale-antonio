@@ -503,6 +503,12 @@ function tonyFormatta(testo) {
   h = h.replace(/^#{1,4}\s?(.+)$/gm, '<div style="font-weight:700;margin:10px 0 4px;">$1</div>');
   h = h.replace(/^\s*[-•]\s+(.+)$/gm, '<div style="margin:3px 0 3px 12px;">• $1</div>');
   h = h.replace(/^\s*(\d+)[.)]\s+(.+)$/gm, '<div style="margin:5px 0 5px 6px;"><strong>$1.</strong> $2</div>');
+  // le righe di elenco sono gia' blocchi: gli a-capo attaccati a un blocco
+  // diventavano <br> in piu' e sul telefono lasciavano buchi enormi tra le voci
+  h = h.replace(/\n+(<div)/g, "$1");
+  h = h.replace(/(<\/div>)\n{2,}/g, '$1<div style="height:8px;"></div>');
+  h = h.replace(/(<\/div>)\n/g, "$1");
+  h = h.replace(/\n{3,}/g, "\n\n");
   return h.replace(/\n/g, "<br>");
 }
 
