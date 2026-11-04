@@ -425,7 +425,7 @@ footer a{color:var(--oro)}
   }
   function aggiorna(){
     sincronizza();
-    $("riga-navetta").hidden = !(viaAquila || festaCampo());
+    $("riga-navetta").hidden = !festaCampo();
     var avv = $("avviso-camere"), serve = camereNecessarie();
     if (camere < serve) {
       avv.hidden = false;
