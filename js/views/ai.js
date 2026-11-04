@@ -165,7 +165,10 @@ export async function render(app) {
     <button class="chat-chip" data-voice="ricetta">🎤 Nuova ricetta</button>
   `;
 
-  const chips = (ruolo === "admin" || ruolo === "manager") ? chipsAdmin : chipsOperatore;
+  const chipCampagne = puoCampagne() ? `<button class="chat-chip" data-campagne="1">📈 Analizza campagne</button>` : "";
+  const ruoloR = String(window.state?.ruoloRaw || ruolo).toLowerCase();
+  const chipsMarketing = chipCampagne + `<button class="chat-chip" data-prompt="Dammi suggerimenti marketing per oggi basandoti sui dati reali">📢 Marketing</button>`;
+  const chips = ruoloR === "addetto_marketing" ? chipsMarketing : (ruolo === "admin" || ruolo === "manager") ? chipCampagne + chipsAdmin : chipsOperatore;
 
   app.innerHTML = `
 <style>
