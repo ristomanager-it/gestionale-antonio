@@ -115,7 +115,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
       const id = st?.etichetta_formato && et.FORMATI_ETICHETTA[st.etichetta_formato] ? st.etichetta_formato : "62";
       const base = et.FORMATI_ETICHETTA[id];
       const png = disegna(d, f, dopo, p, base.w, base.continuo ? null : base.h);
-      if (!png) { alert("Sul rotolo montato l'etichetta non entra: monta il rotolo continuo da 62 mm."); return; }
+      if (!png) { alert("Sul rotolo montato l'etichetta non entra: accorcia i testi oppure monta un rotolo continuo."); return; }
       if (!st) { await anteprima(d, f, dopo, p); return; }
       const fmt = et.misureEtichetta(id, png.mm);
       const { error } = await sb().from("coda_stampe").insert({
