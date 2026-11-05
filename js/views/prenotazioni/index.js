@@ -363,9 +363,18 @@ export async function render(container) {
     .pren-main{
       min-width:0;
       display:flex;
+      flex-wrap:wrap;
       align-items:center;
-      gap:6px;
+      gap:2px 6px;
     }
+    /* righe sotto al nome (gruppo, lingua): a tutta larghezza, il nome non si schiaccia piu' */
+    .pren-main > div:not(.pren-name){ flex-basis:100%; }
+    /* gruppo-tavolo: un solo blocco, dentro le prenotazioni con i loro conti separati */
+    .pren-gruppo{ border:2px solid #c7d2fe; border-radius:12px; padding:6px; margin:0 0 8px; background:#eef2ff; }
+    .pren-gruppo-head{ font-size:13px; font-weight:700; color:#3730a3; padding:2px 4px 6px; }
+    .pren-gruppo .pren-row-wrap{ margin-bottom:4px; }
+    .pren-ico.euro{ font-size:15px; font-weight:800; }
+    .pren-ico.euro.ok{ color:#15803d; } .pren-ico.euro.attesa{ color:#b45309; } .pren-ico.euro.vuoto{ color:#64748b; }
 
     .pren-name{
       min-width:0;
