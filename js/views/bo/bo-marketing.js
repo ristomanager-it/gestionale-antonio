@@ -787,8 +787,9 @@ export async function render(container) {
             });
             const esitoStato = await res.json().catch(() => ({}));
             if (!esitoStato.success) alert('Meta: ' + (esitoStato.error || 'modifica non riuscita'));
-            await renderContent();
-          } catch(e) { btn.disabled = false; btn.textContent = 'Errore'; }
+            // il ricaricamento della pagina e' separato: se fallisce, la modifica su Meta e' comunque fatta
+            try { await renderContent(); } catch (_) { btn.disabled = false; btn.textContent = esitoStato.success ? (newStatus === 'ACTIVE' ? '✅ Attivata' : '⏸ In pausa') : 'Riprova'; }
+          } catch(e) { btn.disabled = false; btn.textContent = 'Riprova'; alert('Non riesco a raggiungere Meta: controlla la connessione e riprova. Ricaricando la pagina vedi lo stato vero della campagna.'); }
         });
       });
 
