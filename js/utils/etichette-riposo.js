@@ -133,7 +133,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
 
   // etichetta disegnata come immagine (300 dpi, bianco e nero) larga quanto il rotolo; altezza sul contenuto
   function disegna(d, f, dopo, p, larghezza, altezzaFissa) {
-    const DPMM = 300 / 25.4, PAD = 26, W = larghezza - PAD * 2, F = "Arial, Helvetica, sans-serif";
+    const DPMM = 300 / 25.4, PAD = 26, S = larghezza < 450 ? 0.74 : 1, W = larghezza / S - PAD * 2, F = "Arial, Helvetica, sans-serif";
     const c = document.createElement("canvas");
     const ctx = c.getContext("2d");
     const righe = (testo, font) => {
