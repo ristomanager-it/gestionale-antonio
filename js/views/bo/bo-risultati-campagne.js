@@ -72,7 +72,7 @@ export async function render(container) {
       + '<div style="font-size:22px;font-weight:800;">📈 Risultati campagne</div>'
       + '<div class="rc-nota">Spesa pubblicitaria confrontata con prenotazioni e incasso previsto. Le prenotazioni contano nel periodo in cui sono state fatte.</div>'
       + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0;">'
-      + b(7, '7 giorni') + b(30, '30 giorni') + b(90, '90 giorni')
+      + b(1, 'Oggi') + b(7, '7 giorni') + b(30, '30 giorni') + b(90, '90 giorni')
       + '<button class="rc-btn' + (pers ? ' on' : '') + '" id="rc-pers">📅 Personalizzato</button>'
       + '<button class="rc-btn" id="rc-agg" style="margin-left:auto;">↻ Aggiorna spesa</button></div>'
       + '<div id="rc-pers-box" style="display:none;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">'
