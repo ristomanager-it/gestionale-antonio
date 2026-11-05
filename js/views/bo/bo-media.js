@@ -466,6 +466,108 @@ export async function render(container) {
   dropZone.onclick = () => fileInput.click();
   document.getElementById("btn-upload-media").onclick = () => fileInput.click();
 
+  // ── GOOGLE DRIVE COLLEGATO (per azienda) ────────────────────
+  // Collega il Drive dell'azienda e sceglie le cartelle: poi drive-importa porta in galleria
+  // le foto e i video nuovi ogni ora. Visibile solo agli admin (la funzione risponde 401 agli altri).
+  initDriveBox();
+  async function initDriveBox() {
+    const box = document.getElementById("drive-box");
+    if (!box || !aziendaId) return;
+    const FN = SUPABASE_URL + "/functions/v1/";
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    const token = async () => { try { const { data } = await sc.auth.getSession(); return data?.session?.access_token || ANON_KEY; } catch (_) { return ANON_KEY; } };
+    const chiama = async (fn, payload) => {
+      const r = await fetch(FN + fn, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (await token()), apikey: ANON_KEY }, body: JSON.stringify(Object.assign({ azienda_id: aziendaId }, payload)) });
+      const j = await r.json().catch(() => ({}));
+      j._http = r.status;
+      return j;
+    };
+    const card = (html) => `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-bottom:14px;color:#0f172a;">${html}</div>`;
+    const btn = (id, testo, tipo) => `<button type="button" id="${id}" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;${tipo === "b" ? "background:#fff;color:#0f172a;border:1.5px solid #e2e8f0;" : tipo === "r" ? "background:#fff;color:#b91c1c;border:1.5px solid #fecaca;" : "background:#023C59;color:#fff;border:0;"}">${testo}</button>`;
+    let stato = null;
+
+    async function disegna() {
+      stato = await chiama("drive-cartelle", { azione: "stato" });
+      if (stato._http === 401) { box.innerHTML = ""; return; }
+      if (!stato.success) { box.innerHTML = card(`<b>📁 Google Drive</b><div style="color:#b91c1c;font-size:13px;margin-top:6px;">Non riesco a leggere il collegamento: ${esc(stato.error || "riprova")}</div>`); return; }
+      if (!stato.collegato) {
+        box.innerHTML = card(`<div style="font-weight:800;font-size:16px;">📁 Google Drive</div>
+          <div style="color:#64748b;font-size:13px;margin-top:6px;">Collega il Drive del locale: ogni ora Ristoflow prende da solo le foto e i video nuovi e li mette in galleria, già divisi per sede.</div>
+          ${btn("drv-collega", "Collega Google Drive")}
+          <div style="color:#64748b;font-size:12px;margin-top:8px;">Ristoflow può solo leggere: non cancella e non modifica nulla nel tuo Drive.</div>`);
+        document.getElementById("drv-collega").onclick = collega;
+        return;
+      }
+      const cart = stato.cartelle || [];
+      // in elenco solo le cartelle principali; il numero di file comprende le sottocartelle
+      const principali = cart.filter((c) => !cart.some((p) => p.id !== c.id && p.percorso && c.percorso && c.percorso.indexOf(p.percorso + "/") === 0));
+      const fileDi = (c) => cart.filter((x) => x.id === c.id || (x.percorso || "").indexOf((c.percorso || "") + "/") === 0).reduce((t, x) => t + (x.file || 0), 0);
+      const sottoDi = (c) => cart.filter((x) => (x.percorso || "").indexOf((c.percorso || "") + "/") === 0).length;
+      const tot = cart.reduce((t, x) => t + (x.file || 0), 0);
+      const quando = stato.ultimo_controllo ? new Date(stato.ultimo_controllo).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "non ancora";
+      const opzSedi = (sel) => `<option value="">Tutte le sedi</option>` + (stato.sedi || []).map((s) => `<option value="${esc(s.id)}"${s.id === sel ? " selected" : ""}>${esc(s.nome)}</option>`).join("");
+      box.innerHTML = card(`<div style="font-weight:800;font-size:16px;">📁 Google Drive <span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle;">● collegato</span></div>
+        <div style="color:#64748b;font-size:13px;margin-top:4px;">${esc(stato.email || "")} · ultimo controllo ${esc(quando)} · ${tot} file importati</div>
+        ${principali.length ? principali.map((c) => `<div style="border-top:1px solid #eef2f7;margin-top:10px;padding-top:10px;">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b style="font-size:14px;">${esc(c.percorso || c.nome)}</b><button type="button" class="drv-togli" data-id="${esc(c.id)}" title="Smetti di importare da questa cartella" style="background:none;border:0;color:#94a3b8;font-size:18px;cursor:pointer;">✕</button></div>
+            <div style="color:#64748b;font-size:12px;">${fileDi(c)} file${sottoDi(c) ? " · " + sottoDi(c) + " sottocartelle" : ""}</div>
+            <select class="drv-sede" data-id="${esc(c.id)}" style="margin-top:6px;width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff;">${opzSedi(c.sede_id)}</select></div>`).join("")
+          : `<div style="color:#b45309;font-size:13px;margin-top:10px;">Nessuna cartella scelta: aggiungine una per iniziare.</div>`}
+        ${btn("drv-aggiungi", "➕ Aggiungi cartella", principali.length ? "b" : "")}
+        <div id="drv-picker"></div>
+        ${btn("drv-scollega", "Scollega Drive", "r")}`);
+      box.querySelectorAll(".drv-sede").forEach((el) => el.onchange = async () => { el.disabled = true; await chiama("drive-cartelle", { azione: "sede", cartella_id: el.dataset.id, sede_id: el.value || null }); el.disabled = false; });
+      box.querySelectorAll(".drv-togli").forEach((el) => el.onclick = async () => { if (!confirm("Smetto di importare da questa cartella? Le foto già in galleria restano.")) return; await chiama("drive-cartelle", { azione: "rimuovi", cartella_id: el.dataset.id }); disegna(); });
+      document.getElementById("drv-aggiungi").onclick = () => apriPicker("root", []);
+      document.getElementById("drv-scollega").onclick = async () => { if (!confirm("Scollego il Drive? Le foto già in galleria restano.")) return; await chiama("drive-cartelle", { azione: "scollega" }); disegna(); };
+    }
+
+    async function collega() {
+      const b = document.getElementById("drv-collega");
+      b.disabled = true; b.textContent = "Apro Google…";
+      const j = await chiama("drive-oauth", { azione: "link" });
+      if (j.success && j.url) { location.href = j.url; return; }
+      b.disabled = false; b.textContent = "Collega Google Drive";
+      alert(j.error || "Non riesco ad aprire Google, riprova.");
+    }
+
+    async function apriPicker(parent, briciole) {
+      const pk = document.getElementById("drv-picker");
+      if (!pk) return;
+      pk.innerHTML = `<div style="color:#64748b;font-size:13px;margin-top:10px;">Leggo le cartelle del Drive…</div>`;
+      const j = await chiama("drive-cartelle", { azione: "elenco", parent: parent });
+      if (!j.success) { pk.innerHTML = `<div style="color:#b91c1c;font-size:13px;margin-top:10px;">${esc(j.error || "Non riesco a leggere il Drive")}</div>`; return; }
+      const sedeDef = getSedeId() || "";
+      const percorso = briciole.map((x) => x.nome).join(" / ");
+      pk.innerHTML = `<div style="border:1.5px solid #c7d2fe;background:#f5f7ff;border-radius:12px;padding:10px 12px;margin-top:10px;">
+        <div style="font-weight:700;font-size:14px;">Quale cartella porto in galleria?</div>
+        <div style="color:#64748b;font-size:12px;margin:2px 0 8px;">Le sottocartelle entrano da sole. ${percorso ? "Sei in: " + esc(percorso) : "Cartelle principali del Drive"}</div>
+        <label style="font-size:12px;color:#475569;">Sede delle foto
+          <select id="drv-pk-sede" style="width:100%;margin:4px 0 6px;padding:8px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff;"><option value="">Tutte le sedi</option>${(stato.sedi || []).map((s) => `<option value="${esc(s.id)}"${s.id === sedeDef ? " selected" : ""}>${esc(s.nome)}</option>`).join("")}</select></label>
+        ${briciole.length ? `<button type="button" id="drv-pk-su" style="background:none;border:0;color:#023C59;font-weight:700;font-size:13px;padding:4px 0;cursor:pointer;">‹ Indietro</button>` : ""}
+        ${(j.cartelle || []).length ? j.cartelle.map((c) => `<div style="display:flex;align-items:center;gap:8px;border-top:1px solid #e2e8f0;padding:9px 0;">
+            <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📁 ${esc(c.nome)}</div><div style="color:#64748b;font-size:12px;">${c.dove ? esc(c.dove) + " · " : ""}${c.sottocartelle ? c.sottocartelle + " sottocartelle" : "nessuna sottocartella"}</div></div>
+            ${c.sottocartelle ? `<button type="button" class="drv-pk-apri" data-id="${esc(c.id)}" data-nome="${esc(c.nome)}" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:7px 9px;font-size:13px;cursor:pointer;">Apri ›</button>` : ""}
+            ${c.collegata ? `<span style="color:#166534;font-size:12px;font-weight:700;">collegata</span>` : `<button type="button" class="drv-pk-ok" data-id="${esc(c.id)}" data-nome="${esc(c.nome)}" style="background:#023C59;color:#fff;border:0;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;cursor:pointer;">Collega</button>`}
+          </div>`).join("") : `<div style="color:#64748b;font-size:13px;padding:8px 0;">Nessuna cartella qui.</div>`}
+        <button type="button" id="drv-pk-chiudi" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">Chiudi</button></div>`;
+      document.getElementById("drv-pk-chiudi").onclick = () => { pk.innerHTML = ""; };
+      const su = document.getElementById("drv-pk-su");
+      if (su) su.onclick = () => { const b = briciole.slice(0, -1); apriPicker(b.length ? b[b.length - 1].id : "root", b); };
+      pk.querySelectorAll(".drv-pk-apri").forEach((el) => el.onclick = () => apriPicker(el.dataset.id, briciole.concat([{ id: el.dataset.id, nome: el.dataset.nome }])));
+      pk.querySelectorAll(".drv-pk-ok").forEach((el) => el.onclick = async () => {
+        el.disabled = true; el.textContent = "Collego…";
+        const nome = briciole.map((x) => x.nome).concat([el.dataset.nome]).join("/");
+        const r = await chiama("drive-cartelle", { azione: "aggiungi", drive_id: el.dataset.id, nome: nome, sede_id: document.getElementById("drv-pk-sede").value || null });
+        if (!r.success) { el.disabled = false; el.textContent = "Collega"; alert(r.error || "Non riuscito"); return; }
+        alert("Cartella collegata" + (r.collegate > 1 ? " con " + (r.collegate - 1) + " sottocartelle" : "") + ". Le foto entrano in galleria entro un'ora.");
+        disegna();
+      });
+    }
+
+    disegna();
+  }
+
   // ── IMPORT DA GOOGLE DRIVE ──────────────────────────────────
   const drivePanel = document.getElementById("drive-panel");
   const driveTagSel = document.getElementById("drive-tag");
