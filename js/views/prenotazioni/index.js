@@ -1038,9 +1038,80 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
       return;
     }
 
-    lista.innerHTML = prenotazioni.map(renderRow).join("");
+    // pagamenti registrati (carta, bonifico, contanti): la riga mostra la somma vera, non solo l'acconto con carta
+    state.pagamenti = {};
+    try {
+      const ids = prenotazioni.map((p) => p.id);
+      if (ids.length) {
+        const { data: pg } = await window.supabaseClient.from("prenotazioni_pagamenti")
+          .select("prenotazione_id, importo, metodo, tipo, data_pagamento").in("prenotazione_id", ids);
+        (pg || []).forEach((r) => { (state.pagamenti[r.prenotazione_id] = state.pagamenti[r.prenotazione_id] || []).push(r); });
+      }
+    } catch (_) {}
+
+    lista.innerHTML = renderLista(prenotazioni);
     attachRowEvents();
     attachSwipe();
+    lista.querySelectorAll(".pren-ico.euro").forEach((el) => {
+      el.addEventListener("click", (e) => { e.stopPropagation(); e.preventDefault(); apriConto(el.dataset.id); });
+    });
+  }
+
+  // conto di UNA prenotazione: totale, pagato (somma dei pagamenti, oppure acconto se non registrato), resto
+  function contoPren(p) {
+    const mov = (state.pagamenti && state.pagamenti[p.id]) || [];
+    const somma = mov.reduce((t, r) => t + (r.tipo === "rimborso" ? -1 : 1) * (Number(r.importo) || 0), 0);
+    const pagato = mov.length ? somma : (Number(p.acconto_importo) || 0);
+    const totale = Number(p.importo_totale) || 0;
+    return { totale: totale, pagato: pagato, resto: Math.max(totale - pagato, 0), movimenti: mov };
+  }
+
+  // gruppi-tavolo: le prenotazioni dello stesso gruppo stanno in un solo blocco, nella posizione della prima
+  function renderLista(prenotazioni) {
+    const perGruppo = {};
+    prenotazioni.forEach((p) => {
+      if (p.gruppo_tavolo && !["annullata", "rifiutata", "cancellata"].includes(String(p.stato))) (perGruppo[p.gruppo_tavolo] = perGruppo[p.gruppo_tavolo] || []).push(p);
+    });
+    const fatti = {};
+    let html = "";
+    prenotazioni.forEach((p) => {
+      const g = p.gruppo_tavolo;
+      const membri = g ? perGruppo[g] : null;
+      if (!membri || membri.length < 2 || membri.indexOf(p) === -1) { html += renderRow(p); return; }
+      if (fatti[g]) return;
+      fatti[g] = true;
+      const pers = membri.reduce((t, x) => t + (Number(x.coperti) || 0), 0);
+      html += `<div class="pren-gruppo"><div class="pren-gruppo-head">👥 ${escapeHtml(g)} · un tavolo · ${pers} persone · ${membri.length} conti</div>`
+        + membri.map((x) => renderRow(Object.assign({}, x, { _nelGruppo: true }))).join("") + `</div>`;
+    });
+    return html;
+  }
+
+  function apriConto(id) {
+    const p = (state.prenotazioni || []).find((x) => String(x.id) === String(id));
+    if (!p) return;
+    const c = contoPren(p);
+    const eur = (n) => (Number(n) || 0).toFixed(2).replace(".", ",") + " €";
+    const metodi = { carta: "Carta", bonifico: "Bonifico", contanti: "Contanti", pos: "POS" };
+    const righe = c.movimenti.length
+      ? c.movimenti.map((r) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eef2f7;"><span>${escapeHtml(metodi[r.metodo] || r.metodo || "")}${r.tipo ? " · " + escapeHtml(r.tipo) : ""}${r.data_pagamento ? " · " + escapeHtml(String(r.data_pagamento).slice(0, 10).split("-").reverse().join("/")) : ""}</span><b>${eur(r.importo)}</b></div>`).join("")
+      : (c.pagato ? `<div style="padding:6px 0;">Acconto con carta · <b>${eur(c.pagato)}</b></div>` : `<div style="padding:6px 0;color:#64748b;">Nessun pagamento registrato</div>`);
+    const attesa = p.stato_pagamento === "bonifico_in_attesa" ? `<div style="margin-top:8px;color:#b45309;font-weight:600;">⏳ Bonifico in attesa</div>` : "";
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center;";
+    ov.innerHTML = `<div style="background:#fff;color:#111827;width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));font-size:15px;">
+      <div style="font-weight:700;font-size:17px;margin-bottom:2px;">${escapeHtml(buildClientName(p))}</div>
+      <div style="color:#64748b;font-size:13px;margin-bottom:12px;">${Number(p.coperti) || 0} persone${p.gruppo_tavolo ? " · " + escapeHtml(p.gruppo_tavolo) : ""}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;text-align:center;">
+        <div style="background:#f8fafc;border-radius:10px;padding:8px;"><b>${eur(c.totale)}</b><div style="font-size:12px;color:#64748b;">totale</div></div>
+        <div style="background:#f0fdf4;border-radius:10px;padding:8px;"><b style="color:#15803d;">${eur(c.pagato)}</b><div style="font-size:12px;color:#64748b;">pagato</div></div>
+        <div style="background:#fff7ed;border-radius:10px;padding:8px;"><b style="color:#c2410c;">${eur(c.resto)}</b><div style="font-size:12px;color:#64748b;">resto</div></div>
+      </div>${righe}${attesa}
+      <button type="button" class="conto-chiudi" style="margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:#0f172a;color:#fff;font-size:15px;font-weight:600;">Chiudi</button></div>`;
+    document.body.appendChild(ov);
+    const chiudi = () => ov.remove();
+    ov.querySelector(".conto-chiudi").onclick = chiudi;
+    ov.onclick = (e) => { if (e.target === ov) chiudi(); };
   }
 
   async function loadDayStats() {
