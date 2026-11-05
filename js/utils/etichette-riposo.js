@@ -112,7 +112,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
       const et = await import("../modules/produzione/etichette-lotto.js?v=" + (window.APP_V || ""));
       const st = await et.stampanteEtichette();
       // rotolo da 62 mm (continuo o pretagliato da 62); qualsiasi altra misura salvata -> 62 continuo
-      const id = /^62/.test(String(st?.etichetta_formato || "")) && et.FORMATI_ETICHETTA[st.etichetta_formato] ? st.etichetta_formato : "62";
+      const id = st?.etichetta_formato && et.FORMATI_ETICHETTA[st.etichetta_formato] ? st.etichetta_formato : "62";
       const base = et.FORMATI_ETICHETTA[id];
       const png = disegna(d, f, dopo, p, base.w, base.continuo ? null : base.h);
       if (!png) { alert("Sul rotolo montato l'etichetta non entra: monta il rotolo continuo da 62 mm."); return; }
