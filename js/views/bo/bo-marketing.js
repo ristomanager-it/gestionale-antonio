@@ -1782,7 +1782,13 @@ DESC 2: ...`;
 
   async function renderSection() {
 
-    const content = container.querySelector("#bo-m-content")
+    // Ogni cambio scheda scrive in un riquadro nuovo: se una sezione lenta
+    // (es. Meta) finisce di caricare dopo il cambio, scrive nel vecchio riquadro
+    // staccato e non sovrascrive la sezione scelta.
+    const area = container.querySelector("#bo-m-content")
+    area.innerHTML = ""
+    const content = document.createElement("div")
+    area.appendChild(content)
 
     // voce attiva evidenziata (e, da telefono, portata in vista nella barra)
     container.querySelectorAll(".bo-m-item").forEach(x => x.classList.toggle("bo-m-sel", x.getAttribute("data-sec") === currentSection))
