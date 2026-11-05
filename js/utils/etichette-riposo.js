@@ -188,7 +188,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
     const h = altezzaFissa || Math.round(mm * DPMM);
     if (altezzaFissa && hNec * S > altezzaFissa) return null;
     c.height = h;
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, larghezza, h);
+    ctx.setTransform(S, 0, 0, S, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, larghezza / S, h / S);
     ctx.fillStyle = "#000"; ctx.strokeStyle = "#000"; ctx.textBaseline = "top";
     fai(true);
     return { url: c.toDataURL("image/png"), mm };
