@@ -186,7 +186,7 @@ export function montaRiposi(vecchiaCard, { lotto }) {
     const hNec = fai(false);
     let mm = Math.max(25, Math.ceil(hNec * S / DPMM));
     const h = altezzaFissa || Math.round(mm * DPMM);
-    if (altezzaFissa && hNec > altezzaFissa) return null;
+    if (altezzaFissa && hNec * S > altezzaFissa) return null;
     c.height = h;
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, larghezza, h);
     ctx.fillStyle = "#000"; ctx.strokeStyle = "#000"; ctx.textBaseline = "top";
