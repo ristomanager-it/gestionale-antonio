@@ -85,6 +85,9 @@ export async function render(container) {
         </div>
       </div>
 
+      <!-- Google Drive: collegamento per ogni azienda, import automatico ogni ora -->
+      <div id="drive-box"></div>
+
       <!-- Drop zone -->
       <div class="media-drop-zone" id="drop-zone">
         <div class="drop-icon">📸</div>
