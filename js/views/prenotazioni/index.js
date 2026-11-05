@@ -1519,6 +1519,13 @@ if (onlineModal.classList.contains("open")) {
           </div>
 
           <div class="pren-right">
+            ${(() => {
+              // pagamento: icona euro apribile (verde pagato, arancio bonifico atteso, grigia da pagare)
+              const c = contoPren(p);
+              if (!c.totale && !c.pagato) return "";
+              const cls = p.stato_pagamento === "bonifico_in_attesa" ? "attesa" : (c.pagato > 0 ? "ok" : "vuoto");
+              return `<span class="pren-ico euro ${cls}" data-id="${escapeAttribute(p.id)}" title="Pagamento">€</span>`;
+            })()}
             ${noteFull ? `<span class="pren-ico note" data-note="${escapeAttribute(noteFull)}">📝</span>` : ""}
 
             ${(Array.isArray(p.allegati) && p.allegati.length)
