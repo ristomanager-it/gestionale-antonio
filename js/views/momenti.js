@@ -22,6 +22,7 @@ const TXT = {
     momenti: ["Cerimonia", "Aperitivo", "Cena", "Festa"],
     storieFesta: "Le storie della festa", organizza: "Organizza qui la tua festa", orgTx: (l) => "Matrimonio, 18 anni, compleanno: chiedi una proposta", orgBtn: "Chiedi una proposta",
     recTit: "Com'è andata? Lascia una recensione", recTx: (l) => "Per noi conta tanto", recBtn: "Scrivi la recensione", tipoFesta: "Che festa?", quando: "Quando, anche indicativo", persone: "Quante persone", tuoTel: "Telefono (anche WhatsApp)", tuaMail: "Email", nota: "Qualcosa da dirci?", invia: "Invia la richiesta", grazie: "Grazie! Ti ricontattiamo a breve.", servecontatto: "Lascia un telefono o un'email.", cuori: "cuori", storieN: "storie", tipi: ["Matrimonio", "18 anni", "Compleanno", "Battesimo o comunione", "Laurea", "Cena aziendale", "Altro"],
+    bacheca: "☆ Bacheca", inBacheca: "⭐ In bacheca", bachecaTx: (l) => "Le foto con ⭐ escono sul profilo di " + l + " nella tessera fidelity.", cookie: "Usiamo i cookie per misurare le visite e migliorare il servizio del locale.", accetta: "Accetta", rifiuta: "Rifiuta",
     condividi: "Condividi", tessTit: (l) => "Prendi la tessera di " + l, tessTx: (l) => "Sconti e novità, gratis", tessBtn: "Prendi la tessera" },
   en: { caric: "One moment…", err: "This link is not valid.", chiudi: "Close", tuaStoria: "Your story", nuovoPost: "New post",
     avanti: "Share", didascalia: "Write a caption…", momento: "Moment", nessuno: "—", post: "Post", storia: "Story",
