@@ -522,8 +522,13 @@ function stile() {
   .se-caric{padding:40px;text-align:center;color:#94a3b8;}
   .se h1{font-size:22px;margin:0 0 4px;}
   .se-sub{font-size:13.5px;color:var(--muto);margin-bottom:16px;}
-  .se-tab{display:flex;gap:7px;margin-bottom:14px;}
-  .se-tab button{flex:1;border:1px solid var(--riga);background:#fff;border-radius:10px;padding:10px;
+  .se{box-sizing:border-box;width:100%;overflow-x:hidden;}
+  .se *,.se *::before,.se *::after{box-sizing:border-box;}
+  .se-form>*,.se-riga>*{min-width:0;}
+  /* le schede scorrono di lato: 5 pulsanti non devono allargare la pagina oltre lo schermo */
+  .se-tab{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;}
+  .se-tab::-webkit-scrollbar{display:none;}
+  .se-tab button{flex:0 0 auto;white-space:nowrap;border:1px solid var(--riga);background:#fff;border-radius:10px;padding:10px 14px;
     font-size:14px;font-family:inherit;color:var(--muto);cursor:pointer;}
   .se-tab button.on{background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700;}
   .se-card{background:#fff;border:1px solid var(--riga);border-radius:16px;padding:16px;margin-bottom:14px;}
