@@ -416,6 +416,31 @@ function organizza() {
 function caricaImg(url) { return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = url + (url.indexOf("?") >= 0 ? "&" : "?") + "cors=1"; }); }
 function fidLink(ev) { return location.origin + "/fidelity.html?a=" + encodeURIComponent(ev.azienda_id) + "&utm_source=momenti"; }
 
+// Consenso cookie e Pixel Meta del locale: il Pixel parte solo dopo "Accetta" (stessa scelta dei siti del locale, chiave rf_consenso)
+function consenso() {
+  let v = null; try { v = localStorage.getItem("rf_consenso"); } catch (_) {}
+  if (v === "si") return avviaPixel();
+  if (v === "no" || document.getElementById("mo-ck")) return;
+  const d = document.createElement("div"); d.id = "mo-ck"; d.className = "mo-ck";
+  d.innerHTML = `<span>${esc(TXT.cookie)}</span><div><button data-ck="no">${TXT.rifiuta}</button><button data-ck="si" class="si">${TXT.accetta}</button></div>`;
+  document.body.appendChild(d);
+  d.querySelectorAll("[data-ck]").forEach(b => b.addEventListener("click", () => {
+    try { localStorage.setItem("rf_consenso", b.dataset.ck); } catch (_) {}
+    d.remove(); if (b.dataset.ck === "si") avviaPixel();
+  }));
+}
+async function avviaPixel() {
+  if (window.__moPx) return; window.__moPx = 1;
+  try {
+    const { data: id } = await S.supabase.rpc("momenti_pixel", { p_t: S.t, p_s: S.s });
+    if (!id) return;
+    !function (f, b, e, v, n, t, s2) { if (f.fbq) return; n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments); }; if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = "2.0"; n.queue = []; t = b.createElement(e); t.async = !0; t.src = v; s2 = b.getElementsByTagName(e)[0]; s2.parentNode.insertBefore(t, s2); }(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+    fbq("init", String(id)); fbq("track", "PageView");
+    px("Momenti_Visita", { evento: F?.evento?.tipo || "", ruolo: F?.io?.sposi ? "sposi" : "invitato" });
+  } catch (_) {}
+}
+function px(nome, dati) { try { if (window.fbq) fbq("trackCustom", nome, dati || {}); } catch (_) {} }
+
 // ---------- utilita' ----------
 function overlay(html, scuro) {
   const ov = document.createElement("div"); ov.className = "mo-ov" + (scuro ? " scuro" : "");
