@@ -171,9 +171,11 @@ export async function render(container) {
     else {
       h += '<div class="rc-card">'
         + cl.map((x) => {
-          const nome = x.link === 'annunci senza link tracciato'
-            ? ((x.ads || []).map((a) => a.nome).filter(Boolean).slice(0, 2).join(', ') || 'annunci senza link')
-            : x.link;
+          // nome vero della campagna (come su Meta/Google) al posto della sigla tecnica del link (es. wedding-us)
+          const nomiAds = [...new Set((x.ads || []).map((a) => a.nome).filter(Boolean))];
+          const nome = nomiAds.length
+            ? nomiAds.slice(0, 2).join(', ') + (nomiAds.length > 2 ? ' +' + (nomiAds.length - 2) : '')
+            : (x.link === 'annunci senza link tracciato' ? 'annunci senza link' : x.link);
           const p = perc(x.spesa, x.previsto);
           return '<div class="rc-r"><div class="rc-r-top"><span class="rc-r-nome">' + esc(nome) + '</span>' + azione(x.spesa, x.previsto) + '</div>'
             + '<div class="rc-r-sub">' + esc(x.evento) + ' · ' + dove(x) + '</div>'
