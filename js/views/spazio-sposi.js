@@ -44,7 +44,7 @@ function disegna(container, supabase) {
   const t = D.tema || {};
   const c = D.conteggi || {};
   const linguette = [["invitati","Invitati"],["tavoli","Tavoli"],["dafare","Da fare"],["fornitori","Fornitori"],
-                     ["ricevimento","Ricevimento"],["idee","Idee"],["pagina","La pagina"]];
+                     ["ricevimento","Ricevimento"],["idee","Idee"],["momenti","📸 Momenti"],["pagina","La pagina"]];
 
   container.innerHTML = guscio(`
     <div class="sp-foglio">
