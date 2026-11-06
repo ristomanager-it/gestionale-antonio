@@ -242,7 +242,8 @@ function storieDa(tutte, i) {
     const st = tutte[s]; if (!st) return chiudi(ov);
     const voce = st.voci[v]; if (!voce) { s++; v = 0; return mostra(); }
     ov.querySelector(".bars").innerHTML = st.voci.map((_, k) => `<i class="${k < v ? "on" : k === v ? "va" : ""}"></i>`).join("");
-    ov.querySelector(".sh").innerHTML = `<div class="av">${iniz(st.nome)}</div>${esc(st.da_sposi ? RU() : st.nome)} · ${fa(voce.il)}`;
+    const chi = voce.chi || (st.da_sposi ? RU() : st.nome);
+    ov.querySelector(".sh").innerHTML = `<div class="av">${iniz(chi)}</div>${esc(st.festa ? st.nome + " · " + chi : chi)} · ${fa(voce.il)}`;
     const m = voce.media?.[0];
     ov.querySelector(".med").innerHTML = m?.tipo === "video" ? `<video src="${esc(m.url)}" autoplay playsinline></video>` : `<img src="${esc(m?.url || "")}" alt="">`;
     ov.querySelector(".tx").textContent = voce.testo || "";
