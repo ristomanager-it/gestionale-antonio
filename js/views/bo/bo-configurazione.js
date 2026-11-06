@@ -2726,6 +2726,12 @@ export async function render(container) {
             <div class="id-desc">Lo trovi in OpenAI Ads Manager → Conversioni. Parte solo se il visitatore accetta i cookie.</div>
             <input id="id-openai-pixel" class="id-input" placeholder="Es. QPyFkFi1FxZmWzcJdbUQxf" value="${val('openai_pixel_id')}">
           </div>
+          <div style="margin-bottom:14px;">
+            <span class="id-label">🎥 Microsoft Clarity — sigla del progetto</span>
+            <div class="id-desc">Registrazioni delle visite e mappe di calore del tuo sito. Su clarity.microsoft.com → il tuo progetto → Impostazioni → Panoramica → "ID progetto". Parte solo se il visitatore accetta i cookie.</div>
+            <input id="id-clarity" class="id-input" placeholder="Es. z8d7xo4996" value="${val('clarity_id')}">
+            <div id="id-clarity-esito" style="font-size:12px;margin-top:6px;"></div>
+          </div>
           <div>
             <span class="id-label">🏷️ Google Tag Manager ID</span>
             <div class="id-desc">Trovi il Container ID in GTM → Admin. Formato GTM-XXXXXXX</div>
