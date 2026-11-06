@@ -2842,6 +2842,18 @@ export async function render(container) {
     box.querySelector('#btn-salva-identita').addEventListener('click', async () => {
       const esito = box.querySelector('#id-esito');
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
+      // Clarity: accetta anche il link intero del progetto, salva solo la sigla
+      const clEl = box.querySelector('#id-clarity'), clEs = box.querySelector('#id-clarity-esito');
+      let clarityId = (clEl?.value || '').trim();
+      const clLink = clarityId.match(/projects\/view\/([a-z0-9]+)/i);
+      if (clLink) clarityId = clLink[1];
+      clarityId = clarityId.toLowerCase();
+      if (clarityId && !/^[a-z0-9]{6,16}$/.test(clarityId)) {
+        if (clEs) { clEs.textContent = 'La sigla è fatta di lettere minuscole e numeri, es. z8d7xo4996'; clEs.style.color = '#b91c1c'; }
+        esito.textContent = '❌ Controlla la sigla Clarity'; esito.style.color = '#dc2626'; return;
+      }
+      if (clEl) clEl.value = clarityId;
+      if (clEs) { clEs.textContent = clarityId ? (clLink ? '✓ Ho preso la sigla dal link: ' + clarityId : '✓ Sigla valida') : ''; clEs.style.color = '#15803d'; }
       const { error } = await supa().from('azienda_identita').upsert({
         azienda_id: aziendaId,
         vision: box.querySelector('#id-vision').value.trim() || null,
