@@ -119,7 +119,8 @@ export async function render(container) {
       aggregato[cat.id].n++;
     };
 
-    (fatture || []).forEach(f => aggiungi(f.categorie_bilancio, f.imponibile || f.totale || 0));
+    // costi sempre IVA esclusa: se manca l'imponibile si scorpora dal totale con l'aliquota della fattura
+    (fatture || []).forEach(f => aggiungi(f.categorie_bilancio, f.imponibile != null ? Number(f.imponibile) : (Number(f.totale || 0) - Number(f.iva || 0)) || Number(f.totale || 0) / (1 + (Number(f.aliquota_iva) || 22) / 100)));
     (movimenti || []).forEach(m => aggiungi(m.categorie_bilancio, (m.quantita || 0) * (m.costo || 0)));
     (speseExtra || []).forEach(s => aggiungi(s.categorie_bilancio, s.importo || 0));
 
