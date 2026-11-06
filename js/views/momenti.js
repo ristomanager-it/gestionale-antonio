@@ -409,7 +409,7 @@ function organizza() {
     if (!v("#of-t") && !v("#of-e")) { es.textContent = TXT.servecontatto; return; }
     const go = ov.querySelector("#of-go"); go.disabled = true;
     const { data } = await S.supabase.rpc("momenti_richiesta", Object.assign({}, A, { p_dati: { nome: F.io?.nome || A.p_nome, tipo, quando: v("#of-q"), persone: v("#of-p"), telefono: v("#of-t"), email: v("#of-e"), messaggio: v("#of-m"), lingua: L } }));
-    if (data?.ok) { ov.querySelector(".mo-form").innerHTML = `<div class="mo-vuoto">🎉<br>${esc(TXT.grazie)}</div>`; setTimeout(() => chiudi(ov), 2500); }
+    if (data?.ok) { try { if (window.fbq) fbq("track", "Lead"); } catch (_) {} px("Momenti_Organizza", { tipo: tipo || "" }); ov.querySelector(".mo-form").innerHTML = `<div class="mo-vuoto">🎉<br>${esc(TXT.grazie)}</div>`; setTimeout(() => chiudi(ov), 2500); }
     else { go.disabled = false; es.textContent = "⚠️ " + (data?.errore || TXT.err); }
   });
 }
