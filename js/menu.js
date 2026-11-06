@@ -441,6 +441,7 @@ export function initMenu() {
         { label: "📑 Preventivi",        route: "preventivi"         },
         { label: "🌍 Richieste dal sito", route: "richieste-sito"   },
         { label: "🍽 Modelli di menu",    route: "menu-tipo"        },
+        { label: "🌐 Preventivo online",  route: "preventivo-online" },
         { label: "🏛️ Location",          route: "bo-location-ricevimenti" },
         { label: "🎪 Servizi e personale", route: "servizi-eventi"    },
         { label: "🍽 Isole del buffet",    route: "isole-buffet"      },
