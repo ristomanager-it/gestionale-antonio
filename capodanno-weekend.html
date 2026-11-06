@@ -527,7 +527,7 @@ footer a{color:var(--oro)}
       azienda_id: "b331365f-17db-4dda-aa2f-77a09427fe42", sede_id: cen.sede_id,
       cliente_nome: (nome + " " + cognome).trim(), cliente_telefono: tel, cliente_email: email,
       data: "2026-12-31", ora: "20:00", coperti: persone, bambini: grandi(), promo: promoAttiva,
-      notti: notti(), camere: camere, camere_sede: dorme, transfer: !!((viaAquila || festaCampo()) && $("navetta").checked), pranzo_primo: t.pranzo ? persone : 0, importo_totale: t.totale,
+      notti: notti(), camere: camere, camere_sede: dorme, transfer: !!(viaAquila || (festaCampo() && $("navetta").checked)), pranzo_primo: t.pranzo ? persone : 0, importo_totale: t.totale,
       stato: "in_attesa_pagamento", canale: "online", note: ((camere > 1 || extraTotali() ? "[Camere: " + riepilogoStanze() + "] " : "") + (bimbi ? "[Età bambini: " + eta.join(", ") + "] " : "") + note).trim() || null, richieste_speciali: note || null,
       token_pubblico: token, tag: cen.slug, source: UTM.utm_source || "weekend",
       riferimento: JSON.stringify({ landing: S.slug + "-weekend", adulti: adulti, bambini: bimbi, eta_bambini: eta, stanze: stanze, notti: notti(), camere: camere, totale: t.totale,
