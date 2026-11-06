@@ -1079,6 +1079,15 @@ function seguiCampagna(testo) {
   return t.length <= 60 || (t.length <= 500 && /euro|budget|giorn|settiman|chilomet|\bkm\b|parti|inizi|domani|dopodomani|luned|marted|mercoled|gioved|venerd|sabato|domenica|cena|pranzo|foto|testo|titolo|annunci|\bmeta\b|google|conferm|accend|spegn|pausa|raggio|target|piatto|motivazion/i.test(t));
 }
 
+// analisi e campagne avanzate (concorrenti, budget, spesa, pubblici, richiamo, estero) vanno al secondo specialista: tony-campagne-pro
+const PRO_RE = /concorrent|dove spend|quanto (ho )?spes|spesa|spendo|costa(no)? (di piu|troppo)|analizz|andament|come (stanno|vanno) andando|rend(e|ono)\b|clic|budget|pubblic[oi] (di|per|google|interess)|interess|segment|richiam|retarget|estero|stranier|lingu|paesi|demand gen|maps/;
+const BASE_RE = /landing|piatto|coupon|\bpromo\b|menu business nuov|compleann|crea (una )?campagna (per|di) (il|la|un)/;
+let tonyProMode = false;
+function isProIntent(text) {
+  const t = (text || "").toLowerCase();
+  if (BASE_RE.test(t)) return false;
+  return PRO_RE.test(t);
+}
 function isMetaIntent(text) {
   const t = " " + (text || "").toLowerCase() + " ";
   return META_KEYWORDS.some(k => t.includes(k));
