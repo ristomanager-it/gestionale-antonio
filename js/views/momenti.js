@@ -380,6 +380,31 @@ async function condividi(id) {
     const a = document.createElement("a"); a.href = file ? URL.createObjectURL(file) : m.url; a.download = "momenti.jpg"; a.target = "_blank"; document.body.appendChild(a); a.click(); a.remove();
   } catch (e) { if (e && e.name !== "AbortError") console.error(e); }
 }
+// "Organizza qui la tua festa": la richiesta arriva nelle Richieste dal sito del locale (fonte momenti)
+function organizza() {
+  const ev = F.evento || {};
+  const ov = overlay(`<div class="mo-sheet alto"><div class="mo-sh-h"><span data-x>✕</span><b>${esc(TXT.organizza)}</b><span></span></div>
+    <div class="mo-form">
+      <label>${TXT.tipoFesta}</label><div class="mo-mom">${TXT.tipi.map(t => `<button data-tp="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+      <label>${TXT.quando}</label><input id="of-q" maxlength="60">
+      <label>${TXT.persone}</label><input id="of-p" inputmode="numeric" maxlength="4">
+      <label>${TXT.tuoTel}</label><input id="of-t" type="tel" maxlength="30" autocomplete="tel">
+      <label>${TXT.tuaMail}</label><input id="of-e" type="email" maxlength="120" autocomplete="email">
+      <label>${TXT.nota}</label><textarea id="of-m" rows="3" maxlength="1000"></textarea>
+      <button class="mo-pb" id="of-go" style="margin-top:12px">${TXT.invia}</button><div class="mo-es" id="of-es"></div>
+    </div></div>`);
+  let tipo = null;
+  ov.querySelectorAll("[data-tp]").forEach(b => b.addEventListener("click", () => { tipo = b.dataset.tp; ov.querySelectorAll("[data-tp]").forEach(x => x.classList.toggle("on", x === b)); }));
+  ov.querySelector("#of-go").addEventListener("click", async () => {
+    const v = (id) => (ov.querySelector(id).value || "").trim();
+    const es = ov.querySelector("#of-es");
+    if (!v("#of-t") && !v("#of-e")) { es.textContent = TXT.servecontatto; return; }
+    const go = ov.querySelector("#of-go"); go.disabled = true;
+    const { data } = await S.supabase.rpc("momenti_richiesta", Object.assign({}, A, { p_dati: { nome: F.io?.nome || A.p_nome, tipo, quando: v("#of-q"), persone: v("#of-p"), telefono: v("#of-t"), email: v("#of-e"), messaggio: v("#of-m"), lingua: L } }));
+    if (data?.ok) { ov.querySelector(".mo-form").innerHTML = `<div class="mo-vuoto">🎉<br>${esc(TXT.grazie)}</div>`; setTimeout(() => chiudi(ov), 2500); }
+    else { go.disabled = false; es.textContent = "⚠️ " + (data?.errore || TXT.err); }
+  });
+}
 function caricaImg(url) { return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = url + (url.indexOf("?") >= 0 ? "&" : "?") + "cors=1"; }); }
 function fidLink(ev) { return location.origin + "/fidelity.html?a=" + encodeURIComponent(ev.azienda_id) + "&utm_source=momenti"; }
 
