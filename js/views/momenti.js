@@ -6,6 +6,7 @@
 
 const SUPA_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
 let S = null, A = null, F = null, vista = "home", filtroMomento = null, timer = null;
+const RU = () => (F?.evento?.ruolo === "Festeggiato" ? (L === "it" ? "Festeggiato" : "Host") : (L === "it" ? "Sposi" : "The couple"));
 
 const L = (navigator.language || "it").slice(0, 2) === "it" ? "it" : "en";
 const TXT = {
