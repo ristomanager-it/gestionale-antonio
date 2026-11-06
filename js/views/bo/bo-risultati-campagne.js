@@ -178,7 +178,7 @@ export async function render(container) {
             : (x.link === 'annunci senza link tracciato' ? 'annunci senza link' : x.link);
           const p = perc(x.spesa, x.previsto);
           return '<div class="rc-r"><div class="rc-r-top"><span class="rc-r-nome">' + esc(nome) + '</span>' + azione(x.spesa, x.previsto) + '</div>'
-            + '<div class="rc-r-sub">' + esc(x.evento) + ' · ' + dove(x) + '</div>'
+            + '<div class="rc-r-sub">' + esc(x.evento) + ' · ' + dove(x) + (nomiAds.length && x.link && x.link !== 'annunci senza link tracciato' ? ' · <span style="opacity:.6">' + esc(x.link) + '</span>' : '') + '</div>'
             + '<div class="rc-r-num"><span>Spesa <b>' + eur(x.spesa) + '</b></span><span>Pren. <b>' + n0(x.prenotazioni) + '</b></span>'
             + '<span>Previsto <b>' + eur(x.previsto) + '</b></span><span style="color:' + colP(p) + ';font-weight:800;">' + fmtP(p) + '</span></div></div>';
         }).join('')
