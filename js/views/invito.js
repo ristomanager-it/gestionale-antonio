@@ -41,6 +41,7 @@ export async function render(container) {
       </div>
 
       <div class="iv-corpo">
+        <a class="iv-mo" href="#/momenti?t=${encodeURIComponent(token)}${guest ? "&g=" + encodeURIComponent(guest) : ""}"><b>📸 Momenti</b><span>Le foto e le storie dell'evento, di tutti gli invitati</span><i>›</i></a>
         ${d.testo_invito ? `<p class="iv-intro">${esc(d.testo_invito)}</p>` : ""}
 
         ${attiva("come_arrivare") ? `
