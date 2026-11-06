@@ -96,7 +96,11 @@ function disegna() {
       </div>
       ${ev.passato && ev.azienda_id && !io.sposi ? `<a class="mo-tess" href="${esc(fidLink(ev))}" target="_blank" rel="noopener">
           <div class="lg" style="${ev.logo ? "background-image:url('" + esc(ev.logo) + "')" : ""}"></div>
-          <div class="tx"><b>${esc(TXT.tessTit(ev.locale))}</b><span>${esc(TXT.tessTx(ev.locale || ""))}</span></div><i>${TXT.tessBtn} ›</i></a>` : ""}
+          <div class="tx"><b>${esc(TXT.tessTit(ev.locale))}</b><span>${esc(TXT.tessTx(ev.locale || ""))}</span></div><i>›</i></a>` : ""}
+      ${ev.dopo && ev.recensione && !io.sposi ? `<a class="mo-tess chiaro" href="${esc(ev.recensione)}" target="_blank" rel="noopener">
+          <div class="lg ico">★</div><div class="tx"><b>${esc(TXT.recTit)}</b><span>${esc(TXT.recTx(ev.locale || ""))}</span></div><i>›</i></a>` : ""}
+      ${ev.passato && ev.azienda_id && !io.sposi ? `<div class="mo-tess org" data-organizza>
+          <div class="lg ico">🎉</div><div class="tx"><b>${esc(TXT.organizza)}</b><span>${esc(TXT.orgTx(ev.locale || ""))}</span></div><i>›</i></div>` : ""}
       ${posts.length ? posts.map(postHtml).join("") : `<div class="mo-vuoto">${TXT.vuoto}</div>`}`;
   } else if (vista === "profilo") {
     const momenti = TXT.momenti;
