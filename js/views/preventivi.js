@@ -37,6 +37,7 @@ export async function render(app) {
 
   // Carichiamo i preventivi
   await loadPreventivi();
+  richiesteDalSito();
 
   // Aggiungi evento di ricerca
   const searchInput = document.getElementById("search-preventivi");
