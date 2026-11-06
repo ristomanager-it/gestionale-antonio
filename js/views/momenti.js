@@ -112,9 +112,24 @@ function disegna() {
           <div><b>${ev.data ? esc(String(ev.data).slice(8, 10) + "." + String(ev.data).slice(5, 7)) : "—"}</b><span>${ev.data ? esc(String(ev.data).slice(0, 4)) : ""}</span></div></div></div>
         <div class="mo-bio"><b>${esc(ev.titolo || "")}</b></div>
         <button class="mo-pb" data-nuovo="post" style="margin-top:12px">📷 ${TXT.nuovoPost}</button>
-        <div class="mo-hl">${momenti.map(m => `<div data-mom="${esc(m)}" class="${filtroMomento === m ? "on" : ""}"><i style="${bg((F.post || []).find(p => p.momento === m)?.media?.[0])}"></i>${esc(m)}</div>`).join("")}</div>
+        <div class="mo-hl">${(F.storie_tutte || []).length ? `<div data-tutte><i class="anello" style="${bg((F.storie_tutte || [])[0]?.media?.[0])}"></i>${esc(TXT.storieFesta)}</div>` : ""}${momenti.map(m => `<div data-mom="${esc(m)}" class="${filtroMomento === m ? "on" : ""}"><i style="${bg((F.post || []).find(p => p.momento === m)?.media?.[0])}"></i>${esc(m)}</div>`).join("")}</div>
       </div>
       <div class="mo-grid">${posts.map(p => `<div data-apri="${p.id}" style="${bg(p.media?.[0])}">${(p.media || []).length > 1 ? "<i>❐</i>" : ""}${p.media?.[0]?.tipo === "video" ? "<i>▶</i>" : ""}</div>`).join("")}</div>`;
+  } else if (vista === "persona" && persona) {
+    const suoi = (F.post || []).filter(p => p.autore === persona);
+    const sueSt = (F.storie_tutte || []).filter(x => x.autore === persona);
+    const nome = (suoi[0] || sueSt[0] || {}).nome || "";
+    const sposi = (suoi[0] || sueSt[0] || {}).da_sposi;
+    const cuori = suoi.reduce((t, p) => t + Number(p.like_n || 0), 0);
+    corpo = `
+      <div class="mo-pro">
+        <div class="mo-prow"><div class="mo-big">${iniz(nome)}</div>
+          <div class="mo-nums"><div><b>${suoi.length}</b><span>${TXT.post.toLowerCase()}</span></div>
+          <div><b>${sueSt.length}</b><span>${TXT.storieN}</span></div><div><b>${cuori}</b><span>${TXT.cuori}</span></div></div></div>
+        <div class="mo-bio"><b>${esc(sposi ? RU() : nome)}</b><br><span style="color:var(--m)">${esc(ev.titolo || "")}</span></div>
+        ${sueSt.length ? `<div class="mo-hl"><div data-sue><i class="anello" style="${bg(sueSt[0]?.media?.[0])}"></i>${esc(TXT.storieN)}</div></div>` : ""}
+      </div>
+      <div class="mo-grid">${suoi.map(p => `<div data-apri="${p.id}" style="${bg(p.media?.[0])}">${(p.media || []).length > 1 ? "<i>❐</i>" : ""}${p.media?.[0]?.tipo === "video" ? "<i>▶</i>" : ""}</div>`).join("")}</div>`;
   } else if (vista === "gestione") {
     corpo = `<div id="mo-gest" class="mo-pro">${TXT.caric}</div>`;
   }
