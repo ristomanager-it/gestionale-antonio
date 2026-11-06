@@ -517,6 +517,9 @@ function guscio(dentro) {
   .mo-tess .lg.ico{display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(255,255,255,.9);color:#b08d57}
   .mo-hl i.anello{border:2px solid transparent;background-clip:padding-box;box-shadow:0 0 0 2px #ee2a7b}
   .mo-post .h{cursor:pointer}
+  .pill.star{background:#fff7e0;color:#8a6d1d}.pill.star.on{background:#f5c542;color:#3b2a00}
+  .mo-ck{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));width:calc(100% - 20px);max-width:450px;z-index:40;background:#fff;color:#111;border:1px solid #ddd;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:12.5px;line-height:1.35}
+  .mo-ck span{flex:1}.mo-ck div{display:flex;gap:6px}.mo-ck button{border:0;border-radius:8px;padding:8px 10px;font-weight:700;font-size:12.5px;background:#eee;color:#111}.mo-ck button.si{background:#0095f6;color:#fff}
   .mo-form label{display:block;font-size:13px;color:var(--m);margin:10px 0 4px}
   .mo-form input,.mo-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--b);background:var(--bg);color:var(--t);border-radius:8px;padding:10px;font-size:15px;font-family:inherit}
   .mo-tab{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:470px;display:flex;justify-content:space-around;background:var(--app);border-top:1px solid var(--b);
