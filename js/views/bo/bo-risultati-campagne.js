@@ -69,6 +69,7 @@ export async function render(container) {
     const iv = periodo();
     const b = (g, l) => '<button class="rc-btn' + (!pers && giorni === g ? ' on' : '') + '" data-g="' + g + '">' + l + '</button>';
     container.innerHTML = css + '<div class="rc">'
+      + '<a href="#/bo-marketing" style="display:inline-block;margin:0 0 10px;padding:7px 12px;border-radius:10px;background:#f1f5f9;color:#0f172a;font-weight:700;font-size:14px;text-decoration:none;">← Marketing</a>'
       + '<div style="font-size:22px;font-weight:800;">📈 Risultati campagne</div>'
       + '<div class="rc-nota">Spesa pubblicitaria confrontata con prenotazioni e incasso previsto. Le prenotazioni contano nel periodo in cui sono state fatte.</div>'
       + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0;">'
