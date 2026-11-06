@@ -324,7 +324,8 @@ const PUBLIC_ROUTES = new Set([
   "preventivo",
   "pagamento",
   "invito",
-  "spazio"
+  "spazio",
+  "momenti"
 ]);
 
 const PLATFORM_ROUTES = new Set([
