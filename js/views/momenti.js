@@ -153,6 +153,7 @@ function aggancia() {
   c.querySelectorAll("[data-storia]").forEach(b => b.addEventListener("click", () => storie(Number(b.dataset.storia))));
   c.querySelectorAll("[data-like]").forEach(b => b.addEventListener("click", () => like(b.dataset.like)));
   c.querySelectorAll("[data-comm]").forEach(b => b.addEventListener("click", () => commenti(b.dataset.comm)));
+  c.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", () => condividi(b.dataset.share)));
   c.querySelectorAll("[data-mom]").forEach(b => b.addEventListener("click", () => { filtroMomento = filtroMomento === b.dataset.mom ? null : b.dataset.mom; disegna(); }));
   c.querySelectorAll("[data-apri]").forEach(b => b.addEventListener("click", () => {
     vista = "home"; disegna(); const el = S.container.querySelector(`[data-post="${b.dataset.apri}"]`); if (el) el.scrollIntoView();
