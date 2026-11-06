@@ -307,6 +307,13 @@ function disegna(container, supabase) {
       <div class="sott" style="margin-top:16px;">Per aggiungere o cambiare qualcosa, scriveteci: vi rispondiamo con il prezzo aggiornato.</div>`;
     }
 
+    if (sez === "momenti") return `
+      <h2>Momenti</h2>
+      <div class="sott">Il vostro social privato: gli invitati caricano foto e storie, mettono cuori e commentano. Lo vedono solo i vostri invitati.</div>
+      <a class="sp-btn" style="display:block;text-align:center;text-decoration:none;margin-top:12px;" href="#/momenti?s=${encodeURIComponent(token)}">📸 Apri Momenti</a>
+      <div class="sott" style="margin-top:12px;">Da lì, nella rotella ⚙︎, potete nascondere un post, decidere se vedere le foto prima che escano, scaricare tutte le foto e stampare il QR per i tavoli.</div>
+      <div class="sott" style="margin-top:8px;">Ogni invitato trova Momenti in cima al suo invito personale.</div>`;
+
     if (sez === "idee") return `
       <h2>Le foto che vi piacciono</h2>
       <div class="sott">Torta, fiori, allestimenti: caricate quello che avete in mente.</div>
