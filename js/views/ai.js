@@ -1090,7 +1090,7 @@ function isProIntent(text) {
 }
 function isMetaIntent(text) {
   const t = " " + (text || "").toLowerCase() + " ";
-  return META_KEYWORDS.some(k => t.includes(k));
+  return META_KEYWORDS.some(k => t.includes(k)) || isProIntent(text);
 }
 
 async function callTonyMeta(messages) {
