@@ -302,6 +302,8 @@ function guscio(dentro, tema) {
     background:${tema?.immagine
       ? `linear-gradient(180deg,rgba(0,0,0,.42),rgba(0,0,0,.66)), url('${tema.immagine}') center/cover`
       : `linear-gradient(160deg,${c1},${c2})`};}
+  .iv-mo{display:flex;align-items:center;gap:10px;margin:0 0 18px;padding:13px 14px;border-radius:14px;text-decoration:none;color:#fff;background:linear-gradient(120deg,#f9ce34,#ee2a7b 45%,#6228d7);box-shadow:0 6px 18px rgba(98,40,215,.25);}
+  .iv-mo b{font-size:15px;white-space:nowrap}.iv-mo span{flex:1;font-size:12.5px;opacity:.95;line-height:1.3}.iv-mo i{font-style:normal;font-size:22px}
   .iv-oc{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.9;font-weight:700;}
   .iv-testa h1{font-family:Georgia,serif;font-size:30px;margin:10px 0 6px;font-weight:normal;line-height:1.2;}
   .iv-q{font-size:15px;opacity:.95;}
