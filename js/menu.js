@@ -365,6 +365,7 @@ export function initMenu() {
         title: "🎪 EVENTI",
         items: [
           { label: "📑 Preventivi", route: "preventivi" },
+          { label: "🌍 Richieste dal sito", route: "richieste-sito" },
           { label: "🏛️ Location",   route: "bo-location-ricevimenti" },
         ]
       }];
