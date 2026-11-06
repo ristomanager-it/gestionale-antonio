@@ -1435,6 +1435,7 @@ export async function render(container) {
       ga4Id = String(ident?.ga4_id || "").replace(/[^A-Za-z0-9-]/g, "");
       adsId = String(ident?.gads_id || "").replace(/[^A-Za-z0-9-]/g, "");
       openaiPixelId = String(ident?.openai_pixel_id || "").replace(/[^A-Za-z0-9_-]/g, "");
+      clarityId = String(ident?.clarity_id || "").replace(/[^a-z0-9]/g, "");
       privacyUrl = /^https?:\/\//i.test(String(ident?.privacy_url || "").trim()) ? String(ident.privacy_url).trim() : "";
     } catch (e) { /* senza ID il sito non carica niente */ }
     const consensoScript = (metaPixelId || gtmId || ga4Id || adsId || openaiPixelId) ? `<script>(function(){
