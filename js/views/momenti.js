@@ -129,7 +129,7 @@ function postHtml(p) {
   const media = p.media || [];
   return `
     <div class="mo-post" data-post="${p.id}">
-      <div class="h"><div class="av">${iniz(p.nome)}</div><div><b>${esc(p.da_sposi ? "Sposi" : p.nome)}</b>${p.momento ? `<span>${esc(p.momento)}</span>` : ""}</div></div>
+      <div class="h"><div class="av">${iniz(p.nome)}</div><div><b>${esc(p.da_sposi ? RU() : p.nome)}</b>${p.momento ? `<span>${esc(p.momento)}</span>` : ""}</div></div>
       <div class="mo-car" data-dbl="${p.id}">
         ${media.map(m => m.tipo === "video"
           ? `<video src="${esc(m.url)}" playsinline controls preload="metadata"></video>`
