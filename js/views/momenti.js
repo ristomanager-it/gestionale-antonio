@@ -177,6 +177,10 @@ function aggancia() {
   c.querySelectorAll("[data-like]").forEach(b => b.addEventListener("click", () => like(b.dataset.like)));
   c.querySelectorAll("[data-comm]").forEach(b => b.addEventListener("click", () => commenti(b.dataset.comm)));
   c.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", () => condividi(b.dataset.share)));
+  c.querySelectorAll("[data-persona]").forEach(b => b.addEventListener("click", () => { if (!b.dataset.persona) return; persona = b.dataset.persona; vista = "persona"; disegna(); window.scrollTo(0, 0); }));
+  c.querySelectorAll("[data-tutte]").forEach(b => b.addEventListener("click", () => storieDa([{ nome: TXT.storieFesta, festa: true, voci: (F.storie_tutte || []).map(x => ({ media: x.media, testo: x.testo, il: x.il, chi: x.da_sposi ? RU() : x.nome })) }], 0)));
+  c.querySelectorAll("[data-sue]").forEach(b => b.addEventListener("click", () => { const v = (F.storie_tutte || []).filter(x => x.autore === persona); if (v.length) storieDa([{ nome: v[0].da_sposi ? RU() : v[0].nome, voci: v }], 0); }));
+  c.querySelectorAll("[data-organizza]").forEach(b => b.addEventListener("click", organizza));
   c.querySelectorAll("[data-mom]").forEach(b => b.addEventListener("click", () => { filtroMomento = filtroMomento === b.dataset.mom ? null : b.dataset.mom; disegna(); }));
   c.querySelectorAll("[data-apri]").forEach(b => b.addEventListener("click", () => {
     vista = "home"; disegna(); const el = S.container.querySelector(`[data-post="${b.dataset.apri}"]`); if (el) el.scrollIntoView();
