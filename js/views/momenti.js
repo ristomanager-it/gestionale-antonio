@@ -88,8 +88,11 @@ function disegna() {
         <div class="mo-st" data-nuovo="storia"><div class="mo-ring add"><div class="in">＋</div></div><span>${TXT.tuaStoria}</span></div>
         ${(F.storie || []).map((st, i) => `
           <div class="mo-st" data-storia="${i}"><div class="mo-ring"><div class="in" style="${bg(st.voci?.[st.voci.length - 1]?.media?.[0])}">${st.voci?.[0]?.media?.[0] ? "" : iniz(st.nome)}</div></div>
-          <span>${esc(st.da_sposi ? "Sposi" : primo(st.nome))}</span></div>`).join("")}
+          <span>${esc(st.da_sposi ? RU() : primo(st.nome))}</span></div>`).join("")}
       </div>
+      ${ev.passato && ev.azienda_id && !io.sposi ? `<a class="mo-tess" href="${esc(fidLink(ev))}" target="_blank" rel="noopener">
+          <div class="lg" style="${ev.logo ? "background-image:url('" + esc(ev.logo) + "')" : ""}"></div>
+          <div class="tx"><b>${esc(TXT.tessTit(ev.locale))}</b><span>${esc(TXT.tessTx(ev.locale || ""))}</span></div><i>${TXT.tessBtn} ›</i></a>` : ""}
       ${posts.length ? posts.map(postHtml).join("") : `<div class="mo-vuoto">${TXT.vuoto}</div>`}`;
   } else if (vista === "profilo") {
     const momenti = TXT.momenti;
