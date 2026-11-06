@@ -439,7 +439,7 @@ export function initMenu() {
       items: [
         { label: "📑 Preventivi",        route: "preventivi"         },
         { label: "🌍 Richieste dal sito", route: "richieste-sito"   },
-        { label: "🍽 Menu tipo",          route: "menu-tipo"        },
+        { label: "🍽 Modelli di menu",    route: "menu-tipo"        },
         { label: "🏛️ Location",          route: "bo-location-ricevimenti" },
         { label: "🎪 Servizi e personale", route: "servizi-eventi"    },
         { label: "🍽 Isole del buffet",    route: "isole-buffet"      },
