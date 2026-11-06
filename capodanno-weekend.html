@@ -470,7 +470,7 @@ footer a{color:var(--oro)}
     supa.rpc("capodanno_aquila_tipi_liberi")
   ]).then(function(r){
     TIPI_AQ = Array.isArray(r[2] && r[2].data) ? r[2].data.map(function(t){ return { posti: Number(t.posti), nome: t.nome, prezzo: Number(t.prezzo), liberi: Number(t.liberi) }; }) : [];
-    var tutti = r[0].data || {};
+    var tutti = r[0].data || {}; window.__tuttiCfg = tutti;
     cfg = tutti[S.chiave] ? Object.assign({}, tutti[S.chiave]) : null;
     if (!cfg) return;
     // Campo Antico pieno: si dorme all'Hotel Aquila con il transfer
