@@ -1438,8 +1438,8 @@ export async function render(container) {
       clarityId = String(ident?.clarity_id || "").replace(/[^a-z0-9]/g, "");
       privacyUrl = /^https?:\/\//i.test(String(ident?.privacy_url || "").trim()) ? String(ident.privacy_url).trim() : "";
     } catch (e) { /* senza ID il sito non carica niente */ }
-    const consensoScript = (metaPixelId || gtmId || ga4Id || adsId || openaiPixelId) ? `<script>(function(){
-var META='${metaPixelId}',GTM='${gtmId}',GA4='${ga4Id}',ADS='${adsId}',OAI='${openaiPixelId}',K='rf_consenso';
+    const consensoScript = (metaPixelId || gtmId || ga4Id || adsId || openaiPixelId || clarityId) ? `<script>(function(){
+var META='${metaPixelId}',GTM='${gtmId}',GA4='${ga4Id}',ADS='${adsId}',OAI='${openaiPixelId}',CLA='${clarityId}',K='rf_consenso';
 window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
 gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});
 function st(){try{return localStorage.getItem(K);}catch(e){return null;}}
