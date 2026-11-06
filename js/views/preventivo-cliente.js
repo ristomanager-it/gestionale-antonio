@@ -290,11 +290,11 @@ ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
 
         ${menuHtml}
 
-        ${(d.servizi || []).length ? `
-          <h2>Servizi compresi</h2>
-          <div class="pv-blocco">
-            ${d.servizi.map(s => `<div class="pv-r"><span>${esc(s.descrizione)}</span><span>compreso</span></div>`).join("")}
-          </div>` : ""}
+        <h2>Servizi compresi</h2>
+        <div class="pv-blocco">
+          ${(d.servizi || []).map(s => `<div class="pv-r"><span>${esc(s.descrizione)}</span><span>compreso</span></div>`).join("")}
+          <div class="pv-r"><span>📸 <b>Momenti</b>, il social privato del vostro evento: gli invitati confermano, vedono il tavolo e condividono foto e storie dal loro link, senza app. Le foto restano a voi.</span><span>compreso</span></div>
+        </div>
 
         ${nostre.length ? `
           <h2>Qualche immagine</h2>
