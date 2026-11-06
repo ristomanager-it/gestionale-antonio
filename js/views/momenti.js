@@ -139,7 +139,7 @@ function postHtml(p) {
       ${media.length > 1 ? `<div class="mo-dots">${media.map((_, i) => `<i class="${i === 0 ? "on" : ""}"></i>`).join("")}</div>` : ""}
       <div class="act"><span data-like="${p.id}" class="${p.mi_piace ? "on" : ""}">${p.mi_piace ? "♥" : "♡"}</span>${F.evento?.commenti ? `<span data-comm="${p.id}">💬</span>` : ""}<span data-share="${p.id}" title="${TXT.condividi}">✈︎</span></div>
       ${p.like_n ? `<div class="likes" data-lk="${p.id}">${TXT.piace(p.like_n)}</div>` : `<div class="likes" data-lk="${p.id}"></div>`}
-      ${p.testo ? `<div class="cap"><b>${esc(p.da_sposi ? "Sposi" : p.nome)}</b> ${esc(p.testo)}</div>` : ""}
+      ${p.testo ? `<div class="cap"><b>${esc(p.da_sposi ? RU() : p.nome)}</b> ${esc(p.testo)}</div>` : ""}
       ${p.comm_n > 2 ? `<div class="com" data-comm="${p.id}">${TXT.tutti(p.comm_n)}</div>` : ""}
       ${(p.ultimi || []).map(c => `<div class="cap"><b>${esc(c.nome)}</b> ${esc(c.testo)}</div>`).join("")}
       <div class="time">${fa(p.il)}</div>
