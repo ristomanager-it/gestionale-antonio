@@ -337,6 +337,7 @@ async function gestione() {
       ${sw("attivo", TXT.attivo)}${sw("moderazione", TXT.moderazione)}${sw("commenti", TXT.commOn)}${sw("video", TXT.videoOn)}
       <div class="mo-btnrow"><button class="mo-b2" id="mo-album">${TXT.album}</button><button class="mo-b2" id="mo-qr">${TXT.qr}</button></div>`;
     box.querySelectorAll("[data-nasc]").forEach(b => b.addEventListener("click", () => giro("nascondi", { id: b.dataset.nasc, nascosto: b.dataset.v === "1" })));
+    box.querySelectorAll("[data-star]").forEach(b => b.addEventListener("click", () => giro("bacheca", { id: b.dataset.star, si: b.dataset.v === "1" })));
     box.querySelectorAll("[data-imp]").forEach(b => b.addEventListener("click", () => giro("impostazioni", { [b.dataset.imp]: !b.classList.contains("on") })));
     box.querySelector("#mo-album").addEventListener("click", () => {
       const urls = []; (data.post || []).forEach(p => (p.media || []).forEach(m => urls.push(m.url)));
