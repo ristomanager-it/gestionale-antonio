@@ -51,6 +51,7 @@ export async function render(container) {
   S = { supabase, container, t, g, s, kNome };
   container.innerHTML = guscio(`<div class="mo-msg">${TXT.caric}</div>`);
   await carica();
+  consenso();
   clearInterval(timer);
   timer = setInterval(() => { if (document.visibilityState === "visible" && !document.querySelector(".mo-ov")) carica(true); }, 30000);
 }
