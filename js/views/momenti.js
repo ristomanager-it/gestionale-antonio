@@ -309,6 +309,7 @@ function nuovo(tipo) {
       const { data } = await S.supabase.rpc("momenti_pubblica", Object.assign({}, A, {
         p_tipo: tipo, p_testo: ov.querySelector("#mo-cap")?.value || null, p_media: media, p_momento: momento }));
       if (!data?.ok) throw new Error(data?.errore || "pubblica");
+      px("Momenti_Pubblica", { tipo: tipo });
       if (data.in_attesa) { es.textContent = TXT.attesa; setTimeout(() => chiudi(ov), 1800); }
       else { chiudi(ov); vista = "home"; await carica(); window.scrollTo(0, 0); }
     } catch (err) { console.error(err); es.textContent = "⚠️ " + (err.message || "errore"); delete go.dataset.busy; }
