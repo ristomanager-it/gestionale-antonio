@@ -329,7 +329,10 @@ async function gestione() {
       <div style="font-weight:700;font-size:16px;margin-bottom:6px">Momenti · ${data.totale} ${TXT.post.toLowerCase()}</div>
       ${(data.post || []).map(p => `<div class="mo-mrow"><div class="th" style="${bg(p.media?.[0])}"></div>
           <div class="tx"><b>${esc(p.nome)}</b> · ${p.tipo === "storia" ? TXT.storia : (p.media || []).length + " 📷"}<span>${esc(p.testo || "")} · ${fa(p.il)}</span></div>
-          <button class="pill ${p.nascosto ? "no" : "ok"}" data-nasc="${p.id}" data-v="${p.nascosto ? "0" : "1"}">${p.nascosto ? TXT.nascosto : TXT.visibile}</button></div>`).join("")}
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+          <button class="pill ${p.nascosto ? "no" : "ok"}" data-nasc="${p.id}" data-v="${p.nascosto ? "0" : "1"}">${p.nascosto ? TXT.nascosto : TXT.visibile}</button>
+          ${p.tipo === "post" && !p.nascosto && (p.media || []).some(m => m.tipo === "foto") ? `<button class="pill star ${p.in_bacheca ? "on" : ""}" data-star="${p.id}" data-v="${p.in_bacheca ? "0" : "1"}">${p.in_bacheca ? TXT.inBacheca : TXT.bacheca}</button>` : ""}</div></div>`).join("")}
+      <div class="mo-es" style="margin-top:8px">${esc(TXT.bachecaTx(F.evento?.locale || ""))} · ${data.in_bacheca || 0} ⭐</div>
       <div style="height:10px"></div>
       ${sw("attivo", TXT.attivo)}${sw("moderazione", TXT.moderazione)}${sw("commenti", TXT.commOn)}${sw("video", TXT.videoOn)}
       <div class="mo-btnrow"><button class="mo-b2" id="mo-album">${TXT.album}</button><button class="mo-b2" id="mo-qr">${TXT.qr}</button></div>`;
