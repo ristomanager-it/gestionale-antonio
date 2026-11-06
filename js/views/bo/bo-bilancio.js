@@ -31,7 +31,7 @@ export async function render(container) {
 
     // Carica fatture classificate
     let q = supa().from('fatture_acquisto')
-      .select('id, data_documento, imponibile, iva, totale, categoria_bilancio_id, classificazione_ok, classificazione_conf, categorie_bilancio(id,nome,codice_conto,tipo,ordine)')
+      .select('id, data_documento, imponibile, iva, totale, aliquota_iva, categoria_bilancio_id, classificazione_ok, classificazione_conf, categorie_bilancio(id,nome,codice_conto,tipo,ordine)')
       .eq('azienda_id', aziendaId)
       .not('categoria_bilancio_id', 'is', null);
 
