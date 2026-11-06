@@ -448,6 +448,12 @@ footer a{color:var(--oro)}
   }
   function step(id, fn){ $(id).onclick = function(){ fn(); aggiorna(); }; }
   $("aggiungi-stanza").onclick = function(){
+    // a Campo Antico restano meno camere di quelle che servono: tutto il gruppo dorme all'Hotel Aquila (transfer incluso)
+    var tt = window.__tuttiCfg || {};
+    if (S.chiave === "campo" && !viaAquila && cfg && cfg.camere_libere != null && stanze.length >= cfg.camere_libere && tt.aquila && tt.aquila.camere_libere > stanze.length) {
+      viaAquila = true; cfg.camere_quota = tt.aquila.camere_quota; cfg.camere_libere = tt.aquila.camere_libere;
+      $("riga-transfer").hidden = false; $("nota-superior").hidden = false;
+    }
     if (stanze.length >= 10 || (cfg && cfg.camere_libere != null && stanze.length >= cfg.camere_libere)) return;
     stanze.push({ a: 2, b: [] }); disegnaStanze(); aggiorna();
   };
