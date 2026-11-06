@@ -176,6 +176,7 @@ const routes = {
   "scheda-evento": () => imp("./views/scheda-evento.js"),
   "richieste-sito": () => imp("./views/richieste-sito.js"),
   "menu-tipo": () => imp("./views/menu-tipo.js"),
+  "preventivo-online": () => imp("./views/preventivo-online.js"),
   "modelli-buffet": () => imp("./views/modelli-buffet.js"),
   "isole-buffet": () => imp("./views/isole-buffet.js"),
   "giorni-lavorazione": () => imp("./views/giorni-lavorazione.js"),
