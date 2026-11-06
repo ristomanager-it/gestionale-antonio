@@ -33,7 +33,9 @@ const TXT = {
     moderazione: "We review posts first", commOn: "Guest comments", videoOn: "Videos (max 30 seconds)",
     album: "⬇️ All photos", qr: "🖨️ Table QR codes", ora: "now", min: "m", h: "h", g: "d",
     momenti: ["Ceremony", "Aperitivo", "Dinner", "Party"],
-    condividi: "Share", tessTit: (l) => "Did you enjoy the party?", tessTx: (l) => "Get the " + l + " card: offers, news and today's menu.", tessBtn: "Get the card" }
+    storieFesta: "Party stories", organizza: "Plan your party here", orgTx: (l) => "Wedding, birthday, party: ask for a proposal", orgBtn: "Ask for a proposal",
+    recTit: "How was it? Leave a review", recTx: (l) => "It means a lot to us", recBtn: "Write a review", tipoFesta: "What kind of party?", quando: "When, roughly", persone: "How many people", tuoTel: "Phone (WhatsApp too)", tuaMail: "Email", nota: "Anything else?", invia: "Send the request", grazie: "Thank you! We will get back to you soon.", servecontatto: "Please leave a phone or an email.", cuori: "likes", storieN: "stories", tipi: ["Wedding", "18th birthday", "Birthday", "Christening", "Graduation", "Company dinner", "Other"],
+    condividi: "Share", tessTit: (l) => "Get the " + l + " card", tessTx: (l) => "Offers and news, free", tessBtn: "Get the card" }
 }[L];
 
 export async function render(container) {
