@@ -61,6 +61,7 @@ const routes = {
   "preventivo": () => imp("./views/preventivo-cliente.js"),
   "pagamento": () => imp("./views/preventivo-pagamento.js"),
   "invito": () => imp("./views/invito.js"),
+  "momenti": () => imp("./views/momenti.js"),
   "spazio": () => imp("./views/spazio-sposi.js"),
   "recensioni": () => imp("./views/recensioni.js"),
   "recensioni-ricevute": () => imp("./views/recensioni-ricevute.js"),
