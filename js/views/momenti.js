@@ -36,6 +36,7 @@ const TXT = {
     momenti: ["Ceremony", "Aperitivo", "Dinner", "Party"],
     storieFesta: "Party stories", organizza: "Plan your party here", orgTx: (l) => "Wedding, birthday, party: ask for a proposal", orgBtn: "Ask for a proposal",
     recTit: "How was it? Leave a review", recTx: (l) => "It means a lot to us", recBtn: "Write a review", tipoFesta: "What kind of party?", quando: "When, roughly", persone: "How many people", tuoTel: "Phone (WhatsApp too)", tuaMail: "Email", nota: "Anything else?", invia: "Send the request", grazie: "Thank you! We will get back to you soon.", servecontatto: "Please leave a phone or an email.", cuori: "likes", storieN: "stories", tipi: ["Wedding", "18th birthday", "Birthday", "Christening", "Graduation", "Company dinner", "Other"],
+    bacheca: "☆ Showcase", inBacheca: "⭐ Showcased", bachecaTx: (l) => "Photos with ⭐ appear on the " + l + " profile in the loyalty card.", cookie: "We use cookies to measure visits and improve the venue's service.", accetta: "Accept", rifiuta: "Decline",
     condividi: "Share", tessTit: (l) => "Get the " + l + " card", tessTx: (l) => "Offers and news, free", tessBtn: "Get the card" }
 }[L];
 
