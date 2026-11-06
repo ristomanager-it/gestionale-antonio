@@ -320,6 +320,40 @@ async function gestione() {
   await giro();
 }
 
+// Condividi su Instagram (o dove vuole l'invitato): la foto esce con il logo del locale in basso a destra.
+// Nessun collegamento all'account: si apre la condivisione del telefono e la persona sceglie storia, feed o altro.
+async function condividi(id) {
+  const p = (F.post || []).find(x => x.id === id); if (!p) return;
+  const ev = F.evento || {}; const m = (p.media || [])[0]; if (!m) return;
+  const testo = (p.testo ? p.testo + " · " : "") + (ev.titolo || "") + (ev.locale ? " · " + ev.locale : "");
+  try {
+    let file = null;
+    if (m.tipo === "foto") {
+      const img = await caricaImg(m.url);
+      const cv = document.createElement("canvas"); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      const x = cv.getContext("2d"); x.drawImage(img, 0, 0);
+      if (ev.logo) {
+        try {
+          const lg = await caricaImg(ev.logo);
+          const lw = Math.round(cv.width * 0.18), lh = Math.round(lw * lg.naturalHeight / lg.naturalWidth), pad = Math.round(cv.width * 0.03);
+          x.fillStyle = "rgba(255,255,255,.82)";
+          const bx = cv.width - lw - pad * 2, by = cv.height - lh - pad * 2;
+          if (x.roundRect) { x.beginPath(); x.roundRect(bx, by, lw + pad * 1.2, lh + pad * 1.2, pad * 0.6); x.fill(); } else x.fillRect(bx, by, lw + pad * 1.2, lh + pad * 1.2);
+          x.drawImage(lg, bx + pad * 0.6, by + pad * 0.6, lw, lh);
+        } catch (_) {}
+      }
+      const blob = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.9));
+      file = new File([blob], "momenti.jpg", { type: "image/jpeg" });
+    }
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: testo }); return; }
+    if (!file && navigator.share) { await navigator.share({ url: m.url, text: testo }); return; }
+    // computer o telefono senza condivisione: scarico la foto con il logo
+    const a = document.createElement("a"); a.href = file ? URL.createObjectURL(file) : m.url; a.download = "momenti.jpg"; a.target = "_blank"; document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { if (e && e.name !== "AbortError") console.error(e); }
+}
+function caricaImg(url) { return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = url + (url.indexOf("?") >= 0 ? "&" : "?") + "cors=1"; }); }
+function fidLink(ev) { return location.origin + "/fidelity.html?a=" + encodeURIComponent(ev.azienda_id) + "&utm_source=momenti"; }
+
 // ---------- utilita' ----------
 function overlay(html, scuro) {
   const ov = document.createElement("div"); ov.className = "mo-ov" + (scuro ? " scuro" : "");
