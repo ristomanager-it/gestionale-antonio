@@ -30,7 +30,8 @@ const TXT = {
     invitati: "guests", gestione: "Manage", visibile: "Visible", nascosto: "Hidden", attivo: "Moments on",
     moderazione: "We review posts first", commOn: "Guest comments", videoOn: "Videos (max 30 seconds)",
     album: "⬇️ All photos", qr: "🖨️ Table QR codes", ora: "now", min: "m", h: "h", g: "d",
-    momenti: ["Ceremony", "Aperitivo", "Dinner", "Party"] }
+    momenti: ["Ceremony", "Aperitivo", "Dinner", "Party"],
+    condividi: "Share", tessTit: (l) => "Did you enjoy the party?", tessTx: (l) => "Get the " + l + " card: offers, news and today's menu.", tessBtn: "Get the card" }
 }[L];
 
 export async function render(container) {
