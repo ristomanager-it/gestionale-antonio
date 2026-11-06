@@ -48,6 +48,25 @@ export async function render(app) {
 }
 
 /* ============================================================ */
+/* RIQUADRO "RICHIESTE DAL SITO" (matrimoni, eventi, viaggi)     */
+/* ============================================================ */
+async function richiesteDalSito() {
+  const box = document.getElementById("prev-dal-sito");
+  if (!box) return;
+  const sb = window.supabaseClient || window.supabase;
+  try {
+    const [w, t] = await Promise.all([
+      sb.from("wedding_richieste").select("id", { count: "exact", head: true }).eq("stato", "nuova"),
+      sb.from("tour_prenotazioni").select("id", { count: "exact", head: true }).in("stato", ["bonifico_in_attesa", "richiesta_info"]),
+    ]);
+    const n = (w.count || 0) + (t.count || 0);
+    box.innerHTML = '<a href="#/richieste-sito" style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin:0 0 16px;text-decoration:none;color:#0f172a">'
+      + '<span><b>🌍 Richieste dal sito</b><span style="display:block;font-size:13px;color:#64748b">' + (n ? n + (n === 1 ? " da gestire" : " da gestire") : "Matrimoni, eventi e viaggi che arrivano dalle vostre pagine") + '</span></span>'
+      + (n ? '<span style="background:#dc2626;color:#fff;border-radius:999px;padding:2px 9px;font-weight:700">' + n + '</span>' : '<span style="color:#023C59;font-weight:700">→</span>') + '</a>';
+  } catch (_) { box.innerHTML = ""; }
+}
+
+/* ============================================================ */
 /* LOAD PREVENTIVI */
 /* ============================================================ */
 
