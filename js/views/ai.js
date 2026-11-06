@@ -1105,7 +1105,12 @@ async function callTonyMeta(messages) {
   try {
     const ctrlSpec = new AbortController();
     const tSpec = setTimeout(() => ctrlSpec.abort(), 110000);
-    const rc = await fetch(`${supabaseUrl}/functions/v1/tony-campagne-chat`, {
+    const ultimo = [...msgs].reverse().find(m => m.role === "user");
+    const testoU = ultimo ? String(ultimo.content || "") : "";
+    if (isProIntent(testoU)) tonyProMode = true;
+    else if (BASE_RE.test(testoU.toLowerCase()) || testoU.length > 60) tonyProMode = false;
+    const specialista = tonyProMode ? "tony-campagne-pro" : "tony-campagne-chat";
+    const rc = await fetch(`${supabaseUrl}/functions/v1/${specialista}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
       body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, messages: msgs }),
