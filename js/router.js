@@ -174,6 +174,7 @@ const routes = {
   "scadenze": () => imp("./views/scadenze.js"),
   "scheda-evento": () => imp("./views/scheda-evento.js"),
   "richieste-sito": () => imp("./views/richieste-sito.js"),
+  "menu-tipo": () => imp("./views/menu-tipo.js"),
   "modelli-buffet": () => imp("./views/modelli-buffet.js"),
   "isole-buffet": () => imp("./views/isole-buffet.js"),
   "giorni-lavorazione": () => imp("./views/giorni-lavorazione.js"),
