@@ -421,6 +421,10 @@ function guscio(dentro) {
   .com{padding:2px 12px;color:var(--m);font-size:13px;cursor:pointer}
   .time{padding:4px 12px 10px;color:var(--m);font-size:11px;text-transform:uppercase}
   .mo-vuoto{padding:50px 24px;text-align:center;color:var(--m)}
+  .mo-tess{display:flex;align-items:center;gap:12px;margin:12px;padding:12px;border-radius:14px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#1f1a17,#3a2f26);border:1px solid #b08d57}
+  .mo-tess .lg{width:46px;height:46px;border-radius:10px;background:#fff center/contain no-repeat;flex:none}
+  .mo-tess .tx{flex:1;min-width:0}.mo-tess b{display:block;font-size:14px}.mo-tess span{display:block;font-size:12px;opacity:.85;line-height:1.3}
+  .mo-tess i{font-style:normal;font-size:12px;font-weight:700;color:#e8c98a;white-space:nowrap}
   .mo-tab{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:470px;display:flex;justify-content:space-around;background:var(--app);border-top:1px solid var(--b);
           padding:10px 0 calc(12px + env(safe-area-inset-bottom,0px));font-size:24px;z-index:6}
   .mo-tab span{cursor:pointer;opacity:.6}.mo-tab span.on{opacity:1}
