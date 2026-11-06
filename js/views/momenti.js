@@ -5,7 +5,7 @@
 // Tutti i dati passano dalle funzioni momenti_* (security definer); le foto dalla Edge Function momenti-upload.
 
 const SUPA_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co";
-let S = null, A = null, F = null, vista = "home", filtroMomento = null, timer = null;
+let S = null, A = null, F = null, vista = "home", filtroMomento = null, timer = null, persona = null;
 const RU = () => (F?.evento?.ruolo === "Festeggiato" ? (L === "it" ? "Festeggiato" : "Host") : (L === "it" ? "Sposi" : "The couple"));
 
 const L = (navigator.language || "it").slice(0, 2) === "it" ? "it" : "en";
