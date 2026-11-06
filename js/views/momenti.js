@@ -233,8 +233,9 @@ async function commenti(id) {
   ov.querySelector("#mo-ct").addEventListener("keydown", (e) => { if (e.key === "Enter") invia(); });
 }
 
-function storie(i) {
-  const tutte = F.storie || []; let s = i, v = 0, tm = null;
+function storie(i) { storieDa(F.storie || [], i); }
+function storieDa(tutte, i) {
+  let s = i, v = 0, tm = null;
   const ov = overlay(`<div class="mo-sv"><div class="bars"></div><div class="sh"></div><span class="x" data-x>✕</span><div class="med"></div><div class="tx"></div></div>`, true);
   const mostra = () => {
     clearTimeout(tm);
