@@ -1234,6 +1234,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const esitoTony = await res.json();
     window.__tonyRamoMessaggi = !!esitoTony && esitoTony.fonte === "messaggi";
+    window.__tonyRamoMenu = !!esitoTony && esitoTony.fonte === "menu_tipo" && esitoTony.attesa === true;
     window.__tonyInCorso = null;
     return esitoTony;
   } catch (err) {
