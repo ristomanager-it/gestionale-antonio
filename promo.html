@@ -386,6 +386,16 @@ function renderBlock(b, promo, azienda) {
     if (!reg) return '';
     return `<details class="regolamento-block"><summary>📜 Regolamento della promozione</summary><div class="reg-testo">${esc(reg).replace(/\n/g,'<br>')}</div></details>`;
   }
+  if (b.tipo==='video') {
+    // video nella landing (es. intervista allo chef): parte muto, il visitatore alza il volume
+    const src = b.contenuto || '';
+    if (!src) return '';
+    return `<div class="video-block" style="margin:14px 16px;">
+      ${b.titolo ? `<div class="sezione-title" style="margin-bottom:8px;">${esc(b.titolo)}</div>` : ''}
+      <video src="${esc(src)}" ${b.poster ? `poster="${esc(b.poster)}"` : ''} autoplay muted loop playsinline controls preload="metadata" style="width:100%;max-height:80vh;object-fit:contain;border-radius:var(--radius);display:block;background:#000;"></video>
+      ${b.didascalia ? `<div style="font-size:12px;color:#64748b;margin-top:6px;text-align:center;">${esc(b.didascalia)}</div>` : ''}
+    </div>`;
+  }
   if (b.tipo==='cta_button') {
     const label = b.contenuto || 'Scopri di più';
     return `<div style="padding:0 16px 16px;"><button class="btn-cta" onclick="window.scrollTo({top:document.getElementById('form-container')?.offsetTop-20||0,behavior:'smooth'})">${esc(label)}</button></div>`;
