@@ -1,4 +1,5 @@
 // VISITE — EVENTI › 📅 Visite in location
+// v2: "+ Nuova visita" per segnare a mano quelle prese al telefono (origine telefono).
 // Appuntamenti prenotati dalle landing (visite_appuntamenti) e impostazioni del calendario (visite_config): orari interni, durata, link.
 const LINK = "https://app.ristoflow-ai.com/visita.html?p=";
 const sb = () => window.supabaseClient || window.supabase;
@@ -6,7 +7,7 @@ const az = () => window.state?.azienda?.id;
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const $ = (i) => document.getElementById(i);
 const GG = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
-let S = { cfg: null, slug: "", prossime: [], passate: [], tab: "prossime" };
+let S = { cfg: null, slug: "", prossime: [], passate: [], tab: "prossime", nuova: false, nG: "", nOre: [] };
 const giorno = (d) => new Date(d).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Rome" });
 const ora = (d) => new Date(d).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 const wa = (t) => { const x = String(t || "").replace(/[^0-9]/g, ""); return x ? "https://wa.me/" + (x.length <= 10 ? "39" + x : x) : ""; };
@@ -41,12 +42,19 @@ function elenco(lista, passata) {
   lista.forEach((v) => { const d = giorno(v.inizio); if (d !== g) { g = d; h += '<div class="vi-g">' + esc(d) + "</div>"; } h += riga(v, passata); });
   return h;
 }
+async function cambiaGiorno(g) {
+  const keep = {}; ["nvN", "nvT", "nvE", "nvTipo", "nvI", "nvD", "nvNote"].forEach((i) => { if ($(i)) keep[i] = $(i).value; });
+  S.nG = g; await caricaOre(g); disegna(); Object.keys(keep).forEach((i) => { if ($(i)) $(i).value = keep[i]; });
+}
 function disegna() {
   const c = S.cfg || { attivo: false, durata_min: 45, fasce: [], anticipo_ore: 12, giorni_avanti: 60 };
   let h = '<div style="margin-bottom:10px"><button class="app-button small gray" onclick="window.location.hash=\'#/preventivi\'">← Preventivi</button></div>' +
     '<h2>📅 Visite in location</h2><p class="vi-m">Le coppie e i clienti prenotano da soli la visita dalle vostre pagine: vedono solo gli orari ancora liberi.</p>' +
     '<div class="vi-tabs"><button data-tab="prossime" class="' + (S.tab === "prossime" ? "on" : "") + '">In programma (' + S.prossime.length + ')</button><button data-tab="passate" class="' + (S.tab === "passate" ? "on" : "") + '">Passate</button><button data-tab="imp" class="' + (S.tab === "imp" ? "on" : "") + '">Impostazioni</button></div>';
-  if (S.tab === "prossime") h += '<div class="vi-card">' + elenco(S.prossime, false) + "</div>";
+  if (S.tab === "prossime") {
+    h += S.nuova ? formNuova() : '<button class="vi-btn p" id="viNuova" style="width:100%;margin-bottom:4px">+ Nuova visita (presa al telefono)</button>';
+    h += '<div class="vi-card">' + elenco(S.prossime, false) + "</div>";
+  }
   else if (S.tab === "passate") h += '<div class="vi-card">' + elenco(S.passate, true) + "</div>";
   else {
     h += '<div class="vi-card ' + (c.attivo ? "on" : "") + '"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><b>' + (c.attivo ? "🟢 Visite online attive" : "⚪ Visite online spente") + '</b><div class="vi-m">' + (c.attivo ? "Chi apre il link può prenotare." : "Il link mostra «non ancora attive».") + '</div></div><button class="vi-btn ' + (c.attivo ? "" : "p") + '" id="viAtt">' + (c.attivo ? "Spegni" : "Accendi") + "</button></div></div>";
@@ -67,6 +75,35 @@ function disegna() {
     }
   }
   $("viC").innerHTML = h; $("viC").onclick = clic;
+  if ($("nvG")) $("nvG").onchange = (e) => cambiaGiorno(e.target.value);
+}
+const p2 = (n) => (n < 10 ? "0" : "") + n;
+const oggiIso = () => { const d = new Date(); return d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()); };
+function orariGiorno(g) {
+  const c = S.cfg || {}, dur = Number(c.durata_min || 45), w = new Date(g + "T12:00:00").getDay() || 7, out = [];
+  (c.fasce || []).forEach((f) => { if ((f.giorni || []).indexOf(w) < 0) return; const a = f.dalle.split(":").map(Number), b = f.alle.split(":").map(Number);
+    for (let m = a[0] * 60 + a[1]; m + dur <= b[0] * 60 + b[1]; m += dur) out.push(p2(Math.floor(m / 60)) + ":" + p2(m % 60)); });
+  return out.sort();
+}
+async function caricaOre(g) {
+  const ini = new Date(g + "T00:00:00"), fin = new Date(ini.getTime() + 86400000);
+  const { data } = await sb().from("visite_appuntamenti").select("inizio").eq("azienda_id", az()).neq("stato", "annullato").gte("inizio", ini.toISOString()).lt("inizio", fin.toISOString());
+  const prese = (data || []).map((x) => ora(x.inizio));
+  S.nOre = orariGiorno(g).filter((h) => prese.indexOf(h) < 0 && new Date(g + "T" + h + ":00") > new Date());
+}
+function formNuova() {
+  const tipi = ["Matrimonio", "Comunione", "Cresima", "Battesimo", "Compleanno", "18 anni", "Laurea", "Cena aziendale", "Altro"];
+  return '<div class="vi-card"><b>Nuova visita</b><p class="vi-m">Per le visite prese al telefono o di persona.</p>' +
+    '<div class="vi-due"><label class="vi-f"><span>Giorno</span><input type="date" id="nvG" min="' + oggiIso() + '" value="' + esc(S.nG) + '"></label>' +
+    '<label class="vi-f"><span>Ora</span><input type="time" id="nvO" step="300"></label></div>' +
+    (S.nG ? '<div class="vi-m" style="margin:-2px 0 4px">' + (S.nOre.length ? "Orari liberi:" : "Nessun orario libero nelle vostre fasce: scrivete l’ora a mano.") + "</div>" + '<div class="vi-az">' + S.nOre.map((h) => '<button class="vi-btn s" data-ora="' + h + '">' + h + "</button>").join("") + "</div>" : "") +
+    '<label class="vi-f"><span>Nomi</span><input id="nvN" placeholder="Es. Giulia e Marco"></label>' +
+    '<div class="vi-due"><label class="vi-f"><span>Telefono</span><input id="nvT" type="tel"></label><label class="vi-f"><span>Email</span><input id="nvE" type="email"></label></div>' +
+    '<div class="vi-due"><label class="vi-f"><span>Evento</span><select id="nvTipo" style="width:100%;min-height:40px;border:1px solid #e2e8f0;border-radius:9px;padding:8px;font:inherit">' + tipi.map((t) => "<option>" + t + "</option>").join("") + "</select></label>" +
+    '<label class="vi-f"><span>Invitati</span><input id="nvI" type="number" min="1"></label></div>' +
+    '<label class="vi-f"><span>Data dell’evento (anche indicativa)</span><input id="nvD" placeholder="Es. giugno 2027"></label>' +
+    '<label class="vi-f"><span>Note</span><input id="nvNote"></label>' +
+    '<div class="vi-m" id="nvErr" style="color:#b42318"></div><button class="vi-btn p" id="nvSalva">Salva la visita</button> <button class="vi-btn" id="nvAnn">Annulla</button></div>';
 }
 function leggiFasce() {
   return [...document.querySelectorAll(".vi-fa")].map((r) => ({ giorni: [...r.querySelectorAll("input[data-g]:checked")].map((x) => +x.dataset.g), dalle: r.querySelector('[data-k="dalle"]').value, alle: r.querySelector('[data-k="alle"]').value })).filter((f) => f.giorni.length && f.dalle && f.alle && f.dalle < f.alle);
@@ -78,6 +115,20 @@ async function salva(campi) {
 async function clic(e) {
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.tab) { S.tab = t.dataset.tab; disegna(); return; }
+  if (t.id === "viNuova") { S.nuova = true; S.nG = ""; S.nOre = []; disegna(); return; }
+  if (t.id === "nvAnn") { S.nuova = false; disegna(); return; }
+  if (t.dataset.ora) { $("nvO").value = t.dataset.ora; document.querySelectorAll("[data-ora]").forEach((x) => x.classList.toggle("p", x === t)); return; }
+  if (t.id === "nvSalva") {
+    const g = $("nvG").value, h = $("nvO").value, n = $("nvN").value.trim();
+    if (!g || !h || !n) { $("nvErr").textContent = "Servono giorno, ora e nomi."; return; }
+    const ini = new Date(g + "T" + h + ":00"), fine = new Date(ini.getTime() + Number((S.cfg || {}).durata_min || 45) * 60000);
+    t.disabled = true;
+    const { error } = await sb().from("visite_appuntamenti").insert({ azienda_id: az(), inizio: ini.toISOString(), fine: fine.toISOString(), nome: n,
+      telefono: $("nvT").value.trim() || null, email: $("nvE").value.trim() || null, tipo_evento: $("nvTipo").value, invitati: parseInt($("nvI").value, 10) || null,
+      data_evento: $("nvD").value.trim() || null, note: $("nvNote").value.trim() || null, origine: "telefono" });
+    if (error) { t.disabled = false; $("nvErr").textContent = /duplicate|unique/i.test(error.message) ? "A quell’ora c’è già una visita: scegliete un altro orario." : error.message; return; }
+    S.nuova = false; await carica(); disegna(); return;
+  }
   if (t.dataset.cp) { try { await navigator.clipboard.writeText(t.dataset.cp); t.textContent = "✓"; } catch (_) { prompt("Copiate il link:", t.dataset.cp); } return; }
   if (t.id === "viAtt") { const r = await salva({ attivo: !(S.cfg && S.cfg.attivo) }); if (r.error) alert(r.error.message); disegna(); return; }
   if (t.id === "viAgg") { S.cfg = Object.assign({}, S.cfg || {}, { fasce: leggiFasce().concat([{ giorni: [6, 7], dalle: "09:30", alle: "12:30" }]) }); disegna(); return; }
