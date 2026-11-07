@@ -704,7 +704,7 @@ export async function render(container) {
       chiama("chatgpt-ads-dati").then((d) => (d && d.success ? { success: true, totali: { spesa_eur: Number(d.totale?.spesa || 0), clic: Number(d.totale?.clic || 0) } } : d))]);
     if (!document.body.contains(box)) return;
     const euro = n => Number(n || 0).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
-    const richieste = rows.filter(r => r.tipo === "submit" && r.completato && (!r.azienda_id || r.azienda_id === az));
+    const richieste = rows.filter(r => r.tipo === "submit" && r.completato && !/^(preventivo|visita)$/.test(String(r.elemento || "")) && (!r.azienda_id || r.azienda_id === az));
     const daFonte = re => richieste.filter(r => re.test(String(r.utm_source || "") + " " + String(r.referrer || ""))).length;
     const rG = daFonte(/google|gclid|adwords/i), rM = daFonte(/facebook|instagram|meta|\bfb\b|\big\b/i), rC = daFonte(/chatgpt|openai/i);
     const td = 'style="padding:8px 4px;border-top:1px solid #f1f5f9;text-align:right;white-space:nowrap;font-size:13px;"';
