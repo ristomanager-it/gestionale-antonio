@@ -110,6 +110,7 @@ export async function render(app) {
         ${pulsante("🏭", "Produzione", "produzione")}
         ${pulsante("🧪", "Preparazioni", "preparazioni")}
         ${pulsante("🍽️", "Menu del giorno", "menu-giorno")}
+        ${pulsante("🧩", "Menu componibile", "menu-componibile")}
         ${pulsante("📖", "Ricette e menu", "ricettario")}
         ${pulsante("🌡️", "Cotture CBT", "cotture-cbt")}
         ${pulsante("📋", "Mansionario", "mansionario-cucina")}
