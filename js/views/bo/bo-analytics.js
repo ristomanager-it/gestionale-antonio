@@ -418,7 +418,7 @@ export async function render(container) {
     // avevano come nome "data ora": si riconoscono dal formato.
     const eSlot = (r) => r.tipo === "click" && (r.elemento === "slot_orario" || /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(String(r.elemento || "")));
     const sessDi = (f) => new Set(rows.filter(f).map((r) => r.session_id || r.id));
-    const sSubmit = sessDi((r) => (r.tipo === "click" && r.elemento === "btn_invia") || r.tipo === "submit");
+    const sSubmit = sessDi((r) => (r.tipo === "click" && r.elemento === "btn_invia") || (r.tipo === "submit" && !/^(preventivo|visita|whatsapp)$/.test(String(r.elemento || ""))));
     const sSlot = new Set([...sessDi(eSlot), ...sSubmit]);
     const sData = new Set([...sessDi((r) => r.tipo === "click" && r.elemento === "seleziona_data"), ...sSlot]);
     const fData     = sData.size;
