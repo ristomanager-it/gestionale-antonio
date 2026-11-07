@@ -1390,6 +1390,20 @@ export async function renderPromo(container, aziendaId) {
         mostraToast(nuovo?'Promo attivata ✅':'Promo disattivata ⏸','success');
       });
     });
+    // Bozza <-> pubblicata: in bozza la landing si vede in anteprima ma non emette coupon e non parte la catenaria
+    el.querySelectorAll('[data-bozza-promo]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const p = lista.find(x=>x.id===btn.dataset.bozzaPromo); if (!p) return;
+        const nuovo = !p.bozza;
+        if (!nuovo && !confirm('Pubblicare la promo? Da ora chi apre il link può scaricare il coupon.')) return;
+        const agg = nuovo ? { bozza: true, bozza_salvata: true } : { bozza: false };
+        const { error } = await supa().from('promo').update(agg).eq('id', p.id);
+        if (error) { mostraToast('Errore: '+error.message,'error'); return; }
+        Object.assign(p, agg);
+        renderLista();
+        mostraToast(nuovo?'Promo messa in bozza 📝':'Promo pubblicata 🚀','success');
+      });
+    });
   }
 
   renderLista();
