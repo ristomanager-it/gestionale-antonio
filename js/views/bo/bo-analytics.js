@@ -644,7 +644,7 @@ export async function render(container) {
       rows.filter(r => r.tipo === "view" && r.azienda_id).forEach(r => {
         azVisite[r.azienda_id] = (azVisite[r.azienda_id] || 0) + 1;
       });
-      rows.filter(r => r.tipo === "submit" && r.completato && r.azienda_id).forEach(r => {
+      rows.filter(r => r.tipo === "submit" && r.completato && r.azienda_id && !/^(preventivo|visita)$/.test(String(r.elemento || ""))).forEach(r => {
         azConv[r.azienda_id] = (azConv[r.azienda_id] || 0) + 1;
       });
       const azMap = {};
