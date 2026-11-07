@@ -1070,7 +1070,7 @@ function mostraAnalisiCampagne(j) {
 
 // ── Routing Meta Ads: messaggi su campagne/pubblicita vanno al motore marketing ──
 let tonyMetaMode = false;
-const META_KEYWORDS = ["campagn", "facebook", "instagram", " meta", "meta ", "sponsorizz", "inserzion", "pubblicit", "pubblica", " ads", "adset", "lookalike", "pixel", "promo", "landing", "2x1", "google ads", "adwords"];
+const META_KEYWORDS = ["campagn", "facebook", "instagram", " meta", "meta ", "sponsorizz", "inserzion", "pubblicit", "pubblica", " ads", "adset", "lookalike", "pixel", "promo", "landing", "2x1", "google ads", "adwords", "visitator", "statistich", "traffico", "chi ha visto", "chi ha guardato", "chi ha toccato", "visite alla pagina", "visite alle pagine", "visite alla landing", "visite alle landing", "visite sul sito"];
 
 // durante una conversazione sulle campagne anche le risposte lunghe a voce (date, giorni, budget, turni...) restano allo specialista
 function seguiCampagna(testo) {
