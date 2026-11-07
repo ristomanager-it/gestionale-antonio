@@ -91,6 +91,7 @@ function scalaValori(d) {
 // domanda mostrata solo se una risposta precedente ha quel valore: condizione_mostra = { "ordine": 7, "valore": "Sì" }
 function daMostrare(d) {
   const c = d.condizione_mostra;
+  if (c && c.se_manca === 'compleanno') return !invio.compleanno_noto; // il compleanno si chiede solo se non lo sappiamo gia'
   if (!c || !c.ordine) return true;
   const dom = domande.find(x => Number(x.ordine) === Number(c.ordine));
   if (!dom) return true;
