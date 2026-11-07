@@ -83,7 +83,22 @@ async function init() {
   renderStep();
 }
 
+// scala con estremi dalla domanda (1-5 di default, 1-10 per il consiglio a un amico)
+function scalaValori(d) {
+  const a = Number(d.scala_min) || 1, b = Number(d.scala_max) || 5;
+  const out = []; for (let v = a; v <= b; v++) out.push(v); return out;
+}
+// domanda mostrata solo se una risposta precedente ha quel valore: condizione_mostra = { "ordine": 7, "valore": "Sì" }
+function daMostrare(d) {
+  const c = d.condizione_mostra;
+  if (!c || !c.ordine) return true;
+  const dom = domande.find(x => Number(x.ordine) === Number(c.ordine));
+  if (!dom) return true;
+  return String(risposte[dom.id] ?? '') === String(c.valore);
+}
+
 function renderStep() {
+  while (step < domande.length && !daMostrare(domande[step])) step++;
   if (step >= domande.length) { inviaRisposte(); return; }
   const d = domande[step];
   const perc = Math.round((step / domande.length) * 100);
