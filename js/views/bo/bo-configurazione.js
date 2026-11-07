@@ -909,7 +909,18 @@ export async function render(container) {
             <button id="btn-annulla-gads" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;">Annulla</button>
           </div>
         </div>
-      </div> <div id="blocco-chatgpt-ads" style="margin-bottom:36px;margin-top:36px;">
+      </div> <div id="blocco-google-business" style="margin-bottom:36px;margin-top:36px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#0f172a;">⭐ Google Business</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px;">Collega la scheda Google delle tue attività: recensioni, risposte e orari dall'app</div>
+          </div>
+          <button id="btn-collega-gbp" style="background:#4285f4;color:white;border:none;border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;">🔗 Collega Google Business</button>
+        </div>
+        <div id="stato-gbp" style="margin-bottom:8px;"></div>
+        <div id="esito-gbp" style="font-size:13px;min-height:14px;"></div>
+      </div>
+      <div id="blocco-chatgpt-ads" style="margin-bottom:36px;margin-top:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🤖 ChatGPT Ads</div>
