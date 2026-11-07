@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Google Business</title>
+<style>body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#f5f3f0;color:#2a1a1f}div{max-width:340px;text-align:center;padding:24px}</style>
+</head>
+<body>
+<div><p id="m" style="font-size:18px"></p><p style="color:#6b5d60;font-size:14px">Puoi chiudere questa finestra.</p></div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), e = q.get("esito") || "";
+  var t = {
+    ok: "✅ Google Business collegato",
+    annullato: "Collegamento annullato",
+    richiesta_non_valida: "La richiesta è scaduta: riprova dall'app",
+    token_rifiutato: "Google non ha accettato l'accesso. Controlla che l'indirizzo di ritorno sia registrato nel progetto Google.",
+    manca_refresh: "Google non ha dato il permesso permanente: riprova",
+    errore_salvataggio: "Non sono riuscito a salvare il collegamento"
+  };
+  document.getElementById("m").textContent = t[e] || "Qualcosa non è andato come previsto";
+  try { if (window.opener) window.opener.postMessage({ tipo: "google-business", esito: e, email: q.get("email") || "" }, location.origin); } catch (x) {}
+  if (e === "ok") setTimeout(function () { window.close(); }, 1500);
+})();
+</script>
+</body>
+</html>
