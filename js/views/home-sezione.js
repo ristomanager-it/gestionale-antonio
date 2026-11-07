@@ -80,8 +80,10 @@ export async function render(app) {
     const [trattativa, { data: ev }, nVisite] = await Promise.all([
       conta(supabase.from("preventivi").select("id", { count: "exact", head: true }).eq("azienda_id", aid).eq("stato", "trattativa")),
       supabase.from("preventivi").select("titolo_evento, data_evento, n_invitati, stato").eq("azienda_id", aid).in("stato", ["confermato", "accettato"]).gte("data_evento", oggi).lte("data_evento", tra14).order("data_evento", { ascending: true }).limit(8),
+      conta(supabase.from("visite_appuntamenti").select("id", { count: "exact", head: true }).eq("azienda_id", aid).eq("stato", "confermato").gte("inizio", new Date().toISOString()).lte("inizio", new Date(Date.now() + 14 * 86400000).toISOString())),
     ]);
     prossimi = ev || [];
+    if (nVisite) righe.push({ testo: "📅 " + nVisite + (nVisite === 1 ? " visita in programma" : " visite in programma"), dest: "visite", tono: "verde" });
     if (trattativa) righe.push({ testo: `📑 ${trattativa} ${trattativa === 1 ? "preventivo in trattativa" : "preventivi in trattativa"}`, dest: "preventivi", tono: "giallo" });
     if (prossimi.length) righe.push({ testo: `🎪 ${prossimi.length} ${prossimi.length === 1 ? "evento" : "eventi"} nei prossimi 14 giorni`, dest: "preventivi", tono: "verde", apri: true });
   }
