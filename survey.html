@@ -92,7 +92,7 @@ function renderStep() {
   document.getElementById('root').innerHTML = `
     <div class="hero">
       <div style="font-size:13px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">${survey.titolo}</div>
-      <div class="hero-titolo">Ciao ${dipendente?.nome || 'collega'}! 👋</div>
+      <div class="hero-titolo">Ciao ${dipendente?.nome || (invio.contatto_nome || '').split(' ')[0] || 'collega'}! 👋</div>
       <div class="hero-sub">${survey.descrizione || 'Pochi minuti per dirci come stai. Rispondi con sincerità.'}</div>
     </div>
     <div class="wrap">
