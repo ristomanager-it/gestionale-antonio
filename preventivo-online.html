@@ -56,6 +56,8 @@ function eur(n){var d=Math.round(n*100)%100?2:0;return new Intl.NumberFormat("it
 function api(b){b.p=P;return fetch(U,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(function(r){return r.json()})}
 function nozze(){return /matrimon|nozze/i.test(TIPO||"")}
 if(PROVA)$("prova").classList.remove("hide");
+var PAGINA_TR="preventivo-online-"+(P||"");var TR_ESC=false;try{TR_ESC=localStorage.getItem("rf_escludi")==="1"}catch(e){}var TR_SID="";try{TR_SID=sessionStorage.getItem("rf_sid")||"";if(!TR_SID){TR_SID=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem("rf_sid",TR_SID)}}catch(e){}function T(tipo,el,val,ok){if(TR_ESC||(typeof PROVA!=="undefined"&&PROVA))return;var q=new URLSearchParams(location.search);fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/track",{method:"POST",headers:{"Content-Type":"application/json"},keepalive:true,body:JSON.stringify({pagina:PAGINA_TR,tipo:tipo,elemento:el||null,valore:val==null?null:String(val).slice(0,120),referrer:document.referrer||null,utm_source:q.get("utm_source"),utm_medium:q.get("utm_medium"),utm_campaign:q.get("utm_campaign"),device:/Mobi/.test(navigator.userAgent)?"mobile":"desktop",session_id:TR_SID,completato:!!ok})}).catch(function(){})}
+T("view","pagina",new URLSearchParams(location.search).get("tipi")||"");
 function tipiVisibili(){return (CFG.tipi||[]).filter(function(t){return !SOLO.length||SOLO.indexOf(t.tipo.toLowerCase())>=0})}
 function caricaTipo(t){TIPO=t;return api({azione:"config",tipo:t}).then(function(c){CFG=c;disegnaTipi()})}
 function marchio(m){if(!m)return;document.documentElement.style.setProperty("--acc",m.colore||"#6e2434");$("kicker").textContent=m.nome||"";$("nomeCons").textContent=m.nome||"questo locale";$("titolo").textContent=m.titolo||"Crea il vostro preventivo";$("sottot").textContent=m.sottotitolo||"";document.title=(m.titolo||"Crea il tuo preventivo")+" · "+(m.nome||"");if(m.logo)$("logo").innerHTML='<img src="'+esc(m.logo)+'" alt="" style="max-height:56px;max-width:180px;display:block;margin-bottom:8px">';WA=m.whatsapp?"https://wa.me/"+m.whatsapp:null;
@@ -92,7 +94,7 @@ function disegna(){var h="",chips="";
 function vai(i){cur=i;$("sum").classList.add("hide");disegna();$("s2").scrollIntoView({behavior:"smooth",block:"start"})}
 function scelte(){var a=[],s=[];Object.keys(sel).forEach(function(id){if(!sel[id])return;if(id.charAt(0)==="l")return;if(id.charAt(0)==="s"&&id.length<12)s.push(id.slice(1));else a.push(id)});return {scelte:a,servizi:s}}
 function corpo(extra){var x=scelte();var b={tipo:TIPO,invitati:INV,location_id:LOC,data:DATA,scelte:x.scelte,servizi:x.servizi};for(var k in extra)b[k]=extra[k];return b}
-function riepilogo(){$("steps").innerHTML='<div class="chips">'+STEPS.map(function(z,i){return '<button type="button" class="chip" data-st="'+i+'">✓ '+esc(z.t)+'</button>'}).join("")+'</div>';
+function riepilogo(){T("step","riepilogo",TIPO);$("steps").innerHTML='<div class="chips">'+STEPS.map(function(z,i){return '<button type="button" class="chip" data-st="'+i+'">✓ '+esc(z.t)+'</button>'}).join("")+'</div>';
  $("sum").classList.remove("hide");$("sum").innerHTML='<p class="m">Calcolo…</p>';$("s2").scrollIntoView({behavior:"smooth"});
  api(corpo({azione:"calcola"})).then(function(k){ULT=k;var l=(CFG.location||[]).filter(function(x){return x.id===LOC})[0],d=DISP[LOC],h='<div class="k">Il vostro preventivo</div><h2 style="margin:4px 0 8px;font-size:28px">'+esc(TIPO)+' · '+INV+' invitati</h2>';
   h+='<p class="m">'+esc(l?l.nome:"")+' · '+esc(DATA?new Date(DATA+"T12:00").toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"}):($("mese").value||"data da definire"))+'</p>';
@@ -108,21 +110,21 @@ function riepilogo(){$("steps").innerHTML='<div class="chips">'+STEPS.map(functi
 function crea(){var b=$("crea");b.disabled=true;b.textContent="Un attimo…";
  var n=Object.keys(note).filter(function(id){return sel[id]&&note[id]}).map(function(id){var v=CFG.voci.filter(function(x){return x.id===id})[0];return {piatto:v?v.nome:"",nota:note[id]}});
  api(corpo({azione:"crea",prova:PROVA,nomi:$("nomi").value,email:$("email").value,telefono:$("tel").value,mese:$("mese").value,consenso_whatsapp:$("cons").checked,note:n})).then(function(r){
-  if(!r.success){b.disabled=false;b.textContent="Riprova";$("eF").classList.remove("hide");$("eF").textContent=r.error==="data_non_disponibile"?"Nel frattempo la data non è più disponibile per questa location: sceglietene un’altra.":"Non siamo riusciti a salvare: riprovate o scriveteci.";return}
+  if(!r.success){T("errore","crea",r.error);b.disabled=false;b.textContent="Riprova";$("eF").classList.remove("hide");$("eF").textContent=r.error==="data_non_disponibile"?"Nel frattempo la data non è più disponibile per questa location: sceglietene un’altra.":"Non siamo riusciti a salvare: riprovate o scriveteci.";return}
   var h='<div class="k">'+(r.da_verificare?"Opzione richiesta":"Fatto")+'</div><h2 style="margin:4px 0 8px;font-size:28px">'+(r.da_verificare?"Verifichiamo la data e vi scriviamo":"Il vostro preventivo è pronto")+'</h2>';
   h+=r.da_verificare?'<p>Vi confermiamo la disponibilità entro 24 ore, per email e WhatsApp. Nel messaggio trovate il pulsante per bloccare la data.</p>':'<p>Aprite il preventivo e bloccate la data con l’acconto, con carta o bonifico. Ve l’abbiamo mandato anche per email.</p>'+(r.link?'<a class="btn" href="'+esc(r.link)+'">Apri il preventivo e blocca la data</a>':"");
-  if(!r.prova&&window.fbq)fbq("track","Lead",{content_name:TIPO,value:r.totale,currency:"EUR"});if(r.prova)h+='<p class="prova" style="margin-top:12px">PROVA · nessun preventivo creato. Nella versione vera qui si apre il preventivo con “Accetto”, acconto con carta o bonifico.</p>';
+  if(!r.prova&&window.fbq)fbq("track","Lead",{content_name:TIPO,value:r.totale,currency:"EUR"});if(!r.prova)T("submit","preventivo_creato",TIPO+" · "+Math.round(r.totale)+" €",true);if(r.prova)h+='<p class="prova" style="margin-top:12px">PROVA · nessun preventivo creato. Nella versione vera qui si apre il preventivo con “Accetto”, acconto con carta o bonifico.</p>';
   $("sum").innerHTML=h})}
 document.addEventListener("click",function(e){var t=e.target.closest("[data-tipo],[data-v],button");if(!t)return;
  if(t.hasAttribute("data-tipo")){caricaTipo(t.getAttribute("data-tipo"));return}
  if(t.id==="go"){var em=$("email").value.trim(),inv=parseInt($("inv").value,10),err=$("e1");
   if(!$("nomi").value.trim()||!/^\S+@\S+\.\S+$/.test(em)||!(inv>=10)){err.classList.remove("hide");err.textContent="Servono nome, email valida e numero di invitati.";return}
   err.classList.add("hide");INV=inv;DATA=(document.querySelector("input[name=hd]:checked").value==="si"&&$("dataG").value)?$("dataG").value:null;
-  t.disabled=true;caricaTipo(TIPO).then(function(){costruisci();return DATA?api({azione:"disponibilita",tipo:TIPO,data:DATA,invitati:INV}).then(function(d){DISP=d.location||{}}):(DISP={})}).then(function(){t.disabled=false;$("s1").classList.add("hide");$("s2").classList.remove("hide");cur=0;fatto={};disegna();scrollTo(0,0)});return}
+  t.disabled=true;caricaTipo(TIPO).then(function(){costruisci();return DATA?api({azione:"disponibilita",tipo:TIPO,data:DATA,invitati:INV}).then(function(d){DISP=d.location||{}}):(DISP={})}).then(function(){t.disabled=false;$("s1").classList.add("hide");$("s2").classList.remove("hide");cur=0;fatto={};disegna();scrollTo(0,0);T("step","inizio",TIPO+" · "+INV+" invitati"+(DATA?" · data scelta":""))});return}
  if(t.hasAttribute("data-st")){vai(+t.getAttribute("data-st"));return}
  if(t.hasAttribute("data-tutti")){mostra[t.getAttribute("data-tutti")]=true;disegna();return}
  if(t.hasAttribute("data-av")){var i=+t.getAttribute("data-av"),z=STEPS[i];if(nSel(z.k)<z.min){var er=$("er");er.classList.remove("hide");er.textContent=z.k==="loc"?"Scegliete la location.":"Sceglietene almeno "+z.min+".";return}
-  fatto[i]=true;if(i+1<STEPS.length)vai(i+1);else{cur=-1;riepilogo()}return}
+  fatto[i]=true;T("step",z.k,TIPO+" · passo "+(i+1)+"/"+STEPS.length);if(i+1<STEPS.length)vai(i+1);else{cur=-1;riepilogo()}return}
  if(t.id==="crea"){crea();return}
  if(t.hasAttribute("data-v")){if(t.classList.contains("off"))return;var id=t.getAttribute("data-v"),z=STEPS[cur],vs=voci(z.k),v=vs.filter(function(x){return x.id===id})[0];
   if(z.k==="loc"){vs.forEach(function(x){delete sel[x.id]});sel[id]=true;LOC=v.lid;disegna();return}
