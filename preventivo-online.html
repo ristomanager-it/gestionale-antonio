@@ -110,7 +110,9 @@ function riepilogo(){T("step","riepilogo",TIPO);$("steps").innerHTML='<div class
   h+=esterna?'<p class="m" style="margin-top:12px">'+esc(l.nome)+' è una location partner: verifichiamo noi la data con loro e vi confermiamo entro 24 ore. Poi potete bloccarla.</p>':'<div class="big"><span>Per bloccare la data (acconto '+k.acconto_perc+'%)</span><b>'+eur(k.sconto?k.sconto.acconto:k.acconto)+'</b></div>';
   h+='<div id="slotC"></div><div class="err hide" id="eF"></div><button class="btn" id="crea">'+(esterna?"Richiedi l’opzione sulla data":"Blocca la data")+'</button>'+(WA?'<a class="btn g" href="'+WA+'" target="_blank" rel="noopener">Scriveteci su WhatsApp</a>':'')+'';
   $("sum").innerHTML=h;var sl=$("slotC"),ct=$("contatti");if(sl&&ct){sl.appendChild(ct);ct.classList.remove("hide")}}).catch(function(){$("sum").innerHTML='<p class="err">Non riesco a calcolare: riprovate.</p>'})}
-function crea(){var b=$("crea");b.disabled=true;b.textContent="Un attimo…";
+function crea(){var b=$("crea");
+ if(!$("nomi").value.trim()||!/^\S+@\S+\.\S+$/.test($("email").value.trim())){var ef=$("eF");ef.classList.remove("hide");ef.textContent="Scriveteci nome ed email: vi mandiamo il preventivo e il link per bloccare la data.";T("errore","contatti",TIPO);($("nomi").value.trim()?$("email"):$("nomi")).focus();return}
+ b.disabled=true;b.textContent="Un attimo…";
  var n=Object.keys(note).filter(function(id){return sel[id]&&note[id]}).map(function(id){var v=CFG.voci.filter(function(x){return x.id===id})[0];return {piatto:v?v.nome:"",nota:note[id]}});
  api(corpo({azione:"crea",prova:PROVA,nomi:$("nomi").value,email:$("email").value,telefono:$("tel").value,mese:$("mese").value,consenso_whatsapp:$("cons").checked,note:n})).then(function(r){
   if(!r.success){T("errore","crea",r.error);b.disabled=false;b.textContent="Riprova";$("eF").classList.remove("hide");$("eF").textContent=r.error==="data_non_disponibile"?"Nel frattempo la data non è più disponibile per questa location: sceglietene un’altra.":"Non siamo riusciti a salvare: riprovate o scriveteci.";return}
