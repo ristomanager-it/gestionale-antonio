@@ -231,7 +231,7 @@ async function inviaRisposte() {
     document.getElementById('root').innerHTML = `
       <div class="hero" style="background:linear-gradient(135deg,#15803d,#22c55e);">
         <div style="font-size:48px;margin-bottom:12px;">🙏</div>
-        <div class="hero-titolo">Grazie ${dipendente?.nome || ''}!</div>
+        <div class="hero-titolo">Grazie ${dipendente?.nome || (invio.contatto_nome || '').split(' ')[0] || ''}!</div>
         <div class="hero-sub">Le tue risposte sono state salvate. Il tuo feedback è prezioso.</div>
       </div>
       <div class="wrap"><div class="card" style="text-align:center;padding:40px 24px;">
