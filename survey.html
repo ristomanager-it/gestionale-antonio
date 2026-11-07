@@ -70,6 +70,7 @@ async function init() {
   });
   invio = await r1.json().catch(() => null);
   if (invio && invio.code) invio = null;
+  applicaBrand(invio && invio.brand);
 
   if (!invio) { root.innerHTML = '<div class="loading">⚠️ Link non trovato o scaduto.</div>'; return; }
   if (invio.completato) { root.innerHTML = `<div class="loading">✅ Hai già completato questo survey. Grazie!</div>`; return; }
@@ -86,6 +87,40 @@ async function init() {
   renderStep();
 }
 
+// la domanda sul motivo legata a una scala (condizione_mostra.minore), se c'e'
+function domandaMotivo(d) {
+  if (!d || d.tipo !== 'scala') return null;
+  return domande.find(x => x.tipo === 'aperta' && x.condizione_mostra && x.condizione_mostra.minore != null && Number(x.condizione_mostra.ordine) === Number(d.ordine)) || null;
+}
+function motivoSotto(d, valore) {
+  const f = domandaMotivo(d);
+  if (!f) return '';
+  const mostra = valore != null && valore < Number(f.condizione_mostra.minore);
+  return `<div id="mot-${d.id}" style="margin-top:18px;display:${mostra ? 'block' : 'none'};">
+    <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px;">${f.testo}</div>
+    <textarea id="ta-${f.id}" placeholder="Raccontaci (facoltativo)" oninput="salvaAperta('${f.id}',this)">${risposte[f.id] || ''}</textarea>
+  </div>`;
+}
+// colori e logo del locale (dalla sede, altrimenti dall'azienda)
+function applicaBrand(b) {
+  if (!b || !b.colore) return;
+  const c = b.colore;
+  const chiaro = 'color-mix(in srgb, ' + c + ' 70%, white)';
+  const st = document.createElement('style');
+  st.textContent =
+    '.hero{background:linear-gradient(135deg,' + c + ' 0%,' + chiaro + ' 100%) !important;}' +
+    '.domanda-n{color:' + c + ' !important;}' +
+    '.scala-btn:hover{border-color:' + c + ' !important;background:color-mix(in srgb,' + c + ' 8%, white) !important;}' +
+    '.scala-btn.sel{border-color:' + c + ' !important;background:' + c + ' !important;}' +
+    '.scelta-opt:hover{border-color:' + c + ' !important;color:' + c + ' !important;}' +
+    '.scelta-opt.sel{border-color:' + c + ' !important;background:' + c + ' !important;color:white !important;}' +
+    'textarea:focus{border-color:' + c + ' !important;}' +
+    '.btn-av{background:' + c + ' !important;}' +
+    '.btn-av:hover{background:color-mix(in srgb,' + c + ' 85%, black) !important;}' +
+    '.progress-fill{background:linear-gradient(90deg,' + c + ',' + chiaro + ') !important;}';
+  document.head.appendChild(st);
+}
+
 // scala con estremi dalla domanda (1-5 di default, 1-10 per il consiglio a un amico)
 function scalaValori(d) {
   const a = Number(d.scala_min) || 1, b = Number(d.scala_max) || 5;
@@ -98,6 +133,7 @@ function daMostrare(d) {
   if (!c || !c.ordine) return true;
   const dom = domande.find(x => Number(x.ordine) === Number(c.ordine));
   if (!dom) return true;
+  if (c.minore != null && d.tipo === 'aperta' && dom.tipo === 'scala') return false; // il motivo si chiede sotto la scala
   const r = risposte[dom.id];
   // soglia: { "ordine": 3, "minore": 4 } = chiedi il motivo solo se il voto e' sotto 4
   if (c.minore != null) return r != null && r !== '' && Number(r) < Number(c.minore);
@@ -109,21 +145,24 @@ function renderStep() {
   while (step < domande.length && !daMostrare(domande[step])) step++;
   if (step >= domande.length) { inviaRisposte(); return; }
   const d = domande[step];
-  const perc = Math.round((step / domande.length) * 100);
+  const visibili = domande.filter(x => daMostrare(x));
+  const pos = Math.max(1, visibili.indexOf(d) + 1);
+  const perc = Math.round(((pos - 1) / visibili.length) * 100);
   const valore = risposte[d.id];
 
   document.getElementById('root').innerHTML = `
     <div class="hero">
+      ${invio.brand && invio.brand.logo ? `<div style="margin:0 auto 14px;width:84px;height:84px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.15);"><img src="${invio.brand.logo}" alt="" style="max-width:76px;max-height:76px;object-fit:contain;" onerror="this.parentNode.remove()"></div>` : ''}
       <div style="font-size:13px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">${survey.titolo}</div>
       <div class="hero-titolo">Ciao ${dipendente?.nome || (invio.contatto_nome || '').split(' ')[0] || 'collega'}! 👋</div>
       <div class="hero-sub">${survey.descrizione || 'Pochi minuti per dirci come stai. Rispondi con sincerità.'}</div>
     </div>
     <div class="wrap">
       <div class="progress-bar"><div class="progress-fill" style="width:${perc}%;"></div></div>
-      <div style="font-size:12px;color:#94a3b8;text-align:right;margin-bottom:12px;">${step+1} di ${domande.length}</div>
+      <div style="font-size:12px;color:#94a3b8;text-align:right;margin-bottom:12px;">${pos} di ${visibili.length}</div>
 
       <div class="card">
-        <div class="domanda-n">Domanda ${step+1}</div>
+        <div class="domanda-n">Domanda ${pos}</div>
         ${d.anonima ? '<div class="anonima-badge">🔒 Risposta anonima</div>' : ''}
         <div class="domanda-testo">${d.testo}</div>
 
@@ -139,6 +178,7 @@ function renderStep() {
           <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:4px;padding:0 4px;">
             <span>Per niente</span><span>${scalaValori(d).length > 5 ? 'Sicuramente' : 'Moltissimo'}</span>
           </div>
+          ${motivoSotto(d, valore)}
         ` : ''}
 
         ${d.tipo === 'scelta' ? `
@@ -171,6 +211,13 @@ function selScala(domandaId, elId, valore) {
   // Aggiorna UI
   document.querySelectorAll('.scala-btn').forEach((b,i) => b.classList.toggle('sel', i+1 === valore));
   document.getElementById('btn-av').disabled = false;
+  const f = domandaMotivo(domande.find(x => String(x.id) === String(domandaId)));
+  const box = document.getElementById('mot-' + domandaId);
+  if (f && box) {
+    const mostra = valore < Number(f.condizione_mostra.minore);
+    box.style.display = mostra ? 'block' : 'none';
+    if (!mostra) delete risposte[f.id];
+  }
 }
 
 function selScelta(domandaId, valore, btn) {
@@ -187,7 +234,7 @@ function salvaAperta(domandaId, ta) {
   if (cc) cc.textContent = n + (n===1?' parola':' parole');
 }
 
-function vai(n) { step = n; renderStep(); window.scrollTo({top:0,behavior:'smooth'}); }
+function vai(n) { while (n > 0 && !daMostrare(domande[n])) n--; step = n; renderStep(); window.scrollTo({top:0,behavior:'smooth'}); }
 
 function avanti() {
   const d = domande[step];
