@@ -14,7 +14,7 @@ const SEZIONI = {
     ["🍽️", "Menu del giorno", "menu-giorno"], ["🪑", "Comande", "bo-comande"], ["📅", "Prenotazioni", "prenotazioni"], ["🗺️", "Mappa Sala", "sala"],
     ["🖨", "Menu da tavolo", "menu-tavolo"], ["📋", "Mansionario Sala", "mansionario-sala"] ] },
   eventi: { titolo: "🎪 Eventi", pulsanti: [
-    ["📑", "Preventivi", "preventivi"], ["🏛️", "Location", "bo-location-ricevimenti"], ["🎪", "Servizi e personale", "servizi-eventi"] ] },
+    ["📑", "Preventivi", "preventivi"], ["🏛️", "Location", "bo-location-ricevimenti"], ["🎪", "Servizi e personale", "servizi-eventi"], ["📅", "Visite in location", "visite"] ] },
   gestione: { titolo: "💼 Gestione", pulsanti: [
     ["💳", "Cassa", "cassa-libera"], ["🧾", "Chiusura cassa", "chiusura-cassa"], ["🛒", "Acquisti", "acquisti"], ["🧮", "Ragioniere", "bo-bilancio"],
     ["💰", "Venduto", "venduto"], ["📈", "Margini", "margini"], ["🍝", "Food cost mancanti", "food-cost-mancanti"],
