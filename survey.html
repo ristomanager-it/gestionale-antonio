@@ -105,16 +105,16 @@ function renderStep() {
         <div class="domanda-testo">${d.testo}</div>
 
         ${d.tipo === 'scala' ? `
-          <div class="scala-wrap">
-            ${[1,2,3,4,5].map(v => `
-              <button class="scala-btn ${valore === v ? 'sel' : ''}" onclick="selScala(${d.id},'${d.id}',${v})">
-                <span>${EMOJI_SCALA[v]}</span>
+          <div class="scala-wrap" ${scalaValori(d).length > 5 ? 'style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;"' : ''}>
+            ${scalaValori(d).map(v => `
+              <button class="scala-btn ${valore === v ? 'sel' : ''}" onclick="selScala('${d.id}','${d.id}',${v})">
+                ${scalaValori(d).length > 5 ? '' : `<span>${EMOJI_SCALA[v]}</span>`}
                 <span class="scala-lbl">${v}</span>
               </button>
             `).join('')}
           </div>
           <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:4px;padding:0 4px;">
-            <span>Per niente</span><span>Moltissimo</span>
+            <span>Per niente</span><span>${scalaValori(d).length > 5 ? 'Sicuramente' : 'Moltissimo'}</span>
           </div>
         ` : ''}
 
