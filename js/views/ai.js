@@ -3,6 +3,8 @@ import { supabase } from "../supabaseClient.js";
 let conversation = [];
 // 29/10/2026: i messaggi automatici ai clienti (WhatsApp, approvazione Meta) hanno un ramo di Tony tutto loro
 const RE_MENU_TIPO = /\bmenu\s+tipo\b|\b(componi|componimi|crea|creami|fammi|prepara|preparami)\s+(un|il|uno|nuovo)?\s*menu\b(?!\s+(del\s+giorno|da\s+tavolo|business|digitale))/i;
+// sondaggio dopo la visita, IGS, regali delle fasce: allo specialista tony-sondaggi-chat
+const RE_SONDAGGI = /\b(sondagg\w*|questionari\w*|igs)\b/i;
 const RE_MESSAGGI_CLIENTI = /\b(messaggi?\s+(automatic\w*|ai\s+clienti|di\s+conferma|whatsapp)|messaggio\s+(di\s+)?(conferma|compleanno|automatico|whatsapp|ai\s+clienti)|modell[oi]\s+(whatsapp|di\s+messaggi\w*)|template\s+whatsapp|approv\w+\s+(da\s+|di\s+)?meta|meta\s+(ha\s+|l'ha\s+)?approvat\w*|testo\s+(del|dei)\s+messaggi\w*|auguri\s+di\s+compleanno|conferma\s+(della\s+|di\s+)?prenotazione\s+(su\s+)?whatsapp)\b/i;
 
 // ── Storico chat persistente (tony_chat_storico) ──
@@ -606,7 +608,7 @@ function addMessage(text, type, opts = {}) {
         const supaAuth = window.supabaseClient || window.supabase;
         const ses = await supaAuth?.auth?.getSession();
         const tok = ses?.data?.session?.access_token || "";
-        const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/" + (azX.tipo === "campagna_pro" ? "tony-campagne-pro" : (azX.tipo === "campagna" || azX.tipo === "stato_campagna") ? "tony-campagne-chat" : (azX.tipo === "modello_whatsapp" || azX.tipo === "attiva_modello_whatsapp") ? "tony-messaggi" : "tony"), {
+        const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/" + (azX.tipo === "campagna_pro" ? "tony-campagne-pro" : (azX.tipo === "campagna" || azX.tipo === "stato_campagna") ? "tony-campagne-chat" : (azX.tipo === "modello_whatsapp" || azX.tipo === "attiva_modello_whatsapp") ? "tony-messaggi" : (azX.tipo === "sondaggio" || azX.tipo === "regali_sondaggio") ? "tony-sondaggi-chat" : "tony"), {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tok}`, "apikey": tok },
           body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null,
@@ -1089,6 +1091,7 @@ function isProIntent(text) {
   return PRO_RE.test(t);
 }
 function isMetaIntent(text) {
+  if (RE_SONDAGGI.test(text || "")) return false; // il sondaggio ha il suo specialista anche se si parla di promo
   const t = " " + (text || "").toLowerCase() + " ";
   return META_KEYWORDS.some(k => t.includes(k)) || isProIntent(text);
 }
@@ -1234,7 +1237,9 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     // menu tipo: "crea un menu tipo per una comunione..." va al ramo dei menu (tony-menu-chat); se Tony sta aspettando il menu, anche il messaggio dopo (pure a voce)
     const parlaDiMenuTipo = !tipoMessaggio && !body.immagini && ["admin", "manager", "superadmin"].includes(window.state?.ruolo || "") &&
       (RE_MENU_TIPO.test(ultimoUtente) || window.__tonyRamoMenu === true);
-    const funzioneTony = tipoMessaggio ? "tony-router" : parlaDiMenuTipo ? "tony-menu-chat" : parlaDiMessaggi ? "tony-messaggi" : "tony";
+    const parlaDiSondaggi = !tipoMessaggio && !body.immagini && ["admin", "manager", "superadmin"].includes(window.state?.ruolo || "") &&
+      (RE_SONDAGGI.test(ultimoUtente) || (window.__tonyRamoSondaggi === true && ultimoUtente.length <= 120));
+    const funzioneTony = tipoMessaggio ? "tony-router" : parlaDiSondaggi ? "tony-sondaggi-chat" : parlaDiMenuTipo ? "tony-menu-chat" : parlaDiMessaggi ? "tony-messaggi" : "tony";
     const res = await fetch(`${supabaseUrl}/functions/v1/${funzioneTony}`, {
       method: "POST",
       headers: {
@@ -1250,6 +1255,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     const esitoTony = await res.json();
     window.__tonyRamoMessaggi = !!esitoTony && esitoTony.fonte === "messaggi";
     window.__tonyRamoMenu = !!esitoTony && esitoTony.fonte === "menu_tipo" && esitoTony.attesa === true;
+    window.__tonyRamoSondaggi = !!esitoTony && esitoTony.fonte === "sondaggi" && esitoTony.attesa === true;
     window.__tonyInCorso = null;
     return esitoTony;
   } catch (err) {
