@@ -1074,6 +1074,55 @@ export async function render(container) {
 
     renderListaGoogleAds();
 
+    // ── Google Business: il token resta sul server, qui si vede solo chi ha collegato ──
+    async function renderStatoGbp() {
+      const el = box.querySelector('#stato-gbp');
+      if (!el) return;
+      const { data } = await supa().rpc('google_business_stato', { p_azienda: aziendaId });
+      if (!data?.length) {
+        el.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0;">Nessuna scheda Google collegata.</div>';
+        return;
+      }
+      const g = data[0];
+      el.innerHTML = `
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:24px;">⭐</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${esc(g.google_email || 'Account Google')}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">✅ Collegato · schede abbinate alle sedi: ${esc(String(g.sedi_collegate || 0))}</div>
+          </div>
+          <button data-scollega-gbp="1" style="background:#fee2e2;border:none;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:#dc2626;">🗑</button>
+        </div>`;
+      el.querySelector('[data-scollega-gbp]')?.addEventListener('click', async () => {
+        if (!confirm('Scollegare Google Business? Il permesso verrà cancellato dal server.')) return;
+        await supa().rpc('google_business_scollega', { p_azienda: aziendaId });
+        renderStatoGbp();
+      });
+    }
+    renderStatoGbp();
+    box.querySelector('#btn-collega-gbp')?.addEventListener('click', async () => {
+      const esito = box.querySelector('#esito-gbp');
+      esito.textContent = 'Apro la finestra di Google...'; esito.style.color = '#64748b';
+      try {
+        const sess = await supa().auth.getSession();
+        const tk = sess?.data?.session?.access_token || '';
+        const res = await fetch('https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/google-business-oauth?action=authorize', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk },
+          body: JSON.stringify({ azienda_id: aziendaId, sede_id: currentSedeId || '' })
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.url) { esito.textContent = '❌ ' + (j.error || 'non riesco ad avviare il collegamento'); esito.style.color = '#dc2626'; return; }
+        window.addEventListener('message', function onMsg(e) {
+          if (!e.data || e.data.tipo !== 'google-business') return;
+          window.removeEventListener('message', onMsg);
+          if (e.data.esito === 'ok') { esito.textContent = '✅ Google Business collegato'; esito.style.color = '#15803d'; renderStatoGbp(); }
+          else { esito.textContent = '❌ Collegamento non riuscito (' + e.data.esito + ')'; esito.style.color = '#dc2626'; }
+        });
+        window.open(j.url, 'google-business', 'width=560,height=720,left=200,top=80');
+        esito.textContent = 'Segui la finestra di Google e accetta i permessi.';
+      } catch (e) { esito.textContent = '❌ ' + e.message; esito.style.color = '#dc2626'; }
+    });
+
     // ── ChatGPT Ads (OpenAI): la chiave API resta sul server ──
     async function renderListaChatgpt() {
       const el = box.querySelector('#lista-chatgpt-ads');
