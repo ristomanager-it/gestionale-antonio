@@ -62,11 +62,14 @@ async function init() {
   if (!TOKEN) { root.innerHTML = '<div class="loading">⚠️ Link non valido.</div>'; return; }
 
   // Carica invio
-  const r1 = await fetch(`${SUPABASE_URL}/rest/v1/survey_invii?token=eq.${TOKEN}&select=*,survey(*),dipendenti(nome,cognome)`, {
-    headers: {'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`}
+  // l'invio si legge solo col suo token (funzione survey_apri): la tabella non e' aperta al pubblico
+  const r1 = await fetch(`${SUPABASE_URL}/rest/v1/rpc/survey_apri`, {
+    method: 'POST',
+    headers: {'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json'},
+    body: JSON.stringify({ p_token: TOKEN })
   });
-  const data = await r1.json();
-  invio = data?.[0];
+  invio = await r1.json().catch(() => null);
+  if (invio && invio.code) invio = null;
 
   if (!invio) { root.innerHTML = '<div class="loading">⚠️ Link non trovato o scaduto.</div>'; return; }
   if (invio.completato) { root.innerHTML = `<div class="loading">✅ Hai già completato questo survey. Grazie!</div>`; return; }
