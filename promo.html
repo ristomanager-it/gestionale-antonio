@@ -778,6 +778,9 @@ async function init() {
             privacy_accettata: privacy,
             user_agent: navigator.userAgent,
             ref: params.get('ref') || null,
+            compleanno: (document.getElementById('f-cg')?.value && document.getElementById('f-cm')?.value)
+              ? ('1900-' + String(document.getElementById('f-cm').value).padStart(2,'0') + '-' + String(document.getElementById('f-cg').value).padStart(2,'0'))
+              : null,
           })
         });
         esitoLead = await rLead.json().catch(() => null);
