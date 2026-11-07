@@ -245,7 +245,7 @@ export async function render(container) {
     for (let da = 0; da < 60000; da += 1000) {
       const { data, error } = await base().range(da, da + 999);
       if (error || !data) break;
-      tutti.push(...data);
+      tutti.push(...data.filter((r) => !r.bot)); // i robot riconosciuti (anteprime, controlli automatici) non sono visite
       if (data.length < 1000) break;
     }
     return tutti;
