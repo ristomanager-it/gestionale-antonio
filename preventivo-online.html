@@ -108,7 +108,7 @@ function riepilogo(){T("step","riepilogo",TIPO);$("steps").innerHTML='<div class
   if(k.su_richiesta&&k.su_richiesta.length)h+='<p class="m">Su richiesta, fuori dal totale: '+esc(k.su_richiesta.join(", "))+'.</p>';
   var esterna=l&&l.certa===false;
   h+=esterna?'<p class="m" style="margin-top:12px">'+esc(l.nome)+' è una location partner: verifichiamo noi la data con loro e vi confermiamo entro 24 ore. Poi potete bloccarla.</p>':'<div class="big"><span>Per bloccare la data (acconto '+k.acconto_perc+'%)</span><b>'+eur(k.sconto?k.sconto.acconto:k.acconto)+'</b></div>';
-  h+='<div class="err hide" id="eF"></div><button class="btn" id="crea">'+(esterna?"Richiedi l’opzione sulla data":"Blocca la data")+'</button>'+(WA?'<a class="btn g" href="'+WA+'" target="_blank" rel="noopener">Scriveteci su WhatsApp</a>':'')+'';
+  h+='<div id="slotC"></div><div class="err hide" id="eF"></div><button class="btn" id="crea">'+(esterna?"Richiedi l’opzione sulla data":"Blocca la data")+'</button>'+(WA?'<a class="btn g" href="'+WA+'" target="_blank" rel="noopener">Scriveteci su WhatsApp</a>':'')+'';
   $("sum").innerHTML=h}).catch(function(){$("sum").innerHTML='<p class="err">Non riesco a calcolare: riprovate.</p>'})}
 function crea(){var b=$("crea");b.disabled=true;b.textContent="Un attimo…";
  var n=Object.keys(note).filter(function(id){return sel[id]&&note[id]}).map(function(id){var v=CFG.voci.filter(function(x){return x.id===id})[0];return {piatto:v?v.nome:"",nota:note[id]}});
