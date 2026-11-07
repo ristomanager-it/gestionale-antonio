@@ -574,7 +574,21 @@ export async function render(container) {
       if (t === "view" && p === "prenotazione-online") return "Pagina prenotazione";
       // pagine degli eventi (Capodanno...): prima non comparivano nei percorsi
       if (t === "view" && p.startsWith("capodanno-")) return ({ "capodanno-aquila": "🎆 Cenone Trattoria", "capodanno-campoantico": "🎆 Cenone Campo Antico", "capodanno-weekend-aquila": "🎆 Pacchetto Hotel Aquila", "capodanno-weekend-campo": "🎆 Pacchetto Campo Antico", "capodanno-pranzo": "🎆 Pranzo 1° gennaio", "capodanno-prenotazione": "🎆 Pagina della prenotazione" })[p] || "🎆 " + p;
-      if (st === "success" || t === "submit" || el === "prenotazione_completata") return "✅ Prenotazione fatta";
+      // landing eventi e matrimoni, preventivo online e visite: i "submit" sui pulsanti sono CLIC, non prenotazioni
+      if (t === "view" && p.startsWith("wedding-matrimonio")) return p.indexOf("roma") >= 0 ? "💍 Landing matrimoni Roma" : "💍 Landing matrimoni Tuscia";
+      if (t === "view" && /^wedding-(it|en|us|de|es|nl|fr)$/.test(p)) return "💍 Sito wedding " + p.slice(8).toUpperCase();
+      if (t === "view" && p.startsWith("feste-")) return "🎉 Landing " + p.slice(6).replace(/-/g, " ");
+      if (t === "view" && p.startsWith("preventivo-online-")) return "🧾 Apre il preventivo";
+      if (t === "view" && p.startsWith("visita-")) return "📅 Apre le visite";
+      if (t === "step" && p.startsWith("preventivo-online-")) return el === "inizio" ? "🧾 Inizia (invitati e contatti)" : el === "riepilogo" ? "🧾 Vede il totale" : "🧾 Sceglie il menu";
+      if (t === "step" && p.startsWith("visita-")) return el === "giorno" ? "📅 Sceglie il giorno" : el === "orario" ? "📅 Sceglie l'orario" : null;
+      if (t === "submit" && el === "preventivo_creato") return "✅ Preventivo creato";
+      if (t === "submit" && el === "visita_prenotata") return "✅ Visita prenotata";
+      if (t === "submit" && el === "preventivo") return "Tocca Preventivo";
+      if (t === "submit" && el === "visita") return "Tocca Visita";
+      if (t === "submit" && el === "whatsapp") return "💬 WhatsApp";
+      if (t === "errore") return "⚠️ Errore";
+      if (st === "success" || el === "prenotazione_completata") return "✅ Prenotazione fatta";
       if (st === "seleziona_data") return "Sceglie la data";
       if (st === "seleziona_orario") return "Sceglie l'orario";
       if (st === "policy_ok") return "Accetta le regole";
