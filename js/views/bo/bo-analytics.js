@@ -621,7 +621,7 @@ export async function render(container) {
       if (labels.some(l => /Telefona|WhatsApp|Tocca Prenota|Tocca Preventivo|Tocca Visita|Prenotazione fatta|Preventivo creato|Visita prenotata/.test(l))) sessioniAzione++;
     });
     // i percorsi che sono finiti in una prenotazione si vedono sempre, in cima; poi i piu' frequenti
-    const finiti = (k) => k.includes("Prenotazione fatta");
+    const finiti = (k) => /Prenotazione fatta|Preventivo creato|Visita prenotata/.test(k);
     const tuttiPercorsi = Object.entries(percorsiCount).sort((a, b) => (finiti(b[0]) - finiti(a[0])) || (b[1] - a[1]));
     const percorsiList = tuttiPercorsi.filter((p) => finiti(p[0])).concat(tuttiPercorsi.filter((p) => !finiti(p[0])).slice(0, 12));
     const percorsiHtml = `
