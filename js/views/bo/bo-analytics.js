@@ -628,7 +628,7 @@ export async function render(container) {
     <div class="an-card">
       <div class="an-card-title">🧭 Percorsi delle visite</div>
       ${percorsiList.length === 0 ? `<div class="an-empty">Nessun dato</div>` : `
-        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">${fmt(sessioniTot)} visite · ${fmt(sessioniAzione)} sono finite in una telefonata, un clic su Prenota o una prenotazione.</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">${fmt(sessioniTot)} visite · ${fmt(sessioniAzione)} hanno telefonato, scritto su WhatsApp, toccato Prenota, Preventivo o Visita, o concluso.</div>
         ${percorsiList.map(([k, n]) => `
           <div class="an-utm-row">
             <span style="font-size:12.5px;color:#374151;line-height:1.5;">${k}</span>
