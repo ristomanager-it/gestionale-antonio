@@ -77,7 +77,7 @@ export async function render(app) {
   }
 
   if (chiave === "eventi") {
-    const [trattativa, { data: ev }] = await Promise.all([
+    const [trattativa, { data: ev }, nVisite] = await Promise.all([
       conta(supabase.from("preventivi").select("id", { count: "exact", head: true }).eq("azienda_id", aid).eq("stato", "trattativa")),
       supabase.from("preventivi").select("titolo_evento, data_evento, n_invitati, stato").eq("azienda_id", aid).in("stato", ["confermato", "accettato"]).gte("data_evento", oggi).lte("data_evento", tra14).order("data_evento", { ascending: true }).limit(8),
     ]);
