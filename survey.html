@@ -94,7 +94,11 @@ function daMostrare(d) {
   if (!c || !c.ordine) return true;
   const dom = domande.find(x => Number(x.ordine) === Number(c.ordine));
   if (!dom) return true;
-  return String(risposte[dom.id] ?? '') === String(c.valore);
+  const r = risposte[dom.id];
+  // soglia: { "ordine": 3, "minore": 4 } = chiedi il motivo solo se il voto e' sotto 4
+  if (c.minore != null) return r != null && r !== '' && Number(r) < Number(c.minore);
+  if (c.maggiore != null) return r != null && r !== '' && Number(r) > Number(c.maggiore);
+  return String(r ?? '') === String(c.valore);
 }
 
 function renderStep() {
