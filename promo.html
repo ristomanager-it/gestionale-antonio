@@ -777,6 +777,7 @@ async function init() {
             consenso_marketing: consenso,
             privacy_accettata: privacy,
             user_agent: navigator.userAgent,
+            ref: params.get('ref') || null,
           })
         });
         esitoLead = await rLead.json().catch(() => null);
