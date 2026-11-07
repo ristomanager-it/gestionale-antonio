@@ -1351,6 +1351,7 @@ export async function renderPromo(container, aziendaId) {
                 </div>`:''}
               </div>
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <button data-bozza-promo="${p.id}" class="toggle-btn" style="background:${p.bozza?'#fef3c7':'#f1f5f9'};color:${p.bozza?'#b45309':'#64748b'};">${p.bozza?'📝 Bozza · Pubblica':'📝 Bozza'}</button>
                 <button data-toggle-promo="${p.id}" class="toggle-btn ${p.attiva?'attiva':'inattiva'}">${p.attiva?'✅ Attiva':'⏸ Disattiva'}</button>
                 <button data-copy-url="https://app.ristoflow-ai.com/promo.html?id=${p.id}" style="background:#f0f9ff;border:1px solid #bae6fd;color:#0E5A7A;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;">🔗 Link</button>
                 <button data-edit-promo="${p.id}" style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;">✏️</button>
