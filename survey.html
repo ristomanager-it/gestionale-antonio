@@ -235,10 +235,10 @@ async function inviaRisposte() {
     if (!r1.ok) throw new Error(await r1.text());
 
     // Segna invio come completato
-    await fetch(`${SUPABASE_URL}/rest/v1/survey_invii?id=eq.${invio.id}`, {
-      method: 'PATCH',
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/survey_completa`, {
+      method: 'POST',
       headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
-      body: JSON.stringify({ completato: true, completato_il: new Date().toISOString() })
+      body: JSON.stringify({ p_token: TOKEN })
     });
 
     // Notifica se alert triggerato
