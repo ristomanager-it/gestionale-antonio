@@ -618,7 +618,7 @@ export async function render(container) {
       const fonte = r0.utm_source || r0.referrer?.split("/")[2] || "diretto";
       const chiave = [fonte, ...labels].join(" → ");
       percorsiCount[chiave] = (percorsiCount[chiave] || 0) + 1;
-      if (labels.some(l => /Telefona|Tocca Prenota|Prenotazione fatta/.test(l))) sessioniAzione++;
+      if (labels.some(l => /Telefona|WhatsApp|Tocca Prenota|Tocca Preventivo|Tocca Visita|Prenotazione fatta|Preventivo creato|Visita prenotata/.test(l))) sessioniAzione++;
     });
     // i percorsi che sono finiti in una prenotazione si vedono sempre, in cima; poi i piu' frequenti
     const finiti = (k) => k.includes("Prenotazione fatta");
