@@ -121,7 +121,7 @@ function crea(){var b=$("crea");b.disabled=true;b.textContent="Un attimo…";
 document.addEventListener("click",function(e){var t=e.target.closest("[data-tipo],[data-v],button");if(!t)return;
  if(t.hasAttribute("data-tipo")){caricaTipo(t.getAttribute("data-tipo"));return}
  if(t.id==="go"){var em=$("email").value.trim(),inv=parseInt($("inv").value,10),err=$("e1");
-  if(!$("nomi").value.trim()||!/^\S+@\S+\.\S+$/.test(em)||!(inv>=10)){err.classList.remove("hide");err.textContent="Servono nome, email valida e numero di invitati.";return}
+  if(!(inv>=10)){err.classList.remove("hide");err.textContent="Scrivete quanti invitati, almeno 10.";T("errore","inizio","invitati");return}
   err.classList.add("hide");INV=inv;DATA=(document.querySelector("input[name=hd]:checked").value==="si"&&$("dataG").value)?$("dataG").value:null;
   t.disabled=true;caricaTipo(TIPO).then(function(){costruisci();return DATA?api({azione:"disponibilita",tipo:TIPO,data:DATA,invitati:INV}).then(function(d){DISP=d.location||{}}):(DISP={})}).then(function(){t.disabled=false;$("s1").classList.add("hide");$("s2").classList.remove("hide");cur=0;fatto={};disegna();scrollTo(0,0);T("step","inizio",TIPO+" · "+INV+" invitati"+(DATA?" · data scelta":""))});return}
  if(t.hasAttribute("data-st")){vai(+t.getAttribute("data-st"));return}
