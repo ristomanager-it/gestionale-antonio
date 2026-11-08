@@ -1012,7 +1012,7 @@ async function inviaPromoWA({ promo, nome, telefono, aziendaId, coupon = null, n
     testo = `Ciao ${nome}! 🎁\n\nHai una promo esclusiva da *${locale}*: *${promo.nome}*\n`
           + (valoreLabel ? `Valore: *${valoreLabel}*\n` : '')
           + (coupon ? `Il tuo codice personale: *${coupon}*\n` : (promo.codice ? `Codice: *${promo.codice}*\n` : ''))
-          + `\n👉 Ritrovi coupon e QR qui: ${landingUrl}`;
+          + `\n👉 Ritrovi la tua offerta e il QR qui: ${landingUrl}`;
   } else {
     const scadenza = promo.data_scadenza
       ? new Date(promo.data_scadenza).toLocaleDateString('it-IT')
