@@ -101,7 +101,7 @@ function contenuto(r) {
     '<div class="rc-barra"><i></i><i></i><i></i><i></i></div>' +
     '<h1 class="rc-h1">Come guadagni con Ristoflow</h1>' +
     '<p class="rc-sotto">Compensi della rete vendita' + (dal ? ' · in vigore dal ' + dal : '') + '</p>' +
-    '<h2 class="rc-h2">Le regole in quattro numeri</h2>' +
+    '<h2 class="rc-h2">Le regole in cifre</h2>' +
     '<div class="rc-carte">' +
       '<div class="rc-carta"><b>' + perc(r.perc_agente) + '</b><span>di quello che il cliente paga il primo anno, per ogni contratto che chiudi</span></div>' +
       '<div class="rc-carta"><b>' + perc(r.perc_segnalatore) + '</b><span>se porti solo il contatto e il contratto lo chiude un altro</span></div>' +
