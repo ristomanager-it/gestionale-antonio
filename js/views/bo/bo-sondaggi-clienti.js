@@ -66,7 +66,9 @@ export async function render(container){
         const max = d.scala_max || 5; const q = r.risposta_scala / max;
         const col = q >= 0.8 ? C.ok : q >= 0.6 ? C.medio : C.ko;
         val = `<b style="color:${col};">${r.risposta_scala} su ${max}</b>`;
-      } else val = `<b>${esc(r.risposta_scelta || r.risposta_testo || '—')}</b>`;
+      } else if(r.risposta_testo){
+        return `<div style="padding:6px 0;border-top:1px solid #f1f5f9;font-size:14px;"><div style="color:${C.soft};">${esc(d.testo||'Domanda')}</div><div style="margin-top:3px;background:#f8fafc;border-left:3px solid ${C.primario};padding:6px 10px;border-radius:6px;color:${C.testo};">${esc(r.risposta_testo)}</div></div>`;
+      } else val = `<b>${esc(r.risposta_scelta || '—')}</b>`;
       return `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid #f1f5f9;font-size:14px;"><span style="color:${C.soft};">${esc(d.testo||'Domanda')}</span><span style="white-space:nowrap;">${val}</span></div>`;
     }).join('');
     const fascia = i.fascia === 'bassa' ? `<span style="background:#fee2e2;color:${C.ko};border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;">Da richiamare</span>`
