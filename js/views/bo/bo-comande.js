@@ -3344,9 +3344,11 @@ export async function render(container) {
     else if (viewMode === 'tavoli') { loadComande().then(renderMapTavoli); }
   }, 30000);
 
-  // ── Start: mostra PIN prima di tutto ──
+  // ── Start: con la mail personale si entra diretto, il PIN serve solo sui telefoni condivisi ──
   switchView('pin');
   await loadAll();
+  const chiSono = utenteDaMailPersonale();
+  if (chiSono) accediConPin(chiSono);
 }
 
 function esc(s) {
