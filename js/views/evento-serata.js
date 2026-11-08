@@ -254,7 +254,7 @@ export async function render(container) {
       </form>
 
       <div class="ev-ok" id="ev-ok">
-        <h2>Ci vediamo il 23</h2>
+        <h2>Ci vediamo il ${ggEv}</h2>
         <p>Vi arriva un messaggio di conferma e un promemoria nei giorni prima.<br><br>
         <b>Mercoledì 23 settembre, dalle 19:30<br>Campo Antico — Orte</b></p>
         <div class="cod" id="ev-riepilogo"></div>
