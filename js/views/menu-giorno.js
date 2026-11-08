@@ -67,6 +67,28 @@ export async function render(container) {
       if (arr) { const idx = arr.indexOf(""); if (idx >= 0) arr[idx] = String(v.ricetta_id); }
     });
   }
+  // Menu ancora vuoto: precompila con la proposta di Tony (poi si cambia quello che si vuole e si salva)
+  let daTony = false;
+  const vuoto = !(mgEsistente && Array.isArray(mgEsistente.voci) && mgEsistente.voci.length);
+  if (vuoto && sede?.id) {
+    try {
+      const { data: pr } = await s.from("menu_giorno_proposte").select("proposta").eq("sede_id", sede.id).eq("data", giorno).maybeSingle();
+      const p = pr && pr.proposta;
+      if (p) {
+        const norm = (t) => String(t || "").toLowerCase().replace(/\s+/g, " ").trim();
+        [["antipasti", p.antipasti], ["primi", p.primi], ["secondi", p.secondi]].forEach(([key, lista]) => {
+          (Array.isArray(lista) ? lista : []).forEach(x => {
+            if (!x || !x.nome) return;
+            const r = (perPortata[key] || []).find(r => norm(r.nome) === norm(x.nome));
+            const idx = r ? sel[key].indexOf("") : -1;
+            if (r && idx >= 0) sel[key][idx] = String(r.id);
+            else liberiEsistenti[key].push({ nome: x.nome, prezzo: 0, ricetta_id: null, libero: true });
+            daTony = true;
+          });
+        });
+      }
+    } catch (e) { /* senza proposta si parte vuoti */ }
+  }
   // Prezzo alla carta già salvato per ogni piatto del ricettario (portata|ricetta)
   const prezziSalvati = new Map();
   if (mgEsistente && Array.isArray(mgEsistente.voci)) {
