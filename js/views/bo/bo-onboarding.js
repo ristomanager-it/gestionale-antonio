@@ -278,8 +278,8 @@ export async function render(container) {
   caricaStatoOnboarding();
 
   function aggiornaStep(li, si) {
-    const key = `onb_${aziendaId}_${li}_${si}`;
-    const done = localStorage.getItem(key) === '1';
+    const done = fatto(li, si);
+    const manuale = MANUALI.includes(LIVELLI[li].steps[si].id);
     const stepEl = document.getElementById(`step-${li}-${si}`);
     const numEl = stepEl?.querySelector('.onb-step-num');
     const btn = stepEl?.querySelector(`.check-btn-${li}-${si}`);
