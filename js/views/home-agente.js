@@ -472,6 +472,7 @@ export async function render(container) {
 
 
 function renderAgMansionario(el) {
+    // allineato al Manuale dell'Agente (8/11/2026): prima della serata del 18 gennaio si invita, non si vende
     const tipoLabel = window._agAgente.tipo === 'segnalatore' ? 'Segnalatore' : window._agAgente.tipo === 'area_manager' ? 'Area Manager' : 'Agente';
     el.innerHTML = `
       <div class="ag-card" style="background:linear-gradient(135deg,#7C3AED,#9333ea);color:white;">
