@@ -299,7 +299,7 @@ export async function render(container) {
 
   function aggiornaBadge() {
     LIVELLI.forEach((liv, li) => {
-      const done = liv.steps.filter((_, si) => localStorage.getItem(`onb_${aziendaId}_${li}_${si}`) === '1').length;
+      const done = liv.steps.filter((_, si) => fatto(li, si)).length;
       const badge = document.getElementById(`badge-${li}`);
       if (!badge) return;
       badge.textContent = `${done} / ${liv.steps.length}`;
