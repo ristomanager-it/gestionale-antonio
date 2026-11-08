@@ -126,6 +126,7 @@ export async function renderPromo(container, aziendaId) {
       </div>
     </div>
 
+    <div id="promo-novita"></div>
     <div id="lista-promo"></div>
 
     <!-- MODAL TONY -->
