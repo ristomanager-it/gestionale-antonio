@@ -124,7 +124,8 @@ function crea(){var b=$("crea");
 document.addEventListener("click",function(e){var t=e.target.closest("[data-tipo],[data-v],button");if(!t)return;
  if(t.hasAttribute("data-tipo")){caricaTipo(t.getAttribute("data-tipo"));return}
  if(t.id==="go"){var em=$("email").value.trim(),inv=parseInt($("inv").value,10),err=$("e1");
-  if(!(inv>=10)){err.classList.remove("hide");err.textContent="Scrivete quanti invitati, almeno 10.";T("errore","inizio","invitati");return}
+  if(!$("nomi").value.trim()||!/^\S+@\S+\.\S+$/.test(em)||!(inv>=10)){err.classList.remove("hide");err.textContent="Servono nome, email valida e numero di invitati.";T("errore","inizio",!$("nomi").value.trim()?"nome":!(inv>=10)?"invitati":"email");return}
+  if(!PROVA){try{var qx=new URLSearchParams(location.search);fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/rpc/preventivo_online_contatto",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json",apikey:"sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"},body:JSON.stringify({p_slug:P,p_dati:{nomi:$("nomi").value.trim(),email:em,telefono:$("tel").value.trim(),tipo:TIPO,invitati:inv,data:($("dataG").value||$("mese").value||""),consenso:$("cons").checked,utm_source:qx.get("utm_source")||"",utm_campaign:qx.get("utm_campaign")||""}})})}catch(_){}}
   err.classList.add("hide");INV=inv;DATA=(document.querySelector("input[name=hd]:checked").value==="si"&&$("dataG").value)?$("dataG").value:null;
   t.disabled=true;caricaTipo(TIPO).then(function(){costruisci();return DATA?api({azione:"disponibilita",tipo:TIPO,data:DATA,invitati:INV}).then(function(d){DISP=d.location||{}}):(DISP={})}).then(function(){t.disabled=false;$("s1").classList.add("hide");$("s2").classList.remove("hide");cur=0;fatto={};disegna();scrollTo(0,0);T("step","inizio",TIPO+" · "+INV+" invitati"+(DATA?" · data scelta":""))});return}
  if(t.hasAttribute("data-st")){vai(+t.getAttribute("data-st"));return}
