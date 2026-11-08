@@ -1,190 +1,192 @@
 // js/views/bo/bo-promo-analisi.js
-// Dashboard di analisi delle campagne Promo: funnel, conversioni, andamento, dettaglio per campagna.
+// Analisi delle promo: aperture della pagina, coupon scaricati, coupon usati.
+// Dati reali dalla funzione promo_analisi (niente stime): aperture = persone diverse che hanno aperto la landing,
+// senza robot e senza chi riapre il proprio coupon. Fonte = da dove arrivano (Meta, Google, WhatsApp, diretto/QR).
 
 const supa = () => window.supabaseClient || window.supabase;
-function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function eur(n){ return '\u20ac ' + (Math.round((Number(n)||0)*100)/100).toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:0}); }
-function pct(n){ return (Math.round((Number(n)||0)*10)/10).toLocaleString('it-IT') + '%'; }
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function num(n){ return (Number(n)||0).toLocaleString('it-IT'); }
+function pct(a,b){ return b>0 ? (Math.round(a/b*1000)/10).toLocaleString('it-IT')+'%' : '—'; }
+function quando(iso){
+  if(!iso) return '';
+  const d = new Date(iso), ora = new Date();
+  const min = Math.round((ora - d)/60000);
+  if(min < 1) return 'adesso';
+  if(min < 60) return min+' min fa';
+  const h = Math.round(min/60);
+  if(h < 24) return h+' ore fa';
+  return d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
 
-const C = {
-  primario:'#0E5A7A', inviate:'#64748b', scaricate:'#0ea5e9', usate:'#16a34a', referral:'#a855f7',
-  bg:'#ffffff', bordo:'#e5e7eb', testo:'#1e293b', soft:'#64748b',
-};
+const C = { primario:'#0E5A7A', aperture:'#64748b', scaricati:'#0ea5e9', usati:'#16a34a', attesa:'#f59e0b', bordo:'#e5e7eb', testo:'#1e293b', soft:'#64748b' };
+const FONTI_COLORE = { 'Meta':'#1877F2', 'Google':'#EA4335', 'WhatsApp':'#25D366', 'Email':'#a855f7', 'Diretto / QR':'#0E5A7A', 'Altro':'#94a3b8' };
+
+let periodo = 30;
 
 export async function render(container){
   const aziendaId = window.state?.azienda?.id;
   if(!aziendaId){ container.innerHTML='<div style="padding:20px;color:#dc2626;">Azienda non selezionata</div>'; return; }
-  container.innerHTML='<div style="color:#94a3b8;padding:20px;">Caricamento analisi promo...</div>';
+  container.innerHTML = wrap('<div style="color:#94a3b8;padding:20px;">Caricamento analisi...</div>');
+  bindPeriodo(container);
 
-  // Carico promo + eventi collegati
-  const [{data:promo},{data:invii},{data:lead},{data:referral}] = await Promise.all([
-    supa().from('promo').select('*').eq('azienda_id',aziendaId).order('created_at',{ascending:false}),
-    supa().from('promo_invii').select('promo_id,inviata_il,usata,usata_il').eq('azienda_id',aziendaId),
-    supa().from('promo_lead').select('promo_id,data_scaricamento,data_utilizzo,stato_coupon,created_at').eq('azienda_id',aziendaId),
-    supa().from('promo_referral').select('promo_id,stato,created_at').eq('azienda_id',aziendaId),
-  ]);
-
-  const promos = promo||[];
-  if(!promos.length){
-    container.innerHTML = wrap('<div style="text-align:center;padding:60px 20px;color:#64748b;">Nessuna promo ancora creata.<br>Crea la tua prima campagna in <strong>Promo &amp; Landing Page</strong>.</div>');
-    return;
+  const { data, error } = await supa().rpc('promo_analisi', { p_azienda: aziendaId, p_giorni: periodo });
+  if(error || !data){
+    container.innerHTML = wrap('<div style="padding:20px;color:#dc2626;">Non riesco a leggere i dati: '+esc(error?.message||'errore')+'</div>');
+    bindPeriodo(container); return;
   }
 
-  // Aggrego per promo
-  const byId = {};
-  promos.forEach(p=>{ byId[p.id]={ promo:p, inviate:0, scaricate:0, usate:0, referral:0, valore:0 }; });
+  const tutte = data.promo || [];
+  const promo = tutte.filter(p => !p.kit_ruolo && !p.bozza);
+  const regali = tutte.filter(p => p.kit_ruolo);
+  if(!promo.length){
+    container.innerHTML = wrap('<div style="text-align:center;padding:60px 20px;color:#64748b;">Nessuna promo ancora pubblicata.<br>Creala in <strong>Promo &amp; Offerte</strong> o chiedila a Tony.</div>');
+    bindPeriodo(container); return;
+  }
 
-  (invii||[]).forEach(r=>{ const b=byId[r.promo_id]; if(!b)return; b.inviate++; if(r.usata) b.usate++; });
-  (lead||[]).forEach(r=>{ const b=byId[r.promo_id]; if(!b)return; if(r.data_scaricamento||r.created_at) b.scaricate++; if(r.data_utilizzo||r.stato_coupon==='usato') b.usate++; });
-  (referral||[]).forEach(r=>{ const b=byId[r.promo_id]; if(!b)return; b.referral++; });
-
-  // Fallback: se non ci sono eventi granulari, uso i contatori sulla promo (nr_utilizzate/nr_disponibili)
-  Object.values(byId).forEach(b=>{
-    const p=b.promo;
-    if(b.scaricate===0 && b.usate===0 && b.inviate===0){
-      b.usate = Number(p.nr_utilizzate)||0;
-      b.scaricate = Math.max(b.usate, Math.round((Number(p.nr_utilizzate)||0)*1.9));
-      b.inviate = Math.max(b.scaricate, Number(p.nr_disponibili)||b.scaricate);
-    }
-    // valore stimato generato = usate × valore medio scontrino stimato (se sconto% usiamo un incasso medio)
-    const valMedio = 35; // scontrino medio stimato per visita generata
-    b.valore = (b.usate||0) * valMedio;
-  });
-
-  const rows = Object.values(byId);
-
-  // Totali
-  const tot = rows.reduce((a,b)=>({
-    inviate:a.inviate+b.inviate, scaricate:a.scaricate+b.scaricate, usate:a.usate+b.usate,
-    referral:a.referral+b.referral, valore:a.valore+b.valore
-  }),{inviate:0,scaricate:0,usate:0,referral:0,valore:0});
-
-  const convScarico = tot.inviate>0 ? tot.scaricate/tot.inviate*100 : 0;
-  const convUso = tot.scaricate>0 ? tot.usate/tot.scaricate*100 : 0;
-  const convTot = tot.inviate>0 ? tot.usate/tot.inviate*100 : 0;
+  const tot = promo.reduce((a,p)=>({ ap:a.ap+p.aperture, sc:a.sc+p.scaricati, us:a.us+p.usati, att:a.att+p.da_usare }), {ap:0,sc:0,us:0,att:0});
 
   container.innerHTML = wrap(`
-    <!-- KPI FUNNEL -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
-      ${kpi('\uD83D\uDCE4 Inviate', tot.inviate, C.inviate, 'messaggi partiti')}
-      ${kpi('\uD83D\uDCE5 Scaricate', tot.scaricate, C.scaricate, pct(convScarico)+' di chi la riceve')}
-      ${kpi('\u2705 Utilizzate', tot.usate, C.usate, pct(convUso)+' di chi la scarica')}
-      ${kpi('\uD83D\uDD01 Referral', tot.referral, C.referral, 'amici invitati')}
-      ${kpi('\uD83D\uDCB0 Valore generato', eur(tot.valore), C.primario, 'stima incasso da visite')}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+      ${kpi('👀 Aperture', num(tot.ap), C.aperture, 'persone che hanno aperto la pagina')}
+      ${kpi('📥 Scaricati', num(tot.sc), C.scaricati, pct(tot.sc,tot.ap)+' di chi apre')}
+      ${kpi('✅ Usati', num(tot.us), C.usati, pct(tot.us,tot.sc)+' di chi scarica')}
+      ${kpi('⏳ Da usare', num(tot.att), C.attesa, 'coupon in mano ai clienti')}
     </div>
 
-    <!-- FUNNEL VISIVO -->
-    <div style="background:${C.bg};border:1px solid ${C.bordo};border-radius:14px;padding:18px;margin-bottom:20px;">
-      <div style="font-size:13px;font-weight:700;color:${C.testo};margin-bottom:14px;">Funnel di conversione</div>
-      ${funnelBar('Inviate', tot.inviate, tot.inviate, C.inviate)}
-      ${funnelBar('Scaricate', tot.scaricate, tot.inviate, C.scaricate)}
-      ${funnelBar('Utilizzate', tot.usate, tot.inviate, C.usate)}
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid ${C.bordo};display:flex;justify-content:space-between;font-size:12px;color:${C.soft};">
-        <span>Conversione totale (inviata \u2192 usata)</span>
-        <strong style="color:${C.usate};font-size:15px;">${pct(convTot)}</strong>
-      </div>
-    </div>
+    ${box('Dall’apertura al tavolo', `
+      ${barra('Aperture', tot.ap, tot.ap, C.aperture)}
+      ${barra('Scaricati', tot.sc, tot.ap, C.scaricati, pct(tot.sc,tot.ap))}
+      ${barra('Usati', tot.us, tot.ap, C.usati, pct(tot.us,tot.ap))}
+    `)}
 
-    <!-- CONFRONTO CAMPAGNE (barre) -->
-    <div style="background:${C.bg};border:1px solid ${C.bordo};border-radius:14px;padding:18px;margin-bottom:20px;">
-      <div style="font-size:13px;font-weight:700;color:${C.testo};margin-bottom:14px;">Campagne a confronto \u2014 utilizzi</div>
-      ${barChart(rows)}
-    </div>
+    ${box('Giorno per giorno', grafico(data.serie||[]))}
 
-    <!-- TABELLA DETTAGLIO -->
-    <div style="background:${C.bg};border:1px solid ${C.bordo};border-radius:14px;padding:0;overflow:hidden;">
-      <div style="font-size:13px;font-weight:700;color:${C.testo};padding:16px 18px;border-bottom:1px solid ${C.bordo};">Dettaglio per campagna</div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:640px;">
-          <thead>
-            <tr style="background:#f8fafc;color:${C.soft};text-align:left;">
-              <th style="padding:10px 14px;">Campagna</th>
-              <th style="padding:10px;text-align:center;">Stato</th>
-              <th style="padding:10px;text-align:right;">Inviate</th>
-              <th style="padding:10px;text-align:right;">Scaricate</th>
-              <th style="padding:10px;text-align:right;">Usate</th>
-              <th style="padding:10px;text-align:right;">Conv.</th>
-              <th style="padding:10px 14px;text-align:right;">Valore</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(r=>{
-              const conv = r.scaricate>0 ? r.usate/r.scaricate*100 : (r.inviate>0? r.usate/r.inviate*100:0);
-              return `<tr style="border-top:1px solid #f1f5f9;">
-                <td style="padding:10px 14px;font-weight:600;color:${C.testo};">${esc(r.promo.nome)}</td>
-                <td style="padding:10px;text-align:center;">${r.promo.attiva
-                  ? '<span style="background:#dcfce7;color:#15803d;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">Attiva</span>'
-                  : '<span style="background:#fee2e2;color:#dc2626;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">Off</span>'}</td>
-                <td style="padding:10px;text-align:right;color:${C.soft};">${r.inviate.toLocaleString('it-IT')}</td>
-                <td style="padding:10px;text-align:right;color:${C.scaricate};font-weight:600;">${r.scaricate.toLocaleString('it-IT')}</td>
-                <td style="padding:10px;text-align:right;color:${C.usate};font-weight:700;">${r.usate.toLocaleString('it-IT')}</td>
-                <td style="padding:10px;text-align:right;font-weight:600;">${pct(conv)}</td>
-                <td style="padding:10px 14px;text-align:right;font-weight:700;color:${C.primario};">${eur(r.valore)}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    ${box('Da dove arrivano', fonti(data.fonti||{}))}
 
-    <div style="font-size:11px;color:#94a3b8;margin-top:14px;line-height:1.6;">
-      Il <strong>valore generato</strong> \u00e8 una stima (utilizzi \u00d7 scontrino medio \u20ac35): serve a dare un ordine di grandezza del ritorno, non \u00e8 un dato contabile.
-      Quando i coupon vengono riscattati in cassa collegati al conto, questo valore diventer\u00e0 l'incasso reale.
+    ${box('Promo per promo', tabella(promo), true)}
+
+    ${regali.some(r=>r.scaricati>0) ? box('Regali del sondaggio', tabella(regali, true), true) : ''}
+
+    ${box('Ultimi coupon', ultimi(data.ultimi||[]))}
+
+    <div style="font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.6;">
+      Le <strong>aperture</strong> contano le persone diverse che hanno aperto la pagina della promo, senza robot e senza chi riapre il proprio coupon.
+      La <strong>fonte</strong> arriva dal link: Meta e Google si riconoscono da soli, WhatsApp ed email quando il link ha la sua etichetta.
     </div>
   `);
+  bindPeriodo(container);
+}
+
+function bindPeriodo(container){
+  container.querySelectorAll('[data-periodo]').forEach(b=>{
+    b.onclick = () => { periodo = Number(b.dataset.periodo); render(container); };
+  });
 }
 
 function wrap(inner){
+  const chip = (g,l) => `<button data-periodo="${g}" style="border:1px solid ${periodo===g?C.primario:C.bordo};background:${periodo===g?C.primario:'#fff'};color:${periodo===g?'#fff':C.soft};border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">${l}</button>`;
   return `<div class="view" style="max-width:1100px;margin:0 auto;padding:16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
       <div>
-        <h1 style="margin:0;font-size:22px;color:${C.testo};">\uD83D\uDCCA Analisi Promo</h1>
-        <div style="font-size:13px;color:${C.soft};margin-top:2px;">Risultati e conversioni delle tue campagne</div>
+        <h1 style="margin:0;font-size:22px;color:${C.testo};">📊 Analisi Promo</h1>
+        <div style="font-size:13px;color:${C.soft};margin-top:2px;">Aperture, coupon scaricati e coupon usati</div>
       </div>
-      <button data-route="bo-promo" style="background:${C.primario};color:white;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:700;">+ Gestisci campagne</button>
+      <button data-route="bo-promo" style="background:${C.primario};color:white;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:700;">🎁 Le mie promo</button>
     </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">${chip(7,'7 giorni')}${chip(30,'30 giorni')}${chip(90,'90 giorni')}${chip(0,'Da sempre')}</div>
     ${inner}
   </div>`;
 }
 
 function kpi(label,val,color,sub){
-  const shown = typeof val==='number' ? val.toLocaleString('it-IT') : val;
-  return `<div style="background:${C.bg};border:1px solid ${C.bordo};border-radius:14px;padding:16px;">
+  return `<div style="background:#fff;border:1px solid ${C.bordo};border-radius:14px;padding:16px;">
     <div style="font-size:12px;color:${C.soft};font-weight:600;">${label}</div>
-    <div style="font-size:26px;font-weight:800;color:${color};margin:6px 0 2px;">${shown}</div>
+    <div style="font-size:26px;font-weight:800;color:${color};margin:6px 0 2px;">${val}</div>
     <div style="font-size:11px;color:#94a3b8;">${sub}</div>
   </div>`;
 }
 
-function funnelBar(label,val,max,color){
-  const w = max>0 ? Math.max(3, val/max*100) : 3;
-  return `<div style="margin-bottom:10px;">
-    <div style="display:flex;justify-content:space-between;font-size:12px;color:${C.soft};margin-bottom:4px;">
-      <span>${label}</span><strong style="color:${color};">${val.toLocaleString('it-IT')}</strong>
-    </div>
-    <div style="background:#f1f5f9;border-radius:8px;height:22px;overflow:hidden;">
-      <div style="width:${w}%;height:100%;background:${color};border-radius:8px;transition:width .3s;"></div>
-    </div>
+function box(titolo, corpo, senzaPadding){
+  return `<div style="background:#fff;border:1px solid ${C.bordo};border-radius:14px;margin-bottom:16px;overflow:hidden;">
+    <div style="font-size:13px;font-weight:700;color:${C.testo};padding:14px 16px ${senzaPadding?'12px':'0'};${senzaPadding?'border-bottom:1px solid '+C.bordo+';':''}">${titolo}</div>
+    <div style="padding:${senzaPadding?'0':'12px 16px 16px'};">${corpo}</div>
   </div>`;
 }
 
-function barChart(rows){
-  const data = rows.slice(0,8);
-  const max = Math.max(1, ...data.map(r=>r.usate));
-  const bw = 46, gap = 28, pad = 40, h = 220;
-  const w = pad*2 + data.length*bw + (data.length-1)*gap;
-  const bars = data.map((r,i)=>{
-    const bh = Math.max(2, r.usate/max*(h-60));
-    const x = pad + i*(bw+gap);
-    const y = h-40-bh;
-    const nome = r.promo.nome.length>14 ? r.promo.nome.slice(0,13)+'\u2026' : r.promo.nome;
-    return `
-      <rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="6" fill="${C.usate}"></rect>
-      <text x="${x+bw/2}" y="${y-6}" text-anchor="middle" font-size="12" font-weight="700" fill="${C.testo}">${r.usate}</text>
-      <text x="${x+bw/2}" y="${h-22}" text-anchor="middle" font-size="10" fill="${C.soft}">${esc(nome)}</text>`;
+function barra(label,val,max,color,nota){
+  const w = max>0 ? Math.max(2, val/max*100) : 2;
+  return `<div style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:${C.soft};margin-bottom:4px;">
+      <span>${label}${nota?' <span style="color:#94a3b8;">· '+nota+'</span>':''}</span><strong style="color:${color};">${num(val)}</strong>
+    </div>
+    <div style="background:#f1f5f9;border-radius:8px;height:20px;overflow:hidden;"><div style="width:${w}%;height:100%;background:${color};border-radius:8px;"></div></div>
+  </div>`;
+}
+
+function grafico(serie){
+  if(!serie.length) return '<div style="color:#94a3b8;font-size:13px;">Nessun dato nel periodo.</div>';
+  const n = serie.length, W = 640, H = 200, pl = 28, pb = 26, pt = 10;
+  const max = Math.max(1, ...serie.map(s=>Math.max(s.aperture, s.scaricati, s.usati)));
+  const x = i => pl + (n===1 ? (W-pl-8)/2 : i*(W-pl-8)/(n-1));
+  const y = v => pt + (H-pt-pb) * (1 - v/max);
+  const bw = Math.max(2, (W-pl-8)/n*0.6);
+  const barre = serie.map((s,i)=> s.aperture ? `<rect x="${x(i)-bw/2}" y="${y(s.aperture)}" width="${bw}" height="${H-pb-y(s.aperture)}" rx="2" fill="${C.aperture}" opacity=".25"></rect>` : '').join('');
+  const linea = (k,c) => `<polyline fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" points="${serie.map((s,i)=>x(i)+','+y(s[k])).join(' ')}"></polyline>`;
+  const passo = Math.max(1, Math.ceil(n/6));
+  const etich = serie.map((s,i)=> (i%passo===0 || i===n-1) ? `<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="${C.soft}">${new Date(s.giorno+'T12:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</text>` : '').join('');
+  const leg = (c,t,op) => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;"><span style="width:10px;height:10px;border-radius:3px;background:${c};opacity:${op||1};"></span>${t}</span>`;
+  return `<div style="font-size:11px;color:${C.soft};margin-bottom:6px;">${leg(C.aperture,'Aperture',.35)}${leg(C.scaricati,'Scaricati')}${leg(C.usati,'Usati')}</div>
+    <div style="overflow-x:auto;"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:320px;">
+      <line x1="${pl}" y1="${H-pb}" x2="${W-4}" y2="${H-pb}" stroke="${C.bordo}"></line>
+      <text x="4" y="${pt+8}" font-size="10" fill="${C.soft}">${max}</text>
+      ${barre}${linea('scaricati',C.scaricati)}${linea('usati',C.usati)}${etich}
+    </svg></div>`;
+}
+
+function fonti(f){
+  const voci = Object.entries(f).sort((a,b)=>b[1]-a[1]);
+  if(!voci.length) return '<div style="color:#94a3b8;font-size:13px;">Nessuna apertura nel periodo.</div>';
+  const tot = voci.reduce((a,v)=>a+v[1],0);
+  return voci.map(([k,v])=>barra(k, v, tot, FONTI_COLORE[k]||'#94a3b8', pct(v,tot))).join('');
+}
+
+function tabella(righe, regali){
+  return `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:620px;">
+    <thead><tr style="background:#f8fafc;color:${C.soft};text-align:left;">
+      <th style="padding:10px 14px;">${regali?'Regalo':'Promo'}</th>
+      ${regali?'':'<th style="padding:10px;text-align:right;">Aperture</th>'}
+      <th style="padding:10px;text-align:right;">${regali?'Emessi':'Scaricati'}</th>
+      ${regali?'':'<th style="padding:10px;text-align:right;">% su aperture</th>'}
+      <th style="padding:10px;text-align:right;">Usati</th>
+      <th style="padding:10px;text-align:right;">% su scaricati</th>
+      <th style="padding:10px 14px;">${regali?'Da usare':'Da dove arrivano'}</th>
+    </tr></thead>
+    <tbody>${righe.map(r=>{
+      const fontiTop = Object.entries(r.fonti||{}).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([k,v])=>`<span style="background:${(FONTI_COLORE[k]||'#94a3b8')}1a;color:${FONTI_COLORE[k]||'#64748b'};border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;margin-right:4px;white-space:nowrap;">${esc(k)} ${v}</span>`).join('');
+      const avviso = !regali && r.aperture>=20 && r.scaricati/r.aperture < 0.03
+        ? `<div style="font-size:11px;color:#b45309;margin-top:3px;">Molti la aprono, pochi scaricano: rivedi titolo, foto o offerta della pagina.</div>` : '';
+      const stato = r.attiva ? '' : ' <span style="background:#fee2e2;color:#dc2626;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:700;">Off</span>';
+      return `<tr style="border-top:1px solid #f1f5f9;vertical-align:top;">
+        <td style="padding:10px 14px;font-weight:600;color:${C.testo};">${esc(r.nome)}${stato}${avviso}</td>
+        ${regali?'':`<td style="padding:10px;text-align:right;color:${C.aperture};">${num(r.aperture)}</td>`}
+        <td style="padding:10px;text-align:right;color:${C.scaricati};font-weight:700;">${num(r.scaricati)}</td>
+        ${regali?'':`<td style="padding:10px;text-align:right;">${pct(r.scaricati,r.aperture)}</td>`}
+        <td style="padding:10px;text-align:right;color:${C.usati};font-weight:700;">${num(r.usati)}</td>
+        <td style="padding:10px;text-align:right;">${pct(r.usati,r.scaricati)}</td>
+        <td style="padding:10px 14px;">${regali ? num(r.da_usare) : (fontiTop || '<span style="color:#cbd5e1;">—</span>')}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+function ultimi(lista){
+  if(!lista.length) return '<div style="color:#94a3b8;font-size:13px;">Nessun coupon scaricato finora.</div>';
+  const badge = s => s==='utilizzato'||s==='usato' ? ['Usato',C.usati] : s==='scaduto' ? ['Scaduto','#dc2626'] : ['Da usare',C.attesa];
+  return lista.slice(0,10).map(u=>{
+    const [t,c] = badge(u.stato);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
+      <div style="flex:1;min-width:0;"><strong style="color:${C.testo};">${esc(u.nome||'Cliente')}</strong> <span style="color:${C.soft};">· ${esc(u.promo)}${u.regalo?' (regalo)':''}</span></div>
+      <span style="color:#94a3b8;font-size:12px;white-space:nowrap;">${quando(u.quando)}</span>
+      <span style="background:${c}1a;color:${c};border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;">${t}</span>
+    </div>`;
   }).join('');
-  return `<div style="overflow-x:auto;"><svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;min-width:${Math.min(w,320)}px;">
-    <line x1="${pad}" y1="${h-40}" x2="${w-pad+20}" y2="${h-40}" stroke="${C.bordo}"></line>
-    ${bars}
-  </svg></div>`;
 }
