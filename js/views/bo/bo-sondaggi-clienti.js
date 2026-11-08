@@ -29,9 +29,9 @@ export async function render(container){
   if(ids.length){
     const { data: r } = await supa().from('survey_risposte').select('invio_id, domanda_id, risposta_scala, risposta_testo, risposta_scelta').in('invio_id', ids);
     risposte = r || [];
-    const dIds = [...new Set(risposte.map(x => x.domanda_id))];
-    if(dIds.length){
-      const { data: d } = await supa().from('survey_domande').select('id, testo, ordine, scala_max').in('id', dIds);
+    const sIds = [...new Set(risposti.map(x => x.survey_id))];
+    if(sIds.length){
+      const { data: d } = await supa().from('survey_domande').select('id, survey_id, testo, tipo, ordine, scala_max, condizione_mostra').in('survey_id', sIds);
       (d||[]).forEach(x => domande[x.id] = x);
     }
   }
