@@ -218,6 +218,7 @@ function selScala(domandaId, elId, valore) {
     box.style.display = mostra ? 'block' : 'none';
     if (!mostra) delete risposte[f.id];
   }
+  aggiornaAvanti();
 }
 
 function selScelta(domandaId, valore, btn) {
