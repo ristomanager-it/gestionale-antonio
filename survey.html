@@ -225,7 +225,7 @@ function selScelta(domandaId, valore, btn) {
   risposte[domandaId] = valore;
   document.querySelectorAll('.scelta-opt').forEach(b => b.classList.remove('sel'));
   btn.classList.add('sel');
-  document.getElementById('btn-av').disabled = false;
+  aggiornaAvanti();
 }
 
 function salvaAperta(domandaId, ta) {
