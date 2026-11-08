@@ -497,6 +497,7 @@ export async function render(container) {
             : 'full',
         colore: '#0E5A7A',
         dipendenteId: d.id,
+        userId: d.user_id || null,
       }));
     } catch (e) {
       console.warn('Caricamento camerieri fallito, uso solo admin:', e);
