@@ -477,7 +477,7 @@ function renderAgMansionario(el) {
     el.innerHTML = `
       <div class="ag-card" style="background:linear-gradient(135deg,#7C3AED,#9333ea);color:white;">
         <div style="font-size:15px;font-weight:800;margin-bottom:4px;">📖 Il tuo mansionario — ${tipoLabel}</div>
-        <div style="font-size:12px;opacity:.85;">Consulta questa guida prima di ogni visita</div>
+        <div style="font-size:12px;opacity:.9;">Serata di presentazione: lunedì 18 gennaio 2027, dalle 19:30, Campo Antico di Orte</div>
       </div>
 
       <div class="ag-card">
