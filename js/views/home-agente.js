@@ -222,6 +222,7 @@ export async function render(container) {
     <div class="ag-tabs">
       <button class="ag-tab active" id="agt-agenda" onclick="agSwitchTab('agenda')">📅 Agenda</button>
       <button class="ag-tab" id="agt-lead" onclick="agSwitchTab('lead')">🎯 I miei lead</button>
+      <button class="ag-tab" id="agt-avvii" onclick="agSwitchTab('avvii')">🚀 Avvii</button>
       <button class="ag-tab" id="agt-provv" onclick="agSwitchTab('provv')">💼 Portafoglio</button>
       <button class="ag-tab" id="agt-mansionario" onclick="agSwitchTab('mansionario')">📖 Mansionario</button>
       <button class="ag-tab" id="agt-materiali" onclick="agSwitchTab('materiali')">📦 Materiali</button>
