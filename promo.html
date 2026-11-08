@@ -494,8 +494,9 @@ async function caricaRecensioniReali(promo) {
     const st = n => '★★★★★'.slice(0, Math.round(n)) + '☆☆☆☆☆'.slice(0, 5 - Math.round(n));
     const ini = a => (a || 'Ospite').split(/\s+/).map(p => p.charAt(0)).join('').slice(0, 2).toUpperCase();
     box.innerHTML = '<div class="testimonianze"><div class="testi-rating"><span class="voto">' + esc(String(j.media).replace('.', ',')) + '</span><span><span class="testi-stelle" style="font-size:16px;">' + st(j.media) + '</span><div style="font-size:11px;color:#64748b;">su ' + esc(j.totale) + ' recensioni verificate</div></span></div>'
-      + '<div class="testi-slider">' + j.items.map(x => '<div class="testi-card"><div class="testi-top"><div class="testi-avatar">' + esc(ini(x.autore)) + '</div><div><div class="testi-nome">' + esc(x.autore || 'Un ospite') + '</div><div class="testi-stelle">' + st(x.voto) + '</div></div></div><div class="testi-testo">“' + esc(x.testo) + '”</div></div>').join('')
+      + '<div class="testi-slider">' + j.items.map(x => '<div class="testi-card"><div class="testi-top"><div class="testi-avatar">' + esc(ini(x.autore)) + '</div><div><div class="testi-nome">' + esc(x.autore || 'Un ospite') + '</div><div class="testi-stelle">' + st(x.voto) + '</div></div></div><div class="testi-testo">“' + esc(x.testo) + '”</div></div>').join('') + '</div>'
       + '</div>';
+    avviaSlider(box.querySelector('.testi-slider'));
   } catch (e) { /* senza recensioni la sezione resta vuota */ }
 }
 
