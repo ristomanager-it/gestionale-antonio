@@ -104,6 +104,7 @@ function contenuto(r) {
     '<h2 class="rc-h2">Le regole in cifre</h2>' +
     '<div class="rc-carte">' +
       '<div class="rc-carta"><b>' + perc(r.perc_agente) + '</b><span>di quello che il cliente paga il primo anno, per ogni contratto che chiudi</span></div>' +
+      (Number(r.perc_agente_avvio) > 0 ? '<div class="rc-carta"><b>' + perc(r.perc_agente_avvio) + '</b><span>se chiudi il contratto e fai partire il locale entro quattro giorni (serve l\'abilitazione)</span></div>' : '') +
       '<div class="rc-carta"><b>' + perc(r.perc_segnalatore) + '</b><span>se porti solo il contatto e il contratto lo chiude un altro</span></div>' +
       (pm.length ? '<div class="rc-carta"><b>' + euro(pm[0].premio) + '</b><span>nel mese in cui chiudi ' + pm[0].contratti + ' contratti pagati' + (pm[1] ? '. ' + euro(pm[1].premio) + ' se arrivi a ' + pm[1].contratti : '') + '</span></div>' : '') +
       (pa.length ? '<div class="rc-carta"><b>' + euro(pa[0].premio) + '</b><span>a fine anno con ' + euro(pa[0].venduto) + ' venduti' + (pa[1] ? '. ' + euro(pa[1].premio) + ' con ' + euro(pa[1].venduto) : '') + '</span></div>' : '') +
