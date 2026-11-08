@@ -265,7 +265,7 @@ export async function render(container) {
               ${MANUALI.includes(step.id) ? `<button class="onb-step-btn check-btn-${li}-${si}" style="background:#f1f5f9;color:#374151;"
                 onclick="toggleStep(${li},${si})">
                 ☐ Fatto
-              </button>
+              </button>` : `<span class="check-btn-${li}-${si}" style="font-size:11px;color:#94a3b8;">si segna da solo</span>`}
             </div>
           </div>`).join('')}
         </div>
