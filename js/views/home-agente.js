@@ -133,6 +133,14 @@ export async function render(container) {
   const _appList = appuntamenti || [];
   const _leadList = leads || [];
 
+  // 15% con avvio: segno i clienti avviati in tempo (checklist completa entro 4 giorni dalla firma)
+  try {
+    const AV = await import("../components/avvii-agenti.js?v=" + (window.APP_V || "1"));
+    window.__AV = AV;
+    const _passiAvvio = await AV.caricaPassi(agente.id);
+    _leadList.forEach(l => { l._avvioOk = AV.avvioOk(l, agente, _passiAvvio); });
+  } catch (e) { console.warn('avvii-agenti:', e); }
+
   // KPI mese
   const leadMese = _leadList.filter(l => l.created_at?.substring(0,7) === meseCorrente);
   const paganti = _leadList.filter(l => l.stato === 'pagante');
