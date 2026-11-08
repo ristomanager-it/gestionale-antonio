@@ -288,7 +288,7 @@ export async function render(container) {
       stepEl.style.background = '#f0fdf4';
       stepEl.style.borderColor = '#86efac';
       if (numEl) { numEl.textContent = '✓'; numEl.style.background = '#dcfce7'; numEl.style.color = '#16a34a'; }
-      if (btn) { btn.textContent = '✓ Fatto'; btn.style.background = '#dcfce7'; btn.style.color = '#16a34a'; }
+      if (btn) { btn.textContent = '✓ Fatto'; if (manuale) { btn.style.background = '#dcfce7'; } btn.style.color = '#16a34a'; }
     } else {
       stepEl.style.background = '';
       stepEl.style.borderColor = '#f1f5f9';
