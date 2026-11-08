@@ -60,7 +60,7 @@ function agBaseProvvigione(l, agente) {
 
   const piano = agNormalizzaPiano(l?.piano);
   const valoreAnnuo = agValoreAnnuoLead(l);
-  if (window.__RC) return window.__RC.provvigione(valoreAnnuo, agente?.tipo);
+  if (window.__RC) return window.__RC.provvigione(valoreAnnuo, agente?.tipo, !!(l && l._avvioOk));
 
   if (agente?.tipo === 'segnalatore') {
     const perc = Number(agente?.perc_segnalatore || 10);
