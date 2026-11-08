@@ -843,7 +843,7 @@ async function init() {
       }
       if (!esitoLead || !esitoLead.ok || !esitoLead.codice) {
         btnScarica.disabled = false;
-        btnScarica.textContent = '\ud83c\udf81 Voglio la mia promo!';
+        btnScarica.textContent = 'Voglio la mia offerta';
         errEl.textContent = 'Non siamo riusciti a registrare la richiesta. Riprova tra un attimo.';
         errEl.style.display = '';
         window._rfTrack && window._rfTrack('error', 'lead_non_salvato', { valore: (esitoLead && esitoLead.errore) || 'rete' });
