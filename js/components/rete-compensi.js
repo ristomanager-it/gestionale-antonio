@@ -185,6 +185,7 @@ export async function montaCompensi(el, opzioni) {
       const esito = el.querySelector('#rc-esito');
       const agg = {
         perc_agente: Number(el.querySelector('#rc-agente').value) || 0,
+        perc_agente_avvio: Number(el.querySelector('#rc-avvio').value) || 0,
         perc_segnalatore: Number(el.querySelector('#rc-segn').value) || 0,
         perc_ricorrente: Number(el.querySelector('#rc-ric').value) || 0,
         anticipo_mensile: Number(el.querySelector('#rc-ant').value) || 0,
