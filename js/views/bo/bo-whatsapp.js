@@ -363,7 +363,7 @@ export async function render(container) {
             border:1px solid #e5e7eb;
             font-size:14px;
             color:#111827;white-space:pre-wrap;word-break:break-word;
-          ">${esc(msg.testo) || "[media]"}</div>
+          ">${allegato(msg)}${esc(msg.testo) || (msg.media_url ? "" : "[media]")}</div>
           <div style="font-size:11px;color:#9ca3af;padding:0 4px;">${ora}</div>
         </div>
 
