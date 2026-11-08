@@ -835,8 +835,8 @@ async function init() {
 
       if (esitoLead && esitoLead.gia_scaricata) {
         btnScarica.disabled = false;
-        btnScarica.textContent = '\ud83c\udf81 Voglio la mia promo!';
-        errEl.innerHTML = 'Hai gi\u00e0 richiesto questa promozione con questo contatto. \ud83c\udf81<br>Controlla WhatsApp o la tua email per il coupon.';
+        btnScarica.textContent = 'Voglio la mia offerta';
+        errEl.innerHTML = 'Hai gi\u00e0 richiesto questa offerta con questo contatto. \ud83c\udf81<br>La trovi su WhatsApp o nella tua email.';
         errEl.style.display = '';
         window._rfTrack && window._rfTrack('error', 'gia_scaricata', { valore: promo.nome });
         return;
