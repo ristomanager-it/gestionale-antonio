@@ -800,7 +800,7 @@ async function init() {
     if (!/^\d{5}$/.test(cap)) { errEl.textContent='Inserisci il CAP (5 cifre)'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'cap mancante' }); return; }
     if (promo.privacy_richiesta && !privacy) { errEl.textContent='Devi accettare la Privacy Policy'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'privacy non accettata' }); return; }
     // lo scambio: il coupon e' un omaggio in cambio del permesso di ricontattare (casella obbligatoria; la verifica c'e' anche sul server)
-    if (promo.consenso_marketing && !consenso) { errEl.textContent='Per ricevere il coupon serve il consenso a ricevere le nostre offerte'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'consenso marketing non dato' }); return; }
+    if (promo.consenso_marketing && !consenso) { errEl.textContent='Per ricevere l\'offerta serve il consenso a ricevere le nostre offerte'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'consenso marketing non dato' }); return; }
 
     btnScarica.disabled = true;
     btnScarica.textContent = '⏳ Invio in corso...';
