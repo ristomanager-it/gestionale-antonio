@@ -1039,15 +1039,19 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
     }
 
     // pagamenti registrati (carta, bonifico, contanti): la riga mostra la somma vera, non solo l'acconto con carta
-    state.pagamenti = {};
+    // si costruisce a parte e si assegna alla fine: con due caricamenti insieme (cambio giorno su iPhone
+    // fa partire due eventi) i pagamenti finivano doppi nella finestra del conto
     try {
       const ids = prenotazioni.map((p) => p.id);
+      const nuovi = {};
       if (ids.length) {
         const { data: pg } = await window.supabaseClient.from("prenotazioni_pagamenti")
-          .select("prenotazione_id, importo, metodo, tipo, data_pagamento").in("prenotazione_id", ids);
-        (pg || []).forEach((r) => { (state.pagamenti[r.prenotazione_id] = state.pagamenti[r.prenotazione_id] || []).push(r); });
+          .select("id, prenotazione_id, importo, metodo, tipo, data_pagamento").in("prenotazione_id", ids);
+        const visti = new Set();
+        (pg || []).forEach((r) => { if (visti.has(r.id)) return; visti.add(r.id); (nuovi[r.prenotazione_id] = nuovi[r.prenotazione_id] || []).push(r); });
       }
-    } catch (_) {}
+      state.pagamenti = nuovi;
+    } catch (_) { state.pagamenti = {}; }
 
     lista.innerHTML = renderLista(prenotazioni);
     attachRowEvents();
