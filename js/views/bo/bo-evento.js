@@ -395,7 +395,7 @@ function waLink(r) {
       + `Alla cena pensiamo noi, tu porta solo la fame. A presto!`;
   } else {
     testo = `Ciao ${nome}, sono Antonio.\n\n`
-      + `Ci vediamo mercoledì 23 settembre dalle 19:30 a Campo Antico, Orte — ${cop} a nome tuo.\n\n`
+      + `Ci vediamo ${giornoEv()} dalle ${oraEv()} a Campo Antico, Orte — ${cop} a nome tuo.\n\n`
       + `Tutti i dettagli qui: ${link}`;
   }
   return "https://wa.me/" + numero + "?text=" + encodeURIComponent(testo);
