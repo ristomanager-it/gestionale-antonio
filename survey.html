@@ -98,7 +98,7 @@ function motivoSotto(d, valore) {
   const mostra = valore != null && valore < Number(f.condizione_mostra.minore);
   return `<div id="mot-${d.id}" style="margin-top:18px;display:${mostra ? 'block' : 'none'};">
     <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px;">${f.testo}</div>
-    <textarea id="ta-${f.id}" placeholder="Raccontaci (facoltativo)" oninput="salvaAperta('${f.id}',this)">${risposte[f.id] || ''}</textarea>
+    <textarea id="ta-${f.id}" placeholder="${f.obbligatoria ? 'Raccontaci, ci serve per migliorare' : 'Raccontaci (facoltativo)'}" oninput="salvaAperta('${f.id}',this)">${risposte[f.id] || ''}</textarea>
   </div>`;
 }
 // colori e logo del locale (dalla sede, altrimenti dall'azienda)
