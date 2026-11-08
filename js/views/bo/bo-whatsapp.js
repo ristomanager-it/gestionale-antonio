@@ -155,9 +155,7 @@ export async function render(container) {
         const numeroCliente = msg.numero_dest || msg.numero_cliente;
         if (!numeroCliente) continue;
 
-        if (map.has(numeroCliente)) {
-          map.get(numeroCliente).messaggi.push(msg);
-        }
+        operatori.push([String(numeroCliente).replace(/\D/g, ""), msg]);
         continue;
       }
 
