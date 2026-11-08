@@ -112,6 +112,14 @@ export async function render(container) {
 
   // i testi dei clienti si mostrano come testo, mai come codice della pagina
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // allegati ricevuti (foto, PDF, vocali): il webhook li salva e qui si vedono o si aprono
+  const allegato = (m) => {
+    if (!m || !m.media_url) return "";
+    const u = esc(m.media_url), t = String(m.media_mime || "");
+    if (t.startsWith("image/")) return `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="" style="max-width:220px;max-height:260px;border-radius:8px;display:block;margin-bottom:4px"></a>`;
+    if (t.startsWith("audio/")) return `<audio controls src="${u}" style="max-width:240px;display:block;margin-bottom:4px"></audio>`;
+    return `<a href="${u}" target="_blank" rel="noopener" style="display:inline-block;padding:8px 12px;border-radius:8px;background:rgba(14,90,122,.1);color:#0E5A7A;font-weight:600;text-decoration:none;margin-bottom:4px">📎 Apri allegato${t.includes("pdf") ? " (PDF)" : ""}</a>`;
+  };
   let conversazioni = [];
   let conversazioneAttiva = null;
   let filtroAttivo = "tutti";
