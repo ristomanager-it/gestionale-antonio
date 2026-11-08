@@ -502,11 +502,14 @@ function renderAgMansionario(el) {
       </div>
 
       <div class="ag-card">
-        <div style="font-size:13px;font-weight:800;color:#d97706;margin-bottom:10px;">🌡️ Pitch per temperatura</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.8;">
-          🟡 <strong>Tiepido</strong> — parti dal dolore dei conti, mostra il bilancio live<br>
-          🔵 <strong>Freddo</strong> — parti dal risultato, mostra il briefing Tony AI<br>
-          ❄️ <strong>Glaciale</strong> — parla di tempo recuperato, non di software
+        <div style="font-size:13px;font-weight:800;color:#059669;margin-bottom:10px;">🛡️ Obiezioni</div>
+        <div style="font-size:12.5px;color:#374151;line-height:1.9;">
+          "Costa troppo" → <em>Quanto ti costa non sapere quanto guadagni su un piatto? Il prezzo lo vedi la sera, poi decidi tu.</em><br>
+          "Ho già un gestionale" → <em>Cosa ti manca di quello che hai? Vieni a vedere se questo te lo dà.</em><br>
+          "Non ho tempo" → <em>È un lunedì sera, dalle 19:30, quando molti locali sono chiusi.</em><br>
+          "Non sono pratico di computer" → <em>Se sai usare WhatsApp, sai usare Ristoflow.</em><br>
+          "Sono piccolo" → <em>I conti valgono uguale con 30 coperti o con 200.</em><br>
+          "Ci penso" → <em>Cosa ti frena? Voglio capire se è la cosa giusta per te.</em>
         </div>
       </div>
 
