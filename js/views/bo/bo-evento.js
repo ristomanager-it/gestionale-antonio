@@ -390,7 +390,7 @@ function waLink(r) {
   let testo;
   if (r.stato === "richiesta") {
     testo = `Ciao ${nome}, sono Antonio Carullo.\n\n`
-      + `Ti confermo il posto per mercoledì 23 settembre, dalle 19:30, a Campo Antico di Orte — ${cop} a nome tuo.\n\n`
+      + `Ti confermo il posto per ${giornoEv()}, dalle ${oraEv()}, a Campo Antico di Orte — ${cop} a nome tuo.\n\n`
       + `Qui trovi tutto, mappa compresa: ${link}\n\n`
       + `Alla cena pensiamo noi, tu porta solo la fame. A presto!`;
   } else {
