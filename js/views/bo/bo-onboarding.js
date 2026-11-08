@@ -248,8 +248,7 @@ export async function render(container) {
           <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Passaggi</div>
           ${liv.steps.map((step, si) => `
           <div class="onb-step" id="step-${li}-${si}">
-            <div class="onb-step-num" style="background:${liv.colore}22;color:${liv.colore};"
-              onclick="toggleStep(${li},${si})" style="cursor:pointer;">${si+1}</div>
+            <div class="onb-step-num" style="background:${liv.colore}22;color:${liv.colore};">${si+1}</div>
             <div class="onb-step-body">
               <div class="onb-step-title">
                 ${step.titolo}
