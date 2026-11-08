@@ -206,6 +206,20 @@ function renderStep() {
     </div>`;
 }
 
+// si va avanti solo se la domanda ha risposta; le aperte obbligatorie (e il motivo obbligatorio sotto un voto basso) vanno scritte
+function puoAvanzare() {
+  const d = domande[step]; if (!d) return false;
+  const v = risposte[d.id];
+  if (d.tipo === 'aperta') return !d.obbligatoria || String(v || '').trim().length > 0;
+  if (v == null || v === '') return false;
+  if (d.tipo === 'scala') {
+    const f = domandaMotivo(d);
+    if (f && f.obbligatoria && v < Number(f.condizione_mostra.minore) && !String(risposte[f.id] || '').trim()) return false;
+  }
+  return true;
+}
+function aggiornaAvanti() { const b = document.getElementById('btn-av'); if (b) b.disabled = !puoAvanzare(); }
+
 function selScala(domandaId, elId, valore) {
   risposte[domandaId] = valore;
   // Aggiorna UI
