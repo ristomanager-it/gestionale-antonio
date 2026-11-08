@@ -185,6 +185,17 @@ export async function render(container) {
 
           <div id="comanda-grid" style="flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 340px;">
             <style>
+              @media(max-width:700px),(max-height:520px){
+                #griglia-prodotti { grid-template-columns:repeat(auto-fill,minmax(110px,1fr))!important; gap:6px!important; padding:8px!important; }
+                #griglia-prodotti > button { padding:8px 6px!important; gap:3px!important; min-height:64px; justify-content:center; }
+                #griglia-prodotti .cmd-foto { width:40px!important; height:40px!important; }
+                #comanda-grid > div:last-child > div:first-child,
+                #comanda-grid > div:last-child > div:nth-child(2) { padding:6px 10px!important; }
+                #comanda-ritmo button { padding:4px 6px!important; font-size:11px!important; }
+              }
+              @media(max-height:520px) and (min-width:701px){
+                #comanda-grid { grid-template-columns:1fr 300px!important; }
+              }
               @media(max-width:700px){
                 #comanda-grid { grid-template-columns:1fr!important; grid-template-rows:1fr auto; }
                 #comanda-grid > div:first-child { border-right:none!important; border-bottom:1px solid #e5e7eb; min-height:0; }
