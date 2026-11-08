@@ -514,7 +514,7 @@ function renderAgMansionario(el) {
       </div>
 
       <div class="ag-card">
-        <div style="font-size:13px;font-weight:800;color:#059669;margin-bottom:10px;">🛡️ Obiezioni rapide</div>
+        <div style="font-size:13px;font-weight:800;color:#0E5A7A;margin-bottom:10px;">🗣️ Parole da usare</div>
         <div style="font-size:12.5px;color:#374151;line-height:1.9;">
           "Costa troppo" → <em>Quanto ti costa non sapere dove vanno i soldi?</em><br>
           "Ho già un gestionale" → <em>Che cosa ti manca di quello che hai?</em><br>
