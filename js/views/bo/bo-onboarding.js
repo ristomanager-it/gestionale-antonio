@@ -262,7 +262,7 @@ export async function render(container) {
                 onclick="vaiASezione('${step.route}','${step.tab||''}')">
                 Vai →
               </button>
-              <button class="onb-step-btn check-btn-${li}-${si}" style="background:#f1f5f9;color:#374151;"
+              ${MANUALI.includes(step.id) ? `<button class="onb-step-btn check-btn-${li}-${si}" style="background:#f1f5f9;color:#374151;"
                 onclick="toggleStep(${li},${si})">
                 ☐ Fatto
               </button>
