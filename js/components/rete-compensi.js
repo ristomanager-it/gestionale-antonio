@@ -157,6 +157,7 @@ function pannelloAdmin(r) {
   const a = [...(r.premi_anno || [])].map(x => x.venduto + '=' + x.premio).join(', ');
   return '<div class="rc-admin"><b>Solo per te: le regole</b>' +
     '<label>Provvigione agente, primo anno (%)<input id="rc-agente" type="number" step="0.5" value="' + r.perc_agente + '"></label>' +
+    '<label>Agente con avvio in 4 giorni (%)<input id="rc-avvio" type="number" step="0.5" value="' + (r.perc_agente_avvio == null ? '' : r.perc_agente_avvio) + '"></label>' +
     '<label>Segnalatore (%)<input id="rc-segn" type="number" step="0.5" value="' + r.perc_segnalatore + '"></label>' +
     '<label>Sui rinnovi (%)<input id="rc-ric" type="number" step="0.5" value="' + r.perc_ricorrente + '"></label>' +
     '<label>Anticipo mensile (€)<input id="rc-ant" type="number" step="50" value="' + r.anticipo_mensile + '"></label>' +
