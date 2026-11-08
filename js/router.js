@@ -402,7 +402,7 @@ const DISPLAY_ROUTES = new Set([
 // Addetto marketing: ruolo con accesso limitato all'area marketing + prenotazioni
 const ADDETTO_MARKETING_ROUTES = new Set([
   // Marketing core
-  "bo-template", "bo-tag", "bo-marketing", "bo-catenarie", "bo-promo", "bo-promo-analisi",
+  "bo-template", "bo-tag", "bo-marketing", "bo-catenarie", "bo-promo", "bo-promo-analisi", "bo-sondaggi-clienti",
   "bo-calendario",
   // Fidelity
   "bo-fidelity",
