@@ -765,6 +765,16 @@ async function init() {
     if (!telefono) { errEl.textContent='Inserisci il telefono'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'telefono mancante' }); return; }
     if (!email) { errEl.textContent='Inserisci la tua email'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'email mancante' }); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent='Inserisci un\'email valida'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'email non valida' }); return; }
+    const nG = document.getElementById('f-ng')?.value, nM = document.getElementById('f-nm')?.value, nA = document.getElementById('f-na')?.value;
+    const cap = (document.getElementById('f-cap')?.value || '').replace(/\s/g, '');
+    if (!nG || !nM || !nA) { errEl.textContent='Inserisci la tua data di nascita'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'data di nascita mancante' }); return; }
+    const dataNascita = nA + '-' + String(nM).padStart(2,'0') + '-' + String(nG).padStart(2,'0');
+    const dN = new Date(dataNascita + 'T12:00:00');
+    if (isNaN(dN.getTime()) || dN.getDate() !== Number(nG)) { errEl.textContent='Controlla la data di nascita'; errEl.style.display=''; return; }
+    const oggi = new Date(); let eta = oggi.getFullYear() - dN.getFullYear();
+    if (oggi.getMonth() < dN.getMonth() || (oggi.getMonth() === dN.getMonth() && oggi.getDate() < dN.getDate())) eta--;
+    if (eta < 18) { errEl.textContent='La promo è riservata ai maggiorenni'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'minorenne' }); return; }
+    if (!/^\d{5}$/.test(cap)) { errEl.textContent='Inserisci il CAP (5 cifre)'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'cap mancante' }); return; }
     if (promo.privacy_richiesta && !privacy) { errEl.textContent='Devi accettare la Privacy Policy'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'privacy non accettata' }); return; }
     // lo scambio: il coupon e' un omaggio in cambio del permesso di ricontattare (casella obbligatoria; la verifica c'e' anche sul server)
     if (promo.consenso_marketing && !consenso) { errEl.textContent='Per ricevere il coupon serve il consenso a ricevere le nostre offerte'; errEl.style.display=''; window._rfTrack && window._rfTrack('error', 'validazione_fallita', { valore: 'consenso marketing non dato' }); return; }
