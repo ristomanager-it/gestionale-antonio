@@ -145,7 +145,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
         tipo: tipo,
         elemento: elemento || null,
         referrer: document.referrer || null,
-        utm_source: p.get('utm_source'),
+        utm_source: p.get('utm_source') || (p.get('fbclid') ? 'facebook' : ((p.get('gclid') || p.get('gbraid') || p.get('wbraid')) ? 'google' : null)),
         utm_medium: p.get('utm_medium'),
         utm_campaign: p.get('utm_campaign'),
         device: /Mobi/.test(navigator.userAgent) ? 'mobile' : 'desktop',
