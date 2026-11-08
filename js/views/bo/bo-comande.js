@@ -1099,7 +1099,7 @@ export async function render(container) {
         ">
           ${esaurito ? `<div style="position:absolute;top:6px;right:6px;background:#ef4444;color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;letter-spacing:0.3px;">ESAURITO</div>` : ''}
           ${pochePortate ? `<div style="position:absolute;top:6px;right:6px;background:#f59e0b;color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;">ULTIME ${p.porzioni_disponibili}</div>` : ''}
-          ${p.foto_url ? `<img src="${p.foto_url}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;${esaurito?'filter:grayscale(1);':''}">` : `<div style="font-size:32px;${esaurito?'filter:grayscale(1);opacity:0.5;':''}">🍽️</div>`}
+          ${(p.foto_url || p.foto_pubblica_url) ? `<img class="cmd-foto" src="${esc(p.foto_url || p.foto_pubblica_url)}" loading="lazy" style="width:60px;height:60px;object-fit:cover;border-radius:8px;${esaurito?'filter:grayscale(1);':''}">` : ''}
           <div style="font-size:12px;font-weight:600;line-height:1.3;color:${esaurito?'#94a3b8':'#0f172a'};">${esc(p.nome)}</div>
           <div style="font-size:13px;color:${esaurito?'#94a3b8':'#0E5A7A'};font-weight:700;">€${Number(p.prezzo_base||0).toFixed(2).replace('.',',')}</div>
         </button>
