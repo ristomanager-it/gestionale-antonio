@@ -332,11 +332,7 @@ export async function render(container) {
     if (error) console.warn('setup_stato:', error.message);
     STATO = data || {};
     LIVELLI.forEach((liv, li) => {
-      liv.steps.forEach((_, si) => {
-        if (localStorage.getItem(`onb_${aziendaId}_${li}_${si}`) === '1') {
-          aggiornaStep(li, si);
-        }
-      });
+      liv.steps.forEach((_, si) => aggiornaStep(li, si));
     });
     aggiornaBadge();
     aggiornaProgressGlobale();
