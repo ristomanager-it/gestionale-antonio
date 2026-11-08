@@ -58,8 +58,9 @@ export function valoreAnnuoPiano(piano) {
   return vecchi[piano] || PACCHETTI[0].annuale;
 }
 
-export function provvigione(valoreAnnuo, tipoAgente) {
-  const p = tipoAgente === 'segnalatore' ? _regole.perc_segnalatore : _regole.perc_agente;
+// avvio = l'agente abilitato ha fatto partire il locale entro 4 giorni dalla firma (componente avvii-agenti)
+export function provvigione(valoreAnnuo, tipoAgente, avvio) {
+  const p = tipoAgente === 'segnalatore' ? _regole.perc_segnalatore : (avvio ? (_regole.perc_agente_avvio || _regole.perc_agente) : _regole.perc_agente);
   return Number(valoreAnnuo || 0) * Number(p || 0) / 100;
 }
 export function ricorrente(valoreAnnuo, tipoAgente) {
