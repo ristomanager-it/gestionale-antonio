@@ -112,6 +112,12 @@ export async function render(container) {
   // Calcola progresso totale steps
   const totSteps = LIVELLI.reduce((s,l) => s + l.steps.length, 0);
 
+  // Stato letto dai dati veri del locale (RPC setup_stato, 08/11/2026): prima stava in localStorage, a mano.
+  // Solo questi passi non si leggono dai dati: si segnano col pulsante e si salvano in setup_passi_manuali.
+  const MANUALI = ['categorie', 'commercialista', 'consulente'];
+  let STATO = {};
+  const fatto = (li, si) => !!STATO[LIVELLI[li].steps[si].id];
+
   container.innerHTML = `
   <style>
     .onb-wrap{max-width:860px;margin:0 auto;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
