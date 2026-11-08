@@ -1,61 +1,52 @@
-// AVVII AGENTI — checklist di avvio dei locali firmati dagli agenti (13 passaggi in 4 giorni).
-// Deciso con Antonio l'8/11/2026: dopo la serata del 18/01/2027 ogni locale va attivo con la promo di
-// San Valentino online entro venerdì 22. L'agente spunta i passaggi nella Home Agente (scheda Avvii),
-// Antonio vede l'avanzamento e abilita gli agenti in Piattaforma › Programma Agenti › Avvii.
-// Chi è abilitato e chiude la checklist entro 4 giorni dalla firma prende il 15% (rete_compensi.perc_agente_avvio).
-// Tabella: agenti_avvii_passi (lead_id null = prova sull'azienda DEMO).
+// AVVII AGENTI — avanzamento dell'avvio dei locali firmati dagli agenti.
+// Dall'8/11/2026 l'avvio si legge dal Setup guidato del cliente (RPC setup_stato, dati veri del locale):
+// livelli 1-4 (Identità, Struttura, Canali, Contenuti & Tony) + prima promo + prima campagna.
+// Il momento in cui tutto risulta completo è fotografato in agenti_lead.avvio_completato_il (RPC avvii_aggiorna + cron orario).
+// 15% (rete_compensi.perc_agente_avvio) se l'agente è abilitato e l'avvio è completo entro 4 giorni dalla firma.
+// Abilitazione: l'agente ha una sua azienda di prova (agenti.azienda_prova_id) e la porta ai livelli 1-4 completi.
 
 const sb = () => window.supabaseClient || window.supabase;
-
-export const PASSI = [
-  { id: 'azienda',   giorno: 'Martedì — il locale esiste',   testo: 'Azienda e sede create, con indirizzo, orari e giorni di chiusura' },
-  { id: 'accesso',   giorno: 'Martedì — il locale esiste',   testo: 'Il titolare entra con il suo accesso' },
-  { id: 'personale', giorno: 'Martedì — il locale esiste',   testo: 'Personale inserito con ruolo e PIN' },
-  { id: 'menu',      giorno: 'Mercoledì — il locale si vede', testo: 'Menu e prodotti caricati, con le foto se ci sono' },
-  { id: 'prenota',   giorno: 'Mercoledì — il locale si vede', testo: 'Modulo prenotazioni attivo' },
-  { id: 'sito',      giorno: 'Mercoledì — il locale si vede', testo: 'Sito generato e pubblicato' },
-  { id: 'whatsapp',  giorno: 'Giovedì — il locale risponde', testo: 'WhatsApp collegato' },
-  { id: 'fidelity',  giorno: 'Giovedì — il locale risponde', testo: 'Fidelity attiva' },
-  { id: 'meta',      giorno: 'Giovedì — il locale risponde', testo: 'Pagine Facebook e Instagram collegate con Collega Meta' },
-  { id: 'promo',     giorno: 'Venerdì — il locale lavora',   testo: 'Promo di San Valentino creata dal modello: nome, foto e prezzo del locale' },
-  { id: 'coupon',    giorno: 'Venerdì — il locale lavora',   testo: 'Coupon attivo e provato in cassa' },
-  { id: 'campagna',  giorno: 'Venerdì — il locale lavora',   testo: 'Campagna lanciata con il budget scelto dal titolare' },
-  { id: 'tony',      giorno: 'Venerdì — il locale lavora',   testo: 'Quindici minuti con il titolare: come chiedere a Tony di vedere come va la campagna' },
-];
-const TOT = PASSI.length;
 const GIORNI_AVVIO = 4;
+
+export const BLOCCHI = [
+  { id: 'l1', titolo: '🎯 1 · Identità & Brand',     passi: ['gc', 'cliente', 'tov'],                     route: 'bo-configurazione', tab: 'identita' },
+  { id: 'l2', titolo: '🏠 2 · Struttura operativa',  passi: ['sede', 'sala', 'settori', 'personale'],     route: 'bo-onboarding' },
+  { id: 'l3', titolo: '📡 3 · Canali',               passi: ['wa', 'form', 'chatbot', 'sito'],            route: 'bo-onboarding' },
+  { id: 'l4', titolo: '🤖 4 · Contenuti & Tony',     passi: ['foto', 'menu', 'ricettario', 'tony'],       route: 'bo-onboarding' },
+  { id: 'pr', titolo: '💝 Prima promo pubblicata',   passi: ['promo'],                                    route: 'bo-promo' },
+  { id: 'ca', titolo: '📣 Prima campagna lanciata',  passi: ['campagna'],                                 route: 'bo-promo' },
+];
+const LIVELLI_PROVA = BLOCCHI.slice(0, 4);
+const TOT = BLOCCHI.reduce((n, b) => n + b.passi.length, 0);
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const dataIt = d => d ? new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) : '';
 
-// passaggi spuntati: di un agente (agenteId) o di tutti (null, solo superadmin)
+// compatibilità con la Home Agente: aggiorna le foto degli avvii completati dell'agente
 export async function caricaPassi(agenteId) {
-  let q = sb().from('agenti_avvii_passi').select('id, agente_id, lead_id, passo, fatto_il');
-  if (agenteId) q = q.eq('agente_id', agenteId);
-  const { data, error } = await q;
-  if (error) { console.warn('avvii: passi non letti', error); return []; }
-  return data || [];
+  try { await sb().rpc('avvii_aggiorna', { p_agente: agenteId || null }); } catch (e) { console.warn('avvii_aggiorna', e); }
+  return [];
 }
 
-function passiDi(passi, agenteId, leadId) {
-  return passi.filter(p => p.agente_id === agenteId && (p.lead_id || null) === (leadId || null));
-}
-
-export function stato(passi, agenteId, leadId) {
-  const miei = passiDi(passi, agenteId, leadId);
-  const fatti = new Set(miei.map(p => p.passo).filter(id => PASSI.some(x => x.id === id)));
-  const ultimo = miei.reduce((m, p) => (!m || p.fatto_il > m ? p.fatto_il : m), null);
-  return { fatti, n: fatti.size, completo: fatti.size === TOT, ultimo };
-}
-
-// 15%: agente abilitato, checklist completa, chiusa entro 4 giorni dalla firma (data_conversione)
-export function avvioOk(lead, agente, passi) {
-  if (!lead || !agente || !agente.abilitato_avvio || agente.tipo === 'segnalatore' || !lead.data_conversione) return false;
-  const s = stato(passi, agente.id, lead.id);
-  if (!s.completo || !s.ultimo) return false;
+export function avvioOk(lead, agente) {
+  if (!lead || !agente || !agente.abilitato_avvio || agente.tipo === 'segnalatore') return false;
+  if (!lead.data_conversione || !lead.avvio_completato_il) return false;
   const limite = new Date(lead.data_conversione + 'T23:59:59');
   limite.setDate(limite.getDate() + GIORNI_AVVIO);
-  return new Date(s.ultimo) <= limite;
+  return new Date(lead.avvio_completato_il) <= limite;
+}
+
+async function stato(aziendaId) {
+  if (!aziendaId) return null;
+  const { data, error } = await sb().rpc('setup_stato', { p_azienda: aziendaId, p_sede: null });
+  if (error) { console.warn('setup_stato', error.message); return null; }
+  return data || {};
+}
+
+function conta(s, blocchi) {
+  let n = 0, tot = 0;
+  blocchi.forEach(b => b.passi.forEach(p => { tot++; if (s && s[p]) n++; }));
+  return { n, tot };
 }
 
 function scadenza(lead) {
@@ -65,126 +56,112 @@ function scadenza(lead) {
   return d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function checklistHtml(chiave, s, modificabile) {
-  let html = '', giorno = '';
-  PASSI.forEach(p => {
-    if (p.giorno !== giorno) { giorno = p.giorno; html += '<div class="av-giorno">' + esc(giorno) + '</div>'; }
-    const ok = s.fatti.has(p.id);
-    html += '<label class="av-passo' + (ok ? ' ok' : '') + '">' +
-      '<input type="checkbox" data-av="' + chiave + '" data-passo="' + p.id + '"' + (ok ? ' checked' : '') + (modificabile ? '' : ' disabled') + '>' +
-      '<span>' + esc(p.testo) + '</span></label>';
-  });
-  return html;
-}
-
 const CSS = '.av-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:10px}' +
   '.av-testa{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:800;font-size:14px;color:#1f2937}' +
   '.av-conto{font-size:12px;font-weight:700;color:#059669;white-space:nowrap}' +
-  '.av-barra{height:8px;background:#e5e7eb;border-radius:8px;margin:8px 0 6px;overflow:hidden}.av-barra i{display:block;height:100%;background:#059669;transition:width .3s}' +
-  '.av-giorno{font-size:12px;font-weight:800;color:#7C3AED;margin:12px 0 2px}' +
-  '.av-passo{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;padding:7px 0;cursor:pointer;color:#1f2937}' +
-  '.av-passo input{width:20px;height:20px;flex:none;margin:0;accent-color:#059669}' +
-  '.av-passo.ok span{color:#94a3b8;text-decoration:line-through}' +
+  '.av-barra{height:8px;background:#e5e7eb;border-radius:8px;margin:8px 0 8px;overflow:hidden}.av-barra i{display:block;height:100%;background:#059669;transition:width .3s}' +
+  '.av-riga{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;padding:6px 0;color:#1f2937;border-top:1px solid #f1f5f9}' +
+  '.av-riga b{font-weight:700;color:#64748b}.av-riga b.ok{color:#059669}' +
   '.av-nota{font-size:12.5px;color:#64748b;line-height:1.5}' +
   '.av-t{width:100%;border-collapse:collapse;font-size:13px}.av-t th,.av-t td{text-align:left;padding:8px;border-bottom:1px solid #e5e7eb;vertical-align:top}' +
   '.av-btn{border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;background:#7C3AED;color:#fff}' +
-  '.av-btn.grigio{background:#f1f5f9;color:#64748b}';
+  '.av-btn.grigio{background:#f1f5f9;color:#64748b}.av-btn[disabled]{opacity:.45;cursor:default}' +
+  '.av-sel{border:1px solid #e5e7eb;border-radius:8px;padding:5px 8px;font-size:12px;max-width:180px}';
 
-function barra(s) {
-  return '<div class="av-barra"><i style="width:' + Math.round(s.n / TOT * 100) + '%"></i></div>';
-}
-
-async function salvaPasso(agenteId, leadId, passo, fatto) {
-  if (fatto) {
-    const { error } = await sb().from('agenti_avvii_passi').insert({ agente_id: agenteId, lead_id: leadId || null, passo: passo });
-    if (error && error.code !== '23505') throw error;
-  } else {
-    let q = sb().from('agenti_avvii_passi').delete().eq('agente_id', agenteId).eq('passo', passo);
-    q = leadId ? q.eq('lead_id', leadId) : q.is('lead_id', null);
-    const { error } = await q;
-    if (error) throw error;
-  }
+function righe(s, blocchi) {
+  return blocchi.map(b => {
+    const c = conta(s, [b]);
+    const ok = c.n === c.tot;
+    return '<div class="av-riga"><span>' + esc(b.titolo) + '</span><b class="' + (ok ? 'ok' : '') + '">' + (ok ? '✓ ' : '') + c.n + ' / ' + c.tot + '</b></div>';
+  }).join('');
 }
 
 // HOME AGENTE — scheda Avvii
 export async function montaAvviiAgente(el, agente, leads) {
-  el.innerHTML = '<div style="padding:20px;color:#94a3b8;text-align:center">Caricamento…</div>';
-  let passi = await caricaPassi(agente.id);
+  el.innerHTML = '<style>' + CSS + '</style><div style="padding:20px;color:#94a3b8;text-align:center">Caricamento…</div>';
+  if (agente.tipo === 'segnalatore') {
+    el.innerHTML = '<style>' + CSS + '</style><div class="av-card"><div class="av-nota">L\'avvio dei locali lo fanno gli agenti venditori. Come segnalatore porti il contatto: al resto pensa Antonio.</div></div>';
+    return;
+  }
   const clienti = (leads || []).filter(l => l.stato === 'pagante')
     .sort((a, b) => String(b.data_conversione || '').localeCompare(String(a.data_conversione || '')));
+  const [prova, ...statiClienti] = await Promise.all([
+    agente.abilitato_avvio ? Promise.resolve(null) : stato(agente.azienda_prova_id),
+    ...clienti.map(l => stato(l.azienda_id)),
+  ]);
 
-  const disegna = () => {
-    let html = '<style>' + CSS + '</style>';
-    if (agente.tipo === 'segnalatore') {
-      html += '<div class="av-card"><div class="av-nota">L\'avvio dei locali lo fanno gli agenti venditori. Come segnalatore porti il contatto: al resto pensa Antonio.</div></div>';
-      el.innerHTML = html; return;
-    }
-    if (!agente.abilitato_avvio) {
-      const s = stato(passi, agente.id, null);
-      html += '<div class="av-card"><div class="av-testa"><span>Prova sull\'azienda DEMO</span><span class="av-conto">' + s.n + ' su ' + TOT + '</span></div>' + barra(s) +
-        '<div class="av-nota">Fai da solo tutti i passaggi sull\'azienda DEMO entro lunedì 14 dicembre. Quando hai finito, Antonio controlla e ti abilita: da lì sui locali che fai partire in quattro giorni prendi il 15%.</div>' +
-        checklistHtml('demo', s, true) + '</div>';
+  let html = '<style>' + CSS + '</style>';
+  if (!agente.abilitato_avvio) {
+    if (!agente.azienda_prova_id) {
+      html += '<div class="av-card"><div class="av-testa"><span>La tua prova</span></div><div class="av-nota">Antonio ti assegna un\'azienda di prova vuota. Lì fai da solo i livelli da 1 a 4 del Setup guidato, come spiegato nel Libretto di istruzioni (capitoli 4 e 5). Quando sono completi, Antonio ti abilita e sui locali che fai partire in quattro giorni prendi il 15%.</div></div>';
     } else {
-      html += '<div class="av-card"><div class="av-nota">✅ Sei abilitato all\'avvio' + (agente.abilitato_avvio_il ? ' dal ' + dataIt(agente.abilitato_avvio_il) : '') +
-        '. Chiudi la checklist entro quattro giorni dalla firma e la provvigione del primo anno sale al 15%.</div></div>';
+      const c = conta(prova, LIVELLI_PROVA);
+      html += '<div class="av-card"><div class="av-testa"><span>La tua prova</span><span class="av-conto">' + c.n + ' su ' + c.tot + '</span></div>' +
+        '<div class="av-barra"><i style="width:' + Math.round(c.n / c.tot * 100) + '%"></i></div>' + righe(prova, LIVELLI_PROVA) +
+        '<div class="av-nota" style="margin-top:8px">Si aggiorna da solo con i dati della tua azienda di prova. Finita la prova entro lunedì 14 dicembre, Antonio ti abilita al 15%.</div></div>';
     }
-    if (!clienti.length) {
-      html += '<div class="av-card"><div class="av-nota">Qui compaiono i clienti che hai chiuso, ognuno con la sua checklist. Per ora non ce ne sono.</div></div>';
-    }
-    clienti.forEach(l => {
-      const s = stato(passi, agente.id, l.id);
-      const sc = scadenza(l);
-      html += '<div class="av-card"><div class="av-testa"><span>' + esc(l.nome_locale || 'Cliente') + '</span><span class="av-conto">' + s.n + ' su ' + TOT +
-        (s.completo ? ' · fatto' : (sc ? ' · entro ' + esc(sc) : '')) + '</span></div>' + barra(s) +
-        checklistHtml(l.id, s, true) + '</div>';
-    });
-    el.innerHTML = html;
-    el.querySelectorAll('input[data-av]').forEach(cb => {
-      cb.onchange = async () => {
-        const leadId = cb.dataset.av === 'demo' ? null : cb.dataset.av;
-        cb.disabled = true;
-        try {
-          await salvaPasso(agente.id, leadId, cb.dataset.passo, cb.checked);
-          passi = await caricaPassi(agente.id);
-          disegna();
-        } catch (e) {
-          cb.checked = !cb.checked; cb.disabled = false;
-          alert('Non salvato: ' + (e.message || e));
-        }
-      };
-    });
-  };
-  disegna();
+  } else {
+    html += '<div class="av-card"><div class="av-nota">✅ Sei abilitato all\'avvio' + (agente.abilitato_avvio_il ? ' dal ' + dataIt(agente.abilitato_avvio_il) : '') +
+      '. Se il locale ha i livelli 1-4 del Setup guidato, la prima promo e la prima campagna entro quattro giorni dalla firma, la provvigione del primo anno sale al 15%.</div></div>';
+  }
+  if (!clienti.length) {
+    html += '<div class="av-card"><div class="av-nota">Qui compaiono i clienti che hai chiuso, con l\'avanzamento del loro Setup guidato. Per ora non ce ne sono.</div></div>';
+  }
+  clienti.forEach((l, i) => {
+    const s = statiClienti[i];
+    const c = conta(s, BLOCCHI);
+    const sc = scadenza(l);
+    const stato15 = l.avvio_completato_il ? (avvioOk(l, agente) ? ' · fatto in tempo ✅' : ' · fatto') : (sc ? ' · entro ' + esc(sc) : '');
+    html += '<div class="av-card"><div class="av-testa"><span>' + esc(l.nome_locale || 'Cliente') + '</span><span class="av-conto">' + c.n + ' su ' + TOT + stato15 + '</span></div>' +
+      '<div class="av-barra"><i style="width:' + Math.round(c.n / TOT * 100) + '%"></i></div>' +
+      (s ? righe(s, BLOCCHI) : '<div class="av-nota">' + (l.azienda_id ? 'Non riesco a leggere il Setup di questo cliente.' : 'Il cliente non è ancora collegato alla sua azienda: lo collega Antonio.') + '</div>') + '</div>';
+  });
+  el.innerHTML = html;
 }
 
 // PIATTAFORMA › Programma Agenti — scheda Avvii (solo superadmin)
 export async function montaAvviiAdmin(el, agenti) {
   el.innerHTML = '<div style="padding:20px;color:#94a3b8;text-align:center">Caricamento…</div>';
-  const [passi, leadRes] = await Promise.all([
-    caricaPassi(null),
-    sb().from('agenti_lead').select('id, agente_id, nome_locale, stato, data_conversione').eq('stato', 'pagante'),
+  try { await sb().rpc('avvii_aggiorna', { p_agente: null }); } catch (e) { /* il cron lo rifà ogni ora */ }
+  const [leadRes, azRes] = await Promise.all([
+    sb().from('agenti_lead').select('id, agente_id, azienda_id, nome_locale, stato, data_conversione, avvio_completato_il').eq('stato', 'pagante'),
+    sb().from('aziende').select('id, nome').order('nome'),
   ]);
   const leads = leadRes.data || [];
+  const aziende = azRes.data || [];
   const venditori = (agenti || []).filter(a => a.stato === 'attivo' && a.tipo !== 'segnalatore');
+  const prove = await Promise.all(venditori.map(a => a.abilitato_avvio ? null : stato(a.azienda_prova_id)));
 
-  let righe = '';
-  venditori.forEach(a => {
-    const demo = stato(passi, a.id, null);
-    const abil = a.abilitato_avvio
-      ? 'Sì' + (a.abilitato_avvio_il ? ', dal ' + dataIt(a.abilitato_avvio_il) : '') + ' <button class="av-btn grigio" data-abil="' + a.id + '" data-v="0">Revoca</button>'
-      : 'Prova DEMO ' + demo.n + '/' + TOT + ' <button class="av-btn" data-abil="' + a.id + '" data-v="1"' + (demo.completo ? '' : ' title="La prova non è completa"') + '>Abilita</button>';
-    const suoi = leads.filter(l => l.agente_id === a.id).map(l => {
-      const s = stato(passi, a.id, l.id);
-      return esc(l.nome_locale || 'Cliente') + ' ' + s.n + '/' + TOT + (avvioOk(l, a, passi) ? ' ✅' : '');
-    });
-    righe += '<tr><td><b>' + esc(((a.nome || '') + ' ' + (a.cognome || '')).trim()) + '</b></td><td>' + abil + '</td><td>' + (suoi.length ? suoi.join('<br>') : '—') + '</td></tr>';
+  let righeT = '';
+  venditori.forEach((a, i) => {
+    let abil;
+    if (a.abilitato_avvio) {
+      abil = 'Sì' + (a.abilitato_avvio_il ? ', dal ' + dataIt(a.abilitato_avvio_il) : '') + ' <button class="av-btn grigio" data-abil="' + a.id + '" data-v="0">Revoca</button>';
+    } else {
+      const opz = '<option value="">— azienda di prova —</option>' + aziende.map(z => '<option value="' + z.id + '"' + (z.id === a.azienda_prova_id ? ' selected' : '') + '>' + esc(z.nome) + '</option>').join('');
+      const c = a.azienda_prova_id ? conta(prove[i], LIVELLI_PROVA) : null;
+      abil = '<select class="av-sel" data-prova="' + a.id + '">' + opz + '</select>' +
+        (c ? '<div style="margin-top:6px">Prova ' + c.n + '/' + c.tot + ' <button class="av-btn" data-abil="' + a.id + '" data-v="1"' + (c.n === c.tot ? '' : ' disabled title="La prova non è completa"') + '>Abilita</button></div>' : '');
+    }
+    const suoi = leads.filter(l => l.agente_id === a.id).map(l => esc(l.nome_locale || 'Cliente') +
+      (l.avvio_completato_il ? (avvioOk(l, a) ? ' ✅' : ' · completo dopo i 4 giorni') : ' · in corso'));
+    righeT += '<tr><td><b>' + esc(((a.nome || '') + ' ' + (a.cognome || '')).trim()) + '</b></td><td>' + abil + '</td><td>' + (suoi.length ? suoi.join('<br>') : '—') + '</td></tr>';
   });
 
   el.innerHTML = '<style>' + CSS + '</style><div class="av-card">' +
-    '<div class="av-nota" style="margin-bottom:10px">Ogni agente fa la prova completa sull\'azienda DEMO entro il 14 dicembre. Controlla la prova e abilitalo: da lì i locali che fa partire in quattro giorni gli valgono il 15%. ✅ = avvio chiuso in tempo.</div>' +
-    '<div style="overflow-x:auto"><table class="av-t"><thead><tr><th>Agente</th><th>Abilitato all\'avvio</th><th>Avvii</th></tr></thead><tbody>' +
-    (righe || '<tr><td colspan="3">Nessun agente venditore attivo.</td></tr>') + '</tbody></table></div></div>';
+    '<div class="av-nota" style="margin-bottom:10px">Assegna a ogni agente un\'azienda di prova vuota: quando lì i livelli 1-4 del Setup guidato sono completi, si accende Abilita. Gli avvii dei clienti si leggono dal loro Setup guidato. ✅ = completo entro quattro giorni dalla firma.</div>' +
+    '<div style="overflow-x:auto"><table class="av-t"><thead><tr><th>Agente</th><th>Abilitazione</th><th>Avvii</th></tr></thead><tbody>' +
+    (righeT || '<tr><td colspan="3">Nessun agente venditore attivo.</td></tr>') + '</tbody></table></div></div>';
 
+  el.querySelectorAll('select[data-prova]').forEach(s => {
+    s.onchange = async () => {
+      const { error } = await sb().from('agenti').update({ azienda_prova_id: s.value || null }).eq('id', s.dataset.prova);
+      if (error) { alert('Non salvato: ' + error.message); return; }
+      const a = (agenti || []).find(x => x.id === s.dataset.prova);
+      if (a) a.azienda_prova_id = s.value || null;
+      montaAvviiAdmin(el, agenti);
+    };
+  });
   el.querySelectorAll('button[data-abil]').forEach(b => {
     b.onclick = async () => {
       const si = b.dataset.v === '1';
