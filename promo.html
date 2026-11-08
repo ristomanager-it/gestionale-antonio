@@ -564,8 +564,10 @@ function buildRegolamentoCompleto(promo) {
   const righe = [];
 
   // Validità temporale
-  if (promo.data_scadenza) {
-    righe.push('⏰ Valida fino al ' + new Date(promo.data_scadenza).toLocaleDateString('it-IT') + '.');
+  if (promo.data_scadenza && promo.validita_giorni) {
+    righe.push('⏰ L\'offerta si richiede entro il ' + new Date(promo.data_scadenza + 'T12:00:00').toLocaleDateString('it-IT') + ' e si usa entro ' + promo.validita_giorni + ' giorni dalla richiesta.');
+  } else if (promo.data_scadenza) {
+    righe.push('⏰ Valida fino al ' + new Date(promo.data_scadenza + 'T12:00:00').toLocaleDateString('it-IT') + '.');
   } else if (promo.validita_giorni) {
     righe.push('⏰ Valida per ' + promo.validita_giorni + ' giorni dall\'attivazione.');
   }
