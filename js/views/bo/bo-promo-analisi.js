@@ -91,7 +91,7 @@ function wrap(inner){
         <h1 style="margin:0;font-size:22px;color:${C.testo};">📊 Analisi Promo</h1>
         <div style="font-size:13px;color:${C.soft};margin-top:2px;">Aperture, coupon scaricati e coupon usati</div>
       </div>
-      <button data-route="bo-promo" style="background:${C.primario};color:white;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:700;">🎁 Le mie promo</button>
+      <button data-route="bo-promo" onclick="location.hash='#/bo-promo'" style="background:${C.primario};color:white;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:700;">🎁 Le mie promo</button>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">${chip(7,'7 giorni')}${chip(30,'30 giorni')}${chip(90,'90 giorni')}${chip(0,'Da sempre')}</div>
     ${inner}
