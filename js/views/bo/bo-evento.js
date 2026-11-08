@@ -37,6 +37,12 @@ export async function render(container) {
       supabase.from("agenti").select("id, nome, cognome").order("nome"),
       supabase.from("evento_config").select("*").eq("evento_slug", EVENTO).maybeSingle(),
     ]);
+    if (cfg && cfg.data_ora) DATA_EV = new Date(cfg.data_ora);
+    const elData = document.getElementById("ev-data");
+    if (elData) {
+      const g = dataEv({ weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      elData.textContent = g.charAt(0).toUpperCase() + g.slice(1) + " — " + ((cfg && cfg.luogo) || "Campo Antico, Orte");
+    }
     disegnaTotali(iscritti || []);
     disegnaConfig(cfg || null, iscritti || []);
     disegnaLink(inviti || [], agenti || []);
