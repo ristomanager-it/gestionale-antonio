@@ -3,6 +3,12 @@
 // Da qui si generano i link da mandare in giro e si vede chi porta chi.
 
 const EVENTO = "serata-23-settembre-2026";
+
+// data della serata: si legge da evento_config in ricarica(), niente date scritte nel codice
+let DATA_EV = new Date("2027-01-18T19:30:00+01:00");
+function dataEv(o) { return DATA_EV.toLocaleString("it-IT", Object.assign({ timeZone: "Europe/Rome" }, o)); }
+function giornoEv() { return dataEv({ weekday: "long", day: "numeric", month: "long" }); }
+function oraEv() { return dataEv({ hour: "2-digit", minute: "2-digit" }); }
 const BASE = (location.origin + location.pathname).replace(/index\.html$/, "");
 
 export async function render(container) {
