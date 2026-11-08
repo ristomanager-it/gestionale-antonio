@@ -293,7 +293,7 @@ export async function render(container) {
       stepEl.style.background = '';
       stepEl.style.borderColor = '#f1f5f9';
       if (numEl) { numEl.textContent = String(si+1); numEl.style.background = `${LIVELLI[li].colore}22`; numEl.style.color = LIVELLI[li].colore; }
-      if (btn) { btn.textContent = '☐ Fatto'; btn.style.background = '#f1f5f9'; btn.style.color = '#374151'; }
+      if (btn) { btn.textContent = manuale ? '☐ Fatto' : 'si segna da solo'; if (manuale) { btn.style.background = '#f1f5f9'; } btn.style.color = manuale ? '#374151' : '#94a3b8'; }
     }
   }
 
