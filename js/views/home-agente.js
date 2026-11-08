@@ -481,11 +481,13 @@ function renderAgMansionario(el) {
       </div>
 
       <div class="ag-card">
-        <div style="font-size:13px;font-weight:800;color:#DC2626;margin-bottom:10px;">🎯 I 3 problemi universali</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.7;">
-          💰 <strong>I conti che non tornano</strong> — lavora 16 ore, locale pieno, ma a fine mese non sa dove sono finiti i soldi<br>
-          😞 <strong>I dipendenti svogliati</strong> — investe tempo a formarli, poi se ne vanno o fanno il minimo<br>
-          👥 <strong>I clienti non qualificati</strong> — il locale si riempie ma di chi spende poco e non torna
+        <div style="font-size:13px;font-weight:800;color:#7C3AED;margin-bottom:10px;">🔢 Il colloquio: l'obiettivo è che si prenoti</div>
+        <div style="font-size:12.5px;color:#374151;line-height:1.9;">
+          <strong>1. Apri (30 secondi)</strong> — "Ti porto un invito, non un contratto."<br>
+          <strong>2. Capisci il locale (2 minuti)</strong> — Coperti, pranzo o cena, personale fisso o stagionale, chi fa le campagne<br>
+          <strong>3. Trova il problema (3 minuti)</strong> — Fai la domanda della sua apertura e poi ascolta<br>
+          <strong>4. Mostra una cosa sola (5 minuti)</strong> — Dal telefono, sull'azienda DEMO, la funzione che risponde al suo problema<br>
+          <strong>5. Invita (1 minuto)</strong> — "Il 18 Antonio lo mette sul tavolo e lo guardiamo insieme. Ti mando il link?"
         </div>
       </div>
 
