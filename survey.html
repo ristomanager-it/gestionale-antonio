@@ -198,7 +198,7 @@ function renderStep() {
 
         <div class="nav-wrap">
           ${step > 0 ? `<button class="btn-bk" onclick="vai(${step-1})">← Indietro</button>` : ''}
-          <button class="btn-av" id="btn-av" onclick="avanti()" ${!valore && d.tipo !== 'aperta' ? 'disabled' : ''}>
+          <button class="btn-av" id="btn-av" onclick="avanti()" ${puoAvanzare() ? '' : 'disabled'}>
             ${step < domande.length - 1 ? 'Continua →' : 'Invia le risposte ✅'}
           </button>
         </div>
