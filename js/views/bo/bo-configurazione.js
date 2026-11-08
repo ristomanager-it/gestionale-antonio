@@ -2899,6 +2899,49 @@ export async function render(container) {
       else { esito.textContent = '✅ Colori salvati!'; esito.style.color = '#15803d'; setTimeout(() => esito.textContent = '', 3000); }
     });
 
+    // ── Identità per sede (08/11/2026): ogni locale parla al suo cliente. Golden Circle e valori restano dell'azienda,
+    // posizionamento, cliente ideale, tono e parole chiave si scrivono per sede; i campi vuoti ereditano dall'azienda.
+    montaIdentitaSede(box.querySelector('#id-sede-box'), ident);
+    async function montaIdentitaSede(el, identAz) {
+      if (!el) return;
+      const { data: sediAz } = await supa().from('sedi').select('id,nome').eq('azienda_id', aziendaId).order('nome');
+      if (!sediAz || !sediAz.length) { el.remove(); return; }
+      const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const CAMPI = [
+        { k: 'posizionamento', l: 'Posizionamento di questo locale' },
+        { k: 'cliente_ideale', l: 'Cliente ideale di questo locale' },
+        { k: 'tone_of_voice',  l: 'Tono di voce' },
+        { k: 'parole_chiave',  l: 'Parole chiave' },
+      ];
+      let sel = sediAz.some(x => x.id === currentSedeId) ? currentSedeId : sediAz[0].id;
+      const disegna = async () => {
+        const { data: si } = await supa().from('sede_identita').select('*').eq('sede_id', sel).maybeSingle();
+        el.innerHTML = `
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:6px;">🏠 Identità del locale</div>
+          <div style="font-size:12.5px;color:#64748b;margin-bottom:12px;line-height:1.5;">Ogni locale parla al suo cliente. Tony usa questi campi quando scrive per questa sede: promo, post, campagne, WhatsApp, sito. I campi vuoti prendono quelli dell'azienda, qui sotto.</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            ${sediAz.map(x => `<button type="button" data-sede="${x.id}" style="border:1.5px solid ${x.id === sel ? '#0E5A7A' : '#e2e8f0'};background:${x.id === sel ? '#0E5A7A' : 'white'};color:${x.id === sel ? 'white' : '#334155'};border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">${esc(x.nome)}</button>`).join('')}
+          </div>
+          ${CAMPI.map(c => `
+            <div style="margin-bottom:14px;">
+              <span class="id-label">${c.l}</span>
+              <textarea id="ids-${c.k}" class="id-ta" style="min-height:60px;" placeholder="${esc(identAz?.[c.k] ? 'Se resta vuoto: ' + identAz[c.k] : 'Scrivi...')}">${esc(si?.[c.k] || '')}</textarea>
+            </div>`).join('')}
+          <button type="button" id="ids-salva" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer;">💾 Salva identità di questo locale</button>
+          <span id="ids-esito" style="font-size:13px;margin-left:10px;"></span>`;
+        el.querySelectorAll('[data-sede]').forEach(b => b.onclick = () => { sel = b.dataset.sede; disegna(); });
+        el.querySelector('#ids-salva').onclick = async () => {
+          const riga = { azienda_id: aziendaId, sede_id: sel, updated_at: new Date().toISOString() };
+          CAMPI.forEach(c => { riga[c.k] = el.querySelector('#ids-' + c.k).value.trim() || null; });
+          const { error } = await supa().from('sede_identita').upsert(riga, { onConflict: 'sede_id' });
+          const es = el.querySelector('#ids-esito');
+          es.textContent = error ? 'Non salvato: ' + error.message : '✅ Salvata';
+          es.style.color = error ? '#dc2626' : '#15803d';
+        };
+      };
+      disegna();
+    }
+
     box.querySelector('#btn-salva-identita').addEventListener('click', async () => {
       const esito = box.querySelector('#id-esito');
       esito.textContent = 'Salvataggio...'; esito.style.color = '#64748b';
