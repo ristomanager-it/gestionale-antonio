@@ -9,7 +9,7 @@ const VOCI = [
   { r: "magazzino", i: "📦", t: "Magazzino" },
 ];
 // "ai" = chat di Tony: la sua barra per scrivere sta in basso e la barra veloce la copriva
-const SENZA = ["login", "menu-pubblico", "prenotazione-online", "prodotto-pubblico", "display-cucina", "kds-produzioni", "display-sala", "ai"];
+const SENZA = ["login", "menu-pubblico", "prenotazione-online", "prodotto-pubblico", "display-cucina", "kds-produzioni", "display-sala", "ai", "bo-comande"];
 
 function ruolo() {
   const r = String(window.state?.ruolo || "").toLowerCase();
