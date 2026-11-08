@@ -440,17 +440,19 @@ function renderDefaultLayout(promo, azienda) {
 
     <div class="form-block" id="form-container">
       <h3>Scarica la tua promo</h3>
-      <label style="display:block;font-size:11px;color:#94a3b8;margin:0 0 3px 2px;font-weight:600;">Nome</label>
-      <input class="form-input" id="f-nome" type="text" placeholder="Es. Mario" autocomplete="off" autocapitalize="words">
-      <label style="display:block;font-size:11px;color:#94a3b8;margin:6px 0 3px 2px;font-weight:600;">Cognome</label>
-      <input class="form-input" id="f-cognome" type="text" placeholder="Es. Rossi" autocomplete="off" autocapitalize="words">
-      <input class="form-input" id="f-telefono" type="tel" placeholder="Telefono *" autocomplete="tel">
-      <input class="form-input" id="f-email" type="email" placeholder="Email *" autocomplete="email">
-      <label style="display:block;font-size:11px;color:#94a3b8;margin:6px 0 3px 2px;font-weight:600;">Il tuo compleanno (facoltativo: ti prepariamo una sorpresa)</label>
-      <div style="display:flex;gap:8px;">
-        <select class="form-input" id="f-cg" style="flex:1;"><option value="">Giorno</option>${Array.from({length:31}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')}</select>
-        <select class="form-input" id="f-cm" style="flex:2;"><option value="">Mese</option>${['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'].map((m, i) => `<option value="${i+1}">${m}</option>`).join('')}</select>
+      <div class="rf-riga">
+        <input class="form-input" id="f-nome" type="text" placeholder="Nome" autocomplete="given-name" autocapitalize="words">
+        <input class="form-input" id="f-cognome" type="text" placeholder="Cognome" autocomplete="family-name" autocapitalize="words">
       </div>
+      <input class="form-input" id="f-email" type="email" placeholder="Email" autocomplete="email" inputmode="email">
+      <input class="form-input" id="f-telefono" type="tel" placeholder="Telefono" autocomplete="tel" inputmode="tel">
+      <div class="rf-etichetta">Data di nascita</div>
+      <div class="rf-riga">
+        <select class="form-input" id="f-ng" style="flex:1;"><option value="">Giorno</option>${Array.from({length:31}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')}</select>
+        <select class="form-input" id="f-nm" style="flex:1.6;"><option value="">Mese</option>${['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'].map((m, i) => `<option value="${i+1}">${m}</option>`).join('')}</select>
+        <select class="form-input" id="f-na" style="flex:1.2;"><option value="">Anno</option>${Array.from({length:90}, (_, i) => new Date().getFullYear() - 18 - i).map(a => `<option value="${a}">${a}</option>`).join('')}</select>
+      </div>
+      <input class="form-input" id="f-cap" type="text" placeholder="CAP" autocomplete="postal-code" inputmode="numeric" maxlength="5">
       ${promo.privacy_richiesta ? `<label class="form-check"><input type="checkbox" id="f-privacy"> <span>Ho letto e accetto la <a href="#" style="color:#0E5A7A;">Privacy Policy</a> *</span></label>` : ''}
       ${promo.consenso_marketing ? `<label class="form-check"><input type="checkbox" id="f-consenso"> <span>Acconsento a ricevere comunicazioni commerciali e promozionali</span></label>` : ''}
       <div id="form-error" style="color:#dc2626;font-size:12px;margin-bottom:8px;display:none;"></div>
