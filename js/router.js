@@ -383,6 +383,7 @@ const BO_ROUTES = new Set([
   "bo-configurazione",
   "bo-promo",
   "bo-promo-analisi",
+  "bo-sondaggi-clienti",
   "bo-catenarie",
   "bo-calendario",
   "bo-crediti",
