@@ -268,6 +268,7 @@ export async function render(container) {
     const cont = document.getElementById('ag-content');
     if (tab === 'agenda') renderAgAgenda(cont);
     if (tab === 'lead') renderAgLead(cont);
+    if (tab === 'avvii' && window.__AV) window.__AV.montaAvviiAgente(cont, window._agAgente, window._agLeadList);
     if (tab === 'provv') renderAgProvvigioni(cont);
     if (tab === 'mansionario') renderAgMansionario(cont);
     if (tab === 'materiali') renderAgMateriali(cont);
