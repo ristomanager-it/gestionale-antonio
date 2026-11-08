@@ -114,6 +114,7 @@ const routes = {
   "bo-onboarding": () => imp("./views/bo/bo-onboarding.js"),
   "bo-promo": () => imp("./views/bo/bo-promo.js"),
   "bo-promo-analisi": () => imp("./views/bo/bo-promo-analisi.js"),
+  "bo-sondaggi-clienti": () => imp("./views/bo/bo-sondaggi-clienti.js"),
   "ticket-vendite": () => imp("./views/bo/ticket-vendite.js"),
   "ticket-checkin": () => imp("./views/bo/ticket-checkin.js"),
   "bo-catenarie": () => imp("./views/bo/bo-catenarie.js"),
