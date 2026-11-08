@@ -479,6 +479,19 @@ async function caricaGalleriaLanding(promo) {
   } catch (e) { /* la galleria e' un plus: nessun errore visibile */ }
 }
 
+// Slider delle recensioni: scorre da solo ogni 4 secondi, si ferma quando la persona lo tocca
+function avviaSlider(el) {
+  if (!el || el.children.length < 2) return;
+  let fermo = false;
+  ['touchstart', 'mousedown', 'wheel'].forEach(ev => el.addEventListener(ev, () => { fermo = true; }, { passive: true }));
+  setInterval(() => {
+    if (fermo || document.hidden) return;
+    const passo = el.children[0].getBoundingClientRect().width + 10;
+    const fine = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+    el.scrollTo({ left: fine ? 0 : el.scrollLeft + passo, behavior: 'smooth' });
+  }, 4000);
+}
+
 // Recensioni VERE (verificate e visibili) al posto di quelle scritte a mano. Nessuna recensione = nessuna sezione.
 async function caricaRecensioniReali(promo) {
   const box = document.getElementById('rec-reali');
