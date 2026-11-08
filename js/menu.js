@@ -538,6 +538,7 @@ export function initMenu() {
             { label: "🏷️ Tag & LTV",         route: "bo-tag"            },
             { label: "🎫 Fidelity & Network", route: "bo-fidelity"       },
             { label: "⭐ Recensioni ricevute", route: "recensioni-ricevute" },
+            { label: "📝 Sondaggi clienti",  route: "bo-sondaggi-clienti" },
             { label: "⚙️ Config recensioni", route: "recensioni"        },
             { label: "📸 Chi ci tagga",       route: "bo-menzioni"       },
           ] },
