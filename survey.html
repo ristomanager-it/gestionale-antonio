@@ -233,6 +233,7 @@ function salvaAperta(domandaId, ta) {
   const n = ta.value.trim().split(/\s+/).filter(Boolean).length;
   const cc = document.getElementById('cc-' + domandaId);
   if (cc) cc.textContent = n + (n===1?' parola':' parole');
+  aggiornaAvanti();
 }
 
 function vai(n) { while (n > 0 && !daMostrare(domande[n])) n--; step = n; renderStep(); window.scrollTo({top:0,behavior:'smooth'}); }
