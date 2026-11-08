@@ -738,6 +738,20 @@ async function init() {
   html += `<div class="footer">Powered by <a href="https://ristoflow-ai.com">Ristoflow.AI</a></div>`;
 
   wrap.innerHTML = html;
+  // pulsante sempre visibile in basso: porta al modulo
+  try {
+    if (document.getElementById('form-container') && !promo.bozza) {
+      const heroB = blocks.find(b => b && b.tipo === 'hero');
+      const testoBarra = (heroB && heroB.cta) || 'Voglio la mia offerta';
+      wrap.insertAdjacentHTML('beforeend', '<div class="rf-barra" id="rf-barra"><button type="button" id="rf-barra-btn">' + esc(testoBarra) + '</button></div>');
+      document.body.classList.add('con-barra');
+      document.getElementById('rf-barra-btn').onclick = function () {
+        const f = document.getElementById('form-container');
+        if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(function () { const n = document.getElementById('f-nome'); if (n && !n.value) n.focus({ preventScroll: true }); }, 650);
+      };
+    }
+  } catch (e) {}
   // bozza creata da Tony per l'anteprima: si vede com'e', ma il coupon non si scarica
   if (promo.bozza) wrap.insertAdjacentHTML('afterbegin', '<div style="position:sticky;top:0;z-index:60;background:#b45309;color:#fff;padding:11px 14px;font-weight:800;font-size:13px;text-align:center;">👁 ANTEPRIMA · non ancora pubblicata · il coupon non si può scaricare<br><a href="/" onclick="var h=history.length>1;if(h){history.back();setTimeout(function(){location.href=\'/\'},500);}return !h;" style="color:#fff;text-decoration:underline;">← Torna all\'app</a></div>');
   // il testo accanto alla casella dice chiaramente lo scambio: coupon in cambio del permesso di ricontattare
