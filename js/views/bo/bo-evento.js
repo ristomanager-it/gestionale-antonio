@@ -409,7 +409,7 @@ function waPromemoria(r, fase) {
   const nome = (r.nome || "").split(" ")[0];
 
   const testo = fase === "24h"
-    ? `Ciao ${nome}, ci vediamo domani sera dalle 19:30 a Campo Antico, Orte — ${cop} a nome tuo.\n\n`
+    ? `Ciao ${nome}, ci vediamo domani sera dalle ${oraEv()} a Campo Antico, Orte — ${cop} a nome tuo.\n\n`
       + `Mappa e dettagli qui: ${link}\n\nA domani!`
     : `Ciao ${nome}, ci siamo: dopodomani sera, mercoledì 23, dalle 19:30 a Campo Antico di Orte.\n\n`
       + `Ti aspetto con ${cop}. Se nel frattempo è cambiato qualcosa dimmelo pure, così passo il posto a un altro.\n\n`
