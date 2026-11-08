@@ -299,6 +299,13 @@ export async function render(container) {
 
   html += '</section>';
   container.innerHTML = html;
+  if (daTony) {
+    const sec = container.querySelector("section") || container;
+    const box = document.createElement("div");
+    box.style.cssText = "background:#f5f3ff;border:1px solid #ddd6fe;color:#4c1d95;border-radius:12px;padding:10px 14px;margin:0 0 12px;font-size:14px;line-height:1.5;";
+    box.innerHTML = "✨ <b>Proposta di Tony già inserita.</b> Cambia, togli o aggiungi i piatti che vuoi, poi premi Salva. Finché non salvi il menu non è pubblicato.";
+    sec.insertBefore(box, sec.children[1] || null);
+  }
 
   const inpPrezzo = container.querySelector("#mg-prezzo");
   if (inpPrezzo) inpPrezzo.addEventListener("input", () => {
