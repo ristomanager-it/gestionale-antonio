@@ -2660,6 +2660,7 @@ export async function render(container) {
             <button id="btn-wizard-identita" style="background:#0E5A7A;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;">✨ Avvia il wizard</button>
           </div>
         </div>
+        <div class="id-card" id="id-sede-box"></div>
         <div class="id-card">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;">🌟 Vision & Mission</div>
           <div style="margin-bottom:16px;">
