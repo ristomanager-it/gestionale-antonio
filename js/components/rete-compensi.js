@@ -21,7 +21,7 @@ const PACCHETTI = [
   { slug: 'solo-hotel', nome: 'Hotel (solo camere)', mensile: 229, annuale: 2336 },
   { slug: 'bar', nome: 'Bar', mensile: 149, annuale: 1520 },
   { slug: 'tasting', nome: 'Tasting e pro loco', mensile: 99, annuale: 1010 },
-  { slug: 'fondatore', nome: 'Fondatore (posti limitati)', mensile: null, annuale: 2000, soloAnnuale: true },
+  { slug: 'fondatore', nome: 'Fondatore', mensile: null, annuale: 2000, soloAnnuale: true },
 ];
 const SCONTO_LANCIO = 0.30;
 
