@@ -7,7 +7,7 @@
 const sb = () => window.supabaseClient || window.supabase;
 
 const DEFAULT = {
-  perc_agente: 10, perc_segnalatore: 3, perc_ricorrente: 0, anticipo_mensile: 0,
+  perc_agente: 10, perc_agente_avvio: 15, perc_segnalatore: 3, perc_ricorrente: 5, anticipo_mensile: 0,
   premi_mese: [{ contratti: 4, premio: 500 }, { contratti: 6, premio: 900 }],
   premi_anno: [{ venduto: 100000, premio: 3000 }, { venduto: 150000, premio: 6000 }],
   regole: [], in_vigore_dal: null,
