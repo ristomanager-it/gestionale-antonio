@@ -579,9 +579,12 @@ export async function renderPromo(container, aziendaId) {
       if (b.tipo==='form') {
         return `<div style="margin:10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:${r}px;padding:14px;">
           <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:${s.colore_testo};">📋 Scarica la promo</div>
-          <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;margin-bottom:6px;font-size:11px;color:#94a3b8;">Nome</div>
-          <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;margin-bottom:6px;font-size:11px;color:#94a3b8;">Cognome</div>
-          <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:11px;color:#94a3b8;">Telefono</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;"><div style="flex:1;background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:11px;color:#94a3b8;">Nome</div><div style="flex:1;background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:11px;color:#94a3b8;">Cognome</div></div>
+          <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:11px;color:#94a3b8;margin-bottom:6px;">Email</div>
+          <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:11px;color:#94a3b8;margin-bottom:6px;">Telefono</div>
+          <div style="font-size:10px;font-weight:600;color:#64748b;margin:2px 0 4px 2px;">Data di nascita</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;"><div style="flex:1;background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:11px;color:#94a3b8;">Giorno</div><div style="flex:1.6;background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:11px;color:#94a3b8;">Mese</div><div style="flex:1.2;background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:11px;color:#94a3b8;">Anno</div></div>
+          <div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:11px;color:#94a3b8;margin-bottom:8px;">CAP</div>
           <div style="background:${s.colore_bottone};border-radius:${r}px;padding:9px;text-align:center;color:white;font-size:12px;font-weight:800;">🎁 Voglio la mia promo!</div>
         </div>`;
       }
