@@ -221,7 +221,7 @@ export async function render(container) {
 
   function disegnaPromemoria(righe, cfg) {
     const box = document.getElementById("ev-promemoria");
-    const quando = cfg && cfg.data_ora ? new Date(cfg.data_ora) : new Date("2026-09-23T19:30:00+02:00");
+    const quando = cfg && cfg.data_ora ? new Date(cfg.data_ora) : DATA_EV;
     const oreMancanti = (quando - Date.now()) / 3600000;
 
     // fase attiva: 48h prima, poi 24h prima
