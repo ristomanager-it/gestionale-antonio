@@ -327,7 +327,10 @@ export async function render(container) {
     if (label) label.textContent = `${doneTot} / ${totSteps} step completati — ${pct}% configurato`;
   }
 
-  function caricaStatoOnboarding() {
+  async function caricaStatoOnboarding() {
+    const { data, error } = await supa().rpc('setup_stato', { p_azienda: aziendaId, p_sede: sedeId || null });
+    if (error) console.warn('setup_stato:', error.message);
+    STATO = data || {};
     LIVELLI.forEach((liv, li) => {
       liv.steps.forEach((_, si) => {
         if (localStorage.getItem(`onb_${aziendaId}_${li}_${si}`) === '1') {
