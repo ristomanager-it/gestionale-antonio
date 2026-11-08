@@ -1415,4 +1415,49 @@ export async function render(container) {
   const aziendaId = window.state?.azienda?.id;
   if (!aziendaId) { container.innerHTML='<div style="padding:20px;color:#dc2626;">Azienda non selezionata</div>'; return; }
   await renderPromo(container, aziendaId);
+  novitaPromo(container, aziendaId);
+  // controlla i nuovi coupon ogni minuto finche' la pagina Promo e' aperta
+  if (window._rfPromoNovita) clearInterval(window._rfPromoNovita);
+  window._rfPromoNovita = setInterval(() => {
+    if (!document.body.contains(container) || !container.querySelector('#promo-novita')) { clearInterval(window._rfPromoNovita); return; }
+    novitaPromo(container, aziendaId);
+  }, 60000);
 }
+// ── Notifica coupon scaricati: in cima alla pagina Promo, da quando sei passato l'ultima volta ──
+async function novitaPromo(container, aziendaId) {
+  const box = container.querySelector('#promo-novita');
+  if (!box) return;
+  const chiave = 'rf_promo_visto_' + aziendaId;
+  let dal = null;
+  try { dal = localStorage.getItem(chiave); } catch (e) {}
+  if (!dal) dal = new Date(Date.now() - 2 * 86400000).toISOString();
+  const [{ data: nuovi }, { data: pr }] = await Promise.all([
+    supa().from('promo_lead').select('nome,cognome,promo_id,stato_coupon,data_scaricamento,created_at').eq('azienda_id', aziendaId).gt('created_at', dal).order('created_at', { ascending: false }).limit(50),
+    supa().from('promo').select('id,nome,kit_ruolo').eq('azienda_id', aziendaId),
+  ]);
+  const nomi = {}; (pr || []).forEach(p => { nomi[p.id] = p; });
+  const lista = (nuovi || []).filter(l => nomi[l.promo_id]);
+  if (!lista.length) { box.innerHTML = ''; return; }
+  const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const fa = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 60 ? Math.max(1, m) + ' min fa' : (m < 1440 ? Math.round(m / 60) + ' ore fa' : new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })); };
+  const n = lista.length;
+  box.innerHTML = `
+    <div style="background:linear-gradient(135deg,#ecfeff,#f0fdf4);border:1px solid #a5f3fc;border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="font-size:14px;font-weight:800;color:#0f172a;">🔔 ${n} ${n === 1 ? 'coupon scaricato' : 'coupon scaricati'} da quando sei passato l'ultima volta</div>
+        <div style="display:flex;gap:6px;">
+          <button data-route="bo-promo-analisi" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">📊 Analisi</button>
+          <button id="promo-novita-ok" style="background:white;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">Ok, visto</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;">${lista.slice(0, 5).map(l => `
+        <div style="display:flex;gap:8px;font-size:13px;padding:4px 0;color:#334155;">
+          <strong>${esc([l.nome, l.cognome ? l.cognome.charAt(0) + '.' : ''].filter(Boolean).join(' ') || 'Cliente')}</strong>
+          <span style="flex:1;color:#64748b;">· ${esc(nomi[l.promo_id].nome)}${nomi[l.promo_id].kit_ruolo ? ' (regalo)' : ''}</span>
+          <span style="color:#94a3b8;font-size:12px;white-space:nowrap;">${fa(l.created_at)}</span>
+        </div>`).join('')}${n > 5 ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">e altri ${n - 5}</div>` : ''}</div>
+    </div>`;
+  const ok = box.querySelector('#promo-novita-ok');
+  if (ok) ok.onclick = () => { try { localStorage.setItem(chiave, new Date().toISOString()); } catch (e) {} box.innerHTML = ''; };
+}
+
