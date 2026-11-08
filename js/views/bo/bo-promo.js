@@ -574,7 +574,7 @@ export async function renderPromo(container, aziendaId) {
         </div>`;
       }
       if (b.tipo==='valutazioni') {
-        return `<div style="padding:10px;text-align:center;color:#f59e0b;font-size:16px;">★★★★★ <span style="font-size:11px;color:${s.colore_testo};opacity:.6;">4.9 · 320 recensioni</span></div>`;
+        return `<div style="padding:10px;text-align:center;color:#f59e0b;font-size:16px;">★★★★★ <span style="font-size:11px;color:${s.colore_testo};opacity:.6;">le recensioni vere del locale</span></div>`;
       }
       if (b.tipo==='form') {
         return `<div style="margin:10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:${r}px;padding:14px;">
