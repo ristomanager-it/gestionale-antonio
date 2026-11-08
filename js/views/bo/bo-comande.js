@@ -476,7 +476,7 @@ export async function render(container) {
       // La tabella profili non contiene azienda_id/ruolo, quindi non va usata qui.
       const { data, error } = await supa()
         .from('dipendenti')
-        .select('id, nome, cognome, pin, ruolo, azienda_id, sede_id, attivo')
+        .select('id, user_id, nome, cognome, pin, ruolo, azienda_id, sede_id, attivo')
         .eq('azienda_id', aziendaId)
         .eq('attivo', true)
         .not('pin', 'is', null);
