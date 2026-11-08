@@ -53,6 +53,14 @@ export async function render(container) {
   const SOGLIA = 20;                       // sotto questa soglia il numero lavora a favore
   const pochi = liberi !== null && liberi > 0 && liberi <= SOGLIA;
   const chiuso = disp ? !!disp.chiuso : false;
+  // data della serata: arriva da evento_config tramite evento_disponibilita, niente date scritte nel codice
+  const dtEv = disp && disp.data_ora ? new Date(disp.data_ora) : new Date("2027-01-18T19:30:00+01:00");
+  const fEv = (o) => dtEv.toLocaleString("it-IT", Object.assign({ timeZone: "Europe/Rome" }, o));
+  const ggEv = fEv({ day: "numeric" });
+  const gmEv = fEv({ day: "numeric", month: "long" });
+  const oraEv = fEv({ hour: "2-digit", minute: "2-digit" });
+  const settEv = fEv({ weekday: "long" });
+  const luogoEv = (disp && disp.luogo) || "Campo Antico, Orte";
   const daParte = invito && invito.tipo === "agente"
     ? `<p class="ev-daparte">Invito consegnato da <b>${esc(invito.etichetta)}</b></p>` : "";
 
