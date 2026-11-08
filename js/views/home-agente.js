@@ -492,13 +492,12 @@ function renderAgMansionario(el) {
       </div>
 
       <div class="ag-card">
-        <div style="font-size:13px;font-weight:800;color:#7C3AED;margin-bottom:10px;">🔢 Le 5 fasi del processo</div>
-        <div style="font-size:12.5px;color:#374151;line-height:2;">
-          <strong>1. Approccio (30 sec)</strong> — "Sono [nome], ho un locale, non vendo niente, condivido una cosa che mi ha cambiato la gestione"<br>
-          <strong>2. Qualifica (2 min)</strong> — Coperti? Pranzo o solo cena? Personale fisso o stagionale?<br>
-          <strong>3. Il problema (3 min)</strong> — "A fine mese i numeri ti tornano?" → silenzio, ascolta<br>
-          <strong>4. Demo (10 min)</strong> — Mostra UNA cosa sola che risolve il SUO problema<br>
-          <strong>5. Chiusura (5 min)</strong> — "Risolve un problema che hai?" → 30 giorni gratis
+        <div style="font-size:13px;font-weight:800;color:#DC2626;margin-bottom:10px;">🎯 Le tre aperture</div>
+        <div style="font-size:12.5px;color:#374151;line-height:1.8;">
+          💰 <strong>Conti</strong> (&amp;p=conti) — <em>Quanto vi è costato il piatto che avete appena mandato in sala?</em><br>
+          👥 <strong>Personale</strong> (&amp;p=personale) — <em>Sapete quale turno vi fa guadagnare e quale vi costa e basta?</em><br>
+          📣 <strong>Marketing</strong> (&amp;p=marketing) — <em>Chi vi fa le campagne sa qual è il vostro cliente migliore?</em><br>
+          <span style="color:#64748b;">Nell'invito non si parla di prezzo, di posti o di offerte: il prezzo si scopre in sala.</span>
         </div>
       </div>
 
