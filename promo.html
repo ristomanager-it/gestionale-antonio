@@ -399,6 +399,8 @@ function renderBlock(b, promo, azienda) {
     return `<div style="padding:8px 16px 16px;"><a href="${esc(href)}" style="display:block;text-align:center;text-decoration:none;background:linear-gradient(135deg,var(--bottone),var(--primario-2));color:var(--bottone-testo);border-radius:var(--radius);padding:16px;font-size:16px;font-weight:800;letter-spacing:.3px;box-shadow:0 4px 20px rgba(0,0,0,.15);">${esc(label)}</a></div>`;
   }
   if (b.tipo==='regolamento') {
+    // un solo "Regolamento e condizioni": e' sempre in fondo alla pagina (buildRegolamentoCompleto), qui non si ripete
+    if (true) return '';
     const reg = b.contenuto || promo.regolamento || '';
     if (!reg) return '';
     return `<details class="regolamento-block"><summary>📜 Regolamento della promozione</summary><div class="reg-testo">${esc(reg).replace(/\n/g,'<br>')}</div></details>`;
