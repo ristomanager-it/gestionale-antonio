@@ -263,7 +263,7 @@ export async function render(container) {
       <div class="ev-foot">Ristoflow.AI — Nato in cucina. Non in laboratorio.</div>
 
       <div class="ev-barra" id="ev-barra">
-        <span><b>23 settembre, ore 19:30</b><span id="ev-barra-posti"></span></span>
+        <span><b>${gmEv}, ore ${oraEv}</b><span id="ev-barra-posti"></span></span>
         <a href="#/evento-serata" id="ev-vai2">Ci sarò</a>
       </div>
 
