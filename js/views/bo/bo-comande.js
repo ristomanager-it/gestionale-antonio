@@ -528,6 +528,22 @@ export async function render(container) {
     switchView('tavoli');
   }
 
+  // Mail personale = account legato a un dipendente, oppure admin/manager con mail non generica.
+  // Le mail di reparto (info@, sala@, cassa@...) restano sul PIN: quel telefono lo usano in tanti.
+  const MAIL_CONDIVISE = ['info','sala','cassa','bar','banco','cucina','tablet','comande','ordini','ristorante','trattoria','staff','admin','servizio'];
+  function utenteDaMailPersonale() {
+    const u = window.state?.user;
+    if (!u?.id) return null;
+    const dip = camerieriDB.find(c => c.userId === u.id);
+    if (dip) return dip;
+    const locale = String(u.email || '').split('@')[0].toLowerCase();
+    if (!locale || MAIL_CONDIVISE.includes(locale)) return null;
+    const r = String(window.state?.ruolo || '').toLowerCase();
+    if (!['admin','superadmin','manager'].includes(r)) return null;
+    const nome = u.user_metadata?.nome || u.user_metadata?.full_name || locale;
+    return { pin: null, nome, ruolo: 'manager', colore: ADMIN_PIN.colore };
+  }
+
   // Binding tastierino PIN
   container.querySelectorAll('[data-key]').forEach(btn => {
     btn.addEventListener('click', () => {
