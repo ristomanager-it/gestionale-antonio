@@ -262,7 +262,7 @@ export async function render(container) {
   window._agEditAppId = null;
 
   window.agSwitchTab = function(tab) {
-    ['agenda','lead','provv','mansionario','materiali','compensi'].forEach(t => {
+    ['agenda','lead','avvii','provv','mansionario','materiali','compensi'].forEach(t => {
       document.getElementById(`agt-${t==='mansionario'?'mansionario':t==='materiali'?'materiali':t}`)?.classList.toggle('active', t===tab);
     });
     const cont = document.getElementById('ag-content');
