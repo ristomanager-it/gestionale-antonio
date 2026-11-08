@@ -1449,7 +1449,7 @@ async function novitaPromo(container, aziendaId) {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
         <div style="font-size:14px;font-weight:800;color:#0f172a;">🔔 ${n} ${n === 1 ? 'coupon scaricato' : 'coupon scaricati'} da quando sei passato l'ultima volta</div>
         <div style="display:flex;gap:6px;">
-          <button data-route="bo-promo-analisi" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">📊 Analisi</button>
+          <button data-route="bo-promo-analisi" onclick="location.hash='#/bo-promo-analisi'" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">📊 Analisi</button>
           <button id="promo-novita-ok" style="background:white;color:#0E5A7A;border:1px solid #0E5A7A;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">Ok, visto</button>
         </div>
       </div>
