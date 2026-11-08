@@ -516,21 +516,10 @@ function renderAgMansionario(el) {
       <div class="ag-card">
         <div style="font-size:13px;font-weight:800;color:#0E5A7A;margin-bottom:10px;">🗣️ Parole da usare</div>
         <div style="font-size:12.5px;color:#374151;line-height:1.9;">
-          "Costa troppo" → <em>Quanto ti costa non sapere dove vanno i soldi?</em><br>
-          "Ho già un gestionale" → <em>Che cosa ti manca di quello che hai?</em><br>
-          "Ci penso" → <em>Cosa ti frena? Voglio capire se posso aiutarti</em><br>
-          "Cucino bene" → <em>Si vede. Ma riesci a staccare un giorno a settimana?</em><br>
-          "Sono piccolo" → <em>Ho iniziato con 40 coperti, il problema è uguale</em>
-        </div>
-      </div>
-
-      <div class="ag-card">
-        <div style="font-size:13px;font-weight:800;color:#0E5A7A;margin-bottom:10px;">💬 Follow-up</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.9;">
-          <strong>Giorno 1:</strong> WA con video demo<br>
-          <strong>Giorno 4:</strong> "Hai visto il video?"<br>
-          <strong>Giorno 10:</strong> Caso concreto di un altro cliente<br>
-          <strong>Giorno 21:</strong> Rientri come cliente, non come venditore
+          Giacenze, merce da far girare, piatto del giorno — <span style="color:#DC2626;">mai "avanzi"</span><br>
+          Uno strumento nato dai problemi delle sue cucine — <span style="color:#DC2626;">mai "si è costruito il gestionale"</span><br>
+          Siete miei ospiti — <span style="color:#DC2626;">mai "cena offerta" o "cena gratis"</span><br>
+          Dalle 19:30 — <span style="color:#DC2626;">mai l'orario di fine</span>
         </div>
       </div>`;
   }
