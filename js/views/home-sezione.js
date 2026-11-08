@@ -25,6 +25,7 @@ const SEZIONI = {
   marketing: { titolo: "📣 Marketing e CRM", pulsanti: [
     ["📉", "Analytics", "bo-analytics"],
     ["📈", "Risultati campagne", "bo-risultati-campagne"],
+    ["🔥", "Clienti caldi", "bo-clienti-caldi"],
     // i gruppi aprono l'elenco delle loro voci (come nel menu laterale): [icona, testo, rotta, [figli]]
     ["👥", "Clienti", "bo-tag", [["🏷️", "Tag e LTV", "bo-tag"], ["🎫", "Fidelity e Network", "bo-fidelity"], ["⭐", "Recensioni ricevute", "recensioni-ricevute"], ["⚙️", "Config recensioni", "recensioni"], ["📸", "Chi ci tagga", "bo-menzioni"]]],
     ["📣", "Campagne", "bo-marketing", [["📣", "Campagne", "bo-marketing"], ["📧", "Mail marketing", "mail-marketing"], ["🎁", "Promo", "bo-promo"], ["📊", "Analisi Promo", "bo-promo-analisi"], ["🎁", "Buoni regalo", "bo-voucher"], ["🔗", "Catenarie", "bo-catenarie"], ["✂️", "Short Link", "bo-shortlink"]]],
