@@ -46,9 +46,21 @@ export async function render(container){
   const kpi = { inviati: tutti.length, risposti: risposti.length, media, bassi };
 
   const card = (i) => {
-    const rr = (perInvio[i.id]||[]).slice().sort((a,b) => (domande[a.domanda_id]?.ordine||0) - (domande[b.domanda_id]?.ordine||0));
+    // tutte le domande del sondaggio: quelle lasciate vuote si vedono come "lasciata vuota";
+    // le domande del perché (mostrate solo con voto basso) compaiono solo se sono state chieste
+    const date = {}; (perInvio[i.id]||[]).forEach(r => date[r.domanda_id] = r);
+    const delSondaggio = Object.values(domande).filter(d => d.survey_id === i.survey_id).sort((a,b) => (a.ordine||0)-(b.ordine||0));
+    const votoDi = (ord) => { const d = delSondaggio.find(x => Number(x.ordine) === Number(ord)); return d && date[d.id] ? date[d.id].risposta_scala : null; };
+    const chiesta = (d) => {
+      if(date[d.id]) return true;
+      const c = d.condizione_mostra; if(!c) return true;
+      if(c.minore != null){ const v = votoDi(c.ordine); return v != null && v < Number(c.minore); }
+      return false;
+    };
+    const rr = delSondaggio.filter(chiesta).map(d => date[d.id] || { domanda_id: d.id, vuota: true });
     const righe = rr.map(r => {
       const d = domande[r.domanda_id] || {};
+      if(r.vuota) return `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid #f1f5f9;font-size:14px;"><span style="color:${C.soft};">${esc(d.testo||'Domanda')}</span><span style="white-space:nowrap;color:#cbd5e1;font-style:italic;">lasciata vuota</span></div>`;
       let val = '';
       if(r.risposta_scala != null){
         const max = d.scala_max || 5; const q = r.risposta_scala / max;
