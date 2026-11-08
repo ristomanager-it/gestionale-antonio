@@ -111,6 +111,7 @@ const routes = {
   "turni-aperti": () => imp("./views/turni-aperti.js"),   // l'email "Sistemale ora" porta qui
   "bo-analytics": () => imp("./views/bo/bo-analytics.js"),
   "bo-risultati-campagne": () => imp("./views/bo/bo-risultati-campagne.js"),
+  "bo-clienti-caldi": () => imp("./views/bo/bo-clienti-caldi.js"),
   "bo-onboarding": () => imp("./views/bo/bo-onboarding.js"),
   "bo-promo": () => imp("./views/bo/bo-promo.js"),
   "bo-promo-analisi": () => imp("./views/bo/bo-promo-analisi.js"),
