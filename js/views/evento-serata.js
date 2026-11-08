@@ -182,7 +182,7 @@ export async function render(container) {
       Mi sono fatto costruire lo strumento che cercavo e non trovavo: ${esc(ap.risposta)}</p>
 
       <div class="ev-posti ${chiuso || liberi === 0 ? "pieno" : ""}" id="ev-posti-box">
-        <div class="num">${chiuso || liberi === 0 ? "Tavoli al completo" : "Il 23 lo mettiamo sul tavolo<br>e lo guardiamo insieme."}</div>
+        <div class="num">${chiuso || liberi === 0 ? "Tavoli al completo" : "Il " + ggEv + " lo mettiamo sul tavolo<br>e lo guardiamo insieme."}</div>
         <small>${
           chiuso || liberi === 0
             ? "Scrivetemi e vi metto in lista d'attesa: se qualcuno rinuncia, il posto passa a voi."
