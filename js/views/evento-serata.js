@@ -173,7 +173,7 @@ export async function render(container) {
 
       <div class="ev-marchio"><img src="assets/ristoflow-logo.png" alt="Ristoflow.AI"></div>
 
-      <div class="ev-occhiello">23 settembre 2026 · Campo Antico, Orte</div>
+      <div class="ev-occhiello">${fEv({ day: "numeric", month: "long", year: "numeric" })} · ${esc(luogoEv)}</div>
       <h1>${esc(ap.titolo)}</h1>
       <p class="ev-occhiofine">${esc(ap.sub)}</p>
       ${daParte}
