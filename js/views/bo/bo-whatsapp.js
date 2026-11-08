@@ -175,6 +175,12 @@ export async function render(container) {
       conv.messaggi.push(msg);
       if (!msg.letto) conv.nonLetti++;
     }
+    for (const [num, msg] of operatori) {
+      const conv = map.get(num) || [...map.values()].find((c) => String(c.numero).replace(/\D/g, "").slice(-9) === num.slice(-9));
+      if (!conv) continue;
+      conv.messaggi.push(msg);
+      if (new Date(msg.created_at) > new Date(conv.ultimaData)) { conv.ultimaData = msg.created_at; conv.ultimoMessaggio = "Tu: " + (msg.testo || ""); }
+    }
 
     conversazioni = [...map.values()].sort(
       (a, b) => new Date(b.ultimaData) - new Date(a.ultimaData)
