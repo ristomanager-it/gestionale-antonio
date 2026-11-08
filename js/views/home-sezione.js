@@ -101,6 +101,12 @@ export async function render(app) {
   if (chiave === "marketing") {
     const wa = await conta(supabase.from("whatsapp_messaggi").select("id", { count: "exact", head: true }).eq("azienda_id", aid).eq("letto", false));
     if (wa) righe.push({ testo: `💬 ${wa} ${wa === 1 ? "messaggio WhatsApp da leggere" : "messaggi WhatsApp da leggere"}`, dest: "bo-whatsapp", tono: "giallo" });
+    // clienti che hanno lasciato il contatto e non hanno concluso: da richiamare
+    try {
+      const { data: cc } = await supabase.rpc("clienti_caldi", { p_azienda: aid });
+      const ap = (cc || []).filter((c) => c.stato === "aperto" && c.esito !== "richiamato");
+      if (ap.length) righe.unshift({ testo: `🔥 ${ap.length} ${ap.length === 1 ? "cliente caldo da richiamare" : "clienti caldi da richiamare"} · ${euro(ap.reduce((t, c) => t + (Number(c.valore) || 0), 0))} in ballo`, dest: "bo-clienti-caldi", tono: "rosso" });
+    } catch (_) { /* senza la lista la riga non compare */ }
     // pubblicita' degli ultimi 30 giorni: % sul previsto e campagne da cambiare (stesse soglie di Risultati campagne)
     if (admin) {
       try {
