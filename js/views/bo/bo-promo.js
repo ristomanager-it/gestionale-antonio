@@ -120,6 +120,7 @@ export async function renderPromo(container, aziendaId) {
         <div style="font-size:13px;color:#64748b;">Crea promo personalizzate — landing, tracking Meta, referral</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button data-route="bo-promo-analisi" style="background:#f8fafc;color:#0E5A7A;border:1px solid #cbd5e1;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:700;">📊 Analisi</button>
         <button id="btn-tony-promo" style="background:linear-gradient(135deg,#7c3aed,#0E5A7A);color:white;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(124,58,237,.3);">✨ Crea con Tony</button>
         <button id="btn-usa-template" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:700;">✨ Template 2x1</button>
         <button id="btn-nuova-promo" style="background:#0E5A7A;color:white;border:none;border-radius:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:700;">+ Nuova promo</button>
