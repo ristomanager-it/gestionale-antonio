@@ -317,7 +317,7 @@ export async function render(container) {
     let doneTot = 0;
     LIVELLI.forEach((liv, li) => {
       liv.steps.forEach((_, si) => {
-        if (localStorage.getItem(`onb_${aziendaId}_${li}_${si}`) === '1') doneTot++;
+        if (fatto(li, si)) doneTot++;
       });
     });
     const pct = Math.round(doneTot / totSteps * 100);
