@@ -197,13 +197,15 @@ export async function render(container) {
     window.location.hash = tab ? `#/${route}?tab=${tab}` : `#/${route}`;
   };
 
-  window.toggleStep = function(li, si) {
-    const key = `onb_${aziendaId}_${li}_${si}`;
-    const done = localStorage.getItem(key) === '1';
-    if (done) localStorage.removeItem(key); else localStorage.setItem(key, '1');
-    aggiornaStep(li, si);
-    aggiornaBadge();
-    aggiornaProgressGlobale();
+  window.toggleStep = async function(li, si) {
+    const passo = LIVELLI[li].steps[si].id;
+    if (!MANUALI.includes(passo)) return;   // gli altri si segnano da soli quando la cosa c'è davvero
+    const q = fatto(li, si)
+      ? supa().from('setup_passi_manuali').delete().eq('azienda_id', aziendaId).eq('passo', passo)
+      : supa().from('setup_passi_manuali').insert({ azienda_id: aziendaId, passo: passo });
+    const { error } = await q;
+    if (error && error.code !== '23505') { alert('Non salvato: ' + error.message); return; }
+    await caricaStatoOnboarding();
   };
 
   // Render livelli
