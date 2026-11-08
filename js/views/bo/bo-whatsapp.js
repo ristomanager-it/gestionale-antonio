@@ -138,6 +138,9 @@ export async function render(container) {
     // vengono associati alla conversazione tramite il campo risposta_testo
     // oppure tramite un campo dedicato "numero_cliente" se presente
     const map = new Map();
+    // le risposte dell'operatore sono piu' recenti del messaggio del cliente: con l'ordine dal piu' nuovo
+    // arrivavano prima che la conversazione esistesse e si perdevano. Si attaccano dopo il giro.
+    const operatori = [];
 
     for (const msg of data) {
       // Determina la chiave della conversazione
