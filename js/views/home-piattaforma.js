@@ -1797,6 +1797,7 @@ function renderTabAgenti(tab) {
   if (!el) return;
   if (tab === 'rete')         el.innerHTML = '', renderReteAgenti(el);
   if (tab === 'performance')  el.innerHTML = '', renderPerformanceAgenti(el);
+  if (tab === 'avvii') import("../components/avvii-agenti.js?v=" + (window.APP_V || "1")).then(AV => AV.montaAvviiAdmin(el, _agenti)).catch(e => { el.innerHTML = 'Errore: ' + e.message; });
   if (tab === 'provvigioni')  el.innerHTML = '', renderProvvigioniAgenti(el);
   if (tab === 'piano')        el.innerHTML = '', renderPianoEconomico(el);
   if (tab === 'guida')        el.innerHTML = '', renderGuidaVendita(el);
