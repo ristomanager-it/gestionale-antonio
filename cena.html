@@ -85,13 +85,19 @@ var MENU_API = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/Menu-pubbl
 var ORDINI_API = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/Ordini-menu-pubblico-api-index";
 var q = new URLSearchParams(location.search);
 var SLUG = q.get("menu") || "menu-del-giorno";
-var DOVE = { "aquila": "Hotel Aquila", "campo-antico": "Campo Antico" };
+var DOVE = { "aquila": "Hotel Aquila", "campo-antico": "Campo Antico", "trattoria": "Trattoria dell'Aquila" };
+// ?dove=trattoria: menu business per tutti (preordine, prezzo fisso a persona, si paga al locale).
+// Gli altri link sono per la mezza pensione: solo i piatti, nessun prezzo.
+var BUSINESS = q.get("dove") === "trattoria";
 var dove = DOVE[q.get("dove")] || q.get("dove") || "";
-var ORARI = (q.get("orari") || "19:30,20:00,20:30,21:00,21:30").split(",");
+var ORARI = (q.get("orari") || (BUSINESS ? "12:30,13:00,13:30,14:00,19:30,20:00,20:30,21:00" : "19:30,20:00,20:30,21:00,21:30")).split(",");
+function euro(n){ return n.toFixed(2).replace(".", ",").replace(",00", "") + " €"; }
 var PORTATE = [["Antipasti","antipasto"],["Primi","primo"],["Secondi","secondo"]];
 
 var T = {
-  it:{stasera:"La cena di stasera", domani:"La cena di domani", chi:"Chi organizza la cena", chiTesto:"Ti mandiamo il riepilogo su WhatsApp da confermare.",
+  it:{stasera:"La cena di stasera", domani:"La cena di domani", bizTit:"Menu business", inviaBiz:"Invia il preordine", bizSotto:"antipasto, primo, secondo, acqua e caffè", aPersona:"a persona",
+      chiBiz:"Chi prenota", chiBizTesto:"Ti mandiamo il riepilogo su WhatsApp da confermare. Paghi al locale.", totale:"Totale", orarioBiz:"A che ora arrivate?",
+      chi:"Chi organizza la cena", chiTesto:"Ti mandiamo il riepilogo su WhatsApp da confermare.",
       camera:"Camera o gruppo", nome:"Nome", cognome:"Cognome", tel:"Telefono", persone:"Quante persone", continua:"Continua",
       scegli:"Chi sta scegliendo?", persona:"Persona", nomeOpz:"Nome (facoltativo)", Antipasti:"Antipasto", Primi:"Primo", Secondi:"Secondo",
       senza:"Non lo prendo", nota:"Nota per la cucina (es. senza pecorino)", orario:"A che ora cenate?", allergie:"Allergie o intolleranze",
@@ -100,7 +106,9 @@ var T = {
       riep:"Riepilogo", modifica:"Modifica i dati", fattoTit:"Controlla WhatsApp", fattoTesto:"Ti abbiamo mandato il riepilogo: tocca «Confermo» e lo prepariamo per l'orario scelto.",
       fattoNoWa:"Abbiamo ricevuto la cena. Se serve, ti contattiamo noi.", nuova:"Fai un'altra scelta", salvaTit:"Tieni questa pagina a portata di mano",
       salvaIos:"Tocca Condividi e poi «Aggiungi alla schermata Home».", salvaAnd:"Apri il menu ⋮ del browser e tocca «Aggiungi a schermata Home».", nessunPiatto:"nessun piatto"},
-  en:{stasera:"Tonight's dinner", domani:"Tomorrow's dinner", chi:"Who is organising dinner", chiTesto:"We will send you the summary on WhatsApp to confirm.",
+  en:{stasera:"Tonight's dinner", domani:"Tomorrow's dinner", bizTit:"Business menu", inviaBiz:"Send pre-order", bizSotto:"starter, first course, main, water and coffee", aPersona:"per person",
+      chiBiz:"Who is booking", chiBizTesto:"We will send you the summary on WhatsApp to confirm. You pay at the restaurant.", totale:"Total", orarioBiz:"What time will you arrive?",
+      chi:"Who is organising dinner", chiTesto:"We will send you the summary on WhatsApp to confirm.",
       camera:"Room or group", nome:"First name", cognome:"Last name", tel:"Phone", persone:"How many people", continua:"Continue",
       scegli:"Who is choosing?", persona:"Guest", nomeOpz:"Name (optional)", Antipasti:"Starter", Primi:"First course", Secondi:"Main course",
       senza:"I'll skip it", nota:"Note for the kitchen (e.g. no cheese)", orario:"What time will you have dinner?", allergie:"Allergies or intolerances",
@@ -115,7 +123,8 @@ function t(k){ return T[L][k] || T.it[k] || k; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 
 var menu = null, piatti = { Antipasti: [], Primi: [], Secondi: [] };
-var org = {}; try { org = JSON.parse(localStorage.getItem("cena_org") || "{}"); } catch(e) {}
+var CHIAVE = BUSINESS ? "business_org" : "cena_org";
+var org = {}; try { org = JSON.parse(localStorage.getItem(CHIAVE) || "{}"); } catch(e) {}
 var fase = org.telefono ? "scelta" : "dati";
 var ospiti = [], attivo = 0, ora = "", allergie = "", invio = false, esito = null;
 var app = document.getElementById("app"), barra = document.getElementById("barra"), btn = document.getElementById("btn");
@@ -138,9 +147,14 @@ function disegna() {
   document.getElementById("lingua").textContent = L === "it" ? "English" : "Italiano";
   document.documentElement.lang = L;
   var g = giornoTesto();
-  document.getElementById("dove").textContent = [dove, org.camera ? (L === "it" ? "Camera " : "Room ") + org.camera : ""].filter(Boolean).join(" · ") || " ";
-  document.getElementById("titolo").textContent = g.domani ? t("domani") : t("stasera");
-  document.getElementById("quando").textContent = g.testo;
+  document.getElementById("dove").textContent = [dove, (!BUSINESS && org.camera) ? (L === "it" ? "Camera " : "Room ") + org.camera : ""].filter(Boolean).join(" · ") || " ";
+  if (BUSINESS) {
+    document.getElementById("titolo").textContent = t("bizTit");
+    document.getElementById("quando").textContent = (menu && menu.prezzo_fisso_persona ? euro(Number(menu.prezzo_fisso_persona)) + " " + t("aPersona") + " · " : "") + t("bizSotto") + " · " + g.testo;
+  } else {
+    document.getElementById("titolo").textContent = g.domani ? t("domani") : t("stasera");
+    document.getElementById("quando").textContent = g.testo;
+  }
   if (esito) return disegnaFatto();
   if (!menu) return;
   var vuoto = !piatti.Antipasti.length && !piatti.Primi.length && !piatti.Secondi.length;
@@ -150,9 +164,9 @@ function disegna() {
 }
 
 function disegnaDati() {
-  var h = '<h2>' + esc(t("chi")) + '</h2><p style="margin:0;color:var(--tenue)">' + esc(t("chiTesto")) + '</p>';
-  h += '<div class="riga2"><label class="campo">' + esc(t("camera")) + ' *<input id="f-camera" value="' + esc(org.camera || "") + '" placeholder="12"></label>' +
-       '<label class="campo">' + esc(t("persone")) + ' *<input id="f-persone" type="number" min="1" max="12" value="' + esc(org.persone || 2) + '"></label></div>';
+  var h = '<h2>' + esc(t(BUSINESS ? "chiBiz" : "chi")) + '</h2><p style="margin:0;color:var(--tenue)">' + esc(t(BUSINESS ? "chiBizTesto" : "chiTesto")) + '</p>';
+  h += '<div class="riga2">' + (BUSINESS ? '' : '<label class="campo">' + esc(t("camera")) + ' *<input id="f-camera" value="' + esc(org.camera || "") + '" placeholder="12"></label>') +
+       '<label class="campo">' + esc(t("persone")) + ' *<input id="f-persone" type="number" min="1" max="12" value="' + esc(org.persone || (BUSINESS ? 1 : 2)) + '"></label></div>';
   h += '<div class="riga2"><label class="campo">' + esc(t("nome")) + ' *<input id="f-nome" autocomplete="given-name" value="' + esc(org.nome || "") + '"></label>' +
        '<label class="campo">' + esc(t("cognome")) + ' *<input id="f-cognome" autocomplete="family-name" value="' + esc(org.cognome || "") + '"></label></div>';
   h += '<label class="campo">' + esc(t("tel")) + ' *<input id="f-tel" type="tel" autocomplete="tel" value="' + esc(org.telefono || "") + '" placeholder="333 1234567"></label>';
@@ -162,12 +176,12 @@ function disegnaDati() {
   btn.textContent = t("continua"); btn.disabled = false;
   btn.onclick = function() {
     var v = function(id){ return document.getElementById(id).value.trim(); };
-    var o = { camera: v("f-camera"), persone: parseInt(v("f-persone"), 10) || 0, nome: v("f-nome"), cognome: v("f-cognome"), telefono: v("f-tel") };
+    var o = { camera: BUSINESS ? "-" : v("f-camera"), persone: parseInt(v("f-persone"), 10) || 0, nome: v("f-nome"), cognome: v("f-cognome"), telefono: v("f-tel") };
     if (!o.camera || !o.nome || !o.cognome || o.telefono.replace(/\D/g, "").length < 8 || o.persone < 1) {
       document.getElementById("err").textContent = L === "it" ? "Compila tutti i campi, con un telefono valido." : "Please fill in all fields with a valid phone number.";
       return;
     }
-    org = o; try { localStorage.setItem("cena_org", JSON.stringify(org)); } catch(e) {}
+    org = o; try { localStorage.setItem(CHIAVE, JSON.stringify(org)); } catch(e) {}
     fase = "scelta"; preparaOspiti(); disegna(); window.scrollTo(0, 0);
   };
 }
@@ -177,7 +191,7 @@ function piattiDi(o) { return PORTATE.map(function(p){ return o.scelte[p[0]]; })
 function disegnaScelta() {
   preparaOspiti();
   var o = ospiti[attivo];
-  var h = '<p class="avviso">' + esc(org.nome + " " + org.cognome) + ' · ' + esc(org.telefono) + ' · ' + org.persone + ' ' + (L === "it" ? "persone" : "people") +
+  var h = '<p class="avviso">' + esc(org.nome + " " + org.cognome) + ' · ' + esc(org.telefono) + ' · ' + org.persone + ' ' + (L === "it" ? (org.persone == 1 ? "persona" : "persone") : (org.persone == 1 ? "person" : "people")) +
           ' <button class="mod" id="mod" type="button">' + esc(t("modifica")) + '</button></p>';
   if (ospiti.length > 1) {
     h += '<h2>' + esc(t("scegli")) + '</h2><div class="persone">';
@@ -198,17 +212,18 @@ function disegnaScelta() {
     if (o.scelte[p[0]]) h += '<input class="nota" data-nota="' + p[0] + '" maxlength="120" placeholder="' + esc(t("nota")) + '" value="' + esc(o.note[p[0]] || "") + '">';
     h += '<button class="nessuno" type="button" data-salta="' + p[0] + '">' + esc(t("senza")) + '</button></section>';
   });
-  h += '<h2>' + esc(t("orario")) + '</h2><div class="orari">';
+  h += '<h2>' + esc(t(BUSINESS ? "orarioBiz" : "orario")) + '</h2><div class="orari">';
   ORARI.forEach(function(x){ h += '<button class="orario" type="button" role="radio" data-ora="' + x + '" aria-checked="' + (ora === x) + '">' + x + '</button>'; });
   h += '</div><label class="campo">' + esc(t("allergie")) + '<input id="f-all" value="' + esc(allergie) + '" placeholder="' + esc(t("allergiePh")) + '"></label>';
   h += '<div class="riepilogo"><b>' + esc(t("riep")) + '</b>' + ospiti.map(function(x, i) {
     var ps = PORTATE.map(function(p){ var s = x.scelte[p[0]]; return s ? s.nome + (x.note[p[0]] ? ' (' + x.note[p[0]] + ')' : '') : null; }).filter(Boolean);
     return '<div class="r"><b>' + esc(x.nome || (t("persona") + " " + (i + 1))) + ':</b> ' + esc(ps.join(", ") || t("nessunPiatto")) + '</div>';
-  }).join("") + '</div>';
+  }).join("") + (BUSINESS && menu.prezzo_fisso_persona ? '<div class="r" style="display:flex;justify-content:space-between;font-weight:600;"><span>' + esc(t("totale")) + ' · ' +
+      euro(Number(menu.prezzo_fisso_persona)) + ' × ' + ospiti.length + '</span><span>' + euro(Number(menu.prezzo_fisso_persona) * ospiti.length) + '</span></div>' : '') + '</div>';
   h += '<p class="errore" id="err"></p>' + salvaHtml();
   app.innerHTML = h;
   barra.classList.remove("nascosto");
-  btn.textContent = invio ? t("inviando") : t("invia");
+  btn.textContent = invio ? t("inviando") : t(BUSINESS ? "inviaBiz" : "invia");
   btn.disabled = invio || !pronto();
   btn.onclick = invia;
   collega();
@@ -253,9 +268,9 @@ function invia() {
   });
   invio = true; disegna();
   fetch(ORDINI_API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({
-    azione: "crea_ordine", menu_id: menu.id, tipo_consegna: "mezza_pensione",
+    azione: "crea_ordine", menu_id: menu.id, tipo_consegna: BUSINESS ? "preordine" : "mezza_pensione",
     cliente_nome: org.nome + " " + org.cognome, cliente_telefono: org.telefono,
-    camera: (dove ? dove + " · " : "") + org.camera, persone: ospiti.length,
+    camera: BUSINESS ? "" : (dove ? dove + " · " : "") + org.camera, persone: ospiti.length,
     data_consegna: giornoTesto().iso, orario_consegna: ora, allergie_note: allergie, righe: righe
   }) })
     .then(function(r){ return r.json(); })
