@@ -1685,8 +1685,9 @@ export async function render(container) {
                   €${(Number(r.prezzo_snapshot||0)*Number(r.quantita||1)).toFixed(2).replace('.',',')}
                 </div>
                 <span style="color:${statoColori[r.stato]||'#64748b'};font-size:16px;" title="${r.stato}">${statoLabel[r.stato]||'⏳'}</span>
-                <button data-note-riga="${r.id}" title="Modifica piatto" style="background:#e0f2fe;border:1px solid #bae6fd;color:#0369a1;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;font-weight:600;">✏️</button>
+                <button data-note-riga="${r.id}" title="Modifica piatto" style="background:#e0f2fe;border:1px solid #bae6fd;color:#0369a1;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:13px;font-weight:600;">✏️</button>
                 <button data-annulla="${r.id}" style="background:#fee2e2;border:none;border-radius:6px;padding:4px 6px;cursor:pointer;font-size:11px;color:#dc2626;">✕</button>
+                </div>
               </div>
             `).join('')}
           </div>
