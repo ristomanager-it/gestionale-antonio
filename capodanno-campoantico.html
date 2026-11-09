@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="it">
 <head>
+<script>/* codice visitatore fisso (60 giorni): unisce le visite della stessa persona da Google, Meta e link diretti */(function(){try{var v=localStorage.getItem("rf_vis"),t=Number(localStorage.getItem("rf_vis_t")||0);if(!v||Date.now()-t>5184000000){v=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("rf_vis",v);localStorage.setItem("rf_vis_t",String(Date.now()));}window.__rfVis=v;var f=window.fetch;window.fetch=function(u,o){try{if(typeof u==="string"&&u.indexOf("/rest/v1/page_analytics")>0&&o&&typeof o.body==="string"){var b=JSON.parse(o.body);if(!b.visitatore){b.visitatore=v;o.body=JSON.stringify(b);}}}catch(e){}return f.apply(this,arguments);};}catch(e){}})();</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cenone e Veglione di San Silvestro a Campo Antico</title>
