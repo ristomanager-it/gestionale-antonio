@@ -580,7 +580,7 @@ export async function render(container) {
       if (t === "view" && p.startsWith("feste-")) return "🎉 Landing " + p.slice(6).replace(/-/g, " ");
       if (t === "view" && p.startsWith("preventivo-online-")) return "🧾 Apre il preventivo";
       if (t === "view" && p.startsWith("visita-")) return "📅 Apre le visite";
-      if (t === "step" && p.startsWith("preventivo-online-")) return el === "inizio" ? "🧾 Inizia (invitati e contatti)" : el === "riepilogo" ? "🧾 Vede il totale" : "🧾 Sceglie il menu";
+      if (t === "step" && p.startsWith("preventivo-online-")) return el === "inizio" ? "🧾 Inizia (invitati e contatti)" : el === "riepilogo" ? "🧾 Vede il totale" : String(el).indexOf("campo_") === 0 ? "🧾 Compila i dati" : "🧾 Sceglie il menu";
       if (t === "step" && p.startsWith("visita-")) return el === "giorno" ? "📅 Sceglie il giorno" : el === "orario" ? "📅 Sceglie l'orario" : null;
       if (t === "submit" && el === "preventivo_creato") return "✅ Preventivo creato";
       if (t === "submit" && el === "visita_prenotata") return "✅ Visita prenotata";
