@@ -185,6 +185,9 @@ export async function render(container) {
 
           <div id="comanda-grid" style="flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 340px;">
             <style>
+              /* categorie sempre in footer, su ogni schermo: si cambia categoria senza cercarle */
+              #cat-tabs { position:fixed; left:0; right:0; bottom:0; z-index:9001; border-top:1px solid #e5e7eb; padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))!important; box-shadow:0 -4px 16px rgba(2,60,89,.08); }
+              #view-comanda { padding-bottom:calc(56px + env(safe-area-inset-bottom,0px)); box-sizing:border-box; }
               @media(pointer:coarse){
                 /* tablet: la shell è alta 100vh sotto l'header dell'app e la riga finiva fuori schermo → fissa al bordo */
                 #cat-tabs { position:fixed; left:0; right:0; bottom:0; z-index:9001; border-top:1px solid #e5e7eb; padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))!important; box-shadow:0 -4px 16px rgba(2,60,89,.08); }
