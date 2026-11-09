@@ -3374,6 +3374,18 @@ export async function render(container) {
     else if (viewMode === 'tavoli') { loadComande().then(renderMapTavoli); }
   }, 30000);
 
+  // ── Altezza: la shell parte sotto l'header dell'app, quindi 100vh la faceva uscire dallo schermo
+  //    (totale e categorie finivano sotto). La misuro sullo spazio visibile reale.
+  const shell = container.querySelector('.comande-shell');
+  const adattaAltezza = () => {
+    if (!shell || !shell.isConnected) { window.removeEventListener('resize', adattaAltezza); return; }
+    const top = Math.max(0, shell.getBoundingClientRect().top + window.scrollY);
+    shell.style.height = Math.max(320, window.innerHeight - top) + 'px';
+  };
+  adattaAltezza();
+  setTimeout(adattaAltezza, 300);
+  window.addEventListener('resize', adattaAltezza);
+
   // ── Start: con la mail personale si entra diretto, il PIN serve solo sui telefoni condivisi ──
   switchView('pin');
   await loadAll();
