@@ -1106,6 +1106,7 @@
             (t ? '<div style="font-size:12px;color:#7c2d12;background:#fff7ed;border-radius:6px;padding:2px 6px;display:inline-block;margin:3px 0;">' + esc(t) + '</div>' : '') +
             '<div class="cart-item-prezzo">' + p.toFixed(2).replace(".", ",") + ' € × ' + l.qta + ' = ' + (p * l.qta).toFixed(2).replace(".", ",") + ' €</div>' +
             (haOpzioni(l.voce_id) ? '<button data-mod="' + l.k + '" style="background:none;border:none;padding:0;margin-top:4px;font-size:12px;font-weight:700;color:var(--brand);">Modifica le aggiunte</button>' : '') +
+            '<input data-nota="' + l.k + '" maxlength="140" value="' + esc(l.note || "") + '" placeholder="Nota per la cucina (es. senza pecorino)" style="display:block;width:100%;margin-top:6px;border:1px solid #e2e8f0;border-radius:8px;padding:7px 9px;font-size:13px;">' +
           '</div>' +
           '<div class="cart-qty-ctrl" style="margin-top:0;">' +
             '<button class="cart-qty-btn" data-cart-dec="' + l.k + '">−</button>' +
@@ -1143,6 +1144,12 @@
       document.querySelectorAll("#cart-content [data-cart-del]").forEach(function(b) {
         b.onclick = function() { togliLinea(b.dataset.cartDel); apriCarrello(); };
       });
+      document.querySelectorAll("#cart-content [data-nota]").forEach(function(inp) {
+        inp.oninput = function() {
+          var l = linee.filter(function(x){ return x.k === inp.dataset.nota; })[0];
+          if (l) l.note = inp.value.slice(0, 140);
+        };
+      });
       document.querySelectorAll("#cart-content [data-mod]").forEach(function(b) {
         b.onclick = function() {
           var l = linee.filter(function(x){ return x.k === b.dataset.mod; })[0];
@@ -1168,6 +1175,10 @@
       var puoiConsegna = !!menu.consegna_attiva;
       var puoiAsporto = !!menu.ritiro_attivo;
       var puoiTavolo = menu.tavolo_attivo !== false;
+      var puoiPre = !!menu.preordine_attivo;
+      var puoiMP = !!menu.mezza_pensione_attiva;
+      if (!puoiPre && tipoOrdine === "preordine") tipoOrdine = puoiTavolo ? "tavolo" : "asporto";
+      if (!puoiMP && tipoOrdine === "mezza_pensione") tipoOrdine = puoiTavolo ? "tavolo" : "asporto";
       // un menu da solo asporto e consegne non deve mostrare "Tavolo"
       if (!puoiTavolo && tipoOrdine === "tavolo") tipoOrdine = puoiConsegna ? "domicilio" : "asporto";
       var mem = ricordato();
@@ -1178,25 +1189,37 @@
       if (!puoiAsporto && tipoOrdine === "asporto") tipoOrdine = puoiTavolo ? "tavolo" : "domicilio";
 
       var modi = "";
-      if ((puoiConsegna || puoiAsporto) && [puoiTavolo, puoiAsporto, puoiConsegna].filter(Boolean).length > 1) {
+      if ([puoiTavolo, puoiAsporto, puoiConsegna, puoiPre, puoiMP].filter(Boolean).length > 1) {
         function bottoneModo(v, ic, testo) {
           var on = tipoOrdine === v;
           return '<button data-modo="' + v + '" style="flex:1;border:2px solid ' + (on ? "var(--brand)" : "#e2e8f0") +
             ';background:' + (on ? "var(--brand-light)" : "#fff") + ';color:' + (on ? "var(--brand)" : "#475569") +
-            ';border-radius:14px;padding:10px 6px;font-size:12.5px;font-weight:700;">' +
+            ';border-radius:14px;padding:10px 6px;font-size:12.5px;font-weight:700;min-width:28%;">' +
             '<span style="display:block;font-size:20px;">' + ic + '</span>' + testo + '</button>';
         }
-        modi = '<div style="display:flex;gap:8px;margin:6px 0 16px;">' +
+        modi = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px;">' +
           (puoiTavolo ? bottoneModo("tavolo", "🍽", esc(luogoLabel)) : "") +
+          (puoiPre ? bottoneModo("preordine", "⏱", "Ordino e arrivo") : "") +
+          (puoiMP ? bottoneModo("mezza_pensione", "🛏", "Ospite in camera") : "") +
           (puoiAsporto ? bottoneModo("asporto", "🛍", "Asporto") : "") +
           (puoiConsegna ? bottoneModo("domicilio", "🛵", "A casa") : "") +
           '</div>';
       }
 
+      var anticipato = tipoOrdine === "preordine" || tipoOrdine === "mezza_pensione";
       var campiLuogo = "";
       if (tipoOrdine === "tavolo") {
         campiLuogo = '<div class="checkout-field"><label>' + esc(luogoLabel) + ' *</label>' +
           '<input id="chk-luogo" class="raccolta-input" placeholder="Es. 12"></div>';
+      } else if (tipoOrdine === "mezza_pensione" || tipoOrdine === "preordine") {
+        campiLuogo = '<div style="display:flex;gap:8px;">' +
+          (tipoOrdine === "mezza_pensione" ? '<div class="checkout-field" style="flex:1;"><label>Numero della camera *</label><input id="chk-camera" class="raccolta-input" placeholder="Es. 12"></div>' : '') +
+          '<div class="checkout-field" style="flex:1;"><label>Quante persone *</label><input id="chk-persone" class="raccolta-input" type="number" min="1" max="30" value="' + (tipoOrdine === "mezza_pensione" ? 2 : 1) + '"></div>' +
+          '</div>' +
+          '<div style="font-size:12.5px;color:#475569;background:#f8fafc;border-radius:10px;padding:9px 11px;margin-bottom:12px;">' +
+          (tipoOrdine === "mezza_pensione" ? 'Ti mandiamo il riepilogo su WhatsApp: tocca «Confermo» e lo prepariamo per l\'orario che scegli.' :
+           'Scegli i piatti adesso e arrivi all\'orario che indichi: ti mandiamo il riepilogo su WhatsApp da confermare. Paghi al locale.') +
+          '</div>';
       } else if (tipoOrdine === "domicilio") {
         campiLuogo =
           '<button id="chk-gps" style="width:100%;border:1.5px solid var(--brand);background:#fff;color:var(--brand);border-radius:11px;padding:11px;font-size:14px;font-weight:700;margin-bottom:10px;">📍 Usa la mia posizione</button>' +
@@ -1227,7 +1250,7 @@
         modi +
         '<div class="checkout-field"><label>Nome e cognome *</label><input id="chk-nome" class="raccolta-input" placeholder="Mario Rossi"></div>' +
         '<div class="checkout-field"><label>Telefono *</label><input id="chk-tel" class="raccolta-input" type="tel" placeholder="333 1234567"></div>' +
-        '<div class="checkout-field"><label>Email *</label><input id="chk-email" class="raccolta-input" type="email" placeholder="mario@email.it"></div>' +
+        '<div class="checkout-field"><label>Email' + (anticipato ? '' : ' *') + '</label><input id="chk-email" class="raccolta-input" type="email" placeholder="mario@email.it"></div>' +
         campiLuogo +
         (chiediOrario ? '<div class="checkout-field"><label>Quando lo vuoi</label><div id="chk-slot"></div>' +
           '<input id="chk-orario" class="raccolta-input" placeholder="Es. 20:30 oppure appena pronto"></div>' : '') +
@@ -1235,8 +1258,12 @@
         (tipoOrdine === "domicilio" ? '<div class="checkout-field"><label>Mancia per chi consegna</label><div id="chk-mancia"></div></div>' : '') +
         '<div id="chk-conto" style="background:#f8fafc;border-radius:12px;padding:12px 14px;font-size:14px;margin:12px 0;"></div>' +
         '<div id="chk-errore" style="color:#dc2626;font-size:13px;margin-bottom:10px;"></div>' +
-        '<button class="raccolta-btn" id="btn-paga">💳 Paga con carta</button>' +
-        '<button class="raccolta-btn" id="btn-consegna" style="background:#fff;color:var(--brand);border:1.5px solid #cbd5e1;margin-top:8px;">💶 Pago alla consegna</button>';
+        (anticipato
+          ? '<button class="raccolta-btn" id="btn-consegna">✅ Invia l\'ordine · paghi al locale</button>'
+          : '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px;">Come paghi?</div>' +
+            '<button class="raccolta-btn" id="btn-paga">💳 Paga con carta</button>' +
+            '<button class="raccolta-btn" id="btn-consegna" style="background:#fff;color:var(--brand);border:1.5px solid #cbd5e1;margin-top:8px;">💶 ' +
+              (tipoOrdine === "asporto" ? 'Pago in contanti al ritiro' : tipoOrdine === "domicilio" ? 'Pago in contanti alla consegna' : 'Pago al tavolo') + '</button>');
 
       document.getElementById("chk-indietro").onclick = function() {
         document.getElementById("checkout-overlay").style.display = "none";
@@ -1248,7 +1275,7 @@
       document.querySelectorAll("#checkout-content [data-modo]").forEach(function(b) {
         b.onclick = function() { tipoOrdine = b.dataset.modo; consegna = { costo: 0, zona: null, errore: null }; apriCheckout(); };
       });
-      document.getElementById("btn-paga").onclick = function() { inviaOrdine("carta"); };
+      if (document.getElementById("btn-paga")) document.getElementById("btn-paga").onclick = function() { inviaOrdine("carta"); };
       document.getElementById("btn-consegna").onclick = function() { inviaOrdine("alla_consegna"); };
       if (tipoOrdine === "domicilio") preparaIndirizzo();
       riempiRicordato();
@@ -1545,19 +1572,21 @@
       var erroreBox = document.getElementById("chk-errore");
       erroreBox.textContent = "";
 
-      if (!nome || !tel || !email) { erroreBox.textContent = "Compila nome, telefono ed email."; return; }
+      var anticipato = tipoOrdine === "preordine" || tipoOrdine === "mezza_pensione";
+      if (!nome || !tel || (!anticipato && !email)) { erroreBox.textContent = anticipato ? "Compila nome e telefono." : "Compila nome, telefono ed email."; return; }
+      if (anticipato && !slotScelto && !orario) { erroreBox.textContent = "Scrivi a che ora arrivi."; return; }
       if (slotDisponibili.length && !slotScelto) { erroreBox.textContent = "Scegli a che ora lo vuoi."; return; }
 
       var dati = {
         azione: "crea_ordine", menu_id: menu.id, tipo_consegna: tipoOrdine,
         cliente_nome: nome, cliente_telefono: tel, cliente_email: email,
         orario_consegna: slotScelto || orario, allergie_note: allergie,
-        data_consegna: slotScelto ? dataScelta : null, slot_inizio: slotScelto || null,
-        pagamento: modo === "alla_consegna" ? "alla_consegna" : "carta",
+        data_consegna: slotScelto ? dataScelta : (anticipato ? (dataScelta || new Date().toISOString().slice(0, 10)) : null), slot_inizio: slotScelto || null,
+        pagamento: modo === "alla_consegna" ? "contanti" : "carta",
         mancia: tipoOrdine === "domicilio" ? mancia : 0,
         righe: linee.map(function(l) {
           return { menu_voce_id: l.voce_id, quantita: l.qta,
-                   opzioni: (l.opz || []).map(function(o){ return o.id; }) };
+                   opzioni: (l.opz || []).map(function(o){ return o.id; }), note: l.note || "" };
         }),
         success_url: window.location.href.split("?")[0] + "?slug=" + slug + "&ordine=ok",
         cancel_url: window.location.href
@@ -1569,6 +1598,12 @@
         if (!luogo) { erroreBox.textContent = "Manca il numero del " + (menu.luogo_consegna_label || "tavolo").toLowerCase() + "."; return; }
         dati.luogo_consegna_label = menu.luogo_consegna_label || "Tavolo";
         dati.luogo_consegna_valore = luogo;
+      } else if (anticipato) {
+        dati.persone = parseInt((document.getElementById("chk-persone") || {}).value, 10) || 1;
+        if (tipoOrdine === "mezza_pensione") {
+          dati.camera = (document.getElementById("chk-camera") || {}).value.trim();
+          if (!dati.camera) { erroreBox.textContent = "Scrivi il numero della camera."; return; }
+        }
       } else if (tipoOrdine === "domicilio") {
         dati.indirizzo = document.getElementById("chk-via").value.trim();
         dati.civico = document.getElementById("chk-civico").value.trim();
@@ -1600,6 +1635,17 @@
         try { out = JSON.parse(testo); } catch (e) { throw new Error("Risposta non leggibile dal server"); }
         if (!out.success) throw new Error(out.error || "Errore nella creazione dell'ordine");
         if (out.checkout_url) { window.location.href = out.checkout_url; return; }
+        if (out.conferma === "whatsapp") {
+          linee = []; ricalcolaContatori(); aggiornaCarrelloUI();
+          document.getElementById("checkout-content").innerHTML =
+            '<div style="text-align:center;padding:24px 6px;">' +
+              '<div style="font-size:48px;">' + (out.whatsapp_inviato ? '📲' : '✅') + '</div>' +
+              '<div class="raccolta-title" style="margin:10px 0 8px;">' + (out.whatsapp_inviato ? 'Controlla WhatsApp' : 'Ordine ricevuto') + '</div>' +
+              '<div style="font-size:15px;color:#334155;line-height:1.5;">' + esc(out.messaggio || "") + '</div>' +
+              '<a class="raccolta-btn" style="display:block;text-decoration:none;margin-top:18px;" href="/ordine.html?t=' + encodeURIComponent(out.token) + '">Vedi il tuo ordine</a>' +
+            '</div>';
+          return;
+        }
         // pagamento alla consegna: si va alla pagina di stato dell'ordine
         window.location.href = "/ordine.html?t=" + encodeURIComponent(out.token);
       } catch (err) {
