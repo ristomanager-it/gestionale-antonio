@@ -126,6 +126,8 @@ export async function render(container) {
       return;
     }
     dati = r.data;
+    contrib = {};
+    ((k && k.data) || []).forEach((c) => { contrib[c.campagna] = c; });
     // campagne senza utm e senza evento: solo quelle che il calcolo non ha potuto attribuire
     const idsDaCollegare = new Set();
     (dati.eventi || []).filter((e) => e.evento === 'Da collegare').forEach((e) => (e.righe || []).forEach((x) => (x.ads || []).forEach((a) => idsDaCollegare.add(a.piattaforma + '|' + a.campaign_id))));
