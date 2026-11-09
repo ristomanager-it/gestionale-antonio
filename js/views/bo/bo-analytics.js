@@ -681,7 +681,7 @@ export async function render(container) {
         <div>${slotHtml}</div>
         <div>${deviceHtml}</div>
       </div>` +
-      utmHtml + percorsiHtml + erroriHtml + pagHtml + benchHtml +
+      utmHtml + percorsiHtml + pagHtml + benchHtml +
       `<div style="text-align:center;padding:20px;font-size:11px;color:#94a3b8;">
         Dati aggiornati in tempo reale · ${rows.length} eventi tracciati
       </div>`;
