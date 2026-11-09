@@ -115,8 +115,9 @@ export async function render(container) {
   async function carica() {
     const iv = periodo();
     scheletro('<div class="rc-card" style="color:#64748b;">⏳ Carico…</div>');
-    const [r, s] = await Promise.all([
+    const [r, s, k] = await Promise.all([
       supa().rpc('risultati_campagne', { p_azienda: aziendaId, p_da: iv.da, p_a: iv.a }),
+      supa().rpc('campagne_contributo', { p_azienda: aziendaId, p_da: iv.da, p_a: iv.a }),
       supa().from('v_ads_spesa').select('piattaforma, campaign_id, nome_campagna, spesa').eq('azienda_id', aziendaId)
         .is('campagna', null).is('evento', null).gte('data', iv.da).lte('data', iv.a),
     ]);
