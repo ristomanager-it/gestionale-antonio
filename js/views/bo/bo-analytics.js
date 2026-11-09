@@ -675,7 +675,8 @@ export async function render(container) {
 
     // ── Assembla tutto ──
     document.getElementById("an-body").innerHTML =
-      kpiHtml + chartHtml + canaliHtml + funnelHtml + abbandonoHtml +
+      // funnel del modulo tavolo, abbandoni ed errori di validazione tolti: con tanti moduli diversi davano numeri fuorvianti
+      kpiHtml + chartHtml + canaliHtml +
       `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>${slotHtml}</div>
         <div>${deviceHtml}</div>
