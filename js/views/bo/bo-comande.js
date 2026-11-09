@@ -185,7 +185,16 @@ export async function render(container) {
 
           <div id="comanda-grid" style="flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 340px;">
             <style>
+              @media(pointer:coarse){
+                #cat-tabs { scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+                #cat-tabs::-webkit-scrollbar { display:none; }
+                #cat-tabs button { padding:12px 18px!important; font-size:15px!important; font-weight:700; }
+              }
               @media(max-width:700px),(max-height:520px){
+                #cat-tabs { position:fixed; left:0; right:0; bottom:0; z-index:9001; border-top:1px solid #e5e7eb; padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px))!important; box-shadow:0 -4px 16px rgba(2,60,89,.08); -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+                #cat-tabs::-webkit-scrollbar { display:none; }
+                #cat-tabs button { padding:10px 16px!important; font-size:14px!important; font-weight:700; }
+                #view-comanda { padding-bottom:calc(58px + env(safe-area-inset-bottom,0px)); box-sizing:border-box; }
                 #griglia-prodotti { grid-template-columns:repeat(auto-fill,minmax(110px,1fr))!important; gap:6px!important; padding:8px!important; }
                 #griglia-prodotti > button { padding:8px 6px!important; gap:3px!important; min-height:64px; justify-content:center; }
                 #griglia-prodotti .cmd-foto { width:40px!important; height:40px!important; }
