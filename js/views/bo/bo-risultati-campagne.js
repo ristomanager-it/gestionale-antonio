@@ -110,6 +110,8 @@ export async function render(container) {
     carica();
   }
 
+  // contributo: prenotazioni in cui la campagna e' stata vista prima, anche se poi ha chiuso un'altra (es. Google -> Meta)
+  let contrib = {};
   async function carica() {
     const iv = periodo();
     scheletro('<div class="rc-card" style="color:#64748b;">⏳ Carico…</div>');
