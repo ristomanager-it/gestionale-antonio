@@ -7,7 +7,7 @@ export async function render(container) {
   if (!aziendaId) { container.innerHTML = '<div style="padding:40px;text-align:center;color:#64748b;">Nessuna azienda selezionata.</div>'; return; }
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const eur = (n) => Number(n || 0).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-  const FONTI = { prenotazione: 'Prenotazione non pagata', cena_aziendale: 'Cena aziendale', matrimonio: 'Matrimonio', viaggio: 'Viaggio' };
+  const FONTI = { preventivo: 'Preventivo online', prenotazione: 'Prenotazione non pagata', cena_aziendale: 'Cena aziendale', matrimonio: 'Richiesta evento', viaggio: 'Viaggio' };
   let lista = [], filtro = 'tutti';
 
   const quando = (iso) => {
