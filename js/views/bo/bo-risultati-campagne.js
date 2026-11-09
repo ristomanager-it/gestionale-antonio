@@ -185,7 +185,13 @@ export async function render(container) {
           return '<div class="rc-r"><div class="rc-r-top"><span class="rc-r-nome">' + esc(nome) + '</span>' + azione(x.spesa, x.previsto) + '</div>'
             + '<div class="rc-r-sub">' + esc(x.evento) + ' · ' + dove(x) + (nomiAds.length && x.link && x.link !== 'annunci senza link tracciato' ? ' · <span style="opacity:.6">' + esc(x.link) + '</span>' : '') + '</div>'
             + '<div class="rc-r-num"><span>Spesa <b>' + eur(x.spesa) + '</b></span><span>Pren. <b>' + n0(x.prenotazioni) + '</b></span>'
-            + '<span>Previsto <b>' + eur(x.previsto) + '</b></span><span style="color:' + colP(p) + ';font-weight:800;">' + fmtP(p) + '</span></div></div>';
+            + '<span>Previsto <b>' + eur(x.previsto) + '</b></span><span style="color:' + colP(p) + ';font-weight:800;">' + fmtP(p) + '</span></div>'
+            + (function () {
+                const c = contrib[x.link];
+                const extra = c ? Number(c.prenotazioni_contribuite || 0) - Number(c.prenotazioni_chiuse || 0) : 0;
+                return extra > 0 ? '<div class="rc-r-sub" style="color:#0E5A7A;margin-top:4px;">🤝 Ha contribuito anche a <b>' + extra + '</b> ' + (extra === 1 ? 'prenotazione chiusa' : 'prenotazioni chiuse') + ' da altre campagne (la persona l’aveva vista prima)</div>' : '';
+              })()
+            + '</div>';
         }).join('')
         + '<div class="rc-tot"><div class="rc-r-top"><span class="rc-r-nome">Totale tutte le campagne</span>' + azione(t.spesa, t.previsto) + '</div>'
         + '<div class="rc-r-num"><span>Spesa <b>' + eur(t.spesa) + '</b></span><span>Pren. <b>' + n0(t.prenotazioni) + '</b></span>'
