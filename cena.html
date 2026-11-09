@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La cena di stasera</title>
+<meta name="theme-color" content="#24392E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cena">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --verde:#24392E; --verde-2:#33503F; --carta:#FBFAF6; --linea:#E3E0D6;
+  --testo:#1F2A24; --tenue:#66706A; --arancio:#D9772B; --ok:#2F6B47; --errore:#A93A2B;
+  --sx:env(safe-area-inset-left,0px); --dx:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--carta);color:var(--testo);font:16px/1.5 Jost,system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding:env(safe-area-inset-top,0px) var(--dx) calc(env(safe-area-inset-bottom,0px) + 96px) var(--sx)}
+button,input{font:inherit;color:inherit}
+.testa{background:var(--verde);color:#F3EFE4;padding:28px 22px 26px}
+.testa .dove{font-size:15px;opacity:.85}
+.testa h1{font:600 40px/1.05 Cormorant,Georgia,serif;margin:6px 0 4px;letter-spacing:.2px}
+.testa .quando{font-size:16px;opacity:.9}
+.lingua{float:right;background:none;border:1px solid rgba(243,239,228,.4);border-radius:20px;padding:4px 12px;font-size:14px;color:#F3EFE4}
+main{max-width:560px;margin:0 auto;padding:0 18px}
+.avviso{margin:18px 0 0;padding:14px 16px;border-radius:12px;background:#fff;border:1px solid var(--linea);font-size:15px}
+.avviso.forte{border-color:var(--arancio);background:#FFF6EE}
+h2{font:600 26px/1.15 Cormorant,Georgia,serif;margin:28px 0 10px}
+.persone{display:flex;gap:8px;flex-wrap:wrap}
+.persona{border:1.5px solid var(--linea);background:#fff;border-radius:24px;padding:9px 16px;font-size:16px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.persona[aria-pressed="true"]{border-color:var(--verde);background:var(--verde);color:#fff}
+.persona .spunta{width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.portata{margin-top:22px}
+.portata h3{font:600 21px/1.2 Cormorant,Georgia,serif;margin:0 0 8px;color:var(--verde)}
+.piatto{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:1.5px solid var(--linea);border-radius:12px;padding:14px 14px;margin-bottom:8px;cursor:pointer;font-size:16px}
+.piatto .pallino{flex:0 0 22px;height:22px;border-radius:50%;border:2px solid #B9B5A8}
+.piatto[aria-checked="true"]{border-color:var(--verde);box-shadow:inset 0 0 0 1px var(--verde)}
+.piatto[aria-checked="true"] .pallino{border-color:var(--verde);background:radial-gradient(var(--verde) 45%,transparent 50%)}
+.nessuno{font-size:14px;color:var(--tenue);background:none;border:0;padding:2px 0;cursor:pointer;text-decoration:underline}
+.orari{display:flex;gap:8px;flex-wrap:wrap}
+.orario{border:1.5px solid var(--linea);background:#fff;border-radius:10px;padding:10px 14px;font-size:16px;cursor:pointer;min-width:72px}
+.orario[aria-checked="true"]{border-color:var(--verde);background:var(--verde);color:#fff}
+label.campo{display:block;margin-top:22px;font-size:15px;color:var(--tenue)}
+label.campo input{display:block;width:100%;margin-top:6px;border:1.5px solid var(--linea);border-radius:10px;padding:12px;background:#fff;font-size:16px;color:var(--testo)}
+.barra{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px))}
+.barra .dentro{max-width:560px;margin:0 auto}
+.conferma{width:100%;border:0;border-radius:12px;background:var(--arancio);color:#fff;font-weight:600;font-size:17px;padding:15px;cursor:pointer}
+.conferma:disabled{background:#C9C4B6;cursor:default}
+.ricevuta{margin-top:12px;background:#fff;border:1px solid var(--linea);border-left:4px solid var(--ok);border-radius:10px;padding:12px 14px;font-size:15px}
+.ricevuta b{font-weight:600}
+.ricevuta .ora{color:var(--tenue);font-size:13px;margin-top:4px}
+.errore{color:var(--errore);font-size:15px;margin:10px 0 0}
+.nomi input{display:block;width:100%;margin:8px 0;border:1.5px solid var(--linea);border-radius:10px;padding:12px;font-size:16px;background:#fff}
+.salva{margin:26px 0 8px;padding:14px 16px;border-radius:12px;border:1px dashed #B9B5A8;font-size:15px;color:var(--tenue)}
+.salva button{margin-top:8px;border:1.5px solid var(--verde);background:#fff;color:var(--verde);border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer}
+:focus-visible{outline:3px solid var(--arancio);outline-offset:2px}
+.nascosto{display:none !important}
+@media (prefers-reduced-motion:no-preference){.ricevuta.nuova{animation:entra .35s ease-out}}
+@keyframes entra{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+<header class="testa">
+  <button class="lingua" id="lingua" type="button">English</button>
+  <div class="dove" id="dove">&nbsp;</div>
+  <h1 id="titolo">La cena di stasera</h1>
+  <div class="quando" id="quando">&nbsp;</div>
+</header>
+<main id="app"><p class="avviso" id="carico">Un momento…</p></main>
+<div class="barra nascosto" id="barra"><div class="dentro">
+  <button class="conferma" id="btnConferma" type="button" disabled>Conferma la mia cena</button>
+</div></div>
+
+<script>
+(function(){
+var API = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/mezza-pensione-cena";
+var T = {
+  it:{titolo:"La cena di stasera", titoloDomani:"La cena di domani", camera:"Camera", chi:"Chi sta scegliendo?", nomiTit:"Chi dorme in camera?", nomiTesto:"Scrivi il nome di ognuno: ogni persona sceglie la sua cena e riceve la conferma col suo nome.", nomeN:"Nome e cognome", salvaNomi:"Continua",
+      antipasti:"Antipasto", primi:"Primo", secondi:"Secondo", senza:"Non lo prendo", orario:"A che ora ceni?", allergie:"Allergie o intolleranze", allergiePh:"Per esempio: noci, lattosio", conferma:"Conferma la mia cena", aggiorna:"Aggiorna la mia cena",
+      entro:"Puoi scegliere o cambiare fino alle ", chiuso:"Le scelte per questa cena sono chiuse. Per cambiare chiedi in sala.", menuNo:"Il menu di questa sera non è ancora pubblicato. Torna più tardi: lo trovi qui dalle 18 del giorno prima.", finito:"Non ci sono altre cene da scegliere in questo soggiorno. Grazie e buon viaggio.",
+      fatto:"Confermato", ricevuta:"La cena di ", alle:" alle ", sceltoIl:"Scelto il ", versione:" · modifica n. ", unoAlmeno:"Scegli almeno un piatto e l'orario.",
+      salvaTit:"Tieni questa pagina a portata di mano", salvaIos:"Tocca Condividi e poi «Aggiungi alla schermata Home».", salvaAnd:"Apri il menu ⋮ del browser e tocca «Aggiungi a schermata Home».", salvaBtn:"Aggiungi alla schermata Home", stasera:"stasera", domani:"domani", ospiteDi:"Ospite di "},
+  en:{titolo:"Tonight's dinner", titoloDomani:"Tomorrow's dinner", camera:"Room", chi:"Who is choosing?", nomiTit:"Who is staying in the room?", nomiTesto:"Write each guest's name: everyone chooses their own dinner and gets a confirmation with their name.", nomeN:"Full name", salvaNomi:"Continue",
+      antipasti:"Starter", primi:"First course", secondi:"Main course", senza:"I'll skip it", orario:"What time will you have dinner?", allergie:"Allergies or intolerances", allergiePh:"For example: nuts, lactose", conferma:"Confirm my dinner", aggiorna:"Update my dinner",
+      entro:"You can choose or change until ", chiuso:"Choices for this dinner are closed. To change, please ask our staff.", menuNo:"Tonight's menu is not published yet. Please come back later: it is here from 6 pm the day before.", finito:"There are no more dinners to choose during this stay. Thank you and safe travels.",
+      fatto:"Confirmed", ricevuta:"Dinner for ", alle:" at ", sceltoIl:"Chosen on ", versione:" · change no. ", unoAlmeno:"Choose at least one dish and the time.",
+      salvaTit:"Keep this page at hand", salvaIos:"Tap Share, then “Add to Home Screen”.", salvaAnd:"Open the browser menu ⋮ and tap “Add to Home screen”.", salvaBtn:"Add to Home Screen", stasera:"tonight", domani:"tomorrow", ospiteDi:"Guest of "}
+};
+var L = (localStorage.getItem("cena_lingua") || ((navigator.language||"it").slice(0,2)==="it" ? "it" : "en"));
+var q = new URLSearchParams(location.search);
+var token = q.get("t") || "";
+try { if (token) localStorage.setItem("cena_token", token); else token = localStorage.getItem("cena_token") || ""; } catch(e) {}
+var stato = null, scelta = {}, attivo = null, invioInCorso = false, promptInstalla = null;
+var app = document.getElementById("app"), barra = document.getElementById("barra"), btn = document.getElementById("btnConferma");
+
+function t(k){ return T[L][k] || T.it[k] || k; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function dataLunga(iso){ var d=new Date(iso+"T12:00:00"); return d.toLocaleDateString(L==="it"?"it-IT":"en-GB",{weekday:"long",day:"numeric",month:"long"}); }
+function oraBreve(ts){ var d=new Date(ts); return d.toLocaleString(L==="it"?"it-IT":"en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}); }
+
+function chiama(corpo){
+  corpo.token = token;
+  return fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(corpo)})
+    .then(function(r){ return r.json().then(function(j){ if(!r.ok) throw new Error(j.errore||"Errore"); return j; }); });
+}
+
+function sceltaDi(id){ return (stato.scelte||[]).filter(function(s){return s.ospite_id===id;})[0]; }
+
+function disegna(){
+  document.getElementById("lingua").textContent = L==="it" ? "English" : "Italiano";
+  document.documentElement.lang = L;
+  if(!stato){ return; }
+  document.getElementById("dove").textContent = stato.struttura + " · " + t("camera") + " " + stato.camera;
+  var domani = stato.giorno && stato.giorno !== stato.oggi;
+  document.getElementById("titolo").textContent = domani ? t("titoloDomani") : t("titolo");
+  document.getElementById("quando").textContent = stato.giorno ? dataLunga(stato.giorno) : "";
+  var h = "";
+
+  if(!stato.giorno){ app.innerHTML = '<p class="avviso">'+esc(t("finito"))+'</p>'; barra.classList.add("nascosto"); return; }
+
+  // Nomi della camera, la prima volta
+  if(!stato.ospiti.length){
+    h += '<h2>'+esc(t("nomiTit"))+'</h2><p>'+esc(t("nomiTesto"))+'</p><div class="nomi">';
+    for(var i=0;i<stato.persone;i++) h += '<input aria-label="'+esc(t("nomeN"))+' '+(i+1)+'" placeholder="'+esc(t("nomeN"))+'" autocomplete="'+(i===0?"name":"off")+'" data-nome>';
+    h += '</div><button class="conferma" id="btnNomi" type="button">'+esc(t("salvaNomi"))+'</button><p class="errore" id="err"></p>';
+    app.innerHTML = h; barra.classList.add("nascosto");
+    document.getElementById("btnNomi").onclick = salvaNomi;
+    return;
+  }
+
+  if(!stato.menu_pronto){ app.innerHTML = '<p class="avviso">'+esc(t("menuNo"))+'</p>'+salvaHtml(); barra.classList.add("nascosto"); collegaSalva(); return; }
+
+  if(!attivo || !stato.ospiti.some(function(o){return o.id===attivo;})){
+    var primoSenza = stato.ospiti.filter(function(o){return !sceltaDi(o.id);})[0];
+    attivo = (primoSenza || stato.ospiti[0]).id;
+    caricaScelta();
+  }
+
+  h += '<p class="avviso forte">'+esc(t("entro"))+esc(stato.chiusura)+' ('+esc(domani?t("domani"):t("stasera"))+').</p>';
+  h += '<h2>'+esc(t("chi"))+'</h2><div class="persone" role="group">';
+  stato.ospiti.forEach(function(o){
+    h += '<button class="persona" type="button" data-ospite="'+o.id+'" aria-pressed="'+(o.id===attivo)+'">'+(sceltaDi(o.id)?'<span class="spunta" aria-hidden="true">✓</span>':'')+esc(o.nome)+'</button>';
+  });
+  h += '</div>';
+
+  [["antipasti","antipasto"],["primi","primo"],["secondi","secondo"]].forEach(function(p){
+    var voci = stato.menu[p[0]]||[]; if(!voci.length) return;
+    h += '<section class="portata"><h3>'+esc(t(p[0]))+'</h3><div role="radiogroup" aria-label="'+esc(t(p[0]))+'">';
+    voci.forEach(function(v){ h += '<button class="piatto" type="button" role="radio" data-portata="'+p[1]+'" data-piatto="'+esc(v)+'" aria-checked="'+(scelta[p[1]]===v)+'"><span class="pallino" aria-hidden="true"></span><span>'+esc(v)+'</span></button>'; });
+    h += '</div><button class="nessuno" type="button" data-salta="'+p[1]+'">'+esc(t("senza"))+'</button></section>';
+  });
+
+  h += '<h2>'+esc(t("orario"))+'</h2><div class="orari" role="radiogroup">';
+  (stato.orari||[]).forEach(function(o){ h += '<button class="orario" type="button" role="radio" data-ora="'+o+'" aria-checked="'+(scelta.ora===o)+'">'+o+'</button>'; });
+  h += '</div>';
+  h += '<label class="campo">'+esc(t("allergie"))+'<input id="allergie" placeholder="'+esc(t("allergiePh"))+'" value="'+esc(scelta.allergie||"")+'"></label>';
+  h += '<p class="errore" id="err"></p>';
+
+  // Ricevute della camera
+  stato.ospiti.forEach(function(o){
+    var s = sceltaDi(o.id); if(!s) return;
+    var piatti = [s.antipasto,s.primo,s.secondo].filter(Boolean).join(", ");
+    h += '<div class="ricevuta" id="ric-'+o.id+'"><b>'+esc(t("fatto"))+':</b> '+esc(t("ricevuta"))+esc(o.nome)+esc(t("alle"))+esc(s.ora)+' — '+esc(piatti)+(s.allergie?' · '+esc(t("allergie"))+': '+esc(s.allergie):'')+
+         '<div class="ora">'+esc(t("sceltoIl"))+esc(oraBreve(s.created_at))+(s.versione>1?esc(t("versione"))+s.versione:'')+'</div></div>';
+  });
+  h += salvaHtml();
+  app.innerHTML = h;
+  barra.classList.remove("nascosto");
+  btn.textContent = sceltaDi(attivo) ? t("aggiorna") : t("conferma");
+  aggiornaBottone();
+  collega();
+}
+
+function caricaScelta(){
+  var s = sceltaDi(attivo), o = stato.ospiti.filter(function(x){return x.id===attivo;})[0] || {};
+  scelta = s ? {antipasto:s.antipasto,primo:s.primo,secondo:s.secondo,ora:s.ora,allergie:s.allergie||o.allergie||""} : {allergie:o.allergie||""};
+}
+function aggiornaBottone(){ btn.disabled = invioInCorso || !(scelta.ora && (scelta.antipasto||scelta.primo||scelta.secondo)); }
+
+function collega(){
+  app.querySelectorAll("[data-ospite]").forEach(function(b){ b.onclick=function(){ attivo=b.getAttribute("data-ospite"); caricaScelta(); disegna(); }; });
+  app.querySelectorAll("[data-piatto]").forEach(function(b){ b.onclick=function(){ scelta[b.getAttribute("data-portata")]=b.getAttribute("data-piatto"); segna(); }; });
+  app.querySelectorAll("[data-salta]").forEach(function(b){ b.onclick=function(){ scelta[b.getAttribute("data-salta")]=null; segna(); }; });
+  app.querySelectorAll("[data-ora]").forEach(function(b){ b.onclick=function(){ scelta.ora=b.getAttribute("data-ora"); segna(); }; });
+  var a=document.getElementById("allergie"); if(a) a.oninput=function(){ scelta.allergie=a.value; };
+  collegaSalva();
+}
+function segna(){
+  app.querySelectorAll("[data-piatto]").forEach(function(b){ b.setAttribute("aria-checked", String(scelta[b.getAttribute("data-portata")]===b.getAttribute("data-piatto"))); });
+  app.querySelectorAll("[data-ora]").forEach(function(b){ b.setAttribute("aria-checked", String(scelta.ora===b.getAttribute("data-ora"))); });
+  aggiornaBottone();
+}
+
+btn.onclick = function(){
+  var err = document.getElementById("err");
+  if(!(scelta.ora && (scelta.antipasto||scelta.primo||scelta.secondo))){ err.textContent=t("unoAlmeno"); return; }
+  invioInCorso = true; aggiornaBottone(); err.textContent = "";
+  chiama({azione:"scegli",ospite_id:attivo,data:stato.giorno,ora:scelta.ora,antipasto:scelta.antipasto,primo:scelta.primo,secondo:scelta.secondo,allergie:scelta.allergie||""})
+    .then(function(j){
+      var fatto = attivo; stato = j; invioInCorso = false;
+      var prossimo = stato.ospiti.filter(function(o){return !sceltaDi(o.id);})[0];
+      if(prossimo){ attivo = prossimo.id; caricaScelta(); }
+      disegna();
+      var r = document.getElementById("ric-"+fatto); if(r){ r.classList.add("nuova"); r.scrollIntoView({behavior:"smooth",block:"center"}); }
+    })
+    .catch(function(e){ invioInCorso=false; aggiornaBottone(); err.textContent = e.message; });
+};
+
+function salvaNomi(){
+  var nomi=[].map.call(app.querySelectorAll("[data-nome]"),function(i){return i.value.trim();}).filter(Boolean);
+  var err=document.getElementById("err");
+  if(!nomi.length){ err.textContent=t("nomeN"); return; }
+  chiama({azione:"ospiti",nomi:nomi}).then(function(j){ stato=j; attivo=null; disegna(); }).catch(function(e){ err.textContent=e.message; });
+}
+
+// Salvare la pagina sulla schermata Home
+var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+window.addEventListener("beforeinstallprompt",function(e){ e.preventDefault(); promptInstalla=e; if(stato) disegna(); });
+function salvaHtml(){
+  if(standalone) return "";
+  return '<div class="salva"><b>'+esc(t("salvaTit"))+'</b><br>'+(promptInstalla ? '' : esc(ios?t("salvaIos"):t("salvaAnd")))+
+         (promptInstalla ? '<br><button type="button" id="btnInstalla">'+esc(t("salvaBtn"))+'</button>' : '')+'</div>';
+}
+function collegaSalva(){ var b=document.getElementById("btnInstalla"); if(b) b.onclick=function(){ promptInstalla.prompt(); promptInstalla=null; }; }
+
+document.getElementById("lingua").onclick=function(){ L = L==="it"?"en":"it"; try{localStorage.setItem("cena_lingua",L);}catch(e){} disegna(); };
+
+function carica(){
+  if(!token){ app.innerHTML='<p class="avviso">'+esc(L==="it"?"Apri il link che ti abbiamo mandato su WhatsApp.":"Please open the link we sent you on WhatsApp.")+'</p>'; return; }
+  chiama({azione:"apri"}).then(function(j){ stato=j; disegna(); })
+    .catch(function(e){ app.innerHTML='<p class="avviso">'+esc(e.message)+'</p>'; });
+}
+document.addEventListener("visibilitychange",function(){ if(!document.hidden && stato && !invioInCorso) chiama({azione:"apri"}).then(function(j){ stato=j; disegna(); }).catch(function(){}); });
+disegna(); carica();
+})();
+</script>
+</body>
+</html>
