@@ -1720,6 +1720,26 @@ export async function render(container) {
       .filter(r => r.stato !== 'annullato')
       .reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
     container.querySelector('#comanda-totale').textContent = `€ ${totale.toFixed(2).replace('.',',')}`;
+    aggiornaPannelloToggle(totale);
+  }
+
+  // Telefono: barra del conto chiusa di default, un tocco la apre/chiude
+  function aggiornaPannelloToggle(totale) {
+    const btn = container.querySelector('#pannello-toggle');
+    if (!btn) return;
+    const pann = btn.parentElement;
+    const att = righeComanda.filter(r => r.stato !== 'annullato');
+    const pezzi = att.reduce((s, r) => s + Number(r.quantita || 1), 0);
+    if (totale == null) totale = att.reduce((s, r) => s + (Number(r.prezzo_snapshot||0) * Number(r.quantita||1)), 0);
+    const euro = '€ ' + totale.toFixed(2).replace('.', ',');
+    const aperto = pann.classList.contains('aperto');
+    btn.innerHTML = aperto
+      ? '<span>▼ Chiudi conto</span><span>' + euro + '</span>'
+      : '<span>🧾 ' + pezzi + (pezzi === 1 ? ' piatto' : ' piatti') + ' · Coperti, ritmo ▲</span><span>' + euro + '</span>';
+    if (!btn._ok) {
+      btn._ok = true;
+      btn.onclick = () => { pann.classList.toggle('aperto'); aggiornaPannelloToggle(); };
+    }
   }
 
   async function cambiaQuantita(rigaId, delta) {
