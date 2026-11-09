@@ -1670,13 +1670,12 @@ export async function render(container) {
               </span>
             </div>
             ${righe.map(r => `
-              <div style="display:flex;align-items:center;gap:8px;padding:8px 8px 8px 10px;border-bottom:1px solid #f1f5f9;" data-riga="${r.id}">
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:13px;font-weight:500;color:#0f172a;">${esc(r.nome_snapshot)}</div>
-                  ${r.note ? `<div style="font-size:11px;color:#64748b;">${esc(r.note)}</div>` : ''}
-                  ${(r.aggiunte || []).length ? `<div style="font-size:11px;color:#15803d;">${r.aggiunte.map(a => '+ ' + esc(a.nome)).join(', ')}</div>` : ''}
-                  ${r.cameriere ? `<div style="font-size:10px;color:#94a3b8;">${esc(r.cameriere)}</div>` : ''}
-                </div>
+              <div style="padding:6px 8px 6px 10px;border-bottom:1px solid #f1f5f9;" data-riga="${r.id}">
+                <div style="font-size:13px;font-weight:600;color:#0f172a;line-height:1.25;">${esc(r.nome_snapshot)}</div>
+                ${r.note ? `<div style="font-size:11px;color:#64748b;">${esc(r.note)}</div>` : ''}
+                ${(r.aggiunte || []).length ? `<div style="font-size:11px;color:#15803d;">${r.aggiunte.map(a => '+ ' + esc(a.nome)).join(', ')}</div>` : ''}
+                <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                <div style="flex:1;min-width:0;font-size:10px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.cameriere ? esc(r.cameriere) : ''}</div>
                 <div style="display:flex;align-items:center;gap:4px;">
                   <button data-decr="${r.id}" style="width:24px;height:24px;border:1px solid #e5e7eb;border-radius:6px;background:white;cursor:pointer;font-size:14px;">−</button>
                   <span style="min-width:20px;text-align:center;font-size:14px;font-weight:600;">${r.quantita}</span>
