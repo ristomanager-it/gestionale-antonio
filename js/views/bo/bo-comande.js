@@ -159,6 +159,7 @@ export async function render(container) {
             <button id="btn-nuovo-tavolo" style="padding:6px 12px;background:#e2e8f0;border:none;border-radius:8px;cursor:pointer;font-size:12px;">+ Tavolo</button>
             <button id="btn-cassa" style="padding:6px 14px;background:#0E5A7A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">💶 Cassa</button>
           </div>
+          <div id="ordini-anticipati"></div>
           <div id="mappa-tavoli" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
         </div>
 
@@ -854,6 +855,69 @@ export async function render(container) {
     }).join('');
     box.querySelectorAll('[data-tavolo]').forEach(btn => {
       btn.onclick = () => tapTavolo(btn.dataset.tavolo);
+    });
+    renderAnticipati();
+  }
+
+  // ══════════════════════════════════════════
+  // ORDINI ANTICIPATI (preordine, mezza pensione, asporto, domicilio)
+  // Arrivano come comande aperte senza tavolo, gia' confermate dal cliente
+  // (WhatsApp o carta), con le note per piatto. Si accomodano a un tavolo
+  // quando il cliente arriva, poi si mandano in cucina come sempre.
+  // ══════════════════════════════════════════
+  const ICONE_ANTICIPATI = { ordine_mezza_pensione: '🛏', ordine_preordine: '⏱', ordine_asporto: '🛍', ordine_domicilio: '🛵' };
+  async function renderAnticipati() {
+    const box = container.querySelector('#ordini-anticipati');
+    if (!box) return;
+    const lista = comande.filter(c => !c.tavolo_id && String(c.origine || '').startsWith('ordine_') &&
+      (!sedeId || String(c.sede_id) === String(sedeId)));
+    if (!lista.length) { box.innerHTML = ''; return; }
+    const { data: righe } = await supa().from('comanda_righe')
+      .select('comanda_id, nome_snapshot, quantita, note').in('comanda_id', lista.map(c => c.id));
+    box.innerHTML = `
+      <div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:14px;padding:12px;margin-bottom:14px;">
+        <div style="font-weight:800;font-size:14px;color:#9a3412;margin-bottom:8px;">📥 Ordini anticipati (${lista.length}) · già confermati dal cliente</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+        ${lista.map(c => {
+          const r = (righe || []).filter(x => String(x.comanda_id) === String(c.id));
+          return `<div style="background:white;border-radius:10px;padding:10px;display:flex;gap:10px;align-items:flex-start;">
+            <div style="font-size:24px;">${ICONE_ANTICIPATI[c.origine] || '📥'}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:800;font-size:14px;">${esc(c.cliente_nome || 'Cliente')}${c.coperti ? ` · ${c.coperti} pers.` : ''}</div>
+              <div style="font-size:12px;color:#475569;">${esc(c.note || '')}</div>
+              <div style="font-size:12.5px;margin-top:4px;">${r.map(x => `${x.quantita}× ${esc(x.nome_snapshot)}${x.note ? ` <b style="color:#b45309;">(${esc(x.note)})</b>` : ''}`).join(' · ')}</div>
+            </div>
+            <button data-accomoda="${c.id}" style="padding:8px 12px;background:#0E5A7A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">🍽 Accomoda al tavolo</button>
+          </div>`;
+        }).join('')}
+        </div>
+      </div>`;
+    box.querySelectorAll('[data-accomoda]').forEach(b => { b.onclick = () => scegliTavoloAnticipato(b.dataset.accomoda); });
+  }
+
+  function scegliTavoloAnticipato(comandaId) {
+    const liberi = tavoli.filter(t => !comande.some(c => String(c.tavolo_id) === String(t.id)));
+    if (!liberi.length) { mostraToast('Nessun tavolo libero in questa sala', 'error'); return; }
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = `<div style="background:white;border-radius:16px;padding:16px;max-width:420px;width:100%;max-height:80vh;overflow:auto;">
+      <div style="font-weight:800;font-size:15px;margin-bottom:10px;">A che tavolo lo accomodi?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">${liberi.map(t => `<button data-sc="${t.id}" style="padding:12px 14px;border:2px solid #22c55e;background:#f0fdf4;border-radius:10px;font-weight:800;cursor:pointer;">${esc(t.nome)}</button>`).join('')}</div>
+      <button data-chiudi style="margin-top:12px;width:100%;padding:10px;border:none;background:#e2e8f0;border-radius:10px;cursor:pointer;">Annulla</button></div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('[data-chiudi]').onclick = () => ov.remove();
+    ov.querySelectorAll('[data-sc]').forEach(b => {
+      b.onclick = async () => {
+        const tavoloId = b.dataset.sc;
+        ov.remove();
+        const { error } = await supa().from('comande').update({ tavolo_id: tavoloId, sede_id: sedeId || undefined }).eq('id', comandaId);
+        if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
+        const c = comande.find(x => String(x.id) === String(comandaId));
+        if (c) c.tavolo_id = tavoloId;
+        renderMapTavoli();
+        await apriComanda(tavoloId);
+        mostraToast('Ordine al tavolo: controlla e manda in cucina', 'success');
+      };
     });
   }
 
