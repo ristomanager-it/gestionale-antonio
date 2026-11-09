@@ -112,6 +112,7 @@
     .cart-bar.show{display:flex;}
     .cart-bar-count{background:rgba(255,255,255,.25);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:800;}
     .cart-bar-tot{font-size:17px;font-weight:800;}
+    body.senza-prezzi .prodotto-prezzo, body.senza-prezzi .stampa-riga-prezzo, body.senza-prezzi .cart-item-prezzo, body.senza-prezzi .cart-bar-tot, body.senza-prezzi .prezzo-dettaglio { display:none !important; }
     .cart-qty-ctrl{display:flex;align-items:center;gap:10px;margin-top:8px;}
     .cart-qty-btn{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--brand);background:#fff;color:var(--brand);font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;}
     .cart-qty-val{font-size:15px;font-weight:800;min-width:20px;text-align:center;}
@@ -212,7 +213,12 @@
     // sono due righe, altrimenti in cucina non si sa quale farcire.
     var linee = [];            // { k, voce_id, qta, opz: [{id,nome,prezzo,gruppo,tipo}] }
     var opzPerVoce = {};       // voce_id -> gruppi di opzioni
-    var tipoOrdine = "tavolo"; // tavolo | asporto | domicilio
+    var tipoOrdine = "tavolo"; // tavolo | asporto | domicilio | preordine | mezza_pensione
+    // ?modo=mezza_pensione: link per ospiti in hotel e gruppi a Campo Antico, solo i piatti, nessun prezzo
+    var modoMP = params.get("modo") === "mezza_pensione";
+    if (modoMP) tipoOrdine = "mezza_pensione";
+    function prezzoFisso() { return (!modoMP && menu && Number(menu.prezzo_fisso_persona) > 0) ? Number(menu.prezzo_fisso_persona) : 0; }
+    function senzaPrezzi() { return modoMP || (menu && Number(menu.prezzo_fisso_persona) > 0); }
     var pos = { lat: null, lng: null, gps: false };
     var consegna = { costo: 0, zona: null, errore: null };
     var ORDINI_EDGE_URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/Ordini-menu-pubblico-api-index";
@@ -408,7 +414,18 @@
 
     function finalizzaRender() {
       if (!categorie.length) { showError("Menu vuoto", "Nessuna categoria disponibile in questo momento."); return; }
+      if (senzaPrezzi()) document.body.classList.add("senza-prezzi");
       renderMenu();
+      if (senzaPrezzi()) {
+        var testoBanner = modoMP
+          ? '<b>La cena di stasera</b><br>Scegli i piatti per te e per chi è con te: aggiungili al carrello, scrivi una nota se vuoi cambiare qualcosa e invia.'
+          : '<b>' + esc(menu.prezzo_fisso_nome || "Menu a prezzo fisso") + ' · ' + prezzoFisso().toFixed(2).replace(".", ",").replace(",00", "") + ' € a persona</b><br>Scegli un antipasto, un primo e un secondo per ogni persona: puoi lasciare una nota su ogni piatto.';
+        var ban = document.createElement("div");
+        ban.style.cssText = "margin:12px 14px;padding:12px 14px;border-radius:14px;background:var(--brand-light);border:1.5px solid var(--brand);font-size:14px;line-height:1.45;color:#1f2937;";
+        ban.innerHTML = testoBanner + (menu.descrizione ? '<div style="font-size:12.5px;color:#475569;margin-top:4px;">' + esc(menu.descrizione) + '</div>' : '');
+        var dove = document.querySelector(".cat-nav, #cat-nav, nav") ;
+        if (dove && dove.parentNode) dove.parentNode.insertBefore(ban, dove); else root.insertBefore(ban, root.firstChild);
+      }
       // Lingua preferita (da ?lang= o dall'ultima visita)
       var lp = params.get("lang");
       try { lp = lp || localStorage.getItem("rf_menu_lang"); } catch(e) {}
@@ -894,7 +911,7 @@
         tagsHtml +
         allergeniHtml +
         (tD(v) ? '<div style="font-size:15px;color:#374151;line-height:1.6;margin-bottom:16px;">' + esc(tD(v)) + '</div>' : '<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">' + UIT("no_desc") + '</div>') +
-        '<div style="font-size:26px;font-weight:800;color:#111827;text-align:right;">' + Number(prezzo).toFixed(2) + ' €</div>';
+        '<div class="prezzo-dettaglio" style="font-size:26px;font-weight:800;color:#111827;text-align:right;">' + Number(prezzo).toFixed(2) + ' €</div>';
 
       var fotoEl = document.getElementById("detail-foto");
       if (fotoEl) fotoEl.onclick = function() {
@@ -1124,9 +1141,12 @@
         '</div>' +
         '<div class="raccolta-title">🛒 Il tuo ordine</div>' +
         '<div style="margin:12px 0;">' + (righeHtml || '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:16px 0;">Il carrello è vuoto.<br>Torna al menu e aggiungi qualcosa.</div>') + '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding-top:12px;border-top:2px solid #111827;margin-bottom:16px;">' +
-          '<span>Totale</span><span>' + r.tot.toFixed(2).replace(".", ",") + ' €</span>' +
-        '</div>' +
+        (senzaPrezzi()
+          ? '<div style="font-size:13.5px;color:#475569;padding-top:12px;border-top:2px solid #111827;margin-bottom:16px;">' +
+              (modoMP ? 'Compreso nella tua formula.' : esc(menu.prezzo_fisso_nome || "Menu") + ': ' + prezzoFisso().toFixed(2).replace(".", ",") + ' € a persona. Il numero di persone lo indichi al passo successivo.') + '</div>'
+          : '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding-top:12px;border-top:2px solid #111827;margin-bottom:16px;">' +
+              '<span>Totale</span><span>' + r.tot.toFixed(2).replace(".", ",") + ' €</span>' +
+            '</div>') +
         '<button class="raccolta-btn" id="btn-vai-checkout"' + (r.count === 0 ? ' disabled style="opacity:.5;"' : '') + '>Procedi all\'ordine →</button>';
 
       document.getElementById("cart-indietro").onclick = function() {
@@ -1177,6 +1197,9 @@
       var puoiTavolo = menu.tavolo_attivo !== false;
       var puoiPre = !!menu.preordine_attivo;
       var puoiMP = !!menu.mezza_pensione_attiva;
+      if (modoMP) { puoiTavolo = false; puoiConsegna = false; puoiAsporto = false; puoiPre = false; puoiMP = true; tipoOrdine = "mezza_pensione"; }
+      else { puoiMP = false; }
+      if (!puoiTavolo && tipoOrdine === "tavolo" && puoiPre) tipoOrdine = "preordine";
       if (!puoiPre && tipoOrdine === "preordine") tipoOrdine = puoiTavolo ? "tavolo" : "asporto";
       if (!puoiMP && tipoOrdine === "mezza_pensione") tipoOrdine = puoiTavolo ? "tavolo" : "asporto";
       // un menu da solo asporto e consegne non deve mostrare "Tavolo"
@@ -1213,7 +1236,7 @@
           '<input id="chk-luogo" class="raccolta-input" placeholder="Es. 12"></div>';
       } else if (tipoOrdine === "mezza_pensione" || tipoOrdine === "preordine") {
         campiLuogo = '<div style="display:flex;gap:8px;">' +
-          (tipoOrdine === "mezza_pensione" ? '<div class="checkout-field" style="flex:1;"><label>Numero della camera *</label><input id="chk-camera" class="raccolta-input" placeholder="Es. 12"></div>' : '') +
+          (tipoOrdine === "mezza_pensione" ? '<div class="checkout-field" style="flex:1;"><label>Camera o gruppo *</label><input id="chk-camera" class="raccolta-input" placeholder="Es. 12"></div>' : '') +
           '<div class="checkout-field" style="flex:1;"><label>Quante persone *</label><input id="chk-persone" class="raccolta-input" type="number" min="1" max="30" value="' + (tipoOrdine === "mezza_pensione" ? 2 : 1) + '"></div>' +
           '</div>' +
           '<div style="font-size:12.5px;color:#475569;background:#f8fafc;border-radius:10px;padding:9px 11px;margin-bottom:12px;">' +
@@ -1259,7 +1282,7 @@
         '<div id="chk-conto" style="background:#f8fafc;border-radius:12px;padding:12px 14px;font-size:14px;margin:12px 0;"></div>' +
         '<div id="chk-errore" style="color:#dc2626;font-size:13px;margin-bottom:10px;"></div>' +
         (anticipato
-          ? '<button class="raccolta-btn" id="btn-consegna">✅ Invia l\'ordine · paghi al locale</button>'
+          ? '<button class="raccolta-btn" id="btn-consegna">✅ Invia l\'ordine' + (tipoOrdine === "mezza_pensione" ? '' : ' · paghi al locale') + '</button>'
           : '<div style="font-size:12.5px;font-weight:700;color:#374151;margin-bottom:6px;">Come paghi?</div>' +
             '<button class="raccolta-btn" id="btn-paga">💳 Paga con carta</button>' +
             '<button class="raccolta-btn" id="btn-consegna" style="background:#fff;color:var(--brand);border:1.5px solid #cbd5e1;margin-top:8px;">💶 ' +
@@ -1278,6 +1301,8 @@
       if (document.getElementById("btn-paga")) document.getElementById("btn-paga").onclick = function() { inviaOrdine("carta"); };
       document.getElementById("btn-consegna").onclick = function() { inviaOrdine("alla_consegna"); };
       if (tipoOrdine === "domicilio") preparaIndirizzo();
+      var inpPersone = document.getElementById("chk-persone");
+      if (inpPersone) inpPersone.oninput = disegnaConto;
       riempiRicordato();
       preparaRiconoscimento();
       disegnaMancia();
@@ -1411,6 +1436,14 @@
 
     function disegnaConto() {
       var box = document.getElementById("chk-conto"); if (!box) return;
+      if (senzaPrezzi()) {
+        if (modoMP || tipoOrdine === "mezza_pensione") { box.innerHTML = '<div style="color:#475569;">Compreso nella tua formula: nessun pagamento.</div>'; return; }
+        var np = parseInt((document.getElementById("chk-persone") || {}).value, 10) || 1;
+        var pf = prezzoFisso();
+        box.innerHTML = '<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>' + esc(menu.prezzo_fisso_nome || "Menu") + ' × ' + np + '</span><span>' + (pf * np).toFixed(2).replace(".", ",") + ' €</span></div>' +
+          '<div style="display:flex;justify-content:space-between;border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;font-weight:800;font-size:16px;"><span>Totale</span><span>' + (pf * np).toFixed(2).replace(".", ",") + ' €</span></div>';
+        return;
+      }
       var r = totaleCarrello();
       var html = '<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Piatti</span><span>' +
         r.tot.toFixed(2).replace(".", ",") + ' €</span></div>';
