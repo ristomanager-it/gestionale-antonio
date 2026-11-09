@@ -204,8 +204,8 @@ export async function render(container) {
                 #griglia-prodotti { grid-template-columns:repeat(auto-fill,minmax(110px,1fr))!important; gap:6px!important; padding:8px!important; }
                 #griglia-prodotti > button { padding:8px 6px!important; gap:3px!important; min-height:64px; justify-content:center; }
                 #griglia-prodotti .cmd-foto { width:40px!important; height:40px!important; }
-                #comanda-grid > div:last-child > div:first-child,
-                #comanda-grid > div:last-child > div:nth-child(2) { padding:6px 10px!important; }
+                #comanda-grid > div:last-child > div:nth-of-type(1),
+                #comanda-grid > div:last-child > div:nth-of-type(2) { padding:6px 10px!important; }
                 #comanda-ritmo button { padding:4px 6px!important; font-size:11px!important; }
               }
               @media(max-height:520px) and (min-width:701px){
