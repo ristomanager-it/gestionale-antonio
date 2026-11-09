@@ -214,10 +214,24 @@ export async function render(container) {
               @media(max-width:700px){
                 #comanda-grid { grid-template-columns:1fr!important; grid-template-rows:1fr auto; }
                 #comanda-grid > div:first-child { border-right:none!important; border-bottom:1px solid #e5e7eb; min-height:0; }
-                #comanda-grid > div:last-child { max-height:45vh; }
-                #view-comanda > div:first-child { flex-wrap:wrap; gap:6px; }
-                #view-comanda > div:first-child > div:last-child { flex-wrap:wrap; }
-                #view-comanda > div:first-child > div:last-child button { padding:6px 10px!important; font-size:12px!important; }
+                /* telefono verticale: lo spazio va ai piatti. Il conto si chiude in una barra e si apre col dito */
+                #comanda-grid > div:last-child { max-height:70vh; }
+                #comanda-grid > div:last-child:not(.aperto) > div { display:none!important; }
+                #pannello-toggle { display:flex!important; }
+                .comande-shell > div:first-child { padding:6px 10px!important; }
+                .comande-shell > div:first-child button { padding:5px 10px!important; }
+                #top-sede, #top-ora { display:none!important; }
+                #badge-cameriere { white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis; }
+                #view-comanda > div:first-child { padding:6px 8px!important; gap:6px; flex-wrap:nowrap; }
+                #view-comanda > div:first-child > div:first-child { flex-shrink:0; gap:6px!important; }
+                #comanda-cliente-info { display:none; }
+                #view-comanda > div:first-child > div:last-child { overflow-x:auto; flex-wrap:nowrap; gap:6px!important; scrollbar-width:none; }
+                #view-comanda > div:first-child > div:last-child::-webkit-scrollbar { display:none; }
+                #view-comanda > div:first-child > div:last-child > * { flex-shrink:0; white-space:nowrap; padding:6px 10px!important; font-size:12px!important; }
+                #settore-tabs { padding:4px 8px!important; }
+                #settore-tabs button { padding:6px 12px!important; font-size:13px!important; }
+                #settore-tabs + div { padding:4px 8px!important; }
+                #search-prodotto { padding:6px 10px!important; font-size:15px!important; }
               }
             </style>
 
