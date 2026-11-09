@@ -39,7 +39,8 @@ h2{font:600 26px/1.15 Cormorant,Georgia,serif;margin:28px 0 10px}
 .piatto .pallino{flex:0 0 22px;height:22px;border-radius:50%;border:2px solid #B9B5A8}
 .piatto[aria-checked="true"]{border-color:var(--verde);box-shadow:inset 0 0 0 1px var(--verde)}
 .piatto[aria-checked="true"] .pallino{border-color:var(--verde);background:radial-gradient(var(--verde) 45%,transparent 50%)}
-.nota{display:block;width:100%;margin:0 0 8px;border:1.5px dashed var(--linea);border-radius:10px;padding:10px 12px;font-size:15px;background:#fff}
+.modifica{display:block;margin:-2px 0 10px 14px;padding:10px 12px;border-left:3px solid var(--arancio);background:#FFF6EE;border-radius:0 10px 10px 0;font-size:14px;color:#7A4A1E}
+.nota{display:block;width:100%;margin:6px 0 0;border:1.5px solid #E9C9A6;border-radius:10px;padding:10px 12px;font-size:15px;background:#fff}
 .nessuno{font-size:14px;color:var(--tenue);background:none;border:0;padding:2px 0;cursor:pointer;text-decoration:underline}
 .orari{display:flex;gap:8px;flex-wrap:wrap}
 .orario{border:1.5px solid var(--linea);background:#fff;border-radius:10px;padding:10px 14px;font-size:16px;cursor:pointer;min-width:72px}
@@ -100,7 +101,7 @@ var T = {
       chi:"Chi organizza la cena", chiTesto:"Ti mandiamo il riepilogo su WhatsApp da confermare.",
       camera:"Camera o gruppo", nome:"Nome", cognome:"Cognome", tel:"Telefono", persone:"Quante persone", continua:"Continua",
       scegli:"Chi sta scegliendo?", persona:"Persona", nomeOpz:"Nome (facoltativo)", Antipasti:"Antipasto", Primi:"Primo", Secondi:"Secondo",
-      senza:"Non lo prendo", nota:"Nota per la cucina (es. senza pecorino)", orario:"A che ora cenate?", allergie:"Allergie o intolleranze",
+      senza:"Non lo prendo", nota:"Es. senza pecorino, ben cotta, sugo a parte", modTit:"Vuoi cambiare qualcosa in questo piatto?", orario:"A che ora cenate?", allergie:"Allergie o intolleranze",
       allergiePh:"Per esempio: noci, lattosio", invia:"Invia la cena", inviando:"Un attimo…", max:"Al massimo un antipasto, un primo e un secondo a persona.",
       manca:"Scegli almeno un piatto per ogni persona e l'orario.", menuNo:"Il menu non è ancora pubblicato. Torna più tardi.",
       riep:"Riepilogo", modifica:"Modifica i dati", fattoTit:"Controlla WhatsApp", fattoTesto:"Ti abbiamo mandato il riepilogo: tocca «Confermo» e lo prepariamo per l'orario scelto.",
@@ -111,7 +112,7 @@ var T = {
       chi:"Who is organising dinner", chiTesto:"We will send you the summary on WhatsApp to confirm.",
       camera:"Room or group", nome:"First name", cognome:"Last name", tel:"Phone", persone:"How many people", continua:"Continue",
       scegli:"Who is choosing?", persona:"Guest", nomeOpz:"Name (optional)", Antipasti:"Starter", Primi:"First course", Secondi:"Main course",
-      senza:"I'll skip it", nota:"Note for the kitchen (e.g. no cheese)", orario:"What time will you have dinner?", allergie:"Allergies or intolerances",
+      senza:"I'll skip it", nota:"E.g. no cheese, well done, sauce on the side", modTit:"Want to change anything in this dish?", orario:"What time will you have dinner?", allergie:"Allergies or intolerances",
       allergiePh:"For example: nuts, lactose", invia:"Send dinner", inviando:"One moment…", max:"At most one starter, one first course and one main per person.",
       manca:"Choose at least one dish for each guest and the time.", menuNo:"The menu is not published yet. Please come back later.",
       riep:"Summary", modifica:"Edit details", fattoTit:"Check WhatsApp", fattoTesto:"We sent you the summary: tap «Confermo» and we will prepare it for the chosen time.",
@@ -206,10 +207,13 @@ function disegnaScelta() {
     var voci = piatti[p[0]]; if (!voci.length) return;
     h += '<section class="portata"><h3>' + esc(t(p[0])) + '</h3>';
     voci.forEach(function(v) {
-      h += '<button class="piatto" type="button" role="radio" data-por="' + p[0] + '" data-id="' + v.id + '" aria-checked="' + (o.scelte[p[0]] && o.scelte[p[0]].id === v.id) + '">' +
+      var scelto = !!(o.scelte[p[0]] && o.scelte[p[0]].id === v.id);
+      h += '<button class="piatto" type="button" role="radio" data-por="' + p[0] + '" data-id="' + v.id + '" aria-checked="' + scelto + '">' +
            '<span class="pallino"></span><span>' + esc(v.nome) + '</span></button>';
+      // la modifica al piatto si scrive subito sotto il piatto scelto
+      if (scelto) h += '<label class="modifica"><span>✏️ ' + esc(t("modTit")) + '</span>' +
+        '<input class="nota" data-nota="' + p[0] + '" maxlength="120" placeholder="' + esc(t("nota")) + '" value="' + esc(o.note[p[0]] || "") + '"></label>';
     });
-    if (o.scelte[p[0]]) h += '<input class="nota" data-nota="' + p[0] + '" maxlength="120" placeholder="' + esc(t("nota")) + '" value="' + esc(o.note[p[0]] || "") + '">';
     h += '<button class="nessuno" type="button" data-salta="' + p[0] + '">' + esc(t("senza")) + '</button></section>';
   });
   h += '<h2>' + esc(t(BUSINESS ? "orarioBiz" : "orario")) + '</h2><div class="orari">';
