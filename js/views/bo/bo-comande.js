@@ -1037,6 +1037,10 @@ export async function render(container) {
       btn.onclick = () => {
         categoriaSelezionata = btn.dataset.cat || null;
         renderCategorieTabs(); renderGrigliaProdotti();
+        // barra scorrevole: la categoria scelta resta in vista e i piatti ripartono dall'alto
+        const on = box.querySelector('[data-cat="' + (categoriaSelezionata || '') + '"]');
+        if (on) on.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+        const g = container.querySelector('#griglia-prodotti'); if (g) g.scrollTop = 0;
       };
     });
   }
