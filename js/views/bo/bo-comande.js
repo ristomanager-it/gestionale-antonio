@@ -245,6 +245,7 @@ export async function render(container) {
             </div>
 
             <div style="overflow:hidden;display:flex;flex-direction:column;background:white;">
+              <button id="pannello-toggle" style="display:none;align-items:center;justify-content:space-between;gap:8px;width:100%;border:none;border-top:2px solid #0E5A7A;background:#EFF6FA;padding:10px 14px;font-size:15px;font-weight:700;color:#0E5A7A;cursor:pointer;flex-shrink:0;"></button>
               <div style="padding:10px 12px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px;align-items:center;flex-shrink:0;">
                 <div style="font-size:13px;color:#64748b;">Coperti:</div>
                 <input id="comanda-coperti" type="number" min="1" max="30" value="2" style="width:60px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:14px;">
