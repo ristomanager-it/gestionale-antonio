@@ -610,7 +610,7 @@ function addMessage(text, type, opts = {}) {
         const supaAuth = window.supabaseClient || window.supabase;
         const ses = await supaAuth?.auth?.getSession();
         const tok = ses?.data?.session?.access_token || "";
-        const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/" + (azX.tipo === "campagna_pro" ? "tony-campagne-pro" : (azX.tipo === "campagna" || azX.tipo === "stato_campagna") ? "tony-campagne-chat" : (azX.tipo === "modello_whatsapp" || azX.tipo === "attiva_modello_whatsapp") ? "tony-messaggi" : (azX.tipo === "sondaggio" || azX.tipo === "regali_sondaggio") ? "tony-sondaggi-chat" : "tony"), {
+        const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/" + (azX.tipo === "campagna_pro" ? "tony-campagne-pro" : (azX.tipo === "campagna" || azX.tipo === "stato_campagna" || azX.tipo === "post" || azX.tipo === "parole_google") ? "tony-campagne-chat" : (azX.tipo === "modello_whatsapp" || azX.tipo === "attiva_modello_whatsapp") ? "tony-messaggi" : (azX.tipo === "sondaggio" || azX.tipo === "regali_sondaggio") ? "tony-sondaggi-chat" : "tony"), {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tok}`, "apikey": tok },
           body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null,
