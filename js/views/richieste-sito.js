@@ -8,7 +8,7 @@ const CLASSE = { nuova: "rs-n", contattata: "rs-c", preventivo_inviato: "rs-c", 
 const BANDIERA = { us: "🇺🇸", en: "🇬🇧", de: "🇩🇪", es: "🇪🇸", it: "🇮🇹", nl: "🇳🇱", ja: "🇯🇵", fr: "🇫🇷" };
 const PARTENZE = [["harvest", "Harvest Edition · 2–11 set 2027"], ["chestnut", "Chestnut Edition · 6–15 ott 2027"], ["olive", "Olive Oil Edition · 10–19 nov 2027"]];
 
-let stato = { scheda: "matrimoni", w: [], t: [], mostraChiuse: false };
+let stato = { scheda: "matrimoni", w: [], t: [], c: [], mostraChiuse: false };
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const eur = (n) => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(Number(n) || 0);
 const fa = (d) => { const m = Math.round((Date.now() - new Date(d).getTime()) / 60000); if (m < 60) return m + " min fa"; if (m < 1440) return Math.round(m / 60) + " ore fa"; return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short" }); };
