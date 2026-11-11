@@ -676,7 +676,10 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
     const STATO: Record<string, string> = { ADDED: "gia' parola chiave", EXCLUDED: "gia' esclusa", ADDED_EXCLUDED: "aggiunta ed esclusa", NONE: "" };
     const righe = (ris.righe || []).map((x: any) => ({ campagna: x.campaign?.name, campagna_id: x.campaign?.id, ricerca: x.searchTermView?.searchTerm, stato: STATO[x.searchTermView?.status] ?? "", clic: Number(x.metrics?.clicks || 0), impression: Number(x.metrics?.impressions || 0), spesa_eur: Math.round(Number(x.metrics?.costMicros || 0) / 10000) / 100, conversioni: Number(x.metrics?.conversions || 0) }));
     const spesa = Math.round(righe.reduce((s: number, r: any) => s + r.spesa_eur, 0) * 100) / 100;
-    return { periodo: "ultimi " + giorni + " giorni", ricerche: righe.length, spesa_totale_eur: spesa, righe: righe.slice(0, 120), nota: righe.length ? "ordinate per spesa: proponi di escludere solo quelle che non portano clienti a questo locale" : "nessuna ricerca nel periodo: la campagna e' ferma o non ha avuto impression" };
+    // v24.1: righe compatte per campagna (una stringa per ricerca), cosi' entrano tutte nel risultato senza essere tagliate
+    const perCampagna: Record<string, string[]> = {};
+    for (const r of righe) { const k = r.campagna + " (id " + r.campagna_id + ")"; (perCampagna[k] = perCampagna[k] || []).push(r.ricerca + " | " + r.clic + " clic | " + r.spesa_eur + " € | " + r.conversioni + " conv" + (r.stato ? " | " + r.stato : "")); }
+    return { periodo: "ultimi " + giorni + " giorni", ricerche: righe.length, spesa_totale_eur: spesa, formato: "ricerca | clic | spesa | conversioni | stato", per_campagna: perCampagna, nota: righe.length ? "ordinate per spesa: proponi di escludere solo quelle che non portano clienti a questo locale" : "nessuna ricerca nel periodo: la campagna e' ferma o non ha avuto impression" };
   }
 
   if (nome === "proponi_esclusioni") {
