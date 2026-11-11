@@ -69,6 +69,58 @@ async function richiesteDalSito() {
 }
 
 /* ============================================================ */
+/* PREVENTIVI ONLINE IN BOZZA: iniziati sul sito e non salvati    */
+/* ============================================================ */
+// Il cliente ha composto (anche in parte) il preventivo sul sito ma non l'ha salvato:
+// qui si vede cosa aveva scelto, per richiamarlo con una proposta diversa.
+async function bozzeOnline() {
+  const box = document.getElementById("prev-bozze");
+  if (!box) return;
+  const sb = window.supabaseClient || window.supabase;
+  const az = window.state?.azienda?.id;
+  if (!az) return;
+  const dal = new Date(Date.now() - 60 * 86400000).toISOString();
+  const { data, error } = await sb.from("preventivi_online_bozze")
+    .select("id, nomi, email, telefono, tipo, invitati, data_testo, location, scelte, totale, totale_pieno, ultimo_passo, passi_fatti, passi_totali, utm_source, updated_at")
+    .eq("azienda_id", az).eq("completata", false).eq("gestita", false).gte("updated_at", dal)
+    .order("updated_at", { ascending: false }).limit(50);
+  if (error || !data || !data.length) { box.innerHTML = ""; return; }
+  const e = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const eur = (n) => Number(n).toLocaleString("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const quando = (t) => new Date(t).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+  const giorno = (t) => !t ? "data da definire" : /^\d{4}-\d{2}-\d{2}$/.test(t) ? new Date(t + "T12:00").toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" }) : t;
+  const wa = (t) => { let n = String(t || "").replace(/[^0-9]/g, ""); if (n && n.length <= 10) n = "39" + n; return n; };
+  const scheda = (b) => {
+    const arrivo = b.ultimo_passo === "riepilogo" ? "ha visto il prezzo finale"
+      : b.ultimo_passo && b.ultimo_passo !== "inizio" ? "fermo a: " + e(b.ultimo_passo) + (b.passi_totali ? " (" + b.passi_fatti + "/" + b.passi_totali + ")" : "")
+      : "ha messo solo i dati iniziali";
+    const scelte = (b.scelte || []).map((z) => '<div style="margin:4px 0"><b style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#64748b">' + e(z.passo) + "</b><div>" + (z.voci || []).map(e).join(", ") + "</div></div>").join("");
+    const tel = b.telefono ? '<a class="app-button small" href="tel:' + e(b.telefono) + '">📞 Chiama</a> <a class="app-button small" target="_blank" href="https://wa.me/' + wa(b.telefono) + '">💬 WhatsApp</a> ' : "";
+    const mail = b.email ? '<a class="app-button small" href="mailto:' + e(b.email) + '">✉️ Email</a> ' : "";
+    return '<div style="border-top:1px solid #f1f5f9;padding:10px 0">'
+      + '<div style="display:flex;justify-content:space-between;gap:8px"><b>' + e(b.nomi || "Senza nome") + '</b><span style="font-size:12px;color:#64748b;white-space:nowrap">' + quando(b.updated_at) + "</span></div>"
+      + '<div style="font-size:13px;color:#334155">' + [b.tipo, b.invitati ? b.invitati + " invitati" : "", giorno(b.data_testo), b.location].filter(Boolean).map(e).join(" · ") + "</div>"
+      + '<div style="font-size:13px;color:' + (b.ultimo_passo === "riepilogo" ? "#b45309" : "#64748b") + '">' + arrivo + (b.totale ? " · prezzo visto " + eur(b.totale) : "") + (b.utm_source ? " · da " + e(b.utm_source) : "") + "</div>"
+      + (scelte ? '<details style="margin-top:6px"><summary style="font-size:13px;cursor:pointer">Cosa aveva scelto</summary><div style="font-size:13.5px;margin-top:4px">' + scelte + "</div></details>" : "")
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' + tel + mail + '<button class="app-button small gray" data-bozza-fatta="' + e(b.id) + '">✓ Richiamato</button></div>'
+      + "</div>";
+  };
+  box.innerHTML = '<details style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin:0 0 16px">'
+    + '<summary style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;list-style:none">'
+    + '<span><b>🌐 Preventivi online in bozza</b><span style="display:block;font-size:13px;color:#64748b">Iniziati sul sito e non salvati: cosa avevano scelto</span></span>'
+    + '<span style="background:#f59e0b;color:#fff;border-radius:999px;padding:2px 9px;font-weight:700">' + data.length + "</span></summary>"
+    + data.map(scheda).join("") + "</details>";
+  box.onclick = async (ev) => {
+    const btn = ev.target.closest("[data-bozza-fatta]");
+    if (!btn) return;
+    btn.disabled = true;
+    const { error: er } = await sb.from("preventivi_online_bozze").update({ gestita: true }).eq("id", btn.getAttribute("data-bozza-fatta"));
+    if (er) { btn.disabled = false; alert(er.message); return; }
+    bozzeOnline();
+  };
+}
+
+/* ============================================================ */
 /* LOAD PREVENTIVI */
 /* ============================================================ */
 
