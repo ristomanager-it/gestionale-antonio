@@ -272,10 +272,25 @@ function renderPreventiviList() {
           </div>
         </div>
       `;
-    })
-    .join('');
+  };
+
+  // cercando si vede tutto (prima i prossimi, poi i passati); senza ricerca i passati restano chiusi
+  const titolo = (t) => `<div style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px;">${t}</div>`;
+  let html = daFare.length ? daFare.map(card).join('') : (cercando ? '' : '<p class="small-muted">Nessun evento in programma.</p>');
+  if (passati.length) {
+    if (cercando || mostraPassati) {
+      html += titolo('Passati · ' + passati.length) + passati.map((p) => card(p).replace('class="preventivo-list-item"', 'class="preventivo-list-item" data-passato="1"')).join('');
+      if (!cercando) html += '<button class="app-button small gray" id="prev-chiudi-passati" style="margin-top:4px;">Nascondi i passati</button>';
+    } else {
+      html += `<button class="app-button small gray" id="prev-apri-passati" style="margin-top:6px;">📁 Preventivi passati (${passati.length})</button>`;
+    }
+  }
 
   preventiviListContainer.innerHTML = html;
+  preventiviListContainer.querySelectorAll('[data-passato]').forEach((el) => { el.style.opacity = '.75'; });
+  const ap = document.getElementById('prev-apri-passati'), ch = document.getElementById('prev-chiudi-passati');
+  if (ap) ap.addEventListener('click', () => { mostraPassati = true; renderPreventiviList(); });
+  if (ch) ch.addEventListener('click', () => { mostraPassati = false; renderPreventiviList(); });
 
   const apri = (id) => { window.location.hash = '#/creaPreventivo?id=' + id; };
 
