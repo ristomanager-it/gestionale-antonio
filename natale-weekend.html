@@ -90,6 +90,7 @@ input[type=text],input[type=tel],input[type=email],textarea{display:block;width:
 <label class="ck"><input type="checkbox" id="privacy"> <span>Ho letto l’informativa privacy e acconsento al trattamento dei dati per gestire la prenotazione.</span></label>
 <label class="ck"><input type="checkbox" id="marketing"> <span>Voglio ricevere le vostre prossime serate e offerte (facoltativo).</span></label>
 <button class="btn" type="submit" id="invia">Paga l’acconto e conferma</button>
+<a href="#" class="link" id="bonifico">oppure prenota e paga l’acconto con bonifico</a>
 <div class="msg" id="msg"></div>
 <p class="nt">Acconto del 30% con carta tramite Stripe, il resto all’arrivo. Appena pagato arrivano la conferma e la pagina della vostra prenotazione.</p>
 </form></section>
@@ -224,6 +225,7 @@ input[type=text],input[type=tel],input[type=email],textarea{display:block;width:
     }
   }
   $("modulo").addEventListener("submit", function(ev){ ev.preventDefault(); prenota(false); });
+  $("bonifico").onclick = function(ev){ ev.preventDefault(); prenota(true); };
   function carica(){ if (!supa) return; supa.rpc("natale_camere_libere").then(function(r){ if (r && r.data) { libere = r.data; aggiorna(); } }); }
   esempi(); aggiorna(); carica();
   document.addEventListener("rf-pronto", function(){ rfEvento("ViewContent", { content_name: TAG, content_category: "natale" }, true); });
