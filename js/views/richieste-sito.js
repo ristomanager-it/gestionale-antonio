@@ -103,20 +103,11 @@ function listaC() {
 }
 
 async function creaPreventivoCena(id, b) {
-  const r = stato.c.find((x) => String(x.id) === String(id));
-  if (!r) return;
+  // il preventivo nasce con il menù scelto dal cliente (piatti e prezzo) e gli extra: non si rifà a mano
   b.disabled = true; b.textContent = "Creo…";
-  const ref = String(r.referente || "").trim().split(/\s+/);
-  const riga = {
-    azienda_id: r.azienda_id, sede_uuid: r.sede_id || null, tipo_servizio: "Cena aziendale", titolo_evento: "Cena aziendale " + (r.azienda_nome || ""), stato: "bozza",
-    cliente_nome: r.azienda_nome || r.referente, cliente_cognome: null, cliente_email: r.email || null, cliente_telefono: r.telefono || null,
-    n_invitati: r.persone || null, data_evento: r.data_preferita || null, lingua: "it",
-    note: "Richiesta cena aziendale dal sito · referente " + (r.referente || "") + (r.menu_scelto ? " · menu scelto: " + r.menu_scelto : "") + ((r.extra_scelti || []).length ? " · extra: " + r.extra_scelti.join(", ") : "") + (r.totale_stimato ? " · stima vista dal cliente " + eur(r.totale_stimato) : "") + (r.note ? "\n\n" + r.note : ""),
-  };
-  const { data, error } = await sb().from("preventivi").insert(riga).select("id").single();
-  if (error) { b.disabled = false; b.textContent = "📑 Crea preventivo"; alert("Non riesco a creare il preventivo: " + error.message); return; }
-  await sb().from("richieste_cene_aziendali").update({ preventivo_id: data.id, stato: r.stato === "nuova" ? "contattata" : r.stato, aggiornata_at: new Date().toISOString() }).eq("id", r.id);
-  window.location.hash = "#/creaPreventivo?id=" + data.id;
+  const { data, error } = await sb().rpc("preventivo_da_cena", { p_id: id });
+  if (error || !data?.ok) { b.disabled = false; b.textContent = "📑 Crea preventivo"; alert("Non riesco a creare il preventivo: " + (error?.message || data?.errore || "")); return; }
+  window.location.hash = "#/creaPreventivo?id=" + data.preventivo_id;
 }
 
 function listaT() {
