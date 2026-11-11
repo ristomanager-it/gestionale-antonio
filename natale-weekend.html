@@ -35,7 +35,10 @@ input[type=text],input[type=tel],input[type=email],textarea{display:block;width:
 .piede{text-align:center;color:var(--m);font-size:14px;margin-top:30px}.piede a{color:inherit}
 .cookie{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);border:1px solid var(--b);border-radius:12px;padding:10px 12px;display:flex;gap:8px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.15);z-index:9}
 .cookie span{flex:1;font-size:14px}.cookie button{border:1px solid var(--b);background:var(--card);color:var(--t);border-radius:8px;padding:7px 10px;font:inherit;font-size:14px}
-</style></head><body>
+</style><script>/* codice del clic di Google (gclid/gbraid/wbraid): si salva all'arrivo dall'annuncio e va con la prenotazione, per contare le conversioni anche senza cookie */
+(function(){try{var q=new URLSearchParams(location.search),c={};["gclid","gbraid","wbraid"].forEach(function(k){if(q.get(k))c[k]=q.get(k).slice(0,200)});if(Object.keys(c).length){c.t=Date.now();localStorage.setItem("rf_clic",JSON.stringify(c))}}catch(e){}
+window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"null");if(!c||Date.now()-c.t>90*864e5)return null;var o={};["gclid","gbraid","wbraid"].forEach(function(k){if(c[k])o[k]=c[k]});return o}catch(e){return null}};})();</script>
+</head><body>
 <div class="wrap">
 <header class="hero"><div class="k">24 · 25 · 26 DICEMBRE 2026</div><h1>Natale a Campo Antico</h1><h2>con la camera, a due passi dalla tavola</h2>
 <p><em>Quest’anno a Natale non si cucina, non si guida e non si lava un piatto.</em></p><p>Una o due notti, dalla cena della Vigilia al pranzo di Santo Stefano.</p>
@@ -195,7 +198,7 @@ input[type=text],input[type=tel],input[type=email],textarea{display:block;width:
       importo_totale: c.totale, stato: "in_attesa_pagamento", canale: "online",
       note: ("[Pacchetto Natale " + o.testo + " · camere " + c.camere + "] " + (st.p ? "[" + st.p + " bimbi sotto i 4 anni] " : "") + note).trim(),
       richieste_speciali: note || null, token_pubblico: token, tag: TAG, source: qs.get("utm_source") || "natale-weekend",
-      riferimento: JSON.stringify({ landing: TAG, notti_date: o.notti, camere: camere, pasti: o.pasti.map(function(k){ return { data: PASTI[k].data, ora: PASTI[k].ora, nome: PASTI[k].nome }; }),
+      riferimento: JSON.stringify({ clic_google: window.rfClic ? rfClic() : null, landing: TAG, notti_date: o.notti, camere: camere, pasti: o.pasti.map(function(k){ return { data: PASTI[k].data, ora: PASTI[k].ora, nome: PASTI[k].nome }; }),
         adulti: st.a, bambini: st.b, piccoli: st.p, totale: c.totale, consenso_gdpr: true, consenso_marketing: $("marketing").checked,
         sid: (function(){ try { return sessionStorage.getItem("rf_ses"); } catch (e) { return null; } })(), utm_source: qs.get("utm_source"), utm_campaign: qs.get("utm_campaign") })
     }]);
