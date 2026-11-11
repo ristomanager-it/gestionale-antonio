@@ -115,6 +115,21 @@ async function bozzeOnline() {
     + '<span style="background:#f59e0b;color:#fff;border-radius:999px;padding:2px 9px;font-weight:700">' + data.length + "</span></summary>"
     + data.map(scheda).join("") + "</details>";
   box.onclick = async (ev) => {
+    // crea il preventivo con quello che il cliente aveva scelto: stesso calcolo del sito, poi si apre per ritoccarlo
+    const cr = ev.target.closest("[data-bozza-crea]");
+    if (cr) {
+      const b = data.find((x) => x.id === cr.getAttribute("data-bozza-crea")); if (!b) return;
+      cr.disabled = true; cr.textContent = "Creo…";
+      try {
+        const { data: azi } = await sb.from("aziende").select("slug").eq("id", az).maybeSingle();
+        const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/preventivo-online", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(Object.assign({}, b.richiesta, { azione: "crea", p: azi?.slug, nomi: b.nomi || "", email: b.email, telefono: b.telefono || "", mese: /^\d{4}-\d{2}-\d{2}$/.test(b.data_testo || "") ? "" : (b.data_testo || "") })) }).then((x) => x.json());
+        if (!r.success) throw new Error(r.error === "data_non_disponibile" ? "la data non è più disponibile per quella location" : (r.error || "errore"));
+        await sb.from("preventivi_online_bozze").update({ gestita: true, preventivo_id: r.id }).eq("id", b.id);
+        window.location.hash = "#/creaPreventivo?id=" + r.id;
+      } catch (er) { cr.disabled = false; cr.textContent = "📝 Crea preventivo"; alert("Non riesco a creare il preventivo: " + er.message); }
+      return;
+    }
     const btn = ev.target.closest("[data-bozza-fatta]");
     if (!btn) return;
     btn.disabled = true;
