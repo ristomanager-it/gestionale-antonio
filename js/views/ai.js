@@ -596,7 +596,9 @@ function addMessage(text, type, opts = {}) {
     t.style.cssText = "font-weight:700;color:#0E5A7A;margin-bottom:8px;white-space:pre-wrap;";
     t.textContent = azX.riepilogo || "Modifica proposta";
     const ok = document.createElement("button");
-    ok.textContent = "✅ Conferma";
+    const isPost = azX.tipo === "post";
+    const etichettaOk = isPost ? (azX.dati && azX.dati.quando === "ora" ? "📤 Pubblica ora" : "🗓️ Programma") : "✅ Conferma";
+    ok.textContent = etichettaOk;
     ok.style.cssText = "background:#0E5A7A;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;margin-right:8px;";
     const no = document.createElement("button");
     no.textContent = "Annulla";
