@@ -306,6 +306,7 @@ ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
           </div>` : ""}
 
         <div class="pv-conto">
+          ${dettaglioConto(d, invitati)}
           ${invitati ? `<div class="r"><span>A persona</span><b>${euro(totale / invitati)}</b></div>` : ""}
           <div class="pv-tot"><span>Totale</span><b>${euro(totale)}</b></div>
           ${acconto ? `
