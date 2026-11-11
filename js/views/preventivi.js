@@ -1,5 +1,8 @@
 let preventiviCache = [];
 let filteredPreventivi = [];
+// lista corta: di base solo gli eventi da fare e quelli senza data; i passati si aprono a parte o si trovano cercando
+let cercando = false;
+let mostraPassati = false;
 
 export async function render(app) {
 
