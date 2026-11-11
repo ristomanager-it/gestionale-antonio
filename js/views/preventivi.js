@@ -16,6 +16,7 @@ export async function render(app) {
       <h2>📑 Preventivi</h2>
 
       <div id="prev-dal-sito"></div>
+      <div id="prev-bozze"></div>
 
       <!-- Barra di ricerca -->
       <div style="margin-bottom: 20px;">
