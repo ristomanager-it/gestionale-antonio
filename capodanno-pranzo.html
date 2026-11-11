@@ -91,6 +91,9 @@ footer a{color:var(--oro)}
 .cookie button{min-height:44px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-family:inherit;font-size:14px;cursor:pointer}
 .cookie #ck-si{background:var(--oro);color:#0b0a08}
 </style>
+<script>/* codice del clic di Google (gclid/gbraid/wbraid): si salva all'arrivo dall'annuncio e va con la prenotazione, per contare le conversioni anche senza cookie */
+(function(){try{var q=new URLSearchParams(location.search),c={};["gclid","gbraid","wbraid"].forEach(function(k){if(q.get(k))c[k]=q.get(k).slice(0,200)});if(Object.keys(c).length){c.t=Date.now();localStorage.setItem("rf_clic",JSON.stringify(c))}}catch(e){}
+window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"null");if(!c||Date.now()-c.t>90*864e5)return null;var o={};["gclid","gbraid","wbraid"].forEach(function(k){if(c[k])o[k]=c[k]});return o}catch(e){return null}};})();</script>
 </head>
 <body>
 <div class="topbar"><img id="logo" src="" alt=""><div><div class="tn" id="nome-sede"></div><div class="td">Pranzo del 1° gennaio 2027 · ore 13:00</div></div></div>
@@ -241,7 +244,7 @@ footer a{color:var(--oro)}
       data: "2027-01-01", ora: "13:00", coperti: persone, bambini: bimbi, pranzo_primo: persone, importo_totale: t,
       stato: "in_attesa_pagamento", canale: "online", note: note || null, richieste_speciali: note || null,
       token_pubblico: token, tag: SLUG, source: qs.get("utm_source") || "pranzo",
-      riferimento: JSON.stringify({ landing: SLUG, adulti: adulti, bambini: bimbi, totale: t, consenso_gdpr: true, consenso_marketing: $("marketing").checked })
+      riferimento: JSON.stringify({ clic_google: window.rfClic ? rfClic() : null, landing: SLUG, adulti: adulti, bambini: bimbi, totale: t, consenso_gdpr: true, consenso_marketing: $("marketing").checked })
     }]);
     if (ins.error) { inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma"; return errore("Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci."); }
     if (window.rfEvento) rfEvento("Lead", { value: acconto / 100, currency: "EUR", content_name: SLUG }, true);
