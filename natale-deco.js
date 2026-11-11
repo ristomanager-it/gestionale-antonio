@@ -30,8 +30,8 @@
     }
     Array.prototype.forEach.call(document.querySelectorAll(".blocco"), function(b, i){ if (i === 0 || b.querySelector(".sep")) return; b.insertBefore(el("div", "sep", S.albero + "<b>✦</b>" + S.albero), b.firstChild); });
     Array.prototype.forEach.call(document.querySelectorAll(".festone"), function(f){ f.innerHTML = S.albero + S.albero + S.albero; });
-    babbo();
     neve();
   }
+  // Babbo Natale solo dentro l'app (tema-stagionale.js): sulle pagine pubbliche dei clienti non compare
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", inizia); else inizia();
 })();
