@@ -637,7 +637,7 @@ function addMessage(text, type, opts = {}) {
           card.appendChild(lp);
         }
       } catch (e) {
-        ok.disabled = false; no.disabled = false; ok.textContent = "✅ Conferma";
+        ok.disabled = false; no.disabled = false; ok.textContent = etichettaOk;
         alert("Non riesco a contattare Tony: riprova.");
       }
     };
