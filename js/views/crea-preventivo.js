@@ -961,6 +961,9 @@ function aggancia(container, supabase, azienda, sede) {
       const k = el.dataset.campo;
       P[k] = el.type === "number" ? Number(el.value) || 0 : el.value;
       // i servizi "a persona" seguono il numero degli invitati
+      // percentuale e importo dell'acconto si escludono: scrivendo l'importo a mano la percentuale si toglie
+      if (k === "acconto") P.acconto_perc = null;
+      if (k === "acconto_perc" && !(Number(P.acconto_perc) > 0)) P.acconto_perc = null;
       if (k === "n_invitati") extra.forEach(x => { if (x.ppPrezzo != null) x.prezzo = x.ppPrezzo * Math.max(Number(P.n_invitati) || 1, 1); });
       if (k === "location_id") {
         const l = locations.find(x => String(x.id) === String(P.location_id));
