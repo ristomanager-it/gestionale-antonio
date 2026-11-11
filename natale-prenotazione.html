@@ -53,12 +53,12 @@
     if (p.sede_id === "c40919bb-78c2-458f-865e-0c9fd02aa0b5") document.documentElement.classList.add("campo");
     var pagato = p.stato_pagamento === "pagato", ora = String(p.ora || "").slice(0, 5);
     var nn = Number(p.notti) || 1;
-    var h = W() ? '<div class="testa"><div class="kicker">🎄 Natale a Campo Antico</div><div class="acc">Dal ' + giorno(String(p.data)) + ' · ' + nn + (nn === 1 ? ' notte' : ' notti') + ' con colazione</div><h1>La vostra prenotazione</h1></div>'
+    var h = W() ? '<div class="testa"><div class="kicker">🎄 Natale a Campo Antico</div><div class="acc">Da ' + giorno(String(p.data)).toLowerCase() + ' · ' + nn + (nn === 1 ? ' notte' : ' notti') + ' con colazione</div><h1>La vostra prenotazione</h1></div>'
       : '<div class="testa"><div class="kicker">🎄 Pranzo di Natale</div><div class="acc">Venerdì 25 dicembre</div><h1>La vostra prenotazione</h1></div>';
-    if (pagato) h += '<div class="esito ok"><h2>✓ Tavolo confermato</h2><p>Abbiamo ricevuto l’acconto. Vi aspettiamo ' + (W() ? 'il ' + giorno(String(p.data)).toLowerCase() : 'il 25 dicembre') + ': qui sotto trovate tutto.</p></div>';
+    if (pagato) h += '<div class="esito ok"><h2>✓ ' + (W() ? 'Prenotazione confermata' : 'Tavolo confermato') + '</h2><p>Abbiamo ricevuto l’acconto. Vi aspettiamo ' + (W() ? 'il ' + giorno(String(p.data)).toLowerCase() : 'il 25 dicembre') + ': qui sotto trovate tutto.</p></div>';
     else if (esitoQ === "ok") h += '<div class="esito att"><h2>Stiamo confermando il pagamento…</h2><p>Ci vogliono pochi secondi: non chiudete la pagina.</p></div>';
     else h += '<div class="esito ko"><h2>Acconto non ancora pagato</h2><p>Il tavolo non è ancora bloccato. Potete pagare l’acconto qui sotto, oppure chiamarci.</p></div>';
-    h += '<div class="card"><h3>Il vostro tavolo</h3>'
+    h += '<div class="card"><h3>' + (W() ? 'La vostra prenotazione' : 'Il vostro tavolo') + '</h3>'
       + '<div class="riga"><span>Quando</span><b>' + (W() ? giorno(String(p.data)) + ' 2026, ore ' + esc(ora) + '<br>' + esc(String(p.note || '').replace(/^\[Pacchetto Natale ([^\]]*)\].*$/, '$1')) : 'Venerdì 25 dicembre 2026<br>ore ' + esc(ora)) + '</b></div>'
       + '<div class="riga"><span>Dove</span><b>' + esc(L.nome) + '<br>' + esc(L.ind) + '</b></div>'
       + '<div class="riga"><span>Ospiti</span><b>' + x.a + (x.a === 1 ? " adulto" : " adulti") + (x.b ? " + " + x.b + (x.b === 1 ? " bambino" : " bambini") : "") + '</b></div>'
@@ -67,6 +67,17 @@
       + (pagato && p.acconto_importo ? '<div class="riga"><span>Acconto pagato</span><b>' + euro(p.acconto_importo) + '</b></div>' + ((N.prezzo || W()) ? '<div class="riga"><span>' + (W() ? 'Da saldare all’arrivo' : 'Da saldare il 25 dicembre') + '</span><b>' + euro(Math.max(totale() - Number(p.acconto_importo), 0)) + '</b></div>' : '') : '')
       + (p.richieste_speciali || p.note ? '<div class="riga"><span>Segnalazioni</span><b>' + esc(p.richieste_speciali || p.note) + '</b></div>' : '')
       + '</div>';
+    if (W()) {
+      // il programma del pacchetto: pasti secondo le notti, camere dalla nota della prenotazione
+      var d0 = String(p.data), nn2 = Number(p.notti) || 1, prog = [];
+      if (d0 === "2026-12-24") prog.push(["Giovedì 24, ore 20:00", "Cena della Vigilia", "arrivo e camera"]);
+      if (d0 === "2026-12-24" || d0 === "2026-12-25") prog.push(["Venerdì 25, ore 13:00", "Pranzo di Natale", d0 === "2026-12-25" ? "arrivo e camera" : "colazione e pranzo"]);
+      if (d0 === "2026-12-25" || nn2 === 2) prog.push(["Sabato 26, ore 13:00", "Pranzo di Santo Stefano", "colazione e pranzo"]);
+      var cam = (String(p.note || "").match(/camere ([^\]]+)\]/) || [])[1] || "";
+      h += '<div class="card"><h3>Il vostro Natale</h3>'
+        + prog.map(function(x){ return '<div class="riga"><span>' + esc(x[0]) + '</span><b>' + esc(x[1]) + '<br><small style="font-weight:400;color:var(--muto)">' + esc(x[2]) + '</small></b></div>'; }).join("")
+        + '<div class="riga"><span>Camere</span><b>' + esc(cam ? "Camera " + cam : (p.camere || 1) + " camera") + '<br><small style="font-weight:400;color:var(--muto)">' + nn2 + (nn2 === 1 ? " notte" : " notti") + ' con colazione, a Campo Antico</small></b></div></div>';
+    }
     if (pagato) h += '<div class="card"><h3>Mancano</h3><div class="conta"><div><b id="cg">–</b><small>giorni</small></div><div><b id="co">–</b><small>ore</small></div><div><b id="cm">–</b><small>minuti</small></div><div><b id="cs">–</b><small>secondi</small></div></div></div>';
     h += '<div class="card"><h3>Cosa fare ora</h3><div class="azioni">'
       + (!pagato ? '<button class="btn" id="paga" type="button">Paga l’acconto</button>' : '')
