@@ -20,6 +20,7 @@ let sezioniInfo = [];    // nome -> categoria di piatti e se va a parte nel docu
 let modelli = [];        // schemi di menu predefiniti per tipo evento e formula
 let isole = [];          // isole del buffet (matrimoni): descrizione e portate possibili
 let isolePiatti = [];
+let prezziIsole = {};      // prezzo a persona dal prodotto di vendita collegato all'isola (angolo dei salumi, dei formaggi...)
 let richieste = [];
 let pagamenti = [];   // contabili caricate dal cliente, da verificare
 let lotti = 0;        // quanti lotti di produzione sono nati da questo evento
