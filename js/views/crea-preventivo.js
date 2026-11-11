@@ -372,6 +372,12 @@ function isoleDiSezione(sez) {
   return isole.filter(i => norm(i.nome) === n || (i.gruppo && norm(i.gruppo) === n && i.modo !== "opzionale"));
 }
 
+// prezzo a persona di listino dell'isola (dal prodotto collegato); il gruppo Pesce ha un solo prezzo
+function prezzoListino(sez) {
+  const i = isoleDiSezione(sez).find(x => x.prodotto_vendita_id && prezziIsole[x.prodotto_vendita_id] > 0);
+  return i ? prezziIsole[i.prodotto_vendita_id] : 0;
+}
+
 // scheda compatta di un'isola del buffet: descrizione, contatore, portate nascoste e UN prezzo a persona
 function cardIsola(sez) {
   const l = isoleDiSezione(sez);
