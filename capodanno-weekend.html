@@ -487,6 +487,10 @@ footer a{color:var(--oro)}
       $("riga-transfer").hidden = false; $("nota-superior").hidden = false;
     }
     promoAttiva = Number(r[1].data || 0) > 0;
+    // pacchetto Campo Antico senza piu' posti in offerta: si segnala che alla Trattoria c'e' ancora
+    if (!promoAttiva && S.chiave === "campo" && Date.now() <= PROMO_FINO && !document.getElementById("soldout-campo")) {
+      $("amo").insertAdjacentHTML("afterend", '<div id="soldout-campo" style="margin:12px auto 0;max-width:520px;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #f59e0b;color:#7c2d12;font-size:15px;line-height:1.45;text-align:center"><b>Offerta sold out a Campo Antico.</b><br>Il pacchetto in offerta c’è ancora alla <a href="capodanno-weekend.html?l=aquila" style="color:#b45309;font-weight:700">Trattoria dell’Aquila</a>, fino al 15 novembre.</div>');
+    }
     if (!cfg) return;
     disegnaPrezzi();
     if (pranzoAttivo()) {
