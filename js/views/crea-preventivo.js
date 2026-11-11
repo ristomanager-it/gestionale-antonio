@@ -350,7 +350,10 @@ function conti() {
     costoMenu, costoPersonale, costoTotale, margine,
     marginePerc: totale > 0 ? (margine / totale) * 100 : 0,
     aPersona: totale / inv, costoPersona: costoTotale / inv,
-    stimati, senzaCosto, acconto: P.acconto_modo === "nessuno" ? 0 : (Number(P.acconto) || 0),
+    stimati, senzaCosto,
+    // acconto in percentuale (es. aziende al 50%): segue il totale; altrimenti l'importo scritto a mano
+    acconto: P.acconto_modo === "nessuno" ? 0
+      : (Number(P.acconto_perc) > 0 ? Math.round(totale * Number(P.acconto_perc)) / 100 : (Number(P.acconto) || 0)),
   };
 }
 
