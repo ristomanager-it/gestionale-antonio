@@ -186,6 +186,7 @@ function filterPreventivi(searchTerm) {
   // "paola lanchi" trova Paola Lanchi anche se nome e cognome stanno in campi diversi.
   const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const termini = norm(searchTerm).split(/\s+/).filter(Boolean);
+  cercando = termini.length > 0;
 
   filteredPreventivi = preventiviCache.filter((p) => {
     const iso = p.data_evento ? String(p.data_evento).slice(0, 10) : "";
