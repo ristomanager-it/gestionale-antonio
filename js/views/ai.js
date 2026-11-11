@@ -1121,6 +1121,13 @@ async function callTonyMeta(messages) {
     if (isProIntent(testoU)) tonyProMode = true;
     else if (BASE_RE.test(testoU.toLowerCase()) || testoU.length > 60) tonyProMode = false;
     const specialista = tonyProMode ? "tony-campagne-pro" : "tony-campagne-chat";
+    // le foto allegate in chat (per esempio quella del post) partono con questo messaggio e poi si svuotano
+    const fotoSpec = (window.__tonyFoti || []).slice(0, 6);
+    if (fotoSpec.length) {
+      window.__tonyFoti = []; window.__tonyFoto = null;
+      const antS = document.getElementById("chat-foto-anteprima");
+      if (antS) { antS.style.display = "none"; antS.innerHTML = ""; }
+    }
     const rc = await fetch(`${supabaseUrl}/functions/v1/${specialista}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
