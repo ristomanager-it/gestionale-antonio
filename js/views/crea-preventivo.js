@@ -526,6 +526,15 @@ function disegna(container, supabase, azienda, sede) {
       <div class="pv2-card">
         <h2>Cliente ed evento</h2>
         <div class="griglia">
+          <div style="grid-column:1/-1;">
+            <label>Tipo di evento</label>
+            <select class="in" data-campo="tipo_servizio">
+              <option value="">— scegli —</option>
+              ${TIPI_EVENTO.map(t => `<option value="${esc(t)}"${tipoEvento() === t ? " selected" : ""}>${esc(t)}</option>`).join("")}
+              ${tipoEvento() && !TIPI_EVENTO.includes(tipoEvento())
+                ? `<option value="${esc(tipoEvento())}" selected>${esc(tipoEvento())}</option>` : ""}
+            </select>
+          </div>
           ${campo(dueNomi() ? "Lui — nome" : "Nome", "cliente_nome")}
           ${campo(dueNomi() ? "Lui — cognome" : "Cognome", "cliente_cognome")}
           ${dueNomi() ? campo("Lei — nome", "cliente2_nome") : ""}
@@ -536,15 +545,6 @@ function disegna(container, supabase, azienda, sede) {
             <label>Lingua del cliente</label>
             <select class="in" data-campo="lingua">
               ${[["it","Italiano"],["en","English"],["de","Deutsch"],["nl","Nederlands"],["es","Español"],["ru","Русский"]].map(([k, l]) => `<option value="${k}"${(P.lingua || "it") === k ? " selected" : ""}>${l}</option>`).join("")}
-            </select>
-          </div>
-          <div>
-            <label>Evento</label>
-            <select class="in" data-campo="tipo_servizio">
-              <option value="">— scegli —</option>
-              ${TIPI_EVENTO.map(t => `<option value="${esc(t)}"${tipoEvento() === t ? " selected" : ""}>${esc(t)}</option>`).join("")}
-              ${tipoEvento() && !TIPI_EVENTO.includes(tipoEvento())
-                ? `<option value="${esc(tipoEvento())}" selected>${esc(tipoEvento())}</option>` : ""}
             </select>
           </div>
           <div>
