@@ -1131,7 +1131,7 @@ async function callTonyMeta(messages) {
     const rc = await fetch(`${supabaseUrl}/functions/v1/${specialista}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
-      body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, messages: msgs }),
+      body: JSON.stringify({ azienda_id: window.state?.azienda?.id, sede_id: window.state?.sedeAttiva?.id || null, messages: msgs, immagini: fotoSpec }),
       signal: ctrlSpec.signal,
     });
     clearTimeout(tSpec);
