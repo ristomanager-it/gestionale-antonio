@@ -1101,7 +1101,8 @@ function isProIntent(text) {
 function isMetaIntent(text) {
   if (RE_SONDAGGI.test(text || "")) return false; // il sondaggio ha il suo specialista anche se si parla di promo
   const t = " " + (text || "").toLowerCase() + " ";
-  return META_KEYWORDS.some(k => t.includes(k)) || isProIntent(text);
+  // 11/11/2026: anche "fammi un post" va allo specialista, che ora sa preparare e pubblicare i post della pagina
+  return META_KEYWORDS.some(k => t.includes(k)) || /\bpost\b/.test(t) || isProIntent(text);
 }
 
 async function callTonyMeta(messages) {
