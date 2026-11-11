@@ -96,12 +96,12 @@ function costruisci(){var m=(CFG.tipi||[]).filter(function(t){return t.tipo===TI
   return {k:p.k,t:NOMI[p.k]||p.k,h:h,min:p.k==="torta"?1:p.min,max:mx}}));
  PRED={};(m.portate||[]).forEach(function(p){(p.predefiniti||[]).forEach(function(id){PRED[id]=true})});
  sel={};CFG.voci.forEach(function(v){if(v.compreso||v.base||PRED[v.id])sel[v.id]=true})}
-function scheda(v,z,n){var on=!!sel[v.id],piena=z.max<99&&n>=z.max&&!on&&z.k!=="torta",off=v.troppi||piena;
+function scheda(v,z,n){var on=!!sel[v.id],piena=z.max<99&&z.max>1&&n>=z.max&&!on&&z.k!=="torta",off=v.troppi||piena;
  var dsp=v.disp?'<span class="disp '+(v.disp.stato==="libera"?"ok":(v.disp.stato==="richiesta"||v.disp.stato==="pochi"||v.disp.stato==="da_verificare")?"wa":"no")+'">'+(v.disp.stato==="libera"?"✓ ":"")+esc(v.disp.testo)+'</span>':"";
  return '<div class="pt'+(on?" on":"")+(off?" off":"")+'" data-v="'+esc(v.id)+'">'+(v.f?'<img src="'+esc(v.f)+'" alt="" loading="lazy">':"")+'<div class="tx"><div><b>'+esc(v.n)+'</b>'+(v.d?'<small>'+esc(v.d)+'</small>':"")+(v.it?'<span class="lab">'+esc(v.it)+'</span>':"")+dsp+(v.troppi&&!v.disp?'<span class="disp no">Non basta per '+INV+' ospiti</span>':"")+'</div>'+(v.pr?'<span class="pr">'+esc(v.pr)+'</span>':"")+'<span class="ck">'+(on?"✓":"")+'</span></div></div>'+(on&&CIBO.indexOf(z.k)>=0?'<input class="nota" data-n="'+esc(v.id)+'" placeholder="Una nota su questo piatto (facoltativa)" value="'+esc(note[v.id]||"")+'">':"")}
 function disegna(){var h="",chips="";
  STEPS.forEach(function(z,i){if(i!==cur&&(fatto[i]||i<cur))chips+='<button type="button" class="chip" data-st="'+i+'">✓ '+esc(z.t)+'</button>';if(i!==cur)return;
-  var n=nSel(z.k),vs=voci(z.k),cat="",pieno=z.max<99&&n>=z.max&&!mostra[z.k]&&z.k!=="torta";if(pieno)vs=vs.filter(function(v){return sel[v.id]});
+  var n=nSel(z.k),vs=voci(z.k),cat="",pieno=z.max<99&&z.max>1&&n>=z.max&&!mostra[z.k]&&z.k!=="torta";if(pieno)vs=vs.filter(function(v){return sel[v.id]});
   h+='<div class="st" id="st"><div class="st-h"><b>'+(i+1)+' · '+esc(z.t)+'</b><span class="m">'+esc(z.h)+'</span></div>';
   h+='<div class="pts">';vs.forEach(function(v){if(v.cat&&v.cat!==cat){cat=v.cat;h+='</div><div class="cat">'+esc(cat)+'</div><div class="pts">'}h+=scheda(v,z,n)});h+='</div>';
   if(pieno)h+='<button class="btn g" data-tutti="'+z.k+'">Cambia scelta</button>';
