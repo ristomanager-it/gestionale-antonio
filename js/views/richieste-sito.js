@@ -44,16 +44,18 @@ function bonificoValido(r) { return r.stato === "bonifico_in_attesa" && (!r.scad
 
 function disegna() {
   const w = stato.w, t = stato.t;
-  const daGestire = w.filter((r) => r.stato === "nuova").length + t.filter((r) => bonificoValido(r) || r.stato === "richiesta_info").length;
+  const daGestire = w.filter((r) => r.stato === "nuova").length + stato.c.filter((r) => r.stato === "nuova").length + t.filter((r) => bonificoValido(r) || r.stato === "richiesta_info").length;
   const attesi = t.filter(bonificoValido).reduce((s, r) => s + Number(r.acconto || 0), 0);
   const consenso = w.filter((r) => r.consenso_whatsapp).length;
   document.getElementById("rsK").innerHTML = '<div><b>' + daGestire + '</b><span>da gestire</span></div><div><b>' + eur(attesi) + '</b><span>acconti attesi</span></div><div><b>' + consenso + '</b><span>con consenso offerte</span></div>';
   document.querySelectorAll(".rs-tabs button").forEach((b) => {
-    const n = b.dataset.t === "matrimoni" ? w.filter((r) => r.stato === "nuova").length : t.filter((r) => bonificoValido(r) || r.stato === "richiesta_info").length;
-    b.className = b.dataset.t === stato.scheda ? "on" : ""; b.innerHTML = (b.dataset.t === "matrimoni" ? "💍 Matrimoni" : "✈️ Viaggi") + (n ? ' <span class="rs-b">' + n + "</span>" : "");
+    const n = b.dataset.t === "matrimoni" ? w.filter((r) => r.stato === "nuova").length : b.dataset.t === "cene" ? stato.c.filter((r) => r.stato === "nuova").length : t.filter((r) => bonificoValido(r) || r.stato === "richiesta_info").length;
+    b.className = b.dataset.t === stato.scheda ? "on" : ""; b.innerHTML = (b.dataset.t === "matrimoni" ? "💍 Matrimoni" : b.dataset.t === "cene" ? "🏢 Cene aziendali" : "✈️ Viaggi") + (n ? ' <span class="rs-b">' + n + "</span>" : "");
   });
   const L = document.getElementById("rsL");
-  L.innerHTML = stato.scheda === "matrimoni" ? listaW() : listaT();
+  L.innerHTML = stato.scheda === "matrimoni" ? listaW() : stato.scheda === "cene" ? listaC() : listaT();
+  L.querySelectorAll("[data-sc]").forEach((s) => s.onchange = async () => { await aggiorna("richieste_cene_aziendali", s.dataset.sc, { stato: s.value, aggiornata_at: new Date().toISOString() }); });
+  L.querySelectorAll("[data-prevc]").forEach((b) => b.onclick = () => creaPreventivoCena(b.dataset.prevc, b));
   L.querySelectorAll("[data-sw]").forEach((s) => s.onchange = async () => { await aggiorna("wedding_richieste", s.dataset.sw, { stato: s.value }); });
   L.querySelectorAll("[data-prev]").forEach((b) => b.onclick = () => creaPreventivo(b.dataset.prev, b));
   L.querySelectorAll("[data-acc]").forEach((b) => b.onclick = () => accontoRicevuto(b.dataset.acc, b));
