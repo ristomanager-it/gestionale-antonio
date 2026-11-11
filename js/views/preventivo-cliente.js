@@ -91,6 +91,9 @@ export async function render(container) {
       .pv-avviso.attesa{background:#FFF7ED;border-color:#FED7AA;color:#9A3412;}
       @media print{
         @page{size:A4;margin:9mm;}
+        /* decorazioni di stagione (neve, Babbo, alberelli) mai sul foglio */
+        #rf-gabbia,#neve-natale,.rf-babbo,.deco-neve{display:none !important;}
+        .app-header::after{display:none !important;}
         body{background:#fff;padding:0;}
         .pv{background:#fff;padding:0;font-size:11.5px;}
         .pv-foglio{box-shadow:none;max-width:none;border-radius:0;}
