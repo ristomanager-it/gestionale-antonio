@@ -3,6 +3,8 @@
 //     le letture da Google (numeri, ricerche, parole, visite alle pagine) e le modifiche ora partono in parallelo invece che una dopo l'altra;
 //     il modello analizza ogni campagna per conto suo e tutte insieme in parallelo (una sola risposta lunga per tutte superava da sola i 150 secondi);
 //     il riepilogo generale lo compone il sistema con i numeri veri.
+// v7.1: dentro la stessa campagna le modifiche vanno una alla volta (Google rifiutava quelle contemporanee: 'Multiple requests...');
+//     errori di Google spiegati in italiano; azione 'riprova' per rifare quelle rimaste in errore per questo motivo.
 // v6: risposta lunga con tante campagne: max_tokens 16000 (a 6000 il JSON arrivava tagliato a meta').
 // v5: se il JSON di Claude e' rotto si riprova una volta invece di fallire.
 // v4: per le campagne rivolte a stranieri l'Italia centrale (Toscana, Umbria, Lazio) non si esclude mai.
@@ -53,6 +55,8 @@ async function google(az: string) {
   const q = async function (g: string) { const r = await fetch(base + "/googleAds:search", { method: "POST", headers: H, body: JSON.stringify({ query: g }) }); const j: any = await r.json().catch(function () { return {}; }); return r.status === 200 ? (j.results || []) : []; };
   const mut = async function (op: any) { const r = await fetch(base + "/googleAds:mutate", { method: "POST", headers: H, body: JSON.stringify({ mutateOperations: [op] }) }); const j: any = await r.json().catch(function () { return {}; });
     let e = ""; if (r.status !== 200) { const er = j && j.error; const d: string[] = []; ((er && er.details) || []).forEach(function (x: any) { (x.errors || []).forEach(function (y: any) { d.push(y.message || ""); }); }); e = (d.join(" | ") || (er && er.message) || "errore").slice(0, 200); }
+    if (/same resource at once/i.test(e)) e = "Google era occupato con un'altra modifica: da rifare";
+    else if (/policy was violated/i.test(e)) e = "Google non accetta questa parola per le sue regole sulla pubblicita'";
     return { ok: r.status === 200, err: e }; };
   return { cust: cust, q: q, mut: mut };
 }
@@ -151,13 +155,14 @@ async function analizza(az: string, prova: boolean) {
     const ricerche = (base.ricerche || []).map(function (x: any) { return String(x.r).toLowerCase(); });
     const cr = "customers/" + g.cust + "/campaigns/" + base.id;
     if (c.sintesi) righe.push({ tipo: "nota", campagna: base, valore: null, motivo: String(c.sintesi), stato: "applicato" });
-    const ops: Promise<any>[] = [];
+    // dentro la stessa campagna le modifiche vanno una alla volta: Google rifiuta modifiche contemporanee alla stessa campagna
+    let catena: Promise<any> = Promise.resolve();
     for (const e of (c.escludi || []).slice(0, 15)) {
       const t = String(e.testo || "").toLowerCase().trim(); if (!t || t.length > 60) continue;
       if (!ricerche.some(function (r: string) { return r.indexOf(t) >= 0; })) continue; // solo cose viste davvero
       const riga: any = { tipo: "escludi", campagna: base, valore: t, motivo: String(e.motivo || ""), stato: "simulato", esito: "" };
       righe.push(riga);
-      if (!prova) ops.push(g.mut({ campaignCriterionOperation: { create: { campaign: cr, negative: true, keyword: { text: t, matchType: "PHRASE" } } } }).then(function (r: any) { riga.stato = r.ok ? "applicato" : "errore"; riga.esito = r.err; }));
+      if (!prova) catena = catena.then(function () { return g.mut({ campaignCriterionOperation: { create: { campaign: cr, negative: true, keyword: { text: t, matchType: "PHRASE" } } } }).then(function (r: any) { riga.stato = r.ok ? "applicato" : "errore"; riga.esito = r.err; }); });
     }
     if (base.tipo === "SEARCH") {
       const gruppo = base._gruppo || null;
@@ -166,7 +171,7 @@ async function analizza(az: string, prova: boolean) {
         const t = String(p.testo || "").toLowerCase().trim(); if (!t || t.length > 80 || giaPresenti.indexOf(t) >= 0) continue;
         const riga: any = { tipo: "parola", campagna: base, valore: t, motivo: String(p.motivo || ""), stato: "simulato", esito: "" };
         righe.push(riga);
-        if (!prova && gruppo) ops.push(g.mut({ adGroupCriterionOperation: { create: { adGroup: gruppo, status: "ENABLED", keyword: { text: t, matchType: "PHRASE" } } } }).then(function (r: any) { riga.stato = r.ok ? "applicato" : "errore"; riga.esito = r.err; }));
+        if (!prova && gruppo) catena = catena.then(function () { return g.mut({ adGroupCriterionOperation: { create: { adGroup: gruppo, status: "ENABLED", keyword: { text: t, matchType: "PHRASE" } } } }).then(function (r: any) { riga.stato = r.ok ? "applicato" : "errore"; riga.esito = r.err; }); });
       }
     }
     for (const p of (c.proposte || []).slice(0, 3)) {
@@ -177,7 +182,7 @@ async function analizza(az: string, prova: boolean) {
       if (tipo === "pausa") v = "";
       righe.push({ tipo: tipo, campagna: base, valore: v, motivo: String(p.motivo || ""), stato: prova ? "simulato" : "proposto" });
     }
-    await Promise.all(ops);
+    await catena;
     return righe;
   }));
   const righe: any[] = [].concat.apply([], blocchi as any);
@@ -187,6 +192,28 @@ async function analizza(az: string, prova: boolean) {
   out.riepilogo += " " + (prova ? "In prova: " : "") + nEscl + " ricerche escluse, " + nPar + " parole chiave aggiunte" + (nProp ? ", " + nProp + " proposte da approvare." : ".");
   await SB.from("tony_campagne_analisi").update({ riepilogo: out.riepilogo }).eq("id", an && an.id);
   return { success: true, analisi_id: an && an.id, prova: prova, periodo: { da: da, a: a }, riepilogo: out.riepilogo, voci: righe.map(function (r: any, i: number) { return { id: ids[i] ? ids[i].id : null, campagna: r.campagna.nome, tipo: r.tipo, valore: r.valore, motivo: r.motivo, stato: r.stato, esito: r.esito || "" }; }) };
+}
+
+// rifa' una alla volta le esclusioni e le parole rimaste in errore perche' Google era occupato (modifiche contemporanee della v7 iniziale)
+async function riprova(az: string) {
+  const g = await google(az); if (!g) return { success: false, error: "Google Ads non collegato" };
+  const lista = (await SB.from("tony_campagne_suggerimenti").select("id, campagna_id, tipo, valore, esito").eq("azienda_id", az).eq("stato", "errore").in("tipo", ["escludi", "parola"]).gte("created_at", new Date(Date.now() - 3 * 864e5).toISOString()).limit(300)).data || [];
+  const da = lista.filter(function (x: any) { return /same resource|occupato/i.test(String(x.esito || "")); });
+  const gruppi: Record<string, string | null> = {};
+  let fatti = 0, ancora = 0;
+  for (const x of da) {
+    let r: any;
+    if (x.tipo === "escludi") r = await g.mut({ campaignCriterionOperation: { create: { campaign: "customers/" + g.cust + "/campaigns/" + x.campagna_id, negative: true, keyword: { text: x.valore, matchType: "PHRASE" } } } });
+    else {
+      if (!(x.campagna_id in gruppi)) { const gr = (await g.q("select ad_group.resource_name from ad_group where campaign.id = " + x.campagna_id + " and ad_group.status = 'ENABLED' limit 1"))[0]; gruppi[x.campagna_id] = gr ? gr.adGroup.resourceName : null; }
+      if (!gruppi[x.campagna_id]) { ancora++; continue; }
+      r = await g.mut({ adGroupCriterionOperation: { create: { adGroup: gruppi[x.campagna_id], status: "ENABLED", keyword: { text: x.valore, matchType: "PHRASE" } } } });
+    }
+    const gia = /already exists|duplicat/i.test(String(r.err || ""));
+    await SB.from("tony_campagne_suggerimenti").update({ stato: r.ok || gia ? "applicato" : "errore", esito: r.ok || gia ? null : r.err }).eq("id", x.id);
+    if (r.ok || gia) fatti++; else ancora++;
+  }
+  return { success: true, rifatti: fatti, ancora_in_errore: ancora, da_rifare: da.length };
 }
 
 async function decidi(az: string, id: string, approva: boolean, uid: string | null) {
@@ -223,6 +250,7 @@ Deno.serve(async function (req) {
     }
     if (!u.ok) return json({ success: false, error: "Solo admin o addetto marketing" }, 401);
     if (b.azione === "analizza") { const t0 = Date.now(); const x: any = await analizza(az, b.prova === true); x.ms = Date.now() - t0; return json(x); }
+    if (b.azione === "riprova") return json(await riprova(az));
     if (b.azione === "decidi") return json(await decidi(az, String(b.id || ""), b.approva === true, u.uid));
     return json({ success: false, error: "azione sconosciuta" }, 400);
   } catch (e) { return json({ success: false, error: String(e).slice(0, 300) }, 500); }
