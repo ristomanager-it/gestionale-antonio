@@ -48,6 +48,7 @@ function disegna() {
   h += '<div class="po-card"><b>Lista di controllo</b>' +
     riga(S.modelli.length, S.modelli.length + " modelli di menu (" + esc(S.modelli.map((m) => m.tipo_evento).join(", ")) + ")", "menu-tipo", "Modelli") +
     riga(S.nOnline, S.nOnline + " piatti e voci visibili online" + (S.nSenzaFoto && c.online_foto !== "mai" ? " · " + S.nSenzaFoto + " senza foto" + (c.online_foto === "dove_ci_sono" ? "" : ": con la regola «tutte o nessuna» le foto restano spente") : ""), "bo-prodotti", "Menu e prodotti") +
+    riga(!S.nSenzaFoto, S.nSenzaFoto ? S.nSenzaFoto + " piatti ancora senza foto: si scattano dal telefono, una alla volta" : "Tutti i piatti hanno la foto", "foto-preventivo", "📷 Foto") +
     riga(S.nLoc, S.nLoc + " location con prezzi e capienze", "bo-location-ricevimenti", "Location") +
     riga(S.haPag, S.haPag ? "Pagamento dell'acconto impostato (bonifico o carta)" : "Manca il pagamento dell'acconto: IBAN o carta", "servizi-eventi", "Pagamenti") +
     riga(!!slug, slug ? "Indirizzo della vostra pagina: " + esc(slug) : "Manca lo slug dell'azienda", null) + "</div>";
