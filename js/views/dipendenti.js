@@ -801,6 +801,7 @@ async function renderForm(dip) {
             </optgroup>
             <optgroup label="Gestionale">
               <option value="segreteria">Segreteria</option>
+              <option value="addetto_marketing">Addetto marketing</option>
               <option value="admin">Admin</option>
             </optgroup>
           </select>
