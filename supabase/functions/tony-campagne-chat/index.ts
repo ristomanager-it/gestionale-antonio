@@ -588,6 +588,75 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
     return { media: lista, nota: lista.length ? "scegli l'id da passare come media_id" : "la libreria della sede e' vuota: la landing usera' la foto del piatto, se c'e'" };
   }
 
+  if (nome === "proponi_post") {
+    const testo = String(inp.testo || "").trim();
+    if (testo.length < 20) return { errore: "il testo del post e' vuoto o troppo corto" };
+    if (!c.sedeId) return { errore: "manca la sede: di' all'utente di scegliere il locale in alto nell'app" };
+    const { data: sd } = await sb.from("sedi").select("nome, meta_pagina_id, meta_pagina_nome").eq("id", c.sedeId).maybeSingle();
+    if (!sd || !sd.meta_pagina_id) return { errore: "la sede non ha una pagina Facebook collegata: di' all'utente di collegarla da Marketing > Connessioni" };
+    const { data: mc } = await sb.from("meta_ads_connessioni").select("id").eq("azienda_id", c.aziendaId).eq("attivo", true).limit(1);
+    if (!mc || !mc.length) return { errore: "Meta non e' collegato: di' all'utente di collegarlo da Marketing > Connessioni" };
+    const quando = String(inp.quando || "ora").trim();
+    let data = oggiRoma(), ora = "00:00";
+    if (quando !== "ora") {
+      const m = quando.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})/);
+      if (!m) return { errore: "quando deve essere 'ora' oppure AAAA-MM-GGTHH:MM" };
+      data = m[1]; ora = m[2] + ":" + m[3];
+      if (data < oggiRoma()) return { errore: "la data e' gia' passata: chiedi all'utente quando" };
+    }
+    const canali: string[] = (Array.isArray(inp.canali) && inp.canali.length ? inp.canali : ["facebook", "instagram"])
+      .map((x: unknown) => String(x)).filter((x: string) => x === "facebook" || x === "instagram");
+    let url = "";
+    const f = String(inp.foto || "").trim();
+    if (f.indexOf("chat:") === 0) {
+      const i = parseInt(f.slice(5), 10) - 1;
+      const b64 = (c.immagini || [])[i];
+      if (!b64) return { errore: "in questo messaggio non c'e' la foto " + f + ": chiedi all'utente di riallegarla" };
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+      const path = c.aziendaId + "/chat/" + Date.now() + "-" + (i + 1) + ".jpg";
+      const up = await sb.storage.from("media-aziende").upload(path, bytes, { contentType: "image/jpeg", upsert: false });
+      if (up.error) return { errore: "non riesco a salvare la foto: " + up.error.message };
+      url = SUPABASE_URL + "/storage/v1/object/public/media-aziende/" + path;
+      await sb.from("media_library").insert({ azienda_id: c.aziendaId, sede_id: c.sedeId, nome: "Foto dalla chat di Tony " + oggiRoma(),
+        url: url, path: path, tipo: "immagine", origine: "caricamento", caricata_da: c.uid });
+    } else if (f.indexOf("media:") === 0) {
+      const { data: m } = await sb.from("media_library").select("url").eq("id", f.slice(6)).eq("azienda_id", c.aziendaId).maybeSingle();
+      if (!m || !m.url) return { errore: "foto non trovata nella galleria di questa azienda" };
+      url = String(m.url);
+    }
+    if (canali.indexOf("instagram") !== -1 && !url) return { errore: "Instagram non pubblica senza foto: scegli una foto oppure pubblica solo su Facebook" };
+    const angolo = ["perche", "come", "cosa"].indexOf(String(inp.angolo)) !== -1 ? String(inp.angolo) : "perche";
+    const titolo = String(inp.titolo || "").trim().slice(0, 80) || testo.split("\n")[0].slice(0, 60);
+    const { data: riga, error } = await sb.from("calendario_editoriale").insert({
+      azienda_id: c.aziendaId, sede_id: c.sedeId, data: data, ora_pubblicazione: ora, angolo: angolo, titolo: titolo, testo: testo,
+      media_url: url || null, canale: canali[0] || "facebook", canali: canali, formato: "foto", grafica_modo: "foto",
+      foto_bloccata: !!url, stato: "bozza", istruzioni: "Creato da Tony nella chat"
+    }).select("id").single();
+    if (error || !riga) return { errore: "non riesco a preparare il post: " + (error ? error.message : "errore") };
+    const pagina = String(sd.meta_pagina_nome || sd.nome || "la pagina");
+    const quandoTxt = quando === "ora" ? "esce subito" : "esce il " + dataLunga(data) + " alle " + ora;
+    return await proponi(c, "post", { giorno_id: riga.id, quando: quando === "ora" ? "ora" : data + "T" + ora },
+      "Post per " + pagina + " (" + canali.join(" e ") + "), " + quandoTxt + ":\n\n" + testo, url || null);
+  }
+
+  if (nome === "stato_post") {
+    let q = sb.from("calendario_editoriale").select("id, data, ora_pubblicazione, titolo, stato, meta_post_id, pubblicato_at")
+      .eq("azienda_id", c.aziendaId).not("testo", "is", null);
+    if (c.sedeId) q = q.eq("sede_id", c.sedeId);
+    const { data: righe } = await q.order("created_at", { ascending: false }).limit(6);
+    const ids = (righe || []).map((r: any) => r.id);
+    const { data: log } = ids.length ? await sb.from("pubblicazioni_log").select("giorno_id, pagina_nome, esito, errore").in("giorno_id", ids) : { data: [] as any[] };
+    return { post: (righe || []).map((r: any) => {
+      const l = (log || []).filter((x: any) => x.giorno_id === r.id);
+      return { titolo: r.titolo, stato: r.stato, giorno: r.data, ora: String(r.ora_pubblicazione || "").slice(0, 5),
+        uscito_il: r.pubblicato_at, link: r.meta_post_id ? "https://www.facebook.com/" + r.meta_post_id : null,
+        canali_usciti: l.filter((x: any) => x.esito === "pubblicato").map((x: any) => x.pagina_nome === "Instagram" ? "Instagram" : "Facebook"),
+        errori: l.filter((x: any) => x.esito !== "pubblicato").map((x: any) => x.errore).filter(Boolean) };
+    }) };
+  }
+
   if (nome === "termini_ricerca") {
     const giorni = Number(inp.giorni) === 7 ? 7 : 30;
     const q = String(inp.campagna || "").trim().toLowerCase();
