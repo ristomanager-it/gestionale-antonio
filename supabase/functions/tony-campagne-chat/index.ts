@@ -1037,6 +1037,36 @@ async function eseguiConferma(c: Ctx, a: any): Promise<{ ok: boolean; messaggio:
     if (!j.success) return { ok: false, messaggio: `\u274C Non riuscito: ${j.error || "errore"}` };
     return { ok: true, messaggio: accendi ? `\u25B6\uFE0F \u00ab${d.nome}\u00bb e' ATTIVA: da adesso spende il suo budget` : `\u23F8 \u00ab${d.nome}\u00bb e' in pausa` };
   }
+  if (a.tipo === "post") {
+    const id = Number(d.giorno_id);
+    const { data: g } = await sb.from("calendario_editoriale").select("id, stato").eq("id", id).eq("azienda_id", c.aziendaId).maybeSingle();
+    if (!g) return { ok: false, messaggio: "\u274C Post non trovato: chiedilo di nuovo a Tony." };
+    if (g.stato === "pubblicato") return { ok: true, messaggio: "Il post era gia' uscito." };
+    const aperta = await sb.rpc("pubblicazione_consentita", { p_azienda: c.aziendaId });
+    if (aperta.data !== true) return { ok: false, messaggio: "\u274C La pubblicazione per questa azienda e' chiusa: si riapre dal Calendario editoriale." };
+    const subito = d.quando === "ora";
+    const agg: Record<string, unknown> = { stato: "approvato", approvato_da: c.uid, approvato_at: new Date().toISOString() };
+    if (subito) { agg.data = oggiRoma(); agg.ora_pubblicazione = "00:00"; }
+    await sb.from("calendario_editoriale").update(agg).eq("id", id).eq("azienda_id", c.aziendaId);
+    if (!subito) {
+      const q = String(d.quando || "");
+      return { ok: true, messaggio: "\uD83D\uDDD3\uFE0F Programmato: esce il " + dataLunga(q.slice(0, 10)) + " alle " + q.slice(11, 16) + ". Te lo confermo quando chiedi lo stato del post." };
+    }
+    const { data: cfg } = await sb.from("deploy_config").select("chiave").eq("id", 1).maybeSingle();
+    try {
+      await fetch(SUPABASE_URL + "/functions/v1/pubblica-programmati", { method: "POST",
+        headers: { "Content-Type": "application/json", "x-deploy-key": String((cfg && cfg.chiave) || "") }, body: "{}" });
+    } catch (_e) { /* il giro automatico ogni 15 minuti lo ripubblica */ }
+    const { data: dopo } = await sb.from("calendario_editoriale").select("stato, meta_post_id").eq("id", id).maybeSingle();
+    const { data: log } = await sb.from("pubblicazioni_log").select("pagina_nome, esito, errore").eq("giorno_id", id);
+    const usciti = (log || []).filter((x: any) => x.esito === "pubblicato").map((x: any) => x.pagina_nome === "Instagram" ? "Instagram" : "Facebook");
+    if (dopo && dopo.stato === "pubblicato") {
+      return { ok: true, messaggio: "\u2705 Uscito su " + usciti.join(" e ") + ". Guardalo col pulsante qui sotto.",
+        landing: dopo.meta_post_id ? "https://www.facebook.com/" + dopo.meta_post_id : undefined };
+    }
+    const err = (log || []).filter((x: any) => x.esito !== "pubblicato").map((x: any) => x.errore).filter(Boolean)[0];
+    return { ok: false, messaggio: "\u274C Non e' uscito" + (err ? ": " + String(err).slice(0, 160) : ": riprovo da solo entro 15 minuti, poi chiedimi lo stato del post.") };
+  }
   return { ok: false, messaggio: "Azione non riconosciuta" };
 }
 
