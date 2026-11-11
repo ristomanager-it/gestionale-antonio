@@ -1,7 +1,8 @@
 // RICHIESTE DAL SITO — EVENTI › 🌍 Richieste dal sito
-// Matrimoni (wedding_richieste) e Viaggi (tour_prenotazioni) di tutte le aziende dell'utente (RLS mie_aziende).
+// Matrimoni (wedding_richieste), Cene aziendali (richieste_cene_aziendali) e Viaggi (tour_prenotazioni) di tutte le aziende dell'utente (RLS mie_aziende).
 // Pacchetto Campagne: senza la funzione "campagne" la pagina mostra il lucchetto.
 const STATI_W = { nuova: "NUOVA", contattata: "CONTATTATA", preventivo_inviato: "PROPOSTA INVIATA", confermata: "CONFERMATA", persa: "PERSA" };
+const STATI_C = { nuova: "NUOVA", contattata: "CONTATTATA", preventivo_inviato: "PROPOSTA INVIATA", confermata: "CONFERMATA", persa: "PERSA" };
 const STATI_T = { bonifico_in_attesa: "BONIFICO ATTESO", confermata: "CONFERMATA", richiesta_info: "RICHIESTA INFO", annullata: "ANNULLATA", scaduta: "SCADUTA", in_attesa: "IN ATTESA" };
 const CLASSE = { nuova: "rs-n", contattata: "rs-c", preventivo_inviato: "rs-c", confermata: "rs-ok", persa: "rs-x", bonifico_in_attesa: "rs-at", richiesta_info: "rs-i", annullata: "rs-x", scaduta: "rs-x", in_attesa: "rs-at" };
 const BANDIERA = { us: "🇺🇸", en: "🇬🇧", de: "🇩🇪", es: "🇪🇸", it: "🇮🇹", nl: "🇳🇱", ja: "🇯🇵", fr: "🇫🇷" };
