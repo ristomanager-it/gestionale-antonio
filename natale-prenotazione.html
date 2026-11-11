@@ -29,6 +29,8 @@
   var euro = function(n){ return Number(n).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €"; };
   var supa = null; try { supa = window.supabase.createClient(URL_, ANON); } catch (e) {}
   var p = null, tentativi = 0, timer = null;
+  // come la pagina del Capodanno: bonifico, persone in piu' con l'acconto della differenza, segnalazioni
+  var chiedeBon = qs.get("bonifico") === "1", datiBon = null, det = null, nuoviA = 0, nuoviB = 0, LL = null;
 
   function errore(titolo, testo){ root.innerHTML = '<div class="testa"><div class="kicker">🎄 Pranzo di Natale</div></div><div class="esito ko"><h2>' + esc(titolo) + '</h2><p>' + esc(testo) + '</p></div>'; }
   async function carica(){
@@ -36,6 +38,13 @@
     var r = await supa.rpc("prenotazione_pubblica", { p_token: token });
     if (!r.data || !r.data.ok) return errore("Prenotazione non trovata", "Il link potrebbe essere incompleto. Chiamaci e la ritroviamo subito.");
     p = r.data.prenotazione;
+    if (chiedeBon && p.stato_pagamento !== "pagato" && p.stato_pagamento !== "bonifico_in_attesa") {
+      chiedeBon = false; try { await supa.rpc("prenotazione_scegli_bonifico", { p_token: token }); } catch (e) {}
+      return carica();
+    }
+    if (p.stato_pagamento === "bonifico_in_attesa" && !datiBon) { try { datiBon = (await supa.rpc("prenotazione_dati_bonifico", { p_token: token })).data; } catch (e) {} }
+    try { det = (await supa.rpc("natale_dettaglio", { p_token: token })).data; } catch (e) { det = null; }
+    var x0 = persone(); nuoviA = x0.a; nuoviB = x0.b;
     disegna();
     var pagato = p.stato_pagamento === "pagato";
     if (pagato) { var s = false; try { s = localStorage.getItem("rf_acq_" + token) === "1"; } catch (e) {}
@@ -43,9 +52,11 @@
     // appena tornati dal pagamento la conferma puo' metterci qualche secondo ad arrivare
     if (!pagato && esitoQ === "ok" && tentativi++ < 10) setTimeout(carica, 3000);
   }
-  function persone(){ var b = Number(p.bambini) || 0, a = Math.max((Number(p.coperti) || 1) - b, 0); return { a: a, b: b }; }
-  function totale(){ if (W() && p.importo_totale != null) return Number(p.importo_totale); var x = persone(); return (N.prezzo || 0) * x.a + (N.prezzo_bimbi || 0) * x.b; }
+  function persone(){ if (det) return { a: Number(det.adulti) || 0, b: Number(det.bambini) || 0 }; var b = Number(p.bambini) || 0, a = Math.max((Number(p.coperti) || 1) - b, 0); return { a: a, b: b }; }
+  function totale(){ if (p.importo_totale != null) return Number(p.importo_totale); var x = persone(); return (N.prezzo || 0) * x.a + (N.prezzo_bimbi || 0) * x.b; }
   // pacchetto Natale con camera (natale-weekend.html): totale salvato, piu' giorni e notti
+  // centesimi ancora da versare: tutto l'acconto, oppure solo la parte delle persone aggiunte
+  function dovuto(){ return Math.max(Math.round(totale() * (N.perc || 30)) - Math.round(Number(p.acconto_importo || 0) * 100), 0); }
   function W(){ return p && p.tag === "natale-2026-weekend"; }
   function giorno(d){ var g = { "2026-12-24": "Giovedì 24", "2026-12-25": "Venerdì 25", "2026-12-26": "Sabato 26" }; return (g[d] || d) + " dicembre"; }
   function disegna(){
@@ -55,7 +66,10 @@
     var nn = Number(p.notti) || 1;
     var h = W() ? '<div class="testa"><div class="kicker">🎄 Natale a Campo Antico</div><div class="acc">Da ' + giorno(String(p.data)).toLowerCase() + ' · ' + nn + (nn === 1 ? ' notte' : ' notti') + ' con colazione</div><h1>La vostra prenotazione</h1></div>'
       : '<div class="testa"><div class="kicker">🎄 Pranzo di Natale</div><div class="acc">Venerdì 25 dicembre</div><h1>La vostra prenotazione</h1></div>';
-    if (pagato) h += '<div class="esito ok"><h2>✓ ' + (W() ? 'Prenotazione confermata' : 'Tavolo confermato') + '</h2><p>Abbiamo ricevuto l’acconto. Vi aspettiamo ' + (W() ? 'il ' + giorno(String(p.data)).toLowerCase() : 'il 25 dicembre') + ': qui sotto trovate tutto.</p></div>';
+    var sp = p.stato_pagamento || "";
+    if (sp === "bonifico_in_attesa") h += boxBonifico(L);
+    else if (!pagato && Number(p.acconto_importo) > 0) h += '<div class="esito att"><h2>Manca l’acconto per le persone aggiunte</h2><p>Avete aggiunto persone: per confermare anche i loro posti serve l’acconto di <b>' + euro(dovuto() / 100) + '</b>. Il pulsante è qui sotto.</p></div>';
+    else if (pagato) h += '<div class="esito ok"><h2>✓ ' + (W() ? 'Prenotazione confermata' : 'Tavolo confermato') + '</h2><p>Abbiamo ricevuto l’acconto. Vi aspettiamo ' + (W() ? 'il ' + giorno(String(p.data)).toLowerCase() : 'il 25 dicembre') + ': qui sotto trovate tutto.</p></div>';
     else if (esitoQ === "ok") h += '<div class="esito att"><h2>Stiamo confermando il pagamento…</h2><p>Ci vogliono pochi secondi: non chiudete la pagina.</p></div>';
     else h += '<div class="esito ko"><h2>Acconto non ancora pagato</h2><p>Il tavolo non è ancora bloccato. Potete pagare l’acconto qui sotto, oppure chiamarci.</p></div>';
     h += '<div class="card"><h3>' + (W() ? 'La vostra prenotazione' : 'Il vostro tavolo') + '</h3>'
@@ -65,7 +79,7 @@
       + '<div class="riga"><span>A nome di</span><b>' + esc(((p.cliente_nome || "") + " " + (p.cognome || "")).trim()) + '</b></div>'
       + ((N.prezzo || W()) ? '<div class="riga"><span>' + (W() ? 'Totale del pacchetto' : 'Totale del pranzo') + '</span><b>' + euro(totale()) + '</b></div>' : '')
       + (pagato && p.acconto_importo ? '<div class="riga"><span>Acconto pagato</span><b>' + euro(p.acconto_importo) + '</b></div>' + ((N.prezzo || W()) ? '<div class="riga"><span>' + (W() ? 'Da saldare all’arrivo' : 'Da saldare il 25 dicembre') + '</span><b>' + euro(Math.max(totale() - Number(p.acconto_importo), 0)) + '</b></div>' : '') : '')
-      + (p.richieste_speciali || p.note ? '<div class="riga"><span>Segnalazioni</span><b>' + esc(p.richieste_speciali || p.note) + '</b></div>' : '')
+      + (String(p.richieste_speciali || p.note || "").replace(/^(\[[^\]]*\]\s*)+/, "") ? '<div class="riga"><span>Segnalazioni</span><b>' + esc(String(p.richieste_speciali || p.note).replace(/^(\[[^\]]*\]\s*)+/, "")) + '</b></div>' : '')
       + '</div>';
     if (W()) {
       // il programma del pacchetto: pasti secondo le notti, camere dalla nota della prenotazione
@@ -80,13 +94,23 @@
     }
     if (pagato) h += '<div class="card"><h3>Mancano</h3><div class="conta"><div><b id="cg">–</b><small>giorni</small></div><div><b id="co">–</b><small>ore</small></div><div><b id="cm">–</b><small>minuti</small></div><div><b id="cs">–</b><small>secondi</small></div></div></div>';
     h += '<div class="card"><h3>Cosa fare ora</h3><div class="azioni">'
-      + (!pagato ? '<button class="btn" id="paga" type="button">Paga l’acconto</button>' : '')
+      + (!pagato && sp !== "bonifico_in_attesa" ? '<button class="btn" id="paga" type="button">' + (Number(p.acconto_importo) > 0 ? 'Paga ' + euro(dovuto() / 100) : 'Paga l’acconto') + '</button>' : '')
       + (pagato ? '<button class="btn" id="cal" type="button">Aggiungi al calendario</button>' : '')
       + '<a class="btn" target="_blank" rel="noopener" href="' + esc(L.maps) + '">Come arrivare</a>'
       + '<a class="btn" href="tel:' + esc(L.tl) + '">Chiamaci · ' + esc(L.tel) + '</a></div>'
-      + '<p style="margin-top:14px;color:var(--muto);font-size:15px">Per aggiungere ospiti, cambiare l’orario o mandarci allergie, chiamateci: ci pensiamo noi.</p>'
+      + '<p style="margin-top:14px;color:var(--muto);font-size:15px">Per togliere persone, cambiare l’orario o qualsiasi altra cosa, chiamateci: ci pensiamo noi.</p>'
       + (N.disdetta ? '<p style="color:var(--muto);font-size:15px"><b>Disdetta:</b> ' + esc(N.disdetta) + '</p>' : '') + '</div>';
+    var chiusa = p.stato === "annullata" || p.stato === "rifiutata" || (det && det.chiuso);
+    if (!chiusa) h += '<div class="card"><h3>Aggiungi persone</h3><p>Si aggiunge qualcuno? Finché ci sono posti potete farlo da qui fino al 22 dicembre, con l’acconto del 30% per le persone in più.' + (W() ? ' Nelle vostre camere ci sono ' + ((det && det.letti) || '') + ' posti letto.' : '') + '</p>'
+      + '<div class="riga"><span>Adulti</span><b><button type="button" class="btn" id="ameno" style="width:44px;padding:6px;display:inline-block">−</button> <span id="n-a">' + nuoviA + '</span> <button type="button" class="btn" id="apiu" style="width:44px;padding:6px;display:inline-block">+</button></b></div>'
+      + '<div class="riga"><span>Bambini 4-12 anni</span><b><button type="button" class="btn" id="bmeno" style="width:44px;padding:6px;display:inline-block">−</button> <span id="n-b">' + nuoviB + '</span> <button type="button" class="btn" id="bpiu" style="width:44px;padding:6px;display:inline-block">+</button></b></div>'
+      + '<p id="anteprima" style="font-weight:600"></p><button class="btn" id="salva-osp" type="button" disabled>Aggiorna le persone</button><p id="msg-osp" style="margin-top:8px"></p></div>'
+      + '<div class="card"><h3>Allergie e segnalazioni</h3><p>Tutto quello che ci scrivete arriva in sala e in cucina insieme alla vostra prenotazione.</p>'
+      + '<textarea id="note-cl" rows="4" style="width:100%;box-sizing:border-box;border-radius:10px;padding:10px;font:inherit" placeholder="Es. una persona celiaca, un seggiolone, festeggiamo un compleanno…">' + esc(String(p.richieste_speciali || "").replace(/^(\[[^\]]*\]\s*)+/, "")) + '</textarea>'
+      + '<button class="btn" id="salva-note" type="button">Invia le segnalazioni</button><p id="msg-note" style="margin-top:8px"></p></div>';
+    LL = L;
     root.innerHTML = h;
+    if (!chiusa) collegaModifiche();
     if ($("paga")) $("paga").onclick = paga;
     if ($("cal")) $("cal").onclick = function(){ calendario(L, ora); };
     if (pagato) conto(ora);
@@ -100,7 +124,7 @@
   }
   async function paga(){
     var b = $("paga"); b.disabled = true; b.textContent = "Un attimo…";
-    var acconto = Math.round(totale() * (N.perc || 30));
+    var acconto = dovuto();
     if (!acconto) { b.disabled = false; b.textContent = "Paga l’acconto"; return alert("L’importo non è ancora pronto: chiamaci e ti aiutiamo."); }
     var x = persone(), L = LOCALI[p.sede_id] || {};
     try {
@@ -115,6 +139,63 @@
       location.href = out.checkout_url;
     } catch (e) { b.disabled = false; b.textContent = "Paga l’acconto"; alert("Il pagamento non è partito: riprova o chiamaci."); }
   }
+  function collegaModifiche(){
+    var x = persone();
+    function agg(){
+      $("n-a").textContent = nuoviA; $("n-b").textContent = nuoviB;
+      var cambiato = nuoviA !== x.a || nuoviB !== x.b; $("salva-osp").disabled = !cambiato;
+      $("anteprima").textContent = cambiato ? "Diventate " + nuoviA + (nuoviA === 1 ? " adulto" : " adulti") + (nuoviB ? " + " + nuoviB + (nuoviB === 1 ? " bambino" : " bambini") : "") : "";
+    }
+    $("ameno").onclick = function(){ if (nuoviA > x.a) { nuoviA--; agg(); } };
+    $("apiu").onclick = function(){ if (nuoviA + nuoviB < x.a + x.b + 20) { nuoviA++; agg(); } };
+    $("bmeno").onclick = function(){ if (nuoviB > x.b) { nuoviB--; agg(); } };
+    $("bpiu").onclick = function(){ if (nuoviA + nuoviB < x.a + x.b + 20) { nuoviB++; agg(); } };
+    agg();
+    $("salva-osp").onclick = async function(){
+      var b = this, m = $("msg-osp"); b.disabled = true; m.textContent = "Un attimo…";
+      var r = await supa.rpc("natale_aggiorna_ospiti", { p_token: token, p_adulti: nuoviA, p_bambini: nuoviB });
+      if (!r.data || !r.data.ok) { b.disabled = false; m.textContent = (r.data && r.data.errore) || "Non è stato possibile aggiornare. Chiamaci."; return; }
+      m.textContent = "Fatto: il nuovo totale è " + euro(r.data.totale) + ". Qui in alto trovate l’acconto per le persone in più.";
+      setTimeout(carica, 800);
+    };
+    $("salva-note").onclick = async function(){
+      var b = this, m = $("msg-note"); b.disabled = true; m.textContent = "Invio…";
+      var r = await supa.rpc("prenotazione_modifica", { p_token: token, p_data: null, p_ora: null, p_coperti: null, p_note: (String(p.note || "").match(/^(\[[^\]]*\]\s*)+/) || [""])[0] + $("note-cl").value.trim() });
+      b.disabled = false; if (r.data && r.data.ok) setTimeout(carica, 600);
+      m.textContent = (r.data && r.data.ok) ? "Ricevuto, grazie. Sala e cucina lo trovano sulla vostra prenotazione." : ((r.data && r.data.errore) || "Invio non riuscito. Chiamaci.");
+    };
+  }
+  // bonifico: dati con i pulsanti Copia e caricamento della contabile (foto o PDF)
+  function boxBonifico(L){
+    var d = datiBon || {};
+    if (!d.iban) return '<div class="esito att"><h2>Bonifico in attesa</h2><p>Per i dati del bonifico chiamaci al <a href="tel:' + esc(L.tl) + '">' + esc(L.tel) + '</a>.</p></div>';
+    var riga = function(et, val, copia, mostra){
+      var v = String(val || "");
+      return '<div style="padding:12px 0;border-bottom:1px solid rgba(127,127,127,.25)"><div style="font-size:12px;letter-spacing:.04em;opacity:.7;margin-bottom:4px">' + et + '</div>'
+        + '<div style="display:flex;gap:12px;align-items:center;justify-content:space-between"><div style="flex:1 1 auto;min-width:0;font-weight:600;font-size:16px;line-height:1.4;overflow-wrap:anywhere">' + esc(mostra || v) + '</div>'
+        + (copia ? '<button type="button" data-copia="' + esc(v) + '" onclick="copiaTesto(this)" style="flex:0 0 auto;padding:7px 14px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer;min-height:36px">Copia</button>' : '')
+        + '</div></div>';
+    };
+    var ib = String(d.iban || "").replace(/\s+/g, ""), ibBello = ib.replace(/(.{4})/g, "$1 ").trim();
+    return '<div class="esito att"><h2>Prenotazione bloccata: manca il bonifico</h2><p>Teniamo i posti per voi fino al <b>' + esc(d.scadenza_it || "") + '</b>. Fate il bonifico dell’acconto con questi dati:</p>'
+      + riga("Intestatario", d.intestatario, false) + riga("IBAN", ib, true, ibBello) + riga("Causale", d.causale, true) + riga("Importo", euro(Number(d.importo) || 0), false)
+      + '<p style="margin-top:16px"><b>Avete già fatto il bonifico?</b> Caricate qui la contabile (foto o PDF): appena la controlliamo la prenotazione è confermata.</p>'
+      + '<input type="file" accept="image/*,application/pdf" onchange="caricaContabile(this)" style="max-width:100%">'
+      + '<p id="msg-contabile">' + (d.contabile ? "Contabile ricevuta: la stiamo controllando." : "") + '</p></div>';
+  }
+  window.copiaTesto = function(b){ var t = b.getAttribute("data-copia") || ""; try { navigator.clipboard.writeText(t); b.textContent = "Copiato"; } catch (e) { b.textContent = t; } };
+  window.caricaContabile = async function(inp){
+    var f = (inp.files || [])[0], m = $("msg-contabile"); if (!f) return;
+    m.textContent = "Carico…";
+    try {
+      var path = "contabili/" + token + "/" + Date.now() + "-" + f.name.replace(/[^\w.\-]/g, "_");
+      var up = await supa.storage.from("media-aziende").upload(path, f, { contentType: f.type });
+      if (up.error) throw up.error;
+      var url = supa.storage.from("media-aziende").getPublicUrl(path).data.publicUrl;
+      var r = await supa.rpc("prenotazione_carica_contabile", { p_token: token, p_url: url, p_nome: f.name });
+      m.textContent = (r.data && r.data.ok) ? "Ricevuta, grazie! La controlliamo e vi confermiamo la prenotazione." : "Non è andata: riprovate o mandatecela su WhatsApp.";
+    } catch (e) { m.textContent = "Non è andata: riprovate o mandatecela su WhatsApp."; }
+  };
   function calendario(L, ora){
     var ini = "20261225T" + (ora || "12:30").replace(":", "") + "00", h = parseInt((ora || "12:30").slice(0, 2), 10) + 3;
     var fin = "20261225T" + String(Math.min(h, 23)).padStart(2, "0") + (ora || "12:30").slice(3, 5) + "00";
