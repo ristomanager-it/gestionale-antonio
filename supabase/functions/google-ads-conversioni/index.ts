@@ -7,6 +7,7 @@
 //   - "Richiesta inviata (Ristoflow)": preventivi online completati
 // azioni (solo admin di piattaforma, header x-prova; il cron orario la chiama con { azione:'carica' }):
 //   { azione:'prepara', azienda_id }  crea le due azioni di conversione se mancano
+//   { azione:'rimuovi_azioni', azienda_id, ids:[...] } toglie azioni vecchie dei siti dismessi (mai quelle di Ristoflow)
 //   { azione:'carica', azienda_id? }  carica le conversioni nuove (tutte le aziende con Google collegato se manca azienda_id)
 // Niente template literal.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -117,6 +118,20 @@ Deno.serve(async function (req) {
       const out: any[] = [];
       for (const x of lista) { try { out.push(Object.assign({ azienda: x.azienda_id }, await carica(String(x.azienda_id)))); } catch (e) { out.push({ azienda: x.azienda_id, ok: false, errore: String(e).slice(0, 200) }); } }
       return json({ ok: true, aziende: out });
+    }
+    // toglie da Google Ads azioni di conversione vecchie (siti dismessi); mai quelle di Ristoflow
+    if (b.azione === "rimuovi_azioni") {
+      const g = await google(String(b.azienda_id || "")); if (!g) return json({ ok: false, errore: "Google Ads non collegato" });
+      const ids: string[] = (b.ids || []).map(function (x: any) { return String(x).replace(/\D/g, ""); }).filter(Boolean);
+      const nomi = await g.q("select conversion_action.id, conversion_action.name from conversion_action where conversion_action.id in (" + (ids.join(",") || "0") + ")");
+      const ok: string[] = [], ko: string[] = [];
+      for (const n of nomi) {
+        const nome = String(n.conversionAction.name || "");
+        if (/Ristoflow/i.test(nome)) { ko.push(nome + ": e' di Ristoflow, non si toglie"); continue; }
+        const r = await g.post("/conversionActions:mutate", { operations: [{ remove: "customers/" + g.cust + "/conversionActions/" + n.conversionAction.id }] });
+        if (r.ok) ok.push(nome); else ko.push(nome + ": " + JSON.stringify(r.j).slice(0, 200));
+      }
+      return json({ ok: true, rimosse: ok, non_rimosse: ko });
     }
     return json({ ok: false, errore: "azione sconosciuta" }, 400);
   } catch (e) { return json({ ok: false, errore: String(e).slice(0, 300) }, 500); }
