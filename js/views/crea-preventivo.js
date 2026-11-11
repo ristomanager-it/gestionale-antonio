@@ -403,7 +403,7 @@ function cardIsola(sez) {
     ${gruppi}
     <div class="r">
       ${scegli ? `<button class="pv2-btn" data-scegli="${esc(sez)}">☑ Scegli le portate</button>` : ""}
-      <span class="pr"><input type="number" step="0.5" min="0" class="in" value="${prezzo || ""}" placeholder="0" data-isola-prezzo="${esc(sez)}"> € a persona</span>
+      <span class="pr"><input type="number" step="0.5" min="0" class="in" value="${prezzo || ""}" placeholder="${prezzoListino(sez) || 0}" data-isola-prezzo="${esc(sez)}"> € a persona${prezzoListino(sez) && prezzo !== prezzoListino(sez) ? ` <small style="color:#64748b">listino ${euro(prezzoListino(sez))}</small>` : ""}</span>
     </div>
     ${scelti.length ? `<details><summary>Vedi le portate (${scelti.length})</summary>${scelti.map(r => `<div class="p">${esc(r.nome)}</div>`).join("")}</details>` : ""}
     <div class="togli" data-isola-togli="${esc(sez)}">Togli questa isola</div>
