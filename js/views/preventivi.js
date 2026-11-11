@@ -85,7 +85,7 @@ async function bozzeOnline() {
   if (!az) return;
   const dal = new Date(Date.now() - 60 * 86400000).toISOString();
   const { data, error } = await sb.from("preventivi_online_bozze")
-    .select("id, nomi, email, telefono, tipo, invitati, data_testo, location, scelte, totale, totale_pieno, ultimo_passo, passi_fatti, passi_totali, utm_source, updated_at")
+    .select("id, nomi, email, telefono, tipo, invitati, data_testo, location, scelte, totale, totale_pieno, ultimo_passo, passi_fatti, passi_totali, utm_source, updated_at, richiesta")
     .eq("azienda_id", az).eq("completata", false).eq("gestita", false).gte("updated_at", dal)
     .order("updated_at", { ascending: false }).limit(50);
   if (error || !data || !data.length) { box.innerHTML = ""; return; }
