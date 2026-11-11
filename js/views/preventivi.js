@@ -39,6 +39,7 @@ export async function render(app) {
   // Carichiamo i preventivi
   await loadPreventivi();
   richiesteDalSito();
+  bozzeOnline();
 
   // Aggiungi evento di ricerca
   const searchInput = document.getElementById("search-preventivi");
