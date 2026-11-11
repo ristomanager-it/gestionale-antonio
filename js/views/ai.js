@@ -168,7 +168,10 @@ export async function render(app) {
     <button class="chat-chip" data-voice="ricetta">🎤 Nuova ricetta</button>
   `;
 
-  const chipCampagne = puoCampagne() ? `<button class="chat-chip" data-campagne="1">📈 Analizza campagne</button>` : "";
+  // 11/11/2026: San Valentino per locale. Meccanica uguale per tutti (tre sere, su prenotazione, tavoli limitati),
+  // offerta e testi li decide il locale: Tony scrive landing e campagna con l'identita' della sede scelta in alto.
+  const chipSanValentino = `<button class="chat-chip" data-prompt="Prepara la promo di San Valentino per questo locale, con la sua voce e il suo cliente. Regole fisse: cena del 12, 13 e 14 febbraio, solo su prenotazione, tavoli limitati: la scarsita' sono le tre sere e i tavoli. Prima chiedimi qual e' l'offerta e il menu, poi fammi vedere la landing e la campagna.">💝 San Valentino</button>`;
+  const chipCampagne = puoCampagne() ? `<button class="chat-chip" data-campagne="1">📈 Analizza campagne</button>` + chipSanValentino : "";
   const ruoloR = String(window.state?.ruoloRaw || ruolo).toLowerCase();
   const chipsMarketing = chipCampagne + `<button class="chat-chip" data-prompt="Dammi suggerimenti marketing per oggi basandoti sui dati reali">📢 Marketing</button>`;
   const chips = ruoloR === "addetto_marketing" ? chipsMarketing : (ruolo === "admin" || ruolo === "manager") ? chipCampagne + chipsAdmin : chipsOperatore;
