@@ -113,6 +113,9 @@ footer a{color:var(--oro)}
 .cookie button{min-height:44px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--oro);background:transparent;color:var(--oro);font-family:inherit;font-size:14px;cursor:pointer}
 .cookie #ck-si{background:var(--oro);color:#0b0a08}
 </style>
+<script>/* codice del clic di Google (gclid/gbraid/wbraid): si salva all'arrivo dall'annuncio e va con la prenotazione, per contare le conversioni anche senza cookie */
+(function(){try{var q=new URLSearchParams(location.search),c={};["gclid","gbraid","wbraid"].forEach(function(k){if(q.get(k))c[k]=q.get(k).slice(0,200)});if(Object.keys(c).length){c.t=Date.now();localStorage.setItem("rf_clic",JSON.stringify(c))}}catch(e){}
+window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"null");if(!c||Date.now()-c.t>90*864e5)return null;var o={};["gclid","gbraid","wbraid"].forEach(function(k){if(c[k])o[k]=c[k]});return o}catch(e){return null}};})();</script>
 </head>
 <body>
 <div class="topbar"><img id="logo" src="" alt=""><div><div class="tn" id="nome-sede"></div><div class="td">Weekend lungo · 31 dicembre – 3 gennaio</div></div></div>
@@ -535,7 +538,7 @@ footer a{color:var(--oro)}
       notti: notti(), camere: camere, camere_sede: dorme, transfer: !!(viaAquila || (festaCampo() && $("navetta").checked)), pranzo_primo: t.pranzo ? persone : 0, importo_totale: t.totale,
       stato: "in_attesa_pagamento", canale: "online", note: ((camere > 1 || extraTotali() ? "[Camere: " + riepilogoStanze() + "] " : "") + (bimbi ? "[Età bambini: " + eta.join(", ") + "] " : "") + note).trim() || null, richieste_speciali: note || null,
       token_pubblico: token, tag: cen.slug, source: UTM.utm_source || "weekend",
-      riferimento: JSON.stringify({ landing: S.slug + "-weekend", adulti: adulti, bambini: bimbi, eta_bambini: eta, stanze: stanze, notti: notti(), camere: camere, totale: t.totale,
+      riferimento: JSON.stringify({ clic_google: window.rfClic ? rfClic() : null, landing: S.slug + "-weekend", adulti: adulti, bambini: bimbi, eta_bambini: eta, stanze: stanze, notti: notti(), camere: camere, totale: t.totale,
         consenso_gdpr: true, consenso_marketing: $("marketing").checked, sid: (function(){ try { return sessionStorage.getItem("rf_ses"); } catch (e) { return null; } })(), utm_source: UTM.utm_source, utm_campaign: UTM.utm_campaign })
     }]);
     if (ins.error) {
