@@ -27,7 +27,10 @@
 .sum{background:var(--card);border:1.5px solid var(--acc);border-radius:14px;padding:16px;margin-top:14px}.sum ul{margin:2px 0 8px;padding-left:20px}.sum li{margin:2px 0}
 .big{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--b);padding-top:8px;margin-top:8px}.big b{font-family:"Cormorant Garamond",Georgia,serif;font-size:30px}
 .sconto{background:#fdf2e3;color:#6b3f0c;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px}
-</style></head><body><div class="w">
+</style><script>/* codice del clic di Google (gclid/gbraid/wbraid): si salva all'arrivo dall'annuncio e va con la prenotazione, per contare le conversioni anche senza cookie */
+(function(){try{var q=new URLSearchParams(location.search),c={};["gclid","gbraid","wbraid"].forEach(function(k){if(q.get(k))c[k]=q.get(k).slice(0,200)});if(Object.keys(c).length){c.t=Date.now();localStorage.setItem("rf_clic",JSON.stringify(c))}}catch(e){}
+window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"null");if(!c||Date.now()-c.t>90*864e5)return null;var o={};["gclid","gbraid","wbraid"].forEach(function(k){if(c[k])o[k]=c[k]});return o}catch(e){return null}};})();</script>
+</head><body><div class="w">
 <div id="prova" class="prova hide">PROVA · tutto è vero (piatti, prezzi, disponibilità), ma alla fine non viene creato nessun preventivo.</div>
 <div id="logo"></div><div class="k" id="kicker">&nbsp;</div><h1 id="titolo">Crea il vostro preventivo</h1><p class="m" id="sottot"></p>
 <div id="s1">
@@ -124,7 +127,7 @@ function scelte(){var a=[],s=[];Object.keys(sel).forEach(function(id){if(!sel[id
 var BOZZA=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx".replace(/x/g,function(){return (Math.random()*16|0).toString(16)});
 function bozza(x){if(PROVA)return;try{var qx=new URLSearchParams(location.search),l=(CFG&&CFG.location||[]).filter(function(y){return y.id===LOC})[0],sc=[],sv=[];
  STEPS.forEach(function(z,i){if(!i||!fatto[i])return;var ps=voci(z.k).filter(function(v){return sel[v.id]}).map(function(v){return v.n});if(!ps.length)return;if(z.k==="servizi")sv=ps;sc.push({passo:z.t,voci:ps})});
- var d={nomi:$("nomi").value.trim(),email:$("email").value.trim(),telefono:$("tel").value.trim(),tipo:TIPO,invitati:INV,data:DATA||$("mese").value||"",location:l?l.nome:"",scelte:sc,servizi:sv,passi_totali:STEPS.length,richiesta:(function(){var x=scelte();return {tipo:TIPO,invitati:INV,location_id:LOC,data:DATA,scelte:x.scelte,servizi:x.servizi}})(),utm_source:qx.get("utm_source")||"",utm_campaign:qx.get("utm_campaign")||""};
+ var d={nomi:$("nomi").value.trim(),email:$("email").value.trim(),telefono:$("tel").value.trim(),tipo:TIPO,invitati:INV,data:DATA||$("mese").value||"",location:l?l.nome:"",scelte:sc,servizi:sv,passi_totali:STEPS.length,richiesta:(function(){var x=scelte();return {tipo:TIPO,invitati:INV,location_id:LOC,data:DATA,scelte:x.scelte,servizi:x.servizi}})(),utm_source:qx.get("utm_source")||"",utm_campaign:qx.get("utm_campaign")||"",clic:window.rfClic?rfClic():null};
  for(var k in x)d[k]=x[k];
  fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/rpc/preventivo_online_bozza",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json",apikey:"sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"},body:JSON.stringify({p_slug:P,p_id:BOZZA,p_dati:d})})}catch(_){}}
 function corpo(extra){var x=scelte();var b={tipo:TIPO,invitati:INV,location_id:LOC,data:DATA,scelte:x.scelte,servizi:x.servizi};for(var k in extra)b[k]=extra[k];return b}
