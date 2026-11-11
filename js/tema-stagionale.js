@@ -1,13 +1,13 @@
 // js/tema-stagionale.js
 // Decorazioni di stagione: i colori dell'app restano quelli di sempre.
 //  - Halloween (20 - 31 ott): una zucca che salta fuori in basso a destra all'apertura dell'app e grandi pipistrelli che attraversano lo schermo
-//  - Natale (10 nov - 2 gen): ghirlanda di luci e neve leggera
+//  - Natale (10 nov - 2 gen): alberelli sotto la barra, Babbo Natale che saluta per nome (2 secondi) e neve leggera
 // Prova fuori stagione (dal browser): app.ristoflow-ai.com/?tema=halloween  oppure  ?tema=natale  (30 minuti)  ·  ?tema=0 per spegnere.
 (function () {
   try {
     var TEMI = {
       halloween: { da: [10, 20], a: [10, 31], zucche: true, pipistrelli: true },
-      natale:    { da: [11, 10], a: [1, 2],  luci: ["#e53935", "#f6c343", "#2e9d62"], neve: true },
+      natale:    { da: [11, 10], a: [1, 2],  neve: true },
     };
 
     var q = new URLSearchParams(location.search);
@@ -224,60 +224,52 @@
       });
     }
 
-    // alberelli lungo il fondo e Babbo Natale con le renne che attraversano lo schermo (Natale)
+    // Natale: alberelli in alto sotto la barra, un solo Babbo Natale che saluta per nome all'apertura e sparisce dopo 2 secondi.
+    // Niente luci, niente palline, niente slitte che girano.
     if (scelto === "natale") {
       var s2 = document.createElement("style");
       s2.textContent = [
-        ".rf-alberi{position:fixed;left:0;right:0;bottom:calc(var(--bottom-nav-height,0px) + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-around;align-items:flex-end;pointer-events:none;z-index:50;}",
-        ".rf-albero{line-height:1;animation:rf-albero 2.4s ease-in-out infinite alternate;}",
-        "@keyframes rf-albero{from{filter:brightness(1)}to{filter:brightness(1.2) drop-shadow(0 0 4px #f6c343)}}",
-        ".rf-slitta{position:fixed;left:0;line-height:1;white-space:nowrap;pointer-events:none;z-index:51;will-change:transform;}",
-        ".rf-slitta.dx{top:18vh;font-size:34px;animation:rf-dx 24s linear infinite;}",
-        ".rf-slitta.sx{top:46vh;font-size:30px;animation:rf-sx 28s linear infinite;}",
-        "@keyframes rf-dx{0%{transform:translate(-170px,0)}50%{transform:translate(52vw,-26px)}100%{transform:translate(calc(100vw + 40px),0)}}",
-        "@keyframes rf-sx{0%{transform:translate(calc(100vw + 40px),0) scaleX(-1)}50%{transform:translate(42vw,22px) scaleX(-1)}100%{transform:translate(-170px,0) scaleX(-1)}}",
-        "@media (prefers-reduced-motion:reduce){.rf-albero{animation:none}.rf-slitta{display:none}}"
+        ".app-header::after{content:'';position:absolute;left:0;right:0;bottom:-22px;height:22px;pointer-events:none;z-index:2;opacity:.9;background:url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22'><polygon points='11,2 18,12 15,12 20,19 2,19 7,12 4,12' fill='%23237a43'/><rect x='10' y='19' width='2.5' height='3' fill='%236b4226'/><polygon points='33,6 38,13 36,13 40,19 26,19 30,13 28,13' fill='%231d6b3a'/><rect x='32' y='19' width='2' height='3' fill='%236b4226'/></svg>\") 0 0/44px 22px repeat-x;}",
+        ".rf-babbo{position:fixed;right:10px;bottom:calc(var(--bottom-nav-height,0px) + env(safe-area-inset-bottom,0px) + 12px);width:clamp(110px,30vw,150px);z-index:60;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35));animation:rf-babbo 2s ease forwards;}",
+        ".rf-babbo svg{display:block;width:100%;height:auto}",
+        ".rf-babbo-ciao{position:absolute;right:62%;top:-6px;background:#fff;color:#7f1d1d;border:1px solid #fca5a5;border-radius:16px;padding:8px 14px;font:800 16px/1.2 system-ui,-apple-system,sans-serif;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.18);}",
+        ".rf-babbo-ciao::after{content:'';position:absolute;right:-7px;top:16px;border:7px solid transparent;border-left-color:#fff;border-right:0}",
+        "@keyframes rf-babbo{0%{opacity:0;transform:translateY(24px) scale(.9)}15%{opacity:1;transform:none}80%{opacity:1;transform:none}100%{opacity:0;transform:translateY(12px)}}",
+        ".rf-braccio{transform-box:view-box;transform-origin:148px 182px;animation:rf-saluta .3s ease-in-out 6 alternate}",
+        "@keyframes rf-saluta{0%{transform:rotate(-10deg)}100%{transform:rotate(10deg)}}",
+        "@media (prefers-reduced-motion:reduce){.rf-braccio{animation:none}}"
       ].join("\n");
       document.head.appendChild(s2);
 
-      var alb = document.createElement("div");
-      alb.className = "rf-alberi";
-      for (var a = 0; a < 8; a++) {
-        var al = document.createElement("span");
-        al.className = "rf-albero";
-        al.textContent = "🎄";
-        al.style.fontSize = (a % 2 ? "22px" : "28px");
-        al.style.animationDelay = "-" + (a * 0.45).toFixed(2) + "s";
-        alb.appendChild(al);
+      // il nome si aspetta al massimo 3 secondi mentre l'app carica; poi Babbo compare una volta sola (con il nome se c'e')
+      var nellAppN = !!document.querySelector(".app-header") && !document.querySelector(".rf-fascia");
+      var nomeN = "", provaN = 0;
+      var trovaNome = function () {
+        try {
+          var s = window.state || {}, meta = (s.user && s.user.user_metadata) || {}, prof = s.userProfile || s.profilo || s.dipendente || {};
+          var n = String(prof.nome || prof.nome_completo || meta.nome || meta.first_name || meta.nome_completo || meta.full_name || "").trim().split(/\s+/)[0];
+          if (n) nomeN = n.charAt(0).toUpperCase() + n.slice(1);
+        } catch (e) {}
+      };
+      var mostraBabbo = function () {
+        var bb = document.createElement("div");
+        bb.className = "rf-babbo";
+        bb.setAttribute("aria-hidden", "true");
+        bb.innerHTML = "<svg viewBox=\"0 0 210 240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><radialGradient id=\"tsPelle\" cx=\"45%\" cy=\"40%\" r=\"65%\"><stop offset=\"0\" stop-color=\"#ffe2cc\"/><stop offset=\"1\" stop-color=\"#eaa47e\"/></radialGradient><linearGradient id=\"tsRosso\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#e8383a\"/><stop offset=\"1\" stop-color=\"#9e1219\"/></linearGradient><radialGradient id=\"tsPelo\" cx=\"40%\" cy=\"30%\" r=\"75%\"><stop offset=\"0\" stop-color=\"#ffffff\"/><stop offset=\"1\" stop-color=\"#d9dde6\"/></radialGradient><radialGradient id=\"tsGuanto\" cx=\"35%\" cy=\"30%\" r=\"70%\"><stop offset=\"0\" stop-color=\"#3f8a5a\"/><stop offset=\"1\" stop-color=\"#1a4d2e\"/></radialGradient></defs><g stroke=\"#3a1f14\" stroke-width=\"2\" stroke-linejoin=\"round\"><path d=\"M34 240 C34 188 62 160 100 157 C138 160 166 188 166 240 Z\" fill=\"url(#tsRosso)\"/><path d=\"M92 170 L108 170 L110 240 L90 240 Z\" fill=\"url(#tsPelo)\" stroke-width=\"1.5\"/><rect x=\"34\" y=\"214\" width=\"132\" height=\"15\" fill=\"#2b1d14\"/><rect x=\"88\" y=\"210\" width=\"24\" height=\"23\" rx=\"3\" fill=\"#f2c94c\"/><rect x=\"94\" y=\"216\" width=\"12\" height=\"11\" rx=\"2\" fill=\"#2b1d14\" stroke=\"none\"/><g class=\"rf-braccio\"><path d=\"M140 176 C160 160 170 136 170 108 L190 110 C192 142 178 172 154 192 Z\" fill=\"url(#tsRosso)\"/><ellipse cx=\"180\" cy=\"108\" rx=\"15\" ry=\"8\" fill=\"url(#tsPelo)\" transform=\"rotate(6 180 108)\"/><path d=\"M168 100 C164 82 168 66 178 62 C182 54 192 56 192 64 C198 62 202 70 198 78 C202 84 198 100 192 102 Z\" fill=\"url(#tsGuanto)\"/><path d=\"M170 92 C160 88 156 80 162 76 C166 74 170 80 172 84\" fill=\"url(#tsGuanto)\"/><path d=\"M184 66 L184 80 M192 70 L191 82\" fill=\"none\" stroke-width=\"1.5\"/></g><ellipse cx=\"62\" cy=\"102\" rx=\"8\" ry=\"11\" fill=\"url(#tsPelle)\"/><ellipse cx=\"138\" cy=\"102\" rx=\"8\" ry=\"11\" fill=\"url(#tsPelle)\"/><circle cx=\"100\" cy=\"100\" r=\"38\" fill=\"url(#tsPelle)\"/><path d=\"M60 102 C56 150 78 186 100 190 C122 186 144 150 140 102 C132 124 120 128 100 128 C80 128 68 124 60 102 Z\" fill=\"url(#tsPelo)\"/><path d=\"M66 150 C70 160 78 162 82 156 M84 170 C88 180 96 180 98 172 M104 172 C106 180 114 180 118 170 M120 156 C124 162 132 160 136 150 M76 134 C80 142 88 142 90 136 M110 136 C112 142 120 142 124 134\" fill=\"none\" stroke=\"#b9bfcc\" stroke-width=\"1.6\" stroke-linecap=\"round\"/><path d=\"M100 120 C92 108 74 108 66 120 C70 128 80 130 88 126 C94 124 98 124 100 124 Z\" fill=\"url(#tsPelo)\"/><path d=\"M100 120 C108 108 126 108 134 120 C130 128 120 130 112 126 C106 124 102 124 100 124 Z\" fill=\"url(#tsPelo)\"/><path d=\"M92 130 Q100 140 108 130 Q100 134 92 130 Z\" fill=\"#8f2a2a\" stroke-width=\"1.5\"/><ellipse cx=\"100\" cy=\"110\" rx=\"9\" ry=\"8\" fill=\"#ef8f7c\"/><path d=\"M128 54 C122 30 92 20 70 30 C50 40 36 64 30 92 L42 94 C46 74 54 60 64 56 C60 64 58 72 60 80 L140 80 C140 68 136 60 128 54 Z\" fill=\"url(#tsRosso)\"/><circle cx=\"34\" cy=\"98\" r=\"11\" fill=\"url(#tsPelo)\"/><rect x=\"52\" y=\"66\" width=\"96\" height=\"21\" rx=\"10.5\" fill=\"url(#tsPelo)\"/><path d=\"M76 91 C80 87 88 87 93 90\" fill=\"none\" stroke-width=\"4\" stroke=\"#ffffff\" stroke-linecap=\"round\"/><path d=\"M107 90 C112 87 120 87 124 91\" fill=\"none\" stroke-width=\"4\" stroke=\"#ffffff\" stroke-linecap=\"round\"/></g><ellipse cx=\"85\" cy=\"99\" rx=\"4.5\" ry=\"5.5\" fill=\"#2b1d14\"/><ellipse cx=\"115\" cy=\"99\" rx=\"4.5\" ry=\"5.5\" fill=\"#2b1d14\"/><circle cx=\"86.5\" cy=\"97\" r=\"1.6\" fill=\"#fff\"/><circle cx=\"116.5\" cy=\"97\" r=\"1.6\" fill=\"#fff\"/><circle cx=\"74\" cy=\"110\" r=\"8\" fill=\"#f26b6b\" opacity=\".35\"/><circle cx=\"126\" cy=\"110\" r=\"8\" fill=\"#f26b6b\" opacity=\".35\"/><ellipse cx=\"97\" cy=\"107\" rx=\"3\" ry=\"2\" fill=\"#fff\" opacity=\".6\"/></svg>";
+        var ciaoN = document.createElement("span");
+        ciaoN.className = "rf-babbo-ciao";
+        ciaoN.textContent = nomeN ? "Ciao " + nomeN + "! 👋" : "Ciao! 👋";
+        bb.appendChild(ciaoN);
+        document.body.appendChild(bb);
+        setTimeout(function () { if (bb.parentNode) bb.parentNode.removeChild(bb); }, 2000);
+      };
+      // Babbo solo per chi usa l'app: sulle pagine pubbliche dei clienti non compare
+      if (nellAppN) {
+        var attesaN = setInterval(function () {
+          provaN++; trovaNome();
+          if (nomeN || provaN >= 10) { clearInterval(attesaN); mostraBabbo(); }
+        }, 300);
       }
-      document.body.appendChild(alb);
-
-      [["dx", 0], ["sx", 11]].forEach(function (p) {
-        var sl = document.createElement("div");
-        sl.className = "rf-slitta " + p[0];
-        // slitta disegnata: Babbo Natale seduto, sacco di regali e due renne davanti (guardano verso destra; la seconda e' specchiata dall'animazione)
-        var ren = function (x, naso) {
-          return '<g transform="translate(' + x + ',0)"><path d="M-2 50 L1 56" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/>' +
-            '<line x1="5" y1="58" x2="-1" y2="76" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/><line x1="10" y1="60" x2="8" y2="77" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/>' +
-            '<line x1="21" y1="60" x2="28" y2="74" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/><line x1="25" y1="58" x2="34" y2="70" stroke="#6d4526" stroke-width="3" stroke-linecap="round"/>' +
-            '<ellipse cx="14" cy="54" rx="15" ry="8" fill="#8d5a34"/><path d="M25 50 L31 38" stroke="#8d5a34" stroke-width="6" stroke-linecap="round"/>' +
-            '<circle cx="34" cy="35" r="5.5" fill="#8d5a34"/><ellipse cx="39" cy="37" rx="3.6" ry="2.6" fill="#a86f45"/>' +
-            '<path d="M33 30 L30 19 M30 23 L26 21 M36 30 L40 19 M40 23 L44 21" stroke="#6d4526" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-            '<circle cx="34" cy="34" r="1.1" fill="#222"/>' + (naso ? '<circle cx="42" cy="37" r="2.4" fill="#e53935"/>' : '') + '</g>';
-        };
-        sl.innerHTML = '<svg viewBox="0 0 230 90" xmlns="http://www.w3.org/2000/svg" style="width:' + (p[0] === "dx" ? 150 : 130) + 'px;height:auto;display:block;">' +
-          '<path d="M22 76 H108 Q122 76 119 62" fill="none" stroke="#c99a2e" stroke-width="3.5" stroke-linecap="round"/>' +
-          '<path d="M26 70 L30 46 H96 Q113 46 115 60 L109 72 H30 Z" fill="#c62828"/><path d="M30 53 H111" stroke="#c99a2e" stroke-width="2"/>' +
-          '<line x1="40" y1="72" x2="40" y2="76" stroke="#c99a2e" stroke-width="3"/><line x1="95" y1="72" x2="95" y2="76" stroke="#c99a2e" stroke-width="3"/>' +
-          '<circle cx="38" cy="38" r="12" fill="#8d6e63"/><path d="M32 29 Q38 25 44 29" stroke="#5d4037" stroke-width="2" fill="none"/>' +
-          '<rect x="54" y="30" width="28" height="20" rx="9" fill="#d32f2f"/><circle cx="68" cy="24" r="8" fill="#f5c9a6"/>' +
-          '<path d="M60 26 Q68 44 76 26 Z" fill="#fff"/><path d="M59 22 Q68 2 78 20 Z" fill="#d32f2f"/><rect x="58" y="19" width="21" height="4" rx="2" fill="#fff"/>' +
-          '<circle cx="79" cy="10" r="3" fill="#fff"/><circle cx="71" cy="23" r="1.2" fill="#333"/>' +
-          '<path d="M115 58 Q125 52 134 55" fill="none" stroke="#c99a2e" stroke-width="1.8"/><path d="M162 55 Q168 51 176 55" fill="none" stroke="#c99a2e" stroke-width="1.8"/>' +
-          ren(125, false) + ren(176, true) + '</svg>';
-        sl.style.animationDelay = "-" + p[1] + "s";
-        document.body.appendChild(sl);
-      });
     }
 
     // neve leggera (Natale)
@@ -313,7 +305,7 @@
 
     // Tutto quello che si muove e puo' uscire dallo schermo (pipistrelli, slitte, neve) sta dentro una gabbia
     // che ritaglia: cosi' un elemento fuori dallo schermo non sposta la barra in basso su iPhone.
-    var mobili = document.querySelectorAll(".rf-bat, .rf-slitta, #neve-natale, .rf-zucca-paura");
+    var mobili = document.querySelectorAll(".rf-bat, #neve-natale, .rf-zucca-paura");
     if (mobili.length) {
       var gabbia = document.createElement("div");
       gabbia.id = "rf-gabbia";
