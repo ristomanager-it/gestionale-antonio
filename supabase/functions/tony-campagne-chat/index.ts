@@ -632,7 +632,7 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
     const { data: riga, error } = await sb.from("calendario_editoriale").insert({
       azienda_id: c.aziendaId, sede_id: c.sedeId, data: data, ora_pubblicazione: ora, angolo: angolo, titolo: titolo, testo: testo,
       media_url: url || null, canale: canali[0] || "facebook", canali: canali, formato: "foto", grafica_modo: "foto",
-      foto_bloccata: !!url, stato: "bozza", istruzioni: "Creato da Tony nella chat"
+      foto_bloccata: !!url, stato: "bozza", istruzioni: "Creato da Tony nella chat", extra: true
     }).select("id").single();
     if (error || !riga) return { errore: "non riesco a preparare il post: " + (error ? error.message : "errore") };
     const pagina = String(sd.meta_pagina_nome || sd.nome || "la pagina");
