@@ -44,22 +44,27 @@
     if (!pagato && esitoQ === "ok" && tentativi++ < 10) setTimeout(carica, 3000);
   }
   function persone(){ var b = Number(p.bambini) || 0, a = Math.max((Number(p.coperti) || 1) - b, 0); return { a: a, b: b }; }
-  function totale(){ var x = persone(); return (N.prezzo || 0) * x.a + (N.prezzo_bimbi || 0) * x.b; }
+  function totale(){ if (W() && p.importo_totale != null) return Number(p.importo_totale); var x = persone(); return (N.prezzo || 0) * x.a + (N.prezzo_bimbi || 0) * x.b; }
+  // pacchetto Natale con camera (natale-weekend.html): totale salvato, piu' giorni e notti
+  function W(){ return p && p.tag === "natale-2026-weekend"; }
+  function giorno(d){ var g = { "2026-12-24": "Giovedì 24", "2026-12-25": "Venerdì 25", "2026-12-26": "Sabato 26" }; return (g[d] || d) + " dicembre"; }
   function disegna(){
     var L = LOCALI[p.sede_id] || LOCALI["4a936e52-a1e3-42fc-843c-e8d15dc86040"], x = persone();
     if (p.sede_id === "c40919bb-78c2-458f-865e-0c9fd02aa0b5") document.documentElement.classList.add("campo");
     var pagato = p.stato_pagamento === "pagato", ora = String(p.ora || "").slice(0, 5);
-    var h = '<div class="testa"><div class="kicker">🎄 Pranzo di Natale</div><div class="acc">Venerdì 25 dicembre</div><h1>La vostra prenotazione</h1></div>';
-    if (pagato) h += '<div class="esito ok"><h2>✓ Tavolo confermato</h2><p>Abbiamo ricevuto l’acconto. Vi aspettiamo il 25 dicembre: qui sotto trovate tutto.</p></div>';
+    var nn = Number(p.notti) || 1;
+    var h = W() ? '<div class="testa"><div class="kicker">🎄 Natale a Campo Antico</div><div class="acc">Dal ' + giorno(String(p.data)) + ' · ' + nn + (nn === 1 ? ' notte' : ' notti') + ' con colazione</div><h1>La vostra prenotazione</h1></div>'
+      : '<div class="testa"><div class="kicker">🎄 Pranzo di Natale</div><div class="acc">Venerdì 25 dicembre</div><h1>La vostra prenotazione</h1></div>';
+    if (pagato) h += '<div class="esito ok"><h2>✓ Tavolo confermato</h2><p>Abbiamo ricevuto l’acconto. Vi aspettiamo ' + (W() ? 'il ' + giorno(String(p.data)).toLowerCase() : 'il 25 dicembre') + ': qui sotto trovate tutto.</p></div>';
     else if (esitoQ === "ok") h += '<div class="esito att"><h2>Stiamo confermando il pagamento…</h2><p>Ci vogliono pochi secondi: non chiudete la pagina.</p></div>';
     else h += '<div class="esito ko"><h2>Acconto non ancora pagato</h2><p>Il tavolo non è ancora bloccato. Potete pagare l’acconto qui sotto, oppure chiamarci.</p></div>';
     h += '<div class="card"><h3>Il vostro tavolo</h3>'
-      + '<div class="riga"><span>Quando</span><b>Venerdì 25 dicembre 2026<br>ore ' + esc(ora) + '</b></div>'
+      + '<div class="riga"><span>Quando</span><b>' + (W() ? giorno(String(p.data)) + ' 2026, ore ' + esc(ora) + '<br>' + esc(String(p.note || '').replace(/^\[Pacchetto Natale ([^\]]*)\].*$/, '$1')) : 'Venerdì 25 dicembre 2026<br>ore ' + esc(ora)) + '</b></div>'
       + '<div class="riga"><span>Dove</span><b>' + esc(L.nome) + '<br>' + esc(L.ind) + '</b></div>'
       + '<div class="riga"><span>Ospiti</span><b>' + x.a + (x.a === 1 ? " adulto" : " adulti") + (x.b ? " + " + x.b + (x.b === 1 ? " bambino" : " bambini") : "") + '</b></div>'
       + '<div class="riga"><span>A nome di</span><b>' + esc(((p.cliente_nome || "") + " " + (p.cognome || "")).trim()) + '</b></div>'
-      + (N.prezzo ? '<div class="riga"><span>Totale del pranzo</span><b>' + euro(totale()) + '</b></div>' : '')
-      + (pagato && p.acconto_importo ? '<div class="riga"><span>Acconto pagato</span><b>' + euro(p.acconto_importo) + '</b></div>' + (N.prezzo ? '<div class="riga"><span>Da saldare il 25 dicembre</span><b>' + euro(Math.max(totale() - Number(p.acconto_importo), 0)) + '</b></div>' : '') : '')
+      + ((N.prezzo || W()) ? '<div class="riga"><span>' + (W() ? 'Totale del pacchetto' : 'Totale del pranzo') + '</span><b>' + euro(totale()) + '</b></div>' : '')
+      + (pagato && p.acconto_importo ? '<div class="riga"><span>Acconto pagato</span><b>' + euro(p.acconto_importo) + '</b></div>' + ((N.prezzo || W()) ? '<div class="riga"><span>' + (W() ? 'Da saldare all’arrivo' : 'Da saldare il 25 dicembre') + '</span><b>' + euro(Math.max(totale() - Number(p.acconto_importo), 0)) + '</b></div>' : '') : '')
       + (p.richieste_speciali || p.note ? '<div class="riga"><span>Segnalazioni</span><b>' + esc(p.richieste_speciali || p.note) + '</b></div>' : '')
       + '</div>';
     if (pagato) h += '<div class="card"><h3>Mancano</h3><div class="conta"><div><b id="cg">–</b><small>giorni</small></div><div><b id="co">–</b><small>ore</small></div><div><b id="cm">–</b><small>minuti</small></div><div><b id="cs">–</b><small>secondi</small></div></div></div>';
@@ -76,7 +81,7 @@
     if (pagato) conto(ora);
   }
   function conto(ora){
-    var fine = new Date("2026-12-25T" + (ora || "12:30") + ":00+01:00").getTime();
+    var fine = new Date((W() ? String(p.data) : "2026-12-25") + "T" + (ora || "12:30") + ":00+01:00").getTime();
     if (timer) clearInterval(timer);
     var giro = function(){ var d = Math.max(fine - Date.now(), 0), s = Math.floor(d / 1000);
       if ($("cg")) { $("cg").textContent = Math.floor(s / 86400); $("co").textContent = Math.floor(s % 86400 / 3600); $("cm").textContent = Math.floor(s % 3600 / 60); $("cs").textContent = s % 60; } };
@@ -90,7 +95,7 @@
     try {
       var res = await fetch(URL_ + "/functions/v1/stripe-checkout", { method: "POST", headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON },
         body: JSON.stringify({ action: "create_session", azienda_id: p.azienda_id, tipo: "tavolo", riferimento_id: p.id, importo_centesimi: acconto,
-          descrizione: "Acconto " + (N.perc || 30) + "% · Pranzo di Natale · " + (L.nome || "") + " · 25/12/2026 · " + x.a + (x.a === 1 ? " adulto" : " adulti") + (x.b ? " + " + x.b + (x.b === 1 ? " bambino" : " bambini") : ""),
+          descrizione: W() ? "Acconto 30% · Natale a Campo Antico · " + (p.notti || 1) + " notti" : "Acconto " + (N.perc || 30) + "% · Pranzo di Natale · " + (L.nome || "") + " · 25/12/2026 · " + x.a + (x.a === 1 ? " adulto" : " adulti") + (x.b ? " + " + x.b + (x.b === 1 ? " bambino" : " bambini") : ""),
           cliente_nome: ((p.cliente_nome || "") + " " + (p.cognome || "")).trim(),
           success_url: location.origin + location.pathname + "?t=" + token + "&esito=ok", cancel_url: location.origin + location.pathname + "?t=" + token + "&esito=annullato",
           metadata: { landing: p.tag || "natale-2026", adulti: String(x.a), bambini: String(x.b) } }) });
