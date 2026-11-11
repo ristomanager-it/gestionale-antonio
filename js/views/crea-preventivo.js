@@ -423,11 +423,13 @@ function riepilogoIsola(sez) {
 function riempiSezione(nome, quante) {
   const fissa = isoleDiSezione(nome).find(i => i.modo === "fissa" || i.modo === "opzionale");
   const piatti = fissa ? isolePiatti.filter(p => p.isola_id === fissa.id).map(p => p.nome) : [];
+  // il prezzo a persona dell'isola arriva dal listino (prodotto collegato) e sta sulla prima riga
+  const listino = prezzoListino(nome);
   if (piatti.length) {
-    piatti.forEach(n => righe.push({ nome: n, sezione: nome, prezzo: 0, ricetta_id: null, pp: ppSezione(nome) }));
+    piatti.forEach((n, i) => righe.push({ nome: n, sezione: nome, prezzo: i === 0 ? listino : 0, ricetta_id: null, pp: ppSezione(nome) }));
     return;
   }
-  for (let i = 0; i < quante; i++) righe.push({ nome: "", sezione: nome, prezzo: 0, ricetta_id: null, pp: ppSezione(nome) });
+  for (let i = 0; i < quante; i++) righe.push({ nome: "", sezione: nome, prezzo: i === 0 ? listino : 0, ricetta_id: null, pp: ppSezione(nome) });
 }
 
 function disegna(container, supabase, azienda, sede) {
