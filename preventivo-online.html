@@ -97,10 +97,16 @@ function disegna(){var h="",chips="";
  $("steps").innerHTML=(chips?'<div class="chips">'+chips+'</div>':"")+h}
 function vai(i){cur=i;$("sum").classList.add("hide");disegna();$("s2").scrollIntoView({behavior:"smooth",block:"start"})}
 function scelte(){var a=[],s=[];Object.keys(sel).forEach(function(id){if(!sel[id])return;if(id.charAt(0)==="l")return;if(id.charAt(0)==="s"&&id.length<12)s.push(id.slice(1));else a.push(id)});return {scelte:a,servizi:s}}
+var BOZZA=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx".replace(/x/g,function(){return (Math.random()*16|0).toString(16)});
+function bozza(x){if(PROVA)return;try{var qx=new URLSearchParams(location.search),l=(CFG&&CFG.location||[]).filter(function(y){return y.id===LOC})[0],sc=[],sv=[];
+ STEPS.forEach(function(z,i){if(!i||!fatto[i])return;var ps=voci(z.k).filter(function(v){return sel[v.id]}).map(function(v){return v.n});if(!ps.length)return;if(z.k==="servizi")sv=ps;sc.push({passo:z.t,voci:ps})});
+ var d={nomi:$("nomi").value.trim(),email:$("email").value.trim(),telefono:$("tel").value.trim(),tipo:TIPO,invitati:INV,data:DATA||$("mese").value||"",location:l?l.nome:"",scelte:sc,servizi:sv,passi_totali:STEPS.length,utm_source:qx.get("utm_source")||"",utm_campaign:qx.get("utm_campaign")||""};
+ for(var k in x)d[k]=x[k];
+ fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/rpc/preventivo_online_bozza",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json",apikey:"sb_publishable_WotaBvSScN1GwFw_rVWbzA_2OEcRJy-"},body:JSON.stringify({p_slug:P,p_id:BOZZA,p_dati:d})})}catch(_){}}
 function corpo(extra){var x=scelte();var b={tipo:TIPO,invitati:INV,location_id:LOC,data:DATA,scelte:x.scelte,servizi:x.servizi};for(var k in extra)b[k]=extra[k];return b}
 function riepilogo(){T("step","riepilogo",TIPO);$("steps").innerHTML='<div class="chips">'+STEPS.map(function(z,i){return '<button type="button" class="chip" data-st="'+i+'">✓ '+esc(z.t)+'</button>'}).join("")+'</div>';
  $("sum").classList.remove("hide");$("sum").innerHTML='<p class="m">Calcolo…</p>';$("s2").scrollIntoView({behavior:"smooth"});
- api(corpo({azione:"calcola"})).then(function(k){ULT=k;var l=(CFG.location||[]).filter(function(x){return x.id===LOC})[0],d=DISP[LOC],h='<div class="k">Il vostro preventivo</div><h2 style="margin:4px 0 8px;font-size:28px">'+esc(TIPO)+' · '+INV+' invitati</h2>';
+ api(corpo({azione:"calcola"})).then(function(k){ULT=k;bozza({passo:"riepilogo",passi_fatti:STEPS.length,totale:k.sconto?k.sconto.totale:k.totale,totale_pieno:k.totale});var l=(CFG.location||[]).filter(function(x){return x.id===LOC})[0],d=DISP[LOC],h='<div class="k">Il vostro preventivo</div><h2 style="margin:4px 0 8px;font-size:28px">'+esc(TIPO)+' · '+INV+' invitati</h2>';
   h+='<p class="m">'+esc(l?l.nome:"")+' · '+esc(DATA?new Date(DATA+"T12:00").toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"}):($("mese").value||"data da definire"))+'</p>';
   STEPS.slice(1).forEach(function(z){var ps=voci(z.k).filter(function(v){return sel[v.id]});if(!ps.length)return;h+='<b>'+esc(z.t)+'</b><ul>'+ps.map(function(v){return '<li>'+esc(v.n)+(note[v.id]?' <i class="m">· '+esc(note[v.id])+'</i>':"")+'</li>'}).join("")+'</ul>'});
   if(k.sconto){h+='<div class="sconto">Sconto online <b>−'+k.sconto.perc+'% sul menu</b>, già applicato: −'+eur(k.sconto.importo)+'</div>';
