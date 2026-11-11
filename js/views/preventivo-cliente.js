@@ -585,3 +585,16 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+
+// dettaglio del conto: menu, location, servizi a pagamento e sconto, prima del totale.
+// Si mostra solo se c'e' qualcosa oltre al menu, e solo se le voci tornano con il totale.
+function dettaglioConto(d, invitati) {
+  const c = d.conto;
+  if (!c || !c.quadra) return "";
+  const loc = Number(c.location) || 0, serv = Number(c.servizi) || 0, sc = Number(c.sconto) || 0;
+  if (!loc && !serv && !sc) return "";
+  return `<div class="r"><span>Menu${invitati ? " · " + invitati + " invitati" : ""}</span><b>${euro(Number(c.menu) || 0)}</b></div>`
+    + (loc ? `<div class="r"><span>Location${d.location ? " · " + esc(d.location) : ""}</span><b>${euro(loc)}</b></div>` : "")
+    + (serv ? `<div class="r"><span>Servizi</span><b>${euro(serv)}</b></div>` : "")
+    + (sc ? `<div class="r"><span>Sconto</span><b>− ${euro(sc)}</b></div>` : "");
+}
