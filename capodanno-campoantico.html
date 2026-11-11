@@ -351,7 +351,11 @@ footer a{color:var(--oro)}
   if (supa && Date.now() <= PROMO.fino) supa.rpc("evento_promo_liberi", { p_slug: CFG.slug, p_posti: PROMO.posti })
     .then(function(r){
       var restano = r.error ? 0 : Number(r.data);
-      if (restano <= 0) return;
+      if (restano <= 0) {
+        // offerta finita qui: la mandiamo dove c'e' ancora
+        if (!r.error) $("amo").insertAdjacentHTML("afterend", '<div style="margin:12px auto 0;max-width:520px;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #f59e0b;color:#7c2d12;font-size:15px;line-height:1.45;text-align:center"><b>Offerta sold out a Campo Antico.</b><br>Il cenone in offerta c’è ancora alla <a href="capodanno-aquila.html' + location.search + '" style="color:#b45309;font-weight:700">Trattoria dell’Aquila: 80 € invece di 95 €</a>, fino al 15 novembre.</div>');
+        return;
+      }
       promoAttiva = true;
       $("nota-promo").hidden = false;
       var giorni = Math.max(Math.ceil((PROMO.fino - Date.now()) / 864e5), 0);
