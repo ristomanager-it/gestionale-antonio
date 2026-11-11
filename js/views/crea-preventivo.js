@@ -1475,7 +1475,7 @@ async function salva(container, supabase, azienda, sede) {
     location_prezzo: Number(P.location_prezzo) || 0,
     sconto_perc: Number(P.sconto_perc) || 0, sconto_euro: Number(P.sconto_euro) || 0,
     subtotale_menu: c.menu, subtotale_extra: c.serviziTot,
-    costo_stimato: c.costoMenu, totale: c.totale, acconto: c.acconto, acconto_modo: P.acconto_modo || "standard",
+    costo_stimato: c.costoMenu, totale: c.totale, acconto: c.acconto, acconto_perc: Number(P.acconto_perc) > 0 ? Number(P.acconto_perc) : null, acconto_modo: P.acconto_modo || "standard",
     personale_figure: Array.isArray(P.personale_figure) ? P.personale_figure : null,
     costo_lavoro: c.costoPersonale,
     giorni_validita: Number(P.giorni_validita) || 15,
