@@ -1243,8 +1243,8 @@ Deno.serve(async (req) => {
     }
     if (!uid) return json({ success: false, error: "Accesso non valido" }, 401);
     const { data: ua } = await sb.from("utenti_aziende").select("ruolo").eq("user_id", uid).eq("azienda_id", aziendaId).eq("attivo", true).limit(5);
-    const admin = (ua || []).some((r: any) => ["admin", "superadmin"].includes(String(r.ruolo).toLowerCase()));
-    if (!admin) return json({ success: true, reply: "Le campagne le puo' creare e gestire solo un amministratore. Chiedi a lui, oppure dimmi pure altro che posso fare per te.", fonte: "campagne" });
+    const admin = (ua || []).some((r: any) => ["admin", "superadmin", "addetto_marketing"].includes(String(r.ruolo).toLowerCase()));
+    if (!admin) return json({ success: true, reply: "Post e campagne li puo' creare solo l'amministratore o l'addetto marketing. Chiedi a lui, oppure dimmi pure altro che posso fare per te.", fonte: "campagne" });
 
     const { data: az } = await sb.from("aziende").select("nome").eq("id", aziendaId).maybeSingle();
     const messaggiIn: any[] = Array.isArray(body.messages) ? body.messages : [];
