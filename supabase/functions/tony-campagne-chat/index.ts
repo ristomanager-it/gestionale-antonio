@@ -151,6 +151,19 @@ async function caricaMetodo(aziendaId: string, sedeId: string | null): Promise<{
       ammessi.push(`${rv.length} recensioni media ${media} su 5 ` + esempi.join(" "));
     }
   } catch { /* idem */ }
+  // v23: lo STILE DEI POST della pagina, deciso dal titolare (stile_post): lo usa proponi_post
+  try {
+    const { data: st } = await sb.from("stile_post").select("usa_emoji,usa_grassetto,struttura,da_evitare,firma_finale").eq("azienda_id", aziendaId).maybeSingle();
+    if (st) {
+      const r: string[] = [];
+      if (st.struttura) r.push(String(st.struttura));
+      r.push(st.usa_emoji ? "Emoji ammesse, con misura." : "Niente emoji.");
+      if (!st.usa_grassetto) r.push("Niente grassetto.");
+      if (st.da_evitare) r.push("DA EVITARE: " + String(st.da_evitare));
+      if (st.firma_finale) r.push("Chiusura: " + String(st.firma_finale));
+      parti.push("STILE DEI POST DELLA PAGINA (deciso dal titolare: vale per proponi_post)\n" + r.join("\n"));
+    }
+  } catch { /* lo stile e' un di piu' */ }
   return { testo: parti.join("\n\n"), ammessi: ammessi.join(" ") };
 }
 const CACHE_METODO = new Map<string, { t: number; v: { testo: string; ammessi: string } }>();
