@@ -88,7 +88,13 @@ export async function render(container, params = {}) {
     ]);
     isole = ri.data || [];
     isolePiatti = rp.data || [];
-  } catch (e) { isole = []; isolePiatti = []; }
+    const idsP = isole.map(i => i.prodotto_vendita_id).filter(Boolean);
+    prezziIsole = {};
+    if (idsP.length) {
+      const { data: pp } = await supabase.from("prodotti_vendita").select("id, prezzo_base").in("id", idsP);
+      (pp || []).forEach(x => { prezziIsole[x.id] = Number(x.prezzo_base) || 0; });
+    }
+  } catch (e) { isole = []; isolePiatti = []; prezziIsole = {}; }
   try {
     sediAz = (await supabase.from("sedi").select("id, nome, logo_url").eq("azienda_id", azienda.id)).data || [];
   } catch (e) { sediAz = []; }
