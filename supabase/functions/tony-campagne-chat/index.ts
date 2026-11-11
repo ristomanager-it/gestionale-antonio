@@ -1283,6 +1283,14 @@ Deno.serve(async (req) => {
     }
     while (conv.length && conv[0].role !== "user") conv.shift();
     if (!conv.length) return json({ success: true, reply: "Dimmi che campagna o che landing vuoi: per esempio il menu business, una serata, o un piatto da far conoscere.", fonte: "campagne" });
+    // v23: le foto allegate in chat arrivano a Tony con l'ultimo messaggio, numerate chat:1, chat:2...
+    if (immaginiIn.length) {
+      const ult = conv[conv.length - 1];
+      if (ult && ult.role === "user") {
+        const blocchiFoto: any[] = immaginiIn.map((b) => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b } }));
+        ult.content = blocchiFoto.concat([{ type: "text", text: String(ult.content) + "\n[Ho allegato " + immaginiIn.length + " foto: per usarle nel post passa chat:1" + (immaginiIn.length > 1 ? " ... chat:" + immaginiIn.length : "") + "]" }]);
+      }
+    }
     const sistema = SISTEMA(c.azienda, locale, cittaLocale, metodo.testo);
 
     if (!body.stream) return json(await rispondi(c, chiave, sistema, conv, prova, tInizio, tDati, null, null));
