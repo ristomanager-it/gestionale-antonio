@@ -50,8 +50,10 @@
 var U="https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/preventivo-online";
 var qs=new URLSearchParams(location.search);
 var P=qs.get("p")||"",PROVA=qs.get("prova")==="1",SOLO=(qs.get("tipi")||"").split(",").map(function(x){return x.trim().toLowerCase()}).filter(Boolean),WA=null;
-var NOMI={aperitivo:"Aperitivo di benvenuto",antipasti:"Antipasti",angoli:"Angoli e buffet",zuppe:"Zuppe",primi:"Primi piatti",secondi:"Il secondo",contorni:"Contorni",torta:"La torta",dolci:"Dolci",vini:"I vini",fine:"Fine pasto",servizi:"Servizi extra"};
-var CIBO=["aperitivo","antipasti","angoli","zuppe","primi","secondi","contorni","torta","dolci"];
+var NOMI={aperitivo:"Aperitivo di benvenuto",antipasti:"Antipasti",angoli:"Angoli e buffet",zuppe:"Zuppe",primi:"Primi piatti",primi1:"Il primo primo",primi2:"Il secondo primo",secondi:"Il secondo",contorni:"Contorni",torta:"La torta",dolci:"Dolci",vini:"I vini",fine:"Fine pasto",servizi:"Servizi extra"};
+var CIBO=["aperitivo","antipasti","angoli","zuppe","primi","primi1","primi2","secondi","contorni","torta","dolci"];
+var DOLCE_EXTRA=/gelat|pizza/i;  // carretto dei gelati e pizza a fine festa: extra nel passo dei dolci
+var PRED={};  // voci comprese di base per il tipo di evento (menu_modelli.portate[].predefiniti)
 var CFG=null,TIPO=null,STEPS=[],cur=0,fatto={},sel={},note={},mostra={},DISP={},LOC=null,DATA=null,INV=80,ULT=null;
 function $(i){return document.getElementById(i)}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -72,24 +74,33 @@ if(!P){$("tipi").innerHTML='<span class="err">Link incompleto.</span>'}else api(
 document.addEventListener("change",function(e){if(e.target.name==="hd"){var si=e.target.value==="si";$("dataG").classList.toggle("hide",!si);$("mese").classList.toggle("hide",si)}});
 function voci(k){
  if(k==="servizi"){var p=CFG.voci.filter(function(v){return v.k==="servizi"}).map(function(v){return {id:v.id,n:v.nome,d:v.descrizione,pr:v.prezzo,cat:"Angoli e allestimenti",tipo:"v"}});
-  var s=(CFG.servizi||[]).map(function(x){return {id:"s"+x.id,n:x.nome,d:x.descrizione,pr:x.prezzo,cat:x.categoria||"Altri servizi",tipo:"s"}});return p.concat(s)}
+  p.forEach(function(x){if(PRED[x.id])x.pr="Compreso"});
+  var s=(CFG.servizi||[]).filter(function(x){return !DOLCE_EXTRA.test(x.nome||"")}).map(function(x){return {id:"s"+x.id,n:x.nome,d:x.descrizione,pr:x.prezzo,cat:x.categoria||"Altri servizi",tipo:"s"}});return p.concat(s)}
+ if(k==="dolci"){var dx=(CFG.servizi||[]).filter(function(x){return DOLCE_EXTRA.test(x.nome||"")}).map(function(x){return {id:"s"+x.id,n:x.nome,d:x.descrizione,pr:x.prezzo,cat:"A richiesta"}});
+  var dv=CFG.voci.filter(function(v){return v.k==="dolci"}).map(function(v){return {id:v.id,n:v.nome,d:v.descrizione,f:v.foto,pr:v.prezzo||(PRED[v.id]?"Compreso":""),compreso:v.compreso||!!PRED[v.id]}});
+  if(Object.keys(PRED).length)dv.sort(function(a,b){return (PRED[b.id]?1:0)-(PRED[a.id]?1:0)});
+  return dv.concat(dx)}
  if(k==="loc")return (CFG.location||[]).map(function(l){var d=DISP[l.id];return {id:"l"+l.id,lid:l.id,n:l.nome,d:(l.descrizione||"")+(l.capienza?" Fino a "+l.capienza+" ospiti.":""),f:l.foto,pr:l.prezzo,disp:d,troppi:(l.capienza&&INV>l.capienza)||(d&&(d.stato==="occupata"||d.stato==="piena"))}});
- var L=CFG.voci.filter(function(v){return v.k===k});
- if(k==="primi"){var o=CFG.ordine_primi||[];L=L.slice().sort(function(a,b){var ia=o.indexOf(a.tp),ib=o.indexOf(b.tp);return (ia<0?9:ia)-(ib<0?9:ib)})}
- return L.map(function(v){return {id:v.id,n:v.nome,d:v.descrizione+(v.con&&v.con.length?" · con "+v.con.join(", "):""),f:v.foto,pr:v.prezzo||"",it:v.it,compreso:v.compreso,base:v.base,galleria:v.galleria,sost:v.sostituisce,cat:v.galleria?"Galleria: torte più elaborate":(k==="torta"?"Compresa nel menu":"")}})}
+ // primi del matrimonio in due passi: prima risotti, vellutate e gratinati leggeri; poi i primi più importanti
+ var leggero=function(v){return v.tp==="risotto"||v.tp==="zuppa"||(v.tp==="gratinato"&&v.it==="delicato")};
+ var L=(k==="primi1"||k==="primi2")?CFG.voci.filter(function(v){return v.k==="primi"&&(leggero(v)===(k==="primi1"))}):CFG.voci.filter(function(v){return v.k===k});
+ if(k==="primi"||k==="primi1"||k==="primi2"){var o=CFG.ordine_primi||[];L=L.slice().sort(function(a,b){var ia=o.indexOf(a.tp),ib=o.indexOf(b.tp);return (ia<0?9:ia)-(ib<0?9:ib)})}
+ if(Object.keys(PRED).length)L=L.slice().sort(function(a,b){return (PRED[b.id]?1:0)-(PRED[a.id]?1:0)});  // i compresi in cima
+ return L.map(function(v){return {id:v.id,n:v.nome,d:v.descrizione+(v.con&&v.con.length?" · con "+v.con.join(", "):""),f:v.foto,pr:k==="aperitivo"?"":(PRED[v.id]?"Compreso":(v.prezzo||"")),it:v.it,compreso:v.compreso||!!PRED[v.id],base:v.base,galleria:v.galleria,sost:v.sostituisce,cat:v.galleria?"Galleria: torte più elaborate":(k==="torta"?"Compresa nel menu":"")}})}
 function nSel(k){return voci(k).filter(function(v){return sel[v.id]}).length}
 function costruisci(){var m=(CFG.tipi||[]).filter(function(t){return t.tipo===TIPO})[0]||CFG.tipi[0];
  STEPS=[{k:"loc",t:"La location",h:"Dove vi immaginate la giornata",min:1,max:1}].concat((m.portate||[]).filter(function(p){return p.k==="servizi"||voci(p.k).length}).map(function(p){
   var mx=p.k==="torta"?1:p.max,h=(mx>=99?(p.min?"Almeno "+p.min:"Facoltativo · quanti volete"):(p.min===mx?(mx===1?"Sceglietene uno":"Scegliete "+mx):(p.min?"Da "+p.min+" a "+mx:"Fino a "+mx+" · facoltativo")))+(p.nota?" · "+p.nota:"");
   if(p.k==="torta")h="Inclusa nel menu · o sceglietene una dalla galleria";if(p.k==="vini")h="Compresi nel menu · e se volete, una scelta superiore";if(p.k==="fine")h="Compresi, senza costi in più";
   return {k:p.k,t:NOMI[p.k]||p.k,h:h,min:p.k==="torta"?1:p.min,max:mx}}));
- sel={};CFG.voci.forEach(function(v){if(v.compreso||v.base)sel[v.id]=true})}
-function scheda(v,z,n){var on=!!sel[v.id],piena=z.max<99&&n>=z.max&&!on&&z.k!=="torta",off=v.troppi||piena;
+ PRED={};(m.portate||[]).forEach(function(p){(p.predefiniti||[]).forEach(function(id){PRED[id]=true})});
+ sel={};CFG.voci.forEach(function(v){if(v.compreso||v.base||PRED[v.id])sel[v.id]=true})}
+function scheda(v,z,n){var on=!!sel[v.id],piena=z.max<99&&z.max>1&&n>=z.max&&!on&&z.k!=="torta",off=v.troppi||piena;
  var dsp=v.disp?'<span class="disp '+(v.disp.stato==="libera"?"ok":(v.disp.stato==="richiesta"||v.disp.stato==="pochi"||v.disp.stato==="da_verificare")?"wa":"no")+'">'+(v.disp.stato==="libera"?"✓ ":"")+esc(v.disp.testo)+'</span>':"";
  return '<div class="pt'+(on?" on":"")+(off?" off":"")+'" data-v="'+esc(v.id)+'">'+(v.f?'<img src="'+esc(v.f)+'" alt="" loading="lazy">':"")+'<div class="tx"><div><b>'+esc(v.n)+'</b>'+(v.d?'<small>'+esc(v.d)+'</small>':"")+(v.it?'<span class="lab">'+esc(v.it)+'</span>':"")+dsp+(v.troppi&&!v.disp?'<span class="disp no">Non basta per '+INV+' ospiti</span>':"")+'</div>'+(v.pr?'<span class="pr">'+esc(v.pr)+'</span>':"")+'<span class="ck">'+(on?"✓":"")+'</span></div></div>'+(on&&CIBO.indexOf(z.k)>=0?'<input class="nota" data-n="'+esc(v.id)+'" placeholder="Una nota su questo piatto (facoltativa)" value="'+esc(note[v.id]||"")+'">':"")}
 function disegna(){var h="",chips="";
  STEPS.forEach(function(z,i){if(i!==cur&&(fatto[i]||i<cur))chips+='<button type="button" class="chip" data-st="'+i+'">✓ '+esc(z.t)+'</button>';if(i!==cur)return;
-  var n=nSel(z.k),vs=voci(z.k),cat="",pieno=z.max<99&&n>=z.max&&!mostra[z.k]&&z.k!=="torta";if(pieno)vs=vs.filter(function(v){return sel[v.id]});
+  var n=nSel(z.k),vs=voci(z.k),cat="",pieno=z.max<99&&z.max>1&&n>=z.max&&!mostra[z.k]&&z.k!=="torta";if(pieno)vs=vs.filter(function(v){return sel[v.id]});
   h+='<div class="st" id="st"><div class="st-h"><b>'+(i+1)+' · '+esc(z.t)+'</b><span class="m">'+esc(z.h)+'</span></div>';
   h+='<div class="pts">';vs.forEach(function(v){if(v.cat&&v.cat!==cat){cat=v.cat;h+='</div><div class="cat">'+esc(cat)+'</div><div class="pts">'}h+=scheda(v,z,n)});h+='</div>';
   if(pieno)h+='<button class="btn g" data-tutti="'+z.k+'">Cambia scelta</button>';
@@ -110,11 +121,11 @@ function riepilogo(){T("step","riepilogo",TIPO);$("steps").innerHTML='<div class
   h+='<p class="m">'+esc(l?l.nome:"")+' · '+esc(DATA?new Date(DATA+"T12:00").toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"}):($("mese").value||"data da definire"))+'</p>';
   STEPS.slice(1).forEach(function(z){var ps=voci(z.k).filter(function(v){return sel[v.id]});if(!ps.length)return;h+='<b>'+esc(z.t)+'</b><ul>'+ps.map(function(v){return '<li>'+esc(v.n)+(note[v.id]?' <i class="m">· '+esc(note[v.id])+'</i>':"")+'</li>'}).join("")+'</ul>'});
   if(k.sconto){h+='<div class="sconto">Sconto online <b>−'+k.sconto.perc+'% sul menu</b>, già applicato: −'+eur(k.sconto.importo)+'</div>';
-   h+='<div class="big"><span>A persona</span><b>'+eur(k.sconto.a_persona)+'</b></div><div class="big"><span>Totale</span><b><s style="font-weight:400;opacity:.55;font-size:.7em;margin-right:6px">'+eur(k.totale)+'</s>'+eur(k.sconto.totale)+'</b></div>'}
-  else h+='<div class="big"><span>A persona</span><b>'+eur(k.a_persona)+'</b></div><div class="big"><span>Totale</span><b>'+eur(k.totale)+'</b></div>';
+   h+='<div class="big"><span>A persona <small style="opacity:.7">+ IVA</small></span><b>'+eur(k.sconto.a_persona)+'</b></div><div class="big"><span>Totale <small style="opacity:.7">+ IVA</small></span><b><s style="font-weight:400;opacity:.55;font-size:.7em;margin-right:6px">'+eur(k.totale)+'</s>'+eur(k.sconto.totale)+'</b></div>'}
+  else h+='<div class="big"><span>A persona <small style="opacity:.7">+ IVA</small></span><b>'+eur(k.a_persona)+'</b></div><div class="big"><span>Totale <small style="opacity:.7">+ IVA</small></span><b>'+eur(k.totale)+'</b></div>';
   if(k.su_richiesta&&k.su_richiesta.length)h+='<p class="m">Su richiesta, fuori dal totale: '+esc(k.su_richiesta.join(", "))+'.</p>';
   var esterna=l&&l.certa===false;
-  h+=esterna?'<p class="m" style="margin-top:12px">'+esc(l.nome)+' è una location partner: verifichiamo noi la data con loro e vi confermiamo entro 24 ore. Poi potete bloccarla.</p>':'<div class="big"><span>Per bloccare la data (acconto '+k.acconto_perc+'%)</span><b>'+eur(k.sconto?k.sconto.acconto:k.acconto)+'</b></div>';
+  h+=esterna?'<p class="m" style="margin-top:12px">'+esc(l.nome)+' è una location partner: verifichiamo noi la data con loro e vi confermiamo entro 24 ore. Poi potete bloccarla.</p>':'<div class="big"><span>Per bloccare la data (acconto '+k.acconto_perc+'% + IVA)</span><b>'+eur(k.sconto?k.sconto.acconto:k.acconto)+'</b></div>';
   h+='<div id="slotC"></div><div class="err hide" id="eF"></div><button class="btn" id="crea">'+(esterna?"Richiedi l’opzione sulla data":"Blocca la data")+'</button>'+(WA?'<a class="btn g" href="'+WA+'" target="_blank" rel="noopener">Scriveteci su WhatsApp</a>':'')+'';
   $("sum").innerHTML=h;var sl=$("slotC"),ct=$("contatti");if(sl&&ct){sl.appendChild(ct);ct.classList.remove("hide")}}).catch(function(){$("sum").innerHTML='<p class="err">Non riesco a calcolare: riprovate.</p>'})}
 function crea(){var b=$("crea");
