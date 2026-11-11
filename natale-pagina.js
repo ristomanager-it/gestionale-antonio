@@ -89,6 +89,10 @@
       }
     }).catch(function(){});
 
+  // bonifico: si prenota come con la carta, poi si va alla pagina della prenotazione con IBAN e causale (posti tenuti qualche giorno)
+  var conBonifico = false;
+  if ($("bonifico")) $("bonifico").onclick = function(ev){ ev.preventDefault(); conBonifico = true; $("modulo").requestSubmit ? $("modulo").requestSubmit() : $("invia").click(); };
+  $("invia").addEventListener("click", function(){ conBonifico = false; });
   $("modulo").addEventListener("submit", async function(ev){
     ev.preventDefault();
     if (inviando || !PRONTO) return;
@@ -113,7 +117,7 @@
       azienda_id: CFG.azienda_id, sede_id: CFG.sede_id,
       cliente_nome: (nome + " " + cognome).trim(), cliente_telefono: tel, cliente_email: email,
       data: N.data, ora: N.ora, coperti: persone, bambini: bimbi, promo: false, stato: "in_attesa_pagamento", canale: "online",
-      note: note || null, richieste_speciali: note || null, token_pubblico: token,
+      note: note || null, richieste_speciali: note || null, token_pubblico: token, importo_totale: totale(),
       tag: CFG.slug, source: qs.get("utm_source") || "landing",
       riferimento: JSON.stringify({ landing: CFG.slug, prezzo_persona: N.prezzo, prezzo_bambino: N.prezzo_bimbi, acconto_perc: N.perc || 30, adulti: ospiti, bambini: bimbi,
         consenso_gdpr: true, consenso_marketing: $("marketing").checked,
@@ -128,6 +132,7 @@
 
     // gli avvisi al locale e la conferma al cliente partono dal database quando arriva il pagamento
     var PAG = "https://app.ristoflow-ai.com/natale-prenotazione.html?t=" + token;
+    if (conBonifico) { location.href = PAG + "&bonifico=1"; return; }
     try {
       var pub = await supa.rpc("prenotazione_pubblica", { p_token: token });
       var id = pub.data && pub.data.ok ? pub.data.prenotazione.id : null;
