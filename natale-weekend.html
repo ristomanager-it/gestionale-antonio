@@ -1,0 +1,240 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Natale a Campo Antico · con la camera</title>
+<meta name="description" content="Dalla cena della Vigilia al pranzo di Santo Stefano a Campo Antico, con la camera a due passi dalla tavola. Una o due notti con colazione.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f2ea;--card:#fff;--t:#1f1d19;--m:#6b665c;--b:#e3ddd0;--v:#16301f;--oro:#a8873f;--ok:#1f6b40;--ko:#a33a2b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121510;--card:#1c201b;--t:#f1efe8;--m:#a9a597;--b:#323630;--v:#0e1f14;--oro:#d6b66e;--ok:#8fcca4;--ko:#e38b7d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121510;--card:#1c201b;--t:#f1efe8;--m:#a9a597;--b:#323630;--v:#0e1f14;--oro:#d6b66e;--ok:#8fcca4;--ko:#e38b7d}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--t);font:17px/1.6 Jost,system-ui,-apple-system,sans-serif}
+.wrap{max-width:600px;margin:0 auto;padding:0 16px 60px}
+.hero{background:var(--v);color:#fffaf2;text-align:center;padding:42px 20px 36px;margin:0 -16px}
+.hero .k{letter-spacing:.16em;font-size:13px;color:#d6b66e;font-weight:600}
+.hero h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:46px;line-height:1.02;margin:10px 0 2px}
+.hero h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;font-size:26px;margin:0 0 14px}
+.hero p{margin:6px 0;color:#efe6d3}.hero em{font-family:"Cormorant Garamond",Georgia,serif;font-size:23px;color:#d6b66e}
+.btn{display:block;width:100%;text-align:center;border:0;border-radius:12px;padding:15px;font:600 17px Jost,sans-serif;background:#c9a961;color:#16301f;text-decoration:none;cursor:pointer;margin-top:14px}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:var(--card);border:1px solid var(--b);border-radius:16px;padding:18px;margin:16px 0}
+h3{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:28px;line-height:1.1;margin:0 0 8px}
+h4{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--oro);margin:16px 0 4px;font-weight:600}
+.menu p{margin:2px 0}.q{font-size:14px;color:var(--m)}.pr{font-weight:600;margin-top:12px!important}.nt{font-size:14px;color:var(--m)}
+.tab{width:100%;border-collapse:collapse}.tab td{border-top:1px solid var(--b);padding:10px 2px;vertical-align:top}.tab td:last-child{text-align:right;white-space:nowrap;font-weight:600}
+.op{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--b);border-radius:12px;padding:11px 12px;margin:8px 0;cursor:pointer}
+.op.on{border-color:var(--oro);box-shadow:0 0 0 1px var(--oro) inset}.op input{margin-top:6px;accent-color:#a8873f}.op small{color:var(--m)}
+.cnt{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--b)}.cnt:first-of-type{border-top:0}.cnt .l{flex:1}.cnt small{display:block;color:var(--m);font-size:13px}
+.pm{width:40px;height:40px;border-radius:50%;border:1px solid var(--b);background:var(--card);color:var(--t);font-size:20px;cursor:pointer}.cnt b{min-width:22px;text-align:center}
+input[type=text],input[type=tel],input[type=email],textarea{display:block;width:100%;border:1px solid var(--b);border-radius:10px;padding:12px;margin:7px 0;font:inherit;background:var(--card);color:var(--t)}
+.conto{border-top:1px solid var(--b);margin-top:14px;padding-top:8px}.conto div{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:15px}.conto div span:last-child{white-space:nowrap}.conto .tot{font-weight:600;font-size:17px}.conto .ora{font-weight:600;color:var(--ok)}
+.ck{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin:10px 0}.msg{margin-top:10px;font-size:15px}.msg.ko{color:var(--ko)}.avv{color:var(--ko);font-size:15px;margin-top:8px}
+.link{color:var(--oro);text-align:center;display:block;margin-top:10px}
+.piede{text-align:center;color:var(--m);font-size:14px;margin-top:30px}.piede a{color:inherit}
+.cookie{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);border:1px solid var(--b);border-radius:12px;padding:10px 12px;display:flex;gap:8px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.15);z-index:9}
+.cookie span{flex:1;font-size:14px}.cookie button{border:1px solid var(--b);background:var(--card);color:var(--t);border-radius:8px;padding:7px 10px;font:inherit;font-size:14px}
+</style></head><body>
+<div class="wrap">
+<header class="hero"><div class="k">24 · 25 · 26 DICEMBRE 2026</div><h1>Natale a Campo Antico</h1><h2>con la camera, a due passi dalla tavola</h2>
+<p><em>Quest’anno a Natale non si cucina, non si guida e non si lava un piatto.</em></p><p>Una o due notti, dalla cena della Vigilia al pranzo di Santo Stefano.</p>
+<a class="btn" href="#prenota">Scegli le notti e blocca la camera</a></header>
+
+<section class="card"><h3>Il Natale lo conosciamo tutti</h3>
+<p>La Vigilia a cucinare il pesce fino a tardi, il 25 di nuovo ai fornelli dall’alba, e il giorno dopo si ricomincia da capo. Le feste passano in cucina e in macchina tra una casa e l’altra.</p>
+<p>A Campo Antico cuciniamo ogni giorno per chi si siede da noi. A Natale lo facciamo per la vostra famiglia, e quando vi alzate da tavola la camera è a due passi.</p></section>
+
+<section class="card"><h3>Scegliete le vostre notti</h3><table class="tab" id="esempi"></table>
+<p class="nt">Esempi per 2 adulti in camera da 2, con colazione. Camere da 2 a 130 €, da 3 a 170 €, da 4 a 210 € a notte; −7% sulle camere con due notti. Bambini 4-12 anni con il menu baby, sotto i 4 anni gratis.</p></section>
+
+<section class="card menu"><div class="q">Giovedì 24 dicembre · ore 20:00</div><h3>Cena della Vigilia</h3>
+<h4>Benvenuto al tavolo</h4><p>Polpettine di cernia fritte al limone</p><p>Crostino di pane alle noci con baccalà mantecato e scorza d’arancia</p><p>Mini bun con tartare di tonno, maionese al lime ed erba cipollina</p>
+<h4>Antipasti</h4><p>Ricciola marinata agli agrumi, finocchio croccante e olio del giardino di Campo Antico</p><p>Polpo arrostito su crema di patate di Avezzano, olio al prezzemolo</p>
+<h4>Primi</h4><p>Mezzi paccheri con crema di zucca mantovana e mazzancolle, olio crudo e scorza di limone</p><p>Crespella di cernia gratinata, su salsa verde di vongole veraci</p>
+<h4>Secondo</h4><p>Filetto di spigola con la sua salsa e gamberone grigliato, scarola ripassata con olive di Gaeta, capperi e pinoli</p>
+<h4>Dolce</h4><p>Panettone di Campo Antico</p><p class="pr">60 € a persona · menu baby 25 €</p></section>
+
+<section class="card menu"><div class="q">Venerdì 25 dicembre · ore 13:00</div><h3>Pranzo di Natale</h3>
+<h4>Antipasto</h4><p>Antipasto della tradizione</p>
+<h4>Primi</h4><p>Tortellini in brodo distillato di cappone</p><p>Pappardella ripiena di ricotta e borragine, su pasta alla barbabietola</p>
+<h4>Secondo</h4><p>Brasato al Sagrantino con spuma di patate e spinaci scottati al burro</p>
+<h4>Dolce</h4><p>Panettone fatto da noi ai frutti di bosco, con crema chantilly</p><p class="pr">55 € a persona · vini, caffè e digestivi compresi · menu baby 30 €</p></section>
+
+<section class="card menu"><div class="q">Sabato 26 dicembre · ore 13:00</div><h3>Pranzo di Santo Stefano</h3>
+<h4>Antipasto</h4><p>Affettati del territorio, formaggi, bruschettine, fritti e rustici</p>
+<h4>Primi</h4><p>Risotto alla norcina</p><p>Paccheri all’amatriciana</p>
+<h4>Secondo</h4><p>Coniglio porchettato con patate al forno e cicorietta di campo</p>
+<h4>Dolce</h4><p>Panettone ai frutti di bosco con crema chantilly</p><p class="pr">45 € a persona · acqua, vino e bevande inclusi · menu baby 25 €</p></section>
+
+<section class="card" id="prenota"><h3>Prenota il tuo Natale</h3>
+<form id="modulo" novalidate>
+<h4>Le notti</h4>
+<label class="op on"><input type="radio" name="notti" value="24" checked><span><b>24 → 25 dicembre</b><br><small>Cena della Vigilia, notte con colazione, pranzo di Natale</small></span></label>
+<label class="op"><input type="radio" name="notti" value="25"><span><b>25 → 26 dicembre</b><br><small>Pranzo di Natale, notte con colazione, pranzo di Santo Stefano</small></span></label>
+<label class="op"><input type="radio" name="notti" value="24-25"><span><b>24 → 26 dicembre, due notti</b><br><small>Vigilia, Natale e Santo Stefano · −7% sulle camere</small></span></label>
+<h4>Quanti siete</h4>
+<div class="cnt"><span class="l">Adulti</span><button type="button" class="pm" data-p="a-">−</button><b id="n-a">2</b><button type="button" class="pm" data-p="a+">+</button></div>
+<div class="cnt"><span class="l">Bambini 4-12 anni<small>menu baby</small></span><button type="button" class="pm" data-p="b-">−</button><b id="n-b">0</b><button type="button" class="pm" data-p="b+">+</button></div>
+<div class="cnt"><span class="l">Bambini sotto i 4 anni<small>gratis, in camera con voi</small></span><button type="button" class="pm" data-p="p-">−</button><b id="n-p">0</b><button type="button" class="pm" data-p="p+">+</button></div>
+<h4>Le camere</h4>
+<div class="cnt"><span class="l">Camera da 2<small id="l-2"></small></span><button type="button" class="pm" data-p="c2-">−</button><b id="n-c2">1</b><button type="button" class="pm" data-p="c2+">+</button></div>
+<div class="cnt"><span class="l">Camera da 3<small id="l-3"></small></span><button type="button" class="pm" data-p="c3-">−</button><b id="n-c3">0</b><button type="button" class="pm" data-p="c3+">+</button></div>
+<div class="cnt"><span class="l">Camera da 4<small id="l-4"></small></span><button type="button" class="pm" data-p="c4-">−</button><b id="n-c4">0</b><button type="button" class="pm" data-p="c4+">+</button></div>
+<div class="avv" id="avv" hidden></div>
+<h4>I vostri dati</h4>
+<input type="text" id="nome" placeholder="Nome" autocomplete="given-name"><input type="text" id="cognome" placeholder="Cognome" autocomplete="family-name">
+<input type="tel" id="telefono" placeholder="Telefono" autocomplete="tel"><input type="email" id="email" placeholder="Email" autocomplete="email">
+<textarea id="note" rows="3" placeholder="Allergie, intolleranze e segnalazioni"></textarea>
+<div class="conto" id="conto"></div>
+<label class="ck"><input type="checkbox" id="privacy"> <span>Ho letto l’informativa privacy e acconsento al trattamento dei dati per gestire la prenotazione.</span></label>
+<label class="ck"><input type="checkbox" id="marketing"> <span>Voglio ricevere le vostre prossime serate e offerte (facoltativo).</span></label>
+<button class="btn" type="submit" id="invia">Paga l’acconto e conferma</button>
+<div class="msg" id="msg"></div>
+<p class="nt">Acconto del 30% con carta tramite Stripe, il resto all’arrivo. Appena pagato arrivano la conferma e la pagina della vostra prenotazione.</p>
+</form></section>
+<p class="nt" style="text-align:center">Solo il pranzo del 25? <a href="natale-campoantico.html#prenota" style="color:var(--oro)">Prenota il pranzo di Natale</a></p>
+<div class="piede">Campo Antico · Via Amerina km 5,500, Orte (VT)<br><a href="tel:+390761402380">0761 402380</a></div>
+</div>
+<div class="cookie" id="cookie" hidden><span>Usiamo i cookie</span><button type="button" id="ck-no">Rifiuta</button><button type="button" id="ck-si">Accetta</button></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="natale-tracking.js"></script>
+<script>
+(function(){
+  // PACCHETTO NATALE 2026 · Campo Antico. Prezzi qui; camere libere e controllo in database (natale_camere_libere, trigger natale).
+  var URL_SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var AZ = "b331365f-17db-4dda-aa2f-77a09427fe42", SEDE = "c40919bb-78c2-458f-865e-0c9fd02aa0b5", TAG = "natale-2026-weekend";
+  var PASTI = {
+    vigilia: { data: "2026-12-24", ora: "20:00", nome: "Cena della Vigilia", a: 60, b: 25 },
+    natale: { data: "2026-12-25", ora: "13:00", nome: "Pranzo di Natale", a: 55, b: 30 },
+    stefano: { data: "2026-12-26", ora: "13:00", nome: "Pranzo di Santo Stefano", a: 45, b: 25 }
+  };
+  var OPZ = {
+    "24": { notti: ["2026-12-24"], pasti: ["vigilia", "natale"], testo: "24 → 25 dicembre" },
+    "25": { notti: ["2026-12-25"], pasti: ["natale", "stefano"], testo: "25 → 26 dicembre" },
+    "24-25": { notti: ["2026-12-24", "2026-12-25"], pasti: ["vigilia", "natale", "stefano"], testo: "24 → 26 dicembre" }
+  };
+  var CAMERA = { 2: 130, 3: 170, 4: 210 }, SCONTO2 = 7;
+  var $ = function(id){ return document.getElementById(id); };
+  var euro = function(n){ return n.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €"; };
+  var euro0 = function(n){ return (Math.round(n) === n ? String(n) : n.toFixed(2).replace(".", ",")) + " €"; };
+  var supa = null; try { supa = window.supabase.createClient(URL_SB, ANON); } catch (e) {}
+  var qs = new URLSearchParams(location.search);
+  var st = { a: 2, b: 0, p: 0, c2: 1, c3: 0, c4: 0 }, libere = null, inviando = false;
+
+  function opz(){ var r = document.querySelector("input[name=notti]:checked"); return OPZ[r ? r.value : "24"]; }
+  function nNotti(){ return opz().notti.length; }
+  function cameraTot(){ var n = nNotti(), base = (st.c2 * CAMERA[2] + st.c3 * CAMERA[3] + st.c4 * CAMERA[4]) * n; return n === 2 ? Math.round(base * (100 - SCONTO2)) / 100 : base; }
+  function letti(){ return st.c2 * 2 + st.c3 * 3 + st.c4 * 4; }
+  function liberePer(t){ if (!libere) return 99; return Math.min.apply(null, opz().notti.map(function(d){ return Number((libere[d] || {})[t] || 0); })); }
+  function conti(){
+    var righe = [], tot = 0;
+    opz().pasti.forEach(function(k){ var x = PASTI[k], v = st.a * x.a + st.b * x.b; tot += v;
+      righe.push([x.nome + " · " + st.a + (st.a === 1 ? " adulto" : " adulti") + (st.b ? " + " + st.b + " baby" : ""), v]); });
+    var cam = cameraTot(); tot += cam;
+    var desc = [st.c2 ? st.c2 + " da 2" : "", st.c3 ? st.c3 + " da 3" : "", st.c4 ? st.c4 + " da 4" : ""].filter(Boolean).join(", ");
+    righe.push(["Camere " + (desc || "-") + " · " + nNotti() + (nNotti() === 1 ? " notte" : " notti") + " con colazione" + (nNotti() === 2 ? " (−7%)" : ""), cam]);
+    return { righe: righe, totale: Math.round(tot * 100) / 100, camere: desc };
+  }
+  function problema(){
+    var cam = st.c2 + st.c3 + st.c4;
+    if (!cam) return "Scegliete almeno una camera.";
+    if (letti() < st.a + st.b) return "Le camere hanno " + letti() + " posti letto per " + (st.a + st.b) + " persone: aggiungete una camera o sceglietene una più grande.";
+    if (st.p > cam) return "Un lettino per i bimbi sotto i 4 anni per camera: aggiungete una camera.";
+    var t = [2, 3, 4].filter(function(k){ return st["c" + k] > liberePer(String(k)); });
+    if (t.length) return "Per queste notti non ci sono abbastanza camere da " + t.join(" e da ") + ". Provate un’altra combinazione o chiamateci.";
+    return "";
+  }
+  function aggiorna(){
+    ["a", "b", "p", "c2", "c3", "c4"].forEach(function(k){ $("n-" + k).textContent = st[k]; });
+    [2, 3, 4].forEach(function(k){ var l = liberePer(String(k)); $("l-" + k).textContent = euro0(CAMERA[k]) + " a notte · " + (l === 99 ? "" : l === 0 ? "esaurite" : (l === 1 ? "ne resta 1" : "ne restano " + l)); });
+    Array.prototype.forEach.call(document.querySelectorAll(".op"), function(l){ l.classList.toggle("on", l.querySelector("input").checked); });
+    var c = conti(), acc = Math.round(c.totale * 30) / 100, pers = st.a + st.b;
+    $("conto").innerHTML = c.righe.map(function(r){ return "<div><span>" + r[0] + "</span><span>" + euro(r[1]) + "</span></div>"; }).join("")
+      + (st.p ? "<div><span>" + st.p + (st.p === 1 ? " bimbo" : " bimbi") + " sotto i 4 anni</span><span>gratis</span></div>" : "")
+      + "<div class=\"tot\"><span>Totale</span><span>" + euro(c.totale) + "</span></div>"
+      + "<div style=\"color:var(--m)\"><span>Pari a, a persona</span><span>" + euro(c.totale / Math.max(pers, 1)) + "</span></div>"
+      + "<div><span>Saldo all’arrivo</span><span>" + euro(c.totale - acc) + "</span></div>"
+      + "<div class=\"ora\"><span>Acconto da pagare ora (30%)</span><span>" + euro(acc) + "</span></div>";
+    var pb = problema(); $("avv").hidden = !pb; $("avv").textContent = pb; $("invia").disabled = !!pb;
+  }
+  function esempi(){
+    var e = [["24", 2], ["25", 2], ["24-25", 2]].map(function(x){
+      var o = OPZ[x[0]], tot = 0; o.pasti.forEach(function(k){ tot += 2 * PASTI[k].a; });
+      var cam = CAMERA[2] * o.notti.length; if (o.notti.length === 2) cam = Math.round(cam * (100 - SCONTO2)) / 100; tot += cam;
+      return "<tr><td><b>" + o.testo + "</b><br><small class=\"nt\">" + o.pasti.map(function(k){ return PASTI[k].nome; }).join(", ") + "</small></td><td>" + euro0(tot) + "<br><small class=\"nt\">" + euro0(tot / 2) + " a persona</small></td></tr>";
+    });
+    $("esempi").innerHTML = e.join("");
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".pm"), function(b){
+    b.onclick = function(){ var p = b.getAttribute("data-p"), k = p.slice(0, -1), su = p.slice(-1) === "+";
+      var min = k === "a" ? 1 : 0, max = k === "a" ? 16 : k === "c2" ? 5 : k === "c3" ? 1 : k === "c4" ? 2 : 10;
+      st[k] = Math.max(min, Math.min(max, st[k] + (su ? 1 : -1))); aggiorna(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("input[name=notti]"), function(r){ r.onchange = aggiorna; });
+  function errore(t){ $("msg").className = "msg ko"; $("msg").textContent = t; }
+  async function prenota(bonifico){
+    if (inviando) return;
+    var nome = $("nome").value.trim(), cognome = $("cognome").value.trim(), tel = $("telefono").value.replace(/[^\d+]/g, ""), email = $("email").value.trim(), note = $("note").value.trim();
+    if (!nome || !cognome) return errore("Scrivi nome e cognome.");
+    if (tel.replace(/\D/g, "").length < 8) return errore("Controlla il numero di telefono.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return errore("Controlla l’email.");
+    if (!$("privacy").checked) return errore("Per prenotare serve il consenso alla privacy.");
+    var pb = problema(); if (pb) return errore(pb);
+    if (!supa) return errore("La pagina non si è caricata bene: ricaricala o chiamaci.");
+    inviando = true; var btn = $("invia"); btn.disabled = true; btn.textContent = "Un attimo…";
+    var o = opz(), c = conti(), acconto = Math.round(c.totale * 30), persone = st.a + st.b + st.p, primo = PASTI[o.pasti[0]];
+    var token = crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : (Date.now().toString(16) + Math.random().toString(16).slice(2));
+    if (window.rfEvento) rfEvento("InitiateCheckout", { value: acconto / 100, currency: "EUR", content_name: TAG }, true);
+    var camere = {}; [2, 3, 4].forEach(function(k){ if (st["c" + k]) camere[k] = st["c" + k]; });
+    var ins = await supa.from("prenotazioni_tavoli").insert([{
+      azienda_id: AZ, sede_id: SEDE, cliente_nome: (nome + " " + cognome).trim(), cliente_telefono: tel, cliente_email: email,
+      data: primo.data, ora: primo.ora, coperti: persone, bambini: st.b, notti: o.notti.length, camere: st.c2 + st.c3 + st.c4, camere_sede: "campo",
+      importo_totale: c.totale, stato: "in_attesa_pagamento", canale: "online",
+      note: ("[Pacchetto Natale " + o.testo + " · camere " + c.camere + "] " + (st.p ? "[" + st.p + " bimbi sotto i 4 anni] " : "") + note).trim(),
+      richieste_speciali: note || null, token_pubblico: token, tag: TAG, source: qs.get("utm_source") || "natale-weekend",
+      riferimento: JSON.stringify({ landing: TAG, notti_date: o.notti, camere: camere, pasti: o.pasti.map(function(k){ return { data: PASTI[k].data, ora: PASTI[k].ora, nome: PASTI[k].nome }; }),
+        adulti: st.a, bambini: st.b, piccoli: st.p, totale: c.totale, consenso_gdpr: true, consenso_marketing: $("marketing").checked,
+        sid: (function(){ try { return sessionStorage.getItem("rf_ses"); } catch (e) { return null; } })(), utm_source: qs.get("utm_source"), utm_campaign: qs.get("utm_campaign") })
+    }]);
+    if (ins.error) {
+      inviando = false; btn.disabled = false; btn.textContent = "Paga l’acconto e conferma";
+      if (String(ins.error.message || "").indexOf("camere") >= 0) { carica(); return errore("Le camere scelte sono appena finite: abbiamo aggiornato le disponibilità."); }
+      return errore("Non siamo riusciti a registrare la prenotazione. Riprova o chiamaci.");
+    }
+    if (window.rfEvento) rfEvento("Lead", { value: acconto / 100, currency: "EUR", content_name: TAG }, true);
+    var PAG = "https://app.ristoflow-ai.com/natale-prenotazione.html?t=" + token;
+    if (bonifico) { location.href = PAG + "&bonifico=1"; return; }
+    try {
+      var pub = await supa.rpc("prenotazione_pubblica", { p_token: token });
+      var id = pub.data && pub.data.ok ? pub.data.prenotazione.id : null;
+      var res = await fetch(URL_SB + "/functions/v1/stripe-checkout", { method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON },
+        body: JSON.stringify({ action: "create_session", azienda_id: AZ, tipo: "tavolo", riferimento_id: id, importo_centesimi: acconto, cliente_email: email,
+          cliente_nome: (nome + " " + cognome).trim(), descrizione: "Acconto 30% · Natale a Campo Antico · " + o.testo + " · camere " + c.camere,
+          success_url: PAG + "&esito=ok", cancel_url: PAG + "&esito=annullato", metadata: { landing: TAG } }) });
+      var out = await res.json();
+      if (!res.ok || !out.checkout_url) throw new Error("checkout");
+      location.href = out.checkout_url;
+    } catch (e) {
+      try { await supa.rpc("prenotazione_pagamento_fallito", { p_token: token }); } catch (x) {}
+      errore("Il pagamento non è partito: puoi riprovare dalla pagina della prenotazione.");
+      setTimeout(function(){ location.href = PAG; }, 2500);
+    }
+  }
+  $("modulo").addEventListener("submit", function(ev){ ev.preventDefault(); prenota(false); });
+  function carica(){ if (!supa) return; supa.rpc("natale_camere_libere").then(function(r){ if (r && r.data) { libere = r.data; aggiorna(); } }); }
+  esempi(); aggiorna(); carica();
+  document.addEventListener("rf-pronto", function(){ rfEvento("ViewContent", { content_name: TAG, content_category: "natale" }, true); });
+  // contatore visite di Ristoflow (page_analytics): pagina e provenienza, nessun dato personale
+  try {
+    var ses = null; try { ses = sessionStorage.getItem("rf_ses"); if (!ses) { ses = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem("rf_ses", ses); } } catch (e) {}
+    var ref = document.referrer || "";
+    fetch(URL_SB + "/rest/v1/page_analytics", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON, "Prefer": "return=minimal" },
+      body: JSON.stringify({ azienda_id: AZ, sede_id: SEDE, pagina: "natale-weekend", pagina_id: AZ, tipo: "view", elemento: "sito_pagina", referrer: ref ? ref.slice(0, 250) : null,
+        utm_source: qs.get("utm_source") || (ref ? (function(){ try { return new URL(ref).hostname; } catch (e) { return null; } })() : "diretto"),
+        utm_medium: qs.get("utm_medium"), utm_campaign: qs.get("utm_campaign"), device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop", session_id: ses }) }).catch(function(){});
+  } catch (e) {}
+})();
+</script></body></html>
