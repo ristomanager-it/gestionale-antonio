@@ -23,7 +23,7 @@ export async function render(app) {
 
       <!-- Barra di ricerca -->
       <div style="margin-bottom: 20px;">
-        <input type="text" id="search-preventivi" placeholder="Cerca per nome cliente, evento, data..." class="input-pill" style="width: 100%; max-width: 400px;">
+        <input type="text" id="search-preventivi" placeholder="🔎 Cerca per nome, evento o data (es. 18/09)" class="input-pill" style="width: 100%; max-width: 400px;">
       </div>
 
       <!-- Pulsante Crea Nuovo Preventivo -->
