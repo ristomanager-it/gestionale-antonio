@@ -29,10 +29,12 @@ export async function render(app) {
 }
 
 async function carica() {
-  const [w, t] = await Promise.all([
+  const [w, t, c] = await Promise.all([
     sb().from("wedding_richieste").select("*").order("created_at", { ascending: false }).limit(300),
     sb().from("tour_prenotazioni").select("*").order("created_at", { ascending: false }).limit(300),
+    sb().from("richieste_cene_aziendali").select("*").order("created_at", { ascending: false }).limit(300),
   ]);
+  stato.c = c.data || [];
   stato.w = (w.data || []).filter((r) => !/^PROVA/i.test(r.nomi || ""));
   stato.t = t.data || [];
   disegna();
