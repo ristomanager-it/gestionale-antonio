@@ -1,7 +1,8 @@
 // TONY-CAMPAGNE v7 - Tony analizza e sistema le campagne Google Ads dell'azienda.
 // v7 (11/11): PIU' VELOCE. Con molte campagne superava i 150 secondi e finiva in 504 ("Non sono riuscito ad analizzare le campagne: errore"):
 //     le letture da Google (numeri, ricerche, parole, visite alle pagine) e le modifiche ora partono in parallelo invece che una dopo l'altra;
-//     il modello scrive motivi corti e solo le campagne con qualcosa da dire.
+//     il modello analizza ogni campagna per conto suo e tutte insieme in parallelo (una sola risposta lunga per tutte superava da sola i 150 secondi);
+//     il riepilogo generale lo compone il sistema con i numeri veri.
 // v6: risposta lunga con tante campagne: max_tokens 16000 (a 6000 il JSON arrivava tagliato a meta').
 // v5: se il JSON di Claude e' rotto si riprova una volta invece di fallire.
 // v4: per le campagne rivolte a stranieri l'Italia centrale (Toscana, Umbria, Lazio) non si esclude mai.
@@ -62,7 +63,7 @@ async function claude(system: string, testo: string) {
   for (let giro = 0; giro < 2; giro++) {
     const extra = giro ? "\n\nATTENZIONE: rispondi con JSON valido, senza testo prima o dopo, virgolette interne con il backslash." : "";
     const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": k, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODELLO, max_tokens: 12000, system: system + extra, messages: [{ role: "user", content: testo }] }) });
+      body: JSON.stringify({ model: MODELLO, max_tokens: 3000, system: system + extra, messages: [{ role: "user", content: testo }] }) });
     if (!r.ok) throw new Error("Claude " + r.status + ": " + (await r.text()).slice(0, 200));
     const j: any = await r.json();
     const t = (j.content || []).filter(function (c: any) { return c.type === "text"; }).map(function (c: any) { return c.text; }).join("");
@@ -83,8 +84,8 @@ const SISTEMA = [
   "- Proponi pausa solo se la campagna spende da almeno 7 giorni, ha speso almeno 30 euro, zero conversioni e i visitatori non interagiscono con la pagina.",
   "- Proponi di alzare il budget solo se la campagna ha conversioni o contatti e spende tutto il budget.",
   "- Motivi brevissimi: massimo 6 parole ciascuno. Sintesi di ogni campagna: 1 frase.",
-  "- Riepilogo: 2-3 frasi, italiano semplice, numeri concreti, cosa va e cosa no. Niente frasi difensive, niente gergo.",
-  "Rispondi SOLO con questo JSON: {\"riepilogo\":\"\",\"campagne\":[{\"id\":\"\",\"sintesi\":\"\",\"escludi\":[{\"testo\":\"\",\"motivo\":\"\"}],\"parole\":[{\"testo\":\"\",\"motivo\":\"\"}],\"proposte\":[{\"tipo\":\"budget|cpc|pausa\",\"valore\":\"\",\"motivo\":\"\"}]}]}"
+  "- Ricevi UNA campagna. La sintesi: 1 frase, italiano semplice, numeri concreti. Niente frasi difensive, niente gergo.",
+  "Rispondi SOLO con questo JSON: {\"sintesi\":\"\",\"escludi\":[{\"testo\":\"\",\"motivo\":\"\"}],\"parole\":[{\"testo\":\"\",\"motivo\":\"\"}],\"proposte\":[{\"tipo\":\"budget|cpc|pausa\",\"valore\":\"\",\"motivo\":\"\"}]}"
 ].join("\n");
 
 async function analizza(az: string, prova: boolean) {
@@ -135,7 +136,13 @@ async function analizza(az: string, prova: boolean) {
   if (!elenco.length) return { success: true, vuoto: true, riepilogo: "Nessuna campagna accesa." };
   const sedi = (sediR && sediR.data) || [];
   const dove = sedi.map(function (x: any) { return x.nome + (x.citta ? " (" + x.citta + ")" : ""); }).join(", ");
-  const out: any = await claude(SISTEMA, "Azienda: " + ((az0 && az0.data && az0.data.nome) || "") + "\nSede: " + dove + "\nPeriodo: " + da + " - " + a + "\nCampagne accese:\n" + JSON.stringify(elenco));
+  // v7: una chiamata per campagna, tutte insieme; se una fallisce le altre vanno avanti
+  const testa = "Azienda: " + ((az0 && az0.data && az0.data.nome) || "") + "\nSede: " + dove + "\nPeriodo: " + da + " - " + a + "\nCampagna:\n";
+  const risposte = await Promise.all(elenco.map(function (c: any) {
+    return claude(SISTEMA, testa + JSON.stringify(c)).then(function (x: any) { return Object.assign({ id: c.id }, x || {}); }, function (e: any) { return { id: c.id, sintesi: "", errore: String(e).slice(0, 120) }; });
+  }));
+  const tot = elenco.reduce(function (t: any, c: any) { return { spesa: t.spesa + c.spesa, clic: t.clic + c.clic, conv: t.conv + c.conversioni }; }, { spesa: 0, clic: 0, conv: 0 });
+  const out: any = { campagne: risposte, riepilogo: elenco.length + (elenco.length === 1 ? " campagna accesa" : " campagne accese") + " negli ultimi 7 giorni: " + (Math.round(tot.spesa * 100) / 100).toLocaleString("it-IT") + " € spesi, " + tot.clic + " clic, " + tot.conv + " conversioni." };
   const an = (await SB.from("tony_campagne_analisi").insert({ azienda_id: az, da: da, a: a, prova: prova, riepilogo: String(out.riepilogo || ""), dati: { campagne: elenco, risposta: out } }).select("id").single()).data;
   // v7: le modifiche su Google partono in parallelo, l'ordine delle righe resta quello della risposta
   const blocchi: any[][] = await Promise.all((out.campagne || []).map(async function (c: any) {
@@ -176,6 +183,9 @@ async function analizza(az: string, prova: boolean) {
   const righe: any[] = [].concat.apply([], blocchi as any);
   let ids: any[] = [];
   if (righe.length) ids = ((await SB.from("tony_campagne_suggerimenti").insert(righe.map(function (r: any) { return { analisi_id: an && an.id, azienda_id: az, piattaforma: "google", campagna_id: r.campagna.id, campagna_nome: r.campagna.nome, tipo: r.tipo, valore: r.valore, motivo: r.motivo, stato: r.stato, esito: r.esito || null }; })).select("id")).data || []);
+  const nEscl = righe.filter(function (r: any) { return r.tipo === "escludi"; }).length, nPar = righe.filter(function (r: any) { return r.tipo === "parola"; }).length, nProp = righe.filter(function (r: any) { return ["budget", "cpc", "pausa"].indexOf(r.tipo) >= 0; }).length;
+  out.riepilogo += " " + (prova ? "In prova: " : "") + nEscl + " ricerche escluse, " + nPar + " parole chiave aggiunte" + (nProp ? ", " + nProp + " proposte da approvare." : ".");
+  await SB.from("tony_campagne_analisi").update({ riepilogo: out.riepilogo }).eq("id", an && an.id);
   return { success: true, analisi_id: an && an.id, prova: prova, periodo: { da: da, a: a }, riepilogo: out.riepilogo, voci: righe.map(function (r: any, i: number) { return { id: ids[i] ? ids[i].id : null, campagna: r.campagna.nome, tipo: r.tipo, valore: r.valore, motivo: r.motivo, stato: r.stato, esito: r.esito || "" }; }) };
 }
 
