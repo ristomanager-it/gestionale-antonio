@@ -641,7 +641,13 @@ function addMessage(text, type, opts = {}) {
         alert("Non riesco a contattare Tony: riprova.");
       }
     };
-    if (azX.anteprima) {
+    if (isPost && azX.anteprima) {
+      // post della pagina: si vede subito la foto che uscira', sopra il testo
+      const img = document.createElement("img");
+      img.src = azX.anteprima; img.alt = "Foto del post";
+      img.style.cssText = "display:block;width:100%;max-height:320px;object-fit:cover;border-radius:10px;margin-bottom:8px;";
+      card.append(img, t, ok, no);
+    } else if (azX.anteprima) {
       // anteprima di cio' che Tony ha preparato (post Meta, Google, landing), PRIMA di confermare
       const an = document.createElement("button");
       an.textContent = "👁 Anteprima";
