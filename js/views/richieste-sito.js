@@ -19,7 +19,7 @@ export async function render(app) {
   const ok = typeof window.hasFeature === "function" ? window.hasFeature("campagne") : true;
   app.innerHTML = '<section class="view rs-v">' + CSS + '<div style="margin-bottom:10px"><button class="app-button small gray" onclick="window.location.hash=\'#/preventivi\'">← Preventivi</button></div>'
     + '<h2>🌍 Richieste dal sito</h2>'
-    + (ok ? '<div id="rsK" class="rs-k"></div><div class="rs-tabs"><button data-t="matrimoni">💍 Matrimoni</button><button data-t="viaggi">✈️ Viaggi</button></div><label class="rs-ch"><input type="checkbox" id="rsChiuse"> Mostra anche chiuse e annullate</label><div id="rsL"><p class="rs-m">Carico le richieste…</p></div>'
+    + (ok ? '<div id="rsK" class="rs-k"></div><div class="rs-tabs"><button data-t="matrimoni">💍 Matrimoni</button><button data-t="cene">🏢 Cene aziendali</button><button data-t="viaggi">✈️ Viaggi</button></div><label class="rs-ch"><input type="checkbox" id="rsChiuse"> Mostra anche chiuse e annullate</label><div id="rsL"><p class="rs-m">Carico le richieste…</p></div>'
       : '<div class="rs-card" style="text-align:center;padding:26px 16px"><div style="font-size:34px">🔒</div><b>Pacchetto Campagne</b><p class="rs-m">Le richieste dalle tue landing (matrimoni, eventi, pacchetti soggiorno), con risposta automatica e campagne Meta e Google gestite da Tony.</p><p><b>99 € al mese</b></p><a class="app-button green" href="https://ristoflow-ai.com" target="_blank" rel="noopener">Attiva il pacchetto Campagne</a></div>')
     + '</section>';
   if (!ok) return;
