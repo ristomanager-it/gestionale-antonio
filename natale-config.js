@@ -17,7 +17,7 @@ window.NATALE = {
   disdetta: null,              // regola di disdetta: finche' e' vuota la domanda non compare nella pagina
   menu: [
     { titolo: "Antipasto", piatti: ["Antipasto della tradizione"] },
-    { titolo: "Primo", piatti: ["Tortellini in brodo distillato di cappone", "Pappardella ripiena di ricotta e borragine, gratinata al Parmigiano Reggiano"] },
+    { titolo: "Primo", piatti: ["Tortellini in brodo distillato di cappone", "Pappardella rossa ripiena di ricotta e borragine, gratinata al Parmigiano Reggiano"] },
     { titolo: "Secondo", piatti: ["Brasato al Sagrantino con spuma di patate e spinaci scottati al burro"] },
     { titolo: "Dolce", piatti: ["Panettone fatto da noi ai frutti di bosco, con crema chantilly"] },
     { titolo: "Menu bambini", piatti: ["Antipasto", "Lasagna", "Cotolette di pollo", "Patatine"] }
