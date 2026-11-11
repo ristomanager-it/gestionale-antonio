@@ -1249,7 +1249,9 @@ Deno.serve(async (req) => {
     const { data: az } = await sb.from("aziende").select("nome").eq("id", aziendaId).maybeSingle();
     const messaggiIn: any[] = Array.isArray(body.messages) ? body.messages : [];
     const testoUtente = messaggiIn.filter((m) => m?.role === "user").map((m) => String(m?.content ?? "")).join(" \n ");
-    const c: Ctx = { aziendaId, uid, sedeId: body.sede_id || null, token, prova, azienda: az?.nome || "questo locale", proposte: [], testoUtente, fattiAmmessi: "" };
+    const immaginiIn: string[] = (Array.isArray(body.immagini) ? body.immagini : []).slice(0, 6)
+      .map((x: any) => typeof x === "string" ? x : (x && x.base64 ? String(x.base64) : "")).filter((x: string) => x && x.length < 4000000);
+    const c: Ctx = { aziendaId, uid, sedeId: body.sede_id || null, token, prova, azienda: az?.nome || "questo locale", proposte: [], testoUtente, fattiAmmessi: "", immagini: immaginiIn };
 
     // conferma di una scheda
     if (body.conferma) {
