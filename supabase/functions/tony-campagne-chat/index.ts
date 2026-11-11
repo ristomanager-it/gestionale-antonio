@@ -72,7 +72,7 @@ function chiaveAnthropic(): string {
   return "";
 }
 
-type Ctx = { aziendaId: string; uid: string; sedeId: string | null; token: string; prova: string; azienda: string; proposte: any[]; testoUtente: string; fattiAmmessi: string };
+type Ctx = { aziendaId: string; uid: string; sedeId: string | null; token: string; prova: string; azienda: string; proposte: any[]; testoUtente: string; fattiAmmessi: string; immagini?: string[] };
 
 async function chiamaInterna(c: Ctx, nome: string, corpo: any): Promise<any> {
   const h: Record<string, string> = { "Content-Type": "application/json" };
