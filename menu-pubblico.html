@@ -368,6 +368,12 @@
       if (!r.success) { showError("Menu non disponibile", r.error || "Questo menu non è attivo o non esiste."); return; }
 
       menu = r.menu;
+      // Menu a prezzo fisso a persona (menu business del giorno): si sceglie dalla pagina cena.html, piu' semplice.
+      if (Number(menu.prezzo_fisso_persona) > 0) {
+        var dest = params.get("modo") === "mezza_pensione" ? "aquila" : "trattoria";
+        location.replace("/cena.html?dove=" + dest + "&menu=" + encodeURIComponent(slug));
+        return;
+      }
       azienda = r.azienda || {};
       sede = r.sede || null;
       categorie = r.categorie || [];
@@ -416,6 +422,21 @@
       if (!categorie.length) { showError("Menu vuoto", "Nessuna categoria disponibile in questo momento."); return; }
       if (senzaPrezzi()) document.body.classList.add("senza-prezzi");
       renderMenu();
+      // Nel menu alla carta: riquadro per il menu business della stessa sede, se c'e'
+      if (!senzaPrezzi() && !modoMP && slug !== "menu-del-giorno") {
+        chiamaApi({ azione: "carica", slug: "menu-del-giorno" }).then(function(b) {
+          if (!b || !b.success || !b.menu || String(b.menu.sede_id) !== String(menu.sede_id) || !(Number(b.menu.prezzo_fisso_persona) > 0) || !b.menu.preordine_attivo) return;
+          if (!(b.voci || []).length) return;
+          var box = document.createElement("a");
+          box.href = "/cena.html?dove=trattoria&menu=menu-del-giorno";
+          box.style.cssText = "display:flex;align-items:center;gap:12px;margin:12px 14px;padding:12px 14px;border-radius:14px;background:#24392E;color:#F3EFE4;text-decoration:none;";
+          box.innerHTML = '<div style="font-size:26px;">🍝</div><div style="flex:1;line-height:1.35;"><div style="font-weight:800;font-size:15px;">Menu business · ' +
+            Number(b.menu.prezzo_fisso_persona).toFixed(0) + ' € a persona</div><div style="font-size:12.5px;opacity:.85;">Antipasto, primo, secondo, acqua e caffè · in Trattoria · scegli i piatti di oggi</div></div>' +
+            '<div style="font-size:20px;">›</div>';
+          var dove = document.querySelector(".cat-nav, #cat-nav, nav");
+          if (dove && dove.parentNode) dove.parentNode.insertBefore(box, dove); else root.insertBefore(box, root.firstChild);
+        }).catch(function(){});
+      }
       if (senzaPrezzi()) {
         var testoBanner = modoMP
           ? '<b>La cena di stasera</b><br>Scegli i piatti per te e per chi è con te: aggiungili al carrello, scrivi una nota se vuoi cambiare qualcosa e invia.'
