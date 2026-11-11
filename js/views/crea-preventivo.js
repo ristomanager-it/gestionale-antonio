@@ -725,8 +725,10 @@ function disegna(container, supabase, azienda, sede) {
               ${[["standard", "Carta o bonifico"], ["contanti", "In contanti"], ["nessuno", "Nessun acconto"]].map(([v, t]) => `<option value="${v}"${(P.acconto_modo || "standard") === v ? " selected" : ""}>${t}</option>`).join("")}
             </select></span></div>
           ${(P.acconto_modo || "standard") === "nessuno" ? "" : `
+          <div class="r"><span>Acconto in percentuale</span>
+            <span><input class="mini" type="number" step="1" min="0" max="100" data-campo="acconto_perc" value="${Number(P.acconto_perc) > 0 ? Number(P.acconto_perc) : ""}" placeholder="—" style="width:70px;"> %</span></div>
           <div class="r"><span>Importo dell'acconto</span>
-            <span><input class="mini largo" type="number" step="0.01" data-campo="acconto" value="${P.acconto || 0}"> €</span></div>
+            <span><input class="mini largo" type="number" step="0.01" data-campo="acconto" value="${c.acconto || 0}"> €</span></div>
           <div class="r"><span>Saldo</span><b>${euro(c.totale - c.acconto)}</b></div>`}
         </div>
       </div>
