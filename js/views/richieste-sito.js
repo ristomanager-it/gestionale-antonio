@@ -85,6 +85,40 @@ function listaW() {
   }).join("");
 }
 
+function listaC() {
+  const righe = stato.c.filter((r) => stato.mostraChiuse || ["nuova", "contattata", "preventivo_inviato"].indexOf(r.stato) >= 0);
+  if (!righe.length) return '<p class="rs-m">Nessuna richiesta di cena aziendale da gestire. Arrivano dalla pagina delle cene aziendali.</p>';
+  return righe.map((r) => {
+    const opz = Object.keys(STATI_C).map((k) => '<option value="' + k + '"' + (k === r.stato ? " selected" : "") + ">" + STATI_C[k] + "</option>").join("");
+    const data = r.data_preferita ? new Date(r.data_preferita + "T12:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "long" }) : "data da definire";
+    const dove = r.sede_preferita === "campoantico" ? "Campo Antico" : r.sede_preferita === "aquila" ? "Trattoria dell'Aquila" : (r.sede_preferita || "");
+    const fonte = r.utm && r.utm.utm_source ? " · da " + esc(r.utm.utm_source) : "";
+    const prev = r.preventivo_id ? '<a class="rs-btn" href="#/creaPreventivo?id=' + r.preventivo_id + '">📑 Apri preventivo</a>' : '<button class="rs-btn p" data-prevc="' + r.id + '">📑 Crea preventivo</button>';
+    const chiama = tel(r.telefono) ? '<a class="rs-btn" href="tel:' + tel(r.telefono) + '">📞 Chiama</a>' : "";
+    return '<div class="rs-card"><div class="rs-h"><div><b>' + esc(r.azienda_nome || "Azienda") + '</b><div class="rs-m">' + esc(r.referente || "") + " · " + data + " · " + (r.persone ? r.persone + " persone" : "persone ?") + (dove ? " · " + esc(dove) : "") + fonte + '</div></div><span class="rs-s ' + (CLASSE[r.stato] || "rs-c") + '">' + esc(STATI_C[r.stato] || r.stato) + "</span></div>"
+      + '<div class="rs-m">' + (r.menu_scelto ? "Menu: <b>" + esc(r.menu_scelto) + "</b>" : "Menu da scegliere") + ((r.extra_scelti || []).length ? " · extra: " + (r.extra_scelti || []).map(esc).join(", ") : "") + (r.totale_stimato ? " · stima <b>" + eur(r.totale_stimato) + "</b>" : "") + " · arrivata " + fa(r.created_at) + "</div>"
+      + (r.note ? '<div class="rs-msg">' + esc(r.note).replace(/\n/g, "<br>") + "</div>" : "")
+      + azioni(r.referente, r.telefono, r.email, r.consenso_marketing, chiama + prev + '<select class="rs-sel" data-sc="' + r.id + '">' + opz + "</select>") + "</div>";
+  }).join("");
+}
+
+async function creaPreventivoCena(id, b) {
+  const r = stato.c.find((x) => String(x.id) === String(id));
+  if (!r) return;
+  b.disabled = true; b.textContent = "Creo…";
+  const ref = String(r.referente || "").trim().split(/\s+/);
+  const riga = {
+    azienda_id: r.azienda_id, sede_uuid: r.sede_id || null, tipo_servizio: "Cena aziendale", titolo_evento: "Cena aziendale " + (r.azienda_nome || ""), stato: "bozza",
+    cliente_nome: r.azienda_nome || r.referente, cliente_cognome: null, cliente_email: r.email || null, cliente_telefono: r.telefono || null,
+    n_invitati: r.persone || null, data_evento: r.data_preferita || null, lingua: "it",
+    note: "Richiesta cena aziendale dal sito · referente " + (r.referente || "") + (r.menu_scelto ? " · menu scelto: " + r.menu_scelto : "") + ((r.extra_scelti || []).length ? " · extra: " + r.extra_scelti.join(", ") : "") + (r.totale_stimato ? " · stima vista dal cliente " + eur(r.totale_stimato) : "") + (r.note ? "\n\n" + r.note : ""),
+  };
+  const { data, error } = await sb().from("preventivi").insert(riga).select("id").single();
+  if (error) { b.disabled = false; b.textContent = "📑 Crea preventivo"; alert("Non riesco a creare il preventivo: " + error.message); return; }
+  await sb().from("richieste_cene_aziendali").update({ preventivo_id: data.id, stato: r.stato === "nuova" ? "contattata" : r.stato, aggiornata_at: new Date().toISOString() }).eq("id", r.id);
+  window.location.hash = "#/creaPreventivo?id=" + data.id;
+}
+
 function listaT() {
   const righe = stato.t.filter((r) => stato.mostraChiuse || bonificoValido(r) || ["confermata", "richiesta_info", "in_attesa"].indexOf(r.stato) >= 0);
   let h = "";
