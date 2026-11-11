@@ -218,10 +218,12 @@ function renderPreventiviList() {
     return;
   }
 
-  const oggi = new Date().toISOString().slice(0, 10);
+  const oggi = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(new Date());
+  const passati = filteredPreventivi.filter((p) => p.data_evento && String(p.data_evento).slice(0, 10) < oggi)
+    .sort((a, b) => String(b.data_evento).localeCompare(String(a.data_evento)));
+  const daFare = filteredPreventivi.filter((p) => !(p.data_evento && String(p.data_evento).slice(0, 10) < oggi));
 
-  const html = filteredPreventivi
-    .map((p) => {
+  const card = (p) => {
       // il nome sta quasi sempre sul preventivo, non nell'anagrafica collegata:
       // prima si leggeva solo cliente_id e usciva "Senza cliente"
       const clienteNome = [p.cliente_nome, p.cliente_cognome].filter(Boolean).join(" ")
