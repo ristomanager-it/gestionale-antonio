@@ -119,7 +119,7 @@
       data: N.data, ora: N.ora, coperti: persone, bambini: bimbi, promo: false, stato: "in_attesa_pagamento", canale: "online",
       note: note || null, richieste_speciali: note || null, token_pubblico: token, importo_totale: totale(),
       tag: CFG.slug, source: qs.get("utm_source") || "landing",
-      riferimento: JSON.stringify({ landing: CFG.slug, prezzo_persona: N.prezzo, prezzo_bambino: N.prezzo_bimbi, acconto_perc: N.perc || 30, adulti: ospiti, bambini: bimbi,
+      riferimento: JSON.stringify({ clic_google: window.rfClic ? rfClic() : null, landing: CFG.slug, prezzo_persona: N.prezzo, prezzo_bambino: N.prezzo_bimbi, acconto_perc: N.perc || 30, adulti: ospiti, bambini: bimbi,
         consenso_gdpr: true, consenso_marketing: $("marketing").checked,
         utm_source: qs.get("utm_source"), utm_medium: qs.get("utm_medium"), utm_campaign: qs.get("utm_campaign") })
     };
