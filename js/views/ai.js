@@ -631,7 +631,7 @@ function addMessage(text, type, opts = {}) {
         }
         if (j.success && j.landing) {
           const lp = document.createElement("button");
-          lp.textContent = "👁 Vedi la landing";
+          lp.textContent = isPost ? "👁 Vedi il post" : "👁 Vedi la landing";
           lp.style.cssText = "margin:8px 0 0 8px;background:#7a3b1d;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:800;";
           lp.onclick = () => { window.open(j.landing, "_blank"); };
           card.appendChild(lp);
