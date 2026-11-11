@@ -414,6 +414,17 @@ const TOOLS = [
       escludere: { type: "array", items: { type: "string" }, description: "parole o frasi da ESCLUDERE (max 50), corte e precise (es. 'gelsomino', 'albergo', 'lavoro', 'ricetta')" },
       aggiungere: { type: "array", items: { type: "string" }, description: "parole chiave buone da AGGIUNGERE (max 20), solo se molto pertinenti al locale" },
       motivo: { type: "string", description: "in una riga, perche' (es. 'ricerche di altri locali e di alberghi')" } }, required: ["campagna"] } },
+  { name: "proponi_post", description: "PROPONE un POST NORMALE per la pagina Facebook e Instagram della sede (non sponsorizzato, nessun budget). Usalo quando l'utente chiede un post, anche a voce. Il testo segue lo STILE DEI POST DELLA PAGINA e l'IDENTITA' DEL LOCALE; numeri e fatti solo se detti dall'utente o dati veri. Foto: se l'utente ha allegato foto in chat usa foto='chat:1' (chat:2, ...); altrimenti usa prima elenco_media e passa foto='media:<id>'. Mostra una scheda con la foto, il testo e il pulsante per pubblicare: con quando='ora' esce subito su Facebook e Instagram, con data e ora esce a quell'ora. Se l'utente chiede modifiche, richiamalo con il testo corretto.",
+    input_schema: { type: "object", properties: {
+      testo: { type: "string", description: "il post completo, esattamente come uscira'" },
+      titolo: { type: "string", description: "promemoria interno, massimo 8 parole" },
+      angolo: { type: "string", enum: ["perche", "come", "cosa"], description: "perche = chi siamo e come la pensiamo; come = metodo e dietro le quinte; cosa = un piatto o una proposta" },
+      foto: { type: "string", description: "chat:N per una foto allegata in chat, media:<id> per una foto della galleria, vuoto per nessuna foto" },
+      quando: { type: "string", description: "'ora' oppure data e ora italiane nel formato AAAA-MM-GGTHH:MM" },
+      canali: { type: "array", items: { type: "string", enum: ["facebook", "instagram"] }, description: "di solito tutti e due" } },
+      required: ["testo", "quando"] } },
+  { name: "stato_post", description: "Legge gli ultimi post della pagina (sola lettura): se sono usciti, quando, con il link, oppure perche' non sono usciti. Usalo quando l'utente chiede se un post e' uscito o com'e' andato.",
+    input_schema: { type: "object", properties: {} } },
   { name: "proponi_stato_campagna", description: "PROPONE di ACCENDERE o di METTERE IN PAUSA una campagna esistente. Mostra una scheda con il pulsante Conferma.",
     input_schema: { type: "object", properties: {
       piattaforma: { type: "string", enum: ["meta", "google"] },
