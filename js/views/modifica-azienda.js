@@ -75,6 +75,7 @@ export async function render(container) {
       ${cardContatti(azienda)}
       ${cardSaaS(azienda, pianoCorrente, pianiDB)}
       ${cardFeatures()}
+      <div class="card" id="extra-cliente"></div>
 
       <div class="form-actions">
         <button class="app-button" id="btn-save">💾 Salva modifiche</button>
