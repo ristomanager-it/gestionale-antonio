@@ -499,6 +499,7 @@ export async function render(container) {
   function leggiForm() {
     const g = id => document.getElementById(id)?.value?.trim() || "";
     return {
+      avviso:       _avvisoSito || null,
       nome:         g("sw-nome"),
       slug:         g("sw-slug"),
       dominio:      g("sw-dominio") || null,
