@@ -2134,7 +2134,7 @@ ${ctaBar}${footer}${menuScript}
 </body></html>`;
 
     // ── CONTATTI ──────────────────────────────────────────────
-    const contatti = `${head("Contatti")}
+    const contatti = `${head("Contatti", "contatti.html")}
 <body>
 ${nav}
 <div style="height:70px;background:var(--scuro);"></div>
