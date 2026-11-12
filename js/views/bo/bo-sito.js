@@ -2144,6 +2144,7 @@ ${ctaBar}${footer}${menuScript}
     // ── CONTATTI ──────────────────────────────────────────────
     const contatti = `${head("Contatti", "contatti.html")}
 <body>
+${bannerAvviso}
 ${nav}
 <div style="height:70px;background:var(--scuro);"></div>
 <div class="map-s" style="padding-top:60px;">
