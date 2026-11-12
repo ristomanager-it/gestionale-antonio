@@ -1099,6 +1099,17 @@ async function eseguiConferma(c: Ctx, a: any): Promise<{ ok: boolean; messaggio:
     if (!j.success) return { ok: false, messaggio: `\u274C Non riuscito: ${j.error || "errore"}` };
     return { ok: true, messaggio: accendi ? `\u25B6\uFE0F \u00ab${d.nome}\u00bb e' ATTIVA: da adesso spende il suo budget` : `\u23F8 \u00ab${d.nome}\u00bb e' in pausa` };
   }
+  if (a.tipo === "sito") {
+    const PERMESSI = ["hero_titolo", "hero_sub", "hero_cta", "chisiamo_1", "chisiamo_2", "orari_pranzo", "orari_cena", "telefono", "email", "indirizzo", "avviso", "foto_cover"];
+    const agg: Record<string, unknown> = {};
+    const m = (d.modifiche && typeof d.modifiche === "object") ? d.modifiche : {};
+    for (const k of Object.keys(m)) if (PERMESSI.indexOf(k) !== -1) agg[k] = String(m[k]) === "" ? null : String(m[k]);
+    if (!Object.keys(agg).length) return { ok: false, messaggio: "\u274C Niente da salvare." };
+    agg.updated_at = new Date().toISOString();
+    const { error } = await sb.from("sito_config").update(agg).eq("id", d.sito_id).eq("azienda_id", c.aziendaId);
+    if (error) return { ok: false, messaggio: "\u274C Non salvato: " + error.message };
+    return { ok: true, messaggio: "\u2705 Salvato. Tocca il pulsante qui sotto: il sito si aggiorna e va online da solo.", link: "#/bo-sito?pubblica=1" };
+  }
   if (a.tipo === "post") {
     const id = Number(d.giorno_id);
     const { data: g } = await sb.from("calendario_editoriale").select("id, stato").eq("id", id).eq("azienda_id", c.aziendaId).maybeSingle();
