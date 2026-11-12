@@ -2114,7 +2114,7 @@ ${ctaBar}${footer}
 </body></html>`;
 
     // ── MENU PAGE ─────────────────────────────────────────────
-    const menuPage = `${head("Menu")}
+    const menuPage = `${head("Menu", "menu.html")}
 <body>
 ${nav}
 <div style="height:70px;background:var(--scuro);"></div>
