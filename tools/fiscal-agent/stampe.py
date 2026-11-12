@@ -372,7 +372,11 @@ def _mia(riga):
     nell'elenco RISTOFLOW_STAMPANTI. Cosi' con due ponti (uno per rete) una comanda non finisce
     al ponte che non vede la stampante e non si brucia i tentativi."""
     ip = str(riga.get("stampante_ip") or "").strip()
-    if not ip or ip in agent.STAMPANTI:
+    # Ponte con elenco stampanti: lavora SOLO su quelle (evita di prendere stampe di altri locali,
+    # es. il ponte Trattoria col Wi-Fi 192.168.1.x e le etichette di Campo Antico)
+    if agent.STAMPANTI:
+        return bool(ip) and ip in agent.STAMPANTI
+    if not ip:
         return True
     rete = _rete_locale()
     if not rete:
