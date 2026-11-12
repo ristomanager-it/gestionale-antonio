@@ -2419,10 +2419,19 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
     return { home, chiSiamo, menuPage, contatti, landingPranzo };
   }
 
-  // ── MAPPA DEL SITO PER GOOGLE (sitemap.xml): solo se il sito ha il suo dominio ──
-  function sitemapDi(conf) {
+  // ── INDIRIZZO DEL SITO: il dominio del cliente, altrimenti l'indirizzo gratuito su GitHub (stesso schema di github-deploy) ──
+  function baseSitoDi(conf) {
     const dom = String(conf.dominio || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
-    if (!dom || dom.includes("github.io")) return "";
+    if (dom && !dom.includes("github.io")) return "https://" + dom + "/";
+    const repo = String(conf.repo_github || repoSito || "").split("/")[1] || "";
+    if (repo) return "https://ristomanager-it.github.io/" + repo + "/";
+    return conf.slug ? "https://ristomanager-it.github.io/siti-clienti/" + conf.slug + "/" : "";
+  }
+
+  // ── MAPPA DEL SITO PER GOOGLE (sitemap.xml): sul dominio del cliente o sull'indirizzo gratuito ──
+  function sitemapDi(conf) {
+    const base = baseSitoDi(conf);
+    if (!base) return "";
     const oggi = new Date().toISOString().slice(0, 10);
     const voci = [["", "1.0"], ["menu.html", "0.8"], ["chi-siamo.html", "0.6"], ["contatti.html", "0.6"]];
     return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
