@@ -241,6 +241,16 @@ def invia(ip, porta, dati):
     s = socket.create_connection((ip, int(porta or 9100)), 5)
     try:
         s.sendall(dati)
+        # Chiusura "gentile": alcune termiche (es. Epson TM-m30III) buttano i dati se la
+        # connessione si chiude di colpo subito dopo l'invio. Si chiude solo la scrittura e si
+        # aspetta che la stampante chiuda lei (al massimo 2 secondi).
+        try:
+            s.shutdown(socket.SHUT_WR)
+            s.settimeout(2)
+            while s.recv(64):
+                pass
+        except Exception:
+            pass
     finally:
         s.close()
 
