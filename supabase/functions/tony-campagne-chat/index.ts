@@ -425,6 +425,14 @@ const TOOLS = [
       required: ["testo", "quando"] } },
   { name: "stato_post", description: "Legge gli ultimi post della pagina (sola lettura): se sono usciti, quando, con il link, oppure perche' non sono usciti. Usalo quando l'utente chiede se un post e' uscito o com'e' andato.",
     input_schema: { type: "object", properties: {} } },
+  { name: "leggi_sito", description: "Legge i testi attuali del SITO del locale (sola lettura): titolo, sottotitolo, chi siamo, orari, telefono, email, indirizzo, avviso in testa alle pagine. Usalo PRIMA di proporre una modifica al sito.",
+    input_schema: { type: "object", properties: {} } },
+  { name: "proponi_modifica_sito", description: "PROPONE una modifica al SITO del locale, quando l'utente la chiede anche a voce (es. 'metti sul sito che ad agosto chiudiamo dal 10 al 20', 'cambia gli orari della cena', 'cambia la foto in alto con questa'). Prima usa leggi_sito. Cambia SOLO i campi che l'utente ha chiesto, con testi nel tono del locale. Campi: hero_titolo (titolo grande), hero_sub (frase sotto il titolo), hero_cta (testo del pulsante), chisiamo_1 e chisiamo_2 (chi siamo), orari_pranzo, orari_cena, telefono, email, indirizzo (formato 'Via X 1, Citta'), avviso (riga in evidenza in testa a tutte le pagine: chiusure, ferie, novita'; stringa vuota per toglierlo). Foto in alto: foto='chat:1' se allegata in chat, oppure 'media:<id>' dalla galleria. Mostra una scheda con prima e dopo e il pulsante di conferma; dopo la conferma l'utente mette online il sito con un tocco.",
+    input_schema: { type: "object", properties: {
+      modifiche: { type: "object", description: "campo -> nuovo testo, solo i campi da cambiare", additionalProperties: { type: "string" } },
+      foto: { type: "string", description: "chat:N oppure media:<id> per cambiare la foto in alto; vuoto per non cambiarla" },
+      motivo: { type: "string", description: "in una riga, cosa cambia e perche'" } },
+      required: ["motivo"] } },
   { name: "proponi_stato_campagna", description: "PROPONE di ACCENDERE o di METTERE IN PAUSA una campagna esistente. Mostra una scheda con il pulsante Conferma.",
     input_schema: { type: "object", properties: {
       piattaforma: { type: "string", enum: ["meta", "google"] },
