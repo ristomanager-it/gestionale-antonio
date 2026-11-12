@@ -1415,6 +1415,10 @@ export async function render(container) {
     const dom = String(conf.dominio || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
     const giorniSchema = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const indParti = String(conf.indirizzo || "").split(",").map((s) => s.trim()).filter(Boolean);
+    // 12/11/2026 Google: titolo con la citta' (non piu' "Nome — Nome"), indirizzo ufficiale di ogni pagina
+    const cittaSeo = indParti[1] || "";
+    const titoloSeo = (t) => (t === nome ? nome : t + " · " + nome) + (cittaSeo ? " · " + cittaSeo : "");
+    const urlPagina = (file) => (dom && file ? "https://" + dom + "/" + (file === "index.html" ? "" : file) : "");
     const ld = {
       "@context": "https://schema.org", "@type": "Restaurant", name: nome,
       ...(dom ? { url: "https://" + dom, hasMenu: "https://" + dom + "/menu.html" } : {}),
