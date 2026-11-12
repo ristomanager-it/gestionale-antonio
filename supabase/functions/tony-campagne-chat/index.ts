@@ -1054,6 +1054,37 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
 // ---- esecuzione alla conferma ----
 async function eseguiConferma(c: Ctx, a: any): Promise<{ ok: boolean; messaggio: string; link?: string; landing?: string }> {
   const d = a.dati || {};
+  if (a.tipo === "campagna" && d.modello === "evento") {
+    // una campagna Meta per ogni pubblico; se il pubblico e' solo uomini o solo donne, il gruppo di inserzioni si restringe al sesso
+    const { data: conns } = await sb.from("meta_ads_connessioni").select("access_token").eq("azienda_id", c.aziendaId).eq("attivo", true).limit(1);
+    const tokenMeta = conns && conns[0] ? String(conns[0].access_token || "") : "";
+    const righe: string[] = [];
+    for (const p of (d.pubblici || [])) {
+      const nomeChi = p.chi === "uomini" ? "Uomini" : p.chi === "donne" ? "Donne" : "Tutti";
+      const corpo: any = { azienda_id: c.aziendaId, sede_id: d.sede_id, tipo: "piatto", piatto: d.evento + " \u00b7 " + nomeChi, titolo: p.titolo, messaggio: p.testo,
+        citta: d.citta, budget_cent: d.budget_cent, raggio_km: d.raggio_km, link_url: LANDING_BASE + "?p=" + p.slug + "&pubblico=" + p.chi,
+        ...(d.inizio ? { inizio: d.inizio } : {}), ...(d.fine ? { fine: d.fine } : {}), ...(p.img ? { image_url: p.img } : {}) };
+      const j = await chiamaInterna(c, "tony-meta-campagne", corpo);
+      if (!j.success) { righe.push("\u274C " + nomeChi + ": " + (typeof j.error === "string" ? j.error : (j.error?.error_user_msg || j.error?.message || "non riuscita"))); continue; }
+      if (p.chi !== "tutti" && j.adset_id && tokenMeta) {
+        try {
+          const gr = await fetch("https://graph.facebook.com/v21.0/" + j.adset_id + "?fields=targeting&access_token=" + encodeURIComponent(tokenMeta));
+          const gj = await gr.json();
+          const t = gj && gj.targeting ? gj.targeting : null;
+          if (t) {
+            t.genders = [p.chi === "uomini" ? 1 : 2];
+            const body = new URLSearchParams({ targeting: JSON.stringify(t), access_token: tokenMeta });
+            const ur = await fetch("https://graph.facebook.com/v21.0/" + j.adset_id, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString() });
+            const uj = await ur.json();
+            if (!uj || !uj.success) { righe.push("\u26A0\uFE0F " + nomeChi + ": creata, ma il filtro per sesso non e' stato accettato da Meta (" + ((uj && uj.error && (uj.error.error_user_msg || uj.error.message)) || "errore") + "): mostra a tutti"); continue; }
+          }
+        } catch (_e) { righe.push("\u26A0\uFE0F " + nomeChi + ": creata, ma il filtro per sesso non e' riuscito: mostra a tutti"); continue; }
+      }
+      righe.push("\u2705 " + nomeChi + ": creata in pausa (" + eur((d.budget_cent || 0) / 100) + "/giorno)");
+    }
+    const qualcuna = righe.some((r) => r.indexOf("creata") >= 0);
+    return { ok: righe.length > 0 && righe.every((r) => r.indexOf("\u2705") === 0), messaggio: righe.join(" \u00b7 ") + (qualcuna ? " \u00b7 Per accenderle chiedimelo qui o usa Marketing > Messaggi > Campagne." : ""), link: qualcuna ? "#/bo-template?tab=metaads" : undefined };
+  }
   if (a.tipo === "campagna" && d.modello === "landing") {
     // solo la landing: la bozza guardata in anteprima diventa pubblica, nessuna campagna
     const { data: att } = await sb.from("landing_promo").update({ bozza: false, bozza_di: null }).eq("slug", d.bozza?.slug || "").eq("azienda_id", c.aziendaId).eq("bozza", true).select("slug").maybeSingle();
