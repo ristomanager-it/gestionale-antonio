@@ -58,13 +58,13 @@
   // centesimi ancora da versare: tutto l'acconto, oppure solo la parte delle persone aggiunte
   function dovuto(){ return Math.max(Math.round(totale() * (N.perc || 30)) - Math.round(Number(p.acconto_importo || 0) * 100), 0); }
   function W(){ return p && p.tag === "natale-2026-weekend"; }
-  function giorno(d){ var g = { "2026-12-24": "Giovedì 24", "2026-12-25": "Venerdì 25", "2026-12-26": "Sabato 26" }; return (g[d] || d) + " dicembre"; }
+  function giorno(d){ var g = { "2026-12-23": "Mercoledì 23", "2026-12-24": "Giovedì 24", "2026-12-25": "Venerdì 25", "2026-12-26": "Sabato 26" }; return (g[d] || d) + " dicembre"; }
   function disegna(){
     var L = LOCALI[p.sede_id] || LOCALI["4a936e52-a1e3-42fc-843c-e8d15dc86040"], x = persone();
     if (p.sede_id === "c40919bb-78c2-458f-865e-0c9fd02aa0b5") document.documentElement.classList.add("campo");
     var pagato = p.stato_pagamento === "pagato", ora = String(p.ora || "").slice(0, 5);
-    var nn = Number(p.notti) || 1;
-    var h = W() ? '<div class="testa"><div class="kicker">🎄 Natale a Campo Antico</div><div class="acc">Da ' + giorno(String(p.data)).toLowerCase() + ' · ' + nn + (nn === 1 ? ' notte' : ' notti') + ' con colazione</div><h1>La vostra prenotazione</h1></div>'
+    var nn = (det && det.notti_date && det.notti_date.length) || Number(p.notti) || 1;
+    var h = W() ? '<div class="testa"><div class="kicker">🎄 Natale a Campo Antico</div><div class="acc">Da ' + giorno(String((det && det.notti_date && det.notti_date[0]) || p.data)).toLowerCase() + ' · ' + nn + (nn === 1 ? ' notte' : ' notti') + ' con colazione</div><h1>La vostra prenotazione</h1></div>'
       : '<div class="testa"><div class="kicker">🎄 Pranzo di Natale</div><div class="acc">Venerdì 25 dicembre</div><h1>La vostra prenotazione</h1></div>';
     var sp = p.stato_pagamento || "";
     if (sp === "bonifico_in_attesa") h += boxBonifico(L);
@@ -84,9 +84,20 @@
     if (W()) {
       // il programma del pacchetto: pasti secondo le notti, camere dalla nota della prenotazione
       var d0 = String(p.data), nn2 = Number(p.notti) || 1, prog = [];
-      if (d0 === "2026-12-24") prog.push(["Giovedì 24, ore 20:00", "Cena della Vigilia", "arrivo e camera"]);
-      if (d0 === "2026-12-24" || d0 === "2026-12-25") prog.push(["Venerdì 25, ore 13:00", "Pranzo di Natale", d0 === "2026-12-25" ? "arrivo e camera" : "colazione e pranzo"]);
-      if (d0 === "2026-12-25" || nn2 === 2) prog.push(["Sabato 26, ore 13:00", "Pranzo di Santo Stefano", "colazione e pranzo"]);
+      var GN = { "2026-12-23": "Mercoledì 23", "2026-12-24": "Giovedì 24", "2026-12-25": "Venerdì 25", "2026-12-26": "Sabato 26", "2026-12-27": "Domenica 27" };
+      var nd = (det && det.notti_date) || [], pas = (det && det.pasti) || [];
+      if (nd.length) {
+        // programma dai dati salvati: arrivo, pasti compresi, partenza
+        var arr = nd[0], fine = new Date(nd[nd.length - 1] + "T12:00:00Z"); fine.setUTCDate(fine.getUTCDate() + 1); var part = fine.toISOString().slice(0, 10);
+        prog.push([(GN[arr] || arr), "Arrivo e camera", "check-in dal pomeriggio"]);
+        pas.forEach(function(x){ prog.push([(GN[x.data] || x.data) + ", ore " + x.ora, x.nome, "compreso nel pacchetto"]); });
+        prog.push([(GN[part] || part), "Partenza", "dopo la colazione"]);
+        nn2 = nd.length;
+      } else {
+        if (d0 === "2026-12-24") prog.push(["Giovedì 24, ore 20:00", "Cena della Vigilia", "arrivo e camera"]);
+        if (d0 === "2026-12-24" || d0 === "2026-12-25") prog.push(["Venerdì 25, ore 13:00", "Pranzo di Natale", d0 === "2026-12-25" ? "arrivo e camera" : "colazione e pranzo"]);
+        if (d0 === "2026-12-25" || nn2 === 2) prog.push(["Sabato 26, ore 13:00", "Pranzo di Santo Stefano", "colazione e pranzo"]);
+      }
       var cam = (String(p.note || "").match(/camere ([^\]]+)\]/) || [])[1] || "";
       h += '<div class="card"><h3>Il vostro Natale</h3>'
         + prog.map(function(x){ return '<div class="riga"><span>' + esc(x[0]) + '</span><b>' + esc(x[1]) + '<br><small style="font-weight:400;color:var(--muto)">' + esc(x[2]) + '</small></b></div>'; }).join("")
