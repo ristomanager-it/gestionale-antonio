@@ -603,6 +603,7 @@ export async function render(container) {
       }
       try { disegnaSezioni(); } catch (e) { console.warn("sezioni:", e); }
       repoSito = conf.repo_github || null;
+      _avvisoSito = conf.avviso || "";
       if (conf.form_link) document.getElementById('sw-form-link').value = conf.form_link;
       // Colori
       if (conf.colore_brand)      { set("sw-colore-btn-hex", conf.colore_brand);      document.getElementById("sw-colore-btn").value = conf.colore_brand; }
