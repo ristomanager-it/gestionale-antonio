@@ -2123,6 +2123,7 @@ ${ctaBar}${footer}
     // ── MENU PAGE ─────────────────────────────────────────────
     const menuPage = `${head("Menu", "menu.html")}
 <body>
+${bannerAvviso}
 ${nav}
 <div style="height:70px;background:var(--scuro);"></div>
 <div class="menu-s" style="padding-top:60px;">
