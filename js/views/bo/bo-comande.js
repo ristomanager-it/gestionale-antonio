@@ -4,7 +4,7 @@
 
 // ATTENZIONE: import statico, il ?v=APP_V del router non lo raggiunge.
 // Ad ogni modifica di cassa-hardware.js bumpare a mano il ?v=N qui sotto.
-import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=5';
+import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=6';
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -2191,9 +2191,14 @@ export async function render(container) {
   let _stampantiComande = null;
   async function stampantiComande() {
     if (_stampantiComande) return _stampantiComande;
-    const { data } = await supa().from('stampanti_comande').select('id, reparto, ip, porta, larghezza, sede_id, nome')
-      .eq('azienda_id', aziendaId).eq('attiva', true);
-    _stampantiComande = (data || []).filter(s => !sedeId || !s.sede_id || String(s.sede_id) === String(sedeId));
+    // Se la sede ha stampanti sue (anche spente) usa solo quelle: le stampanti "senza sede"
+    // servono solo alle sedi che non ne hanno, cosi' una comanda non esce nel locale sbagliato.
+    const { data } = await supa().from('stampanti_comande').select('id, reparto, ip, porta, larghezza, sede_id, nome, attiva')
+      .eq('azienda_id', aziendaId);
+    const tutte = data || [];
+    const proprie = sedeId ? tutte.filter(s => String(s.sede_id) === String(sedeId)) : [];
+    const base = proprie.length ? proprie : tutte.filter(s => !sedeId || !s.sede_id);
+    _stampantiComande = base.filter(s => s.attiva);
     return _stampantiComande;
   }
 

@@ -140,9 +140,12 @@ export async function emettiPreconto(doc) {
     const supabase = window.supabaseClient || window.supabase;
     const aziendaId = doc?.azienda;
     if (aziendaId && !CASSA_CONFIG.simulazione) {
-      const { data: st } = await supabase.from('stampanti_comande').select('id, ip, porta, larghezza, sede_id')
-        .eq('azienda_id', aziendaId).eq('reparto', 'preconto').eq('attiva', true);
-      const scelta = (st || []).find(x => doc?.sede && String(x.sede_id) === String(doc.sede)) || (st || []).find(x => !x.sede_id) || (st || [])[0];
+      const { data: st } = await supabase.from('stampanti_comande').select('id, ip, porta, larghezza, sede_id, attiva')
+        .eq('azienda_id', aziendaId).eq('reparto', 'preconto');
+      // Preconto della sede se ne ha uno (anche spento); quello "senza sede" solo per chi non ne ha
+      const tutte = st || [];
+      const proprie = doc?.sede ? tutte.filter(x => String(x.sede_id) === String(doc.sede)) : [];
+      const scelta = (proprie.length ? proprie : tutte.filter(x => !x.sede_id)).find(x => x.attiva);
       if (scelta) return await precontoSuTermica(scelta, doc);
     }
   } catch (e) { /* ripiego sulla stampante fiscale */ }
@@ -211,19 +214,20 @@ export async function emettiDocumento(doc) {
   // Stampante fiscale attiva: prima cerco quella specifica della sede,
   // poi in fallback quella registrata a livello azienda (sede_id null,
   // es. "Tutte le sedi").
+  // Se la sede ha una sua stampante fiscale (anche spenta) non si ripiega su quella "senza sede":
+  // lo scontrino andrebbe sulla cassa (e sulla partita IVA) di un altro locale.
   let stampante = null;
+  let sedeHaRT = false;
   if (sedeId) {
     const { data } = await supabase
       .from('stampanti_fiscali')
-      .select('ip, porta')
+      .select('ip, porta, attiva')
       .eq('azienda_id', aziendaId)
-      .eq('sede_id', sedeId)
-      .eq('attiva', true)
-      .limit(1)
-      .maybeSingle();
-    stampante = data;
+      .eq('sede_id', sedeId);
+    sedeHaRT = (data || []).length > 0;
+    stampante = (data || []).find(x => x.attiva) || null;
   }
-  if (!stampante) {
+  if (!stampante && !sedeHaRT) {
     const { data } = await supabase
       .from('stampanti_fiscali')
       .select('ip, porta')
