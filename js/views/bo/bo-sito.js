@@ -1608,7 +1608,7 @@ footer{background:#0e0a04;padding:36px 20px;text-align:center}
 .ft-links a{font-size:11px;color:rgba(255,255,255,.35)}
 .ft-copy{font-size:10px;color:rgba(255,255,255,.2)}`;
 
-    const head = (title) => `<!DOCTYPE html>
+    const head = (title, file) => `<!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
