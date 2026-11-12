@@ -1617,7 +1617,8 @@ ${jsonLd}
 ${consensoScript}
 <meta property="og:title" content="${esc(nome)}">
 <meta property="og:image" content="${esc(conf.foto_cover||'')}">
-<title>${esc(title)} — ${esc(nome)}</title>
+${urlPagina(file) ? `<link rel="canonical" href="${esc(urlPagina(file))}">\n<meta property="og:url" content="${esc(urlPagina(file))}">` : ""}
+<title>${esc(titoloSeo(title))}</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400&family=${fontUrl}&display=swap" rel="stylesheet">
 <style>${css}</style>
 <script>
