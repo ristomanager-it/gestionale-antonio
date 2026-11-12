@@ -1937,7 +1937,7 @@ function apriVideo(u){
     const menuApri = `<script>(function(){var d=document.getElementById('menu');if(!d)return;document.querySelectorAll('a[href="#menu"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();d.open=true;setTimeout(function(){d.scrollIntoView({behavior:'smooth',block:'start'});},60);});});if(location.hash==='#menu')d.open=true;})();</script>`;
 
     // ── HOME ──────────────────────────────────────────────────
-    const home = `${head(nome)}
+    const home = `${head(nome, "index.html")}
 <body>
 ${nav}
 <div style="position:relative;min-height:82svh;display:flex;align-items:flex-end;overflow:hidden;">
