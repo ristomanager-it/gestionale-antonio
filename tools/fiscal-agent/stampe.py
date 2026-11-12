@@ -182,6 +182,8 @@ def build_preconto(c, larg):
     out = INIT + CENTRO + GRANDE + t("PRECONTO") + b"\n" + NORMALE + t("documento non fiscale") + b"\n"
     if c.get("tavolo"):
         out += ALTO + t("Tavolo " + str(c["tavolo"])) + NORMALE + b"\n"
+    if c.get("chiusura"):
+        out += GRASSETTO_ON + t(str(c["chiusura"])) + GRASSETTO_OFF + b"\n"
     out += SINISTRA + t("-" * larg) + b"\n"
     for r in c.get("righe") or []:
         q = float(r.get("quantita") or 1)

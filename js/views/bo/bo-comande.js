@@ -4,7 +4,7 @@
 
 // ATTENZIONE: import statico, il ?v=APP_V del router non lo raggiunge.
 // Ad ogni modifica di cassa-hardware.js bumpare a mano il ?v=N qui sotto.
-import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=6';
+import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=7';
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -2662,6 +2662,7 @@ export async function render(container) {
     const pre = await emettiPreconto({
       righe: righe, totale: lordo, numero_tavolo: nomeTavoloAttivo(), coperti: comandaAttiva.coperti,
       comanda_uuid: comandaId, azienda: aziendaId, sede: sedeId,
+      chiusura: ({ addebito: 'ADDEBITO: ' + (intestatario || ''), omaggio: 'OMAGGIO', personale: 'PASTO PERSONALE' })[motivo] || null,
     });
     const { error: e1 } = await supa().from('comande').update({
       stato: 'chiusa', chiusa_at: new Date().toISOString(), totale: lordo,
@@ -3192,7 +3193,7 @@ export async function render(container) {
       const chi = 'Persona ' + (x.p + 1);
       const base = { righe: x.righe, numero_tavolo: d.tavolo, coperti: d.coperti, comanda_uuid: d.comanda, azienda: aziendaId, sede: sedeId };
       if (m.metodo === 'addebito') {
-        const pre = await emettiPreconto(Object.assign({}, base, { totale: x.netto, sconto: x.sconto }));
+        const pre = await emettiPreconto(Object.assign({}, base, { totale: x.netto, sconto: x.sconto, chiusura: 'ADDEBITO: ' + (m.riferimento || chi) }));
         const { error } = await supa().from('chiusure_non_fiscali').insert({
           azienda_id: aziendaId, sede_id: sedeId || null, motivo: 'addebito', intestatario: m.riferimento || chi,
           totale: x.netto, righe: x.righe, comanda_uuid: d.comanda, canale: 'tavolo', operatore_nome: cameriereAttivo?.nome || null,

@@ -238,6 +238,8 @@ def build_preconto(riga, con_fine=True):
     linee = ["PRECONTO - NON FISCALE".center(LARGHEZZA)]
     if riga.get("numero_tavolo"):
         linee.append(("Tavolo " + str(riga["numero_tavolo"])).center(LARGHEZZA))
+    if riga.get("cliente_nome"):
+        linee.append(str(riga["cliente_nome"])[:LARGHEZZA].center(LARGHEZZA))
     linee.append("-" * LARGHEZZA)
     for r in riga.get("righe") or []:
         q = num(r.get("quantita"), 1)

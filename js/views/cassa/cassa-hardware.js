@@ -162,7 +162,8 @@ async function precontoSuTermica(st, doc) {
     stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: st.larghezza || 42,
     tipo: 'preconto', reparto: 'preconto', comanda_uuid: doc.comanda_uuid || null,
     contenuto: { tavolo: doc.numero_tavolo || null, coperti: doc.coperti || null, righe: righe,
-                 totale: Number(doc.totale) || 0, sconto: Number(doc.sconto) || 0 },
+                 totale: Number(doc.totale) || 0, sconto: Number(doc.sconto) || 0,
+                 chiusura: doc.chiusura || null },
   }).select('id').single();
   if (error || !riga) return { ok: false, simulato: false, errore: 'Coda stampa: ' + (error?.message || 'errore') };
   // il preconto conta anche come "preconto stampato" per la pianta della cassa
@@ -274,6 +275,8 @@ export async function emettiDocumento(doc) {
   if (cliente.partita_iva) record.cliente_piva = cliente.partita_iva;
   if (cliente.codice_fiscale) record.cliente_cf = cliente.codice_fiscale;
   if (cliente.ragione_sociale) record.cliente_nome = cliente.ragione_sociale;
+  // Preconto di chiusura senza scontrino: sul foglio va il motivo (es. "ADDEBITO: nome")
+  if (tipo === 'preconto' && doc?.chiusura) record.cliente_nome = String(doc.chiusura);
 
   // Fondo scontrino (saluto + QR coupon/link) da Configurazione › Cassa. Mai bloccante.
   if (tipo === 'scontrino' || tipo === 'fattura') {

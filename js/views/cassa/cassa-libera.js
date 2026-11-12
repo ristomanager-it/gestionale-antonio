@@ -15,7 +15,7 @@
 // ATTENZIONE: import statico, il cache-busting di router.js (?v=APP_V) NON lo
 // raggiunge. Ad ogni modifica di cassa-hardware.js bumpare manualmente il
 // ?v=N qui sotto, altrimenti il browser tiene la versione vecchia in cache.
-import { avviaPagamentoCarta, emettiScontrinoFiscale, emettiDocumento, emettiPreconto, configuraCassa } from './cassa-hardware.js?v=6';
+import { avviaPagamentoCarta, emettiScontrinoFiscale, emettiDocumento, emettiPreconto, configuraCassa } from './cassa-hardware.js?v=7';
 
 // Il router chiama render(app). Recupero l'azienda dallo stato globale.
 export async function render(container) {
@@ -667,7 +667,8 @@ export async function renderCassaLibera(container, azienda) {
       out.textContent = '⏳ Stampo il preconto e chiudo…';
       const t = totali();
       const lordo = t.lordo;
-      const pre = await emettiPreconto(Object.assign({ righe: righeDocumento(), totale: lordo, azienda: aziendaId, sede: sedeId }, datiTavolo()));
+      const chiusura = ({ addebito: 'ADDEBITO: ' + intest, omaggio: 'OMAGGIO', personale: 'PASTO PERSONALE' })[incasso.motivo];
+      const pre = await emettiPreconto(Object.assign({ righe: righeDocumento(), totale: lordo, azienda: aziendaId, sede: sedeId, chiusura: chiusura }, datiTavolo()));
       const reg = tavoloAttivo
         ? await chiudiComandaTavolo({ totale: lordo, metodo_pagamento: 'non_fiscale', tipo_documento: 'preconto' })
         : await registraVendita('non_fiscale', t, { nonFiscale: true });
