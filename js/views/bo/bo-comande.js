@@ -888,12 +888,27 @@ export async function render(container) {
               <div style="font-size:12px;color:#475569;">${esc(c.note || '')}</div>
               <div style="font-size:12.5px;margin-top:4px;">${r.map(x => `${x.quantita}× ${esc(x.nome_snapshot)}${x.note ? ` <b style="color:#b45309;">(${esc(x.note)})</b>` : ''}`).join(' · ')}</div>
             </div>
-            <button data-accomoda="${c.id}" style="padding:8px 12px;background:#0E5A7A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">🍽 Accomoda al tavolo</button>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              ${c.stato === 'in_corso'
+                ? `<span style="padding:8px 12px;background:#fef3c7;color:#92400e;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">🔥 In cucina</span>`
+                : `<button data-cucina="${c.id}" style="padding:8px 12px;background:#b45309;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">🔥 Manda in cucina</button>`}
+              ${tavoli.length ? `<button data-accomoda="${c.id}" style="padding:8px 12px;background:#0E5A7A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">🍽 Accomoda al tavolo</button>` : ''}
+            </div>
           </div>`;
         }).join('')}
         </div>
       </div>`;
     box.querySelectorAll('[data-accomoda]').forEach(b => { b.onclick = () => scegliTavoloAnticipato(b.dataset.accomoda); });
+    // ordini che non si servono a un tavolo (mezza pensione portata in camera, Centro cottura): in cucina direttamente
+    box.querySelectorAll('[data-cucina]').forEach(b => { b.onclick = async () => {
+      const id = b.dataset.cucina; b.disabled = true; b.textContent = '…';
+      const { error: e1 } = await supa().from('comanda_righe').update({ stato: 'in_preparazione' }).eq('comanda_id', id).eq('stato', 'in_attesa');
+      const { error: e2 } = await supa().from('comande').update({ stato: 'in_corso' }).eq('id', id);
+      if (e1 || e2) { mostraToast('Errore: ' + (e1 || e2).message, 'error'); b.disabled = false; b.textContent = '🔥 Manda in cucina'; return; }
+      const c = comande.find(x => String(x.id) === String(id)); if (c) c.stato = 'in_corso';
+      mostraToast('✅ Ordine mandato in cucina', 'success');
+      renderAnticipati();
+    }; });
   }
 
   function scegliTavoloAnticipato(comandaId) {
