@@ -2529,4 +2529,9 @@ ${bannerAvviso}
   // ── INIT ─────────────────────────────────────────────────────
   await caricaSedi();
   await caricaConfig();
+  // 12/11/2026: arrivo da Tony ("metti online il sito"): pubblica da solo con i testi appena salvati
+  if (/[?&]pubblica=1/.test(location.hash)) {
+    try { history.replaceState(null, "", location.hash.replace(/[?&]pubblica=1/, "")); } catch (e) { /* niente */ }
+    pubblica(false);
+  }
 }
