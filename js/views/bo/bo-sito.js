@@ -29,6 +29,7 @@ export async function render(container) {
   let _identita = null;
   const fotoSel = { cover: null, reelTerra: null, reelMare: null, locale: [], header: [], videoHero: null };
   let repoSito = null;   // repo dedicato del sito, letto dal database
+  let _avvisoSito = "";  // avviso in testa alle pagine (12/11/2026): lo scrive anche Tony dalla chat
   const SEZIONI = [
     { id:"hero",       label:"🦸 Hero",              def:true  },
     { id:"intro",      label:"📝 Breve descrizione",  def:false },
