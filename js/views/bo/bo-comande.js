@@ -890,7 +890,7 @@ export async function render(container) {
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;">
               ${c.stato === 'in_corso'
-                ? `<span style="padding:8px 12px;background:#fef3c7;color:#92400e;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">🔥 In cucina</span>`
+                ? `<span style="padding:8px 12px;background:#fef3c7;color:#92400e;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">🔥 In cucina</span><button data-ristampa="${c.id}" style="padding:8px 12px;background:#e2e8f0;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">🖨 Ristampa</button>`
                 : `<button data-cucina="${c.id}" style="padding:8px 12px;background:#b45309;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">🔥 Manda in cucina</button>`}
               ${tavoli.length ? `<button data-accomoda="${c.id}" style="padding:8px 12px;background:#0E5A7A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">🍽 Accomoda al tavolo</button>` : ''}
             </div>
