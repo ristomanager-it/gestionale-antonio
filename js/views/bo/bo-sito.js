@@ -2088,7 +2088,7 @@ ${footer}${menuScript}${menuApri}
 </body></html>`;
 
     // ── CHI SIAMO ─────────────────────────────────────────────
-    const chiSiamo = `${head("Chi siamo")}
+    const chiSiamo = `${head("Chi siamo", "chi-siamo.html")}
 <body>
 ${nav}
 <div style="height:70px;background:var(--scuro);"></div>
