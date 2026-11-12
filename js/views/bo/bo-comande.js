@@ -2755,7 +2755,12 @@ export async function render(container) {
   function totPerPersona() {
     const tot = _righeContoLocali.reduce((s, r) => s + (Number(r.prezzo_snapshot||0)*Number(r.quantita||1)), 0);
     if (_divMode === 'unico') return [tot];
-    if (_divMode === 'romana') return Array(_divPersone).fill(parseFloat((tot/_divPersone).toFixed(2)));
+    if (_divMode === 'romana') {
+      const q = Math.floor(tot / _divPersone * 100) / 100;
+      const arr = Array(_divPersone).fill(q);
+      arr[_divPersone - 1] = Math.round((tot - q * (_divPersone - 1)) * 100) / 100;
+      return arr;
+    }
     // per piatto
     const arr = Array(_divPersone).fill(0);
     _righeContoLocali.forEach((r, i) => {
@@ -2910,6 +2915,10 @@ export async function render(container) {
 
   container.querySelector('#btn-pag-conferma').onclick = async () => {
     const tots = totPerPersona();
+    if (_divMode === 'piatti') {
+      const nonAss = _righeContoLocali.some((r, i) => Number(r.prezzo_snapshot || 0) > 0 && _divAssegnazioni[i] == null);
+      if (nonAss) { mostraToast('Assegna tutti i piatti a una persona prima di chiudere', 'warning'); return; }
+    }
     // Valida: ogni persona con importo > 0 deve avere un metodo
     for (let p = 0; p < tots.length; p++) {
       if (tots[p] > 0 && !_divMetodi[p]?.metodo) {
@@ -3101,6 +3110,15 @@ export async function render(container) {
     // Aggiorna schermo cliente → PAGATO
     await aggiornaCassaDisplay('pagato', [], totaleFinale, null, metodoPagamento);
 
+    // Conto diviso (per piatto o alla romana): un documento per persona col suo pagamento
+    if (subConti && _tipoDoc !== 'fattura' && _righeDoc.length) {
+      emettiDocumentiPerPersona({
+        modo: _divMode, persone: _divPersone, assegnazioni: Object.assign({}, _divAssegnazioni),
+        metodi: JSON.parse(JSON.stringify(_divMetodi)), righe: _righeContoLocali.slice(),
+        totaleLordo: totaleLordo, sconto: scontoPromo, tavolo: nomeTavoloAttivo(),
+        coperti: comandaAttiva.coperti, comanda: comandaAttiva.id,
+      });
+    } else
     // Stampa in background: il cameriere non resta bloccato, ma vede l'esito
     if (_righeDoc.length) {
       emettiDocumento(_docFiscale).then(r => {
@@ -3124,6 +3142,71 @@ export async function render(container) {
 
     // Popup fidelity
     setTimeout(() => apriFidelityPopup(totaleFinale), 400);
+  }
+
+  // ── Uno scontrino per persona ──
+  // Per piatto: ognuno i suoi piatti. Alla romana: la sua quota, una riga per aliquota IVA
+  // (cosi' i corrispettivi per aliquota restano giusti). Sconto promo diviso in proporzione.
+  // Addebito: niente scontrino, preconto col nome e chiusura non fiscale registrata.
+  // In sequenza, uno dopo l'altro, per non accavallarsi sulla cassa.
+  async function emettiDocumentiPerPersona(d) {
+    const cent = x => Math.round(x * 100) / 100;
+    const aliq = r => {
+      const pv = prodottiVendita.find(p => String(p.id) === String(r.prodotto_vendita_id));
+      return Number(pv?.iva ?? 10);
+    };
+    const conPrezzo = d.righe.map((r, i) => ({ r, i })).filter(x => Number(x.r.prezzo_snapshot || 0) > 0);
+    const perAliquota = {};
+    conPrezzo.forEach(x => { const a = aliq(x.r); perAliquota[a] = (perAliquota[a] || 0) + Number(x.r.prezzo_snapshot) * Number(x.r.quantita || 1); });
+    const aliquote = Object.keys(perAliquota);
+    const usato = {};      // per aliquota, quanto gia' messo nelle quote precedenti (romana)
+    let scontoUsato = 0;
+    const n = d.persone;
+    const persone = [];
+    for (let p = 0; p < n; p++) {
+      let righe = [];
+      if (d.modo === 'piatti') {
+        righe = conPrezzo.filter(x => d.assegnazioni[x.i] === p).map(x => ({
+          descrizione: x.r.nome_snapshot, quantita: Number(x.r.quantita || 1),
+          prezzo_unitario: Number(x.r.prezzo_snapshot), aliquota_iva: aliq(x.r),
+        }));
+      } else {
+        aliquote.forEach(a => {
+          const tot = perAliquota[a];
+          const imp = p === n - 1 ? cent(tot - (usato[a] || 0)) : Math.floor(tot / n * 100) / 100;
+          usato[a] = cent((usato[a] || 0) + imp);
+          if (imp > 0) righe.push({ descrizione: 'Quota ' + (p + 1) + '/' + n + (d.tavolo ? ' tavolo ' + d.tavolo : ''), quantita: 1, prezzo_unitario: imp, aliquota_iva: Number(a) });
+        });
+      }
+      const lordo = cent(righe.reduce((s, r) => s + r.prezzo_unitario * r.quantita, 0));
+      if (lordo <= 0) continue;
+      persone.push({ p: p, righe: righe, lordo: lordo });
+    }
+    persone.forEach((x, k) => {
+      x.sconto = d.sconto > 0 ? (k === persone.length - 1 ? cent(d.sconto - scontoUsato) : cent(d.sconto * x.lordo / (d.totaleLordo || 1))) : 0;
+      scontoUsato = cent(scontoUsato + x.sconto);
+      x.netto = Math.max(0, cent(x.lordo - x.sconto));
+    });
+    for (const x of persone) {
+      const m = d.metodi[x.p] || {};
+      const chi = 'Persona ' + (x.p + 1);
+      const base = { righe: x.righe, numero_tavolo: d.tavolo, coperti: d.coperti, comanda_uuid: d.comanda, azienda: aziendaId, sede: sedeId };
+      if (m.metodo === 'addebito') {
+        const pre = await emettiPreconto(Object.assign({}, base, { totale: x.netto, sconto: x.sconto }));
+        const { error } = await supa().from('chiusure_non_fiscali').insert({
+          azienda_id: aziendaId, sede_id: sedeId || null, motivo: 'addebito', intestatario: m.riferimento || chi,
+          totale: x.netto, righe: x.righe, comanda_uuid: d.comanda, canale: 'tavolo', operatore_nome: cameriereAttivo?.nome || null,
+        });
+        mostraToast(chi + ': ' + (pre.ok ? 'preconto stampato' : 'preconto NON stampato') + ', addebito' + (error ? ' (motivo non salvato)' : ' registrato'), pre.ok && !error ? 'success' : 'warning');
+        continue;
+      }
+      const r = await emettiDocumento(Object.assign({}, base, {
+        tipo: 'scontrino', totale: x.netto, sconto: x.sconto,
+        pagamenti: [{ metodo: m.metodo || 'contanti', importo: x.netto }],
+      }));
+      if (r.ok) mostraToast('🧾 ' + chi + ': scontrino ' + (r.numero_documento || '') + ' stampato', 'success');
+      else mostraToast('⚠️ ' + chi + ': scontrino NON stampato (' + (r.errore || 'errore') + ') — lo trovi in Chiusura cassa', 'error');
+    }
   }
 
   // ══════════════════════════════════════════
