@@ -1291,6 +1291,8 @@ export async function render(container) {
   async function generaHTML(conf) {
     const sedeId = sedeSelezionata?.id;
     const esc = v => String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    // avviso in testa a tutte le pagine (chiusure, ferie, novita'): vuoto = niente
+    const bannerAvviso = conf.avviso ? `<div role="status" style="background:#7a1f1f;color:#fff;text-align:center;padding:10px 16px;font:600 14px/1.4 system-ui,-apple-system,sans-serif">${esc(conf.avviso)}</div>` : "";
 
     // Dati
     const [{ data: sede }, { data: profilo }, { data: az }] = await Promise.all([
