@@ -1944,6 +1944,7 @@ function apriVideo(u){
     // ── HOME ──────────────────────────────────────────────────
     const home = `${head(nome, "index.html")}
 <body>
+${bannerAvviso}
 ${nav}
 <div style="position:relative;min-height:82svh;display:flex;align-items:flex-end;overflow:hidden;">
   <div style="position:absolute;inset:0;background:var(--scuro);">
