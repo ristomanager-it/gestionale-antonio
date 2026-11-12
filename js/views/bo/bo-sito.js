@@ -2096,6 +2096,7 @@ ${footer}${menuScript}${menuApri}
     // ── CHI SIAMO ─────────────────────────────────────────────
     const chiSiamo = `${head("Chi siamo", "chi-siamo.html")}
 <body>
+${bannerAvviso}
 ${nav}
 <div style="height:70px;background:var(--scuro);"></div>
 <section class="section" style="padding-top:60px;">
