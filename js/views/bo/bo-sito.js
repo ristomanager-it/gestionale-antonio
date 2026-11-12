@@ -2435,7 +2435,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
     const oggi = new Date().toISOString().slice(0, 10);
     const voci = [["", "1.0"], ["menu.html", "0.8"], ["chi-siamo.html", "0.6"], ["contatti.html", "0.6"]];
     return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-      + voci.map(([f, p]) => "  <url><loc>https://" + dom + "/" + f + "</loc><lastmod>" + oggi + "</lastmod><priority>" + p + "</priority></url>").join("\n")
+      + voci.map(([f, p]) => "  <url><loc>" + base + f + "</loc><lastmod>" + oggi + "</lastmod><priority>" + p + "</priority></url>").join("\n")
       + "\n</urlset>\n";
   }
 
