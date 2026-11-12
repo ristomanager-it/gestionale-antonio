@@ -361,6 +361,17 @@ const TOOLS = [
       budget_meta_eur: { type: "number", description: "euro al giorno su Meta (solo se l'utente lo indica)" },
       budget_google_eur: { type: "number", description: "euro al giorno su Google (solo se l'utente lo indica)" },
       raggio_km: { type: "number", description: "raggio dalla sede (solo se l'utente lo indica)" }, ...PERIODO_PROPS }, required: ["modello"] } },
+  { name: "proponi_campagna_evento", description: "PROPONE una campagna META per un EVENTO o un'OCCASIONE (San Valentino, Natale, una serata, una festa) che porta a una o piu' LANDING gia' pubblicate (create prima con proponi_landing e confermate). Puo' dividere il PUBBLICO PER SESSO: un gruppo di inserzioni per gli uomini e uno per le donne, ognuno con il suo titolo, il suo testo AIDA e la sua landing; oppure un solo pubblico per tutti. Ogni gruppo nasce IN PAUSA con il suo budget. Usalo SEMPRE quando l'utente chiede campagne per un evento: non dire che manca il modello.",
+    input_schema: { type: "object", properties: {
+      evento: { type: "string", description: "nome dell'evento o dell'occasione, corto (es. 'San Valentino')" },
+      pubblici: { type: "array", description: "uno per gruppo di inserzioni (max 3)", items: { type: "object", properties: {
+        chi: { type: "string", enum: ["uomini", "donne", "tutti"] },
+        landing_slug: { type: "string", description: "slug della landing pubblicata a cui porta questo pubblico (dal risultato di proponi_landing, oppure vuoto per l'ultima landing pubblicata della sede)" },
+        titolo: { type: "string", description: "titolo dell'annuncio, max 60 caratteri, parla a QUESTO pubblico" },
+        testo: { type: "string", description: "testo dell'annuncio in schema AIDA, scritto per QUESTO pubblico con la voce del locale" } }, required: ["chi", "titolo", "testo"] } },
+      budget_meta_eur: { type: "number", description: "euro al giorno PER OGNI pubblico (solo se l'utente lo dice; altrimenti 5)" },
+      raggio_km: { type: "number", description: "raggio dalla sede in km (solo se l'utente lo dice; altrimenti 30)" }, ...PERIODO_PROPS },
+      required: ["evento", "pubblici"] } },
   { name: "proponi_landing", description: "PROPONE una LANDING DI PRENOTAZIONE sul MODELLO DELLA CASA, SENZA campagne: per un piatto, per un menu/offerta (es. menu business a prezzo fisso) o per un evento/serata (es. Capodanno). Struttura fissa: header col locale; hero PULITO con foto o video e sopra SOLO etichetta, titolo e prezzo (se c'e'), piu' i bottoni; sotto: frase di apertura, cosa comprende e orari, testi AIDA, menu (fisso, oppure il MENU DEL GIORNO collegato che si aggiorna da solo), galleria, recensioni vere, modulo di prenotazione con la BOOKING POLICY della sede, WhatsApp e Chiama, piede. Il sistema crea una BOZZA visibile col pulsante Anteprima: nulla e' pubblico finche' l'utente non preme Conferma. Se lo strumento risponde con un errore, correggi e richiamalo; se dice di chiedere qualcosa all'utente, chiedi in UNA riga e fermati.",
     input_schema: { type: "object", properties: {
       tipo: { type: "string", enum: ["piatto", "menu", "evento"], description: "piatto = un piatto; menu = un menu o un'offerta (pranzo business, menu degustazione); evento = una serata o una data (Capodanno, San Valentino)" },
