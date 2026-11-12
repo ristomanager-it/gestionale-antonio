@@ -914,10 +914,10 @@ export async function render(container) {
   }
 
   // stampa la comanda dell'ordine divisa per uscite (antipasti, primi, secondi...), con "per {nome}" su ogni piatto.
-  // Solo sulle stampanti di QUESTA sede: le stampanti senza sede sono del locale con la cassa e stamperebbero nel posto sbagliato.
+  // Stampa sulle stampanti comande dell'azienda (quelle senza sede valgono per tutte le sedi), attraverso il ponte del locale.
   async function stampaOrdineAnticipato(comandaId, ristampa) {
-    const { data: st } = await supa().from('stampanti_comande').select('id').eq('azienda_id', aziendaId).eq('attiva', true).eq('reparto', 'cucina').eq('sede_id', sedeId || '00000000-0000-0000-0000-000000000000').limit(1);
-    if (!st || !st.length) { mostraToast('Qui non c\'è una stampante comande collegata: la comanda è nella vista 👨‍🍳 Cucina, divisa per uscite', 'warning'); return; }
+    const st = await stampantiComande();
+    if (!st.some(x => x.reparto === 'cucina')) { mostraToast('Nessuna stampante cucina configurata: la comanda è nella vista 👨‍🍳 Cucina, divisa per uscite', 'warning'); return; }
     const { data: righe } = await supa().from('comanda_righe').select('*').eq('comanda_id', comandaId).neq('stato', 'annullato');
     const c = comande.find(x => String(x.id) === String(comandaId));
     const prima = comandaAttiva; comandaAttiva = c || prima;
