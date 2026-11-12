@@ -907,8 +907,22 @@ export async function render(container) {
       if (e1 || e2) { mostraToast('Errore: ' + (e1 || e2).message, 'error'); b.disabled = false; b.textContent = '🔥 Manda in cucina'; return; }
       const c = comande.find(x => String(x.id) === String(id)); if (c) c.stato = 'in_corso';
       mostraToast('✅ Ordine mandato in cucina', 'success');
+      await stampaOrdineAnticipato(id, false);
       renderAnticipati();
     }; });
+    box.querySelectorAll('[data-ristampa]').forEach(b => { b.onclick = () => stampaOrdineAnticipato(b.dataset.ristampa, true); });
+  }
+
+  // stampa la comanda dell'ordine divisa per uscite (antipasti, primi, secondi...), con "per {nome}" su ogni piatto.
+  // Solo sulle stampanti di QUESTA sede: le stampanti senza sede sono del locale con la cassa e stamperebbero nel posto sbagliato.
+  async function stampaOrdineAnticipato(comandaId, ristampa) {
+    const { data: st } = await supa().from('stampanti_comande').select('id').eq('azienda_id', aziendaId).eq('attiva', true).eq('reparto', 'cucina').eq('sede_id', sedeId || '00000000-0000-0000-0000-000000000000').limit(1);
+    if (!st || !st.length) { mostraToast('Qui non c\'è una stampante comande collegata: la comanda è nella vista 👨‍🍳 Cucina, divisa per uscite', 'warning'); return; }
+    const { data: righe } = await supa().from('comanda_righe').select('*').eq('comanda_id', comandaId).neq('stato', 'annullato');
+    const c = comande.find(x => String(x.id) === String(comandaId));
+    const prima = comandaAttiva; comandaAttiva = c || prima;
+    try { await stampaComandaReparti((righe || []).sort((x, y) => (x.uscita_numero || 1) - (y.uscita_numero || 1)), ristampa); }
+    finally { comandaAttiva = prima; }
   }
 
   function scegliTavoloAnticipato(comandaId) {
