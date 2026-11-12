@@ -665,6 +665,57 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
     }) };
   }
 
+  if (nome === "leggi_sito" || nome === "proponi_modifica_sito") {
+    // il sito della sede scelta in alto; se non c'e', quello dell'azienda senza sede
+    let qs = sb.from("sito_config").select("id, slug, dominio, repo_github, hero_titolo, hero_sub, hero_cta, chisiamo_1, chisiamo_2, orari_pranzo, orari_cena, telefono, email, indirizzo, avviso, foto_cover").eq("azienda_id", c.aziendaId);
+    qs = c.sedeId ? qs.eq("sede_id", c.sedeId) : qs.is("sede_id", null);
+    let { data: sito } = await qs.maybeSingle();
+    if (!sito && c.sedeId) { const r2 = await sb.from("sito_config").select("id, slug, dominio, repo_github, hero_titolo, hero_sub, hero_cta, chisiamo_1, chisiamo_2, orari_pranzo, orari_cena, telefono, email, indirizzo, avviso, foto_cover").eq("azienda_id", c.aziendaId).is("sede_id", null).maybeSingle(); sito = r2.data; }
+    if (!sito) return { errore: "questo locale non ha ancora un sito: si crea la prima volta da Marketing > Sito" };
+    const indirizzo = sito.dominio && String(sito.dominio).indexOf("github.io") === -1 ? "https://" + sito.dominio + "/"
+      : (sito.repo_github ? "https://ristomanager-it.github.io/" + String(sito.repo_github).split("/")[1] + "/" : "https://ristomanager-it.github.io/siti-clienti/" + sito.slug + "/");
+    if (nome === "leggi_sito") {
+      return { indirizzo: indirizzo, titolo: sito.hero_titolo, sottotitolo: sito.hero_sub, pulsante: sito.hero_cta, chisiamo_1: sito.chisiamo_1, chisiamo_2: sito.chisiamo_2,
+        orari_pranzo: sito.orari_pranzo, orari_cena: sito.orari_cena, telefono: sito.telefono, email: sito.email, indirizzo_locale: sito.indirizzo, avviso: sito.avviso || "" };
+    }
+    const CAMPI: Record<string, string> = { hero_titolo: "Titolo", hero_sub: "Sottotitolo", hero_cta: "Pulsante", chisiamo_1: "Chi siamo (1)", chisiamo_2: "Chi siamo (2)",
+      orari_pranzo: "Orari pranzo", orari_cena: "Orari cena", telefono: "Telefono", email: "Email", indirizzo: "Indirizzo", avviso: "Avviso in testa alle pagine" };
+    const mod: Record<string, string> = {};
+    const righe: string[] = [];
+    const inMod = (inp.modifiche && typeof inp.modifiche === "object") ? inp.modifiche : {};
+    for (const k of Object.keys(inMod)) {
+      if (!CAMPI[k]) return { errore: "il campo " + k + " non si puo' cambiare da qui: si cambia da Marketing > Sito" };
+      const v = String(inMod[k] == null ? "" : inMod[k]).trim().slice(0, 2000);
+      if (v === String((sito as any)[k] || "").trim()) continue;
+      mod[k] = v;
+      righe.push(CAMPI[k] + ":\n  prima: " + (String((sito as any)[k] || "").trim() || "(vuoto)") + "\n  dopo: " + (v || "(tolto)"));
+    }
+    let fotoUrl = "";
+    const f = String(inp.foto || "").trim();
+    if (f.indexOf("chat:") === 0) {
+      const i = parseInt(f.slice(5), 10) - 1;
+      const b64 = (c.immagini || [])[i];
+      if (!b64) return { errore: "in questo messaggio non c'e' la foto " + f + ": chiedi all'utente di riallegarla" };
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+      const path = c.aziendaId + "/chat/" + Date.now() + "-sito.jpg";
+      const up = await sb.storage.from("media-aziende").upload(path, bytes, { contentType: "image/jpeg", upsert: false });
+      if (up.error) return { errore: "non riesco a salvare la foto: " + up.error.message };
+      fotoUrl = SUPABASE_URL + "/storage/v1/object/public/media-aziende/" + path;
+      await sb.from("media_library").insert({ azienda_id: c.aziendaId, sede_id: c.sedeId, nome: "Foto dalla chat di Tony " + oggiRoma(),
+        url: fotoUrl, path: path, tipo: "immagine", origine: "caricamento", caricata_da: c.uid });
+    } else if (f.indexOf("media:") === 0) {
+      const { data: m } = await sb.from("media_library").select("url").eq("id", f.slice(6)).eq("azienda_id", c.aziendaId).maybeSingle();
+      if (!m || !m.url) return { errore: "foto non trovata nella galleria di questa azienda" };
+      fotoUrl = String(m.url);
+    }
+    if (fotoUrl) { mod.foto_cover = fotoUrl; righe.push("Foto in alto: cambiata con quella qui sopra"); }
+    if (!Object.keys(mod).length) return { errore: "non c'e' niente da cambiare: i testi sono gia' cosi'" };
+    return await proponi(c, "sito", { sito_id: sito.id, modifiche: mod },
+      "Modifica al sito " + indirizzo + "\n" + String(inp.motivo || "").slice(0, 200) + "\n\n" + righe.join("\n\n"), fotoUrl || null);
+  }
+
   if (nome === "termini_ricerca") {
     const giorni = Number(inp.giorni) === 7 ? 7 : 30;
     const q = String(inp.campagna || "").trim().toLowerCase();
