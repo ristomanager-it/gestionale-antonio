@@ -49,7 +49,7 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
 <p>A Campo Antico cuciniamo ogni giorno per chi si siede da noi. A Natale lo facciamo per la vostra famiglia, e quando vi alzate da tavola la camera è a due passi.</p></section>
 
 <section class="card"><h3>Scegliete le vostre notti</h3><table class="tab" id="esempi"></table>
-<p class="nt">Esempi per 2 adulti in camera da 2, con colazione. Camere da 2 a 130 €, da 3 a 170 €, da 4 a 210 € a notte; −7% sulle camere con due notti. Bambini 4-12 anni con il menu baby, sotto i 4 anni gratis.</p></section>
+<p class="nt">Esempi per 2 adulti in camera da 2, con colazione. Camere da 2 a 130 €, da 3 a 170 €, da 4 a 210 € a notte; −7% sulle camere da due notti in su. Notti in più (23 o 26): solo camera e colazione. Bambini 4-12 anni con il menu baby, sotto i 4 anni gratis.</p></section>
 
 <section class="card menu"><div class="q">Giovedì 24 dicembre · ore 20:00</div><h3>Cena della Vigilia</h3>
 <h4>Benvenuto al tavolo</h4><p>Polpettine di cernia fritte al limone</p><p>Crostino di pane alle noci con baccalà mantecato e scorza d’arancia</p><p>Mini bun con tartare di tonno, maionese al lime ed erba cipollina</p>
@@ -72,10 +72,13 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
 
 <section class="card" id="prenota"><h3>Prenota il tuo Natale</h3>
 <form id="modulo" novalidate>
-<h4>Le notti</h4>
-<label class="op on"><input type="radio" name="notti" value="24" checked><span><b>24 → 25 dicembre</b><br><small>Cena della Vigilia, notte con colazione, pranzo di Natale</small></span></label>
-<label class="op"><input type="radio" name="notti" value="25"><span><b>25 → 26 dicembre</b><br><small>Pranzo di Natale, notte con colazione, pranzo di Santo Stefano</small></span></label>
-<label class="op"><input type="radio" name="notti" value="24-25"><span><b>24 → 26 dicembre, due notti</b><br><small>Vigilia, Natale e Santo Stefano · −7% sulle camere</small></span></label>
+<h4>Il pacchetto</h4>
+<label class="op"><input type="radio" name="notti" value="24"><span><b>Vigilia e Natale</b> · <span class="dapr" data-k="24"></span><br><small>Arrivo il 24 · cena della Vigilia di pesce · notte con colazione · pranzo di Natale</small></span></label>
+<label class="op"><input type="radio" name="notti" value="25"><span><b>Natale e Santo Stefano</b> · <span class="dapr" data-k="25"></span><br><small>Arrivo il 25 · pranzo di Natale · notte con colazione · pranzo di Santo Stefano</small></span></label>
+<label class="op on"><input type="radio" name="notti" value="24-25" checked><span><b>Tre giorni di Natale</b> · <span class="dapr" data-k="24-25"></span><br><small>Dal 24 al 26 · Vigilia, Natale e Santo Stefano · due notti con colazione · −7% sulle camere</small></span></label>
+<h4>Restate di più?</h4>
+<label class="op" id="op-prima"><input type="checkbox" id="x-prima"><span><b id="t-prima">+ una notte prima</b><br><small>camera e colazione, al prezzo della camera</small></span></label>
+<label class="op" id="op-dopo"><input type="checkbox" id="x-dopo"><span><b id="t-dopo">+ una notte dopo</b><br><small>camera e colazione, al prezzo della camera</small></span></label>
 <h4>Quanti siete</h4>
 <div class="cnt"><span class="l">Adulti</span><button type="button" class="pm" data-p="a-">−</button><b id="n-a">2</b><button type="button" class="pm" data-p="a+">+</button></div>
 <div class="cnt"><span class="l">Bambini 4-12 anni<small>menu baby</small></span><button type="button" class="pm" data-p="b-">−</button><b id="n-b">0</b><button type="button" class="pm" data-p="b+">+</button></div>
@@ -127,9 +130,20 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
   var qs = new URLSearchParams(location.search);
   var st = { a: 2, b: 0, p: 0, c2: 1, c3: 0, c4: 0 }, libere = null, inviando = false;
 
-  function opz(){ var r = document.querySelector("input[name=notti]:checked"); return OPZ[r ? r.value : "24"]; }
+  // pacchetto scelto + notti in piu' (solo camera e colazione) prima o dopo
+  var GG = ["2026-12-23", "2026-12-24", "2026-12-25", "2026-12-26"];
+  var dm = function(d){ return Number(d.slice(8)); };
+  function opz(){
+    var r = document.querySelector("input[name=notti]:checked"), b = OPZ[r ? r.value : "24-25"], n = b.notti.slice();
+    var prima = GG[GG.indexOf(n[0]) - 1], dopo = GG[GG.indexOf(n[n.length - 1]) + 1];
+    if ($("x-prima").checked && prima) n.unshift(prima);
+    if ($("x-dopo").checked && dopo) n.push(dopo);
+    var extra = n.length - b.notti.length;
+    return { notti: n, pasti: b.pasti, base: b.testo, testo: b.testo + (extra ? " + " + extra + (extra === 1 ? " notte" : " notti") + " (dal " + dm(n[0]) + " al " + (dm(n[n.length - 1]) + 1) + ")" : "") };
+  }
+  function notteDopoPossibile(){ var r = document.querySelector("input[name=notti]:checked"), b = OPZ[r ? r.value : "24-25"]; return GG.indexOf(b.notti[b.notti.length - 1]) + 1 < GG.length; }
   function nNotti(){ return opz().notti.length; }
-  function cameraTot(){ var n = nNotti(), base = (st.c2 * CAMERA[2] + st.c3 * CAMERA[3] + st.c4 * CAMERA[4]) * n; return n === 2 ? Math.round(base * (100 - SCONTO2)) / 100 : base; }
+  function cameraTot(){ var n = nNotti(), base = (st.c2 * CAMERA[2] + st.c3 * CAMERA[3] + st.c4 * CAMERA[4]) * n; return n >= 2 ? Math.round(base * (100 - SCONTO2)) / 100 : base; }
   function letti(){ return st.c2 * 2 + st.c3 * 3 + st.c4 * 4; }
   function liberePer(t){ if (!libere) return 99; return Math.min.apply(null, opz().notti.map(function(d){ return Number((libere[d] || {})[t] || 0); })); }
   function conti(){
@@ -138,7 +152,7 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
       righe.push([x.nome + " · " + st.a + (st.a === 1 ? " adulto" : " adulti") + (st.b ? " + " + st.b + " baby" : ""), v]); });
     var cam = cameraTot(); tot += cam;
     var desc = [st.c2 ? st.c2 + " da 2" : "", st.c3 ? st.c3 + " da 3" : "", st.c4 ? st.c4 + " da 4" : ""].filter(Boolean).join(", ");
-    righe.push(["Camere " + (desc || "-") + " · " + nNotti() + (nNotti() === 1 ? " notte" : " notti") + " con colazione" + (nNotti() === 2 ? " (−7%)" : ""), cam]);
+    righe.push(["Camere " + (desc || "-") + " · " + nNotti() + (nNotti() === 1 ? " notte" : " notti") + " con colazione" + (nNotti() >= 2 ? " (−7%)" : ""), cam]);
     return { righe: righe, totale: Math.round(tot * 100) / 100, camere: desc };
   }
   function problema(){
@@ -153,6 +167,11 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
   function aggiorna(){
     ["a", "b", "p", "c2", "c3", "c4"].forEach(function(k){ $("n-" + k).textContent = st[k]; });
     [2, 3, 4].forEach(function(k){ var l = liberePer(String(k)); $("l-" + k).textContent = euro0(CAMERA[k]) + " a notte · " + (l === 99 ? "" : l === 0 ? "esaurite" : (l === 1 ? "ne resta 1" : "ne restano " + l)); });
+    var rr = document.querySelector("input[name=notti]:checked"), bb = OPZ[rr ? rr.value : "24-25"];
+    var pr = GG[GG.indexOf(bb.notti[0]) - 1], dp = GG[GG.indexOf(bb.notti[bb.notti.length - 1]) + 1];
+    $("t-prima").textContent = "+ notte del " + dm(pr) + " · arrivo il " + dm(pr);
+    $("op-dopo").style.display = dp ? "" : "none"; if (!dp) $("x-dopo").checked = false;
+    if (dp) $("t-dopo").textContent = "+ notte del " + dm(dp) + " · partenza il " + (dm(dp) + 1);
     Array.prototype.forEach.call(document.querySelectorAll(".op"), function(l){ l.classList.toggle("on", l.querySelector("input").checked); });
     var c = conti(), acc = Math.round(c.totale * 30) / 100, pers = st.a + st.b;
     $("conto").innerHTML = c.righe.map(function(r){ return "<div><span>" + r[0] + "</span><span>" + euro(r[1]) + "</span></div>"; }).join("")
@@ -170,6 +189,7 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
       return "<tr><td><b>" + o.testo + "</b><br><small class=\"nt\">" + o.pasti.map(function(k){ return PASTI[k].nome; }).join(", ") + "</small></td><td>" + euro0(tot) + "<br><small class=\"nt\">" + euro0(tot / 2) + " a persona</small></td></tr>";
     });
     $("esempi").innerHTML = e.join("");
+    Array.prototype.forEach.call(document.querySelectorAll(".dapr"), function(sp){ var o = OPZ[sp.getAttribute("data-k")], t = 0; o.pasti.forEach(function(k){ t += 2 * PASTI[k].a; }); var cm = CAMERA[2] * o.notti.length; if (o.notti.length >= 2) cm = Math.round(cm * (100 - SCONTO2)) / 100; sp.textContent = "da " + euro0((t + cm) / 2) + " a persona"; });
   }
   Array.prototype.forEach.call(document.querySelectorAll(".pm"), function(b){
     b.onclick = function(){ var p = b.getAttribute("data-p"), k = p.slice(0, -1), su = p.slice(-1) === "+";
@@ -177,6 +197,7 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
       st[k] = Math.max(min, Math.min(max, st[k] + (su ? 1 : -1))); aggiorna(); };
   });
   Array.prototype.forEach.call(document.querySelectorAll("input[name=notti]"), function(r){ r.onchange = aggiorna; });
+  $("x-prima").onchange = aggiorna; $("x-dopo").onchange = aggiorna;
   function errore(t){ $("msg").className = "msg ko"; $("msg").textContent = t; }
   async function prenota(bonifico){
     if (inviando) return;
