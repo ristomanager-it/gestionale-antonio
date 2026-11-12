@@ -795,6 +795,36 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
     return r;
   }
 
+  if (nome === "proponi_campagna_evento") {
+    const evento = String(inp.evento || "").trim().slice(0, 40);
+    const pubbliciIn: any[] = Array.isArray(inp.pubblici) ? inp.pubblici.slice(0, 3) : [];
+    if (!evento || !pubbliciIn.length) return { errore: "servono l'evento e almeno un pubblico" };
+    const budget = Number(inp.budget_meta_eur) > 0 ? Number(inp.budget_meta_eur) : 5;
+    if (budget > BUDGET_MAX) return { errore: "il budget massimo per gruppo e' " + BUDGET_MAX + " euro al giorno" };
+    const raggio = Number(inp.raggio_km) > 0 ? Number(inp.raggio_km) : 30;
+    const per = periodo(inp.inizio, inp.durata_giorni);
+    if (per.errore) return { errore: per.errore };
+    const prep = await prepara(c, ["meta"]);
+    if (prep.errore) return { errore: prep.errore };
+    const pubblici: any[] = [];
+    for (const p of pubbliciIn) {
+      const chi = ["uomini", "donne", "tutti"].indexOf(String(p.chi)) >= 0 ? String(p.chi) : "tutti";
+      let q = sb.from("landing_promo").select("slug, titolo, media_url, hero_url, bozza").eq("azienda_id", c.aziendaId).eq("bozza", false);
+      const slug = String(p.landing_slug || "").trim();
+      q = slug ? q.eq("slug", slug) : (c.sedeId ? q.eq("sede_id", c.sedeId) : q);
+      const { data: lp } = await q.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!lp) return { errore: "la landing " + (slug || "della sede") + " non e' pubblicata: falla confermare prima con proponi_landing, poi riprova" };
+      const titolo = String(p.titolo || "").trim().slice(0, 60);
+      const testo = String(p.testo || "").trim().slice(0, 2200);
+      if (titolo.length < 5 || testo.length < 40) return { errore: "per il pubblico " + chi + " servono titolo e testo dell'annuncio" };
+      pubblici.push({ chi: chi, slug: lp.slug, titolo_landing: lp.titolo, img: lp.media_url || lp.hero_url || null, titolo: titolo, testo: testo });
+    }
+    const dati = { modello: "evento", evento: evento, pubblici: pubblici, budget_cent: Math.round(budget * 100), raggio_km: raggio, citta: prep.cit, sede_id: c.sedeId, inizio: per.inizio, fine: per.fine };
+    const righe = pubblici.map((p: any) => (p.chi === "tutti" ? "Tutti" : p.chi === "uomini" ? "Uomini" : "Donne") + ": \u00ab" + p.titolo + "\u00bb \u2192 landing \u00ab" + (p.titolo_landing || p.slug) + "\u00bb");
+    const riepilogo = "\uD83D\uDCE3 Campagna Meta \u00ab" + evento + "\u00bb \u00b7 " + pubblici.length + (pubblici.length > 1 ? " gruppi" : " gruppo") + " da " + eur(budget) + "/giorno \u00b7 " + raggio + " km da " + prep.cit + testoPeriodo(per) + " \u00b7 nasce IN PAUSA\n" + righe.join("\n");
+    return await proponi(c, "campagna", dati, riepilogo);
+  }
+
   if (nome === "proponi_landing") {
     const tipo = ["piatto", "menu", "evento"].includes(inp.tipo) ? inp.tipo : "menu";
     const argomento = String(inp.argomento || "").trim().slice(0, 80);
