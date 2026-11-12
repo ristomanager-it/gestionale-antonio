@@ -354,7 +354,7 @@ const TOOLS = [
       filtro: { type: "string", description: "una parola della pagina o della campagna, se l'utente parla di una sola (es. 'roma', 'tuscia', '18-anni', 'capodanno'). Vuoto = tutte" } } } },
   { name: "elenco_media", description: "Elenca foto e video della LIBRERIA MEDIA della sede (sola lettura), con descrizione, soggetti e qualita', ordinati dai migliori. Usalo PRIMA di proponi_landing per scegliere l'hero: preferisci un VIDEO se l'utente lo chiede o se ce n'e' uno adatto, altrimenti la foto piu' adatta e di qualita' piu' alta.",
     input_schema: { type: "object", properties: { cerca: { type: "string", description: "una parola su cosa cerchi (es. 'pranzo', 'carbonara', 'sala')" }, tipo: { type: "string", enum: ["immagine", "video", "tutti"] } } } },
-  { name: "proponi_campagna", description: "PROPONE di creare una campagna di un modello gia' pronto (menu business, compleanni), su Meta e/o Google. Mostra una scheda con il pulsante Conferma: la campagna nasce SEMPRE IN PAUSA.",
+  { name: "proponi_campagna", description: "PROPONE di creare una campagna di un modello gia' pronto (menu business, compleanni), su Meta e/o Google. Per eventi e occasioni usa invece proponi_campagna_evento. Mostra una scheda con il pulsante Conferma: la campagna nasce SEMPRE IN PAUSA.",
     input_schema: { type: "object", properties: {
       modello: { type: "string", enum: ["menu_business", "compleanni"] },
       piattaforme: { type: "array", items: { type: "string", enum: ["meta", "google"] }, description: "dove crearla; se l'utente non dice nulla: tutte quelle disponibili per il modello" },
