@@ -87,6 +87,8 @@ export async function render(container) {
     </div>
   `;
 
+  montaExtra(document.getElementById("extra-cliente"), id);
+
   document.getElementById("btn-back").onclick = () => {
     window.location.hash = "#/gestioneAziende";
   };
