@@ -2347,6 +2347,7 @@ fetch(SB+'/rest/v1/rpc/menu_giorno_pubblico',{method:'POST',headers:H,body:JSON.
       const lpWa = waUrl ? waUrl.split("?text=")[0] + "?text=" + encodeURIComponent("Buongiorno, vorrei prenotare il menu business a 25 euro.") : "";
       landingPranzo = head("Menu business 25 €").replace("</head>", `<meta name="robots" content="noindex,nofollow">\n<style>${lpCss}</style>\n</head>`) + `
 <body>
+${bannerAvviso}
 <main class="lp">
   <div class="lp-hero">
     <video class="lp-vid" autoplay muted loop playsinline preload="auto" poster="${esc(lpPoster)}" aria-label="La carbonara della Trattoria dell’Aquila"><source src="${esc(lpVideo)}" type="video/mp4"></video><script>(function(){var v=document.querySelector(".lp-vid");if(!v)return;var c=navigator.connection||{};if((window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)||c.saveData){v.removeAttribute("autoplay");v.preload="none";try{v.pause()}catch(e){}}})();</script>
