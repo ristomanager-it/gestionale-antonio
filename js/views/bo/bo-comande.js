@@ -825,6 +825,7 @@ export async function render(container) {
     const box = container.querySelector('#mappa-tavoli');
     if (!tavoli.length) {
       box.innerHTML = `<div style="color:#64748b;padding:20px;">Nessun tavolo. Clicca "+ Tavolo" per aggiungerne uno.</div>`;
+      renderAnticipati(); // gli ordini anticipati si vedono anche nelle sedi senza tavoli (es. Centro cottura)
       return;
     }
     box.innerHTML = tavoli.map(t => {
