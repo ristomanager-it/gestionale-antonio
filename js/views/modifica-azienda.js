@@ -400,3 +400,53 @@ function cardFeatures(){
     </div>
   `;
 }
+
+// ── SERVIZI EXTRA DEL CLIENTE (12/11/2026) ─────────────────────────────
+// Es. "Dominio e messa online": cosa ha comprato, quando scade, quanto si fa pagare al rinnovo dell'abbonamento.
+async function montaExtra(el, aziendaId) {
+  if (!el) return;
+  const escX = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  const euro = (n) => n == null || n === "" ? "—" : Number(n).toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+  const oggi = new Date().toISOString().slice(0, 10);
+  const traUnAnno = (d) => { const x = new Date(d + "T12:00:00"); x.setFullYear(x.getFullYear() + 1); return x.toISOString().slice(0, 10); };
+  const [{ data: righe, error }, { data: listino }] = await Promise.all([
+    supabase.from("aziende_extra").select("*").eq("azienda_id", aziendaId).order("created_at", { ascending: false }),
+    supabase.from("piani_abbonamento").select("id, nome, slug, prezzo_annuale").like("slug", "extra-%"),
+  ]);
+  if (error) { el.innerHTML = '<div class="card-header"><h3>Servizi extra</h3></div><div class="card-body">Non riesco a leggere gli extra: ' + escX(error.message) + "</div>"; return; }
+  const dom = (listino || []).find((p) => p.slug === "extra-dominio");
+  const lista = (righe || []).map((r) => {
+    const giorni = r.scade_il ? Math.round((new Date(r.scade_il + "T12:00:00") - new Date(oggi + "T12:00:00")) / 86400000) : null;
+    const avviso = r.stato === "attivo" && giorni !== null && giorni <= 30
+      ? '<span style="color:#b91c1c;font-weight:700;">' + (giorni < 0 ? "scaduto da " + (-giorni) + " giorni" : "scade tra " + giorni + " giorni") + "</span>" : "";
+    return '<tr><td><b>' + escX(r.servizio) + "</b>" + (r.dominio ? "<br>" + escX(r.dominio) : "") + "</td>"
+      + "<td>" + escX(r.attivato_il || "") + "</td><td>" + escX(r.scade_il || "—") + (avviso ? "<br>" + avviso : "") + "</td>"
+      + "<td>" + euro(r.importo_una_tantum) + "</td><td><b>" + euro(r.importo_rinnovo) + "</b></td><td>" + escX(r.stato) + "</td></tr>";
+  }).join("");
+  el.innerHTML = '<div class="card-header"><h3>Servizi extra</h3></div><div class="card-body">'
+    + '<p style="margin:0 0 10px;color:#64748b;font-size:13px;">Cosa ha comprato il cliente oltre all\'abbonamento. L\'importo di rinnovo va fatto pagare insieme al rinnovo dell\'abbonamento.</p>'
+    + (lista ? '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th style="text-align:left">Servizio</th><th style="text-align:left">Attivato</th><th style="text-align:left">Scade</th><th style="text-align:left">Una tantum</th><th style="text-align:left">Rinnovo</th><th style="text-align:left">Stato</th></tr></thead><tbody>' + lista + "</tbody></table></div>" : '<p style="margin:0 0 10px;">Nessun extra.</p>')
+    + '<details style="margin-top:12px;"><summary style="cursor:pointer;font-weight:700;">➕ Aggiungi «Dominio e messa online»</summary>'
+    + '<div class="form-grid" style="margin-top:10px;">'
+    + '<div class="form-group"><label>Dominio</label><input id="ex-dominio" placeholder="nomelocale.it"></div>'
+    + '<div class="form-group"><label>Attivato il</label><input id="ex-dal" type="date" value="' + oggi + '"></div>'
+    + '<div class="form-group"><label>Scade il</label><input id="ex-al" type="date" value="' + traUnAnno(oggi) + '"></div>'
+    + '<div class="form-group"><label>Una tantum (€)</label><input id="ex-una" type="number" step="0.01" value="' + (dom && dom.prezzo_annuale != null ? Number(dom.prezzo_annuale) : 250) + '"></div>'
+    + '<div class="form-group"><label>Rinnovo annuale (€)</label><input id="ex-rin" type="number" step="0.01" placeholder="da far pagare al rinnovo"></div>'
+    + '<div class="form-group"><label>Note</label><input id="ex-note" placeholder="es. con posta info@"></div>'
+    + '</div><button class="app-button" id="ex-salva" type="button">Salva extra</button> <span id="ex-esito" style="font-size:13px;"></span></details></div>';
+  el.querySelector("#ex-al").dataset.toccato = "";
+  el.querySelector("#ex-al").oninput = function () { this.dataset.toccato = "1"; };
+  el.querySelector("#ex-dal").oninput = function () { const al = el.querySelector("#ex-al"); if (!al.dataset.toccato && this.value) al.value = traUnAnno(this.value); };
+  el.querySelector("#ex-salva").onclick = async () => {
+    const g = (id) => el.querySelector(id).value.trim();
+    const riga = { azienda_id: aziendaId, piano_id: dom ? dom.id : null, servizio: "Dominio e messa online",
+      dominio: g("#ex-dominio") || null, attivato_il: g("#ex-dal") || oggi, scade_il: g("#ex-al") || null,
+      importo_una_tantum: g("#ex-una") === "" ? null : Number(g("#ex-una")), importo_rinnovo: g("#ex-rin") === "" ? null : Number(g("#ex-rin")),
+      note: g("#ex-note") || null };
+    const es = el.querySelector("#ex-esito");
+    const { error: e2 } = await supabase.from("aziende_extra").insert(riga);
+    if (e2) { es.textContent = "Non salvato: " + e2.message; es.style.color = "#b91c1c"; return; }
+    montaExtra(el, aziendaId);
+  };
+}
