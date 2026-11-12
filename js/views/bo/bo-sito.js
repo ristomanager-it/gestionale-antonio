@@ -1418,7 +1418,7 @@ export async function render(container) {
     // 12/11/2026 Google: titolo con la citta' (non piu' "Nome — Nome"), indirizzo ufficiale di ogni pagina
     const cittaSeo = indParti[1] || "";
     const titoloSeo = (t) => (t === nome ? nome : t + " · " + nome) + (cittaSeo ? " · " + cittaSeo : "");
-    const urlPagina = (file) => (dom && file ? "https://" + dom + "/" + (file === "index.html" ? "" : file) : "");
+    const urlPagina = (file) => { const b = baseSitoDi(conf); return b && file ? b + (file === "index.html" ? "" : file) : ""; };
     const ld = {
       "@context": "https://schema.org", "@type": "Restaurant", name: nome,
       ...(dom ? { url: "https://" + dom, hasMenu: "https://" + dom + "/menu.html" } : {}),
