@@ -72,6 +72,10 @@ self.addEventListener("fetch", function (e) {
 self.addEventListener("push", function (e) {
   var d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { title: "Ristoflow", body: e.data ? e.data.text() : "" }; }
+  // Pallino sull'icona anche ad app chiusa, se il messaggio porta il numero
+  if (typeof d.badge === "number" && self.navigator && self.navigator.setAppBadge) {
+    try { d.badge > 0 ? self.navigator.setAppBadge(d.badge) : self.navigator.clearAppBadge(); } catch (x) {}
+  }
   e.waitUntil(self.registration.showNotification(d.title || "Ristoflow", {
     body: d.body || "",
     tag: d.tag || undefined,
