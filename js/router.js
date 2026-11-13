@@ -1088,6 +1088,7 @@ const routePermissions = {
       "bo-bilancio",
       "acquisti",
       "autofatture",
+      "fatture-emesse",
       "completa-profilo",
       "profilo",
     ];
