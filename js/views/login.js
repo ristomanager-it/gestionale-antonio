@@ -158,6 +158,7 @@ function initAttivazione(){
       localStorage.setItem("active_azienda_id", d.azienda_id);
       localStorage.setItem("rf_tablet_token_" + d.azienda_id, d.tablet_token);
       localStorage.setItem("rf_tablet_tipo_" + d.azienda_id, d.tipo);
+      if (d.sede_id) { localStorage.setItem("rf_tablet_sede_" + d.azienda_id, d.sede_id); localStorage.setItem("active_sede_id", d.sede_id); }
       const { error } = await supabase.auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token });
       if (error) { msg.innerHTML = "<span class='error-text'>" + error.message + "</span>"; return; }
       msg.innerHTML = "<span class='success-text'>✔ " + (d.nome || "Dispositivo attivato") + "</span>";
