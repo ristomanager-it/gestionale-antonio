@@ -232,6 +232,7 @@ function faseCorrente(l) {
     const prevista = durataByFase[String(f.fase_id)] || 0;
     return {
       nome: f.fase_nome || ("Fase " + f.fase_ordine),
+      fase_id: f.fase_id,
       elapsed: elapsed,
       prevista: prevista,
       oltre: prevista > 0 && elapsed > prevista,
@@ -277,7 +278,7 @@ function cardHtml(l) {
           <div style="font-size:11px;color:${corrente.ritardo ? "#fecaca" : "#94a3b8"};">In lavorazione${corrente.ritardo ? " · IN RITARDO ⚠" : ""}</div>
           <div style="font-size:14px;font-weight:700;">${escapeHtml(corrente.nome)}</div>
           <div style="font-size:12px;color:${corrente.ritardo ? "#fecaca" : "#cbd5e1"};">${corrente.elapsed}′${corrente.prevista ? " / ~" + corrente.prevista + "′ previsti" : ""}</div>
-          <button style="margin-top:10px;width:100%;background:${corrente.ritardo ? "#dc2626" : (corrente.oltre ? "#d97706" : "#16a34a")};color:white;border:none;border-radius:10px;padding:10px 16px;font-weight:700;font-size:14px;cursor:pointer;">▶ ${escapeHtml(verboFase(corrente.nome))}${corrente.sforo ? " · +" + corrente.sforo + "′" : ""}</button>
+          <button data-firma="${l.lotto_uuid}" data-fase="${corrente.fase_id}" data-nome="${escapeHtml(corrente.nome)}" style="margin-top:10px;width:100%;background:${corrente.ritardo ? "#dc2626" : (corrente.oltre ? "#d97706" : "#16a34a")};color:white;border:none;border-radius:10px;padding:10px 16px;font-weight:700;font-size:14px;cursor:pointer;">▶ ${escapeHtml(verboFase(corrente.nome))}${corrente.sforo ? " · +" + corrente.sforo + "′" : ""}</button>
         </div>` : `<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
           <span style="font-size:13px;color:#4ade80;">✓ Tutte le fasi firmate</span>
           <button data-chiudi="${l.id}" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">✔ Chiudi</button>
@@ -286,6 +287,8 @@ function cardHtml(l) {
 }
 
 function onBoardClick(e) {
+  const firma = e.target.closest("[data-firma]");
+  if (firma) { e.stopPropagation(); apriFirmaPin(firma.dataset.firma, firma.dataset.fase, firma.dataset.nome); return; }
   const btn = e.target.closest("[data-chiudi]");
   if (btn) { e.stopPropagation(); chiudiLottoKds(btn.dataset.chiudi); return; }
   const card = e.target.closest("[data-vai]");
@@ -318,3 +321,54 @@ async function chiudiLottoKds(id) {
 }
 
 function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+// ── FIRMA FASE CON PIN dallo schermo ──
+// Un tocco sul tasto della fase, PIN, firmata da chi l'ha fatta (non dall'utente del tablet).
+// Il controllo del PIN e le regole della firma stanno nel database (firma_fase_con_pin).
+function apriFirmaPin(lottoUuid, faseId, nomeFase) {
+  if (!lottoUuid || !faseId) return;
+  const ph = /\bph\b/i.test(String(nomeFase || ""));
+  let pin = "";
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(2,6,23,.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;";
+  const tasti = ["1","2","3","4","5","6","7","8","9","✕","0","⌫"];
+  ov.innerHTML =
+    '<div style="background:#1e293b;color:#e2e8f0;border-radius:18px;padding:20px;width:100%;max-width:340px;text-align:center;font-family:-apple-system,system-ui,sans-serif;">'
+    + '<div style="font-size:12px;color:#94a3b8;">Firma la fase</div>'
+    + '<div style="font-size:19px;font-weight:800;margin:2px 0 12px;">' + escapeHtml(verboFase(nomeFase)) + '</div>'
+    + (ph ? '<input id="fp-ph" type="number" step="0.01" inputmode="decimal" placeholder="pH misurato" style="width:100%;box-sizing:border-box;font-size:18px;padding:10px;border-radius:10px;border:none;margin-bottom:12px;text-align:center;">' : '')
+    + '<div id="fp-pin" style="font-size:30px;letter-spacing:12px;height:40px;font-weight:800;">____</div>'
+    + '<div id="fp-msg" style="min-height:20px;font-size:14px;margin:4px 0 10px;"></div>'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">'
+    + tasti.map(function (t) { return '<button data-t="' + t + '" style="font-size:24px;font-weight:700;padding:14px 0;border:none;border-radius:12px;background:' + (t === "✕" ? "#7f1d1d" : "#334155") + ';color:white;cursor:pointer;">' + t + '</button>'; }).join("")
+    + '</div></div>';
+  document.body.appendChild(ov);
+  const elPin = ov.querySelector("#fp-pin"), msg = ov.querySelector("#fp-msg");
+  const disegna = function () { elPin.textContent = "●".repeat(pin.length) + "_".repeat(Math.max(0, 4 - pin.length)); };
+  const chiudi = function () { ov.remove(); };
+  let occupato = false;
+  ov.addEventListener("click", async function (ev) {
+    const b = ev.target.closest("[data-t]");
+    if (!b || occupato) return;
+    const t = b.dataset.t;
+    if (t === "✕") { chiudi(); return; }
+    if (t === "⌫") { pin = pin.slice(0, -1); disegna(); msg.textContent = ""; return; }
+    if (pin.length >= 4) return;
+    pin += t; disegna();
+    if (pin.length < 4) return;
+    const valore = ph ? Number(String(ov.querySelector("#fp-ph").value || "").replace(",", ".")) : null;
+    if (ph && !(valore > 0)) { msg.style.color = "#fbbf24"; msg.textContent = "Scrivi prima il pH misurato"; pin = ""; disegna(); return; }
+    occupato = true; msg.style.color = "#94a3b8"; msg.textContent = "Firmo…";
+    const { data, error } = await supa().rpc("firma_fase_con_pin", { p_lotto: lottoUuid, p_fase_id: Number(faseId), p_pin: pin, p_valore: ph ? valore : null });
+    occupato = false;
+    if (error || !data) {
+      msg.style.color = "#f87171";
+      msg.textContent = error ? "❌ " + error.message : "❌ PIN non riconosciuto";
+      pin = ""; disegna();
+      return;
+    }
+    msg.style.color = "#4ade80";
+    msg.textContent = "✓ Firmata da " + data.nome + (data.riposi_firmati ? " · avviato anche il riposo" : "");
+    setTimeout(function () { chiudi(); carica(window.state?.sedeAttiva?.id); }, 1200);
+  });
+}
