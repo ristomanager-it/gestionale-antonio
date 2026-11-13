@@ -68,6 +68,9 @@ export async function render(container) {
         </div>
       </div>
 
+      <!-- FATTURE PER IL COMMERCIALISTA (fe-esporta) -->
+      <div id="cons-esporta" style="margin-bottom:24px"></div>
+
       <!-- LISTA ACCESSI ATTIVI -->
       <div class="card">
         <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
