@@ -247,8 +247,8 @@ export async function renderCassaLibera(container, azienda) {
       <!-- Modal coupon: campo (lettore USB/manuale) + fotocamera -->
       <div id="cl-cp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1250;align-items:center;justify-content:center;">
         <div style="background:white;border-radius:20px;padding:22px;width:min(420px,92vw);">
-          <div style="font-weight:800;font-size:18px;margin-bottom:4px;">🎟 Coupon promo</div>
-          <div style="color:#64748b;font-size:13px;margin-bottom:12px;">Scansiona il QR con la fotocamera, passa il lettore, o scrivi il codice.</div>
+          <div style="font-weight:800;font-size:18px;margin-bottom:4px;">🎟 Promo o tessera fidelity</div>
+          <div style="color:#64748b;font-size:13px;margin-bottom:12px;">Inquadra il QR del cliente con la fotocamera, passa il lettore, o scrivi il codice.</div>
           <input id="cl-cp-input" placeholder="RFC:XXXXXX oppure XXXXXX" autocomplete="off" autocapitalize="characters"
             style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #d1d5db;border-radius:12px;font-size:16px;letter-spacing:1px;text-transform:uppercase;">
           <div id="cl-cp-cam" style="display:none;margin-top:10px;border-radius:12px;overflow:hidden;background:#000;position:relative;">
@@ -453,7 +453,7 @@ export async function renderCassaLibera(container, azienda) {
     const btnCp = container.querySelector('#cl-coupon');
     if (btnCp) btnCp.onclick = () => apriModalCoupon();
 
-    function apriModalCoupon() {
+    function apriModalCoupon(conCamera) {
       const modal = container.querySelector('#cl-cp-modal');
       const input = container.querySelector('#cl-cp-input');
       const msg = container.querySelector('#cl-cp-msg');
@@ -473,7 +473,17 @@ export async function renderCassaLibera(container, azienda) {
         if (!codice || !codice.trim()) { msg.textContent = 'Inserisci un codice.'; msg.style.color = '#b45309'; return; }
         msg.textContent = '⏳ Verifica in corso...'; msg.style.color = '#64748b';
         const r = await verificaCouponCodice(codice);
-        if (!r.ok) { msg.innerHTML = r.msgHtml; msg.style.color = '#b91c1c'; return; }
+        if (!r.ok) {
+          // Non e' una promo: forse e' la tessera fidelity del cliente (stesso scanner della cassa)
+          const token = String(codice).trim().replace(/^fid:/i, '');
+          const { data: fc } = await supabase.from('fidelity_clienti').select('id, nome, cognome, punti_totali').eq('qr_token', token).maybeSingle();
+          if (fc) {
+            fidelityCliente = { id: fc.id, nome: (fc.nome + ' ' + (fc.cognome || '')).trim(), punti: fc.punti_totali || 0 };
+            chiudi(); render(); aggiornaSchermoCliente();
+            return;
+          }
+          msg.innerHTML = r.msgHtml; msg.style.color = '#b91c1c'; return;
+        }
         chiudi(); render(); aggiornaSchermoCliente();
       };
 
@@ -531,11 +541,13 @@ export async function renderCassaLibera(container, azienda) {
           msg.textContent = 'Fotocamera non disponibile: usa il campo di testo o un lettore.'; msg.style.color = '#b45309';
         }
       };
+      if (conCamera) container.querySelector('#cl-cp-scan').click();
     }
     const cpX = container.querySelector('#cl-coupon-x');
     if (cpX) cpX.onclick = () => { coupon = null; render(); aggiornaSchermoCliente(); };
     const scB = container.querySelector('#cl-scan-cliente');
-    if (scB) scB.onclick = () => { scB.textContent = '📱 In attesa del cliente...'; chiediScansione(); };
+    // Scan cliente: QR della promo o della tessera fidelity con la fotocamera di questo dispositivo
+    if (scB) scB.onclick = () => apriModalCoupon(true);
     const fidX = container.querySelector('#cl-fid-x');
     if (fidX) fidX.onclick = () => { fidelityCliente = null; render(); aggiornaSchermoCliente(); };
     // ── Incasso: documento + pagamento ─────────────────────────────────
