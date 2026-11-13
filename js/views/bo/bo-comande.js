@@ -403,7 +403,7 @@ export async function render(container) {
 
     <!-- ── MODAL: Chiusura conto ── -->
     <div id="modal-conto" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1100;align-items:center;justify-content:center;">
-      <div style="background:white;border-radius:24px;width:480px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">
+      <div style="background:white;border-radius:24px;width:min(480px,94vw);max-height:90vh;max-height:90dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">
 
         <!-- Header -->
         <div style="padding:24px 24px 16px;border-bottom:1px solid #f1f5f9;">
@@ -432,7 +432,7 @@ export async function render(container) {
         </div>
 
         <!-- Righe editabili -->
-        <div id="conto-righe" style="flex:1;overflow-y:auto;padding:16px 24px;"></div>
+        <div id="conto-righe" style="flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 24px;"></div>
 
         <!-- Totale -->
         <div style="padding:16px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;">
@@ -461,7 +461,7 @@ export async function render(container) {
 
     <!-- ── MODAL: Pagamento ── -->
     <div id="modal-pagamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1200;align-items:center;justify-content:center;">
-      <div style="background:white;border-radius:24px;width:560px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.35);overflow:hidden;">
+      <div style="background:white;border-radius:24px;width:min(560px,96vw);max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.35);overflow:hidden;">
 
         <div style="padding:20px 24px 14px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
           <div style="font-size:18px;font-weight:700;color:#0f172a;">💳 Pagamento</div>
@@ -487,7 +487,7 @@ export async function render(container) {
         </div>
 
         <!-- Contenuto (divisione + metodi) -->
-        <div id="pag-contenuto" style="flex:1;overflow-y:auto;padding:16px 24px;"></div>
+        <div id="pag-contenuto" style="flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 24px;"></div>
 
         <!-- Footer -->
         <div style="padding:16px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;display:flex;gap:10px;">
