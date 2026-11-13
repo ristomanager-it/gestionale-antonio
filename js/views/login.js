@@ -44,6 +44,15 @@ container.innerHTML=`
       <div class="login-reset">
         <button id="reset-btn" class="login-reset-btn">Recupera accesso</button>
       </div>
+      <!-- Primo avvio di un tablet: codice generato dall'admin in Configurazione > Cassa -->
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb;text-align:center;">
+        <button id="att-apri" class="login-reset-btn">📱 Attiva questo dispositivo con un codice</button>
+        <div id="att-box" style="display:none;margin-top:10px;">
+          <input id="att-codice" class="input" autocomplete="off" autocapitalize="characters" placeholder="Codice, es. K7QM-2XPA" style="text-align:center;letter-spacing:2px;text-transform:uppercase;">
+          <button id="att-btn" class="app-button primary login-btn" style="margin-top:8px;">Attiva</button>
+          <div id="att-msg" class="form-result"></div>
+        </div>
+      </div>
     </div>
 
     <!-- FORM REGISTRAZIONE -->
@@ -130,9 +139,40 @@ function initTabs(){
   }
 }
 
+/* ── ATTIVAZIONE DISPOSITIVO ───────────────────────────── */
+// Il codice blocca il tablet, crea/usa l'account del locale e lo collega: nessuna password da sapere.
+function initAttivazione(){
+  const apri = document.getElementById("att-apri");
+  if (!apri) return;
+  apri.onclick = () => { document.getElementById("att-box").style.display = "block"; document.getElementById("att-codice").focus(); };
+  const vai = async () => {
+    const msg = document.getElementById("att-msg");
+    const codice = (document.getElementById("att-codice").value || "").trim();
+    if (codice.replace(/[^A-Za-z0-9]/g, "").length !== 8) { msg.innerHTML = "<span class='error-text'>Il codice ha 8 caratteri</span>"; return; }
+    msg.innerHTML = "Attivazione in corso...";
+    try {
+      const res = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/attiva-dispositivo", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ codice: codice }) });
+      const d = await res.json();
+      if (!d.ok) { msg.innerHTML = "<span class='error-text'>" + (d.errore || "Attivazione non riuscita") + "</span>"; return; }
+      localStorage.setItem("active_azienda_id", d.azienda_id);
+      localStorage.setItem("rf_tablet_token_" + d.azienda_id, d.tablet_token);
+      localStorage.setItem("rf_tablet_tipo_" + d.azienda_id, d.tipo);
+      const { error } = await supabase.auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token });
+      if (error) { msg.innerHTML = "<span class='error-text'>" + error.message + "</span>"; return; }
+      msg.innerHTML = "<span class='success-text'>✔ " + (d.nome || "Dispositivo attivato") + "</span>";
+      window.location.hash = "#/home";
+      setTimeout(() => location.reload(), 300);
+    } catch (e) { msg.innerHTML = "<span class='error-text'>Connessione non riuscita, riprova</span>"; }
+  };
+  document.getElementById("att-btn").onclick = vai;
+  document.getElementById("att-codice").addEventListener("keydown", (e) => { if (e.key === "Enter") vai(); });
+}
+
 /* ── LOGIN ─────────────────────────────────────────────── */
 
 function initLogin(){
+  initAttivazione();
   const btn = document.getElementById("login-btn");
   const reset = document.getElementById("reset-btn");
   const toggle = document.getElementById("toggle-password");
