@@ -88,6 +88,10 @@ export async function render(container) {
 
   await loadConsulenti();
 
+  import("../../components/esporta-fatture.js?v=" + (window.APP_V || "1"))
+    .then((m) => m.montaEsportaFatture(document.getElementById("cons-esporta"), { aziendaId, lato: "azienda" }))
+    .catch((e) => console.error("esporta-fatture:", e));
+
   window.invitaConsulente = async function() {
     const email = document.getElementById("cons-email")?.value?.trim();
     const ruolo = document.getElementById("cons-ruolo")?.value;
