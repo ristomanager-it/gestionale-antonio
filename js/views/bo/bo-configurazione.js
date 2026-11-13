@@ -683,7 +683,8 @@ export async function render(container) {
 
     const lo = L.ordini || { max: 0, usati: 0 };
     wrap.innerHTML =
-      '<div style="font-size:18px;font-weight:700;color:#0f172a;">📱 Codici attivazione dispositivi</div>'
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><div style="font-size:18px;font-weight:700;color:#0f172a;">📱 Codici attivazione dispositivi</div>'
+      + '<a href="/docs/guida-tablet-e-schermo-cucina.pdf" target="_blank" rel="noopener" style="font-size:14px;font-weight:800;color:#0E5A7A;text-decoration:none;">📘 Come funziona (PDF)</a></div>'
       + '<div style="font-size:13px;color:#64748b;margin:2px 0 14px;">Sul tablet nuovo: pagina di accesso › "Attiva questo dispositivo con un codice". Il tablet si blocca e si collega da solo. Tablet sala: Comande, Prenotazioni e Cassa. Schermo cucina: produzioni in corso. Disattiva libera il codice per un altro dispositivo.</div>'
       + '<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px 16px;">'
       + '<div style="font-size:13px;color:#475569;margin:0 6px 6px;">Tablet sala: <b>' + lo.usati + ' attivi su ' + lo.max + '</b> licenze</div>'
