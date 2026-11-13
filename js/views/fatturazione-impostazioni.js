@@ -228,6 +228,7 @@ function collegaAzioni(container, azienda, cfg, ctx) {
     if (dati.capitale_sociale != null && !(dati.capitale_sociale >= 0)) errori.push("capitale sociale in euro");
     if (dati.pec && !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(dati.pec)) errori.push("PEC valida");
     if (dati.iban && !/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(dati.iban)) errori.push("IBAN valido");
+    if (!/^[A-Z0-9]{1,10}$/.test(dati.af_sezionale)) errori.push("serie autofatture di lettere e numeri");
     if (errori.length) { esito.innerHTML = '<div style="' + S.avviso + '">Controlla: ' + esc(errori.join(", ")) + ".</div>"; return; }
 
     $("fi-salva").disabled = true;
