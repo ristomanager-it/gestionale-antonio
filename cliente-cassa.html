@@ -225,9 +225,9 @@
       .subscribe();
 
     // Carica stato attuale
-    supa.from("cassa_display")
-      .select("*")
-      .eq("azienda_id", aziendaId)
+    var qDisplay = supa.from("cassa_display").select("*").eq("azienda_id", aziendaId);
+    if (sedeId) qDisplay = qDisplay.eq("sede_id", sedeId);  // lo schermo della Trattoria non deve mostrare la cassa di un'altra sede
+    qDisplay
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -235,7 +235,9 @@
         if (res.data) aggiornaDisplay(res.data);
       });
 
+    var displayId = null;
     function aggiornaDisplay(row) {
+      if (row.id) displayId = row.id;
       var stato = row.stato || "attesa";
       statoCorrente = stato;
       comandaId = row.comanda_id;
@@ -348,9 +350,13 @@
     function onCodiceLetto(codice) {
       var msg = document.getElementById("cc-scan-msg");
       if (msg) msg.textContent = "Codice letto!";
-      supa.from("cassa_display").update({ scanner_codice: codice, scanner_richiesto: false })
-        .eq("azienda_id", aziendaId).eq("sede_id", sedeId || null)
-        .then(function() { chiudiScannerQR(); });
+      // Lo schermo non ha un utente collegato: consegna il codice con la funzione dedicata
+      // (scrive solo il codice letto sulla riga che lo ha chiesto)
+      supa.rpc("display_scanner_codice", { p_display: displayId, p_codice: String(codice) })
+        .then(function(r) {
+          if (r.error || r.data === false) { if (msg) msg.textContent = "Codice non inviato, riprova."; return; }
+          chiudiScannerQR();
+        });
     }
 
     function chiudiScannerQR() {
