@@ -619,6 +619,7 @@ export function initMenu() {
         items: [
           { label: "🚀 Setup guidato",        route: "bo-onboarding"    },
           { label: "⚙️ Impostazioni",         route: "bo-configurazione" },
+          { label: "🧾 Fatturazione elettronica", route: "fatturazione-impostazioni" },
           { label: "🔗 Accessi Consulenti",   route: "bo-consulenti"    },
           { label: "🖼️ Media Library",        route: "bo-media"         },
         ]
