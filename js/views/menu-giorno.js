@@ -226,6 +226,7 @@ export async function render(container) {
     + '<label style="font-size:13px;color:#334155;">💶 Prezzo fisso € <input id="mg-prezzo" type="number" step="0.5" min="0" value="' + (prezzoFisso != null ? prezzoFisso : '') + '" placeholder="—" style="width:80px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-mp" type="checkbox"' + (mezzaPensione ? ' checked' : '') + '> Mezza pensione</label>'
     + '<label title="Spento: il prezzo del menu lo comunica il cameriere; non compare su menu digitale, sito e stampa." style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-prezzo-vis" type="checkbox"' + (prezzoFissoVisibileVal ? ' checked' : '') + '> Mostra al cliente il prezzo del menu</label>'
+    + '<label title="Si segnano sul tavolo a 0 euro e arrivano al bar" style="font-size:13px;color:#334155;">🥤 Compresi nel prezzo <input id="mg-inclusi" value="' + String((mgEsistente && Array.isArray(mgEsistente.inclusi) ? mgEsistente.inclusi : ['Acqua', 'Caffè']).join(', ')).replace(/"/g, '&quot;') + '" placeholder="Acqua, Caffè" style="width:190px;padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;"></label>'
     + '<label title="Spento: il cliente vede solo il prezzo del menu completo. I prezzi alla carta restano in cassa e comande." style="font-size:13px;color:#334155;display:flex;align-items:center;gap:6px;cursor:pointer;"><input id="mg-prezzi-vis" type="checkbox"' + (prezziVisibiliVal ? ' checked' : '') + '> Mostra al cliente i prezzi dei singoli piatti</label>'
     + '<label style="font-size:13px;color:#334155;">Font <select id="mg-font" style="padding:7px;border:1px solid #d1d5db;border-radius:8px;margin-left:6px;">'
     + ['Georgia, serif|Georgia','\'Times New Roman\', serif|Times','\'Helvetica Neue\', Arial, sans-serif|Helvetica','Garamond, serif|Garamond','\'Courier New\', monospace|Courier'].map(o=>{const[v,l]=o.split('|');return '<option value="'+v+'"'+(fontFamVal===v?' selected':'')+'>'+l+'</option>';}).join('') + '</select></label>'
@@ -426,7 +427,8 @@ export async function render(container) {
     const s2 = supa();
     const { data: sess } = await s2.auth.getUser();
     const uid = sess?.user?.id || null;
-    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzi_singoli_visibili: prezziVis, prezzo_visibile: prezzoFissoVis, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, created_by: uid, updated_at: new Date().toISOString() };
+    const inclusi = String(container.querySelector("#mg-inclusi")?.value || "").split(",").map(x => x.trim()).filter(Boolean);
+    const payload = { azienda_id: azienda.id, sede_id: sede?.id || null, data, mezza_pensione: mp, prezzi_singoli_visibili: prezziVis, prezzo_visibile: prezzoFissoVis, prezzo_fisso: prezzoF, titolo, font_family, font_size, font_color, allineamento, mostra_logo, portate_escluse: [...escluse], voci, inclusi, created_by: uid, updated_at: new Date().toISOString() };
     if (mgEsistente?.id) {
       const { data: agg, error } = await s2.from("menu_giorno").update(payload).eq("id", mgEsistente.id).select("*").single();
       if (error) throw error;
