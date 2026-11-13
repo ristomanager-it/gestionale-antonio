@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=80";
+import { initMenu } from "./menu.js?v=81";
+import { appAttiva, rotteApp, avviaPallino, avviaControlloBlocco } from "./app-profili.js?v=1";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -7,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261113-2";
+const APP_V = "20261113-3";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -401,6 +402,9 @@ const BO_ROUTES = new Set([
 const DISPLAY_ROUTES = new Set([
   "display-cucina",
 ]);
+
+// APP PER REPARTO: profili in js/app-profili.js (router e menu leggono lo stesso file).
+window.rfAppAttiva = appAttiva;
 
 // Addetto marketing: ruolo con accesso limitato all'area marketing + prenotazioni
 const ADDETTO_MARKETING_ROUTES = new Set([
@@ -1555,6 +1559,15 @@ async function _resolve() {
 
   const { route, segments, params } = parseHash();
   console.log("ROUTE:", route);
+
+  // ── Tablet bloccati e app per reparto: il blocco agisce PRIMA di ogni altra rotta ──
+  // (pubbliche, gestione sedi, home agente...). Passano solo login e scelta sede.
+  window.__rfAziendaSalvata = getStoredAziendaId();
+  const __appPre = appAttiva();
+  if (__appPre && !rotteApp(__appPre).has(route) && !["login", "scegli-sede", "completaProfilo", "home"].includes(route)) {
+    window.location.hash = "#/" + __appPre.inizio;
+    return;
+  }
   window.routeParams = params || {};
   window.routeSegments = segments || [];
 
@@ -2011,6 +2024,26 @@ if (!window.state?.sedeAttiva?.id) {
     window.__rfCtx = { key: __chiave(), t: Date.now(), contesto: (__contesto && __contesto.ok) ? __contesto : null };
   } else if (__contesto && __contesto.ok && !__cc.contesto) {
     __cc.contesto = __contesto;
+  }
+
+  // ── App per reparto: fuori dalle sue voci si torna alla pagina di partenza dell'app ──
+  const __app = appAttiva();
+  if (__app) {
+    avviaPallino();
+    avviaControlloBlocco();
+    if (!rotteApp(__app).has(route)) {
+      const candidati = [__app.inizio].concat(__app.voci.map(function (v) { return v.route; }));
+      const inizio = candidati.find(function (r) { return isSuperadmin() || hasPermission(String(r).split("?")[0]); });
+      if (!inizio) {
+        app.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:-apple-system,sans-serif;">'
+          + '<div style="font-size:48px;">' + __app.icona + '</div>'
+          + '<div style="font-size:18px;font-weight:700;margin-top:10px;">' + __app.nome + '</div>'
+          + '<div style="font-size:14px;color:#64748b;margin-top:6px;">Il tuo utente non ha accesso a questa app. Chiedi all\'admin.</div></div>';
+        return;
+      }
+      window.location.hash = "#/" + inizio;
+      return;
+    }
   }
 
   if (route === "homePiattaforma") {
