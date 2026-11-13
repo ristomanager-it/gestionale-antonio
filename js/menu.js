@@ -1073,7 +1073,7 @@ export function initMenu() {
 
     };
 
-    menu.appendChild(logout);
+    if (!(window.rfSedeTablet && window.rfSedeTablet())) menu.appendChild(logout);
   }
 
   async function openMenu() {
