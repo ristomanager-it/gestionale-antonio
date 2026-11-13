@@ -4,7 +4,7 @@
 
 // ATTENZIONE: import statico, il ?v=APP_V del router non lo raggiunge.
 // Ad ogni modifica di cassa-hardware.js bumpare a mano il ?v=N qui sotto.
-import { emettiDocumento, emettiPreconto } from '../cassa/cassa-hardware.js?v=7';
+import { emettiDocumento, emettiPreconto, tokenTablet, MSG_SOLO_TABLET } from '../cassa/cassa-hardware.js?v=8';
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -2436,7 +2436,10 @@ export async function render(container) {
         });
       });
       if (!lavori.length) return;
-      const { data: ins, error } = await supa().from('coda_stampe').insert(lavori).select('id, reparto');
+      // Solo i tablet assegnati stampano: da telefono la comanda arriva in cucina a schermo, senza foglio
+      const tok = tokenTablet(aziendaId);
+      if (!tok) { mostraToast('🖨 ' + MSG_SOLO_TABLET + ': la comanda è in cucina a schermo', 'warning'); return; }
+      const { data: ins, error } = await supa().rpc('accoda_stampa', { p_token: tok, p_lavori: lavori });
       if (error) { mostraToast('⚠️ Comanda non mandata in stampa: ' + error.message, 'error'); return; }
       // controllo esito dopo qualche secondo: il cameriere deve sapere se un reparto non ha stampato
       setTimeout(async () => {
