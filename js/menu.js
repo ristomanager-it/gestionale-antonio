@@ -520,6 +520,7 @@ export function initMenu() {
             { label: "Ordini", route: "acquisti?tab=ordini" },
             { label: "Autofatture", route: "autofatture" },
           ] },
+          { label: "🧾 Fatture emesse", route: "fatture-emesse" },
           { label: "💰 Venduto",          route: "venduto"           },
           { label: "📈 Margini",          route: "margini"           },
           { label: "🍝 Food cost mancanti", route: "food-cost-mancanti" },
