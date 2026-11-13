@@ -669,16 +669,23 @@ export async function render(container) {
     };
     const quando = function (d) { return d ? new Date(d).toLocaleDateString('it-IT') : '—'; };
 
+    // Una scheda per codice: si legge bene anche sul telefono (prima la tabella tagliava "Disattiva")
     const righe = (codici || []).map(function (c) {
-      const visto = c.ultimo_visto ? ' · visto ' + new Date(c.ultimo_visto).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
-      return '<tr style="border-top:1px solid #f1f5f9;">'
-        + '<td style="padding:10px 6px;"><button data-copia="' + c.codice + '" title="Copia" style="font-family:ui-monospace,monospace;font-weight:700;letter-spacing:1px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;cursor:pointer;">' + c.codice + '</button></td>'
-        + '<td style="padding:10px 6px;font-size:13px;">' + (TIPI[c.tipo] || c.tipo) + '</td>'
-        + '<td style="padding:10px 6px;font-size:13px;">' + (c.attivato ? esc(c.sede_nome || '') : '<select data-sede="' + c.id + '" class="input" style="padding:4px 6px;font-size:13px;">' + optSedi(c.sede_id) + '</select>') + '</td>'
-        + '<td style="padding:10px 6px;font-size:13px;font-weight:600;color:' + (c.attivato ? '#16a34a' : '#94a3b8') + ';">' + (c.attivato ? 'Attivato' : 'Libero') + '</td>'
-        + '<td style="padding:10px 6px;font-size:12px;color:#64748b;">' + quando(c.attivato_il) + visto + '</td>'
-        + '<td style="padding:10px 6px;text-align:right;">' + (c.attivato ? '<button data-disattiva="' + c.tablet_id + '" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;">Disattiva</button>' : '') + '</td>'
-        + '</tr>';
+      const visto = c.ultimo_visto ? 'ultimo segnale ' + new Date(c.ultimo_visto).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : (c.attivato ? 'non ancora collegato' : '');
+      return '<div style="border:1px solid ' + (c.attivato ? '#bbf7d0' : '#e2e8f0') + ';background:' + (c.attivato ? '#f0fdf4' : '#fff') + ';border-radius:12px;padding:12px;margin-bottom:10px;">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+        + '<button data-copia="' + c.codice + '" title="Copia" style="font-family:ui-monospace,monospace;font-size:17px;font-weight:800;letter-spacing:1px;color:#0E5A7A;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;cursor:pointer;">' + c.codice + '</button>'
+        + '<span style="font-size:13px;font-weight:700;color:' + (c.attivato ? '#16a34a' : '#94a3b8') + ';">' + (c.attivato ? '● Attivato' : 'Libero') + '</span>'
+        + '</div>'
+        + '<div style="font-size:14px;margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' + (TIPI[c.tipo] || c.tipo) + ' · '
+        + (c.attivato ? '<b>' + esc(c.sede_nome || '') + '</b>' : '<select data-sede="' + c.id + '" class="input" style="padding:4px 6px;font-size:14px;max-width:100%;">' + optSedi(c.sede_id) + '</select>')
+        + '</div>'
+        + (c.attivato
+            ? '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;">'
+              + '<span style="font-size:12px;color:#64748b;">Attivato il ' + quando(c.attivato_il) + (visto ? ' · ' + visto : '') + '</span>'
+              + '<button data-disattiva="' + c.tablet_id + '" style="background:#fee2e2;color:#dc2626;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Disattiva</button></div>'
+            : '')
+        + '</div>';
     }).join('');
 
     const lo = L.ordini || { max: 0, usati: 0 };
@@ -688,10 +695,7 @@ export async function render(container) {
       + '<div style="font-size:13px;color:#64748b;margin:2px 0 14px;">Sul tablet nuovo: pagina di accesso › "Attiva questo dispositivo con un codice". Il tablet si blocca e si collega da solo. Tablet sala: Comande, Prenotazioni e Cassa. Schermo cucina: produzioni in corso. Disattiva libera il codice per un altro dispositivo.</div>'
       + '<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px 16px;">'
       + '<div style="font-size:13px;color:#475569;margin:0 6px 6px;">Tablet sala: <b>' + lo.usati + ' attivi su ' + lo.max + '</b> licenze</div>'
-      + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;min-width:560px;">'
-      + '<tr style="font-size:11px;color:#94a3b8;text-transform:uppercase;text-align:left;"><th style="padding:6px;">Codice</th><th style="padding:6px;">Tipo</th><th style="padding:6px;">Sede</th><th style="padding:6px;">Stato</th><th style="padding:6px;">Attivazione</th><th></th></tr>'
-      + (righe || '<tr><td colspan="6" style="padding:12px;font-size:13px;color:#94a3b8;">Nessun codice: servono licenze Tablet sala.</td></tr>')
-      + '</table></div>'
+      + '<div style="margin:0 2px;">' + (righe || '<div style="padding:12px;font-size:13px;color:#94a3b8;">Nessun codice: servono licenze Tablet sala.</div>') + '</div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 6px 0;">'
       + '<select id="tb-cucina-sede" class="input" style="padding:6px 8px;font-size:13px;">' + optSedi(currentSedeId) + '</select>'
       + '<button id="tb-cucina-add" style="background:#0E5A7A;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">＋ Codice schermo cucina</button>'
