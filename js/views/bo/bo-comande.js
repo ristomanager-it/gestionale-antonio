@@ -791,22 +791,30 @@ export async function render(container) {
     } catch (e) { console.warn('loadMenuGiornoOggi:', e); }
   }
 
+  let menuPrincipaleId = null;
   async function loadMenuFiltro() {
-    menuProdSet = null; menuCatOrdine = null;
+    menuProdSet = null; menuCatOrdine = null; menuPrincipaleId = null;
     try {
+      // In comande compare solo cio' che e' nei menu ATTIVI della sede (alla carta e del giorno).
       let mq = supa().from('menu').select('id').eq('azienda_id', aziendaId).eq('attivo', true);
       if (sedeId) mq = mq.eq('sede_id', sedeId);
-      const { data: menus } = await mq.order('created_at', { ascending: false });
-      const menuId = menus && menus.length ? menus[0].id : null;
-      if (!menuId) return;
+      const { data: menus } = await mq;
+      const ids = (menus || []).map(m => m.id);
+      if (!ids.length) return;
       const [{ data: cats }, { data: voci }] = await Promise.all([
-        supa().from('menu_categorie').select('categoria_vendita_id, ordine').eq('menu_id', menuId),
-        supa().from('menu_voci').select('prodotto_vendita_id').eq('menu_id', menuId).eq('attivo', true),
+        supa().from('menu_categorie').select('menu_id, categoria_vendita_id, ordine').in('menu_id', ids),
+        supa().from('menu_voci').select('menu_id, prodotto_vendita_id').in('menu_id', ids).eq('attivo', true),
       ]);
+      // menu principale = quello con piu' voci: comanda l'ordine delle categorie
+      const conta = {};
+      (voci || []).forEach(v => { conta[v.menu_id] = (conta[v.menu_id] || 0) + 1; });
+      menuPrincipaleId = ids.slice().sort((a, b) => (conta[b] || 0) - (conta[a] || 0))[0];
       const ord = new Map();
-      (cats || []).forEach(c => { if (c.categoria_vendita_id != null) ord.set(String(c.categoria_vendita_id), c.ordine == null ? 999 : c.ordine); });
+      (cats || []).filter(c => c.menu_id === menuPrincipaleId).forEach(c => { if (c.categoria_vendita_id != null) ord.set(String(c.categoria_vendita_id), c.ordine == null ? 999 : c.ordine); });
+      (cats || []).filter(c => c.menu_id !== menuPrincipaleId).forEach(c => { if (c.categoria_vendita_id != null && !ord.has(String(c.categoria_vendita_id))) ord.set(String(c.categoria_vendita_id), 900 + (c.ordine || 0)); });
       const prods = new Set();
       (voci || []).forEach(v => { if (v.prodotto_vendita_id) prods.add(String(v.prodotto_vendita_id)); });
+      // le categorie dei prodotti nel menu restano anche se non sono elencate tra le categorie del menu
       if (ord.size) menuCatOrdine = ord;
       if (prods.size) menuProdSet = prods;
     } catch (e) { console.warn('loadMenuFiltro:', e); }
@@ -822,8 +830,9 @@ export async function render(container) {
       prodottiVendita = prodottiVendita.filter(p => menuProdSet.has(String(p.id)));
     }
     if (menuCatOrdine && menuCatOrdine.size) {
+      const catConProdotti = new Set(prodottiVendita.map(p => String(p.categoria_vendita_id)));
       categorieVendita = categorieVendita
-        .filter(c => menuCatOrdine.has(String(c.id)))
+        .filter(c => menuCatOrdine.has(String(c.id)) || catConProdotti.has(String(c.id)))
         .sort((a, b) => (menuCatOrdine.get(String(a.id)) ?? 999) - (menuCatOrdine.get(String(b.id)) ?? 999));
     }
   }
@@ -1078,7 +1087,7 @@ export async function render(container) {
   // ── COPERTO: prodotto "Coperto" della sede (prezzo a persona). Si addebita all'apertura,
   // segue il numero dei coperti, non va in cucina. "Coperto gratis" all'apertura lo salta.
   function eCoperto(p) { return /^coperto$/i.test(String(p?.nome || p?.nome_snapshot || '').trim()); }
-  function trovaCoperto() { return prodottiVendita.find(p => eCoperto(p) && Number(p.prezzo_base) > 0) || null; }
+  function trovaCoperto() { return (tuttiProdottiVendita.length ? tuttiProdottiVendita : prodottiVendita).find(p => eCoperto(p) && Number(p.prezzo_base) > 0) || null; }
   async function addebitaCoperto(comanda) {
     const cp = trovaCoperto();
     if (!cp) return;
@@ -1201,49 +1210,62 @@ export async function render(container) {
     });
   }
 
-  // Tieni premuta una categoria e trascinala: l'ordine si salva per tutti i tablet della sede
-  function attivaRiordinoCategorie(box) {
-    box.querySelectorAll('[data-cat]').forEach(btn => {
-      const id = btn.dataset.cat;
-      if (!id || id === '__mdg__') return;
-      let timer = null, attivo = false, ghost = null, x0 = 0;
-      const annulla = () => { clearTimeout(timer); };
-      btn.addEventListener('pointerdown', (e) => {
-        x0 = e.clientX;
-        timer = setTimeout(() => {
-          attivo = true; btn.dataset.trascinata = '1';
-          const r = btn.getBoundingClientRect();
-          ghost = btn.cloneNode(true);
-          ghost.style.cssText += ';position:fixed;top:' + r.top + 'px;left:' + r.left + 'px;z-index:12000;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;';
-          document.body.appendChild(ghost); btn.style.opacity = '.3';
-          if (navigator.vibrate) navigator.vibrate(20);
-        }, 350);
-      });
-      btn.addEventListener('pointermove', (e) => {
-        if (!attivo) { if (Math.abs(e.clientX - x0) > 10) annulla(); return; }
+  // Ordine delle categorie: finestra con maniglie da trascinare e frecce. Si salva nel menu principale
+  // (e sulla categoria), cosi' vale per tutti i tablet della sede.
+  function ordinaCategorie() {
+    const lista = categorieVendita.slice();
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    const disegna = () => {
+      ov.innerHTML = '<div style="background:white;border-radius:16px;width:100%;max-width:440px;max-height:86vh;display:flex;flex-direction:column;">'
+        + '<div style="padding:16px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0;"><b style="font-size:17px;">⇅ Ordine delle categorie</b>'
+        + '<button data-x style="background:#f1f5f9;border:none;width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer;">✕</button></div>'
+        + '<div id="oc-lista" style="overflow:auto;padding:8px 12px;flex:1;">'
+        + lista.map((c, k) => '<div data-k="' + k + '" style="display:flex;align-items:center;gap:8px;padding:10px;margin-bottom:6px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;">'
+          + '<span data-man="' + k + '" style="touch-action:none;cursor:grab;font-size:22px;color:#94a3b8;padding:0 6px;user-select:none;">⠿</span>'
+          + '<span style="flex:1;font-size:15px;font-weight:600;">' + esc(c.nome) + '</span>'
+          + '<button data-su="' + k + '" style="width:40px;height:40px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:16px;cursor:pointer;"' + (k === 0 ? ' disabled' : '') + '>↑</button>'
+          + '<button data-giu="' + k + '" style="width:40px;height:40px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:16px;cursor:pointer;"' + (k === lista.length - 1 ? ' disabled' : '') + '>↓</button></div>').join('')
+        + '</div><div style="padding:12px 16px;border-top:1px solid #e2e8f0;"><button data-salva style="width:100%;padding:14px;border:none;border-radius:12px;background:#0E5A7A;color:white;font-size:15px;font-weight:700;cursor:pointer;">Salva ordine</button></div></div>';
+      ov.querySelector('[data-x]').onclick = () => ov.remove();
+      ov.querySelectorAll('[data-su]').forEach(b => b.onclick = () => { const k = +b.dataset.su; [lista[k - 1], lista[k]] = [lista[k], lista[k - 1]]; disegna(); });
+      ov.querySelectorAll('[data-giu]').forEach(b => b.onclick = () => { const k = +b.dataset.giu; [lista[k + 1], lista[k]] = [lista[k], lista[k + 1]]; disegna(); });
+      ov.querySelectorAll('[data-man]').forEach(m => m.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        ghost.style.left = (e.clientX - ghost.offsetWidth / 2) + 'px';
-      });
-      const fine = async (e) => {
-        annulla();
-        if (!attivo) return;
-        attivo = false; btn.style.opacity = ''; ghost && ghost.remove();
-        const sotto = document.elementFromPoint(e.clientX, btn.getBoundingClientRect().top + 10);
-        const dest = sotto ? sotto.closest('[data-cat]') : null;
-        if (!dest || dest === btn || !dest.dataset.cat || dest.dataset.cat === '__mdg__') return;
-        const ids = categorieVendita.map(c => String(c.id));
-        const da = ids.indexOf(String(id)), a = ids.indexOf(String(dest.dataset.cat));
-        if (da < 0 || a < 0) return;
-        const [m] = categorieVendita.splice(da, 1); categorieVendita.splice(a, 0, m);
-        renderCategorieTabs();
-        for (let k = 0; k < categorieVendita.length; k++) {
-          if (categorieVendita[k].ordine !== k) { categorieVendita[k].ordine = k; await supa().from('categorie_vendita').update({ ordine: k }).eq('id', categorieVendita[k].id); }
+        const da = +m.dataset.man;
+        const righe = [...ov.querySelectorAll('#oc-lista [data-k]')];
+        const el = righe[da]; el.style.background = '#e0f2fe'; el.style.boxShadow = '0 6px 18px rgba(0,0,0,.15)';
+        let a = da;
+        const muovi = (ev) => {
+          righe.forEach(r => r.style.borderTop = '');
+          const sotto = document.elementFromPoint(ev.clientX, ev.clientY);
+          const r = sotto && sotto.closest('#oc-lista [data-k]');
+          if (r) { a = +r.dataset.k; r.style.borderTop = '3px solid #0E5A7A'; }
+        };
+        const fine = () => {
+          document.removeEventListener('pointermove', muovi); document.removeEventListener('pointerup', fine); document.removeEventListener('pointercancel', fine);
+          if (a !== da) { const [x] = lista.splice(da, 1); lista.splice(a, 0, x); }
+          disegna();
+        };
+        document.addEventListener('pointermove', muovi); document.addEventListener('pointerup', fine); document.addEventListener('pointercancel', fine);
+      }));
+      ov.querySelector('[data-salva]').onclick = async () => {
+        const b = ov.querySelector('[data-salva]'); b.disabled = true; b.textContent = 'Salvo…';
+        for (let k = 0; k < lista.length; k++) {
+          const c = lista[k];
+          await supa().from('categorie_vendita').update({ ordine: k }).eq('id', c.id);
+          if (menuPrincipaleId) await supa().from('menu_categorie').update({ ordine: k }).eq('menu_id', menuPrincipaleId).eq('categoria_vendita_id', c.id);
+          c.ordine = k;
+          if (menuCatOrdine) menuCatOrdine.set(String(c.id), k);
         }
-        mostraToast('↔️ Ordine delle categorie salvato', 'success');
+        categorieVendita = lista;
+        ov.remove();
+        renderCategorieTabs();
+        mostraToast('⇅ Ordine delle categorie salvato per tutti i tablet', 'success');
       };
-      btn.addEventListener('pointerup', fine);
-      btn.addEventListener('pointercancel', () => { annulla(); attivo = false; btn.style.opacity = ''; ghost && ghost.remove(); });
-    });
+    };
+    disegna();
+    document.body.appendChild(ov);
   }
 
   function renderCategorieTabs() {
@@ -1256,7 +1278,7 @@ export async function render(container) {
     const all = [{ id: null, nome: 'Tutti' }];
     if (menuGiornoOggi) all.push({ id: '__mdg__', nome: '🍽️ ' + (menuGiornoOggi.titolo || 'Menu del Giorno') });
     all.push(...cats);
-    box.innerHTML = all.map(c => `
+    box.innerHTML = `<button data-ordina-cat style="display:inline-block;padding:8px 12px;margin-right:4px;border:1px dashed #94a3b8;border-radius:8px;cursor:pointer;font-size:13px;background:#fff;color:#334155;white-space:nowrap;" title="Ordina categorie">⇅</button>` + all.map(c => `
       <button data-cat="${c.id || ''}" style="
         display:inline-block;padding:8px 14px;margin-right:4px;
         border:none;border-radius:8px;cursor:pointer;font-size:13px;
@@ -1265,10 +1287,9 @@ export async function render(container) {
         white-space:nowrap;
       ">${esc(c.nome)}</button>
     `).join('');
-    attivaRiordinoCategorie(box);
+    const oc = box.querySelector('[data-ordina-cat]'); if (oc) oc.onclick = () => ordinaCategorie();
     box.querySelectorAll('[data-cat]').forEach(btn => {
       btn.onclick = () => {
-        if (btn.dataset.trascinata) { delete btn.dataset.trascinata; return; }
         categoriaSelezionata = btn.dataset.cat || null;
         renderCategorieTabs(); renderGrigliaProdotti();
         // barra scorrevole: la categoria scelta resta in vista e i piatti ripartono dall'alto
@@ -3858,6 +3879,52 @@ export async function render(container) {
   container.querySelector('#btn-back-tavoli').onclick = () => switchView('tavoli');
   try { document.documentElement.style.overscrollBehavior = 'none'; document.body.style.overscrollBehavior = 'none'; } catch (e) {}
   container.querySelector('#btn-azioni-tavolo').onclick = () => azioniTavolo();
+
+  // ── NUOVE PRENOTAZIONI: avviso con suono sul tablet (funziona senza notifiche del sistema) ──
+  let _prenVisteDa = new Date().toISOString();
+  const _prenGiaViste = new Set();
+  function suonoAvviso() {
+    try {
+      const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+      const ctx = window.__rfAudio || (window.__rfAudio = new C());
+      [0, 0.25, 0.5].forEach((t, k) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = k === 2 ? 1175 : 880; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.22);
+        o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.24);
+      });
+    } catch (e) {}
+  }
+  document.addEventListener('pointerdown', () => { try { if (window.__rfAudio && window.__rfAudio.state === 'suspended') window.__rfAudio.resume(); else if (!window.__rfAudio) { const C = window.AudioContext || window.webkitAudioContext; if (C) window.__rfAudio = new C(); } } catch (e) {} }, { passive: true });
+  async function controllaNuovePrenotazioni() {
+    if (!container.isConnected) { clearInterval(window.__rfPrenTimer); return; }
+    try {
+      let q = supa().from('prenotazioni_tavoli').select('id, cliente_nome, cognome, coperti, data, ora, canale, note, created_at, stato')
+        .eq('azienda_id', aziendaId).gt('created_at', _prenVisteDa).order('created_at', { ascending: true }).limit(20);
+      if (sedeId) q = q.eq('sede_id', sedeId);
+      const { data } = await q;
+      const nuove = (data || []).filter(p => !_prenGiaViste.has(p.id) && !['annullata', 'rifiutata', 'cancellata'].includes(p.stato));
+      (data || []).forEach(p => { _prenGiaViste.add(p.id); if (p.created_at > _prenVisteDa) _prenVisteDa = p.created_at; });
+      if (!nuove.length) return;
+      suonoAvviso();
+      const oggi = new Date().toISOString().slice(0, 10);
+      if (nuove.some(p => p.data === oggi)) { await loadPrenotazioniOggi(); if (viewMode === 'tavoli') renderMapTavoli(); }
+      document.getElementById('avviso-prenotazioni')?.remove();
+      const ov = document.createElement('div');
+      ov.id = 'avviso-prenotazioni';
+      ov.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:13000;width:min(560px,94vw);background:#0E5A7A;color:white;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:16px 18px;';
+      const quando = (p) => { const d = new Date(p.data + 'T12:00:00'); return (p.data === oggi ? 'OGGI' : d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: '2-digit' })) + ' ' + String(p.ora || '').slice(0, 5); };
+      ov.innerHTML = '<div style="font-size:13px;font-weight:700;opacity:.85;margin-bottom:6px;">📅 ' + (nuove.length > 1 ? nuove.length + ' NUOVE PRENOTAZIONI' : 'NUOVA PRENOTAZIONE') + '</div>'
+        + nuove.map(p => '<div style="font-size:17px;font-weight:800;margin:4px 0;">' + esc([p.cliente_nome, p.cognome].filter(Boolean).join(' ') || 'Cliente') + ' · ' + (p.coperti || '?') + ' pers. · ' + quando(p) + '</div>'
+          + (p.note ? '<div style="font-size:13px;opacity:.9;">' + esc(p.note) + '</div>' : '')).join('')
+        + '<button style="margin-top:10px;width:100%;padding:12px;border:none;border-radius:10px;background:white;color:#0E5A7A;font-weight:800;font-size:15px;cursor:pointer;">Ho visto</button>';
+      ov.querySelector('button').onclick = () => ov.remove();
+      document.body.appendChild(ov);
+    } catch (e) { /* senza rete si riprova */ }
+  }
+  clearInterval(window.__rfPrenTimer);
+  window.__rfPrenTimer = setInterval(controllaNuovePrenotazioni, 30000);
 
   // ══════════════════════════════════════════
   // AZIONI SUL TAVOLO: libera, sposta conto, abbina tavolo
