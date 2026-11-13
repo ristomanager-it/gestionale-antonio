@@ -319,12 +319,23 @@ export async function render(container) {
     try {
       const n9 = String(conv.numero).replace(/\D/g, "").slice(-9);
       if (n9.length === 9) {
-        const { data: inv } = await supa().from("whatsapp_messaggi_log").select("id,testo,contesto,created_at,stato")
+        const { data: inv } = await supa().from("whatsapp_messaggi_log").select("id,testo,contesto,created_at,stato,stato_consegna,letto_il")
           .eq("azienda_id", aziendaId).like("numero_dest", "%" + n9)
           .or("contesto.is.null,contesto.not.in.(bot_prenotazioni,risposta_manuale)").order("created_at", { ascending: true }).limit(50);
-        extra = (inv || []).map((m) => ({ id: "log_" + m.id, created_at: m.created_at, testo: m.testo, from_numero: aziendaId, intent: "risposta_manuale", _auto: true, _errore: m.stato === "errore" }));
+        extra = (inv || []).map((m) => ({ id: "log_" + m.id, created_at: m.created_at, testo: m.testo, from_numero: aziendaId, intent: "risposta_manuale", _auto: true, _errore: m.stato === "errore", stato_consegna: m.stato_consegna, letto_il: m.letto_il }));
       }
     } catch (e) { /* senza lo storico del sistema resta la conversazione */ }
+
+    // Spunte come su WhatsApp: ✓ inviato, ✓✓ consegnato, ✓✓ blu letto (con l'ora di lettura)
+    const spunte = (m) => {
+      if (m._errore || m.stato_consegna === "non consegnato") return '<span style="color:#dc2626;">⚠ non consegnato</span>';
+      if (m.stato_consegna === "letto") {
+        const lt = m.letto_il ? new Date(m.letto_il).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "";
+        return '<span style="color:#2563eb;font-weight:700;" title="Letto">✓✓</span>' + (lt ? ' <span style="color:#2563eb;">letto ' + lt + '</span> ·' : "");
+      }
+      if (m.stato_consegna === "consegnato") return '<span title="Consegnato">✓✓</span>';
+      return '<span title="Inviato">✓</span>';
+    };
 
     // Messaggi
     const msgBox = document.getElementById("wa-chat-messages");
@@ -354,7 +365,7 @@ export async function render(container) {
               font-size:14px;
               align-self:flex-end;white-space:pre-wrap;word-break:break-word;
             ">${allegato(msg)}${esc(msg.testo) || (msg.media_url ? "" : "[media]")}</div>
-            <div style="font-size:11px;color:#9ca3af;padding:0 4px;">${msg._errore ? "⚠ non consegnato" : "✓"} ${ora} · ${msg._auto ? "Messaggio automatico" : "Operatore"}</div>
+            <div style="font-size:11px;color:#9ca3af;padding:0 4px;">${spunte(msg)} ${ora} · ${msg._auto ? "Messaggio automatico" : "Operatore"}</div>
           </div>
         `;
       }
@@ -453,7 +464,7 @@ export async function render(container) {
           from_nome: "Operatore",
           numero_dest: conversazioneAttiva.numero,
           numero_cliente: conversazioneAttiva.numero,
-          message_id: `manual_${Date.now()}`,
+          message_id: data.message_id || `manual_${Date.now()}`,
           tipo: "text",
           testo,
           intent: "risposta_manuale",
