@@ -177,6 +177,7 @@ const routes = {
   completaAzienda: () => imp("./views/completa-azienda.js"),
   "configurazione-azienda": () => imp("./views/configurazione-azienda.js"),
   "fatturazione-impostazioni": () => imp("./views/fatturazione-impostazioni.js"),
+  "autofatture": () => imp("./views/autofatture.js"),
   // Modifica dei dati anagrafici ad azienda gia' attiva: stessa vista del wizard,
   // ma con un nome di rotta diverso da completaAzienda cosi' preferBozza non
   // sposta l'azienda attiva su una bozza.
