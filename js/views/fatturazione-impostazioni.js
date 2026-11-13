@@ -214,6 +214,9 @@ function collegaAzioni(container, azienda, cfg, ctx) {
       socio_unico: sociSel ? sociSel.value : null,
       iban: v("fi-iban").replace(/\s/g, "").toUpperCase() || null,
       sezionale: v("fi-serie").toUpperCase(),
+      autofatture_chi: (container.querySelector('input[name="fi-afchi"]:checked') || {}).value || "noi",
+      af_sezionale: v("fi-afsez").toUpperCase().replace(/\s/g, "") || "AF01",
+      af_ultimo_numero_esterno: v("fi-afext") ? Number(v("fi-afext").replace(/\D/g, "")) : null,
       updated_at: new Date().toISOString(),
     };
 
