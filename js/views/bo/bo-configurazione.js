@@ -648,89 +648,92 @@ export async function render(container) {
     };
   }
 
-  // ── TABLET BLOCCATI: sala, cassa, schermo cucina ──
-  // Si blocca il dispositivo su cui sei. Da li' in poi apre solo le sue voci, per tutti,
-  // admin compreso. Si sblocca da qui, dal telefono dell'admin (elenco sotto).
+  // ── CODICI ATTIVAZIONE DISPOSITIVI (modello Pienissimo) ──
+  // Un codice fisso per licenza. Il tablet al primo avvio lo inserisce nel login
+  // ("Attiva questo dispositivo"): si blocca e si collega da solo. Disattiva libera il codice.
   async function renderModalitaPostazione(box) {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'margin-top:8px;margin-bottom:24px;';
     box.appendChild(wrap);
-    const { data: lista, error } = await supa().rpc('elenco_tablet', { p_azienda: aziendaId });
+    const [{ data: codici, error }, { data: lic }, { data: sedi }] = await Promise.all([
+      supa().rpc('elenco_codici_attivazione', { p_azienda: aziendaId }),
+      supa().rpc('licenze_tablet_stato', { p_azienda: aziendaId }),
+      supa().from('sedi').select('id, nome').eq('azienda_id', aziendaId).order('nome'),
+    ]);
     if (error) { wrap.remove(); return; }   // non admin: sezione nascosta
-    const { data: lic } = await supa().rpc('licenze_tablet_stato', { p_azienda: aziendaId });
     const L = lic || {};
     const sa = window.state?.isSuperadmin === true || window.state?.ruolo === 'superadmin';
-
-    // Tablet di sala tutti uguali (Comande, Prenotazioni, Cassa): un solo tipo. 'cassa' resta solo per i vecchi blocchi.
-    const TIPI = { ordini: '📱 Tablet sala', cassa: '💳 Cassa', cucina: '🏭 Schermo cucina' };
-    // Un pulsante per tipo, con le licenze usate: esaurite = pulsante spento
-    const btn = function (tipo) {
-      const l = L[tipo] || { max: 0, usati: 0 };
-      const senzaLimite = l.max === null;            // schermo cucina: libero
-      const libero = senzaLimite || l.usati < l.max;
-      return '<button data-blocca="' + tipo + '"' + (libero ? '' : ' disabled') + ' style="background:' + (libero ? '#0E5A7A' : '#cbd5e1') + ';color:white;border:none;padding:11px 16px;border-radius:10px;cursor:' + (libero ? 'pointer' : 'not-allowed') + ';font-size:14px;font-weight:600;">'
-        + TIPI[tipo] + (senzaLimite ? '' : ' · ' + l.usati + '/' + l.max) + '</button>';
+    const TIPI = { ordini: '📱 Tablet sala', cucina: '🏭 Schermo cucina' };
+    const optSedi = function (sel) {
+      return (sedi || []).map(function (x) { return '<option value="' + x.id + '"' + (x.id === sel ? ' selected' : '') + '>' + esc(x.nome) + '</option>'; }).join('');
     };
-    const pannelloLicenze = !sa ? '' :
-      '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed #e5e7eb;">'
-      + '<div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔑 Licenze (solo superadmin)</div>'
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
-      + ['ordini'].map(function (t) {
-          return '<label style="font-size:13px;">' + TIPI[t] + ' <input data-lic="' + t + '" type="number" min="0" value="' + ((L[t] || {}).max || 0) + '" class="input" style="width:64px;"></label>';
-        }).join('')
-      + '<button id="tb-lic-salva" style="background:#0f172a;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;">Salva licenze</button>'
-      + '</div></div>';
-    const righe = (lista || []).map(function (t) {
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #f1f5f9;">'
-        + '<div><div style="font-weight:600;font-size:14px;">' + esc(t.nome) + ' · ' + (TIPI[t.tipo] || t.tipo)
-        + (t.attivo ? '' : ' <span style="color:#64748b;font-size:12px;">(sbloccato)</span>') + '</div>'
-        + '<div style="font-size:12px;color:#64748b;">Bloccato il ' + new Date(t.created_at).toLocaleDateString('it-IT')
-        + (t.ultimo_visto ? ' · visto ' + new Date(t.ultimo_visto).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</div></div>'
-        + (t.attivo ? '<button data-sblocca="' + t.id + '" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;">Sblocca</button>' : '')
-        + '</div>';
+    const quando = function (d) { return d ? new Date(d).toLocaleDateString('it-IT') : '—'; };
+
+    const righe = (codici || []).map(function (c) {
+      const visto = c.ultimo_visto ? ' · visto ' + new Date(c.ultimo_visto).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+      return '<tr style="border-top:1px solid #f1f5f9;">'
+        + '<td style="padding:10px 6px;"><button data-copia="' + c.codice + '" title="Copia" style="font-family:ui-monospace,monospace;font-weight:700;letter-spacing:1px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;cursor:pointer;">' + c.codice + '</button></td>'
+        + '<td style="padding:10px 6px;font-size:13px;">' + (TIPI[c.tipo] || c.tipo) + '</td>'
+        + '<td style="padding:10px 6px;font-size:13px;">' + (c.attivato ? esc(c.sede_nome || '') : '<select data-sede="' + c.id + '" class="input" style="padding:4px 6px;font-size:13px;">' + optSedi(c.sede_id) + '</select>') + '</td>'
+        + '<td style="padding:10px 6px;font-size:13px;font-weight:600;color:' + (c.attivato ? '#16a34a' : '#94a3b8') + ';">' + (c.attivato ? 'Attivato' : 'Libero') + '</td>'
+        + '<td style="padding:10px 6px;font-size:12px;color:#64748b;">' + quando(c.attivato_il) + visto + '</td>'
+        + '<td style="padding:10px 6px;text-align:right;">' + (c.attivato ? '<button data-disattiva="' + c.tablet_id + '" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;">Disattiva</button>' : '') + '</td>'
+        + '</tr>';
     }).join('');
 
+    const lo = L.ordini || { max: 0, usati: 0 };
     wrap.innerHTML =
-      '<div style="font-size:18px;font-weight:700;color:#0f172a;">📱 Tablet bloccati</div>'
-      + '<div style="font-size:13px;color:#64748b;margin:2px 0 14px;">Blocca questo dispositivo come tablet: aprirà solo le sue voci, per tutti, admin compreso. Tablet sala: Comande, Prenotazioni e Cassa, tutti uguali. Schermo cucina: le produzioni in corso. Si sblocca solo da qui, dal telefono di un admin.</div>'
-      + '<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:16px;">'
-      + '<input id="tb-nome" class="input" placeholder="Nome (es. Tablet sala Trattoria)" style="width:100%;box-sizing:border-box;margin-bottom:10px;">'
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">' + btn('ordini') + btn('cucina') + '</div>'
-      + '<div id="tb-esito" style="font-size:13px;min-height:16px;margin-bottom:6px;"></div>'
-      + (righe || '<div style="font-size:13px;color:#94a3b8;">Nessun tablet bloccato.</div>')
-      + pannelloLicenze
+      '<div style="font-size:18px;font-weight:700;color:#0f172a;">📱 Codici attivazione dispositivi</div>'
+      + '<div style="font-size:13px;color:#64748b;margin:2px 0 14px;">Sul tablet nuovo: pagina di accesso › "Attiva questo dispositivo con un codice". Il tablet si blocca e si collega da solo. Tablet sala: Comande, Prenotazioni e Cassa. Schermo cucina: produzioni in corso. Disattiva libera il codice per un altro dispositivo.</div>'
+      + '<div style="background:white;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px 16px;">'
+      + '<div style="font-size:13px;color:#475569;margin:0 6px 6px;">Tablet sala: <b>' + lo.usati + ' attivi su ' + lo.max + '</b> licenze</div>'
+      + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;min-width:560px;">'
+      + '<tr style="font-size:11px;color:#94a3b8;text-transform:uppercase;text-align:left;"><th style="padding:6px;">Codice</th><th style="padding:6px;">Tipo</th><th style="padding:6px;">Sede</th><th style="padding:6px;">Stato</th><th style="padding:6px;">Attivazione</th><th></th></tr>'
+      + (righe || '<tr><td colspan="6" style="padding:12px;font-size:13px;color:#94a3b8;">Nessun codice: servono licenze Tablet sala.</td></tr>')
+      + '</table></div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 6px 0;">'
+      + '<select id="tb-cucina-sede" class="input" style="padding:6px 8px;font-size:13px;">' + optSedi(currentSedeId) + '</select>'
+      + '<button id="tb-cucina-add" style="background:#0E5A7A;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">＋ Codice schermo cucina</button>'
+      + '</div>'
+      + '<div id="tb-esito" style="font-size:13px;min-height:16px;margin:8px 6px 0;"></div>'
+      + (sa ? '<div style="margin:12px 6px 0;padding-top:12px;border-top:1px dashed #e5e7eb;font-size:13px;"><b>🔑 Licenze (solo superadmin)</b> · Tablet sala <input id="tb-lic" type="number" min="0" value="' + (lo.max || 0) + '" class="input" style="width:64px;"> <button id="tb-lic-salva" style="background:#0f172a;color:white;border:none;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px;">Salva</button></div>' : '')
       + '</div>';
 
-    wrap.querySelectorAll('[data-blocca]').forEach(function (b) {
-      b.onclick = async function () {
-        const tipo = b.dataset.blocca;
-        const nome = (wrap.querySelector('#tb-nome').value || '').trim() || TIPI[tipo].replace(/^\S+\s/, '');
-        if (!confirm('Bloccare QUESTO dispositivo come ' + TIPI[tipo] + '?\nDa qui non si potrà più uscire: si sblocca solo da Configurazione sul telefono di un admin.')) return;
-        const { data, error: e } = await supa().rpc('registra_tablet', { p_azienda: aziendaId, p_nome: nome, p_tipo: tipo, p_sede: currentSedeId || null });
-        if (e || !data?.token) { wrap.querySelector('#tb-esito').textContent = '❌ ' + (e?.message || 'Blocco non riuscito'); return; }
-        localStorage.setItem('rf_tablet_token_' + aziendaId, data.token);
-        localStorage.setItem('rf_tablet_tipo_' + aziendaId, tipo);
-        window.location.hash = '#/' + ({ cassa: 'cassa-libera', cucina: 'kds-produzioni' }[tipo] || 'bo-comande');
-        setTimeout(function () { location.reload(); }, 100);
+    const esito = function (t, ok) { const e = wrap.querySelector('#tb-esito'); e.style.color = ok ? '#16a34a' : '#dc2626'; e.textContent = t; };
+    const ricarica = function () { wrap.remove(); renderModalitaPostazione(box); };
+
+    wrap.querySelectorAll('[data-copia]').forEach(function (b) {
+      b.onclick = function () {
+        const t = b.dataset.copia;
+        try { navigator.clipboard.writeText(t); esito('Codice ' + t + ' copiato', true); } catch (e) { prompt('Copia il codice:', t); }
       };
     });
+    wrap.querySelectorAll('[data-sede]').forEach(function (sel) {
+      sel.onchange = async function () {
+        const { error: e } = await supa().rpc('imposta_sede_codice', { p_id: sel.dataset.sede, p_sede: sel.value });
+        if (e) esito('❌ ' + e.message, false); else esito('Sede aggiornata', true);
+      };
+    });
+    wrap.querySelectorAll('[data-disattiva]').forEach(function (b) {
+      b.onclick = async function () {
+        if (!confirm('Disattivare questo dispositivo? Entro due minuti si scollega e il codice torna libero.')) return;
+        const { error: e } = await supa().rpc('sblocca_tablet', { p_id: b.dataset.disattiva });
+        if (e) { esito('❌ ' + e.message, false); return; }
+        ricarica();
+      };
+    });
+    wrap.querySelector('#tb-cucina-add').onclick = async function () {
+      const { error: e } = await supa().rpc('aggiungi_codice_cucina', { p_azienda: aziendaId, p_sede: wrap.querySelector('#tb-cucina-sede').value });
+      if (e) { esito('❌ ' + e.message, false); return; }
+      ricarica();
+    };
     const salvaLic = wrap.querySelector('#tb-lic-salva');
     if (salvaLic) salvaLic.onclick = async function () {
-      const v = function (t) { return parseInt(wrap.querySelector('[data-lic="' + t + '"]').value, 10) || 0; };
-      const { error: e } = await supa().rpc('imposta_licenze_tablet', { p_azienda: aziendaId, p_ordini: v('ordini'), p_cassa: 0, p_cucina: 0 });
-      if (e) { wrap.querySelector('#tb-esito').textContent = '❌ ' + e.message; return; }
-      wrap.remove();
-      renderModalitaPostazione(box);
+      const n = parseInt(wrap.querySelector('#tb-lic').value, 10) || 0;
+      const { error: e } = await supa().rpc('imposta_licenze_tablet', { p_azienda: aziendaId, p_ordini: n, p_cassa: 0, p_cucina: 0 });
+      if (e) { esito('❌ ' + e.message, false); return; }
+      ricarica();
     };
-    wrap.querySelectorAll('[data-sblocca]').forEach(function (b) {
-      b.onclick = async function () {
-        if (!confirm('Sbloccare questo tablet? Entro due minuti torna Ristoflow normale.')) return;
-        const { error: e } = await supa().rpc('sblocca_tablet', { p_id: b.dataset.sblocca });
-        if (e) { wrap.querySelector('#tb-esito').textContent = '❌ ' + e.message; return; }
-        wrap.remove();
-        renderModalitaPostazione(box);
-      };
-    });
   }
 
   // ── PUNTO CASSA: dispositivi autorizzati alla chiusura cassa per i manager ──
