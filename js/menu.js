@@ -518,6 +518,7 @@ export function initMenu() {
             { label: "Listini", route: "acquisti?tab=listini" },
             { label: "Riordino", route: "acquisti?tab=riordino" },
             { label: "Ordini", route: "acquisti?tab=ordini" },
+            { label: "Autofatture", route: "autofatture" },
           ] },
           { label: "💰 Venduto",          route: "venduto"           },
           { label: "📈 Margini",          route: "margini"           },
