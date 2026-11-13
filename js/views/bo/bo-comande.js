@@ -4,7 +4,7 @@
 
 // ATTENZIONE: import statico, il ?v=APP_V del router non lo raggiunge.
 // Ad ogni modifica di cassa-hardware.js bumpare a mano il ?v=N qui sotto.
-import { emettiDocumento, emettiPreconto, tokenTablet, MSG_SOLO_TABLET } from '../cassa/cassa-hardware.js?v=8';
+import { emettiDocumento, emettiPreconto, tokenTablet, MSG_SOLO_TABLET } from '../cassa/cassa-hardware.js?v=9';
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -292,7 +292,7 @@ export async function render(container) {
     </div>
 
     <!-- ── MODAL: Apertura tavolo ── -->
-    <div id="modal-apertura" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-end;justify-content:center;padding-bottom:env(safe-area-inset-bottom);">
+    <div id="modal-apertura" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9100;align-items:flex-end;justify-content:center;padding-bottom:env(safe-area-inset-bottom);">
       <div style="background:white;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,0.2);">
         <div style="width:40px;height:4px;background:#e5e7eb;border-radius:2px;margin:0 auto 20px;"></div>
         <div style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:4px;">🪑 Apri tavolo</div>
@@ -330,7 +330,7 @@ export async function render(container) {
     </div>
 
     <!-- ── MODAL: Upsell/Cross-sell ── -->
-    <div id="modal-upsell" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-end;justify-content:center;">
+    <div id="modal-upsell" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9100;align-items:flex-end;justify-content:center;">
       <div style="background:white;border-radius:24px 24px 0 0;padding:28px 24px;width:100%;max-width:600px;box-shadow:0 -10px 40px rgba(0,0,0,0.2);animation:slideUp 0.3s ease;">
         <style>@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}</style>
 
@@ -371,7 +371,7 @@ export async function render(container) {
     </div>
 
     <!-- ── MODAL: Fidelity post-conto ── -->
-    <div id="modal-fidelity" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1300;align-items:center;justify-content:center;">
+    <div id="modal-fidelity" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9300;align-items:center;justify-content:center;">
       <div style="background:#fff;border-radius:20px;padding:24px;width:min(440px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <div style="font-size:17px;font-weight:800;">🎁 Tessera Fidelity</div>
@@ -404,7 +404,7 @@ export async function render(container) {
     </div>
 
     <!-- ── MODAL: Chiusura conto ── -->
-    <div id="modal-conto" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1100;align-items:center;justify-content:center;">
+    <div id="modal-conto" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9200;align-items:center;justify-content:center;">
       <div style="background:white;border-radius:24px;width:min(480px,94vw);max-height:90vh;max-height:90dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">
 
         <!-- Header -->
@@ -466,7 +466,7 @@ export async function render(container) {
     </div>
 
     <!-- ── MODAL: Pagamento ── -->
-    <div id="modal-pagamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1200;align-items:center;justify-content:center;">
+    <div id="modal-pagamento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9250;align-items:center;justify-content:center;">
       <div style="background:white;border-radius:24px;width:min(560px,96vw);max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.35);overflow:hidden;">
 
         <div style="padding:20px 24px 14px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
@@ -582,11 +582,11 @@ export async function render(container) {
     if (badge) badge.style.display = 'none';
     switchView('pin');
   }
-  // Fermo 90" mentre lavora, 20" dopo un invio. Ogni tocco riparte da 90".
+  // Tablet fermo 3 minuti -> torna al PIN. Ogni tocco riparte da capo.
   function rinviaTimerPin(ms) {
     if (!tabletCondiviso) return;
     clearTimeout(_timerPin);
-    _timerPin = setTimeout(function () { if (cameriereAttivo) tornaAlPin(); }, typeof ms === 'number' ? ms : 90000);
+    _timerPin = setTimeout(function () { if (cameriereAttivo) tornaAlPin(); }, typeof ms === 'number' ? ms : 180000);
   }
   if (tabletCondiviso) {
     ['pointerdown', 'keydown'].forEach(function (ev) { container.addEventListener(ev, function () { rinviaTimerPin(); }, { passive: true }); });
@@ -1267,10 +1267,10 @@ export async function render(container) {
       const esaurito = p.disponibile === false;
       const pochePortate = !esaurito && p.porzioni_disponibili != null && p.porzioni_disponibili <= 3 && p.porzioni_disponibili > 0;
       return `
-        <button data-prodotto="${p.id}" ${esaurito ? 'disabled' : ''} style="
+        <button data-prodotto="${p.id}" data-esaurito="${esaurito ? 1 : ''}" style="
           background:${esaurito ? '#f8fafc' : 'white'};
           border:1px solid ${esaurito ? '#e5e7eb' : pochePortate ? '#f59e0b' : '#e5e7eb'};
-          border-radius:12px;padding:12px 8px;cursor:${esaurito ? 'default' : 'pointer'};text-align:center;
+          border-radius:12px;padding:12px 8px;cursor:pointer;text-align:center;
           display:flex;flex-direction:column;align-items:center;gap:6px;
           transition:background 0.1s;position:relative;
           ${esaurito ? 'opacity:0.55;' : ''}
@@ -1285,7 +1285,10 @@ export async function render(container) {
     }).join('');
 
     box.querySelectorAll('[data-prodotto]').forEach(btn => {
-      btn.onclick = () => aggiungiProdotto(btn.dataset.prodotto);
+      btn.onclick = () => {
+        if (btn.dataset.esaurito) mostraToast('⚠️ Segnato come esaurito: aggiunto comunque, controlla con la cucina', 'warning');
+        aggiungiProdotto(btn.dataset.prodotto);
+      };
     });
     const mgBtn = box.querySelector('[data-menugiorno]');
     if (mgBtn) mgBtn.onclick = () => aggiungiMenuGiorno();
@@ -2226,7 +2229,7 @@ export async function render(container) {
     stampaComandaReparti(righeNuove, false);
     // Tablet condiviso: chi ha inviato puo' passare subito al tavolo dopo senza PIN;
     // se appoggia il tablet, dopo 20" torna al PIN per il collega
-    rinviaTimerPin(20000);
+    rinviaTimerPin(180000);
   }
 
   // ── STAMPA COMANDE DI REPARTO (Raspberry del locale → stampanti termiche) ──
@@ -2396,6 +2399,14 @@ export async function render(container) {
     return out;
   }
 
+  // La stampante termica non ha emoji ne' apostrofi tipografici: diventavano "??".
+  function testoStampa(t) {
+    return String(t == null ? '' : t)
+      .replace(/[\u2018\u2019\u201A\u201B\u00B4`]/g, "'").replace(/[\u201C\u201D\u201E]/g, '"')
+      .replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...')
+      .replace(/[^\u0000-\u00FF]/g, '').replace(/\s{2,}/g, ' ').trim();
+  }
+
   async function stampaComandaReparti(righe, ristampa, extra) {
     try {
       const stampanti = await stampantiComande();
@@ -2410,12 +2421,16 @@ export async function render(container) {
       righe.forEach(r => {
         const rep = r.stampante || 'cucina';
         if (rep === 'nessuna') return;
-        (perReparto[rep] = perReparto[rep] || []).push({
-          qta: Number(r.quantita || 1), nome: r.nome_snapshot, uscita: r.uscita_numero || 1,
-          note: [r.note].concat((r.aggiunte || []).map(a => '+ ' + a.nome)).filter(Boolean).join(', ') || null,
+        const voce = {
+          qta: Number(r.quantita || 1), nome: testoStampa(r.nome_snapshot), uscita: r.uscita_numero || 1,
+          note: testoStampa([r.note].concat((r.aggiunte || []).map(a => '+ ' + a.nome)).filter(Boolean).join(', ')) || null,
           min: minuti[r.prodotto_vendita_id] || null,
           ...avvisoAllergeni(allergieTavolo, allergeniPiatti[r.prodotto_vendita_id]),
-        });
+        };
+        // stesso piatto, stessa uscita, stesse note: una riga sola con la quantita' sommata
+        const lista = (perReparto[rep] = perReparto[rep] || []);
+        const gia = lista.find(x => x.nome === voce.nome && x.uscita === voce.uscita && (x.note || '') === (voce.note || '') && !x.allergene && !voce.allergene);
+        if (gia) gia.qta += voce.qta; else lista.push(voce);
       });
       const lavori = [];
       Object.keys(perReparto).forEach(rep => {
@@ -2674,7 +2689,7 @@ export async function render(container) {
   function apriChiusuraNonFiscale() {
     if (!comandaAttiva) return;
     const ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:3000;display:flex;align-items:center;justify-content:center;';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9400;display:flex;align-items:center;justify-content:center;';
     const b = 'flex:1;min-width:120px;padding:12px 6px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;font-weight:700;font-size:13px;color:#334155;cursor:pointer;';
     ov.innerHTML =
       '<div style="background:#fff;border-radius:20px;padding:22px;width:min(420px,92vw);">'
@@ -3603,6 +3618,7 @@ export async function render(container) {
   };
   container.querySelector('#btn-refresh').onclick = () => loadAll();
   container.querySelector('#btn-back-tavoli').onclick = () => switchView('tavoli');
+  try { document.documentElement.style.overscrollBehavior = 'none'; document.body.style.overscrollBehavior = 'none'; } catch (e) {}
   container.querySelector('#btn-azioni-tavolo').onclick = () => azioniTavolo();
 
   // ══════════════════════════════════════════
