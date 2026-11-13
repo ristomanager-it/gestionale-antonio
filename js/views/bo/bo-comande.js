@@ -180,6 +180,7 @@ export async function render(container) {
               <button id="btn-nuova-uscita" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;">+ Nuova uscita</button>
               <button id="btn-invia-cucina" style="background:#16a34a;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">📤 Invia</button>
               <button id="btn-via-uscita" style="display:none;background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:700;">🔔 Via</button>
+              <button id="btn-azioni-tavolo" style="background:#f1f5f9;color:#0f172a;border:1px solid #e2e8f0;padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600;">⋯ Tavolo</button>
               <button id="btn-preconto" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">🧾 Conto</button>
               <button id="btn-chiudi-comanda" style="background:#dc2626;color:white;border:none;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;">✅ Chiudi</button>
             </div>
@@ -3602,6 +3603,120 @@ export async function render(container) {
   };
   container.querySelector('#btn-refresh').onclick = () => loadAll();
   container.querySelector('#btn-back-tavoli').onclick = () => switchView('tavoli');
+  container.querySelector('#btn-azioni-tavolo').onclick = () => azioniTavolo();
+
+  // ══════════════════════════════════════════
+  // AZIONI SUL TAVOLO: libera, sposta conto, abbina tavolo
+  // ══════════════════════════════════════════
+  function nomeTavolo(id) { const t = tavoli.find(x => String(x.id) === String(id)); return t ? t.nome : '?'; }
+  function chiudiFoglio() { document.getElementById('foglio-tavolo')?.remove(); }
+  function foglio(titolo, corpo) {
+    chiudiFoglio();
+    const ov = document.createElement('div');
+    ov.id = 'foglio-tavolo';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = '<div style="background:white;border-radius:16px;width:100%;max-width:560px;max-height:85vh;overflow:auto;padding:18px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong style="font-size:17px;">' + titolo + '</strong>'
+      + '<button data-x style="background:#f1f5f9;border:none;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:16px;">✕</button></div>'
+      + corpo + '</div>';
+    ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) chiudiFoglio(); });
+    document.body.appendChild(ov);
+    return ov;
+  }
+  const BTN_AZ = 'display:block;width:100%;text-align:left;padding:14px 16px;margin-bottom:8px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;cursor:pointer;font-size:15px;';
+
+  function azioniTavolo() {
+    if (!comandaAttiva) return;
+    if (cameriereAttivo?.ruolo === 'limited') { mostraToast('⛔ Non hai il permesso di spostare o liberare tavoli', 'error'); return; }
+    const ov = foglio('Tavolo ' + esc(nomeTavolo(comandaAttiva.tavolo_id)),
+      '<button data-az="sposta" style="' + BTN_AZ + '">↔️ <b>Sposta conto</b><div style="font-size:12px;color:#64748b;margin-top:2px;">Porta tutta la comanda su un tavolo libero</div></button>'
+      + '<button data-az="abbina" style="' + BTN_AZ + '">🔗 <b>Abbina tavolo</b><div style="font-size:12px;color:#64748b;margin-top:2px;">Unisce qui il conto di un altro tavolo occupato</div></button>'
+      + '<button data-az="libera" style="' + BTN_AZ + '">🔓 <b>Libera tavolo</b><div style="font-size:12px;color:#64748b;margin-top:2px;">Per un tavolo aperto per sbaglio o rimasto vuoto</div></button>');
+    ov.querySelector('[data-az="sposta"]').onclick = () => scegliTavolo('sposta');
+    ov.querySelector('[data-az="abbina"]').onclick = () => scegliTavolo('abbina');
+    ov.querySelector('[data-az="libera"]').onclick = () => liberaTavolo();
+  }
+
+  function scegliTavolo(modo) {
+    const occupati = new Set(comande.filter(c => c.tavolo_id).map(c => String(c.tavolo_id)));
+    const lista = tavoli.filter(t => String(t.id) !== String(comandaAttiva.tavolo_id) && (modo === 'sposta' ? !occupati.has(String(t.id)) : occupati.has(String(t.id))));
+    const titolo = modo === 'sposta' ? 'Sposta su quale tavolo libero?' : 'Quale tavolo unire a questo?';
+    if (!lista.length) { mostraToast(modo === 'sposta' ? 'Nessun tavolo libero' : 'Nessun altro tavolo occupato', 'warning'); return; }
+    const ov = foglio(titolo, '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;">'
+      + lista.map(t => {
+          const c = comande.find(x => String(x.tavolo_id) === String(t.id));
+          return '<button data-t="' + t.id + '" style="padding:12px 6px;border-radius:12px;cursor:pointer;border:2px solid ' + (c ? '#dc2626' : '#22c55e') + ';background:' + (c ? '#fee2e2' : '#f0fdf4') + ';">'
+            + '<div style="font-weight:800;font-size:16px;">' + esc(t.nome) + '</div>'
+            + (c ? '<div style="font-size:11px;color:#dc2626;">€' + Number(c.totale || 0).toFixed(2) + '</div>' : '<div style="font-size:11px;color:#64748b;">libero</div>')
+            + '</button>';
+        }).join('') + '</div>');
+    ov.querySelectorAll('[data-t]').forEach(b => {
+      b.onclick = () => (modo === 'sposta' ? spostaConto(b.dataset.t) : abbinaTavolo(b.dataset.t));
+    });
+  }
+
+  // Sposta conto: la comanda (piatti, coperti, conto) passa sul tavolo scelto
+  async function spostaConto(tavoloId) {
+    const da = nomeTavolo(comandaAttiva.tavolo_id), a = nomeTavolo(tavoloId);
+    const gia = comande.find(c => String(c.tavolo_id) === String(tavoloId));
+    if (gia) { mostraToast('Il tavolo ' + a + ' è occupato: usa Abbina tavolo', 'warning'); return; }
+    const { error } = await supa().from('comande').update({ tavolo_id: tavoloId }).eq('id', comandaAttiva.id);
+    if (error) { mostraToast('Spostamento non riuscito: ' + error.message, 'error'); return; }
+    comandaAttiva.tavolo_id = tavoloId;
+    const loc = comande.find(c => String(c.id) === String(comandaAttiva.id)); if (loc) loc.tavolo_id = tavoloId;
+    chiudiFoglio();
+    mostraToast('↔️ Conto spostato dal tavolo ' + da + ' al ' + a, 'success');
+    await apriComanda(tavoloId);
+  }
+
+  // Abbina: piatti e coperti dell'altro tavolo passano qui, l'altro tavolo si libera
+  async function abbinaTavolo(tavoloId) {
+    const altra = comande.find(c => String(c.tavolo_id) === String(tavoloId));
+    if (!altra) return;
+    const qui = nomeTavolo(comandaAttiva.tavolo_id), li = nomeTavolo(tavoloId);
+    if (!confirm('Unire il conto del tavolo ' + li + ' (€' + Number(altra.totale || 0).toFixed(2) + ') al tavolo ' + qui + '?\nIl tavolo ' + li + ' si libera.')) return;
+    const { error: e1 } = await supa().from('comanda_righe').update({ comanda_id: comandaAttiva.id }).eq('comanda_id', altra.id);
+    if (e1) { mostraToast('Unione non riuscita: ' + e1.message, 'error'); return; }
+    const coperti = Number(comandaAttiva.coperti || 0) + Number(altra.coperti || 0);
+    await supa().from('comande').update({ coperti: coperti }).eq('id', comandaAttiva.id);
+    await supa().from('comande').update({
+      stato: 'chiusa', totale: 0, chiusa_at: new Date().toISOString(),
+      note: [altra.note, 'Unito al tavolo ' + qui].filter(Boolean).join(' · '),
+      cameriere_chiusura: cameriereAttivo?.nome || null,
+    }).eq('id', altra.id);
+    comande = comande.filter(c => String(c.id) !== String(altra.id));
+    comandaAttiva.coperti = coperti;
+    await loadRigheComanda(comandaAttiva.id);
+    await aggiornaTotale();
+    chiudiFoglio();
+    mostraToast('🔗 Tavolo ' + li + ' unito al ' + qui, 'success');
+    await apriComanda(comandaAttiva.tavolo_id);
+  }
+
+  // Libera: solo se non ci sono piatti da pagare (altrimenti si passa dal Conto o si sposta/abbina)
+  async function liberaTavolo() {
+    const attive = righeComanda.filter(r => r.stato !== 'annullato');
+    const tot = attive.reduce((s, r) => s + Number(r.prezzo_snapshot || 0) * Number(r.quantita || 1), 0);
+    if (attive.length && tot > 0) {
+      chiudiFoglio();
+      mostraToast('Il tavolo ha ' + attive.length + ' piatti per €' + tot.toFixed(2) + ': chiudilo con Conto, oppure spostalo o abbinalo', 'warning');
+      return;
+    }
+    const nome = nomeTavolo(comandaAttiva.tavolo_id);
+    if (!confirm('Liberare il tavolo ' + nome + '?')) return;
+    const { error } = await supa().from('comande').update({
+      stato: 'chiusa', chiusa_at: new Date().toISOString(),
+      note: [comandaAttiva.note, 'Liberato senza conto'].filter(Boolean).join(' · '),
+      cameriere_chiusura: cameriereAttivo?.nome || null,
+    }).eq('id', comandaAttiva.id);
+    if (error) { mostraToast('Non riuscito: ' + error.message, 'error'); return; }
+    comande = comande.filter(c => String(c.id) !== String(comandaAttiva.id));
+    comandaAttiva = null; righeComanda = [];
+    chiudiFoglio();
+    mostraToast('🔓 Tavolo ' + nome + ' libero', 'success');
+    switchView('tavoli');
+    renderMapTavoli();
+  }
   container.querySelector('#btn-invia-cucina').onclick = () => inviaInCucina();
   container.querySelector('#btn-ritmi-impostazioni').onclick = () => {
     const box = container.querySelector('#ritmi-impostazioni');
