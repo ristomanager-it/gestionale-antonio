@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=83";
+import { initMenu } from "./menu.js?v=84";
 import { appAttiva, rotteApp, avviaPallino, avviaControlloBlocco } from "./app-profili.js?v=3";
 window.initMenu = initMenu;
 
@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261113-11";
+const APP_V = "20261113-12";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
