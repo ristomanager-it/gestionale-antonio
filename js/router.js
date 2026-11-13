@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=86";
+import { initMenu } from "./menu.js?v=87";
 import { appAttiva, rotteApp, avviaPallino, avviaControlloBlocco } from "./app-profili.js?v=3";
 window.initMenu = initMenu;
 
