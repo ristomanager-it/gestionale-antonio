@@ -35,6 +35,8 @@ export async function render(container) {
     return;
   }
 
+  caricaAutofattureStudio(document.getElementById("comm-autofatture"));
+
   import("../components/esporta-fatture.js?v=" + (window.APP_V || "1"))
     .then((m) => m.montaEsportaFatture(document.getElementById("comm-esporta"), { aziendaId, lato: "commercialista" }))
     .catch((e) => console.error("esporta-fatture:", e));
