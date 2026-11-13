@@ -86,6 +86,11 @@ window.stateActions = {
       window.__rfUltimoReset = { ts: new Date().toISOString(), hash: String(window.location.hash || ""),
         stack: String(new Error().stack || "").split("\n").slice(1, 7).join(" | ") };
       if (window.state?.azienda?.id) localStorage.setItem("rf_ultima_azienda", window.state.azienda.id);
+      // la traccia si scrive subito: prima restava solo in memoria e il caso non veniva mai registrato
+      if (window.state?.user?.id && window.state?.azienda?.id && (window.supabaseClient || window.supabase)?.from) {
+        (window.supabaseClient || window.supabase).from("debug_eventi").insert({ tipo: "azienda_azzerata",
+          dati: Object.assign({ azienda: window.state.azienda.id, versione: window.APP_V || null }, window.__rfUltimoReset) }).then(() => {}, () => {});
+      }
     } catch (_) {}
     window.state.azienda = null;
     window.state.sedi = [];
