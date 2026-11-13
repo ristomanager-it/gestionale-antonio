@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Le app di Ristoflow</title>
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--testo:#0f172a;--grigio:#64748b;--bordo:#e5e7eb;--blu:#0E5A7A;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1220;--card:#111827;--testo:#e5e7eb;--grigio:#94a3b8;--bordo:#1f2937;--blu:#3b9cc4;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1220;--card:#111827;--testo:#e5e7eb;--grigio:#94a3b8;--bordo:#1f2937;--blu:#3b9cc4;color-scheme:dark}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--testo);font-family:-apple-system,system-ui,sans-serif;padding:20px}
+h1{font-size:22px;margin:0 0 4px}.nota{font-size:14px;color:var(--grigio);margin:0 0 18px;max-width:560px;line-height:1.5}
+.griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;max-width:900px}
+.app{background:var(--card);border:1px solid var(--bordo);border-radius:16px;padding:16px;text-decoration:none;color:var(--testo);display:block}
+.ic{font-size:34px}.n{font-size:17px;font-weight:700;margin:6px 0 4px}.v{font-size:13px;color:var(--grigio);line-height:1.5}
+.apri{display:inline-block;margin-top:10px;background:var(--blu);color:#fff;padding:8px 14px;border-radius:10px;font-size:14px;font-weight:600}
+h2{font-size:15px;color:var(--grigio);margin:28px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+ol{font-size:14px;line-height:1.7;max-width:560px;padding-left:20px}
+</style></head><body>
+<h1>Le app di Ristoflow</h1>
+<p class="nota">Un'icona per dispositivo. Sui telefoni Ristoflow, sui tablet di sala Tablet sala (Comande, Prenotazioni e Cassa).</p>
+<div class="griglia"><a class="app" href="../index.html#/home"><div class="ic">📱</div><div class="n">Ristoflow</div><div class="v">Per i telefoni: un'icona sola, ognuno vede le sezioni del suo ruolo</div><span class="apri">Apri</span></a><a class="app" href="../index.html?app=tablet-ordini#/bo-comande"><div class="ic">📱</div><div class="n">Tablet sala</div><div class="v">🪑 Comande · 💳 Cassa · 🏭 Produzione · 🟢 Produzioni aperte · 🧾 Chiusura cassa</div><span class="apri">Apri</span></a></div>
+<h2>Come si installa</h2>
+<ol><li><b>iPhone / iPad</b>: apri l'app da Safari, tocca Condividi › Aggiungi alla schermata Home.</li>
+<li><b>Android</b>: apri l'app da Chrome, tocca i tre puntini › Installa app.</li>
+</ol>
+</body></html>
