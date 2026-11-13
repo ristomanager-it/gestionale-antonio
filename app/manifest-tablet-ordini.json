@@ -1,0 +1,24 @@
+{
+  "id": "ristoflow-tablet-ordini",
+  "name": "Ristoflow · Tablet sala",
+  "short_name": "Tablet sala",
+  "start_url": "../index.html?app=tablet-ordini",
+  "scope": "../",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0E5A7A",
+  "icons": [
+    {
+      "src": "icone/tablet-ordini-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icone/tablet-ordini-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
