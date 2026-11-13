@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=82";
-import { appAttiva, rotteApp, avviaPallino, avviaControlloBlocco } from "./app-profili.js?v=2";
+import { initMenu } from "./menu.js?v=83";
+import { appAttiva, rotteApp, avviaPallino, avviaControlloBlocco } from "./app-profili.js?v=3";
 window.initMenu = initMenu;
 
 /* =========================================================
@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261113-7";
+const APP_V = "20261113-8";
 window.APP_V = APP_V;
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
@@ -1415,6 +1415,16 @@ async function loadSediForAzienda(aziendaId) {
 }
 
 function pickActiveSede(sedi) {
+  // 0. Tablet attivato: la sua sede, sempre (non l'ultima usata sul dispositivo)
+  try {
+    const aidT = window.state?.azienda?.id || getStoredAziendaId();
+    const sedeTablet = aidT && localStorage.getItem("rf_tablet_token_" + aidT) ? localStorage.getItem("rf_tablet_sede_" + aidT) : null;
+    if (sedeTablet) {
+      const m0 = sedi.find((s) => String(s.id) === String(sedeTablet));
+      if (m0) { setStoredSedeId(m0.id); return m0; }
+    }
+  } catch (e) { /* senza sede del tablet si va avanti come prima */ }
+
   // 1. Ultima sede usata (localStorage)
   const storedId = getStoredSedeId();
   if (storedId) {
