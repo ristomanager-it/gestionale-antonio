@@ -8,8 +8,36 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261113-14";
+const APP_V = "20261113-15";
 window.APP_V = APP_V;
+
+// ── AGGIORNAMENTO AUTOMATICO ──
+// Le app installate (iPad, Android) spesso non si chiudono davvero e restano sul codice vecchio.
+// Ogni 2 minuti e quando si torna sull'app si guarda la versione pubblicata: se e' cambiata,
+// si ricarica appena il dispositivo e' fermo da 20 secondi (i dati delle comande sono gia' salvati).
+(function () {
+  const mia = (function () { try { return new URL(import.meta.url).searchParams.get("v") || ""; } catch (e) { return ""; } })();
+  let ultimoTocco = Date.now(), daRicaricare = false;
+  ["pointerdown", "keydown"].forEach((ev) => document.addEventListener(ev, () => { ultimoTocco = Date.now(); }, { passive: true, capture: true }));
+  async function controlla() {
+    try {
+      const r = await fetch("/index.html?nc=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) return;
+      const m = (await r.text()).match(/router\.js\?v=(\d+)/);
+      if (m && mia && m[1] !== mia) daRicaricare = true;
+    } catch (e) { /* senza rete si riprova dopo */ }
+  }
+  function forse() {
+    if (daRicaricare && (document.hidden || Date.now() - ultimoTocco > 20000)) {
+      daRicaricare = false;
+      const q = new URLSearchParams(location.search); q.set("u", String(Date.now()));
+      location.replace(location.pathname + "?" + q.toString() + location.hash);
+    }
+  }
+  setInterval(controlla, 120000);
+  setInterval(forse, 5000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) controlla().then(forse); });
+})();
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
 // Footer rimosso — import commentato
 // import { renderFooter, initFooter } from "./components/footer.js";
