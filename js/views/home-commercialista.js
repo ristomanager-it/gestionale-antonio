@@ -206,3 +206,29 @@ function escHtml(v) {
     .replace(/&/g, "&amp;").replace(/</g, "&lt;")
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
+
+// Autofatture di tutti i clienti dello studio: quante da fare, scadenza piu' vicina, doppioni.
+// Si entra nella scheda del cliente con ?azienda=, senza cambiare l'azienda attiva.
+async function caricaAutofattureStudio(el) {
+  if (!el) return;
+  const sb = window.supabaseClient || window.supabase;
+  let r = null;
+  try {
+    const { data, error } = await sb.functions.invoke("fe-autofatture", { body: { azione: "studio" } });
+    r = error ? null : data;
+  } catch (e) { r = null; }
+  if (!r || !r.ok || !r.clienti || !r.clienti.length) { el.innerHTML = ""; return; }
+  const gg = (t) => { const s = String(t || "").split("-"); return s.length === 3 ? s[2] + "/" + s[1] : ""; };
+  const pill = (t, bg, col) => `<span style="font-size:12px;font-weight:700;border-radius:99px;padding:3px 10px;white-space:nowrap;background:${bg};color:${col}">${escHtml(t)}</span>`;
+  const righe = r.clienti.map((c) => {
+    const n = c.da_fare + c.bozze;
+    const stato = c.doppioni ? pill("Doppione", "#fee2e2", "#b91c1c")
+      : c.chi === "noi" ? pill("Le invia il cliente", "#e0f2fe", "#0E5A7A")
+      : n ? pill(n + " da fare", "#fef3c7", "#b45309") : pill("In regola", "#dcfce7", "#15803d");
+    const sotto = n ? (c.bozze ? c.bozze + " pronte" : "") + (c.bozze && c.da_fare ? " · " : "") + (c.da_fare ? c.da_fare + " da preparare" : "") + (c.scadenza ? " · entro il " + gg(c.scadenza) : "") : "Niente da fare";
+    return `<a href="#/autofatture?azienda=${encodeURIComponent(c.azienda_id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #f1f5f9;text-decoration:none;color:#0f172a;font-size:14px">
+      <div>${escHtml(c.nome)}<small style="display:block;color:#64748b;font-size:12px;margin-top:2px">${escHtml(sotto)}</small></div>${stato}</a>`;
+  }).join("");
+  el.innerHTML = `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#94a3b8;margin:0 0 10px">🧾 Autofatture dei tuoi clienti</div>${righe}</div>`;
+}
