@@ -149,7 +149,7 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
   <a class="btn" href="#prenota">Blocca il tavolo</a>
 </div>
 
-<div class="cookie" id="cookie" hidden><span>Usiamo i cookie</span><button type="button" id="ck-no">Rifiuta</button><button type="button" id="ck-si">Accetta</button></div>
+<div class="cookie cookie-n" id="cookie" hidden role="dialog" aria-label="Cookie"><div class="ck-tit">🎄 Ti teniamo il posto a tavola?</div><p class="ck-txt">Con i cookie di Meta e Google ti ritroviamo solo per ricordarti le nostre proposte di Natale, e capiamo quali piacciono. Niente spam.</p><details class="ck-det"><summary>Dettagli</summary><p>Se accetti carichiamo il pixel di Meta e Google Analytics: misurano le visite a questa pagina e ci permettono di mostrarti i nostri annunci su Facebook, Instagram e Google. Se rifiuti non carichiamo niente e la pagina funziona lo stesso. La scelta resta salvata solo su questo telefono.</p></details><div class="ck-bt"><button type="button" id="ck-no">No, grazie</button><button type="button" id="ck-si">Sì, accetto</button></div></div>
 <script src="natale-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="natale-tracking.js"></script>
