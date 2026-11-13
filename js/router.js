@@ -972,6 +972,9 @@ const routePermissions = {
   "acquisti":
     "acquisti.write",
 
+  "autofatture":
+    "acquisti.write",
+
   "magazzino":
     "magazzino.write",
 
