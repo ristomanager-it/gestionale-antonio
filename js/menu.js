@@ -1,3 +1,5 @@
+import { appAttiva } from "./app-profili.js?v=1";
+
 export function initMenu() {
 
   const menu = document.getElementById("global-menu");
@@ -370,6 +372,16 @@ export function initMenu() {
           { label: "🌐 Preventivo online", route: "preventivo-online" },
           { label: "🏛️ Location",   route: "bo-location-ricevimenti" },
         ]
+      }];
+    }
+
+    // App per reparto (Comande, Produzione, Marketing... o tablet bloccato): solo le sue voci.
+    const appRep = appAttiva();
+    if (appRep) {
+      return [{
+        key: "app-" + appRep.id,
+        title: appRep.titolo,
+        items: appRep.voci,   // nessuna uscita, nemmeno per l'admin
       }];
     }
 
@@ -998,7 +1010,9 @@ export function initMenu() {
       } catch(e) {}
       // Forza il riscaricamento di index.html su iOS con un parametro anti-cache
       const base = window.location.origin + window.location.pathname;
-      window.location.replace(base + "?u=" + Date.now() + (window.location.hash || ""));
+      // ?app= resta: l'app per reparto non deve tornare al gestionale completo dopo l'aggiornamento
+      const appQ = new URLSearchParams(window.location.search).get("app");
+      window.location.replace(base + "?u=" + Date.now() + (appQ ? "&app=" + encodeURIComponent(appQ) : "") + (window.location.hash || ""));
     };
     menu.appendChild(cacheBtn);
 
