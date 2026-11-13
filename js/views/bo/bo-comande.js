@@ -1278,7 +1278,7 @@ export async function render(container) {
     const all = [{ id: null, nome: 'Tutti' }];
     if (menuGiornoOggi) all.push({ id: '__mdg__', nome: '🍽️ ' + (menuGiornoOggi.titolo || 'Menu del Giorno') });
     all.push(...cats);
-    box.innerHTML = `<button data-ordina-cat style="display:inline-block;padding:8px 12px;margin-right:4px;border:1px dashed #94a3b8;border-radius:8px;cursor:pointer;font-size:13px;background:#fff;color:#334155;white-space:nowrap;" title="Ordina categorie">⇅</button>` + all.map(c => `
+    box.innerHTML = `<button data-ordina-cat style="position:sticky;left:0;z-index:2;display:inline-block;padding:8px 12px;margin-right:6px;border:1.5px solid #0E5A7A;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;background:#fff;color:#0E5A7A;white-space:nowrap;box-shadow:6px 0 8px -4px rgba(0,0,0,.15);" title="Ordina categorie">⇅ Ordina</button>` + all.map(c => `
       <button data-cat="${c.id || ''}" style="
         display:inline-block;padding:8px 14px;margin-right:4px;
         border:none;border-radius:8px;cursor:pointer;font-size:13px;
