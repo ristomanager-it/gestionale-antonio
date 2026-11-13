@@ -126,6 +126,20 @@ function disegna(container, azienda, cfg, ctx) {
                etichetta("Serie (facoltativa)") + campo("fi-serie", cfg.sezionale, "vuota = serie unica", ro))
     + '<div style="' + S.aiuto + '">Il numero lo assegna l\'app quando emetti: non si sceglie a mano.</div>');
 
+  // 4b. Autofatture: chi le invia e da che numero si riparte
+  h += card("Autofatture",
+    etichetta("Chi le invia")
+    + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px;font-size:14px;">'
+    + radio("fi-afchi", "noi", "Noi", (cfg.autofatture_chi || "noi") === "noi", ro)
+    + radio("fi-afchi", "studio", "Lo studio", cfg.autofatture_chi === "studio", ro)
+    + radio("fi-afchi", "entrambi", "Tutti e due", cfg.autofatture_chi === "entrambi", ro)
+    + "</div>"
+    + '<div style="' + S.aiuto + 'margin-bottom:10px;">Con "Lo studio" il commercialista invitato da Accessi Consulenti le prepara e le invia da Ristoflow. Con "Tutti e due" chi apre la riga per primo la prende.</div>'
+    + griglia2(etichetta("Serie") + campo("fi-afsez", cfg.af_sezionale || "AF01", "AF01", ro),
+               etichetta("Ultimo numero fatto fuori da Ristoflow") + campo("fi-afext", cfg.af_ultimo_numero_esterno != null ? String(cfg.af_ultimo_numero_esterno) : "", "se non è ancora arrivato", ro, "numeric"))
+    + '<div style="' + S.aiuto + '">La numerazione riparte da sola dall\'ultima autofattura arrivata dallo SDI. Scrivi un numero qui solo se ne hai fatte altre fuori che non sono ancora arrivate.</div>'
+    + '<div style="margin-top:10px;"><a href="#/autofatture" style="font-weight:700;color:#0E5A7A;">Apri le autofatture &rarr;</a></div>');
+
   // 5. Collegamento (solo superadmin)
   if (ctx.superadmin) {
     h += card("Collegamento allo SDI · solo superadmin",
