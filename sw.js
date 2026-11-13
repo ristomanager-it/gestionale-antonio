@@ -62,7 +62,7 @@ self.addEventListener("fetch", function (e) {
   }
   // Pagine: sempre dalla rete
   if (req.mode !== "navigate") return;
-  e.respondWith(fetch(e.request).catch(function () {
+  e.respondWith(fetch(e.request, { cache: "no-store" }).catch(function () {
     return new Response("Sei offline. Riapri con la connessione attiva.", {
       status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" }
     });
