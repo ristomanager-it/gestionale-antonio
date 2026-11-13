@@ -284,7 +284,10 @@ function renderPreventiviList() {
                              font-size:12px;font-weight:700;">${statoTxt}</span>
               </div>
             </div>
-            <button class="app-button small" data-apri="${p.id}" style="flex:none;">Apri</button>
+            <div style="display:flex;flex-direction:column;gap:6px;flex:none;">
+              <button class="app-button small" data-apri="${p.id}" style="flex:none;">Apri</button>
+              ${p.confermato_il || p.stato === "confermato" ? `<a href="#/fatture-emesse?vista=evento&preventivo=${p.id}" onclick="event.stopPropagation()" class="app-button small gray" style="text-align:center;text-decoration:none;">🧾 Fattura</a>` : ""}
+            </div>
           </div>
         </div>
       `;
