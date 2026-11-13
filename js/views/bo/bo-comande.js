@@ -1495,6 +1495,7 @@ export async function render(container) {
     const { data, error } = await supa().from('comanda_righe').insert(riga).select('*').single();
     if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
     righeComanda.push(data);
+    _rigaDaMostrare = data.id;
     await aggiornaTotale();
     renderRighe();
     renderTotale();
@@ -1526,6 +1527,7 @@ export async function render(container) {
     if (error) { mostraToast('Errore: ' + error.message, 'error'); return; }
     if (data) {
       data.forEach(r => righeComanda.push(r));
+      if (data.length) _rigaDaMostrare = data[data.length - 1].id;
       await aggiornaTotale();
       renderRighe();
       renderTotale();
@@ -1562,7 +1564,7 @@ export async function render(container) {
     if (rigaEsistente) {
       const { error } = await supa().from('comanda_righe')
         .update({ quantita: rigaEsistente.quantita + 1 }).eq('id', rigaEsistente.id);
-      if (!error) rigaEsistente.quantita += 1;
+      if (!error) { rigaEsistente.quantita += 1; _rigaDaMostrare = rigaEsistente.id; }
     } else {
       const cat = categorieVendita.find(c => String(c.id) === String(prodotto.categoria_vendita_id));
       const catNome = (cat?.nome || '').toLowerCase();
@@ -1586,7 +1588,7 @@ export async function render(container) {
         uscita_numero: uscitaCorrente,
       }).select('*').single();
 
-      if (!error && data) { righeComanda.push(data); nuovaRiga = data; }
+      if (!error && data) { righeComanda.push(data); nuovaRiga = data; _rigaDaMostrare = data.id; }
     }
 
     // ── SCARICO MAGAZZINO IN TEMPO REALE ──
@@ -1909,6 +1911,7 @@ export async function render(container) {
 
   const COLORI_USCITA = ['#0E5A7A','#7c3aed','#16a34a','#dc2626','#f59e0b','#0891b2','#be185d'];
 
+  let _rigaDaMostrare = null;
   function renderRighe() {
     aggiornaBottoneVia();
     const box = container.querySelector('#righe-comanda');
@@ -1945,14 +1948,16 @@ export async function render(container) {
             ${attiva ? `<span style="background:${colore};color:white;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">QUI I NUOVI PIATTI</span>` : `<span style="font-size:11px;color:#94a3b8;">tocca per aggiungere qui</span>`}
           </div>
           ${righe.length ? righe.map(r => `
-            <div data-riga="${r.id}" style="display:flex;align-items:center;gap:8px;padding:10px 8px 10px 4px;border-bottom:1px solid #f1f5f9;">
-              <div data-trascina="${r.id}" title="Trascina in un'altra uscita" style="touch-action:none;cursor:grab;padding:8px 6px;color:#94a3b8;font-size:18px;user-select:none;">⠿</div>
-              <div data-apri="${r.id}" style="flex:1;min-width:0;cursor:pointer;">
+            <div data-riga="${r.id}" style="display:flex;align-items:flex-start;gap:6px;padding:8px 8px 8px 4px;border-bottom:1px solid #f1f5f9;">
+              <div data-trascina="${r.id}" title="Trascina in un'altra uscita" style="touch-action:none;cursor:grab;padding:6px 6px;color:#94a3b8;font-size:18px;user-select:none;">⠿</div>
+              <div style="flex:1;min-width:0;">
+              <div data-apri="${r.id}" style="cursor:pointer;">
                 <div style="font-size:15px;font-weight:700;color:#0f172a;line-height:1.25;">${r.quantita > 1 ? `<span style="color:${colore};">${r.quantita}×</span> ` : ''}${esc(r.nome_snapshot)}</div>
                 ${r.note ? `<div style="font-size:12.5px;color:#b45309;margin-top:2px;">${esc(r.note)}</div>` : ''}
                 ${(r.aggiunte || []).length ? `<div style="font-size:12.5px;color:#15803d;">${r.aggiunte.map(a => '+ ' + esc(a.nome)).join(', ')}</div>` : ''}
               </div>
-              <div style="display:flex;align-items:center;gap:4px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-top:6px;justify-content:flex-end;">
+              <div style="display:flex;align-items:center;gap:4px;margin-right:auto;">
                 <button data-decr="${r.id}" style="width:34px;height:34px;border:1px solid #e5e7eb;border-radius:8px;background:white;cursor:pointer;font-size:18px;">−</button>
                 <span style="min-width:22px;text-align:center;font-size:15px;font-weight:700;">${r.quantita}</span>
                 <button data-incr="${r.id}" style="width:34px;height:34px;border:1px solid #e5e7eb;border-radius:8px;background:white;cursor:pointer;font-size:18px;">+</button>
@@ -1960,16 +1965,20 @@ export async function render(container) {
               <div style="font-size:14px;font-weight:700;color:#0E5A7A;min-width:58px;text-align:right;">${euro(Number(r.prezzo_snapshot || 0) * Number(r.quantita || 1))}</div>
               <span style="color:${statoColori[r.stato] || '#64748b'};font-size:16px;" title="${r.stato}">${statoLabel[r.stato] || '⏳'}</span>
               <button data-annulla="${r.id}" style="background:#fee2e2;border:none;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:13px;color:#dc2626;">✕</button>
+              </div>
+              </div>
             </div>`).join('') : `<div style="padding:12px;font-size:13px;color:#94a3b8;">Nessun piatto: tocca i prodotti o trascina qui</div>`}
           <div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px;">
-            ${daInviare ? `<button data-invia-uscita="${u}" style="${BTN}flex:2;background:#16a34a;color:white;">📤 Invia ${daInviare}</button>
-                           <button data-attendi-uscita="${u}" style="${BTN}flex:1;background:#f1f5f9;color:#0f172a;border:1px solid #e2e8f0;">⏸ Attendi</button>` : ''}
+            ${daInviare ? `<span style="font-size:12px;color:#64748b;padding:6px 4px;">⏳ ${daInviare} da inviare</span>` : ''}
             ${inviate && u > 1 && chiamata < u ? `<button data-via-uscita="${u}" style="${BTN}flex:1;background:#7c3aed;color:white;">🔔 Via</button>` : ''}
             ${inviate && (u === 1 || chiamata >= u) ? `<button data-sollecito-uscita="${u}" style="${BTN}flex:1;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;">⏰ Sollecito</button>` : ''}
           </div>
         </div>`;
     }).join('');
-    html += `<div data-uscita-box="nuova" style="margin:8px 6px 16px;"><button id="btn-nuova-uscita-lista" style="${BTN}width:100%;background:#e0f2fe;color:#0369a1;border:1px dashed #7dd3fc;">＋ Nuova uscita</button></div>`;
+    const totDaInviare = piatti.filter(r => r.stato === 'in_attesa').length;
+    html += `<div data-uscita-box="nuova" style="margin:8px 6px 6px;"><button id="btn-nuova-uscita-lista" style="${BTN}width:100%;background:#e0f2fe;color:#0369a1;border:1px dashed #7dd3fc;">＋ Nuova uscita</button></div>`;
+    if (totDaInviare) html += `<div style="margin:6px 6px 16px;"><button id="btn-invia-comanda-lista" style="${BTN}width:100%;padding:16px;font-size:17px;background:#16a34a;color:white;">📤 Invia comanda · ${totDaInviare} ${totDaInviare === 1 ? 'piatto' : 'piatti'}</button>
+      <div style="font-size:12px;color:#64748b;text-align:center;margin-top:4px;">La cucina riceve tutto; le uscite dopo la prima aspettano il tuo 🔔 Via</div></div>`;
     box.innerHTML = html;
 
     box.querySelectorAll('[data-incr]').forEach(btn => btn.onclick = () => cambiaQuantita(btn.dataset.incr, 1));
@@ -1982,6 +1991,13 @@ export async function render(container) {
     box.querySelectorAll('[data-via-uscita]').forEach(b => b.onclick = () => chiamaUscitaN(Number(b.dataset.viaUscita)));
     box.querySelectorAll('[data-sollecito-uscita]').forEach(b => b.onclick = () => sollecitaUscita(Number(b.dataset.sollecitoUscita)));
     const nu = box.querySelector('#btn-nuova-uscita-lista'); if (nu) nu.onclick = () => nuovaUscita();
+    const ic = box.querySelector('#btn-invia-comanda-lista'); if (ic) ic.onclick = () => inviaInCucina();
+    // man mano che si ordina la lista scorre sull'ultimo piatto preso
+    if (_rigaDaMostrare) {
+      const el = box.querySelector('[data-riga="' + _rigaDaMostrare + '"]');
+      _rigaDaMostrare = null;
+      if (el) requestAnimationFrame(() => el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    }
     box.querySelectorAll('[data-trascina]').forEach(h => attivaTrascinamento(h, box));
   }
 
@@ -2484,7 +2500,7 @@ export async function render(container) {
     comandaAttiva.stato = 'in_corso';
     renderRighe();
     const uscite = [...new Set(righeNuove.map(r => r.uscita_numero || 1))].sort((x, y) => x - y);
-    mostraToast(`✅ ${righeNuove.length} piatti inviati — uscit${uscite.length > 1 ? 'e' : 'a'} ${uscite.join(', ')}`, 'success');
+    mostraToast(`✅ Comanda inviata: ${righeNuove.length} piatti` + (uscite.some(u => u > 1) ? ' — le uscite ' + uscite.filter(u => u > 1).join(', ') + ' aspettano il Via' : ''), 'success');
     stampaComandaReparti(righeNuove, false);
     // Tablet condiviso: chi ha inviato puo' passare subito al tavolo dopo senza PIN;
     // se appoggia il tablet, dopo 20" torna al PIN per il collega
