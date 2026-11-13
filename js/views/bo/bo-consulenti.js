@@ -58,6 +58,7 @@ export async function render(container) {
               <div style="font-weight:700;color:#7c3aed;margin-bottom:6px">📊 Commercialista</div>
               <div style="font-size:13px;color:#64748b;line-height:1.7">
                 ✅ Bilancio live (P&L)<br>
+                ✅ Scarica gli XML di tutte le fatture<br>
                 ✅ Fatture acquisto e DDT<br>
                 ✅ Scadenze e pagamenti<br>
                 ✅ Categorie contabili<br>
