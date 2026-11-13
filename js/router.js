@@ -586,6 +586,25 @@ async function renderView(routeName) {
 
   }
 
+  // Rete di sicurezza: mai aprire una pagina operativa senza azienda se sappiamo quale si stava usando
+  // (succedeva su telefono: header "Ristoflow" e "Nessuna azienda attiva", poi ricaricando tutto tornava).
+  if (window.state?.user && !window.state?.azienda?.id && !PUBLIC_ROUTES.has(routeName) && !PLATFORM_ROUTES.has(routeName)
+      && !PREHOME_ROUTES.has(routeName) && !["login", "sceltaAzienda", "homePiattaforma", "home-agente"].includes(routeName)) {
+    try {
+      const lista = (window.state?.aziende || []).length ? window.state.aziende : ((window.__rfAziendeCache || {}).data || []);
+      const idNoto = localStorage.getItem("active_azienda_id") || localStorage.getItem("rf_ultima_azienda");
+      const m = lista.find((a) => String(a.aziende?.id) === String(idNoto));
+      if (m?.aziende) {
+        window.state.azienda = m.aziende;
+        if (!(window.state?.aziende || []).length && window.stateActions?.setAziende) window.stateActions.setAziende(lista);
+        try { localStorage.setItem("active_azienda_id", String(m.aziende.id)); } catch (_) {}
+        if (!window.state?.sedeAttiva?.id && window.stateActions?.caricaSedi) { try { await window.stateActions.caricaSedi(); } catch (_) {} }
+        (window.supabaseClient || supabase).from("debug_eventi").insert({ tipo: "azienda_ripresa_render",
+          dati: { route: routeName, hash: String(window.location.hash || ""), versione: APP_V, ultimo_reset: window.__rfUltimoReset || null } }).then(() => {}, () => {});
+      }
+    } catch (_) {}
+  }
+
   await module.render(app);
 
   // Barra in basso con i comandi veloci (admin e manager)
