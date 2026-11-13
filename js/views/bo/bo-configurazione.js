@@ -675,6 +675,7 @@ export async function render(container) {
       return '<div style="border:1px solid ' + (c.attivato ? '#bbf7d0' : '#e2e8f0') + ';background:' + (c.attivato ? '#f0fdf4' : '#fff') + ';border-radius:12px;padding:12px;margin-bottom:10px;">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
         + '<button data-copia="' + c.codice + '" title="Copia" style="font-family:ui-monospace,monospace;font-size:17px;font-weight:800;letter-spacing:1px;color:#0E5A7A;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;cursor:pointer;">' + c.codice + '</button>'
+        + (c.nome ? '<span style="font-size:15px;font-weight:700;color:#0f172a;flex:1;">' + esc(c.nome) + '</span>' : '<span style="flex:1;"></span>')
         + '<span style="font-size:13px;font-weight:700;color:' + (c.attivato ? '#16a34a' : '#94a3b8') + ';">' + (c.attivato ? '● Attivato' : 'Libero') + '</span>'
         + '</div>'
         + '<div style="font-size:14px;margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' + (TIPI[c.tipo] || c.tipo) + ' · '
