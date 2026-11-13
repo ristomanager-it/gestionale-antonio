@@ -1083,6 +1083,7 @@ const routePermissions = {
       "home",
       "bo-bilancio",
       "acquisti",
+      "autofatture",
       "completa-profilo",
       "profilo",
     ];
