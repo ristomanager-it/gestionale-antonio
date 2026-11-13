@@ -157,22 +157,25 @@ async function precontoSuTermica(st, doc) {
   const righe = (Array.isArray(doc?.righe) ? doc.righe : []).map(r => ({
     descrizione: r.descrizione || '', quantita: Number(r.quantita) || 1, prezzo_unitario: Number(r.prezzo_unitario) || 0,
   }));
-  const { data: riga, error } = await supabase.from('coda_stampe').insert({
+  const tok = tokenTablet(doc.azienda);
+  if (!tok) return { ok: false, simulato: false, errore: MSG_SOLO_TABLET };
+  const { data: ins, error } = await supabase.rpc('accoda_stampa', { p_token: tok, p_lavori: [{
     azienda_id: doc.azienda, sede_id: doc.sede || null, stampante_id: st.id,
     stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: st.larghezza || 42,
     tipo: 'preconto', reparto: 'preconto', comanda_uuid: doc.comanda_uuid || null,
     contenuto: { tavolo: doc.numero_tavolo || null, coperti: doc.coperti || null, righe: righe,
                  totale: Number(doc.totale) || 0, sconto: Number(doc.sconto) || 0,
                  chiusura: doc.chiusura || null },
-  }).select('id').single();
+  }] });
+  const riga = Array.isArray(ins) ? ins[0] : null;
   if (error || !riga) return { ok: false, simulato: false, errore: 'Coda stampa: ' + (error?.message || 'errore') };
   // il preconto conta anche come "preconto stampato" per la pianta della cassa
   if (doc.comanda_uuid) {
-    supabase.from('coda_fiscale').insert({
+    supabase.rpc('accoda_fiscale', { p_token: tok, p_record: {
       azienda_id: doc.azienda, sede_id: doc.sede || null, tipo_documento: 'preconto', righe: righe,
       totale: Number(doc.totale) || 0, stato: 'completato', numero_scontrino: 'PRECONTO-TERMICA',
       comanda_uuid: doc.comanda_uuid, stampante_ip: st.ip, stampante_porta: st.porta || 9100,
-    }).then(() => {});
+    } }).then(() => {});
   }
   const scadenza = Date.now() + 12000;
   while (Date.now() < scadenza) {
@@ -286,7 +289,10 @@ export async function emettiDocumento(doc) {
     } catch (e) { /* senza fondo */ }
   }
 
-  const { data: riga, error: insErr } = await supabase.from('coda_fiscale').insert(record).select('id').single();
+  const tokF = tokenTablet(aziendaId);
+  if (!tokF) return { ok: false, simulato: false, errore: MSG_SOLO_TABLET };
+  const { data: idF, error: insErr } = await supabase.rpc('accoda_fiscale', { p_token: tokF, p_record: record });
+  const riga = idF ? { id: idF } : null;
 
   if (insErr || !riga) {
     return { ok: false, simulato: false, errore: 'Scrittura coda fiscale fallita: ' + (insErr?.message || 'errore') };
@@ -316,6 +322,14 @@ export async function emettiDocumento(doc) {
 // UTILITÀ
 // ============================================================================
 function _attesa(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Solo i tablet assegnati (Configurazione > Cassa > Tablet bloccati) parlano con le stampanti
+// di sala e con il registratore: il codice del tablet viaggia con ogni lavoro e il database
+// lo controlla (accoda_stampa / accoda_fiscale). Le etichette di cucina restano libere.
+export function tokenTablet(aziendaId) {
+  try { return aziendaId ? localStorage.getItem('rf_tablet_token_' + aziendaId) : null; } catch (e) { return null; }
+}
+export const MSG_SOLO_TABLET = 'Stampa solo dai tablet assegnati';
 
 // Espongo la config in lettura per debug/UI
 export function statoCassaHardware() {
