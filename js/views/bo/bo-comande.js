@@ -22,8 +22,9 @@ async function waitForAuth(maxWait = 3000) {
 }
 
 // ── Camerieri: caricati da DB (tabella dipendenti, campo pin) ──
-// PIN 0000 è sempre admin locale come fallback
-const ADMIN_PIN = { pin: '0000', nome: 'Admin', ruolo: 'manager', colore: '#dc2626' };
+// Niente piu' PIN fisso 0000: apriva come manager e 81 righe su 123 finivano a "Admin".
+// Il PIN si controlla nel database (verifica_pin_dipendente); qui resta solo il colore.
+const ADMIN_PIN = { nome: 'Admin', ruolo: 'manager', colore: '#dc2626' };
 const CATEGORIE_LIMITED = ['Bevande', 'Acqua', 'Vini rossi', 'Vini bianchi', 'Le bollicine', 'Caffetteria', 'Dolci', 'Dessert', 'Amari'];
 
 // ── Regole upsell per categoria ──
@@ -429,6 +430,10 @@ export async function render(container) {
             <input id="fattura-cf"  class="input" placeholder="CF / P.IVA *" style="width:100%;box-sizing:border-box;margin-bottom:6px;padding:8px 12px;font-size:13px;">
             <input id="fattura-rag" class="input" placeholder="Ragione sociale / Nome" style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:13px;">
           </div>
+          <!-- Scontrino per mail: il cliente da' la mail = consenso. La copia parte dopo la registrazione sul registratore -->
+          <div id="email-scontrino-box" style="display:none;margin-top:10px;">
+            <input id="email-scontrino" class="input" type="email" inputmode="email" autocomplete="off" placeholder="📧 Mail del cliente per lo scontrino (facoltativo)" style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:13px;">
+          </div>
         </div>
 
         <!-- Righe editabili -->
@@ -518,10 +523,9 @@ export async function render(container) {
       // La tabella profili non contiene azienda_id/ruolo, quindi non va usata qui.
       const { data, error } = await supa()
         .from('dipendenti')
-        .select('id, user_id, nome, cognome, pin, ruolo, azienda_id, sede_id, attivo')
+        .select('id, user_id, nome, cognome, ruolo, azienda_id, sede_id, attivo')   // i PIN non si scaricano piu'
         .eq('azienda_id', aziendaId)
-        .eq('attivo', true)
-        .not('pin', 'is', null);
+        .eq('attivo', true);
 
       if (error) {
         console.warn('Caricamento camerieri fallito:', error);
@@ -530,7 +534,6 @@ export async function render(container) {
       }
 
       camerieriDB = (data || []).map(d => ({
-        pin: String(d.pin || ''),
         nome: [d.nome, d.cognome].filter(Boolean).join(' ') || d.nome || 'Cameriere',
         ruolo: d.ruolo === 'admin' || d.ruolo === 'manager'
           ? 'manager'
@@ -554,10 +557,38 @@ export async function render(container) {
     el.textContent = '●'.repeat(filled) + '_'.repeat(Math.max(0, 4 - filled));
   }
 
-  function verificaPin(pin) {
-    // PIN 0000 = admin sempre disponibile
-    if (pin === ADMIN_PIN.pin) return ADMIN_PIN;
-    return camerieriDB.find(c => c.pin === pin) || null;
+  // Il PIN lo controlla il database: torna solo chi e' (o niente). Dopo 8 errori si ferma.
+  async function verificaPin(pin) {
+    const { data, error } = await supa().rpc('verifica_pin_dipendente', { p_azienda: aziendaId, p_pin: pin });
+    if (error) return { errore: error.message };
+    if (!data) return null;
+    return {
+      nome: data.nome || 'Cameriere',
+      ruolo: data.ruolo === 'admin' || data.ruolo === 'manager' ? 'manager' : data.ruolo === 'limited' ? 'limited' : 'full',
+      colore: '#0E5A7A',
+      dipendenteId: data.dipendente_id,
+    };
+  }
+
+  // Tablet bloccato = usato da piu' persone: sempre PIN, e dopo ogni invio o 90" fermo si torna al PIN.
+  const tabletCondiviso = !!localStorage.getItem('rf_tablet_token_' + aziendaId);
+  let _timerPin = null;
+  function tornaAlPin() {
+    cameriereAttivo = null;
+    pinInput = '';
+    renderPinDisplay();
+    const badge = container.querySelector('#badge-cameriere');
+    if (badge) badge.style.display = 'none';
+    switchView('pin');
+  }
+  // Fermo 90" mentre lavora, 20" dopo un invio. Ogni tocco riparte da 90".
+  function rinviaTimerPin(ms) {
+    if (!tabletCondiviso) return;
+    clearTimeout(_timerPin);
+    _timerPin = setTimeout(function () { if (cameriereAttivo) tornaAlPin(); }, typeof ms === 'number' ? ms : 90000);
+  }
+  if (tabletCondiviso) {
+    ['pointerdown', 'keydown'].forEach(function (ev) { container.addEventListener(ev, function () { rinviaTimerPin(); }, { passive: true }); });
   }
 
   function accediConPin(cameriere) {
@@ -568,6 +599,7 @@ export async function render(container) {
       badge.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${cameriere.colore};display:inline-block;margin-right:6px;"></span>${cameriere.nome} ${cameriere.ruolo === 'limited' ? '(limitato)' : ''}`;
     }
     switchView('tavoli');
+    rinviaTimerPin();
   }
 
   // Mail personale = account legato a un dipendente, oppure admin/manager con mail non generica.
@@ -575,7 +607,7 @@ export async function render(container) {
   const MAIL_CONDIVISE = ['info','sala','cassa','bar','banco','cucina','tablet','comande','ordini','ristorante','trattoria','staff','admin','servizio'];
   function utenteDaMailPersonale() {
     const u = window.state?.user;
-    if (!u?.id) return null;
+    if (!u?.id || tabletCondiviso) return null;   // sul tablet condiviso vale solo il PIN
     const dip = camerieriDB.find(c => c.userId === u.id);
     if (dip) return dip;
     const locale = String(u.email || '').split('@')[0].toLowerCase();
@@ -583,7 +615,7 @@ export async function render(container) {
     const r = String(window.state?.ruolo || '').toLowerCase();
     if (!['admin','superadmin','manager'].includes(r)) return null;
     const nome = u.user_metadata?.nome || u.user_metadata?.full_name || locale;
-    return { pin: null, nome, ruolo: 'manager', colore: ADMIN_PIN.colore };
+    return { nome, ruolo: 'manager', colore: ADMIN_PIN.colore };
   }
 
   // Binding tastierino PIN
@@ -601,7 +633,12 @@ export async function render(container) {
       renderPinDisplay();
 
       if (pinInput.length === 4) {
-        const cam = verificaPin(pinInput);
+        verificaPin(pinInput).then(function (cam) {
+        if (cam && cam.errore) {
+          container.querySelector('#pin-error').textContent = '❌ ' + cam.errore;
+          setTimeout(() => { pinInput = ''; renderPinDisplay(); container.querySelector('#pin-error').textContent = ''; }, 2500);
+          return;
+        }
         if (cam) {
           container.querySelector('#pin-error').textContent = '';
           setTimeout(() => accediConPin(cam), 150);
@@ -613,6 +650,7 @@ export async function render(container) {
             container.querySelector('#pin-error').textContent = '';
           }, 1200);
         }
+        });
       }
     });
   });
@@ -2185,6 +2223,9 @@ export async function render(container) {
     const uscite = [...new Set(righeNuove.map(r => r.uscita_numero || 1))].sort((x, y) => x - y);
     mostraToast(`✅ ${righeNuove.length} piatti inviati — uscit${uscite.length > 1 ? 'e' : 'a'} ${uscite.join(', ')}`, 'success');
     stampaComandaReparti(righeNuove, false);
+    // Tablet condiviso: chi ha inviato puo' passare subito al tavolo dopo senza PIN;
+    // se appoggia il tablet, dopo 20" torna al PIN per il collega
+    rinviaTimerPin(20000);
   }
 
   // ── STAMPA COMANDE DI REPARTO (Raspberry del locale → stampanti termiche) ──
@@ -2452,6 +2493,15 @@ export async function render(container) {
     _righeContoLocali = righeComanda.filter(r => r.stato !== 'annullato').map(r => ({ ...r }));
     _tipoDoc = 'preconto';
     aggiornaTipoDocBtns();
+    // Mail per lo scontrino: se il tavolo e' prenotato e la mail c'e', e' gia' scritta
+    const campoMail = container.querySelector('#email-scontrino');
+    if (campoMail) {
+      campoMail.value = '';
+      if (comandaAttiva.prenotazione_id) {
+        supa().from('prenotazioni_tavoli').select('cliente_email').eq('id', comandaAttiva.prenotazione_id).maybeSingle()
+          .then(function (r) { if (r && r.data && r.data.cliente_email && !campoMail.value) campoMail.value = r.data.cliente_email; });
+      }
+    }
 
     const tavolo = tavoli.find(t => String(t.id) === String(comandaAttiva.tavolo_id));
     container.querySelector('#conto-tavolo-info').textContent =
@@ -2480,6 +2530,8 @@ export async function render(container) {
       btn.style.color        = att ? '#0E5A7A' : '#374151';
     });
     container.querySelector('#fattura-box').style.display = _tipoDoc === 'fattura' ? 'block' : 'none';
+    const eb = container.querySelector('#email-scontrino-box');
+    if (eb) eb.style.display = _tipoDoc === 'scontrino' ? 'block' : 'none';
     const bp = container.querySelector('#btn-apri-pagamento');
     if (bp) bp.textContent = _tipoDoc === 'preconto' ? '📋 Stampa preconto · tieni premuto per chiudere' : '💳 Paga →';
   }
@@ -3040,6 +3092,17 @@ export async function render(container) {
     return Math.max(0, Math.round((base - sconto) * 100) / 100);
   }
 
+  // Copia del documento commerciale per mail (Edge Function scontrino-email)
+  async function inviaScontrinoMail(comandaId, email, numero) {
+    try {
+      const { data, error } = await supa().functions.invoke('scontrino-email', {
+        body: { comanda_id: comandaId, email: email, numero_documento: numero || null, cameriere: cameriereAttivo?.nome || null },
+      });
+      if (error || !data?.ok) { mostraToast('⚠️ Scontrino per mail non inviato: ' + (data?.errore || error?.message || 'errore'), 'error'); return; }
+      mostraToast('📧 Scontrino inviato a ' + email, 'success');
+    } catch (e) { mostraToast('⚠️ Scontrino per mail non inviato', 'error'); }
+  }
+
   async function eseguiChiusuraConto(metodoPagamento, subConti = null) {
     if (!comandaAttiva) return;
 
@@ -3098,6 +3161,10 @@ export async function render(container) {
       azienda: aziendaId, sede: sedeId,
     };
 
+    // Mail per lo scontrino: letta prima che il modulo si chiuda
+    const _mailScontrino = _tipoDoc === 'scontrino' && !subConti
+      ? (container.querySelector('#email-scontrino')?.value || '').trim() : '';
+
     const { error: chiusuraError } = await supa()
       .from('comande')
       .update(aggiornamento)
@@ -3122,9 +3189,12 @@ export async function render(container) {
     } else
     // Stampa in background: il cameriere non resta bloccato, ma vede l'esito
     if (_righeDoc.length) {
+      const _idPerMail = comandaAttiva.id;
       emettiDocumento(_docFiscale).then(r => {
         if (r.ok) mostraToast('🧾 Scontrino ' + (r.numero_documento || '') + ' stampato', 'success');
         else mostraToast('⚠️ Conto chiuso ma scontrino NON stampato: ' + (r.errore || 'errore') + ' — lo trovi in Chiusura cassa', 'error');
+        // La copia per mail parte solo dopo che il registratore ha registrato il documento
+        if (r.ok && _mailScontrino) inviaScontrinoMail(_idPerMail, _mailScontrino, r.numero_documento);
       });
     }
 
