@@ -163,7 +163,12 @@ async function verificaBlocco() {
   if (error) return;                       // rete assente: resta bloccato
   if (!data) {
     localStorage.removeItem(k.tok); localStorage.removeItem(k.tipo);
-    window.location.hash = "#/home"; location.reload();
+    // Account del locale (attivato con codice): sbloccato il tablet, si esce
+    try {
+      const { data: u } = await sb.auth.getUser();
+      if (u?.user?.email && /@dispositivi\.ristoflow-ai\.com$/.test(u.user.email)) await sb.auth.signOut();
+    } catch (e) {}
+    window.location.hash = "#/login"; location.reload();
     return;
   }
   if (data.tipo !== localStorage.getItem(k.tipo)) {
