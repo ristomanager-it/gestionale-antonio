@@ -152,11 +152,23 @@ export async function emettiPreconto(doc) {
   return emettiDocumento(Object.assign({}, doc, { tipo: 'preconto' }));
 }
 
+// Stampanti termiche e registratore non hanno emoji ne' apostrofi tipografici (uscivano "??")
+export function testoStampa(t) {
+  return String(t == null ? '' : t)
+    .replace(/[\u2018\u2019\u201A\u201B\u00B4`]/g, "'").replace(/[\u201C\u201D\u201E]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...')
+    .replace(/[^\u0000-\u00FF]/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+
 async function precontoSuTermica(st, doc) {
   const supabase = window.supabaseClient || window.supabase;
-  const righe = (Array.isArray(doc?.righe) ? doc.righe : []).map(r => ({
-    descrizione: r.descrizione || '', quantita: Number(r.quantita) || 1, prezzo_unitario: Number(r.prezzo_unitario) || 0,
-  }));
+  // righe uguali (stesso piatto e prezzo) in una riga sola con la quantita' sommata
+  const righe = [];
+  (Array.isArray(doc?.righe) ? doc.righe : []).forEach(r => {
+    const v = { descrizione: testoStampa(r.descrizione || ''), quantita: Number(r.quantita) || 1, prezzo_unitario: Number(r.prezzo_unitario) || 0 };
+    const g = righe.find(x => x.descrizione === v.descrizione && x.prezzo_unitario === v.prezzo_unitario);
+    if (g) g.quantita += v.quantita; else righe.push(v);
+  });
   const tok = tokenTablet(doc.azienda);
   if (!tok) return { ok: false, simulato: false, errore: MSG_SOLO_TABLET };
   const { data: ins, error } = await supabase.rpc('accoda_stampa', { p_token: tok, p_lavori: [{
@@ -247,7 +259,7 @@ export async function emettiDocumento(doc) {
   }
 
   const righeDb = righe.map(r => ({
-    descrizione: r.descrizione || '',
+    descrizione: testoStampa(r.descrizione || ''),
     quantita: Number(r.quantita) || 1,
     prezzo_unitario: Number(r.prezzo_unitario) || 0,
     aliquota_iva: Number(r.aliquota_iva ?? 10),
