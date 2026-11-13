@@ -85,7 +85,7 @@
   <footer id="footer-root"></footer>
 
   <!-- CORE STATE -->
-  <script src="js/state.js?v=9"></script>
+  <script src="js/state.js?v=10"></script>
 
   <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -232,7 +232,7 @@
 
       // chi ha piu' aziende (es. il super admin) trova qui anche il cambio azienda
       const aziendeMie = (window.state?.aziende || []).map((a) => a && a.aziende).filter(Boolean);
-      if (sedi.length <= 1 && aziendeMie.length <= 1) {
+      if ((sedi.length <= 1 && aziendeMie.length <= 1) || (window.rfSedeTablet && window.rfSedeTablet())) {
         if (caret) caret.hidden = true;
         if (trigger) trigger.style.cursor = "default";
         dropdown.innerHTML = "";
@@ -351,7 +351,7 @@
   <!-- ROUTER (MODULE) -->
   <script
     type="module"
-    src="js/router.js?v=1137"
+    src="js/router.js?v=1138"
   ></script>
 
 </body>
