@@ -17,7 +17,7 @@ const REGIMI = [
 
 const COLONNE = "azienda_id, provider, ambiente, partita_iva, ragione_sociale, email_provider, ricezione_attiva, invio_attivo, "
   + "ultimo_sync_il, ultimo_errore, codice_fiscale, pec, indirizzo, cap, comune, provincia, regime_fiscale, "
-  + "rea_ufficio, rea_numero, capitale_sociale, socio_unico, iban, sezionale";
+  + "rea_ufficio, rea_numero, capitale_sociale, socio_unico, iban, sezionale, autofatture_chi, af_sezionale, af_ultimo_numero_esterno";
 
 export async function render(container) {
   document.querySelector(".app-header")?.style.removeProperty("display");
