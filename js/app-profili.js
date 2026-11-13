@@ -162,7 +162,7 @@ async function verificaBlocco() {
   const { data, error } = await sb.rpc("stato_tablet", { p_token: tok });
   if (error) return;                       // rete assente: resta bloccato
   if (!data) {
-    localStorage.removeItem(k.tok); localStorage.removeItem(k.tipo);
+    localStorage.removeItem(k.tok); localStorage.removeItem(k.tipo); localStorage.removeItem("rf_tablet_sede_" + aid);
     // Account del locale (attivato con codice): sbloccato il tablet, si esce
     try {
       const { data: u } = await sb.auth.getUser();
@@ -171,9 +171,17 @@ async function verificaBlocco() {
     window.location.hash = "#/login"; location.reload();
     return;
   }
-  if (data.tipo !== localStorage.getItem(k.tipo)) {
-    localStorage.setItem(k.tipo, data.tipo); location.reload();
+  let ricarica = false;
+  if (data.tipo !== localStorage.getItem(k.tipo)) { localStorage.setItem(k.tipo, data.tipo); ricarica = true; }
+  if (data.sede_id && localStorage.getItem("rf_tablet_sede_" + aid) !== data.sede_id) {
+    localStorage.setItem("rf_tablet_sede_" + aid, data.sede_id);
+    ricarica = true;
   }
+  if (data.sede_id && localStorage.getItem("active_sede_id") !== data.sede_id) {
+    localStorage.setItem("active_sede_id", data.sede_id);
+    ricarica = true;
+  }
+  if (ricarica) location.reload();
 }
 
 export function avviaControlloBlocco() {
