@@ -235,7 +235,30 @@ def riga_testo(sx, dx=""):
 
 
 def build_preconto(riga, con_fine=True):
+    addebito = str(riga.get("cliente_nome") or "").upper().startswith("ADDEBITO")
+    linee = _preconto_linee(riga, "COPIA CLIENTE" if addebito else None)
+    if addebito:
+        # due copie sullo stesso foglio: la seconda resta al locale con la firma di chi usufruisce del servizio
+        linee += ["", "- - - - - - taglia qui - - - - - -".center(LARGHEZZA), ""]
+        linee += _preconto_linee(riga, "COPIA LOCALE")
+        linee += ["", "Firma per accettazione:", "", "", "_" * LARGHEZZA, "(firma leggibile)".center(LARGHEZZA)]
+    fine = riga.get("fine_scontrino") if con_fine else None
+    if fine:
+        linee.append("")
+        linee += [t.center(LARGHEZZA) for t in righe_fine(fine)]
+    corpo = '<printerNonFiscal><beginNonFiscal operator="1" />'
+    for l in linee:
+        corpo += '<printNormal operator="1" font="1" data="' + esc(l) + '" />'
+    if fine:
+        corpo += xml_qr(fine)
+    corpo += '<endNonFiscal operator="1" /></printerNonFiscal>'
+    return envelope(corpo)
+
+
+def _preconto_linee(riga, copia):
     linee = ["PRECONTO - NON FISCALE".center(LARGHEZZA)]
+    if copia:
+        linee.append(copia.center(LARGHEZZA))
     if riga.get("numero_tavolo"):
         linee.append(("Tavolo " + str(riga["numero_tavolo"])).center(LARGHEZZA))
     if riga.get("cliente_nome"):
@@ -252,17 +275,7 @@ def build_preconto(riga, con_fine=True):
     linee.append(riga_testo("TOTALE EURO", euro(riga.get("totale")).replace(".", ",")))
     if riga.get("coperti"):
         linee.append("Coperti: " + str(riga["coperti"]))
-    fine = riga.get("fine_scontrino") if con_fine else None
-    if fine:
-        linee.append("")
-        linee += [t.center(LARGHEZZA) for t in righe_fine(fine)]
-    corpo = '<printerNonFiscal><beginNonFiscal operator="1" />'
-    for l in linee:
-        corpo += '<printNormal operator="1" font="1" data="' + esc(l) + '" />'
-    if fine:
-        corpo += xml_qr(fine)
-    corpo += '<endNonFiscal operator="1" /></printerNonFiscal>'
-    return envelope(corpo)
+    return linee
 
 
 def build_report(tipo):

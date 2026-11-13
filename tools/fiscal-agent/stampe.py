@@ -179,7 +179,16 @@ def euro(v):
 
 
 def build_preconto(c, larg):
+    # Addebito: due copie, una al cliente e una al locale con la firma di chi usufruisce del servizio
+    if str(c.get("chiusura") or "").upper().startswith("ADDEBITO"):
+        return _preconto(c, larg, "COPIA CLIENTE", False) + _preconto(c, larg, "COPIA LOCALE", True)
+    return _preconto(c, larg, None, False)
+
+
+def _preconto(c, larg, copia, firma):
     out = INIT + CENTRO + GRANDE + t("PRECONTO") + b"\n" + NORMALE + t("documento non fiscale") + b"\n"
+    if copia:
+        out += GRASSETTO_ON + t(copia) + GRASSETTO_OFF + b"\n"
     if c.get("tavolo"):
         out += ALTO + t("Tavolo " + str(c["tavolo"])) + NORMALE + b"\n"
     if c.get("chiusura"):
@@ -196,6 +205,8 @@ def build_preconto(c, larg):
     out += DIM_ALTO + GRASSETTO_ON + t(riga_dx("TOTALE EURO", euro(c.get("totale")), larg)) + GRASSETTO_OFF + DIM_1 + b"\n"
     if c.get("coperti"):
         out += t("Coperti: " + str(c["coperti"])) + b"\n"
+    if firma:
+        out += SINISTRA + b"\n" + t("Firma per accettazione:") + b"\n\n\n" + t("_" * larg) + b"\n" + CENTRO + t("(firma leggibile)") + b"\n"
     out += CENTRO + t(ora_locale()) + b"\n" + TAGLIO
     return out
 
