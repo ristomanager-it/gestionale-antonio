@@ -721,6 +721,7 @@ export function initMenu() {
             { label: "Ordini", route: "acquisti?tab=ordini" },
             { label: "Autofatture", route: "autofatture" },
           ] },
+          { label: "🧾 Fatture emesse", route: "fatture-emesse" },
         ]
       });
       sections.push({
