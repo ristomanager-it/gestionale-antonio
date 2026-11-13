@@ -19,6 +19,7 @@ export async function render(container) {
         </div>
         <span style="background:#ede9fe;color:#6d28d9;font-size:12px;font-weight:600;padding:4px 12px;border-radius:999px">📊 Commercialista</span>
       </div>
+      <div id="comm-autofatture" style="margin-bottom:22px"></div>
       <div id="comm-esporta" style="margin-bottom:22px"></div>
       <div id="comm-content">
         <div style="display:flex;align-items:center;justify-content:center;padding:60px">
