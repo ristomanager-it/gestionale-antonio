@@ -775,6 +775,13 @@ export async function renderCassaLibera(container, azienda) {
     }
 
     async function confermaIncasso() {
+      // versione nuova pubblicata mentre la cassa era aperta: prima si aggiorna, poi si incassa
+      if (window.rfVersioneNuova && await window.rfVersioneNuova()) {
+        const es = $('#cl-esito');
+        es.innerHTML = '🔄 Ristoflow è stato aggiornato. <button id="cl-aggiorna" style="margin-left:6px;padding:6px 12px;border:none;border-radius:8px;background:#0E5A7A;color:#fff;font-weight:700;">Aggiorna ora</button><div class="cl-sp">Poi rifai l\'incasso: il conto del tavolo resta salvato.</div>';
+        const b = $('#cl-aggiorna'); if (b) b.onclick = () => window.rfAggiornaOra();
+        return;
+      }
       const esito = $('#cl-esito');
       const t = totali();
       const metodo = incasso.metodo;
