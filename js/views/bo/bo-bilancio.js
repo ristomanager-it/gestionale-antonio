@@ -84,9 +84,9 @@ export async function render(container) {
       }
     } catch (e) { console.warn('Errore calcolo costo lavoro:', e); }
 
-    // Ricavi da venduto (vendite_giornaliere / iPratico): mancavano del tutto nel
-    // conto economico. Li aggancio alla categoria "Ricavi da corrispettivi" (id 32).
-    let ricaviVenduto = 0;
+    // Ricavi IVA esclusa dalla stessa funzione del Fascicolo IVA e della pagina Fatture:
+    // scontrini (stampante fiscale > cassa Ristoflow > venduto importato, mai due fonti sullo stesso giorno) + fatture emesse.
+    let ricaviVenduto = 0, ricaviFatture = 0;
     try {
       const { data: si, error: eSi } = await supa().rpc('situazione_iva', { p_azienda: aziendaId, p_da: dataDa || '2000-01-01', p_a: dataA || '2099-12-31' });
       if (eSi) throw eSi;
