@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261114-03";
+const APP_V = "20261114-04";
 window.APP_V = APP_V;
 
 // ── AGGIORNAMENTO AUTOMATICO ──
