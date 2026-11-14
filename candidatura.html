@@ -638,5 +638,21 @@ async function invia() {
 
 init();
 </script>
+<script>
+/* contatore visite Ristoflow (page_analytics) - REGOLA: nessuna landing senza contatore. Pagina: form candidature. Nessun dato personale: solo vista, inizio e invio. */
+(function(){try{
+var A="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0",U="https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/page_analytics";
+var q=new URLSearchParams(location.search),az=q.get("a"),sede=q.get("s")||null,fo=q.get("f")||"pubblico";
+if(!az)return;
+var vis=null;try{vis=localStorage.getItem("rf_vis");var vt=Number(localStorage.getItem("rf_vis_t")||0);if(!vis||Date.now()-vt>5184000000){vis=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("rf_vis",vis);localStorage.setItem("rf_vis_t",String(Date.now()));}}catch(e){}
+var ses=null;try{ses=sessionStorage.getItem("rf_ses");if(!ses){ses=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem("rf_ses",ses);}}catch(e){}
+var ref=document.referrer||"";
+var src=q.get("utm_source")||(fo.indexOf("meta")===0?"meta":(ref?(function(){try{return new URL(ref).hostname;}catch(e){return null;}})():"diretto"));
+function inv(tipo,el,val,ok){try{fetch(U,{method:"POST",keepalive:true,headers:{"Content-Type":"application/json","apikey":A,"Authorization":"Bearer "+A,"Prefer":"return=minimal"},body:JSON.stringify({azienda_id:az,sede_id:sede,pagina:"candidatura",pagina_id:az,tipo:tipo,elemento:el,valore:val||null,completato:!!ok,referrer:ref?ref.slice(0,250):null,utm_source:src,utm_medium:q.get("utm_medium"),utm_campaign:q.get("utm_campaign")||fo,device:/Mobi|Android/i.test(navigator.userAgent)?"mobile":"desktop",session_id:ses,visitatore:vis})}).catch(function(){});}catch(e){}}
+inv("view","sito_pagina",fo);
+var iniz=false;document.addEventListener("focusin",function(e){if(iniz)return;if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){iniz=true;inv("step","modulo_iniziato",fo);}},true);
+var root=document.getElementById("root"),inviata=false;if(root&&window.MutationObserver){new MutationObserver(function(){if(!inviata&&root.textContent.indexOf("Candidatura ricevuta")>=0){inviata=true;inv("submit","candidatura_inviata",fo,true);}}).observe(root,{childList:true,subtree:true});}
+}catch(e){}})();
+</script>
 </body>
 </html>
