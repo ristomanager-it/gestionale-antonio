@@ -998,6 +998,9 @@ const routePermissions = {
   "fatture-emesse":
     "acquisti.write",
 
+  "fatture-situazione":
+    "acquisti.write",
+
   "magazzino":
     "magazzino.write",
 
