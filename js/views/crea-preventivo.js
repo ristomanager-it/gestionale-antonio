@@ -1135,8 +1135,8 @@ function aggancia(container, supabase, azienda, sede) {
     ri();
   });
 
-  container.querySelectorAll("[data-extra]").forEach(el => {
-    el.addEventListener("change", () => { extra[Number(el.dataset.extra)].prezzo = Number(el.value) || 0; ri(); });
+  container.querySelectorAll("[data-extra-prezzo]").forEach(el => {
+    el.addEventListener("change", () => { extra[Number(el.dataset.extraPrezzo)].prezzo = Number(el.value) || 0; ri(); });
   });
   container.querySelectorAll("[data-del-extra]").forEach(el => {
     el.addEventListener("click", () => { extra.splice(Number(el.dataset.delExtra), 1); ri(); });
