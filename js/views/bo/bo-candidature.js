@@ -207,6 +207,12 @@ export async function render(container) {
               ${c.ruolo_sogno ? `<span style="font-size:13px;color:#64748b;">💭 Sogna: <em>${c.ruolo_sogno}</em></span>` : ''}
             </div>
 
+            <!-- Giudizio di Tony (14/11): letto dalle risposte, sostituisce il conteggio a parole chiave -->
+            ${c.tony_valutazione ? `<div style="margin-bottom:20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px 16px;">
+              <div style="font-size:13px;font-weight:700;color:#0E5A7A;margin-bottom:6px;">🤖 Giudizio di Tony</div>
+              <div style="font-size:13px;color:#0f172a;line-height:1.7;">${String(c.tony_valutazione).replace(/</g,'&lt;')}</div>
+            </div>` : `<div style="margin-bottom:20px;font-size:12px;color:#94a3b8;">Tony non ha ancora letto questa candidatura: i punteggi sono provvisori.</div>`}
+
             <!-- Score dettagliato -->
             <div style="margin-bottom:20px;">
               <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px;">📊 Punteggi per indicatore</div>
