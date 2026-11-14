@@ -614,6 +614,7 @@ export async function renderCassaLibera(container, azienda) {
     };
     function riempiCliente(c) {
       incasso.cliente = c || {};
+      tipoCliente();
       $('#cl-rs').value = c?.ragione_sociale || '';
       // archivio vecchio: indirizzo tutto in un campo; il CAP si ripesca se c'e'
       let ind = c?.indirizzo || '', cap = c?.cap || '', com = c?.citta || '';
