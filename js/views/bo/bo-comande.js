@@ -694,7 +694,7 @@ export async function render(container) {
 
   async function loadTavoli() {
     try {
-      let q = supa().from('tavoli').select('*').eq('azienda_id', aziendaId);
+      let q = supa().from('tavoli').select('*').eq('azienda_id', aziendaId).eq('attivo', true);
       if (sedeId) q = q.eq('sede_id', sedeId);
       if (salaSelezionata) q = q.eq('sala_id', salaSelezionata);
       const { data } = await q.order('nome');
