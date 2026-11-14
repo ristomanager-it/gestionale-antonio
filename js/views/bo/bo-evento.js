@@ -50,6 +50,7 @@ export async function render(container) {
     disegnaPromemoria(iscritti || [], cfg || null);
     disegnaAggiungi();
     disegnaIscritti(iscritti || []);
+    disegnaFondatore();
    } catch (e) {
     console.error("bo-evento:", e);
     document.getElementById("ev-lista").innerHTML =
