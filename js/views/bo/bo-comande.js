@@ -881,7 +881,15 @@ export async function render(container) {
       renderAnticipati(); // gli ordini anticipati si vedono anche nelle sedi senza tavoli (es. Centro cottura)
       return;
     }
-    box.innerHTML = tavoli.map(t => {
+    // Tablet e PC: piantina come in Cassa, ogni tavolo dove sta in sala (posizioni di Mappa Sala).
+    // Telefono, o tavoli mai posizionati: griglia in ordine di numero (1, 2, 3 ... non 1, 10, 11).
+    const piantina = !(window.matchMedia ? window.matchMedia('(max-width: 760px)').matches : window.innerWidth <= 760)
+      && tavoli.some(t => t.pos_x != null && t.pos_y != null);
+    box.style.cssText = piantina
+      ? 'position:relative;display:block;background:#fff;border-radius:14px;aspect-ratio:4/3;min-height:340px;box-shadow:0 1px 2px rgba(0,0,0,.06);overflow:hidden;'
+      : 'display:flex;flex-wrap:wrap;gap:12px;';
+    const ordinati = tavoli.slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'it', { numeric: true }));
+    box.innerHTML = ordinati.map(t => {
       const comanda = comande.find(c => String(c.tavolo_id) === String(t.id));
       const prenotazione = prenotazioniOggi.find(p => String(p.tavolo_id) === String(t.id));
       const isOccupato = !!comanda;
