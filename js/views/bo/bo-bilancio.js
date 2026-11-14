@@ -39,17 +39,8 @@ export async function render(container) {
 
     const { data: fatture } = await q;
 
-    // Carica anche movimenti magazzino con categoria bilancio (acquisti merci)
-    let qm = supa().from('magazzino_movimenti')
-      .select('id, created_at, costo, quantita, categoria_bilancio_id, categorie_bilancio(id,nome,codice_conto,tipo,ordine)')
-      .eq('azienda_id', aziendaId)
-      .eq('tipo_movimento', 'carico')
-      .gt('costo', 0)
-      .not('categoria_bilancio_id', 'is', null);
-
-    if (dataDa) qm = qm.gte('created_at', dataDa).lte('created_at', dataA + 'T23:59:59');
-
-    const { data: movimenti } = await qm;
+    // I carichi di magazzino NON sono un costo a parte: nascono dalle stesse fatture.
+    // Prima si sommavano anche loro e la merce risultava contata due volte (e gonfiata dai costi = totale riga).
 
     // Carica spese extra
     const { data: speseExtra } = await supa().from('spese_extra')
