@@ -157,11 +157,7 @@ async function invia() {
     });
 
     // Avanza a fase 5 (completata)
-    await fetch(`${SUPABASE_URL}/rest/v1/candidature?id=eq.${cand.id}`, {
-      method:'PATCH',
-      headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
-      body: JSON.stringify({ fase_attuale:5, fase_label:'Fase 3 completata', updated_at:new Date().toISOString() })
-    });
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/candidatura_completa_fase`, { method:'POST', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body: JSON.stringify({ p_token: TOKEN, p_fase: 3 }) });
 
     // Log
     await fetch(`${SUPABASE_URL}/rest/v1/candidature_fasi_log`, {
