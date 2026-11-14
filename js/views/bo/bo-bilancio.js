@@ -545,7 +545,7 @@ export async function render(container) {
                     <th style="padding:9px 12px;text-align:right;font-weight:700;color:#15803d;">Totale</th>
                   </tr>
                 </thead>
-                <tbody>${renderTabIva(ivaAcqMap, 'acquisti')}</tbody>
+                <tbody>${renderTabIva(ivaAcqMap, 'acquisti')}${rigaAuto}</tbody>
                 <tfoot>
                   <tr style="background:#f0fdf4;border-top:2px solid #bbf7d0;font-weight:700;">
                     <td style="padding:9px 12px;">TOTALE</td>
