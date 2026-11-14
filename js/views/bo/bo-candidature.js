@@ -221,7 +221,10 @@ export async function render(container) {
 
             <!-- Risposte per fase -->
             ${[1,2,3].map(fase => {
-              const rFase = (risposte || []).filter(r => r.fase === fase);
+              // stesso ordine del modulo (le risposte arrivano tutte insieme, l'ordine di salvataggio non conta)
+              const ORD = ['problema_intervento','apprendimento_autonomo','errore_e_apprendimento','cosa_difficile_ottenuto','interesse_nuovo_lavoro','giorno_impegnativo','reazione_pressione','collega_dimentica','lavorato_piu_del_necessario','istinto_quando_va_male','perche_hospitality','area_interesse','dove_tra_5_anni','perche_investire_su_te'];
+              const pos = r => { const i = ORD.indexOf(r.domanda_id); return i < 0 ? 99 : i; };
+              const rFase = (risposte || []).filter(r => r.fase === fase).sort((a, b) => pos(a) - pos(b));
               if (!rFase.length) return '';
               return `
                 <div style="margin-bottom:20px;">
