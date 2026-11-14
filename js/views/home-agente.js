@@ -526,6 +526,7 @@ function renderAgMansionario(el) {
 
   function renderAgMateriali(el) {
     el.innerHTML = `
+      <div class="ag-card" id="ag-fondatore"></div>
       <div class="ag-card">
         <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:12px;">📦 Materiali da condividere</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
