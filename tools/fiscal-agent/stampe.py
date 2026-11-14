@@ -240,6 +240,11 @@ def build_cortesia(c, larg):
         out += t("P.IVA " + cl["piva"]) + b"\n"
     elif cl.get("cf"):
         out += t("C.F. " + cl["cf"]) + b"\n"
+    if cl.get("sdi"):
+        out += t("Codice destinatario " + cl["sdi"]) + b"\n"
+    for etichetta, chiave in (("PEC ", "pec"), ("Email ", "email")):
+        for riga in a_capo(etichetta + str(cl[chiave]), larg) if cl.get(chiave) else []:
+            out += t(riga) + b"\n"
     if c.get("tavolo"):
         out += t("Tavolo " + str(c["tavolo"])) + b"\n"
     out += t("-" * larg) + b"\n"
