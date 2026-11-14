@@ -2460,7 +2460,16 @@ window.salvaAgente = async function() {
   if (!payload.nome || !payload.cognome) { alert('Inserisci nome e cognome'); return; }
 
   if (_agenteEditId) await supabase.from('agenti').update(payload).eq('id', _agenteEditId);
-  else await supabase.from('agenti').insert(payload);
+  else {
+    // il link d'invito alla serata nasce in automatico con l'agente (trigger): lo mandiamo subito nel messaggio
+    const { data: nuovo, error } = await supabase.from('agenti').insert(payload).select('id').single();
+    if (error) { alert(error.message); return; }
+    if (nuovo?.id) {
+      _agenteEditId = nuovo.id;
+      if (payload.telefono && confirm('Agente salvato. Gli mandi subito il messaggio WhatsApp con il suo link per la serata e il suo QR Fondatore?')) await window.inviaInvitoAgenteWA();
+      else if (!payload.telefono && payload.email && confirm('Agente salvato. Gli mandi subito l\'email con il suo link per la serata e il suo QR Fondatore?')) await window.inviaInvitoAgenteEmail();
+    }
+  }
 
   chiudiModaleAgente();
   await caricaAgenti();
