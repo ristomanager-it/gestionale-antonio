@@ -771,7 +771,7 @@ export async function renderCassaLibera(container, azienda) {
               fattura_ragione_sociale: cliente ? cliente.ragione_sociale : null,
               promo_codice: coupon ? coupon.codice : null, promo_sconto: t.sconto > 0 ? t.sconto : null,
             })
-          : await registraVendita(metodo, t);
+          : await registraVendita(metodo, t, { fattura: incasso.doc === 'fattura' });
         if (!reg.ok) { esito.textContent = 'Incasso NON registrato: ' + reg.errore + ' - segna il conto a mano e avvisa.'; return; }
         if (pratica) {
           const ex = await salvaExtraPratica();
