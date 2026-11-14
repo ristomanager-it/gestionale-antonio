@@ -817,6 +817,8 @@ export async function renderCassaLibera(container, azienda) {
           ragione_sociale: cliente.ragione_sociale,
           codice_sdi: (($('#cl-sdi').value || '').trim().toUpperCase()) || null,
           pec: ($('#cl-pec').value || '').trim() || null,
+          indirizzo: cliente.indirizzo || null, cap: cliente.cap || null, citta: cliente.citta || null, provincia: cliente.provincia || null,
+          email: cliente.email || null,
         };
         if (incasso.cliente?.id) {
           await supabase.from('clienti_fatturazione').update(Object.assign(extra, { updated_at: new Date().toISOString() })).eq('id', incasso.cliente.id);
