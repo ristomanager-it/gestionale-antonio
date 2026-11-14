@@ -198,10 +198,14 @@ async function init() {
   }
 
   // Carica info azienda da Supabase
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/aziende?id=eq.${aziendaId}&select=id,nome,logo_url`, {
-    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+  // v2 (14/11/2026): aziende non e' piu' leggibile con la chiave anon (RLS chiusa: contiene dati riservati).
+  // La RPC espone solo nome e logo; con ?s=<sede> mostra il nome del locale (es. Trattoria dell'Aquila).
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/candidature_info_pubblica`, {
+    method: 'POST',
+    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_azienda: aziendaId, p_sede: urlParams.get('s') || null })
   });
-  const aziende = await res.json();
+  const aziende = res.ok ? await res.json() : [];
 
   if (!aziende?.length) {
     root.innerHTML = `<div class="loading">⚠️ Azienda non trovata.</div>`;
