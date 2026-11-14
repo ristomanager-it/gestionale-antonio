@@ -4129,6 +4129,12 @@ export async function render(container) {
   adattaAltezza();
   setTimeout(adattaAltezza, 300);
   window.addEventListener('resize', adattaAltezza);
+  let _piantinaPrima = null;
+  window.addEventListener('resize', () => {
+    const ora = !(window.matchMedia ? window.matchMedia('(max-width: 760px)').matches : window.innerWidth <= 760);
+    if (_piantinaPrima !== null && ora !== _piantinaPrima && viewMode === 'tavoli') renderMapTavoli();
+    _piantinaPrima = ora;
+  });
 
   // ── Start: con la mail personale si entra diretto, il PIN serve solo sui telefoni condivisi ──
   switchView('pin');
