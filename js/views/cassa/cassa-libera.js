@@ -822,8 +822,7 @@ export async function renderCassaLibera(container, azienda) {
           await supabase.from('clienti_fatturazione').update(Object.assign(extra, { updated_at: new Date().toISOString() })).eq('id', incasso.cliente.id);
         } else {
           await supabase.from('clienti_fatturazione').insert(Object.assign({
-            azienda_id: aziendaId, partita_iva: cliente.partita_iva, codice_fiscale: cliente.codice_fiscale,
-            indirizzo: ($('#cl-ind').value || '').trim() || null, fonte: 'manuale',
+            azienda_id: aziendaId, partita_iva: cliente.partita_iva, codice_fiscale: cliente.codice_fiscale, fonte: 'manuale',
           }, extra));
         }
       } catch (e) { console.warn('salvaClienteFatturazione', e); }
