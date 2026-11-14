@@ -827,6 +827,8 @@ function hasPermission(area) {
   }
 
   const ADMIN_ONLY_ROUTES = new Set([
+    // IVA, incassi e costi: come il Ragioniere
+    "fatture-situazione",
     // Marketing & CRM
     "bo-tag",
     "bo-template",
