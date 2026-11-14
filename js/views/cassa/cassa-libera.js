@@ -611,6 +611,19 @@ export async function renderCassaLibera(container, azienda) {
       if (!data.ok) { out.textContent = '❌ ' + (data.errore || 'Non trovata'); incasso.cliente = { partita_iva: v }; return; }
       riempiCliente(data.cliente);
       out.textContent = data.fonte === 'archivio' ? '✅ Cliente già in archivio' : ('✅ Trovata nel registro UE' + (data.avviso ? ' — ' + data.avviso : ''));
+      // il registro UE non da' CAP separato ne' codice SDI: li prende dal registro imprese (si paga una volta per P.IVA)
+      if (!$('#cl-cap').value || !$('#cl-sdi').value) {
+        try {
+          const { data: a } = await supabase.functions.invoke('anagrafica-piva', { body: { piva: v } });
+          const x = a && a.ok ? a.anagrafica : null;
+          if (x) {
+            const metti = (id, val) => { const el = $(id); if (el && val && !el.value) el.value = val; };
+            metti('#cl-rs', x.ragione_sociale); metti('#cl-ind', x.indirizzo); metti('#cl-cap', x.cap);
+            metti('#cl-comune', x.citta || x.comune); metti('#cl-prov', x.provincia); metti('#cl-sdi', x.codice_sdi); metti('#cl-pec', x.pec);
+            out.textContent += ' · dati completati dal registro imprese';
+          }
+        } catch (e) { /* restano i dati trovati */ }
+      }
     };
     function riempiCliente(c) {
       incasso.cliente = c || {};
