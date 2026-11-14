@@ -657,6 +657,14 @@ var src=q.get("utm_source")||(fo.indexOf("meta")===0?"meta":(ref?(function(){try
 function inv(tipo,el,val,ok,st){try{fetch(U,{method:"POST",keepalive:true,headers:{"Content-Type":"application/json","apikey":A,"Authorization":"Bearer "+A,"Prefer":"return=minimal"},body:JSON.stringify({azienda_id:az,sede_id:sede,pagina:"candidatura",pagina_id:az,tipo:tipo,elemento:el,valore:val||null,completato:!!ok,referrer:ref?ref.slice(0,250):null,utm_source:src,utm_medium:q.get("utm_medium"),utm_campaign:q.get("utm_campaign")||fo,device:/Mobi|Android/i.test(navigator.userAgent)?"mobile":"desktop",session_id:ses,visitatore:vis,step:st==null?null:String(st)})}).catch(function(){});}catch(e){}}
 inv("view","sito_pagina",fo);
 var iniz=false;document.addEventListener("focusin",function(e){if(iniz)return;if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){iniz=true;inv("step","modulo_iniziato",fo);}},true);
+/* dove si fermano: sezione completata, campi che bloccano, invio fallito, uscita dalla pagina (solo numeri e nomi dei campi, mai le risposte) */
+var t0=Date.now(),tSez=Date.now(),maxSez=0,erroriVisti={};
+function sezNow(){try{return typeof stepCorrente==="number"?stepCorrente:0;}catch(e){return 0;}}
+function campiInErrore(){var o=[];Array.prototype.forEach.call(document.querySelectorAll(".errore"),function(x){if(x.offsetParent!==null&&x.id)o.push(x.id.replace("err-",""));});return o.join(",");}
+if(typeof window.avanti==="function"){var _av=window.avanti;window.avanti=function(n){var prima=sezNow();_av(n);var dopo=sezNow();if(dopo>prima){if(dopo>maxSez)maxSez=dopo;inv("step","sezione_completata",fo,false,prima+1);inv("step","secondi_sezione",String(Math.round((Date.now()-tSez)/1000)),false,prima+1);tSez=Date.now();}else{var c=campiInErrore();if(c){inv("step","campi_mancanti",c,false,prima+1);}}};}
+if(typeof window.invia==="function"){var _inv=window.invia;window.invia=function(){var c0=campiInErrore();inv("step","invio_tentato",fo,false,4);var r=_inv.apply(this,arguments);setTimeout(function(){var c=campiInErrore();if(c)inv("step","campi_mancanti",c,false,4);var e=document.getElementById("errore-invio");if(e&&e.style.display!=="none"&&e.textContent)inv("step","invio_errore",e.textContent.slice(0,200),false,4);},1500);return r;};}
+var uscitaInviata=false;function uscita(){if(uscitaInviata||inviata||!iniz)return;uscitaInviata=true;inv("step","abbandono",String(Math.round((Date.now()-t0)/1000)),false,sezNow()+1);}
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")uscita();});window.addEventListener("pagehide",uscita);
 var root=document.getElementById("root"),inviata=false;if(root&&window.MutationObserver){new MutationObserver(function(){if(!inviata&&root.textContent.indexOf("Candidatura ricevuta")>=0){inviata=true;inv("submit","candidatura_inviata",fo,true);}}).observe(root,{childList:true,subtree:true});}
 }catch(e){}})();
 </script>
