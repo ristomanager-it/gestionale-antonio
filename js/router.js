@@ -2360,6 +2360,29 @@ window.router = {
 
 window.addEventListener("hashchange", resolve);
 
+// Schermo sempre acceso su Cassa e Comande: il tablet al banco non deve spegnersi a metà servizio.
+// Il blocco cade da solo quando l'app va in secondo piano: lo si richiede al ritorno.
+(() => {
+  const ROTTE = ["cassa-libera", "bo-comande"];
+  let blocco = null;
+  const serve = () => ROTTE.includes((location.hash.replace(/^#\/?/, "").split(/[?/]/)[0] || ""));
+  async function aggiorna() {
+    try {
+      if (serve() && document.visibilityState === "visible") {
+        if (!blocco && navigator.wakeLock) {
+          blocco = await navigator.wakeLock.request("screen");
+          blocco.addEventListener("release", () => { blocco = null; });
+        }
+      } else if (blocco) { await blocco.release(); blocco = null; }
+    } catch (e) { blocco = null; }
+  }
+  window.addEventListener("hashchange", aggiorna);
+  document.addEventListener("visibilitychange", aggiorna);
+  // alcuni browser concedono il blocco solo dopo un tocco
+  document.addEventListener("pointerdown", () => { if (!blocco) aggiorna(); }, { passive: true });
+  window.addEventListener("DOMContentLoaded", aggiorna);
+})();
+
 window.addEventListener("DOMContentLoaded", () => {
   app = document.getElementById("app");
   initMenu();
