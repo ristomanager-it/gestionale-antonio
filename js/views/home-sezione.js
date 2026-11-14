@@ -16,7 +16,7 @@ const SEZIONI = {
   eventi: { titolo: "🎪 Eventi", pulsanti: [
     ["📑", "Preventivi", "preventivi"], ["🏛️", "Location", "bo-location-ricevimenti"], ["🎪", "Servizi e personale", "servizi-eventi"], ["📅", "Visite in location", "visite"] ] },
   gestione: { titolo: "💼 Gestione", pulsanti: [
-    ["💳", "Cassa", "cassa-libera"], ["🧾", "Chiusura cassa", "chiusura-cassa"], ["🛒", "Acquisti", "acquisti"], ["🧮", "Ragioniere", "bo-bilancio"],
+    ["💳", "Cassa", "cassa-libera"], ["🧾", "Chiusura cassa", "chiusura-cassa"], ["🛒", "Acquisti", "acquisti"], ["🧮", "Ragioniere", "bo-bilancio"], ["🧾", "Fatture", "fatture-situazione"],
     ["💰", "Venduto", "venduto"], ["📈", "Margini", "margini"], ["🍝", "Food cost mancanti", "food-cost-mancanti"],
     ["💸", "Spese fisse", "spese-fisse"], ["📊", "Menu Engineering", "menu-intelligence"] ] },
   menu_prodotti: { titolo: "📋 Menu e prodotti", pulsanti: [
