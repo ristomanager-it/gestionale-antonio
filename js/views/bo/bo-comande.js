@@ -892,6 +892,18 @@ export async function render(container) {
       );
       const borderColor = isOccupato ? (hasDessert ? '#f59e0b' : '#dc2626') : haPrenotazione ? '#3b82f6' : '#22c55e';
       const bgColor = isOccupato ? (hasDessert ? '#fef3c7' : '#fee2e2') : haPrenotazione ? '#eff6ff' : '#f0fdf4';
+      if (piantina) {
+        const tondo = /tond|rotond/i.test(String(t.forma || ''));
+        return `
+        <button data-tavolo="${t.id}" style="position:absolute;left:${Number(t.pos_x) || 0}%;top:${Number(t.pos_y) || 0}%;
+          width:clamp(64px,10%,104px);aspect-ratio:1;border-radius:${tondo ? '50%' : '14px'};border:3px solid ${borderColor};
+          background:${bgColor};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:1px;padding:4px;line-height:1.15;overflow:hidden;">
+          <strong style="font-size:15px;">${esc(t.nome)}</strong>
+          ${isOccupato ? `<div style="font-size:11px;color:#dc2626;font-weight:700;">€${Number(comanda.totale||0).toFixed(2)}</div>` : `<div style="font-size:10px;color:#64748b;">${t.coperti_max || ''} cop.</div>`}
+          ${haPrenotazione ? `<div style="font-size:10px;color:#92400e;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(prenotazione.cliente_nome||'')}</div>` : ''}
+        </button>`;
+      }
       return `
         <button data-tavolo="${t.id}" style="
           width:120px;height:120px;border-radius:16px;border:3px solid ${borderColor};
