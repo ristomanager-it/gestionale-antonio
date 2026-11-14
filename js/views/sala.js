@@ -229,6 +229,9 @@ export async function render(container) {
     });
   }
 
+  // Trascinamento con il dito o con il mouse (pointer events).
+  // Prima c'era solo il mouse, e ogni tavolo sovrascriveva document.onmousemove:
+  // sul tablet non si spostava niente, sul PC si muoveva solo l'ultimo tavolo.
   function enableDrag(el, tavolo) {
     let attivo = false, moved = false, dx = 0, dy = 0, startX = 0, startY = 0;
     el.style.touchAction = "none";
