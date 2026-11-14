@@ -593,7 +593,7 @@ async function invia() {
     score_totale: Math.round(scoreFinale) / 10,
     score_curiosita: Math.round(((perIndicatore.curiosita || 0) / (PESI.curiosita || 10)) * 100) / 10,
     score_crescita: Math.round(((perIndicatore.crescita || 0) / (PESI.crescita || 10)) * 100) / 10,
-    score_responsabilita: perIndicatore.responsabilita || 0,
+    score_responsabilita: Math.round(((perIndicatore.responsabilita || 0) / (PESI.responsabilita || 10)) * 100) / 10,
     score_mentalita_positiva: perIndicatore.mentalita_positiva || 0,
     score_pressione: perIndicatore.pressione || 0,
     score_leadership: perIndicatore.leadership || 0,
