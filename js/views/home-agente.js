@@ -105,6 +105,8 @@ export async function render(container) {
 
   container.innerHTML = `<div style="padding:30px;text-align:center;color:#94a3b8;">Caricamento...</div>`;
 
+  // Al primo accesso collega la scheda agente con la stessa email (RPC: le regole di accesso guardano user_id)
+  try { await supa.rpc('agente_collega_me'); } catch (e) {}
   // Trova l'agente collegato a questo utente
   let { data: agente } = await supa.from('agenti').select('*').eq('user_id', userId).maybeSingle();
   if (!agente && userEmail) {
