@@ -506,8 +506,9 @@ function valida(step) {
     const cog=document.getElementById('f-cognome')?.value.trim();
     const tel=document.getElementById('f-telefono')?.value.trim();
     const ruolo=document.getElementById('f-ruolo')?.value;
-    err('err-nome',!nome); err('err-cognome',!cog); err('err-telefono',tel.length<8); err('err-ruolo',!ruolo);
-    if(!nome||!cog||tel.length<8||!ruolo) ok=false;
+    const nasc=document.getElementById('f-nascita')?.value;
+    err('err-nome',!nome); err('err-cognome',!cog); err('err-nascita',!nasc); err('err-telefono',tel.length<8); err('err-ruolo',!ruolo);
+    if(!nome||!cog||!nasc||tel.length<8||!ruolo) ok=false;
   }
   if (step===1) {
     ['r-1','r-2','r-3','r-4'].forEach((id,i) => { const n=nParole(id); err('err-'+id.replace('-',''),n<20); if(n<20) ok=false; });
