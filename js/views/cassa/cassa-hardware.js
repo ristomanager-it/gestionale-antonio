@@ -177,7 +177,7 @@ async function precontoSuTermica(st, doc) {
     tipo: 'preconto', reparto: 'preconto', comanda_uuid: doc.comanda_uuid || null,
     contenuto: { tavolo: doc.numero_tavolo || null, coperti: doc.coperti || null, righe: righe,
                  totale: Number(doc.totale) || 0, sconto: Number(doc.sconto) || 0,
-                 chiusura: doc.chiusura || null },
+                 chiusura: doc.chiusura || null, cortesia: doc.cortesia || null },
   }] });
   const riga = Array.isArray(ins) ? ins[0] : null;
   if (error || !riga) return { ok: false, simulato: false, errore: 'Coda stampa: ' + (error?.message || 'errore') };
