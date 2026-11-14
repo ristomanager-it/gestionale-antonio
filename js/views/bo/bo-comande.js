@@ -186,7 +186,7 @@ export async function render(container) {
             </div>
           </div>
 
-          <style>#btn-invia-cucina,#btn-via-uscita,#btn-nuova-uscita,#badge-uscita{display:none!important;}</style>
+          <style>#btn-via-uscita,#btn-nuova-uscita,#badge-uscita{display:none!important;}</style>
           <div id="comanda-grid" style="flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 400px;">
             <style>
               /* La riga della griglia cresceva quanto la lista dei piatti: con un ordine lungo il fondo
