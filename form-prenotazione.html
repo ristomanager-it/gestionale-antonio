@@ -35,7 +35,8 @@
     window.supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     // 🔥 4. IMPORT DINAMICO (FIX CRITICO)
-    const module = await import("/js/views/prenotazioni/prenotazione-online.js");
+    // rf-senza-contatore: il contatore visite e' nel modulo prenotazione-online.js (_rfTrack -> functions/v1/track)
+    const module = await import("/js/views/prenotazioni/prenotazione-online.js?v=20261114-18");
 
     // 🔥 5. AVVIO
     module.render(document.getElementById("app"));
