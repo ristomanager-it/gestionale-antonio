@@ -854,7 +854,8 @@ function hasPermission(area) {
   ]);
 
   if (ADMIN_ONLY_ROUTES.has(area)) {
-    return ruolo === "admin";
+    // il commercialista invitato e' nella sua lista per Ragioniere e Fatture: questo controllo arrivava prima e lo bloccava
+    return ruolo === "admin" || (ruolo === "commercialista" && (area === "bo-bilancio" || area === "fatture-situazione"));
   }
 
   // =====================================
