@@ -1230,7 +1230,7 @@ export async function renderCassaLibera(container, azienda) {
       prezzo_unitario: r.prezzo,
       totale_riga: round2(r.prezzo * r.qta),
       totale_incassato: nf ? 0 : round2(r.prezzo * r.qta),
-      canale: nf ? 'cassa_libera_non_fiscale' : 'cassa_libera',
+      canale: nf ? 'cassa_libera_non_fiscale' : fatt ? 'cassa_libera_fattura' : 'cassa_libera',
     }));
     if (!nf && coupon && t.sconto > 0) {
       righe.push({
