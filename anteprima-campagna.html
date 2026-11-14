@@ -122,7 +122,7 @@ function render(j){
   q('app').innerHTML=h;
   var tb=document.querySelectorAll('.tb');
   for(var i=0;i<tb.length;i++){tb[i].onclick=function(){
-    var u=j.meta_anteprime.urls[this.getAttribute('data-k')].url;
+    var cu=(window.__annU||j.meta_anteprime.urls)[this.getAttribute('data-k')];if(!cu)return;var u=cu.url;
     document.getElementById('meta-if').src=u;document.getElementById('meta-full').href=u;
     for(var n=0;n<tb.length;n++)tb[n].className='tb';this.className='tb on';
   };}
