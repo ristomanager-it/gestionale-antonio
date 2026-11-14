@@ -265,34 +265,8 @@ export async function render(container) {
       el.style.left = x + "%";
       el.style.top = y + "%";
     };
-
-    document.onmouseup = async () => {
-      if (!isDragging) return;
-
-      isDragging = false;
-      el.style.cursor = "grab";
-
-      const x = Math.round((parseFloat(el.style.left) || 0) * 10) / 10;
-      const y = Math.round((parseFloat(el.style.top) || 0) * 10) / 10;
-
-      if (moved) {
-        const { error } = await window.supabaseClient
-          .from("tavoli")
-          .update({
-            pos_x: x,
-            pos_y: y
-          })
-          .eq("id", tavolo.id);
-
-        if (error) {
-          console.error("Errore salvataggio posizione:", error);
-        }
-      }
-
-      setTimeout(() => {
-        el.dataset.dragging = "0";
-      }, 80);
-    };
+    el.addEventListener("pointerup", fine);
+    el.addEventListener("pointercancel", fine);
   }
 
   async function modificaTavolo(tavolo) {
