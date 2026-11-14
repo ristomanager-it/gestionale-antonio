@@ -18,7 +18,7 @@ export async function render(container) {
           <span>🔴 Occupato</span>
         </div>
         <div style="margin-top:8px;font-size:13px;color:#555;">
-          Trascina i tavoli per posizionarli. Click sul tavolo per aprire la comanda. Click destro per modificarlo.
+          Trascina i tavoli con il dito (o il mouse) per posizionarli: la posizione si salva da sola e vale anche per Cassa e Comande. Click sul tavolo per aprire la comanda. Click destro per modificarlo.
         </div>
       </div>
 
