@@ -211,6 +211,58 @@ def _preconto(c, larg, copia, firma):
     return out
 
 
+def build_cortesia(c, larg):
+    """Copia di cortesia della fattura elettronica: non e' un documento fiscale, l'originale e' l'XML allo SDI.
+    I conti li fa il server (imponibile e IVA per aliquota): qui si stampa e basta."""
+    k = c["cortesia"]
+    em = k.get("emittente") or {}
+    cl = k.get("cliente") or {}
+    out = INIT + CENTRO + GRASSETTO_ON
+    for riga in a_capo(em.get("nome", ""), larg):
+        out += t(riga) + b"\n"
+    out += GRASSETTO_OFF
+    for riga in a_capo(em.get("indirizzo", ""), larg):
+        out += t(riga) + b"\n"
+    if em.get("piva"):
+        out += t("P.IVA " + em["piva"]) + b"\n"
+    out += b"\n" + ALTO + GRASSETTO_ON + t("FATTURA N. " + str(k.get("numero", ""))) + GRASSETTO_OFF + NORMALE + b"\n"
+    out += t("del " + str(k.get("data", ""))) + b"\n"
+    out += GRASSETTO_ON + t("COPIA DI CORTESIA") + GRASSETTO_OFF + b"\n"
+    out += SINISTRA + t("-" * larg) + b"\n"
+    out += t("Cliente:") + b"\n" + GRASSETTO_ON
+    for riga in a_capo(cl.get("nome", ""), larg):
+        out += t(riga) + b"\n"
+    out += GRASSETTO_OFF
+    if cl.get("piva"):
+        out += t("P.IVA " + cl["piva"]) + b"\n"
+    elif cl.get("cf"):
+        out += t("C.F. " + cl["cf"]) + b"\n"
+    if c.get("tavolo"):
+        out += t("Tavolo " + str(c["tavolo"])) + b"\n"
+    out += t("-" * larg) + b"\n"
+    for r in c.get("righe") or []:
+        q = float(r.get("quantita") or 1)
+        qs = str(int(q)) if q == int(q) else str(q)
+        tot = q * float(r.get("prezzo_unitario") or 0)
+        out += t(riga_dx(qs + " x " + str(r.get("descrizione", "")), euro(tot), larg)) + b"\n"
+    if float(c.get("sconto") or 0) > 0:
+        out += t(riga_dx("Sconto", "-" + euro(c["sconto"]), larg)) + b"\n"
+    out += t("-" * larg) + b"\n"
+    for g in k.get("riepilogo") or []:
+        al = g.get("aliquota")
+        als = (str(int(al)) if float(al) == int(float(al)) else str(al)) + "%"
+        out += t(riga_dx("Imponibile " + als, euro(g.get("imponibile")), larg)) + b"\n"
+        out += t(riga_dx("IVA " + als, euro(g.get("iva")), larg)) + b"\n"
+    out += DIM_ALTO + GRASSETTO_ON + t(riga_dx("TOTALE EURO", euro(k.get("totale")), larg)) + GRASSETTO_OFF + DIM_1 + b"\n"
+    if k.get("pagamento"):
+        out += t("Pagamento: " + str(k["pagamento"])) + b"\n"
+    out += b"\n" + CENTRO
+    for riga in a_capo("Documento non valido ai fini fiscali. La fattura elettronica e' trasmessa al Sistema di Interscambio ed e' nel cassetto fiscale del cliente.", larg):
+        out += t(riga) + b"\n"
+    out += t(data_ora_locale()) + b"\n" + TAGLIO
+    return out
+
+
 def build_prova(c, larg):
     return INIT + CENTRO + GRANDE + t("PROVA") + b"\n" + NORMALE + t(str(c.get("testo") or "Stampante collegata a Ristoflow")) + b"\n" + TAGLIO
 
