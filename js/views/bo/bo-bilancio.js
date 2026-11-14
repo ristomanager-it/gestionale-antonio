@@ -568,8 +568,9 @@ export async function render(container) {
               </div>
 
               <div style="margin-top:12px;font-size:11px;color:#94a3b8;text-align:center;">
-                ⚠️ Dati indicativi — verificare sempre con il proprio commercialista.<br>
-                Le vendite sono calcolate dalle comande, gli acquisti dalle fatture registrate.
+                Scontrini: ${fontiTxt}. Fatture emesse: ${si.fatture?.n || 0}${si.fatture?.note_credito ? ' (di cui ' + si.fatture.note_credito + ' note di credito, sottratte)' : ''}.<br>
+                Acquisti: ${si.acquisti?.n || 0} documenti${nc.n ? ', di cui ' + nc.n + ' note di credito sottratte' : ''}. Le autofatture contano a debito e a credito: effetto zero.<br>
+                Tutte le sedi dell'azienda. Stima: la liquidazione la chiude il commercialista.
               </div>
 
               <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;">
