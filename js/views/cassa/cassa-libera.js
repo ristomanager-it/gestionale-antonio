@@ -1242,7 +1242,7 @@ export async function renderCassaLibera(container, azienda) {
         prezzo_unitario: -t.sconto,
         totale_riga: -t.sconto,
         totale_incassato: -t.sconto,
-        canale: 'cassa_libera',
+        canale: fatt ? 'cassa_libera_fattura' : 'cassa_libera',
       });
     }
     if (!righe.length) return { ok: true };
