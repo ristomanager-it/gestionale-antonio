@@ -120,8 +120,12 @@ export async function render(container) {
     };
 
     // costi sempre IVA esclusa: se manca l'imponibile si scorpora dal totale con l'aliquota della fattura
-    (fatture || []).forEach(f => aggiungi(f.categorie_bilancio, f.imponibile != null ? Number(f.imponibile) : (Number(f.totale || 0) - Number(f.iva || 0)) || Number(f.totale || 0) / (1 + (Number(f.aliquota_iva) || 22) / 100)));
-    (movimenti || []).forEach(m => aggiungi(m.categorie_bilancio, (m.quantita || 0) * (m.costo || 0)));
+    // le note di credito dei fornitori tolgono costo; le copie delle autofatture non sono un costo (lo e' gia' la fattura originale)
+    (fatture || []).forEach(f => {
+      if (f.integrazione === 'copia') return;
+      const imp = f.imponibile != null ? Number(f.imponibile) : (Number(f.totale || 0) - Number(f.iva || 0)) || Number(f.totale || 0) / (1 + (Number(f.aliquota_iva) || 22) / 100);
+      aggiungi(f.categorie_bilancio, f.tipo_documento === 'nota_credito' ? -imp : imp);
+    });
     (speseExtra || []).forEach(s => aggiungi(s.categorie_bilancio, s.importo || 0));
 
     // Aggiungo il costo del lavoro sulla categoria 14 "Costo del lavoro"
