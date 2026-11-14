@@ -439,7 +439,7 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
     } else { avv.hidden = true; avv.textContent = ""; }
     $("invia").disabled = camere < serve || etaMancanti() > 0;
     var t = conti(), acc = Math.round(t.totale * 30) / 100;
-    var dove = viaAquila ? " all’Hotel Aquila" : "";
+    var dove = viaAquila && riepilogoStanze().toLowerCase().indexOf("orte scalo") < 0 ? " all’Hotel Aquila" : "";
     $("conto").innerHTML = "<div><span>Cenone" + (festaCampo() ? " a Campo Antico" : "") + " · " + adulti + (adulti === 1 ? " adulto" : " adulti") + " × " + euro0(prezzoCena()) + "</span><span>" + euro(adulti * prezzoCena()) + "</span></div>"
       + (grandi() ? "<div><span>Cenone · " + grandi() + (grandi() === 1 ? " bambino" : " bambini") + " 4-12 anni × 40 €</span><span>" + euro(grandi() * 40) + "</span></div>" : "")
       + (piccoli() ? "<div><span>" + piccoli() + (piccoli() === 1 ? " bambino" : " bambini") + " sotto i 4 anni</span><span>gratis</span></div>" : "")
