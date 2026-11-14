@@ -20,6 +20,7 @@ export async function render(container) {
       <p id="ev-data" style="color:#64748b;font-size:14px;margin:0 0 20px;">&nbsp;</p>
       <div id="ev-tot" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;"></div>
       <div id="ev-cfg" style="margin-bottom:24px;"></div>
+      <div id="ev-fondatore" style="margin-bottom:24px;"></div>
       <div id="ev-linkbox"></div>
       <div id="ev-promemoria" style="margin-top:24px;"></div>
       <div id="ev-aggiungi" style="margin-top:30px;"></div>
