@@ -615,7 +615,10 @@ export async function renderCassaLibera(container, azienda) {
     function riempiCliente(c) {
       incasso.cliente = c || {};
       $('#cl-rs').value = c?.ragione_sociale || '';
-      $('#cl-ind').value = [c?.indirizzo, [c?.cap, c?.citta, c?.provincia].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+      // archivio vecchio: indirizzo tutto in un campo; il CAP si ripesca se c'e'
+      let ind = c?.indirizzo || '', cap = c?.cap || '', com = c?.citta || '';
+      if (!cap) { const m = /(\d{5})\s+([^,(]+)/.exec(ind); if (m) { cap = m[1]; com = com || m[2].trim(); ind = ind.slice(0, m.index).replace(/[,\s]+$/, ''); } }
+      $('#cl-ind').value = ind; $('#cl-cap').value = cap; $('#cl-comune').value = com; $('#cl-prov').value = c?.provincia || '';
       $('#cl-sdi').value = c?.codice_sdi || '';
       $('#cl-pec').value = c?.pec || '';
       $('#cl-email').value = c?.email || '';
