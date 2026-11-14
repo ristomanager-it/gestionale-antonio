@@ -657,7 +657,7 @@ function disegna(container, supabase, azienda, sede) {
           ${extra.map((x, i) => `
             <div class="riga">
               <div class="n">${esc(x.descrizione)}</div>
-              <input class="pz" type="number" step="0.01" value="${x.prezzo}" data-extra="${i}">
+              <input class="pz" type="number" step="0.01" value="${x.prezzo}" data-extra-prezzo="${i}">
               <button class="x" data-del-extra="${i}">✕</button>
             </div>`).join("")}
           ${listinoServizi.length ? `
