@@ -253,15 +253,9 @@ export async function render(container) {
       el.dataset.dragging = "1";
 
       const rect = box.getBoundingClientRect();
-
-      // Stessa unita' della piantina in Configurazione: percentuali, con il
-      // tetto a 90 perche' il tavolo deve restare dentro la sala.
-      let x = (e.clientX - rect.left - offsetX) / rect.width * 100;
-      let y = (e.clientY - rect.top - offsetY) / rect.height * 100;
-
-      x = Math.max(0, Math.min(90, x));
-      y = Math.max(0, Math.min(90, y));
-
+      // percentuali della sala, come in Configurazione e in Cassa; tetto a 90 per restare dentro
+      const x = Math.max(0, Math.min(90, (e.clientX - rect.left - dx) / rect.width * 100));
+      const y = Math.max(0, Math.min(90, (e.clientY - rect.top - dy) / rect.height * 100));
       el.style.left = x + "%";
       el.style.top = y + "%";
     });
