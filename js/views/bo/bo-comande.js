@@ -1998,7 +1998,8 @@ export async function render(container) {
     }).join('');
     const totDaInviare = piatti.filter(r => r.stato === 'in_attesa').length;
     html += `<div data-uscita-box="nuova" style="margin:8px 6px 6px;"><button id="btn-nuova-uscita-lista" style="${BTN}width:100%;background:#e0f2fe;color:#0369a1;border:1px dashed #7dd3fc;">＋ Nuova uscita</button></div>`;
-    if (totDaInviare) html += `<div style="margin:6px 6px 16px;"><button id="btn-invia-comanda-lista" style="${BTN}width:100%;padding:16px;font-size:17px;background:#16a34a;color:white;">📤 Invia comanda · ${totDaInviare} ${totDaInviare === 1 ? 'piatto' : 'piatti'}</button>
+    // sempre in vista in fondo alla lista, anche con un ordine lungo
+    if (totDaInviare) html += `<div style="position:sticky;bottom:0;z-index:2;background:white;padding:6px 6px 10px;margin:6px 0 0;box-shadow:0 -6px 12px rgba(255,255,255,.95);"><button id="btn-invia-comanda-lista" style="${BTN}width:100%;padding:16px;font-size:17px;background:#16a34a;color:white;">📤 Invia comanda · ${totDaInviare} ${totDaInviare === 1 ? 'piatto' : 'piatti'}</button>
       <div style="font-size:12px;color:#64748b;text-align:center;margin-top:4px;">La cucina riceve tutto; le uscite dopo la prima aspettano il tuo 🔔 Via</div></div>`;
     box.innerHTML = html;
     // Invia anche in alto, sempre in vista: sul tablet il fondo della lista puo' restare fuori schermo
