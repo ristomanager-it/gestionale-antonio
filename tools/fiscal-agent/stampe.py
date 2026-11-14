@@ -236,6 +236,9 @@ def build_cortesia(c, larg):
     for riga in a_capo(cl.get("nome", ""), larg):
         out += t(riga) + b"\n"
     out += GRASSETTO_OFF
+    for chiave in ("indirizzo", "citta", "nazione"):
+        for riga in a_capo(str(cl.get(chiave) or ""), larg):
+            out += t(riga) + b"\n"
     if cl.get("piva"):
         out += t("P.IVA " + cl["piva"]) + b"\n"
     if cl.get("cf") and cl.get("cf") != cl.get("piva"):
