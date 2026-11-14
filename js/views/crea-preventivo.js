@@ -1621,17 +1621,26 @@ async function salva(container, supabase, azienda, sede) {
     pianificato = !es;
   }
 
+  // quello che c'e' a schermo ADESSO: mentre si salvava si puo' aver aggiunto una sezione (es. l'aperitivo)
+  // o scritto un piatto, e non deve sparire quando si ricarica dal database
+  const aSchermo = righe;
+  const salvati = new Set(daSalvare.map(r => norm(r.sezione || "Menu") + "|" + norm(r.nome)));
   await caricaPreventivo(supabase, id);
-  // rimetto al loro posto le sezioni rimaste senza piatti, con l'eventuale prezzo dell'isola
   {
+    const dalDb = righe;
     const rec = [];
-    sezPrima.forEach(s => {
-      const rs = righe.filter(r => (r.sezione || "Menu") === s.sez);
-      if (rs.length) rec.push(...rs);
-      else for (let i = 0; i < Math.max(s.quante, 1); i++) rec.push({ nome: "", sezione: s.sez, prezzo: i === 0 ? s.prezzo : 0, ricetta_id: null, pp: ppSezione(s.sez) });
+    [...new Set(aSchermo.map(r => r.sezione || "Menu"))].forEach(sez => {
+      const db = dalDb.filter(r => (r.sezione || "Menu") === sez);
+      const mem = aSchermo.filter(r => (r.sezione || "Menu") === sez);
+      if (db.length) {
+        rec.push(...db);
+        // piatti scritti durante il salvataggio: restano, si salveranno al prossimo giro
+        mem.filter(r => r.nome && !salvati.has(norm(sez) + "|" + norm(r.nome))).forEach(r => rec.push(r));
+      } else rec.push(...mem);
     });
-    righe.filter(r => !sezPrima.some(s => s.sez === (r.sezione || "Menu"))).forEach(r => rec.push(r));
+    dalDb.filter(r => !aSchermo.some(x => (x.sezione || "Menu") === (r.sezione || "Menu"))).forEach(r => rec.push(r));
     righe = rec;
+    ordinaRighe();
   }
   if (create) {
     const { data: rr } = await supabase.from("ricette")
