@@ -104,7 +104,7 @@ async function applyBrand(aziendaId) {
 async function init() {
   const root = document.getElementById('root');
   if (!TOKEN) { root.innerHTML = '<div class="loading">⚠️ Link non valido.</div>'; return; }
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature?token=eq.${TOKEN}&select=*`, { headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Accept':'application/json'} });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/candidatura_per_token`, { method:'POST', headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body: JSON.stringify({ p_token: TOKEN }) });
   const data = await res.json();
   cand = data?.[0];
   if (cand?.azienda_id) await applyBrand(cand.azienda_id);
