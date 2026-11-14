@@ -137,6 +137,9 @@ export async function render(container) {
         .select('id,nome,codice_conto,tipo,ordine').eq('id', 32).maybeSingle();
       if (catRic) aggiungi(catRic, Math.round(ricaviVenduto * 100) / 100);
     }
+    if (ricaviFatture !== 0) {
+      aggiungi({ id: 'fatture-emesse', nome: 'Ricavi da fatture emesse', codice_conto: '', tipo: 'ricavo', ordine: 60 }, Math.round(ricaviFatture * 100) / 100);
+    }
 
 
     const costi  = Object.values(aggregato).filter(a => a.cat.tipo !== 'ricavo').sort((a,b) => (a.cat.ordine||99)-(b.cat.ordine||99));
