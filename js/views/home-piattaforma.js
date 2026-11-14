@@ -2408,8 +2408,10 @@ async function _agLinkPersonali(id) {
 }
 function _agApri(url) { const w = window.open(url, '_blank'); if (!w) location.href = url; }
 
-window.inviaInvitoAgenteWA = function() {
+window.inviaInvitoAgenteWA = async function() {
   const d = _agInvitoDati(); if (!d) return;
+  if (!_agenteEditId) { alert('Salva prima l\'agente: il messaggio parte con i suoi link personali.'); return; }
+  Object.assign(d, await _agLinkPersonali(_agenteEditId));
   if (!d.tel) { alert('Inserisci un numero di telefono per inviare l\'invito WhatsApp'); return; }
   let numero = d.tel.replace(/[^\d+]/g,'');
   if (numero.startsWith('+')) numero = numero.slice(1);
