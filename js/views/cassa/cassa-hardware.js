@@ -152,6 +152,22 @@ export async function emettiPreconto(doc) {
   return emettiDocumento(Object.assign({}, doc, { tipo: 'preconto' }));
 }
 
+// Copia di cortesia della fattura fatta in cassa: solo sulla termica dei preconti.
+// Non va mai sulla stampante fiscale: li' uscirebbe un documento che sembra uno scontrino.
+export async function emettiCortesia(doc) {
+  if (CASSA_CONFIG.simulazione) { await _attesa(300); return { ok: true, simulato: true }; }
+  try {
+    const supabase = window.supabaseClient || window.supabase;
+    const { data: st } = await supabase.from('stampanti_comande').select('id, ip, porta, larghezza, sede_id, attiva')
+      .eq('azienda_id', doc.azienda).eq('reparto', 'preconto');
+    const tutte = st || [];
+    const proprie = doc?.sede ? tutte.filter(x => String(x.sede_id) === String(doc.sede)) : [];
+    const scelta = (proprie.length ? proprie : tutte.filter(x => !x.sede_id)).find(x => x.attiva);
+    if (!scelta) return { ok: false, simulato: false, errore: 'Nessuna stampante dei preconti attiva: la copia di cortesia non esce' };
+    return await precontoSuTermica(scelta, doc);
+  } catch (e) { return { ok: false, simulato: false, errore: String(e && e.message || e) }; }
+}
+
 // Stampanti termiche e registratore non hanno emoji ne' apostrofi tipografici (uscivano "??")
 export function testoStampa(t) {
   return String(t == null ? '' : t)
