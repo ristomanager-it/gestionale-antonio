@@ -244,8 +244,8 @@ function renderForm(ruoli) {
   ).join('');
 
   root.innerHTML = `
-    <!-- HERO -->
-    <div class="hero">
+    <!-- HERO (Campo Antico senza sede: foto della squadra in sala, come la landing lavora-con-noi) -->
+    <div class="hero"${(aziendaInfo.id === 'b331365f-17db-4dda-aa2f-77a09427fe42' && !new URLSearchParams(location.search).get('s')) ? ' style="background:linear-gradient(180deg,rgba(10,30,40,.15) 0%,rgba(10,30,40,.55) 45%,rgba(10,30,40,.92) 100%),url(https://app.ristoflow-ai.com/media/lavora-con-noi/landing-sala.jpg) center 22%/cover;padding-top:230px"' : ''}>
       <div class="hero-logo">${aziendaInfo.logo_url ? `<img src="${aziendaInfo.logo_url}" style="height:48px;border-radius:12px;">` : '🍽️'}</div>
       <div class="hero-azienda">${aziendaInfo.nome}</div>
       <div class="hero-titolo">Scopriamo se siamo fatti<br>per lavorare insieme</div>
