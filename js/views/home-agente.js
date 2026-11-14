@@ -78,7 +78,7 @@ function agGuadagnoAContratto(l, agente) {
 }
 
 function agRicorrenteAnnualeLead(l, agente) {
-  if (!l || agente?.tipo === 'segnalatore') return 0;
+  if (!l || agente?.tipo === 'segnalatore' || l.ruolo === 'segnalatore') return 0;
   if (window.__RC) return window.__RC.ricorrente(agValoreAnnuoLead(l), agente?.tipo);
   return agValoreAnnuoLead(l) * AG_RICORRENTE_PERCENT / 100;
 }
