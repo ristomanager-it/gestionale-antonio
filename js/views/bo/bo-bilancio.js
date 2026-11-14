@@ -382,15 +382,30 @@ export async function render(container) {
           dataFine = `${anno}-${String(mese).padStart(2,'0')}-${lastDay}`;
         }
 
-        // IVA ACQUISTI da fatture_acquisto — a livello AZIENDA
-        // (le fatture di acquisto non hanno sede_id: sono aziendali)
-        let qAcq = window.supabaseClient.from('fatture_acquisto')
-          .select('data_documento, imponibile, iva, totale, aliquota_iva')
-          .eq('azienda_id', aziendaId)
-          .gte('data_documento', dataInizio)
-          .lte('data_documento', dataFine)
-          .order('data_documento');
-        const { data: fatture } = await qAcq.limit(5000);
+        // Un solo calcolo per Ragioniere e pagina Fatture: situazione_iva nel database.
+        // Tutta l'azienda (l'IVA si liquida per partita IVA), note di credito in sottrazione, fatture emesse incluse.
+        const { data: si, error: eSi } = await window.supabaseClient.rpc('situazione_iva', { p_azienda: aziendaId, p_da: dataInizio, p_a: dataFine });
+        if (eSi) throw eSi;
+        const ivaVendMap = {}, ivaAcqMap = {};
+        const somma = (map, aliq, imp, iva) => {
+          const k = Number(aliq) || 0;
+          if (!map[k]) map[k] = { imponibile: 0, iva: 0, totale: 0 };
+          map[k].imponibile += Number(imp) || 0; map[k].iva += Number(iva) || 0; map[k].totale += (Number(imp) || 0) + (Number(iva) || 0);
+        };
+        (si.scontrini?.aliquote || []).forEach(r => somma(ivaVendMap, r.aliquota, r.imponibile, r.iva));
+        (si.fatture?.aliquote || []).forEach(r => somma(ivaVendMap, r.aliquota, r.imponibile, r.iva));
+        (si.acquisti?.aliquote || []).forEach(r => somma(ivaAcqMap, r.aliquota, r.imponibile, r.iva));
+        const ivaAuto = Number(si.autofatture?.iva) || 0;
+        const totImponibileVend = Object.values(ivaVendMap).reduce((t, v) => t + v.imponibile, 0);
+        const totImponibileAcq = Object.values(ivaAcqMap).reduce((t, v) => t + v.imponibile, 0);
+        const totIvaVend = Number(si.iva_debito) || 0;
+        const totIvaAcq = Number(si.iva_credito) || 0;
+        const totTotaleVend = totImponibileVend + totIvaVend;
+        const totTotaleAcq = totImponibileAcq + totIvaAcq;
+        const fonti = si.fonti_scontrini || {};
+        const fontiTxt = [fonti.cassa ? fonti.cassa + ' giorni dalla cassa Ristoflow' : '', fonti.rt ? fonti.rt + ' dalla stampante fiscale' : '', fonti.ipratico ? fonti.ipratico + ' dal venduto importato' : ''].filter(Boolean).join(', ') || 'nessuno scontrino nel periodo';
+        const nc = si.acquisti?.note_credito || {};
+        const rigaAuto = ivaAuto ? `<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:9px 12px;font-weight:600;">Autofatture (${si.autofatture.n})</td><td></td><td style="padding:9px 12px;text-align:right;font-weight:600;">€ ${ivaAuto.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td></td></tr>` : '';
 
         // IVA VENDITE da comande_righe con iva su prodotto
         // Raggruppiamo per aliquota usando il campo iva su comande_righe
