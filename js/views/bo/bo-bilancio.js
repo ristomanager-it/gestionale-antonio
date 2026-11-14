@@ -145,7 +145,7 @@ export async function render(container) {
     const totCosti  = costi.reduce((s,a) => s + a.totale, 0);
     const totRicavi = ricavi.reduce((s,a) => s + a.totale, 0);
     const utile     = totRicavi - totCosti;
-    const nDaConf   = (fatture||[]).filter(f => !f.classificazione_ok).length;
+    const nDaConf   = (fatture||[]).filter(f => !f.classificazione_ok && f.integrazione !== 'copia').length;
 
     return { costi, ricavi, totCosti, totRicavi, utile, nDaConf, dataDa, dataA };
   }
