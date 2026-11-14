@@ -126,6 +126,16 @@ function render(j){
     document.getElementById('meta-if').src=u;document.getElementById('meta-full').href=u;
     for(var n=0;n<tb.length;n++)tb[n].className='tb';this.className='tb on';
   };}
+  var AS=document.getElementById('ann');
+  if(AS){var AN2=j.meta_anteprime.annunci;
+    var vai=function(i){i=(i+AN2.length)%AN2.length;AS.value=String(i);var a=AN2[i];window.__annU=a.urls;
+      var on=document.querySelector('.tb.on'),k=(on&&a.urls[on.getAttribute('data-k')])?on.getAttribute('data-k'):Object.keys(a.urls)[0];
+      for(var n=0;n<tb.length;n++){var kk=tb[n].getAttribute('data-k');tb[n].style.display=a.urls[kk]?'':'none';tb[n].className='tb'+(kk===k?' on':'');}
+      var u=a.urls[k].url;document.getElementById('meta-if').src=u;document.getElementById('meta-full').href=u;
+      document.getElementById('meta-testo').innerHTML=TX({t:a.testo||'',h:a.titolo||''});};
+    AS.onchange=function(){vai(Number(AS.value));};
+    document.getElementById('ann-p').onclick=function(){vai(Number(AS.value)-1);};
+    document.getElementById('ann-n').onclick=function(){vai(Number(AS.value)+1);};}
 }
 if(!id){q('app').innerHTML='<div style="padding:60px 20px;text-align:center">Anteprima non trovata.</div>';return;}
 fetch(SB+'/rest/v1/rpc/anteprima_campagna',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify({p_id:id})})
