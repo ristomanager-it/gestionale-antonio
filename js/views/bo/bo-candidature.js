@@ -187,7 +187,7 @@ export async function render(container) {
               <div>
                 <div style="font-size:22px;font-weight:700;color:white;">${c.nome} ${c.cognome}</div>
                 <div style="font-size:13px;color:rgba(255,255,255,.8);margin-top:4px;">
-                  ${c.ruolo_desiderato} · ${c.area_interesse} · ${c.citta || '—'}
+                  ${c.ruolo_desiderato} · ${c.area_interesse} · ${c.citta || '—'}${c.data_nascita ? ' · ' + Math.floor((Date.now() - new Date(c.data_nascita).getTime()) / 31557600000) + ' anni' : ''}
                 </div>
                 <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
                   <span style="background:rgba(255,255,255,.2);color:white;padding:3px 10px;border-radius:20px;font-size:12px;">${fase.emoji} ${fase.label}</span>
