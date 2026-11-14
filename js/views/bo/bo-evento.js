@@ -59,6 +59,95 @@ export async function render(container) {
    }
   }
 
+  // Posto Fondatore: link e QR della pagina pubblica, richieste arrivate da lì
+  async function disegnaFondatore() {
+    const box = document.getElementById("ev-fondatore");
+    if (!box) return;
+    const LINK = "https://app.ristoflow-ai.com/fondatore.html";
+    const LINK_QR = LINK + "?qr=1";
+    const { data: ric, error } = await supabase.from("fondatori_richieste").select("*").order("created_at", { ascending: false });
+    if (error) { box.innerHTML = '<div style="color:#b91c1c;font-size:14px;">Richieste Fondatore non leggibili: ' + esc(error.message) + '</div>'; return; }
+    const righe = ric || [];
+    const pagati = righe.filter(r => r.stato === "pagato").length;
+    const attesa = righe.filter(r => r.stato === "in_attesa_pagamento" || r.stato === "da_verificare").length;
+    const STATI = { da_verificare: "Da verificare", in_attesa_pagamento: "In attesa di pagamento", pagato: "Pagato", annullato: "Annullato" };
+    const COL = { pagato: "#059669", annullato: "#94a3b8" };
+    box.innerHTML = `
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+          <div style="flex:1;min-width:240px;">
+            <div style="font-size:17px;font-weight:800;color:#023C59;">👑 Posto Fondatore</div>
+            <div style="font-size:13px;color:#64748b;margin:2px 0 10px;">${pagati} pagati · ${attesa} in attesa · pagina pubblica con il QR della serata</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <input id="fo-link" readonly value="${LINK}" style="flex:1;min-width:200px;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;">
+              <button id="fo-copia" style="background:#023C59;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer;">Copia link</button>
+              <a href="${LINK}" target="_blank" rel="noopener" style="border:1.5px solid #023C59;color:#023C59;border-radius:8px;padding:8px 14px;font-weight:700;text-decoration:none;">Apri</a>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:6px;">Per un agente aggiungi <b>?ag=CODICE</b> al link: la richiesta arriva con il suo nome.</div>
+          </div>
+          <div style="text-align:center;">
+            <div id="fo-qr" style="background:#fff;padding:8px;border:1px solid #e5e7eb;border-radius:10px;display:inline-block;min-width:176px;min-height:176px;"></div>
+            <div><button id="fo-scarica" style="margin-top:6px;background:none;border:none;color:#023C59;font-weight:700;cursor:pointer;">⬇️ Scarica QR</button></div>
+          </div>
+        </div>
+        <div style="overflow-x:auto;margin-top:14px;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="text-align:left;color:#64748b;border-bottom:1px solid #e2e8f0;">
+              <th style="padding:8px 6px;">Locale</th><th>Titolare</th><th>Contatti</th><th>Metodo</th><th>Agente</th><th>Stato</th><th></th>
+            </tr></thead>
+            <tbody>
+              ${righe.length ? righe.map(r => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:9px 6px;font-weight:700;">${esc(r.nome_locale)}<div style="font-weight:400;color:#64748b;font-size:12px;">${esc(r.citta || "")}${r.piva ? " · P.IVA " + esc(r.piva) : ""}</div></td>
+                  <td>${esc(r.titolare)}</td>
+                  <td>${esc(r.telefono)}<div style="color:#64748b;font-size:12px;">${esc(r.email)}</div></td>
+                  <td>${r.metodo === "carta" ? "💳 Carta" : "🏦 Bonifico"}</td>
+                  <td>${esc(r.agente_ref || "—")}</td>
+                  <td style="font-weight:700;color:${COL[r.stato] || "#b45309"};">${STATI[r.stato] || esc(r.stato)}${r.pagato_il ? '<div style="font-weight:400;color:#64748b;font-size:12px;">' + new Date(r.pagato_il).toLocaleDateString("it-IT") + '</div>' : ""}</td>
+                  <td style="white-space:nowrap;">
+                    ${r.stato !== "pagato" && r.stato !== "annullato" ? `<button data-fo-pagato="${r.id}" style="background:#059669;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer;font-size:12px;">${r.metodo === "bonifico" ? "Bonifico arrivato" : "Segna pagato"}</button>
+                    <button data-fo-annulla="${r.id}" style="background:none;border:1px solid #cbd5e1;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:12px;">Annulla</button>` : ""}
+                  </td>
+                </tr>`).join("") : '<tr><td colspan="7" style="padding:12px 6px;color:#64748b;">Nessuna richiesta per ora.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+
+    const qrEl = document.getElementById("fo-qr");
+    const disegnaQR = () => {
+      if (!window.QRCode) { setTimeout(disegnaQR, 300); return; }
+      qrEl.innerHTML = "";
+      new window.QRCode(qrEl, { text: LINK_QR, width: 160, height: 160, correctLevel: window.QRCode.CorrectLevel.M });
+    };
+    disegnaQR();
+    document.getElementById("fo-scarica").onclick = () => {
+      if (!window.QRCode) return;
+      const tmp = document.createElement("div");
+      new window.QRCode(tmp, { text: LINK_QR, width: 1024, height: 1024, correctLevel: window.QRCode.CorrectLevel.M });
+      setTimeout(() => {
+        const c = tmp.querySelector("canvas"); const im = tmp.querySelector("img");
+        const a = document.createElement("a");
+        a.href = c ? c.toDataURL("image/png") : (im ? im.src : "");
+        a.download = "ristoflow-fondatore-qr.png"; a.click();
+      }, 200);
+    };
+    document.getElementById("fo-copia").onclick = async () => {
+      try { await navigator.clipboard.writeText(LINK); document.getElementById("fo-copia").textContent = "Copiato ✓"; }
+      catch (e) { document.getElementById("fo-link").select(); }
+    };
+    box.querySelectorAll("[data-fo-pagato]").forEach(b => b.onclick = async () => {
+      if (!confirm("Confermi che il pagamento è arrivato? Il posto Fondatore diventa suo.")) return;
+      const { error } = await supabase.from("fondatori_richieste").update({ stato: "pagato", pagato_il: new Date().toISOString() }).eq("id", b.dataset.foPagato);
+      if (error) alert(error.message); else disegnaFondatore();
+    });
+    box.querySelectorAll("[data-fo-annulla]").forEach(b => b.onclick = async () => {
+      if (!confirm("Annullare questa richiesta?")) return;
+      const { error } = await supabase.from("fondatori_richieste").update({ stato: "annullato" }).eq("id", b.dataset.foAnnulla);
+      if (error) alert(error.message); else disegnaFondatore();
+    });
+  }
+
   function disegnaTotali(righe) {
     const attive = righe.filter(r => r.stato !== "annullato");
     const persone = attive.reduce((t, r) => t + (r.persone || 1), 0);
