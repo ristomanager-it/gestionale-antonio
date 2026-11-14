@@ -606,6 +606,12 @@ A presto 🤝</div>
     document.getElementById('ag-fo-copia').onclick = async () => {
       try { await navigator.clipboard.writeText(link); document.getElementById('ag-fo-copia').textContent = 'Copiato ✓'; } catch (e) {}
     };
+    box.querySelectorAll('[data-ag-fo]').forEach(sel => sel.onchange = async () => {
+      if (!sel.value) return;
+      if (!confirm('Colleghi questo posto Fondatore all\'azienda scelta? Il contratto diventa tuo.')) { sel.value = ''; return; }
+      const { error } = await supa.rpc('fondatore_collega_azienda', { p_richiesta: sel.dataset.agFo, p_azienda: sel.value });
+      if (error) alert(error.message); else montaFondatoreAgente();
+    });
   }
 
   window.agCopiaTemplate = function() {
