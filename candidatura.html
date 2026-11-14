@@ -597,7 +597,7 @@ async function invia() {
     score_mentalita_positiva: Math.round(((perIndicatore.mentalita_positiva || 0) / (PESI.mentalita_positiva || 10)) * 100) / 10,
     score_pressione: Math.round(((perIndicatore.pressione || 0) / (PESI.pressione || 10)) * 100) / 10,
     score_leadership: Math.round(((perIndicatore.leadership || 0) / (PESI.leadership || 10)) * 100) / 10,
-    score_mentalita_proprietario: perIndicatore.mentalita_proprietario || 0,
+    score_mentalita_proprietario: Math.round(((perIndicatore.mentalita_proprietario || 0) / (PESI.mentalita_proprietario || 10)) * 100) / 10,
     fonte, fase_attuale: 1, fase_label: 'Ricevuta',
   };
 
