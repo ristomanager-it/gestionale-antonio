@@ -179,6 +179,9 @@ def euro(v):
 
 
 def build_preconto(c, larg):
+    # copia di cortesia della fattura fatta in cassa: viaggia come preconto (stessa coda, stessa stampante)
+    if c.get("cortesia"):
+        return build_cortesia(c, larg)
     # Addebito: due copie, una al cliente e una al locale con la firma di chi usufruisce del servizio
     if str(c.get("chiusura") or "").upper().startswith("ADDEBITO"):
         return _preconto(c, larg, "COPIA CLIENTE", False) + _preconto(c, larg, "COPIA LOCALE", True)
