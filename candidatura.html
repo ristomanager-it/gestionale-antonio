@@ -592,7 +592,7 @@ async function invia() {
     area_interesse: document.getElementById('v-area').value,
     score_totale: Math.round(scoreFinale) / 10,
     score_curiosita: Math.round(((perIndicatore.curiosita || 0) / (PESI.curiosita || 10)) * 100) / 10,
-    score_crescita: perIndicatore.crescita || 0,
+    score_crescita: Math.round(((perIndicatore.crescita || 0) / (PESI.crescita || 10)) * 100) / 10,
     score_responsabilita: perIndicatore.responsabilita || 0,
     score_mentalita_positiva: perIndicatore.mentalita_positiva || 0,
     score_pressione: perIndicatore.pressione || 0,
