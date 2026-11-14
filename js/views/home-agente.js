@@ -568,10 +568,12 @@ A presto 🤝</div>
     const ag = window._agAgente;
     if (!box || !ag) return;
     const link = 'https://app.ristoflow-ai.com/fondatore.html?ag=' + String(ag.id).slice(0, 8);
-    const [{ data: ric }, { data: mieAz }] = await Promise.all([
+    const [{ data: ric }, { data: mieAz }, { data: inv }] = await Promise.all([
       supa.from('fondatori_richieste').select('id, nome_locale, stato, metodo, created_at, azienda_id, ruolo_agente').order('created_at', { ascending: false }),
       supa.from('aziende').select('id, nome').order('nome'),
+      supa.from('evento_inviti').select('codice').eq('agente_id', ag.id).order('created_at').limit(1),
     ]);
+    const linkSerata = inv && inv[0] ? 'https://app.ristoflow-ai.com/#/evento-serata?r=' + inv[0].codice : null;
     const righe = (ric || []).filter(r => r.stato !== 'annullato');
     const az = (mieAz || []).filter(a => a.id !== ag.azienda_prova_id);
     const opzAz = az.map(a => '<option value="' + a.id + '">' + escAg(a.nome) + '</option>').join('');
