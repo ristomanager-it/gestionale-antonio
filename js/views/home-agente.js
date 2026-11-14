@@ -609,6 +609,8 @@ A presto 🤝</div>
     document.getElementById('ag-fo-copia').onclick = async () => {
       try { await navigator.clipboard.writeText(link); document.getElementById('ag-fo-copia').textContent = 'Copiato ✓'; } catch (e) {}
     };
+    const srBtn = document.getElementById('ag-sr-copia');
+    if (srBtn) srBtn.onclick = async () => { try { await navigator.clipboard.writeText(linkSerata); srBtn.textContent = 'Copiato ✓'; } catch (e) {} };
     box.querySelectorAll('[data-ag-fo]').forEach(sel => sel.onchange = async () => {
       if (!sel.value) return;
       if (!confirm('Colleghi questo posto Fondatore all\'azienda scelta? Il contratto diventa tuo.')) { sel.value = ''; return; }
