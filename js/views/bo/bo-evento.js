@@ -170,7 +170,7 @@ export async function render(container) {
     box.querySelectorAll("[data-fo-azienda]").forEach(sel => sel.onchange = async () => {
       if (!sel.value) return;
       if (!confirm("Collego questa richiesta all'azienda scelta? L'azienda prende l'agente e il piano Fondatore, se non li ha già.")) { sel.value = ""; return; }
-      const { error } = await supabase.from("fondatori_richieste").update({ azienda_id: sel.value }).eq("id", sel.dataset.foAzienda);
+      const { error } = await supabase.rpc("fondatore_collega_azienda", { p_richiesta: sel.dataset.foAzienda, p_azienda: sel.value });
       if (error) alert(error.message); else disegnaFondatore();
     });
   }
