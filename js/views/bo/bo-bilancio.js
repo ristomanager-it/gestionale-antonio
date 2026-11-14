@@ -88,26 +88,11 @@ export async function render(container) {
     // conto economico. Li aggancio alla categoria "Ricavi da corrispettivi" (id 32).
     let ricaviVenduto = 0;
     try {
-      let qv = supa().from('vendite_giornaliere')
-        .select('totale_incassato, totale_riga, nome_prodotto, nome_articolo')
-        .eq('azienda_id', aziendaId);
-      if (dataDa) qv = qv.gte('data_vendita', dataDa);
-      if (dataA) qv = qv.lte('data_vendita', dataA);
-      const { data: vendite } = await qv;
-      if (vendite?.length) {
-        // Il venduto e' IVA INCLUSA, i costi sono IVA esclusa: si scorpora l'IVA con l'aliquota del prodotto
-        // (da prodotti_vendita, per nome), 10% se il prodotto non si trova. Prima il margine risultava gonfiato.
-        const { data: pv } = await supa().from('prodotti_vendita').select('nome, iva').eq('azienda_id', aziendaId).limit(5000);
-        const aliq = new Map();
-        (pv || []).forEach(p => { if (p.nome) aliq.set(String(p.nome).trim().toLowerCase(), Number(p.iva) || 10); });
-        for (const v of vendite) {
-          const lordo = Number(v.totale_incassato ?? v.totale_riga ?? 0);
-          const a = aliq.get(String(v.nome_prodotto || v.nome_articolo || '').trim().toLowerCase()) || 10;
-          ricaviVenduto += lordo / (1 + a / 100);
-        }
-        ricaviVenduto = Math.round(ricaviVenduto * 100) / 100;
-      }
-    } catch (e) { console.warn('Errore lettura ricavi venduto:', e); }
+      const { data: si, error: eSi } = await supa().rpc('situazione_iva', { p_azienda: aziendaId, p_da: dataDa || '2000-01-01', p_a: dataA || '2099-12-31' });
+      if (eSi) throw eSi;
+      ricaviVenduto = Number(si?.scontrini?.imponibile) || 0;
+      ricaviFatture = Number(si?.fatture?.imponibile) || 0;
+    } catch (e) { console.warn('Errore lettura ricavi:', e); }
 
     // Aggrega per categoria
     const aggregato = {}; // { categoria_id: { cat, totale, n } }
