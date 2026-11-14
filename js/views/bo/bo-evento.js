@@ -59,31 +59,43 @@ export async function render(container) {
    }
   }
 
-  // Posto Fondatore: link e QR della pagina pubblica, richieste arrivate da lì
+  // Posto Fondatore: link e QR della pagina pubblica (generale o per agente), richieste, azienda collegata
   async function disegnaFondatore() {
     const box = document.getElementById("ev-fondatore");
     if (!box) return;
-    const LINK = "https://app.ristoflow-ai.com/fondatore.html";
-    const LINK_QR = LINK + "?qr=1";
-    const { data: ric, error } = await supabase.from("fondatori_richieste").select("*").order("created_at", { ascending: false });
+    const BASE_FO = "https://app.ristoflow-ai.com/fondatore.html";
+    const [{ data: ric, error }, { data: ags }, { data: azs }] = await Promise.all([
+      supabase.from("fondatori_richieste").select("*").order("created_at", { ascending: false }),
+      supabase.from("agenti").select("id, nome, cognome").order("nome"),
+      supabase.from("aziende").select("id, nome").order("nome"),
+    ]);
     if (error) { box.innerHTML = '<div style="color:#b91c1c;font-size:14px;">Richieste Fondatore non leggibili: ' + esc(error.message) + '</div>'; return; }
-    const righe = ric || [];
+    const righe = (ric || []).filter(r => r.note !== "prova tecnica");
+    const agenti = ags || [];
+    const nomeAg = {}; agenti.forEach(a => { nomeAg[a.id] = ((a.nome || "") + " " + (a.cognome || "")).trim(); });
+    const nomeAz = {}; (azs || []).forEach(a => { nomeAz[a.id] = a.nome; });
     const pagati = righe.filter(r => r.stato === "pagato").length;
     const attesa = righe.filter(r => r.stato === "in_attesa_pagamento" || r.stato === "da_verificare").length;
     const STATI = { da_verificare: "Da verificare", in_attesa_pagamento: "In attesa di pagamento", pagato: "Pagato", annullato: "Annullato" };
     const COL = { pagato: "#059669", annullato: "#94a3b8" };
+    const opzAz = (azs || []).map(a => '<option value="' + a.id + '">' + esc(a.nome) + '</option>').join("");
     box.innerHTML = `
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
           <div style="flex:1;min-width:240px;">
             <div style="font-size:17px;font-weight:800;color:#023C59;">👑 Posto Fondatore</div>
-            <div style="font-size:13px;color:#64748b;margin:2px 0 10px;">${pagati} pagati · ${attesa} in attesa · pagina pubblica con il QR della serata</div>
+            <div style="font-size:13px;color:#64748b;margin:2px 0 10px;">${pagati} pagati · ${attesa} in attesa · ogni agente ha il suo QR: la richiesta arriva legata a lui</div>
+            <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;">QR di</label>
+            <select id="fo-chi" style="width:100%;max-width:320px;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;margin-bottom:8px;">
+              <option value="">Ristoflow (la serata, senza agente)</option>
+              ${agenti.map(a => '<option value="' + String(a.id).slice(0, 8) + '">' + esc(nomeAg[a.id]) + '</option>').join("")}
+            </select>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <input id="fo-link" readonly value="${LINK}" style="flex:1;min-width:200px;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;">
+              <input id="fo-link" readonly style="flex:1;min-width:200px;padding:9px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;">
               <button id="fo-copia" style="background:#023C59;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer;">Copia link</button>
-              <a href="${LINK}" target="_blank" rel="noopener" style="border:1.5px solid #023C59;color:#023C59;border-radius:8px;padding:8px 14px;font-weight:700;text-decoration:none;">Apri</a>
+              <a id="fo-apri" target="_blank" rel="noopener" style="border:1.5px solid #023C59;color:#023C59;border-radius:8px;padding:8px 14px;font-weight:700;text-decoration:none;">Apri</a>
             </div>
-            <div style="font-size:12px;color:#64748b;margin-top:6px;">Per un agente aggiungi <b>?ag=CODICE</b> al link: la richiesta arriva con il suo nome.</div>
+            <div style="font-size:12px;color:#64748b;margin-top:6px;">Ogni agente trova il suo QR anche nella sua home, scheda Materiali.</div>
           </div>
           <div style="text-align:center;">
             <div id="fo-qr" style="background:#fff;padding:8px;border:1px solid #e5e7eb;border-radius:10px;display:inline-block;min-width:176px;min-height:176px;"></div>
@@ -93,7 +105,7 @@ export async function render(container) {
         <div style="overflow-x:auto;margin-top:14px;">
           <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead><tr style="text-align:left;color:#64748b;border-bottom:1px solid #e2e8f0;">
-              <th style="padding:8px 6px;">Locale</th><th>Titolare</th><th>Contatti</th><th>Metodo</th><th>Agente</th><th>Stato</th><th></th>
+              <th style="padding:8px 6px;">Locale</th><th>Titolare</th><th>Contatti</th><th>Metodo</th><th>Agente</th><th>Stato</th><th>Azienda</th><th></th>
             </tr></thead>
             <tbody>
               ${righe.length ? righe.map(r => `
@@ -102,38 +114,47 @@ export async function render(container) {
                   <td>${esc(r.titolare)}</td>
                   <td>${esc(r.telefono)}<div style="color:#64748b;font-size:12px;">${esc(r.email)}</div></td>
                   <td>${r.metodo === "carta" ? "💳 Carta" : "🏦 Bonifico"}</td>
-                  <td>${esc(r.agente_ref || "—")}</td>
+                  <td>${r.agente_id ? esc(nomeAg[r.agente_id] || "Agente") : (r.agente_ref ? '<span title="codice non riconosciuto" style="color:#b45309;">' + esc(r.agente_ref) + ' ?</span>' : "—")}</td>
                   <td style="font-weight:700;color:${COL[r.stato] || "#b45309"};">${STATI[r.stato] || esc(r.stato)}${r.pagato_il ? '<div style="font-weight:400;color:#64748b;font-size:12px;">' + new Date(r.pagato_il).toLocaleDateString("it-IT") + '</div>' : ""}</td>
+                  <td>${r.azienda_id ? esc(nomeAz[r.azienda_id] || "collegata") : (r.stato === "pagato" ? '<select data-fo-azienda="' + r.id + '" style="max-width:180px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;"><option value="">Collega azienda…</option>' + opzAz + '</select>' : "—")}</td>
                   <td style="white-space:nowrap;">
                     ${r.stato !== "pagato" && r.stato !== "annullato" ? `<button data-fo-pagato="${r.id}" style="background:#059669;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer;font-size:12px;">${r.metodo === "bonifico" ? "Bonifico arrivato" : "Segna pagato"}</button>
                     <button data-fo-annulla="${r.id}" style="background:none;border:1px solid #cbd5e1;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:12px;">Annulla</button>` : ""}
                   </td>
-                </tr>`).join("") : '<tr><td colspan="7" style="padding:12px 6px;color:#64748b;">Nessuna richiesta per ora.</td></tr>'}
+                </tr>`).join("") : '<tr><td colspan="8" style="padding:12px 6px;color:#64748b;">Nessuna richiesta per ora.</td></tr>'}
             </tbody>
           </table>
         </div>
       </div>`;
 
     const qrEl = document.getElementById("fo-qr");
+    const linkAttuale = () => { const c = document.getElementById("fo-chi").value; return c ? BASE_FO + "?ag=" + c : BASE_FO; };
     const disegnaQR = () => {
       if (!window.QRCode) { setTimeout(disegnaQR, 300); return; }
+      const l = linkAttuale();
+      document.getElementById("fo-link").value = l;
+      document.getElementById("fo-apri").href = l;
       qrEl.innerHTML = "";
-      new window.QRCode(qrEl, { text: LINK_QR, width: 160, height: 160, correctLevel: window.QRCode.CorrectLevel.M });
+      new window.QRCode(qrEl, { text: l + (l.indexOf("?") > 0 ? "&" : "?") + "qr=1", width: 160, height: 160, correctLevel: window.QRCode.CorrectLevel.M });
     };
     disegnaQR();
+    document.getElementById("fo-chi").onchange = disegnaQR;
     document.getElementById("fo-scarica").onclick = () => {
       if (!window.QRCode) return;
+      const l = linkAttuale();
       const tmp = document.createElement("div");
-      new window.QRCode(tmp, { text: LINK_QR, width: 1024, height: 1024, correctLevel: window.QRCode.CorrectLevel.M });
+      new window.QRCode(tmp, { text: l + (l.indexOf("?") > 0 ? "&" : "?") + "qr=1", width: 1024, height: 1024, correctLevel: window.QRCode.CorrectLevel.M });
       setTimeout(() => {
         const c = tmp.querySelector("canvas"); const im = tmp.querySelector("img");
         const a = document.createElement("a");
         a.href = c ? c.toDataURL("image/png") : (im ? im.src : "");
-        a.download = "ristoflow-fondatore-qr.png"; a.click();
+        const sel = document.getElementById("fo-chi");
+        a.download = "qr-fondatore-" + (sel.value ? sel.options[sel.selectedIndex].text.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "ristoflow") + ".png";
+        a.click();
       }, 200);
     };
     document.getElementById("fo-copia").onclick = async () => {
-      try { await navigator.clipboard.writeText(LINK); document.getElementById("fo-copia").textContent = "Copiato ✓"; }
+      try { await navigator.clipboard.writeText(linkAttuale()); document.getElementById("fo-copia").textContent = "Copiato ✓"; }
       catch (e) { document.getElementById("fo-link").select(); }
     };
     box.querySelectorAll("[data-fo-pagato]").forEach(b => b.onclick = async () => {
@@ -144,6 +165,12 @@ export async function render(container) {
     box.querySelectorAll("[data-fo-annulla]").forEach(b => b.onclick = async () => {
       if (!confirm("Annullare questa richiesta?")) return;
       const { error } = await supabase.from("fondatori_richieste").update({ stato: "annullato" }).eq("id", b.dataset.foAnnulla);
+      if (error) alert(error.message); else disegnaFondatore();
+    });
+    box.querySelectorAll("[data-fo-azienda]").forEach(sel => sel.onchange = async () => {
+      if (!sel.value) return;
+      if (!confirm("Collego questa richiesta all'azienda scelta? L'azienda prende l'agente e il piano Fondatore, se non li ha già.")) { sel.value = ""; return; }
+      const { error } = await supabase.from("fondatori_richieste").update({ azienda_id: sel.value }).eq("id", sel.dataset.foAzienda);
       if (error) alert(error.message); else disegnaFondatore();
     });
   }
