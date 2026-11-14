@@ -360,7 +360,7 @@ async function invia() {
 
     // Avanza fase e aggiorna score
     const newScore = ((cand.score_totale||0) + scoreF2) / 2;
-    await fetch(`${SUPABASE_URL}/rest/v1/candidature?id=eq.${cand.id}`, { method:'PATCH', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ fase_attuale: 3, fase_label: 'Fase 2 completata', score_totale: Math.round(newScore*10)/10, updated_at: new Date().toISOString() }) });
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/candidatura_completa_fase`, { method:'POST', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ p_token: TOKEN, p_fase: 2, p_score: Math.round(newScore*10)/10 }) });
 
     // Log fase
     await fetch(`${SUPABASE_URL}/rest/v1/candidature_fasi_log`, { method:'POST', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ candidatura_id: cand.id, fase_da: 2, fase_a: 3, fase_label: 'Fase 2 completata' }) });
