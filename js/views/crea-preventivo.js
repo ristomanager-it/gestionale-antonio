@@ -281,7 +281,8 @@ function quantitaServizio(s) {
 // Lo schema pronto per questo tipo di evento e questa formula.
 // Si propone solo se il menu e' ancora vuoto: non si sovrascrive il lavoro fatto.
 function schemaProposto() {
-  if (righe.some(r => r.nome)) return null;
+  // basta una sezione presente (anche vuota): lo schema e' gia' stato messo, non si raddoppia
+  if (righe.length) return null;
   if (!tipoEvento()) return null;
   const f = P.formula_servizio === "buffet" ? "buffet" : "servito";
   const m = modelli.find(x => norm(x.tipo_evento) === norm(tipoEvento()) && x.formula === f)
