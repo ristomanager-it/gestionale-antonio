@@ -506,8 +506,8 @@ export async function render(container) {
       oraSelezionata = "";
       const giorno = new Date(data + "T00:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "long" });
       container2.innerHTML = `<div style="grid-column:1/-1;background:#fff8eb;border:1px solid #f3d38a;border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">Il ${escapeHtml(giorno)} è la serata del cenone</div>
-        <div style="font-size:13px;color:#475569;margin-bottom:12px;">Si prenota dalla pagina della serata, con il menu completo:</div>
+        <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;">Il ${escapeHtml(giorno)} si prenota dalla pagina della festa</div>
+        <div style="font-size:13px;color:#475569;margin-bottom:12px;">Lì trovi il menu completo e il prezzo:</div>
         ${evento.map(e => `<a href="${escapeAttribute(e.link)}" target="_top" rel="noopener" style="display:block;margin:8px 0;padding:12px;border-radius:10px;background:${colore};color:#fff;font-weight:700;font-size:14px;text-decoration:none;">${escapeHtml(e.titolo)} →</a>`).join("")}
       </div>`;
       window._rfTrack?.('step', 'data_evento_rimando', { step: 'data', valore: data });
