@@ -568,8 +568,21 @@ A presto 🤝</div>
     const ag = window._agAgente;
     if (!box || !ag) return;
     const link = 'https://app.ristoflow-ai.com/fondatore.html?ag=' + String(ag.id).slice(0, 8);
-    const { data: ric } = await supa.from('fondatori_richieste').select('nome_locale, stato, metodo, created_at').order('created_at', { ascending: false });
+    const [{ data: ric }, { data: mieAz }] = await Promise.all([
+      supa.from('fondatori_richieste').select('id, nome_locale, stato, metodo, created_at, azienda_id, ruolo_agente').order('created_at', { ascending: false }),
+      supa.from('aziende').select('id, nome').order('nome'),
+    ]);
     const righe = (ric || []).filter(r => r.stato !== 'annullato');
+    const az = (mieAz || []).filter(a => a.id !== ag.azienda_prova_id);
+    const opzAz = az.map(a => '<option value="' + a.id + '">' + escAg(a.nome) + '</option>').join('');
+    const nomeAz = {}; az.forEach(a => { nomeAz[a.id] = a.nome; });
+    const dopo = (r) => {
+      if (r.stato !== 'pagato') return '';
+      if (r.azienda_id) return '<div style="font-size:11px;color:#64748b;">' + escAg(nomeAz[r.azienda_id] || 'Azienda collegata') + ' · ' + (r.ruolo_agente === 'segnalatore' ? 'collegata da Ristoflow: 3%' : 'collegata da te: 10%, 15% se lo avvii entro 4 giorni') + '</div>';
+      return az.length
+        ? '<select data-ag-fo="' + r.id + '" style="margin-top:4px;max-width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;"><option value="">Collega l\'azienda che hai creato…</option>' + opzAz + '</select>'
+        : '<div style="font-size:11px;color:#b45309;">Crea l\'azienda del locale e collegala qui: così il contratto è tuo (10%, 15% con avvio).</div>';
+    };
     const ST = { da_verificare: 'Da verificare', in_attesa_pagamento: 'In attesa di pagamento', pagato: 'Pagato ✓' };
     box.innerHTML = `
       <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:6px;">👑 Il tuo QR Fondatore</div>
