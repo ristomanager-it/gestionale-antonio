@@ -618,6 +618,11 @@ export async function renderCassaLibera(container, azienda) {
       $('#cl-ind').value = [c?.indirizzo, [c?.cap, c?.citta, c?.provincia].filter(Boolean).join(' ')].filter(Boolean).join(', ');
       $('#cl-sdi').value = c?.codice_sdi || '';
       $('#cl-pec').value = c?.pec || '';
+      $('#cl-email').value = c?.email || '';
+      if (/^[A-Z0-9]{16}$/.test(c?.codice_fiscale || '') && !c?.partita_iva) {
+        const p = String(c.ragione_sociale || '').trim().split(/\s+/);
+        $('#cl-nome').value = p.slice(0, -1).join(' '); $('#cl-cognome').value = p.slice(-1).join(' ');
+      }
     }
 
     // Pulsante conferma: tocco breve = azione; tieni premuto 3 s sul preconto = chiusura con motivo
