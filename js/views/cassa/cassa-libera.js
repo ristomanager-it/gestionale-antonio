@@ -593,6 +593,16 @@ export async function renderCassaLibera(container, azienda) {
     const ann = $('#cl-annulla');
     if (ann) ann.onclick = () => { if (!incasso.busy) $('#cl-modal').style.display = 'none'; };
 
+    // Codice fiscale di 16 caratteri = persona: nome e cognome al posto della ragione sociale
+    const tipoCliente = () => {
+      const v = ($('#cl-piva').value || '').trim().toUpperCase().replace(/\s+/g, '');
+      const persona = /^[A-Z0-9]{16}$/.test(v) && !/^\d{11}$/.test(v);
+      $('#cl-persona').style.display = persona ? 'flex' : 'none';
+      $('#cl-rs').style.display = persona ? 'none' : '';
+      return persona;
+    };
+    const inPiva = $('#cl-piva'); if (inPiva) inPiva.oninput = tipoCliente;
+
     // Ricerca cliente da partita IVA: archivio aziendale, poi registro UE (VIES)
     const btnPiva = $('#cl-piva-cerca');
     if (btnPiva) btnPiva.onclick = async () => {
