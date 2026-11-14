@@ -98,7 +98,9 @@ function render(j){
     } else {
       h+='<div class="post">'+(d.foto?'<img src="'+esc(d.foto)+'" alt="">':'')+'<div class="t">'+esc(c.testo_meta||'')+'</div><div class="k"><div>'+esc(c.titolo_meta||'')+'</div><span>'+(promo?'Ottieni offerta':'Prenota ora')+'</span></div></div><div class="nota">L\'anteprima ufficiale di Meta non è disponibile adesso: questa è una simulazione.</div>';
     }
-    h+='<div class="testo"><b>Testo completo ('+String((c.testo_meta||'').length)+' caratteri)</b>\n\n'+esc(c.testo_meta||'')+'</div></div>';
+    var TX=function(o){return '<b>Testo completo ('+String(o.t.length)+' caratteri)</b>\n\n'+esc(o.t)+(o.h?'\n\n<b>Titolo:</b> '+esc(o.h):'');};
+    var A0=(MA&&MA.annunci&&MA.annunci.length>1)?MA.annunci[0]:null;
+    h+='<div class="testo" id="meta-testo">'+TX(A0?{t:A0.testo||'',h:A0.titolo||''}:{t:c.testo_meta||'',h:''})+'</div></div>';
   }
   // Google Display
   if(pf.indexOf('google')>-1&&d.google_ricerca){
