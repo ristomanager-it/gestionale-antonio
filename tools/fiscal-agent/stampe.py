@@ -263,7 +263,9 @@ def build_cortesia(c, larg):
     for riga in a_capo("Documento non valido ai fini fiscali. La fattura elettronica e' trasmessa al Sistema di Interscambio ed e' nel cassetto fiscale del cliente.", larg):
         out += t(riga) + b"\n"
     out += t(data_ora_locale()) + b"\n" + TAGLIO
-    return out
+    # due copie: una al cliente, una resta al locale
+    copie = max(1, min(3, int(k.get("copie") or 2)))
+    return out * copie
 
 
 def build_prova(c, larg):
