@@ -290,6 +290,8 @@ export async function renderCassaLibera(container, azienda) {
                 <input id="cl-sdi" class="cl-in" placeholder="Codice SDI" maxlength="7" style="flex:1;text-transform:uppercase;">
                 <input id="cl-pec" class="cl-in" placeholder="PEC" style="flex:2;">
               </div>
+              <input id="cl-email" class="cl-in" type="email" placeholder="Email per ricevere il PDF (facoltativa)">
+              <div class="cl-sp">La fattura va allo SDI; dalla stampante dei preconti esce la copia di cortesia. Niente scontrino.</div>
             </div>
 
             <div id="cl-pag-box">
