@@ -2386,8 +2386,27 @@ Ti ho inserito nel nostro Programma Agenti come ${d.tipoLbl}.
 
 Per attivare il tuo accesso: vai su https://app.ristoflow-ai.com/#/login e registrati con questa email: ${d.email || '(quella che mi hai dato)'}.
 
-Appena fatto trovi la tua area riservata con lead, appuntamenti e provvigioni. Se hai domande scrivimi pure qui!`;
+Appena fatto trovi la tua area riservata con lead, appuntamenti e provvigioni.${d.serata ? `
+
+Il tuo link per invitare i ristoratori alla serata del 18 gennaio (chi si prenota da qui resta tuo):
+${d.serata}` : ''}${d.fondatore ? `
+
+Il tuo QR Fondatore, da mettere sul tuo tavolo la sera del 18 (lo trovi anche nella tua area, scheda Materiali):
+${d.fondatore}` : ''}
+
+Se hai domande scrivimi pure qui!`;
 }
+
+// Link personali dell'agente: invito alla serata (nasce con l'agente) e QR Fondatore
+async function _agLinkPersonali(id) {
+  if (!id) return {};
+  const { data } = await supabase.from('evento_inviti').select('codice').eq('agente_id', id).order('created_at').limit(1);
+  return {
+    serata: data && data[0] ? 'https://app.ristoflow-ai.com/#/evento-serata?r=' + data[0].codice : null,
+    fondatore: 'https://app.ristoflow-ai.com/fondatore.html?ag=' + String(id).slice(0, 8),
+  };
+}
+function _agApri(url) { const w = window.open(url, '_blank'); if (!w) location.href = url; }
 
 window.inviaInvitoAgenteWA = function() {
   const d = _agInvitoDati(); if (!d) return;
