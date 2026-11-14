@@ -560,6 +560,7 @@ export async function renderCassaLibera(container, azienda) {
       $('#cl-esito').textContent = '';
       ['#cl-piva', '#cl-rs', '#cl-ind', '#cl-sdi', '#cl-pec', '#cl-ricevuti', '#cl-intestatario', '#cl-mot-intest'].forEach(id => { const el = $(id); if (el) el.value = ''; });
       $('#cl-piva-esito').textContent = '';
+      $('#cl-persona').style.display = 'none'; $('#cl-rs').style.display = '';
       $('#cl-main').style.display = '';
       $('#cl-motivo').style.display = 'none';
       aggiornaIncassoUI();
