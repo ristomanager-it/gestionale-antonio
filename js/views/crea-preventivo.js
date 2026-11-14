@@ -161,6 +161,7 @@ async function caricaPreventivo(supabase, id) {
     righe.filter(x => !P.ordine_sezioni.some(s => s.sez === x.sezione)).forEach(x => rec.push(x));
     righe = rec;
   }
+  ordinaRighe();
   // le stime tornano com'erano: numero E ragionamento
   (r.data || []).forEach(x => {
     if (x.stima_dettaglio) stime[norm(x.nome_portata)] = x.stima_dettaglio;
