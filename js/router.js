@@ -36,6 +36,9 @@ window.APP_V = APP_V;
   }
   setInterval(controlla, 120000);
   setInterval(forse, 5000);
+  // la cassa lo chiede prima di emettere un documento: con il codice vecchio uscirebbe il documento sbagliato
+  window.rfVersioneNuova = async () => { await controlla(); return daRicaricare; };
+  window.rfAggiornaOra = () => { const q = new URLSearchParams(location.search); q.set("u", String(Date.now())); location.replace(location.pathname + "?" + q.toString() + location.hash); };
   document.addEventListener("visibilitychange", () => { if (!document.hidden) controlla().then(forse); });
 })();
 function imp(p) { return import(p + (p.includes("?") ? "&" : "?") + "v=" + APP_V); }
