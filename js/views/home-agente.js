@@ -589,6 +589,7 @@ A presto 🤝</div>
     box.innerHTML = `
       <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:6px;">👑 Il tuo QR Fondatore</div>
       <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Fallo inquadrare al titolare: la richiesta arriva legata a te, e il locale resta tuo nei compensi.</div>
+      ${linkSerata ? '<div style="background:#f5f3ff;border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:12px;"><b>Il tuo link per invitare alla serata del 18</b><div style="word-break:break-all;color:#374151;margin:4px 0;">' + escAg(linkSerata) + '</div><button id="ag-sr-copia" style="background:#7C3AED;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copia link serata</button><div style="color:#64748b;margin-top:4px;">Chi si prenota da qui resta tuo, anche se poi inquadra il QR sullo schermo.</div></div>' : ''}
       <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">
         <div id="ag-fo-qr" style="background:#fff;padding:8px;border:1px solid #e5e7eb;border-radius:10px;min-width:156px;min-height:156px;"></div>
         <div style="flex:1;min-width:200px;">
