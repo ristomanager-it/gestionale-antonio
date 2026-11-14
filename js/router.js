@@ -1108,6 +1108,7 @@ const routePermissions = {
       "acquisti",
       "autofatture",
       "fatture-emesse",
+      "fatture-situazione",
       "completa-profilo",
       "profilo",
     ];
