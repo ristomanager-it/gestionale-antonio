@@ -1104,7 +1104,7 @@ function aggancia(container, supabase, azienda, sede) {
       const quante = Math.max(Number(b.dataset.quante) || 1, 1);
       riempiSezione(nome, quante);
       // resta in elenco per i preventivi successivi
-      supabase.rpc("sezione_menu_usata", { p_azienda: azienda.id, p_nome: nome }).catch(() => {});
+      supabase.rpc("sezione_menu_usata", { p_azienda: azienda.id, p_nome: nome }).then(() => {}, () => {});
       ri();
     }));
 
