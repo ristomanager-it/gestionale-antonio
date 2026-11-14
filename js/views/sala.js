@@ -230,6 +230,8 @@ export async function render(container) {
   }
 
   function enableDrag(el, tavolo) {
+    let attivo = false, moved = false, dx = 0, dy = 0, startX = 0, startY = 0;
+    el.style.touchAction = "none";
 
     el.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
