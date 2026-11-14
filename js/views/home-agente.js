@@ -593,7 +593,7 @@ A presto 🤝</div>
           <input readonly value="${escAg(link)}" style="width:100%;padding:8px;border:1.5px solid #d1d5db;border-radius:8px;font-size:12px;">
           <button id="ag-fo-copia" style="margin-top:6px;background:#7C3AED;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copia link</button>
           <div style="margin-top:12px;font-size:12px;font-weight:700;color:#374151;">Richieste dal tuo QR: ${righe.length}</div>
-          ${righe.map(r => '<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f1f5f9;">' + escAg(r.nome_locale) + ' · <span style="color:' + (r.stato === 'pagato' ? '#059669' : '#b45309') + ';font-weight:700;">' + (ST[r.stato] || escAg(r.stato)) + '</span></div>').join('')}
+          ${righe.map(r => '<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f1f5f9;">' + escAg(r.nome_locale) + ' · <span style="color:' + (r.stato === 'pagato' ? '#059669' : '#b45309') + ';font-weight:700;">' + (ST[r.stato] || escAg(r.stato)) + '</span>' + dopo(r) + '</div>').join('')}
         </div>
       </div>`;
     const disegna = () => {
