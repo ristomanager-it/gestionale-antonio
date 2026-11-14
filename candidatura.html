@@ -590,7 +590,7 @@ async function invia() {
     citta: document.getElementById('f-citta').value.trim() || null,
     ruolo_desiderato: document.getElementById('f-ruolo').value,
     area_interesse: document.getElementById('v-area').value,
-    score_totale: scoreFinale,
+    score_totale: Math.round(scoreFinale) / 10,
     score_curiosita: perIndicatore.curiosita || 0,
     score_crescita: perIndicatore.crescita || 0,
     score_responsabilita: perIndicatore.responsabilita || 0,
