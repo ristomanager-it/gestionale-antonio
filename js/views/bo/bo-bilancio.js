@@ -16,6 +16,11 @@ export async function render(container) {
   let annoSelezionato = annoCorrente;
   let periodoSelezionato = 'anno'; // 'anno' | 'mese' | 'custom'
   let meseSelezionato = new Date().getMonth() + 1;
+  // #/bo-bilancio?anno=2026&mese=11&iva=1 : arriva dalla pagina Fatture, apre il Fascicolo IVA su quel mese
+  const qs = new URLSearchParams((window.location.hash.split('?')[1] || ''));
+  if (Number(qs.get('anno')) > 2000) annoSelezionato = Number(qs.get('anno'));
+  if (Number(qs.get('mese')) >= 1 && Number(qs.get('mese')) <= 12) { periodoSelezionato = 'mese'; meseSelezionato = Number(qs.get('mese')); }
+  let apriIva = qs.get('iva') === '1';
 
   async function caricaDati() {
     // Filtro periodo
