@@ -592,13 +592,15 @@ async function invia() {
   };
 
   try {
+    // v2 (14/11/2026): l'anon non puo' rileggere la riga appena inserita (RLS), quindi l'id lo genera il browser.
+    const candId = crypto.randomUUID();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/candidature`, {
       method: 'POST',
-      headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},
-      body: JSON.stringify(candidatura)
+      headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify(Object.assign({ id: candId }, candidatura))
     });
     if (!res.ok) throw new Error(await res.text());
-    const [cand] = await res.json();
+    const cand = { id: candId };
 
     // Salva risposte
     const rDB = risposte.map((r,i) => ({
