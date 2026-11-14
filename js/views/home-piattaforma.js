@@ -2427,7 +2427,7 @@ window.inviaInvitoAgenteEmail = async function() {
   if (!d.email) { alert('Inserisci un indirizzo email per inviare l\'invito'); return; }
   const oggetto = encodeURIComponent(`Benvenuto nel Programma Agenti Ristoflow`);
   const corpo   = encodeURIComponent(_agInvitoTesto(d));
-  window.open(`mailto:${d.email}?subject=${oggetto}&body=${corpo}`, '_blank');
+  _agApri(`mailto:${d.email}?subject=${oggetto}&body=${corpo}`);
 };
 
 window.salvaAgente = async function() {
