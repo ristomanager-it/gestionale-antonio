@@ -251,7 +251,6 @@ export async function render(container) {
 
       moved = true;
       el.dataset.dragging = "1";
-
       const rect = box.getBoundingClientRect();
       // percentuali della sala, come in Configurazione e in Cassa; tetto a 90 per restare dentro
       const x = Math.max(0, Math.min(90, (e.clientX - rect.left - dx) / rect.width * 100));
