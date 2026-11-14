@@ -264,6 +264,21 @@ export async function render(container) {
 
       el.style.left = x + "%";
       el.style.top = y + "%";
+    });
+
+    const fine = async () => {
+      if (!attivo) return;
+      attivo = false;
+      el.style.cursor = "grab";
+      if (moved) {
+        const x = Math.round((parseFloat(el.style.left) || 0) * 10) / 10;
+        const y = Math.round((parseFloat(el.style.top) || 0) * 10) / 10;
+        const { error } = await (window.supabaseClient || window.supabase)
+          .from("tavoli").update({ pos_x: x, pos_y: y }).eq("id", tavolo.id);
+        if (error) { console.error("Errore salvataggio posizione:", error); alert("Posizione non salvata: " + error.message); }
+        else { tavolo.pos_x = x; tavolo.pos_y = y; }
+      }
+      setTimeout(() => { el.dataset.dragging = "0"; }, 80);
     };
     el.addEventListener("pointerup", fine);
     el.addEventListener("pointercancel", fine);
