@@ -76,7 +76,7 @@ async function init() {
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/candidatura_per_token`, { method:'POST', headers: {'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body: JSON.stringify({ p_token: TOKEN }) });
   const data = await res.json();
-  cand = data?.[0];
+  cand = (data && data.id) ? data : null;
   if (cand?.azienda_id) await applyBrand(cand.azienda_id);
   if (!cand) { root.innerHTML = '<div class="loading">⚠️ Link non trovato o scaduto.</div>'; return; }
   if (cand.fase_attuale >= 5) { root.innerHTML = '<div class="loading">✅ Hai già completato questa fase. Grazie!</div>'; return; }
