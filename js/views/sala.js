@@ -231,10 +231,16 @@ export async function render(container) {
 
   function enableDrag(el, tavolo) {
 
-    let isDragging = false;
-    let moved = false;
-    let offsetX = 0;
-    let offsetY = 0;
+    el.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const r = el.getBoundingClientRect();
+      dx = e.clientX - r.left; dy = e.clientY - r.top;
+      startX = e.clientX; startY = e.clientY;
+      attivo = true; moved = false;
+      el.dataset.dragging = "0";
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      el.style.cursor = "grabbing";
+    });
 
     el.addEventListener("pointermove", (e) => {
       if (!attivo) return;
