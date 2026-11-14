@@ -595,7 +595,7 @@ async function invia() {
     score_crescita: Math.round(((perIndicatore.crescita || 0) / (PESI.crescita || 10)) * 100) / 10,
     score_responsabilita: Math.round(((perIndicatore.responsabilita || 0) / (PESI.responsabilita || 10)) * 100) / 10,
     score_mentalita_positiva: Math.round(((perIndicatore.mentalita_positiva || 0) / (PESI.mentalita_positiva || 10)) * 100) / 10,
-    score_pressione: perIndicatore.pressione || 0,
+    score_pressione: Math.round(((perIndicatore.pressione || 0) / (PESI.pressione || 10)) * 100) / 10,
     score_leadership: perIndicatore.leadership || 0,
     score_mentalita_proprietario: perIndicatore.mentalita_proprietario || 0,
     fonte, fase_attuale: 1, fase_label: 'Ricevuta',
