@@ -428,7 +428,8 @@ export async function render(container) {
           <div style="display:flex;gap:8px;">
             <button data-doc="preconto"  style="flex:1;padding:9px 4px;border:2px solid #0E5A7A;border-radius:10px;background:#f0f9ff;cursor:pointer;font-size:12px;font-weight:600;color:#0E5A7A;">📋 Preconto</button>
             <button data-doc="scontrino" style="flex:1;padding:9px 4px;border:2px solid #e5e7eb;border-radius:10px;background:white;cursor:pointer;font-size:12px;font-weight:600;color:#374151;">🧾 Scontrino</button>
-            <button data-doc="fattura"   style="flex:1;padding:9px 4px;border:2px solid #e5e7eb;border-radius:10px;background:white;cursor:pointer;font-size:12px;font-weight:600;color:#374151;">📄 Fattura</button>
+            <!-- la fattura si fa dalla Cassa: va allo SDI e la copia di cortesia esce dai preconti (qui andava alla stampante fiscale) -->
+            <a href="#/cassa-libera" style="flex:1;padding:9px 4px;border:2px dashed #cbd5e1;border-radius:10px;background:white;font-size:12px;font-weight:600;color:#0E5A7A;text-align:center;text-decoration:none;">📄 Fattura: dalla Cassa</a>
           </div>
           <!-- Dati fattura -->
           <div id="fattura-box" style="display:none;margin-top:10px;">
