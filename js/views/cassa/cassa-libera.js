@@ -1219,6 +1219,7 @@ export async function renderCassaLibera(container, azienda) {
     // opts.nonFiscale: chiusura senza scontrino (addebito/omaggio/personale): scarica il
     // magazzino ma non e' incasso → totale_incassato 0 e canale dedicato.
     const nf = !!opts.nonFiscale;
+    const fatt = !!opts.fattura;
     const oggi = new Date().toISOString().slice(0,10);
     const righe = carrello.map(r => ({
       azienda_id: aziendaId, sede_uuid: sedeId,
