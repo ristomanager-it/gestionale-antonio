@@ -80,6 +80,12 @@ function render(j){
     var MA=j.meta_anteprime;
     if(MA&&MA.urls&&Object.keys(MA.urls).length){
       var ORD=['feed','instagram','storia','reel','fb_storia'],ks=ORD.filter(function(k){return MA.urls[k];});
+      // campagne con piu' annunci (es. 11 in 4 gruppi): si sceglie quale guardare, con frecce e menu raggruppato per gruppo
+      var AN=(MA.annunci&&MA.annunci.length>1)?MA.annunci:null;
+      if(AN){var ng={},og='',sel='';AN.forEach(function(a){ng[a.gruppo]=1;});
+        AN.forEach(function(a,i){if(a.gruppo!==og){if(og)sel+='</optgroup>';og=a.gruppo;sel+='<optgroup label="'+esc(og)+'">';}sel+='<option value="'+i+'">'+(i+1)+'. '+esc(a.nome)+(/^ACTIVE$/.test(String(a.stato))?'':' ('+esc(String(a.stato).toLowerCase())+')')+'</option>';});
+        h+='<div class="nota" style="margin:0 0 8px"><b>'+AN.length+' annunci</b> in '+Object.keys(ng).length+' gruppi: scegli quale guardare.</div>';
+        h+='<div class="annnav"><button type="button" id="ann-p" aria-label="Annuncio precedente">‹</button><select id="ann" class="ann">'+sel+'</optgroup></select><button type="button" id="ann-n" aria-label="Annuncio successivo">›</button></div>';}
       h+='<div class="tabs">'+ks.map(function(k,i){return '<button class="tb'+(i?'':' on')+'" data-k="'+k+'">'+esc(MA.urls[k].nome)+'</button>';}).join('')+'</div>';
       h+='<iframe id="meta-if" class="alto" src="'+esc(MA.urls[ks[0]].url)+'" loading="lazy"></iframe>';
       h+='<a id="meta-full" class="btn" style="background:#1877f2" href="'+esc(MA.urls[ks[0]].url)+'" target="_blank" rel="noopener">Apri a schermo intero</a>';
