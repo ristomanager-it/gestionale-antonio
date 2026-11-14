@@ -429,9 +429,30 @@ function riempiSezione(nome, quante) {
   const listino = prezzoListino(nome);
   if (piatti.length) {
     piatti.forEach((n, i) => righe.push({ nome: n, sezione: nome, prezzo: i === 0 ? listino : 0, ricetta_id: null, pp: ppSezione(nome) }));
-    return;
+  } else {
+    for (let i = 0; i < quante; i++) righe.push({ nome: "", sezione: nome, prezzo: i === 0 ? listino : 0, ricetta_id: null, pp: ppSezione(nome) });
   }
-  for (let i = 0; i < quante; i++) righe.push({ nome: "", sezione: nome, prezzo: i === 0 ? listino : 0, ricetta_id: null, pp: ppSezione(nome) });
+  ordinaRighe();
+}
+
+// posto di una sezione nel menu, come va in tavola (Aperitivo prima degli Antipasti, Bevande in fondo):
+// prima lo schema del tipo evento (base + aggiuntive), poi l'ordine dell'elenco sezioni, altrimenti in coda
+function ordineSezione(sez) {
+  const n = norm(sez);
+  const m = modelloAttivo();
+  const daSchema = [...(Array.isArray(m?.sezioni) ? m.sezioni : []), ...(Array.isArray(m?.sezioni_extra) ? m.sezioni_extra : [])]
+    .find(x => norm(x.nome) === n);
+  if (daSchema && Number(daSchema.ordine) > 0) return Number(daSchema.ordine);
+  const info = sezioniInfo.find(x => norm(x.nome) === n);
+  if (info && Number(info.ordine) > 0) return Number(info.ordine);
+  return 1000;
+}
+
+// rimette le sezioni in ordine di servizio senza mescolare le portate dentro ogni sezione
+function ordinaRighe() {
+  const prima = [...new Set(righe.map(r => r.sezione || "Menu"))];
+  const ordinate = [...prima].sort((a, b) => (ordineSezione(a) - ordineSezione(b)) || (prima.indexOf(a) - prima.indexOf(b)));
+  righe = ordinate.flatMap(s => righe.filter(r => (r.sezione || "Menu") === s));
 }
 
 function disegna(container, supabase, azienda, sede) {
