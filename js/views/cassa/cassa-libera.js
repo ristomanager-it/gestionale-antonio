@@ -558,7 +558,7 @@ export async function renderCassaLibera(container, azienda) {
       incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
       $('#cl-modal-tot').textContent = '€ ' + daPagare().toFixed(2) + (accontoPratica() > 0 ? ' (conto € ' + totali().totale.toFixed(2) + ', acconti € ' + accontoPratica().toFixed(2) + ')' : '');
       $('#cl-esito').textContent = '';
-      ['#cl-piva', '#cl-rs', '#cl-ind', '#cl-sdi', '#cl-pec', '#cl-ricevuti', '#cl-intestatario', '#cl-mot-intest'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+      ['#cl-piva', '#cl-rs', '#cl-nome', '#cl-cognome', '#cl-ind', '#cl-cap', '#cl-comune', '#cl-prov', '#cl-sdi', '#cl-pec', '#cl-email', '#cl-ricevuti', '#cl-intestatario', '#cl-mot-intest'].forEach(id => { const el = $(id); if (el) el.value = ''; });
       $('#cl-piva-esito').textContent = '';
       $('#cl-persona').style.display = 'none'; $('#cl-rs').style.display = '';
       $('#cl-main').style.display = '';
