@@ -786,6 +786,35 @@ export async function renderCassaLibera(container, azienda) {
         aggiornaSchermoCliente(true, metodo);
         if (cliente) await salvaClienteFatturazione(cliente);
 
+        if (incasso.doc === 'fattura') {
+          esito.textContent = '⏳ Mando la fattura allo SDI…';
+          const righeDoc = righeDocumento();
+          const { data: fr, error: fe } = await supabase.functions.invoke('fe-vendita', { body: {
+            azione: 'da_cassa', azienda_id: aziendaId, comanda_id: tavoloAttivo ? tavoloAttivo.comanda.id : null,
+            tavolo: tavoloAttivo ? (tavoloAttivo.tavolo?.nome || '') : '', metodo: metodo, sconto: t.sconto > 0 ? t.sconto : 0,
+            righe: righeDoc,
+            cliente: { cliente_partita_iva: cliente.partita_iva, cliente_codice_fiscale: cliente.codice_fiscale,
+              cliente_denominazione: cliente.nome ? null : cliente.ragione_sociale, cliente_nome: cliente.nome, cliente_cognome: cliente.cognome,
+              cliente_indirizzo: cliente.indirizzo, cliente_cap: cliente.cap, cliente_comune: cliente.citta, cliente_provincia: cliente.provincia,
+              cliente_codice_destinatario: cliente.codice_sdi || '0000000', cliente_pec: cliente.pec, cliente_email: cliente.email },
+          } });
+          const r = fr || {};
+          let msg;
+          if (fe && !r.fattura_id) msg = '⚠️ Incasso registrato ma la fattura NON è partita: ' + (r.errore || fe.message || 'errore') + ' — rifalla da Fatture emesse.';
+          else if (r.ok) msg = '✅ Fattura ' + (r.numero || '') + ' inviata allo SDI.';
+          else msg = '⚠️ Fattura ' + (r.numero || 'creata') + ' non accettata: ' + (r.errore || 'errore') + ' — la trovi in rosso nella home Gestione.';
+          if (r.cortesia) {
+            const st = await emettiCortesia(Object.assign({ righe: righeDoc, totale: t.totale, sconto: t.sconto, cortesia: r.cortesia, azienda: aziendaId, sede: sedeId }, datiTavolo()));
+            msg += st.ok ? ' Copia di cortesia stampata.' : ' Copia di cortesia non stampata: ' + (st.errore || 'stampante') + '.';
+          }
+          if (cliente.email) msg += ' PDF in arrivo a ' + cliente.email + '.';
+          const resto = Number($('#cl-ricevuti').value) - dovuto;
+          if (metodo === 'contanti' && resto > 0) msg += ' · Resto € ' + (Math.round(resto * 100) / 100).toFixed(2);
+          esito.textContent = (avvisoPratica || '') + msg;
+          dopoChiusura(r.ok ? 4500 : 8000);
+          return;
+        }
+
         esito.textContent = '⏳ Stampo…';
         const doc = await emettiDocumento(Object.assign({
           tipo: incasso.doc,
