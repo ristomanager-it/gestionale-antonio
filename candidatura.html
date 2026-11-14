@@ -623,6 +623,9 @@ async function invia() {
       body: JSON.stringify(rDB)
     });
 
+    // 14/11: Tony legge le risposte e da i punteggi veri (quelli a parole chiave sono solo provvisori)
+    fetch(SUPABASE_URL + '/functions/v1/candidatura-valuta', { method:'POST', keepalive:true, headers:{'Content-Type':'application/json'}, body: JSON.stringify({ candidatura_id: cand.id }) }).catch(()=>{});
+
     // Notifica
     fetch(`${SUPABASE_URL}/functions/v1/candidatura-notifica-ts`, {
       method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${ANON_KEY}`},
