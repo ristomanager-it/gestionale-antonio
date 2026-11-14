@@ -641,4 +641,5 @@ export async function render(container) {
   }
 
   await renderBilancio();
+  if (apriIva) { apriIva = false; container.querySelector('#btn-fascicolo-iva')?.click(); }
 }
