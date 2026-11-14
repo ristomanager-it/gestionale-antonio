@@ -284,8 +284,17 @@ export async function renderCassaLibera(container, azienda) {
                 <button id="cl-piva-cerca" class="cl-b" style="flex:0 0 auto;min-width:0;padding:10px 14px;">🔎 Cerca</button>
               </div>
               <div id="cl-piva-esito" style="font-size:12px;min-height:16px;margin-top:4px;color:#64748b;"></div>
-              <input id="cl-rs" class="cl-in" placeholder="Ragione sociale / Nome *">
-              <input id="cl-ind" class="cl-in" placeholder="Indirizzo, CAP, città">
+              <input id="cl-rs" class="cl-in" placeholder="Ragione sociale *">
+              <div id="cl-persona" style="display:none;gap:6px;">
+                <input id="cl-nome" class="cl-in" placeholder="Nome *" style="flex:1;">
+                <input id="cl-cognome" class="cl-in" placeholder="Cognome *" style="flex:1;">
+              </div>
+              <input id="cl-ind" class="cl-in" placeholder="Via e numero civico *">
+              <div style="display:flex;gap:6px;">
+                <input id="cl-cap" class="cl-in" inputmode="numeric" maxlength="5" placeholder="CAP *" style="flex:0 0 84px;">
+                <input id="cl-comune" class="cl-in" placeholder="Comune *" style="flex:1;">
+                <input id="cl-prov" class="cl-in" maxlength="2" placeholder="Prov" style="flex:0 0 60px;text-transform:uppercase;">
+              </div>
               <div style="display:flex;gap:6px;">
                 <input id="cl-sdi" class="cl-in" placeholder="Codice SDI" maxlength="7" style="flex:1;text-transform:uppercase;">
                 <input id="cl-pec" class="cl-in" placeholder="PEC" style="flex:2;">
