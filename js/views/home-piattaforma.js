@@ -2420,8 +2420,10 @@ window.inviaInvitoAgenteWA = async function() {
   _agApri(`https://wa.me/${numero}?text=${testo}`);
 };
 
-window.inviaInvitoAgenteEmail = function() {
+window.inviaInvitoAgenteEmail = async function() {
   const d = _agInvitoDati(); if (!d) return;
+  if (!_agenteEditId) { alert('Salva prima l\'agente: il messaggio parte con i suoi link personali.'); return; }
+  Object.assign(d, await _agLinkPersonali(_agenteEditId));
   if (!d.email) { alert('Inserisci un indirizzo email per inviare l\'invito'); return; }
   const oggetto = encodeURIComponent(`Benvenuto nel Programma Agenti Ristoflow`);
   const corpo   = encodeURIComponent(_agInvitoTesto(d));
