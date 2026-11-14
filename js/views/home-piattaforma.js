@@ -2417,7 +2417,7 @@ window.inviaInvitoAgenteWA = async function() {
   if (numero.startsWith('+')) numero = numero.slice(1);
   else if (!numero.startsWith('39')) numero = '39' + numero.replace(/^0+/,'');
   const testo = encodeURIComponent(_agInvitoTesto(d));
-  window.open(`https://wa.me/${numero}?text=${testo}`, '_blank');
+  _agApri(`https://wa.me/${numero}?text=${testo}`);
 };
 
 window.inviaInvitoAgenteEmail = function() {
