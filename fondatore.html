@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ristoflow · Fondatore</title>
+<meta name="description" content="Il posto Fondatore di Ristoflow: chi parte adesso, parte con noi.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon-32.png">
+<meta property="og:title" content="Ristoflow · Fondatore">
+<meta property="og:description" content="Chi parte adesso, parte con noi.">
+<meta property="og:image" content="https://app.ristoflow-ai.com/assets/ristoflow-logo.png">
+<style>
+:root{--navy:#0E4A66;--arancio:#C8601A;--carta:#FBF8F3;--riga:#E6DFD4;--testo:#14212A;--muto:#5F6E77;--sfondo:#FFFFFF;--card:#FFFFFF;--ok:#2F7D32;--err:#B42318;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--navy:#8CCBEA;--arancio:#FF9A4D;--carta:#18222A;--riga:#2C3A44;--testo:#E9EEF1;--muto:#9FAEB7;--sfondo:#0F171D;--card:#141E25;--ok:#6CC35A;--err:#F97066;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sfondo);color:var(--testo);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:22px 16px 64px}
+.logo{display:block;width:180px;height:auto;margin:0 auto 18px;background:#FEFEFE;border-radius:20px;padding:12px}
+.kicker{font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--arancio);text-transform:uppercase}
+h1{font-size:32px;line-height:1.15;color:var(--navy);margin:8px 0 10px}
+h2{font-size:21px;color:var(--navy);margin:34px 0 8px}
+.lead{font-size:18px;color:var(--muto);margin:0 0 18px}
+p{margin:0 0 12px}
+.prezzo{background:var(--card);border:2px solid var(--arancio);border-radius:16px;padding:20px 18px;margin:18px 0}
+.cifra{font-size:44px;font-weight:800;color:var(--arancio);line-height:1}
+.dopo{border-top:1px solid var(--riga);margin-top:16px;padding-top:14px}
+.cifra2{font-size:28px;font-weight:800;color:var(--navy);line-height:1.1}
+.piu{margin-top:14px;font-weight:700}
+ul.dentro{padding-left:20px;margin:0 0 10px} ul.dentro li{margin:6px 0}
+.form{background:var(--carta);border-radius:16px;padding:18px}
+label{display:block;font-size:14px;font-weight:600;margin:12px 0 4px}
+input[type=text],input[type=email],input[type=tel]{width:100%;font:inherit;color:var(--testo);border:1px solid var(--riga);background:var(--card);border-radius:10px;height:46px;padding:0 12px}
+.scelta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.scelta button{font:inherit;color:var(--testo);border:1px solid var(--riga);background:var(--card);border-radius:10px;padding:12px;font-weight:600;cursor:pointer}
+.scelta button.on{border:2px solid var(--arancio)}
+.spunta{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:16px 0}
+.spunta input{width:20px;height:20px;margin-top:2px;flex:none}
+.bottone{display:block;width:100%;text-align:center;background:var(--arancio);color:#fff;border:0;border-radius:999px;padding:15px;font:inherit;font-weight:800;font-size:17px;cursor:pointer;text-decoration:none}
+.bottone[disabled]{opacity:.6}
+.errore{color:var(--err);font-weight:600;margin-top:12px;min-height:1px}
+.esito{border:2px solid var(--ok);border-radius:16px;padding:18px;margin:18px 0;background:var(--card)}
+.esito h2{margin-top:0;color:var(--ok)}
+.iban{font-family:ui-monospace,Menlo,monospace;font-size:17px;font-weight:700;word-break:break-all}
+ol.reg{padding-left:22px} ol.reg li{margin:8px 0}
+footer{margin-top:40px;font-size:13px;color:var(--muto);text-align:center}
+</style></head><body><main>
+
+<img class="logo" src="assets/ristoflow-logo.png" alt="Logo Ristoflow" width="180" height="163">
+<div class="kicker">Ristoflow · Fondatore</div>
+<h1>Chi parte adesso, parte con noi.</h1>
+<p class="lead">I primi a crederci partono dall’inizio, proprio come noi che l’abbiamo fondato.</p>
+
+<div id="esito"></div>
+
+<a class="bottone" href="#blocca" id="vai">Blocca il tuo posto</a>
+
+<h2>Perché un’offerta Fondatore</h2>
+<p>Ristoflow è nato dai problemi delle cucine di Campo Antico: le fatture da ricopiare, i turni da far quadrare, le campagne pagate senza sapere cosa rendevano. Ogni schermata risponde a un problema vero.</p>
+<p>Adesso deve crescere nelle vostre cucine. Chi entra per primo ci crede prima degli altri, e per questo parte alle stesse condizioni di chi l’ha fondato: dall’inizio, con noi, e con un prezzo che non cambia.</p>
+
+<h2>Come si parte</h2>
+<p>Un agente Ristoflow avvia il locale insieme a voi, passo per passo. Entro venerdì 22 gennaio il locale è attivo e la prima promo è online.</p>
+
+<h2>Cosa comprende</h2>
+<div class="prezzo">
+  <div class="cifra">2.000 €</div>
+  <p style="margin-top:6px">l’anno + IVA, bloccato per i primi tre anni.</p>
+  <div class="dopo">
+    <div class="cifra2">Poi 3.560 € + IVA</div>
+    <p style="margin-top:6px">dal quarto anno: il listino Ristorante di oggi, bloccato per sempre.</p>
+  </div>
+  <p class="piu">Tutti gli aggiornamenti compresi per sempre, anche quelli che usciranno a pagamento.</p>
+</div>
+<ul class="dentro">
+  <li>Tutte le funzioni di Ristoflow per una sede: acquisti e fatture, magazzino, ricettario e food cost, produzione e HACCP, prenotazioni, cassa, personale, preventivi ed eventi.</li>
+  <li>Fatturazione elettronica: fatture allo SDI dalla cassa, fatture dei fornitori che entrano da sole.</li>
+  <li>Il motore marketing: campagne Meta e Google, landing, promo, fidelity, recensioni e sito del locale.</li>
+  <li>Tony, con 15 € di credito al mese compresi.</li>
+  <li>Avvio e formazione con un agente.</li>
+</ul>
+
+<h2 id="blocca">Blocca il tuo posto</h2>
+<div id="chiuso" hidden class="esito" style="border-color:var(--riga)"><p style="margin:0">Le condizioni Fondatore erano riservate alla serata di lancio. Per i piani di oggi: <a href="https://ristoflow-ai.com/prezzi.html">ristoflow-ai.com/prezzi</a>.</p></div>
+<form class="form" id="modulo" novalidate>
+  <label for="f-locale">Nome del locale</label><input type="text" id="f-locale" autocomplete="organization" required>
+  <label for="f-rs">Ragione sociale</label><input type="text" id="f-rs">
+  <label for="f-piva">Partita IVA</label><input type="text" id="f-piva" inputmode="numeric">
+  <label for="f-tit">Nome e cognome del titolare</label><input type="text" id="f-tit" autocomplete="name" required>
+  <label for="f-tel">Telefono</label><input type="tel" id="f-tel" autocomplete="tel" required>
+  <label for="f-mail">Email</label><input type="email" id="f-mail" autocomplete="email" required>
+  <label for="f-citta">Città</label><input type="text" id="f-citta" autocomplete="address-level2">
+  <label>Come paghi</label>
+  <div class="scelta"><button type="button" data-m="carta" class="on">💳 Carta</button><button type="button" data-m="bonifico">🏦 Bonifico</button></div>
+  <label class="spunta"><input type="checkbox" id="f-reg"><span>Ho letto il <a href="#regolamento">regolamento Fondatore</a> e lo accetto.</span></label>
+  <button class="bottone" type="submit" id="invia">Blocca il mio posto · 2.000 € + IVA</button>
+  <div class="errore" id="errore" role="alert"></div>
+</form>
+
+<h2 id="regolamento">Regolamento Fondatore</h2>
+<ol class="reg">
+  <li>Il piano Fondatore vale per una sede.</li>
+  <li>Il prezzo è di 2.000 € l’anno + IVA, pagati in anticipo, ed è bloccato per i primi tre anni dalla data di attivazione.</li>
+  <li>Dal quarto anno il prezzo è di 3.560 € l’anno + IVA, il listino del piano Ristorante in vigore oggi, e resta bloccato per sempre, finché l’abbonamento è attivo.</li>
+  <li>Sono compresi per sempre tutti gli aggiornamenti e le nuove funzioni di Ristoflow, anche quelle che verranno vendute a parte agli altri clienti.</li>
+  <li>Il posto è preso quando il pagamento è arrivato: con la carta subito, con il bonifico all’accredito, che deve arrivare entro 7 giorni dalla richiesta.</li>
+  <li>Il prezzo Fondatore vale per chi lo richiede la sera del 18 gennaio 2027.</li>
+  <li>Ogni mese sono compresi 15 € di credito Tony, che si rinnovano a inizio mese. Oltre, si ricarica solo quello che si usa.</li>
+  <li>Il budget delle campagne lo decide il locale e lo paga direttamente a Meta e Google.</li>
+  <li>Si può disdire alla fine di ogni annualità. Chi esce perde le condizioni Fondatore.</li>
+</ol>
+
+<footer>Ristoflow · nato nelle cucine di Campo Antico, Orte</footer>
+</main>
+
+<script>
+(function(){
+  var FN = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/fondatore-richiesta";
+  var A = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var q = new URLSearchParams(location.search);
+  var agente = q.get("ag") || q.get("inv") || q.get("agente") || "";
+  try { if (agente) sessionStorage.setItem("rf_fond_ag", agente); else agente = sessionStorage.getItem("rf_fond_ag") || ""; } catch (e) {}
+  var metodo = "carta";
+  function $(id){ return document.getElementById(id); }
+  function chiama(dati){
+    return fetch(FN, { method: "POST", headers: { "Content-Type": "application/json", "apikey": A, "Authorization": "Bearer " + A }, body: JSON.stringify(dati) })
+      .then(function(r){ return r.json().then(function(j){ j._status = r.status; return j; }); });
+  }
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]; }); }
+  function mostraEsito(html){ $("esito").innerHTML = '<div class="esito">' + html + '</div>'; $("esito").scrollIntoView({ behavior: "smooth" }); }
+
+  // ritorno da Stripe
+  if (q.get("ok") === "1" && q.get("sid")) {
+    mostraEsito("<p>Sto controllando il pagamento…</p>");
+    chiama({ azione: "verifica", session_id: q.get("sid") }).then(function(j){
+      if (j.pagato) mostraEsito("<h2>Benvenuto tra i Fondatori</h2><p>Il posto di <b>" + esc(j.nome_locale) + "</b> è vostro. La ricevuta del pagamento arriva per email. Un agente vi contatta per fissare l’avvio.</p>");
+      else mostraEsito("<p>Il pagamento non risulta ancora completato. Se avete già pagato, aspettate un minuto e ricaricate la pagina.</p>");
+    }).catch(function(){ mostraEsito("<p>Non riesco a controllare il pagamento adesso. Ricaricate la pagina tra poco.</p>"); });
+  } else if (q.get("annullato") === "1") {
+    mostraEsito("<p>Il pagamento non è stato completato. Potete riprovare dal modulo qui sotto.</p>");
+  }
+
+  // pagina aperta?
+  chiama({ azione: "info" }).then(function(j){
+    if (j && j.aperto === false) { $("modulo").hidden = true; $("chiuso").hidden = false; $("vai").hidden = true; }
+  }).catch(function(){});
+
+  Array.prototype.forEach.call(document.querySelectorAll(".scelta button"), function(b){
+    b.addEventListener("click", function(){
+      metodo = b.getAttribute("data-m");
+      Array.prototype.forEach.call(document.querySelectorAll(".scelta button"), function(x){ x.classList.toggle("on", x === b); });
+      $("invia").textContent = metodo === "carta" ? "Blocca il mio posto · 2.000 € + IVA" : "Blocca il mio posto con bonifico";
+    });
+  });
+
+  $("modulo").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    $("errore").textContent = "";
+    var dati = {
+      nome_locale: $("f-locale").value, ragione_sociale: $("f-rs").value, piva: $("f-piva").value,
+      titolare: $("f-tit").value, telefono: $("f-tel").value, email: $("f-mail").value, citta: $("f-citta").value,
+      metodo: metodo, agente_ref: agente, regolamento: $("f-reg").checked
+    };
+    if (!dati.nome_locale.trim() || !dati.titolare.trim() || !dati.telefono.trim() || !dati.email.trim()) { $("errore").textContent = "Compila nome del locale, titolare, telefono ed email."; return; }
+    if (!dati.regolamento) { $("errore").textContent = "Serve l’accettazione del regolamento."; return; }
+    $("invia").disabled = true; $("invia").textContent = "Un momento…";
+    chiama({ azione: "invia", dati: dati }).then(function(j){
+      if (j.url) { location.href = j.url; return; }
+      $("invia").disabled = false; $("invia").textContent = metodo === "carta" ? "Blocca il mio posto · 2.000 € + IVA" : "Blocca il mio posto con bonifico";
+      if (j.error === "chiuso") { $("modulo").hidden = true; $("chiuso").hidden = false; return; }
+      if (j.error) { $("errore").textContent = j.error; return; }
+      if (j.metodo === "bonifico") {
+        $("modulo").hidden = true;
+        var b = j.bonifico;
+        mostraEsito("<h2>Richiesta ricevuta</h2>" + (b
+          ? "<p>Per bloccare il posto fate il bonifico di <b>2.440 €</b> (2.000 € + IVA 22%) entro 7 giorni.</p><p>Intestatario: <b>" + esc(b.intestatario) + "</b></p><p class=\"iban\">" + esc(b.iban) + "</p><p>Causale: <b>Fondatore " + esc(dati.nome_locale) + "</b></p><p>Il posto è vostro quando il bonifico è accreditato.</p>"
+          : "<p>Vi mandiamo su WhatsApp i dati per il bonifico di <b>2.440 €</b> (2.000 € + IVA 22%). Il posto è vostro quando il bonifico è accreditato, entro 7 giorni.</p>"));
+      }
+    }).catch(function(){
+      $("invia").disabled = false; $("errore").textContent = "Connessione assente. Riprova tra un attimo.";
+    });
+  });
+
+  // contatore visite: solo pagina e provenienza, nessun dato personale
+  try {
+    var ses = null;
+    try { ses = sessionStorage.getItem("rf_ses"); if (!ses) { ses = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem("rf_ses", ses); } } catch (e) {}
+    var ref = document.referrer || "";
+    fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/page_analytics", { method: "POST", keepalive: true,
+      headers: { "Content-Type": "application/json", "apikey": A, "Authorization": "Bearer " + A, "Prefer": "return=minimal" },
+      body: JSON.stringify({ azienda_id: "a43d41b5-f4ac-494f-8144-6574347a754f", pagina: "fondatore", pagina_id: "a43d41b5-f4ac-494f-8144-6574347a754f",
+        tipo: "view", elemento: "sito_pagina", referrer: ref ? ref.slice(0, 250) : null,
+        utm_source: q.get("utm_source") || (agente ? "agente-" + agente : (ref ? (function(){ try { return new URL(ref).hostname; } catch (e) { return null; } })() : "diretto")),
+        utm_medium: q.get("utm_medium") || (q.get("qr") ? "qr" : null), utm_campaign: q.get("utm_campaign") || "fondatore",
+        device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop", session_id: ses }) }).catch(function(){});
+  } catch (e) {}
+})();
+</script>
+</body></html>
