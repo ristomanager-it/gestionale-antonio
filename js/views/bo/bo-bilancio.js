@@ -235,6 +235,11 @@ export async function render(container) {
           </div>
         ` : ''}
 
+        ${new Date() < new Date('2026-12-16') ? `
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#1e3a8a;" class="no-print">
+            ℹ️ <strong>Calcolo corretto il 14/11/2026.</strong> Le note di credito dei fornitori ora si sottraggono, la merce non si conta piu' due volte (fattura + carico di magazzino) e tra i ricavi entrano le fatture emesse. Per questo i costi risultano piu' bassi di prima.
+          </div>` : ''}
+
         <!-- Documento bilancio stampabile -->
         <div id="documento-bilancio" style="background:white;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
 
