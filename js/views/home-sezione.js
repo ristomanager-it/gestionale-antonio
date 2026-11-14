@@ -95,6 +95,11 @@ export async function render(app) {
       admin ? supabase.from("comande").select("totale").eq("azienda_id", aid).eq("sede_id", sede.id).in("stato", ["pagata", "chiusa"]).gte("chiusa_at", inizioGiorno).limit(2000) : Promise.resolve({ data: [] }),
     ]);
     if (bozze) righe.push({ testo: `🧾 ${bozze} ${bozze === 1 ? "fattura da confermare" : "fatture da confermare"}`, dest: "acquisti?tab=fatture", tono: "giallo" });
+    // fatture emesse non accettate dallo SDI: non valgono finche' non si reinviano, vanno in cima
+    if (admin) {
+      const scart = await conta(supabase.from("fatture_vendita").select("id", { count: "exact", head: true }).eq("azienda_id", aid).in("stato", ["scartata", "errore"]).neq("sezionale", "PROVA"));
+      if (scart) righe.unshift({ testo: `⛔ ${scart} ${scart === 1 ? "fattura non accettata dallo SDI: da correggere" : "fatture non accettate dallo SDI: da correggere"}`, dest: "fatture-situazione", tono: "rosso" });
+    }
     if (admin && (inc || []).length) righe.push({ testo: `💳 Incassato oggi ${euro((inc || []).reduce((s, r) => s + (Number(r.totale) || 0), 0))}`, dest: "chiusura-cassa", tono: "grigio" });
   }
 
