@@ -559,6 +559,40 @@ Se vuoi, possiamo vederci di nuovo per 20 minuti e ti mostro tutto sul tuo local
 A presto 🤝</div>
         <button onclick="agCopiaTemplate()" style="margin-top:8px;background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copia testo</button>
       </div>`;
+    montaFondatoreAgente();
+  }
+
+  // QR Fondatore personale: il link porta il codice dell'agente, la richiesta arriva legata a lui
+  async function montaFondatoreAgente() {
+    const box = document.getElementById('ag-fondatore');
+    const ag = window._agAgente;
+    if (!box || !ag) return;
+    const link = 'https://app.ristoflow-ai.com/fondatore.html?ag=' + String(ag.id).slice(0, 8);
+    const { data: ric } = await supa.from('fondatori_richieste').select('nome_locale, stato, metodo, created_at').order('created_at', { ascending: false });
+    const righe = (ric || []).filter(r => r.stato !== 'annullato');
+    const ST = { da_verificare: 'Da verificare', in_attesa_pagamento: 'In attesa di pagamento', pagato: 'Pagato ✓' };
+    box.innerHTML = `
+      <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:6px;">👑 Il tuo QR Fondatore</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Fallo inquadrare al titolare: la richiesta arriva legata a te, e il locale resta tuo nei compensi.</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">
+        <div id="ag-fo-qr" style="background:#fff;padding:8px;border:1px solid #e5e7eb;border-radius:10px;min-width:156px;min-height:156px;"></div>
+        <div style="flex:1;min-width:200px;">
+          <input readonly value="${escAg(link)}" style="width:100%;padding:8px;border:1.5px solid #d1d5db;border-radius:8px;font-size:12px;">
+          <button id="ag-fo-copia" style="margin-top:6px;background:#7C3AED;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copia link</button>
+          <div style="margin-top:12px;font-size:12px;font-weight:700;color:#374151;">Richieste dal tuo QR: ${righe.length}</div>
+          ${righe.map(r => '<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f1f5f9;">' + escAg(r.nome_locale) + ' · <span style="color:' + (r.stato === 'pagato' ? '#059669' : '#b45309') + ';font-weight:700;">' + (ST[r.stato] || escAg(r.stato)) + '</span></div>').join('')}
+        </div>
+      </div>`;
+    const disegna = () => {
+      const el = document.getElementById('ag-fo-qr'); if (!el) return;
+      if (!window.QRCode) { setTimeout(disegna, 300); return; }
+      el.innerHTML = '';
+      new window.QRCode(el, { text: link + '&qr=1', width: 140, height: 140, correctLevel: window.QRCode.CorrectLevel.M });
+    };
+    disegna();
+    document.getElementById('ag-fo-copia').onclick = async () => {
+      try { await navigator.clipboard.writeText(link); document.getElementById('ag-fo-copia').textContent = 'Copiato ✓'; } catch (e) {}
+    };
   }
 
   window.agCopiaTemplate = function() {
