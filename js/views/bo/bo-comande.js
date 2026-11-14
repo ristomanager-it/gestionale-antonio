@@ -2001,6 +2001,9 @@ export async function render(container) {
     if (totDaInviare) html += `<div style="margin:6px 6px 16px;"><button id="btn-invia-comanda-lista" style="${BTN}width:100%;padding:16px;font-size:17px;background:#16a34a;color:white;">📤 Invia comanda · ${totDaInviare} ${totDaInviare === 1 ? 'piatto' : 'piatti'}</button>
       <div style="font-size:12px;color:#64748b;text-align:center;margin-top:4px;">La cucina riceve tutto; le uscite dopo la prima aspettano il tuo 🔔 Via</div></div>`;
     box.innerHTML = html;
+    // Invia anche in alto, sempre in vista: sul tablet il fondo della lista puo' restare fuori schermo
+    const invTop = container.querySelector('#btn-invia-cucina');
+    if (invTop) { invTop.style.display = totDaInviare ? '' : 'none'; invTop.textContent = '📤 Invia · ' + totDaInviare; }
 
     box.querySelectorAll('[data-incr]').forEach(btn => btn.onclick = () => cambiaQuantita(btn.dataset.incr, 1));
     box.querySelectorAll('[data-decr]').forEach(btn => btn.onclick = () => cambiaQuantita(btn.dataset.decr, -1));
