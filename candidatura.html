@@ -535,6 +535,13 @@ function valida(step) {
 }
 
 // ─── INVIO ───────────────────────────────────────────────────────────────────
+// 14/11: nelle risposte a scelta si salva il testo che il candidato ha visto, non il codice interno
+function etichetta(griglia, campo) {
+  const v = document.getElementById(campo)?.value || '';
+  const b = document.querySelector('#' + griglia + ' .scelta-btn[data-val="' + v + '"]');
+  return b ? b.textContent.replace(/^[^A-Za-zÀ-ÿ]+/, '').trim() : v;
+}
+
 async function invia() {
   if (!valida(3)) return;
   const btn = document.getElementById('btn-invia');
