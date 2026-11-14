@@ -238,7 +238,7 @@ def build_cortesia(c, larg):
     out += GRASSETTO_OFF
     if cl.get("piva"):
         out += t("P.IVA " + cl["piva"]) + b"\n"
-    elif cl.get("cf"):
+    if cl.get("cf") and cl.get("cf") != cl.get("piva"):
         out += t("C.F. " + cl["cf"]) + b"\n"
     if cl.get("sdi"):
         out += t("Codice destinatario " + cl["sdi"]) + b"\n"
