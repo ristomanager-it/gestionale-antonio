@@ -236,19 +236,10 @@ export async function render(container) {
     let offsetX = 0;
     let offsetY = 0;
 
-    el.onmousedown = (e) => {
-      if (e.button !== 0) return;
-      isDragging = true;
-      moved = false;
-      el.dataset.dragging = "0";
-      offsetX = e.offsetX;
-      offsetY = e.offsetY;
-      el.style.cursor = "grabbing";
-    };
-
-    document.onmousemove = (e) => {
-      if (!isDragging) return;
-
+    el.addEventListener("pointermove", (e) => {
+      if (!attivo) return;
+      // sotto i 6 px e' un tocco, non uno spostamento: si apre la modifica
+      if (!moved && Math.abs(e.clientX - startX) < 6 && Math.abs(e.clientY - startY) < 6) return;
       moved = true;
       el.dataset.dragging = "1";
       const rect = box.getBoundingClientRect();
