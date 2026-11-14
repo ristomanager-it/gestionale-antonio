@@ -169,7 +169,7 @@ export async function render(container) {
     });
     box.querySelectorAll("[data-fo-azienda]").forEach(sel => sel.onchange = async () => {
       if (!sel.value) return;
-      if (!confirm("Collego questa richiesta all'azienda scelta? L'azienda prende l'agente e il piano Fondatore, se non li ha già.")) { sel.value = ""; return; }
+      if (!confirm("La colleghi tu: se c'è un agente, per lui vale come segnalatore (3%). Se deve prendere il 10% o il 15% con l'avvio, l'azienda la collega lui dalla sua home. Procedo?")) { sel.value = ""; return; }
       const { error } = await supabase.rpc("fondatore_collega_azienda", { p_richiesta: sel.dataset.foAzienda, p_azienda: sel.value });
       if (error) alert(error.message); else disegnaFondatore();
     });
