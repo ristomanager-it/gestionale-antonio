@@ -737,11 +737,24 @@ export async function renderCassaLibera(container, azienda) {
       // Validazioni prima di toccare qualsiasi cosa
       let cliente = null;
       if (incasso.doc === 'fattura') {
-        const rs = ($('#cl-rs').value || '').trim();
-        const id = ($('#cl-piva').value || '').trim().toUpperCase().replace(/\s+/g, '').replace(/^IT/, '');
-        if (!id || !rs) { esito.textContent = 'Per la fattura servono partita IVA (o CF) e ragione sociale.'; return; }
-        const isPiva = /^\d{11}$/.test(id);
-        cliente = { partita_iva: isPiva ? id : null, codice_fiscale: isPiva ? null : id, ragione_sociale: rs };
+        const val = (sel) => ($(sel).value || '').trim();
+        const id = val('#cl-piva').toUpperCase().replace(/\s+/g, '').replace(/^IT/, '');
+        const isPiva = /^\d{11}$/.test(id), isCf = /^[A-Z0-9]{16}$/.test(id);
+        const persona = !isPiva && isCf;
+        const rs = persona ? (val('#cl-nome') + ' ' + val('#cl-cognome')).trim() : val('#cl-rs');
+        const manca = [];
+        if (!isPiva && !isCf) manca.push('partita IVA (11 cifre) o codice fiscale');
+        if (persona ? !(val('#cl-nome') && val('#cl-cognome')) : !rs) manca.push(persona ? 'nome e cognome' : 'ragione sociale');
+        if (!val('#cl-ind')) manca.push('via');
+        if (!/^\d{5}$/.test(val('#cl-cap'))) manca.push('CAP di 5 cifre');
+        if (!val('#cl-comune')) manca.push('comune');
+        const sdi = val('#cl-sdi').toUpperCase();
+        if (sdi && !/^[A-Z0-9]{7}$/.test(sdi)) manca.push('codice SDI di 7 caratteri (o lascialo vuoto)');
+        if (manca.length) { esito.textContent = 'Per la fattura manca: ' + manca.join(', ') + '.'; return; }
+        cliente = { partita_iva: isPiva ? id : null, codice_fiscale: isPiva ? null : id, ragione_sociale: rs,
+          nome: persona ? val('#cl-nome') : null, cognome: persona ? val('#cl-cognome') : null,
+          indirizzo: val('#cl-ind'), cap: val('#cl-cap'), citta: val('#cl-comune'), provincia: val('#cl-prov').toUpperCase() || null,
+          codice_sdi: sdi || null, pec: val('#cl-pec') || null, email: val('#cl-email') || null };
       }
       const intest = ($('#cl-intestatario').value || '').trim();
       if ((metodo === 'addebito' || metodo === 'bonifico') && !intest && !cliente) { esito.textContent = 'Scrivi a chi addebitare.'; return; }
