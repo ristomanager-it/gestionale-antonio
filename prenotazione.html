@@ -312,6 +312,9 @@
         html += buildCalendarBtn(az.nome, p.data, p.ora, 120, "Prenotazione " + az.nome);
       }
 
+      // PIATTO FORTE DEL GIORNO (riempito da caricaConsiglio dopo il disegno)
+      html += '<div id="pf-consiglio"></div>';
+
       // MENU — 15/11/2026: la carta attiva della sede (menu_slug dalla RPC); link_menu dell'azienda solo come ripiego
       var linkMenu = p.menu_slug ? ("menu-pubblico.html?slug=" + encodeURIComponent(p.menu_slug)) : (az.link_menu || "");
       if (linkMenu) html += '<a class="menu-btn" id="btn-menu" href="' + escHtml(linkMenu) + '" target="_blank">&#128203; Sfoglia il nostro menu</a>';
