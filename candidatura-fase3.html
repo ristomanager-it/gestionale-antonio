@@ -45,12 +45,10 @@ const params = new URLSearchParams(window.location.search);
 const TOKEN = params.get('t');
 let cand = null, sfida = null;
 
-// Sfide di default se non configurate nel DB
-const SFIDE_DEFAULT = [
-  { titolo: 'Il tuo primo giorno', testo: 'È il tuo primo giorno in un locale che non conosci. Nessuno ti spiega nulla e il servizio inizia tra un\'ora.\n\nDescrivi cosa fai, cosa osservi, come ti organizzi.\n\nNon esistono risposte giuste — vogliamo capire come ragioni.' },
-  { titolo: 'Il collega che non arriva', testo: 'Hai appena finito un turno di 12 ore. Il collega del turno dopo non arriva e non risponde al telefono. Il locale è pieno.\n\nCosa fai? Cosa pensi? Come gestisci la situazione?' },
-  { titolo: 'Il cliente difficile', testo: 'Un cliente si lamenta del servizio in modo aggressivo davanti agli altri tavoli. Il tuo responsabile non è in sala.\n\nCome gestisci la situazione? Cosa dici, cosa fai, cosa eviti?' },
-];
+// Sfida unica per tutti i ruoli: un momento vero del nostro lavoro, raccontato da lui.
+// Chi non ha esperienza racconta cosa farebbe.
+// (Se in candidature_sfide c'e una sfida attiva per il ruolo o generica, ha la precedenza.)
+const SFIDA_DEFAULT = { titolo: 'La serata che va storta', testo: 'È sabato sera, c\'è un matrimonio da 150 persone. A metà servizio qualcosa va storto: manca una persona, un piatto è in ritardo, un ospite si lamenta. Tu sei lì.\n\nRaccontaci una volta che ti è capitata una serata così, anche fuori dalla ristorazione: cosa è successo, cosa hai fatto, come è finita.\n\nSe non ti è mai capitato, raccontaci cosa faresti tu nei primi 5 minuti, con parole tue.' };
 
 
 // Applica brand dal DB usando il token
@@ -89,10 +87,7 @@ async function init() {
   // Seleziona sfida: prima cerca per ruolo, poi generica, poi default
   const sfideRuolo = (sfideDB||[]).filter(s => s.ruolo_slug === cand.ruolo_desiderato?.toLowerCase().replace(/\s+/g,'_'));
   const sfideGeneric = (sfideDB||[]).filter(s => !s.ruolo_slug);
-  const tuttiSfide = [...sfideRuolo, ...sfideGeneric, ...SFIDE_DEFAULT];
-  // Sceglie pseudo-casualmente in base all'ID candidatura
-  const idx = cand.id.charCodeAt(0) % tuttiSfide.length;
-  sfida = tuttiSfide[idx];
+  sfida = sfideRuolo[0] || sfideGeneric[0] || SFIDA_DEFAULT;
 
   renderForm();
 }
@@ -101,28 +96,26 @@ function renderForm() {
   const scadStr = cand.scadenza_fase3 ? new Date(cand.scadenza_fase3).toLocaleString('it-IT') : null;
   document.getElementById('root').innerHTML = `
     <div class="hero">
-      <div style="font-size:13px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Fase 3 — Sfida pratica</div>
+      <div style="font-size:13px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Fase 3</div>
       <div class="hero-titolo">Ciao ${cand.nome}! ⭐</div>
-      <div class="hero-sub">Sei arrivato alla fase 3. Dimostraci come ragioni.</div>
+      
     </div>
     <div class="wrap">
       ${scadStr ? `<div class="scadenza-box">⏰ Hai tempo fino al <strong>${scadStr}</strong></div>` : ''}
 
       <div class="card">
-        <div class="hint-box">
-          📖 <strong>Come funziona:</strong> Leggi con attenzione la situazione descritta sotto. Non esistono risposte giuste o sbagliate — ci interessa capire come pensi, come agisci e come ti poni davanti alle difficoltà. Rispondi in modo dettagliato e concreto.
-        </div>
+        
 
         <div class="sfida-box">
-          <div class="sfida-label">🎯 La tua sfida</div>
+          <div class="sfida-label">🎯 La situazione</div>
           <div class="sfida-testo">${sfida.testo.replace(/\n/g,'<br>')}</div>
         </div>
 
         <div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:8px;">La tua risposta *</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Descrivi in dettaglio cosa faresti, cosa penseresti, come ti comporteresti. Più sei specifico, meglio è.</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:12px;">Cosa è successo, cosa hai fatto tu, come è finita.</div>
         <textarea id="risposta-sfida" oninput="cc()" placeholder="Scrivi qui la tua risposta..."></textarea>
         <div class="char-count" id="cc-sfida">0 parole</div>
-        <div class="errore" id="e-sfida">Rispondi con almeno 50 parole — questa è la tua fase più importante</div>
+        <div class="errore" id="e-sfida">Raccontaci un po' di più (almeno 30 parole)</div>
         <div id="e-invio" style="color:#dc2626;font-size:13px;margin-top:8px;display:none;"></div>
         <button class="btn-invia" id="btn-invia" onclick="invia()">Invia la mia risposta 🚀</button>
       </div>
@@ -135,14 +128,14 @@ function cc() {
   document.getElementById('cc-sfida').textContent = n + (n===1?' parola':' parole');
   // Feedback colore
   const el = document.getElementById('cc-sfida');
-  el.style.color = n >= 50 ? '#15803d' : n >= 30 ? '#d97706' : '#94a3b8';
+  el.style.color = n >= 30 ? '#15803d' : n >= 15 ? '#d97706' : '#94a3b8';
 }
 
 async function invia() {
   const risposta = document.getElementById('risposta-sfida').value.trim();
   const nP = risposta.split(/\s+/).filter(Boolean).length;
   const errEl = document.getElementById('e-sfida');
-  if (nP < 50) { errEl.classList.add('v'); return; }
+  if (nP < 30) { errEl.classList.add('v'); return; }
   errEl.classList.remove('v');
 
   const btn = document.getElementById('btn-invia');
@@ -153,7 +146,7 @@ async function invia() {
     await fetch(`${SUPABASE_URL}/rest/v1/candidature_risposte`, {
       method:'POST',
       headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
-      body: JSON.stringify([{ candidatura_id:cand.id, fase:3, domanda_id:'sfida_pratica', domanda_testo:sfida.testo, risposta, score_totale_risposta: Math.min(10, nP/20) }])
+      body: JSON.stringify([{ candidatura_id:cand.id, fase:3, domanda_id:'serata_storta', domanda_testo:sfida.testo, risposta }])
     });
 
     // Avanza a fase 5 (completata)
@@ -165,6 +158,9 @@ async function invia() {
       headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
       body: JSON.stringify({ candidatura_id:cand.id, fase_da:4, fase_a:5, fase_label:'Fase 3 completata' })
     });
+
+    // Tony aggiorna la relazione finale con tutte e tre le fasi (non blocca il candidato)
+    fetch(`${SUPABASE_URL}/functions/v1/candidatura-relazione`, { method:'POST', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'}, body: JSON.stringify({ candidatura_id: cand.id }), keepalive: true }).catch(()=>{});
 
     document.getElementById('root').innerHTML = `
       <div class="hero" style="background:linear-gradient(135deg,#15803d,#22c55e);">
