@@ -2,6 +2,187 @@
 // Dashboard candidature — funnel 4 fasi, scoring 7 indicatori, WhatsApp automatico
 
 const supa = () => window.supabaseClient || window.supabase;
+
+// ─── DOMANDE DEL QUESTIONARIO (15/11/2026) ───────────────────────────────────
+// Lo standard Ristoflow (righe con azienda_id null) vale per tutte le aziende. Un admin puo' farsene una copia
+// e cambiarla; "Torna allo standard" cancella la copia. Le risposte gia' arrivate restano con il testo di allora.
+// La sezione 1 (dati personali) e l'area di interesse sono fisse. I punteggi non dipendono dalla domanda.
+async function apriDomande(aziendaId) {
+  const SEZ = { 2: '🧠 Mentalità e curiosità', 3: '💪 Pressione, responsabilità e mentalità', 4: '🍽️ Hospitality e ambizioni' };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const nomeRaw = String(window.state?.azienda?.nome || 'la tua azienda');
+  const nomeAz = esc(nomeRaw === nomeRaw.toLowerCase() && window.state?.azienda?.nome ? nomeRaw.replace(/\b\p{L}/gu, c => c.toUpperCase()) : nomeRaw);
+  let ov = document.getElementById('cand-dom-ov');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'cand-dom-ov';
+    ov.style.cssText = 'position:fixed;inset:0;background:#eef2f6;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:inherit;';
+    document.body.appendChild(ov);
+  }
+  const chiudi = () => { ov.remove(); };
+  let righe = [], mie = false, occupato = false;
+
+  const st = `<style>
+    #cand-dom-ov .w{max-width:640px;margin:0 auto;padding:14px 14px 60px}
+    #cand-dom-ov .top{background:#0E5A7A;color:#fff;border-radius:16px;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+    #cand-dom-ov .top b{font-size:18px}#cand-dom-ov .top small{display:block;opacity:.8;font-size:12px}
+    #cand-dom-ov .x{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:10px;padding:9px 13px;font-weight:800;font-size:14px;cursor:pointer}
+    #cand-dom-ov .box{background:#fff;border-radius:14px;padding:14px;margin-top:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    #cand-dom-ov .info{background:#f0f9ff;border:1.5px solid #bae6fd}#cand-dom-ov .mio{background:#ecfdf5;border:1.5px solid #a7f3d0}
+    #cand-dom-ov .info p,#cand-dom-ov .mio p{margin:4px 0 10px;font-size:13px;color:#334155;line-height:1.45}
+    #cand-dom-ov .btn{border:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:14px;background:#0E5A7A;color:#fff;cursor:pointer;font-family:inherit}
+    #cand-dom-ov .btn.chiaro{background:#f1f5f9;color:#334155}#cand-dom-ov .btn.rosso{background:#fee2e2;color:#b91c1c}
+    #cand-dom-ov .sez{font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px}
+    #cand-dom-ov .d{border-top:1px solid #e2e8f0;padding:11px 0;display:flex;gap:10px;align-items:flex-start}
+    #cand-dom-ov .d:first-of-type{border-top:none}#cand-dom-ov .d .c{flex:1;min-width:0}
+    #cand-dom-ov .t{font-weight:700;font-size:14.5px;line-height:1.4;color:#0f172a}#cand-dom-ov .h{font-size:12.5px;color:#64748b;font-style:italic;margin-top:3px}
+    #cand-dom-ov .tag{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 8px;margin:6px 6px 0 0;background:#f1f5f9;color:#475569}
+    #cand-dom-ov .tag.n{background:#dcfce7;color:#166534}#cand-dom-ov .tag.m{background:#fef9c3;color:#854d0e}
+    #cand-dom-ov .ic{background:#f1f5f9;border:none;border-radius:9px;padding:8px 10px;font-size:15px;cursor:pointer}
+    #cand-dom-ov .add{display:block;width:100%;text-align:center;border:1.5px dashed #94a3b8;border-radius:10px;padding:10px;font-weight:800;color:#0E5A7A;margin-top:8px;background:#fff;cursor:pointer;font-family:inherit;font-size:14px}
+    #cand-dom-ov .fisso{font-size:13px;color:#64748b;line-height:1.45}
+    #cand-dom-ov label{display:block;font-size:12px;font-weight:800;color:#64748b;margin:14px 0 5px;text-transform:uppercase;letter-spacing:.4px}
+    #cand-dom-ov textarea,#cand-dom-ov input[type=text]{width:100%;box-sizing:border-box;border:1.5px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-size:15px;font-family:inherit}
+    #cand-dom-ov .seg{display:flex;gap:6px}#cand-dom-ov .seg button{flex:1;border:1.5px solid #cbd5e1;background:#fff;border-radius:10px;padding:9px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;color:#334155}
+    #cand-dom-ov .seg button.on{border-color:#0E5A7A;background:#0E5A7A;color:#fff}
+    #cand-dom-ov .op{display:flex;gap:6px;margin-bottom:6px}#cand-dom-ov .op input{flex:1}
+    #cand-dom-ov .nota{font-size:12.5px;color:#64748b;line-height:1.45;margin-top:10px}
+    #cand-dom-ov .riga{display:flex;gap:8px;margin-top:16px}#cand-dom-ov .riga .btn{flex:1}
+    #cand-dom-ov .errm{color:#b91c1c;font-size:13px;font-weight:700;margin-top:10px}
+  </style>`;
+
+  const tagTipo = d => d.tipo === 'scelta'
+    ? 'Scelta · ' + ((d.opzioni || []).length) + ' risposte'
+    : 'Risposta libera' + (Number(d.min_parole) > 1 ? ' · almeno ' + d.min_parole + ' parole' : '');
+
+  async function carica() {
+    ov.innerHTML = st + '<div class="w"><div class="box">Caricamento...</div></div>';
+    const { data, error } = await supa().from('candidature_domande').select('*')
+      .or('azienda_id.is.null,azienda_id.eq.' + aziendaId).order('sezione').order('ordine');
+    if (error) { ov.innerHTML = st + '<div class="w"><div class="box">Errore: ' + esc(error.message) + '</div><button class="btn chiaro" id="dq-x" style="margin-top:12px">Chiudi</button></div>'; ov.querySelector('#dq-x').onclick = chiudi; return; }
+    const proprie = (data || []).filter(d => d.azienda_id === aziendaId);
+    mie = proprie.length > 0;
+    righe = mie ? proprie : (data || []).filter(d => !d.azienda_id);
+    lista();
+  }
+
+  function lista() {
+    const nMod = righe.filter(d => d.stato !== 'standard').length;
+    let h = st + '<div class="w"><div class="top"><div><b>📝 Domande del questionario</b><small>' + nomeAz + '</small></div><button class="x" id="dq-x">Chiudi</button></div>';
+    h += mie
+      ? '<div class="box mio"><b>Questionario di ' + nomeAz + (nMod ? ' · ' + nMod + (nMod === 1 ? ' modifica' : ' modifiche') : '') + '</b><p>Lo vede chi si candida dal tuo link. Le candidature arrivate prima restano con le domande di allora.</p><button class="btn rosso" id="dq-std">↺ Torna allo standard Ristoflow</button></div>'
+      : '<div class="box info"><b>Stai usando il questionario standard Ristoflow</b><p>Le domande sono uguali per tutte le aziende. Se vuoi cambiarle, crei una copia solo per la tua azienda: lo standard resta com\'è e ci puoi tornare quando vuoi.</p><button class="btn" id="dq-pers">✏️ Personalizza per la mia azienda</button></div>';
+    h += '<div class="box"><div class="sez">Sezione 1 · Chi sei</div><div class="fisso">Nome, cognome, telefono, email, data di nascita, città, ruolo che cerca. Servono per contattare il candidato: non si cambiano.</div></div>';
+    [2, 3, 4].forEach(s => {
+      h += '<div class="box"><div class="sez">Sezione ' + s + ' · ' + SEZ[s] + '</div>';
+      righe.filter(d => Number(d.sezione) === s).forEach(d => {
+        h += '<div class="d"><div class="c"><div class="t">' + esc(d.testo) + '</div>' + (d.hint ? '<div class="h">' + esc(d.hint) + '</div>' : '')
+          + '<span class="tag">' + esc(tagTipo(d)) + '</span>'
+          + (d.stato === 'nuova' ? '<span class="tag n">Nuova</span>' : d.stato === 'modificata' ? '<span class="tag m">Modificata</span>' : '') + '</div>'
+          + (mie ? '<button class="ic" data-mod="' + d.id + '" aria-label="Modifica">✏️</button><button class="ic" data-del="' + d.id + '" aria-label="Togli">🗑</button>' : '') + '</div>';
+      });
+      if (s === 4) h += '<div class="fisso" style="margin-top:8px">Più la scelta dell\'area di interesse (sala, cucina, bar…): serve per filtrare le candidature, resta fissa.</div>';
+      if (mie) h += '<button class="add" data-add="' + s + '">＋ Aggiungi una domanda in questa sezione</button>';
+      h += '</div>';
+    });
+    h += '<div class="nota">Il punteggio si calcola da solo, come oggi: ogni risposta libera viene letta e misurata sui 7 tratti, qualunque sia la domanda.</div></div>';
+    ov.innerHTML = h;
+    ov.scrollTop = 0;
+    ov.querySelector('#dq-x').onclick = chiudi;
+    const pers = ov.querySelector('#dq-pers');
+    if (pers) pers.onclick = async () => {
+      if (occupato) return; occupato = true; pers.textContent = 'Preparo la copia...';
+      const { error } = await supa().rpc('candidature_domande_personalizza', { p_azienda: aziendaId });
+      occupato = false;
+      if (error) { alert('Non riesco: ' + error.message); pers.textContent = '✏️ Personalizza per la mia azienda'; return; }
+      carica();
+    };
+    const std = ov.querySelector('#dq-std');
+    if (std) std.onclick = async () => {
+      if (!confirm('Torni alle domande standard Ristoflow e perdi le tue modifiche. Le candidature già arrivate non cambiano. Procedo?')) return;
+      const { error } = await supa().rpc('candidature_domande_ripristina', { p_azienda: aziendaId });
+      if (error) { alert('Non riesco: ' + error.message); return; }
+      carica();
+    };
+    ov.querySelectorAll('[data-mod]').forEach(b => b.onclick = () => scheda(righe.find(d => d.id === b.dataset.mod)));
+    ov.querySelectorAll('[data-add]').forEach(b => b.onclick = () => scheda({ sezione: Number(b.dataset.add), tipo: 'aperta', min_parole: 20, opzioni: [], testo: '', hint: '' }));
+    ov.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      const d = righe.find(x => x.id === b.dataset.del);
+      if (d.tipo !== 'scelta' && righe.filter(x => x.tipo !== 'scelta').length <= 1) { alert('Serve almeno una domanda con risposta libera: è da lì che si calcola il punteggio.'); return; }
+      if (!confirm('Togli la domanda "' + d.testo + '"?')) return;
+      const { error } = await supa().from('candidature_domande').delete().eq('id', d.id).eq('azienda_id', aziendaId);
+      if (error) { alert('Non riesco: ' + error.message); return; }
+      carica();
+    });
+  }
+
+  function scheda(d0) {
+    const d = Object.assign({}, d0); // copia: "Annulla" non deve lasciare modifiche a meta' nella lista
+    let tipo = d.tipo || 'aperta', minP = Number(d.min_parole) || 20;
+    let ops = (d.opzioni || []).map(o => o.label);
+    if (tipo === 'scelta' && ops.length < 2) ops = ['', ''];
+    const disegna = () => {
+      const testo = ov.querySelector('#dq-testo') ? ov.querySelector('#dq-testo').value : d.testo;
+      const hint = ov.querySelector('#dq-hint') ? ov.querySelector('#dq-hint').value : (d.hint || '');
+      ov.querySelectorAll('.op input').forEach((inp, i) => { ops[i] = inp.value; });
+      let h = st + '<div class="w"><div class="top"><div><b>' + (d.id ? '✏️ Modifica domanda' : '＋ Nuova domanda') + '</b><small>Sezione ' + d.sezione + ' · ' + SEZ[d.sezione] + '</small></div></div><div class="box">';
+      h += '<label>Domanda</label><textarea id="dq-testo" rows="3">' + esc(testo) + '</textarea>';
+      h += '<label>Suggerimento sotto la domanda (facoltativo)</label><input type="text" id="dq-hint" value="' + esc(hint) + '" placeholder="Es. matrimoni, banchetti, feste aziendali">';
+      h += '<label>Come si risponde</label><div class="seg"><button data-tipo="aperta" class="' + (tipo === 'aperta' ? 'on' : '') + '">Risposta libera</button><button data-tipo="scelta" class="' + (tipo === 'scelta' ? 'on' : '') + '">Scelta tra risposte</button></div>';
+      if (tipo === 'aperta') {
+        h += '<label>Lunghezza minima</label><div class="seg">' + [[10, 'Breve · 10'], [20, 'Media · 20'], [30, 'Lunga · 30']].map(([v, l]) => '<button data-min="' + v + '" class="' + (minP === v ? 'on' : '') + '">' + l + '</button>').join('') + '</div>';
+      } else {
+        h += '<label>Risposte (da 2 a 6)</label>' + ops.map((o, i) => '<div class="op"><input type="text" value="' + esc(o) + '" placeholder="Risposta ' + (i + 1) + '">' + (ops.length > 2 ? '<button class="ic" data-rm="' + i + '">✕</button>' : '') + '</div>').join('');
+        if (ops.length < 6) h += '<button class="add" id="dq-addop">＋ Aggiungi una risposta</button>';
+      }
+      h += '<div class="nota">Il punteggio si calcola da solo: non c\'è niente da impostare.</div><div class="errm" id="dq-err"></div>';
+      h += '<div class="riga"><button class="btn chiaro" id="dq-ann">Annulla</button><button class="btn" id="dq-salva">Salva</button></div></div></div>';
+      ov.innerHTML = h;
+      ov.querySelectorAll('[data-tipo]').forEach(b => b.onclick = () => { ov.querySelectorAll('.op input').forEach((inp, i) => { ops[i] = inp.value; }); tipo = b.dataset.tipo; if (tipo === 'scelta' && ops.length < 2) ops = ['', '']; disegnaKeep(); });
+      ov.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { minP = Number(b.dataset.min); disegnaKeep(); });
+      ov.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { ov.querySelectorAll('.op input').forEach((inp, i) => { ops[i] = inp.value; }); ops.splice(Number(b.dataset.rm), 1); disegnaKeep(); });
+      const addop = ov.querySelector('#dq-addop'); if (addop) addop.onclick = () => { ov.querySelectorAll('.op input').forEach((inp, i) => { ops[i] = inp.value; }); ops.push(''); disegnaKeep(); };
+      ov.querySelector('#dq-ann').onclick = lista;
+      ov.querySelector('#dq-salva').onclick = salva;
+    };
+    // ridisegna tenendo testo e suggerimento scritti finora
+    const disegnaKeep = () => { d.testo = ov.querySelector('#dq-testo').value; d.hint = ov.querySelector('#dq-hint').value; disegna(); };
+    async function salva() {
+      const e = ov.querySelector('#dq-err');
+      const testo = ov.querySelector('#dq-testo').value.trim();
+      const hint = ov.querySelector('#dq-hint').value.trim();
+      if (!testo) { e.textContent = 'Scrivi la domanda.'; return; }
+      if (tipo === 'scelta' && d.id && d.tipo !== 'scelta' && righe.filter(x => x.tipo !== 'scelta').length <= 1) { e.textContent = 'Serve almeno una domanda con risposta libera: è da lì che si calcola il punteggio.'; return; }
+      let opzioni = [];
+      if (tipo === 'scelta') {
+        const lab = [...ov.querySelectorAll('.op input')].map(i => i.value.trim()).filter(Boolean);
+        if (lab.length < 2) { e.textContent = 'Servono almeno 2 risposte.'; return; }
+        const vecchie = d.opzioni || [];
+        opzioni = lab.map((l, i) => {
+          const v = vecchie.find(o => o.label === l);
+          const slug = l.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30);
+          return { val: v ? v.val : (slug || 'r' + (i + 1)), label: l };
+        });
+      }
+      const btn = ov.querySelector('#dq-salva'); btn.disabled = true; btn.textContent = 'Salvo...';
+      const campi = { testo, hint: hint || null, tipo, min_parole: tipo === 'aperta' ? minP : 0, opzioni, updated_at: new Date().toISOString() };
+      let res;
+      if (d.id) {
+        campi.stato = d.stato === 'nuova' ? 'nuova' : 'modificata';
+        res = await supa().from('candidature_domande').update(campi).eq('id', d.id).eq('azienda_id', aziendaId);
+      } else {
+        const ordine = Math.max(0, ...righe.filter(x => Number(x.sezione) === d.sezione).map(x => Number(x.ordine) || 0)) + 1;
+        res = await supa().from('candidature_domande').insert(Object.assign(campi, { azienda_id: aziendaId, sezione: d.sezione, ordine, chiave: 'q_' + Date.now().toString(36), stato: 'nuova' }));
+      }
+      if (res.error) { e.textContent = 'Non riesco a salvare: ' + res.error.message; btn.disabled = false; btn.textContent = 'Salva'; return; }
+      carica();
+    }
+    disegna();
+  }
+
+  carica();
+}
+
 const SUPABASE_URL = 'https://cuhcscpvhypoaplcmtjk.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0';
 
@@ -438,6 +619,7 @@ export async function render(container) {
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            ${(window.state?.ruolo === 'admin' || window.state?.ruolo === 'superadmin') ? `<button id="btn-domande" style="background:#fff;color:#0E5A7A;border:1.5px solid #0E5A7A;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:700;">📝 Domande</button>` : ''}
             <button id="btn-crea-template-meta" style="background:#25D366;color:white;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;">
               📋 Crea template WhatsApp
             </button>
@@ -524,6 +706,8 @@ export async function render(container) {
 
   // Copia link form pubblico
   const linkPubblico = `${window.location.origin}/candidatura.html?a=${aziendaId}`;
+  const btnDom = container.querySelector('#btn-domande');
+  if (btnDom) btnDom.addEventListener('click', () => apriDomande(aziendaId));
   const btnCopia = container.querySelector('#btn-copia-link');
   if (btnCopia) {
     btnCopia.addEventListener('click', () => {
