@@ -534,6 +534,7 @@ export function initMenu() {
         title: "MENU & PRODOTTI",
         items: [
           { label: "📋 Menu Builder",     route: "bo-menu"           },
+          { label: "🍽️ Piatti forti",     route: "bo-piatti-forti"   },
           { label: "🧺 Prodotti",         route: "bo-prodotti"       },
           { label: "📂 Categorie",        route: "bo-categorie"      },
           { label: "🍳 Ricette BO",       route: "ricettario"        },
