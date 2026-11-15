@@ -8,6 +8,9 @@ import { renderOrdini } from "./ordini.js?v=20261103-3";
 
 export async function render(container) {
 
+  // Entrando da Home il contesto azienda si ricarica: senza attesa la prima apertura diceva
+  // "Nessuna azienda attiva" (trovato preparando la demo video, 15/11). Si aspetta fino a 5 secondi.
+  for (let i = 0; i < 50 && !window.state?.azienda; i++) await new Promise(r => setTimeout(r, 100));
   const azienda = window.state?.azienda;
 
   if (!azienda) {
