@@ -1,6 +1,6 @@
 // js/views/ordine.js — Dettaglio/creazione ordine fornitore + invio WhatsApp/Email
 import "../supabaseClient.js";
-import "../state.js";
+// state.js e' gia' caricato da index.html: reimportarlo azzerava window.state (azienda persa)
 import { apriScanner } from "./barcode-scanner-v2.js";
 
 const supa = () => window.supabaseClient || window.supabase || window.db;
