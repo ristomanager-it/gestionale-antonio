@@ -330,6 +330,7 @@
       root.innerHTML = html;
       startCountdown(p.data, p.ora);
       contaVisita("view", "pagina", p);
+      caricaConsiglio(p);
       var bm = document.getElementById("btn-menu"); if (bm) bm.addEventListener("click", function() { contaVisita("click", "menu", p); });
       var mp = document.querySelector(".map-btn"); if (mp) mp.addEventListener("click", function() { contaVisita("click", "mappa", p); });
       if (p.stato !== "in_attesa_pagamento") {
