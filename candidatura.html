@@ -213,6 +213,17 @@ async function init() {
   }
 
   aziendaInfo = aziende[0];
+
+  // 15/11/2026: domande personalizzate dall'azienda (Candidature > Domande). Se non ce ne sono resta il questionario standard scritto qui sotto.
+  try {
+    const rd = await fetch(`${SUPABASE_URL}/rest/v1/rpc/candidature_domande_pubbliche`, {
+      method: 'POST',
+      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_azienda: aziendaId })
+    });
+    const dd = rd.ok ? await rd.json() : [];
+    if (Array.isArray(dd) && dd.length) DOMANDE_AZ = dd;
+  } catch (e) { /* senza rete o errore: questionario standard */ }
   document.title = `Lavora con noi — ${aziendaInfo.nome}`;
 
   // Carica ruoli attivi per questa azienda
@@ -222,6 +233,7 @@ async function init() {
   const ruoli = await resRuoli.json() || [];
 
   renderForm(ruoli);
+  if (DOMANDE_AZ) applicaDomande();
 }
 
 // ─── RENDER FORM ─────────────────────────────────────────────────────────────
@@ -456,6 +468,59 @@ function renderForm(ruoli) {
   `;
 }
 
+// ─── DOMANDE PERSONALIZZATE (15/11/2026) ─────────────────────────────────────
+// Le sezioni 2-4 si ricostruiscono dalle domande dell'azienda. Restano fissi: titoli delle sezioni, area di interesse, CV.
+// I punteggi non cambiano: ogni risposta libera e' letta sui 7 tratti, qualunque sia la domanda.
+let DOMANDE_AZ = null;   // null = questionario standard della pagina
+let N_APERTE = 10;       // quante risposte libere entrano nel punteggio
+const ID_SCELTA = { interesse_nuovo_lavoro: 'interesse', reazione_pressione: 'pressione', istinto_quando_va_male: 'mentalita' };
+function escH(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function idScelta(d) { return ID_SCELTA[d.chiave] || ('x' + String(d.chiave).replace(/[^a-z0-9_]/gi, '')); }
+function htmlDomanda(d) {
+  if (d.tipo === 'scelta') {
+    const k = idScelta(d);
+    const bt = (d.opzioni || []).map(o => `<button class="scelta-btn" data-val="${escH(o.val)}" onclick="sel(this,'griglia-${k}','v-${k}')">${escH(o.label)}</button>`).join('');
+    return `<div class="campo"><label>${escH(d.testo)} *</label>${d.hint ? `<div class="hint" style="margin:0 0 8px">${escH(d.hint)}</div>` : ''}<div class="scelta-griglia" id="griglia-${k}">${bt}</div><input type="hidden" id="v-${k}"><div class="errore" id="err-${k}">Seleziona un'opzione</div></div>`;
+  }
+  const m = Math.max(1, Number(d.min_parole) || 0);
+  return `<div class="domanda-aperta"><div class="domanda-testo">${escH(d.testo)}</div>${d.hint ? `<div class="domanda-hint">${escH(d.hint)}</div>` : ''}<textarea id="d-${d._i}" placeholder="Rispondi con un esempio concreto..." oninput="cc('d-${d._i}','dc-${d._i}')"></textarea><div class="char-count" id="dc-${d._i}">0 parole</div><div class="errore" id="derr-${d._i}">${m > 1 ? 'Rispondi con almeno ' + m + ' parole' : 'Rispondi alla domanda'}</div></div>`;
+}
+function applicaDomande() {
+  const areaCampo = document.getElementById('griglia-area').closest('.campo');
+  const cvCampo = document.getElementById('f-cv').closest('.campo');
+  const errInv = document.getElementById('errore-invio');
+  let i = 0;
+  [1, 2, 3].forEach(step => {
+    const box = document.getElementById('step-' + step);
+    const titolo = box.querySelector('.sezione-titolo');
+    const navs = box.querySelectorAll('.btn-nav'); const nav = navs[navs.length - 1];
+    let h = '';
+    DOMANDE_AZ.filter(d => Number(d.sezione) === step + 1).forEach(d => { d._i = i++; h += htmlDomanda(d); });
+    box.innerHTML = '';
+    box.appendChild(titolo);
+    if (step === 3) box.appendChild(areaCampo);
+    const tmp = document.createElement('div'); tmp.innerHTML = h;
+    while (tmp.firstChild) box.appendChild(tmp.firstChild);
+    if (step === 3) { box.appendChild(cvCampo); box.appendChild(errInv); }
+    box.appendChild(nav);
+  });
+  N_APERTE = DOMANDE_AZ.filter(d => d.tipo !== 'scelta').length;
+}
+function validaDomande(step) {
+  let ok = true;
+  DOMANDE_AZ.filter(d => Number(d.sezione) === step + 1).forEach(d => {
+    if (d.tipo === 'scelta') { const k = idScelta(d); const v = document.getElementById('v-' + k)?.value; err('err-' + k, !v); if (!v) ok = false; }
+    else { const n = nParole('d-' + d._i); const m = Math.max(1, Number(d.min_parole) || 0); err('derr-' + d._i, n < m); if (n < m) ok = false; }
+  });
+  if (step === 3) { const area = document.getElementById('v-area')?.value; err('err-area', !area); if (!area) ok = false; }
+  return ok;
+}
+function risposteDomande() {
+  const ap = DOMANDE_AZ.filter(d => d.tipo !== 'scelta').map(d => ({ domanda_id: d.chiave, domanda_testo: d.testo, risposta: document.getElementById('d-' + d._i).value.trim() }));
+  const sc = DOMANDE_AZ.filter(d => d.tipo === 'scelta').map(d => { const k = idScelta(d); return { domanda_id: d.chiave, domanda_testo: d.testo, risposta: etichetta('griglia-' + k, 'v-' + k) }; });
+  return ap.concat(sc, [{ domanda_id: 'area_interesse', domanda_testo: 'Area di interesse.', risposta: etichetta('griglia-area', 'v-area') }]);
+}
+
 // ─── NAVIGAZIONE ─────────────────────────────────────────────────────────────
 function avanti(step) {
   if (!valida(step)) return;
@@ -500,6 +565,7 @@ function nParole(id) {
 }
 
 function valida(step) {
+  if (DOMANDE_AZ && step >= 1 && step <= 3) return validaDomande(step);
   let ok = true;
   if (step===0) {
     const nome=document.getElementById('f-nome')?.value.trim();
@@ -547,7 +613,7 @@ async function invia() {
   const btn = document.getElementById('btn-invia');
   btn.disabled = true; btn.textContent = 'Invio in corso...';
 
-  const risposte = [
+  const risposte = DOMANDE_AZ ? risposteDomande() : [
     {domanda_id:'problema_intervento',        domanda_testo:'Hai visto un problema e hai deciso di intervenire senza che nessuno te lo chiedesse.',    risposta:document.getElementById('r-1').value.trim()},
     {domanda_id:'apprendimento_autonomo',     domanda_testo:'Cosa hai imparato da solo negli ultimi 12 mesi.',                                          risposta:document.getElementById('r-2').value.trim()},
     {domanda_id:'errore_e_apprendimento',     domanda_testo:'Un errore che hai commesso e cosa hai imparato.',                                           risposta:document.getElementById('r-3').value.trim()},
@@ -566,12 +632,12 @@ async function invia() {
   ];
 
   // Scoring solo sulle risposte aperte (prime 10)
-  const { scoreTotale, perIndicatore, bonus, malus } = calcolaScoreTotale(risposte.slice(0,10));
+  const { scoreTotale, perIndicatore, bonus, malus } = calcolaScoreTotale(risposte.slice(0, N_APERTE));
 
   // Bonus scelte multiple positive
-  const pr = document.getElementById('v-pressione').value;
-  const men = document.getElementById('v-mentalita').value;
-  const int = document.getElementById('v-interesse').value;
+  const pr = document.getElementById('v-pressione')?.value || '';
+  const men = document.getElementById('v-mentalita')?.value || '';
+  const int = document.getElementById('v-interesse')?.value || '';
   let bonusScelte = 0;
   if (['team','meglio'].includes(pr)) bonusScelte += 5;
   if (['capire','risolvere','prevenire'].includes(men)) bonusScelte += 5;
@@ -616,7 +682,7 @@ async function invia() {
     const rDB = risposte.map((r,i) => ({
       candidatura_id: cand.id, fase: 1,
       domanda_id: r.domanda_id, domanda_testo: r.domanda_testo, risposta: r.risposta,
-      score_totale_risposta: i < 10 ? (Object.values(scoraRisposta(r.risposta).scores).reduce((a,b)=>a+b,0)/7) : 0
+      score_totale_risposta: i < N_APERTE ? (Object.values(scoraRisposta(r.risposta).scores).reduce((a,b)=>a+b,0)/7) : 0
     }));
     await fetch(`${SUPABASE_URL}/rest/v1/candidature_risposte`, {
       method:'POST', headers:{'apikey':ANON_KEY,'Authorization':`Bearer ${ANON_KEY}`,'Content-Type':'application/json'},
@@ -638,7 +704,7 @@ async function invia() {
       <div class="form-wrap">
         <div class="sezione attiva" style="text-align:center;padding:40px 24px;">
           <div style="font-size:48px;margin-bottom:16px;">✅</div>
-          <div style="font-size:20px;font-weight:700;margin-bottom:12px;">Grazie ${cand.nome}!</div>
+          <div style="font-size:20px;font-weight:700;margin-bottom:12px;">Grazie ${candidatura.nome}!</div>
           <div style="font-size:15px;color:#374151;line-height:1.8;max-width:420px;margin:0 auto;">
             Abbiamo ricevuto la tua candidatura e la valuteremo con attenzione.<br><br>
             Se il tuo profilo supera la prima selezione, riceverai un messaggio WhatsApp con le istruzioni per la fase successiva.<br><br>
