@@ -660,6 +660,28 @@
         default:                    return {label:"In attesa",           emoji:"🟡", bg:"#FEF3C7", color:"#92400E"};
       }
     }
+    // 15/11/2026 PIATTO FORTE DEL GIORNO: il piatto che il locale consiglia nel giorno della visita (Marketing -> Piatti forti).
+    // Foto o video, didascalia perche' -> come -> cosa. Se quel giorno non c'e' niente il riquadro non compare.
+    async function caricaConsiglio(p) {
+      var box = document.getElementById("pf-consiglio");
+      if (!box || !p.sede_id || !p.data) return;
+      try {
+        var r = await supa.rpc("piatto_forte_del_giorno", { p_sede: p.sede_id, p_data: p.data });
+        var c = r && r.data;
+        if (!c || !c.titolo) return;
+        var oggi = new Date(); var iso = oggi.getFullYear() + "-" + String(oggi.getMonth() + 1).padStart(2, "0") + "-" + String(oggi.getDate()).padStart(2, "0");
+        var etichetta = (String(p.data).slice(0, 10) === iso ? "Oggi" : getDayName(p.data)) + " vi consigliamo";
+        var media = "";
+        if (c.video) media = '<video src="' + escHtml(c.video) + '"' + (c.foto ? ' poster="' + escHtml(c.foto) + '"' : '') + ' muted autoplay loop playsinline style="display:block;width:100%;max-height:300px;object-fit:cover;background:#000;"></video>';
+        else if (c.foto) media = '<img src="' + escHtml(c.foto) + '" alt="' + escHtml(c.titolo) + '" style="display:block;width:100%;max-height:260px;object-fit:cover;">';
+        box.innerHTML = '<div style="background:#fff;border-radius:18px;overflow:hidden;margin:0 12px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.05);max-width:480px;margin-left:auto;margin-right:auto;">' + media +
+          '<div style="padding:14px 16px 16px;"><div style="font-size:11px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:1px;">' + escHtml(etichetta) + '</div>' +
+          '<div style="font-family:Georgia,serif;font-size:21px;font-weight:700;margin:4px 0 6px;color:#1f2937;">' + escHtml(c.titolo) + '</div>' +
+          (c.testo ? '<p style="margin:0;font-size:15px;line-height:1.5;color:#374151;">' + escHtml(c.testo) + '</p>' : '') + '</div></div>';
+        contaVisita("view", "piatto_forte", p);
+      } catch (e) {}
+    }
+
     // contatore visite di Ristoflow (page_analytics): apertura della pagina e tocchi su menu e mappa, nessun dato personale.
     // Serve a sapere quanti aprono il link della conferma e del promemoria.
     function contaVisita(tipoEv, elemento, p) {
