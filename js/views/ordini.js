@@ -1,5 +1,5 @@
 import "../supabaseClient.js";
-import "../state.js";
+// state.js e' gia' caricato da index.html: reimportarlo azzerava window.state (azienda persa)
 import "../db.js";
 
 export async function render(container) {
