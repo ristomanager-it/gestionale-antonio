@@ -2193,6 +2193,7 @@ const ROUTE_FEATURES = {
   // Marketing & CRM
   "bo-promo":        "promo",
   "bo-promo-analisi":"promo",
+  "bo-piatti-forti": "promo",
   "bo-catenarie":    "promo",
   "bo-marketing":    "marketing",
   "bo-chatbot":      "chatbot_whatsapp",
