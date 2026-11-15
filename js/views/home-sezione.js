@@ -28,7 +28,7 @@ const SEZIONI = {
     ["🔥", "Clienti caldi", "bo-clienti-caldi"],
     // i gruppi aprono l'elenco delle loro voci (come nel menu laterale): [icona, testo, rotta, [figli]]
     ["👥", "Clienti", "bo-tag", [["🏷️", "Tag e LTV", "bo-tag"], ["🎫", "Fidelity e Network", "bo-fidelity"], ["⭐", "Recensioni ricevute", "recensioni-ricevute"], ["⚙️", "Config recensioni", "recensioni"], ["📸", "Chi ci tagga", "bo-menzioni"]]],
-    ["📣", "Campagne", "bo-marketing", [["📣", "Campagne", "bo-marketing"], ["📧", "Mail marketing", "mail-marketing"], ["🎁", "Promo", "bo-promo"], ["📊", "Analisi Promo", "bo-promo-analisi"], ["🎁", "Buoni regalo", "bo-voucher"], ["🔗", "Catenarie", "bo-catenarie"], ["✂️", "Short Link", "bo-shortlink"]]],
+    ["📣", "Campagne", "bo-marketing", [["📣", "Campagne", "bo-marketing"], ["📧", "Mail marketing", "mail-marketing"], ["🎁", "Promo", "bo-promo"], ["📊", "Analisi Promo", "bo-promo-analisi"], ["🍽️", "Piatti forti", "bo-piatti-forti"], ["🎁", "Buoni regalo", "bo-voucher"], ["🔗", "Catenarie", "bo-catenarie"], ["✂️", "Short Link", "bo-shortlink"]]],
     ["💬", "Messaggi", "bo-template", [["💬", "Template WhatsApp", "bo-template"], ["📱", "WhatsApp Inbox", "bo-whatsapp"], ["🤖", "Chatbot", "bo-chatbot"], ["📨", "Registro messaggi", "registro-messaggi"]]],
     ["📸", "Social e Sito", "bo-calendario", [["📸", "Bacheca Social", "bo-marketing?tab=bacheca-social"], ["📅", "Calendario editoriale", "bo-calendario"], ["📱", "Storie", "bo-storie"], ["🌐", "Sito Web", "bo-sito"], ["🖼️", "Media Library", "bo-media"]]],
     ["⚡", "Crediti Tony", "bo-crediti"] ] },
