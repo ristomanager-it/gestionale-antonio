@@ -20,7 +20,7 @@ const SEZIONI = {
     ["💰", "Venduto", "venduto"], ["📈", "Margini", "margini"], ["🍝", "Food cost mancanti", "food-cost-mancanti"],
     ["💸", "Spese fisse", "spese-fisse"], ["📊", "Menu Engineering", "menu-intelligence"] ] },
   menu_prodotti: { titolo: "📋 Menu e prodotti", pulsanti: [
-    ["📋", "Menu Builder", "bo-menu"], ["🧺", "Prodotti", "bo-prodotti"], ["📂", "Categorie", "bo-categorie"],
+    ["📋", "Menu Builder", "bo-menu"], ["🍽️", "Piatti forti", "bo-piatti-forti"], ["🧺", "Prodotti", "bo-prodotti"], ["📂", "Categorie", "bo-categorie"],
     ["🍳", "Ricette", "ricettario"], ["📦", "Magazzino", "bo-magazzino"], ["👨‍🍳", "Produzioni", "produzioni-aperte"] ] },
   marketing: { titolo: "📣 Marketing e CRM", pulsanti: [
     ["📉", "Analytics", "bo-analytics"],
