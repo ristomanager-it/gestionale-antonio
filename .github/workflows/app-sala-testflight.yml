@@ -1,0 +1,50 @@
+# Pubblica Ristoflow Sala su TestFlight. Si lancia a mano: Actions › App Sala TestFlight › Run workflow.
+# Firma automatica con la chiave API di App Store Connect: certificati e profili li crea Apple.
+# Secrets richiesti (Settings › Secrets and variables › Actions):
+#   APPLE_TEAM_ID     Team ID (10 caratteri, developer.apple.com › Membership)
+#   ASC_KEY_ID        Key ID della chiave API (ruolo Admin)
+#   ASC_ISSUER_ID     Issuer ID (App Store Connect › Utenti e accessi › Integrazioni)
+#   ASC_KEY_P8        contenuto del file AuthKey_XXXX.p8
+name: App Sala TestFlight
+on:
+  workflow_dispatch:
+jobs:
+  testflight:
+    runs-on: macos-15
+    defaults: { run: { working-directory: native/sala } }
+    env:
+      TEAM: ${{ secrets.APPLE_TEAM_ID }}
+      KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npm test
+      - run: npm run prepara
+      - name: Chiave API
+        env: { P8: "${{ secrets.ASC_KEY_P8 }}" }
+        run: |
+          test -n "$TEAM" && test -n "$KEY_ID" && test -n "$ISSUER" && test -n "$P8" || { echo "Mancano i secrets Apple"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$P8" > "$RUNNER_TEMP/keys/AuthKey.p8"
+          sed -i '' "s/__TEAM_ID__/$TEAM/" ios/export/ExportOptions.plist
+      - name: Archivio firmato
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            archive | tail -40
+      - name: Invio a TestFlight
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist ios/export/ExportOptions.plist -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" | tail -40
+      - if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
