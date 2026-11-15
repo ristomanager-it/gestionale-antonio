@@ -1,5 +1,5 @@
 import { renderFatture } from "./fatture.js?v=13";
-import { renderDDT } from "./ddt.js";
+import { renderDDT } from "./ddt.js?v=2";
 import { renderPagamenti } from "./pagamenti.js";
 import { renderFornitori } from "./fornitori.js";
 import { renderListini } from "./listini.js?v=2";
