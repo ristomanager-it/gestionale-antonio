@@ -1,0 +1,13 @@
+[
+ {"reparto":"cucina","tavolo":12,"nome":"Famiglia {nome} – compleanno","coperti":6,"cameriere":"{cameriere}",
+  "info_tavolo":["1 celiaco","2 bambini nel passeggino","Allergia: frutta a guscio"],
+  "ritmo":{"nome":"veloce","min":10},"uscite_previste":{"2":"21:20","1":"21:00","10":"22:40"},
+  "righe":[{"qta":2,"nome":"Tagliatelle al ragù bianco di cinghiale con pecorino","uscita":1,"min":"12","note":"una senza pecorino, ben cotta","allergeni_contiene":["glutine","latte"]},
+           {"qta":1,"nome":"Tortellini in brodo di cappone","uscita":2,"min":8,"allergeni_ignoti":true},
+           {"qta":3,"nome":"Tagliata","uscita":2},
+           {"qta":1,"nome":"Supercalifragilistichespiralidosoaltissimo","uscita":10}],
+  "note":"Tavolo in veranda, portare il pane caldo €"},
+ {"reparto":"bar","righe":[{"qta":2,"nome":"Spritz"}],"via":2,"note":"non si stampa"},
+ {"reparto":"pasticceria","tavolo":"5B","ristampa":true,"righe":[{"nome":"Tiramisù"},{"qta":1,"nome":"Crème brûlée 🍮","uscita":"3"}]},
+ {"reparto":"sushi","tavolo":0,"righe":[]}
+]

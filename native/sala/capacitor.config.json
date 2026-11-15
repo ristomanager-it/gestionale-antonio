@@ -1,0 +1,10 @@
+{
+  "appId": "com.ristoflow.sala",
+  "appName": "Ristoflow Sala",
+  "webDir": "www",
+  "server": {
+    "allowNavigation": ["app.ristoflow-ai.com"]
+  },
+  "ios": { "contentInset": "never" },
+  "android": { "allowMixedContent": false }
+}

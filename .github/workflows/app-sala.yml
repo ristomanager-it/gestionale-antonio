@@ -1,0 +1,41 @@
+# Compila l'app nativa Ristoflow Sala (native/sala) a ogni modifica.
+# iOS: build per simulatore senza firma (verifica che il codice Swift compili; la firma arriva con l'account Apple).
+# Android: APK di debug scaricabile dagli artifact.
+name: App Sala
+on:
+  push:
+    paths: ["native/sala/**", ".github/workflows/app-sala.yml"]
+  workflow_dispatch:
+jobs:
+  ios:
+    runs-on: macos-15
+    defaults: { run: { working-directory: native/sala } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npm test
+      - run: npm run prepara
+      - name: Build simulatore (senza firma)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -40
+          test ${PIPESTATUS[0]} -eq 0
+  android:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: native/sala } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - run: npm run prepara
+      - run: cd android && ./gradlew assembleDebug --no-daemon -q
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ristoflow-sala-debug-apk
+          path: native/sala/android/app/build/outputs/apk/debug/*.apk

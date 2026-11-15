@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ristoflow Sala</title>
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--testo:#0f172a;--grigio:#64748b;--bordo:#e5e7eb;--blu:#0E5A7A;--verde:#15803d;--rosso:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--testo);font-family:-apple-system,system-ui,sans-serif;
+  padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 20px)}
+h1{font-size:24px;margin:0 0 4px}
+.nota{color:var(--grigio);font-size:14px;margin:0 0 18px;line-height:1.5;max-width:640px}
+.card{background:var(--card);border:1px solid var(--bordo);border-radius:16px;padding:18px;margin-bottom:14px;max-width:640px}
+.card h2{font-size:17px;margin:0 0 12px}
+label{display:block;font-size:13px;color:var(--grigio);margin:8px 0 4px}
+.riga{display:flex;gap:10px}
+.riga>div{flex:1}
+input,select{width:100%;font-size:17px;padding:11px 12px;border:1px solid var(--bordo);border-radius:10px;background:#fff;color:var(--testo)}
+button{font-size:17px;font-weight:600;border:0;border-radius:12px;padding:14px 16px;background:var(--blu);color:#fff;margin:12px 8px 0 0}
+button.sec{background:#e2e8f0;color:var(--testo)}
+button:disabled{opacity:.5}
+#esito{white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#0f172a;color:#e2e8f0;
+  border-radius:12px;padding:12px;min-height:60px;max-width:640px;overflow:auto}
+.ok{color:#86efac}.ko{color:#fca5a5}
+</style>
+</head>
+<body>
+<h1>Ristoflow Sala</h1>
+<p class="nota">Prova di stampa diretta: il tablet parla con la stampante senza passare dal Raspberry.
+La prima volta iOS chiede di trovare dispositivi sulla rete locale: tocca <b>Consenti</b> e riprova.</p>
+
+<div class="card">
+  <h2>Stampante comande</h2>
+  <div class="riga">
+    <div><label>Indirizzo IP</label><input id="ip" inputmode="decimal" value="10.0.50.152"></div>
+    <div style="max-width:120px"><label>Porta</label><input id="porta" inputmode="numeric" value="9100"></div>
+  </div>
+  <div class="riga">
+    <div><label>Reparto</label>
+      <select id="reparto"><option>cucina</option><option>bar</option><option>pasticceria</option></select></div>
+    <div><label>Caratteri per riga</label>
+      <select id="larg"><option value="42">42 (carta 80 mm)</option><option value="32">32 (carta 58 mm)</option></select></div>
+  </div>
+  <button id="bProva">Stampa prova</button>
+  <button id="bComanda">Stampa comanda di prova</button>
+</div>
+
+<div class="card">
+  <h2>Stampante fiscale (RT)</h2>
+  <p class="nota" style="margin:0">Solo lettura dello stato: non emette scontrini.</p>
+  <div class="riga">
+    <div><label>Indirizzo IP</label><input id="ipRt" inputmode="decimal" value="10.0.50.150"></div>
+    <div style="max-width:120px"><label>Porta</label><input id="portaRt" inputmode="numeric" value="80"></div>
+  </div>
+  <button id="bRt">Verifica RT</button>
+</div>
+
+<div class="card">
+  <button class="sec" id="bApri" style="margin-top:0">Apri Ristoflow (Tablet sala)</button>
+</div>
+
+<div id="esito">Pronto.</div>
+
+<script src="capacitor.js"></script>
+<script src="escpos.js"></script>
+<script>
+(function () {
+  var cap = window.capacitorExports;
+  var nativo = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  var Stampa = cap.registerPlugin("RistoflowStampa");
+  var E = window.RistoflowEscpos;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function scrivi(testo, ok) {
+    var r = document.createElement("div");
+    r.className = ok === true ? "ok" : ok === false ? "ko" : "";
+    r.textContent = new Date().toLocaleTimeString("it-IT") + "  " + testo;
+    var box = $("esito");
+    if (box.textContent === "Pronto.") box.textContent = "";
+    box.insertBefore(r, box.firstChild);
+  }
+
+  function comandaDiProva() {
+    return {
+      reparto: $("reparto").value, tavolo: 7, nome: "Prova Ristoflow", coperti: 4, cameriere: "Tablet sala",
+      info_tavolo: ["1 celiaco", "1 bambino"],
+      uscite_previste: { "1": "20:30", "2": "21:00" },
+      righe: [
+        { qta: 2, nome: "Tagliatelle al ragù", uscita: 1, min: 12, note: "una senza parmigiano" },
+        { qta: 1, nome: "Tortellini in brodo", uscita: 1, min: 8, allergeni_contiene: ["glutine", "uova"] },
+        { qta: 2, nome: "Tagliata di manzo", uscita: 2, min: 15 }
+      ],
+      note: "Comanda di prova dal tablet: si può buttare"
+    };
+  }
+
+  async function invia(byte, cosa) {
+    if (!nativo) { scrivi("Sei nel browser: la stampa diretta funziona solo nell'app installata.", false); return; }
+    var ip = $("ip").value.trim(), porta = parseInt($("porta").value, 10) || 9100;
+    var t0 = Date.now();
+    try {
+      var r = await Stampa.inviaTcp({ ip: ip, porta: porta, dati: E.base64(byte), timeoutMs: 5000 });
+      scrivi(cosa + " stampata su " + ip + " (" + r.byte + " byte, " + (Date.now() - t0) + " ms)", true);
+    } catch (e) {
+      scrivi(cosa + ": " + (e && e.message ? e.message : e), false);
+    }
+  }
+
+  $("bProva").onclick = function () { invia(E.prova("Stampa diretta dal tablet"), "Prova"); };
+  $("bComanda").onclick = function () { invia(E.comanda(comandaDiProva(), parseInt($("larg").value, 10)), "Comanda"); };
+
+  $("bRt").onclick = async function () {
+    if (!nativo) { scrivi("Sei nel browser: la verifica RT funziona solo nell'app installata.", false); return; }
+    var url = "http://" + $("ipRt").value.trim() + ":" + (parseInt($("portaRt").value, 10) || 80) + "/cgi-bin/fpmate.cgi";
+    var xml = '<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">'
+      + '<s:Body><printerCommand><queryPrinterStatus/></printerCommand></s:Body></s:Envelope>';
+    var t0 = Date.now();
+    try {
+      var r = await cap.CapacitorHttp.post({ url: url, headers: { "Content-Type": "text/xml; charset=utf-8" },
+        data: xml, responseType: "text", connectTimeout: 5000, readTimeout: 10000 });
+      var testo = typeof r.data === "string" ? r.data : JSON.stringify(r.data);
+      var ok = /success="true"/.test(testo);
+      scrivi("RT " + (ok ? "risponde" : "ha risposto con errore") + " (HTTP " + r.status + ", " + (Date.now() - t0) + " ms)\n" + testo.slice(0, 600), ok);
+    } catch (e) {
+      scrivi("RT non raggiungibile: " + (e && e.message ? e.message : e), false);
+    }
+  };
+
+  $("bApri").onclick = function () { location.href = "https://app.ristoflow-ai.com/index.html?app=tablet-ordini"; };
+
+  scrivi(nativo ? "App nativa: stampa diretta disponibile." : "Aperta nel browser: solo anteprima.", nativo);
+})();
+</script>
+</body>
+</html>

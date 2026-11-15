@@ -1,0 +1,9 @@
+{
+  "name": "ristoflow-stampa",
+  "version": "1.0.0",
+  "description": "Stampa diretta dal tablet: invio TCP (porta 9100) alle termiche di rete",
+  "private": true,
+  "main": "index.js",
+  "capacitor": { "ios": { "src": "ios" }, "android": { "src": "android" } },
+  "peerDependencies": { "@capacitor/core": ">=8.0.0" }
+}

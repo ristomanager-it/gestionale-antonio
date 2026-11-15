@@ -1,0 +1,19 @@
+{
+  "name": "ristoflow-sala",
+  "version": "1.0.0",
+  "description": "App nativa Ristoflow Sala (Comande, Cassa, Prenotazioni) — stampa diretta su termiche e RT",
+  "scripts": {
+    "prepara": "cp node_modules/@capacitor/core/dist/capacitor.js www/capacitor.js && npx cap sync",
+    "test": "sh test/confronta.sh"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
+    "ristoflow-stampa": "file:plugins/ristoflow-stampa"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  },
+  "private": true
+}
