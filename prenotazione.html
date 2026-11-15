@@ -312,8 +312,9 @@
         html += buildCalendarBtn(az.nome, p.data, p.ora, 120, "Prenotazione " + az.nome);
       }
 
-      // MENU
-      if (az.link_menu) html += '<a class="menu-btn" href="' + escHtml(az.link_menu) + '" target="_blank">&#128203; Vedi il menu</a>';
+      // MENU — 15/11/2026: la carta attiva della sede (menu_slug dalla RPC); link_menu dell'azienda solo come ripiego
+      var linkMenu = p.menu_slug ? ("menu-pubblico.html?slug=" + encodeURIComponent(p.menu_slug)) : (az.link_menu || "");
+      if (linkMenu) html += '<a class="menu-btn" id="btn-menu" href="' + escHtml(linkMenu) + '" target="_blank">&#128203; Sfoglia il nostro menu</a>';
 
       html += buildInfoRistorante(az, indirizzo, mapsQuery, p);
       html += buildGalleria(galleria);
