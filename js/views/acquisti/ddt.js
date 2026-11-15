@@ -1,5 +1,6 @@
 import "../../supabaseClient.js";
-import "../../state.js";
+// state.js NON si importa qui: e' gia' caricato da index.html (state.js?v=N). Importarlo senza ?v
+// lo rieseguiva come modulo nuovo e azzerava window.state: Acquisti si apriva con "Nessuna azienda attiva".
 
 export async function renderDDT(container, azienda) {
 
