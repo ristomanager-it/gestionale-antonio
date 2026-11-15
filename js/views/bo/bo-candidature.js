@@ -589,7 +589,10 @@ export async function render(container) {
       .update({ whatsapp_inviato: waData.success || false, whatsapp_message_id: waData.message_id || null })
       .eq('candidatura_id', c.id).eq('fase_a', m.fase);
 
-    esito.textContent = waData.success
+    // 15/11: l'esito negativo non parte subito, va domani alle 10 (candidatura-notifica-ts v35)
+    esito.textContent = waData.programmato
+      ? `✅ Segnato "${m.label}": il messaggio al candidato parte domani alle 10`
+      : waData.success
       ? `✅ Avanzato a "${m.label}" e WhatsApp inviato!`
       : `✅ Avanzato a "${m.label}" (WhatsApp: ${waData.error || 'errore'})`;
     esito.style.color = waData.success ? '#16a34a' : '#f59e0b';
