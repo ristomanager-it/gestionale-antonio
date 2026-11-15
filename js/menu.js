@@ -1,4 +1,4 @@
-import { appAttiva } from "./app-profili.js?v=3";
+import { appAttiva } from "./app-profili.js?v=4";
 
 export function initMenu() {
 
