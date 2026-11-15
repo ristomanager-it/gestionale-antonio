@@ -90,7 +90,7 @@ export const APP_PROFILI = {
       { label: "🌐 Sito web", route: "bo-sito" },
       { label: "🖼️ Media", route: "bo-media" },
     ],
-    extra: ["bo-analytics", "bo-promo-analisi", "bo-voucher", "bo-catenarie", "bo-shortlink", "bo-template",
+    extra: ["bo-analytics", "bo-promo-analisi", "bo-piatti-forti", "bo-voucher", "bo-catenarie", "bo-shortlink", "bo-template",
             "bo-chatbot", "registro-messaggi", "bo-tag", "bo-sondaggi-clienti", "recensioni", "bo-menzioni",
             "bo-crediti", "promemoria", "richiami", "ai"],
   },
