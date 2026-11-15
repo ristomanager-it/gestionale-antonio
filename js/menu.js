@@ -562,6 +562,7 @@ export function initMenu() {
             { label: "📧 Mail marketing",     route: "mail-marketing"    },
             { label: "🎁 Promo",              route: "bo-promo"          },
             { label: "📊 Analisi Promo",      route: "bo-promo-analisi"  },
+            { label: "🍽️ Piatti forti",       route: "bo-piatti-forti"   },
             { label: "🎁 Buoni regalo",       route: "bo-voucher"        },
             { label: "🔗 Catenarie",          route: "bo-catenarie"      },
             { label: "✂️ Short Link",         route: "bo-shortlink"      },
