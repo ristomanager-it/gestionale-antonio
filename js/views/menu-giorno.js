@@ -37,7 +37,9 @@ export async function render(container) {
   const oggi = dataLoc(new Date());
   const domaniIso = dataLoc(new Date(Date.now() + 86400000));
   const giornoReq = new URLSearchParams((window.location.hash.split("?")[1] || "")).get("data") || "";
-  const giorno = /^\d{4}-\d{2}-\d{2}$/.test(giornoReq) ? giornoReq : oggi;
+  // dalle 18 in poi si scrive il menu di domani: senza ?data la schermata apre direttamente su Domani
+  // (prima si apriva su Oggi e il menu della sera finiva salvato con la data sbagliata)
+  const giorno = /^\d{4}-\d{2}-\d{2}$/.test(giornoReq) ? giornoReq : (new Date().getHours() >= 18 ? domaniIso : oggi);
   const s = supa();
 
   // Ricette divise per portata (categoria_food) — filtrate per sede
