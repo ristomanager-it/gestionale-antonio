@@ -1,5 +1,8 @@
 // VISITE — EVENTI › 📅 Visite in location
 // v2: "+ Nuova visita" per segnare a mano quelle prese al telefono (origine telefono).
+// v3 (16/11/2026): nello stesso calendario arrivano i COLLOQUI prenotati dai candidati (tipo='colloquio').
+//   Sotto ogni colloquio, solo per gli admin, la scheda di Tony di quel candidato: domande, risposta buona, campanello,
+//   punti da chiarire e prova pratica. Si apre con <details>, cosi' l'elenco resta corto.
 // Appuntamenti prenotati dalle landing (visite_appuntamenti) e impostazioni del calendario (visite_config): orari interni, durata, link.
 const LINK = "https://app.ristoflow-ai.com/visita.html?p=";
 const sb = () => window.supabaseClient || window.supabase;
@@ -7,7 +10,7 @@ const az = () => window.state?.azienda?.id;
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const $ = (i) => document.getElementById(i);
 const GG = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
-let S = { cfg: null, slug: "", prossime: [], passate: [], tab: "prossime", nuova: false, nG: "", nOre: [] };
+let S = { cand: {}, cfg: null, slug: "", prossime: [], passate: [], tab: "prossime", nuova: false, nG: "", nOre: [] };
 const giorno = (d) => new Date(d).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Rome" });
 const ora = (d) => new Date(d).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 const wa = (t) => { const x = String(t || "").replace(/[^0-9]/g, ""); return x ? "https://wa.me/" + (x.length <= 10 ? "39" + x : x) : ""; };
@@ -25,12 +28,35 @@ async function carica() {
     sb().from("visite_appuntamenti").select("*").eq("azienda_id", a).lt("inizio", ora0).order("inizio", { ascending: false }).limit(40),
   ]);
   S.cfg = cfg.data || null; S.slug = azi.data?.slug || ""; S.prossime = pr.data || []; S.passate = pa.data || [];
+  // schede colloquio dei candidati (solo admin: dentro ci sono le valutazioni)
+  S.cand = {};
+  const ids = S.prossime.concat(S.passate).map((v) => v.candidatura_id).filter(Boolean);
+  if (ids.length && admin()) {
+    const { data } = await sb().from("candidature").select("id, nome, cognome, ruolo_desiderato, relazione_finale").in("id", ids);
+    (data || []).forEach((c) => { S.cand[c.id] = c; });
+  }
+}
+const admin = () => ["admin", "superadmin"].indexOf(window.state?.ruolo) >= 0 || !!window.state?.is_superadmin;
+function scheda(c) {
+  const r = (c && c.relazione_finale) || {};
+  const qs = (r.domande_colloquio || []).concat(r.domande_mestiere || []);
+  if (!qs.length) return '<div class="vi-m" style="margin-top:6px">📋 Scheda colloquio non ancora pronta per questo candidato.</div>';
+  const blocco = (titolo, lista, da) => !lista || !lista.length ? "" : '<div class="vi-st">' + titolo + "</div>" + lista.map((q, i) =>
+    '<div class="vi-q"><b>' + (da + i) + ". " + esc(q.domanda) + "</b>" + (q.perche ? '<div class="vi-m">Perché: ' + esc(q.perche) + "</div>" : "") +
+    (q.risposta_buona ? '<div class="vi-ok">✅ ' + esc(q.risposta_buona) + "</div>" : "") + (q.campanello ? '<div class="vi-ko">⚠️ ' + esc(q.campanello) + "</div>" : "") + "</div>").join("");
+  const n1 = (r.domande_colloquio || []).length;
+  return '<details class="vi-sc"><summary>📋 Domande per ' + esc(c.nome) + " (" + qs.length + ")</summary>" +
+    blocco("Su di lui", r.domande_colloquio, 1) + blocco("Di mestiere", r.domande_mestiere, n1 + 1) +
+    (Array.isArray(r.dubbi) && r.dubbi.length ? '<div class="vi-st">Da chiarire</div><ul class="vi-ul">' + r.dubbi.map((d) => "<li>" + esc(d) + "</li>").join("") + "</ul>" : "") +
+    (r.prova_pratica ? '<div class="vi-st">Prova pratica</div><div class="vi-q">' + esc(typeof r.prova_pratica === "string" ? r.prova_pratica : JSON.stringify(r.prova_pratica)) + "</div>" : "") +
+    "</details>";
 }
 function riga(v, passata) {
   const st = { confermato: "", fatto: "✅ Fatta", non_venuto: "🚫 Non venuti", annullato: "❌ Annullata" }[v.stato] || "";
   return '<div class="vi-ap"><div class="vi-ora">' + ora(v.inizio) + '</div><div style="flex:1;min-width:0"><b>' + esc(v.nome) + "</b>" + (st ? ' <span class="vi-m">· ' + st + "</span>" : "") +
     '<div class="vi-m">' + [v.tipo_evento, v.data_evento ? "evento " + v.data_evento : "", v.invitati ? v.invitati + " invitati" : ""].filter(Boolean).map(esc).join(" · ") + "</div>" +
     (v.note ? '<div class="vi-m">“' + esc(v.note) + "”</div>" : "") +
+    (v.tipo === "colloquio" && v.candidatura_id && admin() ? scheda(S.cand[v.candidatura_id]) : "") +
     '<div class="vi-az">' + (v.telefono ? '<a class="vi-btn s" href="tel:' + esc(v.telefono) + '">📞</a>' + (wa(v.telefono) ? '<a class="vi-btn s" target="_blank" href="' + wa(v.telefono) + '">WhatsApp</a>' : "") : "") +
     (v.email ? '<a class="vi-btn s" href="mailto:' + esc(v.email) + '">✉️</a>' : "") +
     (v.stato === "confermato" ? (passata || new Date(v.inizio) < new Date() ? '<button class="vi-btn s" data-st="fatto" data-id="' + v.id + '">✅ Fatta</button><button class="vi-btn s" data-st="non_venuto" data-id="' + v.id + '">🚫 Non venuti</button>' : "") + '<button class="vi-btn s r" data-st="annullato" data-id="' + v.id + '">Annulla</button>' : "") +
@@ -139,7 +165,7 @@ async function clic(e) {
   }
   if (t.dataset.st) {
     const st = t.dataset.st, id = +t.dataset.id;
-    if (st === "annullato" && !confirm("Annullo la visita? L’orario torna libero.")) return;
+    if (st === "annullato" && !confirm("Annullo l’appuntamento? L’orario torna libero.")) return;
     const { error } = await sb().from("visite_appuntamenti").update(st === "annullato" ? { stato: st, annullato_da: "locale" } : { stato: st }).eq("id", id);
     if (error) { alert(error.message); return; }
     await carica(); disegna();
@@ -154,4 +180,7 @@ const CSS = '<style>.vi-v{max-width:680px;box-sizing:border-box}.vi-v *{box-sizi
   '.vi-fa{border-top:1px solid #f1f5f9;padding:8px 0}.vi-gg{display:flex;flex-wrap:wrap;gap:4px}.vi-gg label{border:1px solid #e2e8f0;border-radius:8px;padding:4px 8px;font-size:13px;display:flex;gap:4px;align-items:center}' +
   '.vi-dd{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:14px}.vi-dd input{border:1px solid #e2e8f0;border-radius:8px;padding:6px;font:inherit}' +
   '.vi-f{display:block;margin:8px 0}.vi-f span{display:block;font-size:13px;color:#64748b;margin-bottom:3px}.vi-f input,.vi-f textarea{width:100%;min-height:40px;border:1px solid #e2e8f0;border-radius:9px;padding:8px 10px;font:inherit;font-size:16px}.vi-due{display:grid;grid-template-columns:1fr 1fr;gap:10px}' +
+  '.vi-sc{margin-top:8px;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;background:#f8fafc}.vi-sc summary{font-weight:700;cursor:pointer;color:#023C59}' +
+  '.vi-st{font-weight:700;margin:12px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#475569}.vi-q{font-size:14px;line-height:1.45;margin:8px 0}' +
+  '.vi-ok{font-size:13.5px;color:#166534;margin-top:3px}.vi-ko{font-size:13.5px;color:#9a3412;margin-top:3px}.vi-ul{margin:4px 0;padding-left:18px;font-size:13.5px;line-height:1.45}' +
   '.vi-ln{display:flex;align-items:center;gap:6px;border-top:1px solid #f1f5f9;padding:8px 0}.vi-url{font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}</style>';
