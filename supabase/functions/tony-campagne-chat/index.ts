@@ -1012,7 +1012,7 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
     if (!foto) note.push("nessuna foto di questo piatto nella ricetta o nel menu: annunci e landing useranno foto generiche della libreria; dillo all'utente e suggerisci di caricare la foto del piatto");
 
     const dati: any = {
-      modello: "piatto", modalita, piatto, piattaforme, budget: { meta: Math.round(budget.meta * 100), google: Math.round(budget.google * 100) }, raggio_km: raggio,
+      modello: "piatto", modalita, piatto, scritte, piattaforme, budget: { meta: Math.round(budget.meta * 100), google: Math.round(budget.google * 100) }, raggio_km: raggio,
       citta: prep.cit, sede_id: c.sedeId, sede: prep.sede?.nome || null, foto, inizio: per.inizio, fine: per.fine, tipo: "piatto",
       media: foto ? { url: foto, tipo: "immagine", poster: null } : null,
       contenuti: { titolo_meta: tm, testo_meta: xm, titoli, titolo_lungo: lungo, descrizioni },
