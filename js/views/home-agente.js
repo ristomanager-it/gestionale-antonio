@@ -559,6 +559,32 @@ A presto 🤝</div>
         <button onclick="agCopiaTemplate()" style="margin-top:8px;background:#0E5A7A;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copia testo</button>
       </div>`;
     montaFondatoreAgente();
+    montaVideoDemo();
+  }
+
+  // 16/11: i video demo della galleria Ristoflow, da far vedere e da mandare ai ristoratori
+  async function montaVideoDemo() {
+    const box = document.getElementById('ag-video-demo');
+    if (!box) return;
+    const { data, error } = await supa.rpc('video_demo_agenti');
+    if (error || !data || !data.length) { box.innerHTML = '<div style="font-size:12px;color:#94a3b8;">🎥 Video demo in arrivo</div>'; return; }
+    const min = (s) => s ? (s >= 60 ? Math.floor(s / 60) + ' min ' + (s % 60 ? (s % 60) + ' s' : '') : s + ' s') : '';
+    box.innerHTML = '<div style="font-size:12px;font-weight:800;color:#374151;">🎥 Video demo: l\'app mentre lavora</div>' + data.map(v =>
+      '<div style="display:flex;gap:10px;padding:8px;background:#f8fafc;border-radius:8px;align-items:flex-start;">' +
+        '<img src="' + escAg(v.thumb_url || '') + '" style="width:54px;height:96px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#e2e8f0;" onerror="this.style.visibility=\'hidden\'">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:13px;font-weight:700;color:#0f172a;">' + escAg(v.nome) + '</div>' +
+          '<div style="font-size:11px;color:#64748b;margin:2px 0 6px;line-height:1.4;">' + escAg(v.descrizione || '') + (v.durata_sec ? ' · ' + min(v.durata_sec) : '') + '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+            '<a href="' + escAg(v.url) + '" target="_blank" style="background:#0E5A7A;color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;text-decoration:none;">▶ Guarda</a>' +
+            '<a href="https://wa.me/?text=' + encodeURIComponent(v.nome + ': ' + (v.descrizione || '') + '\n' + v.url) + '" target="_blank" style="background:#16a34a;color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;text-decoration:none;">WhatsApp</a>' +
+            '<button data-vd-copia="' + escAg(v.url) + '" style="background:#e2e8f0;color:#0f172a;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;">📋 Link</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>').join('');
+    box.querySelectorAll('[data-vd-copia]').forEach(b => b.onclick = async () => {
+      try { await navigator.clipboard.writeText(b.dataset.vdCopia); b.textContent = 'Copiato ✓'; } catch (e) {}
+    });
   }
 
   // QR Fondatore personale: il link porta il codice dell'agente, la richiesta arriva legata a lui
