@@ -307,7 +307,7 @@ ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
 
         <div class="pv-conto">
           ${dettaglioConto(d, invitati)}
-          ${invitati ? `<div class="r"><span>A persona</span><b>${euro(totale / invitati)}</b></div>` : ""}
+          ${quoteHtml(d, invitati, totale)}
           <div class="pv-tot"><span>Totale</span><b>${euro(totale)}</b></div>
           ${acconto ? `
             <div class="r"><span>${modo === "contanti" ? "Acconto in contanti per bloccare la data" : "Acconto per bloccare la data"}</span><b>− ${euro(acconto)}</b></div>
@@ -584,6 +584,17 @@ function euro(n) {
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// quote a persona: con i bambini due righe (adulti e bambini), altrimenti una sola.
+// I numeri arrivano da preventivo_quote() nel database, gli stessi della mail.
+function quoteHtml(d, invitati, totale) {
+  const q = d.quote;
+  if (q && Number(q.bambini) > 0 && q.quota_bambino != null) {
+    return `<div class="r"><span>Adulti · ${q.adulti} × ${euro(q.quota_adulto)}</span><b>${euro(q.adulti * q.quota_adulto)}</b></div>`
+      + `<div class="r"><span>Bambini · ${q.bambini} × ${euro(q.quota_bambino)}</span><b>${euro(q.bambini * q.quota_bambino)}</b></div>`;
+  }
+  return invitati ? `<div class="r"><span>A persona</span><b>${euro(totale / invitati)}</b></div>` : "";
 }
 
 // dettaglio del conto: menu, location, servizi a pagamento e sconto, prima del totale.
