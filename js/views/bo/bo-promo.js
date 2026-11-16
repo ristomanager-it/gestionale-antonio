@@ -1164,7 +1164,7 @@ export async function renderPromo(container, aziendaId) {
         <div style="color:white;font-size:14px;font-weight:700;">👁 Anteprima — così la vede il cliente</div>
         <button id="chiudi-anteprima" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:16px;">✕</button>
       </div>
-      <div style="width:100%;max-width:420px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+      <div style="width:100%;max-width:420px;flex-shrink:0;background:white;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">
         <div style="${css}">${landingHTML || '<div style="padding:40px;text-align:center;color:#94a3b8;">Configura la promo per vedere la sua anteprima</div>'}</div>
       </div>
       <div style="color:rgba(255,255,255,.6);font-size:11px;margin-top:12px;text-align:center;max-width:420px;">Questa è l'anteprima. Salva la promo per ottenere il link reale da inviare.</div>
