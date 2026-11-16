@@ -229,7 +229,14 @@ async function fotoPiatto(aziendaId: string, piatto: string): Promise<string | n
     const buona = tutte.find((r: any) => parole.every((w) => String(r.nome).toLowerCase().includes(w)));
     return (buona || tutte[0])?.foto_url || null;
   };
-  return (await cerca("ricette")) || (await cerca("menu_voci"));
+  const daRicette = (await cerca("ricette")) || (await cerca("menu_voci"));
+  if (daRicette) return daRicette;
+  // 16/11: anche la galleria. Le foto dei piatti stanno spesso li', col nome del piatto: senza questa ricerca
+  // Tony diceva "nessuna foto" e l'anteprima usciva senza immagine anche con la foto caricata.
+  const { data: ml } = await sb.from("media_library").select("nome, descrizione, url").eq("azienda_id", aziendaId).eq("tipo", "immagine").or("archiviata.is.null,archiviata.eq.false").ilike("nome", "%" + parole[0] + "%").limit(20);
+  const lista = (ml || []).filter((r: any) => r.url);
+  const piena = lista.find((r: any) => parole.every((w) => (String(r.nome) + " " + String(r.descrizione || "")).toLowerCase().includes(w)));
+  return (piena || lista[0])?.url || null;
 }
 
 // libreria media della sede: foto e video con descrizione, per scegliere l'hero della landing
