@@ -564,6 +564,10 @@ function disegna(container, supabase, azienda, sede) {
       <div class="pv2-card">
         <h2>Cliente ed evento</h2>
         <div class="griglia">
+          <div style="grid-column:1/-1;display:flex;gap:8px;">
+            ${[["privato", "👤 Persona fisica"], ["azienda", "🏢 Azienda"]].map(([v, l]) =>
+              `<button type="button" class="pv2-btn ${(P.cliente_tipo === "azienda" ? "azienda" : "privato") === v ? "" : "sec"}" data-tipo-cliente="${v}" style="flex:1;">${l}</button>`).join("")}
+          </div>
           <div style="grid-column:1/-1;">
             <label>Tipo di evento</label>
             <select class="in" data-campo="tipo_servizio">
@@ -573,12 +577,14 @@ function disegna(container, supabase, azienda, sede) {
                 ? `<option value="${esc(tipoEvento())}" selected>${esc(tipoEvento())}</option>` : ""}
             </select>
           </div>
-          ${campo(dueNomi() ? "Lui — nome" : "Nome", "cliente_nome")}
-          ${campo(dueNomi() ? "Lui — cognome" : "Cognome", "cliente_cognome")}
+          ${P.cliente_tipo === "azienda" ? campo("Ragione sociale", "cliente_ragione_sociale") + campo("Partita IVA", "cliente_piva") : ""}
+          ${campo(P.cliente_tipo === "azienda" ? "Referente — nome" : dueNomi() ? "Lui — nome" : "Nome", "cliente_nome")}
+          ${campo(P.cliente_tipo === "azienda" ? "Referente — cognome" : dueNomi() ? "Lui — cognome" : "Cognome", "cliente_cognome")}
           ${dueNomi() ? campo("Lei — nome", "cliente2_nome") : ""}
           ${dueNomi() ? campo("Lei — cognome", "cliente2_cognome") : ""}
           ${campo("Telefono", "cliente_telefono")}
           ${campo("Email", "cliente_email", "email")}
+          ${schedaFatturazione()}
           <div>
             <label>Lingua del cliente</label>
             <select class="in" data-campo="lingua">
@@ -991,6 +997,12 @@ function aggancia(container, supabase, azienda, sede) {
     const sez = el.dataset.isolaTogli;
     if (!confirm(`Togliere "${sez}" dal menu?`)) return;
     righe = righe.filter(r => (r.sezione || "Menu") !== sez);
+    ri();
+  }));
+
+  // persona fisica o azienda: cambia i campi del cliente e quelli per la fattura
+  container.querySelectorAll("[data-tipo-cliente]").forEach(el => el.addEventListener("click", () => {
+    P.cliente_tipo = el.dataset.tipoCliente === "azienda" ? "azienda" : "privato";
     ri();
   }));
 
@@ -1507,6 +1519,13 @@ async function salva(container, supabase, azienda, sede) {
     stato: P.stato, titolo_evento: P.titolo_evento, tipo_servizio: P.tipo_servizio || null,
     cliente_nome: P.cliente_nome, cliente_cognome: P.cliente_cognome,
     cliente_email: P.cliente_email, cliente_telefono: P.cliente_telefono, lingua: P.lingua || "it",
+    cliente_tipo: P.cliente_tipo === "azienda" ? "azienda" : "privato",
+    cliente_cf: (P.cliente_cf || "").toUpperCase().replace(/\s/g, "") || null,
+    cliente_piva: (P.cliente_piva || "").replace(/\s/g, "").replace(/^IT/i, "") || null,
+    cliente_ragione_sociale: P.cliente_ragione_sociale || null, cliente_indirizzo: P.cliente_indirizzo || null,
+    cliente_cap: P.cliente_cap || null, cliente_comune: P.cliente_comune || null,
+    cliente_provincia: (P.cliente_provincia || "").toUpperCase() || null,
+    cliente_sdi: (P.cliente_sdi || "").toUpperCase() || null, cliente_pec: P.cliente_pec || null,
     nome_festeggiato: P.nome_festeggiato, intolleranze: P.intolleranze, note: P.note,
     data_evento: P.data_evento || null, ora_evento: P.ora_evento || null,
     n_invitati: c.inv, n_bambini: c.bimbi, formula_servizio: P.formula_servizio || "servito",
@@ -1655,6 +1674,40 @@ async function salva(container, supabase, azienda, sede) {
 }
 
 /* ── utilità ─────────────────────────────────────────────────────────── */
+
+// dati per la fattura dell'acconto (parte da sola all'incasso): privato o azienda.
+// Se manca qualcosa la fattura nasce in bozza e lo dice: meglio scriverli qui col cliente davanti.
+function mancaFattura() {
+  const az = P.cliente_tipo === "azienda", m = [];
+  if (az) {
+    if (!P.cliente_ragione_sociale) m.push("ragione sociale");
+    if (!/^\d{11}$/.test(String(P.cliente_piva || "").replace(/\s/g, "").replace(/^IT/i, ""))) m.push("partita IVA");
+    if (!P.cliente_sdi && !P.cliente_pec) m.push("codice SDI o PEC");
+  } else if (!/^[A-Z0-9]{16}$/i.test(String(P.cliente_cf || "").replace(/\s/g, ""))) m.push("codice fiscale");
+  if (!P.cliente_indirizzo) m.push("indirizzo");
+  if (!/^\d{5}$/.test(String(P.cliente_cap || ""))) m.push("CAP");
+  if (!P.cliente_comune) m.push("comune");
+  return m;
+}
+function schedaFatturazione() {
+  const az = P.cliente_tipo === "azienda";
+  const m = mancaFattura();
+  return `<div style="grid-column:1/-1;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;background:#f8fafc;">
+    <div style="margin-bottom:8px;"><b>🧾 Dati per la fattura</b> <small style="color:#64748b;">· ${az ? "azienda" : "persona fisica"}</small></div>
+    <div class="griglia">
+      ${az ? campo("Codice SDI", "cliente_sdi") + campo("PEC", "cliente_pec", "email")
+           : campo("Codice fiscale", "cliente_cf")}
+      ${campo("Indirizzo", "cliente_indirizzo")}
+      ${campo("CAP", "cliente_cap")}
+      ${campo("Comune", "cliente_comune")}
+      ${campo("Provincia", "cliente_provincia")}
+    </div>
+    <small style="color:${m.length ? "#b45309" : "#15803d"};">${m.length
+      ? "La fattura dell'acconto parte da sola all'incasso. Mancano: " + m.join(", ") + " — senza, resta in bozza."
+      : "✓ Completi: all'incasso dell'acconto la fattura parte da sola."}</small>
+    ${P.fattura_acconto_esito ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">Ultima fattura automatica: ${esc(P.fattura_acconto_esito)}</div>` : ""}
+  </div>`;
+}
 
 function campo(label, key, tipo = "text") {
   return `<div><label>${label}</label>

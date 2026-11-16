@@ -850,6 +850,17 @@ export async function renderCassaLibera(container, azienda) {
         aggiornaSchermoCliente(true, metodo);
         if (cliente) await salvaClienteFatturazione(cliente);
 
+        // evento con la fattura d'acconto gia' fatta: il saldo lo documenta la fattura di saldo,
+        // che parte da sola dal pagamento appena registrato. Uno scontrino sarebbe un secondo documento.
+        if (pratica && pratica.origine === 'preventivo' && dovuto > 0) {
+          const fa = await supabase.rpc('preventivo_ha_fattura_acconto', { p_id: Number(pratica.rif) });
+          if (fa.data === true) {
+            esito.textContent = (avvisoPratica || '') + '✅ Saldo registrato. La fattura di saldo (che scala l\'acconto) parte da sola allo SDI e arriva al cliente per mail.';
+            dopoChiusura(5000);
+            return;
+          }
+        }
+
         if (incasso.doc === 'fattura') {
           esito.textContent = '⏳ Mando la fattura allo SDI…';
           const righeDoc = righeDocumento();
@@ -895,6 +906,13 @@ export async function renderCassaLibera(container, azienda) {
           const resto = Number($('#cl-ricevuti').value) - dovuto;
           esito.textContent = '✅ Incassato. Scontrino: ' + (doc.numero_documento || 'n/d') + (doc.simulato ? ' (simulato)' : '')
             + (metodo === 'contanti' && resto > 0 ? ' · Resto € ' + (Math.round(resto * 100) / 100).toFixed(2) : '');
+          // conto nato da una prenotazione con l'email: la copia parte da sola e resta nella prenotazione
+          if (tavoloAttivo && tavoloAttivo.comanda && !doc.simulato) {
+            const idCom = tavoloAttivo.comanda.id, el = esito;
+            supabase.functions.invoke('scontrino-email', { body: { comanda_id: idCom, numero_documento: doc.numero_documento || null, auto: true } })
+              .then(({ data }) => { if (data && data.a) el.textContent += ' · 📧 copia a ' + data.a; })
+              .catch(() => {});
+          }
         }
         if (avvisoPratica) esito.textContent = avvisoPratica + esito.textContent;
         dopoChiusura(avvisoPratica ? 6000 : 3500);

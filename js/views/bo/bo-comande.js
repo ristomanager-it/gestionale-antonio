@@ -3519,6 +3519,9 @@ export async function render(container) {
         else mostraToast('⚠️ Conto chiuso ma scontrino NON stampato: ' + (r.errore || 'errore') + ' — lo trovi in Chiusura cassa', 'error');
         // La copia per mail parte solo dopo che il registratore ha registrato il documento
         if (r.ok && _mailScontrino) inviaScontrinoMail(_idPerMail, _mailScontrino, r.numero_documento);
+        // nessuna mail scritta: se il conto viene da una prenotazione con l'email, la copia parte da sola
+        else if (r.ok) supa().functions.invoke('scontrino-email', { body: { comanda_id: _idPerMail, numero_documento: r.numero_documento || null, auto: true, cameriere: cameriereAttivo?.nome || null } })
+          .then(({ data }) => { if (data && data.a) mostraToast('📧 Copia dello scontrino a ' + data.a, 'success'); }).catch(() => {});
       });
     }
 
