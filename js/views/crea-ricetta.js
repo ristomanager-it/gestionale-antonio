@@ -5567,6 +5567,28 @@ async function creaPromoDaRicetta({ nome, descrizione, prezzo }) {
     },
   };
 
+  // 16/11: Tony scrive la landing completa (perché, punti, foto vere, come funziona, recensioni, modulo).
+  // Se non risponde, la promo nasce lo stesso con la pagina semplice.
+  try {
+    const foto = [];
+    if (fotoRicetta) foto.push({ nome: nome, url: fotoRicetta });
+    const { data: pv } = await supabase.from("prodotti_vendita").select("nome, foto_url, foto_pubblica_url").eq("azienda_id", aziendaId).limit(300);
+    (pv || []).forEach(function (x) { const u = x.foto_pubblica_url || x.foto_url; if (u && foto.length < 40) foto.push({ nome: x.nome, url: u }); });
+    const { data: land } = await supabase.functions.invoke("tony-promo-landing", { body: {
+      azienda_id: aziendaId, sede_id: window.state?.sedeAttiva?.id || null,
+      promo: { nome: nome, tipo: "omaggio", descrizione: payload.descrizione },
+      piatto: { nome: nome, descrizione: descrizione || "" },
+      foto: foto, foto_preferita: fotoRicetta,
+    }});
+    if (land && Array.isArray(land.blocks)) {
+      payload.landing_config = Object.assign({}, payload.landing_config, { blocks: land.blocks });
+      if (land.nome) payload.nome = land.nome;
+      if (!payload.immagine_url && land.immagine_url) payload.immagine_url = land.immagine_url;
+      if (land.messaggio_wa) payload.messaggio_wa = land.messaggio_wa;
+      payload.sede_id = window.state?.sedeAttiva?.id || null;
+    }
+  } catch (e) { console.warn("Landing di Tony non arrivata:", e); }
+
   const { data, error } = await supabase.from("promo").insert(payload).select("id").single();
   if (error) throw error;
   return data?.id;
