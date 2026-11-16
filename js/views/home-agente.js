@@ -540,10 +540,7 @@ function renderAgMansionario(el) {
             <span style="font-size:20px;">📱</span>
             <div><div style="font-size:13px;font-weight:700;">Numero WhatsApp Ristoflow</div><div style="font-size:11px;color:#94a3b8;">Chiedi il link al tuo responsabile</div></div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f8fafc;border-radius:8px;">
-            <span style="font-size:20px;">🎥</span>
-            <div><div style="font-size:13px;font-weight:700;">Video demo 2 minuti</div><div style="font-size:11px;color:#94a3b8;">In arrivo</div></div>
-          </div>
+          <div id="ag-video-demo" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
       </div>
 
