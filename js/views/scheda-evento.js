@@ -328,6 +328,7 @@ function stile() {
   .se-piu{margin-top:6px;border:0;background:#e0f2fe;color:#0E5A7A;border-radius:9px;padding:8px 12px;font-weight:700;cursor:pointer;font-size:13px;}
   .se-nofasi{font-size:12.5px;color:#64748b;padding:4px 0;}
   .se-add{margin-top:4px;} .se-ris button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #f1f5f9;background:#fff;padding:9px;font-size:14px;cursor:pointer;}
+  body.con-rf-footer .se-barra{bottom:calc(62px + env(safe-area-inset-bottom,0px));padding-bottom:10px;}
   .se-barra{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;justify-content:flex-end;z-index:50;}
   .se-stato{font-size:12.5px;color:#64748b;margin-right:auto;padding-left:60px;}
   .se-salva{border:0;border-radius:11px;padding:11px 14px;background:#0E5A7A;color:#fff;font-weight:800;cursor:pointer;}
