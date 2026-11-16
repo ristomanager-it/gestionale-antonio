@@ -609,6 +609,33 @@ export async function renderPromo(container, aziendaId) {
           <div style="background:${s.colore_bottone};border-radius:${r}px;padding:9px;text-align:center;color:white;font-size:12px;font-weight:800;">🎁 Voglio la mia promo!</div>
         </div>`;
       }
+      if (b.tipo==='hero') {
+        const bg = imgUrl && !isVideoUrl(imgUrl) ? `background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.55)),url('${imgUrl}') center/cover;` : `background:${s.colore_primario};`;
+        return `<div style="${bg}color:#fff;text-align:center;padding:34px 16px;">
+          ${b.kicker?`<div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;opacity:.85;margin-bottom:8px;">${esc(b.kicker)}</div>`:''}
+          <div style="font-size:22px;font-weight:800;line-height:1.2;">${esc(b.titolo||nome)}</div>
+          ${b.sottotitolo?`<div style="font-size:12px;margin-top:8px;opacity:.95;line-height:1.5;">${esc(b.sottotitolo)}</div>`:''}
+          <div style="display:inline-block;margin-top:14px;background:${s.colore_bottone};border-radius:${r}px;padding:9px 18px;font-size:12px;font-weight:800;">${esc(b.cta||'Voglio la promo')}</div>
+        </div>`;
+      }
+      if (b.tipo==='sezione') {
+        return `<div style="padding:14px;color:${s.colore_testo};"><div style="font-size:16px;font-weight:800;margin-bottom:6px;">${esc(b.titolo||'')}</div><div style="font-size:12px;line-height:1.6;white-space:pre-line;">${esc(b.contenuto||'')}</div></div>`;
+      }
+      if (b.tipo==='punti_forza') {
+        return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 10px 10px;">${(b.punti||[]).map(x=>`<div style="background:#f8fafc;border-radius:10px;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;color:${s.colore_testo};"><div style="font-size:18px;">${esc(x.icona||'')}</div>${esc(x.testo||'')}</div>`).join('')}</div>`;
+      }
+      if (b.tipo==='galleria') {
+        return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 10px 10px;">${(b.foto||[]).map((u,i)=>`<img src="${esc(u)}" style="width:100%;height:${i===0?140:90}px;object-fit:cover;border-radius:10px;${i===0?'grid-column:1/3;':''}" onerror="this.style.display='none'">`).join('')}</div>`;
+      }
+      if (b.tipo==='validita') {
+        return `<div style="margin:10px;border:1.5px dashed ${s.colore_primario};border-radius:${r}px;padding:10px 12px;font-size:11px;color:${s.colore_testo};"><b>Quando puoi usare l'offerta</b><div style="opacity:.75;margin-top:4px;">Giorni, turni e scadenza presi dalla promo</div></div>`;
+      }
+      if (b.tipo==='recensioni') {
+        return `<div style="padding:10px;text-align:center;color:#f59e0b;font-size:16px;">★★★★★ <span style="font-size:11px;color:${s.colore_testo};opacity:.6;">le recensioni verificate del locale</span></div>`;
+      }
+      if (b.tipo==='urgenza') {
+        return `<div style="margin:10px;background:#2b211b;color:#fff;border-radius:${r}px;padding:10px 12px;font-size:11px;font-weight:700;">⏳ Scadenza e posti rimasti</div>`;
+      }
       if (b.tipo==='cta_button') {
         return `<div style="padding:0 10px 10px;"><div style="background:${s.colore_bottone};border-radius:${r}px;padding:10px;text-align:center;color:white;font-size:12px;font-weight:800;">${esc(b.contenuto||'CTA')}</div></div>`;
       }
