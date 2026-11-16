@@ -105,7 +105,7 @@ async function bozzeOnline() {
       + '<div style="display:flex;justify-content:space-between;gap:8px"><b>' + e(b.nomi || "Senza nome") + '</b><span style="font-size:12px;color:#64748b;white-space:nowrap">' + quando(b.updated_at) + "</span></div>"
       + '<div style="font-size:13px;color:#334155">' + [b.tipo, b.invitati ? b.invitati + " invitati" : "", giorno(b.data_testo), b.location].filter(Boolean).map(e).join(" · ") + "</div>"
       + '<div style="font-size:13px;color:' + (b.ultimo_passo === "riepilogo" ? "#b45309" : "#64748b") + '">' + arrivo + (b.totale ? " · prezzo visto " + eur(b.totale) : "") + (b.utm_source ? " · da " + e(b.utm_source) : "") + "</div>"
-      + (scelte ? '<details open style="margin-top:6px"><summary style="font-size:13px;cursor:pointer">Cosa aveva scelto</summary><div style="font-size:13.5px;margin-top:4px">' + scelte + "</div></details>" : "")
+      + (scelte ? '<details style="margin-top:6px"><summary style="font-size:13px;cursor:pointer">Cosa aveva scelto</summary><div style="font-size:13.5px;margin-top:4px">' + scelte + "</div></details>" : "")
       + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' + (b.richiesta && (b.richiesta.scelte || []).length && b.email ? '<button class="app-button small" data-bozza-crea="' + e(b.id) + '">📝 Crea preventivo</button> ' : "") + tel + mail + '<button class="app-button small gray" data-bozza-fatta="' + e(b.id) + '">✓ Richiamato</button></div>'
       + "</div>";
   };
