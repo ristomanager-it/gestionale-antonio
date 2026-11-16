@@ -592,6 +592,8 @@ export async function render(container) {
     // 15/11: l'esito negativo non parte subito, va domani alle 10 (candidatura-notifica-ts v35)
     esito.textContent = waData.programmato
       ? `✅ Segnato "${m.label}": il messaggio al candidato parte domani alle 10`
+      : waData.in_coda
+      ? `✅ Avanzato a "${m.label}": il link per prenotare il colloquio parte appena Meta approva il messaggio`
       : waData.success
       ? `✅ Avanzato a "${m.label}" e WhatsApp inviato!`
       : `✅ Avanzato a "${m.label}" (WhatsApp: ${waData.error || 'errore'})`;
