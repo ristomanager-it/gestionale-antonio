@@ -1150,7 +1150,7 @@ async function eseguiConferma(c: Ctx, a: any): Promise<{ ok: boolean; messaggio:
     const lavori = (d.piattaforme || []).map(async (p: string) => {
       if (p === "meta") {
         const corpo: any = { azienda_id: c.aziendaId, sede_id: d.sede_id, tipo: d.modello, citta: d.citta, budget_cent: d.budget?.meta, raggio_km: d.raggio_km, ...periodoCorpo, ...linkCorpo, ...(isPromo ? { cta: "GET_OFFER" } : {}), ...(img ? { image_url: img } : {}) };
-        if (piatto) { corpo.piatto = d.piatto; corpo.titolo = d.contenuti?.titolo_meta; corpo.messaggio = d.contenuti?.testo_meta; }
+        if (piatto) { corpo.piatto = d.piatto; corpo.titolo = d.contenuti?.titolo_meta; corpo.messaggio = d.contenuti?.testo_meta; if (d.scritte) corpo.scritte = d.scritte; }
         const j = await chiamaInterna(c, "tony-meta-campagne", corpo);
         return j.success ? `\u2705 Meta: creata in pausa (${eur((d.budget?.meta || 0) / 100)}/giorno)` : `\u274C Meta: ${typeof j.error === "string" ? j.error : (j.error?.error_user_msg || j.error?.message || "non riuscita")}`;
       }
