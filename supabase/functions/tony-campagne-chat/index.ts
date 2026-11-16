@@ -1036,7 +1036,7 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
     }
     let metaUrl: string | null = null;
     if (piattaforme.includes("meta")) {
-      const m = await chiamaInterna(c, "tony-meta-anteprima", { azienda_id: c.aziendaId, sede_id: c.sedeId, titolo: tm, messaggio: xm, link: linkBozza, immagine: foto, cta: modalita === "promo" ? "GET_OFFER" : "BOOK_NOW" });
+      const m = await chiamaInterna(c, "tony-meta-anteprima", { azienda_id: c.aziendaId, sede_id: c.sedeId, titolo: tm, messaggio: xm, link: linkBozza, immagine: foto, scritte: scritte, cta: modalita === "promo" ? "GET_OFFER" : "BOOK_NOW" });
       metaUrl = m?.success ? m.url : null;
       if (!metaUrl) note.push("l'anteprima ufficiale di Meta non e' disponibile adesso: nella pagina di anteprima c'e' una simulazione");
     }
