@@ -1336,6 +1336,18 @@ export async function renderPromo(container, aziendaId) {
         stile: { ...STILE_DEFAULT },
       };
 
+      // 16/11: la pagina la scrive Tony per intero, come le landing che vendono
+      tonyEsito.textContent = '🧠 Scrivo la pagina della promo...';
+      try {
+        const land = await tonyLandingPromo(promoObj, libreriaFoto, null, immagineUrl);
+        if (land) {
+          promoObj.landing_config = { blocks: land.blocks };
+          if (!promoObj.immagine_url && land.immagine_url) { promoObj.immagine_url = land.immagine_url; immagineUrl = land.immagine_url; }
+          if (land.nome) promoObj.nome = land.nome;
+          if (land.messaggio_wa && !promoObj.messaggio_wa) promoObj.messaggio_wa = land.messaggio_wa;
+        }
+      } catch (e) { console.warn('Landing di Tony:', e); }
+
       chiudiTony();
       apriModal(promoObj);
       const notaFoto = immagineUrl ? '' : (libreriaFoto.length ? ' (aggiungi tu la foto)' : ' (carica prima delle foto in Media)');
