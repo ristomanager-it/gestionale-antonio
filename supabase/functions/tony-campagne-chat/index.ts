@@ -999,6 +999,14 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
     if (prep.errore) return { errore: prep.errore };
     const online = await urlOnline(modalita === "promo" ? PROMO_BASE : LANDING_BASE);
     const foto = await fotoPiatto(c.aziendaId, piatto);
+    // 16/11: le scritte sulla grafica si decidono QUI e vanno uguali in anteprima e nella campagna vera
+    // (prima l'anteprima usciva senza scritte e la campagna con le scritte: si approvava una cosa diversa).
+    // Titolo = nome del piatto tagliato a parola intera, senza "con/di/al" in coda; sotto il locale.
+    const parolePiatto = piatto.toUpperCase().split(/\s+/).filter(Boolean);
+    let titoloGrafica = "";
+    for (const w of parolePiatto) { if ((titoloGrafica ? titoloGrafica.length + 1 : 0) + w.length > 26) break; titoloGrafica = titoloGrafica ? titoloGrafica + " " + w : w; }
+    titoloGrafica = titoloGrafica.replace(/(\s+\S{1,3})+$/, "") || piatto.toUpperCase().slice(0, 26);
+    const scritte = { alto: { titolo: titoloGrafica, sotto: prep.sede?.nome || "" }, basso: modalita === "promo" ? "Scarica il coupon" : "Prenota in 30 secondi" };
     const note: string[] = [];
     if (!online) note.push(`ATTENZIONE: la pagina della landing adesso non risponde: dillo all'utente`);
     if (!foto) note.push("nessuna foto di questo piatto nella ricetta o nel menu: annunci e landing useranno foto generiche della libreria; dillo all'utente e suggerisci di caricare la foto del piatto");
