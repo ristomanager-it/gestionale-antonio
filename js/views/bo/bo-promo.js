@@ -14,6 +14,27 @@ const TIPI_PROMO = [
 const BLOCK_TYPES  = ['immagine','testo','box_offerta','valutazioni','form','cta_button'];
 const BLOCK_LABELS = ['🖼 Immagine','📝 Testo','🎁 Box offerta','⭐ Valutazioni','📋 Form','🔘 CTA Button'];
 
+// 16/11: blocchi della landing scritta da Tony (struttura delle pagine che vendono, tipo Capodanno)
+const LABEL_EXTRA = { hero:'🌅 Apertura con foto', sezione:'📝 Sezione', punti_forza:'✨ Punti di forza', galleria:'🖼 Galleria foto', validita:'📅 Quando vale', recensioni:'⭐ Recensioni verificate', urgenza:'⏳ Urgenza', prenota:'📅 Prenota' };
+
+// Tony scrive la landing completa (perché, punti, foto, come funziona...). Se non risponde resta la promo semplice.
+async function tonyLandingPromo(promo, foto, piatto, fotoPreferita) {
+  const sb = window.supabaseClient || window.supabase;
+  const aziendaId = window.state?.azienda?.id;
+  let elenco = (foto || []).filter(f => f && f.url).map(f => ({ nome: f.nome, url: f.url, tag: f.tag }));
+  try {
+    const { data: pv } = await sb.from('prodotti_vendita').select('nome, foto_url, foto_pubblica_url').eq('azienda_id', aziendaId).limit(300);
+    (pv || []).forEach(x => { const u = x.foto_pubblica_url || x.foto_url; if (u && elenco.length < 40) elenco.push({ nome: x.nome, url: u }); });
+  } catch (e) {}
+  const { data, error } = await sb.functions.invoke('tony-promo-landing', { body: {
+    azienda_id: aziendaId, sede_id: window.state?.sedeAttiva?.id || null,
+    promo: { nome: promo.nome, tipo: promo.tipo, valore: promo.valore, descrizione: promo.descrizione, giorni_disponibili: promo.giorni_disponibili, turni: promo.turni, min_persone: promo.min_persone, data_scadenza: promo.data_scadenza },
+    piatto: piatto || null, foto: elenco, foto_preferita: fotoPreferita || null,
+  }});
+  if (error || !data || !Array.isArray(data.blocks)) { console.warn('Landing di Tony non arrivata:', error || data); return null; }
+  return data;
+}
+
 const GIORNI_NOMI = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 const TURNI_LIST  = [{ v:'pranzo', l:'🌞 Pranzo' },{ v:'cena', l:'🌙 Cena' }];
 
