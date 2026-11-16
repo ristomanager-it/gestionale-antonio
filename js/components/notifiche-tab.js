@@ -12,6 +12,9 @@ function esc(v) {
 function rottaNotifica(n) {
   const tipo = String(n && n.tipo || "").toLowerCase();
 
+  // 16/11: colloqui e visite prenotati dal calendario -> Eventi > Visite in location (sotto ogni colloquio le domande)
+  if (tipo === "colloquio" || tipo === "visita") return "#/visite";
+  if (tipo.indexOf("candidatur") >= 0) return "#/bo-candidature";
   if (tipo.indexOf("prenotazion") >= 0) return "#/prenotazioni";
   if (tipo.indexOf("timbratur") >= 0) return "#/timbrature";
   if (tipo.indexOf("turni") >= 0) return "#/timbrature";
