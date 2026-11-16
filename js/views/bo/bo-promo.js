@@ -994,7 +994,7 @@ export async function renderPromo(container, aziendaId) {
 
   function apriModal(promo = null) {
     promoAttiva = promo;
-    landingBlocks  = (promo?.landing_config?.blocks||[]).map(b=>({...b, label: BLOCK_LABELS[BLOCK_TYPES.indexOf(b.tipo)]||b.tipo}));
+    landingBlocks  = (promo?.landing_config?.blocks||[]).map(b=>({...b, label: BLOCK_LABELS[BLOCK_TYPES.indexOf(b.tipo)]||LABEL_EXTRA[b.tipo]||b.tipo}));
     thankyouBlocks = (promo?.thankyou_config?.blocks||[]).map(b=>({...b, label: BLOCK_LABELS[BLOCK_TYPES.indexOf(b.tipo)]||b.tipo}));
     giorniSel = promo?.giorni_disponibili ? [...promo.giorni_disponibili] : [];
     turniSel  = promo?.turni ? [...promo.turni] : [];
