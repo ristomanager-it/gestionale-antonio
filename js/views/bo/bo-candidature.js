@@ -500,6 +500,10 @@ export async function render(container) {
       btns.push(`<button class="btn-azione" data-azione="convoca-colloquio" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:600;">🤝 Convoca a colloquio via WhatsApp</button>`);
       btns.push(`<button class="btn-azione" data-azione="rifiuta" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:13px;">❌ Non idoneo</button>`);
     }
+    // 17/11: colloquio dal vivo — domanda per domanda ✅/❌, storico e lista "per la prova" (solo admin)
+    if (fase >= 6 && ['admin', 'superadmin'].indexOf(window.state?.ruolo) >= 0) {
+      btns.push(`<button class="btn-live" style="background:#f59e0b;color:white;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:700;">🗣 Colloquio dal vivo</button>`);
+    }
     if (fase === 6) {
       btns.push(`<button class="btn-azione" data-azione="assumi" style="background:#15803d;color:white;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:600;">🎉 Assunto — Invia WhatsApp di benvenuto</button>`);
       btns.push(`<button class="btn-azione" data-azione="rifiuta" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:13px;">❌ Non idoneo</button>`);
@@ -512,6 +516,10 @@ export async function render(container) {
   }
 
   function bindAzioni(c, modal) {
+    modal.querySelectorAll('.btn-live').forEach(btn => btn.addEventListener('click', async () => {
+      const m = await import('../../components/colloquio-live.js?v=' + (window.APP_V || '1'));
+      m.apriColloquioLive(c.id);
+    }));
     modal.querySelectorAll('.btn-azione').forEach(btn => {
       btn.addEventListener('click', async () => {
         const azione = btn.dataset.azione;
