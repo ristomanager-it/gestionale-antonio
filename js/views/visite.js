@@ -56,7 +56,7 @@ function riga(v, passata) {
   return '<div class="vi-ap"><div class="vi-ora">' + ora(v.inizio) + '</div><div style="flex:1;min-width:0"><b>' + esc(v.nome) + "</b>" + (st ? ' <span class="vi-m">· ' + st + "</span>" : "") +
     '<div class="vi-m">' + [v.tipo_evento, v.data_evento ? "evento " + v.data_evento : "", v.invitati ? v.invitati + " invitati" : ""].filter(Boolean).map(esc).join(" · ") + "</div>" +
     (v.note ? '<div class="vi-m">“' + esc(v.note) + "”</div>" : "") +
-    (v.tipo === "colloquio" && v.candidatura_id && admin() ? scheda(S.cand[v.candidatura_id]) : "") +
+    (v.tipo === "colloquio" && v.candidatura_id && admin() ? '<button class="vi-live" data-live="' + esc(v.candidatura_id) + '" data-app="' + v.id + '">🗣 Apri il colloquio dal vivo</button>' + scheda(S.cand[v.candidatura_id]) : "") +
     '<div class="vi-az">' + (v.telefono ? '<a class="vi-btn s" href="tel:' + esc(v.telefono) + '">📞</a>' + (wa(v.telefono) ? '<a class="vi-btn s" target="_blank" href="' + wa(v.telefono) + '">WhatsApp</a>' : "") : "") +
     (v.email ? '<a class="vi-btn s" href="mailto:' + esc(v.email) + '">✉️</a>' : "") +
     (v.stato === "confermato" ? (passata || new Date(v.inizio) < new Date() ? '<button class="vi-btn s" data-st="fatto" data-id="' + v.id + '">✅ Fatta</button><button class="vi-btn s" data-st="non_venuto" data-id="' + v.id + '">🚫 Non venuti</button>' : "") + '<button class="vi-btn s r" data-st="annullato" data-id="' + v.id + '">Annulla</button>' : "") +
@@ -140,6 +140,7 @@ async function salva(campi) {
 }
 async function clic(e) {
   const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.live) { const m = await import("../components/colloquio-live.js?v=" + (window.APP_V || "1")); m.apriColloquioLive(t.dataset.live, { appuntamentoId: Number(t.dataset.app) || null }); return; }
   if (t.dataset.tab) { S.tab = t.dataset.tab; disegna(); return; }
   if (t.id === "viNuova") { S.nuova = true; S.nG = ""; S.nOre = []; disegna(); return; }
   if (t.id === "nvAnn") { S.nuova = false; disegna(); return; }
@@ -180,6 +181,7 @@ const CSS = '<style>.vi-v{max-width:680px;box-sizing:border-box}.vi-v *{box-sizi
   '.vi-fa{border-top:1px solid #f1f5f9;padding:8px 0}.vi-gg{display:flex;flex-wrap:wrap;gap:4px}.vi-gg label{border:1px solid #e2e8f0;border-radius:8px;padding:4px 8px;font-size:13px;display:flex;gap:4px;align-items:center}' +
   '.vi-dd{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:14px}.vi-dd input{border:1px solid #e2e8f0;border-radius:8px;padding:6px;font:inherit}' +
   '.vi-f{display:block;margin:8px 0}.vi-f span{display:block;font-size:13px;color:#64748b;margin-bottom:3px}.vi-f input,.vi-f textarea{width:100%;min-height:40px;border:1px solid #e2e8f0;border-radius:9px;padding:8px 10px;font:inherit;font-size:16px}.vi-due{display:grid;grid-template-columns:1fr 1fr;gap:10px}' +
+  '.vi-live{display:block;width:100%;margin-top:10px;border:none;border-radius:12px;padding:13px;font-weight:800;font-size:15px;background:#f59e0b;color:#fff;cursor:pointer;font-family:inherit}' +
   '.vi-sc{margin-top:8px;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;background:#f8fafc}.vi-sc summary{font-weight:700;cursor:pointer;color:#023C59}' +
   '.vi-st{font-weight:700;margin:12px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#475569}.vi-q{font-size:14px;line-height:1.45;margin:8px 0}' +
   '.vi-ok{font-size:13.5px;color:#166534;margin-top:3px}.vi-ko{font-size:13.5px;color:#9a3412;margin-top:3px}.vi-ul{margin:4px 0;padding-left:18px;font-size:13.5px;line-height:1.45}' +
