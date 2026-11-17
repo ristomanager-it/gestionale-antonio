@@ -43,7 +43,15 @@ export async function montaCandidati(el) {
         <button data-rl="${esc(LINK_BASE + r.codice)}" style="padding:7px 12px;border:1.5px solid #0E5A7A;border-radius:8px;background:#fff;color:#0E5A7A;font-weight:700;cursor:pointer">📋 Copia il suo link</button>
         <a href="https://wa.me/?text=${encodeURIComponent('Ciao ' + r.nome + ', da questo link inserisci i candidati agenti che vuoi presentarci. Li contattiamo noi e ti mettiamo sempre in copia: ' + LINK_BASE + r.codice)}" target="_blank" style="padding:7px 12px;border-radius:8px;background:#16a34a;color:#fff;font-weight:700;text-decoration:none">WhatsApp</a>
       </div>`).join('')}
-    <div style="font-size:12px;color:#64748b;margin-top:6px">Senza telefono ed email del referente la copia non può partire.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0 0;border-top:1px solid #f1f5f9">
+      <b style="min-width:110px">➕ Nuovo</b>
+      <input id="nr-nome" placeholder="Nome" style="padding:7px;border:1px solid #cbd5e1;border-radius:8px;width:120px">
+      <input id="nr-cognome" placeholder="Cognome" style="padding:7px;border:1px solid #cbd5e1;border-radius:8px;width:120px">
+      <input id="nr-tel" placeholder="Telefono" style="padding:7px;border:1px solid #cbd5e1;border-radius:8px;width:130px">
+      <input id="nr-email" placeholder="Email" style="padding:7px;border:1px solid #cbd5e1;border-radius:8px;width:180px">
+      <button id="nr-aggiungi" style="padding:7px 12px;border:none;border-radius:8px;background:#0E5A7A;color:#fff;font-weight:700;cursor:pointer">Aggiungi: avrà il suo link</button>
+    </div>
+    <div style="font-size:12px;color:#64748b;margin-top:6px">Ognuno ha il suo link e vede solo i candidati che ha inserito lui. Senza telefono ed email la copia non può partire.</div>
   </div>
 
   <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px">
