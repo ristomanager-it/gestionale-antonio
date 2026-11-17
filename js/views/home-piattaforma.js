@@ -342,23 +342,6 @@ export async function render(container) {
           </div>
           <div class="icon">🧹</div>
         </div>
-
-        <div class="card" data-route="bo-evento">
-          <div>
-            <div class="label">Eventi</div>
-            <div class="title">Serata 23 settembre</div>
-          </div>
-          <div class="icon">🎪</div>
-        </div>
-
-        <div class="card" data-route="demo-leads">
-          <div>
-            <div class="label">Acquisizione</div>
-            <div class="title">Lead Demo</div>
-          </div>
-          <div class="icon">🎯</div>
-        </div>
-
         <div class="card" id="card-supporto">
           <div>
             <div class="label">Supporto clienti</div>
