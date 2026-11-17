@@ -1782,7 +1782,7 @@ async function caricaAgenti() {
 
 window.switchTabAgenti = function(tab) {
   _agTabAttiva = tab;
-  ['rete','performance','avvii','provvigioni','piano','guida','compensi'].forEach(t => {
+  ['rete','performance','candidati','provvigioni','piano','guida','compensi'].forEach(t => {
     const btn = document.getElementById(`ag-tab-${t}`);
     if (!btn) return;
     btn.style.background = t === tab ? 'white' : 'transparent';
