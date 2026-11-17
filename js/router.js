@@ -159,6 +159,7 @@ const routes = {
   "bo-calendario": () => imp("./views/bo/bo-calendario.js"),
   "bo-crediti": () => imp("./views/bo/bo-crediti.js"),
   consumiAI: () => imp("./views/piattaforma/consumiAI.js"),
+  bussolaPiattaforma: () => imp("./views/piattaforma/bussola.js"),
   "bo-whatsapp": () => imp("./views/bo/bo-whatsapp.js"),
   "bo-chatbot": () => imp("./views/bo/bo-chatbot.js"),
   "bo-media": () => imp("./views/bo/bo-media.js"),
