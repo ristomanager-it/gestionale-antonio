@@ -667,6 +667,7 @@ export async function render(container) {
   caricaConversazioniWA();
   caricaMotori();
   caricaRiepiloghi();
+  import("./piattaforma/bussola.js?v=" + (window.APP_V || "1")).then(m => m.montaMini(document.getElementById("bs-mini-home"))).catch(e => console.warn("bussola", e));
 }
 
 // 17/11: numeri delle righe chiuse, così si vede cosa c'è dentro senza aprirle
