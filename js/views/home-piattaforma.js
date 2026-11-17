@@ -95,52 +95,148 @@ export async function render(container) {
         <button id="btn-switch-azienda" class="switch-btn">Cambia</button>
       </div>
 
-      <!-- KPI MRR -->
-      <div class="kpi-section-label">💶 Revenue</div>
-      <div class="kpi-bar" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-        <div class="kpi">
-          <div class="kpi-val" style="color:#059669;">€${Math.round(mrr).toLocaleString('it-IT')}</div>
-          <div class="kpi-label">MRR</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-val" style="color:#0E5A7A;">€${Math.round(arr).toLocaleString('it-IT')}</div>
-          <div class="kpi-label">ARR</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-val" style="color:#7c3aed;">${(abbonamenti||[]).length}</div>
-          <div class="kpi-label">Abbonati attivi</div>
-        </div>
-        ${Object.entries(perPiano).map(([nome,v])=>`
-          <div class="kpi">
-            <div class="kpi-val" style="font-size:18px;">${v.count}</div>
-            <div class="kpi-label">${v.icona} ${nome}</div>
-          </div>
-        `).join('')}
-      </div>
-
-      <!-- KPI BAR GESTIONALE -->
-      <div class="kpi-section-label">&#127979; Gestionale</div>
+      <!-- 17/11: pagina riordinata. Prima le cose di tutti i giorni (vendita, clienti), le liste lunghe chiuse
+           in righe che si aprono con un tocco: su telefono la pagina era un muro di messaggi e Candidati non si trovava. -->
+      <div class="kpi-section-label">💶 Numeri</div>
       <div class="kpi-bar">
-        <div class="kpi">
-          <div class="kpi-val">${totaleAziende || 0}</div>
-          <div class="kpi-label">Clienti totali</div>
+        <div class="kpi"><div class="kpi-val" style="color:#059669;">€${Math.round(mrr).toLocaleString('it-IT')}</div><div class="kpi-label">MRR</div></div>
+        <div class="kpi"><div class="kpi-val">${totaleAziende || 0}</div><div class="kpi-label">Clienti</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:#d97706;">${aziendeTrial || 0}</div><div class="kpi-label">In trial</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:#0E5A7A;">${leadDemo || 0}</div><div class="kpi-label">Lead 7gg</div></div>
+      </div>
+
+      <div class="kpi-section-label">🤝 Vendita</div>
+      <div class="grid">
+        <div class="card" onclick="toggleCRM()">
+          <div>
+            <div class="label">Vendita</div>
+            <div class="title">CRM Lead</div>
+            <div style="font-size:11px;color:#DC2626;margin-top:4px;font-weight:700;" id="crm-card-count">Caricamento...</div>
+          </div>
+          <div class="icon">🎯</div>
         </div>
-        <div class="kpi">
-          <div class="kpi-val" style="color:#d97706;">${aziendeTrial || 0}</div>
-          <div class="kpi-label">In trial</div>
+        <div class="card" onclick="apriCandidati()">
+          <div>
+            <div class="label">Rete vendita</div>
+            <div class="title">Candidati agenti</div>
+            <div style="font-size:11px;color:#DC2626;margin-top:4px;font-weight:700;" id="cand-card-count">…</div>
+          </div>
+          <div class="icon">🧲</div>
         </div>
-        <div class="kpi">
-          <div class="kpi-val" style="color:#059669;">${(totaleAziende || 0) - (aziendeTrial || 0)}</div>
-          <div class="kpi-label">Paganti</div>
+        <div class="card" onclick="toggleAgenti()">
+          <div>
+            <div class="label">Rete vendita</div>
+            <div class="title">Programma Agenti</div>
+            <div style="font-size:11px;color:#7C3AED;margin-top:4px;font-weight:700;" id="agenti-card-count">Caricamento...</div>
+          </div>
+          <div class="icon">🤝</div>
         </div>
-        <div class="kpi">
-          <div class="kpi-val" style="color:#0E5A7A;">${leadDemo || 0}</div>
-          <div class="kpi-label">Lead 7gg</div>
+        <div class="card" data-route="bo-evento">
+          <div>
+            <div class="label">Eventi</div>
+            <div class="title">Serata 18 gennaio</div>
+          </div>
+          <div class="icon">🎪</div>
+        </div>
+        <div class="card" id="card-prezzi" onclick="togglePrezzi()">
+          <div>
+            <div class="label">Sales Tool</div>
+            <div class="title">Piani & Prezzi</div>
+            <div style="font-size:11px;color:#7c3aed;margin-top:4px;font-weight:700;">Solo superadmin</div>
+          </div>
+          <div class="icon">💰</div>
+        </div>
+        <div class="card" data-route="demo-leads">
+          <div>
+            <div class="label">Acquisizione</div>
+            <div class="title">Lead Demo</div>
+          </div>
+          <div class="icon">🎯</div>
         </div>
       </div>
 
+      <div class="kpi-section-label">🏢 Clienti</div>
+      <div class="grid">
+        <div class="card" data-route="gestioneAziende">
+          <div>
+            <div class="label">Clienti</div>
+            <div class="title">Gestione Aziende</div>
+          </div>
+          <div class="icon">🏢</div>
+        </div>
+        <div class="card" data-route="creaAzienda">
+          <div>
+            <div class="label">Provisioning</div>
+            <div class="title">Crea Azienda</div>
+          </div>
+          <div class="icon">➕</div>
+        </div>
+        <div class="card" onclick="window.location.hash='#/bo-onboarding'">
+          <div>
+            <div class="label">Onboarding</div>
+            <div class="title">Setup guidato</div>
+            <div style="font-size:11px;color:#059669;margin-top:4px;font-weight:700;">6 livelli · ~3h30</div>
+          </div>
+          <div class="icon">🚀</div>
+        </div>
+        <div class="card" id="card-social-users" onclick="window.location.hash='#/social-utenti'">
+          <div>
+            <div class="label">RistoflowBook</div>
+            <div class="title">Utenti Social</div>
+            <div style="font-size:11px;color:#7c3aed;margin-top:4px;font-weight:700;">${utentiSocial || 0} iscritti</div>
+          </div>
+          <div class="icon">&#127759;</div>
+        </div>
+        <div class="card dark" id="enter-operativo">
+          <div>
+            <div class="label">Operatività</div>
+            <div class="title">Entra nel gestionale</div>
+          </div>
+          <div class="icon">🧪</div>
+        </div>
+      </div>
+
+      <div class="kpi-section-label">💬 Contatti e messaggi</div>
+      <details class="pf-det">
+        <summary><span>WhatsApp Ristoflow</span><small id="ril-conv">…</small></summary>
+        <div class="pf-det-body">
+      <!-- CONVERSAZIONI WHATSAPP -->
+      <div style="background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:13px;color:#64748b;">Messaggi in entrata al numero Ristoflow</div>
+          <input id="conv-search" placeholder="🔍 Cerca numero..." class="contatti-search" style="max-width:180px;" oninput="filtraConversazioni()"/>
+        </div>
+        <div id="conv-wa-list"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Caricamento...</div></div>
+      </div>
+
+        </div>
+      </details>
+      <details class="pf-det">
+        <summary><span>Lead chatbot</span><small id="ril-lead">…</small></summary>
+        <div class="pf-det-body">
+      <!-- LEAD WHATSAPP -->
+      <div style="background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:13px;color:#64748b;">Lead raccolti dal chatbot commerciale</div>
+          <div style="display:flex;gap:8px;">
+            <select id="lead-filtro-tipo" class="contatti-select" onchange="caricaLeadWA()">
+              <option value="">Tutti</option>
+              <option value="prova_gratuita">Prova gratuita</option>
+              <option value="demo">Demo</option>
+              <option value="consulente">Consulente</option>
+            </select>
+            <button onclick="esportaLeadWA()" class="contatti-export-btn">⬇️ CSV</button>
+          </div>
+        </div>
+        <div id="lead-wa-list"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Caricamento...</div></div>
+      </div>
+
+        </div>
+      </details>
+      <details class="pf-det">
+        <summary><span>Contatti RistoflowBook</span><small id="ril-social">…</small></summary>
+        <div class="pf-det-body">
       <!-- KPI BAR SOCIAL -->
-      <div class="kpi-section-label">&#127759; RistoflowBook — Contatti</div>
       <div class="kpi-bar" style="grid-template-columns:repeat(4,1fr)">
         <div class="kpi" style="cursor:pointer" onclick="filtraContatti('tutti')">
           <div class="kpi-val" style="color:#0E5A7A;">${utentiSocial || 0}</div>
