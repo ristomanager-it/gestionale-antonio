@@ -131,6 +131,14 @@ export async function render(container) {
           </div>
           <div class="icon">🤝</div>
         </div>
+        <div class="card" data-route="bo-assistenza">
+          <div>
+            <div class="label">Clienti</div>
+            <div class="title">Assistenza in chat</div>
+            <div style="font-size:11px;color:#E66101;margin-top:4px;font-weight:700;" id="ass-card-count">…</div>
+          </div>
+          <div class="icon">💬</div>
+        </div>
         <div class="card" data-route="bo-evento">
           <div>
             <div class="label">Eventi</div>
@@ -618,6 +626,11 @@ async function caricaRiepiloghi() {
     set("ril-social", String(social.count || 0));
     set("cand-card-count", cand.count ? cand.count + " da contattare" : "Nessuno da contattare");
   } catch (e) { console.warn("riepiloghi", e); }
+  try {
+    const { data: ass } = await sb.from("assistenza_conversazioni").select("urgente, non_letti_operatore").eq("stato", "aperta");
+    const n = (ass || []).length, urg = (ass || []).filter(r => r.urgente).length;
+    set("ass-card-count", n ? `${n} aperte${urg ? " · " + urg + " urgenti" : ""}` : "Nessuna richiesta aperta");
+  } catch (_) {}
 }
 
 // Candidati: apre il Programma Agenti direttamente sulla scheda Candidati

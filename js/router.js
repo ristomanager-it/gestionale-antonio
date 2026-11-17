@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261117-15";
+const APP_V = "20261117-16";
 window.APP_V = APP_V;
 
 // ── AGGIORNAMENTO AUTOMATICO ──
@@ -99,6 +99,8 @@ const routes = {
   "recensioni-ricevute": () => imp("./views/recensioni-ricevute.js"),
   "evento-prenotazione": () => imp("./views/evento-prenotazione.js"),
   "bo-evento": () => imp("./views/bo/bo-evento.js"),
+  "bo-assistenza": () => imp("./views/bo/bo-assistenza.js"),
+  "assistenza": () => imp("./views/assistenza.js"),
   "bo-shortlink": () => imp("./views/bo/bo-shortlink.js"),
 
   "home-admin": () => imp("./views/home-admin.js"),
@@ -380,6 +382,7 @@ const PLATFORM_ROUTES = new Set([
   "modificaAzienda",
   "gestionePiani",
   "bo-evento",
+  "bo-assistenza",
 ]);
 
 const PREHOME_ROUTES = new Set([
@@ -789,6 +792,11 @@ function hasPermission(area) {
 
   if (isSuperadmin()) {
     return true;
+  }
+
+  // Chat di assistenza Ristoflow: titolare e manager del locale
+  if (area === "assistenza") {
+    return ["admin", "manager"].includes(ruolo);
   }
 
   // =====================================
