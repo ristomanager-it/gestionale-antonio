@@ -619,6 +619,13 @@ async function renderView(routeName) {
 
   await module.render(app);
 
+  // 🛟 Accesso assistito del supporto: barra sempre visibile mentre la sessione è aperta
+  try {
+    if (localStorage.getItem("rf_supporto") || document.getElementById("rf-supporto-bar")) {
+      imp("./utils/supporto.js").then(m => m.bannerSupporto(routeName)).catch(() => {});
+    }
+  } catch (_) {}
+
   // Barra in basso con i comandi veloci (admin e manager)
   try { imp("./components/footer-nav.js").then(m => m.aggiornaFooter(routeName)).catch(() => {}); } catch (e) {}
 
