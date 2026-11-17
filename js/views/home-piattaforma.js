@@ -1171,6 +1171,7 @@ async function caricaMotori() {
     set("m-tasting-mese",   fmt(tastingN));
     set("m-incasso-tasting", fmtE(tastingInc));
     set("m-analytics-visite", fmt(visite7gg));
+    set("m-riepilogo", fmt(prenMeseN) + " prenotazioni · " + fmt(copertiMese) + " coperti");
 
     // Breakdown per azienda
     const azList = aziende.data || [];
