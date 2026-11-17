@@ -258,7 +258,7 @@ ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
         ${menuHtml.trim() ? menuHtml : `<p class="pv-intro">Il menu non è ancora stato scelto.</p>`}
         <p class="pv-solo-link"><a href="#/preventivo?t=${encodeURIComponent(token)}" id="pv-torna">← Torna alla proposta completa</a></p>
       </div>
-      <div class="pv-pie"><b>${esc(d.locale || "")}</b></div>
+      <div class="pv-pie"><b>${esc(d.locale || "")}</b>${d.dati_azienda ? `<br><small>${esc(d.dati_azienda)}</small>` : ""}</div>
     </div>`, d.tema);
     document.getElementById("pv-print")?.addEventListener("click", () => window.print());
     document.getElementById("pv-torna")?.addEventListener("click", (e) => {
@@ -431,7 +431,7 @@ ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
         <div class="pv-note">${esc(d.condizioni || "")}</div>
       </div>
 
-      <div class="pv-pie"><b>${esc(d.locale || "")}</b></div>
+      <div class="pv-pie"><b>${esc(d.locale || "")}</b>${d.dati_azienda ? `<br><small>${esc(d.dati_azienda)}</small>` : ""}</div>
     </div>
   `, d.tema);
 
