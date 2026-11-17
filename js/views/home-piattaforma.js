@@ -449,7 +449,7 @@ export async function render(container) {
         </div>
 
         <!-- Tabs -->
-        <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:10px;padding:3px;margin-bottom:16px;width:fit-content;">
+        <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:10px;padding:3px;margin-bottom:16px;width:fit-content;max-width:100%;overflow-x:auto;white-space:nowrap;">
           <button id="ag-tab-rete" onclick="switchTabAgenti('rete')" style="padding:7px 16px;border-radius:8px;border:none;background:white;color:#0E5A7A;font-size:13px;font-weight:700;cursor:pointer;">👥 Rete</button>
           <button id="ag-tab-performance" onclick="switchTabAgenti('performance')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">📊 Performance</button>
           <button id="ag-tab-candidati" onclick="switchTabAgenti('candidati')" style="padding:7px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">🧲 Candidati</button>
