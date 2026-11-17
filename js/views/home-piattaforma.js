@@ -1797,7 +1797,8 @@ function renderTabAgenti(tab) {
   if (!el) return;
   if (tab === 'rete')         el.innerHTML = '', renderReteAgenti(el);
   if (tab === 'performance')  el.innerHTML = '', renderPerformanceAgenti(el);
-  if (tab === 'avvii') import("../components/avvii-agenti.js?v=" + (window.APP_V || "1")).then(AV => AV.montaAvviiAdmin(el, _agenti)).catch(e => { el.innerHTML = 'Errore: ' + e.message; });
+  // 17/11: al posto di Avvii (l'inserimento lo fa Ristoflow) i candidati agenti portati dai referenti
+  if (tab === 'candidati') import("../components/candidati-agenti.js?v=" + (window.APP_V || "1")).then(CA => CA.montaCandidati(el)).catch(e => { el.innerHTML = 'Errore: ' + e.message; });
   if (tab === 'provvigioni')  el.innerHTML = '', renderProvvigioniAgenti(el);
   if (tab === 'piano')        el.innerHTML = '', renderPianoEconomico(el);
   if (tab === 'guida')        el.innerHTML = '', renderGuidaVendita(el);
