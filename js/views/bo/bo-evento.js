@@ -169,8 +169,12 @@ export async function render(container) {
     });
     box.querySelectorAll("[data-fo-azienda]").forEach(sel => sel.onchange = async () => {
       if (!sel.value) return;
-      if (!confirm("La colleghi tu: se c'è un agente, per lui vale come segnalatore (3%). Se deve prendere il 10% o il 15% con l'avvio, l'azienda la collega lui dalla sua home. Procedo?")) { sel.value = ""; return; }
-      const { error } = await supabase.rpc("fondatore_collega_azienda", { p_richiesta: sel.dataset.foAzienda, p_azienda: sel.value });
+      // 17/11: le aziende le inserisce Ristoflow; se c'è un agente si sceglie prima se ha presentato (3%) o venduto (10%)
+      const ruoloSel = box.querySelector('[data-fo-ruolo="' + sel.dataset.foAzienda + '"]');
+      const ruolo = ruoloSel ? ruoloSel.value : null;
+      if (ruoloSel && !ruolo) { alert("Prima scegli se l'agente ha presentato il cliente (3%) o l'ha venduto (10%)."); sel.value = ""; return; }
+      if (!confirm("Collego il posto Fondatore all'azienda scelta" + (ruolo ? (ruolo === "venditore" ? ": agente venditore, 10%" : ": agente presentatore, 3%") : "") + ". Procedo?")) { sel.value = ""; return; }
+      const { error } = await supabase.rpc("fondatore_collega_azienda", { p_richiesta: sel.dataset.foAzienda, p_azienda: sel.value, p_ruolo: ruolo });
       if (error) alert(error.message); else disegnaFondatore();
     });
   }
