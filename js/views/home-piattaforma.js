@@ -330,25 +330,11 @@ export async function render(container) {
         </div>
       </div>
 
-      <!-- GRID -->
+        </div>
+      </details>
+
+      <div class="kpi-section-label">🧰 Strumenti</div>
       <div class="grid">
-
-        <div class="card" data-route="creaAzienda">
-          <div>
-            <div class="label">Provisioning</div>
-            <div class="title">Crea Azienda</div>
-          </div>
-          <div class="icon">➕</div>
-        </div>
-
-        <div class="card" data-route="gestioneAziende">
-          <div>
-            <div class="label">Clienti</div>
-            <div class="title">Gestione Aziende</div>
-          </div>
-          <div class="icon">🏢</div>
-        </div>
-
         <div class="card" id="card-pulizia-storage" style="cursor:pointer;">
           <div>
             <div class="label">Manutenzione</div>
