@@ -1523,6 +1523,7 @@ async function salva(container, supabase, azienda, sede) {
     cliente_cf: (P.cliente_cf || "").toUpperCase().replace(/\s/g, "") || null,
     cliente_piva: (P.cliente_piva || "").replace(/\s/g, "").replace(/^IT/i, "") || null,
     cliente_ragione_sociale: P.cliente_ragione_sociale || null, cliente_indirizzo: P.cliente_indirizzo || null,
+    cliente_civico: (/^s\.?n\.?c\.?$/i.test(P.cliente_civico || "") ? "snc" : String(P.cliente_civico || "").trim()) || null,
     cliente_cap: P.cliente_cap || null, cliente_comune: P.cliente_comune || null,
     cliente_provincia: (P.cliente_provincia || "").toUpperCase() || null,
     cliente_sdi: (P.cliente_sdi || "").toUpperCase() || null, cliente_pec: P.cliente_pec || null,
@@ -1685,6 +1686,7 @@ function mancaFattura() {
     if (!P.cliente_sdi && !P.cliente_pec) m.push("codice SDI o PEC");
   } else if (!/^[A-Z0-9]{16}$/i.test(String(P.cliente_cf || "").replace(/\s/g, ""))) m.push("codice fiscale");
   if (!P.cliente_indirizzo) m.push("indirizzo");
+  if (!String(P.cliente_civico || "").trim()) m.push("numero civico (anche snc)");
   if (!/^\d{5}$/.test(String(P.cliente_cap || ""))) m.push("CAP");
   if (!P.cliente_comune) m.push("comune");
   return m;
@@ -1695,9 +1697,11 @@ function schedaFatturazione() {
   return `<div style="grid-column:1/-1;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;background:#f8fafc;">
     <div style="margin-bottom:8px;"><b>🧾 Dati per la fattura</b> <small style="color:#64748b;">· ${az ? "azienda" : "persona fisica"}</small></div>
     <div class="griglia">
-      ${az ? campo("Codice SDI", "cliente_sdi") + campo("PEC", "cliente_pec", "email")
-           : campo("Codice fiscale", "cliente_cf")}
-      ${campo("Indirizzo", "cliente_indirizzo")}
+      ${az ? "" : campo("Codice fiscale", "cliente_cf")}
+      ${campo("Codice univoco (SDI)", "cliente_sdi", "text", az ? "" : "facoltativo")}
+      ${campo("PEC", "cliente_pec", "email", az ? "" : "facoltativa")}
+      ${campo("Indirizzo", "cliente_indirizzo", "text", "es. Via Roma")}
+      ${campo("N. civico", "cliente_civico", "text", "12 o snc")}
       ${campo("CAP", "cliente_cap")}
       ${campo("Comune", "cliente_comune")}
       ${campo("Provincia", "cliente_provincia")}
@@ -1709,9 +1713,9 @@ function schedaFatturazione() {
   </div>`;
 }
 
-function campo(label, key, tipo = "text") {
+function campo(label, key, tipo = "text", ph = "") {
   return `<div><label>${label}</label>
-    <input class="in" type="${tipo}" data-campo="${key}" value="${esc(P[key] ?? "")}"></div>`;
+    <input class="in" type="${tipo}" data-campo="${key}" placeholder="${esc(ph)}" value="${esc(P[key] ?? "")}"></div>`;
 }
 function scaduto() {
   return P.scadenza_il && new Date(P.scadenza_il) < new Date() && !P.confermato_il;

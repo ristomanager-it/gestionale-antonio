@@ -289,7 +289,10 @@ export async function renderCassaLibera(container, azienda) {
                 <input id="cl-nome" class="cl-in" placeholder="Nome *" style="flex:1;">
                 <input id="cl-cognome" class="cl-in" placeholder="Cognome *" style="flex:1;">
               </div>
-              <input id="cl-ind" class="cl-in" placeholder="Via e numero civico *">
+              <div style="display:flex;gap:6px;">
+                <input id="cl-ind" class="cl-in" placeholder="Via *" style="flex:1;">
+                <input id="cl-civico" class="cl-in" maxlength="8" placeholder="N. o snc *" style="flex:0 0 96px;">
+              </div>
               <div style="display:flex;gap:6px;">
                 <input id="cl-cap" class="cl-in" inputmode="numeric" maxlength="5" placeholder="CAP *" style="flex:0 0 84px;">
                 <input id="cl-comune" class="cl-in" placeholder="Comune *" style="flex:1;">
@@ -569,7 +572,7 @@ export async function renderCassaLibera(container, azienda) {
       incasso = { doc: 'scontrino', metodo: 'contanti', cliente: null, motivo: null, busy: false };
       $('#cl-modal-tot').textContent = '€ ' + daPagare().toFixed(2) + (accontoPratica() > 0 ? ' (conto € ' + totali().totale.toFixed(2) + ', acconti € ' + accontoPratica().toFixed(2) + ')' : '');
       $('#cl-esito').textContent = '';
-      ['#cl-piva', '#cl-rs', '#cl-nome', '#cl-cognome', '#cl-ind', '#cl-cap', '#cl-comune', '#cl-prov', '#cl-sdi', '#cl-pec', '#cl-email', '#cl-ricevuti', '#cl-intestatario', '#cl-mot-intest'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+      ['#cl-piva', '#cl-rs', '#cl-nome', '#cl-cognome', '#cl-ind', '#cl-civico', '#cl-cap', '#cl-comune', '#cl-prov', '#cl-sdi', '#cl-pec', '#cl-email', '#cl-ricevuti', '#cl-intestatario', '#cl-mot-intest'].forEach(id => { const el = $(id); if (el) el.value = ''; });
       $('#cl-piva-esito').textContent = '';
       $('#cl-persona').style.display = 'none'; $('#cl-rs').style.display = '';
       $('#cl-main').style.display = '';
@@ -654,6 +657,10 @@ export async function renderCassaLibera(container, azienda) {
       // archivio vecchio: indirizzo tutto in un campo; il CAP si ripesca se c'e'
       let ind = c?.indirizzo || '', cap = c?.cap || '', com = c?.citta || '';
       if (!cap) { const m = /(\d{5})\s+([^,(]+)/.exec(ind); if (m) { cap = m[1]; com = com || m[2].trim(); ind = ind.slice(0, m.index).replace(/[,\s]+$/, ''); } }
+      // via e civico erano un campo solo: se il civico non e' salvato a parte, si stacca il numero finale
+      let civ = c?.civico || '';
+      if (!civ) { const mm = /^(.*?)[,\s]+(\d+[A-Za-z]?(?:\/\w+)?|snc)$/i.exec(ind.trim()); if (mm) { ind = mm[1]; civ = mm[2]; } }
+      $('#cl-civico').value = civ;
       $('#cl-ind').value = ind; $('#cl-cap').value = cap; $('#cl-comune').value = com; $('#cl-prov').value = c?.provincia || '';
       $('#cl-sdi').value = c?.codice_sdi || '';
       $('#cl-pec').value = c?.pec || '';
@@ -797,6 +804,7 @@ export async function renderCassaLibera(container, azienda) {
         if (!isPiva && !isCf) manca.push('partita IVA (11 cifre) o codice fiscale');
         if (persona ? !(val('#cl-nome') && val('#cl-cognome')) : !rs) manca.push(persona ? 'nome e cognome' : 'ragione sociale');
         if (!val('#cl-ind')) manca.push('via');
+        if (!val('#cl-civico')) manca.push('numero civico (o snc)');
         if (!/^\d{5}$/.test(val('#cl-cap'))) manca.push('CAP di 5 cifre');
         if (!val('#cl-comune')) manca.push('comune');
         const sdi = val('#cl-sdi').toUpperCase();
@@ -804,7 +812,8 @@ export async function renderCassaLibera(container, azienda) {
         if (manca.length) { esito.textContent = 'Per la fattura manca: ' + manca.join(', ') + '.'; return; }
         cliente = { partita_iva: isPiva ? id : null, codice_fiscale: isPiva ? null : id, ragione_sociale: rs,
           nome: persona ? val('#cl-nome') : null, cognome: persona ? val('#cl-cognome') : null,
-          indirizzo: val('#cl-ind'), cap: val('#cl-cap'), citta: val('#cl-comune'), provincia: val('#cl-prov').toUpperCase() || null,
+          indirizzo: val('#cl-ind'), civico: /^s\.?n\.?c\.?$/i.test(val('#cl-civico')) ? 'snc' : val('#cl-civico'),
+          cap: val('#cl-cap'), citta: val('#cl-comune'), provincia: val('#cl-prov').toUpperCase() || null,
           codice_sdi: sdi || null, pec: val('#cl-pec') || null, email: val('#cl-email') || null };
       }
       const intest = ($('#cl-intestatario').value || '').trim();
@@ -870,7 +879,7 @@ export async function renderCassaLibera(container, azienda) {
             righe: righeDoc,
             cliente: { cliente_partita_iva: cliente.partita_iva, cliente_codice_fiscale: cliente.codice_fiscale,
               cliente_denominazione: cliente.nome ? null : cliente.ragione_sociale, cliente_nome: cliente.nome, cliente_cognome: cliente.cognome,
-              cliente_indirizzo: cliente.indirizzo, cliente_cap: cliente.cap, cliente_comune: cliente.citta, cliente_provincia: cliente.provincia,
+              cliente_indirizzo: cliente.indirizzo, cliente_civico: cliente.civico, cliente_cap: cliente.cap, cliente_comune: cliente.citta, cliente_provincia: cliente.provincia,
               cliente_codice_destinatario: cliente.codice_sdi || '0000000', cliente_pec: cliente.pec, cliente_email: cliente.email },
           } });
           const r = fr || {};
@@ -928,7 +937,7 @@ export async function renderCassaLibera(container, azienda) {
           ragione_sociale: cliente.ragione_sociale,
           codice_sdi: (($('#cl-sdi').value || '').trim().toUpperCase()) || null,
           pec: ($('#cl-pec').value || '').trim() || null,
-          indirizzo: cliente.indirizzo || null, cap: cliente.cap || null, citta: cliente.citta || null, provincia: cliente.provincia || null,
+          indirizzo: cliente.indirizzo || null, civico: cliente.civico || null, cap: cliente.cap || null, citta: cliente.citta || null, provincia: cliente.provincia || null,
           email: cliente.email || null,
         };
         if (incasso.cliente?.id) {

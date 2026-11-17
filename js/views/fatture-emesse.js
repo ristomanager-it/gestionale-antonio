@@ -292,13 +292,15 @@ function formCliente(f, azienda) {
     + etichetta("Partita IVA") + '<div style="display:flex;gap:8px;align-items:flex-start;">' + '<input id="fe-piva" inputmode="numeric" value="' + esc(f.cliente_partita_iva || "") + '" style="' + S.input + 'flex:1;">'
     + '<button type="button" id="fe-compila" style="' + S.btnSec + '">Compila</button></div><div id="fe-piva-esito"></div>'
     + etichetta("Ragione sociale") + inputC("cliente_denominazione", f)
-    + griglia(etichetta("Codice destinatario") + inputC("cliente_codice_destinatario", f, "0000000"), etichetta("PEC (se non c'è il codice)") + inputC("cliente_pec", f))
     + "</div>"
     + '<div data-chi="privato">'
     + griglia(etichetta("Nome") + inputC("cliente_nome", f), etichetta("Cognome") + inputC("cliente_cognome", f))
     + etichetta("Codice fiscale") + inputC("cliente_codice_fiscale", f)
     + "</div>"
-    + etichetta("Indirizzo") + inputC("cliente_indirizzo", f)
+    // codice univoco e PEC valgono per tutti: anche un privato puo' averli (es. professionista)
+    + griglia(etichetta("Codice univoco (SDI)") + inputC("cliente_codice_destinatario", f, "0000000"), etichetta("PEC (se non c'è il codice)") + inputC("cliente_pec", f))
+    + '<div style="display:grid;grid-template-columns:3fr 1fr;gap:0 8px;">' + "<div>" + etichetta("Indirizzo") + inputC("cliente_indirizzo", f, "es. Via Roma") + "</div><div>" + etichetta("N. civico")
+    + '<input data-c="cliente_civico" maxlength="8" placeholder="12 o snc" value="' + esc(f.cliente_civico || "") + '" style="' + S.input + '"></div></div>'
     + '<div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:0 8px;">' + "<div>" + etichetta("CAP") + inputC("cliente_cap", f) + "</div><div>" + etichetta("Comune") + inputC("cliente_comune", f) + "</div><div>" + etichetta("Prov.") + inputC("cliente_provincia", f) + "</div></div>"
     + etichetta("Email per la copia PDF") + inputC("cliente_email", f, "", "email");
 }
@@ -332,8 +334,9 @@ function leggiCliente(container) {
   container.querySelectorAll("[data-c]").forEach((el) => { c[el.dataset.c] = String(el.value || "").trim(); });
   c.cliente_partita_iva = chi === "azienda" ? String(container.querySelector("#fe-piva").value || "").replace(/\s/g, "") : "";
   if (chi === "azienda") { c.cliente_nome = ""; c.cliente_cognome = ""; c.cliente_codice_fiscale = c.cliente_codice_fiscale || c.cliente_partita_iva; }
-  else { c.cliente_denominazione = ""; c.cliente_codice_destinatario = "0000000"; c.cliente_pec = ""; }
-  if (!c.cliente_codice_destinatario) c.cliente_codice_destinatario = "0000000";
+  else { c.cliente_denominazione = ""; }
+  c.cliente_codice_destinatario = String(c.cliente_codice_destinatario || "").toUpperCase().replace(/\s/g, "") || "0000000";
+  if (/^s\.?n\.?c\.?$/i.test(c.cliente_civico || "")) c.cliente_civico = "snc";
   return c;
 }
 function controllaCliente(c) {
@@ -341,6 +344,8 @@ function controllaCliente(c) {
   if (c.cliente_partita_iva) { if (!/^\d{11}$/.test(c.cliente_partita_iva)) e.push("partita IVA di 11 cifre"); if (!c.cliente_denominazione) e.push("ragione sociale"); }
   else { if (!c.cliente_nome || !c.cliente_cognome) e.push("nome e cognome"); if (!/^[A-Z0-9]{16}$/i.test(c.cliente_codice_fiscale || "")) e.push("codice fiscale"); }
   if (!c.cliente_indirizzo || !c.cliente_comune) e.push("indirizzo e comune");
+  if (!c.cliente_civico) e.push("numero civico (se non c'è scrivi snc)");
+  if (!/^[A-Z0-9]{7}$/.test(c.cliente_codice_destinatario || "")) e.push("codice univoco di 7 caratteri (0000000 se non c'è)");
   if (!/^\d{5}$/.test(c.cliente_cap || "")) e.push("CAP di 5 cifre");
   if (c.cliente_email && !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(c.cliente_email)) e.push("email valida");
   return e;
