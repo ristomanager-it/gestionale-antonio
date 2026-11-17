@@ -7,7 +7,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&
 const STATI = { inserito: 'Inserito', invitato: 'Invitato', confermato: 'Confermato', attivo: 'Agente attivo', non_interessato: 'Non interessato' };
 const COLORI = { inserito: '#e2e8f0;color:#334155', invitato: '#ede9fe;color:#5b21b6', confermato: '#dcfce7;color:#166534', attivo: '#dbeafe;color:#1e40af', non_interessato: '#f1f5f9;color:#64748b' };
 const MODELLI = {
-  invito: { nome: 'Invito alla formazione', testo: 'Ciao {nome}, sono Antonio Carullo di Ristoflow. Fabio mi ha parlato di te.\nLunedì 30 novembre alle 17:00 a Campo Antico presentiamo Ristoflow ai nuovi agenti: tre ore, poi una cena leggera insieme.\nCi sei? Rispondi a questo messaggio per confermare.' },
+  invito: { nome: 'Invito alla formazione', testo: 'Ciao {nome}, sono Antonio Carullo di Ristoflow. {referente} mi ha parlato di te.\nLunedì 30 novembre alle 17:00 a Campo Antico presentiamo Ristoflow ai nuovi agenti: tre ore, poi una cena leggera insieme.\nCi sei? Rispondi a questo messaggio per confermare.' },
   promemoria: { nome: 'Promemoria il giorno prima', testo: 'Ciao {nome}, ti ricordo che domani alle 17:00 ci vediamo a Campo Antico per la presentazione di Ristoflow agli agenti. A domani!' },
   benvenuto: { nome: 'Benvenuto da agente', testo: 'Ciao {nome}, benvenuto in Ristoflow. Da oggi sei dei nostri: a breve ricevi l\'accesso alla tua home agente.' },
   libero: { nome: 'Messaggio libero', testo: 'Ciao {nome}, ' },
