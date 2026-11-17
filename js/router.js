@@ -654,7 +654,7 @@ async function renderView(routeName) {
     const u = window.state?.user;
     if (u && routeName !== "login") {
       const chiave = routeName + "|" + u.id;
-      if (window.__lastAccessLog !== chiave || (Date.now() - (window.__lastAccessLogTs || 0)) > 60000) {
+      if (window.__lastAccessLog !== chiave || (Date.now() - (window.__lastAccessLogTs || 0)) > 60000 || localStorage.getItem("rf_supporto")) {
         window.__lastAccessLog = chiave;
         window.__lastAccessLogTs = Date.now();
         const d = window.state?.dipendente;
