@@ -350,61 +350,7 @@ export async function render(container) {
           </div>
           <div class="icon">💬</div>
         </div>
-
-        <div class="card" id="card-social-users" onclick="window.location.hash='#/social-utenti'">
-          <div>
-            <div class="label">RistoflowBook</div>
-            <div class="title">Utenti Social</div>
-            <div style="font-size:11px;color:#7c3aed;margin-top:4px;font-weight:700;">${utentiSocial || 0} iscritti</div>
-          </div>
-          <div class="icon">&#127759;</div>
-        </div>
-
-        <div class="card dark" id="enter-operativo">
-          <div>
-            <div class="label">Operatività</div>
-            <div class="title">Entra nel gestionale</div>
-          </div>
-          <div class="icon">🧪</div>
-        </div>
-
-        <div class="card" id="card-prezzi" onclick="togglePrezzi()">
-          <div>
-            <div class="label">Sales Tool</div>
-            <div class="title">Piani & Prezzi</div>
-            <div style="font-size:11px;color:#7c3aed;margin-top:4px;font-weight:700;">Solo superadmin</div>
-          </div>
-          <div class="icon">💰</div>
-        </div>
-
-        <div class="card" onclick="window.location.hash='#/bo-onboarding'">
-          <div>
-            <div class="label">Onboarding</div>
-            <div class="title">Setup guidato</div>
-            <div style="font-size:11px;color:#059669;margin-top:4px;font-weight:700;">6 livelli · ~3h30</div>
-          </div>
-          <div class="icon">🚀</div>
-        </div>
-
-        <div class="card" onclick="toggleCRM()">
-          <div>
-            <div class="label">Vendita</div>
-            <div class="title">CRM Lead</div>
-            <div style="font-size:11px;color:#DC2626;margin-top:4px;font-weight:700;" id="crm-card-count">Caricamento...</div>
-          </div>
-          <div class="icon">🎯</div>
-        </div>
-
-        <div class="card" onclick="toggleAgenti()">
-          <div>
-            <div class="label">Rete vendita</div>
-            <div class="title">Programma Agenti</div>
-            <div style="font-size:11px;color:#7C3AED;margin-top:4px;font-weight:700;" id="agenti-card-count">Caricamento...</div>
-          </div>
-          <div class="icon">🤝</div>
-        </div>
-
-      </div>
+      </div><!-- fine strumenti: le altre schede sono salite in Vendita e Clienti -->
 
       <!-- PREZZI (hidden by default) -->
       <div id="prezzi-section" style="display:none;margin-top:8px;">
