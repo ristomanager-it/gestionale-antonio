@@ -63,9 +63,12 @@ export function provvigione(valoreAnnuo, tipoAgente, avvio) {
   const p = tipoAgente === 'segnalatore' ? _regole.perc_segnalatore : (avvio ? (_regole.perc_agente_avvio || _regole.perc_agente) : _regole.perc_agente);
   return Number(valoreAnnuo || 0) * Number(p || 0) / 100;
 }
-export function ricorrente(valoreAnnuo, tipoAgente) {
+// 17/11: mantenimento 5% sui primi 15 clienti paganti dell'agente, 7% dal sedicesimo (rango = posizione del cliente tra i suoi paganti)
+export function ricorrente(valoreAnnuo, tipoAgente, rango) {
   if (tipoAgente === 'segnalatore') return 0;
-  return Number(valoreAnnuo || 0) * Number(_regole.perc_ricorrente || 0) / 100;
+  const soglia = Number(_regole.soglia_clienti_alto || 0), alto = Number(_regole.perc_ricorrente_alto || 0);
+  const p = (soglia > 0 && alto > 0 && Number(rango) > soglia) ? alto : Number(_regole.perc_ricorrente || 0);
+  return Number(valoreAnnuo || 0) * p / 100;
 }
 export function premioMese(contratti) {
   const s = [...(_regole.premi_mese || [])].sort((a, b) => b.contratti - a.contratti).find(x => contratti >= x.contratti);
