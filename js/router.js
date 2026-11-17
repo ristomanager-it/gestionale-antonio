@@ -1875,6 +1875,21 @@ async function _resolve() {
     if (aziendaRes.redirected) return;
 
     if (aziendaRes.reason === "no_aziende") {
+      // Tecnico del supporto senza accesso assistito aperto: va alla sua home
+      try {
+        const { data: supSolo } = await supabase
+          .from("assistenza_operatori")
+          .select("user_id")
+          .eq("user_id", session.user.id)
+          .eq("attivo", true)
+          .maybeSingle();
+        if (supSolo) {
+          try { localStorage.removeItem("rf_supporto"); } catch (_) {}
+          window.location.hash = "#/home-supporto";
+          return;
+        }
+      } catch (e) { console.warn("Check supporto no_aziende:", e); }
+
       // Agente vendita "puro" (nessuna azienda): va alla sua home dedicata
       try {
         const { data: agSolo } = await supabase
