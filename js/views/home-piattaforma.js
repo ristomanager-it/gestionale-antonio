@@ -649,7 +649,39 @@ export async function render(container) {
   window.caricaLeadWA();
   caricaConversazioniWA();
   caricaMotori();
+  caricaRiepiloghi();
 }
+
+// 17/11: numeri delle righe chiuse, così si vede cosa c'è dentro senza aprirle
+async function caricaRiepiloghi() {
+  const sb = window.supabaseClient || supabase;
+  const RISTOFLOW_AZ = "a43d41b5-f4ac-494f-8144-6574347a754f";
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  const da30 = new Date(Date.now() - 30 * 864e5).toISOString();
+  try {
+    const [conv, nonLetti, lead, social, cand] = await Promise.all([
+      sb.from("whatsapp_messaggi").select("from_numero").eq("azienda_id", RISTOFLOW_AZ).gte("created_at", da30).limit(2000),
+      sb.from("whatsapp_messaggi").select("id", { count: "exact", head: true }).eq("azienda_id", RISTOFLOW_AZ).or("letto.is.null,letto.eq.false"),
+      sb.from("ristoflow_leads").select("id", { count: "exact", head: true }),
+      sb.from("clienti_profilo").select("id", { count: "exact", head: true }),
+      sb.from("agenti_candidati").select("id", { count: "exact", head: true }).eq("stato", "inserito"),
+    ]);
+    const nConv = new Set((conv.data || []).map(r => r.from_numero)).size;
+    set("ril-conv", nConv + " conversazioni in 30 gg" + (nonLetti.count ? " · " + nonLetti.count + " da leggere" : ""));
+    set("ril-lead", (lead.count || 0) + " totali");
+    set("ril-social", String(social.count || 0));
+    set("cand-card-count", cand.count ? cand.count + " da contattare" : "Nessuno da contattare");
+  } catch (e) { console.warn("riepiloghi", e); }
+}
+
+// Candidati: apre il Programma Agenti direttamente sulla scheda Candidati
+window.apriCandidati = function() {
+  const sec = document.getElementById('agenti-section');
+  if (!sec) return;
+  if (sec.style.display === 'none') { _agTabAttiva = 'candidati'; window.toggleAgenti(); }
+  window.switchTabAgenti('candidati');
+  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 
 // ── TAWK STATUS ───────────────────────────────────────────────────────────────
 function initTawkStatus() {
