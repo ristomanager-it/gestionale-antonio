@@ -4074,9 +4074,12 @@ export async function render(container) {
       return;
     }
     const nome = nomeTavolo(comandaAttiva.tavolo_id);
-    if (!confirm('Liberare il tavolo ' + nome + '?')) return;
+    if (!confirm('Liberare il tavolo ' + nome + '?\nNessun conto e nessuna stampa.')) return;
+    // annulla coperto e righe a zero rimaste, così il tavolo non finisce negli incassi
+    const daAnnullare = righeComanda.filter(r => r.stato !== 'annullato').map(r => r.id);
+    if (daAnnullare.length) await supa().from('comanda_righe').update({ stato: 'annullato' }).in('id', daAnnullare);
     const { error } = await supa().from('comande').update({
-      stato: 'chiusa', chiusa_at: new Date().toISOString(),
+      stato: 'chiusa', chiusa_at: new Date().toISOString(), totale: 0,
       note: [comandaAttiva.note, 'Liberato senza conto'].filter(Boolean).join(' · '),
       cameriere_chiusura: cameriereAttivo?.nome || null,
     }).eq('id', comandaAttiva.id);
