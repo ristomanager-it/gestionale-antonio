@@ -608,10 +608,9 @@ A presto 🤝</div>
     const nomeAz = {}; az.forEach(a => { nomeAz[a.id] = a.nome; });
     const dopo = (r) => {
       if (r.stato !== 'pagato') return '';
-      if (r.azienda_id) return '<div style="font-size:11px;color:#64748b;">' + escAg(nomeAz[r.azienda_id] || 'Azienda collegata') + ' · ' + (r.ruolo_agente === 'segnalatore' ? 'collegata da Ristoflow: 3%' : 'collegata da te: 10%, 15% se lo avvii entro 4 giorni') + '</div>';
-      return az.length
-        ? '<select data-ag-fo="' + r.id + '" style="margin-top:4px;max-width:100%;padding:5px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;"><option value="">Collega l\'azienda che hai creato…</option>' + opzAz + '</select>'
-        : '<div style="font-size:11px;color:#b45309;">Crea l\'azienda del locale e collegala qui: così il contratto è tuo (10%, 15% con avvio).</div>';
+      // 17/11: l'azienda la inserisce Ristoflow; chi la collega segna se l'agente ha presentato (3%) o venduto (10%)
+      if (r.azienda_id) return '<div style="font-size:11px;color:#64748b;">Inserita da Ristoflow · ' + (r.ruolo_agente === 'segnalatore' ? 'presentato da te: 3%' : 'venduto da te: 10%') + '</div>';
+      return '<div style="font-size:11px;color:#64748b;">Ristoflow inserisce l\'azienda del locale e te la collega.</div>';
     };
     const ST = { da_verificare: 'Da verificare', in_attesa_pagamento: 'In attesa di pagamento', pagato: 'Pagato ✓' };
     box.innerHTML = `
