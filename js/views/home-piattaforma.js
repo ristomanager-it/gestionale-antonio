@@ -133,6 +133,22 @@ export async function render(container) {
           </div>
           <div class="icon">🤝</div>
         </div>
+        <div class="card" data-route="gestioneWeddingPlanner">
+          <div>
+            <div class="label">Clienti</div>
+            <div class="title">Wedding Planner</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:700;">planner e accessi</div>
+          </div>
+          <div class="icon">💍</div>
+        </div>
+        <div class="card" data-route="gestionePiani">
+          <div>
+            <div class="label">Listino</div>
+            <div class="title">Piani abbonamento</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:700;">prezzi e moduli</div>
+          </div>
+          <div class="icon">💳</div>
+        </div>
         <div class="card" data-route="bo-assistenza">
           <div>
             <div class="label">Clienti</div>
