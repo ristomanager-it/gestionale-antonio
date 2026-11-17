@@ -385,6 +385,7 @@ const PLATFORM_ROUTES = new Set([
   "gestionePiani",
   "bo-evento",
   "bo-assistenza",
+  "registro-supporto",
 ]);
 
 const PREHOME_ROUTES = new Set([
