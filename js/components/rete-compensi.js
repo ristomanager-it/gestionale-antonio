@@ -164,6 +164,8 @@ function pannelloAdmin(r) {
     '<label>Agente con avvio in 4 giorni (%)<input id="rc-avvio" type="number" step="0.5" value="' + (r.perc_agente_avvio == null ? '' : r.perc_agente_avvio) + '"></label>' +
     '<label>Segnalatore (%)<input id="rc-segn" type="number" step="0.5" value="' + r.perc_segnalatore + '"></label>' +
     '<label>Sui rinnovi (%)<input id="rc-ric" type="number" step="0.5" value="' + r.perc_ricorrente + '"></label>' +
+    '<label>Rinnovi oltre la soglia (%)<input id="rc-ric-alto" type="number" step="0.5" value="' + (r.perc_ricorrente_alto == null ? '' : r.perc_ricorrente_alto) + '"></label>' +
+    '<label>Soglia: clienti paganti<input id="rc-soglia" type="number" step="1" value="' + (r.soglia_clienti_alto == null ? '' : r.soglia_clienti_alto) + '"></label>' +
     '<label>Anticipo mensile (€)<input id="rc-ant" type="number" step="50" value="' + r.anticipo_mensile + '"></label>' +
     '<label>Premi mensili (contratti=premio)<input id="rc-pm" class="lungo" value="' + esc(m) + '"></label>' +
     '<label>Premi annuali (venduto=premio)<input id="rc-pa" class="lungo" value="' + esc(a) + '"></label>' +
