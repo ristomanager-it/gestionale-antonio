@@ -379,6 +379,7 @@ const PUBLIC_ROUTES = new Set([
 const PLATFORM_ROUTES = new Set([
   "homePiattaforma",
   "consumiAI",
+  "bussolaPiattaforma",
   "gestioneAziende",
   "gestioneWeddingPlanner",
   "creaAzienda",
