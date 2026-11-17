@@ -95,6 +95,8 @@ export async function render(container) {
         <button id="btn-switch-azienda" class="switch-btn">Cambia</button>
       </div>
 
+      <!-- Bussola Ristoflow: quadrante del mese, si tocca e apre la pagina intera -->
+      <div id="bs-mini-home"></div>
       <!-- 17/11: pagina riordinata. Prima le cose di tutti i giorni (vendita, clienti), le liste lunghe chiuse
            in righe che si aprono con un tocco: su telefono la pagina era un muro di messaggi e Candidati non si trovava. -->
       <div class="kpi-section-label">💶 Numeri</div>
