@@ -4065,7 +4065,8 @@ export async function render(container) {
 
   // Libera: solo se non ci sono piatti da pagare (altrimenti si passa dal Conto o si sposta/abbina)
   async function liberaTavolo() {
-    const attive = righeComanda.filter(r => r.stato !== 'annullato');
+    // Il coperto automatico non conta: un tavolo aperto per sbaglio ha solo quello
+    const attive = righeComanda.filter(r => r.stato !== 'annullato' && !eCoperto(r));
     const tot = attive.reduce((s, r) => s + Number(r.prezzo_snapshot || 0) * Number(r.quantita || 1), 0);
     if (attive.length && tot > 0) {
       chiudiFoglio();
