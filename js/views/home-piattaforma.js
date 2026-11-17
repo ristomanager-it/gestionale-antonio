@@ -593,6 +593,16 @@ export async function render(container) {
       .card .title { font-size:15px; font-weight:700; color:#111827; }
       .card.dark .title { color:white; }
       .card .icon { font-size:28px; }
+      .kpi-bar { gap:8px; } .kpi { padding:10px 4px; } .kpi-val { font-size:20px; }
+      .grid { gap:10px; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); margin-bottom:6px; }
+      .card { padding:14px; border-radius:14px; } .card .icon { font-size:22px; }
+      .pf-det { background:white; border:1px solid #e5e7eb; border-radius:12px; margin-bottom:8px; }
+      .pf-det > summary { list-style:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; padding:12px 14px; font-weight:700; font-size:14px; }
+      .pf-det > summary::-webkit-details-marker { display:none; }
+      .pf-det > summary small { font-weight:600; color:#64748b; font-size:12px; text-align:right; }
+      .pf-det > summary small::after { content:' ›'; color:#94a3b8; }
+      .pf-det[open] > summary small::after { content:' ⌄'; }
+      .pf-det-body { padding:0 10px 10px; }
       .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }
       .hidden { display:none; }
       .modal-box { background:white; width:400px; max-height:80vh; border-radius:14px; padding:16px; overflow:auto; }
