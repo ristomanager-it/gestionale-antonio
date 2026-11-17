@@ -4,7 +4,7 @@
 import { sb, esc } from "../utils/assistenza.js";
 
 const quando = (ts) => new Date(ts).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
-const ICONE = { sessione_aperta: "🔑", sessione_chiusa: "🔒", pagina: "📄", modifica: "✏️", nota: "📝", operatore: "👤" };
+const ICONE = { sessione_aperta: "🔑", sessione_chiusa: "🔒", pagina: "📄", modifica: "✏️", nota: "📝", operatore: "👤", query: "🔎" };
 
 export async function render(container) {
   container.innerHTML = `
@@ -54,6 +54,7 @@ export async function render(container) {
       </div>
       <div class="rs-card" id="rs-dett"><h3>Dettaglio</h3><div style="color:#94A3B8;">Scegli una sessione</div></div>
     </div>
+    <div class="rs-card"><h3>Fuori dalle sessioni (letture del database, iscrizioni)</h3><div id="rs-fuori">…</div></div>
   </div>`;
 
   const $ = (s) => container.querySelector(s);
@@ -124,7 +125,7 @@ export async function render(container) {
         <b>Livello:</b> ${esc(s.livello)} · <b>Aperta:</b> ${quando(s.aperta_at)} ·
         ${s.chiusa_at ? `<b>Chiusa:</b> ${quando(s.chiusa_at)} (${esc(s.chiusa_motivo || "")})` : `<b style="color:#E66101;">aperta fino alle ${quando(s.scade_at)}</b>`}<br>
         ${s.esito ? `<b>Esito:</b> ${esc(s.esito)}<br>` : ""}
-        📄 ${n("pagina")} pagine · ✏️ ${n("modifica")} modifiche · 📝 ${n("nota")} note
+        📄 ${n("pagina")} pagine · ✏️ ${n("modifica")} modifiche · 🔎 ${n("query")} letture · 📝 ${n("nota")} note
       </div>
       ${s.chiusa_at ? "" : `<div class="rs-row" style="margin-top:8px;"><button class="rs-btn ross" id="rs-revoca">⛔ Revoca subito</button></div>`}
       <div style="margin-top:10px;">${(ev || []).map(evento).join("")}</div>`;
@@ -145,6 +146,7 @@ export async function render(container) {
     let testo = "";
     if (e.tipo === "pagina") testo = `ha aperto <b>${esc(d.route || d.hash || "")}</b>`;
     else if (e.tipo === "nota") testo = `nota: ${esc(d.testo || "")}`;
+    else if (e.tipo === "query") testo = `${d.rifiutata ? "<b style='color:#DC2626;'>query rifiutata</b>" : "ha letto il database"}<pre>${esc(d.sql || "")}</pre>`;
     else if (e.tipo === "sessione_aperta") testo = `entrato · ${esc(d.motivo || "")}`;
     else if (e.tipo === "sessione_chiusa") testo = `uscito · ${esc(d.motivo_chiusura || "")}${d.esito ? " · " + esc(d.esito) : ""} · ${d.durata_min ?? "?"} min`;
     else if (e.tipo === "modifica") {
@@ -155,6 +157,14 @@ export async function render(container) {
     return `<div class="rs-ev">${ic} <small style="color:#64748B;">${quando(e.created_at)}</small> ${testo}</div>`;
   }
 
+  async function caricaFuori() {
+    const { data } = await sb().from("supporto_registro").select("*").is("sessione_id", null)
+      .order("id", { ascending: false }).limit(60);
+    $("#rs-fuori").innerHTML = (data || []).map(e => `<div style="font-size:12px;color:#023C59;font-weight:700;margin-top:6px;">${esc(e.operatore_nome || "")}</div>` + evento(e)).join("")
+      || `<div style="color:#94A3B8;">Niente</div>`;
+  }
+
   await caricaTecnici();
   await caricaSessioni();
+  await caricaFuori();
 }
