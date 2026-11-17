@@ -110,6 +110,8 @@ const routes = {
 
   homePiattaforma: () => imp("./views/home-piattaforma.js"),
   "home-agente": () => imp("./views/home-agente.js"),
+  "home-supporto": () => imp("./views/home-supporto.js"),
+  "registro-supporto": () => imp("./views/registro-supporto.js"),
   "social-utenti": () => imp("./views/social-utenti.js"),
 
   creaAzienda: () => imp("./views/crea-azienda.js"),
