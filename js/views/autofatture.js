@@ -68,9 +68,9 @@ function disegna(container, aziendaId, nome, d) {
   // 3. carica PDF estero
   if (scrive) {
     h += card("Fattura estera da caricare",
-      '<label style="' + S.carica + '"><input type="file" id="af-file" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none">'
-      + '<b style="display:block;font-size:16px;margin-bottom:4px;">📄 Carica il PDF o una foto</b>'
-      + "Meta, Google, Booking e gli altri fornitori esteri non mandano la fattura allo SDI. Tony legge fornitore, numero, data e importo e prepara l'autofattura.</label>"
+      '<label style="' + S.carica + '"><input type="file" id="af-file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none">'
+      + '<b style="display:block;font-size:16px;margin-bottom:4px;">📄 Carica i PDF o le foto</b>'
+      + "Meta, Google, Booking e gli altri fornitori esteri non mandano la fattura allo SDI. Puoi selezionarne più di una insieme (es. tutte le ricevute Meta del mese): Tony le legge una per una e prepara le autofatture.</label>"
       + '<div id="af-file-esito" style="margin-top:10px;"></div>');
   }
 
@@ -140,17 +140,31 @@ function collega(container, aziendaId, d) {
   }));
 
   const file = container.querySelector("#af-file");
+  // piu' file insieme (Meta non manda mail: le ricevute del mese si scaricano e si caricano tutte qui)
+  // uno alla volta, cosi' Tony non riceve dieci letture in parallelo e l'esito di ognuno resta leggibile
   if (file) file.addEventListener("change", async () => {
-    const f = file.files && file.files[0];
+    const lista = Array.from(file.files || []);
     const out = container.querySelector("#af-file-esito");
-    if (!f) return;
-    if (f.size > 10 * 1024 * 1024) { out.innerHTML = avviso("File troppo grande: massimo 10 MB."); return; }
-    out.innerHTML = '<div style="' + S.aiuto + '">Tony sta leggendo la fattura…</div>';
-    const b64 = await new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result)); fr.onerror = ko; fr.readAsDataURL(f); });
-    const r = await chiama("fe-autofatture", { azione: "leggi_pdf", azienda_id: aziendaId, tipo_file: f.type || "application/pdf", file_base64: b64 });
-    if (!r.ok) { out.innerHTML = avviso(r.errore || "Non sono riuscito a leggerla"); return; }
-    out.innerHTML = (r.avvisi || []).map((a) => avviso(a)).join("") + '<div style="' + S.ok + '">Pronta: controlla i dati nella riga e invia.</div>';
-    setTimeout(ricarica, (r.avvisi && r.avvisi.length) ? 2500 : 900);
+    if (!lista.length) return;
+    const righe = [];
+    const mostra = (attesa) => { out.innerHTML = righe.join("") + (attesa ? '<div style="' + S.aiuto + '">' + attesa + "</div>" : ""); };
+    let pronte = 0, conAvvisi = false;
+    for (let i = 0; i < lista.length; i++) {
+      const f = lista[i];
+      const nome = esc(f.name || "file " + (i + 1));
+      mostra("Tony sta leggendo " + (lista.length > 1 ? (i + 1) + " di " + lista.length + ": " : "") + nome + "…");
+      if (f.size > 10 * 1024 * 1024) { righe.push(avviso(nome + ": troppo grande, massimo 10 MB.")); continue; }
+      const b64 = await new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result)); fr.onerror = ko; fr.readAsDataURL(f); });
+      const r = await chiama("fe-autofatture", { azione: "leggi_pdf", azienda_id: aziendaId, tipo_file: f.type || "application/pdf", file_base64: b64 });
+      if (!r.ok) { righe.push(avviso(nome + ": " + (r.errore || "non sono riuscito a leggerla"))); continue; }
+      if (r.gia) { righe.push('<div style="' + S.aiuto + '">' + nome + ": già caricata.</div>"); continue; }
+      pronte++;
+      (r.avvisi || []).forEach((a) => { conAvvisi = true; righe.push(avviso(nome + ": " + a)); });
+      righe.push('<div style="' + S.ok + '">' + nome + ": pronta.</div>");
+    }
+    file.value = "";
+    mostra(pronte ? (pronte === 1 ? "Controlla i dati nella riga e invia." : pronte + " bozze pronte: controllale e inviale.") : "");
+    if (pronte) setTimeout(ricarica, conAvvisi || lista.length > 1 ? 3500 : 900);
   });
 
   container.querySelectorAll("[data-bozza]").forEach((box) => {
