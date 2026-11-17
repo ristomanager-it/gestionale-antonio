@@ -230,6 +230,43 @@ export async function render(container) {
         </div>
       </div>
 
+      <!-- 17/11: le voci che stavano solo nel menu a tendina -->
+      <div class="kpi-section-label">🧠 Tony e servizi</div>
+      <div class="grid">
+        <div class="card" data-route="super-tony">
+          <div>
+            <div class="label">Assistente</div>
+            <div class="title">Super Tony</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:700;">assistente piattaforma</div>
+          </div>
+          <div class="icon">🧠</div>
+        </div>
+        <div class="card" data-route="consumiAI">
+          <div>
+            <div class="label">Costi</div>
+            <div class="title">Consumi AI</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:700;">chi consuma cosa</div>
+          </div>
+          <div class="icon">⚡</div>
+        </div>
+        <div class="card" data-route="agenzia-viaggi">
+          <div>
+            <div class="label">Italian Experience</div>
+            <div class="title">Agenzia viaggi</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:700;">pacchetti e tour</div>
+          </div>
+          <div class="icon">🚐</div>
+        </div>
+        <div class="card" data-route="voli-offerta">
+          <div>
+            <div class="label">Viaggi</div>
+            <div class="title">Voli in offerta</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:700;">ricerca voli</div>
+          </div>
+          <div class="icon">✈️</div>
+        </div>
+      </div>
+
       <div class="kpi-section-label">💬 Contatti e messaggi</div>
       <details class="pf-det">
         <summary><span>WhatsApp Ristoflow</span><small id="ril-conv">…</small></summary>
