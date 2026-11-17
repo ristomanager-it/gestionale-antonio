@@ -36,6 +36,7 @@ export async function render(container) {
     <div class="hs-tabs">
       <button data-t="entra" class="on">🔑 Entra in un'azienda</button>
       <button data-t="chat">💬 Chat clienti</button>
+      <button data-t="db">🔎 Database</button>
       <button data-t="mie">🕓 Le mie sessioni</button>
     </div>
     <div id="hs-corpo"></div>
@@ -139,6 +140,36 @@ export async function render(container) {
       <small>${esc(s.motivo)}${s.esito ? " → " + esc(s.esito) : ""}</small></div>`).join("") || "<div class='hs-s'>Nessuna sessione</div>"}</div>`;
   }
 
+  // Lettura del database: solo SELECT, senza chiavi e segreti, ogni query nel registro
+  async function disegnaDb() {
+    const corpo = $("#hs-corpo");
+    corpo.innerHTML = `
+      <div class="hs-card">
+        <h3>🔎 Database in sola lettura</h3>
+        <div class="hs-avv" style="margin:0 0 8px;">Solo SELECT, massimo 500 righe. Chiavi, password e token non si leggono:
+          scrivi le colonne che ti servono (niente <code>select *</code> sulle tabelle che li contengono). Ogni query resta nel registro.</div>
+        <textarea id="hs-sql" rows="6" style="font-family:ui-monospace,monospace;font-size:13px;" placeholder="select id, nome from sedi where azienda_id = '...'"></textarea>
+        <div class="hs-row"><button class="hs-btn blu" id="hs-esegui">▶ Esegui</button>
+          <button class="hs-btn" id="hs-copia">📋 Copia risultato</button><span id="hs-n" style="font-size:13px;color:#64748B;"></span></div>
+        <div id="hs-ris" style="overflow:auto;max-height:60vh;"></div>
+      </div>`;
+    let ultimo = [];
+    $("#hs-esegui").onclick = async () => {
+      const out = $("#hs-ris");
+      out.innerHTML = "…"; $("#hs-n").textContent = "";
+      const { data, error } = await sb().rpc("supporto_leggi", { p_sql: $("#hs-sql").value });
+      if (error) { out.innerHTML = `<div style="color:#DC2626;">${esc(error.message)}</div>`; return; }
+      ultimo = data || [];
+      $("#hs-n").textContent = `${ultimo.length} righe`;
+      if (!ultimo.length) { out.innerHTML = "<div style='color:#94A3B8;'>Nessuna riga</div>"; return; }
+      const cols = Object.keys(ultimo[0]);
+      const cella = (v) => esc(v === null ? "∅" : typeof v === "object" ? JSON.stringify(v) : String(v)).slice(0, 300);
+      out.innerHTML = `<table style="border-collapse:collapse;font-size:12.5px;"><tr>${cols.map(c => `<th style="text-align:left;padding:4px 8px;border-bottom:2px solid #E2E8F0;white-space:nowrap;">${esc(c)}</th>`).join("")}</tr>
+        ${ultimo.map(r => `<tr>${cols.map(c => `<td style="padding:4px 8px;border-bottom:1px solid #F1F5F9;vertical-align:top;">${cella(r[c])}</td>`).join("")}</tr>`).join("")}</table>`;
+    };
+    $("#hs-copia").onclick = () => navigator.clipboard?.writeText(JSON.stringify(ultimo, null, 1)).then(() => alert("Copiato: incollalo nella chat con Claude"));
+  }
+
   async function disegnaChat() {
     const corpo = $("#hs-corpo");
     corpo.innerHTML = "";
@@ -150,7 +181,7 @@ export async function render(container) {
   container.querySelectorAll(".hs-tabs button").forEach(b => b.onclick = () => {
     container.querySelectorAll(".hs-tabs button").forEach(x => x.classList.toggle("on", x === b));
     tab = b.dataset.t;
-    if (tab === "entra") disegnaEntra(); else if (tab === "chat") disegnaChat(); else disegnaMie();
+    if (tab === "entra") disegnaEntra(); else if (tab === "chat") disegnaChat(); else if (tab === "db") disegnaDb(); else disegnaMie();
   });
 
   await disegnaAttiva();
