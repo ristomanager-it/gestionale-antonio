@@ -1803,6 +1803,23 @@ async function _resolve() {
     return;
   }
 
+  // ── SUPPORTO TECNICO: home dedicata, nessuna azienda fissa (entra solo con accesso assistito) ──
+  if (route === "home-supporto") {
+    try {
+      const { data: opSup } = await supabase
+        .from("assistenza_operatori")
+        .select("user_id")
+        .eq("user_id", session.user.id)
+        .eq("attivo", true)
+        .maybeSingle();
+      if (opSup) {
+        setHeaderVisible(true);
+        await renderView("home-supporto");
+        return;
+      }
+    } catch (e) { console.warn("Check supporto:", e); }
+  }
+
   // ── AGENTE VENDITA: home dedicata, non servono aziende associate ──
   if (route === "home-agente") {
     try {
