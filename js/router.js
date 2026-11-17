@@ -532,7 +532,7 @@ async function renderView(routeName) {
   // del router, che rilegge aziende e sedi, invece di mostrare una pagina morta.
   if (window.state?.user && !window.state?.azienda?.id && !PUBLIC_ROUTES.has(routeName)
       && !PLATFORM_ROUTES.has(routeName) && !PREHOME_ROUTES.has(routeName)
-      && !["homePiattaforma", "home-agente", "login"].includes(routeName)
+      && !["homePiattaforma", "home-agente", "home-supporto", "login"].includes(routeName)
       && Date.now() - (window.__rfRecuperoTs || 0) > 5000) {
     window.__rfRecuperoTs = Date.now();
     app.innerHTML = `<div class="view" style="padding:40px;text-align:center;color:#64748b;">Un attimo…</div>`;
