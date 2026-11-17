@@ -54,6 +54,7 @@ export async function render(container) {
       </div>
       <div class="rs-card" id="rs-dett"><h3>Dettaglio</h3><div style="color:#94A3B8;">Scegli una sessione</div></div>
     </div>
+    <div class="rs-card"><h3>Correzioni al codice pubblicate (GitHub)</h3><div id="rs-pr">…</div></div>
     <div class="rs-card"><h3>Fuori dalle sessioni (letture del database, iscrizioni)</h3><div id="rs-fuori">…</div></div>
   </div>`;
 
@@ -164,7 +165,23 @@ export async function render(container) {
       || `<div style="color:#94A3B8;">Niente</div>`;
   }
 
+  // le PR unite sul repo: il supporto pubblica da solo, qui si vede cosa e quando (con link per annullare)
+  async function caricaPr() {
+    const box = $("#rs-pr");
+    try {
+      const r = await fetch("https://api.github.com/repos/ristomanager-it/gestionale-antonio/pulls?state=closed&per_page=30&sort=updated&direction=desc");
+      const pr = (await r.json()).filter(p => p.merged_at);
+      box.innerHTML = pr.map(p => `
+        <div class="rs-ev">🧩 <small style="color:#64748B;">${quando(p.merged_at)}</small>
+          <b>${esc(p.title)}</b> · ${esc(p.user?.login || "")}
+          · <a href="${esc(p.html_url)}" target="_blank" rel="noopener">PR #${p.number}</a>
+          · <a href="${esc(p.html_url)}/files" target="_blank" rel="noopener">cosa cambia</a></div>`).join("")
+        || `<div style="color:#94A3B8;">Nessuna correzione pubblicata dal supporto</div>`;
+    } catch (_) { box.innerHTML = `<div style="color:#94A3B8;">GitHub non raggiungibile</div>`; }
+  }
+
   await caricaTecnici();
   await caricaSessioni();
   await caricaFuori();
+  caricaPr();
 }
