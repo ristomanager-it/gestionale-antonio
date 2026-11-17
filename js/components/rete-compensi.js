@@ -194,6 +194,8 @@ export async function montaCompensi(el, opzioni) {
         perc_agente_avvio: 0,
         perc_segnalatore: Number(el.querySelector('#rc-segn').value) || 0,
         perc_ricorrente: Number(el.querySelector('#rc-ric').value) || 0,
+        perc_ricorrente_alto: Number(el.querySelector('#rc-ric-alto').value) || 0,
+        soglia_clienti_alto: Number(el.querySelector('#rc-soglia').value) || 0,
         anticipo_mensile: Number(el.querySelector('#rc-ant').value) || 0,
         premi_mese: leggiCoppie(el.querySelector('#rc-pm').value, 'contratti', 'premio'),
         premi_anno: leggiCoppie(el.querySelector('#rc-pa').value, 'venduto', 'premio'),
