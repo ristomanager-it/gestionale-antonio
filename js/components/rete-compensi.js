@@ -114,7 +114,7 @@ function contenuto(r) {
       (pa.length ? '<div class="rc-carta"><b>' + euro(pa[0].premio) + '</b><span>a fine anno con ' + euro(pa[0].venduto) + ' venduti' + (pa[1] ? '. ' + euro(pa[1].premio) + ' con ' + euro(pa[1].venduto) : '') + '</span></div>' : '') +
     '</div>' +
     '<p class="rc-p">' + (Number(r.anticipo_mensile) > 0 ? 'Anticipo mensile ' + euro(r.anticipo_mensile) + ', da scalare dalle provvigioni. ' : 'Nessun anticipo. ') +
-      (Number(r.perc_ricorrente) > 0 ? 'Sui rinnovi ' + perc(r.perc_ricorrente) + ' all\'anno, finché il cliente resta.' : 'La provvigione vale sul primo anno: sui rinnovi oggi è 0%.') + '</p>' +
+      'L\'azienda del cliente la inserisce Ristoflow, con una persona dedicata che segue anche l\'assistenza: tu pensi a presentare e a vendere.</p>' +
     '<h2 class="rc-h2">Quanto vale un contratto</h2>' +
     '<div class="rc-scroll"><table class="rc-t"><thead><tr><th>Pacchetto</th><th>Annuale a listino</th><th>Tu, a listino</th><th>Tu, con lancio</th><th>Segnalatore</th></tr></thead><tbody>' + righe + '</tbody></table></div>' +
     '<p class="rc-p">Più sconti, meno guadagni: la provvigione si calcola su quello che il cliente paga davvero.</p>' +
