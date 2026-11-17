@@ -139,6 +139,14 @@ export async function render(container) {
           </div>
           <div class="icon">💬</div>
         </div>
+        <div class="card" data-route="registro-supporto">
+          <div>
+            <div class="label">Clienti</div>
+            <div class="title">Supporto tecnico</div>
+            <div style="font-size:11px;color:#64748B;margin-top:4px;font-weight:700;">Tecnici, accessi e registro</div>
+          </div>
+          <div class="icon">🛟</div>
+        </div>
         <div class="card" data-route="bo-evento">
           <div>
             <div class="label">Eventi</div>
