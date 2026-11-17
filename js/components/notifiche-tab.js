@@ -20,6 +20,9 @@ function rottaNotifica(n) {
   if (tipo.indexOf("turni") >= 0) return "#/timbrature";
   if (tipo.indexOf("calendario") >= 0) return "#/bo-calendario";
   if (tipo.indexOf("produzion") >= 0) return "#/produzioni-aperte";
+  // 17/11: autofatture e fatture emesse che si fermano hanno la loro pagina
+  if (tipo.indexOf("autofattur") >= 0) return "#/autofatture";
+  if (tipo.indexOf("fattura_") === 0) return "#/fatture-emesse";
   if (tipo.indexOf("fattur") >= 0) return "#/acquisti";
   if (tipo.indexOf("preventiv") >= 0) return "#/preventivi";
   if (tipo.indexOf("recension") >= 0) return "#/recensioni-ricevute";

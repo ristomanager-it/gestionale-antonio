@@ -15,10 +15,14 @@ export async function render(container) {
   if (!aziendaId) { container.innerHTML = guscio("", avviso("Nessuna azienda attiva.")); return; }
   container.innerHTML = guscio("", '<div style="font-size:13px;color:#64748b;">Controllo le fatture ricevute&hellip;</div>');
 
-  const [r, az] = await Promise.all([
+  const [r, az, cas, arr] = await Promise.all([
     chiama("fe-autofatture", { azione: "elenco", azienda_id: aziendaId }),
     sb().from("aziende").select("nome, ragione_sociale").eq("id", aziendaId).maybeSingle(),
+    // casella dedicata alle fatture estere e cosa ci e' arrivato (fatture-estere-in)
+    sb().from("fe_caselle").select("email").eq("azienda_id", aziendaId).eq("attiva", true).not("email", "ilike", "%resend.app"),
+    sb().from("fe_caselle_arrivi").select("mittente, oggetto, ricevuta_il, esito").eq("azienda_id", aziendaId).order("ricevuta_il", { ascending: false }).limit(10),
   ]);
+  if (r && r.ok) { r.casella = (cas.data && cas.data[0] && cas.data[0].email) || ""; r.arrivi = arr.data || []; }
   const nome = (az.data && (az.data.ragione_sociale || az.data.nome)) || "";
   if (!r.ok) { container.innerHTML = guscio(esc(nome), avviso(r.errore || "Non riesco a caricare le autofatture.")); return; }
   disegna(container, aziendaId, nome, r);
@@ -46,7 +50,22 @@ function disegna(container, aziendaId, nome, d) {
   d.bozze.forEach((b) => { corpo += bozza(b, scrive); });
   h += card("Da fare" + (tot ? " · " + tot : ""), corpo);
 
-  // 2. carica PDF estero
+  // 2. casella delle fatture estere: l'indirizzo e le ultime mail arrivate
+  if (d.casella) {
+    let c = '<div style="background:#0f3b52;color:#fff;border-radius:12px;padding:12px 14px;">Inoltra o fai arrivare qui le fatture dei fornitori esteri'
+      + '<b style="display:block;font-family:ui-monospace,Menlo,monospace;font-size:15px;margin-top:4px;word-break:break-all;">' + esc(d.casella) + "</b>"
+      + '<small style="display:block;opacity:.8;margin-top:4px;">Stripe, Meta, Google, servizi online: ogni PDF lo legge Tony e diventa una bozza qui sopra. Te lo segnala anche con una notifica.</small></div>';
+    if (d.arrivi && d.arrivi.length) {
+      c += '<div style="margin-top:10px;">' + d.arrivi.map((a) => {
+        const ok = a.esito === "bozza pronta" || a.esito === "gia' caricata";
+        return '<div style="' + S.riga + '"><div>' + esc(a.mittente || "") + '<small style="' + S.small + '">' + esc(a.oggetto || "") + " · " + giorno(String(a.ricevuta_il).slice(0, 10)) + "</small></div>"
+          + pill(a.esito || "", ok ? "verde" : "giallo") + "</div>";
+      }).join("") + "</div>";
+    }
+    h += card("Arrivate per mail", c);
+  }
+
+  // 3. carica PDF estero
   if (scrive) {
     h += card("Fattura estera da caricare",
       '<label style="' + S.carica + '"><input type="file" id="af-file" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none">'
