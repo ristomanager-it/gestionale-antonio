@@ -161,7 +161,8 @@ function pannelloAdmin(r) {
   const a = [...(r.premi_anno || [])].map(x => x.venduto + '=' + x.premio).join(', ');
   return '<div class="rc-admin"><b>Solo per te: le regole</b>' +
     '<label>Provvigione agente, primo anno (%)<input id="rc-agente" type="number" step="0.5" value="' + r.perc_agente + '"></label>' +
-    '<label>Agente con avvio in 4 giorni (%)<input id="rc-avvio" type="number" step="0.5" value="' + (r.perc_agente_avvio == null ? '' : r.perc_agente_avvio) + '"></label>' +
+    // 17/11: niente piu' 15% con avvio, l'inserimento lo fa Ristoflow
+
     '<label>Segnalatore (%)<input id="rc-segn" type="number" step="0.5" value="' + r.perc_segnalatore + '"></label>' +
     '<label>Sui rinnovi (%)<input id="rc-ric" type="number" step="0.5" value="' + r.perc_ricorrente + '"></label>' +
     '<label>Rinnovi oltre la soglia (%)<input id="rc-ric-alto" type="number" step="0.5" value="' + (r.perc_ricorrente_alto == null ? '' : r.perc_ricorrente_alto) + '"></label>' +
