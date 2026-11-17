@@ -1213,7 +1213,7 @@ async function caricaMotori() {
             </tr>
           </thead>
           <tbody>
-            ${breakdownRows.map(r => `
+            ${breakdownRows.filter(r => r.pren || r.coperti || r.hotelNotti || r.tastingInc).map(r => `
               <tr style="border-bottom:1px solid #f9fafb;">
                 <td style="padding:8px;font-weight:600;color:#374151;">${r.nome}</td>
                 <td style="padding:8px;text-align:center;">${fmt(r.pren)}</td>
