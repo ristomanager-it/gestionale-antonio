@@ -395,7 +395,7 @@ const PREHOME_ROUTES = new Set([
   "completaAzienda",
 ]);
 
-const ROOT_ROUTES = new Set(["home", "homePiattaforma", "home-consulente", "home-commercialista", "home-agente"]);
+const ROOT_ROUTES = new Set(["home", "homePiattaforma", "home-consulente", "home-commercialista", "home-agente", "home-supporto"]);
 
 const BO_ROUTES = new Set([
   "bo-analytics",
