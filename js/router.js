@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=89";
+import { initMenu } from "./menu.js?v=90";
 import { appAttiva, rotteApp, avviaPallino, avviaControlloBlocco } from "./app-profili.js?v=4";
 window.initMenu = initMenu;
 
@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261117-03";
+const APP_V = "20261117-04";
 window.APP_V = APP_V;
 
 // ── AGGIORNAMENTO AUTOMATICO ──
@@ -183,6 +183,7 @@ const routes = {
   "fatturazione-impostazioni": () => imp("./views/fatturazione-impostazioni.js"),
   "autofatture": () => imp("./views/autofatture.js"),
   "fatture-emesse": () => imp("./views/fatture-emesse.js"),
+  "stripe-bonifici": () => imp("./views/stripe-bonifici.js"),
   "fatture-situazione": () => imp("./views/fatture-situazione.js"),
   // Modifica dei dati anagrafici ad azienda gia' attiva: stessa vista del wizard,
   // ma con un nome di rotta diverso da completaAzienda cosi' preferBozza non
@@ -1007,6 +1008,9 @@ const routePermissions = {
   "fatture-emesse":
     "acquisti.write",
 
+  "stripe-bonifici":
+    "acquisti.write",
+
   "fatture-situazione":
     "acquisti.write",
 
@@ -1120,6 +1124,7 @@ const routePermissions = {
       "acquisti",
       "autofatture",
       "fatture-emesse",
+      "stripe-bonifici",
       "fatture-situazione",
       "completa-profilo",
       "profilo",

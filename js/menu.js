@@ -521,6 +521,7 @@ export function initMenu() {
             { label: "Autofatture", route: "autofatture" },
           ] },
           { label: "🧾 Fatture emesse", route: "fatture-emesse" },
+          { label: "💳 Bonifici Stripe", route: "stripe-bonifici" },
           { label: "💰 Venduto",          route: "venduto"           },
           { label: "📈 Margini",          route: "margini"           },
           { label: "🍝 Food cost mancanti", route: "food-cost-mancanti" },
@@ -724,6 +725,7 @@ export function initMenu() {
             { label: "Autofatture", route: "autofatture" },
           ] },
           { label: "🧾 Fatture emesse", route: "fatture-emesse" },
+          { label: "💳 Bonifici Stripe", route: "stripe-bonifici" },
         ]
       });
       sections.push({
