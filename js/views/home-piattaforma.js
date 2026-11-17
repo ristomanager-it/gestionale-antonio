@@ -279,36 +279,14 @@ export async function render(container) {
         </div>
       </div>
 
-      <!-- LEAD WHATSAPP -->
-      <div class="kpi-section-label">📱 Lead WhatsApp Chatbot</div>
-      <div style="background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-          <div style="font-size:13px;color:#64748b;">Lead raccolti dal chatbot commerciale</div>
-          <div style="display:flex;gap:8px;">
-            <select id="lead-filtro-tipo" class="contatti-select" onchange="caricaLeadWA()">
-              <option value="">Tutti</option>
-              <option value="prova_gratuita">Prova gratuita</option>
-              <option value="demo">Demo</option>
-              <option value="consulente">Consulente</option>
-            </select>
-            <button onclick="esportaLeadWA()" class="contatti-export-btn">⬇️ CSV</button>
-          </div>
         </div>
-        <div id="lead-wa-list"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Caricamento...</div></div>
-      </div>
+      </details>
 
-      <!-- CONVERSAZIONI WHATSAPP -->
-      <div class="kpi-section-label">💬 Conversazioni WhatsApp</div>
-      <div style="background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-          <div style="font-size:13px;color:#64748b;">Messaggi in entrata al numero Ristoflow</div>
-          <input id="conv-search" placeholder="🔍 Cerca numero..." class="contatti-search" style="max-width:180px;" oninput="filtraConversazioni()"/>
-        </div>
-        <div id="conv-wa-list"><div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Caricamento...</div></div>
-      </div>
-
+      <div class="kpi-section-label">⚙️ Attività dei locali</div>
+      <details class="pf-det">
+        <summary><span>Questo mese</span><small id="m-riepilogo">…</small></summary>
+        <div class="pf-det-body">
       <!-- MOTORI DI RISTORAZIONE -->
-      <div class="kpi-section-label">⚙️ Motori di Ristorazione</div>
       <div style="background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;" id="motori-kpi">
           <div style="text-align:center;padding:12px;background:#f8fafc;border-radius:10px;">
