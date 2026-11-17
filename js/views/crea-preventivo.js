@@ -30,6 +30,10 @@ let apertoDettaglio = null;  // riga di cui si stanno guardando i conti di Tony
 let catNomi = new Map(); // categorie del ricettario: id -> nome e ordine, per dividere l'elenco dei piatti
 let sediAz = [];         // sedi dell'azienda: l'intestazione (logo) del documento e' quella della sede scelta
 let foto = [];           // immagini del preventivo: le nostre e quelle degli sposi
+// bozza sul telefono: Safari chiude le schede in background e il lavoro prima di "Salva" andava perso
+let bozzaChiave = null;  // dove sta la bozza di questo preventivo (per azienda, "nuovo" o id)
+let bozzaBase = "";      // com'era il preventivo all'apertura o all'ultimo salvataggio: uguale = niente da mettere da parte
+let bozzaDaOffrire = null; // bozza trovata all'apertura: si chiede se riprenderla, intanto non si sovrascrive
 
 const TIPI_EVENTO = ["Matrimonio", "Nozze d'oro", "Nozze d'argento", "Battesimo", "Comunione",
   "Cresima", "Compleanno", "Laurea", "Anniversario", "Cena aziendale", "Buffet", "Altro"];
@@ -106,6 +110,11 @@ export async function render(container, params = {}) {
 
   if (id) await caricaPreventivo(supabase, id);
   else nuovo(azienda, sede);
+  bozzaChiave = chiaveBozza(azienda.id, P?.id);
+  bozzaBase = fotografia();
+  bozzaDaOffrire = leggiBozza(bozzaChiave);
+  if (bozzaDaOffrire && bozzaDaOffrire.dati === bozzaBase) { buttaBozza(bozzaChiave); bozzaDaOffrire = null; }
+  ascoltaUscita();
 
   await calcolaPersonale(supabase, azienda);
   disegna(container, supabase, azienda, sede);
@@ -463,7 +472,7 @@ function disegna(container, supabase, azienda, sede) {
   const conRicetta = righe.filter(x => x.ricetta_id).length;
   const senzaRicetta = righe.filter(x => x.nome && !x.ricetta_id).length;
 
-  container.innerHTML = `
+  container.innerHTML = `${bannerBozza()}
     <div class="pv2">
 
       <aside class="pv2-lato noprint">
@@ -958,6 +967,26 @@ function avvisoCapienza(inv) {
 
 function aggancia(container, supabase, azienda, sede) {
   const ri = () => disegna(container, supabase, azienda, sede);
+  mettiDaParte();
+
+  // bozza trovata all'apertura: riprenderla rimette tutto com'era, scartarla la cancella
+  container.querySelector("#pv2-bozza-riprendi")?.addEventListener("click", async () => {
+    try {
+      const d = JSON.parse(bozzaDaOffrire.dati);
+      P = d.P; righe = d.righe || []; extra = d.extra || []; stime = d.stime || {};
+    } catch (e) { /* bozza rovinata: si resta sul preventivo com'era */ }
+    bozzaDaOffrire = null;
+    await calcolaPersonale(supabase, azienda);
+    ri();
+  });
+  container.querySelector("#pv2-bozza-scarta")?.addEventListener("click", () => {
+    buttaBozza(bozzaChiave); bozzaDaOffrire = null; ri();
+  });
+  // i campi di testo si mettono da parte mentre si scrive: "change" arriva solo quando si esce dal campo
+  container.querySelectorAll("input[data-campo], textarea[data-campo]").forEach(el => {
+    if (["number", "checkbox", "radio"].includes(el.type)) return;
+    el.addEventListener("input", () => { P[el.dataset.campo] = el.value; mettiDaParte(); });
+  });
 
   // isole del buffet (matrimoni): "Scegli le portate" apre l'elenco dell'isola; le scelte diventano righe del menu
   container.querySelectorAll("[data-scegli]").forEach(b => b.addEventListener("click", async () => {
@@ -1667,6 +1696,9 @@ async function salva(container, supabase, azienda, sede) {
       .select("id, nome, costo_porzione, costo_materia_prima, porzioni, categoria_portata_id, attivo").eq("azienda_id", azienda.id).limit(3000);
     ricette = rr || ricette;
   }
+  // salvato: la bozza sul telefono non serve piu', e da qui si confronta con il salvato
+  buttaBozza(chiaveBozza(azienda.id, null)); buttaBozza(chiaveBozza(azienda.id, id));
+  bozzaChiave = chiaveBozza(azienda.id, id); bozzaBase = fotografia(); bozzaDaOffrire = null;
   disegna(container, supabase, azienda, sede);
   msg(container, create
     ? `Salvato. ${create === 1 ? "Un piatto è entrato" : create + " piatti sono entrati"} in ricettario come bozza` +
@@ -1675,6 +1707,50 @@ async function salva(container, supabase, azienda, sede) {
 }
 
 /* ── utilità ─────────────────────────────────────────────────────────── */
+
+// ---- bozza sul telefono ----
+function chiaveBozza(aziendaId, id) { return "rf_pv_bozza_" + aziendaId + "_" + (id || "nuovo"); }
+function fotografia() { return JSON.stringify({ P, righe, extra, stime }); }
+function leggiBozza(k) {
+  try { const x = JSON.parse(localStorage.getItem(k) || "null"); return x && x.dati ? x : null; } catch (e) { return null; }
+}
+function buttaBozza(k) { try { localStorage.removeItem(k); } catch (e) { /* niente */ } }
+function mettiDaParte() {
+  if (!bozzaChiave || bozzaDaOffrire || !P) return;   // finche' non si decide, la bozza trovata non si tocca
+  try {
+    const f = fotografia();
+    if (f === bozzaBase) localStorage.removeItem(bozzaChiave);
+    else localStorage.setItem(bozzaChiave, JSON.stringify({ quando: Date.now(), dati: f }));
+  } catch (e) { /* memoria piena o navigazione privata: si lavora come prima */ }
+}
+// telefono in tasca o cambio app: si chiude il campo aperto (cosi' entra nel preventivo) e si mette da parte
+let ascoltaUscitaFatto = false;
+function ascoltaUscita() {
+  if (ascoltaUscitaFatto) return;
+  ascoltaUscitaFatto = true;
+  const via = () => {
+    const pv = document.querySelector(".pv2");
+    if (!pv) return;
+    if (pv.contains(document.activeElement)) { try { document.activeElement.blur(); } catch (e) { /* niente */ } }
+    mettiDaParte();
+  };
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") via(); });
+  window.addEventListener("pagehide", via);
+}
+function bannerBozza() {
+  if (!bozzaDaOffrire) return "";
+  const d = new Date(bozzaDaOffrire.quando);
+  const oggi = new Date().toDateString() === d.toDateString();
+  const quando = (oggi ? "oggi" : d.toLocaleDateString("it-IT", { day: "numeric", month: "short" })) + " alle " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+  let chi = "";
+  try { const b = JSON.parse(bozzaDaOffrire.dati).P || {}; chi = [b.cliente_nome, b.cliente_cognome].filter(Boolean).join(" ") || b.cliente_ragione_sociale || ""; } catch (e) { /* niente */ }
+  return `<div class="noprint" style="margin:0 0 12px;padding:12px 14px;border-radius:12px;background:#fffbeb;border:1px solid #fcd34d;">
+    <div style="font-weight:600;">📝 Hai un preventivo lasciato a metà${chi ? " (" + esc(chi) + ")" : ""}, ${quando}, non salvato.</div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+      <button id="pv2-bozza-riprendi" class="btn" style="padding:9px 14px;border-radius:10px;border:none;background:#0E5A7A;color:#fff;font-weight:600;">Riprendilo</button>
+      <button id="pv2-bozza-scarta" class="btn" style="padding:9px 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;">Scarta</button>
+    </div></div>`;
+}
 
 // dati per la fattura dell'acconto (parte da sola all'incasso): privato o azienda.
 // Se manca qualcosa la fattura nasce in bozza e lo dice: meglio scriverli qui col cliente davanti.
