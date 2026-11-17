@@ -82,14 +82,17 @@ function disegna(container, aziendaId, nome, d) {
   }
 
   // 4. registro
-  const reg = d.emesse.map((e) => ({ numero: e.numero, data: e.data, fornitore: e.fornitore, imponibile: e.imponibile, iva: e.iva, stato: e.stato, chi: e.inviata_da }))
+  const reg = d.emesse.map((e) => ({ id: e.id, numero: e.numero, data: e.data, fornitore: e.fornitore, imponibile: e.imponibile, iva: e.iva, stato: e.stato, chi: e.inviata_da }))
     .concat(d.registro.filter((c) => !c.da_ristoflow).map((c) => ({ numero: c.numero, data: c.data, fornitore: c.fornitore, imponibile: c.imponibile, iva: c.iva, stato: "fuori" })))
     .sort((a, b) => String(b.data).localeCompare(String(a.data)));
   h += card("Registro", reg.length
     ? reg.slice(0, 60).map((e) => '<div style="' + S.riga + '"><div>' + esc(e.numero || "") + " · " + esc(e.fornitore) + " · " + giorno(e.data)
         + '<small style="' + S.small + '">' + euro(e.imponibile) + " + IVA " + euro(e.iva)
-        + (e.stato === "fuori" ? " · fatta fuori da Ristoflow" : e.chi ? " · inviata da " + (e.chi === "commercialista" ? "lo studio" : "l'azienda") : "") + "</small></div>"
-        + statoPill(e.stato) + "</div>").join("")
+        + (e.stato === "fuori" ? " · fatta fuori da Ristoflow" : e.chi ? " · inviata da " + (e.chi === "commercialista" ? "lo studio" : "l'azienda") : "") + "</small>"
+        // fatte da Ristoflow: si leggono in PDF e si scarica l'XML trasmesso
+        + (e.id ? '<div style="display:flex;gap:6px;margin-top:6px;"><button type="button" data-vedi="' + e.id + '" style="' + S.btnSec + 'padding:6px 10px;font-size:13px;">Vedi</button>'
+          + '<button type="button" data-xml="' + e.id + '" style="' + S.btnSec + 'padding:6px 10px;font-size:13px;">Scarica XML</button></div>' : "")
+        + "</div>" + statoPill(e.stato) + "</div>").join("")
     : '<div style="' + S.aiuto + '">Nessuna autofattura ancora.</div>');
 
   if (d.non_esaminate > 0) h += '<div style="' + S.aiuto + '">Restano ' + d.non_esaminate + " fatture ricevute da controllare: riapri la pagina tra poco.</div>";
@@ -131,6 +134,19 @@ function bozza(b, scrive) {
 function collega(container, aziendaId, d) {
   const esitoGen = container.querySelector("#af-esito");
   const ricarica = () => render(container);
+
+  // vedi PDF / scarica XML: la finestra si apre subito al tocco (Safari blocca quelle aperte dopo un'attesa)
+  const apri = async (b, id, quale) => {
+    const testo = b.textContent; b.disabled = true; b.textContent = "Preparo…";
+    const w = quale === "pdf" ? window.open("", "_blank") : null;
+    const x = await chiama("fe-vendita", { azione: "documento", azienda_id: aziendaId, fattura_id: id });
+    b.disabled = false; b.textContent = testo;
+    const url = x.ok ? (quale === "pdf" ? x.pdf_url : x.xml_url) : null;
+    if (!url) { if (w) w.close(); esitoGen.innerHTML = avviso(x.errore || (quale === "xml" ? "XML non trovato" : "PDF non disponibile")); return; }
+    if (w) w.location.href = url; else window.location.href = url;
+  };
+  container.querySelectorAll("[data-vedi]").forEach((b) => b.addEventListener("click", () => apri(b, b.dataset.vedi, "pdf")));
+  container.querySelectorAll("[data-xml]").forEach((b) => b.addEventListener("click", () => apri(b, b.dataset.xml, "xml")));
 
   container.querySelectorAll("[data-prepara]").forEach((btn) => btn.addEventListener("click", async () => {
     btn.disabled = true; btn.textContent = "Preparo…";
