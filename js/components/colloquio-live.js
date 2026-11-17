@@ -32,11 +32,43 @@ const PRATICHE = [
   { k: "p8", domanda: "Hai l'attestato HACCP valido?", perche: "È obbligatorio per chi tocca alimenti.", buona: "Sì, con la data di scadenza nella nota.", campanello: "No: va fatto prima di iniziare." },
   { k: "p9", domanda: "Hai già lavorato su eventi grandi, come matrimoni o banchetti da 100 persone in su?", perche: "Grandi numeri e ritmo dei ricevimenti.", buona: "Sì: dove, quante volte, con che ruolo.", campanello: "Solo ristorante alla carta, e non lo incuriosisce." },
 ];
-const GRUPPI = { pratiche: "Informazioni pratiche", lui: "Su di lui", mestiere: "Di mestiere", dubbi: "Da chiarire", extra: "Fuori dal lavoro" };
+// 2° colloquio (17/11): non si ripete il primo. Si riprende quello che non ha convinto, poi situazioni vere, poi la proposta.
+const SITUAZIONI = [
+  { k: "s1", domanda: "Matrimonio da 150: il secondo esce in ritardo di 20 minuti e la sala ti mette fretta. Cosa fai?", perche: "Sangue freddo e comunicazione sotto pressione.", buona: "Avvisa il responsabile, riorganizza, dice alla sala tempi veri, non improvvisa sulla qualità.", campanello: "Se la prende con la sala, oppure esce piatti fatti male pur di correre." },
+  { k: "s2", domanda: "Un collega più anziano ti dice di fare in un modo diverso da quello che ti ho detto io. Cosa fai?", perche: "Rispetto delle indicazioni e dei colleghi.", buona: "Fa come indicato dal responsabile e chiarisce con calma, senza scontri.", campanello: "Segue chi urla di più, oppure fa di testa sua." },
+  { k: "s3", domanda: "A fine servizio ti accorgi di aver sbagliato le etichette di tre teglie. Lo dici?", perche: "Onestà sugli errori: in cucina è sicurezza alimentare.", buona: "Sì, subito, e le corregge.", campanello: "Esita, minimizza o dice che non è grave." },
+  { k: "s4", domanda: "Un cliente straniero chiede un piatto senza glutine. Spiegagli cosa può mangiare (in inglese, se è di sala).", perche: "Allergeni, lingue e cura del cliente.", buona: "Chiede, verifica in cucina, spiega con chiarezza e senza promettere quello che non è sicuro.", campanello: "\"Sì sì, va bene tutto\" senza verificare." },
+];
+const PROPOSTA = [
+  { k: "o1", domanda: "Gli ho spiegato ruolo, orari e turnazione.", perche: "Deve sapere esattamente cosa lo aspetta.", buona: "", campanello: "" },
+  { k: "o2", domanda: "Gli ho spiegato contratto nazionale, tredicesima e quattordicesima, bonus.", perche: "Condizioni chiare prima della prova.", buona: "", campanello: "" },
+  { k: "o3", domanda: "Gli ho detto in cosa consiste la prova pratica e quando.", perche: "Così arriva preparato.", buona: "", campanello: "" },
+  { k: "o4", domanda: "Cosa ha chiesto lui? Ha dubbi sulla proposta?", perche: "Chi chiede di turni, crescita e squadra ragiona diversamente da chi chiede solo dei soldi.", buona: "Domande sul lavoro, sulla squadra, su come crescere. Scrivile nella nota.", campanello: "Nessuna domanda, oppure solo sullo stipendio." },
+];
+const SINO = { pratiche: 1, proposta: 1 };
+const GRUPPI = { riprendere: "Da riprendere dal colloquio prima", pratiche: "Informazioni pratiche", situazioni: "Situazioni vere", proposta: "La proposta", lui: "Su di lui", mestiere: "Di mestiere", dubbi: "Da chiarire", extra: "Fuori dal lavoro" };
 const ESITI = { secondo_colloquio: "Secondo colloquio", prova: "Prova pratica", non_idoneo: "Non idoneo" };
 
 const sb = () => window.supabaseClient || window.supabase;
 const esc = (v) => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// 2° colloquio e successivi: le domande andate male o rimaste aperte, con la nota di allora
+function vociSeguito(prec) {
+  const out = [], visti = {};
+  (prec || []).forEach((c) => (c.voci || []).forEach((v) => {
+    if (v.g === "proposta" || v.g === "situazioni") return;
+    const aperta = v.g === "dubbi" ? v.esito !== "bene" : v.esito === "male";
+    if (v.g === "pratiche") { if (v.esito !== "bene" && !visti[v.k]) { visti[v.k] = 1; out.push(Object.assign({}, v, { esito: null, nota: v.nota || "" })); } return; }
+    if (v.g === "riprendere" || aperta) {
+      const k = v.g === "riprendere" ? v.k : "r" + c.numero + "_" + v.k;
+      if (visti[k]) return; visti[k] = 1;
+      out.push({ k: k, g: "riprendere", domanda: v.domanda, perche: (v.nota ? "Al " + c.numero + "° colloquio: " + v.nota + ". " : "") + "Chiedi un esempio concreto, non la stessa domanda.", buona: v.buona || "", campanello: v.campanello || "", esito: null, nota: "" });
+    }
+  }));
+  SITUAZIONI.forEach((q) => out.push(Object.assign({ g: "situazioni", esito: null, nota: "" }, q)));
+  PROPOSTA.forEach((q) => out.push(Object.assign({ g: "proposta", esito: null, nota: "" }, q)));
+  return out;
+}
 
 function vociDa(rel) {
   const r = rel || {}, out = [];
@@ -86,7 +118,7 @@ export async function apriColloquioLive(candidaturaId, opts) {
   let colloqui = kr.data || [];
   // colloquio aperto: l'ultimo senza esito; se non c'è (o l'ultimo ha esito "secondo colloquio") se ne prepara uno nuovo
   let cur = colloqui.length && !colloqui[colloqui.length - 1].esito ? colloqui[colloqui.length - 1] : null;
-  const nuovo = () => ({ id: null, azienda_id: cand.azienda_id, candidatura_id: cand.id, numero: (colloqui.length ? colloqui[colloqui.length - 1].numero : 0) + 1, appuntamento_id: opts.appuntamentoId || null, voci: vociDa(rel), note: "", esito: null });
+  const nuovo = () => ({ id: null, azienda_id: cand.azienda_id, candidatura_id: cand.id, numero: (colloqui.length ? colloqui[colloqui.length - 1].numero : 0) + 1, appuntamento_id: opts.appuntamentoId || null, voci: colloqui.length ? vociSeguito(colloqui) : vociDa(rel), note: "", esito: null });
   if (!cur && (!colloqui.length || colloqui[colloqui.length - 1].esito === "secondo_colloquio")) cur = nuovo();
   let vedi = cur || colloqui[colloqui.length - 1];
   let stato = "", timer = null;
@@ -104,13 +136,17 @@ export async function apriColloquioLive(candidaturaId, opts) {
   const salvaPoi = () => { clearTimeout(timer); timer = setTimeout(salva, 700); };
   function segnaStato() { const s = ov.querySelector("#cl-sv"); if (s) s.textContent = stato; }
 
+  // per la prova: vale l'ultimo giudizio su ogni domanda (se al 2° colloquio è andata bene, esce dalla lista)
   function perLaProva() {
-    const righe = [];
+    const m = new Map();
     colloqui.concat(cur && !colloqui.includes(cur) ? [cur] : []).forEach((c) => (c.voci || []).forEach((v) => {
-      if (v.esito === "male" && v.g !== "pratiche") righe.push("❌ " + (c.numero > 1 ? "(" + c.numero + "° coll.) " : "") + v.domanda + (v.nota ? " — " + v.nota : ""));
-      else if (v.g === "dubbi" && v.esito !== "bene") righe.push("❓ " + v.domanda + (v.nota ? " — " + v.nota : ""));
+      if (SINO[v.g] || v.g === "situazioni" && v.esito !== "male") return;
+      const chiave = v.domanda;
+      if (v.esito === "bene") { m.delete(chiave); return; }
+      if (v.esito === "male") m.set(chiave, "❌ " + (c.numero > 1 ? "(" + c.numero + "° coll.) " : "") + v.domanda + (v.nota ? " — " + v.nota : ""));
+      else if ((v.g === "dubbi" || v.g === "riprendere") && !m.has(chiave)) m.set(chiave, "❓ " + v.domanda + (v.nota ? " — " + v.nota : ""));
     }));
-    return righe;
+    return [...m.values()];
   }
 
   let htmlProvaG = () => "";
@@ -123,14 +159,14 @@ export async function apriColloquioLive(candidaturaId, opts) {
     const tutti = colloqui.concat(cur && !colloqui.includes(cur) ? [cur] : []);
     if (tutti.length > 1) h += '<div class="tab">' + tutti.map((c) => '<button data-n="' + c.numero + '" class="' + (c === vedi ? "on" : "") + '">' + c.numero + "° " + (c.esito ? "· " + ESITI[c.esito] : c === cur ? "· in corso" : "") + "</button>").join("") + "</div>";
     h += "</div>";
-    if (!voci.length || !(rel.domande_colloquio || rel.domande_mestiere)) h += '<div class="box info">Tony non ha ancora preparato la scheda per questo candidato: ci sono solo le domande fuori dal lavoro.</div>';
+    if (vedi.numero === 1 && !(rel.domande_colloquio || rel.domande_mestiere)) h += '<div class="box info">Tony non ha ancora preparato la scheda per questo candidato: ci sono solo le domande fuori dal lavoro.</div>';
     Object.keys(GRUPPI).forEach((g) => {
       const vv = voci.map((v, i) => [v, i]).filter((x) => x[0].g === g);
       if (!vv.length) return;
       h += '<div class="box"><div class="sez">' + GRUPPI[g] + "</div>" + vv.map(([v, i]) =>
         '<div class="v"><div class="q">' + esc(v.domanda) + "</div>" + (v.perche ? '<div class="p">Perché: ' + esc(v.perche) + "</div>" : "") +
         (v.buona ? '<div class="ok">✅ ' + esc(v.buona) + "</div>" : "") + (v.campanello ? '<div class="ko">⚠️ ' + esc(v.campanello) + "</div>" : "") +
-        '<div class="bt"><button class="b' + (v.esito === "bene" ? " on" : "") + '" data-i="' + i + '" data-e="bene"' + (ro ? " disabled" : "") + '>' + (v.g === "pratiche" ? "✅ Sì" : "✅ Bene") + '</button><button class="m' + (v.esito === "male" ? " on" : "") + '" data-i="' + i + '" data-e="male"' + (ro ? " disabled" : "") + ">" + (v.g === "pratiche" ? "❌ No" : "❌ Male") + "</button></div>" +
+        '<div class="bt"><button class="b' + (v.esito === "bene" ? " on" : "") + '" data-i="' + i + '" data-e="bene"' + (ro ? " disabled" : "") + '>' + (SINO[v.g] ? "✅ Sì" : "✅ Bene") + '</button><button class="m' + (v.esito === "male" ? " on" : "") + '" data-i="' + i + '" data-e="male"' + (ro ? " disabled" : "") + ">" + (SINO[v.g] ? "❌ No" : "❌ Male") + "</button></div>" +
         '<input class="n" data-nota="' + i + '" placeholder="Nota (facoltativa)" value="' + esc(v.nota) + '"' + (ro ? " disabled" : "") + "></div>").join("") + "</div>";
     });
     h += '<div class="box"><div class="sez">Note sul colloquio</div><textarea id="cl-note" rows="3" placeholder="Impressione generale, cosa ti ha colpito, cosa non ti ha convinto"' + (ro ? " disabled" : "") + ">" + esc(vedi.note || "") + "</textarea></div>";
