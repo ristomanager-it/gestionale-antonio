@@ -16,5 +16,6 @@
 ## Controlli
 - [ ] `APP_V` in js/router.js e `router.js?v=` in index.html aggiornati
 - [ ] `node --check` sui file JS toccati
-- [ ] Modifiche al database come file in `supabase/migrations/` (non applicate da me)
+- [ ] Modifiche al database o alle Edge Function: nessuna (oppure file nella PR e Antonio avvisato)
+- [ ] Dopo l'unione: verificato dal cliente che funziona
 - [ ] Nessuna chiave, token o password nel codice
