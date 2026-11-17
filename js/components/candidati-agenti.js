@@ -77,7 +77,7 @@ export async function montaCandidati(el) {
     <div style="font-weight:800">✉️ Scrivi ai selezionati: <span id="ca-n">${_sel.size}</span></div>
     <div style="margin:8px 0">${Object.keys(MODELLI).map(k => '<button data-cm="' + k + '" style="border:1.5px solid ' + (k === _modello ? '#0E5A7A' : '#e2e8f0') + ';color:' + (k === _modello ? '#0E5A7A' : '#475569') + ';background:#fff;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:' + (k === _modello ? 700 : 500) + ';cursor:pointer;margin:2px">' + MODELLI[k].nome + '</button>').join('')}</div>
     <textarea id="ca-testo" rows="5" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #cbd5e1;border-radius:10px;font:inherit">${esc(MODELLI[_modello].testo)}</textarea>
-    <div style="font-size:12px;color:#64748b">{nome} diventa il nome di ogni candidato.</div>
+    <div style="font-size:12px;color:#64748b">{nome} diventa il nome del candidato, {referente} il nome di chi l'ha presentato.</div>
     <div style="margin:10px 0;display:flex;gap:16px;flex-wrap:wrap">
       <label><input type="checkbox" id="ca-wa" checked> WhatsApp</label>
       <label><input type="checkbox" id="ca-em" checked> Email</label>
