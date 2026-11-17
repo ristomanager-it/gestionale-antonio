@@ -1,0 +1,88 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex">
+<title>Candidati agenti · Ristoflow</title>
+<!-- rf-senza-contatore: pagina privata con codice personale del referente, non e' una landing -->
+<!-- 17/11/2026: pagina per chi ci presenta candidati agenti (oggi Fabio). Niente login: il codice nel link basta,
+     e mostra solo i candidati inseriti da quel link. Le funzioni del database controllano il codice. -->
+<style>
+:root{--ac:#0E5A7A;--bg:#f3f1ec;--c:#fff;--t:#14161a;--m:#5b5750;--b:#e4e0d8;--ok:#15803d;--er:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.5 -apple-system,system-ui,Segoe UI,Roboto,Arial,sans-serif;padding-bottom:env(safe-area-inset-bottom,0)}
+.w{max-width:520px;margin:0 auto;padding:22px 16px 48px}
+.logo{font-weight:800;color:var(--ac);font-size:13px;letter-spacing:.12em}
+h1{font-size:26px;margin:6px 0 4px}.m{color:var(--m);font-size:14px}
+.card{background:var(--c);border:1px solid var(--b);border-radius:16px;padding:16px;margin-top:16px}
+label{display:block;font-size:13px;color:var(--m);margin:12px 0 4px}
+input,textarea{width:100%;font:inherit;border:1.5px solid var(--b);border-radius:10px;padding:11px 12px;background:#fafafa;color:var(--t)}
+textarea{min-height:70px;resize:vertical}
+.si{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:14px}.si input{width:22px;height:22px;flex:0 0 auto;margin-top:1px}
+button{width:100%;margin-top:16px;background:var(--ac);color:#fff;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6}
+.esito{margin-top:10px;font-size:14px;font-weight:600}.ok{color:var(--ok)}.er{color:var(--er)}
+.r{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);font-size:15px}.r:last-child{border-bottom:0}
+.r small{display:block;color:var(--m);font-size:12px}
+.b{font-size:11px;font-weight:700;border-radius:20px;padding:3px 9px;white-space:nowrap;align-self:center}
+.inserito{background:#e2e8f0;color:#334155}.invitato{background:#ede9fe;color:#5b21b6}.confermato{background:#dcfce7;color:#166534}.attivo{background:#dbeafe;color:#1e40af}.non_interessato{background:#f1f5f9;color:#64748b}
+.hide{display:none}
+</style></head><body><div class="w">
+<div class="logo">RISTOFLOW</div>
+<h1 id="ciao">Candidati agenti</h1>
+<div class="m">Inserisci le persone che vuoi presentare come agenti Ristoflow. Le contattiamo noi, e ti mettiamo sempre in copia.</div>
+<div id="errore" class="card er hide"></div>
+<form id="f" class="card hide" autocomplete="off">
+  <label for="nome">Nome</label><input id="nome" required>
+  <label for="cognome">Cognome</label><input id="cognome">
+  <label for="tel">Telefono (WhatsApp)</label><input id="tel" type="tel" inputmode="tel">
+  <label for="email">Email</label><input id="email" type="email" inputmode="email">
+  <label for="zona">Zona</label><input id="zona" placeholder="Es. Viterbo e provincia">
+  <label for="settore">Cosa vende oggi, per chi lavora</label><input id="settore" placeholder="Es. forniture alimentari, bevande, attrezzature">
+  <label for="note">Note per noi</label><textarea id="note" placeholder="Facoltative"></textarea>
+  <label class="si"><input id="sa" type="checkbox"> <span>Il candidato sa che lo contatterà Ristoflow</span></label>
+  <button id="invia" type="submit">Inserisci il candidato</button>
+  <div id="esito" class="esito"></div>
+</form>
+<div id="lista" class="card hide"></div>
+</div>
+<script>
+(function(){
+  var URL = "https://cuhcscpvhypoaplcmtjk.supabase.co/rest/v1/rpc/";
+  var A = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var codice = new URLSearchParams(location.search).get("k") || "";
+  var STATI = { inserito: "Inserito", invitato: "Invitato", confermato: "Confermato", attivo: "Agente attivo", non_interessato: "Non interessato" };
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function rpc(nome, corpo){
+    return fetch(URL + nome, { method: "POST", headers: { "apikey": A, "Authorization": "Bearer " + A, "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
+      .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error((j && (j.message || j.hint)) || "Errore"); return j; }); });
+  }
+  function errore(t){ $("errore").textContent = t; $("errore").classList.remove("hide"); $("f").classList.add("hide"); $("lista").classList.add("hide"); }
+  function carica(){
+    return rpc("referente_candidati", { p_codice: codice }).then(function(d){
+      $("ciao").textContent = "Ciao " + d.nome;
+      $("f").classList.remove("hide");
+      var c = d.candidati || [];
+      $("lista").classList.remove("hide");
+      $("lista").innerHTML = "<b>I tuoi candidati · " + c.length + "</b>" + (c.length ? c.map(function(x){
+        return '<div class="r"><span>' + esc((x.nome || "") + " " + (x.cognome || "")) + '<small>' + esc([x.zona, x.settore].filter(Boolean).join(" · ")) + '</small></span><span class="b ' + esc(x.stato) + '">' + esc(STATI[x.stato] || x.stato) + '</span></div>';
+      }).join("") : '<div class="m" style="margin-top:6px">Ancora nessuno: inserisci il primo qui sopra.</div>');
+    });
+  }
+  if (!codice) { errore("Link non valido: chiedi ad Antonio il tuo link personale."); return; }
+  carica().catch(function(e){ errore(e.message === "Link non valido" ? "Link non valido: chiedi ad Antonio il tuo link personale." : e.message); });
+  $("f").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var es = $("esito"); es.className = "esito"; es.textContent = "";
+    if (!$("sa").checked) { es.className = "esito er"; es.textContent = "Spunta che il candidato sa che lo contatteremo."; return; }
+    if (!$("tel").value.trim() && !$("email").value.trim()) { es.className = "esito er"; es.textContent = "Serve almeno il telefono o l'email."; return; }
+    $("invia").disabled = true;
+    rpc("referente_inserisci_candidato", { p_codice: codice, p_nome: $("nome").value, p_cognome: $("cognome").value, p_telefono: $("tel").value,
+      p_email: $("email").value, p_zona: $("zona").value, p_settore: $("settore").value, p_note: $("note").value, p_sa: true })
+      .then(function(){
+        es.className = "esito ok"; es.textContent = "✓ Inserito. Lo contattiamo noi e ti mettiamo in copia.";
+        ["nome","cognome","tel","email","zona","settore","note"].forEach(function(id){ $(id).value = ""; }); $("sa").checked = false;
+        return carica();
+      })
+      .catch(function(e){ es.className = "esito er"; es.textContent = e.message; })
+      .then(function(){ $("invia").disabled = false; });
+  });
+})();
+</script>
+</body></html>
