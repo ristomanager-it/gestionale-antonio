@@ -103,6 +103,12 @@ export async function montaCandidati(el) {
     const { error } = await sb().from('rete_referenti').update({ telefono: el.querySelector('[data-rt="' + id + '"]').value.trim() || null, email: el.querySelector('[data-re="' + id + '"]').value.trim().toLowerCase() || null }).eq('id', id);
     if (error) alert(error.message); else b.textContent = 'Salvato ✓';
   });
+  el.querySelector('#nr-aggiungi').onclick = async () => {
+    const nome = el.querySelector('#nr-nome').value.trim();
+    if (!nome) { alert('Serve almeno il nome.'); return; }
+    const { error } = await sb().from('rete_referenti').insert({ nome, cognome: el.querySelector('#nr-cognome').value.trim() || null, telefono: el.querySelector('#nr-tel').value.trim() || null, email: el.querySelector('#nr-email').value.trim().toLowerCase() || null });
+    if (error) alert(error.message); else ridisegna();
+  };
   el.querySelector('#ca-invia').onclick = async () => {
     const esito = el.querySelector('#ca-esito');
     const canali = [el.querySelector('#ca-wa').checked ? 'whatsapp' : null, el.querySelector('#ca-em').checked ? 'email' : null].filter(Boolean);
