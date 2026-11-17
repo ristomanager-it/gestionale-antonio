@@ -1,5 +1,5 @@
 // CANDIDATI AGENTI — Piattaforma › Programma Agenti › Candidati (17/11/2026).
-// I candidati li inseriscono i referenti (oggi Fabio) dalla pagina candidati-agenti.html?k=CODICE, senza login.
+// I candidati li inseriscono i referenti (chi ce li presenta, ognuno con il suo link) dalla pagina candidati-agenti.html?k=CODICE, senza login.
 // Da qui si scrive ai candidati: email automatica, WhatsApp con il testo pronto finché Meta non approva il modello.
 // Ogni messaggio va anche al referente che ha presentato il candidato: deciso da Antonio, non si può togliere.
 const sb = () => window.supabaseClient || window.supabase;
