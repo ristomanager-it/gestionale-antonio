@@ -210,6 +210,10 @@ export async function render(container) {
   }
 
   const invitati = Number(d.invitati) || 0;
+  // con il menu bambini adulti e bambini si cambiano separati: hanno quote diverse
+  const conBambini = !!d.menu_bambini;
+  const bambiniOra = Math.min(Math.max(Number(d.bambini) || 0, 0), invitati);
+  const adultiOra = Math.max(invitati - bambiniOra, 1);
   const totale = Number(d.totale) || 0;
   const acconto = Number(d.acconto) || 0;
   const nostre = (d.foto || []).filter(f => f.sezione !== "ispirazione");
@@ -354,11 +358,20 @@ ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
         <div class="pv-mod">
           <div class="r">
             <label>Quante persone sarete</label>
+            ${conBambini ? `
+            <div class="riga2">
+              <span style="flex:1;"><small>Adulti</small>
+                <input id="pv-adulti" type="number" min="1" value="${adultiOra}" data-attuali="${adultiOra}" style="width:100%;"></span>
+              <span style="flex:1;"><small>Bambini</small>
+                <input id="pv-bambini" type="number" min="0" value="${bambiniOra}" data-attuali="${bambiniOra}" style="width:100%;"></span>
+              <button class="pv-btn piccolo" data-mod="invitati" style="align-self:flex-end;">Aggiorna</button>
+            </div>
+            <small>I bambini hanno il loro menu e la loro quota. Fino a ${d.variazione_max} persone in più o in meno si aggiorna da solo.</small>` : `
             <div class="riga2">
               <input id="pv-invitati" type="number" min="1" value="${invitati || 1}" data-attuali="${invitati || 1}">
               <button class="pv-btn piccolo" data-mod="invitati">Aggiorna</button>
             </div>
-            <small>Fino a ${d.variazione_max} persone in più o in meno si aggiorna da solo.</small>
+            <small>Fino a ${d.variazione_max} persone in più o in meno si aggiorna da solo.</small>`}
           </div>
           <div class="r">
             <label>A che ora iniziamo</label>
@@ -507,7 +520,10 @@ ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
   container.querySelectorAll("[data-mod]").forEach((b) => {
     b.addEventListener("click", () => {
       const tipo = b.dataset.mod;
-      if (tipo === "invitati") return manda("invitati", document.getElementById("pv-invitati")?.value);
+      if (tipo === "invitati") {
+        if (document.getElementById("pv-adulti")) return manda("invitati_ab", valoreAB());
+        return manda("invitati", document.getElementById("pv-invitati")?.value);
+      }
       if (tipo === "orario") return manda("orario", document.getElementById("pv-ora")?.value);
       const nota = (document.getElementById("pv-nota")?.value || "").trim();
       if (!nota) { alert("Scrivete cosa vi serve."); return; }
@@ -526,14 +542,29 @@ ${aParte.size ? [...aParte.entries()].map(([sez, piatti]) => `
     // nuovo e poi preme direttamente Conferma, quel numero veniva buttato via
     // senza dire niente e in cucina arrivava il conteggio vecchio.
     const campoInv = document.getElementById("pv-invitati");
-    const nuovoInv = campoInv ? parseInt(campoInv.value, 10) : NaN;
-    const attualiInv = campoInv ? parseInt(campoInv.dataset.attuali || campoInv.defaultValue || "", 10) : NaN;
+    const campoAd = document.getElementById("pv-adulti"), campoBi = document.getElementById("pv-bambini");
+    let cambiato = false, frase = "", tipoInv = "invitati", valoreInv = "";
+    if (campoAd && campoBi) {
+      const a = parseInt(campoAd.value, 10), b = parseInt(campoBi.value, 10) || 0;
+      const a0 = parseInt(campoAd.dataset.attuali, 10), b0 = parseInt(campoBi.dataset.attuali, 10) || 0;
+      if (Number.isFinite(a) && (a !== a0 || b !== b0)) {
+        cambiato = true; tipoInv = "invitati_ab"; valoreInv = valoreAB();
+        frase = "Avete scritto " + a + " adulti e " + b + " bambini invece di " + a0 + " e " + b0 +
+                ".\n\nAccetto la proposta con " + a + " adulti e " + b + " bambini?";
+      }
+    } else {
+      const nuovoInv = campoInv ? parseInt(campoInv.value, 10) : NaN;
+      const attualiInv = campoInv ? parseInt(campoInv.dataset.attuali || campoInv.defaultValue || "", 10) : NaN;
+      if (Number.isFinite(nuovoInv) && Number.isFinite(attualiInv) && nuovoInv !== attualiInv) {
+        cambiato = true; valoreInv = String(nuovoInv);
+        frase = "Avete scritto " + nuovoInv + " invitati invece di " + attualiInv + ".\n\nAccetto la proposta con " + nuovoInv + " invitati?";
+      }
+    }
 
-    if (Number.isFinite(nuovoInv) && Number.isFinite(attualiInv) && nuovoInv !== attualiInv) {
-      if (!confirm("Avete scritto " + nuovoInv + " invitati invece di " + attualiInv +
-                   ".\n\nAccetto la proposta con " + nuovoInv + " invitati?" + fraseData)) return;
+    if (cambiato) {
+      if (!confirm(frase + fraseData)) return;
       const { data: modificato } = await supabase.rpc("preventivo_richiesta", {
-        p_token: token, p_tipo: "invitati", p_valore: String(nuovoInv), p_nota: null,
+        p_token: token, p_tipo: tipoInv, p_valore: valoreInv, p_nota: null,
       });
       if (modificato && modificato.ok === false) {
         alert(modificato.errore || "Non sono riuscito ad aggiornare il numero di invitati.");
@@ -584,6 +615,13 @@ function euro(n) {
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// adulti e bambini nel formato che capisce preventivo_richiesta ('adulti:bambini')
+function valoreAB() {
+  const a = Math.max(parseInt(document.getElementById("pv-adulti")?.value, 10) || 0, 0);
+  const b = Math.max(parseInt(document.getElementById("pv-bambini")?.value, 10) || 0, 0);
+  return a + ":" + b;
 }
 
 // quote a persona: con i bambini due righe (adulti e bambini), altrimenti una sola.
