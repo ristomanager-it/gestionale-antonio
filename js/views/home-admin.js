@@ -263,7 +263,45 @@ async function kpi(supabase, aziendaId, sedeId, range) {
     }
   } catch (e) { console.warn("kpi lavoro:", e); }
 
+  try {
+    // ── acconti incassati prima del servizio (eventi e caparre dei tavoli) ──
+    // Stanno a parte: il giorno dell'evento il conto passa dalla cassa con il totale intero
+    // e finisce nel venduto. Sommarli all'incasso li conterebbe due volte.
+    const { data: inc } = await supabase.from("incassi")
+      .select("origine, riferimento_id, tipo, importo")
+      .eq("azienda_id", aziendaId).is("comanda_id", null)
+      .in("origine", ["preventivo", "tavolo"])
+      .gte("data_pagamento", range.da).lte("data_pagamento", range.a).limit(5000);
+    let righe = inc || [];
+    if (sedeId != null && righe.length) {
+      const idsP = [...new Set(righe.filter(r => r.origine === "preventivo").map(r => Number(r.riferimento_id)).filter(Boolean))];
+      const idsT = [...new Set(righe.filter(r => r.origine === "tavolo").map(r => Number(r.riferimento_id)).filter(Boolean))];
+      const [p, t] = await Promise.all([
+        idsP.length ? supabase.from("preventivi").select("id, sede_uuid").in("id", idsP) : Promise.resolve({ data: [] }),
+        idsT.length ? supabase.from("prenotazioni_tavoli").select("id, sede_id").in("id", idsT) : Promise.resolve({ data: [] }),
+      ]);
+      const ok = new Set([
+        ...(p.data || []).filter(x => String(x.sede_uuid) === String(sedeId)).map(x => "preventivo:" + x.id),
+        ...(t.data || []).filter(x => String(x.sede_id) === String(sedeId)).map(x => "tavolo:" + x.id),
+      ]);
+      righe = righe.filter(r => ok.has(r.origine + ":" + Number(r.riferimento_id)));
+    }
+    const segno = (r) => (r.tipo === "rimborso" ? -1 : 1) * (Number(r.importo) || 0);
+    out.accontiEventi = righe.filter(r => r.origine === "preventivo").reduce((s, r) => s + segno(r), 0);
+    out.accontiTavoli = righe.filter(r => r.origine === "tavolo").reduce((s, r) => s + segno(r), 0);
+  } catch (e) { console.warn("kpi acconti:", e); }
+
   return out;
+}
+
+// riga degli acconti incassati, uguale in home e nel cruscotto
+function rigaAcconti(ora) {
+  const ev = Number(ora.accontiEventi) || 0, tv = Number(ora.accontiTavoli) || 0;
+  if (!ev && !tv) return "";
+  return `<div class="cr-acconti">
+    <div><span>Acconti incassati</span><b>${euro(ev + tv)}</b></div>
+    <small>${ev ? "eventi " + euro(ev) : ""}${ev && tv ? " · " : ""}${tv ? "caparre tavoli " + euro(tv) : ""} — entrano nel venduto il giorno del servizio</small>
+  </div>`;
 }
 
 // Costi fissi: in tabella stanno come importo annuo, qui servono a giornata.
@@ -307,7 +345,7 @@ export async function bloccoCruscotto(supabase, aziendaId, sedeId, range) {
 function sintesi(ora) {
   const inc = Number(ora.incasso) || 0;
   if (inc <= 0) {
-    return `<div class="cr-vuoto">Nessun incasso registrato in questo periodo.</div>`;
+    return `<div class="cr-vuoto">Nessun incasso registrato in questo periodo.</div>` + rigaAcconti(ora);
   }
   const gg = ora.giorni || [];
   const maxG = Math.max(1, ...gg.map(g => g.incasso));
@@ -317,6 +355,7 @@ function sintesi(ora) {
       <span>Incasso</span><b>${euro(inc)}</b>
       <i>IVA non scorporata</i>
     </div>
+    ${rigaAcconti(ora)}
 
     ${gg.length ? `
     <details class="cr-apri">
@@ -359,7 +398,7 @@ function cruscotto(ora, prima, fissi) {
   const margine = inc - costi;
 
   if (inc <= 0) {
-    return `<div class="cr-vuoto">Nessun incasso registrato in questo periodo.</div>`;
+    return `<div class="cr-vuoto">Nessun incasso registrato in questo periodo.</div>` + rigaAcconti(ora);
   }
 
   const pLav = (lav / inc) * 100, pFoo = (foo / inc) * 100;
@@ -392,6 +431,7 @@ function cruscotto(ora, prima, fissi) {
       <span>Incasso</span><b>${euro(inc)}</b>
       <i>IVA non scorporata</i>
     </div>
+    ${rigaAcconti(ora)}
 
     <div class="cr-arco">
       <svg viewBox="0 0 300 168" width="100%">
@@ -1008,6 +1048,9 @@ function stile() {
   .cr-arco{padding:6px 16px 0;text-align:center}
   .cr-arco svg{max-width:330px;width:100%}
   .cr-testa{text-align:center;padding:14px 16px 0}
+  .cr-acconti{margin:10px 16px 0;padding:9px 12px;border-radius:10px;background:#f4f8fb;border:1px solid #e3ebf2}
+  .cr-acconti div{display:flex;justify-content:space-between;font-size:14px}.cr-acconti span{color:#5b6b7a}
+  .cr-acconti small{display:block;font-size:11.5px;color:#8a94a2;margin-top:2px}
   .cr-testa span{display:block;font-size:9.5px;letter-spacing:2.2px;color:#8a94a2;text-transform:uppercase}
   .cr-testa b{display:block;font-size:30px;font-weight:700;letter-spacing:-.6px;margin-top:2px}
   .cr-testa i{display:block;font-style:normal;font-size:10px;color:#b6c1cb;margin-top:2px}
