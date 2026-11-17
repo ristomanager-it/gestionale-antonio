@@ -50,9 +50,12 @@ async function vistaElenco(container, az) {
         if (f.cortesia_inviata_il) sotto.push("copia PDF mandata");
         else if (f.cortesia_errore) sotto.push("copia PDF non partita");
       }
-      const azioni = !gestore ? "" : bozza
+      // Vedi e XML anche per il commercialista: leggere e scaricare non cambia nulla
+      const vedi = !bozza && f.numero
+        ? '<button type="button" data-vedi="' + f.id + '" style="' + S.mini + '">Vedi</button><button type="button" data-xml="' + f.id + '" style="' + S.mini + '">Scarica XML</button>' : "";
+      const azioni = !gestore ? vedi : bozza
         ? '<a href="#/fatture-emesse?id=' + f.id + '" style="' + S.mini + '">Apri</a>'
-        : (!f.incassata_il ? '<button type="button" data-incassa="' + f.id + '" style="' + S.mini + '">Incassata</button>' : "")
+        : vedi + (!f.incassata_il ? '<button type="button" data-incassa="' + f.id + '" style="' + S.mini + '">Incassata</button>' : "")
           + (f.cliente_email ? '<button type="button" data-pdf="' + f.id + '" style="' + S.mini + '">' + (f.cortesia_inviata_il ? "Rimanda PDF" : "Manda PDF") + "</button>" : "");
       return '<div style="' + S.riga + '"><div>' + (f.numero ? "n. " + esc(f.numero + (f.sezionale ? "/" + f.sezionale : "")) : "Bozza") + " · " + esc(nomeCliente(f))
         + '<small style="' + S.small + '">' + esc(tipoNome(f.tipo_documento) + (sotto.length ? " · " + sotto.join(" · ") : "")) + "</small>"
@@ -67,6 +70,18 @@ async function vistaElenco(container, az) {
     const x = await chiama("fe-vendita", { azione: "incassata", azienda_id: az.id, fattura_id: b.dataset.incassa });
     if (x.ok) vistaElenco(container, az); else { b.disabled = false; esito(container, x.errore); }
   }));
+  // la finestra si apre subito al tocco (Safari blocca quelle aperte dopo un'attesa), poi riceve il link
+  const apri = async (b, id, quale) => {
+    const testo = b.textContent; b.disabled = true; b.textContent = "Preparo…";
+    const w = quale === "pdf" ? window.open("", "_blank") : null;
+    const x = await chiama("fe-vendita", { azione: "documento", azienda_id: az.id, fattura_id: id });
+    b.disabled = false; b.textContent = testo;
+    const url = x.ok ? (quale === "pdf" ? x.pdf_url : x.xml_url) : null;
+    if (!url) { if (w) w.close(); esito(container, x.errore || (quale === "xml" ? "XML non trovato per questa fattura" : "PDF non disponibile")); return; }
+    if (w) w.location.href = url; else window.location.href = url;
+  };
+  container.querySelectorAll("[data-vedi]").forEach((b) => b.addEventListener("click", () => apri(b, b.dataset.vedi, "pdf")));
+  container.querySelectorAll("[data-xml]").forEach((b) => b.addEventListener("click", () => apri(b, b.dataset.xml, "xml")));
   container.querySelectorAll("[data-pdf]").forEach((b) => b.addEventListener("click", async () => {
     b.disabled = true; b.textContent = "Invio…";
     const x = await chiama("fe-vendita", { azione: "cortesia", azienda_id: az.id, fattura_id: b.dataset.pdf, forza: true });
