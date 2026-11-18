@@ -76,7 +76,7 @@ function stile() {
 
 /* ─────────────── apertura ─────────────── */
 function apri() {
-  if (ov) { ov.style.display = "flex"; inp.focus(); return; }
+  if (ov) { azzera(); ov.style.display = "flex"; setTimeout(() => inp.focus(), 50); return; }
   ov = document.createElement("div");
   ov.id = "cerca-ov";
   ov.innerHTML = `
@@ -104,6 +104,16 @@ function chiudi() {
   registra(ultimaQ, nRisultati, false);
   ov.style.display = "none";
   fermaMic();
+  azzera();
+}
+
+// Alla chiusura si riparte da zero: barra vuota, niente risultati né risposta di Tony della volta prima
+function azzera() {
+  clearTimeout(timer);
+  seq++; // una ricerca ancora in viaggio non deve ricomparire dopo
+  inp.value = "";
+  ultimaQ = ""; ultimoLog = ""; nRisultati = 0;
+  vuoto();
 }
 
 function vuoto() {
@@ -230,6 +240,7 @@ async function microfono() {
     rec.ondataavailable = (e) => { if (e.data?.size) pezzi.push(e.data); };
     rec.onstop = async () => {
       fermaMic();
+      if (ov.style.display === "none") return; // barra chiusa mentre si parlava: niente da scrivere
       b.textContent = "…";
       try {
         const blob = new Blob(pezzi, { type: rec.mimeType || "audio/webm" });
@@ -256,6 +267,7 @@ async function microfono() {
 }
 
 function fermaMic() {
+  if (rec && rec.state === "recording") { try { rec.stop(); } catch (_) {} }
   ov?.querySelector(".cm")?.classList.remove("rec");
   try { stream?.getTracks().forEach((t) => t.stop()); } catch (_) {}
   stream = null;
