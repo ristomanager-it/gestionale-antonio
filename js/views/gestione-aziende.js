@@ -262,6 +262,9 @@ function renderRigaAzienda(az, parent) {
       </div>
     </div>
 
+    <!-- PANEL INSERIMENTO (nascosto): fasi, incontri, materiale, controlli — js/components/inserimento-azienda.js -->
+    <div class="panel-ins" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:8px;"></div>
+
     <!-- PANEL PIANO (nascosto) -->
     <div class="panel-piano" style="display:none;background:#f8fafc;border-radius:10px;padding:14px;margin-top:8px;">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px;">💳 Assegna piano abbonamento</div>
