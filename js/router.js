@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261118-14";
+const APP_V = "20261118-15";
 window.APP_V = APP_V;
 
 // ── AGGIORNAMENTO AUTOMATICO ──
@@ -640,6 +640,12 @@ async function renderView(routeName) {
       }).catch(() => {});
     }
   } catch (e) {}
+
+  // 🔍 Barra Cerca: lente nell'header per chi e' entrato (regole e ricette del locale, poi Tony)
+  try {
+    if (window.state?.user && window.state?.azienda?.id) imp("./components/cerca.js").then(m => m.montaCerca()).catch(() => {});
+    else document.getElementById("cerca-btn-header")?.remove();
+  } catch (e) { /* mai bloccare la navigazione */ }
 
   // 🎙️ Comandi vocali: pulsante globale per chi e' entrato (sala, cucina, preparazioni, ricette)
   try {
