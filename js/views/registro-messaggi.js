@@ -86,6 +86,7 @@ async function caricaEmail(aziendaId) {
     return (j.messaggi || []).map(m => ({
       canale: "email", dir: m.dir || "out", quando: m.quando,
       chi: m.chi || "—", numero: m.email || "", testo: m.oggetto || "", extra: "", stato: m.stato || "",
+      emailId: m.id || "", // serve per aprire il corpo: Resend nella lista da' solo l'oggetto
     }));
   } catch (_e) { return []; }
 }
