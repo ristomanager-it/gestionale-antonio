@@ -252,6 +252,7 @@ function renderRigaAzienda(az, parent) {
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn-mini btn-open">Apri</button>
+        <button class="btn-mini btn-ins">🚀 Inserimento</button>
         <button class="btn-mini btn-piano">💳 Piano</button>
         <button class="btn-mini btn-moduli">🧩 Moduli</button>
         <button class="btn-mini btn-wa">📱 WhatsApp</button>
