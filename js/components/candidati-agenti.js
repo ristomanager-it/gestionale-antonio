@@ -7,7 +7,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&
 const STATI = { inserito: 'Inserito', invitato: 'Invitato', confermato: 'Confermato', attivo: 'Agente attivo', non_interessato: 'Non interessato' };
 const COLORI = { inserito: '#e2e8f0;color:#334155', invitato: '#ede9fe;color:#5b21b6', confermato: '#dcfce7;color:#166534', attivo: '#dbeafe;color:#1e40af', non_interessato: '#f1f5f9;color:#64748b' };
 const MODELLI = {
-  invito: { nome: 'Invito alla formazione', testo: 'Ciao {nome}, sono Antonio Carullo di Ristoflow. {referente} mi ha parlato di te.\nMartedì 1 dicembre alle 18:00 a Campo Antico presentiamo Ristoflow ai nuovi agenti: due orette per mostrarvi il nostro prodotto, poi stiamo a cena insieme. Siamo sicuri che ti piacerà.\nCi sei? Rispondi a questo messaggio per confermare, oppure scrivimi o chiamami al 393 096 5070.' },
+  invito: { nome: 'Invito alla formazione', testo: 'Ciao {nome}, sono Antonio Carullo di Ristoflow. {referente} mi ha parlato di te.\nMartedì 1 dicembre alle 18:00 a Campo Antico presentiamo Ristoflow ai nuovi agenti: due orette per mostrarvi il nostro prodotto, poi stiamo a cena insieme. Siamo sicuri che ti piacerà.\nCi sei? Rispondi a questo messaggio per confermare. Per urgenze puoi chiamarmi al 393 096 5070.' },
   promemoria: { nome: 'Promemoria il giorno prima', testo: 'Ciao {nome}, ti ricordo che domani alle 18:00 ci vediamo a Campo Antico per la presentazione di Ristoflow agli agenti. Per qualsiasi cosa sono al 393 096 5070. A domani!' },
   benvenuto: { nome: 'Benvenuto da agente', testo: 'Ciao {nome}, benvenuto in Ristoflow. Da oggi sei dei nostri: a breve ricevi l\'accesso alla tua home agente.' },
   libero: { nome: 'Messaggio libero', testo: 'Ciao {nome}, ' },
