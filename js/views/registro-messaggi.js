@@ -130,4 +130,34 @@ function renderLista() {
   }).join("");
 }
 
+// apre il corpo dell'email in un riquadro; l'html del messaggio sta in un iframe isolato, senza script
+window.__apriEmail = async function (id, dir) {
+  const fondo = document.createElement("div");
+  fondo.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;";
+  fondo.innerHTML = '<div style="background:#fff;border-radius:14px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #e5e7eb;"><b id="rm-em-ogg">Carico…</b>'
+    + '<button type="button" id="rm-em-x" style="border:none;background:#f1f5f9;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button></div>'
+    + '<div id="rm-em-meta" style="padding:8px 16px;font-size:12px;color:#64748b;"></div>'
+    + '<iframe id="rm-em-corpo" sandbox="" style="border:none;width:100%;flex:1;min-height:60vh;"></iframe></div>';
+  document.body.appendChild(fondo);
+  const chiudi = () => fondo.remove();
+  fondo.addEventListener("click", (e) => { if (e.target === fondo) chiudi(); });
+  fondo.querySelector("#rm-em-x").addEventListener("click", chiudi);
+  try {
+    const base = (window.SUPABASE_URL || "https://cuhcscpvhypoaplcmtjk.supabase.co");
+    const res = await fetch(base + "/functions/v1/registro-email", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, dir }),
+    });
+    const e = (await res.json()).email || {};
+    if (e.error) throw new Error(e.error);
+    fondo.querySelector("#rm-em-ogg").textContent = e.oggetto || "(senza oggetto)";
+    fondo.querySelector("#rm-em-meta").textContent = "Da " + (e.da || "—") + " · a " + (e.a || "—") + (e.stato ? " · " + e.stato : "");
+    fondo.querySelector("#rm-em-corpo").srcdoc = e.html || ("<pre style='font-family:sans-serif;white-space:pre-wrap'>" + escapeHtml(e.testo || "Email vuota.") + "</pre>");
+  } catch (err) {
+    fondo.querySelector("#rm-em-ogg").textContent = "Non riesco ad aprirla";
+    fondo.querySelector("#rm-em-meta").textContent = String(err.message || err);
+  }
+};
+
 function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
