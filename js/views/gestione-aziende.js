@@ -391,6 +391,15 @@ function renderRigaAzienda(az, parent) {
 
   // Bottoni
   riga.querySelector('.btn-open').onclick = () => { window.location.hash = '#/completaAzienda?id=' + az.id; };
+  riga.querySelector('.btn-ins').onclick = () => {
+    const p = riga.querySelector('.panel-ins');
+    const apri = p.style.display === 'none';
+    p.style.display = apri ? '' : 'none';
+    if (apri && window._insMod) window._insMod.montaInserimento(p, az, async () => {
+      const { data } = await supabase.from("aziende_inserimento").select("azienda_id, fase").eq("azienda_id", az.id).maybeSingle();
+      if (data) window._insMap[az.id] = data;
+    });
+  };
 
   riga.querySelector('.btn-piano').onclick = () => {
     const p = riga.querySelector('.panel-piano');
