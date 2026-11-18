@@ -44,7 +44,7 @@ async function carica() {
 
   const [waIn, waOut, email] = await Promise.all([
     window.supabaseClient.from("whatsapp_messaggi")
-      .select("id, from_numero, from_nome, testo, intent, risposta_inviata, risposta_testo, created_at")
+      .select("id, from_numero, from_nome, testo, intent, risposta_inviata, risposta_testo, created_at, media_url, media_mime")
       .eq("azienda_id", aziendaId).order("created_at", { ascending: false }).limit(300),
     window.supabaseClient.from("whatsapp_messaggi_log")
       .select("id, numero_dest, nome_dest, testo, template_name, stato, errore_msg, created_at")
