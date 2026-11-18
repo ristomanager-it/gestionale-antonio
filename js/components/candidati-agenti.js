@@ -126,7 +126,7 @@ export async function montaCandidati(el) {
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
           ${e.wa && e.wa.ok ? '<span style="color:#15803d;font-weight:700;font-size:13px">✓ WhatsApp inviato da Ristoflow</span>' : ''}${e.copia_wa && e.copia_wa.ok ? '<span style="color:#15803d;font-weight:700;font-size:13px">✓ copia a ' + esc(e.referente) + '</span>' : ''}
           ${e.wa && e.wa.ok ? '' : e.wa_link ? '<a href="' + esc(e.wa_link) + '" target="_blank" style="padding:6px 10px;border-radius:8px;background:#16a34a;color:#fff;text-decoration:none;font-weight:700;font-size:13px">WhatsApp a ' + esc(e.nome.split(' ')[0]) + '</a>' : (canali.includes('whatsapp') ? '<span style="color:#b42318;font-size:13px">telefono mancante</span>' : '')}
-          ${e.copia_wa_link ? '<a href="' + esc(e.copia_wa_link) + '" target="_blank" style="padding:6px 10px;border-radius:8px;background:#fff;border:1.5px solid #16a34a;color:#16a34a;text-decoration:none;font-weight:700;font-size:13px">Copia a ' + esc(e.referente) + '</a>' : (canali.includes('whatsapp') && e.referente ? '<span style="color:#b42318;font-size:13px">telefono di ' + esc(e.referente) + ' mancante</span>' : '')}
+          ${e.copia_wa && e.copia_wa.ok ? '' : e.copia_wa_link ? '<a href="' + esc(e.copia_wa_link) + '" target="_blank" style="padding:6px 10px;border-radius:8px;background:#fff;border:1.5px solid #16a34a;color:#16a34a;text-decoration:none;font-weight:700;font-size:13px">Copia a ' + esc(e.referente) + '</a>' : (canali.includes('whatsapp') && e.referente ? '<span style="color:#b42318;font-size:13px">telefono di ' + esc(e.referente) + ' mancante</span>' : '')}
         </div>
       </div>`).join('');
     _sel = new Set();
