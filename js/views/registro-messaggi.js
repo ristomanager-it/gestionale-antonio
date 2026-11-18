@@ -153,7 +153,11 @@ window.__apriEmail = async function (id, dir) {
     if (e.error) throw new Error(e.error);
     fondo.querySelector("#rm-em-ogg").textContent = e.oggetto || "(senza oggetto)";
     fondo.querySelector("#rm-em-meta").textContent = "Da " + (e.da || "—") + " · a " + (e.a || "—") + (e.stato ? " · " + e.stato : "");
-    fondo.querySelector("#rm-em-corpo").srcdoc = e.html || ("<pre style='font-family:sans-serif;white-space:pre-wrap'>" + escapeHtml(e.testo || "Email vuota.") + "</pre>");
+    // scritto dentro il documento del riquadro e non con srcdoc: su Chrome vecchi (109) srcdoc mostrava la pagina dell'app.
+    // Gli script restano bloccati dal sandbox: senza allow-scripts l'html della mail non puo' eseguire niente.
+    const corpo = e.html || ("<pre style='font-family:sans-serif;white-space:pre-wrap'>" + escapeHtml(e.testo || "Email vuota.") + "</pre>");
+    const doc = fondo.querySelector("#rm-em-corpo").contentDocument;
+    doc.open(); doc.write("<!doctype html><html><head><meta charset='utf-8'><base target='_blank'></head><body style='margin:12px;background:#fff'>" + corpo + "</body></html>"); doc.close();
   } catch (err) {
     fondo.querySelector("#rm-em-ogg").textContent = "Non riesco ad aprirla";
     fondo.querySelector("#rm-em-meta").textContent = String(err.message || err);
