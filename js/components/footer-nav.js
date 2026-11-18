@@ -48,6 +48,15 @@ export function aggiornaFooter(route) {
     nav.setAttribute("aria-label", "Comandi veloci");
     nav.innerHTML = VOCI.map(v => `<a href="#/${v.r}" data-r="${v.r}"><i>${v.i}</i><span>${v.t}</span></a>`).join("");
     document.body.appendChild(nav);
+    // iPhone: tornando da un PDF aperto in un'altra scheda (o dopo la tastiera) Safari lascia la barra
+    // a meta' schermo finche' non si scorre. Al ritorno la si rimette giu' forzando un nuovo calcolo.
+    const rimetti = () => { const n = document.getElementById("rf-footer"); if (!n || n.style.display === "none") return;
+      n.style.display = "none"; void n.offsetHeight; n.style.display = ""; };
+    window.addEventListener("pageshow", rimetti);
+    window.addEventListener("focus", rimetti);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(rimetti, 50); });
+    window.addEventListener("orientationchange", () => setTimeout(rimetti, 300));
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", () => setTimeout(rimetti, 100));
   }
   nav.style.display = "";
   document.body.classList.add("con-rf-footer");
