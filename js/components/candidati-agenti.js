@@ -59,18 +59,24 @@ export async function montaCandidati(el) {
       <div><b>Candidati</b> <span style="color:#64748b">· ${(cand || []).length}</span></div>
       <div>${chip('tutti', 'Tutti', _filtro === 'tutti')}${Object.keys(STATI).map(k => chip(k, STATI[k], _filtro === k)).join('')}</div>
     </div>
-    <div style="overflow-x:auto"><table style="width:100%;min-width:720px;border-collapse:collapse;font-size:14px">
-      <tr style="color:#64748b;font-size:12px;text-align:left"><th style="padding:8px"><input type="checkbox" id="ca-tutti"></th><th>Candidato</th><th>Zona · cosa vende</th><th>Portato da</th><th>Stato</th><th>Ultimo messaggio</th></tr>
+    <!-- a schede e non a tabella: sul telefono le colonne uscivano dallo schermo e lo stato non si vedeva -->
+    <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#475569;margin:4px 0 8px"><input type="checkbox" id="ca-tutti"> Seleziona tutti quelli in elenco</label>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
       ${lista.length ? lista.map(c => `
-        <tr style="border-top:1px solid #f1f5f9;vertical-align:top">
-          <td style="padding:8px"><input type="checkbox" data-cs="${c.id}" ${_sel.has(c.id) ? 'checked' : ''}></td>
-          <td style="padding:8px">${esc(c.nome)} ${esc(c.cognome || '')}<div style="font-size:12px;color:#64748b">${esc(c.telefono || '')}${c.telefono && c.email ? ' · ' : ''}${esc(c.email || '')}</div>${c.note ? '<div style="font-size:12px;color:#64748b">' + esc(c.note) + '</div>' : ''}</td>
-          <td style="padding:8px">${esc([c.zona, c.settore].filter(Boolean).join(' · '))}</td>
-          <td style="padding:8px">${esc(nomeRef[c.referente_id] || '—')}</td>
-          <td style="padding:8px"><select data-cst="${c.id}" style="padding:4px 6px;border-radius:20px;border:none;font-size:12px;font-weight:700;background:${COLORI[c.stato] || COLORI.inserito}">${Object.keys(STATI).map(k => '<option value="' + k + '"' + (k === c.stato ? ' selected' : '') + '>' + STATI[k] + '</option>').join('')}</select></td>
-          <td style="padding:8px">${ultimo[c.id] ? esc((MODELLI[ultimo[c.id].modello] || MODELLI.libero).nome) + ' · ' + data(ultimo[c.id].created_at) + (storico[c.id].length > 1 ? '<div style="font-size:12px;color:#64748b">' + storico[c.id].length + ' messaggi</div>' : '') : '—'}</td>
-        </tr>`).join('') : '<tr><td colspan="6" style="padding:14px;color:#64748b">Nessun candidato' + (_filtro !== 'tutti' ? ' in questo stato' : '') + '. Arrivano dal link del referente.</td></tr>'}
-    </table></div>
+        <div style="border:1px solid #e2e8f0;border-radius:12px;padding:12px;display:flex;gap:10px;align-items:flex-start;${_sel.has(c.id) ? 'background:#f5f3ff;border-color:#c4b5fd' : ''}">
+          <input type="checkbox" data-cs="${c.id}" ${_sel.has(c.id) ? 'checked' : ''} style="margin-top:4px;width:18px;height:18px;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+              <b style="font-size:15px">${esc(c.nome)} ${esc(c.cognome || '')}</b>
+              <select data-cst="${c.id}" style="padding:4px 6px;border-radius:20px;border:none;font-size:12px;font-weight:700;background:${COLORI[c.stato] || COLORI.inserito};flex-shrink:0">${Object.keys(STATI).map(k => '<option value="' + k + '"' + (k === c.stato ? ' selected' : '') + '>' + STATI[k] + '</option>').join('')}</select>
+            </div>
+            <div style="font-size:13px;color:#475569;margin-top:2px">${c.telefono ? '<a href="tel:' + esc(c.telefono) + '" style="color:#0E5A7A;text-decoration:none">' + esc(c.telefono) + '</a>' : ''}${c.telefono && c.email ? ' · ' : ''}${esc(c.email || '')}</div>
+            ${(c.zona || c.settore) ? '<div style="font-size:13px;margin-top:4px">📍 ' + esc([c.zona, c.settore].filter(Boolean).join(' · ')) + '</div>' : ''}
+            <div style="font-size:12px;color:#64748b;margin-top:4px">Portato da ${esc(nomeRef[c.referente_id] || '—')}${ultimo[c.id] ? ' · ' + esc((MODELLI[ultimo[c.id].modello] || MODELLI.libero).nome) + ' ' + data(ultimo[c.id].created_at) + (storico[c.id].length > 1 ? ' (' + storico[c.id].length + ' messaggi)' : '') : ''}</div>
+            ${c.note ? '<div style="font-size:12px;color:#7c2d12;background:#fff7ed;border-radius:8px;padding:5px 8px;margin-top:6px">' + esc(c.note) + '</div>' : ''}
+          </div>
+        </div>`).join('') : '<div style="padding:14px;color:#64748b">Nessun candidato' + (_filtro !== 'tutti' ? ' in questo stato' : '') + '. Arrivano dal link del referente.</div>'}
+    </div>
   </div>
 
   <div id="ca-scrivi" style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-top:14px">
