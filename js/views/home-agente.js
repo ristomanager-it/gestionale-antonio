@@ -539,6 +539,10 @@ function renderAgMansionario(el) {
             <span style="font-size:20px;">🌐</span>
             <div><div style="font-size:13px;font-weight:700;">Sito Ristoflow</div><div style="font-size:11px;color:#94a3b8;">ristoflow-ai.com</div></div>
           </a>
+          <a href="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/ristoflow/agenti/Manuale-agente-Ristoflow.pdf" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px;background:#f8fafc;border-radius:8px;text-decoration:none;color:#374151;">
+            <span style="font-size:20px;">📘</span>
+            <div><div style="font-size:13px;font-weight:700;">Manuale dell'agente</div><div style="font-size:11px;color:#94a3b8;">Come si vende Ristoflow, prezzi, provvigioni e catalogo funzioni (PDF)</div></div>
+          </a>
           <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f8fafc;border-radius:8px;">
             <span style="font-size:20px;">📱</span>
             <div><div style="font-size:13px;font-weight:700;">Numero WhatsApp Ristoflow</div><div style="font-size:11px;color:#94a3b8;">Chiedi il link al tuo responsabile</div></div>
