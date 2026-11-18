@@ -125,6 +125,19 @@ export async function render(container) {
           </div>
           <div class="icon">🧲</div>
         </div>
+        <!-- keynote 18 gennaio: i PDF stanno in assets/ristoflow/keynote, si aggiornano sovrascrivendo il file -->
+        <div class="card" onclick="window.open('https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/ristoflow/keynote/Ristoflow-keynote-18-gennaio.pdf','_blank')">
+          <div>
+            <div class="label">Serata 18 gennaio</div>
+            <div class="title">Keynote</div>
+            <div style="font-size:11px;margin-top:4px;font-weight:700;">
+              <a href="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/ristoflow/keynote/Ristoflow-keynote-18-gennaio.pdf" target="_blank" onclick="event.stopPropagation()" style="color:#E07A2E;">Slide</a>
+              ·
+              <a href="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/ristoflow/keynote/Ristoflow-keynote-18-gennaio-con-note.pdf" target="_blank" onclick="event.stopPropagation()" style="color:#E07A2E;">Con note da stampare</a>
+            </div>
+          </div>
+          <div class="icon">🎤</div>
+        </div>
         <div class="card" onclick="toggleAgenti()">
           <div>
             <div class="label">Rete vendita</div>
