@@ -1,0 +1,104 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex">
+<title>Avvio · Ristoflow</title>
+<!-- rf-senza-contatore: pagina privata del cliente in inserimento, raggiunta solo dal link personale -->
+<!-- 18/11/2026: il cliente ci manda il materiale per l'avviamento (fatture, ricette, menu, personale) come lo ha.
+     Niente login: il codice nel link basta. I file vanno nel bucket privato "avvio", li leggiamo solo noi. -->
+<style>
+:root{--ac:#0E5A7A;--bg:#f3f1ec;--c:#fff;--t:#14161a;--m:#5b5750;--b:#e4e0d8;--ok:#15803d;--er:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.5 -apple-system,system-ui,Segoe UI,Roboto,Arial,sans-serif;padding-bottom:env(safe-area-inset-bottom,0)}
+.w{max-width:520px;margin:0 auto;padding:22px 16px 48px}
+.logo{font-weight:800;color:var(--ac);font-size:13px;letter-spacing:.12em}
+h1{font-size:26px;margin:6px 0 4px}.m{color:var(--m);font-size:14px}
+.card{background:var(--c);border:1px solid var(--b);border-radius:16px;padding:16px;margin-top:14px}
+.card h2{font-size:17px;margin:0}.card .m{margin-top:2px}
+.fatti{margin-top:8px;font-size:13px;color:var(--ok);font-weight:600}
+.carica{display:block;margin-top:12px;background:var(--ac);color:#fff;border-radius:12px;padding:13px;text-align:center;font-weight:700;cursor:pointer}
+.carica input{display:none}
+textarea{width:100%;font:inherit;border:1.5px solid var(--b);border-radius:10px;padding:11px 12px;background:#fafafa;min-height:110px;margin-top:10px}
+button{width:100%;margin-top:10px;background:var(--ac);color:#fff;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:700;cursor:pointer}
+button:disabled,.carica.dis{opacity:.6;pointer-events:none}
+.esito{margin-top:8px;font-size:13px;font-weight:600}.ok{color:var(--ok)}.er{color:var(--er)}
+.hide{display:none}
+</style></head><body><div class="w">
+<div class="logo">RISTOFLOW</div>
+<h1 id="ciao">Avvio</h1>
+<div class="m">Mandaci quello che hai, come ce l'hai: al resto pensiamo noi. Quando è tutto pronto ci vediamo online e ti consegniamo l'app con il tuo locale già dentro.</div>
+<div id="errore" class="card er hide"></div>
+<div id="sezioni"></div>
+</div>
+<script>
+(function(){
+  var SB = "https://cuhcscpvhypoaplcmtjk.supabase.co";
+  var A = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1aGNzY3B2aHlwb2FwbGNtdGprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjY4MjgsImV4cCI6MjA3OTQwMjgyOH0.q9zAs0oh8F1-whtORHBIORF5jIn1NTS3LvSMWleP0a0";
+  var codice = new URLSearchParams(location.search).get("k") || "";
+  var SEZ = [
+    { tipo: "fatture", tit: "Fatture d'acquisto", sotto: "Gli ultimi 3 mesi: lo ZIP che ti dà il commercialista o che scarichi dal portale Fatture e Corrispettivi dell'Agenzia delle Entrate. Vanno bene anche i singoli file XML o p7m.", accetta: ".zip,.xml,.p7m,application/zip,text/xml", multi: true },
+    { tipo: "ricette", tit: "Ricette", sotto: "Excel, Word, PDF o anche le foto del quaderno.", link: { href: "docs/scheda-ricetta.pdf", t: "Preferisci scriverle a mano? Scarica la scheda ricetta da stampare" }, accetta: "image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt", multi: true },
+    { tipo: "menu", tit: "Menu", sotto: "PDF o foto del menu in sala, con i prezzi.", accetta: "image/*,.pdf", multi: true },
+    { tipo: "personale", tit: "Personale", sotto: "Scrivi una persona per riga: nome, ruolo e telefono.", testo: true },
+    { tipo: "logo", tit: "Logo e foto del locale", sotto: "Quelle che usi sui social vanno benissimo.", accetta: "image/*,.pdf,.svg", multi: true },
+    { tipo: "delega", tit: "Delega cassetto fiscale", sotto: "Te la prepariamo noi: quando l'hai firmata, caricala qui.", accetta: "image/*,.pdf", multi: false }
+  ];
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function rpc(nome, corpo){
+    return fetch(SB + "/rest/v1/rpc/" + nome, { method: "POST", headers: { "apikey": A, "Authorization": "Bearer " + A, "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
+      .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error((j && (j.message || j.hint)) || "Errore"); return j; }); });
+  }
+  function pulito(n){ return String(n || "file").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_").slice(-80); }
+  function carica(tipo, file){
+    var path = codice + "/" + tipo + "/" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + "-" + pulito(file.name);
+    return fetch(SB + "/storage/v1/object/avvio/" + path, { method: "POST", headers: { "apikey": A, "Authorization": "Bearer " + A, "Content-Type": file.type || "application/octet-stream", "x-upsert": "false" }, body: file })
+      .then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error("Caricamento non riuscito: " + file.name); }); })
+      .then(function(){ return rpc("avvio_registra", { p_codice: codice, p_tipo: tipo, p_nome: file.name, p_path: path, p_dimensione: file.size }); });
+  }
+  function disegna(d){
+    $("ciao").textContent = "Benvenuto, " + d.nome;
+    var per = {};
+    (d.file || []).forEach(function(f){ (per[f.tipo] = per[f.tipo] || []).push(f); });
+    $("sezioni").innerHTML = SEZ.map(function(s){
+      var n = (per[s.tipo] || []).length;
+      return '<div class="card" data-tipo="' + s.tipo + '"><h2>' + (n ? "✓ " : "") + esc(s.tit) + '</h2><div class="m">' + esc(s.sotto) + '</div>' +
+        (n ? '<div class="fatti">' + (s.testo ? "Ricevuto, grazie" : "Ricevuti " + n + " file") + '</div>' : "") +
+        (s.testo ? '<textarea placeholder="Es. {nome} {cognome}, cuoco, 333 1234567"></textarea><button type="button">Invia</button>'
+                 : '<label class="carica">' + (n ? "Aggiungi altri file" : "Scegli i file") + '<input type="file" accept="' + s.accetta + '"' + (s.multi ? " multiple" : "") + '></label>') +
+        '<div class="esito"></div></div>';
+    }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-tipo]"), function(box){
+      var tipo = box.getAttribute("data-tipo"), esito = box.querySelector(".esito");
+      var inp = box.querySelector("input[type=file]");
+      if (inp) inp.onchange = function(){
+        var files = Array.prototype.slice.call(inp.files || []); if (!files.length) return;
+        var lab = box.querySelector(".carica"); lab.classList.add("dis");
+        var fatti = 0, errori = 0;
+        esito.className = "esito"; esito.textContent = "Carico 0 di " + files.length + "…";
+        var coda = files.slice();
+        function prossimo(){
+          var f = coda.shift(); if (!f) return Promise.resolve();
+          return carica(tipo, f).then(function(){ fatti++; }, function(){ errori++; })
+            .then(function(){ esito.textContent = "Carico " + (fatti + errori) + " di " + files.length + "…"; return prossimo(); });
+        }
+        Promise.all([prossimo(), prossimo(), prossimo()]).then(function(){
+          lab.classList.remove("dis");
+          if (errori) { esito.className = "esito er"; esito.textContent = fatti + " caricati, " + errori + " non riusciti: riprova con quelli."; }
+          else aggiorna();
+        });
+      };
+      var btn = box.querySelector("button");
+      if (btn) btn.onclick = function(){
+        var t = box.querySelector("textarea").value.trim(); if (!t) return;
+        btn.disabled = true;
+        rpc("avvio_registra", { p_codice: codice, p_tipo: tipo, p_testo: t }).then(aggiorna, function(e){ btn.disabled = false; esito.className = "esito er"; esito.textContent = e.message; });
+      };
+    });
+  }
+  function aggiorna(){
+    return rpc("avvio_info", { p_codice: codice }).then(function(d){
+      if (!d || !d.ok) { $("errore").textContent = "Questo link non è valido o l'avviamento è già concluso. Scrivici e te ne mandiamo uno nuovo."; $("errore").classList.remove("hide"); $("sezioni").innerHTML = ""; return; }
+      disegna(d);
+    }, function(){ $("errore").textContent = "Connessione non riuscita. Riprova tra poco."; $("errore").classList.remove("hide"); });
+  }
+  if (!codice) { $("errore").textContent = "Manca il codice nel link."; $("errore").classList.remove("hide"); } else aggiorna();
+})();
+</script>
+</body></html>
