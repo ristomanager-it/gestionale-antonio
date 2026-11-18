@@ -135,7 +135,7 @@ function mostra(q, righe) {
   // le prime 3 ricette con fasi scritte in scheda, le altre in una riga di nomi
   const inScheda = [...altre.slice(0, 4), ...conFasi.slice(0, 3)].sort((a, b) => b.punteggio - a.punteggio);
   const resto = ricette.filter((r) => !inScheda.includes(r)).slice(0, 8);
-  let h = righe.length ? `<div class="lb">Dalle regole e dalle ricette · risposta immediata</div>` : `<div class="lb">Nessuna regola o ricetta su questo</div>`;
+  let h = righe.length ? `<div class="lb">Dalle regole, dalla formazione e dalle ricette · risposta immediata</div>` : `<div class="lb">Niente di scritto su questo: chiedi a Tony</div>`;
   h += inScheda.map(scheda).join("");
   if (resto.length) h += `<div class="lb">Altre ricette: ${resto.map((r) => `<a href="#/crea-ricetta?id=${esc(r.rif)}" style="color:#0E5A7A">${esc(r.titolo)}</a>`).join(" · ")}</div>`;
   h += `<button class="tony" type="button">✨ Chiedi a Tony</button><div id="cerca-tony"></div>`;
@@ -154,7 +154,9 @@ function scheda(r) {
       ${vuote.length ? `<div class="warn">Fas${vuote.length > 1 ? "i" : "e"} ${vuote.join(" e ")} senza istruzioni scritte. Completa la ricetta.</div>` : ""}
       <a class="b2" href="#/crea-ricetta?id=${esc(r.rif)}" style="text-decoration:none">Apri la ricetta</a></div>`;
   }
-  const etichetta = r.fonte === "comandamento" ? "Comandamenti" : "Regole · " + (r.dettagli?.ambito || "locale");
+  const etichetta = r.fonte === "comandamento" ? "Comandamenti"
+    : r.fonte === "formazione" ? "Formazione" + (r.dettagli?.fonte ? " · " + r.dettagli.fonte : "")
+    : "Regole · " + (r.dettagli?.ambito || "locale");
   return `<div class="card"><div class="src">${esc(etichetta)}</div><div class="tt">${esc(r.titolo)}</div><div class="tx">${esc(r.testo)}</div></div>`;
 }
 

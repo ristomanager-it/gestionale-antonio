@@ -33,7 +33,8 @@ function json(status: number, body: unknown) {
 
 const SYSTEM = [
   "Sei Tony, l'assistente di un'azienda di ristorazione italiana. Ti scrive chi lavora in cucina o in sala, spesso dal telefono durante il servizio.",
-  "Ricevi la domanda e le FONTI DEL LOCALE (regole e ricette scritte dall'azienda).",
+  "Ricevi la domanda e le FONTI DEL LOCALE: regole e ricette scritte dall'azienda, e schede di formazione (es. Pienissimo Live) caricate dal titolare.",
+  "Le fonti sono cercate in largo: usa solo quelle che c'entrano davvero con la domanda e ignora le altre.",
   "",
   "REGOLE:",
   "- Rispondi in italiano, breve: al massimo 5 righe o un elenco di 3-5 punti. Niente premesse.",
@@ -46,7 +47,7 @@ const SYSTEM = [
 function fontiTesto(righe: any[]): string {
   if (!righe || !righe.length) return "(nessuna fonte trovata)";
   const out: string[] = [];
-  righe.slice(0, 6).forEach(function (r: any) {
+  righe.slice(0, 8).forEach(function (r: any) {
     let t = "[" + r.fonte + "] " + r.titolo + " (" + r.azienda + ")";
     if (r.fonte === "ricetta") {
       const fasi = (r.dettagli && r.dettagli.fasi) || [];
@@ -110,11 +111,11 @@ Deno.serve(async function (req: Request) {
     const { data: utente } = await sb.auth.getUser();
     if (!utente || !utente.user) return json(401, { errore: "Accesso scaduto" });
 
-    const { data: righe, error } = await sb.rpc("cerca_sapere", { p_q: domanda, p_azienda: aziendaId });
+    const { data: righe, error } = await sb.rpc("cerca_sapere", { p_q: domanda, p_azienda: aziendaId, p_largo: true });
     if (error) return json(500, { errore: "Ricerca non riuscita: " + error.message });
 
     const risposta = await chiediClaude(domanda, fontiTesto(righe || []));
-    const generica = !(righe && righe.length) || /^indicazione generale/i.test(risposta);
+    const generica = /^indicazione generale/i.test(risposta);
 
     if (aziendaId) {
       await sb.from("ricerca_domande").insert({ azienda_id: aziendaId, domanda: domanda, n_risultati: (righe || []).length, chiesto_tony: true });
