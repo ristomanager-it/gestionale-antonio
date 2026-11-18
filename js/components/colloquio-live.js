@@ -8,6 +8,9 @@
 // Le domande vengono copiate nella riga del colloquio: se Tony rigenera la scheda, lo storico resta com'era.
 
 const NOTIFICA = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/candidatura-notifica-ts";
+// 17/11 sera: valutazione di Tony sul colloquio (spunte + note + candidatura scritta) -> candidature_colloqui.valutazione
+const VALUTA = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/colloquio-valutazione";
+const CONSIGLI = { prova: "🍳 Prova pratica", secondo_colloquio: "🔁 Secondo colloquio", non_idoneo: "✋ Non idoneo" };
 
 // Domande fuori dal lavoro (fonte: Pienissimo Live). Niente domande su famiglia, figli, salute, religione, politica.
 const EXTRA = [
@@ -150,6 +153,37 @@ export async function apriColloquioLive(candidaturaId, opts) {
   }
 
   let htmlProvaG = () => "";
+  function htmlTony(c) {
+    const v = c.valutazione, li = (a) => (a || []).length ? "<ul class=\"pv\">" + a.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>" : "";
+    let t = '<div class="sez">🧠 Valutazione di Tony</div>';
+    if (v) {
+      t += '<div style="font-weight:800;font-size:15px;margin:6px 0">Consiglia: ' + esc(CONSIGLI[v.esito_consigliato] || v.esito_consigliato) + "</div>" +
+        '<div class="q" style="font-weight:400;font-size:14.5px">' + esc(v.giudizio) + "</div>" +
+        (v.motivo ? '<div class="p" style="margin-top:6px">' + esc(v.motivo) + "</div>" : "") +
+        (v.punti_forti && v.punti_forti.length ? '<div class="ok" style="font-weight:800;margin-top:10px">Punti forti</div>' + li(v.punti_forti) : "") +
+        (v.punti_deboli && v.punti_deboli.length ? '<div class="ko" style="font-weight:800;margin-top:6px">Punti deboli</div>' + li(v.punti_deboli) : "") +
+        (v.coerenza ? '<div class="info" style="margin-top:6px"><b>Rispetto alla candidatura:</b> ' + esc(v.coerenza) + "</div>" : "") +
+        (v.pratiche ? '<div class="info" style="margin-top:6px"><b>Situazione pratica:</b> ' + esc(v.pratiche) + "</div>" : "") +
+        (v.da_verificare_prova && v.da_verificare_prova.length ? '<div class="info" style="margin-top:8px"><b>Da verificare alla prova</b></div>' + li(v.da_verificare_prova) : "") +
+        (v.completezza ? '<div class="info" style="margin-top:6px;font-style:italic">' + esc(v.completezza) + "</div>" : "");
+    } else t += '<div class="info">Quando hai finito di segnare, chiedi a Tony: legge spunte, note e candidatura e ti dà il suo parere.</div>';
+    if (c.id) t += '<div class="es"><button id="cl-valuta">' + (v ? "🔄 Aggiorna la valutazione" : "🧠 Chiedi la valutazione a Tony") + '</button></div><div class="msg" id="cl-vmsg"></div>';
+    return t;
+  }
+  async function chiediTony() {
+    const msg = ov.querySelector("#cl-vmsg"), bt = ov.querySelector("#cl-valuta");
+    if (vedi === cur) { clearTimeout(timer); await salva(); }
+    bt.disabled = true; msg.textContent = "Tony sta leggendo il colloquio… (circa mezzo minuto)";
+    try {
+      const { data: ses } = await sb().auth.getSession();
+      const r = await fetch(VALUTA, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (ses?.session?.access_token || "") }, body: JSON.stringify({ colloquio_id: vedi.id }) });
+      const d = await r.json();
+      if (!d.ok) { msg.textContent = "⚠️ " + (d.errore || "Tony non ha risposto"); bt.disabled = false; return; }
+      vedi.valutazione = d.valutazione;
+      ov.querySelector("#cl-tony").innerHTML = htmlTony(vedi); legaTony();
+    } catch (e) { msg.textContent = "⚠️ " + e.message; bt.disabled = false; }
+  }
+  function legaTony() { const b = ov.querySelector("#cl-valuta"); if (b) b.onclick = chiediTony; }
   function disegna() {
     const ro = vedi !== cur; // colloquio già chiuso: solo lettura
     const voci = vedi.voci || [];
@@ -174,6 +208,7 @@ export async function apriColloquioLive(candidaturaId, opts) {
     function htmlProva() { const pv = perLaProva();
     return '<div class="sez">🔎 Per la prova</div>' + (pv.length ? '<ul class="pv">' + pv.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>" : '<div class="info">Qui finisce quello che segni ❌ e i punti da chiarire non risolti: alla prova si verifica questo.</div>') +
       (rel.prova_pratica ? '<div class="info" style="margin-top:8px"><b>Prova proposta da Tony:</b> ' + esc(typeof rel.prova_pratica === "string" ? rel.prova_pratica : JSON.stringify(rel.prova_pratica)) + "</div>" : ""); }
+    h += '<div class="box" id="cl-tony">' + htmlTony(vedi) + "</div>";
     if (!ro) {
       h += '<div class="box"><div class="sez">Esito del colloquio</div><div class="es">' +
         '<button data-es="secondo_colloquio" class="' + (vedi.esito === "secondo_colloquio" ? "on" : "") + '">🔁 Secondo colloquio<div class="info">Gli rimando il link per prenotarlo</div></button>' +
@@ -186,6 +221,7 @@ export async function apriColloquioLive(candidaturaId, opts) {
     h += "</div>";
     ov.innerHTML = h; htmlProvaG = htmlProva;
     ov.querySelector("#cl-x").onclick = async () => { clearTimeout(timer); if (vedi === cur && cur.id === null && !cur.voci.some((v) => v.esito || v.nota) && !cur.note) return chiudi(); await salva(); chiudi(); };
+    legaTony();
     ov.querySelectorAll("[data-n]").forEach((b) => b.onclick = () => { vedi = colloqui.concat(cur && !colloqui.includes(cur) ? [cur] : []).find((c) => c.numero === Number(b.dataset.n)); disegna(); });
     if (ro) return;
     ov.querySelectorAll("[data-e]").forEach((b) => b.onclick = () => {
