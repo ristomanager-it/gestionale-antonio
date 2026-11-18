@@ -197,7 +197,7 @@ function creaCardStato(gruppi, percentuali) {
 async function cercaAziende(q) {
   const { data, error } = await supabase
     .from("aziende")
-    .select("id,nome,stato,stato_attivazione,profilo_completato,data_scadenza,piano_id,piano_nome,email,citta,moduli,tipo_app,abbonamento_stato,abbonamento_scade_il,stripe_customer_id,stripe_subscription_id")
+    .select("id,nome,stato,stato_attivazione,profilo_completato,data_scadenza,piano_id,piano_nome,email,citta,moduli,tipo_app,telefono,abbonamento_stato,abbonamento_scade_il,stripe_customer_id,stripe_subscription_id")
     .ilike("nome", `%${q}%`)
     .order("nome")
     .limit(20);
