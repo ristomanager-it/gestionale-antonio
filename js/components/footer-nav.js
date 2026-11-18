@@ -31,6 +31,7 @@ export function aggiornaFooter(route) {
     const st = document.createElement("style");
     st.textContent = `
       #rf-footer{position:fixed;left:0;right:0;bottom:0;z-index:9000;display:flex;background:#fff;
+        -webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);will-change:transform;
         border-top:1px solid #E2E8F0;padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 16px rgba(2,60,89,.06);}
       #rf-footer a{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px;border-radius:12px;
         text-decoration:none;color:#64748B;font-size:11.5px;font-weight:700;-webkit-tap-highlight-color:transparent;}
