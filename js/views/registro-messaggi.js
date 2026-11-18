@@ -118,6 +118,11 @@ function renderLista() {
           <div style="font-size:11px;color:#94a3b8;">${quando}${statoErr}</div>
         </div>
         ${m.testo ? `<div style="font-size:14px;color:#1f2937;margin-top:6px;white-space:pre-wrap;">${escapeHtml(m.testo)}</div>` : ""}
+        ${m.media ? (String(m.mime).startsWith("image/")
+          ? `<a href="${escapeHtml(m.media)}" target="_blank" rel="noopener"><img src="${escapeHtml(m.media)}" style="max-width:220px;max-height:220px;border-radius:8px;margin-top:8px;display:block;"></a>`
+          : String(m.mime).startsWith("audio/")
+          ? `<audio controls src="${escapeHtml(m.media)}" style="margin-top:8px;max-width:100%;"></audio>`
+          : `<a href="${escapeHtml(m.media)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;background:#0f3b57;color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;text-decoration:none;">📎 Apri allegato</a>`) : ""}
         ${m.extra ? `<div style="font-size:11px;color:#94a3b8;margin-top:4px;">${escapeHtml(m.extra)}</div>` : ""}
       </div>`;
   }).join("");
