@@ -246,6 +246,7 @@ function renderRigaAzienda(az, parent) {
           ${az.abbonamento_stato === 'attivo' ? '<span style="background:#dcfce7;color:#166534;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:4px;">✅ Attivo</span>' : ''}
           ${az.abbonamento_stato === 'pagamento_fallito' ? '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:4px;">⚠️ Pagamento fallito</span>' : ''}
           ${az.abbonamento_stato === 'in_attesa_pagamento' ? '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:4px;">⏳ In attesa</span>' : ''}
+          ${window._insMod && window._insMap?.[az.id] ? window._insMod.etichetta(window._insMap[az.id]) : ''}
           ${az.tipo_app?.length ? az.tipo_app.map(t=>`<span style="background:#f1f5f9;color:#374151;padding:2px 8px;border-radius:20px;font-size:10px;">${t}</span>`).join('') : ''}
         </div>
       </div>
