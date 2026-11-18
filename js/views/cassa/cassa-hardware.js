@@ -185,8 +185,7 @@ async function precontoSuTermica(st, doc) {
     const g = righe.find(x => x.descrizione === v.descrizione && x.prezzo_unitario === v.prezzo_unitario);
     if (g) g.quantita += v.quantita; else righe.push(v);
   });
-  const tok = tokenTablet(doc.azienda);
-  if (!tok) return { ok: false, simulato: false, errore: MSG_SOLO_TABLET };
+  const tok = tokenTablet(doc.azienda) || ''; // admin: stampa anche senza tablet assegnato (lo controlla accoda_stampa)
   const { data: ins, error } = await supabase.rpc('accoda_stampa', { p_token: tok, p_lavori: [{
     azienda_id: doc.azienda, sede_id: doc.sede || null, stampante_id: st.id,
     stampante_ip: st.ip, stampante_porta: st.porta || 9100, larghezza: st.larghezza || 42,
@@ -317,8 +316,7 @@ export async function emettiDocumento(doc) {
     } catch (e) { /* senza fondo */ }
   }
 
-  const tokF = tokenTablet(aziendaId);
-  if (!tokF) return { ok: false, simulato: false, errore: MSG_SOLO_TABLET };
+  const tokF = tokenTablet(aziendaId) || ''; // admin: anche senza tablet assegnato (lo controlla accoda_fiscale)
   const { data: idF, error: insErr } = await supabase.rpc('accoda_fiscale', { p_token: tokF, p_record: record });
   const riga = idF ? { id: idF } : null;
 
@@ -353,7 +351,8 @@ function _attesa(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // Solo i tablet assegnati (Configurazione > Cassa > Tablet bloccati) parlano con le stampanti
 // di sala e con il registratore: il codice del tablet viaggia con ogni lavoro e il database
-// lo controlla (accoda_stampa / accoda_fiscale). Le etichette di cucina restano libere.
+// lo controlla (accoda_stampa / accoda_fiscale). Admin e superadmin stampano da qualsiasi dispositivo.
+// Le etichette di cucina restano libere.
 export function tokenTablet(aziendaId) {
   try { return aziendaId ? localStorage.getItem('rf_tablet_token_' + aziendaId) : null; } catch (e) { return null; }
 }

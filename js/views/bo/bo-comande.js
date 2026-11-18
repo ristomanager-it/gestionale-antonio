@@ -4,7 +4,7 @@
 
 // ATTENZIONE: import statico, il ?v=APP_V del router non lo raggiunge.
 // Ad ogni modifica di cassa-hardware.js bumpare a mano il ?v=N qui sotto.
-import { emettiDocumento, emettiPreconto, tokenTablet, MSG_SOLO_TABLET } from '../cassa/cassa-hardware.js?v=9';
+import { emettiDocumento, emettiPreconto, tokenTablet, MSG_SOLO_TABLET } from '../cassa/cassa-hardware.js?v=11';
 
 const supa = () => window.supabaseClient || window.supabase;
 
@@ -2758,10 +2758,14 @@ export async function render(container) {
       });
       if (!lavori.length) return;
       // Solo i tablet assegnati stampano: da telefono la comanda arriva in cucina a schermo, senza foglio
-      const tok = tokenTablet(aziendaId);
-      if (!tok) { mostraToast('🖨 ' + MSG_SOLO_TABLET + ': la comanda è in cucina a schermo', 'warning'); return; }
+      // tablet assegnati e admin (da qualsiasi dispositivo): decide il database (accoda_stampa)
+      const tok = tokenTablet(aziendaId) || '';
       const { data: ins, error } = await supa().rpc('accoda_stampa', { p_token: tok, p_lavori: lavori });
-      if (error) { mostraToast('⚠️ Comanda non mandata in stampa: ' + error.message, 'error'); return; }
+      if (error) {
+        const soloTablet = /tablet assegnati/i.test(error.message || '');
+        mostraToast(soloTablet ? '🖨 ' + MSG_SOLO_TABLET + ': la comanda è in cucina a schermo' : '⚠️ Comanda non mandata in stampa: ' + error.message, soloTablet ? 'warning' : 'error');
+        return;
+      }
       // controllo esito dopo qualche secondo: il cameriere deve sapere se un reparto non ha stampato
       setTimeout(async () => {
         const { data: esiti } = await supa().from('coda_stampe').select('id, reparto, stato, errore_msg').in('id', (ins || []).map(x => x.id));
