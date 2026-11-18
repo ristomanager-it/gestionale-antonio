@@ -1245,7 +1245,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
         return { success: true, fonte: "crediti",
           reply: riga.motivo === "Servizio sospeso"
             ? "Tony è sospeso per questo locale. Scrivi all'assistenza dal pulsante Aiuto."
-            : (admin ? "Ho finito i crediti di questo mese. Ricaricali da Impostazioni › Crediti Tony (#/bo-crediti) e riparto subito."
+            : (admin ? "Ho finito i crediti di questo mese. Ricaricali dal menu, alla voce ⚡ Crediti Tony, e riparto subito."
                      : "Ho finito i crediti di questo mese. Chiedi al tuo responsabile di ricaricarli.") };
       }
     } catch (_e) { /* controllo crediti non raggiungibile: si prosegue */ }
