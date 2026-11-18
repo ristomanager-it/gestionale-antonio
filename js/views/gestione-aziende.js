@@ -24,6 +24,10 @@ export async function render(container) {
     .order("ordine");
 
   window._piani = piani || [];
+  // 18/11: inserimento azienda — fase per l'etichetta sulla riga e pannello caricato una volta sola
+  const { data: insAll } = await supabase.from("aziende_inserimento").select("azienda_id, fase");
+  window._insMap = {}; (insAll || []).forEach(r => { window._insMap[r.azienda_id] = r; });
+  try { window._insMod = await import("../components/inserimento-azienda.js?v=" + (window.APP_V || "1")); } catch (e) { console.warn("inserimento", e); }
 
   const content = `
     <div style="margin-top:12px;">
