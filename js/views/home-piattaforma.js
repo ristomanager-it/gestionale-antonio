@@ -138,6 +138,15 @@ export async function render(container) {
           </div>
           <div class="icon">🎤</div>
         </div>
+        <!-- manuale agenti: il PDF sta in assets/ristoflow/agenti, si aggiorna sovrascrivendo il file (stesso link) -->
+        <div class="card" onclick="window.open('https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/assets/ristoflow/agenti/Manuale-agente-Ristoflow.pdf','_blank')">
+          <div>
+            <div class="label">Rete vendita</div>
+            <div class="title">Manuale dell'agente</div>
+            <div style="font-size:11px;margin-top:4px;font-weight:700;color:#E07A2E;">PDF da leggere e stampare</div>
+          </div>
+          <div class="icon">📘</div>
+        </div>
         <div class="card" onclick="toggleAgenti()">
           <div>
             <div class="label">Rete vendita</div>
