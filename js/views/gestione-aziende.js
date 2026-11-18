@@ -86,7 +86,7 @@ async function caricaStatoScadenzeAziende() {
   // Carica TUTTE le aziende, inclusa piattaforma — la escludiamo solo dal grafico
   const { data, error } = await supabase
     .from("aziende")
-    .select("id,nome,data_scadenza,stato,stato_attivazione,profilo_completato,piano_id,piano_nome,email,citta,moduli,tipo_app")
+    .select("id,nome,data_scadenza,stato,stato_attivazione,profilo_completato,piano_id,piano_nome,email,citta,moduli,tipo_app,telefono")
     .order("nome");
 
   if (error || !data) return;
