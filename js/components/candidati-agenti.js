@@ -57,7 +57,7 @@ export async function montaCandidati(el) {
   <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px">
     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
       <div><b>Candidati</b> <span style="color:#64748b">· ${(cand || []).length}</span></div>
-      <div>${chip('tutti', 'Tutti', _filtro === 'tutti')}${Object.keys(STATI).map(k => chip(k, STATI[k], _filtro === k)).join('')}</div>
+      <div>${chip('tutti', 'Tutti · ' + (cand || []).length, _filtro === 'tutti')}${Object.keys(STATI).map(k => chip(k, STATI[k] + ' · ' + (cand || []).filter(x => x.stato === k).length, _filtro === k)).join('')}</div>
     </div>
     <!-- a schede e non a tabella: sul telefono le colonne uscivano dallo schermo e lo stato non si vedeva -->
     <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#475569;margin:4px 0 8px"><input type="checkbox" id="ca-tutti"> Seleziona tutti quelli in elenco</label>
