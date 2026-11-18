@@ -1233,6 +1233,24 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
   const session = await supaAuth?.auth?.getSession();
   const token = session?.data?.session?.access_token || "";
 
+  // Crediti Tony: la chat si paga a costo reale (1 credito ogni 0,10 EUR, scalato dal database dopo la risposta).
+  // Qui si guarda solo se c'e' ancora credito: a saldo zero Tony non parte e dice come ricaricare.
+  // Se il controllo non risponde, Tony parte lo stesso: meglio un messaggio in piu' che un locale bloccato per un errore.
+  if (tipoMessaggio !== "messaggio_iniziale" && window.state?.azienda?.id) {
+    try {
+      const { data: cr } = await supaAuth.rpc("ai_credito_disponibile", { p_azienda: window.state.azienda.id, p_funzione: "tony-chat" });
+      const riga = Array.isArray(cr) ? cr[0] : cr;
+      if (riga && riga.ok === false) {
+        const admin = ["admin", "superadmin"].includes(window.state?.ruolo || "");
+        return { success: true, fonte: "crediti",
+          reply: riga.motivo === "Servizio sospeso"
+            ? "Tony è sospeso per questo locale. Scrivi all'assistenza dal pulsante Aiuto."
+            : (admin ? "Ho finito i crediti di questo mese. Ricaricali da Impostazioni › Crediti Tony (#/bo-crediti) e riparto subito."
+                     : "Ho finito i crediti di questo mese. Chiedi al tuo responsabile di ricaricarli.") };
+      }
+    } catch (_e) { /* controllo crediti non raggiungibile: si prosegue */ }
+  }
+
   const controller = new AbortController();
   // Ora che le ricerche lunghe vanno in background, questa richiesta deve
   // solo aspettare il PRIMO giro (decidere cosa fare + eventuali strumenti
