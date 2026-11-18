@@ -58,6 +58,7 @@ async function carica() {
     canale: "whatsapp", dir: "in", quando: m.created_at,
     chi: m.from_nome || m.from_numero || "—", numero: m.from_numero || "",
     testo: m.testo || "", extra: m.intent ? "intent: " + m.intent : "", stato: "",
+    media: m.media_url || "", mime: m.media_mime || "", // il webhook salva gia' il file in media-aziende: qui serve solo il link per aprirlo
   }));
   (waOut.data || []).forEach(m => items.push({
     canale: "whatsapp", dir: "out", quando: m.created_at,
