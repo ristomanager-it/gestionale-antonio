@@ -3,6 +3,9 @@
 // v3 (16/11/2026): nello stesso calendario arrivano i COLLOQUI prenotati dai candidati (tipo='colloquio').
 //   Sotto ogni colloquio, solo per gli admin, la scheda di Tony di quel candidato: domande, risposta buona, campanello,
 //   punti da chiarire e prova pratica. Si apre con <details>, cosi' l'elenco resta corto.
+// v4 (18/11/2026): "📅 Sposta" sotto ogni appuntamento futuro (resta lo stesso appuntamento: un colloquio resta col candidato)
+//   con il messaggio al cliente modificabile, inviato da appuntamento-sposta (email sempre, WhatsApp se nella finestra 24h).
+//   "🚫 Chiudi un giorno": visite_config.chiusure, il calendario pubblico non offre orari in quei giorni.
 // Appuntamenti prenotati dalle landing (visite_appuntamenti) e impostazioni del calendario (visite_config): orari interni, durata, link.
 const LINK = "https://app.ristoflow-ai.com/visita.html?p=";
 const sb = () => window.supabaseClient || window.supabase;
@@ -10,7 +13,16 @@ const az = () => window.state?.azienda?.id;
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const $ = (i) => document.getElementById(i);
 const GG = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
-let S = { cand: {}, cfg: null, slug: "", prossime: [], passate: [], tab: "prossime", nuova: false, nG: "", nOre: [] };
+let S = { cand: {}, cfg: null, slug: "", prossime: [], passate: [], tab: "prossime", nuova: false, nG: "", nOre: [], sposta: null, sG: "", sO: "", sOre: [], sMsgMod: false, chiudi: false };
+const FN_SPOSTA = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/appuntamento-sposta";
+const primoNome = (n) => String(n || "").trim().split(/\s+/)[0] || "";
+function msgSposta(v, g, h) {
+  const prima = giorno(v.inizio) + " alle " + ora(v.inizio);
+  const dopo = g && h ? new Date(g + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }) + " alle " + h : "…";
+  return v.tipo === "colloquio"
+    ? "Ciao " + primoNome(v.nome) + ", ti scriviamo per spostare il tuo colloquio di " + prima + " a " + dopo + ". Ci scusiamo per il cambio.\n\nSe il nuovo orario non ti va bene, scrivici e troviamo un'altra soluzione. A presto!"
+    : "Buongiorno " + v.nome + ", vi scriviamo per spostare la vostra visita di " + prima + " a " + dopo + ". Ci scusiamo per il cambio.\n\nSe il nuovo orario non vi va bene, scriveteci e troviamo un'altra soluzione. A presto!";
+}
 const giorno = (d) => new Date(d).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Rome" });
 const ora = (d) => new Date(d).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 const wa = (t) => { const x = String(t || "").replace(/[^0-9]/g, ""); return x ? "https://wa.me/" + (x.length <= 10 ? "39" + x : x) : ""; };
@@ -52,6 +64,7 @@ function scheda(c) {
     "</details>";
 }
 function riga(v, passata) {
+  if (S.sposta === v.id) return formSposta(v);
   const st = { confermato: "", fatto: "✅ Fatta", non_venuto: "🚫 Non venuti", annullato: "❌ Annullata" }[v.stato] || "";
   return '<div class="vi-ap"><div class="vi-ora">' + ora(v.inizio) + '</div><div style="flex:1;min-width:0"><b>' + esc(v.nome) + "</b>" + (st ? ' <span class="vi-m">· ' + st + "</span>" : "") +
     '<div class="vi-m">' + [v.tipo_evento, v.data_evento ? "evento " + v.data_evento : "", v.invitati ? v.invitati + " invitati" : ""].filter(Boolean).map(esc).join(" · ") + "</div>" +
@@ -59,7 +72,7 @@ function riga(v, passata) {
     (v.tipo === "colloquio" && v.candidatura_id && admin() ? '<button class="vi-live" data-live="' + esc(v.candidatura_id) + '" data-app="' + v.id + '">🗣 Apri il colloquio dal vivo</button>' + scheda(S.cand[v.candidatura_id]) : "") +
     '<div class="vi-az">' + (v.telefono ? '<a class="vi-btn s" href="tel:' + esc(v.telefono) + '">📞</a>' + (wa(v.telefono) ? '<a class="vi-btn s" target="_blank" href="' + wa(v.telefono) + '">WhatsApp</a>' : "") : "") +
     (v.email ? '<a class="vi-btn s" href="mailto:' + esc(v.email) + '">✉️</a>' : "") +
-    (v.stato === "confermato" ? (passata || new Date(v.inizio) < new Date() ? '<button class="vi-btn s" data-st="fatto" data-id="' + v.id + '">✅ Fatta</button><button class="vi-btn s" data-st="non_venuto" data-id="' + v.id + '">🚫 Non venuti</button>' : "") + '<button class="vi-btn s r" data-st="annullato" data-id="' + v.id + '">Annulla</button>' : "") +
+    (v.stato === "confermato" ? (passata || new Date(v.inizio) < new Date() ? '<button class="vi-btn s" data-st="fatto" data-id="' + v.id + '">✅ Fatta</button><button class="vi-btn s" data-st="non_venuto" data-id="' + v.id + '">🚫 Non venuti</button>' : "") + (new Date(v.inizio) > new Date() ? '<button class="vi-btn s" data-sposta="' + v.id + '">📅 Sposta</button>' : "") + '<button class="vi-btn s r" data-st="annullato" data-id="' + v.id + '">Annulla</button>' : "") +
     "</div></div></div>";
 }
 function elenco(lista, passata) {
@@ -79,6 +92,7 @@ function disegna() {
     '<div class="vi-tabs"><button data-tab="prossime" class="' + (S.tab === "prossime" ? "on" : "") + '">In programma (' + S.prossime.length + ')</button><button data-tab="passate" class="' + (S.tab === "passate" ? "on" : "") + '">Passate</button><button data-tab="imp" class="' + (S.tab === "imp" ? "on" : "") + '">Impostazioni</button></div>';
   if (S.tab === "prossime") {
     h += S.nuova ? formNuova() : '<button class="vi-btn p" id="viNuova" style="width:100%;margin-bottom:4px">+ Nuova visita (presa al telefono)</button>';
+    h += S.chiudi ? formChiudi() : '<button class="vi-btn" id="viChiudi" style="width:100%;margin-bottom:4px">🚫 Chiudi un giorno' + ((S.cfg?.chiusure || []).filter((d) => d >= oggiIso()).length ? " (" + (S.cfg.chiusure.filter((d) => d >= oggiIso()).length) + " chiusi)" : "") + "</button>";
     h += '<div class="vi-card">' + elenco(S.prossime, false) + "</div>";
   }
   else if (S.tab === "passate") h += '<div class="vi-card">' + elenco(S.passate, true) + "</div>";
@@ -102,6 +116,9 @@ function disegna() {
   }
   $("viC").innerHTML = h; $("viC").onclick = clic;
   if ($("nvG")) $("nvG").onchange = (e) => cambiaGiorno(e.target.value);
+  if ($("spG")) $("spG").onchange = async (e) => { const m = $("spMsg").value; S.sG = e.target.value; S.sO = ""; await caricaOreSposta(S.sG, S.sposta); disegna(); if (S.sMsgMod) $("spMsg").value = m; };
+  if ($("spO")) $("spO").onchange = (e) => { S.sO = e.target.value; aggiornaMsg(); };
+  if ($("spMsg")) $("spMsg").oninput = () => { S.sMsgMod = true; };
 }
 const p2 = (n) => (n < 10 ? "0" : "") + n;
 const oggiIso = () => { const d = new Date(); return d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()); };
@@ -116,6 +133,34 @@ async function caricaOre(g) {
   const { data } = await sb().from("visite_appuntamenti").select("inizio").eq("azienda_id", az()).neq("stato", "annullato").gte("inizio", ini.toISOString()).lt("inizio", fin.toISOString());
   const prese = (data || []).map((x) => ora(x.inizio));
   S.nOre = orariGiorno(g).filter((h) => prese.indexOf(h) < 0 && new Date(g + "T" + h + ":00") > new Date());
+}
+function formSposta(v) {
+  const giornoChiuso = S.sG && (S.cfg?.chiusure || []).indexOf(S.sG) >= 0;
+  return '<div class="vi-card" style="border-color:#023C59;border-width:2px"><b>📅 Sposta: ' + esc(v.nome) + '</b><div class="vi-m">Ora: ' + esc(giorno(v.inizio) + " alle " + ora(v.inizio)) + (v.tipo_evento ? " · " + esc(v.tipo_evento) : "") + "</div>" +
+    '<div class="vi-due"><label class="vi-f"><span>Nuovo giorno</span><input type="date" id="spG" min="' + oggiIso() + '" value="' + esc(S.sG) + '"></label>' +
+    '<label class="vi-f"><span>Nuova ora</span><input type="time" id="spO" step="300" value="' + esc(S.sO) + '"></label></div>' +
+    (S.sG ? '<div class="vi-m" style="margin:-2px 0 4px">' + (giornoChiuso ? "⚠️ Questo giorno è chiuso nel calendario: puoi comunque segnarlo a mano." : S.sOre.length ? "Orari liberi:" : "Nessun orario libero nelle vostre fasce: scrivi l’ora a mano.") + "</div>" + '<div class="vi-az">' + S.sOre.map((h) => '<button class="vi-btn s' + (h === S.sO ? " p" : "") + '" data-sora="' + h + '">' + h + "</button>").join("") + "</div>" : "") +
+    '<label class="vi-f"><span>Messaggio che arriva ' + (v.tipo === "colloquio" ? "al candidato" : "al cliente") + ' (puoi modificarlo)</span><textarea id="spMsg" rows="6">' + esc(msgSposta(v, S.sG, S.sO)) + "</textarea></label>" +
+    '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 8px"><input type="checkbox" id="spAvv" checked> Invia il messaggio</label>' +
+    '<div class="vi-m" style="margin-bottom:8px">' + (v.email ? "✉️ Arriva per email a " + esc(v.email) + ", con l’appuntamento da aggiungere al calendario." : "⚠️ Nessuna email: ") + (v.telefono ? " Su WhatsApp parte solo se ci ha scritto nelle ultime 24 ore." : "") + "</div>" +
+    '<div class="vi-m" id="spErr" style="color:#b42318"></div><button class="vi-btn p" id="spOk">Sposta</button> <button class="vi-btn" id="spAnn">Lascia com’è</button></div>';
+}
+function formChiudi() {
+  const ch = (S.cfg?.chiusure || []).filter((d) => d >= oggiIso()).sort();
+  return '<div class="vi-card"><b>🚫 Giorni chiusi</b><p class="vi-m">In questi giorni il calendario non offre orari, né per le visite né per i colloqui.</p>' +
+    (ch.length ? ch.map((d) => '<div class="vi-ln"><div style="flex:1;text-transform:capitalize">' + esc(new Date(d + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })) + '</div><button class="vi-btn s" data-riapri="' + d + '">Riapri</button></div>').join("") : '<p class="vi-m">Nessun giorno chiuso.</p>') +
+    '<div class="vi-due" style="align-items:end"><label class="vi-f"><span>Chiudi il giorno</span><input type="date" id="chG" min="' + oggiIso() + '"></label><div style="margin:8px 0"><button class="vi-btn p" id="chOk" style="width:100%">Chiudi</button></div></div>' +
+    '<div class="vi-m" id="chMsg"></div><button class="vi-btn s" id="chAnn">Fatto</button></div>';
+}
+async function caricaOreSposta(g, escludi) {
+  const ini = new Date(g + "T00:00:00"), fin = new Date(ini.getTime() + 86400000);
+  const { data } = await sb().from("visite_appuntamenti").select("id, inizio").eq("azienda_id", az()).neq("stato", "annullato").gte("inizio", ini.toISOString()).lt("inizio", fin.toISOString());
+  const prese = (data || []).filter((x) => x.id !== escludi).map((x) => ora(x.inizio));
+  S.sOre = (S.cfg?.chiusure || []).indexOf(g) >= 0 ? [] : orariGiorno(g).filter((h) => prese.indexOf(h) < 0 && new Date(g + "T" + h + ":00") > new Date());
+}
+function aggiornaMsg() {
+  const v = S.prossime.find((x) => x.id === S.sposta); if (!v || S.sMsgMod || !$("spMsg")) return;
+  $("spMsg").value = msgSposta(v, S.sG, S.sO);
 }
 function formNuova() {
   const tipi = ["Matrimonio", "Comunione", "Cresima", "Battesimo", "Compleanno", "18 anni", "Laurea", "Cena aziendale", "Altro"];
@@ -142,6 +187,40 @@ async function clic(e) {
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.live) { const m = await import("../components/colloquio-live.js?v=" + (window.APP_V || "1")); m.apriColloquioLive(t.dataset.live, { appuntamentoId: Number(t.dataset.app) || null }); return; }
   if (t.dataset.tab) { S.tab = t.dataset.tab; disegna(); return; }
+  if (t.dataset.sposta) { S.sposta = +t.dataset.sposta; S.sG = ""; S.sO = ""; S.sOre = []; S.sMsgMod = false; disegna(); return; }
+  if (t.id === "spAnn") { S.sposta = null; disegna(); return; }
+  if (t.dataset.sora) { const m = $("spMsg").value; S.sO = t.dataset.sora; disegna(); if (S.sMsgMod) $("spMsg").value = m; else aggiornaMsg(); return; }
+  if (t.id === "spOk") {
+    const g = $("spG").value, h = $("spO").value;
+    if (!g || !h) { $("spErr").textContent = "Scegli giorno e ora."; return; }
+    t.disabled = true; t.textContent = "Sposto…";
+    try {
+      const { data: ses } = await sb().auth.getSession();
+      const r = await fetch(FN_SPOSTA, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (ses?.session?.access_token || "") },
+        body: JSON.stringify({ id: S.sposta, giorno: g, ora: h, messaggio: $("spMsg").value, avvisa: $("spAvv").checked }) });
+      const d = await r.json();
+      if (!d.ok) { $("spErr").textContent = d.errore || "Non spostato"; t.disabled = false; t.textContent = "Sposta"; return; }
+      const parti = ["✅ Spostato a " + d.quando + "."];
+      if ($("spAvv").checked) {
+        parti.push(d.email?.ok ? "✉️ Email inviata." : "✉️ Email non inviata" + (d.email?.motivo ? " (" + d.email.motivo + ")" : "") + ".");
+        parti.push(d.whatsapp?.ok ? "💬 WhatsApp inviato." : "💬 WhatsApp non inviato" + (d.whatsapp?.motivo ? " (" + d.whatsapp.motivo + ")" : "") + ": se serve, scrivigli dal telefono.");
+      }
+      S.sposta = null; await carica(); disegna(); alert(parti.join("\n"));
+    } catch (er) { $("spErr").textContent = er.message; t.disabled = false; t.textContent = "Sposta"; }
+    return;
+  }
+  if (t.id === "viChiudi") { S.chiudi = true; disegna(); return; }
+  if (t.id === "chAnn") { S.chiudi = false; disegna(); return; }
+  if (t.id === "chOk" || t.dataset.riapri) {
+    const d = t.dataset.riapri || $("chG").value; if (!d) return;
+    const ch = (S.cfg?.chiusure || []).filter((x) => x !== d);
+    if (!t.dataset.riapri) ch.push(d);
+    const r = await salva({ chiusure: ch.sort() });
+    if (r.error) { alert(r.error.message); return; }
+    disegna();
+    if (!t.dataset.riapri) { const n = S.prossime.filter((v) => v.stato === "confermato" && new Date(v.inizio).toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" }) === d).length; if (n && $("chMsg")) $("chMsg").textContent = "⚠️ In quel giorno ci sono " + n + " appuntamenti già presi: spostali con 📅 Sposta."; }
+    return;
+  }
   if (t.id === "viNuova") { S.nuova = true; S.nG = ""; S.nOre = []; disegna(); return; }
   if (t.id === "nvAnn") { S.nuova = false; disegna(); return; }
   if (t.dataset.ora) { $("nvO").value = t.dataset.ora; document.querySelectorAll("[data-ora]").forEach((x) => x.classList.toggle("p", x === t)); return; }
