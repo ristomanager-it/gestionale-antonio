@@ -138,7 +138,7 @@ window.__apriEmail = async function (id, dir) {
     + '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #e5e7eb;"><b id="rm-em-ogg">Carico…</b>'
     + '<button type="button" id="rm-em-x" style="border:none;background:#f1f5f9;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button></div>'
     + '<div id="rm-em-meta" style="padding:8px 16px;font-size:12px;color:#64748b;"></div>'
-    + '<iframe id="rm-em-corpo" sandbox="" style="border:none;width:100%;flex:1;min-height:60vh;"></iframe></div>';
+    + '<iframe id="rm-em-corpo" sandbox="allow-same-origin allow-popups" style="border:none;width:100%;flex:1;min-height:60vh;"></iframe></div>';
   document.body.appendChild(fondo);
   const chiudi = () => fondo.remove();
   fondo.addEventListener("click", (e) => { if (e.target === fondo) chiudi(); });
