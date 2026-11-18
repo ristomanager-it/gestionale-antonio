@@ -119,6 +119,7 @@ function renderLista() {
           <div style="font-size:11px;color:#94a3b8;">${quando}${statoErr}</div>
         </div>
         ${m.testo ? `<div style="font-size:14px;color:#1f2937;margin-top:6px;white-space:pre-wrap;">${escapeHtml(m.testo)}</div>` : ""}
+        ${m.emailId ? `<button type="button" onclick="window.__apriEmail('${escapeHtml(m.emailId)}','${m.dir === "in" ? "in" : "out"}')" style="margin-top:8px;background:#0f3b57;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;">✉️ Apri email</button>` : ""}
         ${m.media ? (String(m.mime).startsWith("image/")
           ? `<a href="${escapeHtml(m.media)}" target="_blank" rel="noopener"><img src="${escapeHtml(m.media)}" style="max-width:220px;max-height:220px;border-radius:8px;margin-top:8px;display:block;"></a>`
           : String(m.mime).startsWith("audio/")
