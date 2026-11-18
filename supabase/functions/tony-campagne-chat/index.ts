@@ -40,6 +40,10 @@
 // v22: PULIZIA PAROLE CHIAVE GOOGLE dalla chat: termini_ricerca (legge search_term_view via google-ads-leggi) e proponi_esclusioni (scheda,
 //      alla Conferma google-ads-ottimizza: escluse a frase a livello campagna + parole nuove nel gruppo). Prima Tony diceva di non poterlo fare.
 //      ATTENZIONE: questa funzione e' stata modificata da due sessioni in parallelo: prima di ripubblicarla leggere SEMPRE la versione attiva.
+// v34 (18/11/2026): VIDEO NELLE CAMPAGNE GIA' ATTIVE. proponi_inserzioni_video aggiunge un'inserzione per ogni video della libreria a un gruppo
+//      di una campagna che esiste (es. il richiamo di chi ha visto la pagina di Capodanno), con lo stesso link e la stessa pagina degli annunci gia' li'.
+//      Perche': Tony rispondeva facendo una landing nuova e diceva che il pixel non era collegato, mentre pubblici e campagne di richiamo c'erano gia'.
+//      elenco_media ora dice anche quando e' stato caricato ogni file (e con cerca='__nuovi' li ordina dal piu' recente), cosi' Tony sa quali sono i nuovi.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -241,14 +245,14 @@ async function fotoPiatto(aziendaId: string, piatto: string): Promise<string | n
 
 // libreria media della sede: foto e video con descrizione, per scegliere l'hero della landing
 async function elencoMedia(c: Ctx, cerca: string, tipo: string): Promise<any[]> {
-  let q = sb.from("media_library").select("id,tipo,nome,descrizione,soggetti,adatta_a,qualita,orientamento,durata_sec")
+  let q = sb.from("media_library").select("id,tipo,nome,descrizione,soggetti,adatta_a,qualita,orientamento,durata_sec,created_at")
     .eq("azienda_id", c.aziendaId).or("archiviata.is.null,archiviata.eq.false");
   if (c.sedeId) q = q.or(`sede_id.eq.${c.sedeId},sede_id.is.null`);
   if (tipo === "immagine" || tipo === "video") q = q.eq("tipo", tipo);
-  const parola = String(cerca || "").toLowerCase().replace(/[^a-z\u00e0-\u00f9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3)[0];
+  const parola = cerca === "__nuovi" ? "" : String(cerca || "").toLowerCase().replace(/[^a-z\u00e0-\u00f9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3)[0];
   if (parola) q = q.or(`descrizione.ilike.%${parola}%,nome.ilike.%${parola}%`);
-  const { data } = await q.order("qualita", { ascending: false, nullsFirst: false }).limit(30);
-  return (data || []).map((m: any) => ({ id: m.id, tipo: m.tipo, nome: m.nome, descrizione: String(m.descrizione || "").slice(0, 160) || null, soggetti: m.soggetti, adatta_a: m.adatta_a, qualita: m.qualita, orientamento: m.orientamento, durata_sec: m.durata_sec }));
+  const { data } = await (cerca === "__nuovi" ? q.order("created_at", { ascending: false }) : q.order("qualita", { ascending: false, nullsFirst: false })).limit(30);
+  return (data || []).map((m: any) => ({ id: m.id, tipo: m.tipo, nome: m.nome, descrizione: String(m.descrizione || "").slice(0, 160) || null, soggetti: m.soggetti, adatta_a: m.adatta_a, qualita: m.qualita, orientamento: m.orientamento, durata_sec: m.durata_sec, caricato_il: m.created_at ? String(m.created_at).slice(0, 10) : null }));
 }
 
 // la sede scrive il menu del giorno nell'app? (ultime 2 settimane)
@@ -359,7 +363,7 @@ const TOOLS = [
     input_schema: { type: "object", properties: {
       giorni: { type: "number", description: "quanti giorni guardare all'indietro: 1 = oggi e le ultime 24 ore. Se l'utente non lo dice: 7" },
       filtro: { type: "string", description: "una parola della pagina o della campagna, se l'utente parla di una sola (es. 'roma', 'tuscia', '18-anni', 'capodanno'). Vuoto = tutte" } } } },
-  { name: "elenco_media", description: "Elenca foto e video della LIBRERIA MEDIA della sede (sola lettura), con descrizione, soggetti e qualita', ordinati dai migliori. Usalo PRIMA di proponi_landing per scegliere l'hero: preferisci un VIDEO se l'utente lo chiede o se ce n'e' uno adatto, altrimenti la foto piu' adatta e di qualita' piu' alta.",
+  { name: "elenco_media", description: "Elenca foto e video della LIBRERIA MEDIA della sede (sola lettura), con descrizione, soggetti, qualita' e data di caricamento (caricato_il), ordinati dai migliori. Per i file NUOVI passa cerca='__nuovi': li ordina dal piu' recente. Usalo PRIMA di proponi_landing per scegliere l'hero: preferisci un VIDEO se l'utente lo chiede o se ce n'e' uno adatto, altrimenti la foto piu' adatta e di qualita' piu' alta.",
     input_schema: { type: "object", properties: { cerca: { type: "string", description: "una parola su cosa cerchi (es. 'pranzo', 'carbonara', 'sala')" }, tipo: { type: "string", enum: ["immagine", "video", "tutti"] } } } },
   { name: "proponi_campagna", description: "PROPONE di creare una campagna di un modello gia' pronto (menu business, compleanni), su Meta e/o Google. Per eventi e occasioni usa invece proponi_campagna_evento. Mostra una scheda con il pulsante Conferma: la campagna nasce SEMPRE IN PAUSA.",
     input_schema: { type: "object", properties: {
@@ -451,6 +455,15 @@ const TOOLS = [
       foto: { type: "string", description: "chat:N oppure media:<id> per cambiare la foto in alto; vuoto per non cambiarla" },
       motivo: { type: "string", description: "in una riga, cosa cambia e perche'" } },
       required: ["motivo"] } },
+  { name: "proponi_inserzioni_video", description: "PROPONE di AGGIUNGERE nuove INSERZIONI VIDEO (un video della libreria = un'inserzione) a un GRUPPO DI INSERZIONI di una campagna Meta CHE ESISTE GIA', per esempio il richiamo/remarketing di chi ha visitato la pagina di Capodanno e non ha prenotato. Usa lo stesso link, la stessa pagina Facebook e lo stesso Instagram degli annunci gia' nel gruppo, e il budget del gruppo (non aggiunge spesa). Scheda con Conferma. Usalo quando l'utente dice 'ci sono video nuovi, mettili nella campagna X' o 'fai il remarketing con questi video': NON fare una landing nuova e NON una campagna nuova.",
+    input_schema: { type: "object", properties: {
+      campagna: { type: "string", description: "nome anche parziale della campagna esistente (es. 'capodanno trattoria')" },
+      gruppo: { type: "string", description: "nome anche parziale del gruppo di inserzioni (es. 'fase 1', 'richiamo', 'interessati'). Vuoto = il gruppo di richiamo della campagna (quello con un pubblico di visitatori)" },
+      video: { type: "array", description: "uno per video (max 6)", items: { type: "object", properties: {
+        media_id: { type: "string", description: "id del video da elenco_media" },
+        titolo: { type: "string", description: "titolo sotto il video, MAX 40 caratteri, sul piatto o sul momento che il video mostra" },
+        testo: { type: "string", description: "testo dell'inserzione, 300-700 caratteri: cosa si vede nel video (il piatto e come lo facciamo), poi l'occasione, poi l'invito con prezzo e acconto se li conosci. Fatti solo veri" } }, required: ["media_id", "titolo", "testo"] } } },
+      required: ["campagna", "video"] } },
   { name: "proponi_stato_campagna", description: "PROPONE di ACCENDERE o di METTERE IN PAUSA una campagna esistente. Mostra una scheda con il pulsante Conferma.",
     input_schema: { type: "object", properties: {
       piattaforma: { type: "string", enum: ["meta", "google"] },
@@ -1074,12 +1087,133 @@ async function eseguiStrumento(c: Ctx, nome: string, inp: any): Promise<any> {
       : `\u23F8 Metti in pausa \u00ab${k.nome}\u00bb su ${piatt === "meta" ? "Meta" : "Google"}`;
     return await proponi(c, "stato_campagna", dati, riepilogo);
   }
+  if (nome === "proponi_inserzioni_video") {
+    const cn = await connMeta(c);
+    if (!cn) return { errore: "Meta non e' collegato: di' all'utente di collegarlo da Marketing > Connessioni" };
+    const vids = Array.isArray(inp.video) ? inp.video.slice(0, 6) : [];
+    if (!vids.length) return { errore: "manca la lista dei video: prima usa elenco_media (tipo video, cerca '__nuovi') e scegli gli id" };
+    const qc = String(inp.campagna || "").trim().toLowerCase();
+    const parole = qc.split(/\s+/).filter(function (w: string) { return w.length > 2; });
+    const rc = await gget(cn, "act_" + cn.acc + "/campaigns?fields=id,name,status&limit=200&filtering=" + encodeURIComponent(JSON.stringify([{ field: "effective_status", operator: "IN", value: ["ACTIVE", "PAUSED"] }])));
+    if (rc.error) return { errore: "Meta: " + (rc.error.error_user_msg || rc.error.message) };
+    const camp = (rc.data || []).filter(function (x: any) { const n = String(x.name).toLowerCase(); return x.id === qc || (parole.length > 0 && parole.every(function (w: string) { return n.indexOf(w) >= 0; })); });
+    if (!camp.length) return { errore: "nessuna campagna con quel nome", campagne_disponibili: (rc.data || []).map(function (x: any) { return x.name; }).slice(0, 40) };
+    if (camp.length > 1) return { errore: "piu' campagne corrispondono: chiedi quale", candidate: camp.map(function (x: any) { return x.name + " (" + (x.status === "ACTIVE" ? "attiva" : "in pausa") + ")"; }) };
+    const k = camp[0];
+    const rg = await gget(cn, k.id + "/adsets?fields=id,name,status,effective_status,targeting{custom_audiences}&limit=50");
+    if (rg.error) return { errore: "Meta: " + (rg.error.error_user_msg || rg.error.message) };
+    const gruppi = (rg.data || []).filter(function (g: any) { return g.effective_status !== "DELETED" && g.effective_status !== "ARCHIVED"; });
+    const qg = String(inp.gruppo || "").trim().toLowerCase();
+    const haPubblico = function (g: any) { return !!(g.targeting && g.targeting.custom_audiences && g.targeting.custom_audiences.length); };
+    let sc = gruppi.filter(function (g: any) { return qg ? String(g.name).toLowerCase().indexOf(qg) >= 0 : haPubblico(g); });
+    if (!qg && sc.length > 1) { const vis = sc.filter(function (g: any) { return /visitator|interessat|richiamo|remarketing/i.test(g.name + " " + JSON.stringify(g.targeting.custom_audiences)); }); if (vis.length) sc = vis; }
+    const descr = function (g: any) { return g.name + " (" + (g.status === "ACTIVE" ? "attivo" : "in pausa") + (haPubblico(g) ? "; pubblico: " + g.targeting.custom_audiences.map(function (a: any) { return a.name; }).join(", ") : "") + ")"; };
+    if (!sc.length) return { errore: qg ? "nessun gruppo con quel nome in questa campagna" : "questa campagna non ha un gruppo di richiamo (con pubblico di visitatori): chiedi in quale gruppo metterle", gruppi: gruppi.map(descr) };
+    if (sc.length > 1) return { errore: "piu' gruppi possibili: chiedi in quale", gruppi: sc.map(descr) };
+    const g = sc[0];
+    // pagina, instagram e link: dagli annunci gia' nel gruppo, cosi' le nuove inserzioni portano dove portano le altre
+    const ra = await gget(cn, g.id + "/ads?fields=creative{object_story_spec,instagram_user_id}&limit=10");
+    let pagina = "", ig = "", link = "";
+    for (const ad of (ra.data || [])) {
+      const os = ad.creative && ad.creative.object_story_spec;
+      if (!os) continue;
+      pagina = pagina || String(os.page_id || "");
+      ig = ig || String(os.instagram_user_id || ad.creative.instagram_user_id || "");
+      const l = (os.video_data && os.video_data.call_to_action && os.video_data.call_to_action.value && os.video_data.call_to_action.value.link) || (os.link_data && os.link_data.link) || "";
+      link = link || String(l);
+    }
+    if (!pagina && c.sedeId) { const { data: sd } = await sb.from("sedi").select("meta_pagina_id").eq("id", c.sedeId).maybeSingle(); pagina = sd && sd.meta_pagina_id ? String(sd.meta_pagina_id) : ""; }
+    if (!pagina) return { errore: "non trovo la pagina Facebook degli annunci di questo gruppo" };
+    if (!link) return { errore: "gli annunci del gruppo non hanno un link: chiedi a quale pagina devono portare" };
+    const ids = vids.map(function (v: any) { return String(v.media_id || ""); });
+    const { data: md } = await sb.from("media_library").select("id, nome, tipo, url").eq("azienda_id", c.aziendaId).in("id", ids);
+    const righe: any[] = [];
+    for (const v of vids) {
+      const m = (md || []).find(function (x: any) { return String(x.id) === String(v.media_id); });
+      if (!m) return { errore: "video non trovato in libreria: " + v.media_id + ". Usa elenco_media e passa l'id giusto" };
+      if (m.tipo !== "video") return { errore: "'" + m.nome + "' non e' un video" };
+      const testo = String(v.testo || "").trim();
+      if (testo.length < 60) return { errore: "il testo per '" + m.nome + "' e' troppo corto" };
+      righe.push({ media_id: m.id, nome: m.nome, url: m.url, titolo: String(v.titolo || "").trim().slice(0, 40), testo: testo });
+    }
+    const base = link.split("?")[0];
+    const qs0 = link.indexOf("?") >= 0 ? link.slice(link.indexOf("?") + 1).split("&").filter(function (x: string) { return x.indexOf("utm_content=") !== 0; }).join("&") : "";
+    const dati = { campagna_id: k.id, campagna: k.name, gruppo_id: g.id, gruppo: g.name, gruppo_attivo: g.status === "ACTIVE" && k.status === "ACTIVE", pagina: pagina, ig: ig, base: base, qs: qs0, righe: righe };
+    const riepilogo = "🎬 " + righe.length + " inserzioni video in «" + k.name + "» › gruppo «" + g.name + "»: " + righe.map(function (r: any) { return r.nome; }).join(", ") +
+      " · portano a " + base.replace(/^https?:\/\//, "") + " · budget del gruppo, nessuna spesa in piu'" + (dati.gruppo_attivo ? " · il gruppo e' attivo: partono dopo la revisione di Meta" : " · il gruppo e' in pausa: partono quando lo accendi");
+    // tipo "campagna": cosi' la chat manda gia' la conferma a questa funzione, senza toccare il frontend
+    return await proponi(c, "campagna", Object.assign({ modello: "inserzioni_video" }, dati), riepilogo);
+  }
   return { errore: "strumento sconosciuto" };
+}
+
+// ---- v34: helper Meta per le inserzioni video nei gruppi esistenti ----
+async function connMeta(c: Ctx): Promise<{ acc: string; tok: string } | null> {
+  const { data } = await sb.from("meta_ads_connessioni").select("account_id, access_token").eq("azienda_id", c.aziendaId).eq("attivo", true).limit(1);
+  if (!data || !data[0] || !data[0].access_token) return null;
+  return { acc: String(data[0].account_id || "").replace(/^act_/, ""), tok: String(data[0].access_token) };
+}
+async function gget(cn: { tok: string }, path: string): Promise<any> {
+  const r = await fetch("https://graph.facebook.com/v21.0/" + path + (path.indexOf("?") >= 0 ? "&" : "?") + "access_token=" + encodeURIComponent(cn.tok));
+  return await r.json().catch(function () { return { error: { message: "risposta non leggibile" } }; });
+}
+async function gpost(cn: { tok: string }, path: string, campi: Record<string, string>): Promise<any> {
+  const b = new URLSearchParams(campi); b.set("access_token", cn.tok);
+  const r = await fetch("https://graph.facebook.com/v21.0/" + path, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: b.toString() });
+  return await r.json().catch(function () { return { error: { message: "risposta non leggibile" } }; });
+}
+function slugBreve(t: string): string { return String(t || "video").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "video"; }
+async function eseguiInserzioniVideo(c: Ctx, d: any): Promise<{ ok: boolean; messaggio: string; link?: string }> {
+  const cn = await connMeta(c);
+  if (!cn) return { ok: false, messaggio: "❌ Meta non e' collegato" };
+  const righe: any[] = d.righe || [];
+  // 1. tutti i video su Meta insieme, poi si aspetta che siano pronti (fino a 2 minuti)
+  const caricati: any[] = [];
+  for (const r of righe) {
+    const up = await gpost(cn, "act_" + cn.acc + "/advideos", { file_url: r.url, name: String(d.campagna || "") + " · " + r.nome });
+    caricati.push({ r: r, video_id: up && up.id ? String(up.id) : "", errore: up && up.error ? (up.error.error_user_msg || up.error.message) : "", pronto: false, picture: "" });
+  }
+  const fine = Date.now() + 120000;
+  let pronti = false;
+  while (!pronti && Date.now() < fine) {
+    pronti = true;
+    for (const k of caricati) {
+      if (!k.video_id || k.pronto) continue;
+      const st = await gget(cn, k.video_id + "?fields=status,picture");
+      const s = st && st.status ? st.status.video_status : "";
+      if (s === "ready") { k.pronto = true; k.picture = st.picture || ""; }
+      else if (s === "error") { k.errore = "Meta non ha accettato il video"; k.video_id = ""; }
+      else pronti = false;
+    }
+    if (!pronti) await new Promise(function (res) { setTimeout(res, 4000); });
+  }
+  // 2. per ogni video: creativita' con lo stesso link degli altri annunci del gruppo, poi l'inserzione nel gruppo
+  const esiti: string[] = [];
+  let fatte = 0;
+  for (const k of caricati) {
+    const r = k.r;
+    if (!k.video_id) { esiti.push("❌ " + r.nome + ": " + (k.errore || "caricamento non riuscito")); continue; }
+    if (!k.pronto) { esiti.push("⏳ " + r.nome + ": Meta sta ancora preparando il video, riprova tra qualche minuto"); continue; }
+    const th = await gget(cn, k.video_id + "/thumbnails?fields=uri,is_preferred");
+    const thumb = ((th.data || []).find(function (t: any) { return t.is_preferred; }) || (th.data || [])[0] || {}).uri || k.picture || "";
+    const lk = d.base + "?" + (d.qs ? d.qs + "&" : "") + "utm_content=video-" + slugBreve(r.nome);
+    const oss: any = { page_id: d.pagina, video_data: { video_id: k.video_id, title: r.titolo, message: r.testo, image_url: thumb, call_to_action: { type: "BOOK_NOW", value: { link: lk } } } };
+    if (d.ig) oss.instagram_user_id = d.ig;
+    const cr = await gpost(cn, "act_" + cn.acc + "/adcreatives", { name: String(d.campagna || "") + " · video " + r.nome, object_story_spec: JSON.stringify(oss) });
+    if (!cr || !cr.id) { esiti.push("❌ " + r.nome + ": " + ((cr && cr.error && (cr.error.error_user_msg || cr.error.message)) || "creativita' non creata")); continue; }
+    const ad = await gpost(cn, "act_" + cn.acc + "/ads", { name: String(d.gruppo || "") + " · video " + r.nome, adset_id: d.gruppo_id, creative: JSON.stringify({ creative_id: cr.id }), status: "ACTIVE" });
+    if (!ad || !ad.id) { esiti.push("❌ " + r.nome + ": " + ((ad && ad.error && (ad.error.error_user_msg || ad.error.message)) || "inserzione non creata")); continue; }
+    fatte++;
+    esiti.push("✅ " + r.nome);
+  }
+  const coda = fatte ? (d.gruppo_attivo ? " · Partono appena Meta le approva, col budget del gruppo." : " · Il gruppo «" + d.gruppo + "» e' in pausa: partono quando lo accendi.") : "";
+  return { ok: fatte === righe.length, messaggio: esiti.join(" · ") + coda, link: fatte ? "#/bo-template?tab=metaads" : undefined };
 }
 
 // ---- esecuzione alla conferma ----
 async function eseguiConferma(c: Ctx, a: any): Promise<{ ok: boolean; messaggio: string; link?: string; landing?: string }> {
   const d = a.dati || {};
+  if (a.tipo === "campagna" && d.modello === "inserzioni_video") return await eseguiInserzioniVideo(c, d);
   if (a.tipo === "campagna" && d.modello === "evento") {
     // una campagna Meta per ogni pubblico; se il pubblico e' solo uomini o solo donne, il gruppo di inserzioni si restringe al sesso
     const { data: conns } = await sb.from("meta_ads_connessioni").select("access_token").eq("azienda_id", c.aziendaId).eq("attivo", true).limit(1);
@@ -1250,6 +1384,7 @@ ${metodo ? metodo + "\n\n" : ""}REGOLE:
 - FONTE DEI FATTI: nella conversazione ci sono anche vecchie risposte dell'assistente, che possono arrivare da un altro motore e contenere cose inventate (es. "promo 2x1", sconti, prezzi). I FATTI per annunci e landing li prendi SOLO dai messaggi dell'UTENTE e dai dati veri qui sopra (identita' del locale, recensioni verificate).
 - POST META ELABORATO (la regola piu' importante per le campagne): il titolare lo vuole LUNGO e ragionato, non uno slogan. Da 700 a 1300 caratteri, in 4 blocchi separati da una riga vuota, nello schema AIDA del METODO qui sopra: ATTENZIONE (la prima riga e' il gancio: una provocazione o un problema vero del cliente, max 120 caratteri, perche' e' l'unica parte che si vede prima di 'Altro'), INTERESSE (la negativita' comune del settore e il contrasto positivo: parla del modo di fare ristorazione, senza accusare nessuno e senza inventare), DESIDERIO (il perche' del locale preso dall'IDENTITA' DEL LOCALE, cosa vive chi viene, i dati che l'utente ti ha dato; eventuale prova sociale SOLO con i fatti veri qui sopra), AZIONE (invito specifico e urgente, con il beneficio e la validita'; in promo e' scaricare il coupon e deve dire COSA da' e QUANDO vale; in prenotazione e' prenotare). Si parte dal PERCHE' (Golden Circle), non dal cosa. Poche emoji. Mai "ti aspettiamo".
 - TESTI DELLA LANDING: tu scrivi titolo, sottotitolo, etichetta, attenzione, interesse, desiderio, azione (e, se l'utente li ha detti, prezzo, cosa comprende, orari, menu fisso). Foto/video, galleria, recensioni vere, menu del giorno, condizioni o regolamento e modulo li aggiunge il sistema. La landing ripete la storia del post ma piu' spiegata.
+- VIDEO NUOVI PER UNA CAMPAGNA CHE C'E' GIA' (es. "ci sono video nuovi per il remarketing di Capodanno"): elenco_media con tipo video e cerca '__nuovi' (i piu' recenti per caricato_il), poi stato_campagne per trovare la campagna, poi proponi_inserzioni_video nel suo gruppo di richiamo, con titolo e testo scritti per ogni video su quello che il video mostra. NON fare una landing nuova e NON una campagna nuova se l'utente non lo chiede. Il remarketing c'e' gia': i gruppi di richiamo usano i pubblici dei visitatori delle pagine. Non dire MAI che pixel o tag non sono collegati: se un gruppo di richiamo non c'e', dillo e chiedi dove metterle.
 - Una campagna o una landing si crea SOLO con uno strumento "proponi_...": compare una scheda col pulsante Conferma. Non chiedere conferma a parole e non dire mai che e' gia' fatta: dopo lo strumento di' solo cosa hai preparato.
 - Ogni campagna nasce SEMPRE IN PAUSA e non spende finche' non viene accesa. Accenderla e metterla in pausa sono passi a parte, con proponi_stato_campagna (anche questi con scheda). Se ha una data di inizio, quando la accendi parte da quella data.
 - PERIODO: se l'utente dice quando parte ("domani") e per quanto tempo ("per 30 giorni") passa inizio e durata_giorni agli strumenti: le date le calcola il sistema, tu non fare conti sulle date. Nella risposta riporta il periodo come lo trovi nella scheda.
