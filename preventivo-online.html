@@ -80,7 +80,7 @@ document.addEventListener("change",function(e){if(e.target.name==="hd"){var si=e
 function voci(k){
  if(k==="servizi"){var p=CFG.voci.filter(function(v){return v.k==="servizi"}).map(function(v){return {id:v.id,n:v.nome,d:v.descrizione,pr:v.prezzo,cat:"Angoli e allestimenti",tipo:"v"}});
   p.forEach(function(x){if(PRED[x.id])x.pr="Compreso"});
-  var s=(CFG.servizi||[]).filter(function(x){return !DOLCE_EXTRA.test(x.nome||"")}).map(function(x){return {id:"s"+x.id,n:x.nome,d:x.descrizione,pr:x.prezzo,cat:x.categoria||"Altri servizi",tipo:"s"}});return p.concat(s)}
+  var s=(CFG.servizi||[]).filter(function(x){return !extraDolci(x)&&!extraTime(x)&&!(ET&&DOLCE_EXTRA.test(x.nome||""))}).map(function(x){return {id:"s"+x.id,n:x.nome,d:x.descrizione,pr:x.prezzo,cat:x.categoria||"Altri servizi",tipo:"s"}});return p.concat(s)}
  if(k==="dolci"){var dx=(CFG.servizi||[]).filter(function(x){return DOLCE_EXTRA.test(x.nome||"")}).map(function(x){return {id:"s"+x.id,n:x.nome,d:x.descrizione,pr:x.prezzo,cat:"A richiesta"}});
   var dv=CFG.voci.filter(function(v){return v.k==="dolci"}).map(function(v){return {id:v.id,n:v.nome,d:v.descrizione,f:v.foto,pr:v.prezzo||(PRED[v.id]?"Compreso":""),compreso:v.compreso||!!PRED[v.id]}});
   if(Object.keys(PRED).length)dv.sort(function(a,b){return (PRED[b.id]?1:0)-(PRED[a.id]?1:0)});
