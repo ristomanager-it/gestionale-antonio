@@ -660,7 +660,7 @@ function disegna(container, supabase, azienda, sede) {
           <div class="pv2-consigli">
             <span class="et">Si aggiungono spesso</span>
             ${sezioniConsigliate().map(x => `
-              <button class="c" data-extra="${esc(x.nome)}" data-quante="${x.quante || 1}">+ ${esc(x.nome)}</button>`).join("")}
+              <button class="c" data-extra="${esc(x.nome)}" data-quante="${x.quante || 1}">+ ${esc(x.nome)}${prezzoListino(x.nome) ? " · +" + prezzoListino(x.nome) + " €" : ""}</button>`).join("")}
           </div>` : ""}
 
         ${sezioni.length ? sezioni.map(sez => isoleDiSezione(sez).length ? cardIsola(sez) : `
