@@ -8,7 +8,7 @@ const URL_TONY = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-cer
 const URL_TRASCRIVI = "https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-trascrivi";
 const CHIAVE_RECENTI = "rf_cerca_recenti";
 
-let ov = null, inp = null, lista = null, timer = null, ultimaQ = "", ultimoLog = "", nRisultati = 0, seq = 0;
+let ov = null, inp = null, lista = null, timer = null, ultimaQ = "", ultimoLog = "", nRisultati = 0, seq = 0, mostrati = [];
 let rec = null, pezzi = [], stream = null;
 
 const sb = () => window.supabaseClient || window.supabase;
@@ -112,7 +112,7 @@ function azzera() {
   clearTimeout(timer);
   seq++; // una ricerca ancora in viaggio non deve ricomparire dopo
   inp.value = "";
-  ultimaQ = ""; ultimoLog = ""; nRisultati = 0;
+  ultimaQ = ""; ultimoLog = ""; nRisultati = 0; mostrati = [];
   vuoto();
 }
 
@@ -150,7 +150,20 @@ function mostra(q, righe) {
   if (resto.length) h += `<div class="lb">Altre ricette: ${resto.map((r) => `<a href="#/crea-ricetta?id=${esc(r.rif)}" style="color:#0E5A7A">${esc(r.titolo)}</a>`).join(" · ")}</div>`;
   h += `<button class="tony" type="button">✨ Chiedi a Tony</button><div id="cerca-tony"></div>`;
   lista.innerHTML = h;
+  mostrati = inScheda.filter((r) => r.fonte === "regola" || r.fonte === "formazione");
   lista.querySelector(".tony").onclick = () => chiediTony(q);
+  lista.querySelectorAll("[data-utile]").forEach((b) => (b.onclick = () => {
+    const [fonte, rif] = b.dataset.utile.split("|");
+    conta(fonte === "regola" ? [rif] : [], fonte === "formazione" ? [rif] : [], true);
+    b.disabled = true; b.textContent = "👍 Grazie";
+  }));
+}
+
+// usi e 👍: dicono quali regole servono davvero (per portarle a tutti da Super Tony)
+function conta(regole, formazione, utile) {
+  try {
+    sb().rpc("sapere_conta", { p_regole: regole.map(Number).filter((n) => n > 0), p_formazione: formazione, p_utile: !!utile }).then(() => {}, () => {});
+  } catch (_) {}
 }
 
 function scheda(r) {
@@ -167,7 +180,8 @@ function scheda(r) {
   const etichetta = r.fonte === "comandamento" ? "Comandamenti"
     : r.fonte === "formazione" ? "Formazione" + (r.dettagli?.fonte ? " · " + r.dettagli.fonte : "")
     : "Regole · " + (r.dettagli?.ambito || "locale");
-  return `<div class="card"><div class="src">${esc(etichetta)}</div><div class="tt">${esc(r.titolo)}</div><div class="tx">${esc(r.testo)}</div></div>`;
+  const pollice = (r.fonte === "regola" || r.fonte === "formazione") ? `<button class="b2" type="button" data-utile="${esc(r.fonte)}|${esc(r.rif)}">👍 Mi è servita</button>` : "";
+  return `<div class="card"><div class="src">${esc(etichetta)}${r.dettagli?.sostituisce ? " · versione del locale" : ""}</div><div class="tt">${esc(r.titolo)}</div><div class="tx">${esc(r.testo)}</div>${pollice}</div>`;
 }
 
 /* ─────────────── Tony ─────────────── */
@@ -225,6 +239,9 @@ function registra(q, n, tony) {
   q = String(q || "").trim();
   if (q.length < 4 || q === ultimoLog || !aziendaId()) return;
   ultimoLog = q;
+  if (q === ultimaQ && mostrati.length) {
+    conta(mostrati.filter((r) => r.fonte === "regola").map((r) => r.rif), mostrati.filter((r) => r.fonte === "formazione").map((r) => r.rif), false);
+  }
   try { sb().from("ricerca_domande").insert({ azienda_id: aziendaId(), domanda: q.slice(0, 400), n_risultati: n, chiesto_tony: !!tony }).then(() => {}, () => {}); } catch (_) {}
 }
 

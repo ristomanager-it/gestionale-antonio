@@ -412,6 +412,10 @@ export async function render(app) {
         <div style="font-size:12px;color:#374151;margin-bottom:12px;">Tony farà domande per conoscere meglio il tuo locale. Rispondi liberamente — salverà tutto automaticamente.</div>
         <button id="btn-avvia-dettatura" style="background:#0E5A7A;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">🎙️ Avvia dettatura guidata</button>
       </div>
+      ${(ruolo === "admin" || ruolo === "superadmin") ? `<a href="#/tony-cervello" style="display:block;background:#eef6f3;border:1px solid #1f6f5c;border-radius:10px;padding:12px 14px;margin-bottom:16px;text-decoration:none;color:#1f6f5c;">
+        <div style="font-size:13px;font-weight:800;">📘 Regole del locale e formazione</div>
+        <div style="font-size:12px;color:#374151;margin-top:4px;">Le regole che la barra Cerca e Tony usano per rispondere, quelle valide per tutti e la formazione. Qui le cambi per il tuo locale.</div>
+      </a>` : ""}
       <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px;">📋 Ricordi salvati</div>
       <div id="memoria-lista">
         <div style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">Caricamento...</div>
