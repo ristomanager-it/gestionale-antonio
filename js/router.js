@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261119-9";
+const APP_V = "20261119-10";
 window.APP_V = APP_V;
 
 // ── AGGIORNAMENTO AUTOMATICO ──
@@ -332,6 +332,7 @@ const routes = {
   "bo-magazzino": () => imp("./views/bo/bo-magazzino.js"),
   "bo-comande": () => imp("./views/bo/bo-comande.js"),
   "bo-configurazione": () => imp("./views/bo/bo-configurazione.js"),
+  "centralino-ai": () => imp("./views/centralino-ai.js"),
   "alert-haccp-config": () => imp("./views/bo/alert-haccp-config.js"),
   "bo-dispositivi": () => imp("./views/bo/bo-dispositivi.js"),
   "bo-consulenti": () => imp("./views/bo/bo-consulenti.js"),
@@ -433,6 +434,7 @@ const BO_ROUTES = new Set([
   "menu-componibile",
   "bo-comande",
   "bo-configurazione",
+  "centralino-ai",
   "bo-promo",
   "bo-promo-analisi",
   "bo-piatti-forti",
