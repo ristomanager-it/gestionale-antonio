@@ -56,7 +56,8 @@ const STRUMENTI = [
     input_schema: {
       type: "object",
       properties: {
-        ai_attivo: { type: "boolean", description: "accende o spegne la voce AI" },
+        ai_attivo: { type: "boolean", description: "accende o spegne la voce AI al telefono (solo se modulo_voce e' true)" },
+        bot_wa_ai: { type: "boolean", description: "accende o spegne il bot WhatsApp con AI (incluso nel piano)" },
         voce_ai: { type: "string", description: "voice_id scelto dall'elenco voci" },
         voce_ai_nome: { type: "string", description: "nome della voce scelta" },
         saluto_ai: { type: "string", description: "prima frase quando risponde (max 300 caratteri)" },
@@ -73,6 +74,11 @@ const STRUMENTI = [
 function istruzioni(sedeNome: string) {
   return `Sei Tony, l'assistente di Ristoflow. Stai aiutando l'admin del locale "${sedeNome}" a montare il CENTRALINO AI: la voce che risponde al telefono, prende le prenotazioni, risponde su orari, parcheggio e menu, manda il link del menu su WhatsApp, prende ordini da asporto (se attivo) e passa la chiamata a una persona quando serve.
 
+DUE SERVIZI
+- BOT WHATSAPP (incluso nel piano): risponde in chat con le stesse capacità (prenotazioni, orari, menu, link, asporto). Si accende con bot_wa_ai.
+- VOCE AL TELEFONO (modulo a pagamento): se in stato_centralino modulo_voce è false, la voce non è attiva per questo locale: non chiedere voce, saluto, numero di trasferimento né di accenderla; di' che è un servizio a parte che si attiva chiedendo a Ristoflow, e configura il bot WhatsApp (cose da sapere, menu, asporto, bot_wa_ai).
+- La voce può anche essere quella del titolare: si registra in Configurazione › Centralino › "Usa la mia voce" (lo fa lui dall'app, tu non puoi).
+
 COME LAVORI
 - Comincia chiamando stato_centralino per vedere cosa c'è già.
 - Fai UNA domanda alla volta, breve, in italiano semplice, e proponi tu una risposta di default così l'admin può dire solo "sì".
@@ -83,7 +89,7 @@ COME LAVORI
   4. A chi passare le chiamate: numero di cellulare e da quante persone in su (default 12).
   5. Menu: quale menu deve leggere e mandare come link (se ce n'è più di uno attivo).
   6. Ordini da asporto al telefono: sì o no (utile per pizzerie e asporto; si paga in contanti al ritiro, il cliente conferma su WhatsApp). Funziona solo con un menu ordinabile con il ritiro attivo.
-  7. Accendere la voce.
+  7. Accendere il bot WhatsApp e, se c'è il modulo, la voce.
 - Quando hai le risposte, fai un riepilogo puntato e chiedi "Confermi?". Solo dopo il sì chiama salva_centralino con i campi decisi.
 - Dopo il salvataggio di' che la voce è aggiornata e che può provarla in Configurazione › Centralino › "Prova la voce".
 - Orari, indirizzo e menu del giorno NON vanno scritti: la voce li legge dall'app.
@@ -133,7 +139,7 @@ Deno.serve(async (req) => {
       for (const u of usi) {
         let out: any;
         if (u.name === "stato_centralino") {
-          const voci = await agenti(auth, { azione: "voci" });
+          const voci = await agenti(auth, { azione: "voci", azienda_id: azienda, sede_id: sede });
           out = {
             ...st0,
             voci: Array.isArray(voci?.voci) ? voci.voci.slice(0, 40).map((v: any) => ({ voice_id: v.voice_id, nome: v.nome, genere: v.genere, italiana: v.italiana, accento: v.accento })) : { errore: voci?.errore || "voci non disponibili" },
