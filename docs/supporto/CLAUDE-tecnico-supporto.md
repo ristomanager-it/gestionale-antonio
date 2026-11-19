@@ -1,3 +1,5 @@
+> IN PAUSA (19/11/2026): regole per il tecnico dell'assistenza clienti. Per riattivarle rimettere questo file nella radice del repo come CLAUDE.md.
+
 # Ristoflow — regole per chi lavora sul codice (e per il suo Claude)
 
 Questo repo è l'app **app.ristoflow-ai.com** (GitHub Pages, JavaScript senza build).
