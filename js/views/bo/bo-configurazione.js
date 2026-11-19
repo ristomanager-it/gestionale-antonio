@@ -1405,7 +1405,18 @@ export async function render(container) {
     });
   }
 
-  async function renderTabCentralino(box) {
+  // In alto la voce AI (configurabile dal locale), sotto il vecchio centralino a tasti
+  async function renderTabCentralino(esterno) {
+    esterno.innerHTML = `<div id="cai-box"></div>
+      <details style="margin-top:18px;"><summary style="cursor:pointer;font-size:13px;color:#64748b;padding:8px 0;">☎️ Centralino a tasti (vecchio, Vonage)</summary>
+      <div id="cvecchio" style="margin-top:10px;"></div></details>`;
+    import("../centralino-ai.js?v=" + (window.APP_V || ""))
+      .then((m) => m.renderCentralinoAI(esterno.querySelector("#cai-box")))
+      .catch((e) => { esterno.querySelector("#cai-box").innerHTML = '<div style="color:#dc2626;">Centralino AI non disponibile: ' + e.message + '</div>'; });
+    renderCentralinoVecchio(esterno.querySelector("#cvecchio"));
+  }
+
+  async function renderCentralinoVecchio(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento centralino...</div>';
 
     const [{ data: cfgs }, { data: sedi }] = await Promise.all([
@@ -1491,7 +1502,7 @@ export async function render(container) {
       const { error } = await q;
       esito.textContent = error ? 'Errore: ' + error.message : '✅ Salvato';
       esito.style.color = error ? '#dc2626' : '#16a34a';
-      if (!error) setTimeout(() => renderTabCentralino(box), 700);
+      if (!error) setTimeout(() => renderCentralinoVecchio(box), 700);
     };
 
     const promptOpz = (o) => {
@@ -1520,19 +1531,19 @@ export async function render(container) {
       r.config_id = cfg.id;
       r.ordine = opzioni.length + 1;
       const { error } = await supa().from('centralino_opzioni').insert(r);
-      if (error) alert('Errore: ' + error.message); else renderTabCentralino(box);
+      if (error) alert('Errore: ' + error.message); else renderCentralinoVecchio(box);
     };
     window.centModOpz = async (id) => {
       const o = opzioni.find(x => x.id === id);
       const r = promptOpz(o);
       if (!r) return;
       const { error } = await supa().from('centralino_opzioni').update(r).eq('id', id);
-      if (error) alert('Errore: ' + error.message); else renderTabCentralino(box);
+      if (error) alert('Errore: ' + error.message); else renderCentralinoVecchio(box);
     };
     window.centDelOpz = async (id) => {
       if (!confirm('Eliminare questo tasto dal centralino?')) return;
       const { error } = await supa().from('centralino_opzioni').delete().eq('id', id);
-      if (error) alert('Errore: ' + error.message); else renderTabCentralino(box);
+      if (error) alert('Errore: ' + error.message); else renderCentralinoVecchio(box);
     };
   }
 
