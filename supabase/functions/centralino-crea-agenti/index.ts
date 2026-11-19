@@ -1,5 +1,5 @@
 // centralino-crea-agenti — crea su ElevenLabs gli agenti vocali (italiano e inglese) di un locale.
-// Secrets: ELEVENLABS_API_KEY, CENTRALINO_KEY. Solo superadmin (JWT) — verify_jwt = true.
+// Secrets: ELEVENLABS_API_KEY, CENTRALINO_KEY. Superadmin (JWT) o header x-centralino-key — verify_jwt = false.
 // POST { azienda_id, sede_id, nome_locale, telefono_staff? }  ->  { it: agent_id, en: agent_id }
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "https://cuhcscpvhypoaplcmtjk.supabase.co";
@@ -10,7 +10,7 @@ const SUPERADMIN = "5da91398-947a-4f13-bdaa-f2a593c03e54";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-centralino-key",
 };
 const json = (o: unknown, status = 200) =>
   new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -139,8 +139,12 @@ async function creaAgente(lingua: "it" | "en", locale: string, azienda: string, 
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  const u = await utente(req);
-  if (u?.id !== SUPERADMIN) return json({ errore: "solo superadmin" }, 403);
+  // superadmin dall'app, oppure chiamata dal server con la chiave del centralino
+  const conChiave = !!CENTRALINO_KEY && req.headers.get("x-centralino-key") === CENTRALINO_KEY;
+  if (!conChiave) {
+    const u = await utente(req);
+    if (u?.id !== SUPERADMIN) return json({ errore: "solo superadmin" }, 403);
+  }
   if (!EL_KEY) return json({ errore: "Manca il secret ELEVENLABS_API_KEY" }, 400);
   if (!CENTRALINO_KEY) return json({ errore: "Manca il secret CENTRALINO_KEY" }, 400);
   const b = await req.json().catch(() => ({}));
