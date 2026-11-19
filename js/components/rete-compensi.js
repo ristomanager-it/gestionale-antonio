@@ -63,8 +63,9 @@ export function provvigione(valoreAnnuo, tipoAgente, avvio) {
   const p = tipoAgente === 'segnalatore' ? _regole.perc_segnalatore : (avvio ? (_regole.perc_agente_avvio || _regole.perc_agente) : _regole.perc_agente);
   return Number(valoreAnnuo || 0) * Number(p || 0) / 100;
 }
-// 17/11: mantenimento 5% sui primi 15 clienti paganti dell'agente, 7% dal sedicesimo (rango = posizione del cliente tra i suoi paganti)
-export function ricorrente(valoreAnnuo, tipoAgente, rango) {
+// 19/11 (Antonio): con 15 clienti paganti in portafoglio il mantenimento passa al 7% su tutti i clienti dell'agente,
+// anche quelli venuti prima. Il terzo parametro e' quanti clienti paganti ha l'agente, non la posizione del cliente.
+export function ricorrente(valoreAnnuo, tipoAgente, clientiPaganti) {
   if (tipoAgente === 'segnalatore') return 0;
   const soglia = Number(_regole.soglia_clienti_alto || 0), alto = Number(_regole.perc_ricorrente_alto || 0);
   const p = (soglia > 0 && alto > 0 && Number(rango) > soglia) ? alto : Number(_regole.perc_ricorrente || 0);
