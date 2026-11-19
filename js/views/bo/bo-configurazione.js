@@ -1553,7 +1553,7 @@ export async function render(container) {
   async function renderTabOperativo(box) {
     box.innerHTML = '<div style="color:#94a3b8;padding:20px;">Caricamento...</div>';
     await Promise.all([loadSettori(), loadPostazioni(), loadProdotti(), loadCategorie(), loadRicette()]);
-    box.innerHTML = ` ${metaAdsCard}<div style="margin-bottom:36px;">
+    box.innerHTML = ` <div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🍕 Settori cucina</div>
@@ -1823,7 +1823,7 @@ export async function render(container) {
       .eq('azienda_id', aziendaId).eq('sede_id', currentSedeId).order('numero');
     tavoli = tavoliData || [];
 
-    box.innerHTML = ` ${metaAdsCard}<div style="margin-bottom:36px;">
+    box.innerHTML = ` <div style="margin-bottom:36px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div>
             <div style="font-size:17px;font-weight:700;color:#0f172a;">🏠 Sale</div>
