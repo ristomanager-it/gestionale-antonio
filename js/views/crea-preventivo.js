@@ -2026,6 +2026,19 @@ function stile() {
   .pv2-btn.grigio{background:#fff;border:1.5px solid var(--riga);color:var(--muto);}
   .pv2-esito{margin-top:10px;font-size:14px;}
   .pv2-esito.ok{color:var(--verde);} .pv2-esito.ko{color:var(--rosso);}
+  /* telefono: righe del menu su due livelli, extra che vanno a capo, barra azioni su una riga che scorre */
+  @media (max-width:640px){
+    .pv2{padding:12px 10px 80px;overflow-x:hidden;}
+    .pv2-card{padding:13px;}
+    .pv2 .riga{flex-wrap:wrap;padding:9px 10px;row-gap:6px;}
+    .pv2 .riga .n{flex:1 1 100%;min-width:0;}
+    .pv2 .riga .pz{width:72px;box-sizing:border-box;} .pv2 .riga .pz.pp{width:52px;} .pv2 .riga .mg{margin-left:auto;width:40px;}
+    .pv2-consigli .et{flex-basis:100%;}
+    .pv2-consigli .c{font-size:13px;padding:6px 10px;}
+    .pv2 .pv2-ic .r .pv2-btn{flex:1 1 100%;margin-top:0;}
+    .pv2-azioni{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:7px;padding:8px;}
+    .pv2 .pv2-azioni .pv2-btn{flex:0 0 auto;margin-top:0;padding:10px 13px;font-size:14px;white-space:nowrap;}
+  }
   @media print{ .pv2-azioni,.pv2-avviso,.pv2-richieste,.pv2-stato,.pv2-lato{display:none !important;} }
   </style>`;
 }
