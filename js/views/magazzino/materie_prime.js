@@ -47,8 +47,12 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
     if (e.target === backdrop) close();
   };
 
+  // la ricerca guarda anche il nome che usiamo in cucina (nome_interno, es. "FARINA GOLDEN BAKERY"),
+  // non solo la descrizione della fattura; piu' parole = devono esserci tutte, in qualsiasi ordine
+  let ricercaN = 0;
   input.oninput = async () => {
     const term = input.value.trim();
+    const mio = ++ricercaN;
 
     scheda.innerHTML = "";
     if (term.length >= 2) daCompletareBox.innerHTML = "";
@@ -59,14 +63,18 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       return;
     }
 
-    const { data, error } = await window.supabaseClient
+    const parole = term.replace(/[,()%*\\]/g, " ").split(/\s+/).filter((w) => w.length >= 2);
+    let q = window.supabaseClient
       .from("prodotti")
-      .select("id, codice_interno, descrizione, unita_base")
+      .select("id, codice_interno, nome, nome_interno, descrizione, unita_base")
       .eq("azienda_id", azienda.id)
-      .or("categoria_bilancio_id.in.(7,9),categoria_bilancio_id.is.null")
-      .or(`codice_interno.ilike.%${term}%,descrizione.ilike.%${term}%`)
-      .order("descrizione", { ascending: true })
-      .limit(10);
+      .or("categoria_bilancio_id.in.(7,9),categoria_bilancio_id.is.null");
+    for (const w of (parole.length ? parole : [term])) {
+      q = q.or(`codice_interno.ilike.%${w}%,descrizione.ilike.%${w}%,nome_interno.ilike.%${w}%,nome.ilike.%${w}%`);
+    }
+    const { data: grezzi, error } = await q.order("descrizione", { ascending: true }).limit(60);
+
+    if (mio !== ricercaN) return; // e' arrivata una ricerca piu' nuova: questa risposta non serve piu'
 
     if (error) {
       console.error(error);
@@ -74,20 +82,34 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
       return;
     }
 
-    if (!data || !data.length) {
+    // prima chi si chiama proprio cosi' (es. "farina..."), poi chi contiene la parola nel nome
+    const t = term.toLowerCase();
+    const nomeDi = (p) => (p.nome_interno || p.descrizione || p.nome || "").toLowerCase();
+    const punti = (p) => {
+      const n = nomeDi(p), d = (p.descrizione || "").toLowerCase();
+      if (n.startsWith(t) || d.startsWith(t)) return 0;
+      if (new RegExp("(^|\\s)" + t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(n + " " + d)) return 1;
+      return 2;
+    };
+    const data = (grezzi || []).sort((a, b) => punti(a) - punti(b) || nomeDi(a).localeCompare(nomeDi(b), "it")).slice(0, 20);
+
+    if (!data.length) {
       results.innerHTML = `<div class="rf-empty-state">Nessun prodotto trovato</div>`;
       return;
     }
 
     results.innerHTML = `
       <div class="rf-search-list">
-        ${data.map((p) => `
+        ${data.map((p) => {
+          const titolo = p.nome_interno || p.descrizione || p.nome || "";
+          const sotto = p.nome_interno && p.descrizione && p.descrizione !== p.nome_interno ? p.descrizione + " · " : "";
+          return `
           <div class="rf-search-item">
             <div class="rf-search-row rf-mp-result-row" data-id="${p.id}" style="cursor:pointer;">
               <div class="rf-search-main">
                 <div class="rf-search-code">${escapeHtml(p.codice_interno || "—")}</div>
-                <div class="rf-search-title">${escapeHtml(p.descrizione || "")}</div>
-                <div class="rf-search-subtitle">UM ${escapeHtml(p.unita_base || "—")}</div>
+                <div class="rf-search-title">${escapeHtml(titolo)}</div>
+                <div class="rf-search-subtitle">${escapeHtml(sotto)}UM ${escapeHtml(p.unita_base || "—")}</div>
               </div>
 
               <button
@@ -97,14 +119,15 @@ export async function renderMateriePrime(container, azienda, startTab = "cerca")
                 aria-label="Apri scheda prodotto"
               >🔍</button>
             </div>
-          </div>
-        `).join("")}
+          </div>`;
+        }).join("")}
       </div>
     `;
 
     const apriDaElemento = (element) => {
       const id = element.dataset.id;
       if (!id) return;
+      ricercaN++; // una risposta in ritardo non deve ricoprire la scheda con l'elenco
       openScheda(id);
       results.innerHTML = "";
     };
