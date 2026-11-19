@@ -123,7 +123,7 @@ async function creaAgente(lingua: "it" | "en", locale: string, azienda: string, 
       agent: {
         language: lingua,
         first_message: t.primo(locale),
-        prompt: { prompt: t.prompt(locale), tools: strumenti(azienda, sede), built_in_tools: { end_call: {} } },
+        prompt: { prompt: t.prompt(locale), tools: strumenti(azienda, sede), built_in_tools: { end_call: { name: "end_call", description: "Chiude la chiamata quando la conversazione è finita.", params: { system_tool_type: "end_call" } } } },
       },
     },
   };
