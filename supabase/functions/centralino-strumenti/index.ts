@@ -1,6 +1,6 @@
 // centralino-strumenti — le azioni che la voce AI (agente ElevenLabs) usa durante la telefonata.
 // Chiamata da ElevenLabs come "webhook tool": POST JSON, header x-centralino-key = secret CENTRALINO_KEY.
-// Parametri in query: ?azione=disponibilita|prenota&azienda=<uuid>&sede=<uuid>
+// Parametri in query: ?azione=disponibilita|prenota|info&azienda=<uuid>&sede=<uuid>
 // verify_jwt = false (ElevenLabs non ha un JWT Supabase): l'accesso e' protetto dalla chiave.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "https://cuhcscpvhypoaplcmtjk.supabase.co";
@@ -99,6 +99,43 @@ async function prenota(azienda: string, sede: string | null, b: any) {
   return { esito: "prenotata", salvata: true, id: pren?.id, data: d.data, ora: (d as any).ora, persone: d.persone };
 }
 
+
+const GIORNI = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
+const NOMI_G: Record<string, string> = { lun: "lunedì", mar: "martedì", mer: "mercoledì", gio: "giovedì", ven: "venerdì", sab: "sabato", dom: "domenica" };
+
+async function info(azienda: string, sede: string | null, b: any) {
+  const s = sede ? (await sel("sedi", `id=eq.${sede}&azienda_id=eq.${azienda}&select=nome,citta,indirizzo,telefono,orari_apertura,tipo_cucina,descrizione&limit=1`))[0] : null;
+  const orari: string[] = [];
+  const oa = s?.orari_apertura || {};
+  for (const g of ["lun", "mar", "mer", "gio", "ven", "sab", "dom"]) {
+    const o = oa[g];
+    if (!o) continue;
+    if (!o.aperto) { orari.push(`${NOMI_G[g]}: chiuso`); continue; }
+    const pranzo = o.solo_cena ? "" : `pranzo ${o.pranzo_inizio}-${o.pranzo_fine}`;
+    const cena = o.solo_pranzo ? "" : `cena ${o.cena_inizio}-${o.cena_fine}`;
+    orari.push(`${NOMI_G[g]}: ${[pranzo, cena].filter(Boolean).join(", ")}`);
+  }
+  const data = /^\d{4}-\d{2}-\d{2}$/.test(String(b.data || "")) ? String(b.data) : oggi().oggi;
+  let m = sede ? (await sel("menu_giorno", `azienda_id=eq.${azienda}&sede_id=eq.${sede}&data=eq.${data}&pubblicato=eq.true&select=voci,prezzo_fisso,note,titolo&limit=1`))[0] : null;
+  if (!m && sede) m = (await sel("menu_giorno", `azienda_id=eq.${azienda}&sede_id=eq.${sede}&data=eq.${data}&select=voci,prezzo_fisso,note,titolo&limit=1`))[0];
+  let menu_del_giorno: any = null;
+  if (m) {
+    const per: Record<string, string[]> = {};
+    for (const v of (Array.isArray(m.voci) ? m.voci : [])) {
+      const k = String(v.portata || "altro");
+      (per[k] ||= []).push(String(v.nome || "").trim());
+    }
+    menu_del_giorno = { data, titolo: m.titolo || null, prezzo_fisso: m.prezzo_fisso || null, portate: per, note: m.note || null };
+  }
+  const giorno = GIORNI[new Date(data + "T12:00:00").getDay()];
+  return {
+    locale: s?.nome || null, indirizzo: s ? `${s.indirizzo || ""}, ${s.citta || ""}`.replace(/^, |, $/g, "") : null,
+    telefono: s?.telefono || null, cucina: s?.tipo_cucina || null, descrizione: s?.descrizione || null,
+    orari_apertura: orari, data_richiesta: data, giorno_richiesto: NOMI_G[giorno],
+    menu_del_giorno: menu_del_giorno || "non ancora pubblicato per questa data", ...oggi(),
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ errore: "solo POST" }, 405);
   if (!CENTRALINO_KEY || req.headers.get("x-centralino-key") !== CENTRALINO_KEY) return json({ errore: "non autorizzato" }, 401);
@@ -112,6 +149,7 @@ Deno.serve(async (req) => {
   try {
     if (azione === "disponibilita") return json(await disponibilita(azienda, b));
     if (azione === "prenota") return json(await prenota(azienda, sede, b));
+    if (azione === "info") return json(await info(azienda, sede, b));
     return json({ errore: "azione sconosciuta" }, 400);
   } catch (e) {
     console.error(azione, e);
