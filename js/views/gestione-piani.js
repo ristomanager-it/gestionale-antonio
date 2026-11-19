@@ -9,7 +9,7 @@ const FEATURE_KEYS = [
   "magazzino", "acquisti", "venduto", "margini",
   "dipendenti", "hr_timbrature", "report_kpi",
   "marketing", "promo", "fidelity", "catenarie",
-  "whatsapp_notifiche", "chatbot_whatsapp",
+  "whatsapp_notifiche", "chatbot_whatsapp", "centralino_voce",
   "multi_sede", "social", "api",
   "tony_ai", "preventivi", "ocr_fatture",
   // Hotel

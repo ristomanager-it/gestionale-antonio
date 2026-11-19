@@ -1,7 +1,8 @@
-// centralino-strumenti — le azioni che la voce AI (agente ElevenLabs) usa durante la telefonata.
-// Chiamata da ElevenLabs come "webhook tool": POST JSON, header x-centralino-key = secret CENTRALINO_KEY.
-// Parametri in query: ?azione=disponibilita|prenota|info|menu|invia_link|ordina&azienda=<uuid>&sede=<uuid>
+// centralino-strumenti — le azioni che la voce AI (agente ElevenLabs) e il bot WhatsApp usano durante la conversazione.
+// Chiamata da ElevenLabs come "webhook tool" o da centralino-bot: POST JSON, header x-centralino-key = secret CENTRALINO_KEY.
+// Parametri in query: ?azione=disponibilita|prenota|info|menu|invia_link|ordina&azienda=<uuid>&sede=<uuid>[&canale=whatsapp]
 // verify_jwt = false (ElevenLabs non ha un JWT Supabase): l'accesso e' protetto dalla chiave.
+// La voce al telefono e' il modulo a pagamento "centralino_voce"; il bot WhatsApp (canale=whatsapp) e' incluso nel piano.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "https://cuhcscpvhypoaplcmtjk.supabase.co";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("MY_SERVICE_KEY") ?? "";
@@ -84,17 +85,18 @@ async function disponibilita(azienda: string, b: any) {
   return { esito: ora ? "pieno" : "scegli_orario", data, persone, orari_liberi: alternative };
 }
 
-async function prenota(azienda: string, sede: string | null, b: any) {
+async function prenota(azienda: string, sede: string | null, b: any, canale = "voce") {
   const d = await disponibilita(azienda, b);
   if (d.esito !== "disponibile") return { ...d, salvata: false };
   const telefono = telNorm(b.telefono);
   const nome = String(b.nome || "").trim();
   if (!nome || telefono.length < 8) return { esito: "dati_mancanti", salvata: false, messaggio: "Servono nome e numero di telefono." };
-  const note = [b.note, b.intolleranze ? `🥗 Intolleranze: ${b.intolleranze}` : "", "📞 Presa dalla voce AI"].filter(Boolean).join("\n");
+  const firma = canale === "whatsapp" ? "💬 Presa dal bot WhatsApp" : "📞 Presa dalla voce AI";
+  const note = [String(b.note || "").replace(/💬 Presa dal bot WhatsApp/g, "").trim(), b.intolleranze ? `🥗 Intolleranze: ${b.intolleranze}` : "", firma].filter(Boolean).join("\n");
   const pren = await ins("prenotazioni_tavoli", {
     azienda_id: azienda, sede_id: sede, cliente_nome: nome, cognome: b.cognome || null,
     cliente_telefono: telefono, data: d.data, ora: (d as any).ora, coperti: d.persone,
-    note, stato: "in_attesa", canale: "telefono",
+    note, stato: "in_attesa", canale: canale === "whatsapp" ? "whatsapp" : "telefono",
   });
   return { esito: "prenotata", salvata: true, id: pren?.id, data: d.data, ora: (d as any).ora, persone: d.persone };
 }
@@ -210,6 +212,8 @@ async function inviaLink(azienda: string, sede: string | null, b: any) {
   if (cosa === "prenota") link = `${APP_URL}/prenotazione-tavolo.html?a=${azienda}${sede ? "&s=" + sede : ""}&utm_source=voce_ai`;
   else if (m?.slug) link = `${APP_URL}/menu-pubblico.html?slug=${encodeURIComponent(m.slug)}&utm_source=voce_ai`;
   if (!link) return { inviato: false, motivo: "nessun menu pubblicato da mandare" };
+  // dal bot WhatsApp il link si scrive direttamente nella risposta
+  if (b.solo_link) return { link: link.replace("utm_source=voce_ai", "utm_source=bot_whatsapp") };
   const dest = telNorm(b.telefono).replace(/^\+/, "");
   if (dest.length < 10) return { inviato: false, motivo: "numero non valido: chiedilo al cliente" };
   try {
@@ -271,7 +275,7 @@ async function mandaRiepilogoOrdine(ordine: any, nomeLocale: string, righe: any[
   return String(e?.error?.message || ("errore " + r.status)).slice(0, 300);
 }
 
-async function ordina(azienda: string, sede: string | null, b: any) {
+async function ordina(azienda: string, sede: string | null, b: any, canale = "voce") {
   const { menu: m, cfg } = await menuVoce(azienda, sede, true);
   if (!cfg?.asporto_attivo) return { esito: "asporto_non_attivo", messaggio: "Il locale non prende ordini al telefono: proponi di mandare il link del menu." };
   if (!m || !m.ordinabile || !m.ritiro_attivo) return { esito: "asporto_non_attivo", messaggio: "Nessun menu da asporto attivo: proponi il link del menu." };
@@ -309,8 +313,8 @@ async function ordina(azienda: string, sede: string | null, b: any) {
     method: "POST", headers: { ...H, Prefer: "return=representation" },
     body: JSON.stringify({
       azienda_id: azienda, sede_id: sede, menu_id: m.id, cliente_nome: nome, cliente_telefono: telefono,
-      tipo_consegna: "asporto", luogo_consegna_label: "Asporto", luogo_consegna_valore: "Telefono",
-      orario_consegna: ora, data_consegna: oggi().oggi, allergie_note: [b.allergie, "📞 Ordine preso dalla voce AI"].filter(Boolean).join(" · "),
+      tipo_consegna: "asporto", luogo_consegna_label: "Asporto", luogo_consegna_valore: canale === "whatsapp" ? "WhatsApp" : "Telefono",
+      orario_consegna: ora, data_consegna: oggi().oggi, allergie_note: [b.allergie, canale === "whatsapp" ? "💬 Ordine preso dal bot WhatsApp" : "📞 Ordine preso dalla voce AI"].filter(Boolean).join(" · "),
       subtotale, costo_consegna: 0, mancia: 0, totale: subtotale, persone: 1,
       metodo_pagamento: "contanti", stato_pagamento: "da_incassare", stato_ordine: "da_confermare", conferma_stato: "da_confermare",
     }),
@@ -334,6 +338,21 @@ async function ordina(azienda: string, sede: string | null, b: any) {
     messaggio: errore ? "Ordine registrato e passato in cucina." : "Ordine registrato: il cliente riceve il riepilogo su WhatsApp e deve toccare «Confermo»." };
 }
 
+/* il modulo voce (a pagamento) e' attivo se c'e' sull'azienda o sul suo piano */
+const cacheModulo = new Map<string, { v: boolean; t: number }>();
+async function moduloVoce(azienda: string): Promise<boolean> {
+  const c = cacheModulo.get(azienda);
+  if (c && Date.now() - c.t < 60_000) return c.v;
+  const a = (await sel("aziende", `id=eq.${azienda}&select=features,piano_id&limit=1`))[0] || {};
+  let v = a.features?.centralino_voce === true;
+  if (!v && a.piano_id) {
+    const p = (await sel("piani_abbonamento", `id=eq.${a.piano_id}&select=features&limit=1`))[0];
+    v = p?.features?.centralino_voce === true;
+  }
+  cacheModulo.set(azienda, { v, t: Date.now() });
+  return v;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ errore: "solo POST" }, 405);
   if (!CENTRALINO_KEY || req.headers.get("x-centralino-key") !== CENTRALINO_KEY) return json({ errore: "non autorizzato" }, 401);
@@ -344,13 +363,18 @@ Deno.serve(async (req) => {
   if (!/^[0-9a-f-]{36}$/i.test(azienda)) return json({ errore: "azienda mancante" }, 400);
   let b: any = {};
   try { b = await req.json(); } catch { /* corpo vuoto */ }
+  const canale = u.searchParams.get("canale") || "voce";
   try {
+    // la voce al telefono e' un modulo a pagamento; il bot WhatsApp (canale=whatsapp) e' incluso nel piano
+    if (canale !== "whatsapp" && !(await moduloVoce(azienda))) {
+      return json({ esito: "servizio_non_attivo", messaggio: "Servizio vocale non attivo: scusati, chiedi nome e numero e di' che il locale richiamera' al piu' presto." });
+    }
     if (azione === "disponibilita") return json(await disponibilita(azienda, b));
-    if (azione === "prenota") return json(await prenota(azienda, sede, b));
+    if (azione === "prenota") return json(await prenota(azienda, sede, b, canale));
     if (azione === "info") return json(await info(azienda, sede, b));
     if (azione === "menu") return json(await menu(azienda, sede, b));
     if (azione === "invia_link") return json(await inviaLink(azienda, sede, b));
-    if (azione === "ordina") return json(await ordina(azienda, sede, b));
+    if (azione === "ordina") return json(await ordina(azienda, sede, b, canale));
     return json({ errore: "azione sconosciuta" }, 400);
   } catch (e) {
     console.error(azione, e);

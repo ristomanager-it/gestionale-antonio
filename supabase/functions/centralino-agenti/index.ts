@@ -2,6 +2,10 @@
 // Chi puo': admin dell'azienda o superadmin. verify_jwt = true.
 // POST { azione: "voci" }                                    -> elenco voci con anteprima
 // POST { azione: "salva", azienda_id, sede_id, ...campi }    -> salva centralino_config e crea/aggiorna gli agenti IT/EN su ElevenLabs
+// POST { azione: "chiamate", azienda_id }                    -> sincronizza le chiamate da ElevenLabs e restituisce il riepilogo del mese
+// POST { azione: "clona", azienda_id, sede_id, audio_base64, mime, consenso, nome } -> crea la voce del titolare (modulo voce)
+// POST { azione: "elimina_voce", azienda_id, sede_id }        -> cancella la voce clonata del locale
+// Il bot WhatsApp (bot_wa_ai) e' incluso nel piano; la voce al telefono e' il modulo a pagamento "centralino_voce".
 // Secrets: ELEVENLABS_API_KEY, CENTRALINO_KEY.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "https://cuhcscpvhypoaplcmtjk.supabase.co";
@@ -56,19 +60,31 @@ async function el(method: string, path: string, body?: unknown) {
   return out;
 }
 
+/* ---------- modulo voce (a pagamento): sull'azienda o sul suo piano ---------- */
+async function moduloVoce(azienda: string): Promise<boolean> {
+  const a = (await rest(`aziende?id=eq.${azienda}&select=features,piano_id&limit=1`))?.[0] || {};
+  if (a.features?.centralino_voce === true) return true;
+  if (!a.piano_id) return false;
+  const p = (await rest(`piani_abbonamento?id=eq.${a.piano_id}&select=features&limit=1`))?.[0];
+  return p?.features?.centralino_voce === true;
+}
+
 /* ---------- voci ---------- */
-async function voci() {
+async function voci(propria: string | null = null) {
   const d = await el("GET", "/v2/voices?page_size=100");
-  const lista = (d.voices || []).map((v: any) => {
+  // le voci clonate sono dei singoli locali: si vede solo quella del proprio locale
+  const tutte = (d.voices || []).filter((v: any) => v.category !== "cloned" || (propria && v.voice_id === propria));
+  const lista = tutte.map((v: any) => {
     const l = v.labels || {};
     const lingue = [l.language, ...(v.verified_languages || []).map((x: any) => x.language)].filter(Boolean).map(String);
     const italiana = lingue.some((x) => x.toLowerCase().startsWith("it")) || /ital/i.test(String(l.accent || "") + " " + String(v.name || ""));
     return {
       voice_id: v.voice_id, nome: v.name, anteprima: v.preview_url || null,
-      genere: l.gender || null, accento: l.accent || null, descrizione: l.description || l.descriptive || null, italiana,
+      genere: l.gender || null, accento: l.accent || null, descrizione: l.description || l.descriptive || null,
+      italiana: italiana || v.voice_id === propria, propria: v.voice_id === propria,
     };
   });
-  lista.sort((a: any, b: any) => Number(b.italiana) - Number(a.italiana) || String(a.nome).localeCompare(String(b.nome)));
+  lista.sort((a: any, b: any) => Number(b.propria) - Number(a.propria) || Number(b.italiana) - Number(a.italiana) || String(a.nome).localeCompare(String(b.nome)));
   return { voci: lista };
 }
 
@@ -251,11 +267,11 @@ function corpo(lingua: "it" | "en", c: any, locale: string, numero: string | nul
 async function stato(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
   const [cfg, menu, s] = await Promise.all([
-    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=ai_attivo,voce_ai,voce_ai_nome,saluto_ai,info_extra,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
+    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=ai_attivo,bot_wa_ai,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
     rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo`),
     rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
   ]);
-  return { sede: s?.[0]?.nome || null, config: cfg?.[0] || null, menu_disponibili: menu || [] };
+  return { sede: s?.[0]?.nome || null, config: cfg?.[0] || null, menu_disponibili: menu || [], modulo_voce: await moduloVoce(azienda) };
 }
 
 /* ---------- salva ---------- */
@@ -273,14 +289,18 @@ async function salva(b: any) {
     max_persone_ai: Math.min(100, Math.max(2, Number(b.max_persone_ai) || 12)),
     menu_id_voce: /^[0-9a-f-]{36}$/i.test(String(b.menu_id_voce || "")) ? b.menu_id_voce : null,
     asporto_attivo: !!b.asporto_attivo,
+    bot_wa_ai: !!b.bot_wa_ai,
     updated_at: new Date().toISOString(),
   };
+  const modulo = await moduloVoce(azienda);
+  if (!modulo) (campi as any).ai_attivo = false; // senza modulo la voce resta spenta
   // campi non passati restano come sono (Tony puo' cambiarne solo alcuni)
   for (const k of Object.keys(campi)) if (k !== "updated_at" && !(k in b)) delete (campi as any)[k];
   let c = (await rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=*&limit=1`))?.[0];
   if (c) c = (await rest(`centralino_config?id=eq.${c.id}`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(campi) }))[0];
   else c = (await rest(`centralino_config`, { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ azienda_id: azienda, sede_id: sede, ...campi }) }))[0];
 
+  if (!modulo) return { ok: true, config: c, modulo_voce: false, trasferimento: "voce non attiva: salvato solo il bot WhatsApp e le informazioni" };
   const numero = c.numero_trasferimento || null;
   const ids: Record<string, string> = { it: c.agente_it, en: c.agente_en };
   for (const lingua of ["it", "en"] as const) {
@@ -295,7 +315,96 @@ async function salva(b: any) {
     method: "PATCH", headers: { Prefer: "return=representation" },
     body: JSON.stringify({ agente_it: ids.it, agente_en: ids.en, ai_aggiornato_at: new Date().toISOString() }),
   }))[0];
-  return { ok: true, config: fin, trasferimento: numero ? "attivo" : "senza numero: la voce prende nome e numero per farli richiamare" };
+  return { ok: true, config: fin, modulo_voce: true, trasferimento: numero ? "attivo" : "senza numero: la voce prende nome e numero per farli richiamare" };
+}
+
+/* ---------- chiamate: sincronizzo da ElevenLabs e riassumo il mese ---------- */
+async function chiamate(azienda: string, superadmin: boolean) {
+  const cfgs = await rest(`centralino_config?azienda_id=eq.${azienda}&select=sede_id,agente_it,agente_en`);
+  const prezzi = (await rest(`centralino_prezzi?id=eq.1&select=*`))?.[0] || {};
+  const costoMin = Number(prezzi.costo_minuto_usd) || 0.08;
+  const righe: any[] = [];
+  for (const c of cfgs || []) {
+    for (const [lingua, agente] of [["it", c.agente_it], ["en", c.agente_en]] as const) {
+      if (!agente) continue;
+      let cursor = "", giri = 0;
+      do {
+        const d = await el("GET", `/v1/convai/conversations?agent_id=${agente}&page_size=100${cursor ? "&cursor=" + cursor : ""}`);
+        for (const x of d.conversations || []) {
+          const durata = Number(x.call_duration_secs) || 0;
+          righe.push({
+            conversation_id: x.conversation_id, azienda_id: azienda, sede_id: c.sede_id, agente_id: agente, lingua,
+            inizio: x.start_time_unix_secs ? new Date(x.start_time_unix_secs * 1000).toISOString() : null,
+            durata_sec: durata, stato: x.status || null, esito: x.call_successful || null,
+            costo_usd: Math.round(durata / 60 * costoMin * 10000) / 10000,
+            dati: { messaggi: x.message_count ?? null, titolo: x.call_summary_title ?? null, direzione: x.direction ?? null },
+          });
+        }
+        cursor = d.has_more ? d.next_cursor || "" : "";
+      } while (cursor && ++giri < 10);
+    }
+  }
+  if (righe.length) {
+    await rest(`centralino_chiamate_ai?on_conflict=conversation_id`, {
+      method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(righe),
+    });
+  }
+  const inizioMese = new Date(); inizioMese.setUTCDate(1); inizioMese.setUTCHours(0, 0, 0, 0);
+  const mese = await rest(`centralino_chiamate_ai?azienda_id=eq.${azienda}&inizio=gte.${inizioMese.toISOString()}&select=durata_sec,costo_usd,sede_id,inizio,esito&order=inizio.desc`);
+  const min = (mese || []).reduce((t: number, r: any) => t + (r.durata_sec || 0), 0) / 60;
+  const out: any = {
+    ok: true,
+    mese: { chiamate: (mese || []).length, minuti: Math.round(min * 10) / 10, media_min: mese?.length ? Math.round(min / mese.length * 10) / 10 : 0 },
+    ultime: (mese || []).slice(0, 10).map((r: any) => ({ inizio: r.inizio, minuti: Math.round((r.durata_sec || 0) / 6) / 10, esito: r.esito })),
+    pacchetto: { minuti_inclusi: prezzi.minuti_inclusi ?? null, canone_mensile_eur: prezzi.canone_mensile_eur ?? null },
+  };
+  if (superadmin) out.mese.costo_usd = Math.round((mese || []).reduce((t: number, r: any) => t + Number(r.costo_usd || 0), 0) * 100) / 100;
+  return out;
+}
+
+/* ---------- voce del titolare (clonazione istantanea) ---------- */
+async function clona(b: any, u: any) {
+  const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
+  if (!(await moduloVoce(azienda))) return { errore: "La voce al telefono non è attiva per questo locale" };
+  if (b.consenso !== true) return { errore: "Serve il consenso di chi registra la propria voce" };
+  const b64 = String(b.audio_base64 || "").split(",").pop() || "";
+  if (b64.length < 120_000) return { errore: "Registrazione troppo corta: leggi tutto il testo (almeno un minuto)" };
+  const s = (await rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome`))?.[0];
+  if (!s) return { errore: "Sede non trovata" };
+  const mime = String(b.mime || "audio/webm");
+  const est = /mp4|m4a|aac/.test(mime) ? "m4a" : /ogg/.test(mime) ? "ogg" : /wav/.test(mime) ? "wav" : "webm";
+  const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+  let c = (await rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=*&limit=1`))?.[0];
+  // una sola voce per locale: la vecchia si cancella
+  if (c?.voce_clonata_id) await fetch(`https://api.elevenlabs.io/v1/voices/${c.voce_clonata_id}`, { method: "DELETE", headers: { "xi-api-key": EL_KEY } }).catch(() => {});
+  const fd = new FormData();
+  fd.append("name", `${s.nome} — voce del locale`.slice(0, 90));
+  fd.append("description", `Voce clonata col consenso di ${String(b.nome || u.email || "titolare")} per il centralino di ${s.nome}`);
+  fd.append("remove_background_noise", "true");
+  fd.append("labels", JSON.stringify({ language: "it", uso: "centralino", azienda }));
+  fd.append("files", new File([bytes], "voce." + est, { type: mime }));
+  const r = await fetch("https://api.elevenlabs.io/v1/voices/add", { method: "POST", headers: { "xi-api-key": EL_KEY }, body: fd });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok) return { errore: `ElevenLabs ${r.status}: ${JSON.stringify(out).slice(0, 300)}` };
+  const consenso = { user_id: u.id, email: u.email || null, nome: String(b.nome || "").slice(0, 120), testo: String(b.testo_consenso || "").slice(0, 500), data: new Date().toISOString() };
+  const campi = { voce_clonata_id: out.voice_id, voce_clonata_consenso: consenso, voce_ai: out.voice_id, voce_ai_nome: "La tua voce", updated_at: new Date().toISOString() };
+  if (c) await rest(`centralino_config?id=eq.${c.id}`, { method: "PATCH", body: JSON.stringify(campi) });
+  else await rest(`centralino_config`, { method: "POST", body: JSON.stringify({ azienda_id: azienda, sede_id: sede, ...campi }) });
+  // aggiorno subito gli agenti con la voce nuova
+  const agg = await salva({ azienda_id: azienda, sede_id: sede });
+  return { ok: true, voice_id: out.voice_id, agenti: agg?.ok === true };
+}
+
+async function eliminaVoce(b: any) {
+  const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
+  const c = (await rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=id,voce_clonata_id,voce_ai&limit=1`))?.[0];
+  if (!c?.voce_clonata_id) return { ok: true };
+  await fetch(`https://api.elevenlabs.io/v1/voices/${c.voce_clonata_id}`, { method: "DELETE", headers: { "xi-api-key": EL_KEY } }).catch(() => {});
+  const campi: any = { voce_clonata_id: null, voce_clonata_consenso: null, updated_at: new Date().toISOString() };
+  if (c.voce_ai === c.voce_clonata_id) { campi.voce_ai = null; campi.voce_ai_nome = null; }
+  await rest(`centralino_config?id=eq.${c.id}`, { method: "PATCH", body: JSON.stringify(campi) });
+  await salva({ azienda_id: azienda, sede_id: sede });
+  return { ok: true };
 }
 
 Deno.serve(async (req) => {
@@ -305,7 +414,19 @@ Deno.serve(async (req) => {
     if (!u?.id) return json({ errore: "Accesso non valido" }, 401);
     if (!EL_KEY || !CENTRALINO_KEY) return json({ errore: "Centralino AI non configurato sulla piattaforma" }, 400);
     const b = await req.json().catch(() => ({}));
-    if (b.azione === "voci") return json(await voci());
+    if (b.azione === "voci") {
+      let propria: string | null = null;
+      if (b.azienda_id && b.sede_id) propria = (await rest(`centralino_config?azienda_id=eq.${b.azienda_id}&sede_id=eq.${b.sede_id}&select=voce_clonata_id&limit=1`))?.[0]?.voce_clonata_id || null;
+      return json(await voci(propria));
+    }
+    if (["chiamate", "clona", "elimina_voce"].includes(b.azione)) {
+      if (!b.azienda_id) return json({ errore: "Serve azienda_id" }, 400);
+      if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);
+      if (b.azione === "chiamate") return json(await chiamate(b.azienda_id, u.id === SUPERADMIN));
+      if (!b.sede_id) return json({ errore: "Serve sede_id" }, 400);
+      if (b.azione === "clona") return json(await clona(b, u));
+      return json(await eliminaVoce(b));
+    }
     if (b.azione === "stato") {
       if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);
       if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);

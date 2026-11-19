@@ -7,7 +7,8 @@ const MODULI = [
   { key: "dipendenti", label: "Dipendenti" },
   { key: "ricettario", label: "Ricettario" },
   { key: "preparazioni", label: "Preparazioni" },
-  { key: "report", label: "Report" }
+  { key: "report", label: "Report" },
+  { key: "centralino_voce", label: "📞 Centralino: voce al telefono (a pagamento)", aPagamento: true }
 ];
 
 export async function render(container) {
@@ -245,7 +246,7 @@ function renderFeatures(azienda) {
       <input 
         type="checkbox"
         data-key="${m.key}"
-        ${azienda.features?.[m.key] === false ? "" : "checked"}
+        ${m.aPagamento ? (azienda.features?.[m.key] === true ? "checked" : "") : (azienda.features?.[m.key] === false ? "" : "checked")}
       />
     </div>
   `).join("");
