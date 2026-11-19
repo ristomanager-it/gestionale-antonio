@@ -486,7 +486,7 @@ function disegna(container, supabase, azienda, sede) {
         <div class="riga"><span>Margine</span><b class="${c.marginePerc >= 60 ? "ok" : c.marginePerc >= 40 ? "" : "no"}">${c.marginePerc.toFixed(1)}%</b></div>` : ""}
         <div class="riga"><span>Acconto</span><b>${P.acconto_modo === "nessuno" ? "nessuno" : euro(c.acconto)}</b></div>
         ${sezioni.some(s => isoleDiSezione(s).length) ? `<div class="tit">Isole</div>${sezioni.filter(s => isoleDiSezione(s).length).map(s => riepilogoIsola(s)).join("")}` : ""}
-        ${(sezioniConsigliate() || []).length ? `<div class="tit">Aggiungi</div><div class="chip">${sezioniConsigliate().map(x => `<button class="c" data-extra="${esc(x.nome)}" data-quante="${x.quante || 1}">+ ${esc(x.nome)}</button>`).join("")}</div>` : ""}
+        ${(sezioniConsigliate() || []).length ? `<div class="tit">Aggiungi</div><div class="chip">${sezioniConsigliate().map(x => `<button class="c" data-extra="${esc(x.nome)}" data-quante="${x.quante || 1}">+ ${esc(x.nome)}${prezzoListino(x.nome) ? " · +" + prezzoListino(x.nome) + " €" : ""}</button>`).join("")}</div>` : ""}
         <a class="mod" href="#/isole-buffet">✎ Modifica isole e piatti</a>
       </aside>
 
