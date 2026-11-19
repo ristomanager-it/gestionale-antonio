@@ -5,6 +5,8 @@ let conversation = [];
 const RE_MENU_TIPO = /\bmenu\s+tipo\b|\b(componi|componimi|crea|creami|fammi|prepara|preparami)\s+(un|il|uno|nuovo)?\s*menu\b(?!\s+(del\s+giorno|da\s+tavolo|business|digitale))/i;
 // sondaggio dopo la visita, IGS, regali delle fasce: allo specialista tony-sondaggi-chat
 const RE_SONDAGGI = /\b(sondagg\w*|questionari\w*|igs)\b/i;
+// centralino AI: "montami il centralino", "cambia la voce al telefono"... vanno a tony-centralino (solo admin)
+const RE_CENTRALINO = /\b(centralino|segreteria\s+telefonica|telefonista)\b|voce\s+(ai|al\s+telefono|che\s+risponde)|rispond\w*\s+al\s+telefono/i;
 const RE_MESSAGGI_CLIENTI = /\b(messaggi?\s+(automatic\w*|ai\s+clienti|di\s+conferma|whatsapp)|messaggio\s+(di\s+)?(conferma|compleanno|automatico|whatsapp|ai\s+clienti)|modell[oi]\s+(whatsapp|di\s+messaggi\w*)|template\s+whatsapp|approv\w+\s+(da\s+|di\s+)?meta|meta\s+(ha\s+|l'ha\s+)?approvat\w*|testo\s+(del|dei)\s+messaggi\w*|auguri\s+di\s+compleanno|conferma\s+(della\s+|di\s+)?prenotazione\s+(su\s+)?whatsapp)\b/i;
 
 // ── Storico chat persistente (tony_chat_storico) ──
@@ -1280,8 +1282,11 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
       (RE_MENU_TIPO.test(ultimoUtente) || window.__tonyRamoMenu === true);
     const parlaDiSondaggi = !tipoMessaggio && !body.immagini && ["admin", "manager", "superadmin"].includes(window.state?.ruolo || "") &&
       (RE_SONDAGGI.test(ultimoUtente) || (window.__tonyRamoSondaggi === true && ultimoUtente.length <= 120));
-    const funzioneTony = tipoMessaggio ? "tony-router" : parlaDiSondaggi ? "tony-sondaggi-chat" : parlaDiMenuTipo ? "tony-menu-chat" : parlaDiMessaggi ? "tony-messaggi" : "tony";
-    const res = await fetch(`${supabaseUrl}/functions/v1/${funzioneTony}`, {
+    // centralino: chi lo nomina, o sta ancora rispondendo alle domande di Tony sul centralino
+    const parlaDiCentralino = !tipoMessaggio && !body.immagini && ["admin", "superadmin"].includes(window.state?.ruolo || "") &&
+      (RE_CENTRALINO.test(ultimoUtente) || window.__tonyRamoCentralino === true);
+    let funzioneTony = tipoMessaggio ? "tony-router" : parlaDiCentralino ? "tony-centralino" : parlaDiSondaggi ? "tony-sondaggi-chat" : parlaDiMenuTipo ? "tony-menu-chat" : parlaDiMessaggi ? "tony-messaggi" : "tony";
+    let res = await fetch(`${supabaseUrl}/functions/v1/${funzioneTony}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1293,7 +1298,20 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const esitoTony = await res.json();
+    let esitoTony = await res.json();
+    // il centralino ha capito che la domanda parla d'altro: la stessa domanda va al Tony generale
+    if (esitoTony && esitoTony.rimanda === true && funzioneTony === "tony-centralino") {
+      window.__tonyRamoCentralino = false;
+      funzioneTony = "tony";
+      res = await fetch(`${supabaseUrl}/functions/v1/tony`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": token },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      esitoTony = await res.json();
+    }
+    window.__tonyRamoCentralino = !!esitoTony && esitoTony.fonte === "centralino" && esitoTony.attesa !== false;
     window.__tonyRamoMessaggi = !!esitoTony && esitoTony.fonte === "messaggi";
     window.__tonyRamoMenu = !!esitoTony && esitoTony.fonte === "menu_tipo" && esitoTony.attesa === true;
     window.__tonyRamoSondaggi = !!esitoTony && esitoTony.fonte === "sondaggi" && esitoTony.attesa === true;

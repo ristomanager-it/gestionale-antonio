@@ -32,8 +32,12 @@ export async function renderCentralinoAI(box) {
   }
 
   async function disegna() {
-    const { data: cfgs } = await supa().from("centralino_config").select("*").eq("azienda_id", azienda.id).eq("sede_id", sedeId).limit(1);
+    const [{ data: cfgs }, { data: menus }] = await Promise.all([
+      supa().from("centralino_config").select("*").eq("azienda_id", azienda.id).eq("sede_id", sedeId).limit(1),
+      supa().from("menu").select("id,nome,slug,ordinabile,ritiro_attivo").eq("azienda_id", azienda.id).eq("sede_id", sedeId).eq("attivo", true).order("nome"),
+    ]);
     const c = cfgs?.[0] || {};
+    const menuSel = (menus || []).find((m) => m.id === c.menu_id_voce) || null;
     const v = await caricaVoci();
     const sedeNome = (sedi || []).find((s) => s.id === sedeId)?.nome || "";
     const salutoDefault = `Buongiorno, ${sedeNome}! Sono l'assistente per le prenotazioni. Come posso aiutarla?`;
@@ -55,7 +59,8 @@ export async function renderCentralinoAI(box) {
 
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#1e3a5f;line-height:1.55;">
         La <b>voce AI</b> risponde al telefono del locale in italiano e in inglese: prende le <b>prenotazioni</b> controllando i posti liberi,
-        risponde su <b>orari, indirizzo e menu del giorno</b> (li legge dall'app) e, quando serve, <b>passa la chiamata</b> a una persona.
+        risponde su <b>orari, indirizzo, parcheggio, menu e piatto del giorno</b> (li legge dall'app), <b>manda il link del menu</b> su WhatsApp,
+        può prendere <b>ordini da asporto</b> e, quando serve, <b>passa la chiamata</b> a una persona. Puoi anche chiedere a <b>Tony</b>: "montami il centralino".
         Le prenotazioni arrivano in Prenotazioni con la nota "📞 Presa dalla voce AI".
       </div>
 
@@ -103,6 +108,28 @@ export async function renderCentralinoAI(box) {
         </div>
       </div>
 
+
+      <div class="cai-card">
+        <h4>Menu</h4>
+        <p class="h">Il menu che la voce legge (portate e prezzi) e che manda su WhatsApp a chi vuole vederlo.
+          Se non scegli, usa il menu attivo della sede (prima quello da asporto).</p>
+        <select id="cai-menu" class="cai-in" ${dis}>
+          <option value="">— Automatico —</option>
+          ${(menus || []).map((m) => `<option value="${m.id}" ${m.id === c.menu_id_voce ? "selected" : ""}>${esc(m.nome)}${m.ordinabile && m.ritiro_attivo ? " · ordinabile da asporto" : ""}</option>`).join("")}
+        </select>
+        ${(menus || []).length ? "" : `<div style="font-size:12.5px;color:#b45309;margin-top:6px;">Questa sede non ha menu attivi: la voce non potrà leggere il menu né mandare il link.</div>`}
+      </div>
+
+      <div class="cai-card">
+        <div class="cai-row" style="justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1;"><h4>Ordini da asporto al telefono</h4>
+            <p class="h" style="margin:0;">La voce prende l'ordine, legge il totale, chiede orario di ritiro e nome. Il cliente riceve il riepilogo su WhatsApp e tocca «Confermo»; si paga in contanti al ritiro.
+            Serve un menu ordinabile con il ritiro attivo. Ottimo per pizzerie e asporto.</p></div>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-left:10px;"><input type="checkbox" id="cai-asporto" ${c.asporto_attivo ? "checked" : ""} ${dis} style="width:22px;height:22px;"> ${c.asporto_attivo ? "Sì" : "No"}</label>
+        </div>
+        ${c.asporto_attivo && menuSel && !(menuSel.ordinabile && menuSel.ritiro_attivo) ? `<div style="font-size:12.5px;color:#b45309;margin-top:8px;">Il menu scelto non è ordinabile da asporto: attiva "ordinabile" e "ritiro" nel menu, oppure scegline un altro.</div>` : ""}
+      </div>
+
       ${admin ? `<button type="button" id="cai-salva" class="cai-btn" style="background:#0E5A7A;color:#fff;width:100%;padding:13px;font-size:15px;">💾 Salva e aggiorna la voce</button>`
               : `<div style="font-size:13px;color:#64748b;">Solo l'admin del locale può modificare il centralino AI.</div>`}
       <div id="cai-esito" style="margin-top:10px;font-size:13px;"></div>
@@ -121,6 +148,7 @@ export async function renderCentralinoAI(box) {
 
     box.querySelector("#cai-sede")?.addEventListener("change", (e) => { sedeId = e.target.value; disegna(); });
     box.querySelector("#cai-attivo")?.addEventListener("change", (e) => { e.target.parentElement.lastChild.textContent = e.target.checked ? " Attiva" : " Spenta"; });
+    box.querySelector("#cai-asporto")?.addEventListener("change", (e) => { e.target.parentElement.lastChild.textContent = e.target.checked ? " Sì" : " No"; });
 
     box.querySelector("#cai-ascolta")?.addEventListener("click", () => {
       const opt = box.querySelector("#cai-voce")?.selectedOptions?.[0];
@@ -154,6 +182,8 @@ export async function renderCentralinoAI(box) {
         info_extra: box.querySelector("#cai-extra").value,
         numero_trasferimento: box.querySelector("#cai-numero").value,
         max_persone_ai: Number(box.querySelector("#cai-maxp").value) || 12,
+        menu_id_voce: box.querySelector("#cai-menu")?.value || null,
+        asporto_attivo: !!box.querySelector("#cai-asporto")?.checked,
       };
       btn.disabled = true; btn.textContent = "Aggiorno la voce…";
       esito.innerHTML = "";
