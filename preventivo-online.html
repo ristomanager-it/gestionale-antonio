@@ -55,7 +55,7 @@ var qs=new URLSearchParams(location.search);
 var P=qs.get("p")||"",PROVA=qs.get("prova")==="1",SOLO=(qs.get("tipi")||"").split(",").map(function(x){return x.trim().toLowerCase()}).filter(Boolean),WA=null;
 var NOMI={aperitivo:"Aperitivo di benvenuto",antipasti:"Antipasti",angoli:"Angoli e buffet",zuppe:"Zuppe",primi:"Primi piatti",primi1:"Il primo primo",formula:"Come servire",antifeste:"Gli antipasti",antibuffet:"Antipasto a buffet",primi2:"Il secondo primo",secondi:"Il secondo",contorni:"Contorni",torta:"La torta",dolci:"Dolci",vini:"I vini",fine:"Fine pasto",servizi:"Servizi extra",extratime:"Extra time"};
 var CIBO=["aperitivo","antipasti","antifeste","antibuffet","angoli","zuppe","primi","primi1","primi2","secondi","contorni","torta","dolci"];
-var DOLCE_EXTRA=/gelat|pizza/i;  // carretto dei gelati e pizza a fine festa: extra nel passo dei dolci
+var DOLCE_EXTRA=/gelat|pizza/i;var ET=false;function extraTime(x){return (x.categoria||"")==="Extra time"}function extraDolci(x){if(extraTime(x))return false;if((x.categoria||"")==="Extra dolci")return true;return !ET&&DOLCE_EXTRA.test(x.nome||"")}  // carretto dei gelati e pizza a fine festa: extra nel passo dei dolci
 var PRED={};
 var FORMULA="tavolo";  // feste: al tavolo o a buffet (menu_modelli.portate[].solo)
   // voci comprese di base per il tipo di evento (menu_modelli.portate[].predefiniti)
