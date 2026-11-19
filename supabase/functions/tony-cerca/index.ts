@@ -80,16 +80,19 @@ async function chiediClaude(domanda: string, fonti: string): Promise<string> {
         headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
         body: JSON.stringify({
           model: modello,
-          max_tokens: 500,
+          max_tokens: 1500,
           system: SYSTEM,
           messages: [{ role: "user", content: "DOMANDA: " + domanda + "\n\nFONTI DEL LOCALE:\n" + fonti }],
         }),
       });
       const j = await res.json();
-      if (res.ok && j && j.content && j.content[0] && j.content[0].text) return String(j.content[0].text).trim();
-      ultimo = modello + " " + res.status + " " + JSON.stringify(j).slice(0, 200);
+      // i modelli nuovi possono mettere prima un blocco "thinking": si prende il primo blocco di testo
+      const blocchi = (j && Array.isArray(j.content)) ? j.content : [];
+      const testo = blocchi.filter(function (b: any) { return b && b.type === "text" && b.text; }).map(function (b: any) { return b.text; }).join("\n").trim();
+      if (res.ok && testo) return testo;
+      ultimo = (ultimo ? ultimo + " / " : "") + modello + " " + res.status + " " + String((j && j.error && j.error.message) || "risposta senza testo").slice(0, 160);
     } catch (e) {
-      ultimo = modello + " " + String(e);
+      ultimo = (ultimo ? ultimo + " / " : "") + modello + " " + String(e);
     }
   }
   throw new Error(ultimo || "nessuna risposta");
