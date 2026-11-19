@@ -311,7 +311,9 @@ function modelloAttivo() {
 
 function sezioniConsigliate() {
   if (!tipoEvento()) return [];
-  const extra = Array.isArray(modelloAttivo()?.sezioni_extra) ? modelloAttivo().sezioni_extra : [];
+  // anche le sezioni dello schema base tolte per sbaglio (es. il Pesce) si rimettono con un tocco
+  const base = righe.length && Array.isArray(modelloAttivo()?.sezioni) ? modelloAttivo().sezioni : [];
+  const extra = [...base, ...(Array.isArray(modelloAttivo()?.sezioni_extra) ? modelloAttivo().sezioni_extra : [])];
   const gia = new Set(righe.map(r => norm(r.sezione)));
   return extra.filter(x => !gia.has(norm(x.nome)));
 }
