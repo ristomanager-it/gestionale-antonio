@@ -35,11 +35,18 @@ export async function render(container) {
 async function ricarica(container, azienda) {
   const corpo = container.querySelector("#tc-corpo");
 
-  const [sedi, regole] = await Promise.all([
+  const [sedi, regole, formazione] = await Promise.all([
     supabase.from("sedi").select("id, nome").eq("azienda_id", azienda.id).order("created_at"),
     supabase.from("tony_sapere")
-      .select("id, azienda_id, sede_id, ambito, vale_per, titolo, contenuto, priorita, attivo")
+      .select("id, azienda_id, sede_id, ambito, vale_per, titolo, contenuto, priorita, attivo, sostituisce_id, sostituisce_kb")
+      .or("azienda_id.is.null,azienda_id.eq." + azienda.id)
       .order("priorita", { ascending: false }).order("id"),
+    // la formazione caricata con le slide (es. Pienissimo Live): fuori solo frasi motivazionali e regole di scrittura campagne
+    supabase.from("tony_knowledge_base")
+      .select("id, titolo, contenuto, fonte, categoria")
+      .eq("attivo", true)
+      .not("categoria", "in", "(motivazione,marketing,marketing_meta,campagna,promo_strategy,marketing_strategy,piattaforma)")
+      .order("fonte").order("titolo"),
   ]);
 
   if (regole.error) {
@@ -56,6 +63,12 @@ async function ricarica(container, azienda) {
   const tutte = regole.data || [];
   const mie = tutte.filter((r) => r.azienda_id === azienda.id);
   const comuni = tutte.filter((r) => !r.azienda_id);
+  const schede = formazione.data || [];
+  // copie del locale: quale originale (regola globale o scheda) prendono il posto
+  const copiaRegola = (id) => mie.find((m) => m.sostituisce_id === id);
+  const copiaScheda = (id) => mie.find((m) => m.sostituisce_kb === id);
+  const originaleDi = (m) => m.sostituisce_id ? comuni.find((c) => c.id === m.sostituisce_id)
+    : m.sostituisce_kb ? schede.find((k) => k.id === m.sostituisce_kb) : null;
 
   let html = '<button id="tc-nuova" class="app-button primary" style="margin-bottom:16px;">+ Insegna una cosa a Tony</button>';
   html += '<div id="tc-form"></div>';
@@ -69,6 +82,7 @@ async function ricarica(container, azienda) {
     html += '<div style="background:#fff;border:1px solid ' + (r.attivo ? "#E3E8EC" : "#F1F5F9") + ';border-radius:14px;padding:14px;margin-bottom:10px;' + (r.attivo ? "" : "opacity:.6;") + '">'
       + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">'
       + '<div style="flex:1;">'
+      + ((r.sostituisce_id || r.sostituisce_kb) ? '<span style="display:inline-block;font-size:11px;font-weight:700;border-radius:8px;padding:2px 7px;background:#fef3c7;color:#92400e;margin-bottom:5px;">' + (r.sostituisce_kb ? "Sostituisce una scheda di formazione" : "Sostituisce una regola globale") + '</span>' : "")
       + '<div style="font-size:14.5px;font-weight:800;">' + esc(r.titolo) + '</div>'
       + '<div style="font-size:11.5px;color:#94a3b8;margin-top:3px;">'
       + (sede ? "Solo " + esc(sede) : "Tutte le sedi")
@@ -76,30 +90,51 @@ async function ricarica(container, azienda) {
       + (r.attivo ? "" : " · spenta")
       + '</div>'
       + '<div style="font-size:13px;color:#475569;white-space:pre-wrap;margin-top:8px;">' + esc(r.contenuto) + '</div>'
+      + (originaleDi(r) ? '<div style="font-size:12.5px;color:#94a3b8;text-decoration:line-through;white-space:pre-wrap;margin-top:8px;">Originale: ' + esc(String(originaleDi(r).contenuto || "").slice(0, 220)) + '</div>' : "")
       + '</div></div>'
-      + '<div style="margin-top:10px;display:flex;gap:8px;">'
+      + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">'
       + '<button class="app-button small gray" data-mod="' + r.id + '">Modifica</button>'
-      + '<button class="app-button small gray" data-att="' + r.id + '" data-val="' + (r.attivo ? "0" : "1") + '">' + (r.attivo ? "Spegni" : "Riaccendi") + '</button>'
-      + '<button class="app-button small gray" data-del="' + r.id + '" style="color:#dc2626;">Elimina</button>'
+      + ((r.sostituisce_id || r.sostituisce_kb)
+        ? '<button class="app-button small gray" data-del="' + r.id + '" data-torna="1">Torna all\'originale</button>'
+        : '<button class="app-button small gray" data-att="' + r.id + '" data-val="' + (r.attivo ? "0" : "1") + '">' + (r.attivo ? "Spegni" : "Riaccendi") + '</button>'
+          + '<button class="app-button small gray" data-del="' + r.id + '" style="color:#dc2626;">Elimina</button>')
       + '</div></div>';
   });
+
+  const cardGlobale = (titolo, contenuto, etichetta, attr, copia) =>
+    '<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:11px;margin-bottom:7px;">'
+    + '<div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;">' + esc(etichetta) + '</div>'
+    + '<div style="font-size:13.5px;font-weight:700;color:#334155;">' + esc(titolo) + '</div>'
+    + '<div style="font-size:12.5px;color:#64748b;white-space:pre-wrap;margin-top:4px;">' + esc(contenuto) + '</div>'
+    + (copia
+      ? '<div style="font-size:12px;color:#92400e;font-weight:700;margin-top:8px;">Da voi vale la vostra versione (sopra)</div>'
+      : '<button class="app-button small gray" ' + attr + ' style="margin-top:8px;color:#1f6f5c;border-color:#1f6f5c;">Cambiala per il mio locale</button>')
+    + '</div>';
 
   if (comuni.length) {
     html += '<details style="margin-top:18px;">'
       + '<summary style="cursor:pointer;font-size:13px;font-weight:700;color:#334155;">Quello che Tony sa gia\' di suo (' + comuni.length + ')</summary>'
-      + '<div style="font-size:12.5px;color:#64748b;margin:8px 0 10px;">Regole valide per tutti i locali della piattaforma. Si leggono, non si modificano.</div>';
-    comuni.forEach((r) => {
-      html += '<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:11px;margin-bottom:7px;">'
-        + '<div style="font-size:13.5px;font-weight:700;color:#334155;">' + esc(r.titolo) + '</div>'
-        + '<div style="font-size:12.5px;color:#64748b;white-space:pre-wrap;margin-top:4px;">' + esc(r.contenuto) + '</div>'
-        + '</div>';
-    });
+      + '<div style="font-size:12.5px;color:#64748b;margin:8px 0 10px;">Regole valide per tutti i locali. Se da voi si fa diverso, cambiala per il tuo locale: l\'originale non si tocca e resta per gli altri.</div>';
+    comuni.forEach((r) => { html += cardGlobale(r.titolo, r.contenuto, "Regola globale", 'data-sost="' + r.id + '"', copiaRegola(r.id)); });
     html += '</details>';
+  }
+
+  if (schede.length) {
+    const fonti = {};
+    schede.forEach((k) => { const f = k.fonte || "Formazione"; (fonti[f] = fonti[f] || []).push(k); });
+    Object.keys(fonti).forEach((f) => {
+      html += '<details style="margin-top:12px;">'
+        + '<summary style="cursor:pointer;font-size:13px;font-weight:700;color:#334155;">Formazione · ' + esc(f) + ' (' + fonti[f].length + ')</summary>'
+        + '<div style="font-size:12.5px;color:#64748b;margin:8px 0 10px;">Schede di formazione valide per tutti i locali. La barra Cerca e Tony le usano per rispondere.</div>';
+      fonti[f].forEach((k) => { html += cardGlobale(k.titolo, k.contenuto, "Formazione · " + f, 'data-sostkb="' + k.id + '"', copiaScheda(k.id)); });
+      html += '</details>';
+    });
   }
 
   if (window.state?.isSuperadmin === true || window.state?.ruolo === "superadmin") {
     html += '<div style="margin-top:22px;padding-top:14px;border-top:1px solid #E3E8EC;">'
       + '<a href="#/super-tony" style="font-size:13px;color:#0E5A7A;font-weight:700;text-decoration:none;">Apri Super Tony &rarr;</a>'
+      + '<a href="#/regole-clienti" style="display:block;margin-top:8px;font-size:13px;color:#0E5A7A;font-weight:700;text-decoration:none;">Regole dei clienti da portare a tutti &rarr;</a>'
       + '</div>';
   }
 
@@ -118,9 +153,21 @@ async function ricarica(container, azienda) {
       await ricarica(container, azienda);
     };
   });
+  corpo.querySelectorAll("[data-sost]").forEach((b) => {
+    b.onclick = () => {
+      const o = comuni.find((r) => String(r.id) === b.dataset.sost);
+      if (o) mostraForm(container, azienda, listaSedi, null, { sostituisce_id: o.id, titolo: o.titolo, contenuto: o.contenuto, vale_per: o.vale_per });
+    };
+  });
+  corpo.querySelectorAll("[data-sostkb]").forEach((b) => {
+    b.onclick = () => {
+      const o = schede.find((k) => String(k.id) === b.dataset.sostkb);
+      if (o) mostraForm(container, azienda, listaSedi, null, { sostituisce_kb: o.id, titolo: o.titolo, contenuto: o.contenuto, vale_per: ["tony"] });
+    };
+  });
   corpo.querySelectorAll("[data-del]").forEach((b) => {
     b.onclick = async () => {
-      if (!confirm("Elimino questa regola? Tony smettera' di tenerne conto.")) return;
+      if (!confirm(b.dataset.torna ? "Torno alla versione originale? La vostra versione viene eliminata." : "Elimino questa regola? Tony smettera' di tenerne conto.")) return;
       b.disabled = true;
       const { error } = await supabase.from("tony_sapere").delete().eq("id", b.dataset.del);
       if (error) { b.disabled = false; alert("Non sono riuscito a eliminare la regola."); return; }
@@ -129,9 +176,9 @@ async function ricarica(container, azienda) {
   });
 }
 
-function mostraForm(container, azienda, listaSedi, regola) {
+function mostraForm(container, azienda, listaSedi, regola, base) {
   const box = container.querySelector("#tc-form");
-  const r = regola || {};
+  const r = regola || base || {};
   const valePer = Array.isArray(r.vale_per) ? r.vale_per : ["tutti"];
 
   let opzioniSedi = '<option value="">Tutte le sedi</option>';
@@ -146,7 +193,8 @@ function mostraForm(container, azienda, listaSedi, regola) {
   });
 
   box.innerHTML = '<div style="background:#fff;border:1px solid #0E5A7A;border-radius:14px;padding:15px;margin-bottom:16px;">'
-    + '<div style="font-size:14px;font-weight:800;margin-bottom:12px;">' + (regola ? "Modifica" : "Cosa deve ricordarsi Tony") + '</div>'
+    + '<div style="font-size:14px;font-weight:800;margin-bottom:12px;">' + (regola ? "Modifica" : base ? "La vostra versione" : "Cosa deve ricordarsi Tony") + '</div>'
+    + (base ? '<div style="font-size:12.5px;color:#64748b;margin:-6px 0 12px;">Parti dal testo originale e scrivilo come si fa da voi. Per il tuo locale Tony e la barra useranno questa versione; per gli altri resta l\'originale.</div>' : "")
     + '<label style="font-size:12.5px;font-weight:700;color:#334155;">Titolo</label>'
     + '<input id="tc-titolo" type="text" value="' + esc(r.titolo || "") + '" placeholder="es. Come parliamo ai clienti" style="width:100%;border:1px solid #CBD5DD;border-radius:9px;padding:10px;margin:4px 0 12px;font-size:14px;">'
     + '<label style="font-size:12.5px;font-weight:700;color:#334155;">La regola</label>'
@@ -175,9 +223,13 @@ function mostraForm(container, azienda, listaSedi, regola) {
       return;
     }
     const funzioni = Array.from(box.querySelectorAll("#tc-funzioni input:checked")).map((i) => i.value);
+    // gli usi che qui non hanno una casella (es. campagne, Tony in chat) restano come nell'originale
+    valePer.filter((v) => !FUNZIONI.some((f) => f.v === v)).forEach((v) => { if (!funzioni.includes(v)) funzioni.push(v); });
     if (!funzioni.length) funzioni.push("tutti");
 
     const riga = {
+      ...(base && base.sostituisce_id ? { sostituisce_id: base.sostituisce_id } : {}),
+      ...(base && base.sostituisce_kb ? { sostituisce_kb: base.sostituisce_kb } : {}),
       azienda_id: azienda.id,
       sede_id: box.querySelector("#tc-sede").value || null,
       ambito: "locale",

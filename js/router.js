@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261119-1";
+const APP_V = "20261119-2";
 window.APP_V = APP_V;
 
 // ── AGGIORNAMENTO AUTOMATICO ──
@@ -254,6 +254,7 @@ const routes = {
   // Il cervello: le regole che il locale insegna al proprio Tony.
   // Admin e superadmin. Super Tony resta cosa da superadmin.
   "tony-cervello": () => imp("./views/tony-cervello.js"),
+  "regole-clienti": () => imp("./views/regole-clienti.js"),
   // Mail marketing: chi abbiamo contattato e cosa ha fatto dopo.
   "mail-marketing": () => imp("./views/mail-marketing.js"),
   // Cose che oggi non si potevano fare (calendario non uscito, dato non pronto).
@@ -388,6 +389,8 @@ const PLATFORM_ROUTES = new Set([
   "bo-evento",
   "bo-assistenza",
   "registro-supporto",
+  // regole scritte dai clienti da portare a tutti: solo superadmin
+  "regole-clienti",
 ]);
 
 const PREHOME_ROUTES = new Set([
