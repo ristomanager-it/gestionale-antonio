@@ -68,7 +68,7 @@ export function provvigione(valoreAnnuo, tipoAgente, avvio) {
 export function ricorrente(valoreAnnuo, tipoAgente, clientiPaganti) {
   if (tipoAgente === 'segnalatore') return 0;
   const soglia = Number(_regole.soglia_clienti_alto || 0), alto = Number(_regole.perc_ricorrente_alto || 0);
-  const p = (soglia > 0 && alto > 0 && Number(rango) > soglia) ? alto : Number(_regole.perc_ricorrente || 0);
+  const p = (soglia > 0 && alto > 0 && Number(clientiPaganti) >= soglia) ? alto : Number(_regole.perc_ricorrente || 0);
   return Number(valoreAnnuo || 0) * p / 100;
 }
 export function premioMese(contratti) {
