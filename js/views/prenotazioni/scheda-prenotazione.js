@@ -387,6 +387,11 @@ export async function render(container) {
         </div>
       </div>
 
+      <div class="pren-det-card" id="pren-gruppo-card">
+        <div class="pren-det-section-title">👥 Gruppo e tavolo</div>
+        <div id="pren-gruppo-box" style="font-size:13px;color:#94a3b8;">Carico…</div>
+      </div>
+
       <div class="pren-det-card">
         <div class="pren-det-section-title">💶 Pagamenti</div>
         <div id="pren-pag-box" style="font-size:13px;color:#94a3b8;">Carico…</div>
@@ -503,6 +508,64 @@ export async function render(container) {
     caricaMenuCollegato();
     caricaMessaggiInviati();
     caricaPagamenti();
+    caricaGruppo();
+  }
+
+  // 👥 19/11: il gruppo lo assegna da solo il sistema leggendo le note, ma puo' sbagliare
+  // (es. "Luana" che conteneva "Anna"): qui il titolare lo cambia a mano in un gesto.
+  // Si sceglie tra i gruppi gia' presenti quel giorno, oppure se ne crea uno nuovo, oppure nessuno.
+  async function caricaGruppo() {
+    const box = document.getElementById("pren-gruppo-box");
+    if (!box) return;
+    const p = pageState.prenotazione || {};
+    const sb = window.supabaseClient || window.supabase;
+    const esc = (t) => escapeHtml(String(t == null ? "" : t));
+    let q = sb.from("prenotazioni_tavoli").select("id, cliente_nome, coperti, bambini, gruppo_tavolo")
+      .eq("data", p.data).not("gruppo_tavolo", "is", null)
+      .not("stato", "in", "(annullata,rifiutata,cancellata,no_show)");
+    if (p.azienda_id) q = q.eq("azienda_id", p.azienda_id);
+    if (p.tag) q = q.eq("tag", p.tag);
+    const { data: righe, error } = await q;
+    if (error) { box.textContent = "Non riesco a leggere i gruppi: " + error.message; return; }
+    const gruppi = {};
+    (righe || []).forEach(function (r) {
+      const g = r.gruppo_tavolo;
+      if (!gruppi[g]) gruppi[g] = { persone: 0, nomi: [] };
+      gruppi[g].persone += (Number(r.coperti) || 0);
+      gruppi[g].nomi.push(r.cliente_nome + " (" + (Number(r.coperti) || 0) + ")");
+    });
+    const attuale = p.gruppo_tavolo || "";
+    const nomi = Object.keys(gruppi).sort(function (a, b) { return a.localeCompare(b, "it"); });
+    const opz = ['<option value="">— Nessun gruppo (tavolo per conto suo)</option>']
+      .concat(nomi.map(function (g) {
+        return '<option value="' + escapeAttribute(g) + '"' + (g === attuale ? " selected" : "") + ">" + esc(g) + " · " + gruppi[g].persone + " persone</option>";
+      }))
+      .concat(['<option value="__nuovo">+ Nuovo gruppo…</option>']);
+    const membri = attuale && gruppi[attuale]
+      ? '<div style="margin:6px 0 10px;color:#475569;line-height:1.5;">Nel gruppo: ' + gruppi[attuale].nomi.map(esc).join(", ") + "</div>"
+      : '<div style="margin:6px 0 10px;color:#475569;">Questa prenotazione non e\' in nessun gruppo.</div>';
+    box.innerHTML =
+      '<div style="font-size:15px;color:#0f172a;font-weight:600;">' + (attuale ? esc(attuale) : "Nessun gruppo") + "</div>" + membri +
+      '<select id="pren-gruppo-sel" style="width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;background:#fff;">' + opz.join("") + "</select>" +
+      '<input id="pren-gruppo-nuovo" type="text" placeholder="Nome del nuovo gruppo, es. Gruppo Rossi" style="display:none;width:100%;margin-top:8px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;box-sizing:border-box;">' +
+      '<button type="button" id="pren-gruppo-salva" class="pren-det-btn primary" style="margin-top:10px;width:100%;">Sposta in questo gruppo</button>' +
+      '<div id="pren-gruppo-esito" style="margin-top:8px;font-size:13px;"></div>';
+    const sel = document.getElementById("pren-gruppo-sel");
+    const nuovo = document.getElementById("pren-gruppo-nuovo");
+    sel.onchange = function () { nuovo.style.display = sel.value === "__nuovo" ? "block" : "none"; if (sel.value === "__nuovo") nuovo.focus(); };
+    document.getElementById("pren-gruppo-salva").onclick = async function () {
+      const esito = document.getElementById("pren-gruppo-esito");
+      let g = sel.value === "__nuovo" ? nuovo.value.trim() : sel.value;
+      if (sel.value === "__nuovo" && !g) { esito.style.color = "#b91c1c"; esito.textContent = "Scrivi il nome del nuovo gruppo."; return; }
+      if (g && sel.value === "__nuovo" && !/^gruppo\b/i.test(g)) g = "Gruppo " + g;
+      if ((g || "") === attuale) { esito.style.color = "#64748b"; esito.textContent = "E' gia' in questo gruppo."; return; }
+      this.disabled = true;
+      const { error: e2 } = await sb.from("prenotazioni_tavoli").update({ gruppo_tavolo: g || null }).eq("id", p.id);
+      this.disabled = false;
+      if (e2) { esito.style.color = "#b91c1c"; esito.textContent = "Non salvato: " + e2.message; return; }
+      pageState.prenotazione = Object.assign({}, p, { gruppo_tavolo: g || null });
+      renderForm(g ? "Spostata in " + g + "." : "Tolta dal gruppo.");
+    };
   }
 
   // 💶 Pagamenti della prenotazione: totale, gia' pagato (carta, bonifico, contanti...), resto da incassare.
