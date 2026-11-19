@@ -143,8 +143,9 @@ export async function render(container) {
     _leadList.forEach(l => { l._avvioOk = AV.avvioOk(l, agente, _passiAvvio); });
   } catch (e) { console.warn('avvii-agenti:', e); }
 
-  // 17/11: posizione di ogni cliente tra i paganti dell'agente (dal 16° il mantenimento passa al 7%)
-  _leadList.filter(l => l.stato === 'pagante').sort((a, b) => String(a.data_conversione || a.created_at || '').localeCompare(String(b.data_conversione || b.created_at || ''))).forEach((l, i) => { l._rango = i + 1; });
+  // 19/11: il 7% di mantenimento scatta su tutti i clienti quando l'agente ne ha 15 paganti: a ogni cliente passo il totale
+  const _nPaganti = _leadList.filter(l => l.stato === 'pagante').length;
+  _leadList.forEach(l => { l._rango = _nPaganti; });
 
   // KPI mese
   const leadMese = _leadList.filter(l => l.created_at?.substring(0,7) === meseCorrente);
