@@ -101,7 +101,7 @@ function voci(k){
  return L.map(function(v){return {id:v.id,n:v.nome,d:v.descrizione+(v.con&&v.con.length?" · con "+v.con.join(", "):""),f:v.foto,pr:k==="aperitivo"?"":(PRED[v.id]?"Compreso":(v.prezzo||"")),it:v.it,compreso:v.compreso||!!PRED[v.id],base:v.base,galleria:v.galleria,sost:v.sostituisce,cat:v.galleria?"Galleria: torte più elaborate":(k==="torta"?"Compresa nel menu":"")}})}
 function nSel(k){return voci(k).filter(function(v){return sel[v.id]}).length}
 function costruisci(tieni){var m=(CFG.tipi||[]).filter(function(t){return t.tipo===TIPO})[0]||CFG.tipi[0];if(!tieni)FORMULA="tavolo";
- var attive=(m.portate||[]).filter(function(p){return !p.solo||p.solo===FORMULA});
+ var attive=(m.portate||[]).filter(function(p){return !p.solo||p.solo===FORMULA});ET=(m.portate||[]).some(function(p){return p.k==="extratime"});
  STEPS=[{k:"loc",t:"La location",h:"Dove vi immaginate la giornata",min:1,max:1}].concat(attive.filter(function(p){return p.k==="servizi"||voci(p.k).length}).map(function(p){
   var mx=p.k==="torta"?1:p.max,h=(mx>=99?(p.min?"Almeno "+p.min:"Facoltativo · quanti volete"):(p.min===mx?(mx===1?"Sceglietene uno":"Scegliete "+mx):(p.min?"Da "+p.min+" a "+mx:"Fino a "+mx+" · facoltativo")))+(p.nota?" · "+p.nota:"");
   if(p.k==="formula")h="Sceglietene uno";if(p.k==="torta")h="Inclusa nel menu · o sceglietene una dalla galleria";if(p.k==="vini")h="Compresi nel menu · e se volete, una scelta superiore";if(p.k==="fine")h="Compresi, senza costi in più";
