@@ -124,7 +124,7 @@ function disegna(){var h="",chips="";
   var dopo=STEPS[i+1];h+='<div class="err hide" id="er"></div><div class="barra"><button class="btn" data-av="'+i+'">'+(dopo?"Avanti: "+esc(dopo.t)+" →":"Calcola il preventivo")+'</button></div></div>'});
  $("steps").innerHTML=(chips?'<div class="chips">'+chips+'</div>':"")+h}
 function vai(i){cur=i;$("sum").classList.add("hide");disegna();$("s2").scrollIntoView({behavior:"smooth",block:"start"})}
-function scelte(){var a=[],s=[];Object.keys(sel).forEach(function(id){if(!sel[id])return;if(id.charAt(0)==="l")return;if(id.charAt(0)==="s"&&id.length<12)s.push(id.slice(1));else a.push(id)});return {scelte:a,servizi:s}}
+function scelte(){var a=[],s=[];Object.keys(sel).forEach(function(id){if(!sel[id])return;if(id.charAt(0)==="l")return;if(id.charAt(0)==="s")s.push(id.slice(1));else a.push(id)});return {scelte:a,servizi:s}}
 var BOZZA=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx".replace(/x/g,function(){return (Math.random()*16|0).toString(16)});
 function bozza(x){if(PROVA)return;try{var qx=new URLSearchParams(location.search),l=(CFG&&CFG.location||[]).filter(function(y){return y.id===LOC})[0],sc=[],sv=[];
  STEPS.forEach(function(z,i){if(!i||!fatto[i])return;var ps=voci(z.k).filter(function(v){return sel[v.id]}).map(function(v){return v.n});if(!ps.length)return;if(z.k==="servizi")sv=ps;sc.push({passo:z.t,voci:ps})});
