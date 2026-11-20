@@ -6,6 +6,7 @@
 // POST { azione: "clona", azienda_id, sede_id, audio_base64, mime, consenso, nome } -> crea la voce del titolare (modulo voce)
 // POST { azione: "elimina_voce", azienda_id, sede_id }        -> cancella la voce clonata del locale
 // POST { azione: "stato", azienda_id, sede_id, profilo? }     -> configurazione, menu, domande aperte (+ profilo del locale per Tony)
+// POST { azione: "impara", azienda_id, sede_id }             -> rifa' subito la scheda del locale (centralino-impara)
 // POST { azione: "rispondi_domande", azienda_id, sede_id, risposte:[{id,risposta|ignora}] } -> le risposte entrano nelle info del locale
 // Il bot WhatsApp (bot_wa_ai) e' incluso nel piano; la voce al telefono e' il modulo a pagamento "centralino_voce".
 // Secrets: ELEVENLABS_API_KEY, CENTRALINO_KEY.
@@ -106,9 +107,9 @@ PRENOTAZIONE
 5. Ripeti il riepilogo (giorno, ora, persone, nome) e chiedi conferma. Solo dopo il sì chiama prenota.
 6. A prenotazione fatta: conferma che è registrata e che riceverà la conferma su WhatsApp. Saluta e chiudi la chiamata.
 
-DOMANDE SUL LOCALE (orari, indirizzo, parcheggio, piatto o menu del giorno, prezzo, tipo di cucina)
+DOMANDE SUL LOCALE (orari, indirizzo, parcheggio, animali, servizi, offerte, eventi, piatto o menu del giorno, prezzo, tipo di cucina)
 - Chiama info_locale (con la data se chiede il menu di un altro giorno) e rispondi solo con quello che restituisce, in modo breve e parlato: non leggere elenchi lunghi, riassumi e chiedi se vuole altri dettagli.
-- Usa anche le INFORMAZIONI DEL LOCALE qui sotto (parcheggio, animali, ferie...), se ci sono.
+- La risposta di info_locale contiene anche scheda_del_locale (servizi, offerte, promozioni, eventi, sale: ricavata dall'app) e cose_da_sapere_dal_locale (scritte dal ristorante, valgono di più): cercala lì prima di dire che non lo sai.
 - Se l'informazione non c'è, non inventare: chiama domanda_senza_risposta con la domanda del cliente (così il locale la completa), poi proponi di passare la chiamata a un collega o di farlo richiamare.
 
 MENU ALLA CARTA
@@ -152,7 +153,7 @@ BOOKING
 
 QUESTIONS ABOUT THE RESTAURANT (opening hours, address, menu of the day, price, cuisine)
 - Call info_locale (with the date if they ask about another day's menu) and answer only with what it returns, briefly: the data is in Italian, translate dish names naturally, summarise instead of reading long lists.
-- Also use the RESTAURANT INFORMATION below (parking, pets, holidays...), if present (it is written in Italian: translate it).
+- The info_locale reply also contains scheda_del_locale (services, offers, promotions, events, rooms) and cose_da_sapere_dal_locale (written by the restaurant, it wins): look there before saying you don't know (it is in Italian: translate it).
 - If the information is not there, don't invent: call domanda_senza_risposta with the guest's question written in Italian (so the restaurant can complete it), then offer to transfer to a colleague or a call back.
 
 À LA CARTE MENU
@@ -305,14 +306,31 @@ async function domandeAperte(azienda: string, sede: string) {
 async function stato(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
   const [cfg, menu, s, dom] = await Promise.all([
-    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=ai_attivo,bot_wa_ai,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
+    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=ai_attivo,bot_wa_ai,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
     rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo,consegna_attiva`),
     rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
     domandeAperte(azienda, sede),
   ]);
   const out: any = { sede: s?.[0]?.nome || null, config: cfg?.[0] || null, menu_disponibili: menu || [], modulo_voce: await moduloVoce(azienda), domande_aperte: dom };
-  if (b.profilo) out.profilo_locale = await profiloLocale(azienda, sede, menu || []);
+  if (b.profilo) {
+    out.profilo_locale = await profiloLocale(azienda, sede, menu || []);
+    // per Tony la scheda deve essere fresca: se manca o ha piu' di un giorno la rifaccio adesso
+    const c0 = out.config;
+    if (!c0?.info_auto_at || Date.now() - new Date(c0.info_auto_at).getTime() > 86400 * 1000) {
+      const r = await imparaOra(azienda, sede);
+      if (r?.ok) out.config = { ...(c0 || {}), info_auto: r.scheda, info_auto_at: r.aggiornata, info_auto_fonti: r.fonti };
+    }
+  }
   return out;
+}
+
+/* ---------- scheda del locale scritta dall'app (centralino-impara) ---------- */
+async function imparaOra(azienda: string, sede: string) {
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/centralino-impara`, {
+    method: "POST", headers: { "x-centralino-key": CENTRALINO_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ azienda_id: azienda, sede_id: sede }),
+  });
+  return await r.json().catch(() => ({ errore: "risposta non valida" }));
 }
 
 /* ---------- risposte alle domande dei clienti: entrano nelle informazioni del locale ---------- */
@@ -500,6 +518,11 @@ Deno.serve(async (req) => {
       if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);
       if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);
       return json(await stato(b));
+    }
+    if (b.azione === "impara") {
+      if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);
+      if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);
+      return json(await imparaOra(b.azienda_id, b.sede_id));
     }
     if (b.azione === "rispondi_domande") {
       if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);

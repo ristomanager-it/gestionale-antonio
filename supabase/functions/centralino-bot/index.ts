@@ -68,11 +68,15 @@ function strumenti(asporto: boolean) {
 function istruzioni(locale: string, c: any, nome: string | null, camp: any) {
   const maxP = Number(c.max_persone_ai) || 12;
   const extra = String(c.info_extra || "").trim().slice(0, 4000);
+  const scheda = String(c.info_auto || "").trim().slice(0, 3200);
   return `Sei l'assistente WhatsApp di "${locale}", un ristorante italiano. Rispondi ai clienti in chat.
 
 STILE
 - Messaggi brevi da chat (2-5 righe), cordiali, qualche emoji con misura. Niente elenchi lunghi: riassumi e chiedi se vuole altro.
 - Rispondi nella lingua del cliente. Dai del Lei, a meno che il cliente non dia del tu.
+- Se il cliente saluta e basta ("Ciao", "Buongiorno"), saluta e chiedi come puoi aiutarlo (prenotare, menu, informazioni).
+- Non iniziare con "Perfetto", "Ottimo" o simili se il cliente non ha appena confermato qualcosa: rispondi subito nel merito.
+- Se scrive solo "ok", "grazie" e simili a conversazione finita: saluta in una riga; se l'hai già salutato rispondi esattamente [NESSUNA_RISPOSTA].
 - Il numero di telefono del cliente lo conosci già (scrive da WhatsApp): non chiederlo.${nome ? `\n- Il nome sul suo profilo WhatsApp è "${nome}": usalo per la prenotazione, chiedendo conferma solo se sembra un soprannome.` : ""}
 
 COSA FAI
@@ -82,13 +86,14 @@ COSA FAI
 - MENU ALLA CARTA E PREZZI: menu_locale (per categoria o cercando il piatto).
 - Se vuole VEDERE il menu o prenotare da solo: chiama link e scrivigli il link.
 ${c.asporto_attivo ? "- ORDINI DA ASPORTO: usa ordina, prima con conferma=false (riepilogo e totale), chiedi orario di ritiro e nome, poi conferma=true dopo il sì. Si paga al ritiro. La consegna a domicilio non la prendi in chat: manda il link del menu." : "- Ordini da asporto in chat non si prendono: manda il link del menu."}
-- DOMANDE A CUI NON SAI RISPONDERE (non sono negli strumenti né nelle informazioni del locale): chiama domanda_senza_risposta, poi di' che chiedi al personale e gli rispondono qui. Non inventare mai.
+- Prima di dire che non sai una cosa, guarda la SCHEDA DEL LOCALE e le COSE DA SAPERE qui sotto.
+- DOMANDE A CUI NON SAI RISPONDERE (non sono negli strumenti, nella scheda né nelle cose da sapere): chiama domanda_senza_risposta, poi scrivi in modo naturale che chiedi al personale e gli rispondono qui a breve (es. "Bella domanda! Chiedo subito in sala e le rispondiamo qui a breve."). Non inventare mai.
 - PERSONA DEL LOCALE: gruppi oltre ${maxP} persone, eventi, catering, reclami, domande senza risposta, o se lo chiede: chiama passa_a_persona e scrivi che a breve gli risponde qualcuno del locale.
 
 REGOLE
 - Non inventare mai disponibilità, prezzi, piatti, orari o informazioni: usa solo gli strumenti e le informazioni qui sotto.
 - Se uno strumento risponde errore_tecnico, scusati e usa passa_a_persona.
-- Non dire di essere un modello o un software: sei l'assistente di ${locale}.${camp ? `\n\nDA DOVE ARRIVA IL CLIENTE\n${camp.nota ? `- Arriva dalla campagna "${camp.nota}"${camp.codice ? " (codice " + camp.codice + ")" : ""}: è quello che gli interessa, parti da lì e ricordalo nel riepilogo. Nella prenotazione metti "${camp.nota}" all'inizio delle note.` : camp.fonte === "meta_ads" ? `- Arriva da un annuncio${camp.ads?.annuncio ? ' ("' + camp.ads.annuncio + '")' : ""}: accoglilo e aiutalo a prenotare.` : `- Arriva da: ${camp.fonte || camp.codice}.`}${camp.flusso === "menu_business" ? "\n- Menu business: vale dal lunedì al venerdì, a pranzo e a cena. Se chiede un altro giorno diglielo con garbo." : ""}` : ""}${extra ? `\n\nINFORMAZIONI DEL LOCALE (scritte dal ristorante):\n${extra}` : ""}`;
+- Non dire di essere un modello o un software: sei l'assistente di ${locale}.${camp ? `\n\nDA DOVE ARRIVA IL CLIENTE\n${camp.nota ? `- Arriva dalla campagna "${camp.nota}"${camp.codice ? " (codice " + camp.codice + ")" : ""}: è quello che gli interessa, parti da lì e ricordalo nel riepilogo. Nella prenotazione metti "${camp.nota}" all'inizio delle note.` : camp.fonte === "meta_ads" ? `- Arriva da un annuncio${camp.ads?.annuncio ? ' ("' + camp.ads.annuncio + '")' : ""}: accoglilo e aiutalo a prenotare.` : `- Arriva da: ${camp.fonte || camp.codice}.`}${camp.flusso === "menu_business" ? "\n- Menu business: vale dal lunedì al venerdì, a pranzo e a cena. Se chiede un altro giorno diglielo con garbo." : ""}` : ""}${scheda ? `\n\nSCHEDA DEL LOCALE (ricavata dall'app: sito, landing, promo, eventi, menu, servizi):\n${scheda}` : ""}${extra ? `\n\nCOSE DA SAPERE SCRITTE DAL RISTORANTE (se contraddicono la scheda, valgono queste):\n${extra}` : ""}`;
 }
 
 async function registraConsumo(azienda: string, usage: any, ms: number, rif: string) {
@@ -120,6 +125,11 @@ Deno.serve(async (req) => {
     if (!camp) {
       const da6 = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
       camp = (await rest(`centralino_bot_messaggi?azienda_id=eq.${azienda}&telefono=eq.${telefono}&contesto=not.is.null&created_at=gte.${da6}&select=contesto&order=created_at.desc&limit=1`))?.[0]?.contesto || null;
+    }
+    // la scheda del locale manca o e' vecchia: la faccio rifare per i prossimi messaggi (senza aspettare)
+    if (!c.info_auto_at || Date.now() - new Date(c.info_auto_at).getTime() > 3 * 86400 * 1000) {
+      fetch(`${SUPABASE_URL}/functions/v1/centralino-impara`, { method: "POST", headers: { "x-centralino-key": CENTRALINO_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ azienda_id: azienda, sede_id: sede }) }).catch(() => {});
     }
     const s = (await rest(`sedi?id=eq.${sede}&select=nome&limit=1`))?.[0];
     const locale = s?.nome || "il ristorante";
@@ -173,10 +183,12 @@ Deno.serve(async (req) => {
       pulita.push({ role: "user", content: risultati });
     }
     if (!risposta) return json({ gestito: false });
+    const silenzio = /^\[?NESSUNA_RISPOSTA\]?$/i.test(risposta.trim());
+    if (silenzio) risposta = "";
 
     await rest("centralino_bot_messaggi", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify([
       { azienda_id: azienda, sede_id: sede, telefono, ruolo: "user", contenuto: testo, contesto: b.campagna && typeof b.campagna === "object" ? b.campagna : null },
-      { azienda_id: azienda, sede_id: sede, telefono, ruolo: "assistant", contenuto: risposta.slice(0, 4000), contesto: null },
+      { azienda_id: azienda, sede_id: sede, telefono, ruolo: "assistant", contenuto: (risposta || "(nessuna risposta)").slice(0, 4000), contesto: null },
     ]) });
     await registraConsumo(azienda, usage, Date.now() - t0, telefono.slice(-4));
     return json({ gestito: true, risposta, passa_a_persona: passa });

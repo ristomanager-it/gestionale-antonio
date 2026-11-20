@@ -87,10 +87,19 @@ export async function renderCentralinoAI(box) {
 
       <div class="cai-sez">Cosa sa dire (vale per chat e telefono)</div>
       ${admin ? `<div class="cai-card" id="cai-domande" style="display:none;border-color:#fdba74;background:#fffbf5;"></div>` : ""}
+      <div class="cai-card" style="background:#f8fafc;">
+        <div class="cai-row" style="justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1;"><h4>📚 Cosa sa già del locale</h4>
+            <p class="h" style="margin:0 0 8px;">Lo legge da solo dall'app: descrizione e servizi della sede, sito, landing e promo attive, eventi, feste, sale e menu.
+            Si aggiorna ogni notte. ${c.info_auto_at ? "Ultima lettura: " + new Date(c.info_auto_at).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + "." : ""}</p></div>
+          ${admin ? `<button type="button" id="cai-impara" class="cai-btn" style="background:#fff;border:1px solid #cbd5e1;margin-left:8px;white-space:nowrap;">🔄 Rileggi</button>` : ""}
+        </div>
+        <div id="cai-scheda" style="font-size:13px;color:#334155;white-space:pre-wrap;line-height:1.5;max-height:260px;overflow:auto;border-top:1px solid #e2e8f0;padding-top:8px;">${c.info_auto ? esc(c.info_auto) : `<span style="color:#94a3b8;">Non l'ha ancora letta: premi «Rileggi».</span>`}</div>
+      </div>
       <div class="cai-card">
-        <h4>Cose da sapere</h4>
-        <p class="h">Tutto quello che deve sapere oltre a orari, indirizzo e menu del giorno (quelli li prende dall'app).
-          Esempi: parcheggio, animali, chiusure per ferie, pizza solo la sera, menu bambini, eventi del mese.</p>
+        <h4>Cose da sapere (scritte da te)</h4>
+        <p class="h">Solo quello che l'app non sa o che va corretto: valgono più di quello che il centralino legge da solo.
+          Esempi: chiusure per ferie, pizza solo la sera, regole per i cani grandi.</p>
         <textarea id="cai-extra" class="cai-in" rows="5" maxlength="4000" ${dis} placeholder="Parcheggio gratuito davanti al locale. Cani di piccola taglia ammessi. Chiusi dal 7 al 21 gennaio.">${esc(c.info_extra || "")}</textarea>
       </div>
       <div class="cai-card">
@@ -211,6 +220,15 @@ export async function renderCentralinoAI(box) {
 
     if (moduloVoce) caricaChiamate();
     if (admin) caricaDomande();
+    box.querySelector("#cai-impara")?.addEventListener("click", async (ev) => {
+      const btn = ev.currentTarget, el = box.querySelector("#cai-scheda");
+      btn.disabled = true; btn.textContent = "Leggo…";
+      el.innerHTML = `<span style="color:#94a3b8;">Sto rileggendo sito, promo, eventi e menu…</span>`;
+      const { data, error } = await supa().functions.invoke("centralino-agenti", { body: { azione: "impara", azienda_id: azienda.id, sede_id: sedeId } });
+      btn.disabled = false; btn.textContent = "🔄 Rileggi";
+      if (error || !data?.ok) { el.innerHTML = `<span style="color:#b91c1c;">❌ ${esc(error ? await testoErrore(error) : data?.errore || "Errore")}</span>`; return; }
+      el.textContent = data.scheda || "";
+    });
 
     box.querySelector("#cai-salva")?.addEventListener("click", async (ev) => {
       const btn = ev.currentTarget, esito = box.querySelector("#cai-esito");

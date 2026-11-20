@@ -132,7 +132,10 @@ async function info(azienda: string, sede: string | null, b: any) {
     menu_del_giorno = { data, titolo: m.titolo || null, prezzo_fisso: m.prezzo_fisso || null, portate: per, note: m.note || null };
   }
   const giorno = GIORNI[new Date(data + "T12:00:00").getDay()];
+  const cfg = sede ? (await sel("centralino_config", `azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=info_auto,info_extra&limit=1`))[0] : null;
   return {
+    cose_da_sapere_dal_locale: cfg?.info_extra || undefined,
+    scheda_del_locale: cfg?.info_auto || undefined,
     locale: s?.nome || null, indirizzo: s ? `${s.indirizzo || ""}, ${s.citta || ""}`.replace(/^, |, $/g, "") : null,
     telefono: s?.telefono || null, cucina: s?.tipo_cucina || null, descrizione: s?.descrizione || null,
     orari_apertura: orari, data_richiesta: data, giorno_richiesto: NOMI_G[giorno],
