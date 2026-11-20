@@ -304,6 +304,36 @@ async function mandaRiepilogoOrdine(ordine: any, nomeLocale: string, righe: any[
   return String(e?.error?.message || ("errore " + r.status)).slice(0, 300);
 }
 
+/* capacita' della cucina per l'asporto: massimo di pezzi (bibite escluse) per fascia di 15 minuti */
+const BEVANDE = /bevand|bibit|drink|birr|vin[oi]\b|acqu|soft|caff|amar|liquor|cocktail|spritz/i;
+const fascia = (hm: string) => { const [h, m] = hm.split(":").map(Number); return Math.floor((h * 60 + m) / 15); };
+const daFascia = (f: number) => `${String(Math.floor(f * 15 / 60)).padStart(2, "0")}:${String((f * 15) % 60).padStart(2, "0")}`;
+async function caricoFasce(sede: string | null, voci: any[]) {
+  const carico = new Map<number, number>();
+  if (!sede) return carico;
+  const ordini = await sel("ordini_menu_pubblico", `sede_id=eq.${sede}&data_consegna=eq.${oggi().oggi}&stato_ordine=neq.annullato&select=id,orario_consegna&limit=500`);
+  if (!ordini?.length) return carico;
+  const fasciaDi = new Map(ordini.filter((o: any) => hhmm(o.orario_consegna)).map((o: any) => [o.id, fascia(hhmm(o.orario_consegna)!)]));
+  const righe = await sel("ordini_menu_pubblico_righe", `ordine_id=in.(${[...fasciaDi.keys()].join(",")})&select=ordine_id,quantita,menu_voce_id,nome_prodotto&limit=5000`);
+  const cat = new Map(voci.map((v: any) => [v.id, v.categoria]));
+  for (const r of righe || []) {
+    const f = fasciaDi.get(r.ordine_id);
+    if (f == null) continue;
+    if (BEVANDE.test(String(cat.get(r.menu_voce_id) || "")) || BEVANDE.test(String(r.nome_prodotto || ""))) continue;
+    carico.set(f, (carico.get(f) || 0) + (Number(r.quantita) || 0));
+  }
+  return carico;
+}
+function fasciaLibera(max: number, carico: Map<number, number>, ora: string, pezzi: number, minimoMin: number) {
+  const ok = (f: number) => (carico.get(f) || 0) + pezzi <= max;
+  const f0 = fascia(ora);
+  if (ok(f0)) return { libera: true, alternative: [] as string[] };
+  const primo = Math.max(f0 + 1, Math.ceil(minimoMin / 15));
+  const alternative: string[] = [];
+  for (let f = primo; f < 96 && alternative.length < 3; f++) if (ok(f)) alternative.push(daFascia(f));
+  return { libera: false, alternative };
+}
+
 async function ordina(azienda: string, sede: string | null, b: any, canale = "voce") {
   const { menu: m, cfg } = await menuVoce(azienda, sede, true);
   if (!cfg?.asporto_attivo) return { esito: "asporto_non_attivo", messaggio: "Il locale non prende ordini al telefono: proponi di mandare il link del menu." };
@@ -330,6 +360,16 @@ async function ordina(azienda: string, sede: string | null, b: any, canale = "vo
   const riepilogo = righe.map((r) => `${r.quantita} × ${r.nome_prodotto}${r.note ? " (" + r.note + ")" : ""} — ${euro(r.prezzo_unitario * r.quantita)}`);
   if (minimo > 0 && subtotale < minimo) return { esito: "sotto_minimo", minimo: euro(minimo), totale: euro(subtotale), riepilogo };
   const ora = hhmm(b.orario);
+  // cucina piena in quella fascia: si propone il primo orario libero
+  const maxPezzi = Number(cfg?.asporto_pezzi_fascia) || 0;
+  if (maxPezzi > 0 && ora) {
+    const pezzi = scelte.filter((x) => !BEVANDE.test(String(x.voce.categoria || "")) && !BEVANDE.test(String(x.voce.nome || ""))).reduce((t, x) => t + (Number(x.q) || 0), 0);
+    const [hn, mn] = oggi().ora_attuale.split(":").map(Number);
+    const minimo = hn * 60 + mn + (Number(m.tempo_consegna_min) || 0);
+    const fl = fasciaLibera(maxPezzi, await caricoFasce(sede, voci), ora, pezzi, minimo);
+    if (!fl.libera) return { esito: "fascia_piena", orario_chiesto: ora, orari_liberi: fl.alternative, riepilogo, totale: euro(subtotale),
+      messaggio: fl.alternative.length ? "A quell'ora la cucina e' piena: proponi al cliente il primo degli orari_liberi (\"per le " + ora + " siamo pieni, posso dargliela alle " + fl.alternative[0] + "?\"), poi richiama ordina con il nuovo orario." : "Stasera la cucina e' piena: scusati e proponi di ordinare per un altro giorno." };
+  }
   if (!(b.conferma === true || b.conferma === "true")) {
     return { esito: "da_confermare", riepilogo, totale: euro(subtotale), pagamento: "contanti al ritiro",
       tempo_preparazione_minuti: m.tempo_consegna_min || null, orario_ritiro: ora,
@@ -462,12 +502,12 @@ async function richiamata(azienda: string, sede: string | null, b: any, canale: 
   }
   await ins("centralino_richiamate", { azienda_id: azienda, sede_id: sede || cfg.sede_id || null, area, nome, telefono: tel, motivo, canale,
     responsabile_id: resp?.id || null, responsabile_nome: respNome, avviso, dettagli: Object.keys(dett).length ? dett : null });
-  // Ristoflow: chi chiama per una demo entra anche nel CRM della piattaforma
+  // Ristoflow: chi chiede di attivare il pacchetto entra anche nel CRM della piattaforma
   if (cfg.tipo_centralino === "ristoflow") {
     await ins("crm_lead", { azienda_id: azienda, nome_locale: String(dett.nome_locale || "") || null, nome_titolare: nome, telefono: tel,
       zona: String(dett.citta || "") || null, tipo_locale: String(dett.tipo_locale || "") || null, coperti: Number(dett.coperti) || null,
       data_visita: oggi().oggi, visitato_da: canale === "whatsapp" ? "Bot WhatsApp" : "Centralino AI", modalita: canale === "whatsapp" ? "whatsapp" : "telefono",
-      temperatura: "tiepido", stato: "da_contattare", piano_interesse: String(dett.piano || "") || null, prossimo_step: "Richiamare per la demo",
+      temperatura: "tiepido", stato: "da_contattare", piano_interesse: String(dett.piano || "") || null, prossimo_step: "Richiamare per attivazione",
       data_prossimo_step: oggi().oggi, note: motivo }).catch((e) => console.error("crm_lead:", e));
   }
   return { ok: true, area, responsabile: resp?.nome || null,

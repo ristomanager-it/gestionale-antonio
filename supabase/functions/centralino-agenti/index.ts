@@ -9,11 +9,13 @@
 // POST { azione: "impara", azienda_id, sede_id }             -> rifa' subito la scheda del locale (centralino-impara)
 // POST { azione: "paga_voce", azienda_id, sede_id }          -> pagamento Stripe una tantum per registrare la voce del titolare
 // Tipi di centralino (tipo_centralino): ristorante (prenota tavoli), eventi (location: informazioni e richiamata del responsabile),
-// ristoflow (commerciale: informazioni, demo, lead nel CRM). lingue = lingue del numero: l'agente italiano passa da solo a quella di chi chiama.
+// ristoflow (commerciale: informazioni, attivazione, lead nel CRM). lingue = lingue del numero: l'agente italiano passa da solo a quella di chi chiama.
 // Server-server: header x-deploy-key (deploy_config) vale come superadmin.
 // POST { azione: "richiamata_fatta", azienda_id, id }          -> il cliente e' stato richiamato
 // POST { azione: "rispondi_domande", azienda_id, sede_id, risposte:[{id,risposta|ignora}] } -> le risposte entrano nelle info del locale
 // Il bot WhatsApp (bot_wa_ai) e' incluso nel piano; la voce al telefono e' il modulo a pagamento "centralino_voce".
+// Gli agenti hanno il bursting attivo: nei picchi le chiamate oltre il limite del piano ElevenLabs passano (fino a 3x, pagate il doppio).
+// asporto_pezzi_fascia: massimo di pezzi da asporto per fascia di 15 minuti (lo controlla centralino-strumenti).
 // Secrets: ELEVENLABS_API_KEY, CENTRALINO_KEY.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "https://cuhcscpvhypoaplcmtjk.supabase.co";
@@ -180,6 +182,7 @@ ORDINI DA ASPORTO (ritiro al locale, pagamento in contanti al ritiro)
    - "da_chiarire": chiedi quale intende tra i piatti in "forse", poi richiama.
    - "da_confermare": leggi il riepilogo e il totale, chiedi a che ora passa a ritirare (tieni conto del tempo di preparazione) e il nome.
 3. Solo dopo il sì del cliente richiama ordina con conferma=true, orario (HH:MM), nome e telefono.
+   - "fascia_piena": a quell'ora la cucina è piena. Proponi il primo degli orari_liberi ("per le 20:00 siamo pieni, posso dargliela alle 20:30?"); se accetta richiama ordina con conferma=true e il nuovo orario, altrimenti proponi gli altri.
 4. Dì che l'ordine è registrato e che riceverà il riepilogo su WhatsApp da confermare con «Confermo».
 - Consegna a domicilio: non la prendi al telefono, proponi di mandare il link del menu con invia_link per ordinare online.` : `
 ORDINI
@@ -230,6 +233,7 @@ TAKEAWAY ORDERS (pick-up at the restaurant, cash on pick-up)
    - "da_chiarire": ask which one they mean among "forse", then call again.
    - "da_confermare": read back the summary and total, ask pick-up time and name.
 3. Only after a yes call ordina with conferma=true, orario (HH:MM), nome and telefono.
+   - "fascia_piena": the kitchen is full at that time. Offer the first of orari_liberi; if they accept call ordina again with conferma=true and the new time.
 4. Say the order is registered and they'll get a WhatsApp summary to confirm.
 - Home delivery: not by phone, offer the menu link with invia_link to order online.` : `
 ORDERS
@@ -489,7 +493,8 @@ function corpo(lingua: "it" | "en", c: any, locale: string, numero: string | nul
   }
   if (c.voce_ai) cc.tts = { voice_id: c.voce_ai };
   const etichetta = tipo === "ristorante" ? (lingua === "it" ? "Prenotazioni (IT)" : "Bookings (EN)") : (lingua === "it" ? "Centralino (" + multi.join("/").toUpperCase() + ")" : "Phone (EN)");
-  return { name: `${locale} — ${etichetta}`, conversation_config: cc };
+  // nei picchi (sabato sera, asporto) le chiamate oltre il limite del piano non vengono rifiutate
+  return { name: `${locale} — ${etichetta}`, conversation_config: cc, platform_settings: { call_limits: { bursting_enabled: true } } };
 }
 
 /* ---------- stato: configurazione attuale, menu della sede, profilo del locale, domande aperte ---------- */
@@ -528,7 +533,7 @@ async function domandeAperte(azienda: string, sede: string) {
 async function stato(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
   const [cfg, menu, s, dom] = await Promise.all([
-    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=tipo_centralino,lingue,responsabili,voce_clonata_pagata,ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
+    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=tipo_centralino,lingue,responsabili,voce_clonata_pagata,ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,asporto_pezzi_fascia,agente_it,agente_en,ai_aggiornato_at&limit=1`),
     rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo,consegna_attiva`),
     rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
     domandeAperte(azienda, sede),
@@ -619,6 +624,7 @@ async function salva(b: any) {
     max_persone_ai: Math.min(100, Math.max(2, Number(b.max_persone_ai) || 12)),
     menu_id_voce: /^[0-9a-f-]{36}$/i.test(String(b.menu_id_voce || "")) ? b.menu_id_voce : null,
     asporto_attivo: !!b.asporto_attivo,
+    asporto_pezzi_fascia: Number(b.asporto_pezzi_fascia) > 0 ? Math.min(500, Math.round(Number(b.asporto_pezzi_fascia))) : null,
     bot_wa_ai: !!b.bot_wa_ai,
     risposta_vocale: b.risposta_vocale !== false,
     responsabili: pulisciResponsabili(b.responsabili),
