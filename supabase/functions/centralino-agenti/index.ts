@@ -465,7 +465,7 @@ function sistema(numero: string | null, maxP: number) {
 
 function corpo(lingua: "it" | "en", c: any, locale: string, numero: string | null) {
   const maxP = Number(c.max_persone_ai) || 12;
-  const extra = String(c.info_extra || "").trim().slice(0, 4000);
+  const extra = String(c.info_extra || "").trim().slice(0, 12000);
   const tipo = String(c.tipo_centralino || "ristorante");
   const lingue = lingueOk(c.lingue);
   const sal = saluti(tipo, locale);
@@ -589,7 +589,7 @@ async function rispondiDomande(b: any) {
     const c = (await rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=info_extra&limit=1`))?.[0];
     const prima = String(c?.info_extra || "").trim();
     const info = (prima ? prima + "\n" : "") + righe.join("\n");
-    await salva({ azienda_id: azienda, sede_id: sede, info_extra: info.slice(-4000) });
+    await salva({ azienda_id: azienda, sede_id: sede, info_extra: info.slice(-12000) });
   }
   return { ok: true, fatte, aggiunte: righe.length, domande_aperte: await domandeAperte(azienda, sede) };
 }
@@ -619,7 +619,7 @@ async function salva(b: any) {
     voce_ai: b.voce_ai || null,
     voce_ai_nome: b.voce_ai_nome || null,
     saluto_ai: String(b.saluto_ai || "").trim().slice(0, 300) || null,
-    info_extra: String(b.info_extra || "").trim().slice(0, 4000) || null,
+    info_extra: String(b.info_extra || "").trim().slice(0, 12000) || null,
     numero_trasferimento: e164(b.numero_trasferimento),
     max_persone_ai: Math.min(100, Math.max(2, Number(b.max_persone_ai) || 12)),
     menu_id_voce: /^[0-9a-f-]{36}$/i.test(String(b.menu_id_voce || "")) ? b.menu_id_voce : null,
