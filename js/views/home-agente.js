@@ -483,7 +483,7 @@ function renderAgMansionario(el) {
     el.innerHTML = `
       <div class="ag-card" style="background:linear-gradient(135deg,#7C3AED,#9333ea);color:white;">
         <div style="font-size:15px;font-weight:800;margin-bottom:4px;">📖 Il tuo mansionario — ${tipoLabel}</div>
-        <div style="font-size:12px;opacity:.9;">Serata di presentazione: lunedì 18 gennaio 2027, dalle 19:30, Campo Antico di Orte</div>
+        <div style="font-size:12px;opacity:.9;">Serata di presentazione: lunedì 18 gennaio 2027, dalle 18:00, Campo Antico di Orte</div>
       </div>
 
       <div class="ag-card">
@@ -512,7 +512,7 @@ function renderAgMansionario(el) {
         <div style="font-size:12.5px;color:#374151;line-height:1.9;">
           "Costa troppo" → <em>Quanto ti costa non sapere quanto guadagni su un piatto? Il prezzo lo vedi la sera, poi decidi tu.</em><br>
           "Ho già un gestionale" → <em>Cosa ti manca di quello che hai? Vieni a vedere se questo te lo dà.</em><br>
-          "Non ho tempo" → <em>È un lunedì sera, dalle 19:30, quando molti locali sono chiusi.</em><br>
+          "Non ho tempo" → <em>È un lunedì sera, dalle 18:00, quando molti locali sono chiusi.</em><br>
           "Non sono pratico di computer" → <em>Se sai usare WhatsApp, sai usare Ristoflow.</em><br>
           "Sono piccolo" → <em>I conti valgono uguale con 30 coperti o con 200.</em><br>
           "Ci penso" → <em>Cosa ti frena? Voglio capire se è la cosa giusta per te.</em>
@@ -525,7 +525,7 @@ function renderAgMansionario(el) {
           Giacenze, merce da far girare, piatto del giorno — <span style="color:#DC2626;">mai "avanzi"</span><br>
           Uno strumento nato dai problemi delle sue cucine — <span style="color:#DC2626;">mai "si è costruito il gestionale"</span><br>
           Siete miei ospiti — <span style="color:#DC2626;">mai "cena offerta" o "cena gratis"</span><br>
-          Dalle 19:30 — <span style="color:#DC2626;">mai l'orario di fine</span>
+          Dalle 18:00 — <span style="color:#DC2626;">mai l'orario di fine</span>
         </div>
       </div>`;
   }
