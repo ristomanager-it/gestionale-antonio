@@ -1,6 +1,6 @@
 // centralino-strumenti — le azioni che la voce AI (agente ElevenLabs) e il bot WhatsApp usano durante la conversazione.
 // Chiamata da ElevenLabs come "webhook tool" o da centralino-bot: POST JSON, header x-centralino-key = secret CENTRALINO_KEY.
-// Parametri in query: ?azione=disponibilita|prenota|info|menu|invia_link|ordina&azienda=<uuid>&sede=<uuid>[&canale=whatsapp]
+// Parametri in query: ?azione=disponibilita|prenota|info|menu|invia_link|ordina|domanda&azienda=<uuid>&sede=<uuid>[&canale=whatsapp]
 // verify_jwt = false (ElevenLabs non ha un JWT Supabase): l'accesso e' protetto dalla chiave.
 // La voce al telefono e' il modulo a pagamento "centralino_voce"; il bot WhatsApp (canale=whatsapp) e' incluso nel piano.
 
@@ -97,6 +97,8 @@ async function prenota(azienda: string, sede: string | null, b: any, canale = "v
     azienda_id: azienda, sede_id: sede, cliente_nome: nome, cognome: b.cognome || null,
     cliente_telefono: telefono, data: d.data, ora: (d as any).ora, coperti: d.persone,
     note, stato: "in_attesa", canale: canale === "whatsapp" ? "whatsapp" : "telefono",
+    ...(b.fonte ? { source: String(b.fonte).slice(0, 60) } : {}),
+    ...(b.riferimento ? { riferimento: JSON.stringify(b.riferimento).slice(0, 2000) } : {}),
   });
   return { esito: "prenotata", salvata: true, id: pren?.id, data: d.data, ora: (d as any).ora, persone: d.persone };
 }
@@ -338,6 +340,20 @@ async function ordina(azienda: string, sede: string | null, b: any, canale = "vo
     messaggio: errore ? "Ordine registrato e passato in cucina." : "Ordine registrato: il cliente riceve il riepilogo su WhatsApp e deve toccare «Confermo»." };
 }
 
+/* domanda a cui la voce o il bot non sanno rispondere: resta da leggere al locale, che la completa
+   (Configurazione > Centralino o Tony) e da li' in poi il centralino la sa */
+async function domanda(azienda: string, sede: string | null, b: any, canale: string) {
+  const q = String(b.domanda || "").replace(/\s+/g, " ").trim().slice(0, 500);
+  if (q.length < 3) return { ok: false };
+  const da = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
+  const sedeQ = sede ? `&sede_id=eq.${sede}` : "";
+  const gia = await sel("centralino_domande", `azienda_id=eq.${azienda}${sedeQ}&stato=eq.aperta&created_at=gte.${encodeURIComponent(da)}&domanda=ilike.${encodeURIComponent(q.replace(/[%*,()]/g, " "))}&select=id&limit=1`);
+  if (!gia.length) {
+    await ins("centralino_domande", { azienda_id: azienda, sede_id: sede, canale, domanda: q, telefono: String(b.telefono || "").slice(0, 30) || null });
+  }
+  return { ok: true, messaggio: "Domanda annotata per il locale. Non inventare la risposta: di' che chiedi al personale e che lo ricontattano, oppure passa a una persona se serve subito." };
+}
+
 /* il modulo voce (a pagamento) e' attivo se c'e' sull'azienda o sul suo piano */
 const cacheModulo = new Map<string, { v: boolean; t: number }>();
 async function moduloVoce(azienda: string): Promise<boolean> {
@@ -375,6 +391,7 @@ Deno.serve(async (req) => {
     if (azione === "menu") return json(await menu(azienda, sede, b));
     if (azione === "invia_link") return json(await inviaLink(azienda, sede, b));
     if (azione === "ordina") return json(await ordina(azienda, sede, b, canale));
+    if (azione === "domanda") return json(await domanda(azienda, sede, b, canale));
     return json({ errore: "azione sconosciuta" }, 400);
   } catch (e) {
     console.error(azione, e);

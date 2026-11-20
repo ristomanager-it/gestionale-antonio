@@ -1,5 +1,5 @@
 // ============================================================
-// WHATSAPP WEBHOOK v23 — Ristoflow.AI
+// WHATSAPP WEBHOOK v26 — Ristoflow.AI
 // Riceve messaggi da Meta WhatsApp Business API e instrada:
 //   - contesto della connessione = ristorante -> flusso prenotazione tavolo
 //   - contesto della connessione = hotel      -> link booking.html
@@ -23,8 +23,9 @@
 //      - INTENT DI USCITA ("non serve piu'", "lascia stare", "ho gia' prenotato"...): il bot chiude con garbo invece di
 //        insistere, il messaggio resta da leggere e il cliente finisce in wa_lead_persi con il passo a cui si e' fermato
 // v25: BOT AI (Centralino AI): se la sede ha bot_wa_ai attivo i messaggi del flusso ristorante li gestisce
-//      centralino-bot (stesse azioni della voce: prenota, info, menu, link, asporto). Se il bot AI non risponde
-//      si torna al flusso a domande di sempre.
+//      centralino-bot (stesse azioni della voce: prenota, info, menu, link, asporto).
+// v26: con il bot AI acceso il vecchio bot a domande NON parte mai (niente due bot diversi): se l'AI non risponde il cliente
+//      riceve una sola frase e lo staff un avviso. Codici campagna e annunci Meta passano all'AI, che li mette nella prenotazione.
 // v24: SPUNTE — gli avvisi di consegna e lettura di Meta si salvano sul messaggio (wa_registra_stato):
 //      in conversazione si vede se il cliente ha ricevuto e letto.
 // Deploy: Supabase Edge Functions, JWT verification OFF
@@ -749,13 +750,13 @@ async function botAiAttivo(conn: any): Promise<boolean> {
   return on;
 }
 // true = messaggio gestito dal bot AI (risposta gia' mandata)
-async function botAi(conn: any, from: string, testo: string, ctx: Ctx): Promise<boolean> {
+async function botAi(conn: any, from: string, testo: string, ctx: Ctx, campagna: any = null): Promise<boolean> {
   try {
-    if (!testo.trim() || !(await botAiAttivo(conn))) return false;
+    if (!testo.trim()) return false;
     const r = await fetch(`${SUPABASE_URL}/functions/v1/centralino-bot`, {
       method: "POST",
       headers: { "x-centralino-key": CENTRALINO_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ azienda_id: conn.azienda_id, sede_id: conn.sede_id, telefono: from, testo, nome: ctx.nome }),
+      body: JSON.stringify({ azienda_id: conn.azienda_id, sede_id: conn.sede_id, telefono: from, testo, nome: ctx.nome, campagna }),
     });
     const d = await r.json().catch(() => ({}));
     if (!d?.gestito || !d.risposta) return false;
@@ -781,10 +782,22 @@ async function gestisciFlussoRistorante(
   const token = conn.meta_access_token || WHATSAPP_TOKEN;
   const reply = (msg: string) => sendText(conn.meta_phone_number_id, token, from, msg);
 
-  // v25: con il bot AI attivo e senza una prenotazione a domande gia' in corso, risponde il bot AI
-  const dueOre = encodeURIComponent(new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
-  const inCorso = await dbSelect("wa_sessioni_prenota", `numero_telefono=eq.${from}&azienda_id=eq.${conn.azienda_id}&updated_at=gte.${dueOre}&select=id&limit=1`);
-  if (!inCorso.length && await botAi(conn, from, testo, ctx)) return;
+  // v26: con il bot AI acceso risponde solo lui; il vecchio bot a domande resta per chi non l'ha acceso
+  if (await botAiAttivo(conn)) {
+    await dbDelete("wa_sessioni_prenota", `numero_telefono=eq.${from}&azienda_id=eq.${conn.azienda_id}`);
+    const cod = testo.trim() ? await trovaCodice(conn, testo) : null;
+    const campagna = cod
+      ? { codice: cod.codice, flusso: cod.flusso ?? null, fonte: cod.fonte ?? null, nota: cod.nota ?? null }
+      : referral
+        ? { fonte: "meta_ads", ads: { annuncio: referral.headline ?? null, url: referral.source_url ?? null, id: referral.source_id ?? null } }
+        : null;
+    if (await botAi(conn, from, testo.trim() || "Vorrei prenotare un tavolo", ctx, campagna)) return;
+    // l'AI non ha risposto (problema tecnico): una frase sola, poi risponde una persona
+    await reply("Grazie per il messaggio! 🙏 Ti rispondiamo a breve.");
+    const chiAi = `${ctx.nome ? ctx.nome + " " : ""}(+${String(from).replace(/\D/g, "")})`;
+    await avvisaStaff(conn, `ai_ko:${from}`, "💬 Messaggio WhatsApp da gestire a mano", `${chiAi}: il bot AI non ha potuto rispondere. Rispondi dalla Inbox.`, ctx.msgId);
+    return;
+  }
 
   const t = testo.trim();
   const tLower = t.toLowerCase();
@@ -1216,7 +1229,9 @@ Deno.serve(async (req: Request) => {
       const change = entry?.changes?.[0];
       const value = change?.value;
 
-      // v24: SPUNTE — avvisi di Meta sui messaggi inviati (inviato, consegnato, letto, non consegnato)
+      // v26: con il bot AI acceso il vecchio bot a domande NON parte mai (niente due bot diversi): se l'AI non risponde il cliente
+//      riceve una sola frase e lo staff un avviso. Codici campagna e annunci Meta passano all'AI, che li mette nella prenotazione.
+// v24: SPUNTE — avvisi di Meta sui messaggi inviati (inviato, consegnato, letto, non consegnato)
       if (Array.isArray(value?.statuses) && value.statuses.length) {
         for (const st of value.statuses) {
           try {

@@ -5,6 +5,8 @@
 // POST { azione: "chiamate", azienda_id }                    -> sincronizza le chiamate da ElevenLabs e restituisce il riepilogo del mese
 // POST { azione: "clona", azienda_id, sede_id, audio_base64, mime, consenso, nome } -> crea la voce del titolare (modulo voce)
 // POST { azione: "elimina_voce", azienda_id, sede_id }        -> cancella la voce clonata del locale
+// POST { azione: "stato", azienda_id, sede_id, profilo? }     -> configurazione, menu, domande aperte (+ profilo del locale per Tony)
+// POST { azione: "rispondi_domande", azienda_id, sede_id, risposte:[{id,risposta|ignora}] } -> le risposte entrano nelle info del locale
 // Il bot WhatsApp (bot_wa_ai) e' incluso nel piano; la voce al telefono e' il modulo a pagamento "centralino_voce".
 // Secrets: ELEVENLABS_API_KEY, CENTRALINO_KEY.
 
@@ -107,7 +109,7 @@ PRENOTAZIONE
 DOMANDE SUL LOCALE (orari, indirizzo, parcheggio, piatto o menu del giorno, prezzo, tipo di cucina)
 - Chiama info_locale (con la data se chiede il menu di un altro giorno) e rispondi solo con quello che restituisce, in modo breve e parlato: non leggere elenchi lunghi, riassumi e chiedi se vuole altri dettagli.
 - Usa anche le INFORMAZIONI DEL LOCALE qui sotto (parcheggio, animali, ferie...), se ci sono.
-- Se l'informazione non c'è, non inventare: proponi di passare la chiamata a un collega.
+- Se l'informazione non c'è, non inventare: chiama domanda_senza_risposta con la domanda del cliente (così il locale la completa), poi proponi di passare la chiamata a un collega o di farlo richiamare.
 
 MENU ALLA CARTA
 - Per le portate e i prezzi chiama menu_locale: con "categoria" (es. "pizze", "primi", "dolci") o "cerca" (es. "senza glutine", "carbonara") per avere solo quello che serve. Non elencare mai tutto il menu: di' le categorie e chiedi cosa gli interessa, poi al massimo 5-6 piatti alla volta.
@@ -151,7 +153,7 @@ BOOKING
 QUESTIONS ABOUT THE RESTAURANT (opening hours, address, menu of the day, price, cuisine)
 - Call info_locale (with the date if they ask about another day's menu) and answer only with what it returns, briefly: the data is in Italian, translate dish names naturally, summarise instead of reading long lists.
 - Also use the RESTAURANT INFORMATION below (parking, pets, holidays...), if present (it is written in Italian: translate it).
-- If the information is not there, don't invent: offer to transfer to a colleague.
+- If the information is not there, don't invent: call domanda_senza_risposta with the guest's question written in Italian (so the restaurant can complete it), then offer to transfer to a colleague or a call back.
 
 À LA CARTE MENU
 - For dishes and prices call menu_locale with "categoria" (e.g. "pizze", "primi", "dolci" — category names are Italian) or "cerca" to get only what is needed. Never read the whole menu: name the categories and ask what they'd like, then at most 5-6 dishes at a time, translating names naturally.
@@ -213,6 +215,10 @@ function strumenti(azienda: string, sede: string, asporto: boolean) {
       cosa: { type: "string", description: "menu oppure prenota" },
       telefono: { type: "string", description: "Numero WhatsApp del cliente con prefisso internazionale" },
     }, ["cosa", "telefono"]),
+    w("domanda_senza_risposta", "Annota per il locale una domanda del cliente a cui non trovi risposta negli strumenti né nelle informazioni del locale (es. cani ammessi, sala per feste, POS). Chiamalo prima di dire che non lo sai.", "domanda", {
+      domanda: { type: "string", description: "La domanda del cliente, breve e in italiano" },
+      telefono: { type: "string", description: "Numero del cliente ({{system__caller_id}})" },
+    }, ["domanda"]),
     ...(asporto ? [w("ordina", "Ordine da asporto. Prima con conferma=false per avere riepilogo e totale, poi con conferma=true per registrarlo.", "ordina", {
       ordine: { type: "string", description: "Piatti separati da punto e virgola, quantità davanti, note dopo: 2 margherita; 1 diavola senza piccante" },
       conferma: { type: "boolean", description: "false = solo riepilogo e totale; true = registra l'ordine (solo dopo il sì del cliente)" },
@@ -263,15 +269,78 @@ function corpo(lingua: "it" | "en", c: any, locale: string, numero: string | nul
   return { name: `${locale} — ${lingua === "it" ? "Prenotazioni (IT)" : "Bookings (EN)"}`, conversation_config: cc };
 }
 
-/* ---------- stato: configurazione attuale, menu della sede ---------- */
+/* ---------- stato: configurazione attuale, menu della sede, profilo del locale, domande aperte ---------- */
+const pulito = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length)));
+
+async function profiloLocale(azienda: string, sede: string, menu: any[]) {
+  const ids = (menu || []).map((m: any) => m.id);
+  const inMenu = ids.length ? `&menu_id=in.(${ids.join(",")})` : "&menu_id=is.null";
+  const [a, s, sale, cat, voci] = await Promise.all([
+    rest(`aziende?id=eq.${azienda}&select=tipo_locale,tipo_app,tipo_cucina,descrizione,tags,sito_web,fascia_prezzo&limit=1`).catch(() => []),
+    rest(`sedi?id=eq.${sede}&select=nome,tipo,descrizione,tipo_cucina,tags,fascia_prezzo,sito_web,indirizzo,citta&limit=1`).catch(() => []),
+    rest(`sale?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attiva=eq.true&select=nome,capienza_max,descrizione`).catch(() => []),
+    rest(`menu_categorie?azienda_id=eq.${azienda}${inMenu}&attivo=eq.true&select=nome&order=ordine`).catch(() => []),
+    rest(`menu_voci?azienda_id=eq.${azienda}${inMenu}&attivo=eq.true&select=tags,nome&limit=600`).catch(() => []),
+  ]);
+  const tags = new Set<string>();
+  for (const v of voci || []) for (const t of (Array.isArray(v.tags) ? v.tags : [])) if (t) tags.add(String(t).toLowerCase());
+  const cerca = (re: RegExp) => (voci || []).some((v: any) => re.test(String(v.nome || "")));
+  return pulito({
+    azienda: pulito(a?.[0] || {}),
+    sede: pulito(s?.[0] || {}),
+    sale: (sale || []).map((x: any) => pulito(x)),
+    categorie_menu: [...new Set((cat || []).map((c: any) => c.nome))].slice(0, 40),
+    etichette_piatti: [...tags].slice(0, 30),
+    piatti_senza_glutine: cerca(/glutin|celiac/i) || tags.has("senza glutine") || tags.has("gluten free"),
+    menu_bambini: cerca(/bambin|baby|kids/i),
+    asporto_menu: (menu || []).filter((m: any) => m.ordinabile && m.ritiro_attivo).map((m: any) => m.nome),
+    consegna_menu: (menu || []).filter((m: any) => m.ordinabile && m.consegna_attiva).map((m: any) => m.nome),
+  });
+}
+
+async function domandeAperte(azienda: string, sede: string) {
+  return (await rest(`centralino_domande?azienda_id=eq.${azienda}&sede_id=eq.${sede}&stato=eq.aperta&select=id,domanda,canale,created_at&order=created_at.desc&limit=30`)) || [];
+}
+
 async function stato(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
-  const [cfg, menu, s] = await Promise.all([
+  const [cfg, menu, s, dom] = await Promise.all([
     rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=ai_attivo,bot_wa_ai,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
-    rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo`),
+    rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo,consegna_attiva`),
     rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
+    domandeAperte(azienda, sede),
   ]);
-  return { sede: s?.[0]?.nome || null, config: cfg?.[0] || null, menu_disponibili: menu || [], modulo_voce: await moduloVoce(azienda) };
+  const out: any = { sede: s?.[0]?.nome || null, config: cfg?.[0] || null, menu_disponibili: menu || [], modulo_voce: await moduloVoce(azienda), domande_aperte: dom };
+  if (b.profilo) out.profilo_locale = await profiloLocale(azienda, sede, menu || []);
+  return out;
+}
+
+/* ---------- risposte alle domande dei clienti: entrano nelle informazioni del locale ---------- */
+async function rispondiDomande(b: any) {
+  const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
+  const lista: any[] = Array.isArray(b.risposte) ? b.risposte.slice(0, 30) : [];
+  const ids = lista.map((x) => String(x.id || "")).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
+  if (!ids.length) return { errore: "Nessuna domanda" };
+  const dom = await rest(`centralino_domande?id=in.(${ids.join(",")})&azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=id,domanda`);
+  const per = new Map((dom || []).map((d: any) => [d.id, d.domanda]));
+  const righe: string[] = [];
+  let fatte = 0;
+  for (const x of lista) {
+    const q = per.get(String(x.id));
+    if (!q) continue;
+    const risp = String(x.risposta || "").replace(/\s+/g, " ").trim().slice(0, 400);
+    const ignora = x.ignora === true || !risp;
+    await rest(`centralino_domande?id=eq.${x.id}`, { method: "PATCH", body: JSON.stringify({ stato: ignora ? "ignorata" : "risposta", risposta: ignora ? null : risp, risolta_at: new Date().toISOString() }) });
+    if (!ignora) righe.push(`- ${q.replace(/[?\s]+$/, "")}? ${risp}`);
+    fatte++;
+  }
+  if (righe.length) {
+    const c = (await rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=info_extra&limit=1`))?.[0];
+    const prima = String(c?.info_extra || "").trim();
+    const info = (prima ? prima + "\n" : "") + righe.join("\n");
+    await salva({ azienda_id: azienda, sede_id: sede, info_extra: info.slice(-4000) });
+  }
+  return { ok: true, fatte, aggiunte: righe.length, domande_aperte: await domandeAperte(azienda, sede) };
 }
 
 /* ---------- salva ---------- */
@@ -431,6 +500,11 @@ Deno.serve(async (req) => {
       if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);
       if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);
       return json(await stato(b));
+    }
+    if (b.azione === "rispondi_domande") {
+      if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);
+      if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);
+      return json(await rispondiDomande(b));
     }
     if (b.azione === "salva") {
       if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);
