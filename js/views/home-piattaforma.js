@@ -97,6 +97,8 @@ export async function render(container) {
 
       <!-- Bussola Ristoflow: quadrante del mese, si tocca e apre la pagina intera -->
       <div id="bs-mini-home"></div>
+      <!-- 20/11: voci ElevenLabs del centralino (voce del locale a pagamento): avviso quando il piano sta per finire -->
+      <div id="el-voci-avviso"></div>
       <!-- 17/11: pagina riordinata. Prima le cose di tutti i giorni (vendita, clienti), le liste lunghe chiuse
            in righe che si aprono con un tocco: su telefono la pagina era un muro di messaggi e Candidati non si trovava. -->
       <div class="kpi-section-label">💶 Numeri</div>
@@ -689,7 +691,35 @@ export async function render(container) {
   caricaConversazioniWA();
   caricaMotori();
   caricaRiepiloghi();
+  caricaVociEL();
   import("./piattaforma/bussola.js?v=" + (window.APP_V || "1")).then(m => m.montaMini(document.getElementById("bs-mini-home"))).catch(e => console.warn("bussola", e));
+}
+
+// 20/11: abbonamento ElevenLabs — voci clonate usate sul limite del piano e caratteri del mese.
+// Lo stato lo scrive ogni giorno centralino-voci-piattaforma (che manda anche la notifica); qui si legge e si aggiorna a mano.
+async function caricaVociEL(forza = false) {
+  const el = document.getElementById("el-voci-avviso");
+  if (!el) return;
+  const sb = window.supabaseClient || supabase;
+  let st = null;
+  if (!forza) st = (await sb.from("centralino_prezzi").select("el_stato").eq("id", 1).maybeSingle()).data?.el_stato || null;
+  if (forza || !st || Date.now() - new Date(st.controllato_il).getTime() > 6 * 3600e3) {
+    const { data } = await sb.functions.invoke("centralino-voci-piattaforma", { body: {} });
+    if (data?.ok) st = data;
+  }
+  if (!st) { el.innerHTML = ""; return; }
+  const rosso = st.allarme_voci || st.allarme_caratteri;
+  el.innerHTML = `<div style="margin:10px 0;padding:12px 14px;border-radius:12px;border:1px solid ${rosso ? "#fca5a5" : "#e2e8f0"};background:${rosso ? "#fef2f2" : "#fff"};display:flex;gap:10px;align-items:center;">
+    <div style="flex:1;font-size:13.5px;line-height:1.45;">
+      <div style="font-weight:700;color:${rosso ? "#b91c1c" : "#0f172a"};">🎙️ Voci del centralino (ElevenLabs${st.piano ? " " + st.piano : ""})${rosso ? " — rinnova il piano" : ""}</div>
+      <div>Voci usate <b>${st.voci_usate}/${st.voci_limite}</b> · libere ${st.voci_libere} (avviso a ${st.soglia}) · locali con la propria voce ${st.locali_con_voce}</div>
+      ${st.caratteri_limite ? `<div style="color:#64748b;">Caratteri del mese ${st.caratteri_pct}%${st.rinnovo ? " · si azzerano il " + new Date(st.rinnovo).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : ""}</div>`
+        : `<div style="color:#64748b;">Limite del piano impostato a mano: ${st.voci_limite} voci (centralino_prezzi.el_limite_voci).</div>`}
+    </div>
+    ${rosso ? `<a href="https://elevenlabs.io/app/subscription" target="_blank" style="background:#b91c1c;color:#fff;border-radius:10px;padding:8px 12px;font-weight:600;text-decoration:none;white-space:nowrap;">Cambia piano</a>` : ""}
+    <button type="button" id="el-voci-agg" style="border:1px solid #cbd5e1;background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;">🔄</button>
+  </div>`;
+  document.getElementById("el-voci-agg")?.addEventListener("click", () => { el.style.opacity = ".5"; caricaVociEL(true).finally(() => { el.style.opacity = ""; }); });
 }
 
 // 17/11: numeri delle righe chiuse, così si vede cosa c'è dentro senza aprirle

@@ -1,6 +1,6 @@
 // centralino-strumenti — le azioni che la voce AI (agente ElevenLabs) e il bot WhatsApp usano durante la conversazione.
 // Chiamata da ElevenLabs come "webhook tool" o da centralino-bot: POST JSON, header x-centralino-key = secret CENTRALINO_KEY.
-// Parametri in query: ?azione=disponibilita|prenota|info|menu|invia_link|ordina|domanda&azienda=<uuid>&sede=<uuid>[&canale=whatsapp]
+// Parametri in query: ?azione=disponibilita|prenota|info|menu|invia_link|ordina|domanda|richiamata&azienda=<uuid>&sede=<uuid>[&canale=whatsapp]
 // verify_jwt = false (ElevenLabs non ha un JWT Supabase): l'accesso e' protetto dalla chiave.
 // La voce al telefono e' il modulo a pagamento "centralino_voce"; il bot WhatsApp (canale=whatsapp) e' incluso nel piano.
 
@@ -367,6 +367,80 @@ async function domanda(azienda: string, sede: string | null, b: any, canale: str
   return { ok: true, messaggio: "Domanda annotata per il locale. Non inventare la risposta: di' che chiedi al personale e che lo ricontattano, oppure passa a una persona se serve subito." };
 }
 
+/* ---------- richiamata: il cliente vuole essere ricontattato dal responsabile (eventi, cucina, sala) ---------- */
+const AREE: Record<string, string> = { eventi: "eventi", cucina: "cucina", sala: "sala" };
+async function richiamata(azienda: string, sede: string | null, b: any, canale: string) {
+  const area = AREE[String(b.area || "").toLowerCase()] || "eventi";
+  const tel = telNorm(b.telefono);
+  if (tel.replace(/\D/g, "").length < 9) return { ok: false, motivo: "numero mancante: chiedi al cliente il numero su cui richiamarlo" };
+  const nome = String(b.nome || "").replace(/\s+/g, " ").trim().slice(0, 120) || "Cliente";
+  const motivo = String(b.motivo || "").replace(/\s+/g, " ").trim().slice(0, 500) || "richiesta " + area;
+  const sedeQ = sede ? `&sede_id=eq.${sede}` : "";
+  const cfg = (await sel("centralino_config", `azienda_id=eq.${azienda}${sedeQ}&select=sede_id,responsabili&limit=1`))[0] || {};
+  const ids: string[] = (Array.isArray(cfg.responsabili?.[area]) ? cfg.responsabili[area] : []).filter((x: string) => /^[0-9a-f-]{36}$/i.test(String(x)));
+  // il responsabile di turno: il primo della lista che ha un turno adesso, altrimenti il primo della lista
+  let resp: any = null;
+  if (ids.length) {
+    const dip = await sel("dipendenti", `id=in.(${ids.join(",")})&attivo=eq.true&select=id,nome,cognome,telefono,user_id`);
+    const ordinati = ids.map((i) => dip.find((d: any) => d.id === i)).filter(Boolean);
+    const o = oggi();
+    const turni = await sel("turni_dipendenti", `dipendente_id=in.(${ids.join(",")})&data=eq.${o.oggi}&select=dipendente_id,ora_inizio_prevista,ora_fine_prevista`).catch(() => []);
+    const adesso = o.ora_attuale;
+    const inTurno = new Set(turni.filter((t: any) => {
+      const [h, m] = String(t.ora_inizio_prevista || "00:00").slice(0, 5).split(":").map(Number);
+      const mi = ((h * 60 + m - 60) % 1440 + 1440) % 1440; // un'ora prima dell'inizio
+      const da = `${String(Math.floor(mi / 60)).padStart(2, "0")}:${String(mi % 60).padStart(2, "0")}`, a = String(t.ora_fine_prevista || "23:59").slice(0, 5);
+      return a >= da ? adesso >= da && adesso <= a : adesso >= da || adesso <= a;
+    }).map((t: any) => t.dipendente_id));
+    resp = ordinati.find((d: any) => inTurno.has(d.id)) || ordinati[0] || null;
+  }
+  const loc = (await sel("sedi", `id=eq.${sede || cfg.sede_id}&select=nome&limit=1`).catch(() => []))[0]?.nome || "il locale";
+  const respNome = resp ? [resp.nome, resp.cognome].filter(Boolean).join(" ") : null;
+  const avviso: any = { notifica: false, whatsapp: null };
+
+  // notifica in app (con push): al responsabile, o agli admin se non e' stato scelto nessuno
+  let utenti: string[] = resp?.user_id ? [resp.user_id] : [];
+  if (!utenti.length) {
+    const ua = await sel("utenti_aziende", `azienda_id=eq.${azienda}&attivo=eq.true&ruolo=in.(admin,manager)&select=user_id`);
+    utenti = [...new Set(ua.map((x: any) => x.user_id).filter(Boolean))] as string[];
+  }
+  const titolo = `📞 Da richiamare (${area}): ${nome}`;
+  const testo = `${tel} — ${motivo}`;
+  if (utenti.length) {
+    await fetch(`${SUPABASE_URL}/rest/v1/notifiche`, { method: "POST", headers: { ...H, Prefer: "return=minimal" }, body: JSON.stringify(utenti.map((u) => ({
+      azienda_id: azienda, user_id: u, sede_id: sede || cfg.sede_id || null, tipo: "richiamata", titolo, messaggio: testo,
+      riferimento_tipo: "richiamata:" + tel, priorita: "alta", letto: false }))) }).then((r) => { avviso.notifica = r.ok; }).catch(() => {});
+  }
+  // WhatsApp al responsabile: modello approvato da Meta, altrimenti messaggio libero (arriva se ha scritto al numero nelle ultime 24 ore)
+  const telResp = resp?.telefono ? telNorm(resp.telefono).replace(/^\+/, "") : "";
+  if (telResp.length >= 10) {
+    const conns = await sel("whatsapp_connessioni", `azienda_id=eq.${azienda}&attivo=eq.true&modalita=eq.meta&meta_phone_number_id=not.is.null&select=sede_id,meta_phone_number_id,meta_access_token`);
+    const conn = conns.find((c: any) => c.sede_id === (sede || cfg.sede_id)) || conns.find((c: any) => !c.sede_id) || conns[0];
+    if (conn) {
+      const campo = (x: string, max: number) => { const t = String(x || "").replace(/[\r\n\t]+/g, " ").replace(/ {2,}/g, " ").trim(); return t.length > max ? t.slice(0, max - 1) + "…" : (t || "-"); };
+      const manda = async (corpo: any) => {
+        const r = await fetch(`https://graph.facebook.com/v21.0/${conn.meta_phone_number_id}/messages`, {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + conn.meta_access_token },
+          body: JSON.stringify({ messaging_product: "whatsapp", to: telResp, ...corpo }) });
+        const j = await r.json().catch(() => ({}));
+        return r.ok ? null : String(j?.error?.message || r.status).slice(0, 200);
+      };
+      let err = await manda({ type: "template", template: { name: "richiamata_cliente", language: { code: "it" }, components: [{ type: "body", parameters: [
+        { type: "text", text: area }, { type: "text", text: campo(nome, 60) }, { type: "text", text: tel },
+        { type: "text", text: campo(motivo, 400) }, { type: "text", text: campo(loc, 60) } ] }] } });
+      avviso.whatsapp = err ? "modello: " + err : "modello";
+      if (err) {
+        const e2 = await manda({ type: "text", text: { body: `📞 Cliente da richiamare (${area})\n\nNome: ${nome}\nTelefono: ${tel}\nRichiesta: ${motivo}\n\nArrivata dal centralino di ${loc}. Ricontattalo appena puoi.` } });
+        avviso.whatsapp = e2 ? avviso.whatsapp + " | testo: " + e2 : "testo";
+      }
+    }
+  }
+  await ins("centralino_richiamate", { azienda_id: azienda, sede_id: sede || cfg.sede_id || null, area, nome, telefono: tel, motivo, canale,
+    responsabile_id: resp?.id || null, responsabile_nome: respNome, avviso });
+  return { ok: true, area, responsabile: resp?.nome || null,
+    messaggio: `Richiesta passata${resp?.nome ? " a " + resp.nome : " al responsabile " + area}: di' al cliente che verrà richiamato al più presto su questo numero.` };
+}
+
 /* il modulo voce (a pagamento) e' attivo se c'e' sull'azienda o sul suo piano */
 const cacheModulo = new Map<string, { v: boolean; t: number }>();
 async function moduloVoce(azienda: string): Promise<boolean> {
@@ -405,6 +479,7 @@ Deno.serve(async (req) => {
     if (azione === "invia_link") return json(await inviaLink(azienda, sede, b));
     if (azione === "ordina") return json(await ordina(azienda, sede, b, canale));
     if (azione === "domanda") return json(await domanda(azienda, sede, b, canale));
+    if (azione === "richiamata") return json(await richiamata(azienda, sede, b, canale));
     return json({ errore: "azione sconosciuta" }, 400);
   } catch (e) {
     console.error(azione, e);
