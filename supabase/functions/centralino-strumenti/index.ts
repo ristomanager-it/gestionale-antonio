@@ -46,6 +46,10 @@ const telNorm = (t: string) => {
   return s;
 };
 
+function traGiorniS(n: number) {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(new Date(Date.now() + n * 86400000));
+}
+
 function oggi() {
   const d = new Date();
   const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", ...o }).format(d);
@@ -73,14 +77,20 @@ async function disponibilita(azienda: string, b: any) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !persone) return { esito: "dati_mancanti", ...oggi(), messaggio: "Servono data (AAAA-MM-GG) e numero di persone." };
   const cfg = await configSlot(azienda);
   const ora = hhmm(b.ora);
+  // mai prenotazioni nel passato: se la data e' prima di oggi (o l'ora di oggi e' gia' passata) lo dico con la data vera
+  const o = oggi();
+  if (data < o.oggi || data > traGiorniS(400) || (data === o.oggi && ora && ora < o.ora_attuale)) {
+    return { esito: "data_non_valida", ...o, messaggio: `La data ${data}${ora ? " " + ora : ""} non va bene: oggi e' ${o.giorno_settimana} ${o.oggi}, sono le ${o.ora_attuale}. Ricalcola la data giusta e richiama.` };
+  }
   if (ora) {
     const l = await liberi(azienda, data, ora, cfg.slot, cfg.max);
     if (l >= persone) return { esito: "disponibile", data, ora, persone };
   }
   // proponi gli orari liberi dello stesso giorno
   const alternative: string[] = [];
-  for (const o of cfg.orari) {
-    if ((await liberi(azienda, data, o, cfg.slot, cfg.max)) >= persone) alternative.push(o);
+  for (const slot of cfg.orari) {
+    if (data === o.oggi && slot < o.ora_attuale) continue; // oggi: solo gli orari che devono ancora arrivare
+    if ((await liberi(azienda, data, slot, cfg.slot, cfg.max)) >= persone) alternative.push(slot);
   }
   return { esito: ora ? "pieno" : "scegli_orario", data, persone, orari_liberi: alternative };
 }

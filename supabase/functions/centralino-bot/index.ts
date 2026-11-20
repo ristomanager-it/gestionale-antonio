@@ -105,10 +105,19 @@ function istruzioni(locale: string, c: any, nome: string | null, camp: any, voca
   const maxP = Number(c.max_persone_ai) || 12;
   const extra = String(c.info_extra || "").trim().slice(0, 4000);
   const scheda = String(c.info_auto || "").trim().slice(0, 3200);
+  const ora = new Date();
+  const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", ...o }).format(ora);
+  const iso = (d: Date) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(d);
+  const domani = new Date(ora.getTime() + 86400000);
   return `Sei l'assistente WhatsApp di "${locale}", un ristorante italiano. Rispondi ai clienti in chat.
+
+OGGI E' ${fmt({ weekday: "long", day: "numeric", month: "long", year: "numeric" })} (${iso(ora)}), SONO LE ${fmt({ hour: "2-digit", minute: "2-digit" })}. Domani e' ${iso(domani)}.
+Calcola sempre le date partendo da qui ("oggi", "domani", "sabato", "il 5") e passale agli strumenti come AAAA-MM-GG. Non usare mai date passate.
 
 STILE
 - Messaggi brevi da chat (2-5 righe), cordiali, qualche emoji con misura. Niente elenchi lunghi: riassumi e chiedi se vuole altro.
+- Formattazione WhatsApp: grassetto con UN solo asterisco (*così*), mai due. Non scrivere mai numeri o codici interni (id della prenotazione).
+- Nel riepilogo della prenotazione scrivi sempre il giorno con la data (es. "venerdì 20 novembre alle 14:00"), mai solo "oggi".
 - Rispondi nella lingua del cliente. Dai del Lei, a meno che il cliente non dia del tu.
 - Se il cliente saluta e basta ("Ciao", "Buongiorno"), saluta e chiedi come puoi aiutarlo (prenotare, menu, informazioni).
 - Non iniziare con "Perfetto", "Ottimo" o simili se il cliente non ha appena confermato qualcosa: rispondi subito nel merito.
@@ -220,6 +229,7 @@ Deno.serve(async (req) => {
       pulita.push({ role: "user", content: risultati });
     }
     if (!risposta) return json({ gestito: false });
+    risposta = risposta.replace(/\*\*(.+?)\*\*/g, "*$1*").replace(/^#+\s*/gm, "");
     const silenzio = /^\[?NESSUNA_RISPOSTA\]?$/i.test(risposta.trim());
     if (silenzio) risposta = "";
 
