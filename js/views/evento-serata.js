@@ -54,7 +54,7 @@ export async function render(container) {
   const pochi = liberi !== null && liberi > 0 && liberi <= SOGLIA;
   const chiuso = disp ? !!disp.chiuso : false;
   // data della serata: arriva da evento_config tramite evento_disponibilita, niente date scritte nel codice
-  const dtEv = disp && disp.data_ora ? new Date(disp.data_ora) : new Date("2027-01-18T19:30:00+01:00");
+  const dtEv = disp && disp.data_ora ? new Date(disp.data_ora) : new Date("2027-01-18T18:00:00+01:00");
   const fEv = (o) => dtEv.toLocaleString("it-IT", Object.assign({ timeZone: "Europe/Rome" }, o));
   const ggEv = fEv({ day: "numeric" });
   const gmEv = fEv({ day: "numeric", month: "long" });
@@ -186,7 +186,7 @@ export async function render(container) {
         <small>${
           chiuso || liberi === 0
             ? "Scrivetemi e vi metto in lista d'attesa: se qualcuno rinuncia, il posto passa a voi."
-            : "Poche persone, tra colleghi. Dalle 19:30: prima guardiamo, poi si cena — siete miei ospiti."}</small>
+            : "Poche persone, tra colleghi. Dalle 18:00: prima guardiamo, poi si cena — siete miei ospiti."}</small>
         ${chiuso || liberi === 0 ? "" : `<a href="#/evento-serata" id="ev-vai">Ci sarò</a>`}
       </div>
 
