@@ -90,7 +90,12 @@ function strumenti(asporto: boolean) {
       input_schema: { type: "object", properties: { cosa: { type: "string", enum: ["menu", "prenota"] } }, required: ["cosa"] } },
     { name: "domanda_senza_risposta", description: "Il cliente chiede qualcosa che non trovi negli strumenti né nelle informazioni del locale (es. cani ammessi, sala per feste, POS, seggioloni): annota la domanda per il locale. Chiamalo PRIMA di dire che non lo sai.",
       input_schema: { type: "object", properties: { domanda: { type: "string", description: "la domanda del cliente, breve e chiara" } }, required: ["domanda"] } },
-    { name: "passa_a_persona", description: "Il cliente chiede una persona, o è un gruppo numeroso, un evento, un reclamo, o una domanda a cui gli strumenti non rispondono: avvisa lo staff, che risponderà qui in chat.",
+    { name: "richiedi_richiamata", description: "Il cliente accetta di essere richiamato da un responsabile del locale: avvisa subito il responsabile di turno dell'area (eventi = feste, ricevimenti, catering, gruppi numerosi; cucina = menu personalizzati, diete particolari, torte; sala = tavoli speciali, allestimenti, servizio). Il numero del cliente lo conosci già.",
+      input_schema: { type: "object", properties: {
+        area: { type: "string", enum: ["eventi", "cucina", "sala"] },
+        nome: { type: "string", description: "nome e cognome del cliente" },
+        motivo: { type: "string", description: "cosa vuole organizzare, in breve: occasione, data indicativa, persone" } }, required: ["area", "motivo"] } },
+    { name: "passa_a_persona", description: "Il cliente chiede di scrivere con una persona, fa un reclamo, o chiede qualcosa a cui gli strumenti non rispondono: avvisa lo staff, che risponderà qui in chat. Per eventi e gruppi numerosi usa prima richiedi_richiamata.",
       input_schema: { type: "object", properties: { motivo: { type: "string" } }, required: ["motivo"] } },
   ];
   if (asporto) t.push({ name: "ordina", description: "Ordine da asporto (ritiro al locale, si paga al ritiro). Prima conferma=false per riepilogo e totale, poi conferma=true dopo il sì del cliente.",
@@ -123,7 +128,7 @@ STILE
 - Non iniziare con "Perfetto", "Ottimo" o simili se il cliente non ha appena confermato qualcosa: rispondi subito nel merito.
 - Se scrive solo "ok", "grazie" e simili a conversazione finita: saluta in una riga; se l'hai già salutato rispondi esattamente [NESSUNA_RISPOSTA].
 - Rispondi SOLO all'ultimo messaggio del cliente: quello che hai già risposto prima non va ripetuto.
-- Il numero di telefono del cliente lo conosci già (scrive da WhatsApp): non chiederlo.${vocale ? `\n- Il cliente ti ha mandato un VOCALE (qui trascritto): rispondi come se parlassi, frasi semplici e naturali, niente elenchi né emoji; se devi dare un link mettilo alla fine.` : ""}${nome ? `\n- Il nome sul suo profilo WhatsApp è "${nome}": usalo per la prenotazione, chiedendo conferma solo se sembra un soprannome.` : ""}
+- Il numero di telefono del cliente lo conosci già (scrive da WhatsApp): non chiederlo.${vocale ? `\n- Il cliente ti ha mandato un VOCALE (qui trascritto): rispondi come se parlassi, frasi semplici e naturali, niente elenchi né emoji; se devi dare un link mettilo alla fine.\n- La trascrizione di un vocale può essere imprecisa o tagliata: se il senso non è chiaro o sembra un pezzo di frase, non tirare a indovinare (e non dare per scontato che voglia prenotare): chiedi in una frase cosa intende.` : ""}${nome ? `\n- Il nome sul suo profilo WhatsApp è "${nome}": usalo per la prenotazione, chiedendo conferma solo se sembra un soprannome.` : ""}
 
 COSA FAI
 - PRENOTAZIONI: chiedi giorno, ora e persone; usa verifica_disponibilita; se pieno proponi al massimo tre orari liberi. Chiedi intolleranze o richieste. Fai un riepilogo e solo dopo il sì chiama prenota. Poi conferma che è registrata.
@@ -131,10 +136,12 @@ COSA FAI
 - ORARI, INDIRIZZO, PIATTO/MENU DEL GIORNO, TIPO DI CUCINA: info_locale.
 - MENU ALLA CARTA E PREZZI: menu_locale (per categoria o cercando il piatto).
 - Se vuole VEDERE il menu o prenotare da solo: chiama link e scrivigli il link.
+- Se chiede il menu o "cosa c'è da mangiare": rispondi su quello (menu del giorno con info_locale, alla carta con menu_locale, e il link del menu). Non portare il discorso sulla prenotazione: proponila al massimo una volta, in chiusura, e solo se ha senso.
 ${c.asporto_attivo ? "- ORDINI DA ASPORTO: usa ordina, prima con conferma=false (riepilogo e totale), chiedi orario di ritiro e nome, poi conferma=true dopo il sì. Si paga al ritiro. La consegna a domicilio non la prendi in chat: manda il link del menu." : "- Ordini da asporto in chat non si prendono: manda il link del menu."}
 - Prima di dire che non sai una cosa, guarda la SCHEDA DEL LOCALE e le COSE DA SAPERE qui sotto.
 - DOMANDE A CUI NON SAI RISPONDERE (non sono negli strumenti, nella scheda né nelle cose da sapere): chiama domanda_senza_risposta, poi scrivi in modo naturale che chiedi al personale e gli rispondono qui a breve (es. "Bella domanda! Chiedo subito in sala e le rispondiamo qui a breve."). Non inventare mai.
-- PERSONA DEL LOCALE: gruppi oltre ${maxP} persone, eventi, catering, reclami, domande senza risposta, o se lo chiede: chiama passa_a_persona e scrivi che a breve gli risponde qualcuno del locale.
+- EVENTI E RICHIESTE PARTICOLARI (feste, compleanni, ricevimenti, catering, gruppi oltre ${maxP} persone, menu personalizzati): fatti dire in breve cosa vuole organizzare (occasione, data indicativa, persone), poi chiedi se va bene farlo richiamare dal responsabile (eventi, cucina o sala, quello giusto per la richiesta). Se dice sì e hai il nome, chiama richiedi_richiamata e digli che il responsabile lo richiama al più presto su questo numero (usa il nome del responsabile se lo strumento lo restituisce). Se preferisce scrivere, usa passa_a_persona.
+- PERSONA DEL LOCALE: reclami, domande senza risposta, o se lo chiede: chiama passa_a_persona e scrivi che a breve gli risponde qualcuno del locale.
 
 REGOLE
 - Non inventare mai disponibilità, prezzi, piatti, orari o informazioni: usa solo gli strumenti e le informazioni qui sotto.
@@ -222,6 +229,7 @@ Deno.serve(async (req) => {
         else if (u.name === "link") out = await strumento(azienda, sede, "invia_link", { cosa: i.cosa, solo_link: true, telefono: "+" + telefono });
         else if (u.name === "ordina") out = await strumento(azienda, sede, "ordina", { ...i, telefono: "+" + telefono });
         else if (u.name === "domanda_senza_risposta") { out = await strumento(azienda, sede, "domanda", { domanda: i.domanda, telefono: "+" + telefono }); passa = passa || ("domanda: " + String(i.domanda || "").slice(0, 200)); }
+        else if (u.name === "richiedi_richiamata") out = await strumento(azienda, sede, "richiamata", { ...i, nome: i.nome || b.nome || null, telefono: "+" + telefono });
         else if (u.name === "passa_a_persona") { passa = String(i.motivo || "richiesta del cliente"); out = { ok: true }; }
         else out = { errore: "strumento sconosciuto" };
         risultati.push({ type: "tool_result", tool_use_id: u.id, content: JSON.stringify(out).slice(0, 12000) });

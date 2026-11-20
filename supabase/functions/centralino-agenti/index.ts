@@ -8,6 +8,7 @@
 // POST { azione: "stato", azienda_id, sede_id, profilo? }     -> configurazione, menu, domande aperte (+ profilo del locale per Tony)
 // POST { azione: "impara", azienda_id, sede_id }             -> rifa' subito la scheda del locale (centralino-impara)
 // POST { azione: "paga_voce", azienda_id, sede_id }          -> pagamento Stripe una tantum per registrare la voce del titolare
+// POST { azione: "richiamata_fatta", azienda_id, id }          -> il cliente e' stato richiamato
 // POST { azione: "rispondi_domande", azienda_id, sede_id, risposte:[{id,risposta|ignora}] } -> le risposte entrano nelle info del locale
 // Il bot WhatsApp (bot_wa_ai) e' incluso nel piano; la voce al telefono e' il modulo a pagamento "centralino_voce".
 // Secrets: ELEVENLABS_API_KEY, CENTRALINO_KEY.
@@ -181,8 +182,14 @@ ORDINI DA ASPORTO (ritiro al locale, pagamento in contanti al ritiro)
 ORDINI
 - Al telefono non si prendono ordini da asporto: proponi di mandare il link del menu con invia_link.`}
 
+EVENTI E RICHIESTE PARTICOLARI (feste, compleanni, ricevimenti, catering, gruppi oltre ${maxP} persone, menu personalizzati, torte)
+1. Fatti dire in breve cosa vuole organizzare: occasione, data indicativa, quante persone.
+2. Chiedi se va bene farlo richiamare dal nostro responsabile: eventi (feste, ricevimenti, catering, gruppi), cucina (menu su misura, diete, torte) o sala (tavoli e allestimenti).
+3. Se dice sì: prendi nome e cognome e conferma che il numero {{system__caller_id}} è quello giusto, poi chiama richiedi_richiamata.
+4. Digli che il responsabile (usa il suo nome se lo strumento lo restituisce) lo richiama al più presto. Se preferisce parlarci subito, passa la chiamata a un collega.
+
 PASSARE A UN COLLEGA
-- Gruppi oltre ${maxP} persone, eventi, catering, reclami, domande a cui non sai rispondere, o se il cliente chiede una persona: avvisa "Le passo subito un collega" e usa transfer_to_number. Se lo strumento non c'è, chiedi nome e numero e dì che verrà richiamato al più presto.
+- Reclami, domande a cui non sai rispondere, o se il cliente chiede una persona: avvisa "Le passo subito un collega" e usa transfer_to_number. Se lo strumento non c'è, chiedi nome e numero e dì che verrà richiamato al più presto.
 - Se uno strumento risponde "errore_tecnico", scusati e passa la chiamata a un collega.
 
 REGOLE
@@ -225,8 +232,14 @@ TAKEAWAY ORDERS (pick-up at the restaurant, cash on pick-up)
 ORDERS
 - Takeaway orders are not taken by phone: offer to send the menu link with invia_link.`}
 
+EVENTS AND SPECIAL REQUESTS (parties, birthdays, weddings, catering, groups over ${maxP}, custom menus, cakes)
+1. Ask briefly what they want to organise: occasion, approximate date, number of guests.
+2. Ask if they'd like to be called back by our manager: eventi (parties, weddings, catering, groups), cucina (custom menus, diets, cakes) or sala (tables and set-up).
+3. If yes: take first and last name, check {{system__caller_id}} is the right number, then call richiedi_richiamata (write motivo in Italian).
+4. Tell them the manager (use the name if the tool returns it) will call them back shortly. If they want to talk now, transfer to a colleague.
+
 TRANSFER TO A COLLEAGUE
-- Groups over ${maxP}, events, catering, complaints, questions you can't answer, or if the guest asks for a person: say "I'll put you through to a colleague" and use transfer_to_number. If the tool is not available, take name and number and say someone will call back shortly.
+- Complaints, questions you can't answer, or if the guest asks for a person: say "I'll put you through to a colleague" and use transfer_to_number. If the tool is not available, take name and number and say someone will call back shortly.
 - If a tool replies "errore_tecnico", apologise and transfer to a colleague.
 
 RULES
@@ -274,6 +287,12 @@ function strumenti(azienda: string, sede: string, asporto: boolean) {
       domanda: { type: "string", description: "La domanda del cliente, breve e in italiano" },
       telefono: { type: "string", description: "Numero del cliente ({{system__caller_id}})" },
     }, ["domanda"]),
+    w("richiedi_richiamata", "Il cliente accetta di essere richiamato da un responsabile del locale: avvisa subito il responsabile di turno dell'area (eventi, cucina o sala).", "richiamata", {
+      area: { type: "string", description: "eventi (feste, ricevimenti, catering, gruppi), cucina (menu su misura, diete, torte) o sala (tavoli, allestimenti)" },
+      nome: { type: "string", description: "Nome e cognome del cliente" },
+      telefono: { type: "string", description: "Numero su cui richiamarlo, con prefisso ({{system__caller_id}} se confermato)" },
+      motivo: { type: "string", description: "Cosa vuole organizzare, in breve e in italiano: occasione, data indicativa, persone" },
+    }, ["area", "telefono", "motivo"]),
     ...(asporto ? [w("ordina", "Ordine da asporto. Prima con conferma=false per avere riepilogo e totale, poi con conferma=true per registrarlo.", "ordina", {
       ordine: { type: "string", description: "Piatti separati da punto e virgola, quantità davanti, note dopo: 2 margherita; 1 diavola senza piccante" },
       conferma: { type: "boolean", description: "false = solo riepilogo e totale; true = registra l'ordine (solo dopo il sì del cliente)" },
@@ -360,12 +379,18 @@ async function domandeAperte(azienda: string, sede: string) {
 async function stato(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
   const [cfg, menu, s, dom] = await Promise.all([
-    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=voce_clonata_pagata,ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
+    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=responsabili,voce_clonata_pagata,ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
     rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo,consegna_attiva`),
     rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
     domandeAperte(azienda, sede),
   ]);
-  const out: any = { sede: s?.[0]?.nome || null, config: cfg?.[0] || null, menu_disponibili: menu || [], modulo_voce: await moduloVoce(azienda), domande_aperte: dom, prezzo_voce_eur: await prezzoVoce() };
+  const [dip, rich] = await Promise.all([
+    rest(`dipendenti?azienda_id=eq.${azienda}&attivo=eq.true&select=id,nome,cognome,telefono,user_id,sede_id&order=nome`).catch(() => []),
+    rest(`centralino_richiamate?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=id,area,nome,telefono,motivo,responsabile_nome,stato,created_at&order=created_at.desc&limit=15`).catch(() => []),
+  ]);
+  const out: any = { sede: s?.[0]?.nome || null, config: cfg?.[0] || null,
+    persone: (dip || []).map((d: any) => ({ id: d.id, nome: [d.nome, d.cognome].filter(Boolean).join(" "), whatsapp: !!d.telefono, app: !!d.user_id, sede_id: d.sede_id })),
+    richiamate: rich || [], menu_disponibili: menu || [], modulo_voce: await moduloVoce(azienda), domande_aperte: dom, prezzo_voce_eur: await prezzoVoce() };
   if (b.profilo) {
     out.profilo_locale = await profiloLocale(azienda, sede, menu || []);
     // per Tony la scheda deve essere fresca: se manca o ha piu' di un giorno la rifaccio adesso
@@ -415,6 +440,21 @@ async function rispondiDomande(b: any) {
   return { ok: true, fatte, aggiunte: righe.length, domande_aperte: await domandeAperte(azienda, sede) };
 }
 
+/* ---------- chi richiama i clienti: { eventi:[dipendente_id], cucina:[...], sala:[...] } ---------- */
+function pulisciResponsabili(r: any) {
+  const out: Record<string, string[]> = {};
+  for (const a of ["eventi", "cucina", "sala"]) {
+    const l = Array.isArray(r?.[a]) ? r[a] : [];
+    out[a] = [...new Set(l.map(String).filter((x: string) => /^[0-9a-f-]{36}$/i.test(x)))].slice(0, 4) as string[];
+  }
+  return out;
+}
+async function richiamataFatta(b: any, uid: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(String(b.id || ""))) return { errore: "id mancante" };
+  await rest(`centralino_richiamate?id=eq.${b.id}&azienda_id=eq.${b.azienda_id}`, { method: "PATCH", body: JSON.stringify({ stato: "richiamato", chiusa_at: new Date().toISOString(), chiusa_da: uid }) });
+  return { ok: true };
+}
+
 /* ---------- salva ---------- */
 async function salva(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
@@ -432,6 +472,7 @@ async function salva(b: any) {
     asporto_attivo: !!b.asporto_attivo,
     bot_wa_ai: !!b.bot_wa_ai,
     risposta_vocale: b.risposta_vocale !== false,
+    responsabili: pulisciResponsabili(b.responsabili),
     updated_at: new Date().toISOString(),
   };
   const modulo = await moduloVoce(azienda);
@@ -535,6 +576,8 @@ async function clona(b: any, u: any) {
   else await rest(`centralino_config`, { method: "POST", body: JSON.stringify({ azienda_id: azienda, sede_id: sede, ...campi }) });
   // aggiorno subito gli agenti con la voce nuova
   const agg = await salva({ azienda_id: azienda, sede_id: sede });
+  // una voce in piu' su ElevenLabs: ricontrollo subito quante ne restano libere nel piano
+  fetch(`${SUPABASE_URL}/functions/v1/centralino-voci-piattaforma`, { method: "POST", headers: { "x-centralino-key": CENTRALINO_KEY, "Content-Type": "application/json" }, body: "{}" }).catch(() => {});
   return { ok: true, voice_id: out.voice_id, agenti: agg?.ok === true };
 }
 
@@ -584,6 +627,11 @@ Deno.serve(async (req) => {
       if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);
       if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);
       return json(await imparaOra(b.azienda_id, b.sede_id));
+    }
+    if (b.azione === "richiamata_fatta") {
+      if (!b.azienda_id) return json({ errore: "Serve azienda_id" }, 400);
+      if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);
+      return json(await richiamataFatta(b, u.id));
     }
     if (b.azione === "rispondi_domande") {
       if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);

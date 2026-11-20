@@ -85,6 +85,9 @@ export async function renderCentralinoAI(box) {
         </div>
       </div>
 
+      ${admin ? `<div class="cai-sez">📞 Chi richiama i clienti</div>
+      <div class="cai-card" id="cai-richiamate"><p class="h" style="margin:0;">Carico…</p></div>` : ""}
+
       <div class="cai-sez">Cosa sa dire (vale per chat e telefono)</div>
       ${admin ? `<div class="cai-card" id="cai-domande" style="display:none;border-color:#fdba74;background:#fffbf5;"></div>` : ""}
       <div class="cai-card" style="background:#f8fafc;">
@@ -270,7 +273,7 @@ export async function renderCentralinoAI(box) {
     });
 
     if (moduloVoce) caricaChiamate();
-    if (admin) caricaDomande();
+    if (admin) caricaStato();
     box.querySelector("#cai-impara")?.addEventListener("click", async (ev) => {
       const btn = ev.currentTarget, el = box.querySelector("#cai-scheda");
       btn.disabled = true; btn.textContent = "Leggo…";
@@ -292,6 +295,8 @@ export async function renderCentralinoAI(box) {
         menu_id_voce: box.querySelector("#cai-menu")?.value || null,
         asporto_attivo: !!box.querySelector("#cai-asporto")?.checked,
       };
+      const resp = leggiResponsabili();
+      if (resp) payload.responsabili = resp;
       if (moduloVoce) Object.assign(payload, {
         ai_attivo: !!box.querySelector("#cai-attivo")?.checked,
         voce_ai: voceSel ? voceSel.value || null : (c.voce_ai || null),
@@ -313,6 +318,57 @@ export async function renderCentralinoAI(box) {
       if (data.modulo_voce) parti.push(data.trasferimento === "attivo" ? "voce aggiornata, passaggio chiamata attivo" : "voce aggiornata (senza numero fa richiamare)");
       box.querySelector("#cai-esito").innerHTML = `<span style="color:#16a34a;">✅ Salvato: ${esc(parti.join(" · "))}.</span>`;
     });
+  }
+
+  /* una sola lettura dello stato per domande aperte e richiamate */
+  async function caricaStato() {
+    const { data, error } = await supa().functions.invoke("centralino-agenti", { body: { azione: "stato", azienda_id: azienda.id, sede_id: sedeId } });
+    if (error || !data) { const el = box.querySelector("#cai-richiamate"); if (el) el.innerHTML = `<p class="h" style="margin:0;color:#b91c1c;">Non riesco a caricare i responsabili.</p>`; return; }
+    caricaDomande(data.domande_aperte || []);
+    disegnaRichiamate(data);
+  }
+
+  /* chi richiama i clienti per eventi, cucina e sala: il centralino avvisa il primo di turno (o il primo della lista) */
+  const AREE = [["eventi", "🥂 Eventi", "feste, ricevimenti, catering, gruppi"], ["cucina", "👨‍🍳 Cucina", "menu su misura, diete, torte"], ["sala", "🍽️ Sala", "tavoli speciali, allestimenti"]];
+  function leggiResponsabili() {
+    const el = box.querySelector("#cai-richiamate");
+    if (!el || !el.dataset.pronto) return null;
+    const out = {};
+    for (const [a] of AREE) out[a] = [...el.querySelectorAll(`select[data-area="${a}"]`)].map((x) => x.value).filter(Boolean);
+    return out;
+  }
+  function disegnaRichiamate(data) {
+    const el = box.querySelector("#cai-richiamate");
+    if (!el) return;
+    const persone = data.persone || [];
+    const resp = data.config?.responsabili || {};
+    const opz = (sel) => `<option value="">—</option>` + persone.map((p) => `<option value="${esc(p.id)}" ${p.id === sel ? "selected" : ""}>${esc(p.nome)}${p.whatsapp ? "" : " (senza telefono)"}</option>`).join("");
+    const aperte = (data.richiamate || []).filter((r) => r.stato === "da_richiamare");
+    const quando = (d) => new Date(d).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    el.innerHTML = `<h4>Responsabili da avvisare</h4>
+      <p class="h">Se un cliente vuole organizzare qualcosa, il centralino (telefono e WhatsApp) gli chiede se può farlo richiamare
+        e avvisa subito il responsabile dell'area: notifica sul telefono e messaggio WhatsApp. Se il primo non è di turno avvisa il secondo.</p>
+      ${AREE.map(([a, tit, sotto]) => { const l = resp[a] || []; return `<div style="margin-bottom:10px;">
+        <div style="font-weight:600;font-size:14px;">${tit} <span style="font-weight:400;font-size:12px;color:#94a3b8;">${sotto}</span></div>
+        <div class="cai-row" style="margin-top:4px;">
+          <select class="cai-in" data-area="${a}">${opz(l[0])}</select>
+          <select class="cai-in" data-area="${a}" title="Sostituto">${opz(l[1])}</select>
+        </div></div>`; }).join("")}
+      <p class="h" style="margin:0;">Premi «💾 Salva» in fondo per confermare.</p>
+      ${aperte.length ? `<h4 style="margin-top:14px;">Da richiamare (${aperte.length})</h4>
+        ${aperte.map((r) => `<div data-id="${esc(r.id)}" style="border-top:1px solid #e2e8f0;padding:8px 0;display:flex;gap:10px;align-items:center;">
+          <div style="flex:1;font-size:13.5px;"><b>${esc(r.nome || "Cliente")}</b> · <a href="tel:${esc(r.telefono)}">${esc(r.telefono)}</a>
+            <div style="color:#475569;">${esc(r.motivo || "")}</div>
+            <div style="font-size:12px;color:#94a3b8;">${esc(r.area)}${r.responsabile_nome ? " · avvisato " + esc(r.responsabile_nome) : ""} · ${quando(r.created_at)}</div></div>
+          <button type="button" class="cai-btn cai-rich-ok" style="background:#16a34a;color:#fff;white-space:nowrap;">✅ Richiamato</button></div>`).join("")}` : ""}`;
+    el.dataset.pronto = "1";
+    el.querySelectorAll(".cai-rich-ok").forEach((b) => b.addEventListener("click", async (ev) => {
+      const riga = ev.currentTarget.closest("[data-id]");
+      ev.currentTarget.disabled = true;
+      const { data: r, error } = await supa().functions.invoke("centralino-agenti", { body: { azione: "richiamata_fatta", azienda_id: azienda.id, id: riga.dataset.id } });
+      if (error || !r?.ok) { ev.currentTarget.disabled = false; alert("❌ Non salvato"); return; }
+      riga.remove();
+    }));
   }
 
   /* domande dei clienti a cui il centralino non sapeva rispondere: la risposta entra nelle cose da sapere */
