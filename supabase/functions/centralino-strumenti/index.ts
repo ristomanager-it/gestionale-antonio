@@ -142,14 +142,16 @@ async function info(azienda: string, sede: string | null, b: any) {
     menu_del_giorno = { data, titolo: m.titolo || null, prezzo_fisso: m.prezzo_fisso || null, portate: per, note: m.note || null };
   }
   const giorno = GIORNI[new Date(data + "T12:00:00").getDay()];
-  const cfg = sede ? (await sel("centralino_config", `azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=info_auto,info_extra&limit=1`))[0] : null;
+  const cfg = sede ? (await sel("centralino_config", `azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=info_auto,info_extra,tipo_centralino&limit=1`))[0] : null;
+  const soloInfo = cfg?.tipo_centralino && cfg.tipo_centralino !== "ristorante"; // location eventi e Ristoflow: niente menu del giorno
   return {
     cose_da_sapere_dal_locale: cfg?.info_extra || undefined,
     scheda_del_locale: cfg?.info_auto || undefined,
     locale: s?.nome || null, indirizzo: s ? `${s.indirizzo || ""}, ${s.citta || ""}`.replace(/^, |, $/g, "") : null,
     telefono: s?.telefono || null, cucina: s?.tipo_cucina || null, descrizione: s?.descrizione || null,
     orari_apertura: orari, data_richiesta: data, giorno_richiesto: NOMI_G[giorno],
-    menu_del_giorno: menu_del_giorno || "non ancora pubblicato per questa data", ...oggi(),
+    ...(soloInfo ? {} : { menu_del_giorno: menu_del_giorno || "non ancora pubblicato per questa data" }), ...oggi(),
+    sito: await linkSito(azienda, sede, "centralino").catch(() => null),
   };
 }
 
@@ -220,13 +222,25 @@ async function menu(azienda: string, sede: string | null, b: any) {
   };
 }
 
+async function linkSito(azienda: string, sede: string | null, fonte: string) {
+  const sedeQ = sede ? `&or=(sede_id.eq.${sede},sede_id.is.null)` : "";
+  const sc = (await sel("sito_config", `azienda_id=eq.${azienda}${sedeQ}&dominio=not.is.null&select=dominio,sede_id&limit=5`).catch(() => []))
+    .sort((a: any, b: any) => Number(b.sede_id === sede) - Number(a.sede_id === sede))[0];
+  let url = sc?.dominio ? String(sc.dominio) : "";
+  if (!url && sede) url = String((await sel("sedi", `id=eq.${sede}&select=sito_web&limit=1`).catch(() => []))[0]?.sito_web || "");
+  if (!url) return null;
+  if (!/^https?:\/\//.test(url)) url = "https://" + url;
+  return url + (url.includes("?") ? "&" : "?") + "utm_source=" + fonte;
+}
+
 async function inviaLink(azienda: string, sede: string | null, b: any) {
   const { menu: m, cfg } = await menuVoce(azienda, sede);
   const cosa = String(b.cosa || "menu");
   let link: string | null = null;
   if (cosa === "prenota") link = `${APP_URL}/prenotazione-tavolo.html?a=${azienda}${sede ? "&s=" + sede : ""}&utm_source=voce_ai`;
+  else if (cosa === "sito") link = await linkSito(azienda, sede, "voce_ai");
   else if (m?.slug) link = `${APP_URL}/menu-pubblico.html?slug=${encodeURIComponent(m.slug)}&utm_source=voce_ai`;
-  if (!link) return { inviato: false, motivo: "nessun menu pubblicato da mandare" };
+  if (!link) return { inviato: false, motivo: cosa === "sito" ? "nessun sito collegato" : "nessun menu pubblicato da mandare" };
   // dal bot WhatsApp il link si scrive direttamente nella risposta
   if (b.solo_link) return { link: link.replace("utm_source=voce_ai", "utm_source=bot_whatsapp") };
   const dest = telNorm(b.telefono).replace(/^\+/, "");
@@ -368,15 +382,26 @@ async function domanda(azienda: string, sede: string | null, b: any, canale: str
 }
 
 /* ---------- richiamata: il cliente vuole essere ricontattato dal responsabile (eventi, cucina, sala) ---------- */
-const AREE: Record<string, string> = { eventi: "eventi", cucina: "cucina", sala: "sala" };
+const AREE: Record<string, string> = { eventi: "eventi", cucina: "cucina", sala: "sala", commerciale: "commerciale" };
+// i dettagli raccolti dalla voce o dal bot (evento: data, invitati...; Ristoflow: locale, citta...) in una riga leggibile
+const CAMPI_DETT: [string, string][] = [["tipo_evento", "evento"], ["data_evento", "data"], ["invitati", "invitati"], ["camere", "camere"], ["paese", "paese"],
+  ["lingua", "lingua"], ["nome_locale", "locale"], ["tipo_locale", "tipo"], ["citta", "città"], ["coperti", "coperti"], ["piano", "piano"]];
+function dettagliDa(b: any) {
+  const d: Record<string, unknown> = {};
+  for (const [k] of CAMPI_DETT) if (b[k] !== undefined && b[k] !== null && String(b[k]).trim() !== "") d[k] = typeof b[k] === "string" ? String(b[k]).slice(0, 120) : b[k];
+  return d;
+}
+const rigaDett = (d: Record<string, unknown>) => CAMPI_DETT.filter(([k]) => d[k] !== undefined).map(([k, l]) => `${l}: ${d[k] === true ? "sì" : d[k] === false ? "no" : d[k]}`).join(" · ");
 async function richiamata(azienda: string, sede: string | null, b: any, canale: string) {
   const area = AREE[String(b.area || "").toLowerCase()] || "eventi";
   const tel = telNorm(b.telefono);
   if (tel.replace(/\D/g, "").length < 9) return { ok: false, motivo: "numero mancante: chiedi al cliente il numero su cui richiamarlo" };
   const nome = String(b.nome || "").replace(/\s+/g, " ").trim().slice(0, 120) || "Cliente";
-  const motivo = String(b.motivo || "").replace(/\s+/g, " ").trim().slice(0, 500) || "richiesta " + area;
+  const dett = dettagliDa(b);
+  const motivoBase = String(b.motivo || "").replace(/\s+/g, " ").trim().slice(0, 400) || "richiesta " + area;
+  const motivo = (motivoBase + (Object.keys(dett).length ? " (" + rigaDett(dett) + ")" : "")).slice(0, 600);
   const sedeQ = sede ? `&sede_id=eq.${sede}` : "";
-  const cfg = (await sel("centralino_config", `azienda_id=eq.${azienda}${sedeQ}&select=sede_id,responsabili&limit=1`))[0] || {};
+  const cfg = (await sel("centralino_config", `azienda_id=eq.${azienda}${sedeQ}&select=sede_id,responsabili,tipo_centralino&limit=1`))[0] || {};
   const ids: string[] = (Array.isArray(cfg.responsabili?.[area]) ? cfg.responsabili[area] : []).filter((x: string) => /^[0-9a-f-]{36}$/i.test(String(x)));
   // il responsabile di turno: il primo della lista che ha un turno adesso, altrimenti il primo della lista
   let resp: any = null;
@@ -401,7 +426,7 @@ async function richiamata(azienda: string, sede: string | null, b: any, canale: 
   // notifica in app (con push): al responsabile, o agli admin se non e' stato scelto nessuno
   let utenti: string[] = resp?.user_id ? [resp.user_id] : [];
   if (!utenti.length) {
-    const ua = await sel("utenti_aziende", `azienda_id=eq.${azienda}&attivo=eq.true&ruolo=in.(admin,manager)&select=user_id`);
+    const ua = await sel("utenti_aziende", `azienda_id=eq.${azienda}&attivo=eq.true&ruolo=in.(admin,manager,superadmin)&select=user_id`);
     utenti = [...new Set(ua.map((x: any) => x.user_id).filter(Boolean))] as string[];
   }
   const titolo = `📞 Da richiamare (${area}): ${nome}`;
@@ -436,7 +461,15 @@ async function richiamata(azienda: string, sede: string | null, b: any, canale: 
     }
   }
   await ins("centralino_richiamate", { azienda_id: azienda, sede_id: sede || cfg.sede_id || null, area, nome, telefono: tel, motivo, canale,
-    responsabile_id: resp?.id || null, responsabile_nome: respNome, avviso });
+    responsabile_id: resp?.id || null, responsabile_nome: respNome, avviso, dettagli: Object.keys(dett).length ? dett : null });
+  // Ristoflow: chi chiama per una demo entra anche nel CRM della piattaforma
+  if (cfg.tipo_centralino === "ristoflow") {
+    await ins("crm_lead", { azienda_id: azienda, nome_locale: String(dett.nome_locale || "") || null, nome_titolare: nome, telefono: tel,
+      zona: String(dett.citta || "") || null, tipo_locale: String(dett.tipo_locale || "") || null, coperti: Number(dett.coperti) || null,
+      data_visita: oggi().oggi, visitato_da: canale === "whatsapp" ? "Bot WhatsApp" : "Centralino AI", modalita: canale === "whatsapp" ? "whatsapp" : "telefono",
+      temperatura: "tiepido", stato: "da_contattare", piano_interesse: String(dett.piano || "") || null, prossimo_step: "Richiamare per la demo",
+      data_prossimo_step: oggi().oggi, note: motivo }).catch((e) => console.error("crm_lead:", e));
+  }
   return { ok: true, area, responsabile: resp?.nome || null,
     messaggio: `Richiesta passata${resp?.nome ? " a " + resp.nome : " al responsabile " + area}: di' al cliente che verrà richiamato al più presto su questo numero.` };
 }

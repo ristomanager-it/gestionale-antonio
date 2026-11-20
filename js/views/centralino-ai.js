@@ -75,6 +75,22 @@ export async function renderCentralinoAI(box) {
       ${(sedi || []).length > 1 ? `<div class="cai-card"><h4>Sede</h4>
         <select id="cai-sede" class="cai-in">${(sedi || []).map((s) => `<option value="${s.id}" ${s.id === sedeId ? "selected" : ""}>${esc(s.nome)}</option>`).join("")}</select></div>` : ""}
 
+      <div class="cai-card">
+        <h4>Che cosa fa questo numero</h4>
+        <p class="h">Il tipo cambia le domande che fa: un ristorante prenota i tavoli, una location per eventi raccoglie la richiesta e fa richiamare dal responsabile.</p>
+        <select id="cai-tipo" class="cai-in" ${dis}>
+          <option value="ristorante" ${(c.tipo_centralino || "ristorante") === "ristorante" ? "selected" : ""}>🍽️ Ristorante: prenota tavoli, menu, asporto</option>
+          <option value="eventi" ${c.tipo_centralino === "eventi" ? "selected" : ""}>🥂 Location eventi: informazioni, pacchetti, richiamata del responsabile</option>
+          ${superadmin || c.tipo_centralino === "ristoflow" ? `<option value="ristoflow" ${c.tipo_centralino === "ristoflow" ? "selected" : ""}>🚀 Ristoflow: informazioni, prezzi, demo (CRM)</option>` : ""}
+        </select>
+        <h4 style="margin-top:12px;">Lingue</h4>
+        <p class="h">Al telefono la voce passa da sola alla lingua di chi chiama; in chat il bot risponde sempre nella lingua del cliente. Utile per le campagne all'estero.</p>
+        <div class="cai-row" style="flex-wrap:wrap;gap:14px;">
+          ${[["it", "🇮🇹 Italiano"], ["en", "🇬🇧 Inglese"], ["es", "🇪🇸 Spagnolo"], ["de", "🇩🇪 Tedesco"], ["fr", "🇫🇷 Francese"], ["nl", "🇳🇱 Olandese"]].map(([k, t]) => `
+            <label style="display:flex;align-items:center;gap:6px;font-size:14px;"><input type="checkbox" class="cai-lingua" value="${k}" ${k === "it" ? "checked disabled" : (c.lingue || ["it", "en"]).includes(k) ? "checked" : ""} ${dis} style="width:18px;height:18px;"> ${t}</label>`).join("")}
+        </div>
+      </div>
+
       <div class="cai-sez">💬 Bot WhatsApp · incluso</div>
       <div class="cai-card">
         <div class="cai-row" style="justify-content:space-between;align-items:flex-start;">
@@ -295,6 +311,8 @@ export async function renderCentralinoAI(box) {
         menu_id_voce: box.querySelector("#cai-menu")?.value || null,
         asporto_attivo: !!box.querySelector("#cai-asporto")?.checked,
       };
+      payload.tipo_centralino = box.querySelector("#cai-tipo")?.value || "ristorante";
+      payload.lingue = [...box.querySelectorAll(".cai-lingua")].filter((x) => x.checked).map((x) => x.value);
       const resp = leggiResponsabili();
       if (resp) payload.responsabili = resp;
       if (moduloVoce) Object.assign(payload, {
@@ -329,7 +347,8 @@ export async function renderCentralinoAI(box) {
   }
 
   /* chi richiama i clienti per eventi, cucina e sala: il centralino avvisa il primo di turno (o il primo della lista) */
-  const AREE = [["eventi", "🥂 Eventi", "feste, ricevimenti, catering, gruppi"], ["cucina", "👨‍🍳 Cucina", "menu su misura, diete, torte"], ["sala", "🍽️ Sala", "tavoli speciali, allestimenti"]];
+  const AREE_TUTTE = [["eventi", "🥂 Eventi", "feste, ricevimenti, catering, gruppi"], ["cucina", "👨‍🍳 Cucina", "menu su misura, diete, torte"], ["sala", "🍽️ Sala", "tavoli speciali, allestimenti"], ["commerciale", "🚀 Commerciale", "demo, prezzi, assistenza"]];
+  let AREE = AREE_TUTTE.slice(0, 3);
   function leggiResponsabili() {
     const el = box.querySelector("#cai-richiamate");
     if (!el || !el.dataset.pronto) return null;
@@ -342,6 +361,8 @@ export async function renderCentralinoAI(box) {
     if (!el) return;
     const persone = data.persone || [];
     const resp = data.config?.responsabili || {};
+    const tipo = data.config?.tipo_centralino || "ristorante";
+    AREE = tipo === "ristoflow" ? AREE_TUTTE.slice(3) : tipo === "eventi" ? AREE_TUTTE.slice(0, 2) : AREE_TUTTE.slice(0, 3);
     const opz = (sel) => `<option value="">—</option>` + persone.map((p) => `<option value="${esc(p.id)}" ${p.id === sel ? "selected" : ""}>${esc(p.nome)}${p.whatsapp ? "" : " (senza telefono)"}</option>`).join("");
     const aperte = (data.richiamate || []).filter((r) => r.stato === "da_richiamare");
     const quando = (d) => new Date(d).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
