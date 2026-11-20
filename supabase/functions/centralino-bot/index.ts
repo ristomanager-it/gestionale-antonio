@@ -124,9 +124,9 @@ function strumentiPer(tipo: string, asporto: boolean) {
         camere: { type: "boolean" }, paese: { type: "string" }, lingua: { type: "string", description: "it, en, es, de..." } },
         required: ["area", "motivo"] } }];
   if (tipo === "ristoflow") return [T_INFO, T_LINK_SITO, T_DOMANDA, T_PERSONA,
-    { name: "richiedi_richiamata", description: "Il cliente accetta di essere ricontattato per la demo o per assistenza: avvisa subito chi segue i clienti e lo mette nel CRM.",
+    { name: "richiedi_richiamata", description: "Il cliente accetta di essere ricontattato per attivare il pacchetto o per assistenza: avvisa subito chi segue i clienti e lo mette nel CRM.",
       input_schema: { type: "object", properties: {
-        area: { type: "string", enum: ["commerciale"] }, nome: { type: "string" }, motivo: { type: "string", description: "demo, prezzi, assistenza..., in italiano" },
+        area: { type: "string", enum: ["commerciale"] }, nome: { type: "string" }, motivo: { type: "string", description: "attivazione, prezzi, assistenza..., in italiano" },
         nome_locale: { type: "string" }, tipo_locale: { type: "string" }, citta: { type: "string" }, coperti: { type: "number" }, piano: { type: "string" },
         lingua: { type: "string" } }, required: ["area", "motivo"] } }];
   return strumenti(asporto);
@@ -159,9 +159,10 @@ STILE
 ${STILE_COMUNE}${voc}${nm}
 
 COSA FAI
-- Rispondi su funzioni, piani, prezzi (IVA esclusa), demo ed eventi usando solo le informazioni qui sotto. Riassumi in poche righe e chiedi che locale ha, per dirgli il piano giusto.
+- Rispondi su funzioni, piani, prezzi (IVA esclusa) ed eventi usando solo le informazioni qui sotto. Riassumi in poche righe e chiedi che locale ha, per dirgli il piano giusto.
 - Capisci: tipo di locale (bar, ristorante, pizzeria, catering ed eventi, hotel, hotel con ristorante, tasting o pro loco), città, coperti o sedi, cosa gli serve.
-- Proponi la demo gratuita di 30 minuti. Se accetta, chiedi nome e nome del locale e chiama richiedi_richiamata (area "commerciale") con tutti i dettagli; poi digli che lo ricontattiamo al più presto.
+- Prezzi: mensile; annuale in un'unica soluzione -20%; annuale in 3 rate nei primi 3 mesi -10%. Le demo non si fanno: a chi attiva il pacchetto facciamo la formazione online, per lui e per il suo staff.
+- Se vuole attivare o essere ricontattato, chiedi nome e nome del locale e chiama richiedi_richiamata (area "commerciale") con tutti i dettagli; poi digli che lo ricontattiamo al più presto.
 - Se vuole vedere il sito: chiama link e scrivigli il link.
 - Cliente già attivo con un problema: richiedi_richiamata con "assistenza" nel motivo.
 - Domande senza risposta nelle informazioni: domanda_senza_risposta, poi di' che lo ricontattiamo. Non inventare mai prezzi, sconti o funzioni.

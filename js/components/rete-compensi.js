@@ -15,12 +15,12 @@ const DEFAULT = {
 
 // pacchetti in vendita (prezzi aggiornati dal database)
 const PACCHETTI = [
-  { slug: 'ristorante', nome: 'Ristorante', mensile: 349, annuale: 3560 },
-  { slug: 'catering', nome: 'Catering ed eventi', mensile: 449, annuale: 4580 },
-  { slug: 'hotel-ristorante', nome: 'Hotel con ristorante', mensile: 429, annuale: 4376 },
-  { slug: 'solo-hotel', nome: 'Hotel (solo camere)', mensile: 229, annuale: 2336 },
-  { slug: 'bar', nome: 'Bar', mensile: 149, annuale: 1520 },
-  { slug: 'tasting', nome: 'Tasting e pro loco', mensile: 99, annuale: 1010 },
+  { slug: 'ristorante', nome: 'Ristorante', mensile: 349, annuale: 3350 },
+  { slug: 'catering', nome: 'Catering ed eventi', mensile: 449, annuale: 4310 },
+  { slug: 'hotel-ristorante', nome: 'Hotel con ristorante', mensile: 429, annuale: 4118 },
+  { slug: 'solo-hotel', nome: 'Hotel (solo camere)', mensile: 229, annuale: 2198 },
+  { slug: 'bar', nome: 'Bar', mensile: 149, annuale: 1430 },
+  { slug: 'tasting', nome: 'Tasting e pro loco', mensile: 99, annuale: 950 },
   { slug: 'fondatore', nome: 'Fondatore', mensile: null, annuale: 2000, soloAnnuale: true },
 ];
 const SCONTO_LANCIO = 0.30;
