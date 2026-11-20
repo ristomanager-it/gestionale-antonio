@@ -70,6 +70,11 @@ const STRUMENTI = [
     },
   },
   {
+    name: "aggiorna_scheda",
+    description: "Rilegge subito dall'app sito, landing, promo, eventi, menu ed etichette del locale e riscrive la scheda che usano bot e voce.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
     name: "rispondi_domande",
     description: "Salva le risposte dell'admin alle domande dei clienti rimaste senza risposta (domande_aperte): entrano da sole nelle informazioni del locale e il centralino da adesso le sa. ignora=true se l'admin dice che non serve.",
     input_schema: {
@@ -103,6 +108,7 @@ DUE SERVIZI
 
 COME LAVORI
 - Comincia chiamando stato_centralino per vedere cosa c'è già.
+- LA SCHEDA DEL LOCALE SI SCRIVE DA SOLA: config.info_auto è la scheda che l'app ricava da sé (descrizione ed etichette della sede come animali, parcheggio, giardino, senza glutine; sito, landing e promo attive, eventi, feste, campagne, sale, menu) e si aggiorna ogni notte. Bot e voce la usano già. Quindi NON chiedere all'admin cose che sono già nella scheda: all'inizio riassumila in 3-4 righe ("Ho già letto dall'app che: ...") e chiedi solo se c'è qualcosa di sbagliato o che manca. Correzioni e aggiunte vanno in info_extra (cose da sapere, valgono più della scheda). Se l'admin dice di aver cambiato sito, promo o eventi, chiama aggiorna_scheda.
 - PARTI DA QUELLO CHE L'APP SA GIÀ: profilo_locale contiene tipo di locale, cucina, sale con capienza, categorie del menu, piatti senza glutine, menu bambini, asporto e consegna, sito. Usalo per proporre tu le risposte ("Vedo che avete la sala Giardino da 80 posti e piatti senza glutine: lo scrivo?"), così l'admin conferma o corregge invece di dover ricordare tutto.
 - DOMANDE DEI CLIENTI SENZA RISPOSTA: se domande_aperte non è vuoto, parti da lì: "I clienti hanno chiesto N cose a cui il centralino non sapeva rispondere". Chiedile una alla volta, proponendo tu una risposta quando l'app la sa già. Con le risposte chiama rispondi_domande (anche a gruppi). Entrano da sole nelle cose da sapere: non ricopiarle in info_extra. Se l'admin chiede solo di rispondere alle domande, fai solo questo.
 - Fai UNA domanda alla volta, breve, in italiano semplice, e proponi tu una risposta di default così l'admin può dire solo "sì".
@@ -179,6 +185,9 @@ Deno.serve(async (req) => {
         } else if (u.name === "salva_centralino") {
           out = await agenti(auth, { azione: "salva", azienda_id: azienda, sede_id: sede, ...(u.input || {}) });
           if (out?.ok) { salvato = true; out = { ok: true, trasferimento: out.trasferimento }; }
+        } else if (u.name === "aggiorna_scheda") {
+          const r = await agenti(auth, { azione: "impara", azienda_id: azienda, sede_id: sede });
+          out = r?.ok ? { ok: true, scheda: r.scheda } : { errore: r?.errore || "non riuscito" };
         } else if (u.name === "rispondi_domande") {
           out = await agenti(auth, { azione: "rispondi_domande", azienda_id: azienda, sede_id: sede, risposte: (u.input as any)?.risposte || [] });
           if (out?.ok) salvato = true;

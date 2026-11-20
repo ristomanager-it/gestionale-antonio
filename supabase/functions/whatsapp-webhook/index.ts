@@ -26,6 +26,9 @@
 //      centralino-bot (stesse azioni della voce: prenota, info, menu, link, asporto).
 // v26: con il bot AI acceso il vecchio bot a domande NON parte mai (niente due bot diversi): se l'AI non risponde il cliente
 //      riceve una sola frase e lo staff un avviso. Codici campagna e annunci Meta passano all'AI, che li mette nella prenotazione.
+// v27: con il bot AI acceso i saluti ("Ciao", "Buongiorno") hanno risposta e il cliente con una prenotazione attiva puo'
+//      fare domande: il bot sta zitto solo se una persona del locale ha risposto nelle ultime 24 ore. I "grazie/ok" di chiusura
+//      li decide l'AI (puo' non rispondere).
 // v24: SPUNTE — gli avvisi di consegna e lettura di Meta si salvano sul messaggio (wa_registra_stato):
 //      in conversazione si vede se il cliente ha ricevuto e letto.
 // Deploy: Supabase Edge Functions, JWT verification OFF
@@ -508,7 +511,8 @@ const CORTESIA = /^(ok|okay|okk+|va bene|perfetto|grazie|grazie mille|mille graz
 async function botZitto(conn: any, from: string, testo: string, msgId: string | null): Promise<boolean> {
   try {
     const t = norm(testo).replace(/[^a-z0-9]+/g, " ").trim();
-    let zitto = !!t && CORTESIA.test(t);
+    const ai = await botAiAttivo(conn); // v27: col bot AI contano solo le risposte di una persona
+    let zitto = !ai && !!t && CORTESIA.test(t);
     const da = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const n9 = String(from).replace(/\D/g, "").slice(-9);
     if (!zitto) {
@@ -527,7 +531,7 @@ async function botZitto(conn: any, from: string, testo: string, msgId: string | 
       );
       zitto = inbox.length > 0;
     }
-    if (!zitto) {
+    if (!zitto && !ai) {
       const oggi = toISODate(nowRome());
       const pren = await dbSelect(
         "prenotazioni_tavoli",
@@ -759,7 +763,8 @@ async function botAi(conn: any, from: string, testo: string, ctx: Ctx, campagna:
       body: JSON.stringify({ azienda_id: conn.azienda_id, sede_id: conn.sede_id, telefono: from, testo, nome: ctx.nome, campagna }),
     });
     const d = await r.json().catch(() => ({}));
-    if (!d?.gestito || !d.risposta) return false;
+    if (!d?.gestito) return false;
+    if (!d.risposta) return true; // l'AI ha scelto di non rispondere (es. "ok grazie" a conversazione chiusa)
     await sendText(conn.meta_phone_number_id, conn.meta_access_token || WHATSAPP_TOKEN, from, String(d.risposta));
     if (d.passa_a_persona) {
       const chi = `${ctx.nome ? ctx.nome + " " : ""}(+${String(from).replace(/\D/g, "")})`;
