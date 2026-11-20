@@ -66,6 +66,7 @@ const STRUMENTI = [
         max_persone_ai: { type: "number", description: "oltre quante persone passa la chiamata a una persona" },
         menu_id_voce: { type: "string", description: "id del menu da usare (dall'elenco menu_disponibili)" },
         asporto_attivo: { type: "boolean", description: "la voce prende ordini da asporto al telefono" },
+        risposta_vocale: { type: "boolean", description: "su WhatsApp, a chi manda un vocale si risponde con un vocale nella voce del locale (solo con la voce al telefono attiva)" },
       },
     },
   },
@@ -104,6 +105,7 @@ function istruzioni(sedeNome: string) {
 DUE SERVIZI
 - BOT WHATSAPP (incluso nel piano): risponde in chat con le stesse capacità (prenotazioni, orari, menu, link, asporto). Si accende con bot_wa_ai e prende il posto del vecchio bot a domande ("Per quale data?"), che da quel momento non risponde più.
 - VOCE AL TELEFONO (modulo a pagamento): se in stato_centralino modulo_voce è false, la voce non è attiva per questo locale: non chiedere voce, saluto, numero di trasferimento né di accenderla; di' che è un servizio a parte che si attiva chiedendo a Ristoflow, e configura il bot WhatsApp (cose da sapere, menu, asporto, bot_wa_ai).
+- VOCALI SU WHATSAPP: i vocali dei clienti vengono sempre trascritti e il bot li capisce. Se c'è la voce al telefono, il bot risponde ai vocali con un vocale nella voce del locale (risposta_vocale, acceso di base): dillo all'admin come una cosa in più.
 - La voce può anche essere quella del titolare: si registra in Configurazione › Centralino › "Usa la mia voce" (lo fa lui dall'app, tu non puoi).
 
 COME LAVORI

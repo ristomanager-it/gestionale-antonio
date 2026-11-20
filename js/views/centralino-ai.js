@@ -152,6 +152,14 @@ export async function renderCentralinoAI(box) {
         </div><div id="cai-registra"></div>` : ""}
       </div>
       <div class="cai-card">
+        <div class="cai-row" style="justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1;"><h4>🎤 Ai vocali risponde con un vocale</h4>
+            <p class="h" style="margin:0;">Su WhatsApp i vocali dei clienti vengono sempre trascritti e capiti. Con questa opzione il bot risponde
+            a chi manda un vocale con un vocale nella voce del locale (i link li scrive sotto).</p></div>
+          ${interruttore("cai-vocale", c.risposta_vocale !== false, "Sì", "No")}
+        </div>
+      </div>
+      <div class="cai-card">
         <h4>Come risponde</h4>
         <p class="h">La prima frase che dice quando risponde al telefono.</p>
         <input id="cai-saluto" class="cai-in" maxlength="300" ${dis} placeholder="${esc(salutoDefault)}" value="${esc(c.saluto_ai || "")}">
@@ -246,6 +254,7 @@ export async function renderCentralinoAI(box) {
         voce_ai: voceSel ? voceSel.value || null : (c.voce_ai || null),
         voce_ai_nome: voceSel?.value ? voceSel.selectedOptions[0].textContent.replace(/^🇮🇹 /, "") : (voceSel ? null : c.voce_ai_nome || null),
         saluto_ai: box.querySelector("#cai-saluto")?.value || "",
+        risposta_vocale: !!box.querySelector("#cai-vocale")?.checked,
         numero_trasferimento: box.querySelector("#cai-numero")?.value || "",
       });
       btn.disabled = true; btn.textContent = "Salvo…";

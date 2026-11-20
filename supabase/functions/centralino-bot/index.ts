@@ -1,7 +1,9 @@
 // centralino-bot — il bot WhatsApp con AI (incluso nel piano): stesse azioni della voce al telefono
 // (posti liberi, prenotazione, orari/info, menu alla carta, menu del giorno, link del menu, ordini da asporto).
 // Chiamato da whatsapp-webhook con header x-centralino-key quando la sede ha bot_wa_ai = true.
-// POST { azienda_id, sede_id, telefono, testo, nome, campagna? }  ->  { gestito, risposta, passa_a_persona }
+// POST { azienda_id, sede_id, telefono, testo, nome, campagna?, vocale? }  ->  { gestito, risposta, passa_a_persona, audio_b64?, link? }
+// vocale = il cliente ha mandato un vocale (trascritto): se il locale ha la voce (modulo a pagamento) e risposta_vocale e' acceso,
+// la risposta torna anche come audio nella voce del locale (ElevenLabs, formato ogg/opus per i vocali WhatsApp).
 // campagna = da dove arriva il cliente (codice "rif:" di una campagna, annuncio Meta): resta valida per tutta la conversazione
 // e finisce nella prenotazione (source / riferimento), come faceva il vecchio bot a domande.
 // verify_jwt = false (chiamata server-server protetta dalla chiave).
@@ -18,6 +20,40 @@ function anthropicKey(): string {
   return "";
 }
 const ANTHROPIC_KEY = anthropicKey();
+const EL_KEY = Deno.env.get("ELEVENLABS_API_KEY") ?? "";
+
+/* modulo voce (a pagamento): sull'azienda o sul suo piano */
+async function moduloVoce(azienda: string): Promise<boolean> {
+  try {
+    const a = (await rest(`aziende?id=eq.${azienda}&select=features,piano_id&limit=1`))?.[0] || {};
+    if (a.features?.centralino_voce === true) return true;
+    if (!a.piano_id) return false;
+    const p = (await rest(`piani_abbonamento?id=eq.${a.piano_id}&select=features&limit=1`))?.[0];
+    return p?.features?.centralino_voce === true;
+  } catch { return false; }
+}
+
+// il testo da dire a voce: niente link, emoji, asterischi; i link si mandano scritti a parte
+function perLaVoce(t: string) {
+  const link = [...new Set((t.match(/https?:\/\/\S+/g) || []).map((x) => x.replace(/[).,;]+$/, "")))];
+  let v = t.replace(/https?:\/\/\S+/g, link.length ? "il link è qui sotto" : "")
+    .replace(/[*_~`#>]/g, "")
+    .replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, "")
+    .replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim();
+  return { voce: v.slice(0, 900), link };
+}
+
+async function sintesi(voiceId: string, testo: string) {
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=opus_48000_64`, {
+    method: "POST", headers: { "xi-api-key": EL_KEY, "Content-Type": "application/json", Accept: "audio/ogg" },
+    body: JSON.stringify({ text: testo, model_id: "eleven_multilingual_v2", voice_settings: { stability: 0.5, similarity_boost: 0.8 } }),
+  });
+  if (!r.ok) { console.error("tts:", r.status, (await r.text()).slice(0, 300)); return null; }
+  const buf = new Uint8Array(await r.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
 
 const H = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
@@ -65,7 +101,7 @@ function strumenti(asporto: boolean) {
   return t;
 }
 
-function istruzioni(locale: string, c: any, nome: string | null, camp: any) {
+function istruzioni(locale: string, c: any, nome: string | null, camp: any, vocale = false) {
   const maxP = Number(c.max_persone_ai) || 12;
   const extra = String(c.info_extra || "").trim().slice(0, 4000);
   const scheda = String(c.info_auto || "").trim().slice(0, 3200);
@@ -77,7 +113,8 @@ STILE
 - Se il cliente saluta e basta ("Ciao", "Buongiorno"), saluta e chiedi come puoi aiutarlo (prenotare, menu, informazioni).
 - Non iniziare con "Perfetto", "Ottimo" o simili se il cliente non ha appena confermato qualcosa: rispondi subito nel merito.
 - Se scrive solo "ok", "grazie" e simili a conversazione finita: saluta in una riga; se l'hai già salutato rispondi esattamente [NESSUNA_RISPOSTA].
-- Il numero di telefono del cliente lo conosci già (scrive da WhatsApp): non chiederlo.${nome ? `\n- Il nome sul suo profilo WhatsApp è "${nome}": usalo per la prenotazione, chiedendo conferma solo se sembra un soprannome.` : ""}
+- Rispondi SOLO all'ultimo messaggio del cliente: quello che hai già risposto prima non va ripetuto.
+- Il numero di telefono del cliente lo conosci già (scrive da WhatsApp): non chiederlo.${vocale ? `\n- Il cliente ti ha mandato un VOCALE (qui trascritto): rispondi come se parlassi, frasi semplici e naturali, niente elenchi né emoji; se devi dare un link mettilo alla fine.` : ""}${nome ? `\n- Il nome sul suo profilo WhatsApp è "${nome}": usalo per la prenotazione, chiedendo conferma solo se sembra un soprannome.` : ""}
 
 COSA FAI
 - PRENOTAZIONI: chiedi giorno, ora e persone; usa verifica_disponibilita; se pieno proponi al massimo tre orari liberi. Chiedi intolleranze o richieste. Fai un riepilogo e solo dopo il sì chiama prenota. Poi conferma che è registrata.
@@ -136,7 +173,7 @@ Deno.serve(async (req) => {
 
     // ultimi messaggi della conversazione (memoria di 3 ore)
     const da = new Date(Date.now() - 3 * 3600 * 1000).toISOString();
-    const storia = (await rest(`centralino_bot_messaggi?azienda_id=eq.${azienda}&telefono=eq.${telefono}&created_at=gte.${da}&select=ruolo,contenuto&order=created_at.desc&limit=12`)) || [];
+    const storia = (await rest(`centralino_bot_messaggi?azienda_id=eq.${azienda}&telefono=eq.${telefono}&created_at=gte.${da}&select=ruolo,contenuto&order=created_at.desc,ruolo.asc&limit=12`)) || [];
     const messages: any[] = storia.reverse().map((m: any) => ({ role: m.ruolo, content: m.contenuto }));
     while (messages.length && messages[0].role !== "user") messages.shift();
     // ruoli alternati: unisco eventuali messaggi consecutivi dello stesso ruolo
@@ -155,7 +192,7 @@ Deno.serve(async (req) => {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model: MODELLO, max_tokens: 900, system: istruzioni(locale, c, b.nome || null, camp), tools: strumenti(!!c.asporto_attivo), messages: pulita }),
+        body: JSON.stringify({ model: MODELLO, max_tokens: 900, system: istruzioni(locale, c, b.nome || null, camp, !!b.vocale), tools: strumenti(!!c.asporto_attivo), messages: pulita }),
       });
       if (!r.ok) { console.error("Claude", r.status, (await r.text()).slice(0, 300)); return json({ gestito: false }); }
       const d = await r.json();
@@ -187,10 +224,24 @@ Deno.serve(async (req) => {
     if (silenzio) risposta = "";
 
     await rest("centralino_bot_messaggi", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify([
-      { azienda_id: azienda, sede_id: sede, telefono, ruolo: "user", contenuto: testo, contesto: b.campagna && typeof b.campagna === "object" ? b.campagna : null },
-      { azienda_id: azienda, sede_id: sede, telefono, ruolo: "assistant", contenuto: (risposta || "(nessuna risposta)").slice(0, 4000), contesto: null },
+      // orari distinti: domanda e risposta devono rileggersi sempre nell'ordine giusto
+      { azienda_id: azienda, sede_id: sede, telefono, ruolo: "user", contenuto: testo, contesto: b.campagna && typeof b.campagna === "object" ? b.campagna : null, created_at: new Date(t0).toISOString() },
+      { azienda_id: azienda, sede_id: sede, telefono, ruolo: "assistant", contenuto: (risposta || "(nessuna risposta)").slice(0, 4000), contesto: null, created_at: new Date(Math.max(Date.now(), t0 + 1)).toISOString() },
     ]) });
     await registraConsumo(azienda, usage, Date.now() - t0, telefono.slice(-4));
+
+    // al vocale si risponde a voce: serve la voce al telefono (modulo a pagamento), l'opzione accesa e una voce scelta
+    const voceId = c.voce_ai || c.voce_clonata_id;
+    if (b.vocale && risposta && c.risposta_vocale !== false && voceId && EL_KEY && await moduloVoce(azienda)) {
+      const { voce, link } = perLaVoce(risposta);
+      const audio = voce ? await sintesi(voceId, voce) : null;
+      if (audio) {
+        rest("ai_consumi", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({
+          azienda_id: azienda, funzione: "centralino_vocale", modello: "elevenlabs_multilingual_v2", input_tokens: voce.length, output_tokens: 0,
+          cache_read: 0, costo_usd: null, riferimento: telefono.slice(-4), esito: "ok" }) }).catch(() => {});
+        return json({ gestito: true, risposta, passa_a_persona: passa, audio_b64: audio, audio_mime: "audio/ogg", testo_parlato: voce, link });
+      }
+    }
     return json({ gestito: true, risposta, passa_a_persona: passa });
   } catch (e) {
     console.error("centralino-bot:", e);

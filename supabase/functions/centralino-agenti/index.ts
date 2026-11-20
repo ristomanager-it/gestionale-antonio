@@ -306,7 +306,7 @@ async function domandeAperte(azienda: string, sede: string) {
 async function stato(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
   const [cfg, menu, s, dom] = await Promise.all([
-    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=ai_attivo,bot_wa_ai,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
+    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
     rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo,consegna_attiva`),
     rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
     domandeAperte(azienda, sede),
@@ -377,6 +377,7 @@ async function salva(b: any) {
     menu_id_voce: /^[0-9a-f-]{36}$/i.test(String(b.menu_id_voce || "")) ? b.menu_id_voce : null,
     asporto_attivo: !!b.asporto_attivo,
     bot_wa_ai: !!b.bot_wa_ai,
+    risposta_vocale: b.risposta_vocale !== false,
     updated_at: new Date().toISOString(),
   };
   const modulo = await moduloVoce(azienda);

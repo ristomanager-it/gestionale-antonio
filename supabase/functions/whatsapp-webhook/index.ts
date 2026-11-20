@@ -29,6 +29,8 @@
 // v27: con il bot AI acceso i saluti ("Ciao", "Buongiorno") hanno risposta e il cliente con una prenotazione attiva puo'
 //      fare domande: il bot sta zitto solo se una persona del locale ha risposto nelle ultime 24 ore. I "grazie/ok" di chiusura
 //      li decide l'AI (puo' non rispondere).
+// v28: VOCALI — il vocale del cliente si trascrive (Whisper): il testo va nella Inbox sotto l'audio e al bot come se fosse
+//      scritto. Se il locale ha la voce al telefono, il bot AI risponde al vocale con un vocale nella voce del locale.
 // v24: SPUNTE — gli avvisi di consegna e lettura di Meta si salvano sul messaggio (wa_registra_stato):
 //      in conversazione si vede se il cliente ha ricevuto e letto.
 // Deploy: Supabase Edge Functions, JWT verification OFF
@@ -107,26 +109,27 @@ async function dbDelete(table: string, query: string): Promise<void> {
 // ---------- v21: ALLEGATI (foto, PDF, vocali, video) ----------
 const MEDIA_TIPI = ["image", "document", "audio", "video", "sticker"];
 
-async function scaricaMedia(conn: any, msg: any): Promise<void> {
+async function scaricaMedia(conn: any, msg: any): Promise<{ bytes: ArrayBuffer; mime: string } | null> {
   try {
     const m = msg?.[msg?.type];
-    if (!MEDIA_TIPI.includes(msg?.type) || !m?.id || !msg?.id) return;
+    if (!MEDIA_TIPI.includes(msg?.type) || !m?.id || !msg?.id) return null;
     const token = conn.meta_access_token || WHATSAPP_TOKEN;
     const ri = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${m.id}`, { headers: { Authorization: `Bearer ${token}` } });
     const info: any = await ri.json().catch(() => ({}));
-    if (!info?.url) { console.error("media info:", ri.status, JSON.stringify(info)); return; }
+    if (!info?.url) { console.error("media info:", ri.status, JSON.stringify(info)); return null; }
     const bin = await fetch(info.url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!bin.ok) { console.error("media download:", bin.status); return; }
+    if (!bin.ok) { console.error("media download:", bin.status); return null; }
     const mime = String(info.mime_type || m.mime_type || "application/octet-stream").split(";")[0].trim();
     const est = (mime.split("/")[1] || "bin").replace("jpeg", "jpg").replace(/[^a-z0-9]/gi, "").slice(0, 5) || "bin";
     const nome = m.filename ? String(m.filename).replace(/[^\w.\-]/g, "_").slice(-80) : `${msg.type}.${est}`;
     const path = `whatsapp/${conn.azienda_id}/${Date.now()}-${crypto.randomUUID().slice(0, 12)}-${nome}`;
+    const dati = await bin.arrayBuffer();
     const up = await fetch(`${SUPABASE_URL}/storage/v1/object/media-aziende/${path}`, {
       method: "POST",
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": mime, "x-upsert": "true" },
-      body: await bin.arrayBuffer(),
+      body: dati,
     });
-    if (!up.ok) { console.error("media upload:", up.status, await up.text()); return; }
+    if (!up.ok) { console.error("media upload:", up.status, await up.text()); return { bytes: dati, mime }; }
     const patch: Record<string, unknown> = {
       media_url: `${SUPABASE_URL}/storage/v1/object/public/media-aziende/${path}`,
       media_mime: mime,
@@ -134,8 +137,62 @@ async function scaricaMedia(conn: any, msg: any): Promise<void> {
     const didascalia = m.caption || (m.filename ? `📎 ${m.filename}` : null);
     if (didascalia) patch.testo = didascalia;
     await dbUpdate("whatsapp_messaggi", `message_id=eq.${encodeURIComponent(msg.id)}`, patch);
+    return { bytes: dati, mime };
   } catch (e) {
     console.error("scaricaMedia:", String(e));
+    return null;
+  }
+}
+
+// ---------- v28: VOCALI DEI CLIENTI -> TESTO ----------
+const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY_AI") ?? Deno.env.get("OPENAI_API_KEY") ?? "";
+const INVENTATE = /sottotitoli|amara\.org|grazie per la visione|iscriviti al canale|subtitles by|thanks for watching/i;
+async function trascrivi(bytes: ArrayBuffer, mime: string): Promise<string> {
+  try {
+    if (!OPENAI_KEY || bytes.byteLength < 600) return "";
+    const est = /ogg|opus/.test(mime) ? "ogg" : /mp4|m4a|aac/.test(mime) ? "m4a" : /mpeg|mp3/.test(mime) ? "mp3" : /wav/.test(mime) ? "wav" : "ogg";
+    const fd = new FormData();
+    fd.append("file", new File([bytes], "vocale." + est, { type: mime || "audio/ogg" }));
+    fd.append("model", "whisper-1");
+    fd.append("prompt", "Prenotazione al ristorante: tavolo, persone, stasera, domani, pranzo, cena, asporto, menu.");
+    const r = await fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { Authorization: "Bearer " + OPENAI_KEY }, body: fd });
+    const j: any = await r.json().catch(() => ({}));
+    if (!r.ok) { console.error("trascrizione:", r.status, JSON.stringify(j).slice(0, 200)); return ""; }
+    const t = String(j.text || "").trim();
+    return t && !(t.length < 90 && INVENTATE.test(t)) ? t : "";
+  } catch (e) {
+    console.error("trascrivi:", String(e));
+    return "";
+  }
+}
+
+// ---------- v28: RISPOSTA A VOCE (vocale WhatsApp) ----------
+async function mandaVocale(conn: any, to: string, audioB64: string, mime: string, testo: string): Promise<boolean> {
+  try {
+    const token = conn.meta_access_token || WHATSAPP_TOKEN;
+    const bytes = Uint8Array.from(atob(audioB64), (ch) => ch.charCodeAt(0));
+    const fd = new FormData();
+    fd.append("messaging_product", "whatsapp");
+    fd.append("type", mime);
+    fd.append("file", new File([bytes], "risposta.ogg", { type: mime }));
+    const up = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${conn.meta_phone_number_id}/media`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+    const u: any = await up.json().catch(() => ({}));
+    if (!up.ok || !u?.id) { console.error("vocale upload:", up.status, JSON.stringify(u).slice(0, 300)); return false; }
+    const invia = (voice: boolean) => fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${conn.meta_phone_number_id}/messages`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ messaging_product: "whatsapp", to, type: "audio", audio: voice ? { id: u.id, voice: true } : { id: u.id } }),
+    });
+    let r = await invia(true);
+    if (!r.ok) r = await invia(false); // se il campo "voice" non e' accettato lo mando come audio normale
+    const txt = await r.text();
+    let esito: any = null;
+    try { esito = JSON.parse(txt); } catch { /* */ }
+    registraUscita(conn.meta_phone_number_id, to, { testo: "🎤 " + testo, ok: r.ok, id: esito?.messages?.[0]?.id ?? null, err: r.ok ? null : (esito?.error?.message ?? `HTTP ${r.status}`) });
+    if (!r.ok) console.error("vocale invio:", r.status, txt.slice(0, 300));
+    return r.ok;
+  } catch (e) {
+    console.error("mandaVocale:", String(e));
+    return false;
   }
 }
 
@@ -727,6 +784,7 @@ interface Sessione {
 interface Ctx {
   msgId: string | null;
   nome: string | null;
+  vocale?: boolean;
 }
 
 const MSG_BENVENUTO =
@@ -760,12 +818,15 @@ async function botAi(conn: any, from: string, testo: string, ctx: Ctx, campagna:
     const r = await fetch(`${SUPABASE_URL}/functions/v1/centralino-bot`, {
       method: "POST",
       headers: { "x-centralino-key": CENTRALINO_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ azienda_id: conn.azienda_id, sede_id: conn.sede_id, telefono: from, testo, nome: ctx.nome, campagna }),
+      body: JSON.stringify({ azienda_id: conn.azienda_id, sede_id: conn.sede_id, telefono: from, testo, nome: ctx.nome, campagna, vocale: !!ctx.vocale }),
     });
     const d = await r.json().catch(() => ({}));
     if (!d?.gestito) return false;
     if (!d.risposta) return true; // l'AI ha scelto di non rispondere (es. "ok grazie" a conversazione chiusa)
-    await sendText(conn.meta_phone_number_id, conn.meta_access_token || WHATSAPP_TOKEN, from, String(d.risposta));
+    // v28: al vocale si risponde col vocale (se il locale ha la voce); i link restano scritti
+    const aVoce = d.audio_b64 ? await mandaVocale(conn, from, String(d.audio_b64), String(d.audio_mime || "audio/ogg"), String(d.testo_parlato || d.risposta)) : false;
+    if (!aVoce) await sendText(conn.meta_phone_number_id, conn.meta_access_token || WHATSAPP_TOKEN, from, String(d.risposta));
+    else if (Array.isArray(d.link) && d.link.length) await sendText(conn.meta_phone_number_id, conn.meta_access_token || WHATSAPP_TOKEN, from, d.link.map((l: string) => "🔗 " + l).join("\n"));
     if (d.passa_a_persona) {
       const chi = `${ctx.nome ? ctx.nome + " " : ""}(+${String(from).replace(/\D/g, "")})`;
       await avvisaStaff(conn, `persona:${from}`, "💬 Un cliente chiede una persona su WhatsApp", `${chi}: ${d.passa_a_persona}`, ctx.msgId);
@@ -1306,7 +1367,17 @@ Deno.serve(async (req: Request) => {
         return new Response("ok", { status: 200 });
       }
 
-      if (MEDIA_TIPI.includes(msg.type)) await scaricaMedia(conn, msg);
+      const media = MEDIA_TIPI.includes(msg.type) ? await scaricaMedia(conn, msg) : null;
+      // v28: vocale del cliente -> testo (in Inbox sotto l'audio, e al bot come messaggio scritto)
+      let vocaleNonCapito = false;
+      if (msg.type === "audio" && media && contesto !== "notifiche") {
+        const t = await trascrivi(media.bytes, media.mime);
+        if (t) {
+          testo = t;
+          ctx.vocale = true;
+          await dbUpdate("whatsapp_messaggi", `message_id=eq.${encodeURIComponent(msg.id)}`, { testo: "🎤 " + t, trascrizione: t });
+        } else vocaleNonCapito = true;
+      }
 
       try {
         if (msg.type === "button" || msg.type === "interactive") {
@@ -1323,6 +1394,10 @@ Deno.serve(async (req: Request) => {
         }
 
         if (!testo && msg.type !== "text") {
+          if (vocaleNonCapito && await botAiAttivo(conn)) {
+            await sendText(conn.meta_phone_number_id, conn.meta_access_token || WHATSAPP_TOKEN, from,
+              "Scusi, non sono riuscito a sentire bene il vocale 🙏 Me lo può scrivere o rimandare?");
+          }
           return new Response("ok", { status: 200 });
         }
 
