@@ -86,6 +86,7 @@ export async function renderCentralinoAI(box) {
       </div>
 
       <div class="cai-sez">Cosa sa dire (vale per chat e telefono)</div>
+      ${admin ? `<div class="cai-card" id="cai-domande" style="display:none;border-color:#fdba74;background:#fffbf5;"></div>` : ""}
       <div class="cai-card">
         <h4>Cose da sapere</h4>
         <p class="h">Tutto quello che deve sapere oltre a orari, indirizzo e menu del giorno (quelli li prende dall'app).
@@ -209,6 +210,7 @@ export async function renderCentralinoAI(box) {
     });
 
     if (moduloVoce) caricaChiamate();
+    if (admin) caricaDomande();
 
     box.querySelector("#cai-salva")?.addEventListener("click", async (ev) => {
       const btn = ev.currentTarget, esito = box.querySelector("#cai-esito");
@@ -240,6 +242,49 @@ export async function renderCentralinoAI(box) {
       const parti = [payload.bot_wa_ai ? "bot WhatsApp attivo" : "bot WhatsApp spento"];
       if (data.modulo_voce) parti.push(data.trasferimento === "attivo" ? "voce aggiornata, passaggio chiamata attivo" : "voce aggiornata (senza numero fa richiamare)");
       box.querySelector("#cai-esito").innerHTML = `<span style="color:#16a34a;">✅ Salvato: ${esc(parti.join(" · "))}.</span>`;
+    });
+  }
+
+  /* domande dei clienti a cui il centralino non sapeva rispondere: la risposta entra nelle cose da sapere */
+  async function caricaDomande(lista) {
+    const el = box.querySelector("#cai-domande");
+    if (!el) return;
+    if (!lista) {
+      const { data, error } = await supa().functions.invoke("centralino-agenti", { body: { azione: "stato", azienda_id: azienda.id, sede_id: sedeId } });
+      if (error || !box.contains(el)) return;
+      lista = data?.domande_aperte || [];
+    }
+    if (!lista.length) { el.style.display = "none"; return; }
+    el.style.display = "";
+    const quando = (d) => new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+    el.innerHTML = `<h4>❓ Domande dei clienti senza risposta (${lista.length})</h4>
+      <p class="h">Il centralino non sapeva rispondere. Scrivi la risposta come la diresti al cliente: da quel momento la sa, in chat e al telefono.</p>
+      ${lista.map((d) => `<div class="cai-dom" data-id="${esc(d.id)}" style="border-top:1px solid #fde7c7;padding:10px 0;">
+        <div style="font-weight:600;font-size:14px;color:#0f172a;">«${esc(d.domanda)}»</div>
+        <div style="font-size:12px;color:#94a3b8;margin:2px 0 6px;">${d.canale === "whatsapp" ? "💬 WhatsApp" : "📞 Telefono"} · ${quando(d.created_at)}</div>
+        <input class="cai-in cai-dom-r" maxlength="400" placeholder="Es. Sì, i cani di piccola taglia sono i benvenuti">
+        <div class="cai-row" style="margin-top:6px;">
+          <button type="button" class="cai-btn cai-dom-ok" style="background:#0E5A7A;color:#fff;">Salva risposta</button>
+          <button type="button" class="cai-btn cai-dom-no" style="background:#f1f5f9;color:#475569;">Non serve</button>
+        </div></div>`).join("")}`;
+    el.querySelectorAll(".cai-dom").forEach((r) => {
+      const invia = async (ignora) => {
+        const risposta = r.querySelector(".cai-dom-r").value.trim();
+        if (!ignora && !risposta) { r.querySelector(".cai-dom-r").focus(); return; }
+        r.querySelectorAll("button").forEach((b) => (b.disabled = true));
+        const { data, error } = await supa().functions.invoke("centralino-agenti", {
+          body: { azione: "rispondi_domande", azienda_id: azienda.id, sede_id: sedeId, risposte: [{ id: r.dataset.id, risposta, ignora }] },
+        });
+        if (error || !data?.ok) { alert("❌ " + (error ? await testoErrore(error) : data?.errore || "Errore")); r.querySelectorAll("button").forEach((b) => (b.disabled = false)); return; }
+        if (!ignora) {
+          const ta = box.querySelector("#cai-extra");
+          const { data: cf } = await supa().from("centralino_config").select("info_extra").eq("azienda_id", azienda.id).eq("sede_id", sedeId).limit(1);
+          if (ta && cf?.[0]) ta.value = cf[0].info_extra || "";
+        }
+        caricaDomande(data.domande_aperte || []);
+      };
+      r.querySelector(".cai-dom-ok").addEventListener("click", () => invia(false));
+      r.querySelector(".cai-dom-no").addEventListener("click", () => invia(true));
     });
   }
 
