@@ -278,6 +278,29 @@ Deno.serve(async (req) => {
     const s = (await rest(`sedi?id=eq.${sede}&select=nome&limit=1`))?.[0];
     const locale = s?.nome || "il ristorante";
 
+    // serata di presentazione: chi e' prenotato e ci scrive (o tocca "Ci saro'!") riceve il vocale di Antonio dopo qualche minuto
+    let serata: any = null;
+    if (String(c.tipo_centralino) === "ristoflow" && telefono.length >= 9) {
+      serata = (await rest(`evento_iscrizioni?telefono_cifre=like.*${telefono.slice(-9)}&stato=not.in.(annullata,rifiutata)&select=id,nome,persone,vocale_programmato_il,vocale_inviato_il&order=created_at.desc&limit=1`).catch(() => []))?.[0] || null;
+      if (serata && !serata.vocale_programmato_il && !serata.vocale_inviato_il) {
+        const ec = (await rest(`evento_config?select=vocale_ritardo_min,benvenuto_attivo&limit=1`).catch(() => []))?.[0] || {};
+        if (ec.benvenuto_attivo !== false) {
+          const quando = new Date(Date.now() + (Number(ec.vocale_ritardo_min) || 2) * 60000).toISOString();
+          await rest(`evento_iscrizioni?id=eq.${serata.id}`, { method: "PATCH", body: JSON.stringify({ vocale_programmato_il: quando }) }).catch(() => {});
+        }
+      }
+      // "Ci sarò!" dal pulsante del messaggio di prenotazione: risposta breve, senza AI
+      if (serata && /^\s*ci\s+sar[oò]\s*!?\s*$/i.test(testo)) {
+        const n = String(serata.nome || "").trim().split(/\s+/)[0];
+        const risposta = `Grazie${n ? " " + n.charAt(0).toUpperCase() + n.slice(1).toLowerCase() : ""}! 🙌 Ti aspettiamo, sarà una bella serata.`;
+        await rest("centralino_bot_messaggi", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify([
+          { azienda_id: azienda, sede_id: sede, telefono, ruolo: "user", contenuto: testo, contesto: null, created_at: new Date(t0).toISOString() },
+          { azienda_id: azienda, sede_id: sede, telefono, ruolo: "assistant", contenuto: risposta, contesto: null, created_at: new Date(t0 + 1).toISOString() },
+        ]) }).catch(() => {});
+        return json({ gestito: true, risposta, passa_a_persona: null });
+      }
+    }
+
     // ultimi messaggi della conversazione (memoria di 3 ore)
     const da = new Date(Date.now() - 3 * 3600 * 1000).toISOString();
     const storia = (await rest(`centralino_bot_messaggi?azienda_id=eq.${azienda}&telefono=eq.${telefono}&created_at=gte.${da}&select=ruolo,contenuto&order=created_at.desc,ruolo.asc&limit=12`)) || [];
@@ -295,7 +318,7 @@ Deno.serve(async (req) => {
     const usage = { input: 0, output: 0 };
     let passa: string | null = null;
     let risposta = "";
-    const sistemaTesto = istruzioni(locale, c, b.nome || null, camp, !!b.vocale);
+    const sistemaTesto = istruzioni(locale, c, b.nome || null, camp, !!b.vocale) + (serata ? `\n\nQUESTO CLIENTE E' GIA' PRENOTATO alla serata di presentazione di Ristoflow (${Number(serata.persone) || 1} persone): se ne parla, conferma che lo aspettiamo e rispondi alle sue domande sulla serata con le informazioni qui sopra.` : "");
     const attrezzi = strumentiPer(String(c.tipo_centralino || "ristorante"), !!c.asporto_attivo);
     let modello = String(c.tipo_centralino) === "ristoflow" ? MODELLO_VENDITA : MODELLO;
     const chiedi = async (conStrumenti: boolean) => {
