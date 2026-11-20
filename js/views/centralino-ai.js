@@ -138,6 +138,11 @@ export async function renderCentralinoAI(box) {
           ${interruttore("cai-asporto", !!c.asporto_attivo, "Sì", "No")}
         </div>
         ${c.asporto_attivo && menuSel && !(menuSel.ordinabile && menuSel.ritiro_attivo) ? `<div style="font-size:12.5px;color:#b45309;margin-top:8px;">Il menu scelto non è ordinabile da asporto: attiva "ordinabile" e "ritiro" nel menu, oppure scegline un altro.</div>` : ""}
+        <div class="cai-row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label for="cai-pezzi" style="font-size:13.5px;font-weight:600;">Quante pizze o piatti riesce a fare la cucina ogni 15 minuti</label>
+          <input id="cai-pezzi" type="number" min="0" max="500" inputmode="numeric" class="input" style="max-width:90px;" value="${Number(c.asporto_pezzi_fascia) || ""}" placeholder="nessun limite">
+        </div>
+        <p class="h" style="margin:4px 0 0;">Bibite escluse. Quando una fascia è piena, al telefono e su WhatsApp viene proposto il primo orario libero. Vuoto = nessun limite.</p>
       </div>
       <div class="cai-card">
         <h4>Quando passa a una persona</h4>
@@ -310,6 +315,7 @@ export async function renderCentralinoAI(box) {
         max_persone_ai: Number(box.querySelector("#cai-maxp").value) || 12,
         menu_id_voce: box.querySelector("#cai-menu")?.value || null,
         asporto_attivo: !!box.querySelector("#cai-asporto")?.checked,
+        asporto_pezzi_fascia: Number(box.querySelector("#cai-pezzi")?.value) || null,
       };
       payload.tipo_centralino = box.querySelector("#cai-tipo")?.value || "ristorante";
       payload.lingue = [...box.querySelectorAll(".cai-lingua")].filter((x) => x.checked).map((x) => x.value);
