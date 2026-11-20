@@ -12,6 +12,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "https://cuhcscpvhypoaplcmt
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("MY_SERVICE_KEY") ?? "";
 const CENTRALINO_KEY = Deno.env.get("CENTRALINO_KEY") ?? "";
 const MODELLO = Deno.env.get("CENTRALINO_BOT_MODEL") || "claude-haiku-4-5-20251001";
+// il bot commerciale di Ristoflow vende: modello piu' bravo nelle conversazioni (se non risponde si torna a MODELLO)
+const MODELLO_VENDITA = Deno.env.get("CENTRALINO_BOT_MODEL_VENDITA") || "claude-sonnet-4-5";
 
 function anthropicKey(): string {
   const env = Deno.env.toObject();
@@ -158,11 +160,19 @@ ${intestazione(new Date())}
 STILE
 ${STILE_COMUNE}${voc}${nm}
 
-COSA FAI
-- Rispondi su funzioni, piani, prezzi (IVA esclusa) ed eventi usando solo le informazioni qui sotto. Riassumi in poche righe e chiedi che locale ha, per dirgli il piano giusto.
-- Capisci: tipo di locale (bar, ristorante, pizzeria, catering ed eventi, hotel, hotel con ristorante, tasting o pro loco), città, coperti o sedi, cosa gli serve.
-- Prezzi: mensile; annuale in un'unica soluzione -20%; annuale in 3 rate nei primi 3 mesi -10%. Le demo non si fanno: a chi attiva il pacchetto facciamo la formazione online, per lui e per il suo staff.
-- Se vuole attivare o essere ricontattato, chiedi nome e nome del locale e chiama richiedi_richiamata (area "commerciale") con tutti i dettagli; poi digli che lo ricontattiamo al più presto.
+COME VENDI (sei un consulente che conosce la ristorazione, non un volantino)
+1. Parti dal SUO problema. Se dice cosa non va (personale, turni, buste paga, food cost, magazzino, fatture, prenotazioni, clienti che non tornano, campagne), rispondi prima su quello: 2-3 righe concrete su come Ristoflow lo risolve nella pratica di tutti i giorni, con un esempio da ristoratore. Mai l'elenco di tutte le funzioni.
+2. Una sola domanda per messaggio per capire il locale: tipo (bar, ristorante, pizzeria, catering ed eventi, hotel, hotel con ristorante, tasting o pro loco), coperti o dipendenti, sedi, cosa usa oggi.
+3. Il prezzo dallo per il piano adatto a lui, non tutto il listino: mensile, annuale unico -20%, 3 rate -10%, e il costo al giorno. Prendi le cifre esatte dalle informazioni.
+4. Chiudi ogni messaggio con un passo avanti: una domanda sul suo locale oppure "vuoi che ti richiamiamo per attivarlo?".
+5. Se vuole attivare o essere ricontattato: chiedi nome e nome del locale e chiama richiedi_richiamata (area "commerciale") con tutti i dettagli, poi digli che lo ricontattiamo al più presto. Le demo non si fanno: a chi attiva il pacchetto facciamo la formazione online, per lui e per il suo staff.
+
+OBIEZIONI (ascolta, dai ragione sul punto giusto, poi rendi concreto)
+- "È caro": è un investimento, giusto chiederselo. Poi: costo al giorno del suo piano, cosa sostituisce (gestionale di cassa, ore su fatture e magazzino, consulente per le campagne, fogli Excel dei turni), e il risultato vero di Capodanno 2026 (13.990 € di cenoni con 271 € di pubblicità). Proponi la formula annuale o a 3 rate e chiedi quale problema oggi gli costa di più.
+- "Ci devo pensare": chiedi con garbo cosa lo frena (prezzo, tempo per imparare, cambiare sistema). Imparare: formazione online compresa per lui e lo staff. Partire: operativi in pochi giorni.
+- "Ho già un gestionale": chiedi quale e cosa non gli fa. Ristoflow mette cassa, magazzino, personale e marketing in un'app sola dal telefono.
+- Non promettere mai sconti, prove gratuite o funzioni che non sono nelle informazioni.
+- NON FARE CONTI: usa solo le cifre già scritte nelle informazioni (prezzi, rate, costo al giorno, quanto si risparmia). Se una cifra non c'è, non calcolarla.
 - Se vuole vedere il sito: chiama link e scrivigli il link.
 - Cliente già attivo con un problema: richiedi_richiamata con "assistenza" nel motivo.
 - Domande senza risposta nelle informazioni: domanda_senza_risposta, poi di' che lo ricontattiamo. Non inventare mai prezzi, sconti o funzioni.
@@ -230,12 +240,12 @@ REGOLE
 - Non dire di essere un modello o un software: sei l'assistente di ${locale}.${camp ? `\n\nDA DOVE ARRIVA IL CLIENTE\n${camp.nota ? `- Arriva dalla campagna "${camp.nota}"${camp.codice ? " (codice " + camp.codice + ")" : ""}: è quello che gli interessa, parti da lì e ricordalo nel riepilogo. Nella prenotazione metti "${camp.nota}" all'inizio delle note.` : camp.fonte === "meta_ads" ? `- Arriva da un annuncio${camp.ads?.annuncio ? ' ("' + camp.ads.annuncio + '")' : ""}: accoglilo e aiutalo a prenotare.` : `- Arriva da: ${camp.fonte || camp.codice}.`}${camp.flusso === "menu_business" ? "\n- Menu business: vale dal lunedì al venerdì, a pranzo e a cena. Se chiede un altro giorno diglielo con garbo." : ""}` : ""}${scheda ? `\n\nSCHEDA DEL LOCALE (ricavata dall'app: sito, landing, promo, eventi, menu, servizi):\n${scheda}` : ""}${extra ? `\n\nCOSE DA SAPERE SCRITTE DAL RISTORANTE (se contraddicono la scheda, valgono queste):\n${extra}` : ""}`;
 }
 
-async function registraConsumo(azienda: string, usage: any, ms: number, rif: string) {
+async function registraConsumo(azienda: string, usage: any, ms: number, rif: string, mod = MODELLO) {
   try {
-    const l = (await rest(`ai_listino?modello=eq.${encodeURIComponent(MODELLO)}&select=input_per_mtok,output_per_mtok&order=valido_dal.desc&limit=1`))?.[0];
+    const l = (await rest(`ai_listino?modello=eq.${encodeURIComponent(mod)}&select=input_per_mtok,output_per_mtok&order=valido_dal.desc&limit=1`))?.[0];
     const costo = l ? (usage.input / 1e6) * Number(l.input_per_mtok) + (usage.output / 1e6) * Number(l.output_per_mtok) : null;
     await rest("ai_consumi", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({
-      azienda_id: azienda, funzione: "centralino_bot", modello: MODELLO, input_tokens: usage.input, output_tokens: usage.output,
+      azienda_id: azienda, funzione: "centralino_bot", modello: mod, input_tokens: usage.input, output_tokens: usage.output,
       cache_read: 0, costo_usd: costo, riferimento: rif, esito: "ok", ms,
     }) });
   } catch (e) { console.warn("consumo:", (e as Error).message); }
@@ -285,14 +295,26 @@ Deno.serve(async (req) => {
     const usage = { input: 0, output: 0 };
     let passa: string | null = null;
     let risposta = "";
+    const sistemaTesto = istruzioni(locale, c, b.nome || null, camp, !!b.vocale);
+    const attrezzi = strumentiPer(String(c.tipo_centralino || "ristorante"), !!c.asporto_attivo);
+    let modello = String(c.tipo_centralino) === "ristoflow" ? MODELLO_VENDITA : MODELLO;
+    const chiedi = async (conStrumenti: boolean) => {
+      for (let t = 0; t < 2; t++) {
+        const r = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({ model: modello, max_tokens: 900, system: sistemaTesto, tools: attrezzi, ...(conStrumenti ? {} : { tool_choice: { type: "none" } }), messages: pulita }),
+        });
+        if (r.ok) return await r.json();
+        console.error("Claude", modello, r.status, (await r.text()).slice(0, 300));
+        if (modello === MODELLO) return null;
+        modello = MODELLO; // il modello di vendita non risponde: riprovo con quello di base
+      }
+      return null;
+    };
     for (let giro = 0; giro < 6; giro++) {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model: MODELLO, max_tokens: 900, system: istruzioni(locale, c, b.nome || null, camp, !!b.vocale), tools: strumentiPer(String(c.tipo_centralino || "ristorante"), !!c.asporto_attivo), messages: pulita }),
-      });
-      if (!r.ok) { console.error("Claude", r.status, (await r.text()).slice(0, 300)); return json({ gestito: false }); }
-      const d = await r.json();
+      const d = await chiedi(true);
+      if (!d) return json({ gestito: false });
       usage.input += d.usage?.input_tokens || 0; usage.output += d.usage?.output_tokens || 0;
       const blocchi = d.content || [];
       const usi = blocchi.filter((x: any) => x.type === "tool_use");
@@ -317,6 +339,14 @@ Deno.serve(async (req) => {
       }
       pulita.push({ role: "user", content: risultati });
     }
+    // finiti i giri con gli strumenti senza una risposta: la chiedo adesso, senza strumenti
+    if (!risposta) {
+      const d = await chiedi(false);
+      if (d) {
+        usage.input += d.usage?.input_tokens || 0; usage.output += d.usage?.output_tokens || 0;
+        risposta = (d.content || []).filter((x: any) => x.type === "text").map((x: any) => x.text).join("\n").trim();
+      }
+    }
     if (!risposta) return json({ gestito: false });
     risposta = risposta.replace(/\*\*(.+?)\*\*/g, "*$1*").replace(/^#+\s*/gm, "");
     const silenzio = /^\[?NESSUNA_RISPOSTA\]?$/i.test(risposta.trim());
@@ -327,7 +357,7 @@ Deno.serve(async (req) => {
       { azienda_id: azienda, sede_id: sede, telefono, ruolo: "user", contenuto: testo, contesto: b.campagna && typeof b.campagna === "object" ? b.campagna : null, created_at: new Date(t0).toISOString() },
       { azienda_id: azienda, sede_id: sede, telefono, ruolo: "assistant", contenuto: (risposta || "(nessuna risposta)").slice(0, 4000), contesto: null, created_at: new Date(Math.max(Date.now(), t0 + 1)).toISOString() },
     ]) });
-    await registraConsumo(azienda, usage, Date.now() - t0, telefono.slice(-4));
+    await registraConsumo(azienda, usage, Date.now() - t0, telefono.slice(-4), modello);
 
     // al vocale si risponde a voce: serve la voce al telefono (modulo a pagamento), l'opzione accesa e una voce scelta
     const voceId = c.voce_ai || c.voce_clonata_id;
