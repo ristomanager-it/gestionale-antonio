@@ -119,7 +119,7 @@ export async function renderCentralinoAI(box) {
         <h4>Cose da sapere (scritte da te)</h4>
         <p class="h">Solo quello che l'app non sa o che va corretto: valgono più di quello che il centralino legge da solo.
           Esempi: chiusure per ferie, pizza solo la sera, regole per i cani grandi.</p>
-        <textarea id="cai-extra" class="cai-in" rows="5" maxlength="4000" ${dis} placeholder="Parcheggio gratuito davanti al locale. Cani di piccola taglia ammessi. Chiusi dal 7 al 21 gennaio.">${esc(c.info_extra || "")}</textarea>
+        <textarea id="cai-extra" class="cai-in" rows="5" maxlength="12000" ${dis} placeholder="Parcheggio gratuito davanti al locale. Cani di piccola taglia ammessi. Chiusi dal 7 al 21 gennaio.">${esc(c.info_extra || "")}</textarea>
       </div>
       <div class="cai-card">
         <h4>Menu</h4>

@@ -147,7 +147,7 @@ const STILE_COMUNE = `- Messaggi brevi da chat (2-5 righe), cordiali, qualche em
 - Il numero di telefono del cliente lo conosci già: non chiederlo.`;
 
 function istruzioniExtra(tipo: string, locale: string, c: any, nome: string | null, camp: any, vocale: boolean) {
-  const extra = String(c.info_extra || "").trim().slice(0, 4500);
+  const extra = String(c.info_extra || "").trim().slice(0, 12000);
   const scheda = String(c.info_auto || "").trim().slice(0, 3200);
   const voc = vocale ? `\n- Il cliente ti ha mandato un VOCALE (trascritto): rispondi come se parlassi, niente elenchi né emoji; i link alla fine. Se il senso non è chiaro, chiedi cosa intende.` : "";
   const nm = nome ? `\n- Il nome sul suo profilo WhatsApp è "${nome}".` : "";
@@ -199,7 +199,7 @@ function istruzioni(locale: string, c: any, nome: string | null, camp: any, voca
   const tipo = String(c.tipo_centralino || "ristorante");
   if (tipo !== "ristorante") return istruzioniExtra(tipo, locale, c, nome, camp, vocale);
   const maxP = Number(c.max_persone_ai) || 12;
-  const extra = String(c.info_extra || "").trim().slice(0, 4000);
+  const extra = String(c.info_extra || "").trim().slice(0, 12000);
   const scheda = String(c.info_auto || "").trim().slice(0, 3200);
   const ora = new Date();
   const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", ...o }).format(ora);
