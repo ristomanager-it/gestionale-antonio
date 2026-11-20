@@ -1466,6 +1466,7 @@ let _crmLeads = [];
 let _crmEditId = null;
 
 const CRM_STATI = {
+  da_contattare:{ label:'📞 Da richiamare', colore:'#0E5A7A', bg:'#e0f2fe' },
   visitato:    { label:'Visitato',     colore:'#64748b', bg:'#f1f5f9' },
   demo_fatta:  { label:'Demo fatta',   colore:'#d97706', bg:'#fef9c3' },
   trial_attivo:{ label:'Trial attivo', colore:'#7C3AED', bg:'#f5f3ff' },
@@ -1681,7 +1682,7 @@ window.apriModaleLead = function(id) {
       <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">MODALITÀ</label>
         <select id="cl-modalita" style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;box-sizing:border-box;">
-          ${['porta_a_porta','referral','rete','social'].map(m => `<option ${v('modalita')===m?'selected':''}>${m}</option>`).join('')}
+          ${['porta_a_porta','referral','rete','social','telefono','whatsapp'].map(m => `<option ${v('modalita')===m?'selected':''}>${m}</option>`).join('')}
         </select>
       </div>
       <div>

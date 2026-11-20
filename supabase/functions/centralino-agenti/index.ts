@@ -8,6 +8,9 @@
 // POST { azione: "stato", azienda_id, sede_id, profilo? }     -> configurazione, menu, domande aperte (+ profilo del locale per Tony)
 // POST { azione: "impara", azienda_id, sede_id }             -> rifa' subito la scheda del locale (centralino-impara)
 // POST { azione: "paga_voce", azienda_id, sede_id }          -> pagamento Stripe una tantum per registrare la voce del titolare
+// Tipi di centralino (tipo_centralino): ristorante (prenota tavoli), eventi (location: informazioni e richiamata del responsabile),
+// ristoflow (commerciale: informazioni, demo, lead nel CRM). lingue = lingue del numero: l'agente italiano passa da solo a quella di chi chiama.
+// Server-server: header x-deploy-key (deploy_config) vale come superadmin.
 // POST { azione: "richiamata_fatta", azienda_id, id }          -> il cliente e' stato richiamato
 // POST { azione: "rispondi_domande", azienda_id, sede_id, risposte:[{id,risposta|ignora}] } -> le risposte entrano nelle info del locale
 // Il bot WhatsApp (bot_wa_ai) e' incluso nel piano; la voce al telefono e' il modulo a pagamento "centralino_voce".
@@ -248,6 +251,139 @@ RULES
 - Never say you are a model or software: you are ${l}'s booking assistant.${extra ? `\n\nRESTAURANT INFORMATION (written by the restaurant in Italian):\n${extra}` : ""}`;
 }
 
+/* ---------- lingue: una sola linea di telefono, la voce passa alla lingua di chi chiama ---------- */
+const LINGUE: Record<string, string> = { it: "italiano", en: "inglese", es: "spagnolo", de: "tedesco", fr: "francese", nl: "olandese" };
+const lingueOk = (l: any) => {
+  const a = (Array.isArray(l) ? l : ["it", "en"]).map((x: any) => String(x).toLowerCase()).filter((x: string) => LINGUE[x]);
+  return [...new Set(["it", ...a])];
+};
+function saluti(tipo: string, l: string): Record<string, string> {
+  if (tipo === "eventi") return {
+    it: `Buongiorno, ${l}! Come posso aiutarla per il suo evento?`,
+    en: `Hello, this is ${l}! How can I help you with your wedding or event?`,
+    es: `¡Hola, le atiende ${l}! ¿En qué puedo ayudarle con su boda o su evento?`,
+    de: `Guten Tag, hier ist ${l}! Wie kann ich Ihnen bei Ihrer Hochzeit oder Ihrem Fest helfen?`,
+    fr: `Bonjour, ici ${l} ! Comment puis-je vous aider pour votre mariage ou votre événement ?`,
+    nl: `Goedendag, met ${l}! Hoe kan ik u helpen met uw bruiloft of evenement?`,
+  };
+  if (tipo === "ristoflow") return {
+    it: `Ciao, sono l'assistente di Ristoflow! Come posso aiutarti?`,
+    en: `Hi, this is the Ristoflow assistant! How can I help you?`,
+    es: `¡Hola, soy el asistente de Ristoflow! ¿En qué puedo ayudarte?`,
+    de: `Hallo, hier ist der Assistent von Ristoflow! Wie kann ich helfen?`,
+    fr: `Bonjour, ici l'assistant de Ristoflow ! Comment puis-je vous aider ?`,
+    nl: `Hallo, met de assistent van Ristoflow! Waarmee kan ik helpen?`,
+  };
+  return {
+    it: `Buongiorno, ${l}! Sono l'assistente per le prenotazioni. Come posso aiutarla?`,
+    en: `Hello, welcome to ${l}! I'm the booking assistant. How can I help you?`,
+    es: `¡Hola, bienvenido a ${l}! Soy el asistente de reservas. ¿En qué puedo ayudarle?`,
+    de: `Guten Tag, willkommen bei ${l}! Ich bin der Reservierungsassistent. Wie kann ich Ihnen helfen?`,
+    fr: `Bonjour, bienvenue chez ${l} ! Je suis l'assistant des réservations. Comment puis-je vous aider ?`,
+    nl: `Goedendag, welkom bij ${l}! Ik ben de reserveringsassistent. Waarmee kan ik helpen?`,
+  };
+}
+const regolaLingue = (lingue: string[]) => lingue.length > 1
+  ? `\n- Lingue: rispondi nella lingua di chi chiama tra ${lingue.map((x) => LINGUE[x]).join(", ")}. Se parla una di queste, passa subito alla sua lingua (strumento language_detection) e resta in quella. I dati degli strumenti sono in italiano: traducili in modo naturale. Quello che passi agli strumenti (domande, motivo) scrivilo in italiano.`
+  : "";
+
+function promptEventi(l: string, extra: string, lingue: string[]) {
+  return `Sei la voce che risponde al telefono di "${l}", location per matrimoni, ricevimenti ed eventi privati e aziendali. Tono caldo, elegante e cordiale, frasi brevi e naturali, dai del Lei.
+
+COMPITI: rispondere a chi vuole organizzare un evento, dare le informazioni sulla location e fissare una richiamata con il responsabile eventi. Non prendi prenotazioni di tavoli.
+
+INFORMAZIONI
+- Per location, sale, capienze, camere, servizi, pacchetti, prezzi, distanze e come arrivare chiama info_locale: rispondi solo con quello che contiene (scheda_del_locale e cose_da_sapere_dal_locale, che valgono di più). Riassumi, non leggere elenchi.
+- I prezzi sono sempre "a partire da": dillo così e spiega che il preventivo preciso lo prepara il responsabile in base a data, invitati e servizi.
+- Non sai quali date sono libere: non confermare mai una data. Dì che la verifica il responsabile eventi.
+- Se un'informazione non c'è, non inventare: chiama domanda_senza_risposta e proponi la richiamata.
+
+LA RICHIESTA (raccogli con naturalezza, senza interrogatorio)
+1. Che evento è (matrimonio, compleanno, battesimo, comunione, laurea, festa aziendale...), la data o il periodo, quanti invitati, se servono camere per gli ospiti.
+2. Nome e cognome, e da che paese chiama se parla un'altra lingua.
+3. Chiedi se va bene essere richiamato dal nostro responsabile eventi (nella sua lingua, se è straniero). Il numero è {{system__caller_id}}: chiedi conferma.
+4. Se dice sì chiama richiedi_richiamata con area "eventi" e tutti i dettagli. Poi digli che il responsabile lo richiama al più presto (usa il nome se lo strumento lo restituisce) e che di solito la proposta arriva entro due giorni.
+5. Se vuole vedere foto, pacchetti e il calcolatore, chiama invia_link con cosa="sito" e il suo numero WhatsApp. Dì che l'hai mandato solo se la risposta dice inviato=true.
+
+PASSARE A UN COLLEGA
+- Se vuole parlare subito con una persona, o è un fornitore o un reclamo: usa transfer_to_number. Se non c'è, prendi nome e numero con richiedi_richiamata.
+
+REGOLE
+- Non inventare mai prezzi, date libere, servizi o informazioni.
+- Non dire mai di essere un modello o un software: sei l'assistente di ${l}.${regolaLingue(lingue)}${extra ? `\n\nINFORMAZIONI DEL LOCALE (scritte dalla location, usale per rispondere):\n${extra}` : ""}`;
+}
+
+function promptRistoflow(l: string, extra: string, lingue: string[]) {
+  return `Sei la voce che risponde al telefono di Ristoflow, il gestionale per la ristorazione nato in cucina: creato da un ristoratore e usato ogni giorno nei suoi locali. Tono amichevole e professionale, frasi brevi, dai del Lei finché il cliente non dà del tu.
+
+CHI CHIAMA: titolari e gestori di bar, ristoranti, pizzerie, catering, hotel, pro loco che vogliono informazioni, prezzi o una demo. Ogni tanto clienti già attivi che hanno bisogno di aiuto.
+
+INFORMAZIONI
+- Per funzioni, piani, prezzi, demo ed eventi chiama info_locale e rispondi solo con quello che contiene (cose_da_sapere_dal_locale valgono di più). Prezzi IVA esclusa. Riassumi in due o tre frasi, poi chiedi che locale ha per dirgli il piano giusto.
+- Se una cosa non c'è, non inventare: chiama domanda_senza_risposta e proponi la richiamata.
+
+COSA FAI
+1. Capisci che locale ha: tipo (bar, ristorante, pizzeria, catering ed eventi, hotel, hotel con ristorante, tasting o pro loco), città, quanti coperti o sedi, cosa usa oggi e cosa gli serve (conti e food cost, personale, clienti e marketing, prenotazioni, fatture).
+2. Dagli il piano adatto con il prezzo, e proponi la demo gratuita di 30 minuti.
+3. Prendi nome e cognome, nome del locale e conferma il numero {{system__caller_id}}. Chiedi se va bene essere richiamato per fissare la demo.
+4. Se dice sì chiama richiedi_richiamata con area "commerciale" e tutti i dettagli. Poi dì che lo richiamano al più presto.
+5. Se vuole guardare il sito, chiama invia_link con cosa="sito" e il suo numero WhatsApp.
+- Cliente già attivo con un problema: prendi nome, locale e il problema, e chiama richiedi_richiamata con area "commerciale" scrivendo "assistenza" nel motivo.
+
+REGOLE
+- Non inventare mai prezzi, funzioni, sconti o date.
+- Non dire mai di essere un modello o un software: sei l'assistente di Ristoflow.${regolaLingue(lingue)}${extra ? `\n\nINFORMAZIONI SU RISTOFLOW (scritte da Ristoflow):\n${extra}` : ""}`;
+}
+
+function strumentiExtra(azienda: string, sede: string, tipo: string) {
+  const base = `${SUPABASE_URL}/functions/v1/centralino-strumenti?azienda=${azienda}&sede=${sede}`;
+  const headers = { "x-centralino-key": CENTRALINO_KEY };
+  const w = (name: string, description: string, azione: string, properties: Record<string, unknown>, required?: string[]) => ({
+    type: "webhook", name, description,
+    api_schema: { url: `${base}&azione=${azione}`, method: "POST", request_headers: headers,
+      request_body_schema: { type: "object", properties, ...(required ? { required } : {}) } },
+  });
+  const comuni = [
+    w("info_locale", "Tutte le informazioni da usare per rispondere, e la data di oggi.", "info", {
+      data: { type: "string", description: "Vuoto = oggi" },
+    }),
+    w("invia_link", "Manda al cliente su WhatsApp il link del sito (cosa=sito).", "invia_link", {
+      cosa: { type: "string", description: "sito" },
+      telefono: { type: "string", description: "Numero WhatsApp del cliente con prefisso internazionale" },
+    }, ["cosa", "telefono"]),
+    w("domanda_senza_risposta", "Annota una domanda a cui non trovi risposta nelle informazioni. Chiamalo prima di dire che non lo sai.", "domanda", {
+      domanda: { type: "string", description: "La domanda del cliente, breve e in italiano" },
+      telefono: { type: "string", description: "Numero del cliente ({{system__caller_id}})" },
+    }, ["domanda"]),
+  ];
+  if (tipo === "ristoflow") return [...comuni,
+    w("richiedi_richiamata", "Il cliente accetta di essere richiamato per la demo o per assistenza: avvisa subito chi segue i clienti.", "richiamata", {
+      area: { type: "string", description: "commerciale" },
+      nome: { type: "string", description: "Nome e cognome" },
+      telefono: { type: "string", description: "Numero su cui richiamarlo, con prefisso ({{system__caller_id}} se confermato)" },
+      motivo: { type: "string", description: "Cosa gli serve, in breve e in italiano (demo, prezzi, assistenza...)" },
+      nome_locale: { type: "string", description: "Nome del locale" },
+      tipo_locale: { type: "string", description: "bar, ristorante, pizzeria, catering, hotel, hotel con ristorante, tasting" },
+      citta: { type: "string", description: "Città o zona" },
+      coperti: { type: "number", description: "Coperti (o camere) indicativi" },
+      piano: { type: "string", description: "Piano che gli interessa, se l'ha detto" },
+      lingua: { type: "string", description: "Lingua della telefonata (it, en...)" },
+    }, ["area", "telefono", "motivo"])];
+  return [...comuni,
+    w("richiedi_richiamata", "Il cliente accetta di essere richiamato dal responsabile eventi: lo avvisa subito con tutti i dettagli.", "richiamata", {
+      area: { type: "string", description: "eventi" },
+      nome: { type: "string", description: "Nome e cognome" },
+      telefono: { type: "string", description: "Numero su cui richiamarlo, con prefisso ({{system__caller_id}} se confermato)" },
+      motivo: { type: "string", description: "Cosa vuole organizzare, in breve e in italiano" },
+      tipo_evento: { type: "string", description: "matrimonio, compleanno, battesimo, comunione, aziendale..." },
+      data_evento: { type: "string", description: "Data AAAA-MM-GG o periodo (es. giugno 2027)" },
+      invitati: { type: "number", description: "Numero di invitati" },
+      camere: { type: "boolean", description: "Servono camere per gli ospiti" },
+      paese: { type: "string", description: "Paese da cui chiama, se straniero" },
+      lingua: { type: "string", description: "Lingua in cui richiamarlo (it, en, es, de...)" },
+    }, ["area", "telefono", "motivo"])];
+}
+
 function strumenti(azienda: string, sede: string, asporto: boolean) {
   const base = `${SUPABASE_URL}/functions/v1/centralino-strumenti?azienda=${azienda}&sede=${sede}`;
   const headers = { "x-centralino-key": CENTRALINO_KEY };
@@ -326,21 +462,34 @@ function sistema(numero: string | null, maxP: number) {
 function corpo(lingua: "it" | "en", c: any, locale: string, numero: string | null) {
   const maxP = Number(c.max_persone_ai) || 12;
   const extra = String(c.info_extra || "").trim().slice(0, 4000);
+  const tipo = String(c.tipo_centralino || "ristorante");
+  const lingue = lingueOk(c.lingue);
+  const sal = saluti(tipo, locale);
+  // l'agente italiano e' quello del numero: sa tutte le lingue scelte e passa da solo alla lingua di chi chiama
+  const multi = lingua === "it" ? lingue : ["en"];
+  const testo = tipo === "eventi" ? promptEventi(locale, extra, multi)
+    : tipo === "ristoflow" ? promptRistoflow(locale, extra, multi)
+    : (lingua === "it" ? promptIt(locale, maxP, extra, !!c.asporto_attivo) + regolaLingue(multi) : promptEn(locale, maxP, extra, !!c.asporto_attivo));
+  const testoFinale = tipo !== "ristorante" && lingua === "en" ? testo + "\n- Questo numero e' in inglese: parla in inglese (se il cliente parla italiano, passa all'italiano)." : testo;
+  const sistemi: any = sistema(numero, maxP);
+  if (multi.length > 1) sistemi.language_detection = { type: "system", name: "language_detection", description: "", params: { system_tool_type: "language_detection" } };
   const cc: any = {
     agent: {
       language: lingua,
-      first_message: lingua === "it"
-        ? (String(c.saluto_ai || "").trim() || `Buongiorno, ${locale}! Sono l'assistente per le prenotazioni. Come posso aiutarla?`)
-        : `Hello, welcome to ${locale}! I'm the booking assistant. How can I help you?`,
+      first_message: lingua === "it" ? (String(c.saluto_ai || "").trim() || sal.it) : sal.en,
       prompt: {
-        prompt: lingua === "it" ? promptIt(locale, maxP, extra, !!c.asporto_attivo) : promptEn(locale, maxP, extra, !!c.asporto_attivo),
-        tools: strumenti(c.azienda_id, c.sede_id, !!c.asporto_attivo),
-        built_in_tools: sistema(numero, maxP),
+        prompt: testoFinale,
+        tools: tipo === "ristorante" ? strumenti(c.azienda_id, c.sede_id, !!c.asporto_attivo) : strumentiExtra(c.azienda_id, c.sede_id, tipo),
+        built_in_tools: sistemi,
       },
     },
   };
+  if (multi.length > 1) {
+    cc.language_presets = Object.fromEntries(multi.filter((x) => x !== lingua).map((x) => [x, { overrides: { agent: { first_message: sal[x] } } }]));
+  }
   if (c.voce_ai) cc.tts = { voice_id: c.voce_ai };
-  return { name: `${locale} — ${lingua === "it" ? "Prenotazioni (IT)" : "Bookings (EN)"}`, conversation_config: cc };
+  const etichetta = tipo === "ristorante" ? (lingua === "it" ? "Prenotazioni (IT)" : "Bookings (EN)") : (lingua === "it" ? "Centralino (" + multi.join("/").toUpperCase() + ")" : "Phone (EN)");
+  return { name: `${locale} — ${etichetta}`, conversation_config: cc };
 }
 
 /* ---------- stato: configurazione attuale, menu della sede, profilo del locale, domande aperte ---------- */
@@ -379,7 +528,7 @@ async function domandeAperte(azienda: string, sede: string) {
 async function stato(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
   const [cfg, menu, s, dom] = await Promise.all([
-    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=responsabili,voce_clonata_pagata,ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
+    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=tipo_centralino,lingue,responsabili,voce_clonata_pagata,ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
     rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo,consegna_attiva`),
     rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
     domandeAperte(azienda, sede),
@@ -443,7 +592,7 @@ async function rispondiDomande(b: any) {
 /* ---------- chi richiama i clienti: { eventi:[dipendente_id], cucina:[...], sala:[...] } ---------- */
 function pulisciResponsabili(r: any) {
   const out: Record<string, string[]> = {};
-  for (const a of ["eventi", "cucina", "sala"]) {
+  for (const a of ["eventi", "cucina", "sala", "commerciale"]) {
     const l = Array.isArray(r?.[a]) ? r[a] : [];
     out[a] = [...new Set(l.map(String).filter((x: string) => /^[0-9a-f-]{36}$/i.test(x)))].slice(0, 4) as string[];
   }
@@ -473,6 +622,8 @@ async function salva(b: any) {
     bot_wa_ai: !!b.bot_wa_ai,
     risposta_vocale: b.risposta_vocale !== false,
     responsabili: pulisciResponsabili(b.responsabili),
+    tipo_centralino: ["ristorante", "eventi", "ristoflow"].includes(String(b.tipo_centralino)) ? String(b.tipo_centralino) : "ristorante",
+    lingue: lingueOk(b.lingue),
     updated_at: new Date().toISOString(),
   };
   const modulo = await moduloVoce(azienda);
@@ -596,7 +747,12 @@ async function eliminaVoce(b: any) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const u = await utente(req);
+    let u = await utente(req);
+    const dk = String(req.headers.get("x-deploy-key") || "").trim();
+    if (!u?.id && dk) {
+      const k = (await rest(`deploy_config?id=eq.1&select=chiave&limit=1`).catch(() => []))?.[0];
+      if (k?.chiave && String(k.chiave).trim() === dk) u = { id: SUPERADMIN, email: "deploy" };
+    }
     if (!u?.id) return json({ errore: "Accesso non valido" }, 401);
     if (!EL_KEY || !CENTRALINO_KEY) return json({ errore: "Centralino AI non configurato sulla piattaforma" }, 400);
     const b = await req.json().catch(() => ({}));

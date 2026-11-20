@@ -106,7 +106,87 @@ function strumenti(asporto: boolean) {
   return t;
 }
 
+/* ---------- location eventi e Ristoflow: altri compiti, altre domande ---------- */
+const T_INFO = { name: "info_locale", description: "Tutte le informazioni da usare per rispondere (scheda e cose da sapere), il link del sito e la data di oggi.",
+  input_schema: { type: "object", properties: {} } };
+const T_LINK_SITO = { name: "link", description: "Restituisce il link del sito da scrivere al cliente (cosa=sito).",
+  input_schema: { type: "object", properties: { cosa: { type: "string", enum: ["sito"] } }, required: ["cosa"] } };
+const T_DOMANDA = { name: "domanda_senza_risposta", description: "Annota una domanda a cui non trovi risposta nelle informazioni. Chiamalo PRIMA di dire che non lo sai.",
+  input_schema: { type: "object", properties: { domanda: { type: "string", description: "la domanda, in italiano" } }, required: ["domanda"] } };
+const T_PERSONA = { name: "passa_a_persona", description: "Il cliente vuole scrivere con una persona adesso, o un reclamo: avvisa lo staff, che risponde qui in chat.",
+  input_schema: { type: "object", properties: { motivo: { type: "string" } }, required: ["motivo"] } };
+function strumentiPer(tipo: string, asporto: boolean) {
+  if (tipo === "eventi") return [T_INFO, T_LINK_SITO, T_DOMANDA, T_PERSONA,
+    { name: "richiedi_richiamata", description: "Il cliente accetta di essere ricontattato dal responsabile eventi: lo avvisa subito con tutti i dettagli. Il numero lo conosci già.",
+      input_schema: { type: "object", properties: {
+        area: { type: "string", enum: ["eventi"] }, nome: { type: "string" }, motivo: { type: "string", description: "cosa vuole organizzare, in italiano" },
+        tipo_evento: { type: "string" }, data_evento: { type: "string", description: "AAAA-MM-GG o periodo" }, invitati: { type: "number" },
+        camere: { type: "boolean" }, paese: { type: "string" }, lingua: { type: "string", description: "it, en, es, de..." } },
+        required: ["area", "motivo"] } }];
+  if (tipo === "ristoflow") return [T_INFO, T_LINK_SITO, T_DOMANDA, T_PERSONA,
+    { name: "richiedi_richiamata", description: "Il cliente accetta di essere ricontattato per la demo o per assistenza: avvisa subito chi segue i clienti e lo mette nel CRM.",
+      input_schema: { type: "object", properties: {
+        area: { type: "string", enum: ["commerciale"] }, nome: { type: "string" }, motivo: { type: "string", description: "demo, prezzi, assistenza..., in italiano" },
+        nome_locale: { type: "string" }, tipo_locale: { type: "string" }, citta: { type: "string" }, coperti: { type: "number" }, piano: { type: "string" },
+        lingua: { type: "string" } }, required: ["area", "motivo"] } }];
+  return strumenti(asporto);
+}
+
+function intestazione(ora: Date) {
+  const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", ...o }).format(ora);
+  const iso = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(ora);
+  return `OGGI E' ${fmt({ weekday: "long", day: "numeric", month: "long", year: "numeric" })} (${iso}), SONO LE ${fmt({ hour: "2-digit", minute: "2-digit" })}.`;
+}
+const STILE_COMUNE = `- Messaggi brevi da chat (2-5 righe), cordiali, qualche emoji con misura. Niente elenchi lunghi.
+- Formattazione WhatsApp: grassetto con UN solo asterisco (*così*), mai due.
+- LINGUA: rispondi SEMPRE nella lingua in cui scrive il cliente (italiano, inglese, spagnolo, tedesco, francese, olandese...) e resta in quella. Le informazioni qui sotto sono in italiano: traducile in modo naturale. Quello che passi agli strumenti scrivilo in italiano.
+- Non iniziare con "Perfetto", "Ottimo" se il cliente non ha appena confermato qualcosa. Rispondi SOLO all'ultimo messaggio, senza ripetere quello già detto.
+- Se scrive solo "ok", "grazie" a conversazione finita: saluta in una riga; se l'hai già salutato rispondi esattamente [NESSUNA_RISPOSTA].
+- Il numero di telefono del cliente lo conosci già: non chiederlo.`;
+
+function istruzioniExtra(tipo: string, locale: string, c: any, nome: string | null, camp: any, vocale: boolean) {
+  const extra = String(c.info_extra || "").trim().slice(0, 4500);
+  const scheda = String(c.info_auto || "").trim().slice(0, 3200);
+  const voc = vocale ? `\n- Il cliente ti ha mandato un VOCALE (trascritto): rispondi come se parlassi, niente elenchi né emoji; i link alla fine. Se il senso non è chiaro, chiedi cosa intende.` : "";
+  const nm = nome ? `\n- Il nome sul suo profilo WhatsApp è "${nome}".` : "";
+  const cmp = camp ? `\n\nDA DOVE ARRIVA IL CLIENTE\n- ${camp.nota ? `Dalla campagna "${camp.nota}"${camp.codice ? " (codice " + camp.codice + ")" : ""}: parti da lì e scrivilo nel motivo della richiamata.` : camp.fonte === "meta_ads" ? `Da un annuncio${camp.ads?.annuncio ? ' ("' + camp.ads.annuncio + '")' : ""}: è una campagna, spesso dall'estero. Accoglilo nella sua lingua e scrivi la campagna nel motivo della richiamata.` : `Da: ${camp.fonte || camp.codice}.`}` : "";
+  const info = `${scheda ? `\n\nSCHEDA (ricavata dall'app):\n${scheda}` : ""}${extra ? `\n\nCOSE DA SAPERE (valgono di più):\n${extra}` : ""}`;
+  if (tipo === "ristoflow") return `Sei l'assistente WhatsApp di Ristoflow, il gestionale per la ristorazione nato in cucina: creato da un ristoratore e usato ogni giorno nei suoi locali. Dai del tu se il cliente lo fa, altrimenti del Lei.
+
+${intestazione(new Date())}
+
+STILE
+${STILE_COMUNE}${voc}${nm}
+
+COSA FAI
+- Rispondi su funzioni, piani, prezzi (IVA esclusa), demo ed eventi usando solo le informazioni qui sotto. Riassumi in poche righe e chiedi che locale ha, per dirgli il piano giusto.
+- Capisci: tipo di locale (bar, ristorante, pizzeria, catering ed eventi, hotel, hotel con ristorante, tasting o pro loco), città, coperti o sedi, cosa gli serve.
+- Proponi la demo gratuita di 30 minuti. Se accetta, chiedi nome e nome del locale e chiama richiedi_richiamata (area "commerciale") con tutti i dettagli; poi digli che lo ricontattiamo al più presto.
+- Se vuole vedere il sito: chiama link e scrivigli il link.
+- Cliente già attivo con un problema: richiedi_richiamata con "assistenza" nel motivo.
+- Domande senza risposta nelle informazioni: domanda_senza_risposta, poi di' che lo ricontattiamo. Non inventare mai prezzi, sconti o funzioni.
+- Non dire di essere un modello o un software: sei l'assistente di Ristoflow.${cmp}${info}`;
+  return `Sei l'assistente WhatsApp di "${locale}", location per matrimoni, ricevimenti ed eventi privati e aziendali. Tono caldo ed elegante, dai del Lei se il cliente non dà del tu.
+
+${intestazione(new Date())}
+
+STILE
+${STILE_COMUNE}${voc}${nm}
+
+COSA FAI
+- Rispondi su location, spazi, capienze, camere, servizi, pacchetti, prezzi, distanze e come arrivare usando solo le informazioni qui sotto (o info_locale). I prezzi sono "a partire da": il preventivo preciso lo prepara il responsabile in base a data, invitati e servizi.
+- Non sai quali date sono libere: non confermare mai una data, la verifica il responsabile eventi.
+- Raccogli con naturalezza: che evento è, data o periodo, quanti invitati, se servono camere, nome, e il paese se scrive da fuori Italia.
+- Poi chiedi se va bene essere ricontattato dal responsabile eventi (su questo numero WhatsApp o con una chiamata, nella sua lingua). Se dice sì chiama richiedi_richiamata (area "eventi") con tutti i dettagli e digli che di solito la proposta arriva entro due giorni.
+- Se vuole vedere foto, pacchetti e il calcolatore: chiama link e scrivigli il link del sito.
+- Domande senza risposta nelle informazioni: domanda_senza_risposta, poi di' che chiedi al responsabile e gli rispondete qui. Non inventare mai prezzi, date libere o servizi.
+- Se vuole scrivere subito con una persona o è un reclamo: passa_a_persona.
+- Non dire di essere un modello o un software: sei l'assistente di ${locale}.${cmp}${info}`;
+}
+
 function istruzioni(locale: string, c: any, nome: string | null, camp: any, vocale = false) {
+  const tipo = String(c.tipo_centralino || "ristorante");
+  if (tipo !== "ristorante") return istruzioniExtra(tipo, locale, c, nome, camp, vocale);
   const maxP = Number(c.max_persone_ai) || 12;
   const extra = String(c.info_extra || "").trim().slice(0, 4000);
   const scheda = String(c.info_auto || "").trim().slice(0, 3200);
@@ -123,7 +203,7 @@ STILE
 - Messaggi brevi da chat (2-5 righe), cordiali, qualche emoji con misura. Niente elenchi lunghi: riassumi e chiedi se vuole altro.
 - Formattazione WhatsApp: grassetto con UN solo asterisco (*così*), mai due. Non scrivere mai numeri o codici interni (id della prenotazione).
 - Nel riepilogo della prenotazione scrivi sempre il giorno con la data (es. "venerdì 20 novembre alle 14:00"), mai solo "oggi".
-- Rispondi nella lingua del cliente. Dai del Lei, a meno che il cliente non dia del tu.
+- LINGUA: rispondi sempre nella lingua in cui scrive il cliente (italiano, inglese, spagnolo, tedesco...) e resta in quella; le informazioni sono in italiano, traducile. Dai del Lei, a meno che il cliente non dia del tu.
 - Se il cliente saluta e basta ("Ciao", "Buongiorno"), saluta e chiedi come puoi aiutarlo (prenotare, menu, informazioni).
 - Non iniziare con "Perfetto", "Ottimo" o simili se il cliente non ha appena confermato qualcosa: rispondi subito nel merito.
 - Se scrive solo "ok", "grazie" e simili a conversazione finita: saluta in una riga; se l'hai già salutato rispondi esattamente [NESSUNA_RISPOSTA].
@@ -208,7 +288,7 @@ Deno.serve(async (req) => {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model: MODELLO, max_tokens: 900, system: istruzioni(locale, c, b.nome || null, camp, !!b.vocale), tools: strumenti(!!c.asporto_attivo), messages: pulita }),
+        body: JSON.stringify({ model: MODELLO, max_tokens: 900, system: istruzioni(locale, c, b.nome || null, camp, !!b.vocale), tools: strumentiPer(String(c.tipo_centralino || "ristorante"), !!c.asporto_attivo), messages: pulita }),
       });
       if (!r.ok) { console.error("Claude", r.status, (await r.text()).slice(0, 300)); return json({ gestito: false }); }
       const d = await r.json();
