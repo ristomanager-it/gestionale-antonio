@@ -217,7 +217,50 @@ export async function renderCentralinoAI(box) {
         <div style="font-size:12px;color:#64748b;margin-top:6px;">Il pulsante per parlare compare in basso a destra dello schermo.</div>`;
     }));
 
-    box.querySelector("#cai-mia")?.addEventListener("click", () => apriRegistrazione(box.querySelector("#cai-registra")));
+    // la voce del titolare e' a pagamento (una tantum): prima il pagamento, poi la registrazione
+    const pagata = () => superadmin || c.voce_clonata_pagata === true || !!c.voce_clonata_id;
+    box.querySelector("#cai-mia")?.addEventListener("click", async () => {
+      const pan = box.querySelector("#cai-registra");
+      if (pagata()) { apriRegistrazione(pan); return; }
+      pan.innerHTML = `<p class="h" style="margin-top:10px;">Controllo…</p>`;
+      const { data } = await supa().functions.invoke("centralino-agenti", { body: { azione: "stato", azienda_id: azienda.id, sede_id: sedeId } });
+      const prezzo = Number(data?.prezzo_voce_eur ?? 0);
+      if (data?.config?.voce_clonata_pagata || prezzo <= 0) { c.voce_clonata_pagata = true; apriRegistrazione(pan); return; }
+      const euro = prezzo.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+      pan.innerHTML = `<div style="margin-top:10px;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:12px 14px;">
+        <div style="font-weight:700;color:#9a3412;font-size:15px;">🎙️ La tua voce per il centralino — ${euro} una tantum</div>
+        <p class="h" style="margin:6px 0 10px;">Registri un minuto di lettura e il centralino risponde al telefono e ai vocali WhatsApp con la tua voce.
+          Paghi una volta sola: se vuoi, puoi registrarla di nuovo senza pagare ancora.</p>
+        <button type="button" id="cai-paga-voce" class="cai-btn" style="background:#9a3412;color:#fff;">Paga ${euro} e registra</button>
+        <div id="cai-paga-esito" style="font-size:12.5px;margin-top:8px;"></div></div>`;
+      pan.querySelector("#cai-paga-voce").addEventListener("click", async (ev) => {
+        const btn = ev.currentTarget; btn.disabled = true; btn.textContent = "Apro il pagamento…";
+        const ritorno = location.origin + location.pathname + (location.hash.split("?")[0] || "#/centralino-ai");
+        const { data: p, error } = await supa().functions.invoke("centralino-agenti", { body: { azione: "paga_voce", azienda_id: azienda.id, sede_id: sedeId, ritorno } });
+        if (error || !p?.ok) {
+          btn.disabled = false; btn.textContent = `Paga ${euro} e registra`;
+          pan.querySelector("#cai-paga-esito").innerHTML = `<span style="color:#b91c1c;">❌ ${esc(error ? await testoErrore(error) : p?.errore || "Errore")}</span>`;
+          return;
+        }
+        if (p.gratis) { c.voce_clonata_pagata = true; apriRegistrazione(pan); return; }
+        location.href = p.url;
+      });
+    });
+    // ritorno dal pagamento: aspetto la conferma di Stripe e apro la registrazione
+    if (/[?&]voce=pagata/.test(location.hash) && !pagata()) {
+      const pan = box.querySelector("#cai-registra");
+      if (pan) {
+        pan.innerHTML = `<p class="h" style="margin-top:10px;color:#16a34a;">✅ Pagamento ricevuto, attendo la conferma…</p>`;
+        (async () => {
+          for (let i = 0; i < 10; i++) {
+            const { data: cf } = await supa().from("centralino_config").select("voce_clonata_pagata").eq("azienda_id", azienda.id).eq("sede_id", sedeId).limit(1);
+            if (cf?.[0]?.voce_clonata_pagata) { c.voce_clonata_pagata = true; history.replaceState(null, "", location.href.replace(/[?&]voce=pagata/, "")); apriRegistrazione(pan); return; }
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+          pan.innerHTML = `<p class="h" style="margin-top:10px;color:#b45309;">Il pagamento è in arrivo: tra un minuto ricarica la pagina e premi «Usa la mia voce».</p>`;
+        })();
+      }
+    }
     box.querySelector("#cai-mia-elimina")?.addEventListener("click", async (ev) => {
       if (!confirm("Elimino la tua voce? Il centralino torna alla voce predefinita.")) return;
       const btn = ev.currentTarget; btn.disabled = true;

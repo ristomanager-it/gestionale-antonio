@@ -7,6 +7,7 @@
 // POST { azione: "elimina_voce", azienda_id, sede_id }        -> cancella la voce clonata del locale
 // POST { azione: "stato", azienda_id, sede_id, profilo? }     -> configurazione, menu, domande aperte (+ profilo del locale per Tony)
 // POST { azione: "impara", azienda_id, sede_id }             -> rifa' subito la scheda del locale (centralino-impara)
+// POST { azione: "paga_voce", azienda_id, sede_id }          -> pagamento Stripe una tantum per registrare la voce del titolare
 // POST { azione: "rispondi_domande", azienda_id, sede_id, risposte:[{id,risposta|ignora}] } -> le risposte entrano nelle info del locale
 // Il bot WhatsApp (bot_wa_ai) e' incluso nel piano; la voce al telefono e' il modulo a pagamento "centralino_voce".
 // Secrets: ELEVENLABS_API_KEY, CENTRALINO_KEY.
@@ -16,6 +17,59 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("M
 const EL_KEY = Deno.env.get("ELEVENLABS_API_KEY") ?? "";
 const CENTRALINO_KEY = Deno.env.get("CENTRALINO_KEY") ?? "";
 const SUPERADMIN = "5da91398-947a-4f13-bdaa-f2a593c03e54";
+
+function stripeKey(): string {
+  const env = Deno.env.toObject();
+  for (const k of ["STRIPE_SECRET_KEY", "STRIPE_API_KEY", "STRIPE_SK", "STRIPE_KEY"]) if (env[k] && String(env[k]).trim()) return String(env[k]).trim();
+  for (const [, v] of Object.entries(env)) if (typeof v === "string" && v.trim().startsWith("sk_")) return v.trim();
+  return "";
+}
+
+/* ---------- voce del titolare a pagamento: prima il pagamento (Stripe), poi la registrazione ---------- */
+async function prezzoVoce(): Promise<number> {
+  const p = (await rest(`centralino_prezzi?id=eq.1&select=prezzo_voce_eur`))?.[0];
+  return Number(p?.prezzo_voce_eur ?? 9.9) || 0;
+}
+async function vocePagata(azienda: string, sede: string, uid: string): Promise<boolean> {
+  if (uid === SUPERADMIN) return true;
+  if ((await prezzoVoce()) <= 0) return true;
+  const c = (await rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=voce_clonata_pagata,voce_clonata_id&limit=1`))?.[0];
+  return c?.voce_clonata_pagata === true || !!c?.voce_clonata_id; // chi l'aveva gia' prima del pagamento la puo' rifare
+}
+async function pagaVoce(b: any) {
+  const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
+  if (!(await moduloVoce(azienda))) return { errore: "La voce al telefono non è attiva per questo locale" };
+  const prezzo = await prezzoVoce();
+  if (prezzo <= 0) return { ok: true, gratis: true };
+  const SK = stripeKey();
+  if (!SK) return { errore: "Pagamenti non configurati" };
+  const [s, az] = await Promise.all([
+    rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
+    rest(`aziende?id=eq.${azienda}&select=nome&limit=1`),
+  ]);
+  if (!s?.[0]) return { errore: "Sede non trovata" };
+  const ritorno = String(b.ritorno || "https://app.ristoflow-ai.com/#/centralino-ai");
+  const f = new URLSearchParams();
+  f.set("mode", "payment");
+  f.set("success_url", ritorno + (ritorno.includes("?") ? "&" : "?") + "voce=pagata");
+  f.set("cancel_url", ritorno + (ritorno.includes("?") ? "&" : "?") + "voce=annullata");
+  f.set("client_reference_id", azienda);
+  f.set("line_items[0][quantity]", "1");
+  f.set("line_items[0][price_data][currency]", "eur");
+  f.set("line_items[0][price_data][unit_amount]", String(Math.round(prezzo * 100)));
+  f.set("line_items[0][price_data][product_data][name]", `Voce del locale — ${s[0].nome}`);
+  f.set("line_items[0][price_data][product_data][description]", "Registrazione e creazione della tua voce per il centralino: telefono e vocali WhatsApp.");
+  f.set("metadata[tipo]", "voce_clonata");
+  f.set("metadata[azienda_id]", azienda);
+  f.set("metadata[sede_id]", sede);
+  f.set("metadata[azienda_nome]", String(az?.[0]?.nome || ""));
+  const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST", headers: { Authorization: "Bearer " + SK, "Content-Type": "application/x-www-form-urlencoded" }, body: f.toString(),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) return { errore: d?.error?.message || ("Stripe " + r.status) };
+  return { ok: true, url: d.url, prezzo };
+}
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -306,12 +360,12 @@ async function domandeAperte(azienda: string, sede: string) {
 async function stato(b: any) {
   const azienda = String(b.azienda_id || ""), sede = String(b.sede_id || "");
   const [cfg, menu, s, dom] = await Promise.all([
-    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
+    rest(`centralino_config?azienda_id=eq.${azienda}&sede_id=eq.${sede}&select=voce_clonata_pagata,ai_attivo,bot_wa_ai,risposta_vocale,voce_ai,voce_ai_nome,voce_clonata_id,saluto_ai,info_extra,info_auto,info_auto_at,info_auto_fonti,numero_trasferimento,max_persone_ai,menu_id_voce,asporto_attivo,agente_it,agente_en,ai_aggiornato_at&limit=1`),
     rest(`menu?azienda_id=eq.${azienda}&sede_id=eq.${sede}&attivo=eq.true&select=id,nome,ordinabile,ritiro_attivo,consegna_attiva`),
     rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome&limit=1`),
     domandeAperte(azienda, sede),
   ]);
-  const out: any = { sede: s?.[0]?.nome || null, config: cfg?.[0] || null, menu_disponibili: menu || [], modulo_voce: await moduloVoce(azienda), domande_aperte: dom };
+  const out: any = { sede: s?.[0]?.nome || null, config: cfg?.[0] || null, menu_disponibili: menu || [], modulo_voce: await moduloVoce(azienda), domande_aperte: dom, prezzo_voce_eur: await prezzoVoce() };
   if (b.profilo) {
     out.profilo_locale = await profiloLocale(azienda, sede, menu || []);
     // per Tony la scheda deve essere fresca: se manca o ha piu' di un giorno la rifaccio adesso
@@ -457,6 +511,7 @@ async function clona(b: any, u: any) {
   if (b.consenso !== true) return { errore: "Serve il consenso di chi registra la propria voce" };
   const b64 = String(b.audio_base64 || "").split(",").pop() || "";
   if (b64.length < 120_000) return { errore: "Registrazione troppo corta: leggi tutto il testo (almeno un minuto)" };
+  if (!(await vocePagata(azienda, sede, u.id))) return { errore: "Prima va fatto il pagamento della voce", da_pagare: true };
   const s = (await rest(`sedi?id=eq.${sede}&azienda_id=eq.${azienda}&select=nome`))?.[0];
   if (!s) return { errore: "Sede non trovata" };
   const mime = String(b.mime || "audio/webm");
@@ -506,6 +561,11 @@ Deno.serve(async (req) => {
       let propria: string | null = null;
       if (b.azienda_id && b.sede_id) propria = (await rest(`centralino_config?azienda_id=eq.${b.azienda_id}&sede_id=eq.${b.sede_id}&select=voce_clonata_id&limit=1`))?.[0]?.voce_clonata_id || null;
       return json(await voci(propria));
+    }
+    if (b.azione === "paga_voce") {
+      if (!b.azienda_id || !b.sede_id) return json({ errore: "Servono azienda_id e sede_id" }, 400);
+      if (!(await puoGestire(u.id, b.azienda_id))) return json({ errore: "Solo l'admin del locale" }, 403);
+      return json(await pagaVoce(b));
     }
     if (["chiamate", "clona", "elimina_voce"].includes(b.azione)) {
       if (!b.azienda_id) return json({ errore: "Serve azienda_id" }, 400);
