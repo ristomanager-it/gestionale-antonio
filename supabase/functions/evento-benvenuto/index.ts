@@ -4,6 +4,7 @@
 // POST { azione: "prenotazione", id }         -> manda subito il messaggio di prenotazione (modello con pulsante "Ci sarò!")
 // POST { azione: "vocali" }                   -> manda i vocali programmati arrivati all'ora (cron ogni minuto)
 // POST { azione: "prova_vocale", id }         -> manda subito il vocale (per provare)
+// POST { azione: "anteprima_audio", nome?, codice? } -> crea il vocale in mp3 e restituisce il link per ascoltarlo
 // Il vocale si puo' mandare solo dentro le 24 ore da un messaggio della persona: lo programma centralino-bot
 // quando la persona tocca "Ci sarò!" o risponde (vocale_programmato_il = adesso + vocale_ritardo_min).
 
@@ -174,6 +175,25 @@ Deno.serve(async (req) => {
       const i = (await rest(`evento_iscrizioni?id=eq.${b.id}&select=*&limit=1`))?.[0];
       if (!i) return json({ errore: "iscrizione non trovata" }, 404);
       return json({ ok: true, testo: await vocale(i) });
+    }
+    if (b.azione === "anteprima_audio") {
+      // il vocale come lo sentira' l'invitato, in mp3 su un link pubblico (per ascoltarlo prima)
+      const cfg = await config();
+      const testo = await testoVocale({ nome: b.nome || "Marco", invito_codice: b.codice || null }, cfg);
+      const voce = (await rest(`centralino_config?sede_id=eq.${SEDE_RISTOFLOW}&select=voce_clonata_id,voce_ai&limit=1`))?.[0];
+      const voiceId = voce?.voce_clonata_id || voce?.voce_ai;
+      const tts = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+        method: "POST", headers: { "xi-api-key": EL_KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
+        body: JSON.stringify({ text: testo, model_id: "eleven_multilingual_v2", voice_settings: { stability: 0.45, similarity_boost: 0.85, style: 0.35 } }),
+      });
+      if (!tts.ok) return json({ errore: "voce " + tts.status + " " + (await tts.text()).slice(0, 200) }, 502);
+      const percorso = `evento/anteprima-vocale-${Date.now()}.mp3`;
+      const up = await fetch(`${SUPABASE_URL}/storage/v1/object/media-aziende/${percorso}`, {
+        method: "POST", headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "audio/mpeg", "x-upsert": "true" },
+        body: new Uint8Array(await tts.arrayBuffer()),
+      });
+      if (!up.ok) return json({ errore: "caricamento " + up.status + " " + (await up.text()).slice(0, 200) }, 502);
+      return json({ ok: true, testo, url: `${SUPABASE_URL}/storage/v1/object/public/media-aziende/${percorso}` });
     }
     if (b.azione === "anteprima_testo") {
       const cfg = await config();
