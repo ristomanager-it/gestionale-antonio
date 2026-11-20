@@ -316,7 +316,7 @@ REGOLE
 function promptRistoflow(l: string, extra: string, lingue: string[]) {
   return `Sei la voce che risponde al telefono di Ristoflow, il gestionale per la ristorazione nato in cucina: creato da un ristoratore e usato ogni giorno nei suoi locali. Tono amichevole e professionale, frasi brevi, dai del Lei finché il cliente non dà del tu.
 
-CHI CHIAMA: titolari e gestori di bar, ristoranti, pizzerie, catering, hotel, pro loco che vogliono informazioni, prezzi o una demo. Ogni tanto clienti già attivi che hanno bisogno di aiuto.
+CHI CHIAMA: titolari e gestori di bar, ristoranti, pizzerie, catering, hotel, pro loco che vogliono informazioni, prezzi o attivare Ristoflow. Ogni tanto clienti già attivi che hanno bisogno di aiuto.
 
 INFORMAZIONI
 - Per funzioni, piani, prezzi, demo ed eventi chiama info_locale e rispondi solo con quello che contiene (cose_da_sapere_dal_locale valgono di più). Prezzi IVA esclusa. Riassumi in due o tre frasi, poi chiedi che locale ha per dirgli il piano giusto.
@@ -324,8 +324,8 @@ INFORMAZIONI
 
 COSA FAI
 1. Capisci che locale ha: tipo (bar, ristorante, pizzeria, catering ed eventi, hotel, hotel con ristorante, tasting o pro loco), città, quanti coperti o sedi, cosa usa oggi e cosa gli serve (conti e food cost, personale, clienti e marketing, prenotazioni, fatture).
-2. Dagli il piano adatto con il prezzo, e proponi la demo gratuita di 30 minuti.
-3. Prendi nome e cognome, nome del locale e conferma il numero {{system__caller_id}}. Chiedi se va bene essere richiamato per fissare la demo.
+2. Dagli il piano adatto con il prezzo (mensile; annuale in un'unica soluzione -20%; annuale in 3 rate nei primi 3 mesi -10%). Le demo non si fanno: a chi attiva il pacchetto facciamo la formazione online, per lui e per il suo staff.
+3. Prendi nome e cognome, nome del locale e conferma il numero {{system__caller_id}}. Chiedi se va bene essere richiamato per attivare il pacchetto.
 4. Se dice sì chiama richiedi_richiamata con area "commerciale" e tutti i dettagli. Poi dì che lo richiamano al più presto.
 5. Se vuole guardare il sito, chiama invia_link con cosa="sito" e il suo numero WhatsApp.
 - Cliente già attivo con un problema: prendi nome, locale e il problema, e chiama richiedi_richiamata con area "commerciale" scrivendo "assistenza" nel motivo.
@@ -357,11 +357,11 @@ function strumentiExtra(azienda: string, sede: string, tipo: string) {
     }, ["domanda"]),
   ];
   if (tipo === "ristoflow") return [...comuni,
-    w("richiedi_richiamata", "Il cliente accetta di essere richiamato per la demo o per assistenza: avvisa subito chi segue i clienti.", "richiamata", {
+    w("richiedi_richiamata", "Il cliente accetta di essere richiamato per attivare il pacchetto o per assistenza: avvisa subito chi segue i clienti.", "richiamata", {
       area: { type: "string", description: "commerciale" },
       nome: { type: "string", description: "Nome e cognome" },
       telefono: { type: "string", description: "Numero su cui richiamarlo, con prefisso ({{system__caller_id}} se confermato)" },
-      motivo: { type: "string", description: "Cosa gli serve, in breve e in italiano (demo, prezzi, assistenza...)" },
+      motivo: { type: "string", description: "Cosa gli serve, in breve e in italiano (attivazione, prezzi, assistenza...)" },
       nome_locale: { type: "string", description: "Nome del locale" },
       tipo_locale: { type: "string", description: "bar, ristorante, pizzeria, catering, hotel, hotel con ristorante, tasting" },
       citta: { type: "string", description: "Città o zona" },
