@@ -288,6 +288,11 @@ function renderRigaAzienda(az, parent) {
         </select>
         <input type="date" class="input inp-scadenza" value="${az.data_scadenza||''}" placeholder="Scadenza" style="max-width:160px;">
         <button class="btn-salva-piano app-button small primary">Salva piano</button>
+        <select class="input sel-formula" style="max-width:210px;" title="Come paga il cliente con Stripe">
+          <option value="mensile">Stripe: mensile</option>
+          <option value="annuale">Stripe: annuale unico (-20%)</option>
+          <option value="3rate">Stripe: annuale in 3 rate (-10%)</option>
+        </select>
         <button class="btn-attiva-stripe app-button small" style="background:#635bff;color:#fff;">⚡ Attiva con Stripe</button>
         <button class="btn-portale-stripe app-button small" style="background:#f1f5f9;color:#374151;">🔗 Portale cliente</button>
         <button class="btn-attiva-manuale app-button small" style="background:#059669;color:#fff;">✅ Attiva manualmente</button>
@@ -479,7 +484,7 @@ function renderRigaAzienda(az, parent) {
     btn.disabled = true; btn.textContent = 'Caricamento...';
     try {
       const { data, error } = await supabase.functions.invoke('ristoflow-crea-abbonamento', {
-        body: { azienda_id: az.id, piano_id: pianoId }
+        body: { azienda_id: az.id, piano_id: pianoId, formula: riga.querySelector('.sel-formula')?.value || 'mensile' }
       });
       if (error || !data?.url) throw new Error(error?.message || 'Errore creazione checkout');
       // Mostra modal con link da inviare al cliente
