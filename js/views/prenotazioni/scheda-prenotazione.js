@@ -387,6 +387,11 @@ export async function render(container) {
         </div>
       </div>
 
+      <div class="pren-det-card" id="pren-valutazione-card">
+        <div class="pren-det-section-title">Il cliente (solo staff)</div>
+        <div id="pren-valutazione" style="font-size:13px;color:#94a3b8;">Carico…</div>
+      </div>
+
       <div class="pren-det-card" id="pren-gruppo-card">
         <div class="pren-det-section-title">👥 Gruppo e tavolo</div>
         <div id="pren-gruppo-box" style="font-size:13px;color:#94a3b8;">Carico…</div>
@@ -507,6 +512,11 @@ export async function render(container) {
     bindFormEvents();
     caricaMenuCollegato();
     caricaMessaggiInviati();
+    // valutazione interna del cliente: avviso, storico e "Valuta il cliente" (resta dentro l'azienda)
+    import("../../utils/valutazione-cliente.js?v=" + (window.APP_V || "")).then((m) => m.montaValutazioneCliente(container.querySelector("#pren-valutazione"), {
+      aziendaId: p.azienda_id || aziendaId, sedeId: p.sede_id || null, telefono: telefono,
+      nome: buildClientName(p), prenotazioneId: p.id || prenotazioneId,
+    })).catch(() => { const b = container.querySelector("#pren-valutazione"); if (b) b.textContent = ""; });
     caricaPagamenti();
     caricaGruppo();
   }
