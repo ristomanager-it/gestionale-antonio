@@ -1088,7 +1088,20 @@ const richiesteBtn = document.getElementById("pren-richieste-trigger");
       html += `<div class="pren-gruppo"><div class="pren-gruppo-head">👥 ${escapeHtml(g)} · un tavolo · ${pers} persone · ${membri.length} conti</div>`
         + membri.map((x) => renderRow(Object.assign({}, x, { _nelGruppo: true }))).join("") + `</div>`;
     });
+    // avvisi interni sui clienti (no-show, non pagato...): si riempiono dopo, senza rallentare l'elenco
+    setTimeout(riempiAvvisiClienti, 0);
     return html;
+  }
+
+  async function riempiAvvisiClienti() {
+    const spans = Array.from(document.querySelectorAll(".pren-avviso[data-tel]:not([data-ok])"));
+    if (!spans.length) return;
+    spans.forEach((x) => x.setAttribute("data-ok", "1"));
+    try {
+      const m = await import("../../utils/valutazione-cliente.js?v=" + (window.APP_V || ""));
+      const av = await m.caricaAvvisi(window.state?.azienda?.id, spans.map((x) => x.dataset.tel));
+      spans.forEach((x) => { const r = av[x.dataset.tel]; if (r) x.innerHTML = m.badgeAvviso(r); });
+    } catch (e) { /* gli avvisi sono un aiuto: senza, l'elenco funziona uguale */ }
   }
 
   function apriConto(id) {
@@ -1586,7 +1599,7 @@ if (onlineModal.classList.contains("open")) {
 
           <div class="pren-main">
             <div class="pren-name cliente-link" data-id="${escapeAttribute(p.contatto_id || "")}">
-              ${escapeHtml(nome)}
+              ${escapeHtml(nome)}<span class="pren-avviso" data-tel="${escapeAttribute(String(telefono).replace(/\D/g, "").slice(-10))}"></span>
             </div>
             ${tag}
             ${p.gruppo_tavolo && !p._nelGruppo ? `<div style="font-size:12px;color:#475569;margin-top:2px;">👥 ${escapeHtml(p.gruppo_tavolo)}</div>` : ""}
