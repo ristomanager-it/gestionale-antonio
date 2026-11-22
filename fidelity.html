@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Tessera Fidelity</title>
   <link rel="manifest" href="/manifest.json"/>
-  <meta name="theme-color" content="#0E5A7A"/>
+  <meta name="theme-color" content="#12302C"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <link rel="apple-touch-icon" href="/assets/favicon-192.png"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;600;700;800&display=swap"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{--brand:#0E5A7A;--brand-light:#e8f4f8;}
@@ -120,78 +119,153 @@
       body{display:flex;flex-direction:column;align-items:center;}
     }
 
-    /* ── RESTYLE PREMIUM TESSERA (stile sito) ─────────────────── */
-    body{background:#f6f5f2;}
-    .tessera-card{
-      background:linear-gradient(140deg,#161d27,#243040 60%,#2b3950);
-      border:1px solid rgba(201,163,90,.35);
-      box-shadow:0 14px 40px rgba(20,26,35,.35);
+    /* ══════════ RISTOFLOWBOOK — app del cliente (22/11/2026) ══════════
+       Palette fissa RistoflowBook: il nome del locale sta in testata, i colori restano quelli dell'app,
+       cosi' passando da un locale all'altro il cliente non si perde. */
+    :root{
+      --rb-carta:#FBF8F2; --rb-scuro:#12302C; --rb-accento:#C9832E; --rb-accento-testo:#8A5414;
+      --rb-bordo:#E8E1D4; --rb-testo:#1D2422; --rb-testo2:#5D635F; --rb-oro:#e9d3a3;
+      --rb-serif:'Fraunces',Georgia,serif; --rb-sans:'Manrope',system-ui,-apple-system,sans-serif;
     }
-    .tessera-card::before{background:rgba(201,163,90,.08);}
-    .tessera-card::after{background:rgba(255,255,255,.04);}
-    .tessera-livello{background:rgba(201,163,90,.22);border:1px solid rgba(201,163,90,.5);color:#e9d3a3;}
-    .tessera-locale{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:600;opacity:.85;letter-spacing:.5px;}
-    .tessera-nome{font-family:'Playfair Display',Georgia,serif;font-weight:700;}
-    .tessera-punti{font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#e9d3a3;}
-    .tessera-network{color:#e9d3a3;opacity:.5;}
-    .section{border:1px solid rgba(0,0,0,.07);border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.04);}
-    .btn-full{border-radius:999px;font-weight:700;font-size:14.5px;letter-spacing:.3px;}
-    .btn-install{background:#1f2733;color:#e9d3a3;box-shadow:0 3px 14px rgba(31,39,51,.3);}
-    .livello-step.active{background:#c9a35a;}
-    .offerta-badge{border-radius:999px;}
-
-    /* ── MINI-APP: ICONE + PANNELLI + SOCIAL ── */
-    .icone-app{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 16px 8px;}
-    .icona-app{border:none;background:#fff;border-radius:16px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid rgba(0,0,0,.07);box-shadow:0 2px 10px rgba(0,0,0,.04);}
-    .icona-app .ic{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--brand-light);}
-    .icona-app .lb{font-size:10.5px;font-weight:800;color:#374151;}
-    .pane-head{position:sticky;top:0;z-index:50;background:rgba(246,245,242,.94);backdrop-filter:blur(8px);display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(0,0,0,.06);}
-    .pane-head button{border:none;background:#fff;border-radius:999px;width:34px;height:34px;font-size:16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08);}
-    .pane-head .tt{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;}
-    .tab-pane{display:none;}
-    .tab-pane.attivo{display:block;}
-    /* stories */
-    .stories-row{display:flex;gap:12px;overflow-x:auto;padding:14px 16px 6px;scrollbar-width:none;}
-    .stories-row::-webkit-scrollbar{display:none;}
-    .story-c{flex:0 0 auto;width:64px;text-align:center;cursor:pointer;}
-    .story-c .cerchio{width:60px;height:60px;border-radius:50%;padding:2.5px;background:linear-gradient(45deg,#f0a13c,#e0577b,#a44fd0);}
-    .story-c .cerchio.mia{background:#d1d5db;}
-    .story-c img,.story-c .plus{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #fff;display:block;background:#fff;}
-    .story-c .plus{display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--brand);font-weight:800;}
-    .story-c .nm{font-size:9.5px;font-weight:700;color:#374151;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .invito-card{margin:10px 16px;background:linear-gradient(135deg,var(--brand),#1c2430);border-radius:16px;padding:16px;color:#fff;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.18);}
-    .invito-card .em{font-size:28px;}
-    .invito-card b{font-size:14.5px;display:block;}
-    .invito-card span{font-size:12px;opacity:.85;}
-    /* feed (come prima) */
-    .feed-card{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:16px;margin:12px 16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);}
-    .feed-head{display:flex;align-items:center;gap:10px;padding:12px 14px 10px;}
-    .feed-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;background:#1f2733;flex-shrink:0;}
-    .feed-av.locale{background:var(--brand);}
-    .feed-nome{font-size:13.5px;font-weight:800;color:#111827;}
-    .feed-sub{font-size:11px;color:#94a3b8;}
-    .feed-media{width:100%;max-height:440px;object-fit:cover;display:block;background:#f1f5f9;}
-    .feed-testo{padding:10px 14px 4px;font-size:13.5px;line-height:1.55;color:#1f2733;}
-    .feed-stelle{color:#e0a93e;font-size:14px;letter-spacing:1px;padding:8px 14px 0;}
-    .feed-azioni{display:flex;gap:14px;padding:10px 14px 12px;align-items:center;}
-    .feed-reaz{border:none;background:#f8fafc;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;font-weight:700;color:#374151;}
-    .feed-reaz.fatta{background:var(--brand-light);color:var(--brand);}
-    .stelle-sel{display:flex;gap:6px;font-size:26px;cursor:pointer;user-select:none;}
-    .stelle-sel span{color:#d1d5db;transition:color .1s;}
-    .stelle-sel span.on{color:#e0a93e;}
-    /* trip */
-    .trip-card{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:16px;margin:12px 16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);}
-    .trip-cover{width:100%;height:140px;object-fit:cover;display:block;background:linear-gradient(135deg,#243447,#0E5A7A);}
-    .trip-body{padding:12px 14px;display:flex;gap:10px;align-items:flex-start;}
-    .trip-logo{width:44px;height:44px;border-radius:12px;object-fit:cover;border:1px solid rgba(0,0,0,.08);flex-shrink:0;background:#f1f5f9;}
-    .trip-nome{font-family:'Playfair Display',Georgia,serif;font-size:16.5px;font-weight:700;}
-    .trip-sub{font-size:11.5px;color:#7a8494;margin-top:1px;}
-    .trip-voto{font-size:12.5px;margin-top:5px;color:#374151;}
-    .trip-voto .st{color:#e0a93e;letter-spacing:1px;}
-    /* story viewer */
-    .story-view{position:fixed;inset:0;background:#000;z-index:990;display:flex;align-items:center;justify-content:center;}
-    .story-view img{max-width:100%;max-height:100%;}
-    .story-view .sv-head{position:absolute;top:0;left:0;right:0;padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);}
+    body.rb-on{background:var(--rb-carta);font-family:var(--rb-sans);font-size:16px;color:var(--rb-testo);display:block;}
+    .rb{max-width:520px;margin:0 auto;min-height:100vh;background:var(--rb-carta);padding-bottom:calc(110px + env(safe-area-inset-bottom));position:relative;}
+    .rb button{font-family:inherit;}
+    /* testata */
+    .rb-top{position:sticky;top:0;z-index:60;background:rgba(251,248,242,.96);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 8px 18px;}
+    .rb-top .nome{font:700 25px/1.15 var(--rb-serif);color:var(--rb-scuro);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .rb-top .interna{display:flex;align-items:center;gap:6px;flex:1;min-width:0;font:700 22px var(--rb-serif);color:var(--rb-scuro);margin-left:-10px;}
+    .rb-ico{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:12px;border:none;background:transparent;cursor:pointer;color:var(--rb-scuro);}
+    .rb-ico svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    /* storie */
+    .rb-storie{display:flex;gap:14px;overflow-x:auto;padding:6px 16px 14px;scrollbar-width:none;}
+    .rb-storie::-webkit-scrollbar{display:none;}
+    .rb-storia{flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;position:relative;background:none;border:none;padding:0;}
+    .rb-anello{width:68px;height:68px;border-radius:50%;padding:3px;background:conic-gradient(var(--rb-accento),#e3b36a,var(--rb-scuro),var(--rb-accento));}
+    .rb-anello.visto{background:#cfc8bb;}
+    .rb-anello.mia{background:var(--rb-bordo);}
+    .rb-anello img,.rb-anello .vuoto{width:100%;height:100%;border-radius:50%;border:3px solid var(--rb-carta);object-fit:cover;display:block;background:#ddd5c6;}
+    .rb-storia .lbl{font-size:13px;color:var(--rb-testo2);width:74px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .rb-storia .piu{position:absolute;right:2px;top:46px;width:24px;height:24px;border-radius:50%;background:var(--rb-accento);color:var(--rb-testo);font-weight:800;font-size:18px;line-height:20px;text-align:center;border:2px solid var(--rb-carta);}
+    /* copertina */
+    .rb-cover{aspect-ratio:16/9;width:100%;background:linear-gradient(160deg,#6d5a3f,#a8834f 45%,#2c3b33);position:relative;overflow:hidden;}
+    .rb-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+    .rb-prof{display:flex;align-items:flex-start;gap:12px;padding:0 18px;margin-top:-46px;position:relative;}
+    .rb-logo{width:92px;height:92px;flex:none;border-radius:50%;border:4px solid var(--rb-carta);background:radial-gradient(circle at 35% 35%,#2d5a52,var(--rb-scuro));color:var(--rb-oro);font:700 32px var(--rb-serif);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+    .rb-logo img{width:100%;height:100%;object-fit:cover;background:#fff;}
+    .rb-prof .info{padding-top:52px;min-width:0;}
+    .rb-prof h2{font:700 22px/1.2 var(--rb-serif);color:var(--rb-scuro);}
+    .rb-prof p{font-size:15px;color:var(--rb-testo2);}
+    .rb-azioni{display:flex;gap:10px;padding:14px 18px 4px;}
+    .rb-btn{min-height:48px;border-radius:14px;border:1px solid var(--rb-bordo);background:#fff;font:700 16px var(--rb-sans);color:var(--rb-scuro);padding:0 18px;display:flex;align-items:center;justify-content:center;gap:8px;flex:1;cursor:pointer;text-decoration:none;text-align:center;}
+    .rb-btn.pieno{background:var(--rb-accento);border-color:var(--rb-accento);color:var(--rb-testo);}
+    .rb-btn.scuro{background:var(--rb-scuro);border-color:var(--rb-scuro);color:#fff;}
+    .rb-btn:disabled{opacity:.6;}
+    .rb-btn.full{width:100%;flex:none;}
+    /* striscia tessera */
+    .rb-tess{margin:12px 18px 0;border-radius:18px;background:var(--rb-scuro);color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer;border:none;width:calc(100% - 36px);text-align:left;}
+    .rb-tess .pt{font:700 30px/1 var(--rb-serif);color:var(--rb-oro);}
+    .rb-tess small{display:block;font-size:15px;opacity:.85;margin-top:5px;}
+    .rb-tess .liv{font-size:14px;font-weight:800;border:1px solid rgba(233,211,163,.5);color:var(--rb-oro);border-radius:999px;padding:7px 12px;white-space:nowrap;}
+    /* card in evidenza */
+    .rb-evid{margin:16px 18px 0;border:1px solid var(--rb-bordo);border-radius:18px;background:#fff;overflow:hidden;}
+    .rb-evid .bd{padding:16px;}
+    .rb-et{font:800 12px var(--rb-sans);letter-spacing:.08em;color:var(--rb-accento-testo);text-transform:uppercase;}
+    .rb-evid h3{font:700 21px/1.25 var(--rb-serif);color:var(--rb-scuro);margin:5px 0 6px;}
+    .rb-evid p{font-size:16px;color:var(--rb-testo2);margin-bottom:12px;line-height:1.45;}
+    /* feed */
+    .rb-post{margin-top:18px;background:#fff;border-top:1px solid var(--rb-bordo);border-bottom:1px solid var(--rb-bordo);}
+    .rb-post .hd{display:flex;align-items:center;gap:10px;padding:12px 16px;}
+    .rb-av{width:42px;height:42px;flex:none;border-radius:50%;background:#7d8f84;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;}
+    .rb-av.loc{background:var(--rb-scuro);color:var(--rb-oro);}
+    .rb-post .hd b{font-size:16px;}
+    .rb-post .hd span{display:block;font-size:14px;color:var(--rb-testo2);}
+    .rb-verif{color:var(--rb-accento-testo);font-size:14px;font-weight:700;}
+    .rb-post .foto{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:#efe8da;}
+    .rb-post .tx{padding:10px 16px 4px;font-size:16px;line-height:1.5;white-space:pre-line;}
+    .rb-stelle{color:var(--rb-accento);letter-spacing:2px;font-size:18px;padding:10px 16px 0;}
+    .rb-reaz{display:flex;gap:8px;padding:10px 12px 14px;}
+    .rb-reaz button{min-height:46px;min-width:64px;border-radius:23px;border:1px solid var(--rb-bordo);background:var(--rb-carta);font-size:16px;font-weight:700;color:var(--rb-testo);cursor:pointer;}
+    .rb-reaz button.fatta{background:#f3e4cd;border-color:var(--rb-accento);}
+    .rb-vuoto{text-align:center;padding:40px 30px;color:var(--rb-testo2);font-size:16px;}
+    /* barra in basso */
+    .rb-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));width:calc(100% - 24px);max-width:496px;height:72px;border-radius:26px;background:var(--rb-scuro);display:flex;align-items:center;justify-content:space-around;padding:0 4px;z-index:70;box-shadow:0 8px 28px rgba(18,48,44,.35);}
+    .rb-bar button{display:flex;flex-direction:column;align-items:center;gap:3px;color:#c9d3cf;font-size:12px;font-weight:700;width:64px;min-height:56px;justify-content:center;background:none;border:none;cursor:pointer;position:relative;}
+    .rb-bar button svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .rb-bar button.on{color:#fff;}
+    .rb-bar button.on::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--rb-accento);position:absolute;bottom:-2px;}
+    .rb-bar .centrale{width:68px;height:68px;border-radius:50%;background:var(--rb-accento);margin-top:-34px;border:5px solid var(--rb-carta);color:var(--rb-testo);min-height:0;}
+    .rb-bar .centrale svg{width:30px;height:30px;stroke-width:2.6;}
+    .rb-bar .centrale.on::after{display:none;}
+    /* menu laterale */
+    .rb-velo{position:fixed;inset:0;background:rgba(18,48,44,.45);z-index:80;opacity:0;pointer-events:none;transition:opacity .2s;}
+    .rb-drawer{position:fixed;top:0;right:0;bottom:0;width:min(84vw,380px);background:var(--rb-carta);z-index:81;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;padding:calc(14px + env(safe-area-inset-top)) 0 30px;box-shadow:-8px 0 30px rgba(0,0,0,.2);}
+    .rb-menu-aperto .rb-velo{opacity:1;pointer-events:auto;}
+    .rb-menu-aperto .rb-drawer{transform:none;}
+    .rb-drawer .tt{display:flex;justify-content:space-between;align-items:center;padding:0 8px 6px 22px;font:700 21px var(--rb-serif);color:var(--rb-scuro);}
+    .rb-gr{font:800 12px var(--rb-sans);letter-spacing:.1em;color:var(--rb-testo2);text-transform:uppercase;padding:16px 22px 6px;}
+    .rb-voce{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0 22px;font:600 17px var(--rb-sans);color:var(--rb-testo);background:none;border:none;text-align:left;cursor:pointer;text-decoration:none;}
+    .rb-voce.on{background:#efe8da;color:var(--rb-scuro);font-weight:800;border-left:4px solid var(--rb-accento);padding-left:18px;}
+    .rb-voce .mini{width:32px;height:32px;flex:none;border-radius:50%;background:var(--rb-scuro);overflow:hidden;}
+    .rb-voce .mini img{width:100%;height:100%;object-fit:cover;}
+    .rb-voce .mini.tutti{background:conic-gradient(var(--rb-scuro) 0 50%,var(--rb-accento) 0);}
+    /* pagine interne */
+    .rb-sez{padding:6px 18px 10px;}
+    .rb-lab{font:800 12px var(--rb-sans);letter-spacing:.1em;text-transform:uppercase;color:var(--rb-testo2);margin:18px 0 8px;}
+    .rb-campo{width:100%;min-height:52px;border:1px solid var(--rb-bordo);border-radius:14px;background:#fff;padding:13px 14px;font:16px var(--rb-sans);color:var(--rb-testo);outline:none;}
+    .rb-campo:focus{border-color:var(--rb-accento);}
+    textarea.rb-campo{resize:vertical;}
+    .rb-foto-box{width:100%;aspect-ratio:1/1;border-radius:18px;border:2px dashed #cfc8bb;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--rb-testo2);font-size:17px;font-weight:700;cursor:pointer;overflow:hidden;padding:0;}
+    .rb-foto-box img{width:100%;height:100%;object-fit:cover;}
+    .rb-foto-box svg{width:44px;height:44px;stroke:var(--rb-testo2);fill:none;stroke-width:1.8;}
+    .rb-stelle-sel{display:flex;gap:4px;}
+    .rb-stelle-sel button{width:52px;height:52px;border:none;background:none;font-size:38px;color:#d8d0c1;cursor:pointer;padding:0;}
+    .rb-stelle-sel button.on{color:var(--rb-accento);}
+    .rb-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+    .rb-chips::-webkit-scrollbar{display:none;}
+    .rb-chips.a-capo{flex-wrap:wrap;overflow:visible;}
+    .rb-chip{flex:none;min-width:64px;height:66px;border-radius:14px;border:1px solid var(--rb-bordo);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;color:var(--rb-testo2);cursor:pointer;}
+    .rb-chip b{font-size:20px;color:var(--rb-testo);}
+    .rb-chip.ora{height:50px;min-width:80px;font-size:17px;font-weight:700;color:var(--rb-testo);}
+    .rb-chip.on{background:var(--rb-scuro);border-color:var(--rb-scuro);color:#cfd8d4;}
+    .rb-chip.on b,.rb-chip.ora.on{color:#fff;}
+    .rb-conta{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--rb-bordo);border-radius:14px;background:#fff;padding:6px;}
+    .rb-conta b{font:700 26px var(--rb-serif);}
+    .rb-conta button{width:52px;height:52px;border-radius:12px;border:none;background:#efe8da;font-size:26px;color:var(--rb-scuro);cursor:pointer;}
+    .rb-msg{text-align:center;font-size:16px;min-height:22px;margin-top:10px;font-weight:600;}
+    .rb-nota{font-size:15px;color:var(--rb-accento-testo);font-weight:700;margin-top:12px;}
+    .rb-riga{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--rb-bordo);font-size:16px;}
+    .rb-riga:last-child{border:none;}
+    .rb-box{border:1px solid var(--rb-bordo);border-radius:16px;background:#fff;padding:4px 16px;margin-top:8px;}
+    .rb-ist h4{font:700 20px var(--rb-serif);color:var(--rb-scuro);margin:22px 0 6px;}
+    .rb-ist p{font-size:16px;line-height:1.55;}
+    .rb-nov b{display:block;font-size:14px;color:var(--rb-accento-testo);}
+    .rb-loc{margin:14px 18px 0;border:1px solid var(--rb-bordo);border-radius:18px;background:#fff;overflow:hidden;}
+    .rb-loc .cv{aspect-ratio:16/9;width:100%;object-fit:cover;display:block;background:linear-gradient(135deg,#2c3b33,#a8834f);}
+    .rb-loc .bd{padding:14px 16px;display:flex;gap:12px;align-items:center;}
+    .rb-loc h3{font:700 19px var(--rb-serif);color:var(--rb-scuro);}
+    .rb-loc p{font-size:15px;color:var(--rb-testo2);}
+    .rb-tcard{margin:14px 18px 0;border-radius:22px;background:linear-gradient(140deg,#0d2421,var(--rb-scuro) 60%,#1d4640);color:#fff;padding:22px;position:relative;overflow:hidden;}
+    .rb-tcard .loc{font:italic 600 16px var(--rb-serif);opacity:.85;}
+    .rb-tcard .nm{font:700 23px var(--rb-serif);margin:4px 0 16px;}
+    .rb-tcard .pt{font:700 46px/1 var(--rb-serif);color:var(--rb-oro);}
+    .rb-tcard .liv{position:absolute;top:20px;right:20px;font-size:14px;font-weight:800;border:1px solid rgba(233,211,163,.5);color:var(--rb-oro);border-radius:999px;padding:7px 12px;}
+    .rb-livbar{display:flex;gap:6px;margin:10px 0 6px;}
+    .rb-livbar i{flex:1;height:8px;border-radius:4px;background:var(--rb-bordo);}
+    .rb-livbar i.on{background:var(--rb-accento);}
+    /* visualizzatore storie */
+    .rb-sv{position:fixed;inset:0;background:#000;z-index:200;display:flex;align-items:center;justify-content:center;}
+    .rb-sv img{max-width:100%;max-height:100%;object-fit:contain;}
+    .rb-sv .barre{position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:4px;}
+    .rb-sv .barre i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.35);overflow:hidden;}
+    .rb-sv .barre i b{display:block;height:100%;width:0;background:#fff;}
+    .rb-sv .barre i.ok b{width:100%;}
+    .rb-sv .barre i.va b{animation:rbsv 5s linear forwards;}
+    @keyframes rbsv{to{width:100%;}}
+    .rb-sv .hd{position:absolute;top:calc(20px + env(safe-area-inset-top));left:0;right:0;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;color:#fff;z-index:2;}
+    .rb-sv .hd b{font-size:16px;}.rb-sv .hd span{font-size:14px;opacity:.8;}
+    .rb-sv .hd .rb-ico{margin-left:auto;color:#fff;}
+    .rb-sv .zona{position:absolute;top:80px;bottom:0;width:50%;z-index:1;}
+    .rb-sv .tx{position:absolute;bottom:0;left:0;right:0;padding:24px 18px calc(24px + env(safe-area-inset-bottom));color:#fff;font-size:17px;background:linear-gradient(0deg,rgba(0,0,0,.65),transparent);}
   </style>
 </head>
 <body>
@@ -257,8 +331,8 @@
           start_url: startUrl,
           scope: window.location.origin + "/",
           display: "standalone",
-          background_color: "#161d27",
-          theme_color: brand || "#0E5A7A",
+          background_color: "#FBF8F2",
+          theme_color: "#12302C",
           icons: [
             { src: icona, sizes: "192x192", type: "image/png", purpose: "any" },
             { src: icona, sizes: "512x512", type: "image/png", purpose: "any maskable" }
@@ -271,175 +345,297 @@
       } catch(e) { /* fallback: manifest statico */ }
     }
 
-    // ══════════ MINI-APP: TESSERA HOME + ICONE + SOCIAL IG + TRIP ══════════
-    var _fidCliente = null, _fidAzienda = null;
-    var _feedCaricato = false, _localeCaricato = false, _prenotaMontato = false, _tripCaricato = false;
+    // ══════════ RISTOFLOWBOOK: testata + menu ☰ + barra in basso (22/11/2026) ══════════
+    // Struttura fissa di ogni pagina: testata col nome del locale, menu laterale, barra in basso.
+    // Le spiegazioni stanno tutte in "Istruzioni" (menu), non dentro le pagine.
+    var S = { cliente: null, tessera: null, azienda: {}, cfg: {}, movimenti: [], offerte: [],
+              locali: [], miei: [], sede: null, posts: [], stories: [], feedOk: false };
+    var NOVITA = [
+      { data: "22 novembre 2026", testo: "Nuova app: bacheca con le storie, menu laterale, Prenota e Pubblica sempre in basso." },
+      { data: "19 luglio 2026", testo: "La tessera si salva sul telefono come un'app." }
+    ];
+    var ICO = {
+      menu: '<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+      x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+      indietro: '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+      home: '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>',
+      prenota: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
+      piu: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+      locale: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+      tessera: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>',
+      foto: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>'
+    };
 
-    function montaMiniApp(cliente, azienda, cfg) {
-      _fidCliente = cliente; _fidAzienda = azienda;
-      if (document.getElementById("fid-icone")) return;
-      // 1) impacchetto la tessera nel pannello home
-      var home = document.createElement("div"); home.id = "tab-tessera"; home.className = "tab-pane attivo";
-      while (root.firstChild) home.appendChild(root.firstChild);
-      root.appendChild(home);
-      // 2) icone-app sotto la tessera
-      var grid = document.createElement("div"); grid.className = "icone-app"; grid.id = "fid-icone";
-      grid.innerHTML =
-        '<button data-p="social"><span class="ic">📸</span><span class="lb">Social</span></button>' +
-        '<button data-p="trip"><span class="ic">🌍</span><span class="lb">Locali</span></button>' +
-        '<button data-p="prenota"><span class="ic">📅</span><span class="lb">Prenota</span></button>' +
-        '<button data-p="locale"><span class="ic">📍</span><span class="lb">Il locale</span></button>';
-      grid.querySelectorAll("button").forEach(function(b){ b.className = "icona-app"; });
-      // le inserisco subito dopo la card tessera (primo figlio del pannello)
-      var card = home.querySelector(".tessera-card");
-      if (card && card.nextSibling) home.insertBefore(grid, card.nextSibling); else home.appendChild(grid);
-      // 3) pannelli
-      var titoli = { social: "Novità e recensioni", trip: "Locali Ristoflow", prenota: "Prenota un tavolo", locale: "Il locale" };
-      ["social","trip","prenota","locale"].forEach(function(t){
-        var d = document.createElement("div"); d.id = "pane-" + t; d.className = "tab-pane";
-        d.innerHTML = '<div class="pane-head"><button data-back="1">←</button><div class="tt">' + titoli[t] + '</div></div><div id="pane-' + t + '-body"></div>';
-        d.querySelector("[data-back]").onclick = function(){ apriPannello(null); };
-        root.appendChild(d);
+    function linkSede(id) {
+      return "fidelity.html?t=" + encodeURIComponent(qrToken) + "&a=" + encodeURIComponent(aziendaId) + (id ? "&s=" + encodeURIComponent(id) : "");
+    }
+    function nomeContesto() {
+      if (S.sede) return S.sede.nome;
+      if (_brandSede && _brandSede.nome) return _brandSede.nome;
+      return S.miei.length > 1 ? "Tutti i locali" : (S.miei[0] ? S.miei[0].nome : (S.azienda.nome || "Il locale"));
+    }
+    function logoContesto() { return (S.sede && S.sede.logo_url) || (_brandSede && _brandSede.logo_url) || S.azienda.logo_url || ""; }
+
+    function montaApp(d) {
+      S.cliente = d.cliente; S.tessera = d.tessera; S.azienda = d.azienda || {}; S.cfg = d.cfg || {};
+      S.movimenti = d.movimenti || []; S.offerte = d.offerte || [];
+      _fidCliente = d.cliente; _fidAzienda = S.azienda;
+      document.body.classList.add("rb-on");
+      document.body.style.fontFamily = ""; document.body.style.fontSize = "";
+      root.innerHTML =
+        '<div class="rb">' +
+          '<header class="rb-top" id="rb-top"></header>' +
+          '<main id="rb-main"></main>' +
+        '</div>' +
+        '<nav class="rb-bar" id="rb-bar">' +
+          '<button data-v="home">' + ICO.home + 'Home</button>' +
+          '<button data-v="prenota">' + ICO.prenota + 'Prenota</button>' +
+          '<button data-v="pubblica" class="centrale" aria-label="Pubblica">' + ICO.piu + '</button>' +
+          '<button data-v="locale">' + ICO.locale + 'Locale</button>' +
+          '<button data-v="tessera">' + ICO.tessera + 'Tessera</button>' +
+        '</nav>' +
+        '<div class="rb-velo" id="rb-velo"></div><aside class="rb-drawer" id="rb-drawer"></aside>';
+      document.querySelectorAll("#rb-bar button").forEach(function(b){
+        b.onclick = function(){ vai(b.dataset.v); };
       });
-      grid.querySelectorAll(".icona-app").forEach(function(b){
-        b.onclick = function(){ apriPannello(b.dataset.p); };
-      });
+      document.getElementById("rb-velo").onclick = chiudiMenu;
+      window.addEventListener("hashchange", function(){ mostra(vistaDaHash()); });
+      // locali del circuito: mi servono per "I miei locali", copertina e logo della sede
+      fetch(SUPABASE_URL + "/functions/v1/fidelity-social", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ azione: "locali" }) })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          S.locali = j.locali || [];
+          S.miei = S.locali.filter(function(l){ return l.azienda_id === aziendaId; });
+          S.sede = sedeId ? (S.locali.filter(function(l){ return l.id === sedeId; })[0] || null) : null;
+          mostra(vistaDaHash());
+        }).catch(function(){ mostra(vistaDaHash()); });
+      mostra(vistaDaHash());
     }
 
-    function apriPannello(p) {
-      document.querySelectorAll(".tab-pane").forEach(function(x){ x.classList.remove("attivo"); });
-      if (!p) { document.getElementById("tab-tessera").classList.add("attivo"); window.scrollTo(0,0); return; }
-      document.getElementById("pane-" + p).classList.add("attivo");
-      if (p === "social" && !_feedCaricato) caricaSocial();
-      if (p === "trip" && !_tripCaricato) caricaTrip();
-      if (p === "prenota" && !_prenotaMontato) montaPrenota();
-      if (p === "locale" && !_localeCaricato) caricaLocale();
-      window.scrollTo(0,0);
+    function vistaDaHash() { return (location.hash || "").replace("#", "") || "home"; }
+    function vai(v) {
+      if (v === "home") { if (location.hash) location.hash = ""; else mostra("home"); return; }
+      if (vistaDaHash() === v) mostra(v); else location.hash = v;
     }
 
-    // ── SOCIAL (stile IG: storie + invito + feed) ──
-    function tempoFa(iso) {
-      var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-      if (s < 3600) return Math.max(1, Math.floor(s/60)) + " min fa";
-      if (s < 86400) return Math.floor(s/3600) + " h fa";
-      return Math.floor(s/86400) + " g fa";
+    var TITOLI = { prenota: "Prenota", pubblica: "Pubblica", locale: "Info e orari", tessera: "La tua tessera",
+                   locali: "Scopri locali", istruzioni: "Istruzioni" };
+    function mostra(v) {
+      if (!TITOLI[v]) v = "home";
+      chiudiMenu();
+      var top = document.getElementById("rb-top");
+      if (v === "home") {
+        top.innerHTML = '<div class="nome">' + esc(nomeContesto()) + '</div><button class="rb-ico" id="rb-apri-menu" aria-label="Menu">' + ICO.menu + '</button>';
+      } else {
+        top.innerHTML = '<div class="interna"><button class="rb-ico" id="rb-indietro" aria-label="Indietro">' + ICO.indietro + '</button>' + TITOLI[v] + '</div>' +
+          '<button class="rb-ico" id="rb-apri-menu" aria-label="Menu">' + ICO.menu + '</button>';
+        document.getElementById("rb-indietro").onclick = function(){ vai("home"); };
+      }
+      document.getElementById("rb-apri-menu").onclick = apriMenu;
+      document.querySelectorAll("#rb-bar button").forEach(function(b){ b.classList.toggle("on", b.dataset.v === v); });
+      var main = document.getElementById("rb-main");
+      if (v === "home") vistaHome(main);
+      else if (v === "prenota") vistaPrenota(main);
+      else if (v === "pubblica") vistaPubblica(main);
+      else if (v === "locale") vistaLocale(main);
+      else if (v === "tessera") vistaTessera(main);
+      else if (v === "locali") vistaLocali(main);
+      else if (v === "istruzioni") vistaIstruzioni(main);
+      window.scrollTo(0, 0);
     }
-    function stelleHtml(v) { var o=""; for (var i=1;i<=5;i++) o += (i<=v?"★":"☆"); return o; }
-    function inizialiDi(nome) { return String(nome||"?").split(" ").map(function(x){return x[0]||"";}).join("").slice(0,2).toUpperCase(); }
 
-    async function caricaSocial() {
-      var box = document.getElementById("pane-social-body");
-      box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento...</div>';
+    // ── MENU ☰ ──
+    function apriMenu() {
+      var dr = document.getElementById("rb-drawer");
+      var nome = (S.cliente && S.cliente.nome) || "";
+      var h = '<div class="tt"><span>Ciao' + (nome ? ", " + esc(nome) : "") + '</span><button class="rb-ico" id="rb-chiudi" aria-label="Chiudi">' + ICO.x + '</button></div>';
+      if (S.miei.length > 1) {
+        h += '<div class="rb-gr">I miei locali</div>';
+        S.miei.forEach(function(l){
+          h += '<a class="rb-voce' + (sedeId === l.id ? " on" : "") + '" href="' + linkSede(l.id) + '"><span class="mini">' + (l.logo_url ? '<img src="' + esc(l.logo_url) + '" alt="">' : '') + '</span>' + esc(l.nome) + '</a>';
+        });
+        h += '<a class="rb-voce' + (!sedeId ? " on" : "") + '" href="' + linkSede(null) + '"><span class="mini tutti"></span>Tutti insieme</a>';
+      }
+      h += '<div class="rb-gr">RistoflowBook</div>' +
+        '<button class="rb-voce" data-v="home">Bacheca</button>' +
+        '<button class="rb-voce" data-v="locali">Scopri locali</button>' +
+        '<button class="rb-voce" data-v="locale">Info e orari</button>' +
+        '<div class="rb-gr">Le mie cose</div>' +
+        '<button class="rb-voce" data-v="tessera">Tessera e punti</button>' +
+        '<button class="rb-voce" data-v="prenota">Prenota un tavolo</button>' +
+        '<div class="rb-gr">Il mio account</div>' +
+        '<button class="rb-voce" id="rb-installa">Salva sul telefono</button>' +
+        '<button class="rb-voce" id="rb-invita">Invita un amico</button>' +
+        '<button class="rb-voce" data-v="istruzioni">Istruzioni</button>';
+      dr.innerHTML = h;
+      dr.querySelectorAll("[data-v]").forEach(function(b){ b.onclick = function(){ vai(b.dataset.v); chiudiMenu(); }; });
+      document.getElementById("rb-chiudi").onclick = chiudiMenu;
+      document.getElementById("rb-installa").onclick = installa;
+      document.getElementById("rb-invita").onclick = invita;
+      document.body.classList.add("rb-menu-aperto");
+    }
+    function chiudiMenu() { document.body.classList.remove("rb-menu-aperto"); }
+
+    function installa() {
+      if (deferredInstall) {
+        deferredInstall.prompt();
+        deferredInstall.userChoice.then(function(){ deferredInstall = null; });
+      } else {
+        alert("Su iPhone: tocca Condividi (□↑) e poi \"Aggiungi a schermata Home\".\n\nSu Android: tocca i tre puntini e poi \"Aggiungi a schermata Home\".");
+      }
+    }
+    function invita() {
+      // link di iscrizione del locale (non la tessera personale)
+      var url = window.location.origin + "/fidelity.html?a=" + encodeURIComponent(aziendaId) + (sedeId ? "&s=" + encodeURIComponent(sedeId) : "") + "&utm_source=invito";
+      var testo = "Ti invito da " + nomeContesto() + ": iscriviti alla tessera e hai subito lo sconto.";
+      if (navigator.share) navigator.share({ title: nomeContesto(), text: testo, url: url }).catch(function(){});
+      else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function(){ alert("Link copiato"); });
+    }
+
+    // ── HOME (bacheca) ──
+    function vistaHome(main) {
+      var punti = (S.tessera && S.tessera.punti_locali) || 0;
+      var liv = getLivello(punti, S.cfg), pross = getProssimaSoglia(punti, S.cfg);
+      var cover = (S.sede && S.sede.cover_url) || "";
+      var logo = logoContesto();
+      var sotto = S.sede ? (S.sede.citta || "") : (S.miei.length > 1 ? S.miei.length + " locali" : (S.azienda.citta || ""));
+      var h = '<div class="rb-storie" id="rb-storie"></div>' +
+        '<div class="rb-cover" id="rb-cover">' + (cover ? '<img src="' + esc(cover) + '" alt="">' : '') + '</div>' +
+        '<div class="rb-prof"><div class="rb-logo">' + (logo ? '<img src="' + esc(logo) + '" alt="">' : esc(inizialiDi(nomeContesto()).slice(0,1))) + '</div>' +
+          '<div class="info"><h2>' + esc(nomeContesto()) + '</h2>' + (sotto ? '<p>' + esc(sotto) + '</p>' : '') + '</div></div>' +
+        '<div class="rb-azioni"><button class="rb-btn" data-v="locale">Info e orari</button><button class="rb-btn" id="rb-invita2">+ Invita</button></div>' +
+        '<button class="rb-tess" data-v="tessera"><div><div class="pt">' + punti.toLocaleString("it") + ' punti</div>' +
+          '<small>' + (pross ? "Ancora " + (pross - punti) + " punti al livello successivo" : "Livello massimo raggiunto") + '</small></div>' +
+          '<span class="liv">' + liv.nome + '</span></button>';
+      // card in evidenza: l'offerta della settimana, altrimenti l'invito a raccontare la serata
+      var o = S.offerte[0];
+      if (o) {
+        var val = o.tipo === "sconto_perc" ? "−" + o.valore + "%" : o.tipo === "sconto_fisso" ? "−" + Number(o.valore).toFixed(2).replace(".", ",") + " €" : "Omaggio";
+        h += '<div class="rb-evid"><div class="bd"><div class="rb-et">Questa settimana · ' + esc(val) + '</div><h3>' + esc(o.titolo || "") + '</h3>' +
+          (o.descrizione ? '<p>' + esc(o.descrizione) + '</p>' : '') +
+          '<button class="rb-btn pieno full" data-v="prenota">Prenota il tuo tavolo</button></div></div>';
+      } else {
+        h += '<div class="rb-evid"><div class="bd"><div class="rb-et">Per te</div><h3>Racconta la tua serata</h3>' +
+          '<p>Una foto e il tuo voto: il locale può regalarti punti.</p>' +
+          '<button class="rb-btn pieno full" data-v="pubblica">Pubblica</button></div></div>';
+      }
+      h += '<div id="rb-feed"></div>';
+      main.innerHTML = h;
+      main.querySelectorAll("[data-v]").forEach(function(b){ b.onclick = function(){ vai(b.dataset.v); }; });
+      document.getElementById("rb-invita2").onclick = invita;
+      if (!cover) {
+        // senza copertina della sede uso la prima foto della libreria del locale
+        fetch(SUPABASE_URL + "/functions/v1/landing-media?a=" + aziendaId + (sedeId ? "&s=" + sedeId : "") + "&limit=1")
+          .then(function(r){ return r.json(); })
+          .then(function(j){
+            var im = (j.images || []).filter(function(x){ return x.url; })[0];
+            var c = document.getElementById("rb-cover");
+            if (im && c) c.innerHTML = '<img src="' + esc(im.url) + '" alt="">';
+          }).catch(function(){});
+      }
+      if (S.feedOk) disegnaFeed(); else caricaFeed();
+    }
+
+    async function caricaFeed() {
+      var f = document.getElementById("rb-feed");
+      if (f) f.innerHTML = '<div class="rb-vuoto">Caricamento…</div>';
       try {
         var r = await fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ azione: "feed", azienda_id: aziendaId, sede_id: sedeId }) });
         var j = await r.json();
-        _feedCaricato = true;
-        var posts = j.posts || [], stories = j.stories || [];
-
-        var html = "";
-        // riga storie: prima "la tua storia" (+), poi le storie attive
-        html += '<div class="stories-row">' +
-          '<div class="story-c" id="story-nuova"><div class="cerchio mia"><div class="plus">+</div></div><div class="nm">La tua storia</div></div>' +
-          stories.map(function(s, i){
-            var nome = s.tipo_autore !== "cliente" ? (s.nome_locale || "Il locale") : (s.autore_nome || "Ospite");
-            return '<div class="story-c" data-story="' + i + '"><div class="cerchio"><img src="' + esc(s.media_url) + '"></div><div class="nm">' + esc(nome.split(" ")[0]) + '</div></div>';
-          }).join("") + '</div>';
-
-        // invito a pubblicare (il cuore IG)
-        html += '<div class="invito-card" id="invito-post"><div class="em">📷</div><div><b>Racconta la tua serata, ' + esc((_fidCliente && _fidCliente.nome) || "") + '</b><span>Una foto del piatto, due righe, le tue stelle ⭐ — e la pubblichi in 10 secondi</span></div></div>';
-
-        if (!posts.length) {
-          html += '<div style="text-align:center;padding:40px 30px;color:#94a3b8;"><div style="font-size:36px;margin-bottom:8px;">🍽</div><div style="font-size:13px;">Il feed è tutto tuo: pubblica il primo ricordo!</div></div>';
-        } else {
-          html += posts.map(function(p){
-            var isLocale = p.tipo_autore !== "cliente";
-            var nome = isLocale ? (p.nome_locale || (_brandSede && _brandSede.nome) || "Il locale") : (p.autore_nome || "Un ospite");
-            var giaReaz = localStorage.getItem("fid_reaz_" + p.id);
-            return '<div class="feed-card" data-id="' + p.id + '">' +
-              '<div class="feed-head"><div class="feed-av' + (isLocale ? " locale" : "") + '">' + esc(inizialiDi(nome)) + '</div>' +
-                '<div><div class="feed-nome">' + esc(nome) + (isLocale ? ' <span style="color:var(--brand);font-size:11px;">✓</span>' : '') + '</div>' +
-                '<div class="feed-sub">' + (p.voto ? "Recensione · " : "") + tempoFa(p.created_at) + '</div></div></div>' +
-              (p.voto ? '<div class="feed-stelle">' + stelleHtml(p.voto) + '</div>' : '') +
-              (p.media_url ? '<img class="feed-media" src="' + esc(p.media_url) + '" loading="lazy">' : '') +
-              (p.testo ? '<div class="feed-testo">' + esc(p.testo) + '</div>' : '') +
-              '<div class="feed-azioni">' +
-                '<button class="feed-reaz' + (giaReaz === "fuoco" ? " fatta" : "") + '" data-e="fuoco">🔥 <span>' + (p.reaz_fuoco || 0) + '</span></button>' +
-                '<button class="feed-reaz' + (giaReaz === "applauso" ? " fatta" : "") + '" data-e="applauso">👏 <span>' + (p.reaz_applauso || 0) + '</span></button>' +
-                '<button class="feed-reaz' + (giaReaz === "cuore" ? " fatta" : "") + '" data-e="cuore">❤️ <span>' + (p.reaz_cuore || 0) + '</span></button>' +
-              '</div></div>';
-          }).join("");
-        }
-        html += '<div style="height:24px;"></div>';
-        box.innerHTML = html;
-
-        document.getElementById("story-nuova").onclick = function(){ apriComposer(true); };
-        document.getElementById("invito-post").onclick = function(){ apriComposer(false); };
-        box.querySelectorAll("[data-story]").forEach(function(el){
-          el.onclick = function(){ apriStoria(stories, parseInt(el.dataset.story)); };
-        });
-        box.querySelectorAll(".feed-reaz").forEach(function(btn){
-          btn.onclick = function(){
-            var card = btn.closest(".feed-card"); var pid = card.dataset.id;
-            if (localStorage.getItem("fid_reaz_" + pid)) return;
-            localStorage.setItem("fid_reaz_" + pid, btn.dataset.e);
-            btn.classList.add("fatta");
-            var n = btn.querySelector("span"); n.textContent = (parseInt(n.textContent) || 0) + 1;
-            fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ azione: "reagisci", qr_token: qrToken, post_id: pid, emoji: btn.dataset.e }) });
-          };
-        });
-      } catch(e) {
-        box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Social non disponibile al momento.</div>';
-      }
+        S.posts = j.posts || []; S.stories = j.stories || []; S.feedOk = true;
+      } catch(e) { S.posts = []; S.stories = []; }
+      disegnaFeed();
     }
 
-    function apriStoria(stories, i) {
-      var s = stories[i]; if (!s) return;
-      var nome = s.tipo_autore !== "cliente" ? (s.nome_locale || "Il locale") : (s.autore_nome || "Ospite");
-      var v = document.createElement("div"); v.className = "story-view";
-      v.innerHTML = '<div class="sv-head"><div style="font-weight:800;font-size:14px;">' + esc(nome) + ' <span style="opacity:.6;font-weight:400;font-size:12px;">· ' + tempoFa(s.created_at) + '</span></div><button style="border:none;background:none;color:#fff;font-size:22px;cursor:pointer;">✕</button></div>' +
-        '<img src="' + esc(s.media_url) + '">' +
-        (s.testo ? '<div style="position:absolute;bottom:0;left:0;right:0;padding:20px;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent);font-size:14px;">' + esc(s.testo) + '</div>' : '');
+    function nomeAutore(p) {
+      return p.tipo_autore !== "cliente" ? (p.nome_locale || ((S.sede || S.miei.length < 2) ? nomeContesto() : "Il locale")) : (p.autore_nome || "Un ospite");
+    }
+
+    function disegnaFeed() {
+      var st = document.getElementById("rb-storie"), f = document.getElementById("rb-feed");
+      if (!st || !f) return;
+      st.innerHTML = '<button class="rb-storia" id="rb-mia-storia"><div class="rb-anello mia"><div class="vuoto"></div></div><span class="piu">+</span><span class="lbl">La tua storia</span></button>' +
+        S.stories.map(function(s, i){
+          var visto = localStorage.getItem("rb_visto_" + s.id) ? " visto" : "";
+          return '<button class="rb-storia" data-i="' + i + '"><div class="rb-anello' + visto + '"><img src="' + esc(s.media_url) + '" alt=""></div><span class="lbl">' + esc(nomeAutore(s).split(" ")[0]) + '</span></button>';
+        }).join("");
+      document.getElementById("rb-mia-storia").onclick = function(){ _modoStoria = true; vai("pubblica"); };
+      st.querySelectorAll("[data-i]").forEach(function(b){ b.onclick = function(){ apriStoria(parseInt(b.dataset.i)); }; });
+
+      var posts = S.posts.filter(function(p){ return (p.testo && p.testo.trim()) || p.media_url || p.voto; });
+      if (!posts.length) { f.innerHTML = '<div class="rb-vuoto">Ancora nessun post. Pubblica il primo ricordo.</div>'; return; }
+      f.innerHTML = posts.map(function(p){
+        var loc = p.tipo_autore !== "cliente", nome = nomeAutore(p);
+        var gia = localStorage.getItem("fid_reaz_" + p.id);
+        var bt = function(e, em, n){ return '<button data-e="' + e + '" class="' + (gia === e ? "fatta" : "") + '">' + em + ' <span>' + (n || 0) + '</span></button>'; };
+        return '<article class="rb-post" data-id="' + p.id + '">' +
+          '<div class="hd"><div class="rb-av' + (loc ? " loc" : "") + '">' + esc(inizialiDi(nome)) + '</div><div><b>' + esc(nome) + '</b>' + (loc ? ' <span class="rb-verif" style="display:inline">✓</span>' : '') +
+            '<span>' + (p.voto ? "Recensione · " : "") + tempoFa(p.created_at) + '</span></div></div>' +
+          (p.media_url ? '<img class="foto" src="' + esc(p.media_url) + '" loading="lazy" alt="" onerror="this.remove()">' : '') +
+          (p.voto ? '<div class="rb-stelle">' + stelleHtml(p.voto) + '</div>' : '') +
+          (p.testo && p.testo.trim() ? '<div class="tx">' + esc(p.testo.trim()) + '</div>' : '') +
+          '<div class="rb-reaz">' + bt("cuore", "❤️", p.reaz_cuore) + bt("fuoco", "🔥", p.reaz_fuoco) + bt("applauso", "👏", p.reaz_applauso) + '</div>' +
+        '</article>';
+      }).join("");
+      f.querySelectorAll(".rb-reaz button").forEach(function(btn){
+        btn.onclick = function(){
+          var pid = btn.closest(".rb-post").dataset.id;
+          if (localStorage.getItem("fid_reaz_" + pid)) return;
+          localStorage.setItem("fid_reaz_" + pid, btn.dataset.e);
+          btn.classList.add("fatta");
+          var n = btn.querySelector("span"); n.textContent = (parseInt(n.textContent) || 0) + 1;
+          S.posts.forEach(function(p){ if (String(p.id) === String(pid)) p["reaz_" + btn.dataset.e] = (p["reaz_" + btn.dataset.e] || 0) + 1; });
+          fetch(SUPABASE_URL + "/functions/v1/fidelity-social", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ azione: "reagisci", qr_token: qrToken, post_id: pid, emoji: btn.dataset.e }) });
+        };
+      });
+    }
+
+    // ── STORIE a tutto schermo: barre, tocco destra/sinistra, avanti da sola dopo 5 secondi ──
+    function apriStoria(i) {
+      var vecchio = document.getElementById("rb-sv"); if (vecchio) vecchio.remove();
+      var s = S.stories[i]; if (!s) { disegnaFeed(); return; }
+      localStorage.setItem("rb_visto_" + s.id, "1");
+      var v = document.createElement("div"); v.className = "rb-sv"; v.id = "rb-sv";
+      v.innerHTML = '<div class="barre">' + S.stories.map(function(x, k){ return '<i class="' + (k < i ? "ok" : k === i ? "va" : "") + '"><b></b></i>'; }).join("") + '</div>' +
+        '<div class="hd"><div class="rb-av' + (s.tipo_autore !== "cliente" ? " loc" : "") + '" style="width:36px;height:36px;font-size:13px">' + esc(inizialiDi(nomeAutore(s))) + '</div>' +
+          '<div><b>' + esc(nomeAutore(s)) + '</b> <span>· ' + tempoFa(s.created_at) + '</span></div>' +
+          '<button class="rb-ico" aria-label="Chiudi">' + ICO.x + '</button></div>' +
+        '<img src="' + esc(s.media_url) + '" alt="">' +
+        '<div class="zona" style="left:0" data-dir="-1"></div><div class="zona" style="right:0" data-dir="1"></div>' +
+        (s.testo && s.testo.trim() ? '<div class="tx">' + esc(s.testo.trim()) + '</div>' : '');
       document.body.appendChild(v);
-      var chiudi = function(){ v.remove(); };
-      v.querySelector("button").onclick = chiudi;
-      v.onclick = function(e){
-        if (e.target.tagName === "BUTTON") return;
-        if (i + 1 < stories.length) { chiudi(); apriStoria(stories, i + 1); } else chiudi();
-      };
+      var timer = setTimeout(function(){ apriStoria(i + 1); }, 5000);
+      var chiudi = function(){ clearTimeout(timer); v.remove(); disegnaFeed(); };
+      v.querySelector(".hd .rb-ico").onclick = chiudi;
+      v.querySelectorAll(".zona").forEach(function(z){
+        z.onclick = function(){ clearTimeout(timer); var n = i + parseInt(z.dataset.dir); if (n < 0) n = 0; if (n >= S.stories.length) chiudi(); else apriStoria(n); };
+      });
     }
 
-    // ── COMPOSER (post o storia) ──
+    // ── PUBBLICA (pulsante centrale) ──
     var _fotoBase64 = null, _fotoTipo = null, _votoSel = 0, _modoStoria = false;
-    function apriComposer(storia) {
-      _modoStoria = !!storia;
-      var old = document.getElementById("fid-composer"); if (old) old.remove();
+    function vistaPubblica(main) {
       _fotoBase64 = null; _fotoTipo = null; _votoSel = 0;
-      var m = document.createElement("div"); m.id = "fid-composer";
-      m.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;display:flex;align-items:flex-end;justify-content:center;";
-      m.innerHTML =
-        '<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:520px;max-height:86vh;overflow:auto;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
-            '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;font-weight:700;">' + (_modoStoria ? "La tua storia ⚡" : "Racconta la tua esperienza") + '</div>' +
-            '<button id="cmp-x" style="border:none;background:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button></div>' +
-          (_modoStoria ? '<div style="font-size:12px;color:#7a8494;margin-bottom:10px;">Una foto che resta visibile per 24 ore nel cerchio delle storie.</div>' : '') +
-          '<div id="cmp-foto-box" style="border:2px dashed #d1d5db;border-radius:14px;padding:22px;text-align:center;color:#94a3b8;font-size:13px;cursor:pointer;margin-bottom:12px;">📷 Tocca per ' + (_modoStoria ? "scegliere la foto della storia" : "aggiungere una foto") + '</div>' +
-          '<input id="cmp-file" type="file" accept="image/*" style="display:none;">' +
-          (_modoStoria ? '' :
-            '<div style="font-size:11px;font-weight:700;color:#7a8494;margin-bottom:4px;">IL TUO VOTO (opzionale — diventa una recensione)</div>' +
-            '<div class="stelle-sel" id="cmp-stelle"><span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span></div>') +
-          '<textarea id="cmp-testo" rows="3" placeholder="' + (_modoStoria ? "Due parole (opzionale)..." : "Com\'e\' andata? Cosa hai mangiato?") + '" style="width:100%;box-sizing:border-box;margin-top:12px;padding:12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;"></textarea>' +
-          '<button id="cmp-invia" style="width:100%;margin-top:12px;background:var(--brand);color:#fff;border:none;border-radius:999px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;">' + (_modoStoria ? "Pubblica la storia" : "Pubblica") + '</button>' +
-          '<div id="cmp-msg" style="text-align:center;font-size:12.5px;margin-top:8px;min-height:16px;"></div>' +
-        '</div>';
-      document.body.appendChild(m);
-      m.onclick = function(e){ if (e.target === m) m.remove(); };
-      document.getElementById("cmp-x").onclick = function(){ m.remove(); };
-      var fileIn = document.getElementById("cmp-file");
-      document.getElementById("cmp-foto-box").onclick = function(){ fileIn.click(); };
+      var storia = _modoStoria; _modoStoria = false;
+      main.innerHTML = '<div class="rb-sez">' +
+        '<button class="rb-foto-box" id="pb-foto">' + ICO.foto + '<span>Scatta o scegli una foto</span></button>' +
+        '<input id="pb-file" type="file" accept="image/*" style="display:none">' +
+        '<div class="rb-lab">Il tuo voto</div>' +
+        '<div class="rb-stelle-sel" id="pb-stelle">' + [1,2,3,4,5].map(function(n){ return '<button data-v="' + n + '" aria-label="' + n + ' stelle">★</button>'; }).join("") + '</div>' +
+        '<div class="rb-lab">Scrivi qualcosa</div>' +
+        '<textarea class="rb-campo" id="pb-testo" rows="3" placeholder="Com\'è andata?"></textarea>' +
+        '<div class="rb-lab">Dove</div>' +
+        '<div class="rb-campo" style="font-weight:700">' + esc(nomeContesto()) + '</div>' +
+        '<div style="display:flex;gap:10px;margin-top:18px">' +
+          '<button class="rb-btn" id="pb-storia">Solo storia</button>' +
+          '<button class="rb-btn pieno" id="pb-pubblica">Pubblica</button>' +
+        '</div><div class="rb-msg" id="pb-msg"></div></div>';
+      var fileIn = document.getElementById("pb-file");
+      document.getElementById("pb-foto").onclick = function(){ fileIn.click(); };
       fileIn.onchange = function(){
         var f = fileIn.files && fileIn.files[0]; if (!f) return;
         var img = new Image();
@@ -449,171 +645,244 @@
           var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
           cv.getContext("2d").drawImage(img, 0, 0, w, h);
           _fotoBase64 = cv.toDataURL("image/jpeg", 0.82); _fotoTipo = "image/jpeg";
-          document.getElementById("cmp-foto-box").innerHTML = '<img src="' + _fotoBase64 + '" style="max-width:100%;border-radius:10px;">';
+          document.getElementById("pb-foto").innerHTML = '<img src="' + _fotoBase64 + '" alt="">';
         };
         img.src = URL.createObjectURL(f);
       };
-      var stelleBox = document.getElementById("cmp-stelle");
-      if (stelleBox) stelleBox.querySelectorAll("span").forEach(function(s){
-        s.onclick = function(){
-          _votoSel = parseInt(s.dataset.v);
-          stelleBox.querySelectorAll("span").forEach(function(x){
-            x.classList.toggle("on", parseInt(x.dataset.v) <= _votoSel);
-          });
+      var sb = document.getElementById("pb-stelle");
+      sb.querySelectorAll("button").forEach(function(b){
+        b.onclick = function(){
+          _votoSel = parseInt(b.dataset.v);
+          sb.querySelectorAll("button").forEach(function(x){ x.classList.toggle("on", parseInt(x.dataset.v) <= _votoSel); });
         };
       });
-      document.getElementById("cmp-invia").onclick = async function(){
-        var btn = this, msg = document.getElementById("cmp-msg");
-        var testo = document.getElementById("cmp-testo").value.trim();
-        if (_modoStoria && !_fotoBase64) { msg.textContent = "La storia ha bisogno di una foto."; msg.style.color = "#b45309"; return; }
-        if (!_modoStoria && !testo && !_fotoBase64) { msg.textContent = "Aggiungi una foto o due righe."; msg.style.color = "#b45309"; return; }
-        btn.disabled = true; btn.textContent = "Pubblico...";
+      document.getElementById("pb-storia").onclick = function(){ invia(true, this); };
+      document.getElementById("pb-pubblica").onclick = function(){ invia(false, this); };
+      if (storia) fileIn.click();
+
+      async function invia(comeStoria, btn) {
+        var msg = document.getElementById("pb-msg");
+        var testo = document.getElementById("pb-testo").value.trim();
+        if (comeStoria && !_fotoBase64) { msg.textContent = "Per la storia serve una foto."; msg.style.color = "#8A5414"; return; }
+        if (!comeStoria && !testo && !_fotoBase64 && !_votoSel) { msg.textContent = "Aggiungi una foto, un voto o due righe."; msg.style.color = "#8A5414"; return; }
+        var testoBtn = btn.textContent;
+        btn.disabled = true; btn.textContent = "Pubblico…";
         try {
           var r = await fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ azione: "posta", qr_token: qrToken, azienda_id: aziendaId, sede_id: sedeId,
-              testo: testo, voto: (_modoStoria ? null : (_votoSel || null)), storia: _modoStoria,
+              testo: testo, voto: comeStoria ? null : (_votoSel || null), storia: comeStoria,
               foto_base64: _fotoBase64, foto_tipo: _fotoTipo }) });
           var j = await r.json();
           if (!j.success) throw new Error(j.error || "Errore");
-          m.remove(); _feedCaricato = false; caricaSocial();
+          S.feedOk = false; vai("home");
         } catch(e) {
-          msg.textContent = "Errore: " + e.message; msg.style.color = "#b91c1c";
-          btn.disabled = false; btn.textContent = _modoStoria ? "Pubblica la storia" : "Pubblica";
+          msg.textContent = "Non pubblicato: " + e.message; msg.style.color = "#b91c1c";
+          btn.disabled = false; btn.textContent = testoBtn;
         }
-      };
-    }
-
-    // ── TRIP: locali Ristoflow ──
-    async function caricaTrip() {
-      var box = document.getElementById("pane-trip-body");
-      box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento locali...</div>';
-      try {
-        var r = await fetch(SUPABASE_URL + "/functions/v1/fidelity-social", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ azione: "locali" }) });
-        var j = await r.json();
-        _tripCaricato = true;
-        var locali = j.locali || [];
-        if (!locali.length) {
-          box.innerHTML = '<div style="text-align:center;padding:50px 30px;color:#94a3b8;"><div style="font-size:36px;margin-bottom:8px;">🌍</div><div style="font-size:13px;">I locali del circuito Ristoflow appariranno qui.</div></div>';
-          return;
-        }
-        box.innerHTML = '<div style="padding:12px 16px 0;font-size:12.5px;color:#7a8494;">I locali del circuito Ristoflow, con le recensioni vere dei clienti.</div>' +
-          locali.map(function(s){
-            var maps = "https://maps.google.com/?q=" + encodeURIComponent(((s.nome||"") + " " + (s.indirizzo||"") + " " + (s.citta||"")).trim());
-            return '<div class="trip-card">' +
-              (s.cover_url ? '<img class="trip-cover" src="' + esc(s.cover_url) + '" loading="lazy">' : '') +
-              '<div class="trip-body">' +
-                (s.logo_url ? '<img class="trip-logo" src="' + esc(s.logo_url) + '">' : '<div class="trip-logo" style="display:flex;align-items:center;justify-content:center;font-size:18px;">🍽</div>') +
-                '<div style="flex:1;min-width:0;">' +
-                  '<div class="trip-nome">' + esc(s.nome || "") + '</div>' +
-                  '<div class="trip-sub">' + esc([s.citta, s.tipo_cucina, s.fascia_prezzo].filter(Boolean).join(" · ")) + '</div>' +
-                  (s.voto_medio ? '<div class="trip-voto"><span class="st">' + stelleHtml(Math.round(s.voto_medio)) + '</span> <b>' + s.voto_medio + '</b> · ' + s.n_recensioni + ' recensioni</div>' : '<div class="trip-voto" style="color:#94a3b8;">Ancora nessuna recensione</div>') +
-                  '<a href="' + maps + '" target="_blank" style="display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:var(--brand);text-decoration:none;">🗺 Vedi sulla mappa</a>' +
-                '</div></div></div>';
-          }).join("") + '<div style="height:24px;"></div>';
-      } catch(e) {
-        box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Locali non disponibili al momento.</div>';
       }
     }
 
     // ── PRENOTA ──
-    function montaPrenota() {
-      _prenotaMontato = true;
-      var box = document.getElementById("pane-prenota-body");
-      var d = new Date(Date.now() + 86400000);
-      box.innerHTML =
-        '<div class="section" style="margin-top:20px;">' +
-          '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:19px;font-weight:700;margin-bottom:4px;">Prenota un tavolo</div>' +
-          '<div style="font-size:12.5px;color:#7a8494;margin-bottom:14px;">Conferma rapida, nessun pagamento richiesto.</div>' +
-          '<input id="pr-nome" class="form-input" placeholder="Nome *" value="' + esc(((_fidCliente && _fidCliente.nome) || "") + " " + ((_fidCliente && _fidCliente.cognome) || "")).trim() + '">' +
-          '<input id="pr-tel" class="form-input" type="tel" placeholder="Telefono *" value="' + esc((_fidCliente && _fidCliente.telefono) || "") + '">' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
-            '<input id="pr-data" class="form-input" type="date" value="' + d.toISOString().split("T")[0] + '">' +
-            '<input id="pr-ora" class="form-input" type="time" value="20:30"></div>' +
-          '<input id="pr-coperti" class="form-input" type="number" min="1" max="60" value="2" placeholder="Coperti">' +
-          '<textarea id="pr-note" class="form-input" rows="2" placeholder="Note (allergie, occasioni...)"></textarea>' +
-          '<button id="pr-invia" class="btn-full btn-primary">Prenota</button>' +
-          '<div id="pr-msg" style="text-align:center;font-size:13px;margin-top:10px;min-height:16px;"></div>' +
-        '</div>';
-      document.getElementById("pr-invia").onclick = async function(){
-        var btn = this, msg = document.getElementById("pr-msg");
-        var nome = document.getElementById("pr-nome").value.trim();
-        var tel = document.getElementById("pr-tel").value.trim();
-        var data = document.getElementById("pr-data").value;
-        var ora = document.getElementById("pr-ora").value;
-        if (!nome || !tel || !data || !ora) { msg.textContent = "Compila nome, telefono, data e ora."; msg.style.color = "#b45309"; return; }
-        btn.disabled = true; btn.textContent = "Invio...";
+    var ORARI = ["12:30", "13:00", "13:30", "14:00", "19:30", "20:00", "20:30", "21:00", "21:30"];
+    function vistaPrenota(main) {
+      var GG = ["dom","lun","mar","mer","gio","ven","sab"];
+      var giorni = [];
+      for (var k = 0; k < 21; k++) { var dd = new Date(); dd.setHours(12,0,0,0); dd.setDate(dd.getDate() + k); giorni.push(dd); }
+      var iso = function(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); };
+      var sel = { sede: sedeId || (S.miei.length === 1 ? S.miei[0].id : null), giorno: iso(giorni[0]), persone: 2, ora: null };
+      var c = S.cliente || {};
+      var h = '<div class="rb-sez">';
+      if (!sedeId && S.miei.length > 1) {
+        h += '<div class="rb-lab">Dove</div><div class="rb-chips a-capo" id="pr-sedi">' +
+          S.miei.map(function(l){ return '<button class="rb-chip ora" style="height:auto;min-height:50px;padding:8px 14px" data-s="' + l.id + '">' + esc(l.nome) + '</button>'; }).join("") + '</div>';
+      } else {
+        h += '<div class="rb-campo" style="font-weight:700">' + esc(nomeContesto()) + '</div>';
+      }
+      h += '<div class="rb-lab">Giorno</div><div class="rb-chips" id="pr-giorni">' +
+          giorni.map(function(d, i){ return '<button class="rb-chip' + (i === 0 ? " on" : "") + '" data-g="' + iso(d) + '">' + (i === 0 ? "oggi" : GG[d.getDay()]) + '<b>' + d.getDate() + '</b></button>'; }).join("") + '</div>' +
+        '<div class="rb-lab">Persone</div><div class="rb-conta"><button id="pr-meno" aria-label="Meno">−</button><b id="pr-n">2</b><button id="pr-piu" aria-label="Più">+</button></div>' +
+        '<div class="rb-lab">Orario</div><div class="rb-chips a-capo" id="pr-ore">' +
+          ORARI.map(function(o){ return '<button class="rb-chip ora" data-o="' + o + '">' + o + '</button>'; }).join("") + '</div>' +
+        '<div class="rb-lab">I tuoi dati</div>' +
+        '<input id="pr-nome" class="rb-campo" placeholder="Nome e cognome" value="' + esc(((c.nome || "") + " " + (c.cognome || "")).trim()) + '">' +
+        '<input id="pr-tel" class="rb-campo" type="tel" style="margin-top:10px" placeholder="Telefono" value="' + esc(c.telefono || "") + '">' +
+        '<div class="rb-lab">Note</div><textarea id="pr-note" class="rb-campo" rows="2" placeholder="Seggiolone, allergie…"></textarea>' +
+        '<button class="rb-btn pieno full" id="pr-invia" style="margin-top:18px">Scegli l\'orario</button>' +
+        '<div class="rb-msg" id="pr-msg"></div></div>';
+      main.innerHTML = h;
+      var btn = document.getElementById("pr-invia");
+      function riepilogo() {
+        var d = new Date(sel.giorno + "T12:00:00");
+        if (!sel.sede && S.miei.length > 1) { btn.textContent = "Scegli il locale"; return; }
+        if (!sel.ora) { btn.textContent = "Scegli l'orario"; return; }
+        btn.textContent = "Conferma per " + sel.persone + " · " + GG[d.getDay()] + " " + d.getDate() + " · " + sel.ora;
+      }
+      function scegli(box, attr, cb) {
+        var el = document.getElementById(box); if (!el) return;
+        el.querySelectorAll("button").forEach(function(b){
+          b.onclick = function(){ el.querySelectorAll("button").forEach(function(x){ x.classList.remove("on"); }); b.classList.add("on"); cb(b.getAttribute(attr)); riepilogo(); };
+        });
+      }
+      scegli("pr-sedi", "data-s", function(v){ sel.sede = v; });
+      scegli("pr-giorni", "data-g", function(v){ sel.giorno = v; });
+      scegli("pr-ore", "data-o", function(v){ sel.ora = v; });
+      document.getElementById("pr-meno").onclick = function(){ if (sel.persone > 1) sel.persone--; document.getElementById("pr-n").textContent = sel.persone; riepilogo(); };
+      document.getElementById("pr-piu").onclick = function(){ if (sel.persone < 60) sel.persone++; document.getElementById("pr-n").textContent = sel.persone; riepilogo(); };
+      riepilogo();
+      btn.onclick = async function(){
+        var msg = document.getElementById("pr-msg");
+        var nome = document.getElementById("pr-nome").value.trim(), tel = document.getElementById("pr-tel").value.trim();
+        if (!sel.sede && S.miei.length > 1) { msg.textContent = "Scegli il locale."; msg.style.color = "#8A5414"; return; }
+        if (!sel.ora) { msg.textContent = "Scegli l'orario."; msg.style.color = "#8A5414"; return; }
+        if (!nome || !tel) { msg.textContent = "Servono nome e telefono."; msg.style.color = "#8A5414"; return; }
+        btn.disabled = true; var t = btn.textContent; btn.textContent = "Invio…";
         try {
           var ins = await supa.from("prenotazioni_tavoli").insert([{
-            azienda_id: aziendaId, sede_id: sedeId, cliente_nome: nome, cliente_telefono: tel,
-            data: data, ora: ora, coperti: parseInt(document.getElementById("pr-coperti").value) || 2,
+            azienda_id: aziendaId, sede_id: sel.sede || sedeId, cliente_nome: nome, cliente_telefono: tel,
+            data: sel.giorno, ora: sel.ora, coperti: sel.persone,
             note: document.getElementById("pr-note").value.trim() || null,
-            stato: "in_attesa", canale: "online", source: "fidelity"
-          }]);
+            stato: "in_attesa", canale: "online", source: "fidelity" }]);
           if (ins.error) throw ins.error;
-          msg.textContent = "✅ Richiesta inviata! Ti confermeremo a breve."; msg.style.color = "#15803d";
+          msg.textContent = "Richiesta inviata. Ti confermiamo a breve."; msg.style.color = "#15803d";
           btn.textContent = "Prenotato ✓";
         } catch(e) {
-          msg.textContent = "Errore: " + (e.message || e); msg.style.color = "#b91c1c";
-          btn.disabled = false; btn.textContent = "Prenota";
+          msg.textContent = "Non inviata: " + (e.message || e); msg.style.color = "#b91c1c";
+          btn.disabled = false; btn.textContent = t;
         }
       };
     }
 
-    // ── LOCALE ──
-    async function caricaLocale() {
-      _localeCaricato = true;
-      var box = document.getElementById("pane-locale-body");
-      box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Caricamento...</div>';
+    // ── LOCALE (info e orari) ──
+    async function vistaLocale(main) {
+      main.innerHTML = '<div class="rb-vuoto">Caricamento…</div>';
+      var sid = sedeId || (S.miei.length === 1 ? S.miei[0].id : null);
+      if (!sid && S.miei.length > 1) {
+        main.innerHTML = S.miei.map(function(l){
+          return '<a class="rb-loc" href="' + linkSede(l.id) + '#locale" style="display:block;text-decoration:none;color:inherit">' +
+            (l.cover_url ? '<img class="cv" src="' + esc(l.cover_url) + '" alt="">' : '') +
+            '<div class="bd"><div class="rb-logo" style="width:52px;height:52px;border-width:0;font-size:20px">' + (l.logo_url ? '<img src="' + esc(l.logo_url) + '" alt="">' : esc(inizialiDi(l.nome).slice(0,1))) + '</div>' +
+            '<div><h3>' + esc(l.nome) + '</h3><p>' + esc([l.citta, l.indirizzo].filter(Boolean).join(" · ")) + '</p></div></div></a>';
+        }).join("") + '<div style="height:20px"></div>';
+        return;
+      }
       var s = {};
       try {
-        if (sedeId) {
-          var r = await supa.from("sedi").select("nome,descrizione,indirizzo,citta,telefono,instagram,sito_web,orari_apertura,cover_url,lat,lng,latitudine,longitudine,fascia_prezzo,tipo_cucina").eq("id", sedeId).maybeSingle();
-          s = r.data || {};
-        }
+        if (sid) { var r = await supa.from("sedi").select("nome,descrizione,indirizzo,citta,telefono,instagram,orari_apertura,cover_url,lat,lng,latitudine,longitudine,fascia_prezzo,tipo_cucina").eq("id", sid).maybeSingle(); s = r.data || {}; }
       } catch(e) {}
+      var nome = s.nome || nomeContesto();
       var lat = s.lat || s.latitudine, lng = s.lng || s.longitudine;
-      var mapsUrl = (lat && lng) ? ("https://maps.google.com/?q=" + lat + "," + lng)
-        : ("https://maps.google.com/?q=" + encodeURIComponent(((s.nome || "") + " " + (s.indirizzo || "") + " " + (s.citta || "")).trim()));
+      var maps = (lat && lng) ? ("https://maps.google.com/?q=" + lat + "," + lng)
+        : ("https://maps.google.com/?q=" + encodeURIComponent((nome + " " + (s.indirizzo || "") + " " + (s.citta || "")).trim()));
       var orari = "";
       if (s.orari_apertura) {
         try {
           var o = typeof s.orari_apertura === "string" ? JSON.parse(s.orari_apertura) : s.orari_apertura;
-          if (o && typeof o === "object") orari = Object.keys(o).map(function(g){ return '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;"><span style="font-weight:700;text-transform:capitalize;">' + esc(g) + '</span><span>' + esc(String(o[g])) + '</span></div>'; }).join("");
-          else orari = '<div style="font-size:12.5px;">' + esc(String(s.orari_apertura)) + '</div>';
-        } catch(e) { orari = '<div style="font-size:12.5px;">' + esc(String(s.orari_apertura)) + '</div>'; }
+          if (o && typeof o === "object") orari = Object.keys(o).map(function(g){ return '<div class="rb-riga"><b style="text-transform:capitalize">' + esc(g) + '</b><span>' + esc(String(o[g])) + '</span></div>'; }).join("");
+          else orari = '<div class="rb-riga">' + esc(String(s.orari_apertura)) + '</div>';
+        } catch(e) { orari = '<div class="rb-riga">' + esc(String(s.orari_apertura)) + '</div>'; }
       }
-      box.innerHTML =
-        (s.cover_url ? '<img src="' + esc(s.cover_url) + '" style="width:100%;max-height:220px;object-fit:cover;">' : '') +
-        '<div class="section" style="margin-top:16px;">' +
-          '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:21px;font-weight:700;">' + esc(s.nome || (_fidAzienda && _fidAzienda.nome) || "Il locale") + '</div>' +
-          (s.tipo_cucina ? '<div style="font-size:12px;color:#7a8494;margin-top:2px;">' + esc(s.tipo_cucina) + (s.fascia_prezzo ? " · " + esc(s.fascia_prezzo) : "") + '</div>' : '') +
-          (s.descrizione ? '<div style="font-size:13.5px;line-height:1.6;color:#374151;margin-top:10px;">' + esc(s.descrizione) + '</div>' : '') +
-        '</div>' +
-        '<div id="loc-galleria"></div>' +
-        '<div class="section">' +
-          '<div class="section-title">📍 Dove siamo</div>' +
-          '<div style="font-size:13px;color:#374151;margin-bottom:10px;">' + esc(((s.indirizzo || "") + (s.citta ? ", " + s.citta : "")) || "—") + '</div>' +
-          '<a href="' + mapsUrl + '" target="_blank" style="display:block;text-align:center;text-decoration:none;" class="btn-full btn-primary">🗺 Apri in Google Maps</a>' +
-          (s.telefono ? '<a href="tel:' + esc(s.telefono) + '" style="display:block;text-align:center;text-decoration:none;margin-top:8px;" class="btn-full btn-sec">📞 Chiama il locale</a>' : '') +
-          (s.instagram ? '<a href="https://instagram.com/' + esc(String(s.instagram).replace(/^@/,"")) + '" target="_blank" style="display:block;text-align:center;text-decoration:none;margin-top:8px;" class="btn-full btn-sec">📷 Instagram</a>' : '') +
-        '</div>' +
-        (orari ? '<div class="section"><div class="section-title">🕐 Orari</div>' + orari + '</div>' : '') +
-        '<div style="height:20px;"></div>';
-      // galleria
-      fetch(SUPABASE_URL + "/functions/v1/landing-media?a=" + aziendaId + (sedeId ? "&s=" + sedeId : "") + "&limit=6")
+      var tel = s.telefono || S.azienda.telefono;
+      main.innerHTML =
+        (s.cover_url ? '<div class="rb-cover"><img src="' + esc(s.cover_url) + '" alt=""></div>' : '') +
+        '<div class="rb-sez"><h2 style="font:700 24px var(--rb-serif);color:var(--rb-scuro);margin-top:12px">' + esc(nome) + '</h2>' +
+          (s.tipo_cucina ? '<p style="color:var(--rb-testo2)">' + esc(String(s.tipo_cucina).split(",").map(function(x){ return x.trim().replace(/_/g, " "); }).join(" · ")) + (s.fascia_prezzo ? " · " + esc(s.fascia_prezzo) : "") + '</p>' : '') +
+          (s.descrizione ? '<p style="margin-top:10px;line-height:1.55;white-space:pre-line">' + esc(String(s.descrizione).replace(/([^\n])\n(?!\n)/g, "$1 ")) + '</p>' : '') +
+          '<div id="loc-galleria"></div>' +
+          '<div class="rb-lab">Dove siamo</div><p>' + esc(((s.indirizzo || "") + (s.citta ? ", " + s.citta : "")) || "—") + '</p>' +
+          '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">' +
+            '<a class="rb-btn scuro" href="' + maps + '" target="_blank">Apri in Google Maps</a>' +
+            (tel ? '<a class="rb-btn" href="tel:' + esc(tel) + '">Chiama il locale</a>' : '') +
+            (s.instagram ? '<a class="rb-btn" target="_blank" href="https://instagram.com/' + esc(String(s.instagram).replace(/^@/, "")) + '">Instagram</a>' : '') +
+          '</div>' +
+          (orari ? '<div class="rb-lab">Orari</div><div class="rb-box">' + orari + '</div>' : '') +
+        '</div>';
+      fetch(SUPABASE_URL + "/functions/v1/landing-media?a=" + aziendaId + "&s=" + (sid || "") + "&limit=6")
         .then(function(r){ return r.json(); })
         .then(function(j){
           var imgs = (j.images || []).filter(function(x){ return x.url; }).slice(0, 6);
-          if (imgs.length >= 3) {
-            document.getElementById("loc-galleria").innerHTML =
-              '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 16px;">' +
-              imgs.map(function(x){ return '<img src="' + esc(x.url) + '" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;">'; }).join("") + '</div>';
-          }
+          var g = document.getElementById("loc-galleria");
+          if (g && imgs.length >= 3) g.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px">' +
+            imgs.map(function(x){ return '<img src="' + esc(x.url) + '" loading="lazy" alt="" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px">'; }).join("") + '</div>';
         }).catch(function(){});
     }
+
+    // ── TESSERA ──
+    function vistaTessera(main) {
+      var c = S.cliente || {}, punti = (S.tessera && S.tessera.punti_locali) || 0;
+      var liv = getLivello(punti, S.cfg), pross = getProssimaSoglia(punti, S.cfg);
+      var sa = S.cfg.soglia_argento || 500, so = S.cfg.soglia_oro || 1500;
+      var h = '<div class="rb-tcard"><span class="liv">' + liv.nome + '</span>' +
+          '<div class="loc">' + esc(nomeContesto()) + '</div>' +
+          '<div class="nm">' + esc(((c.nome || "") + " " + (c.cognome || "")).trim()) + '</div>' +
+          '<div class="pt">' + punti.toLocaleString("it") + '</div><div style="opacity:.85;margin-top:6px">punti</div></div>' +
+        '<div class="rb-sez"><div class="rb-lab">Livello</div>' +
+          '<div class="rb-livbar"><i class="on"></i><i class="' + (punti >= sa ? "on" : "") + '"></i><i class="' + (punti >= so ? "on" : "") + '"></i></div>' +
+          '<div style="display:flex;justify-content:space-between;font-size:14px;color:var(--rb-testo2)"><span>Bronzo</span><span>Argento ' + sa + '</span><span>Oro ' + so + '</span></div>' +
+          (pross ? '<p class="rb-nota">Ancora ' + (pross - punti) + ' punti al livello successivo</p>' : '');
+      if (S.movimenti.length) {
+        h += '<div class="rb-lab">Movimenti</div><div class="rb-box">' + S.movimenti.map(function(m){
+          return '<div class="rb-riga"><div><b>' + esc(m.descrizione || m.tipo) + '</b><div style="font-size:14px;color:var(--rb-testo2)">' + formatData(m.created_at) + '</div></div>' +
+            '<b style="color:' + (m.punti > 0 ? "#15803d" : "#b91c1c") + ';white-space:nowrap">' + (m.punti > 0 ? "+" : "") + m.punti + '</b></div>';
+        }).join("") + '</div>';
+      }
+      if (S.offerte.length) {
+        h += '<div class="rb-lab">Offerte nei locali Ristoflow</div><div class="rb-box">' + S.offerte.slice(0, 8).map(function(o){
+          var az = o.aziende || {};
+          var val = o.tipo === "sconto_perc" ? "−" + o.valore + "%" : o.tipo === "sconto_fisso" ? "−" + Number(o.valore).toFixed(2).replace(".", ",") + " €" : "Omaggio";
+          return '<div class="rb-riga"><div><b>' + esc(o.titolo) + '</b><div style="font-size:14px;color:var(--rb-testo2)">' + esc([az.nome, az.citta].filter(Boolean).join(" · ")) +
+            (o.valida_al ? " · fino al " + formatDataBreve(o.valida_al) : "") + '</div></div><b style="color:var(--rb-accento-testo);white-space:nowrap">' + esc(val) + '</b></div>';
+        }).join("") + '</div>';
+      }
+      h += '<button class="rb-btn full" id="rb-inst2" style="margin-top:18px">Salva sul telefono</button></div>';
+      main.innerHTML = h;
+      document.getElementById("rb-inst2").onclick = installa;
+    }
+
+    // ── SCOPRI LOCALI ──
+    function vistaLocali(main) {
+      var lista = S.locali.filter(function(l){ return l.citta || l.cover_url || l.n_recensioni; });
+      if (!lista.length) { main.innerHTML = '<div class="rb-vuoto">I locali del circuito appariranno qui.</div>'; return; }
+      main.innerHTML = lista.map(function(s){
+        var maps = "https://maps.google.com/?q=" + encodeURIComponent(((s.nome || "") + " " + (s.indirizzo || "") + " " + (s.citta || "")).trim());
+        return '<div class="rb-loc">' + (s.cover_url ? '<img class="cv" src="' + esc(s.cover_url) + '" loading="lazy" alt="">' : '') +
+          '<div class="bd"><div class="rb-logo" style="width:52px;height:52px;border-width:0;font-size:20px">' + (s.logo_url ? '<img src="' + esc(s.logo_url) + '" alt="">' : esc(inizialiDi(s.nome).slice(0,1))) + '</div>' +
+          '<div style="flex:1;min-width:0"><h3>' + esc(s.nome || "") + '</h3><p>' + esc([s.citta, s.tipo_cucina, s.fascia_prezzo].filter(Boolean).join(" · ")) + '</p>' +
+          (s.voto_medio ? '<p><span style="color:var(--rb-accento)">' + stelleHtml(Math.round(s.voto_medio)) + '</span> ' + s.voto_medio + ' · ' + s.n_recensioni + ' recensioni</p>' : '') +
+          '</div></div><div style="padding:0 16px 14px"><a class="rb-btn" href="' + maps + '" target="_blank">Vedi sulla mappa</a></div></div>';
+      }).join("") + '<div style="height:20px"></div>';
+    }
+
+    // ── ISTRUZIONI (tutte le spiegazioni stanno qui) ──
+    function vistaIstruzioni(main) {
+      var sc = S.cfg.sconto_benvenuto_perc || 10, ppe = S.cfg.punti_per_euro || 1;
+      main.innerHTML = '<div class="rb-sez rb-ist">' +
+        '<h4 style="margin-top:8px">Novità</h4><div class="rb-box rb-nov">' +
+          NOVITA.map(function(n){ return '<div class="rb-riga" style="display:block"><b>' + esc(n.data) + '</b>' + esc(n.testo) + '</div>'; }).join("") + '</div>' +
+        '<h4>La bacheca</h4><p>In Home vedi le foto, le novità e le recensioni del locale scelto. Dal menu ☰ passi a un altro locale o a "Tutti insieme".</p>' +
+        '<h4>Le storie</h4><p>I cerchi in alto sono le storie delle ultime 24 ore. Il cerchio colorato vuol dire che non l\'hai ancora vista. Toccalo per aprirla: tocca a destra per andare avanti, a sinistra per tornare indietro.</p>' +
+        '<h4>Pubblicare</h4><p>Tocca il + al centro della barra in basso. Scegli una foto, dai il tuo voto e scrivi due righe. "Solo storia" la mostra nel cerchio per 24 ore. Il locale può regalarti punti per quello che pubblichi.</p>' +
+        '<h4>Prenotare</h4><p>Tocca Prenota nella barra in basso: scegli giorno, persone e orario. Il locale ti conferma la prenotazione.</p>' +
+        '<h4>Tessera e punti</h4><p>Ti iscrivi e hai subito il ' + sc + '% di sconto. Poi guadagni ' + ppe + ' punto per ogni euro speso. Con i punti sali di livello: Bronzo, Argento, Oro. Mostra la tessera alla cassa.</p>' +
+        '<h4>Locali Ristoflow</h4><p>La tessera vale anche per le offerte dei locali del circuito Ristoflow: le trovi in "Scopri locali" e nella pagina della tessera.</p>' +
+        '<h4>Salvare sul telefono</h4><p>Su iPhone: tocca Condividi (□↑) e poi "Aggiungi a schermata Home". Su Android: tocca i tre puntini e poi "Aggiungi a schermata Home". Non serve scaricare app.</p>' +
+        '<h4>Privacy</h4><p>I tuoi dati sono trattati secondo il GDPR (Reg. UE 2016/679) e usati solo per la tessera. Puoi chiederne la cancellazione al locale in cui ti sei iscritto.</p>' +
+        '<p style="margin-top:24px;color:var(--rb-testo2);font-size:14px;text-align:center">RistoflowBook · <a href="https://ristoflow-ai.com" style="color:var(--rb-accento-testo)">Ristoflow.Ai</a></p>' +
+      '</div>';
+    }
+
+    // ── utilità comuni ──
+    var _fidCliente = null, _fidAzienda = null;
+    function tempoFa(iso) {
+      var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+      if (s < 3600) return Math.max(1, Math.floor(s/60)) + " min fa";
+      if (s < 86400) return Math.floor(s/3600) + " ore fa";
+      var g = Math.floor(s/86400);
+      if (g < 7) return g === 1 ? "ieri" : g + " giorni fa";
+      return formatData(iso);
+    }
+    function stelleHtml(v) { var o=""; for (var i=1;i<=5;i++) o += (i<=v?"★":"☆"); return o; }
+    function inizialiDi(nome) { return String(nome||"?").split(" ").map(function(x){return x[0]||"";}).join("").slice(0,2).toUpperCase(); }
 
     caricaBrandSede(function(){ init(); });
 
@@ -628,6 +897,10 @@
       if (!d.success) { showError("Errore", d.error || "Riprova più tardi."); return; }
       var azienda = d.azienda || {};
 
+      var cfg = d.cfg || { punti_per_euro: 1, sconto_benvenuto_perc: 10, bonus_benvenuto_punti: 50, soglia_argento: 500, soglia_oro: 1500 };
+
+      if (!qrToken) {
+        // Nessun token → form iscrizione (qui resta il colore e il carattere del locale)
       // Applica colore brand
       if (azienda.colore_brand) {
         document.documentElement.style.setProperty("--brand", azienda.colore_brand);
@@ -643,10 +916,6 @@
       var fsSz = {small:"13px",medium:"15px",large:"17px",xlarge:"19px"};
       if (azienda.font_size) document.body.style.fontSize = fsSz[azienda.font_size]||"15px";
 
-      var cfg = d.cfg || { punti_per_euro: 1, sconto_benvenuto_perc: 10, bonus_benvenuto_punti: 50, soglia_argento: 500, soglia_oro: 1500 };
-
-      if (!qrToken) {
-        // Nessun token → form iscrizione
         renderFormIscrizione(azienda, cfg);
         return;
       }
@@ -657,8 +926,8 @@
       }
 
       impostaManifestTessera((_brandSede && _brandSede.nome) || azienda.nome, azienda.colore_brand, (_brandSede && _brandSede.logo_url) || azienda.logo_url || null);
-      renderTessera(d.cliente, d.tessera, azienda, cfg, d.movimenti || [], d.offerte || []);
-      montaMiniApp(d.cliente, azienda, cfg);
+      d.cfg = cfg;
+      montaApp(d);
     }
 
     // ── FORM ISCRIZIONE ──────────────────────────────────────────
@@ -797,305 +1066,6 @@
 
       // Redirect alla tessera
       window.location.href = "fidelity.html?t=" + d.qr_token + "&a=" + aziendaId + (sedeId ? "&s=" + sedeId : "");
-    }
-
-    // ── RENDER TESSERA ───────────────────────────────────────────
-    function renderTessera(cliente, tessera, azienda, cfg, movimenti, offerte) {
-      var puntiLocali = tessera?.punti_locali || 0;
-      var livello = getLivello(puntiLocali, cfg);
-      var prossimaSoglia = getProssimaSoglia(puntiLocali, cfg);
-      var nomeCompleto = (cliente.nome || "") + (cliente.cognome ? " " + cliente.cognome : "");
-      var linkTessera = window.location.origin + "/fidelity.html?t=" + cliente.qr_token + "&a=" + aziendaId + (sedeId ? "&s=" + sedeId : "");
-
-      var html = '';
-
-      // TESSERA CARD
-      html += '<div class="tessera-card">' +
-        '<div class="tessera-livello">' + livello.emoji + ' ' + livello.nome + '</div>' +
-        (azienda.logo_url ? '<img class="tessera-logo" src="' + esc(azienda.logo_url) + '" alt="Logo">' : '') +
-        '<div class="tessera-locale">' + esc(azienda.nome || "") + '</div>' +
-        '<div class="tessera-nome">' + esc(nomeCompleto) + '</div>' +
-        '<div class="tessera-punti-label">I tuoi punti</div>' +
-        '<div class="tessera-punti">' + puntiLocali.toLocaleString("it") + '</div>' +
-        '<div class="tessera-punti-sub">' + (prossimaSoglia ? 'Ancora ' + (prossimaSoglia - puntiLocali) + ' punti per il livello successivo' : '🏆 Livello massimo raggiunto!') + '</div>' +
-        '<div class="tessera-network">Ristoflow.Ai Network</div>' +
-      '</div>';
-
-      // PROGRESS LIVELLI
-      html += '<div class="section">' +
-        '<div class="section-title">🏅 Livello</div>' +
-        '<div class="livelli-bar">' +
-          '<div class="livello-step ' + (puntiLocali >= 0 ? "active" : "") + '"></div>' +
-          '<div class="livello-step ' + (puntiLocali >= (cfg.soglia_argento||500) ? "active" : "") + '"></div>' +
-          '<div class="livello-step ' + (puntiLocali >= (cfg.soglia_oro||1500) ? "active" : "") + '"></div>' +
-        '</div>' +
-        '<div class="livelli-labels">' +
-          '<span>🥉 Bronzo</span>' +
-          '<span>🥈 Argento (' + (cfg.soglia_argento||500) + 'pt)</span>' +
-          '<span>🥇 Oro (' + (cfg.soglia_oro||1500) + 'pt)</span>' +
-        '</div>' +
-      '</div>';
-
-      // INSTALLA / SALVA
-      html += '<div class="section">' +
-        '<div class="section-title">📱 Salva la tessera</div>' +
-        '<p style="font-size:13px;color:#64748b;margin-bottom:12px;line-height:1.5;">Aggiungi questa pagina alla schermata home per avere sempre la tessera a portata di mano. Non serve registrarsi all\'app!</p>' +
-        '<button class="btn-full btn-install" id="btn-install">📲 Aggiungi alla schermata home</button>' +
-        '<button class="btn-full btn-sec" id="btn-condividi" style="margin-top:8px;">🔗 Condividi link tessera</button>' +
-      '</div>';
-
-      // STORICO MOVIMENTI
-      if (movimenti.length) {
-        html += '<div class="section">' +
-          '<div class="section-title">📋 Storico punti</div>';
-        movimenti.forEach(function(m) {
-          var icon = m.tipo === "acquisto" ? "🛍️" : m.tipo === "benvenuto" ? "🎁" : m.tipo === "compleanno" ? "🎂" : m.tipo === "sconto" ? "💸" : "⭐";
-          var bg = m.punti > 0 ? "#f0fdf4" : "#fef2f2";
-          var color = m.punti > 0 ? "#16a34a" : "#dc2626";
-          html += '<div class="mov-row">' +
-            '<div class="mov-icon" style="background:' + bg + ';">' + icon + '</div>' +
-            '<div class="mov-text">' +
-              '<div class="mov-label">' + esc(m.descrizione || m.tipo) + '</div>' +
-              '<div class="mov-date">' + formatData(m.created_at) + '</div>' +
-            '</div>' +
-            '<div class="mov-punti" style="color:' + color + ';">' + (m.punti > 0 ? "+" : "") + m.punti + 'pt</div>' +
-          '</div>';
-        });
-        html += '</div>';
-      }
-
-      // OFFERTE NETWORK
-      if (offerte.length) {
-        html += '<div class="section">' +
-          '<div class="section-title">🌐 Offerte Ristoflow Network</div>' +
-          '<p style="font-size:12px;color:#64748b;margin-bottom:12px;">Con la tua tessera hai accesso a offerte esclusive in tutti i locali della rete.</p>';
-        offerte.slice(0,6).forEach(function(o) {
-          var az = o.aziende || {};
-          var valoreDisplay = o.tipo === "sconto_perc" ? "-" + o.valore + "%" : o.tipo === "sconto_fisso" ? "-€" + Number(o.valore).toFixed(2) : "Omaggio";
-          html += '<div class="offerta-card">' +
-            '<div class="offerta-badge">' + valoreDisplay + '</div>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div class="offerta-nome">' + esc(o.titolo) + '</div>' +
-              (o.descrizione ? '<div class="offerta-desc">' + esc(o.descrizione) + '</div>' : '') +
-              '<div class="offerta-locale">📍 ' + esc(az.nome || "") + (az.citta ? " · " + az.citta : "") + '</div>' +
-              (o.valida_al ? '<div class="offerta-dist">Valida fino al ' + formatDataBreve(o.valida_al) + '</div>' : '') +
-            '</div>' +
-          '</div>';
-        });
-        html += '</div>';
-
-        // MAPPA NETWORK
-        html += '<div class="section">' +
-          '<div class="section-title">🗺️ Locali vicini a te</div>' +
-          '<div class="map-container" id="mappa-network">' +
-            '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;flex-direction:column;gap:8px;">' +
-              '<div style="font-size:24px;">📍</div>' +
-              '<div style="font-size:12px;font-weight:600;">Attiva la posizione per vedere i locali vicini</div>' +
-              '<button class="btn-full btn-primary" id="btn-posizione" style="width:auto;padding:8px 20px;font-size:13px;margin-top:4px;">📍 Attiva posizione</button>' +
-            '</div>' +
-          '</div>' +
-        '</div>';
-      }
-
-      // REGOLAMENTO
-      html += '<div class="section">' +
-        '<div class="section-title">📋 Regolamento Network</div>' +
-        '<div id="regolamento-accordion">' +
-          '<div class="accordion-item">' +
-            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Come funziona la tessera? ▾</button>' +
-            '<div class="accordion-body" style="display:none;">La tessera Ristoflow è gratuita e digitale. Ogni volta che consumi in un locale aderente accumuli punti automaticamente in base alla spesa. I punti si trasformano in sconti e vantaggi.</div>' +
-          '</div>' +
-          '<div class="accordion-item">' +
-            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Come si accumulano i punti? ▾</button>' +
-            '<div class="accordion-body" style="display:none;">Ogni locale aderente assegna punti in base al proprio programma. In genere si guadagnano punti per ogni euro speso. I moltiplicatori aumentano con il livello (Bronzo → Argento → Oro).</div>' +
-          '</div>' +
-          '<div class="accordion-item">' +
-            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Cosa è il Ristoflow Network? ▾</button>' +
-            '<div class="accordion-body" style="display:none;">Il Ristoflow Network è una rete di locali (ristoranti, bar, caffetterie) in tutta Italia che aderiscono al programma. Con la tua tessera puoi accedere a offerte esclusive in tutti i locali della rete, ovunque ti trovi.</div>' +
-          '</div>' +
-          '<div class="accordion-item">' +
-            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Come salvo la tessera sul telefono? ▾</button>' +
-            '<div class="accordion-body" style="display:none;">Su iPhone: tocca il pulsante Condividi (□↑) e poi "Aggiungi a schermata Home". Su Android: tocca i tre puntini del browser e poi "Aggiungi a schermata Home". La tessera funziona senza app!</div>' +
-          '</div>' +
-          '<div class="accordion-item">' +
-            '<button class="accordion-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">Privacy e dati personali ▾</button>' +
-            '<div class="accordion-body" style="display:none;">I tuoi dati sono trattati nel rispetto del GDPR (Reg. UE 2016/679). Vengono utilizzati esclusivamente per il programma fidelity. Puoi richiedere la cancellazione in qualsiasi momento contattando il locale dove ti sei iscritto.</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-
-      // MAPPA NETWORK (con pulsante attiva posizione)
-      if (offerte.length) {
-        html += '<div class="section">' +
-          '<div class="section-title">🗺️ Locali Ristoflow vicini a te</div>' +
-          '<p style="font-size:12px;color:#64748b;margin-bottom:12px;line-height:1.5;">Con la tua tessera hai accesso a offerte esclusive in tutti questi locali della rete.</p>' +
-          '<div id="mappa-network-box" style="background:#f3f4f6;border-radius:14px;overflow:hidden;margin-bottom:10px;">' +
-            '<div style="height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#94a3b8;">' +
-              '<div style="font-size:32px;">📍</div>' +
-              '<div style="font-size:13px;font-weight:600;">Attiva la posizione per vedere i locali vicini</div>' +
-              '<button id="btn-attiva-pos" style="background:var(--brand);color:#fff;border:none;border-radius:10px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;">📍 Attiva posizione</button>' +
-            '</div>' +
-          '</div>' +
-          // Lista offerte scorrevole
-          '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;">' +
-          offerte.slice(0,8).map(function(o) {
-            var az2 = o.aziende || {};
-            var val = o.tipo==="sconto_perc" ? "-"+o.valore+"%" : o.tipo==="sconto_fisso" ? "-€"+Number(o.valore).toFixed(2) : "🎁";
-            return '<div style="flex-shrink:0;width:160px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px;">' +
-              '<div style="background:var(--brand);color:#fff;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:800;margin-bottom:8px;text-align:center;">' + esc(val) + '</div>' +
-              '<div style="font-size:13px;font-weight:700;margin-bottom:2px;">' + esc(o.titolo) + '</div>' +
-              '<div style="font-size:11px;color:#64748b;">📍 ' + esc(az2.nome||"") + '</div>' +
-              (az2.citta ? '<div style="font-size:11px;color:#94a3b8;">' + esc(az2.citta) + '</div>' : '') +
-            '</div>';
-          }).join("") +
-          '</div>' +
-        '</div>';
-      }
-
-      html += '<div class="fidelity-footer">Powered by <a href="https://ristoflow-ai.com">Ristoflow.Ai</a></div>';
-
-      root.innerHTML = html;
-
-      // Bind mappa
-      var btnPos = document.getElementById("btn-attiva-pos");
-      if (btnPos) {
-        btnPos.onclick = function() {
-          if (!navigator.geolocation) { alert("Posizione non supportata"); return; }
-          btnPos.textContent = "⏳ Rilevamento...";
-          navigator.geolocation.getCurrentPosition(
-            function(pos) {
-              var lat = pos.coords.latitude, lng = pos.coords.longitude;
-              var box = document.getElementById("mappa-network-box");
-              if (!box) return;
-              box.innerHTML = '<div id="leaflet-map2" style="width:100%;height:220px;border-radius:14px;overflow:hidden;"></div>' +
-                '<a href="https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lng + '&zoom=13" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;padding:10px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px;border-radius:10px;">🧭 Apri in OpenStreetMap</a>';
-              var map2 = L.map("leaflet-map2").setView([lat, lng], 13);
-              L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: "© OpenStreetMap", maxZoom: 18
-              }).addTo(map2);
-              var ic2 = L.divIcon({
-                html: '<div style="background:var(--brand);border:3px solid #fff;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
-                iconSize:[16,16],iconAnchor:[8,8],className:""
-              });
-              L.marker([lat,lng],{icon:ic2}).addTo(map2).bindPopup("<strong>📍 Sei qui</strong>").openPopup();
-            },
-            function() { if(btnPos) btnPos.textContent = "❌ Posizione non disponibile"; }
-          );
-        };
-      }
-
-      // BIND
-      var btnInstall = document.getElementById("btn-install");
-      if (btnInstall) {
-        btnInstall.onclick = function() {
-          if (deferredInstall) {
-            deferredInstall.prompt();
-            deferredInstall.userChoice.then(function(r) {
-              if (r.outcome === "accepted") btnInstall.textContent = "✅ Aggiunta!";
-              deferredInstall = null;
-            });
-          } else {
-            // iOS: mostra istruzioni
-            alert("Su iPhone: tocca il pulsante Condividi (□↑) in basso e poi 'Aggiungi a schermata Home'.\n\nSu Android: tocca i tre puntini in alto e poi 'Aggiungi a schermata Home'.");
-          }
-        };
-      }
-
-      var btnCondividi = document.getElementById("btn-condividi");
-      if (btnCondividi) {
-        btnCondividi.onclick = function() {
-          if (navigator.share) {
-            navigator.share({ title: "La mia tessera " + (azienda.nome||""), url: linkTessera }).catch(function(){});
-          } else {
-            navigator.clipboard && navigator.clipboard.writeText(linkTessera).then(function() {
-              alert("Link copiato!");
-            });
-          }
-        };
-      }
-
-      var btnPos = document.getElementById("btn-posizione");
-      if (btnPos) {
-        btnPos.onclick = function() {
-          if (!navigator.geolocation) { alert("Posizione non supportata dal browser"); return; }
-          btnPos.textContent = "⏳ Rilevamento...";
-          navigator.geolocation.getCurrentPosition(
-            function(pos) { caricaMappa(pos.coords.latitude, pos.coords.longitude, offerte); },
-            function() { btnPos.textContent = "❌ Posizione non disponibile"; }
-          );
-        };
-      }
-    }
-
-    // ── MAPPA NETWORK (Leaflet/OpenStreetMap) ─────────────────────
-    var leafletMap = null;
-
-    function caricaMappa(lat, lng, offerte) {
-      var box = document.getElementById("mappa-network");
-      if (!box) return;
-
-      box.innerHTML = '<div id="leaflet-map" style="width:100%;height:260px;border-radius:14px;overflow:hidden;"></div>' +
-        '<a href="https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lng + '&zoom=13" target="_blank" ' +
-        'style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;padding:10px;font-size:13px;font-weight:800;text-decoration:none;margin-top:8px;border-radius:10px;">🧭 Apri in OpenStreetMap</a>';
-
-      // Init Leaflet
-      if (leafletMap) { leafletMap.remove(); leafletMap = null; }
-      leafletMap = L.map("leaflet-map").setView([lat, lng], 13);
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 18
-      }).addTo(leafletMap);
-
-      // Marker posizione cliente
-      var iconaCliente = L.divIcon({
-        html: '<div style="background:var(--brand);border:3px solid #fff;border-radius:50%;width:18px;height:18px;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
-        iconSize: [18, 18], iconAnchor: [9, 9], className: ""
-      });
-      L.marker([lat, lng], { icon: iconaCliente })
-        .addTo(leafletMap)
-        .bindPopup("<strong>📍 Sei qui</strong>")
-        .openPopup();
-
-      // Marker locali network con geocoding approssimativo per città
-      var localiConCoord = offerte.filter(function(o) {
-        return o.aziende && (o.aziende.lat || o.aziende.indirizzo);
-      });
-
-      // Geocoding per città (approssimativo via Nominatim)
-      var localiDaGeocod = offerte.filter(function(o) {
-        return o.aziende && o.aziende.citta && !o.aziende.lat;
-      }).slice(0, 5);
-
-      localiDaGeocod.forEach(function(o) {
-        var az = o.aziende;
-        var query = encodeURIComponent((az.indirizzo||"") + " " + (az.citta||"") + " Italy");
-        fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + query + "&limit=1", {
-          headers: { "User-Agent": "RistoflowApp/1.0" }
-        }).then(function(r) { return r.json(); }).then(function(data) {
-          if (!data || !data[0]) return;
-          var locLat = parseFloat(data[0].lat);
-          var locLng = parseFloat(data[0].lon);
-
-          var val = o.tipo === "sconto_perc" ? "-" + o.valore + "%" :
-                    o.tipo === "sconto_fisso" ? "-€" + Number(o.valore).toFixed(2) : "🎁";
-
-          var iconaLocale = L.divIcon({
-            html: '<div style="background:#f59e0b;color:#fff;border:2px solid #fff;border-radius:10px;padding:2px 6px;font-size:11px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);">' + val + '</div>',
-            iconSize: [50, 24], iconAnchor: [25, 12], className: ""
-          });
-
-          L.marker([locLat, locLng], { icon: iconaLocale })
-            .addTo(leafletMap)
-            .bindPopup(
-              '<div style="min-width:140px;">' +
-              '<strong>' + esc(az.nome||"") + '</strong><br>' +
-              '<span style="font-size:12px;color:#64748b;">' + esc(az.indirizzo||"") + '</span><br>' +
-              '<span style="background:var(--brand);color:#fff;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;">' + val + '</span>' +
-              '</div>'
-            );
-        }).catch(function(){});
-      });
     }
 
     // ── HELPERS ───────────────────────────────────────────────────
