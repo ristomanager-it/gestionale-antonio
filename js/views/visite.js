@@ -25,6 +25,14 @@ function msgSposta(v, g, h) {
 }
 const giorno = (d) => new Date(d).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Rome" });
 const ora = (d) => new Date(d).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+// testo che accompagna il link quando lo mandate su WhatsApp (il contatto si sceglie in WhatsApp)
+const testoInvito = (tipo) => {
+  const nome = (window.state?.azienda?.nome || "").trim();
+  const dove = nome ? " a " + nome.replace(/\b\w/g, (m) => m.toUpperCase()) : "";
+  if (tipo === "Matrimonio") return "Ciao! Qui potete scegliere giorno e ora per venire a vedere la location del vostro matrimonio" + dove + ":";
+  if (tipo) return "Ciao! Qui potete scegliere giorno e ora per venire a trovarci e organizzare la vostra festa" + dove + ":";
+  return "Ciao! Qui potete scegliere giorno e ora per la vostra visita" + dove + ":";
+};
 const wa = (t) => { const x = String(t || "").replace(/[^0-9]/g, ""); return x ? "https://wa.me/" + (x.length <= 10 ? "39" + x : x) : ""; };
 
 export async function render(app) {
@@ -111,7 +119,7 @@ function disegna() {
       '<button class="vi-btn p" id="viSalva">Salva</button> <span class="vi-m" id="viOk"></span></div>';
     if (S.slug) {
       const L = [["Tutti gli eventi", ""], ["Matrimonio", "Matrimonio"], ["Feste (comunione, 18 anni…)", "Comunione"]];
-      h += '<div class="vi-card"><b>I vostri link</b><p class="vi-m">Da mettere sulle landing, nelle email e negli annunci.</p>' + L.map((x, i) => { const u = LINK + encodeURIComponent(S.slug) + (x[1] ? "&tipo=" + encodeURIComponent(x[1]) : ""); return '<div class="vi-ln"><div style="flex:1;min-width:0"><b>' + esc(x[0]) + '</b><div class="vi-url">' + esc(u) + '</div></div><button class="vi-btn s" data-cp="' + esc(u) + '">Copia</button><a class="vi-btn s" target="_blank" href="' + esc(u) + '">Apri</a></div>'; }).join("") + "</div>";
+      h += '<div class="vi-card"><b>I vostri link</b><p class="vi-m">Da mettere sulle landing, nelle email e negli annunci.</p>' + L.map((x, i) => { const u = LINK + encodeURIComponent(S.slug) + (x[1] ? "&tipo=" + encodeURIComponent(x[1]) : ""); return '<div class="vi-ln"><div style="flex:1;min-width:0"><b>' + esc(x[0]) + '</b><div class="vi-url">' + esc(u) + '</div></div><a class="vi-btn p" target="_blank" rel="noopener" style="background:#25D366;border-color:#25D366;color:#fff" href="' + esc("https://wa.me/?text=" + encodeURIComponent(testoInvito(x[1]) + "\n" + u)) + '">Invia su WhatsApp</a><button class="vi-btn s" data-cp="' + esc(u) + '">Copia</button><a class="vi-btn s" target="_blank" href="' + esc(u) + '">Apri</a></div>'; }).join("") + "</div>";
     }
   }
   $("viC").innerHTML = h; $("viC").onclick = clic;
