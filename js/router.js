@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initMenu } from "./menu.js?v=90";
+import { initMenu } from "./menu.js?v=91";
 import { appAttiva, rotteApp, avviaPallino, avviaControlloBlocco } from "./app-profili.js?v=4";
 window.initMenu = initMenu;
 
@@ -8,7 +8,7 @@ window.initMenu = initMenu;
    Bumpare APP_V a ogni deploy: tutti i moduli vengono
    riscaricati subito dai browser, senza aspettare la cache.
 ========================================================= */
-const APP_V = "20261122-2";
+const APP_V = "20261125-1";
 window.APP_V = APP_V;
 
 // ── AGGIORNAMENTO AUTOMATICO ──
@@ -867,6 +867,13 @@ function hasPermission(area) {
   const ADMIN_ONLY_ROUTES = new Set([
     // IVA, incassi e costi: come il Ragioniere
     "fatture-situazione",
+    // 25/11: le fatture (acquisti, autofatture, emesse, bonifici Stripe) le vede solo il titolare.
+    // "acquisti-fatture" non e' una rotta: e' la chiave che usano menu e Acquisti per le tab Fatture e Pagamenti.
+    // Il manager in Acquisti tiene DDT, fornitori, listini, riordino e ordini.
+    "acquisti-fatture",
+    "autofatture",
+    "fatture-emesse",
+    "stripe-bonifici",
     // Marketing & CRM
     "bo-tag",
     "bo-template",
@@ -895,7 +902,7 @@ function hasPermission(area) {
 
   if (ADMIN_ONLY_ROUTES.has(area)) {
     // il commercialista invitato e' nella sua lista per Ragioniere e Fatture: questo controllo arrivava prima e lo bloccava
-    return ruolo === "admin" || (ruolo === "commercialista" && (area === "bo-bilancio" || area === "fatture-situazione"));
+    return ruolo === "admin" || (ruolo === "commercialista" && ["bo-bilancio", "fatture-situazione", "acquisti-fatture", "autofatture", "fatture-emesse", "stripe-bonifici"].includes(area));
   }
 
   // =====================================

@@ -174,6 +174,8 @@ export function initMenu() {
     const cleanRoute = String(route).split("?")[0];
 
     if (window.hasPermission) {
+      // 25/11: le tab Fatture e Pagamenti di Acquisti sono solo del titolare
+      if (cleanRoute === "acquisti" && /[?&]tab=(fatture|pagamenti)\b/.test(String(route))) return window.hasPermission("acquisti-fatture");
       return window.hasPermission(cleanRoute);
     }
 

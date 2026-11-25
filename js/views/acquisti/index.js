@@ -55,6 +55,15 @@ export async function render(container) {
   `;
 
   const content = document.getElementById("acquisti-content");
+
+  // 25/11: Fatture e Pagamenti li vede solo il titolare (e il commercialista): al manager restano
+  // DDT, fornitori, listini, riordino e ordini. Anche il link diretto ?tab=fatture lo porta agli ordini.
+  const vedeFatture = !window.hasPermission || window.hasPermission("acquisti-fatture");
+  if (!vedeFatture) {
+    document.querySelectorAll('.tab-btn[data-tab="fatture"], .tab-btn[data-tab="pagamenti"]').forEach(function (b) { b.remove(); });
+    const sotto = container.querySelector(".card p");
+    if (sotto) sotto.textContent = "DDT, fornitori, listini, riordino e ordini";
+  }
   const buttons = document.querySelectorAll(".tab-btn");
 
   function setActive(tab) {
@@ -72,6 +81,7 @@ export async function render(container) {
   }
 
   async function renderTab(tab) {
+    if (!vedeFatture && (tab === "fatture" || tab === "pagamenti")) tab = "ordini";
 
     setActive(tab);
 
@@ -96,7 +106,7 @@ export async function render(container) {
   // Deep-link: #/acquisti?tab=riordino apre direttamente quella tab
   const tabQuery = (window.location.hash.split("?")[1] || "");
   const tabParam = new URLSearchParams(tabQuery).get("tab");
-  const tabValide = ["fatture","ddt","pagamenti","fornitori","listini","riordino","ordini"];
-  await renderTab(tabValide.includes(tabParam) ? tabParam : "fatture");
+  const tabValide = vedeFatture ? ["fatture","ddt","pagamenti","fornitori","listini","riordino","ordini"] : ["ddt","fornitori","listini","riordino","ordini"];
+  await renderTab(tabValide.includes(tabParam) ? tabParam : (vedeFatture ? "fatture" : "ordini"));
 
 }
