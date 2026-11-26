@@ -5,6 +5,8 @@ let conversation = [];
 const RE_MENU_TIPO = /\bmenu\s+tipo\b|\b(componi|componimi|crea|creami|fammi|prepara|preparami)\s+(un|il|uno|nuovo)?\s*menu\b(?!\s+(del\s+giorno|da\s+tavolo|business|digitale))/i;
 // sondaggio dopo la visita, IGS, regali delle fasce: allo specialista tony-sondaggi-chat
 const RE_SONDAGGI = /\b(sondagg\w*|questionari\w*|igs)\b/i;
+// 26/11/2026: gestione del personale (formazione Academy, valori, ore, ferie, candidature) a tony-personale (admin e manager)
+const RE_PERSONALE = /\b(dipendent\w*|collaborator\w*|personale|staff|colloqu\w*|candidat\w*|curricul\w*|assum\w*|assunzion\w*|licenzi\w*|richiam\w*|disciplinar\w*|ferie|permess\w*|malatti\w*|presenz\w*|timbratur\w*|incentiv\w*|bonus|motivar\w*|motivazione|pagell\w*|classifica\s+abcd|deleg\w*|riunion\w*|annunci\w*\s+di\s+lavoro|selezione|inseriment\w*|onboarding|valori\s+aziendal\w*|manuale\s+operativo|organigramm\w*|ore\s+(lavorat\w*|ha\s+fatto|hanno\s+fatto|fatte)|turni\s+apert\w*|arriv\w*\s+(sempre\s+)?in\s+ritardo|ritardi)\b/i;
 // centralino AI: "montami il centralino", "cambia la voce al telefono"... vanno a tony-centralino (solo admin)
 const RE_CENTRALINO = /\b(centralino|segreteria\s+telefonica|telefonista)\b|voce\s+(ai|al\s+telefono|che\s+risponde)|rispond\w*\s+al\s+telefono/i;
 const RE_MESSAGGI_CLIENTI = /\b(messaggi?\s+(automatic\w*|ai\s+clienti|di\s+conferma|whatsapp)|messaggio\s+(di\s+)?(conferma|compleanno|automatico|whatsapp|ai\s+clienti)|modell[oi]\s+(whatsapp|di\s+messaggi\w*)|template\s+whatsapp|approv\w+\s+(da\s+|di\s+)?meta|meta\s+(ha\s+|l'ha\s+)?approvat\w*|testo\s+(del|dei)\s+messaggi\w*|auguri\s+di\s+compleanno|conferma\s+(della\s+|di\s+)?prenotazione\s+(su\s+)?whatsapp)\b/i;
