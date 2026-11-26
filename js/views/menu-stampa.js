@@ -144,8 +144,9 @@ function disegnaPiatti() {
     `<button class="ms-tag" data-id="${v.id}" data-tag="${t}" style="border:1px solid ${on ? "#0E5A7A" : "#cbd5e1"}; background:${on ? "#0E5A7A" : "#fff"}; color:${on ? "#fff" : "#334155"}; border-radius:999px; padding:8px 12px; font-size:13px; cursor:pointer; min-height:36px;">${label}</button>`;
   el.innerHTML = `
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
-      <button id="ms-tony" class="app-button small">🤖 Proposta di Tony</button>
-      <span style="font-size:13px; color:#64748b;">Tony sceglie per ogni categoria i piatti da spingere dal Menu Engineering (prima i Puzzle, poi le Star) e segna il mare. La tradizione la decidi tu.</span>
+      <button class="app-button small ms-tony" data-crit="margine">🤖 Tony: spingi i più redditizi</button>
+      <button class="app-button small ms-tony" data-crit="venduti">🤖 Tony: spingi i più venduti</button>
+      <span style="font-size:13px; color:#64748b;">Per ogni piatto scegli dove va nel cartaceo, oppure fai proporre a Tony dai dati di vendita (redditizi = prima Puzzle e Star del Menu Engineering). Tradizione ed esclusi restano come li hai messi tu.</span>
     </div>
     ${st.cats.map(c => {
       const out = st.escluse.has(c.id);
