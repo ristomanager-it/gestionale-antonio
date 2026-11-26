@@ -1116,6 +1116,9 @@ const routePermissions = {
   "menu-engineering":
     "bilancio.read",
 
+  "menu-stampa":
+    "bilancio.read",
+
 };
 
   const neededPermission =
