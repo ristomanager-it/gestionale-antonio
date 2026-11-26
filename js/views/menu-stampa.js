@@ -116,10 +116,19 @@ async function caricaVoci() {
 }
 
 function quadrante(v) {
-  const r = st.me.find(x => (v.prodotto_vendita_id && x.prodotto_vendita_id === v.prodotto_vendita_id))
+  return storico(v)?.quadrante || null;
+}
+function storico(v) {
+  return st.me.find(x => (v.prodotto_vendita_id && x.prodotto_vendita_id === v.prodotto_vendita_id))
     || st.me.find(x => (v.ricetta_id && x.ricetta_id === v.ricetta_id))
-    || st.me.find(x => norm(x.nome) === norm(v.nome));
-  return r ? r.quadrante : null;
+    || st.me.find(x => norm(x.nome) === norm(v.nome)) || null;
+}
+function datiStorici(v) {
+  const r = storico(v);
+  if (!r) return "senza dati di vendita";
+  const q = Q_LABEL[r.quadrante] || r.quadrante || "";
+  const n = Number(r.qta_venduta) || 0, m = Number(r.margine_unitario);
+  return `${q} · ${n} venduti${isFinite(m) && m ? ` · margine € ${m.toFixed(2).replace(".", ",")}` : ""}`;
 }
 
 function vociCat(catId) { return st.voci.filter(v => v.categoria_id === catId); }
