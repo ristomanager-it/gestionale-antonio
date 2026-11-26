@@ -196,7 +196,7 @@ function disegnaPiatti() {
     await salvaTags(v, nuovi);
     disegnaPiatti();
   });
-  document.getElementById("ms-tony").onclick = propostaTony;
+  el.querySelectorAll(".ms-tony").forEach(b => b.onclick = () => propostaTony(b.dataset.crit));
 }
 
 async function salvaTags(v, nuovi) {
