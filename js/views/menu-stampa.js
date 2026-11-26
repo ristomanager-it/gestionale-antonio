@@ -206,8 +206,15 @@ function disegnaStampa() {
 const SER = "font-family:'Cormorant Garamond',Georgia,serif";
 const VERDE = "#2F4A3A", COTTO = "#A8432A";
 
+// in elenco la descrizione resta breve: prima frase, al massimo una riga e mezza
+function breve(t) {
+  const s = String(t || "").trim();
+  if (s.length <= 70) return s;
+  const m = s.slice(30, 70).search(/[.,;:]/);
+  return m >= 0 ? s.slice(0, 30 + m) : s.slice(0, 68).replace(/\s+\S*$/, "") + "…";
+}
 function riga(v) {
-  return `<div class="it"><div class="itn">${esc(v.nome)}<span class="pr">&#8195;${prezzo(v)}</span></div>${v.descrizione ? `<div class="itd">${esc(v.descrizione)}</div>` : ""}</div>`;
+  return `<div class="it"><div class="itn">${esc(v.nome)}<span class="pr">&#8195;${prezzo(v)}</span></div>${v.descrizione ? `<div class="itd">${esc(breve(v.descrizione))}</div>` : ""}</div>`;
 }
 // elenco a due colonne che si legge dall'alto in basso, nell'ordine del menu
 function elenco(vs) {
@@ -218,7 +225,7 @@ function titoletto(t) { return `<div class="sub"><span>${esc(t)}</span></div>`; 
 
 // in evidenza: tre impaginazioni che si alternano, così le pagine non sono tutte uguali
 function hero(v, n) {
-  const testo = `<div class="tag">Da provare</div><div class="bn">${esc(v.nome)}</div><div class="bp">${prezzo(v)}</div>${v.descrizione ? `<div class="bd">${esc(v.descrizione)}</div>` : ""}`;
+  const testo = `<div class="tag">Da provare</div><div class="bn">${esc(v.nome)}</div><div class="bp">${v._pre || ""}${prezzo(v)}${v._suf || ""}</div>${v.descrizione ? `<div class="bd">${esc(v.descrizione)}</div>` : ""}`;
   if (n % 3 === 1) return `<div class="hero split"><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"><div class="band">${testo}</div></div>`;
   if (n % 3 === 2) return `<div class="hero split rev"><div class="band">${testo}</div><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"></div>`;
   return `<div class="hero full"><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"><div class="band">${testo}</div></div>`;
@@ -228,36 +235,86 @@ function feature(v, i, tag) {
   return `<div class="feat ${i % 2 ? "rev" : ""}">${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="${esc(v.nome)}">` : ""}<div class="ft"><div class="tag2">${tag}</div>
     <div class="cn">${esc(v.nome)}<span class="pr">&#8195;${prezzo(v)}</span></div>${v.descrizione ? `<div class="cd">${esc(v.descrizione)}</div>` : ""}</div></div>`;
 }
-function tondo(v) {
-  return `<div class="tondo"><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"><div class="itn">${esc(v.nome)}</div><div class="pr pc">${prezzo(v)}</div>${v.descrizione ? `<div class="itd">${esc(v.descrizione)}</div>` : ""}</div>`;
+function mini(v) {
+  return `<div class="mini"><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"><div class="itn" style="margin-top:6px">${esc(v.nome)}<span class="pr">&#8195;${prezzo(v)}</span></div>${v.descrizione ? `<div class="itd">${esc(v.descrizione)}</div>` : ""}</div>`;
 }
-function blocco(titolo, vs, foto = true) {
+// la tradizione: foto rettangolari affiancate (max 3), il resto in elenco
+function bloccoTradizione(vs) {
   if (!vs.length) return "";
-  const conFoto = foto ? vs.filter(v => v.foto_url).slice(0, 3) : [];
+  const conFoto = vs.filter(v => v.foto_url).slice(0, 3);
   const senza = vs.filter(v => !conFoto.includes(v));
-  return `<div class="blk">${titoletto(titolo)}${conFoto.length ? `<div class="tondi">${conFoto.map(tondo).join("")}</div>` : ""}${elenco(senza)}</div>`;
+  return `<div class="blk">${titoletto("La tradizione")}${conFoto.length ? `<div class="minis">${conFoto.map(mini).join("")}</div>` : ""}${elenco(senza)}</div>`;
+}
+// il mare: sempre in colonna, una riga per piatto con la sua foto accanto
+function bloccoMare(vs, top = "") {
+  if (!vs.length && !top) return "";
+  return `<div class="blk">${titoletto("Dal mare")}${top}<div class="mcol">${vs.map(v => `<div class="mrow ${v.foto_url ? "" : "nof"}">${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="${esc(v.nome)}">` : ""}${riga(v)}</div>`).join("")}</div></div>`;
+}
+
+// FAMIGLIE: più versioni dello stesso piatto (tagliate, frollature) diventano una scala di prezzi.
+// Si decidono con il tag "fam:<nome>"; senza tag, Tony raggruppa da solo 3+ piatti con la stessa prima parola.
+function prezzoNum(v) { return Number(v.prezzo_override ?? v.prezzo) || 0; }
+function alKg(v) { return /al kg/i.test(v.nome || ""); }
+function famiglie(vs) {
+  const out = new Map();
+  vs.forEach(v => { const t = tags(v).find(x => x.startsWith("fam:")); if (t) { const k = t.slice(4); if (!out.has(k)) out.set(k, []); out.get(k).push(v); } });
+  // in automatico solo piatti "normali": non quelli da spingere o della tradizione, e mai terra e mare insieme
+  const liberi = vs.filter(v => !tags(v).some(x => x.startsWith("fam:")) && !ha(v, "spingi") && !ha(v, "tradizione"));
+  const perParola = new Map();
+  liberi.forEach(v => { const w = (v.nome || "").trim().split(/\s+/)[0]; const k = w + (alKg(v) ? "|kg" : ""); if (!perParola.has(k)) perParola.set(k, []); perParola.get(k).push(v); });
+  perParola.forEach((g, k) => { const m = g.filter(isMare).length; if (g.length >= 3 && (m === 0 || m === g.length)) out.set(k.split("|")[0], g); });
+  return out;
+}
+function etichetta(v, fam) {
+  let r = (v.nome || "").replace(/\(prezzo al kg\)/i, "").replace(/\s+/g, " ").trim();
+  if (r.toLowerCase().startsWith(fam.toLowerCase())) r = r.slice(fam.length).trim();
+  const m = r.match(/^(\d+)\s*(gg|giorni)?\b/i);
+  if (m) return `frollatura minimo ${m[1]} giorni`;
+  return r.replace(/^di (manzo|vitello|maiale)\s+/i, "") || v.nome;
+}
+function scala(fam, vs, senzaFoto = false) {
+  const ord = [...vs].sort((a, b) => prezzoNum(a) - prezzoNum(b));
+  const kg = vs.some(alKg);
+  const foto = vs.find(v => v.foto_url && ha(v, "spingi")) || vs.find(v => v.foto_url);
+  const desc = (vs.find(v => v.descrizione) || {}).descrizione;
+  return `<div class="scala"><div class="sch"><span>${esc(fam)}</span><em>${kg ? "prezzo al kg" : "come la vuoi"}</em></div>
+    <div class="scr">${foto && !senzaFoto ? `<img src="${esc(foto.foto_url)}" alt="${esc(fam)}">` : ""}<div class="scrows">
+    ${ord.map((v, i) => `<div class="sc ${i === ord.length - 1 && ord.length > 2 ? "best" : ""}"><span>${esc(etichetta(v, fam))}</span><b>${prezzo(v)}${kg ? "/kg" : ""}</b></div>`).join("")}
+    ${desc ? `<div class="scd">${esc(desc)}</div>` : ""}</div></div></div>`;
 }
 
 let nSez = 0;
 function sezione(c) {
-  const vs = vociCat(c.id);
-  if (!vs.length) return "";
+  const tutti = vociCat(c.id);
+  if (!tutti.length) return "";
+  const fam = famiglie(tutti);
+  const inFam = new Set([...fam.values()].flat().map(v => v.id));
+  const vs = tutti.filter(v => !inFam.has(v.id));
   const spingi = vs.filter(v => ha(v, "spingi"));
   const trad = vs.filter(v => ha(v, "tradizione") && !ha(v, "spingi"));
   const libero = vs.filter(v => !ha(v, "spingi") && !ha(v, "tradizione"));
   const mare = libero.filter(isMare), terra = libero.filter(v => !isMare(v));
-  const primo = spingi.find(v => v.foto_url) || null;
+  // la testata: il primo piatto da spingere con foto, anche se fa parte di una famiglia (es. la fiorentina)
+  const primo = tutti.filter(v => ha(v, "spingi")).find(v => v.foto_url) || null;
+  const famPrimo = primo ? [...fam.entries()].find(([, g]) => g.includes(primo)) : null;
   const altri = spingi.filter(v => v !== primo);
-  let h = `<section class="sez ${primo ? "nuova" : (vs.length <= 14 ? "corta" : "")}"><h2>${esc(c.nome)}</h2><div class="orn"></div>`;
-  if (primo) h += hero(primo, nSez++);
-  altri.forEach((v, i) => { h += feature(v, i, isMare(v) ? "Dal mare · consigliato" : "Consigliato"); });
-  h += blocco("La tradizione", trad);
-  if (mare.length && (terra.length || trad.length)) {
-    h += blocco(trad.length ? "Gli altri piatti" : "Dalla terra", terra, false);
-    h += blocco("Dal mare", mare);
-  } else {
-    h += `<div class="blk">${(trad.length || spingi.length) && libero.length ? titoletto("Gli altri piatti") : ""}${elenco(libero)}</div>`;
-  }
+  let h = `<section class="sez ${primo || fam.size ? "nuova" : (tutti.length <= 14 ? "corta" : "")}"><h2>${esc(c.nome)}</h2><div class="orn"></div>`;
+  if (primo && famPrimo) {
+    // testata di una famiglia (es. fiorentina): le versioni con i prezzi stanno dentro la fascia
+    const [k, g] = famPrimo;
+    const kg = g.some(alKg);
+    const righe = [...g].sort((x, y) => prezzoNum(x) - prezzoNum(y))
+      .map(v => `<div class="hr"><span>${esc(etichetta(v, k))}</span><b>${prezzo(v)}${kg ? "/kg" : ""}</b></div>`).join("");
+    const d = primo.descrizione || (g.find(v => v.descrizione) || {}).descrizione;
+    h += `<div class="hero full"><img src="${esc(primo.foto_url)}" alt="${esc(k)}"><div class="band"><div class="tag">Da provare${kg ? " · prezzo al kg" : ""}</div><div class="bn">${esc(k)}</div>${righe}${d ? `<div class="bd">${esc(d)}</div>` : ""}</div></div>`;
+    nSez++;
+  } else if (primo) h += hero(primo, nSez++);
+  fam.forEach((g, k) => { if (!(famPrimo && famPrimo[0] === k)) h += scala(k, g); });
+  const altriT = altri.filter(v => !isMare(v)), altriM = altri.filter(isMare);
+  altriT.forEach((v, i) => { h += feature(v, i, "Consigliato"); });
+  h += bloccoTradizione(trad);
+  if (terra.length) h += `<div class="blk">${(trad.length || mare.length || spingi.length || fam.size) ? titoletto(mare.length || altriM.length ? "Dalla terra" : "Gli altri piatti") : ""}${elenco(terra)}</div>`;
+  h += bloccoMare(mare, altriM.map((v, i) => feature(v, altriT.length + i, "Consigliato")).join(""));
   return h + "</section>";
 }
 
@@ -280,8 +337,9 @@ h2{${SER};font-size:38px;font-weight:600;margin:18px 0 10px;line-height:1}
 .hero{break-inside:avoid;margin:0 0 18px;position:relative}
 .hero .tag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:#e7c9b8}
 .hero .bn{${SER};font-size:30px;font-weight:600;line-height:1.05;margin-top:4px} .hero .bp{${SER};font-size:26px;font-weight:600;margin-top:2px} .hero .bd{font-size:13px;line-height:1.4;margin-top:6px}
-.hero.full img{width:100%;height:52mm;object-fit:cover;display:block}
+.hero.full img{width:100%;height:46mm;object-fit:cover;display:block}
 .hero.full .band{background:${VERDE};color:#FBF8F2;padding:12px 16px;width:78%;margin:-34px 0 0 auto;position:relative}
+.hero .hr{display:flex;justify-content:space-between;gap:14px;${SER};font-size:19px;font-weight:600;border-bottom:1px solid rgba(251,248,242,.25);padding:3px 0} .hero .hr b{white-space:nowrap}
 .hero.split{display:flex;align-items:stretch} .hero.split img{width:58%;height:54mm;object-fit:cover;display:block}
 .hero.split .band{flex:1;background:${VERDE};color:#FBF8F2;padding:18px;display:flex;flex-direction:column;justify-content:center}
 .feat{display:flex;gap:16px;align-items:center;margin:10px 0;break-inside:avoid} .feat.rev{flex-direction:row-reverse;text-align:right}
@@ -291,9 +349,15 @@ h2{${SER};font-size:38px;font-weight:600;margin:18px 0 10px;line-height:1}
 .blk{margin-top:10px}
 .sub{display:flex;align-items:center;gap:12px;margin:4px 0 8px;break-after:avoid} .sub span{${SER};font-style:italic;font-size:22px;color:${VERDE};white-space:nowrap}
 .sub:after{content:"";flex:1;height:1px;background:#cfc5b3}
-.tondi{display:flex;gap:16px;margin-bottom:8px;break-inside:avoid} .tondo{flex:1;min-width:0;text-align:center}
-.tondo img{width:22mm;height:22mm;border-radius:50%;object-fit:cover;display:block;margin:0 auto 6px;border:3px solid #F1EBDF}
-.pc{${SER};font-size:18px;font-weight:600}
+.minis{display:flex;gap:14px;margin-bottom:8px;break-inside:avoid} .mini{flex:1;min-width:0} .mini img{width:100%;height:30mm;object-fit:cover;display:block}
+.mcol{display:flex;flex-direction:column;gap:8px} .mrow{display:flex;gap:12px;align-items:center;break-inside:avoid} .mrow img,.mph{width:24mm;height:17mm;object-fit:cover;flex:none} .mph{background:#EFE7D8}
+.mrow .it{margin:0} .mrow.nof{padding-left:calc(24mm + 12px)}
+.scala{margin:8px 0 2px;break-inside:avoid} .sch{display:flex;align-items:baseline;gap:12px;margin-bottom:5px} .sch span{${SER};font-size:23px;font-weight:600} .sch em{${SER};font-size:18px;color:${VERDE}}
+.scr{display:flex;gap:20px;align-items:stretch} .scr img{width:50mm;height:34mm;object-fit:cover;flex:none}
+.scrows{flex:1;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.sc{display:flex;justify-content:space-between;gap:12px;align-items:baseline;border-bottom:1px solid #d9d1c3;padding:3px 0;${SER};font-size:18px;font-weight:600}
+.sc b{color:${VERDE};white-space:nowrap} .sc.best{background:${COTTO};color:#FBF8F2;border:0;padding:5px 10px;margin:4px -10px 0} .sc.best b{color:#FBF8F2}
+.scd{font-size:12px;color:#3b352d;margin-top:6px}
 .lst2{column-count:2;column-gap:34px} .lst1{max-width:62%} .it{break-inside:avoid;margin-bottom:6px}
 .itn{${SER};font-size:18px;font-weight:600;line-height:1.15} .pr{color:${VERDE};white-space:nowrap} .itd{font-size:12px;line-height:1.35;color:#3b352d;margin-top:1px}
 .nota{margin-top:26px;border-top:1px solid #d9d1c3;padding-top:8px;font-size:11px;color:#5c554c}
