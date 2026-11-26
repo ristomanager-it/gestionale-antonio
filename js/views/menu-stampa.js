@@ -177,6 +177,18 @@ function disegnaPiatti() {
   el.querySelectorAll(".ms-tag").forEach(b => b.onclick = async () => {
     const v = st.voci.find(x => x.id === b.dataset.id);
     const t = b.dataset.tag;
+    if (t.startsWith("pos:")) {
+      const p = t.slice(4);
+      let nuovi = tags(v).filter(x => !TAG_POS.includes(x));
+      if (p === "testata") {
+        nuovi.push("testata", "spingi");
+        // una sola testata per categoria: l'altra torna "in evidenza"
+        for (const o of vociCat(v.categoria_id)) if (o !== v && ha(o, "testata")) await salvaTags(o, tags(o).filter(x => x !== "testata"));
+      } else if (p) nuovi.push(p);
+      await salvaTags(v, nuovi);
+      disegnaPiatti();
+      return;
+    }
     let nuovi = tags(v).filter(x => x !== t);
     const acceso = t === "pesce" ? isMare(v) : ha(v, t);
     if (t === "pesce") nuovi = nuovi.filter(x => x !== "carne");
