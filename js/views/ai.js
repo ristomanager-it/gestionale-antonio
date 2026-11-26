@@ -1287,7 +1287,10 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     // centralino: chi lo nomina, o sta ancora rispondendo alle domande di Tony sul centralino
     const parlaDiCentralino = !tipoMessaggio && !body.immagini && ["admin", "superadmin"].includes(window.state?.ruolo || "") &&
       (RE_CENTRALINO.test(ultimoUtente) || window.__tonyRamoCentralino === true);
-    let funzioneTony = tipoMessaggio ? "tony-router" : parlaDiCentralino ? "tony-centralino" : parlaDiSondaggi ? "tony-sondaggi-chat" : parlaDiMenuTipo ? "tony-menu-chat" : parlaDiMessaggi ? "tony-messaggi" : "tony";
+    const ruoloTony = String(window.state?.ruolo || "");
+    const parlaDiPersonale = !tipoMessaggio && !body.immagini && (["admin", "superadmin"].includes(ruoloTony) || ruoloTony.indexOf("manager") === 0) &&
+      (RE_PERSONALE.test(ultimoUtente) || (window.__tonyRamoPersonale === true && ultimoUtente.length <= 120));
+    let funzioneTony = tipoMessaggio ? "tony-router" : parlaDiCentralino ? "tony-centralino" : parlaDiPersonale ? "tony-personale" : parlaDiSondaggi ? "tony-sondaggi-chat" : parlaDiMenuTipo ? "tony-menu-chat" : parlaDiMessaggi ? "tony-messaggi" : "tony";
     let res = await fetch(`${supabaseUrl}/functions/v1/${funzioneTony}`, {
       method: "POST",
       headers: {
