@@ -160,12 +160,11 @@ function disegnaPiatti() {
             ${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:6px;">` : `<div title="Senza foto" style="width:44px; height:44px; border-radius:6px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:11px;">no foto</div>`}
             <div style="flex:1; min-width:160px;">
               <div style="font-size:14px; font-weight:600;">${esc(v.nome)} <span style="color:#0E5A7A;">${prezzo(v)}</span></div>
-              <div style="font-size:12px; color:#64748b;">${v.q ? Q_LABEL[v.q] || v.q : "senza dati di vendita"}</div>
+              <div style="font-size:12px; color:#64748b;">${datiStorici(v)}</div>
             </div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              ${btn(v, "spingi", ha(v, "spingi"), "⭐ Spingi")}
-              ${btn(v, "tradizione", ha(v, "tradizione"), "🏛 Tradizione")}
-              ${btn(v, "pesce", isMare(v), "🐟 Mare")}
+            <div style="display:flex; gap:6px; flex-wrap:wrap; ${ha(v, "no_stampa") ? "opacity:.6;" : ""}">
+              ${POSIZIONI.map(([t, l]) => btn(v, "pos:" + t, posizione(v) === t, l)).join("")}
+              ${btn(v, "pesce", isMare(v), isMare(v) ? "🐟 Mare" : "🌾 Terra")}
             </div>
           </div>`).join("")}</div>`}
       </div>`;
