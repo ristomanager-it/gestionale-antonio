@@ -6,6 +6,9 @@
 // Le scelte restano sul piatto (menu_voci.tags: "spingi", "tradizione"; il mare usa il tag
 // "pesce" già esistente), così la prossima stampa riparte da lì.
 // La stampa si apre in una finestra a parte, A4, pronta per "Stampa o salva PDF".
+// POSIZIONE di ogni piatto (la decide il titolare, o Tony dai dati storici), sempre su menu_voci.tags:
+//   "testata" (la foto grande in cima alla categoria) · "spingi" (in evidenza) · "tradizione" ·
+//   nessuno = in elenco · "no_stampa" = non entra nel cartaceo (resta nel menu digitale).
 
 import { supabase } from "../supabaseClient.js";
 import { createPageLayout, createCard } from "../utils/pageLayout.js";
