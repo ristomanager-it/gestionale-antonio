@@ -53,6 +53,7 @@ export async function render(app) {
     title: "📊 Menu Engineering",
     subtitle: "Popolarità × margine, prezzo consigliato e simulatore: cosa spingere, cosa ritoccare, cosa togliere",
     content: `
+      <a href="#/menu-stampa" class="app-button" style="display:inline-block; margin-bottom:12px; text-decoration:none;">🖨️ Menu stampabile — scegli cosa spingere e stampa</a>
       <div id="me-sintesi"></div>
       ${createCard({
         title: "Quadranti",
