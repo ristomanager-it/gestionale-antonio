@@ -483,11 +483,10 @@ export async function render(container) {
   qs("#link-qr-img").onclick = () => { const s = qs("#cfg-slug").value.trim(); if(s) mostraQR(s); };
   qs("#btn-qr").onclick = () => { const s = qs("#cfg-slug").value.trim() || menuAttivo?.slug; if(s) mostraQR(s); else alert("Imposta prima uno slug"); };
   qs("#btn-stampa-menu-admin").onclick = () => {
-    const s = qs("#cfg-slug").value.trim() || menuAttivo?.slug;
-    if (!s) { alert("Imposta prima uno slug"); return; }
-    // Apre in una nuova scheda con ?print=1: solo da qui si attiva la stampa
-    // automatica, i clienti sulla pagina pubblica non vedono mai questa opzione.
-    window.open(`${BASE_URL}/menu-pubblico.html?slug=${encodeURIComponent(s)}&print=1`, "_blank");
+    // Il cartaceo si imposta nel Menu stampabile: lì il titolare decide cosa entra e dove
+    // (testata, in evidenza, tradizione, elenco, fuori), anche con la proposta di Tony dai dati di vendita.
+    if (!menuAttivo?.id) { alert("Apri prima un menu"); return; }
+    location.hash = `#/menu-stampa?menu=${encodeURIComponent(menuAttivo.id)}`;
   };
   qs("#btn-salva-cfg").onclick = salvaConfigMenu;
 
