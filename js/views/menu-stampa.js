@@ -73,6 +73,11 @@ async function caricaMenus() {
   if (!st.sedeId) return;
   const { data: menus } = await supabase.from("menu").select("id, nome").eq("sede_id", st.sedeId).eq("attivo", true).is("sorgente_menu_giorno_sede", null);
   st.menus = menus || [];
+  // il menu aperto dal Menu builder si stampa anche se non è attivo online (es. asporto)
+  if (st.menuId && !st.menus.find(m => m.id === st.menuId)) {
+    const { data: x } = await supabase.from("menu").select("id, nome").eq("id", st.menuId).eq("sede_id", st.sedeId).maybeSingle();
+    if (x) st.menus.push({ ...x, nome: x.nome + " (non attivo online)" });
+  }
   if (!st.menus.length) { st.menuId = null; return; }
   // di default il menu con più piatti (la carta)
   const conteggi = await Promise.all(st.menus.map(m =>
