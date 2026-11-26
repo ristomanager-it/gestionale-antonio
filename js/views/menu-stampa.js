@@ -324,7 +324,7 @@ function scala(fam, vs, senzaFoto = false) {
 
 let nSez = 0;
 function sezione(c) {
-  const tutti = vociCat(c.id);
+  const tutti = vociStampa(c.id);
   if (!tutti.length) return "";
   const fam = famiglie(tutti);
   const inFam = new Set([...fam.values()].flat().map(v => v.id));
