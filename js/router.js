@@ -250,6 +250,7 @@ const routes = {
   "crea-ricetta-avanzata": () => imp("./views/crea-ricetta.js"),
   "abbina-articoli": () => imp("./views/abbina-articoli.js"),
   "menu-engineering": () => imp("./views/menu-engineering.js"),
+  "menu-stampa": () => imp("./views/menu-stampa.js"),
   "super-tony": () => imp("./views/super-tony.js"),
   // Il cervello: le regole che il locale insegna al proprio Tony.
   // Admin e superadmin. Super Tony resta cosa da superadmin.
