@@ -1302,8 +1302,9 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     let esitoTony = await res.json();
     // il centralino ha capito che la domanda parla d'altro: la stessa domanda va al Tony generale
-    if (esitoTony && esitoTony.rimanda === true && funzioneTony === "tony-centralino") {
+    if (esitoTony && esitoTony.rimanda === true && (funzioneTony === "tony-centralino" || funzioneTony === "tony-personale")) {
       window.__tonyRamoCentralino = false;
+      window.__tonyRamoPersonale = false;
       funzioneTony = "tony";
       res = await fetch(`${supabaseUrl}/functions/v1/tony`, {
         method: "POST",
