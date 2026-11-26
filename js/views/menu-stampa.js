@@ -132,6 +132,10 @@ function datiStorici(v) {
 }
 
 function vociCat(catId) { return st.voci.filter(v => v.categoria_id === catId); }
+function vociStampa(catId) { return vociCat(catId).filter(v => !ha(v, "no_stampa")); }
+const POSIZIONI = [["testata", "📌 Testata"], ["spingi", "⭐ In evidenza"], ["tradizione", "🏛 Tradizione"], ["", "☰ In elenco"], ["no_stampa", "🚫 Non stampare"]];
+const TAG_POS = ["testata", "spingi", "tradizione", "no_stampa"];
+function posizione(v) { return ha(v, "no_stampa") ? "no_stampa" : ha(v, "testata") ? "testata" : ha(v, "spingi") ? "spingi" : ha(v, "tradizione") ? "tradizione" : ""; }
 
 function disegnaPiatti() {
   const el = document.getElementById("ms-piatti");
