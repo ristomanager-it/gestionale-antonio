@@ -1318,6 +1318,7 @@ async function callTony(messages, audioBase64 = null, tipoMessaggio = null) {
     window.__tonyRamoMessaggi = !!esitoTony && esitoTony.fonte === "messaggi";
     window.__tonyRamoMenu = !!esitoTony && esitoTony.fonte === "menu_tipo" && esitoTony.attesa === true;
     window.__tonyRamoSondaggi = !!esitoTony && esitoTony.fonte === "sondaggi" && esitoTony.attesa === true;
+    window.__tonyRamoPersonale = !!esitoTony && esitoTony.fonte === "personale" && esitoTony.attesa === true;
     window.__tonyInCorso = null;
     return esitoTony;
   } catch (err) {
