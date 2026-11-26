@@ -57,6 +57,12 @@ export async function render(app) {
     .eq("azienda_id", st.aziendaId);
   st.me = me || [];
 
+  // arrivo dal Menu builder (#/menu-stampa?menu=<id>): apro quel menu nella sua sede
+  const daHash = new URLSearchParams(location.hash.split("?")[1] || "").get("menu");
+  if (daHash) {
+    const { data: m } = await supabase.from("menu").select("id, sede_id").eq("id", daHash).maybeSingle();
+    if (m) { st.sedeId = m.sede_id || st.sedeId; st.menuId = m.id; }
+  }
   await caricaMenus();
   disegnaScelta();
   await caricaVoci();
