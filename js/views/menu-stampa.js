@@ -206,86 +206,96 @@ function disegnaStampa() {
 const SER = "font-family:'Cormorant Garamond',Georgia,serif";
 const VERDE = "#2F4A3A", COTTO = "#A8432A";
 
-function riga(v, desc = true) {
-  return `<div class="it"><div class="itn">${esc(v.nome)}<span class="pr">&#8195;${prezzo(v)}</span></div>${desc && v.descrizione ? `<div class="itd">${esc(v.descrizione)}</div>` : ""}</div>`;
+function riga(v) {
+  return `<div class="it"><div class="itn">${esc(v.nome)}<span class="pr">&#8195;${prezzo(v)}</span></div>${v.descrizione ? `<div class="itd">${esc(v.descrizione)}</div>` : ""}</div>`;
 }
-function colonna(titolo, vs) {
+// elenco a due colonne che si legge dall'alto in basso, nell'ordine del menu
+function elenco(vs) {
   if (!vs.length) return "";
-  return `<div class="col">${titolo ? `<div class="lab">${esc(titolo)}</div>` : ""}<div class="lst">${vs.map(v => riga(v)).join("")}</div></div>`;
+  return `<div class="${vs.length > 3 ? "lst2" : "lst1"}">${vs.map(riga).join("")}</div>`;
 }
-function hero(v) {
-  return `<div class="hero"><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"><div class="band"><div class="tag">Da provare</div>
-    <div class="bandr"><div class="bn">${esc(v.nome)}</div><div class="bn">${prezzo(v)}</div></div>
-    ${v.descrizione ? `<div class="bd">${esc(v.descrizione)}</div>` : ""}</div></div>`;
+function titoletto(t) { return `<div class="sub"><span>${esc(t)}</span></div>`; }
+
+// in evidenza: tre impaginazioni che si alternano, così le pagine non sono tutte uguali
+function hero(v, n) {
+  const testo = `<div class="tag">Da provare</div><div class="bn">${esc(v.nome)}</div><div class="bp">${prezzo(v)}</div>${v.descrizione ? `<div class="bd">${esc(v.descrizione)}</div>` : ""}`;
+  if (n % 3 === 1) return `<div class="hero split"><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"><div class="band">${testo}</div></div>`;
+  if (n % 3 === 2) return `<div class="hero split rev"><div class="band">${testo}</div><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"></div>`;
+  return `<div class="hero full"><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"><div class="band">${testo}</div></div>`;
 }
-function card(v, tag) {
-  return `<div class="card">${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="${esc(v.nome)}">` : ""}<div><div class="tag2">${tag}</div>
-    <div class="cn">${esc(v.nome)}</div><div class="cp">${prezzo(v)}</div>${v.descrizione ? `<div class="cd">${esc(v.descrizione)}</div>` : ""}</div></div>`;
+// gli altri spinti: foto tonda che si alterna a sinistra e a destra
+function feature(v, i, tag) {
+  return `<div class="feat ${i % 2 ? "rev" : ""}">${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="${esc(v.nome)}">` : ""}<div class="ft"><div class="tag2">${tag}</div>
+    <div class="cn">${esc(v.nome)}<span class="pr">&#8195;${prezzo(v)}</span></div>${v.descrizione ? `<div class="cd">${esc(v.descrizione)}</div>` : ""}</div></div>`;
 }
-function mini(v) {
-  return `<div class="mini">${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="${esc(v.nome)}">` : ""}<div class="itn" style="margin-top:8px">${esc(v.nome)}<span class="pr">&#8195;${prezzo(v)}</span></div>${v.descrizione ? `<div class="itd">${esc(v.descrizione)}</div>` : ""}</div>`;
+function tondo(v) {
+  return `<div class="tondo"><img src="${esc(v.foto_url)}" alt="${esc(v.nome)}"><div class="itn">${esc(v.nome)}</div><div class="pr pc">${prezzo(v)}</div>${v.descrizione ? `<div class="itd">${esc(v.descrizione)}</div>` : ""}</div>`;
 }
-function duecolonne(vs, titoloT = "", titoloM = "") {
-  const mare = vs.filter(isMare), terra = vs.filter(v => !isMare(v));
-  if (mare.length && terra.length) return `<div class="cols">${colonna(titoloT || "Terra", terra)}${colonna(titoloM || "Mare", mare)}</div>`;
-  const meta = Math.ceil(vs.length / 2);
-  return `<div class="cols">${colonna("", vs.slice(0, meta))}${colonna("", vs.slice(meta))}</div>`;
+function blocco(titolo, vs, foto = true) {
+  if (!vs.length) return "";
+  const conFoto = foto ? vs.filter(v => v.foto_url).slice(0, 3) : [];
+  const senza = vs.filter(v => !conFoto.includes(v));
+  return `<div class="blk">${titoletto(titolo)}${conFoto.length ? `<div class="tondi">${conFoto.map(tondo).join("")}</div>` : ""}${elenco(senza)}</div>`;
 }
 
+let nSez = 0;
 function sezione(c) {
   const vs = vociCat(c.id);
   if (!vs.length) return "";
   const spingi = vs.filter(v => ha(v, "spingi"));
   const trad = vs.filter(v => ha(v, "tradizione") && !ha(v, "spingi"));
-  const resto = vs.filter(v => !ha(v, "spingi") && !ha(v, "tradizione"));
-  const conFoto = spingi.filter(v => v.foto_url);
-  const primo = conFoto[0] || null;
-  const altriSpinti = spingi.filter(v => v !== primo);
-  let h = `<section class="sez ${primo ? "nuova" : ""}"><h2>${esc(c.nome)}</h2>`;
-  if (primo) h += hero(primo);
-  if (altriSpinti.length) {
-    for (let i = 0; i < altriSpinti.length; i += 2)
-      h += `<div class="row">${altriSpinti.slice(i, i + 2).map(v => card(v, isMare(v) ? "Dal mare" : "Consigliato")).join("")}</div>`;
-  }
-  if (trad.length) {
-    h += `<div class="lab big">La tradizione</div>`;
-    const tf = trad.filter(v => v.foto_url), tn = trad.filter(v => !v.foto_url);
-    for (let i = 0; i < tf.length; i += 3) h += `<div class="row">${tf.slice(i, i + 3).map(mini).join("")}</div>`;
-    if (tn.length) h += duecolonne(tn, " ", " ");
-  }
-  if (resto.length) {
-    if (trad.length || spingi.length) h += `<div class="lab big">${trad.length ? "Gli altri" : "Tutti i piatti"}</div>`;
-    h += duecolonne(resto);
+  const libero = vs.filter(v => !ha(v, "spingi") && !ha(v, "tradizione"));
+  const mare = libero.filter(isMare), terra = libero.filter(v => !isMare(v));
+  const primo = spingi.find(v => v.foto_url) || null;
+  const altri = spingi.filter(v => v !== primo);
+  let h = `<section class="sez ${primo ? "nuova" : (vs.length <= 14 ? "corta" : "")}"><h2>${esc(c.nome)}</h2><div class="orn"></div>`;
+  if (primo) h += hero(primo, nSez++);
+  altri.forEach((v, i) => { h += feature(v, i, isMare(v) ? "Dal mare · consigliato" : "Consigliato"); });
+  h += blocco("La tradizione", trad);
+  if (mare.length && (terra.length || trad.length)) {
+    h += blocco(trad.length ? "Gli altri piatti" : "Dalla terra", terra, false);
+    h += blocco("Dal mare", mare);
+  } else {
+    h += `<div class="blk">${(trad.length || spingi.length) && libero.length ? titoletto("Gli altri piatti") : ""}${elenco(libero)}</div>`;
   }
   return h + "</section>";
 }
 
 function apriStampa() {
+  nSez = 0;
   const sede = (st.sedi.find(s => s.id === st.sedeId) || {}).nome || "";
   const corpo = st.cats.filter(c => !st.escluse.has(c.id)).map(sezione).join("");
   if (!corpo) { alert("Nessuna categoria da stampare."); return; }
   const w = window.open("", "_blank");
   if (!w) { alert("Il browser ha bloccato la finestra: consenti i popup e riprova."); return; }
   const css = `
-@page{size:A4;margin:16mm 15mm 18mm 15mm}
+@page{size:A4;margin:13mm 14mm 13mm 14mm}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{margin:0;background:#FBF8F2;color:#231F1A;font-family:'Work Sans',Arial,sans-serif}
 .wrap{max-width:180mm;margin:0 auto;padding:10px}
 .top{display:flex;justify-content:space-between;border-bottom:1px solid #231F1A;padding-bottom:8px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:600}
-h2{${SER};font-size:40px;font-weight:600;margin:22px 0 12px;line-height:1}
-.sez{break-inside:auto} .sez.nuova{break-before:page} .sez:first-of-type{break-before:auto}
-.hero{break-inside:avoid;margin-bottom:14px} .hero img{width:100%;height:58mm;object-fit:cover;display:block}
-.band{background:${VERDE};color:#FBF8F2;padding:12px 16px} .tag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:#e7c9b8}
-.bandr{display:flex;justify-content:space-between;gap:16px;align-items:baseline} .bn{${SER};font-size:28px;font-weight:600;line-height:1.1} .bd{font-size:13px;margin-top:3px}
-.row{display:flex;gap:12px;margin:12px 0;break-inside:avoid}
-.card{flex:1;min-width:0;display:flex;gap:14px;align-items:center;background:#F1EBDF;padding:10px}
-.card img{width:30mm;height:30mm;object-fit:cover;flex:none} .tag2{font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:${COTTO}}
-.cn{${SER};font-size:22px;font-weight:600;line-height:1.05;margin-top:3px} .cp{${SER};font-size:21px;font-weight:600;color:${VERDE}} .cd{font-size:12.5px;line-height:1.35;margin-top:2px}
-.mini{flex:1;min-width:0} .mini img{width:100%;height:28mm;object-fit:cover;display:block}
-.lab{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:${COTTO};border-bottom:1px solid #231F1A;padding-bottom:5px;margin-bottom:9px}
-.lab.big{font-size:11.5px;margin-top:18px}
-.cols{display:flex;gap:36px;align-items:flex-start;margin-top:8px} .col{flex:1;min-width:0} .lst{display:flex;flex-direction:column;gap:7px}
-.it{break-inside:avoid} .itn{${SER};font-size:19px;font-weight:600;line-height:1.15} .pr{color:${VERDE};white-space:nowrap} .itd{font-size:12.5px;line-height:1.35;color:#3b352d;margin-top:1px}
+h2{${SER};font-size:38px;font-weight:600;margin:18px 0 10px;line-height:1}
+.sez{break-inside:auto} .sez.corta{break-inside:avoid} h2,.orn,.sub{break-after:avoid} .sez.nuova{break-before:page} .sez:first-of-type{break-before:auto}
+.orn{width:46px;height:2px;background:${COTTO};margin:-4px 0 16px}
+.hero{break-inside:avoid;margin:0 0 18px;position:relative}
+.hero .tag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:#e7c9b8}
+.hero .bn{${SER};font-size:30px;font-weight:600;line-height:1.05;margin-top:4px} .hero .bp{${SER};font-size:26px;font-weight:600;margin-top:2px} .hero .bd{font-size:13px;line-height:1.4;margin-top:6px}
+.hero.full img{width:100%;height:52mm;object-fit:cover;display:block}
+.hero.full .band{background:${VERDE};color:#FBF8F2;padding:12px 16px;width:78%;margin:-34px 0 0 auto;position:relative}
+.hero.split{display:flex;align-items:stretch} .hero.split img{width:58%;height:54mm;object-fit:cover;display:block}
+.hero.split .band{flex:1;background:${VERDE};color:#FBF8F2;padding:18px;display:flex;flex-direction:column;justify-content:center}
+.feat{display:flex;gap:16px;align-items:center;margin:10px 0;break-inside:avoid} .feat.rev{flex-direction:row-reverse;text-align:right}
+.feat img{width:26mm;height:26mm;border-radius:50%;object-fit:cover;flex:none;border:3px solid #F1EBDF}
+.ft{flex:1} .tag2{font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:${COTTO}}
+.cn{${SER};font-size:24px;font-weight:600;line-height:1.1;margin-top:3px} .cd{font-size:12.5px;line-height:1.4;margin-top:3px;color:#3b352d}
+.blk{margin-top:10px}
+.sub{display:flex;align-items:center;gap:12px;margin:4px 0 8px;break-after:avoid} .sub span{${SER};font-style:italic;font-size:22px;color:${VERDE};white-space:nowrap}
+.sub:after{content:"";flex:1;height:1px;background:#cfc5b3}
+.tondi{display:flex;gap:16px;margin-bottom:8px;break-inside:avoid} .tondo{flex:1;min-width:0;text-align:center}
+.tondo img{width:22mm;height:22mm;border-radius:50%;object-fit:cover;display:block;margin:0 auto 6px;border:3px solid #F1EBDF}
+.pc{${SER};font-size:18px;font-weight:600}
+.lst2{column-count:2;column-gap:34px} .lst1{max-width:62%} .it{break-inside:avoid;margin-bottom:6px}
+.itn{${SER};font-size:18px;font-weight:600;line-height:1.15} .pr{color:${VERDE};white-space:nowrap} .itd{font-size:12px;line-height:1.35;color:#3b352d;margin-top:1px}
 .nota{margin-top:26px;border-top:1px solid #d9d1c3;padding-top:8px;font-size:11px;color:#5c554c}
 .np{position:sticky;top:0;background:#fff;padding:10px;text-align:center;border-bottom:1px solid #e5e7eb}
 .np button{background:#0E5A7A;color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:14px;cursor:pointer}
