@@ -1570,7 +1570,7 @@ export async function render(container) {
         prezzo_override: prezzo||null, prezzo: prezzo||voce.prezzo,
         foto_url: qs("#voce-foto-edit").value.trim()||null,
         descrizione: qs("#voce-desc-edit").value.trim()||null,
-        tags: tagsSelezionati,
+        tags: [...new Set([...(Array.isArray(voce.tags) ? voce.tags : []).filter(t => !["vegetariano","vegano","senza_glutine","pesce","carne","senza_lattosio","piccante","chef"].includes(t)), ...tagsSelezionati])],
         disponibile: qs("#voce-disp-edit").checked,
         visibile: qs("#voce-vis-edit").checked,
         ordinabile: qs("#voce-ord-edit").checked,
