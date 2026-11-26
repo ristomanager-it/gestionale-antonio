@@ -334,7 +334,7 @@ function sezione(c) {
   const libero = vs.filter(v => !ha(v, "spingi") && !ha(v, "tradizione"));
   const mare = libero.filter(isMare), terra = libero.filter(v => !isMare(v));
   // la testata: il primo piatto da spingere con foto, anche se fa parte di una famiglia (es. la fiorentina)
-  const primo = tutti.filter(v => ha(v, "spingi")).find(v => v.foto_url) || null;
+  const primo = tutti.find(v => ha(v, "testata") && v.foto_url) || tutti.filter(v => ha(v, "spingi")).find(v => v.foto_url) || null;
   const famPrimo = primo ? [...fam.entries()].find(([, g]) => g.includes(primo)) : null;
   const altri = spingi.filter(v => v !== primo);
   let h = `<section class="sez ${primo || fam.size ? "nuova" : (tutti.length <= 14 ? "corta" : "")}"><h2>${esc(c.nome)}</h2><div class="orn"></div>`;
