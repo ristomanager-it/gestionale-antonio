@@ -205,18 +205,23 @@ async function salvaTags(v, nuovi) {
   v.tags = nuovi;
 }
 
-async function propostaTony() {
-  const b = document.getElementById("ms-tony");
-  b.disabled = true; b.textContent = "🤖 Tony sta scegliendo…";
+async function propostaTony(crit = "margine") {
+  document.querySelectorAll(".ms-tony").forEach(b => { b.disabled = true; });
+  const maxV = Math.max(1, ...st.voci.map(v => Number(storico(v)?.qta_venduta) || 0));
   for (const c of st.cats) {
     if (st.escluse.has(c.id)) continue;
-    const vs = vociCat(c.id);
+    const vs = vociStampa(c.id).filter(v => !ha(v, "tradizione"));
     const quanti = vs.length <= 4 ? 1 : 2;
-    const punteggio = v => (PESO_Q[v.q] ?? 0.5) + (v.foto_url ? 1.5 : 0);
-    const scelti = [...vs].sort((a, b) => punteggio(b) - punteggio(a)).slice(0, quanti).map(v => v.id);
-    for (const v of vs) {
-      let nuovi = tags(v).filter(x => x !== "spingi");
+    const base = v => crit === "venduti" ? 3 * (Number(storico(v)?.qta_venduta) || 0) / maxV : (PESO_Q[v.q] ?? 0.5);
+    const punteggio = v => base(v) + (v.foto_url ? 1.5 : 0);
+    const ord = [...vs].sort((a, b) => punteggio(b) - punteggio(a));
+    const scelti = ord.slice(0, quanti).map(v => v.id);
+    const testa = (ord.find(v => scelti.includes(v.id) && v.foto_url) || {}).id;
+    for (const v of vociCat(c.id)) {
+      if (ha(v, "no_stampa") || ha(v, "tradizione")) continue;
+      let nuovi = tags(v).filter(x => x !== "spingi" && x !== "testata");
       if (scelti.includes(v.id)) nuovi.push("spingi");
+      if (v.id === testa) nuovi.push("testata");
       if (!ha(v, "pesce") && !ha(v, "carne") && RX_MARE.test(v.nome || "")) nuovi.push("pesce");
       if (JSON.stringify(nuovi) !== JSON.stringify(tags(v))) await salvaTags(v, nuovi);
     }
