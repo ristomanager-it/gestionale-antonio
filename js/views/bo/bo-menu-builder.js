@@ -132,7 +132,7 @@ export async function render(container) {
             </div>
             <a id="cfg-link-pub" href="#" target="_blank" class="mb-btn mb-btn-primary" style="text-decoration:none;white-space:nowrap;opacity:.4;">🔗 Apri</a>
             <button id="btn-qr" class="mb-btn mb-btn-sec">📷 QR</button>
-            <button id="btn-stampa-menu-admin" class="mb-btn mb-btn-sec" title="Apre il menu e avvia la stampa — una pagina A4 per categoria">🖨️ Stampa</button>
+            <button id="btn-stampa-menu-admin" class="mb-btn mb-btn-sec" title="Imposta il menu cartaceo: cosa spingere, cosa è tradizione, cosa non stampare">🖨️ Stampa</button>
           </div>
 
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">
