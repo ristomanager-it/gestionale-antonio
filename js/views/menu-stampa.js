@@ -201,7 +201,7 @@ function disegnaPiatti() {
         <label style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; cursor:pointer;">
           <input type="checkbox" class="ms-cat" data-id="${c.id}" ${out ? "" : "checked"} style="width:18px; height:18px;"> ${esc(c.nome)} <span style="font-weight:400; color:#94a3b8; font-size:13px;">${vs.length} piatti${out ? " · non in stampa" : ""}</span>
         </label>
-        ${out ? "" : `<div style="display:grid; gap:8px; margin-top:10px;">${vs.map(v => `
+        ${out ? "" : (st.giorno && (RX_GIORNO.test(c.nome) || st.giorno.menuId === st.menuId)) ? `<div style="margin-top:8px; font-size:13px; color:#334155; background:#f8fafc; border-radius:8px; padding:10px;">📅 Si stampano i piatti di oggi del Menu del giorno, in colonna per portata: ${st.giorno.gruppi.map(g => `${esc(pulisci(g.nome))} ${g.voci.length}`).join(" · ")}${st.giorno.prezzo ? ` · prezzo € ${st.giorno.prezzo} a persona` : ""}.</div>` : `<div style="display:grid; gap:8px; margin-top:10px;">${vs.map(v => `
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             ${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:6px;">` : `<div title="Senza foto" style="width:44px; height:44px; border-radius:6px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:11px;">no foto</div>`}
             <div style="flex:1; min-width:160px;">
