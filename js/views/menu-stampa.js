@@ -448,6 +448,12 @@ h2{${SER};font-size:38px;font-weight:600;margin:18px 0 10px;line-height:1}
 .scd{font-size:12px;color:#3b352d;margin-top:6px}
 .lst2{column-count:2;column-gap:34px} .lst1{max-width:62%} .it{break-inside:avoid;margin-bottom:6px}
 .itn{${SER};font-size:18px;font-weight:600;line-height:1.15} .pr{color:${VERDE};white-space:nowrap} .itd{font-size:12px;line-height:1.35;color:#3b352d;margin-top:1px}
+.giorno{text-align:center;break-inside:avoid;break-before:page} .sez.giorno:first-of-type{break-before:auto} .giorno .orn{margin:-4px auto 20px}
+.gport{font-size:12px;letter-spacing:.28em;text-transform:uppercase;font-weight:600;color:${COTTO};margin:34px 0 10px}
+.gv{${SER};font-size:27px;font-weight:600;line-height:1.25;margin:6px 0}
+.gfine{margin:44px auto 0;padding-top:22px;border-top:1px solid #cfc5b3;width:60%}
+.gprezzo{${SER};font-size:60px;font-weight:600;color:${VERDE};line-height:1}
+.gnome{${SER};font-style:italic;font-size:24px;margin-top:4px} .gcomp{font-size:12px;color:#5c554c;margin-top:4px}
 .nota{margin-top:26px;border-top:1px solid #d9d1c3;padding-top:8px;font-size:11px;color:#5c554c}
 .np{position:sticky;top:0;background:#fff;padding:10px;text-align:center;border-bottom:1px solid #e5e7eb}
 .np button{background:#0E5A7A;color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:14px;cursor:pointer}
