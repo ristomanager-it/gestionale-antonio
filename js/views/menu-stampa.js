@@ -116,8 +116,49 @@ async function caricaVoci() {
   }
   st.escluse = new Set(st.cats.filter(c => ESCLUSE_DEFAULT.test(c.nome)).map(c => c.id));
   st.voci.forEach(v => { v.q = quadrante(v); });
+  await caricaGiorno();
   disegnaPiatti();
   disegnaStampa();
+}
+
+// MENU DEL GIORNO a prezzo fisso: si stampa sempre con i piatti di oggi presi dal "Menu del giorno" della sede,
+// in colonna (antipasti, primi, secondi) e con il prezzo a persona sotto.
+const RX_GIORNO = /menu\s+del\s+giorno/i;
+async function caricaGiorno() {
+  st.giorno = null;
+  const cur = st.menus.find(m => m.id === st.menuId);
+  let m = null;
+  if (cur && st.menuId) {
+    const { data } = await supabase.from("menu").select("id, nome, prezzo_fisso_persona, prezzo_fisso_nome, sorgente_menu_giorno_sede").eq("id", st.menuId).maybeSingle();
+    if (data && (data.prezzo_fisso_persona || data.sorgente_menu_giorno_sede)) m = data;
+  }
+  if (!m && st.cats.some(c => RX_GIORNO.test(c.nome)) && st.sedeId) {
+    const { data } = await supabase.from("menu").select("id, nome, prezzo_fisso_persona, prezzo_fisso_nome, sorgente_menu_giorno_sede").eq("sorgente_menu_giorno_sede", st.sedeId).eq("attivo", true).limit(1);
+    m = (data || [])[0] || null;
+  }
+  if (!m) return;
+  let cats = st.cats, voci = st.voci;
+  if (m.id !== st.menuId) {
+    const [{ data: c }, { data: v }] = await Promise.all([
+      supabase.from("menu_categorie").select("id, nome, ordine").eq("menu_id", m.id).order("ordine"),
+      supabase.from("menu_voci").select("id, nome, descrizione, categoria_id, ordine, attivo, visibile").eq("menu_id", m.id).order("ordine"),
+    ]);
+    cats = c || []; voci = (v || []).filter(x => x.attivo !== false && x.visibile !== false);
+  }
+  const gruppi = cats.map(c => ({ nome: c.nome, voci: voci.filter(v => v.categoria_id === c.id) })).filter(g => g.voci.length);
+  st.giorno = { menuId: m.id, prezzo: Number(m.prezzo_fisso_persona) || 0, nomePrezzo: m.prezzo_fisso_nome || "", gruppi };
+}
+function pulisci(t) { return String(t || "").replace(/[^\p{L}\p{N}\s'’·,.()-]/gu, "").replace(/\s+/g, " ").trim(); }
+function sezioneGiorno(titolo) {
+  const g = st.giorno;
+  const euro = g.prezzo ? "€ " + (Number.isInteger(g.prezzo) ? g.prezzo : g.prezzo.toFixed(2).replace(".", ",")) : "";
+  // "Menu business (antipasto, primo, secondo, acqua e caffè)" → nome e cosa comprende
+  const mm = g.nomePrezzo.match(/^(.*?)\s*\((.*)\)\s*$/);
+  const nomeP = mm ? mm[1] : g.nomePrezzo, comprende = mm ? mm[2] : "";
+  return `<section class="sez giorno"><h2>${esc(pulisci(titolo) || "Menu del giorno")}</h2><div class="orn"></div>
+    ${g.gruppi.map(x => `<div class="gport">${esc(pulisci(x.nome))}</div>${x.voci.map(v => `<div class="gv">${esc(v.nome)}</div>`).join("")}`).join("")}
+    ${euro ? `<div class="gfine"><div class="gprezzo">${euro}</div>${nomeP ? `<div class="gnome">${esc(nomeP)}</div>` : ""}${comprende ? `<div class="gcomp">${esc(comprende)}</div>` : ""}</div>` : ""}
+  </section>`;
 }
 
 function quadrante(v) {
