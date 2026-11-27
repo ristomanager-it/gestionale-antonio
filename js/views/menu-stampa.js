@@ -406,7 +406,10 @@ function sezione(c) {
 function apriStampa() {
   nSez = 0;
   const sede = (st.sedi.find(s => s.id === st.sedeId) || {}).nome || "";
-  const corpo = st.cats.filter(c => !st.escluse.has(c.id)).map(sezione).join("");
+  // se il menu scelto è il menu del giorno: un'unica pagina in colonna con il prezzo fisso
+  const soloGiorno = st.giorno && st.giorno.menuId === st.menuId;
+  const corpo = soloGiorno ? sezioneGiorno("Menu del giorno")
+    : st.cats.filter(c => !st.escluse.has(c.id)).map(c => (st.giorno && RX_GIORNO.test(c.nome)) ? sezioneGiorno(c.nome) : sezione(c)).join("");
   if (!corpo) { alert("Nessuna categoria da stampare."); return; }
   const w = window.open("", "_blank");
   if (!w) { alert("Il browser ha bloccato la finestra: consenti i popup e riprova."); return; }
