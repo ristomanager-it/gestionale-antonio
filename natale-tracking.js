@@ -32,7 +32,7 @@ var nome=(location.pathname.split("/").pop()||"index").replace(".html","");
 var sede=nome.indexOf("aquila")>=0?"4a936e52-a1e3-42fc-843c-e8d15dc86040":"c40919bb-78c2-458f-865e-0c9fd02aa0b5";
 var src=q.get("utm_source")||(ref?(function(){try{return new URL(ref).hostname;}catch(e){return null;}})():"diretto");
 function inv(tipo,el,val,ok){try{fetch(U,{method:"POST",keepalive:true,headers:{"Content-Type":"application/json","apikey":A,"Authorization":"Bearer "+A,"Prefer":"return=minimal"},body:JSON.stringify({azienda_id:"b331365f-17db-4dda-aa2f-77a09427fe42",sede_id:sede,pagina:nome,pagina_id:"b331365f-17db-4dda-aa2f-77a09427fe42",tipo:tipo,elemento:el,valore:val||null,completato:!!ok,referrer:ref?ref.slice(0,250):null,utm_source:src,utm_medium:q.get("utm_medium"),utm_campaign:q.get("utm_campaign"),device:/Mobi|Android/i.test(navigator.userAgent)?"mobile":"desktop",session_id:ses,visitatore:vis})}).catch(function(){});}catch(e){}}
-inv("view","sito_pagina");
+inv("view","sito_pagina");window.rfTraccia=inv;
 var sg={};addEventListener("scroll",function(){var h=document.documentElement,t=h.scrollHeight-h.clientHeight;if(t<=0)return;var p=Math.round(100*h.scrollTop/t);[25,50,75,100].forEach(function(s){if(p>=s&&!sg[s]){sg[s]=1;inv("click","scroll_"+s);}});},{passive:true});
 var t0=Date.now(),fatto=false;function tempo(){if(fatto)return;var s=Math.round((Date.now()-t0)/1000);if(s<2)return;fatto=true;inv("click","tempo_pagina",String(s));}
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")tempo();});addEventListener("pagehide",tempo);
