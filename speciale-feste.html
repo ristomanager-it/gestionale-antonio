@@ -117,7 +117,7 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
   function parti(){if(calma||fermo)return;clearInterval(timer);timer=setInterval(function(){vai(i+1);},3500);}
   function ferma(){fermo=true;clearInterval(timer);}
   var t;bin.addEventListener("scroll",function(){clearTimeout(t);t=setTimeout(function(){i=Math.round(bin.scrollLeft/bin.clientWidth);segna();},80);},{passive:true});
-  bin.addEventListener("touchstart",ferma,{passive:true});bin.addEventListener("mousedown",ferma);
+  var tocco=function(){if(!fermo&&window.rfTraccia)rfTraccia("click","slide_foto");ferma();};bin.addEventListener("touchstart",tocco,{passive:true});bin.addEventListener("mousedown",tocco);
   if("IntersectionObserver" in window){new IntersectionObserver(function(e){if(e[0].isIntersecting)parti();else clearInterval(timer);},{threshold:.4}).observe(bin);}else parti();
   segna();
 })();
