@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Speciale Feste · Campo Antico e Trattoria dell'Aquila</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Speciale Feste: asporto di Capodanno, panettoni, enoteca. L'ordine parte su WhatsApp e arriva nella chat dell'app. */
+*{box-sizing:border-box}
+body{margin:0;background:#fbf7ef;color:#2b1d0e;font-family:Inter,system-ui,sans-serif;font-size:16px;line-height:1.55}
+.w{max-width:720px;margin:0 auto;padding:0 18px}
+.nota-prova{background:#2b1d0e;color:#fbf7ef;font-size:12px;text-align:center;padding:8px 12px}
+.hero{position:relative;color:#fbf7ef;text-align:center;padding:90px 0 60px;background:#2b1d0e center/cover no-repeat}
+.hero:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(28,18,8,.55),rgba(28,18,8,.8))}
+.hero .w{position:relative}
+.hero .eti{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:#e3c68f}
+.hero h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;font-size:56px;line-height:1;margin:12px 0 12px}
+.hero .gancio{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:22px;color:#efe3cb;margin:0 auto;max-width:520px}
+.indice{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:26px}
+.indice a{border:1px solid rgba(227,198,143,.7);color:#fbf7ef;border-radius:999px;padding:8px 14px;font-size:14px;text-decoration:none}
+.btn{display:inline-block;background:#794d01;color:#fff;border-radius:999px;padding:13px 22px;font-weight:600;text-decoration:none;font-size:15px;text-align:center}
+.btn.oro{background:#c9a96a;color:#2b1d0e}
+section{padding:40px 0;border-bottom:1px solid #e8dcc4}
+h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;font-size:34px;line-height:1.12;margin:0 0 10px}
+.eti2{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:#794d01;margin-bottom:6px}
+.omaggio{display:flex;gap:10px;align-items:flex-start;background:#fff4dc;border:1px solid #e3c68f;border-radius:12px;padding:12px 14px;margin:14px 0 6px;font-size:15px}
+.omaggio b{color:#794d01}
+.card{background:#fff;border:1px solid #e8dcc4;border-radius:14px;overflow:hidden;margin-top:16px}
+.card img{display:block;width:100%;height:220px;object-fit:cover}
+.card .corpo{padding:16px}
+.card h3{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:25px;margin:0;line-height:1.15}
+.desc{margin:6px 0 4px;color:#5a4630}
+.picc{font-size:13px;color:#7a6a55;margin:4px 0 0}
+.riga{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:12px}
+.prezzo{font-family:"Cormorant Garamond",Georgia,serif;font-size:28px;font-weight:600;white-space:nowrap}
+.prezzo small{font-family:Inter,sans-serif;font-size:12px;color:#7a6a55;font-weight:400}
+.qta{display:flex;align-items:center;border:1px solid #c9a96a;border-radius:999px;overflow:hidden;flex:none}
+.qta span,.qta button{width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:600}
+.qta button{background:none;border:0;font:inherit;font-size:18px;color:#2b1d0e;cursor:pointer}.qta .n{border-left:1px solid #e8dcc4;border-right:1px solid #e8dcc4}
+.lista .voce{background:#fff;border:1px solid #e8dcc4;border-radius:12px;padding:12px 14px;margin-top:10px}
+.lista .voce .t{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;font-weight:600;line-height:1.2}
+.lista .voce .d{font-size:13px;color:#7a6a55}
+.lista .voce .riga{margin-top:8px}
+.lista .voce .prezzo{font-size:23px}
+.pren{display:grid;gap:12px;margin-top:16px}
+.pc{background:#fff;border:1px solid #e8dcc4;border-radius:14px;padding:16px}.pc b{display:block;font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:600}.pc>span{font-size:14px;color:#7a6a55}.pb{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.pb a{background:#794d01;color:#fff;border-radius:999px;padding:9px 14px;font-size:14px;font-weight:600;text-decoration:none}.pren a.x{display:block;background:#fff;border:1px solid #e8dcc4;border-radius:14px;padding:16px;text-decoration:none;color:#2b1d0e}
+.pren a b{display:block;font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:600}
+.pren a span{font-size:14px;color:#7a6a55}
+.pren a i{font-style:normal;display:inline-block;margin-top:10px;background:#794d01;color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600}
+.carrello{background:#fff;border:2px solid #794d01;border-radius:14px;padding:18px;margin-top:8px}
+.carrello .r{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed #e8dcc4}
+.carrello .r span:last-child{white-space:nowrap}
+.carrello .r.om{color:#794d01}
+.carrello .tot{display:flex;justify-content:space-between;font-weight:600;font-size:18px;padding-top:10px}
+input.campo,textarea.campo{width:100%;font:inherit;color:#2b1d0e}.campo{border:1px solid #d9ccb2;border-radius:10px;padding:12px;margin-top:10px;color:#7a6a55;background:#fff}
+.scelta{display:flex;gap:10px;margin-top:10px}
+.scelta button{text-align:left;font:inherit;color:#2b1d0e;cursor:pointer;flex:1;border:1px solid #d9ccb2;border-radius:10px;padding:12px;font-size:14px;background:#fff}
+.scelta button.on{border:2px solid #794d01}
+.faq b{display:block;margin-top:16px}
+footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
+@media (min-width:640px){.hero h1{font-size:72px}.pren{grid-template-columns:repeat(3,1fr)}}
+.foto-sez{display:block;width:100%;height:300px;object-fit:cover;border-radius:14px;margin:16px 0 8px}.striscia{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 6px}.striscia img{width:100%;height:120px;object-fit:cover;border-radius:10px;display:block}
+.cookie{position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:#2b1d0e;color:#fbf7ef;border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:14px}.cookie span{flex:1}.cookie button{border:0;border-radius:999px;padding:8px 12px;font:inherit;font-weight:600;cursor:pointer}#ck-si{background:#c9a96a;color:#2b1d0e}#ck-no{background:transparent;color:#fbf7ef;border:1px solid #c9a96a}.barra-ord{position:fixed;left:12px;right:12px;bottom:12px;z-index:40;background:#794d01;color:#fff;border-radius:999px;padding:13px 18px;font-weight:600;text-align:center;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+
+<header class="hero" style="background-image:url('https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/06-turbante-rombo.jpg')">
+  <div class="w">
+    <div class="eti">Natale e Capodanno 2026 · Orte</div>
+    <h1>Speciale Feste</h1>
+    <p class="gancio">Il cenone a casa vostra, i nostri panettoni, le bottiglie giuste. E un posto a tavola da noi.</p>
+    <div class="indice">
+      <a href="#asporto">Capodanno a casa</a><a href="#panettoni">Panettoni</a><a href="#enoteca">Enoteca</a><a href="#prenota">Prenota un tavolo</a>
+    </div>
+  </div>
+</header>
+
+<main class="w">
+
+<section id="asporto">
+  <div class="eti2">Asporto</div>
+  <h2>Capodanno a casa vostra</h2>
+  <p>Festeggiate a casa e la cena la prepariamo noi. Ritirate tutto il 31 dicembre: a casa basta il forno, in ogni confezione trovate le istruzioni per finire ogni piatto.</p>
+  <div class="omaggio">🎁 <span><b>Da 6 persone in su</b>, una bottiglia di Prosecco Valdobbiadene DOCG è in omaggio.</span></div>
+  <div class="card"><img loading="lazy" src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/05-crespella-cernia.jpg" alt="Crespella di cernia e vongole veraci"><div class="corpo">
+    <h3>Menu di Capodanno da asporto</h3>
+    <p class="desc"><b>Antipasti</b> · Baccalà mantecato all’arancia con crostini di pane alle noci · Polpo su crema di patate di Avezzano</p>
+    <p class="desc"><b>Primo</b> · Crespella di cernia e vongole veraci, da gratinare in forno</p>
+    <p class="desc"><b>Secondo</b> · Turbante di rombo con scarola ripassata, olive e capperi</p>
+    <p class="desc"><b>Mezzanotte</b> · Cotechino con lenticchie di Castelluccio di Norcia</p>
+    <p class="picc">Minimo 2 persone · ordini entro il 29 dicembre · ritiro il 31 dicembre dalle 17:30 alle 19:00, a Campo Antico o alla Trattoria dell’Aquila</p>
+    <div class="riga"><div class="prezzo">45 € <small>a persona</small></div><div class="qta" data-cat="asporto" data-nome="Menu di Capodanno da asporto" data-prezzo="45"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div>
+  </div></div>
+</section>
+
+<section id="panettoni">
+  <div class="eti2">Panettoni</div>
+  <h2>I panettoni di Campo Antico</h2>
+  <p>Gli stessi che portiamo in tavola a Natale e a Capodanno: lievito madre, burro e tuorli, due impasti e i tempi che servono. Circa 1 kg l’uno, fatti a mano nella nostra cucina.</p>
+  <img loading="lazy" class="foto-sez" src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/render/image/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1wpk4Wp7r0qH6K1A3zlCukBJ7j7JJJh-e.jpg?width=900&height=900&resize=contain&quality=75" alt="Panettone di Campo Antico tagliato a metà">
+  <div class="striscia"><img loading="lazy" src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/render/image/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1SDcxsqD8wFrxe26l2c3c4D02wQhsoGmB.jpg?width=500&height=500&resize=contain&quality=70" alt="Canditi e uvetta"><img loading="lazy" src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/render/image/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1FYN72LNe7384QyHztw6mNG3GKjcihlus.jpg?width=500&height=500&resize=contain&quality=70" alt="Impasto nei pirottini"><img loading="lazy" src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/render/image/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1970BsD8lc7CzmoUUVfiRIAbRLyNzmK0f.jpg?width=500&height=500&resize=contain&quality=70" alt="Fetta di panettone"></div>
+  <div class="lista">
+    <div class="voce"><div class="t">Classico</div><div class="d">Uvetta sultanina, arancia e cedro canditi, miele e vaniglia.</div><div class="riga"><div class="prezzo">27 €</div><div class="qta" data-cat="panettoni" data-nome="Classico" data-prezzo="27"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Al caffè</div><div class="d">L’impasto del classico profumato al caffè, senza canditi.</div><div class="riga"><div class="prezzo">25 €</div><div class="qta" data-cat="panettoni" data-nome="Al caffè" data-prezzo="25"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Al cioccolato</div><div class="d">Impasto al cacao amaro con pepite di cioccolato fondente. Con il vasetto di crema al cioccolato da 250 g.</div><div class="riga"><div class="prezzo">43 €</div><div class="qta" data-cat="panettoni" data-nome="Al cioccolato" data-prezzo="43"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Al pistacchio</div><div class="d">Crema e granella di pistacchio, cioccolato bianco, copertura di granella. Con il vasetto di crema al pistacchio da 250 g.</div><div class="riga"><div class="prezzo">45 €</div><div class="qta" data-cat="panettoni" data-nome="Al pistacchio" data-prezzo="45"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Albicocca e Passito di Pantelleria</div><div class="d">Albicocche ammollate nel Passito di Pantelleria DOC.</div><div class="riga"><div class="prezzo">40 €</div><div class="qta" data-cat="panettoni" data-nome="Albicocca e Passito di Pantelleria" data-prezzo="40"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Ai frutti di bosco</div><div class="d">Frutti di bosco canditi da noi e cioccolato bianco. In pochi pezzi.</div><div class="riga"><div class="prezzo">41 €</div><div class="qta" data-cat="panettoni" data-nome="Ai frutti di bosco" data-prezzo="41"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Amarena e cioccolato fondente</div><div class="d">Amarene nell’impasto e copertura di cioccolato fondente.</div><div class="riga"><div class="prezzo">43 €</div><div class="qta" data-cat="panettoni" data-nome="Amarena e cioccolato fondente" data-prezzo="43"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+  </div>
+  <p class="picc" style="margin-top:12px">Ingredienti e allergeni sono nella scheda di ogni panettone. Tutti possono contenere tracce di frutta a guscio.</p>
+</section>
+
+<section id="enoteca">
+  <div class="eti2">Enoteca</div>
+  <h2>Le bottiglie per le feste</h2>
+  <p>Un mix della nostra enoteca: bollicine, bianchi, rossi e vini da dessert, scelti per il cenone, il panettone e il brindisi di mezzanotte.</p>
+  <img loading="lazy" class="foto-sez" src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/render/image/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/drive/1q_5Yc1Gaa6kzZqPzchVAYktSt-NcEL3U.jpg?width=900&height=900&resize=contain&quality=75" alt="Una bottiglia della nostra enoteca">
+  <div class="lista">
+<h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;margin:22px 0 4px">Bollicine</h3>
+    <div class="voce"><div class="t">Prosecco Valdobbiadene DOCG “Quorum”</div><div class="riga"><div class="prezzo">19,80 €</div><div class="qta" data-cat="enoteca" data-nome="Prosecco Valdobbiadene DOCG “Quorum”" data-prezzo="19.80"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Prosecco Valdobbiadene Superiore Brut “Canah”</div><div class="riga"><div class="prezzo">22,50 €</div><div class="qta" data-cat="enoteca" data-nome="Prosecco Valdobbiadene Superiore Brut “Canah”" data-prezzo="22.50"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Trento DOC Cuvée Blanche</div><div class="riga"><div class="prezzo">28,80 €</div><div class="qta" data-cat="enoteca" data-nome="Trento DOC Cuvée Blanche" data-prezzo="28.80"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Trentodoc “Cuvée Pietra” 2021</div><div class="riga"><div class="prezzo">38,70 €</div><div class="qta" data-cat="enoteca" data-nome="Trentodoc “Cuvée Pietra” 2021" data-prezzo="38.70"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Franciacorta Cuvée Royale “Marchese Antinori”</div><div class="riga"><div class="prezzo">40,50 €</div><div class="qta" data-cat="enoteca" data-nome="Franciacorta Cuvée Royale “Marchese Antinori”" data-prezzo="40.50"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Champagne Carte Blanche Brut</div><div class="riga"><div class="prezzo">40,50 €</div><div class="qta" data-cat="enoteca" data-nome="Champagne Carte Blanche Brut" data-prezzo="40.50"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Champagne Brut Cuvée Supérieure Meunier</div><div class="riga"><div class="prezzo">45 €</div><div class="qta" data-cat="enoteca" data-nome="Champagne Brut Cuvée Supérieure Meunier" data-prezzo="45"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+<h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;margin:22px 0 4px">Bianchi</h3>
+    <div class="voce"><div class="t">Orvieto “Secco” 2022</div><div class="riga"><div class="prezzo">22,50 €</div><div class="qta" data-cat="enoteca" data-nome="Orvieto “Secco” 2022" data-prezzo="22.50"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Falanghina del Sannio “Serrocielo” 2023</div><div class="riga"><div class="prezzo">23,40 €</div><div class="qta" data-cat="enoteca" data-nome="Falanghina del Sannio “Serrocielo” 2023" data-prezzo="23.40"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Greco di Tufo “Cutizzi” 2022</div><div class="riga"><div class="prezzo">23,40 €</div><div class="qta" data-cat="enoteca" data-nome="Greco di Tufo “Cutizzi” 2022" data-prezzo="23.40"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Alto Adige Sauvignon 2023 · Salleg</div><div class="riga"><div class="prezzo">24,30 €</div><div class="qta" data-cat="enoteca" data-nome="Alto Adige Sauvignon 2023 · Salleg" data-prezzo="24.30"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Fiano d’Avellino “Pietracalda” 2022</div><div class="riga"><div class="prezzo">25,20 €</div><div class="qta" data-cat="enoteca" data-nome="Fiano d’Avellino “Pietracalda” 2022" data-prezzo="25.20"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Bolgheri Vermentino 2024 · Guado</div><div class="riga"><div class="prezzo">25,20 €</div><div class="qta" data-cat="enoteca" data-nome="Bolgheri Vermentino 2024 · Guado" data-prezzo="25.20"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Verdicchio Classico Superiore “Bucci” 2021</div><div class="riga"><div class="prezzo">27 €</div><div class="qta" data-cat="enoteca" data-nome="Verdicchio Classico Superiore “Bucci” 2021" data-prezzo="27"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+<h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;margin:22px 0 4px">Rossi</h3>
+    <div class="voce"><div class="t">Montepulciano d’Abruzzo 2021 · Masciarelli</div><div class="riga"><div class="prezzo">20,70 €</div><div class="qta" data-cat="enoteca" data-nome="Montepulciano d’Abruzzo 2021 · Masciarelli" data-prezzo="20.70"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Nobile di Montepulciano 2021 · La Braccesca</div><div class="riga"><div class="prezzo">26,10 €</div><div class="qta" data-cat="enoteca" data-nome="Nobile di Montepulciano 2021 · La Braccesca" data-prezzo="26.10"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Rosso di Montalcino “San Polo” 2022</div><div class="riga"><div class="prezzo">27 €</div><div class="qta" data-cat="enoteca" data-nome="Rosso di Montalcino “San Polo” 2022" data-prezzo="27"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Bolgheri Rosso “Il Seggio” 2023</div><div class="riga"><div class="prezzo">27 €</div><div class="qta" data-cat="enoteca" data-nome="Bolgheri Rosso “Il Seggio” 2023" data-prezzo="27"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Montefalco Rosso Riserva 2021 · Caprai</div><div class="riga"><div class="prezzo">28,80 €</div><div class="qta" data-cat="enoteca" data-nome="Montefalco Rosso Riserva 2021 · Caprai" data-prezzo="28.80"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Chianti Classico 2022 · Monsanto</div><div class="riga"><div class="prezzo">28,80 €</div><div class="qta" data-cat="enoteca" data-nome="Chianti Classico 2022 · Monsanto" data-prezzo="28.80"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Langhe Nebbiolo “Occhetti” 2023</div><div class="riga"><div class="prezzo">28,80 €</div><div class="qta" data-cat="enoteca" data-nome="Langhe Nebbiolo “Occhetti” 2023" data-prezzo="28.80"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Montefalco Sagrantino “Carapace” 2020</div><div class="riga"><div class="prezzo">35,10 €</div><div class="qta" data-cat="enoteca" data-nome="Montefalco Sagrantino “Carapace” 2020" data-prezzo="35.10"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Montefalco Sagrantino “Collepiano” 2020</div><div class="riga"><div class="prezzo">38,70 €</div><div class="qta" data-cat="enoteca" data-nome="Montefalco Sagrantino “Collepiano” 2020" data-prezzo="38.70"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+<h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;margin:22px 0 4px">Da dessert, con il panettone</h3>
+    <div class="voce"><div class="t">Moscato di Pantelleria “Kabir” 2018</div><div class="riga"><div class="prezzo">22,50 €</div><div class="qta" data-cat="enoteca" data-nome="Moscato di Pantelleria “Kabir” 2018" data-prezzo="22.50"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+    <div class="voce"><div class="t">Moscato d’Asti 2024</div><div class="riga"><div class="prezzo">24,30 €</div><div class="qta" data-cat="enoteca" data-nome="Moscato d’Asti 2024" data-prezzo="24.30"><button type="button" class="meno" aria-label="Togli">−</button><span class="n">0</span><button type="button" class="piu" aria-label="Aggiungi">+</button></div></div></div>
+  </div>
+</section>
+
+<section id="prenota">
+  <div class="eti2">A tavola da noi</div>
+  <h2>Preferite festeggiare da noi?</h2>
+  <div class="pren">
+    <div class="pc"><b>Pranzo di Natale</b><span>25 dicembre</span><div class="pb"><a href="https://app.ristoflow-ai.com/natale-campoantico.html?utm_source=speciale-feste">Campo Antico</a><a href="https://app.ristoflow-ai.com/natale-aquila.html?utm_source=speciale-feste">Trattoria dell’Aquila</a></div></div>
+    <div class="pc"><b>Cenone di Capodanno</b><span>31 dicembre</span><div class="pb"><a href="https://app.ristoflow-ai.com/capodanno-campoantico.html?utm_source=speciale-feste">Campo Antico</a><a href="https://www.trattoriadellaquila.it/capodanno-aquila.html?utm_source=speciale-feste">Trattoria dell’Aquila</a></div></div>
+    <div class="pc"><b>Pranzo del 1° gennaio</b><span>1 gennaio · Trattoria dell’Aquila</span><div class="pb"><a href="https://app.ristoflow-ai.com/capodanno-pranzo.html?utm_source=speciale-feste">Prenota il pranzo</a></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="eti2">Il tuo ordine</div>
+  <h2>Riepilogo</h2>
+  <div class="carrello" id="ordine">
+    <div id="righe"><p class="picc" style="margin:0">Il carrello è vuoto: scegliete qui sopra cosa ordinare.</p></div>
+    <div class="tot"><span>Totale</span><span id="totale">0,00 €</span></div>
+    <input class="campo" id="nome" placeholder="Nome e cognome" autocomplete="name">
+    <div class="scelta" id="ritiro"><button type="button" class="on" data-v="Campo Antico"><b>Ritiro a Campo Antico</b><br>Via Amerina km 5,500, Orte</button><button type="button" data-v="Trattoria dell’Aquila"><b>Ritiro alla Trattoria dell’Aquila</b><br>Via Lazio 4/b, Orte</button></div>
+    <p class="picc" id="quando">Il cenone da asporto si ritira il 31 dicembre dalle 17:30 alle 19:00. Per panettoni e bottiglie concordiamo giorno e ora su WhatsApp.</p>
+    <textarea class="campo" id="note" rows="2" placeholder="Allergie o richieste (facoltativo)"></textarea>
+    <p class="picc" id="errore" style="color:#b91c1c" hidden></p>
+    <p style="margin:14px 0 0"><button type="button" class="btn" id="invia" style="display:block;width:100%;border:0;cursor:pointer">Invia l’ordine su WhatsApp</button></p>
+    <p class="picc" style="text-align:center;margin-top:8px">Vi rispondiamo su WhatsApp per confermare l’ordine e il pagamento.</p>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="eti2">Da sapere</div>
+  <h2>Prima di ordinare</h2>
+  <b>Quanto durano i panettoni?</b>40 giorni dalla produzione: la data è sull’etichetta. Prima di tagliarlo tenetelo qualche minuto vicino a una fonte di calore.
+  <b>Posso ordinare per un’azienda?</b>Sì, con fattura intestata all’azienda. Per ordini grandi scriveteci.<b>Allergie?</b>Scrivetecele nell’ordine: vi richiamiamo prima di preparare.
+</section>
+</main>
+
+<footer>Campo Antico Ricevimenti · Via Amerina km 5,500, Orte (VT) · 0761 402380<br>Trattoria dell’Aquila · Via Lazio 4/b, Orte (VT) · 0761 402673</footer>
+<a class="barra-ord" id="barra" href="#ordine" hidden></a>
+<div class="cookie" id="cookie" hidden><span>Usiamo i cookie per misurare le visite.</span><button type="button" id="ck-no">Rifiuta</button><button type="button" id="ck-si">Accetta</button></div>
+<script src="natale-tracking.js"></script>
+<script>
+(function(){
+  var WA = "393759907993";
+  var $ = function(id){ return document.getElementById(id); };
+  var eur = function(n){ return n.toFixed(2).replace(".", ",") + " €"; };
+  var esc = function(t){ return String(t).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); };
+  var Q = [].slice.call(document.querySelectorAll(".qta[data-nome]"));
+  var ritiro = "Campo Antico", avviato = false;
+  function righe(){
+    return Q.map(function(q){ return { cat: q.dataset.cat, nome: (q.dataset.cat === "panettoni" ? "Panettone · " : "") + q.dataset.nome, prezzo: Number(q.dataset.prezzo), n: Number(q.querySelector(".n").textContent) }; }).filter(function(r){ return r.n > 0; });
+  }
+  function ridisegna(){
+    var R = righe(), tot = 0, h = "", asp = 0, pezzi = 0;
+    R.forEach(function(r){ tot += r.n * r.prezzo; pezzi += r.n; if (r.cat === "asporto") asp += r.n;
+      h += '<div class="r"><span>' + r.n + " × " + esc(r.nome) + (r.cat === "asporto" ? " (persone)" : "") + "</span><span>" + eur(r.n * r.prezzo) + "</span></div>"; });
+    if (asp >= 6) h += '<div class="r om"><span>🎁 1 × Prosecco Valdobbiadene DOCG</span><span>omaggio</span></div>';
+    $("righe").innerHTML = h || '<p class="picc" style="margin:0">Il carrello è vuoto: scegliete qui sopra cosa ordinare.</p>';
+    $("totale").textContent = eur(tot);
+    var b = $("barra"); b.hidden = !pezzi; b.textContent = "Il tuo ordine · " + eur(tot);
+  }
+  Q.forEach(function(q){
+    q.addEventListener("click", function(e){
+      var n = q.querySelector(".n"), v = Number(n.textContent);
+      if (e.target.closest(".piu")) v++; else if (e.target.closest(".meno")) v = Math.max(0, v - 1); else return;
+      if (q.dataset.cat === "asporto" && v === 1 && e.target.closest(".piu")) v = 2;
+      if (q.dataset.cat === "asporto" && v === 1) v = 0;
+      n.textContent = v; ridisegna();
+      if (!avviato && v > 0) { avviato = true; try { rfEvento("AddToCart", { content_name: q.dataset.nome }, true); } catch (x) {} }
+    });
+  });
+  [].forEach.call(document.querySelectorAll("#ritiro button"), function(b){
+    b.onclick = function(){ [].forEach.call(document.querySelectorAll("#ritiro button"), function(x){ x.classList.remove("on"); }); b.classList.add("on"); ritiro = b.dataset.v; };
+  });
+  addEventListener("scroll", function(){ var o = $("ordine").getBoundingClientRect(); $("barra").style.display = (o.top < innerHeight) ? "none" : ""; }, { passive: true });
+  $("invia").onclick = function(){
+    var R = righe(), err = $("errore"); err.hidden = true;
+    if (!R.length) { err.textContent = "Scegliete almeno un prodotto."; err.hidden = false; return; }
+    var nome = $("nome").value.trim();
+    if (!nome) { err.textContent = "Scrivete il vostro nome e cognome."; err.hidden = false; $("nome").focus(); return; }
+    var tot = 0, asp = 0, t = "Buongiorno, vorrei ordinare dallo Speciale Feste:\n";
+    R.forEach(function(r){ tot += r.n * r.prezzo; if (r.cat === "asporto") asp += r.n; t += "• " + r.n + " × " + r.nome + (r.cat === "asporto" ? " (persone)" : "") + " — " + eur(r.n * r.prezzo) + "\n"; });
+    if (asp >= 6) t += "• 1 × Prosecco Valdobbiadene DOCG — omaggio\n";
+    t += "Totale: " + eur(tot) + "\nRitiro: " + ritiro + (asp ? " (cenone: 31/12 dalle 17:30 alle 19:00)" : "") + "\nNome: " + nome;
+    var note = $("note").value.trim(); if (note) t += "\nNote: " + note;
+    try { rfEvento("Lead", { value: Math.round(tot), currency: "EUR" }, true); } catch (x) {}
+    location.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(t);
+  };
+  ridisegna();
+})();
+</script>
+</body>
+</html>
