@@ -85,7 +85,43 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
   <h2>Capodanno a casa vostra</h2>
   <p>Festeggiate a casa e la cena la prepariamo noi. Ritirate tutto il 31 dicembre: a casa basta il forno, in ogni confezione trovate le istruzioni per finire ogni piatto.</p>
   <div class="omaggio">🎁 <span><b>Da 6 persone in su</b>, una bottiglia di Prosecco Valdobbiadene DOCG è in omaggio.</span></div>
-  <div class="card"><img loading="lazy" src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/05-crespella-cernia.jpg" alt="Crespella di cernia e vongole veraci"><div class="corpo">
+  <div class="card"><style>
+.sa-binario{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:#efe6d4}
+.sa-binario::-webkit-scrollbar{display:none}
+.sa-foto{flex:0 0 100%;margin:0;scroll-snap-align:center;position:relative}
+.card .sa-foto img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover}
+.sa-foto figcaption{position:absolute;left:0;right:0;bottom:0;padding:40px 16px 12px;background:linear-gradient(transparent,rgba(43,29,14,.82));font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:21px;line-height:1.2;color:#fbf7ef;text-align:center}
+.sa-punti{display:flex;justify-content:center;gap:8px;padding:12px 0 0}
+.sa-punti button{width:9px;height:9px;padding:0;border-radius:50%;border:1px solid #8a6a3a;background:transparent;cursor:pointer}
+.sa-punti button.on{background:#8a6a3a}
+</style>
+<div class="slide-asporto">
+  <div class="sa-binario" aria-label="Foto dei piatti del menu da asporto">
+    <figure class="sa-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/01-crostino-baccala.jpg" alt="Baccalà mantecato all’arancia su crostino di pane alle noci" width="720" height="900"><figcaption>Baccalà mantecato all’arancia, crostini alle noci</figcaption></figure>
+    <figure class="sa-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/03-polpo.jpg" alt="Polpo su crema di patate" loading="lazy" width="720" height="900"><figcaption>Polpo su crema di patate</figcaption></figure>
+    <figure class="sa-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/05-crespella-cernia.jpg" alt="Crespella di cernia e vongole veraci" loading="lazy" width="720" height="900"><figcaption>Crespella di cernia e vongole veraci</figcaption></figure>
+    <figure class="sa-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/06-turbante-rombo.jpg" alt="Turbante di rombo con scarola ripassata" loading="lazy" width="720" height="900"><figcaption>Turbante di rombo con scarola</figcaption></figure>
+  </div>
+  <div class="sa-punti"></div>
+</div>
+<script>
+(function(){
+  var box=document.querySelector(".slide-asporto"); if(!box) return;
+  var bin=box.querySelector(".sa-binario"), foto=bin.querySelectorAll(".sa-foto"), punti=box.querySelector(".sa-punti");
+  var i=0, timer=null, fermo=false, calma=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  foto.forEach(function(_,k){var b=document.createElement("button");b.type="button";b.setAttribute("aria-label","Foto "+(k+1));b.onclick=function(){vai(k);ferma();};punti.appendChild(b);});
+  var bott=punti.querySelectorAll("button");
+  function segna(){bott.forEach(function(b,k){b.classList.toggle("on",k===i);});}
+  function vai(k){i=(k+foto.length)%foto.length;bin.scrollTo({left:bin.clientWidth*i,behavior:calma?"auto":"smooth"});segna();}
+  function parti(){if(calma||fermo)return;clearInterval(timer);timer=setInterval(function(){vai(i+1);},3500);}
+  function ferma(){fermo=true;clearInterval(timer);}
+  var t;bin.addEventListener("scroll",function(){clearTimeout(t);t=setTimeout(function(){i=Math.round(bin.scrollLeft/bin.clientWidth);segna();},80);},{passive:true});
+  bin.addEventListener("touchstart",ferma,{passive:true});bin.addEventListener("mousedown",ferma);
+  if("IntersectionObserver" in window){new IntersectionObserver(function(e){if(e[0].isIntersecting)parti();else clearInterval(timer);},{threshold:.4}).observe(bin);}else parti();
+  segna();
+})();
+</script>
+<div class="corpo">
     <h3>Menu di Capodanno da asporto</h3>
     <p class="desc"><b>Antipasti</b> · Baccalà mantecato all’arancia con crostini di pane alle noci · Polpo su crema di patate di Avezzano</p>
     <p class="desc"><b>Primo</b> · Crespella di cernia e vongole veraci, da gratinare in forno</p>
