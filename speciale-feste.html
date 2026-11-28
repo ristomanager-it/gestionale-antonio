@@ -213,8 +213,8 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
   }
   function etiGiorno(d){ return GG[d.getDay()] + " " + d.getDate() + " " + MM[d.getMonth()]; }
   function disegnaFasce(){
-    var asp = righe().some(function(r){ return r.cat === "asporto"; }), sel = $("giorno");
-    if (asp) { sel.innerHTML = "<option>giovedì 31 dicembre</option>"; sel.disabled = true; $("quando-txt").textContent = "Il cenone da asporto si ritira il 31 dicembre: scegliete l’orario."; }
+    var asp = true, sel = $("giorno"); // 28/11: tutto si ritira solo il 31 dicembre (Antonio)
+    if (asp) { sel.innerHTML = "<option>giovedì 31 dicembre</option>"; sel.disabled = true; $("quando-txt").textContent = "Si ritira tutto il 31 dicembre: scegliete l’orario."; }
     else if (sel.disabled || !sel.options.length) { sel.disabled = false; sel.innerHTML = giorni().map(function(d){ return "<option>" + etiGiorno(d) + "</option>"; }).join(""); $("quando-txt").textContent = "Quando passate a ritirare?"; }
     var L = asp ? FASCE_31 : FASCE;
     if (L.indexOf(fascia) < 0) fascia = "";
@@ -257,7 +257,7 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
     var tot = 0, asp = 0, t = "Buongiorno, vorrei ordinare dallo Speciale Feste:\n";
     R.forEach(function(r){ tot += r.n * r.prezzo; if (r.cat === "asporto") asp += r.n; t += "• " + r.n + " × " + r.nome + (r.cat === "asporto" ? " (persone)" : "") + " — " + eur(r.n * r.prezzo) + "\n"; });
     if (asp >= 6) t += "• 1 × Prosecco Valdobbiadene DOCG — omaggio\n";
-    t += "Totale: " + eur(tot) + "\nRitiro: " + ritiro + ", " + $("giorno").value + ", " + fascia + "\nNome: " + nome;
+    t += "Totale: " + eur(tot) + "\nRitiro: " + ritiro + ", giovedì 31 dicembre, " + fascia + "\nNome: " + nome;
     var note = $("note").value.trim(); if (note) t += "\nNote: " + note;
     try { rfEvento("Lead", { value: Math.round(tot), currency: "EUR" }, true); } catch (x) {}
     location.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(t);
