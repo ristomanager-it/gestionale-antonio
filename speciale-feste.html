@@ -62,6 +62,7 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
 @media (min-width:640px){.hero h1{font-size:72px}.pren{grid-template-columns:repeat(3,1fr)}}
 .foto-sez{display:block;width:100%;height:300px;object-fit:cover;border-radius:14px;margin:16px 0 8px}.striscia{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 6px}.striscia img{width:100%;height:120px;object-fit:cover;border-radius:10px;display:block}
 .cookie{position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:#2b1d0e;color:#fbf7ef;border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:14px}.cookie span{flex:1}.cookie button{border:0;border-radius:999px;padding:8px 12px;font:inherit;font-weight:600;cursor:pointer}#ck-si{background:#c9a96a;color:#2b1d0e}#ck-no{background:transparent;color:#fbf7ef;border:1px solid #c9a96a}.barra-ord{position:fixed;left:12px;right:12px;bottom:12px;z-index:40;background:#794d01;color:#fff;border-radius:999px;padding:13px 18px;font-weight:600;text-align:center;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.fasce{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.fasce button{border:1px solid #d9ccb2;background:#fff;border-radius:999px;padding:9px 13px;font:inherit;font-size:14px;color:#2b1d0e;cursor:pointer}.fasce button.on{border:2px solid #794d01;background:#fff4dc;font-weight:600}select.campo{width:100%;font:inherit;color:#2b1d0e;appearance:auto}
 </style>
 </head>
 <body>
@@ -155,7 +156,7 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
   <div class="eti2">A tavola da noi</div>
   <h2>Preferite festeggiare da noi?</h2>
   <div class="pren">
-    <div class="pc"><b>Pranzo di Natale</b><span>25 dicembre</span><div class="pb"><a href="https://app.ristoflow-ai.com/natale-campoantico.html?utm_source=speciale-feste">Campo Antico</a><a href="https://app.ristoflow-ai.com/natale-aquila.html?utm_source=speciale-feste">Trattoria dell’Aquila</a></div></div>
+    <div class="pc"><b>Pranzo di Natale</b><span>25 dicembre · Campo Antico</span><div class="pb"><a href="https://app.ristoflow-ai.com/natale-campoantico.html?utm_source=speciale-feste">Prenota il pranzo</a></div></div>
     <div class="pc"><b>Cenone di Capodanno</b><span>31 dicembre</span><div class="pb"><a href="https://app.ristoflow-ai.com/capodanno-campoantico.html?utm_source=speciale-feste">Campo Antico</a><a href="https://www.trattoriadellaquila.it/capodanno-aquila.html?utm_source=speciale-feste">Trattoria dell’Aquila</a></div></div>
     <div class="pc"><b>Pranzo del 1° gennaio</b><span>1 gennaio · Trattoria dell’Aquila</span><div class="pb"><a href="https://app.ristoflow-ai.com/capodanno-pranzo.html?utm_source=speciale-feste">Prenota il pranzo</a></div></div>
   </div>
@@ -169,7 +170,9 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
     <div class="tot"><span>Totale</span><span id="totale">0,00 €</span></div>
     <input class="campo" id="nome" placeholder="Nome e cognome" autocomplete="name">
     <div class="scelta" id="ritiro"><button type="button" class="on" data-v="Campo Antico"><b>Ritiro a Campo Antico</b><br>Via Amerina km 5,500, Orte</button><button type="button" data-v="Trattoria dell’Aquila"><b>Ritiro alla Trattoria dell’Aquila</b><br>Via Lazio 4/b, Orte</button></div>
-    <p class="picc" id="quando">Il cenone da asporto si ritira il 31 dicembre dalle 17:30 alle 19:00. Per panettoni e bottiglie concordiamo giorno e ora su WhatsApp.</p>
+    <div id="quando"><p class="picc" id="quando-txt" style="margin:12px 0 4px">Quando passate a ritirare?</p>
+    <select class="campo" id="giorno" style="margin-top:0"></select>
+    <div class="fasce" id="fasce"></div></div>
     <textarea class="campo" id="note" rows="2" placeholder="Allergie o richieste (facoltativo)"></textarea>
     <p class="picc" id="errore" style="color:#b91c1c" hidden></p>
     <p style="margin:14px 0 0"><button type="button" class="btn" id="invia" style="display:block;width:100%;border:0;cursor:pointer">Invia l’ordine su WhatsApp</button></p>
@@ -196,7 +199,28 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
   var eur = function(n){ return n.toFixed(2).replace(".", ",") + " €"; };
   var esc = function(t){ return String(t).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); };
   var Q = [].slice.call(document.querySelectorAll(".qta[data-nome]"));
-  var ritiro = "Campo Antico", avviato = false;
+  var ritiro = "Campo Antico", avviato = false, fascia = "";
+  // fasce di ritiro: il cenone da asporto solo il 31/12 sera; panettoni e bottiglie dal giorno dopo fino al 31/12 (Natale chiuso)
+  var FASCE_31 = ["17:30–18:00", "18:00–18:30", "18:30–19:00"];
+  var FASCE = ["10:00–12:00", "12:00–14:00", "16:00–18:00", "18:00–19:30"];
+  var GG = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"], MM = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+  function giorni(){
+    var out = [], d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + 1);
+    var fine = new Date(d.getFullYear(), 11, 31, 12);
+    if (d > fine) fine = new Date(d.getFullYear() + 1, 0, 6, 12);
+    for (; d <= fine; d.setDate(d.getDate() + 1)) { if (d.getMonth() === 11 && (d.getDate() === 25)) continue; out.push(new Date(d)); }
+    return out;
+  }
+  function etiGiorno(d){ return GG[d.getDay()] + " " + d.getDate() + " " + MM[d.getMonth()]; }
+  function disegnaFasce(){
+    var asp = righe().some(function(r){ return r.cat === "asporto"; }), sel = $("giorno");
+    if (asp) { sel.innerHTML = "<option>giovedì 31 dicembre</option>"; sel.disabled = true; $("quando-txt").textContent = "Il cenone da asporto si ritira il 31 dicembre: scegliete l’orario."; }
+    else if (sel.disabled || !sel.options.length) { sel.disabled = false; sel.innerHTML = giorni().map(function(d){ return "<option>" + etiGiorno(d) + "</option>"; }).join(""); $("quando-txt").textContent = "Quando passate a ritirare?"; }
+    var L = asp ? FASCE_31 : FASCE;
+    if (L.indexOf(fascia) < 0) fascia = "";
+    $("fasce").innerHTML = L.map(function(f){ return '<button type="button" class="' + (f === fascia ? "on" : "") + '">' + f + "</button>"; }).join("");
+    [].forEach.call($("fasce").querySelectorAll("button"), function(b){ b.onclick = function(){ fascia = b.textContent; disegnaFasce(); }; });
+  }
   function righe(){
     return Q.map(function(q){ return { cat: q.dataset.cat, nome: (q.dataset.cat === "panettoni" ? "Panettone · " : "") + q.dataset.nome, prezzo: Number(q.dataset.prezzo), n: Number(q.querySelector(".n").textContent) }; }).filter(function(r){ return r.n > 0; });
   }
@@ -208,6 +232,7 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
     $("righe").innerHTML = h || '<p class="picc" style="margin:0">Il carrello è vuoto: scegliete qui sopra cosa ordinare.</p>';
     $("totale").textContent = eur(tot);
     var b = $("barra"); b.hidden = !pezzi; b.textContent = "Il tuo ordine · " + eur(tot);
+    disegnaFasce();
   }
   Q.forEach(function(q){
     q.addEventListener("click", function(e){
@@ -228,10 +253,11 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
     if (!R.length) { err.textContent = "Scegliete almeno un prodotto."; err.hidden = false; return; }
     var nome = $("nome").value.trim();
     if (!nome) { err.textContent = "Scrivete il vostro nome e cognome."; err.hidden = false; $("nome").focus(); return; }
+    if (!fascia) { err.textContent = "Scegliete l’orario di ritiro."; err.hidden = false; return; }
     var tot = 0, asp = 0, t = "Buongiorno, vorrei ordinare dallo Speciale Feste:\n";
     R.forEach(function(r){ tot += r.n * r.prezzo; if (r.cat === "asporto") asp += r.n; t += "• " + r.n + " × " + r.nome + (r.cat === "asporto" ? " (persone)" : "") + " — " + eur(r.n * r.prezzo) + "\n"; });
     if (asp >= 6) t += "• 1 × Prosecco Valdobbiadene DOCG — omaggio\n";
-    t += "Totale: " + eur(tot) + "\nRitiro: " + ritiro + (asp ? " (cenone: 31/12 dalle 17:30 alle 19:00)" : "") + "\nNome: " + nome;
+    t += "Totale: " + eur(tot) + "\nRitiro: " + ritiro + ", " + $("giorno").value + ", " + fascia + "\nNome: " + nome;
     var note = $("note").value.trim(); if (note) t += "\nNote: " + note;
     try { rfEvento("Lead", { value: Math.round(tot), currency: "EUR" }, true); } catch (x) {}
     location.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(t);
