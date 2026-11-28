@@ -206,15 +206,15 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
   var GG = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"], MM = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
   function giorni(){
     var out = [], d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + 1);
+    var primo = new Date(d.getFullYear(), 11, 5, 12); if (d < primo) d = primo; // non prima del 5/12 e almeno un giorno dopo l'ordine
     var fine = new Date(d.getFullYear(), 11, 31, 12);
-    if (d > fine) fine = new Date(d.getFullYear() + 1, 0, 6, 12);
     for (; d <= fine; d.setDate(d.getDate() + 1)) { if (d.getMonth() === 11 && (d.getDate() === 25)) continue; out.push(new Date(d)); }
     return out;
   }
   function etiGiorno(d){ return GG[d.getDay()] + " " + d.getDate() + " " + MM[d.getMonth()]; }
   function disegnaFasce(){
-    var asp = true, sel = $("giorno"); // 28/11: tutto si ritira solo il 31 dicembre (Antonio)
-    if (asp) { sel.innerHTML = "<option>giovedì 31 dicembre</option>"; sel.disabled = true; $("quando-txt").textContent = "Si ritira tutto il 31 dicembre: scegliete l’orario."; }
+    var asp = righe().some(function(r){ return r.cat === "asporto"; }), sel = $("giorno"); // 28/11: asporto solo il 31/12; panettoni e bottiglie dal 5/12 con un giorno di anticipo (Antonio)
+    if (asp) { sel.innerHTML = "<option>giovedì 31 dicembre</option>"; sel.disabled = true; $("quando-txt").textContent = "Con il cenone da asporto si ritira tutto il 31 dicembre: scegliete l’orario."; }
     else if (sel.disabled || !sel.options.length) { sel.disabled = false; sel.innerHTML = giorni().map(function(d){ return "<option>" + etiGiorno(d) + "</option>"; }).join(""); $("quando-txt").textContent = "Quando passate a ritirare?"; }
     var L = asp ? FASCE_31 : FASCE;
     if (L.indexOf(fascia) < 0) fascia = "";
@@ -257,7 +257,7 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
     var tot = 0, asp = 0, t = "Buongiorno, vorrei ordinare dallo Speciale Feste:\n";
     R.forEach(function(r){ tot += r.n * r.prezzo; if (r.cat === "asporto") asp += r.n; t += "• " + r.n + " × " + r.nome + (r.cat === "asporto" ? " (persone)" : "") + " — " + eur(r.n * r.prezzo) + "\n"; });
     if (asp >= 6) t += "• 1 × Prosecco Valdobbiadene DOCG — omaggio\n";
-    t += "Totale: " + eur(tot) + "\nRitiro: " + ritiro + ", giovedì 31 dicembre, " + fascia + "\nNome: " + nome;
+    t += "Totale: " + eur(tot) + "\nRitiro: " + ritiro + ", " + $("giorno").value + ", " + fascia + "\nNome: " + nome;
     var note = $("note").value.trim(); if (note) t += "\nNote: " + note;
     try { rfEvento("Lead", { value: Math.round(tot), currency: "EUR" }, true); } catch (x) {}
     location.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(t);
