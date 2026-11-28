@@ -182,9 +182,13 @@ export async function apriEtichettaVeloce(pre = {}) {
       const { data: { session } } = await sb.auth.getSession();
       const r = await fetch("https://cuhcscpvhypoaplcmtjk.supabase.co/functions/v1/tony-etichetta-lotto", { method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session?.access_token || "") },
-        body: JSON.stringify({ azienda_id: az, immagine_base64: c.toDataURL("image/jpeg", 0.82).split(",")[1], mime: "image/jpeg" }) });
-      const d = await r.json();
+        // stesso formato delle altre letture (Lotti in arrivo, Carico magazzino): immagini[]
+        body: JSON.stringify({ azienda_id: az, immagini: [{ base64: c.toDataURL("image/jpeg", 0.82).split(",")[1], mime: "image/jpeg" }] }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.errore || d.error || "lettura non riuscita");
       const L = d.letto || {};
+      // niente letto: lo si dice, invece di un "Letto:" vuoto
+      if (!L.prodotto && !L.lotto && !L.scadenza) throw new Error("non ho trovato lotto né scadenza");
       origine = { lotto: L.lotto || "", scadenza: L.scadenza || null, produttore: L.produttore || null, prodotto: L.prodotto || null,
                   prodotto_id: d.candidati?.[0]?.id || null, foto_url: await up, letto: L };
       ov.querySelector("#ev-lotto").value = origine.lotto;
