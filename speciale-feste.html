@@ -279,6 +279,7 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
       if (q.dataset.cat === "asporto" && v === 1 && e.target.closest(".piu")) v = 2;
       if (q.dataset.cat === "asporto" && v === 1) v = 0;
       n.textContent = v; ridisegna();
+      try { if (window.rfTraccia) rfTraccia("click", e.target.closest(".piu") ? "aggiungi_prodotto" : "togli_prodotto", q.dataset.nome); } catch (x) {}
       if (!avviato && v > 0) { avviato = true; try { rfEvento("AddToCart", { content_name: q.dataset.nome }, true); } catch (x) {} }
     });
   });
