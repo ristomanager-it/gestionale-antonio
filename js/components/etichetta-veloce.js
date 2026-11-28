@@ -195,7 +195,7 @@ export async function apriEtichettaVeloce(pre = {}) {
       if (!cosaEl.value.trim() && L.prodotto) { cosaEl.value = L.prodotto; applica(); }
       li.innerHTML = `✅ Letto: <b>${esc(L.prodotto || "")}</b>${L.produttore ? " · " + esc(L.produttore) : ""}${origine.lotto ? " · lotto <b>" + esc(origine.lotto) + "</b>" : ""}${origine.scadenza ? " · scade " + new Date(origine.scadenza + "T12:00:00").toLocaleDateString("it-IT") : ""}${L.dubbi ? `<br><span style="color:#b45309">⚠ ${esc(L.dubbi)}</span>` : ""}`;
       mostra();
-    } catch (err) { li.textContent = "Lettura non riuscita: scrivi il lotto a mano."; }
+    } catch (err) { li.innerHTML = `<span style="color:#b91c1c;font-weight:700;">⚠ Lettura non riuscita (${esc(err?.message || err)}): rifai la foto con più luce o scrivi il lotto a mano.</span>`; }
   });
   ov.querySelector("[data-no]").onclick = () => ov.remove();
   setTimeout(() => ov.querySelector("#ev-cosa")?.focus(), 50);
