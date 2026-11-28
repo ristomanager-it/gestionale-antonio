@@ -196,6 +196,47 @@ window.rfClic=function(){try{var c=JSON.parse(localStorage.getItem("rf_clic")||"
 <div class="portata"><h4>Secondo</h4><p>Turbante di rombo con la sua salsa, scarola ripassata con olive di Gaeta, capperi e pinoli</p></div>
 <div class="portata"><h4>Mezzanotte</h4><p>Cotechino con lenticchie di Castelluccio di Norcia</p><p>Panettone di Campo Antico</p><p>Spumante</p></div>
     </div>
+<style>
+.slide-piatti{margin-top:40px}
+.slide-piatti .sp-tit{font-family:var(--f-acc);font-style:italic;font-weight:500;color:var(--avorio);font-size:26px;margin:0 0 14px;text-align:center}
+.sp-binario{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--riga);background:var(--nero2)}
+.sp-binario::-webkit-scrollbar{display:none}
+.sp-foto{flex:0 0 100%;margin:0;scroll-snap-align:center;position:relative}
+.sp-foto img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:cover}
+.sp-foto figcaption{position:absolute;left:0;right:0;bottom:0;padding:44px 18px 16px;background:linear-gradient(transparent,rgba(11,10,8,.88));font-family:var(--f-acc);font-style:italic;font-size:22px;line-height:1.25;color:var(--avorio);text-align:center}
+.sp-punti{display:flex;justify-content:center;gap:9px;margin-top:14px}
+.sp-punti button{width:9px;height:9px;padding:0;border-radius:50%;border:1px solid var(--oro);background:transparent;cursor:pointer}
+.sp-punti button.on{background:var(--oro)}
+</style>
+<div class="slide-piatti" data-traccia="Capodanno_Visto_Slide">
+  <h3 class="sp-tit">I piatti della serata</h3>
+  <div class="sp-binario" aria-label="Foto dei piatti del cenone">
+    <figure class="sp-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/01-crostino-baccala.jpg" alt="Crostino di pane alle noci con baccalà mantecato e scorza d’arancia" width="720" height="900"><figcaption>Crostino alle noci con baccalà mantecato all’arancia</figcaption></figure>
+    <figure class="sp-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/02-ricciola.jpg" alt="Ricciola marinata agli agrumi" loading="lazy" width="720" height="900"><figcaption>Ricciola marinata agli agrumi</figcaption></figure>
+    <figure class="sp-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/03-polpo.jpg" alt="Polpo arrostito su crema di patate" loading="lazy" width="720" height="900"><figcaption>Polpo arrostito su crema di patate</figcaption></figure>
+    <figure class="sp-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/05-crespella-cernia.jpg" alt="Crespella di cernia gratinata con vongole veraci" loading="lazy" width="720" height="900"><figcaption>Crespella di cernia e vongole veraci</figcaption></figure>
+    <figure class="sp-foto"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/06-turbante-rombo.jpg" alt="Turbante di rombo con scarola" loading="lazy" width="720" height="900"><figcaption>Turbante di rombo e scarola</figcaption></figure>
+  </div>
+  <div class="sp-punti"></div>
+</div>
+<script>
+(function(){
+  var box=document.querySelector(".slide-piatti"); if(!box) return;
+  var bin=box.querySelector(".sp-binario"), foto=bin.querySelectorAll(".sp-foto"), punti=box.querySelector(".sp-punti");
+  var i=0, timer=null, fermo=false, calma=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  foto.forEach(function(_,k){var b=document.createElement("button");b.type="button";b.setAttribute("aria-label","Foto "+(k+1));b.onclick=function(){vai(k);ferma();};punti.appendChild(b);});
+  var bott=punti.querySelectorAll("button");
+  function segna(){bott.forEach(function(b,k){b.classList.toggle("on",k===i);});}
+  function vai(k){i=(k+foto.length)%foto.length;bin.scrollTo({left:bin.clientWidth*i,behavior:calma?"auto":"smooth"});segna();}
+  function parti(){if(calma||fermo)return;clearInterval(timer);timer=setInterval(function(){vai(i+1);},3500);}
+  function ferma(){fermo=true;clearInterval(timer);}
+  var t;bin.addEventListener("scroll",function(){clearTimeout(t);t=setTimeout(function(){i=Math.round(bin.scrollLeft/bin.clientWidth);segna();},80);},{passive:true});
+  bin.addEventListener("touchstart",ferma,{passive:true});bin.addEventListener("mousedown",ferma);
+  if("IntersectionObserver" in window){new IntersectionObserver(function(e){if(e[0].isIntersecting)parti();else clearInterval(timer);},{threshold:.4}).observe(bin);}else parti();
+  segna();
+})();
+</script>
+
 <div class="galleria-wrap"><p class="etichetta">Dalla cucina</p><h3 class="galleria-tit">Alcuni piatti della serata, da come nascono in cucina a come arrivano al tavolo</h3><div class="piatti-scorri"><figure class="scheda"><video src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/video/benvenuto.mp4" poster="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/video/benvenuto.jpg" autoplay muted loop playsinline preload="metadata" width="540" height="676" aria-label="Baccalà mantecato all’arancia, la preparazione in cucina"></video><figcaption>Baccalà mantecato all’arancia</figcaption></figure><figure class="scheda"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/02-ricciola.jpg" alt="Ricciola marinata agli agrumi" loading="lazy" width="720" height="900"><figcaption>Ricciola marinata agli agrumi</figcaption></figure><figure class="scheda"><video src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/video/antipasto.mp4" poster="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/video/antipasto.jpg" autoplay muted loop playsinline preload="metadata" width="540" height="676" aria-label="Polpo arrostito su crema di patate, la preparazione in cucina"></video><figcaption>Polpo arrostito su crema di patate</figcaption></figure><figure class="scheda"><video src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/video/primo.mp4" poster="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/video/primo.jpg" autoplay muted loop playsinline preload="metadata" width="540" height="676" aria-label="Mezzi paccheri zucca e mazzancolle, la preparazione in cucina"></video><figcaption>Mezzi paccheri zucca e mazzancolle</figcaption></figure><figure class="scheda"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/05-crespella-cernia.jpg" alt="Crespella di cernia e vongole veraci" loading="lazy" width="720" height="900"><figcaption>Crespella di cernia e vongole veraci</figcaption></figure><figure class="scheda"><img src="https://cuhcscpvhypoaplcmtjk.supabase.co/storage/v1/object/public/media-aziende/b331365f-17db-4dda-aa2f-77a09427fe42/capodanno-2026/piatti/06-turbante-rombo.jpg" alt="Turbante di rombo e scarola" loading="lazy" width="720" height="900"><figcaption>Turbante di rombo e scarola</figcaption></figure></div><p class="galleria-nota">Scorri per vederli tutti</p></div>
   </div>
 </section>
