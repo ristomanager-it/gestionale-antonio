@@ -298,7 +298,7 @@ footer{padding:30px 0 50px;text-align:center;font-size:13px;color:#7a6a55}
     if (asp >= 6) t += "• 1 × Prosecco Valdobbiadene DOCG — omaggio\n";
     t += "Totale: " + eur(tot) + "\nRitiro: " + ritiro + ", " + $("giorno").value + ", " + fascia + "\nNome: " + nome;
     var note = $("note").value.trim(); if (note) t += "\nNote: " + note;
-    try { rfEvento("Lead", { value: Math.round(tot), currency: "EUR" }, true); } catch (x) {}
+    try { rfEvento("Lead", { value: Math.round(tot), currency: "EUR", tipo: "ordine" }, true); } catch (x) {}
     location.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(t);
   };
   ridisegna();
