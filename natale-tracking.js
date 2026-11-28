@@ -35,7 +35,7 @@ function inv(tipo,el,val,ok){try{fetch(U,{method:"POST",keepalive:true,headers:{
 inv("view","sito_pagina");window.rfTraccia=inv;
 var sof=false;function soff(m){if(sof)return;sof=true;inv("click","soffermato",m);try{if(window.rfEvento)window.rfEvento("Soffermato",{pagina:nome,motivo:m});}catch(e){}}
 setTimeout(function(){if(document.visibilityState==="visible")soff("30s");},30000);
-var sg={};addEventListener("scroll",function(){var h=document.documentElement,t=h.scrollHeight-h.clientHeight;if(t<=0)return;var p=Math.round(100*h.scrollTop/t);[25,50,75,100].forEach(function(s){if(p>=s&&!sg[s]){sg[s]=1;inv("click","scroll_"+s);}});},{passive:true});
+var sg={};addEventListener("scroll",function(){var h=document.documentElement,t=h.scrollHeight-h.clientHeight;if(t<=0)return;var p=Math.round(100*h.scrollTop/t);[25,50,75,100].forEach(function(s){if(p>=s&&!sg[s]){sg[s]=1;inv("click","scroll_"+s);if(s===75)soff("scroll75");}});},{passive:true});
 var t0=Date.now(),fatto=false;function tempo(){if(fatto)return;var s=Math.round((Date.now()-t0)/1000);if(s<2)return;fatto=true;inv("click","tempo_pagina",String(s));}
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")tempo();});addEventListener("pagehide",tempo);
 document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a,button");if(!a)return;var h=a.getAttribute("href")||"",tx=(a.textContent||"").toLowerCase();if(h.indexOf("tel:")===0)inv("click","click_telefono",h);else if(h.indexOf("wa.me")>=0)inv("click","wame","whatsapp");else if(/maps/.test(h))inv("click","click_mappa");else if(/prenot|blocca/.test(h+" "+tx))inv("click","cta_prenota",(h||tx).slice(0,80));},true);
